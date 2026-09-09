@@ -32,7 +32,7 @@ on:
       - ".github/workflows/**"
 
 concurrency:
-  group: dofus-atlas-app-ci-${{ github.ref }}
+  group: dofus-atlas-public-app-ci-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
