@@ -213,7 +213,7 @@ class AtlasMetaIntegrityTests(unittest.TestCase):
             source = workflow.read_text(encoding="utf-8")
             marker = "- name: Run architecture guardrails"
             start = source.index(marker)
-            end = source.index("\n  identity-persistence:", start)
+            end = source.index("\n      - name: Run canonical identity and persistence contracts", start)
             weakened = source[start:end].replace(
                 "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }", "Write-Host 'ignored'"
             )
