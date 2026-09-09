@@ -30,34 +30,6 @@ on:
       - "DEVELOPMENT_GUARDRAILS.md"
       - "PERFORMANCE_GUARDRAILS.md"
       - ".github/workflows/**"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "app/**"
-      - "local_dofus_data/**"
-      - "data/encyclopedia/**"
-      - "data/cartography/**"
-      - "data/images/**"
-      - "data/routes/**"
-      - "data/dofus_atlas_world.db"
-      - "tools/**"
-      - "scripts/**"
-      - "config/**"
-      - "tests/**"
-      - "launch.py"
-      - "main.py"
-      - "sitecustomize.py"
-      - "requirements-pyside.txt"
-      - "Dofus_Atlas.bat"
-      - "Install_Dofus_Atlas.bat"
-      - "bootstrap_dofus_atlas.ps1"
-      - ".gitignore"
-      - ".gitattributes"
-      - "AGENTS.md"
-      - "DEVELOPMENT_GUARDRAILS.md"
-      - "PERFORMANCE_GUARDRAILS.md"
-      - ".github/workflows/**"
 
 concurrency:
   group: dofus-atlas-app-ci-${{ github.ref }}
