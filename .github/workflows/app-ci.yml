@@ -263,19 +263,60 @@ jobs:
           '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Run Atlas integrity FAST gate
+        run: |
+          $baseRef = "${{ github.event.before }}"
+          if ([string]::IsNullOrWhiteSpace($baseRef) -or $baseRef -match '^0+$') { $baseRef = "HEAD^" }
+          & py -3.13 -X faulthandler -m tools.atlas_integrity fast --base-ref $baseRef 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/04_integrity_fast.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run architecture guardrails
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_architecture_debt_baseline tests.test_clean_foundation_guardrails tests.test_project_guardrails
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run canonical identity and persistence contracts
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_character_identity_contract tests.test_character_identity_guardrails tests.test_character_identity_invariants tests.test_character_write_boundaries tests.test_progress_concurrent_instances tests.test_progress_cross_surface_reload tests.test_quest_progress_batch_contract
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run startup and lazy-loading contracts
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_launcher_fast_path tests.test_main_import_startup_boundary tests.test_main_startup_fast_path tests.test_main_startup_import_boundaries tests.test_startup_preflight tests.test_startup_preloader tests.test_startup_resource_contracts tests.test_encyclopedia_on_demand_loading tests.test_lazy_quests_page_performance
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run Qt lifecycle and non-accumulation contracts
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_atlas_window_runtime_cleanup tests.test_guide_home_async_images tests.test_organizer_shutdown_guard tests.test_qt_async_non_accumulation tests.test_quest_visuals_lot6 tests.test_runtime_async_startup tests.test_runtime_hook_lifecycle tests.test_world_scan_async_loading
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Enforce deterministic resource budgets
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_performance_budgets tests.test_startup_resource_contracts tests.test_lazy_quests_page_performance tests.test_qt_async_non_accumulation
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run Guide Quests Success Home golden flows
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_achievements_lot7 tests.test_guide_ultime_v5_runtime tests.test_guide_ultime_v5_ui tests.test_home_guide_ultime_source tests.test_quest_detail_navigation
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run representative lifecycle modules in one process
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_pyside_shell tests.test_guide_home_async_images tests.test_world_scan_async_loading tests.test_runtime_async_startup tests.test_atlas_window_runtime_cleanup tests.test_qt_async_non_accumulation
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Run full application test suite
         id: full_tests
         continue-on-error: true
         run: |
           $ErrorActionPreference = "Continue"
-          python -X faulthandler -m unittest discover -v -s tests -p "test_*.py" 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/04_full_unittest.log"
+          & py -3.13 -X faulthandler -m unittest discover -v -s tests -p "test_*.py" 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/05_full_unittest.log"
           $code = $LASTEXITCODE
           if ($null -eq $code) { $code = 0 }
           if ($code -ne 0) { exit $code }
 
       - name: Run canonical Guide and data integrity runner
         id: guide_data
-        continue-on-error: true
         run: |
           & .\tools\run_guide_ultime_ci.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -311,7 +352,7 @@ jobs:
           retention-days: 30
 
       - name: Fail full validation when a full check failed
-        if: always()
+        if: ${{ always() }}
         run: |
           $failures = @()
           if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
