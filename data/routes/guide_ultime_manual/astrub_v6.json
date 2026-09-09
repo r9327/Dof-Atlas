@@ -1,0 +1,225 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_astrub_v6",
+  "title": "Guide Ultime — Astrub — préparation et donjons structurés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "astrub_v5.json",
+  "stage_count": 16,
+  "stage_patches": {
+    "AST-00": {
+      "append": {
+        "preparation": [
+          {
+            "kamas": 300,
+            "for": "achats de préparation Astrub",
+            "policy": "Conserver au moins 300 kamas liquides pendant l'ouverture des premières boucles."
+          }
+        ]
+      }
+    },
+    "AST-01": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Lailait",
+            "quantity": 1,
+            "for": "Chacha Blues",
+            "acquisition_default": "Acheter pendant le passage taverne déjà obligatoire."
+          },
+          {
+            "name": "Goujon",
+            "quantity": 1,
+            "for": "Chacha Blues",
+            "acquisition_default": "HDV ou pêche opportuniste; aucun détour dédié."
+          }
+        ]
+      }
+    },
+    "AST-03": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Arme de chasse",
+            "quantity": 1,
+            "for": "Crise sanitaire",
+            "policy": "Acheter et équiper avant la future boucle Forêt/Lac/Champs."
+          }
+        ]
+      }
+    },
+    "AST-05": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Eau potable",
+            "quantity": 8,
+            "for": "Qui sème le vent récolte l'Artempeth",
+            "policy": "Préparer avant l'arrosage de la boucle Forêt/Champs."
+          },
+          {
+            "name": "Ortie",
+            "quantity": 3,
+            "for": "préparation des quêtes Astrub tardives",
+            "policy": "Récolter en passant pendant Crise sanitaire/Forêt et conserver."
+          },
+          {
+            "name": "Sauge",
+            "quantity": 3,
+            "for": "préparation des quêtes Astrub tardives",
+            "policy": "Récolter en passant ou acheter; conserver jusqu'à l'usage."
+          },
+          {
+            "name": "Trèfle à 5 feuilles",
+            "quantity": 3,
+            "for": "préparation des quêtes Astrub tardives",
+            "policy": "Récolter en passant ou acheter; conserver jusqu'à l'usage."
+          },
+          {
+            "name": "Fleur de Pissenlit Diabolique",
+            "quantity": 1,
+            "for": "préparation des quêtes Astrub tardives",
+            "policy": "Garder depuis les combats des Champs si obtenue, sinon compléter avant l'usage."
+          },
+          {
+            "name": "Pétale de Rose Démoniaque",
+            "quantity": 1,
+            "for": "préparation des quêtes Astrub tardives",
+            "policy": "Garder depuis les combats des Champs si obtenu, sinon compléter avant l'usage."
+          },
+          {
+            "name": "Pétale de Tournesol Sauvage",
+            "quantity": 1,
+            "for": "préparation des quêtes Astrub tardives",
+            "policy": "Garder depuis les combats des Champs si obtenu, sinon compléter avant l'usage."
+          },
+          {
+            "name": "Langue d'Épouvanteur",
+            "quantity": 1,
+            "for": "préparation des quêtes Astrub tardives",
+            "policy": "Garder depuis les combats des Champs si obtenue, sinon compléter avant l'usage."
+          }
+        ]
+      }
+    },
+    "AST-06": {
+      "replace": {
+        "dungeon": {
+          "name": "Grange du Tournesol Affamé",
+          "pass": "single_optimized_pass"
+        }
+      }
+    },
+    "AST-07": {
+      "replace": {
+        "dungeon": {
+          "name": "Château Ensablé",
+          "pass": "single_optimized_pass"
+        }
+      }
+    },
+    "AST-09": {
+      "replace": {
+        "dungeon": {
+          "name": "Donjon Bouftou",
+          "pass": "single_optimized_pass"
+        }
+      }
+    },
+    "AST-10": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Fer",
+            "quantity": 5,
+            "for": "préparation souterraine Astrub",
+            "acquisition_default": "HDV si non possédé; aucun détour de mine uniquement pour ces 5 unités."
+          }
+        ]
+      }
+    },
+    "AST-12": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Ferrite",
+            "quantity": 1,
+            "for": "Golémancien",
+            "acquisition_default": "HDV ou craft opportuniste avant la boucle artisans."
+          },
+          {
+            "name": "Serviette de Plage",
+            "quantity": 1,
+            "for": "Golémancien",
+            "policy": "Préparer avant la boucle artisans."
+          },
+          {
+            "name": "Cuir de Scélérat Strubien",
+            "quantity": 1,
+            "for": "Golémancien",
+            "policy": "Préparer avant la boucle artisans."
+          },
+          {
+            "name": "Planche Contreplaquée",
+            "quantity": 1,
+            "for": "Golémancien",
+            "policy": "Préparer avant la boucle artisans."
+          }
+        ]
+      }
+    },
+    "AST-13": {
+      "append": {
+        "monsters": [
+          {
+            "name": "Milimulou",
+            "quantity": 5,
+            "for": "Bûcherons en détresse",
+            "policy": "Compter uniquement les 5 combats déjà demandés pendant la boucle Forêt."
+          }
+        ]
+      }
+    },
+    "AST-14": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Poudre de Perlinpainpain",
+            "quantity": 3,
+            "for": "préparation Cimetière Astrub",
+            "acquisition_default": "Garder si déjà obtenue, sinon HDV avant le Cimetière."
+          },
+          {
+            "name": "Huile de Sésame",
+            "quantity": 2,
+            "for": "préparation Cimetière Astrub",
+            "acquisition_default": "HDV si non obtenue naturellement."
+          }
+        ]
+      }
+    },
+    "AST-15": {
+      "append": {
+        "bank_items": [
+          {
+            "name": "Baguette Rikiki",
+            "quantity": 1,
+            "for": "Vilinsekts + Cache de Kankreblath",
+            "policy": "Sortir pour les accès Rikiki puis remettre en banque avant de quitter Astrub."
+          }
+        ]
+      },
+      "replace": {
+        "dungeon": {
+          "name": "Cache de Kankreblath",
+          "pass": "single_optimized_pass_if_quest_active"
+        }
+      }
+    }
+  },
+  "validation_notes": [
+    "Les quantités proviennent exclusivement du resource_plan d'astrub_v1 et des actions déjà présentes dans la route résolue.",
+    "Les quatre donjons structurés correspondent aux dungeon_threads et passages déjà écrits; aucun donjon supplémentaire n'est ajouté.",
+    "Le farm Milimulou 5/5 est déjà explicitement demandé dans la boucle AST-13.",
+    "Les succès de donjon ne sont pas inventés dans cette surcouche; ils sont destinés à être résolus depuis le catalogue Succès Atlas."
+  ]
+}

@@ -1,0 +1,403 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_level_120_150_v1",
+  "title": "Guide Ultime — Niveau 120 à 150 manuel optimisé",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "depends_on": ["level_100_120_v2.json", "bonta_1_70_v6.json", "temporal_registry_v4.json"],
+  "stage_count": 22,
+  "micro_walkthrough_source": "QuestProvider + source_solution_steps enrichis",
+  "core_strategy": "Utiliser la fenêtre réelle du vaccin Frigost pour fermer Pourpre, Tour du Monde, Pandala, Bonta et Tynril; ne revenir au Royalmouth qu'une seconde fois quand Porte + Monarchie + Le pouvoir derrière le trône + Le mal a dit peuvent être mutualisés.",
+  "rules": [
+    "Le premier Royalmouth sert Antiroyaliste + Des donjons, encore des donjons et les succès compatibles. Porte, Royalmouth, trésor et Monarchie absolue n'existent qu'après ce passage et ne peuvent donc pas être fusionnés au premier.",
+    "Le second Royalmouth est différé jusqu'à quatre fils simultanés: Porte, Royalmouth, trésor + Monarchie absolue + Le pouvoir derrière le trône + Le mal a dit. Si le vaccin n'a pas encore expiré, la route continue au lieu d'attendre.",
+    "Le rendez-vous des Monologues du vaccin et l'expiration sept jours plus tard sont deux timers distincts; leurs heures réelles sont conservées dans le fil temporel.",
+    "Le Minotoror n'est fait qu'avec Taures et détours + Des donjons, encore des donjons + capture Ocre. Avant de sortir, cliquer le trône et obtenir Le trésor de Totankama; enregistrer également l'accès/sauvegarde Minotot.",
+    "Le Ring du Capitaine Ekarlatte n'est fait qu'avec L'anneau de Tot + Un ring pour les gouverner tous. Les deux dialogues post-boss sont obligatoires avant la sortie.",
+    "Le Blop Multicolore est un rerun causalement inévitable pour Il faut battre le lait quand il est chaud car cette quête n'est ouverte qu'après Taures et détours; ne pas refaire les captures Ocre déjà validées.",
+    "Le Tofu Royal attend Des donjons, encore des donjons + Comment perdre ses plumes + Ocre. Crocabulia attend Des donjons + Ocre; Le forgeur de légende n'est pas encore disponible et son futur retour Crocabulia est donc causal.",
+    "Après Crocabulia, La voie du guerrier impose strictement Skeunk -> Tanukouï San -> Founoroshi -> Chêne Mou -> Minotot -> Bworker.",
+    "Skeunk attend L'épée du rocher; récupérer Kaliptus, capture Ocre et tout objet/dialogue post-boss avant sortie.",
+    "Tanukouï San attend Bonta55 + Au nom de l'Art + La voie du guerrier + Ocre.",
+    "Founoroshi attend Le festival de la lanterne lorsque son vrai prérequis est satisfait. La bénédiction de Viti n'est greffée que si la chaîne La méchante sorcière de l'Est a réellement atteint ce point; sinon elle reste un futur rerun explicite.",
+    "Le Chêne Mou attend La voie du guerrier + L'art de la langue de bois + Ocre et, uniquement pour Esprit Salvateur, Apprentissage : Adepte des Écrits. Convoi humanitaire n'est pas attendu: ses prérequis Frigost sont beaucoup plus tardifs.",
+    "Tour de passe-passe est active avant le Laboratoire du Tynril. Si La bénédiction de Viti est réellement active, son altération Tynril est ajoutée au même passage; sinon ne pas inventer son prérequis.",
+    "Bonta65 attend Tour de rein afin de faire Sphincter Cell une seule fois pour Bandanarthrie + Tour de rein + Ocre. Le Forgerons demandé ensuite par Bandanarthrie est un rerun causal.",
+    "Bonta70 attend Chachyène de vie afin de faire Kanigroula une seule fois; Kanigroula n'est pas une capture Ocre actuelle.",
+    "Chaque disponibilité Pandawushu est vérifiée entre les étapes. Si un grade 24 h est disponible et attendre la prochaine boucle ferait perdre un cycle, un court retour dojo devient prioritaire.",
+    "Aucune étape macro ne bloque sur un repop de ressource/avis/archimonstre: enregistrer le rattrapage et continuer."
+  ],
+  "global_preparation": [
+    {"name":"Pierres d'âme boss","minimum_power":150,"quantity":8,"for":["Royalmouth si capture utile hors Ocre","Minotoror","Tofu Royal","Crocabulia","Skeunk","Tanukouï San","Founoroshi","Chêne Mou","Tynril/Sphincter selon disponibilité"],"policy":"N'en consommer pour l'Ocre que sur un boss présent dans ocre_capture_registry_v1.json."},
+    {"name":"Tête de mort","quantity":1,"for":"L'anneau de Tot"},
+    {"name":"Clef du Ring du Capitaine Ekarlatte","quantity":1,"note":"Le trousseau ne fonctionne pas dans ce donjon."},
+    {"name":"Tige de Bambouto","quantity":1,"for":"Regrets d'éternailes"},
+    {"name":"Tablette de Totankama","quantity":1,"policy":"La construire avec les morceaux/trésors archéologiques; utiliser les boss 120-130 croisés par la route pour réduire les chasses quotidiennes quand le jeu les crédite."},
+    {"name":"Panoplie Koalak complète","quantity":1,"optional":true,"for":"familier Koalak Sanguin au Skeunk seulement si souhaité; ne pas bloquer le guide."},
+    {"name":"Boomerangs Koalak","optional":true,"for":"Boomerang Perfide au Skeunk; ne pas créer de farm dédié si le sort n'est pas un objectif immédiat."},
+    {"name":"Ressources idoles Viti","conditional":true,"for":"La bénédiction de Viti","policy":"Préparer seulement si la quête est réellement débloquée avant Founoroshi/Tynril/Mansot; sinon aucun achat spéculatif."},
+    {"requirement":"Suivre les ressources/gates Bonta51-70 depuis bonta_1_70_v6.json AVANT chaque campagne concernée."}
+  ],
+  "temporal_hooks": [
+    {"registry_id":"frigost_vaccine_appointment","action":"Choisir et enregistrer le rendez-vous des Monologues sans perturber la route."},
+    {"registry_id":"frigost_vaccine_expiry_gate","action":"Conserver l'heure exacte d'expiration +7 jours; Le mal a dit reste verrouillée jusque-là."},
+    {"registry_id":"frigost_hiques_respawn","action":"Si Racines Hiques absentes, ne jamais attendre sur place."},
+    {"registry_id":"pandawushu_grade_chain","action":"Réinjecter tout grade disponible sans perdre un cycle de 24 h."},
+    {"registry_id":"pandala_presence_esprits_initiative","action":"Si l'objectif Esprit d'initiative est réellement débloqué et sa fenêtre ouverte, le traiter avant de quitter Pandala."}
+  ],
+  "stages": [
+    {
+      "id":"L120-00",
+      "title":"Niveau 120 — fermer l'Émeraude et préparer Frigost sans temps mort",
+      "level":"120+ réel",
+      "duration_min":70,
+      "quests":["Ultime réminiscence","La terre banquise","Bienvenue à Frigost","Les monologues du vaccin"],
+      "route":[
+        {"pos":"[-6,-3] Marais","do":"Si Ultime réminiscence est disponible, la terminer maintenant afin de fermer le Dofus Émeraude avant d'empiler les nouveaux fils. Si un critère local manque, le conserver explicitement plutôt que forcer le niveau."},
+        {"pos":"[-34,-16] Baie de Cania -> Frigost","do":"Prendre le bateau et faire La terre banquise lors du trajet si elle n'est pas déjà terminée."},
+        {"pos":"[-78,-41] Frigost","do":"Mémoriser le zaap. Prendre les avis de recherche de niveau accessible à la milice; ils sont opportunistes et ne bloquent jamais une étape."},
+        {"pos":"Bourgade","do":"Ouvrir Bienvenue à Frigost et ses quatre fils La terre banquise / La maire de glace / Full Contact / Les monologues du vaccin. Avancer les trois fils hors timer dans la même boucle de Bourgade."},
+        {"pos":"[-77,-38] Taverne","do":"Dans Les monologues du vaccin, atteindre le point de rendez-vous puis CHOISIR une tranche horaire compatible avec la session actuelle ou la prochaine reprise. Enregistrer la tranche dans le fil temporel; ne pas changer ensuite sans nécessité."}
+      ],
+      "hard_exit":["Rendez-vous Monologues enregistré","Bienvenue à Frigost avancée au maximum hors rendez-vous","Émeraude terminé ou blocker exact visible","Aucun temps d'attente passé devant le PNJ"],
+      "pause":["Point de reprise Frigost Bourgade","Timer rendez-vous visible"]
+    },
+    {
+      "id":"L120-01",
+      "title":"Monologues — obtenir le vaccin temporaire et démarrer les 7 jours",
+      "level":"120+ / fenêtre rendez-vous ouverte",
+      "duration_min":100,
+      "quests":["Les monologues du vaccin","Épis d'Emi","Bienvenue à Frigost"],
+      "route":[
+        {"pos":"[-77,-38] rendez-vous","do":"Revenir UNIQUEMENT lorsque la tranche choisie est ouverte. Faire le rendez-vous et la suite des Monologues via le walkthrough local jusqu'à obtenir le Vaccin contre le rube temporaire."},
+        {"pos":"runtime timer","do":"À l'instant exact d'obtention, enregistrer expiration = +7 jours. Ce timer ne doit jamais être estimé depuis le début du chapitre."},
+        {"pos":"Frigost/Bourgade","do":"Prendre et avancer Épis d'Emi immédiatement; en parallèle fermer les reliquats de Bienvenue à Frigost et les quêtes qui bloquent les dialogues futurs de Le mal a dit lorsque déjà accessibles."}
+      ],
+      "hard_exit":["Vaccin temporaire obtenu","Heure exacte +7 jours enregistrée","Épis d'Emi active ou terminée","Route principale reprend immédiatement"],
+      "pause":["Timer vaccin 7 jours actif","Prochain: premier Royalmouth"]
+    },
+    {
+      "id":"L120-02",
+      "title":"Royalmouth PASS 1 — ouvrir tous les fils impossibles avant le premier boss",
+      "level":"120+",
+      "duration_min":55,
+      "quests":["Antiroyaliste","Des donjons, encore des donjons"],
+      "route":[
+        {"pos":"[-84,-49] Serre du Royalmouth","do":"Vérifier Des donjons, encore des donjons sur Royalmouth. Entrer; Antiroyaliste se lance selon le fonctionnement du donjon. Faire tous les succès compatibles et vaincre Royalmouth."},
+        {"pos":"sortie Serre","do":"Fermer Antiroyaliste. Ne pas refaire immédiatement le donjon."},
+        {"pos":"[-84,-49]","do":"Prendre Porte, Royalmouth, trésor maintenant qu'Antiroyaliste est terminé."},
+        {"pos":"[-76,-46] Bourgade","do":"Prendre Monarchie absolue côté Bonta maintenant que son prérequis Antiroyaliste est terminé."},
+        {"pos":"[-19,30] Kal Vissi","do":"Rendre l'objectif Royalmouth de Des donjons, encore des donjons et prendre l'objectif Minotoror."}
+      ],
+      "hard_exit":["Premier Royalmouth fait exactement une fois","Porte Royalmouth active","Monarchie absolue active","Des donjons pointe Minotoror","Second Royalmouth INTERDIT pour l'instant"],
+      "pause":["Royalmouth pass1 fermé","Pourpre/Minotoror prioritaire pendant timer vaccin"]
+    },
+    {
+      "id":"L120-03",
+      "title":"Minotoror — Pourpre + Tour du Monde + Ocre + sauvegarde Minotot",
+      "level":"120-130",
+      "duration_min":90,
+      "quests":["Taures et détours","Des donjons, encore des donjons"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Minotoror Ocre"}],
+      "route":[
+        {"pos":"[-42,-17] Labyrinthe du Minotoror","do":"Entrer seulement avec Taures et détours + Des donjons, encore des donjons actifs. Obtenir les reliques du Déminoboule/Minotoror selon le fonctionnement du labyrinthe et atteindre le boss."},
+        {"pos":"Minotoror","do":"Faire les succès compatibles, vaincre et capturer Minotoror puissance150 pour l'Ocre."},
+        {"pos":"après boss","do":"AVANT toute sortie, cliquer le trône de pierre comme l'exige Taures et détours, parler au Minotot et prendre Le trésor de Totankama. Entrer/ouvrir également la salle Minotot afin de conserver la sauvegarde utile pour La voie du guerrier."},
+        {"pos":"[-19,30]","do":"Rendre l'étape de Des donjons à Kal Vissi; Tofu Royal devient la prochaine cible."}
+      ],
+      "hard_exit":["Minotoror capturé Ocre","Le trésor de Totankama active","Accès/sauvegarde Minotot sécurisé","Des donjons pointe Tofu Royal"],
+      "pause":["Pourpre ouvert sur ses trois composants","Ne pas aller Minotot maintenant"]
+    },
+    {
+      "id":"L120-04",
+      "title":"Totankama — ouvrir les trois composants et préparer Srambad",
+      "level":"130+ ou critères locaux",
+      "duration_min":95,
+      "quests":["Le trésor de Totankama","Regrets d'éternailes","L'anneau de Tot","Il faut battre le lait quand il est chaud","Ça katche ou ça casse","Fanfouille","La seinoise","Ça se katche"],
+      "route":[
+        {"pos":"[-6,-3] Mériana","do":"Avancer Le trésor de Totankama jusqu'à la demande Perle de lait doré + Poudre d'éternaile + Anneau de Tot + Tablette de Totankama."},
+        {"pos":"[-42,-17] Refuge","do":"Prendre Regrets d'éternailes et Il faut battre le lait quand il est chaud; avancer leurs objectifs hors donjon. Ne pas entrer au Blop Multicolore avant que sa quête le demande réellement."},
+        {"pos":"[3,-17] Astrub","do":"Prendre L'anneau de Tot à Kerubim et avancer jusqu'au trafic Srambad."},
+        {"pos":"Srambad","do":"Avant le Ring, exécuter la chaîne du succès Sauvé par le gong jusqu'à Ça se katche afin de débloquer Un ring pour les gouverner tous. Le walkthrough local gère les combats et dialogues; l'objectif est que la quête Ring soit active AVANT Ekarlatte."},
+        {"pos":"Malle aux trésors","do":"Si la Tablette n'est pas complète, utiliser les Trésors archéologiques déjà gagnés par la route/boss 120-130 puis seulement les chasses quotidiennes manquantes. Ne pas attendre plusieurs jours si les boss du chapitre peuvent encore fournir la monnaie."}
+      ],
+      "hard_exit":["L'anneau de Tot pointe Ring","Un ring pour les gouverner tous active","Il faut battre le lait pointe Blop Multi ou ses derniers objectifs hors donjon","Regrets avancée","Tablette Totankama suivie sans grind aveugle"],
+      "pause":["Ring Ekarlatte prêt avec deux quêtes"]
+    },
+    {
+      "id":"L120-05",
+      "title":"Ring Ekarlatte — Pourpre + succès Srambad en un passage",
+      "level":"130+",
+      "duration_min":70,
+      "quests":["L'anneau de Tot","Un ring pour les gouverner tous"],
+      "preparation":[{"name":"Clef du Ring du Capitaine Ekarlatte","quantity":1},{"name":"Tête de mort","quantity":1}],
+      "route":[
+        {"pos":"Srambad [6,3]","do":"Entrer avec L'anneau de Tot ET Un ring pour les gouverner tous actives. Le trousseau ne fonctionne pas: posséder la vraie clef avant le déplacement."},
+        {"pos":"Capitaine Ekarlatte","do":"Faire les succès compatibles et vaincre le boss. Ce donjon ne se capture pas; aucune pierre Ocre."},
+        {"pos":"après boss","do":"AVANT DE SORTIR: demander l'Anneau de Tot au Capitaine pour la quête Pourpre ET l'interroger sur les Voyageurs pour Un ring pour les gouverner tous."},
+        {"pos":"Srambad / Astrub","do":"Fermer Un ring pour les gouverner tous auprès de Kathy Brennan et conserver l'Anneau de Tot comme objet de quête pour Totankama."}
+      ],
+      "hard_exit":["Un seul Ring pour les deux quêtes","Anneau de Tot obtenu","Un ring pour les gouverner tous terminé","Aucun dialogue post-boss oublié"],
+      "pause":["Composant Anneau de Tot sécurisé"]
+    },
+    {
+      "id":"L120-06",
+      "title":"Blop Multicolore causal — Perle de lait + éventuels succès manqués",
+      "level":"130+",
+      "duration_min":45,
+      "quests":["Il faut battre le lait quand il est chaud"],
+      "route":[
+        {"pos":"Antre du Blop Multicolore Royal [-7,-43]","do":"Faire ce retour uniquement parce que Il faut battre le lait quand il est chaud n'était pas disponible lors du précédent passage. Vaincre le Blop Multicolore et récupérer l'élément demandé; refaire seulement les succès réellement manqués."},
+        {"pos":"Refuge des cent détours","do":"Faire la préparation de la Perle de lait doré en suivant exactement le walkthrough; éviter toute mauvaise réponse pouvant provoquer une attente documentaire d'environ 10 minutes."}
+      ],
+      "hard_exit":["Perle de lait doré obtenue","Rerun Blop documenté causal","Aucune capture Ocre déjà validée répétée"],
+      "pause":["Totankama attend Poudre/Tablette si manquantes"]
+    },
+    {
+      "id":"L120-07",
+      "title":"Tofu Royal — Tour du Monde + Pourpre + Ocre en un passage",
+      "level":"120-130",
+      "duration_min":60,
+      "quests":["Des donjons, encore des donjons","Comment perdre ses plumes"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Tofu Royal Ocre"}],
+      "route":[
+        {"pos":"[5,6] Tofulailler Royal","do":"Ne pas entrer tant que Comment perdre ses plumes n'est pas au bon objectif. Faire le donjon avec Des donjons + Comment perdre actives, succès compatibles, puis capturer Tofu Royal puissance150 pour Ocre."},
+        {"pos":"[-6,-3] Mériana","do":"Fermer Comment perdre ses plumes avec les trois œufs. Débloquer la Chasse au trésor archéologique et utiliser les trésors/boss restants uniquement pour compléter la Tablette de Totankama."},
+        {"pos":"[-19,30] Kal Vissi","do":"Rendre Tofu Royal; Des donjons pointe Crocabulia."}
+      ],
+      "hard_exit":["Tofu Royal capturé Ocre","Comment perdre ses plumes terminée","Des donjons pointe Crocabulia","Tablette Totankama accélérable par boss/chasses"]
+    },
+    {
+      "id":"L120-08",
+      "title":"Crocabulia — fermer Des donjons et ouvrir La voie du guerrier",
+      "level":"120-140",
+      "duration_min":55,
+      "quests":["Des donjons, encore des donjons"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Crocabulia Ocre"}],
+      "route":[
+        {"pos":"[-2,25] Antre de Crocabulia","do":"Faire Des donjons + succès compatibles + capture Ocre puissance150. Le forgeur de légende n'est PAS encore débloquée à ce stade; ne pas retarder cette étape pour elle."},
+        {"pos":"[-19,30] -> [-6,-37]","do":"Rendre Des donjons à Kal Vissi puis au Maître des clefs et prendre immédiatement La voie du guerrier."}
+      ],
+      "hard_exit":["Crocabulia capturée Ocre","Des donjons, encore des donjons terminée","La voie du guerrier active sur Skeunk","Futur retour Crocabulia pour Le forgeur de légende marqué CAUSAL"],
+      "pause":["Tour du Monde = Skeunk"]
+    },
+    {
+      "id":"L120-09",
+      "title":"Skeunk — Tour du Monde + Ébène + Ocre + Kaliptus",
+      "level":"130-140",
+      "duration_min":120,
+      "quests":["La voie du guerrier","L'épée du rocher"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Skeunk Ocre"}],
+      "route":[
+        {"pos":"avant Morh'Kitu","do":"Vérifier L'épée du rocher active et au bon objectif Skeunk. Si elle ne l'est pas, avancer sa chaîne Ébène avant le long chemin; ne pas faire Skeunk pour La voie seule."},
+        {"pos":"[-20,10] Repaire de Skeunk","do":"Traverser le donjon, faire les succès compatibles, vaincre Skeunk et capturer puissance150 Ocre."},
+        {"pos":"sortie boss","do":"AVANT DE SORTIR: faire les dialogues/objets de L'épée du rocher, échanger les broches et récupérer le Dofus Kaliptus. Boomerang Perfide/familier Koalak sont optionnels et ne bloquent pas l'étape."},
+        {"pos":"Maître des clefs","do":"La voie du guerrier pointe maintenant Tanukouï San; ne pas y aller avant Bonta55 + Au nom de l'Art."}
+      ],
+      "hard_exit":["Skeunk capturé Ocre","Dofus Kaliptus obtenu","L'épée du rocher avancée/fermée selon son walkthrough","La voie pointe Tanukouï"],
+      "pause":["Tanukouï volontairement synchronisé avec Bonta55"]
+    },
+    {
+      "id":"L120-10",
+      "title":"Bonta 51-54 — préparer le verrou Tanukouï",
+      "level":"gates locales",
+      "duration_min":190,
+      "transversal":"BNT-22 from bonta_1_70_v6.json",
+      "route":[
+        {"pos":"Bonta/Amakna/Cania","do":"Exécuter BNT-22 rangs51-54 avec toutes les ressources/gates préparées. La tactique des gens d'armes devient disponible mais reste volontairement suspendue."}
+      ],
+      "hard_exit":["Bonta54 terminé","Au nom de l'Art active depuis Damadrya","La voie du guerrier pointe Tanukouï","Bonta55 disponible"],
+      "pause":["Trois fils prêts Tanukouï"]
+    },
+    {
+      "id":"L120-11",
+      "title":"Tanukouï San — Bonta55 + Domakuro + Tour du Monde + Ocre",
+      "level":"130+ / Bonta54",
+      "duration_min":90,
+      "transversal":"BNT-23 from bonta_1_70_v6.json",
+      "quests":["La tactique des gens d'armes","Au nom de l'Art","La voie du guerrier"],
+      "route":[
+        {"pos":"[26,-24] Atelier du Tanukouï San","do":"Exécuter BNT-23 seulement lorsque les trois quêtes sont au bon objectif. Faire les succès compatibles, capturer Tanukouï San puissance150 pour Ocre et tous les dialogues post-boss avant sortie."}
+      ],
+      "hard_exit":["Un seul Tanukouï pour quatre fils","Bonta55 terminé","La voie pointe Founoroshi","Au nom de l'Art fermée/suite Domakuro active","Tanukouï capturé Ocre"],
+      "pause":["Pandala feu à préparer"]
+    },
+    {
+      "id":"L120-12",
+      "title":"Bonta 56-60 + troisième rang du même Ordre",
+      "level":"gates locales jusqu'à 140 environ",
+      "duration_min":320,
+      "transversal":"BNT-24 + BNT-25 from bonta_1_70_v6.json",
+      "route":[
+        {"pos":"Bonta/Cania/Brâkmar","do":"Exécuter BNT-24 puis BNT-25 avec les gates sociaux/métiers annoncés AVANT déplacement. Ne jamais recruter les assistants après arrivée sur les dalles."},
+        {"pos":"Tour des ordres","do":"À Bonta60, exécuter exactement l'option bonta_order_rank60_v1 correspondant au même Ordre choisi aux rangs20/40. Si Esprit Salvateur, prendre/avancer Adepte des Écrits puis SUSPENDRE son Chêne Mou pour L120-14."}
+      ],
+      "hard_exit":["Bonta60 terminé","Même Ordre conservé","Option Ordre60 faite ou, pour Esprit, arrivée au point Chêne Mou explicitement suspendue","Bonta61 disponible"],
+      "pause":["Alignement60","Chêne futur correctement branché"]
+    },
+    {
+      "id":"L120-13",
+      "title":"Founoroshi — Tour du Monde + festival Pandala + Ocre",
+      "level":"140+ ou critères locaux",
+      "duration_min":105,
+      "quests":["La voie du guerrier","Le festival de la lanterne"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Founoroshi Ocre"}],
+      "route":[
+        {"pos":"Pandala","do":"Avancer Le festival de la lanterne jusqu'au boss avant d'entrer. Si La bénédiction de Viti est réellement débloquée, fabriquer son Idole de Viti Roussie et l'ajouter; sinon ne pas retarder le donjon uniquement pour un prérequis futur."},
+        {"pos":"[14,-32] Fabrique de foux d'artifice","do":"Entrer avec La voie du guerrier + Le festival de la lanterne. Faire les succès compatibles, vaincre Founoroshi, capturer puissance150 Ocre et parler au boss après combat pour le festival. Si Viti active, utiliser l'idole dans la salle finale AVANT le combat."},
+        {"pos":"Pandala","do":"Fermer Le festival de la lanterne et prendre immédiatement L'équilibre des forces. La voie du guerrier pointe Chêne Mou."}
+      ],
+      "hard_exit":["Founoroshi capturé Ocre","Le festival de la lanterne terminé","L'équilibre des forces active","La voie pointe Chêne Mou","État Viti explicite, jamais supposé"],
+      "pause":["Chêne Mou prochain gros pivot"]
+    },
+    {
+      "id":"L120-14",
+      "title":"Chêne Mou — Tour du Monde + Silvosse + Ocre + Ordre60 Esprit conditionnel",
+      "level":"140+",
+      "duration_min":80,
+      "quests":["La voie du guerrier","L'art de la langue de bois","conditional:Apprentissage : Adepte des Écrits si persisted_bonta_order=esprit salvateur"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Chêne Mou Ocre"}],
+      "route":[
+        {"pos":"avant Clairière","do":"Vérifier L'art de la langue de bois au bon objectif Chêne Mou. Si Ordre Esprit Salvateur, vérifier Eni Hoube recruté via Adepte des Écrits. Les autres Ordres n'affichent aucune action d'Adepte."},
+        {"pos":"[-14,-13] Clairière du Chêne Mou","do":"Faire un seul Chêne Mou pour La voie + L'art + Ocre + Adepte conditionnel. Faire les succès compatibles et capturer puissance150 Ocre."},
+        {"pos":"après boss","do":"Parler au Chêne Mou APRÈS sa défaite pour L'art de la langue de bois avant de sortir. Pour Esprit, effectuer aussi toutes les actions d'Eni Hoube prévues par la quête d'Ordre."},
+        {"pos":"rendus","do":"Fermer L'art de la langue de bois et le palier d'Ordre Esprit si sélectionné. La voie du guerrier pointe désormais Minotot."}
+      ],
+      "hard_exit":["Chêne Mou fait une seule fois pour tous les fils réellement disponibles","Chêne Mou capturé Ocre","Dialogue Silvosse post-boss effectué","Aucun Convoi humanitaire artificiellement attendu","La voie pointe Minotot"],
+      "pause":["Minotot futur; sauvegarde déjà préparée"]
+    },
+    {
+      "id":"L120-15",
+      "title":"Tynril — Tornade des donjons + Ocre + Viti conditionnel",
+      "level":"140+",
+      "duration_min":65,
+      "quests":["Tour de passe-passe","conditional:La bénédiction de Viti si active"],
+      "route":[
+        {"pos":"[16,27] Sufokia","do":"Prendre Tour de passe-passe si pas déjà active. Ne pas aller au Tynril sans cette quête."},
+        {"pos":"[-53,20] Laboratoire du Tynril","do":"Faire le donjon, tous les succès compatibles et sécuriser la capture Ocre du groupe Tynril avec une pierre puissance150 minimum. La remise Ocre détaillée des quatre Tynrils reste gouvernée par le registre/runtime, pas par une validation inventée."},
+        {"pos":"salle finale","do":"Si La bénédiction de Viti est active ET l'Idole de Viti Végétale a été craftée, activer son altération avant le combat. Sinon aucun faux objectif Viti."},
+        {"pos":"[16,27]","do":"Rendre Tour de passe-passe et prendre immédiatement Tour de rein."}
+      ],
+      "hard_exit":["Tour de rein active","Capture Tynril sécurisée pour Ocre","État Viti explicite","Aucun second Tynril prévu sans nouveau prérequis causal"],
+      "pause":["Sphincter maintenant synchronisable avec Bonta65"]
+    },
+    {
+      "id":"L120-16",
+      "title":"Bonta 61-64 — campagne Corne Edfrit sans allers-retours",
+      "level":"gates locales",
+      "duration_min":170,
+      "transversal":"BNT-26 from bonta_1_70_v6.json",
+      "route":[
+        {"pos":"Bonta/Moon/Wabbit","do":"Exécuter BNT-26 avec Fourbacoiffe, Gloutoburg, Salace de poissons et Corde d'escalade préparés avant le départ. Ne pas quitter Moon entre rang62 et63 pour aller acheter les ingrédients manquants."}
+      ],
+      "hard_exit":["Bonta64 terminé","Bandanarthrie active","Tour de rein active","Sphincter prêt pour fusion"],
+      "pause":["Sphincter prochain"]
+    },
+    {
+      "id":"L120-17",
+      "title":"Sphincter Cell — Bonta65 + Tour de rein + Ocre puis Forgerons causal",
+      "level":"140+ / Bonta64",
+      "duration_min":105,
+      "transversal":"BNT-27 from bonta_1_70_v6.json",
+      "quests":["Bandanarthrie","Tour de rein"],
+      "route":[
+        {"pos":"[5,-8] Repaire de Sphincter Cell","do":"Exécuter BNT-27: les deux quêtes actives avant l'entrée, succès compatibles, Sphincter capturé puissance150 Ocre, Bandana Troué récupéré."},
+        {"pos":"[16,27]","do":"Rendre Tour de rein et prendre Tour de main pour Kimbo."},
+        {"pos":"Donjon des Forgerons","do":"Faire uniquement le rerun causal demandé APRÈS Sphincter par Bandanarthrie. Ne refaire que les succès encore manquants."}
+      ],
+      "hard_exit":["Bonta65 terminé","Tour de main active","Sphincter capturé Ocre","Forgerons causal documenté"],
+      "pause":["Kimbo ouvert pour futur chapitre"]
+    },
+    {
+      "id":"L120-18",
+      "title":"Bonta 66-69 — fermer la Corne Edfrit et préparer Kanigroula",
+      "level":"gates locales",
+      "duration_min":145,
+      "transversal":"BNT-28 from bonta_1_70_v6.json",
+      "route":[
+        {"pos":"Bonta/Brâkmar/Moon/Astrub","do":"Exécuter BNT-28. Fourbacoiffe/Gloutoburg prêts avant Moon; deux assistants + ressources rang69 réunis avant Mage Ax; Blague de Soufre déposée avant la manipulation."}
+      ],
+      "hard_exit":["Bonta69 terminé","Le subterfuge de la corne active","Aucun gate social découvert au dernier moment"],
+      "pause":["Kanigroula attend Chachyène de vie"]
+    },
+    {
+      "id":"L120-19",
+      "title":"Dents de Pierre — Chachyène puis Kanigroula partagé avec Bonta70",
+      "level":"140-150 / critères locaux",
+      "duration_min":125,
+      "quests":["Chachyène de vie","Le subterfuge de la corne"],
+      "transversal":"BNT-29 from bonta_1_70_v6.json",
+      "route":[
+        {"pos":"Dents de Pierre","do":"Faire les objectifs de zone de Chachyène de vie et avancer Le subterfuge jusqu'à ce que les deux demandent Kanigroula."},
+        {"pos":"[-5,-54] Grotte de Kanigroula","do":"Exécuter BNT-29 avec les deux quêtes actives et les succès compatibles. Pas de pierre Ocre: Kanigroula n'est pas dans le registre actuel."}
+      ],
+      "hard_exit":["Bonta70 terminé","Chachyène de vie terminée","Kanigroula une seule fois","Aucune capture Ocre inventée"],
+      "pause":["Alignement70 fermé"]
+    },
+    {
+      "id":"L120-20",
+      "title":"Royalmouth PASS 2 CONDITIONNEL — Pourpre + vaccin permanent + Frigost",
+      "level":"130+ / timer réel expiré",
+      "duration_min":105,
+      "activation":"N'exécuter que lorsque Porte, Royalmouth, trésor + Monarchie absolue + Le pouvoir derrière le trône + Le mal a dit sont TOUTES actives et au bon objectif Royalmouth. Si le timer vaccin n'est pas expiré, SKIP TEMPORAIREMENT cette étape et continuer L120-21/futur chapitre.",
+      "quests":["Porte, Royalmouth, trésor","Monarchie absolue","Le pouvoir derrière le trône","Le mal a dit"],
+      "prerequisites":[
+        "Le trésor de Totankama terminé.",
+        "Une âme en peine terminée.",
+        "Le pouvoir derrière le trône avancé jusqu'au Royalmouth et Gavroch rencontré AVANT le boss si demandé.",
+        "Vaccin temporaire réellement expiré depuis 7 jours.",
+        "Épis d'Emi terminé.",
+        "Bienvenue à Frigost, Pauvre Kiki, Gène et Tique, En semant se ment OU Cent vingt trois fleurs, point comme les autres suffisamment fermés pour débloquer les dialogues de Le mal a dit.",
+        "Le mal a dit avancé jusqu'à son objectif Royalmouth."
+      ],
+      "route":[
+        {"pos":"[-84,-49] Serre du Royalmouth","do":"Entrer seulement quand les quatre quêtes sont prêtes. Faire le donjon une SECONDE et dernière fois pour ce bloc. Royalmouth n'est pas dans le registre Ocre actuel: aucune capture Ocre imposée."},
+        {"pos":"salle finale","do":"Pour Le pouvoir derrière le trône, effectuer le dialogue Gavroch requis APRÈS le boss avant de sortir. Fermer aussi tous les dialogues de Le mal a dit/Porte/Monarchie selon le walkthrough local."},
+        {"pos":"Frigost","do":"Fermer Le mal a dit et obtenir le vaccin permanent; lancer Pas de vaccin pour les vilains et le faire une fois pour la couverture unique."},
+        {"pos":"Pourpre","do":"Fermer Le pouvoir derrière le trône et récupérer le Dofus Pourpre lorsque tous ses objets/étapes sont satisfaits."},
+        {"pos":"[-76,-46]","do":"Rendre Monarchie absolue. La future Monarchie parlementaire attend Les joyeux de la couronne, donc ne pas partir Mansot juste pour elle avant le premier Mansot."}
+      ],
+      "hard_exit":["Deuxième Royalmouth sert quatre quêtes simultanées","Porte Royalmouth terminé","Monarchie absolue terminée","Vaccin permanent obtenu","Pas de vaccin pour les vilains fait une fois","Dofus Pourpre obtenu ou unique reliquat exact identifié","Aucun troisième Royalmouth planifié pour ces fils"],
+      "pause":["Pourpre/Frigost RM fermés","Mansot peut maintenant être optimisé"]
+    },
+    {
+      "id":"L120-21",
+      "title":"Mansot Royal PASS 1 — ouvrir Berceau d'Alma sans brûler la future fusion",
+      "level":"140-150",
+      "duration_min":105,
+      "quests":["Les joyeux de la couronne","Les chasseurs","Pêche en eaux gelées"],
+      "route":[
+        {"pos":"Lac gelé","do":"Avant l'Excavation, avancer L'essentiel est dans Lac Gelé et Les chasseurs afin que Pêche en eaux gelées + Les chasseurs demandent réellement Mansot. Si l'un n'est pas encore accessible, conserver son état; ne pas inventer le prérequis."},
+        {"pos":"[-64,-55] Excavation du Mansot Royal","do":"Entrer avec tous les fils réellement disponibles. Les joyeux de la couronne se lance selon le fonctionnement. Faire tous les succès compatibles, puis les dialogues/objets post-boss."},
+        {"pos":"sortie Mansot","do":"Prendre Porte, Mansot Royal, trésor maintenant que Les joyeux de la couronne est terminée. Si Royalmouth PASS2/Monarchie absolue est déjà terminé, prendre aussi Monarchie parlementaire; sinon la laisser en attente."},
+        {"pos":"Frigost/Pandala","do":"Si La bénédiction de Viti est réellement active et son idole glacée n'était pas disponible pour ce premier passage, marquer explicitement un futur Mansot causal. Ne jamais prétendre Viti validée sans l'altération."}
+      ],
+      "hard_exit":["Premier Mansot fait avec les quêtes disponibles avant lui","Les joyeux de la couronne terminée","Accès Berceau d'Alma débloqué","Porte Mansot active","Monarchie parlementaire active seulement si son vrai prérequis Monarchie absolue est fermé","État Viti exact conservé"],
+      "pause":["Fin chapitre 120-150","Prochain bloc: Mansot pass2 partagé + Ben/Frigost + Minotot/Bworker + Kimbo + Pandala 150+"]
+    }
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/serre-du-royalmouth.html",
+    "https://www.dofuspourlesnoobs.com/antiroyaliste.html",
+    "https://www.dofuspourlesnoobs.com/porte-royalmouth-treacutesor.html",
+    "https://www.dofuspourlesnoobs.com/monarchie-absolue.html",
+    "https://www.dofuspourlesnoobs.com/des-donjons-encore-des-donjons.html",
+    "https://www.dofuspourlesnoobs.com/taures-et-deacutetours.html",
+    "https://www.dofuspourlesnoobs.com/le-treacutesor-de-totankama.html",
+    "https://www.dofuspourlesnoobs.com/lanneau-de-tot.html",
+    "https://www.dofuspourlesnoobs.com/un-ring-pour-les-gouverner-tous.html",
+    "https://www.dofuspourlesnoobs.com/il-faut-battre-le-lait-quand-il-est-chaud.html",
+    "https://www.dofuspourlesnoobs.com/comment-perdre-ses-plumes.html",
+    "https://www.dofuspourlesnoobs.com/tofulailler-royal.html",
+    "https://www.dofuspourlesnoobs.com/antre-de-crocabulia.html",
+    "https://www.dofuspourlesnoobs.com/la-voie-du-guerrier.html",
+    "https://www.dofuspourlesnoobs.com/repaire-de-skeunk.html",
+    "https://www.dofuspourlesnoobs.com/fabrique-de-foux-d-artifice.html",
+    "https://www.dofuspourlesnoobs.com/le-festival-de-la-lanterne.html",
+    "https://www.dofuspourlesnoobs.com/laboratoire-du-tynril.html",
+    "https://www.dofuspourlesnoobs.com/tour-de-passe-passe.html",
+    "https://www.dofuspourlesnoobs.com/le-pouvoir-derriegravere-le-trocircne.html",
+    "https://www.dofuspourlesnoobs.com/excavation-du-mansot-royal.html",
+    "https://www.dofuspourlesnoobs.com/les-joyeux-de-la-couronne.html",
+    "https://www.dofuspourlesnoobs.com/monarchie-parlementaire.html"
+  ]
+}

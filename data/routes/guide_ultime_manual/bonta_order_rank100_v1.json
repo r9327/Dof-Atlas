@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_bonta_order_rank100_v1",
+  "title": "Guide Ultime — Ordre Bonta palier alignement 100",
+  "status": "MANUAL_CONDITIONAL_ROUTE_WORKING_SET",
+  "selection_policy": {
+    "selector": "persisted_bonta_order",
+    "exactly_one": true,
+    "order_change_forbidden": true,
+    "same_choice_required_from": [
+      "bonta_order_rank20_v1.json",
+      "bonta_order_rank40_v1.json",
+      "bonta_order_rank60_v1.json",
+      "bonta_order_rank80_v1.json"
+    ],
+    "unselected_routes_hidden": true
+  },
+  "trigger": {"alignment":"Bonta","minimum_rank":100,"after_quest":"L'exorciste","recommended_level":200},
+  "shared_contract": {
+    "dungeon":"Aquadôme de Merkator",
+    "rerun":"causal",
+    "reason":"Le cinquième rang d'Ordre n'existe qu'après L'exorciste/alignement100; le Merkator déjà fait au palier180 ne pouvait donc pas valider ce fil.",
+    "preparation":[
+      {"name":"Accélérateur de propulsion","quantity":1,"policy":"Réutiliser celui conservé depuis l'Abyssal si encore disponible; sinon HDV/craft. Ne pas imposer un métier200 personnel."},
+      {"requirement":"Un personnage de chacun des trois Ordres Bonta/Brâkmar au même état de quête ou l'ayant terminée","count":3,"blocking":true},
+      {"requirement":"Groupe jusqu'à8 pour le combat Seigneur Seisde","blocking":true}
+    ],
+    "route_policy":[
+      "Ne lancer le Merkator qu'une fois la cinquième quête de ton Ordre réellement active; interroger Merkator après le boss pour localiser le puits englouti.",
+      "Les trois puits de pouvoir peuvent être traités dans l'ordre géographique le plus rentable, mais chaque personnage doit faire son combat personnel avant l'activation simultanée des leviers.",
+      "Seule la branche correspondant à l'Ordre choisi par ce personnage doit être suivie.",
+      "Après les trois puits, revenir à la Tour des Ordres et terminer la quête auprès du protecteur puis du maître d'Ordre."
+    ]
+  },
+  "options": {
+    "coeur vaillant": {
+      "quest":"Apprentissage : Héros Légendaire",
+      "previous_quest":"Apprentissage : Champion Merveilleux",
+      "route":[
+        {"pos":"[-34,-58] Tour des Ordres","do":"Prendre Héros Légendaire auprès de Jerhyn Gholein, puis parler à Ulgrude dans la salle des protecteurs à droite de l'entrée de la Tour."},
+        {"pos":"Aquadôme de Merkator","do":"Faire le nouveau passage Merkator demandé par Héros Légendaire. Après le boss, ne pas sortir : interroger Merkator pour localiser le puits de pouvoir englouti."},
+        {"pos":"[20,29] Abysses de Sufokia","do":"Entrer dans le puits englouti avec un personnage de chacun des trois Ordres. Faire le combat solo propre à ton Ordre même si la grille est déjà ouverte, puis activer les trois leviers presque simultanément. Passer la grille et parler à Bwalatas pour assécher le puits."},
+        {"pos":"[-21,-60] Cimetière des Héros","do":"Entrer dans la crypte avec les trois Ordres. Chacun fait son combat solo dans la tombe correspondant à son Ordre, puis les trois leviers sont activés presque simultanément. Passer la grille, vaincre Captain Chafer en solo et lui reparler pour assécher le puits."},
+        {"pos":"[-14,35] Cimetière des Torturés","do":"Entrer dans la crypte avec les trois Ordres. Faire le combat solo de ton Ordre puis synchroniser les trois leviers. Après la grille, former le groupe prévu et vaincre Seigneur Seisde; lui reparler après le combat pour assécher le dernier puits."},
+        {"pos":"[-34,-58] Tour des Ordres","do":"Retourner voir Ulgrude puis Jerhyn Gholein et terminer Héros Légendaire."}
+      ],
+      "hard_exit":["Ordre Cœur Vaillant rang5 terminé","Examen de passage Ivoire désormais déblocable selon ses autres critères"]
+    },
+    "oeil attentif": {
+      "quest":"Apprentissage : Maître des Illusions",
+      "previous_quest":"Apprentissage : Assassin Suprême",
+      "route":[
+        {"pos":"[-34,-58] Tour des Ordres","do":"Prendre Maître des Illusions auprès d'Ebru of El au sous-sol, puis parler au protecteur indiqué dans la salle des protecteurs à droite de l'entrée de la Tour."},
+        {"pos":"Aquadôme de Merkator","do":"Faire le nouveau passage Merkator demandé par Maître des Illusions. Après le boss, ne pas sortir : interroger Merkator pour localiser le puits de pouvoir englouti."},
+        {"pos":"[20,29] Abysses de Sufokia","do":"Entrer dans le puits englouti avec un personnage de chacun des trois Ordres. Faire le combat solo propre à ton Ordre même si la grille est déjà ouverte, puis activer les trois leviers presque simultanément. Passer la grille et parler à Bwalatas pour assécher le puits."},
+        {"pos":"[-21,-60] Cimetière des Héros","do":"Entrer dans la crypte avec les trois Ordres. Chacun fait son combat solo dans la tombe correspondant à son Ordre, puis les trois leviers sont activés presque simultanément. Passer la grille, vaincre Captain Chafer en solo et lui reparler pour assécher le puits."},
+        {"pos":"[-14,35] Cimetière des Torturés","do":"Entrer dans la crypte avec les trois Ordres. Faire le combat solo de ton Ordre puis synchroniser les trois leviers. Après la grille, former le groupe prévu et vaincre Seigneur Seisde; lui reparler après le combat pour assécher le dernier puits."},
+        {"pos":"[-34,-58] Tour des Ordres","do":"Retourner voir le protecteur puis Ebru of El et terminer Maître des Illusions."}
+      ],
+      "hard_exit":["Ordre Œil Attentif rang5 terminé","Examen de passage Ivoire désormais déblocable selon ses autres critères"]
+    },
+    "esprit salvateur": {
+      "quest":"Apprentissage : Gardien du Savoir",
+      "previous_quest":"Apprentissage : Maître des Parchemins",
+      "route":[
+        {"pos":"[-34,-58] Tour des Ordres","do":"Prendre Gardien du Savoir auprès d'Elviana Tirips au deuxième étage, puis parler au protecteur indiqué dans la salle des protecteurs à droite de l'entrée de la Tour."},
+        {"pos":"Aquadôme de Merkator","do":"Faire le nouveau passage Merkator demandé par Gardien du Savoir. Après le boss, ne pas sortir : interroger Merkator pour localiser le puits de pouvoir englouti."},
+        {"pos":"[20,29] Abysses de Sufokia","do":"Entrer dans le puits englouti avec un personnage de chacun des trois Ordres. Faire le combat solo propre à ton Ordre même si la grille est déjà ouverte, puis activer les trois leviers presque simultanément. Passer la grille et parler à Bwalatas pour assécher le puits."},
+        {"pos":"[-21,-60] Cimetière des Héros","do":"Entrer dans la crypte avec les trois Ordres. Chacun fait son combat solo dans la tombe correspondant à son Ordre, puis les trois leviers sont activés presque simultanément. Passer la grille, vaincre Captain Chafer en solo et lui reparler pour assécher le puits."},
+        {"pos":"[-14,35] Cimetière des Torturés","do":"Entrer dans la crypte avec les trois Ordres. Faire le combat solo de ton Ordre puis synchroniser les trois leviers. Après la grille, former le groupe prévu et vaincre Seigneur Seisde; lui reparler après le combat pour assécher le dernier puits."},
+        {"pos":"[-34,-58] Tour des Ordres","do":"Retourner voir le protecteur puis Elviana Tirips et terminer Gardien du Savoir."}
+      ],
+      "hard_exit":["Ordre Esprit Salvateur rang5 terminé","Examen de passage Ivoire désormais déblocable selon ses autres critères"]
+    }
+  },
+  "sources":[
+    "https://www.dofuspourlesnoobs.com/apprentissage-heros-legendaire.html",
+    "https://www.dofuspourlesnoobs.com/apprentissage-maitre-des-illusions.html",
+    "https://www.dofuspourlesnoobs.com/apprentissage--gardien-du-savoir.html",
+    "https://www.dofuspourlesnoobs.com/vos-desirs-sont-des-ordres.html"
+  ]
+}

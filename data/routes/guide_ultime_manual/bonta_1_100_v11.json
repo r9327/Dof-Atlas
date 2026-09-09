@@ -1,0 +1,183 @@
+{
+  "schema_version": 11,
+  "route_id": "guide_ultime_manual_bonta_1_100_v11",
+  "title": "Guide Ultime — Alignement Bonta 1 à 100",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_90_v10.json",
+  "supersedes": "guide_ultime_manual_bonta_1_90_v10",
+  "quest_range": [1,100],
+  "macro_stage_count": 49,
+  "optimization_note": "Étend Bonta91-100 avec six macro-sessions. Les rangs97 Missiz Frizz et99 Ilyzaelle sont des merge hooks: la route principale doit activer tous les fils compatibles avant entrée. Le rang100 ferme L'exorciste puis ouvre exactement le cinquième rang du même Ordre persisté depuis20; aucune branche d'Ordre alternative n'est affichée.",
+  "sources":[
+    "https://www.dofuspourlesnoobs.com/alignement-bontarien.html",
+    "https://www.dofuspourlesnoobs.com/cambriolage-a-duree-determinee.html",
+    "https://www.dofuspourlesnoobs.com/c-est-toujours-dur-le-matin.html",
+    "https://www.dofuspourlesnoobs.com/je-panse-donc-jessuie.html",
+    "https://www.dofuspourlesnoobs.com/l-aube-des-morts-vivants.html",
+    "https://www.dofuspourlesnoobs.com/un-chemin-tout-trace.html",
+    "https://www.dofuspourlesnoobs.com/enigma.html",
+    "https://www.dofuspourlesnoobs.com/a-glacer-le-sang.html",
+    "https://www.dofuspourlesnoobs.com/a-l-ombre-des-murs.html",
+    "https://www.dofuspourlesnoobs.com/fee-d-hiver.html",
+    "https://www.dofuspourlesnoobs.com/l-exorciste.html"
+  ],
+  "routing_policy_91_100":[
+    "Chaque rang91-100 exige niveau>189 et validation du rang précédent; ne jamais sauter un rang sur la seule base du niveau200.",
+    "Le rang95 exige Faire le mort à une étape: si ce prérequis manque au runtime, corriger cette dette avant d'entrer à la Cathédrale de Triste Âme.",
+    "Le rang96 exige cinq personnages pour le mécanisme Maimane et quatre artefacts Pandawushu; organiser le groupe et retirer les artefacts de banque avant le déplacement.",
+    "Missiz Frizz rang97 est réservé à la route principale afin de fusionner les fils Frigost/Ivoire/succès réellement actifs avant l'entrée.",
+    "Ilyzaelle rang99 est réservé à la route principale afin de fusionner les fils Ivoire/Fratrie/succès réellement actifs avant l'entrée.",
+    "L'exorciste rang100 ferme la chaîne Erazal à Srambad; seulement après cette validation, ouvrir bonta_order_rank100_v1 avec le même Ordre persisté depuis rang20.",
+    "Travail d'intérêt général et Vos désirs sont des ordres sont validés par l'état réel des quêtes/rang d'Ordre, jamais artificiellement par le routeur."
+  ],
+  "insertions":[
+    {
+      "after":"BNT-42",
+      "stage":{
+        "id":"BNT-43",
+        "title":"Bonta91-92 — cambriolage du palais puis piste Trukipu",
+        "level":"190+",
+        "duration_min":260,
+        "ranks":[91,92],
+        "entry":"Bonta90 terminé; niveau190+ réel.",
+        "quests":["Cambriolage à durée déterminée","C'est toujours dur le matin"],
+        "preparation":[{"kamas":100,"for":"Cambriolage à durée déterminée"},{"note":"Aucune attente/timer. Les combats du rang92 peuvent être groupés; préparer une place d'inventaire pour les objets suiveurs/de quête."}],
+        "route":[
+          {"area":"Bonta palais/milice","do":"Rang91: enquêter sur la relique volée et fermer Cambriolage à durée déterminée en suivant les dialogues/runtime locaux; ne pas commencer92 avant validation réelle."},
+          {"area":"Égouts Bonta → Astrub → Cania → Moon","do":"Rang92: suivre Profaigri dans les égouts, fermer le combat de groupe, interroger l'herboriste puis suivre la piste du laboratoire et de Moon. Regrouper le passage Moon avec tout reliquat/succès encore actif, mais aucun boss Moon n'est requis par cette quête."},
+          {"area":"Bonta","do":"Rendre C'est toujours dur le matin et confirmer rang92 avant le Roc des Salbatroces."}
+        ],
+        "hard_exit":["Bonta92 terminé","Je panse donc j'essuie disponible"],
+        "pause":["POINT DE PAUSE SÛR — avant Salbatroces"],
+        "next":"BNT-44"
+      }
+    },
+    {
+      "after":"BNT-43",
+      "stage":{
+        "id":"BNT-44",
+        "title":"Bonta93-94 — Salbatroces/Krobes puis cimetière des Héros",
+        "level":"190+",
+        "duration_min":260,
+        "ranks":[93,94],
+        "quests":["Je panse donc j'essuie","L'aube des morts-vivants"],
+        "preparation":[
+          {"name":"Œil de Verminocule","quantity":5},
+          {"name":"Antenne de Bacterrib","quantity":5},
+          {"name":"Perce-Neige","quantity":3},
+          {"name":"Écume de mer","quantity":3},
+          {"name":"Sel de Baleine","quantity":1},
+          {"policy":"Retirer les ressources de banque avant Salbatroces/Sufokia pour éviter les allers-retours; acheter les échangeables si plus rentable qu'un farm dédié."}
+        ],
+        "route":[
+          {"area":"Roc des Salbatroces → Sufokia","do":"Rang93: faire l'enquête Krobes, livrer les prélèvements/solution/oscillateur et le Sel de Baleine. Grouper les monstres du Roc avec les succès de zone encore ouverts, sans farm si déjà validés."},
+          {"area":"Cimetière des Héros","do":"Rang94: suivre les traces dans l'ordre imposé, valider les dialogues de renfort avant les combats multicompte, libérer Kaleb puis gagner le combat à vagues de l'Individu Encapuchonné."},
+          {"area":"Bonta","do":"Lire le document demandé puis rendre à Amayiro; confirmer rang94."}
+        ],
+        "hard_exit":["Bonta94 terminé","Un chemin tout tracé disponible"],
+        "pause":["POINT DE PAUSE SÛR — avant chaîne Quadraforce"],
+        "next":"BNT-45"
+      }
+    },
+    {
+      "after":"BNT-44",
+      "stage":{
+        "id":"BNT-45",
+        "title":"Bonta95-96 — Quadraforce, Faire le mort et mécanisme Maimane",
+        "level":"190+",
+        "duration_min":420,
+        "ranks":[95,96],
+        "quests":["Un chemin tout tracé","Enigma"],
+        "preparation":[
+          {"name":"Trèfle à 5 feuilles","quantity":5,"for":"Breuvage d'Erazal"},
+          {"name":"Bière Atolmond","quantity":1,"for":"Breuvage d'Erazal"},
+          {"name":"Mâchoire du Chafer Draugr","quantity":1,"for":"Breuvage d'Erazal"},
+          {"kamas":5000,"for":"Un chemin tout tracé"},
+          {"name":"Artefact Pandawushu Vent","quantity":1},
+          {"name":"Artefact Pandawushu Eau","quantity":1},
+          {"name":"Artefact Pandawushu Feu","quantity":1},
+          {"name":"Artefact Pandawushu Roc","quantity":1},
+          {"kamas":2000,"for":"Bojawa Enigma"},
+          {"requirement":"5 personnages au mécanisme Maimane; combat final maximum4","blocking":true},
+          {"requirement":"Faire le mort terminé avant consommation du Breuvage d'Erazal","blocking":true}
+        ],
+        "route":[
+          {"area":"Amakna → Brâkmar → Sidimote","do":"Rang95: suivre l'enquête Helster/Falistos. Avant Cathédrale Triste Âme, vérifier Faire le mort réellement terminé puis fabriquer/acheter le Breuvage d'Erazal; ne pas se déplacer à la cathédrale avant cette vérification."},
+          {"area":"Pandala → Rok → Lacs enchantés → Saharach → Grobe","do":"Rang96: venir avec les quatre artefacts Pandawushu déjà prêts. Faire la boucle élémentaire et préparer le jus altéré sans retour banque."},
+          {"area":"Maimane","do":"Venir directement avec cinq personnages. Résoudre les dalles/morpion, consommer le jus et faire le combat final à quatre maximum selon le walkthrough. Ne pas recruter sur place."},
+          {"area":"Bonta","do":"Rendre Enigma; Missiz Frizz rang97 devient le prochain merge hook."}
+        ],
+        "hard_exit":["Bonta96 terminé","Groupe5/artefacts n'ont pas provoqué de second trajet","À glacer le sang disponible"],
+        "pause":["POINT DE PAUSE SÛR — avant Missiz Frizz97"],
+        "next":"BNT-46"
+      }
+    },
+    {
+      "after":"BNT-45",
+      "stage":{
+        "id":"BNT-46",
+        "title":"Bonta97 — Missiz Frizz merge hook obligatoire",
+        "level":"190+ / accès Frigost III",
+        "duration_min":110,
+        "ranks":[97],
+        "quests":["À glacer le sang"],
+        "dungeon":{"name":"Forgefroide de Missiz Frizz","pass":"merge_hook_main_route"},
+        "route":[
+          {"area":"Frigost III","do":"Avancer À glacer le sang jusqu'au dialogue Missiz Frizz, puis STOP avant entrée si un fil principal Frigost/Ivoire/succès compatible peut être activé immédiatement."},
+          {"area":"Forgefroide de Missiz Frizz","do":"Faire un seul passage pour À glacer le sang + tous les fils réellement actifs. APRÈS le boss, parler à Missiz Frizz au sujet d'Erazal avant sortie."},
+          {"area":"Bonta","do":"Rendre rang97; À l'ombre des murs s'ouvre."}
+        ],
+        "hard_exit":["Missiz Frizz rang97 fait une fois pour les fils actifs","Bonta97 terminé"],
+        "pause":["POINT DE PAUSE SÛR — Srambad98"],
+        "next":"BNT-47"
+      }
+    },
+    {
+      "after":"BNT-46",
+      "stage":{
+        "id":"BNT-47",
+        "title":"Bonta98 — Srambad, localiser Erazal sans donjon",
+        "level":"190+",
+        "duration_min":150,
+        "ranks":[98],
+        "quests":["À l'ombre des murs"],
+        "preparation":[{"kamas":3000,"policy":"Coût maximal; seulement500 si les quêtes Srambad reconnues par le runtime sont terminées."}],
+        "route":[
+          {"area":"Srambad","do":"Faire la boucle avant-poste → taverne → marché → Fenmorte → Mama Phia → Euph → Nicole Ombine. Le PNJ d'avant-poste varie selon le personnage: suivre le runtime, ne pas hardcoder un seul nom."},
+          {"area":"Hauts Ténébreux","do":"Après Mama Phia, prévoir l'agression en quittant la map; en multicompte garder de l'aide une map avant plutôt que déclencher plusieurs combats simultanément."},
+          {"area":"Bonta","do":"Rendre le rapport; Fée d'hiver/Ilyzaelle99 devient disponible."}
+        ],
+        "hard_exit":["Bonta98 terminé","Aucun donjon Srambad ajouté"],
+        "pause":["POINT DE PAUSE SÛR — avant Ilyzaelle99"],
+        "next":"BNT-48"
+      }
+    },
+    {
+      "after":"BNT-47",
+      "stage":{
+        "id":"BNT-48",
+        "title":"Bonta99-100 — Ilyzaelle merge hook puis exorcisme d'Erazal",
+        "level":"190-200",
+        "duration_min":280,
+        "ranks":[99,100],
+        "quests":["Fée d'hiver","L'exorciste"],
+        "preparation":[
+          {"name":"Passe pour l'îlot Estitch","quantity":1,"policy":"Acheter à Nikos Monote seulement si absent."},
+          {"kamas":11000,"for":"L'exorciste + frais route"},
+          {"requirement":"Groupe disponible pour le combat Erazal si nécessaire","blocking":false}
+        ],
+        "route":[
+          {"area":"Îlot Estitch → Belvédère d'Ilyzaelle","do":"Rang99: obtenir la bénédiction nécessaire puis STOP avant Ilyzaelle si des fils Ivoire/Fratrie/succès peuvent être activés immédiatement. Faire un seul Belvédère pour tous les fils réellement disponibles et parler à Ilyzaelle après le boss avant sortie."},
+          {"area":"Bonta → Srambad","do":"Rendre Fée d'hiver, prendre L'exorciste puis avancer Euph/Vilppu jusqu'à la planque d'Erazal. Regrouper les drops de zone avec les quêtes Srambad/Nébuleux encore actives si leurs objectifs sont compatibles."},
+          {"area":"planque Erazal","do":"Gagner le combat final selon le walkthrough courant et rendre à Amayiro. Ne considérer Bonta100 acquis que lorsque la quête est réellement terminée."},
+          {"area":"Tour des Ordres","do":"Après Bonta100, ouvrir exactement bonta_order_rank100_v1.json avec persisted_bonta_order. Les deux autres branches sont invisibles."}
+        ],
+        "progress_also":["Une fois L'exorciste fermé, Travail d'intérêt général peut se valider selon l'état succès réel.","L'Ordre100 est un prérequis stratégique du Dofus Ivoire: l'exécuter avant Examen de passage, jamais après par oubli."],
+        "hard_exit":["Bonta100 terminé","exactly_one:persisted_bonta_order_rank100 ouvert","Ilyzaelle99 n'a pas provoqué de passage isolé si un fil principal compatible était disponible"],
+        "pause":["POINT DE PAUSE SÛR — Bonta100, Ordre100 à fermer"],
+        "next":"bonta_order_rank100_v1 puis Dofus Ivoire"
+      }
+    }
+  ],
+  "stage_patches":{}
+}

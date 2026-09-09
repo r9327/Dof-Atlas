@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_level_120_150_v2",
+  "title": "Guide Ultime — Niveau 120 à 150 + Domakuro complet",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v1.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v1",
+  "stage_count": 24,
+  "optimization_note": "Corrige le chaînon Pandala oublié: Au nom de l'Art -> La jetée des enfants perdus/Nagate -> Festival/Founoroshi -> L'équilibre des forces/Hanshi-Shihan -> Sang d'encre. Le Domakuro est désormais réellement fermé avant Grobe/Dorigami.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-jetee-des-enfants-perdus.html",
+    "https://www.dofuspourlesnoobs.com/vallee-de-la-dame-des-eaux.html",
+    "https://www.dofuspourlesnoobs.com/le-festival-de-la-lanterne.html",
+    "https://www.dofuspourlesnoobs.com/l-equilibre-des-forces.html",
+    "https://www.dofuspourlesnoobs.com/dojo-du-vent.html",
+    "https://www.dofuspourlesnoobs.com/sang-d-encre.html",
+    "https://www.dofuspourlesnoobs.com/quetes-du-domakuro.html"
+  ],
+  "insertions": [
+    {
+      "after":"L120-11",
+      "stage": {
+        "id":"L120-11W",
+        "title":"Akwadala — La jetée des enfants perdus + Nagate avant le Festival",
+        "level":"130+ / Au nom de l'Art terminée",
+        "duration_min":90,
+        "quests":["La jetée des enfants perdus"],
+        "route":[
+          {"pos":"[22,-29] Village de Pandala","do":"Après Au nom de l'Art, prendre immédiatement La jetée des enfants perdus. Faire toute sa boucle Akwadala/Lenald/Kwapa jusqu'à devoir entrer dans la Vallée de la Dame des eaux."},
+          {"pos":"[22,-24] Vallée de la Dame des eaux","do":"Entrer avec La jetée active, faire les succès Nomade/Prudent/Spécial/Duo compatibles et vaincre Nagate une seule fois. Nagate n'est pas une cible Ocre du registre actuel: aucune pierre Ocre imposée."},
+          {"pos":"salle finale","do":"AVANT de sortir, parler à Nagate et effectuer le dialogue de quête; ramener ensuite les enfants/Lenalds selon le walkthrough local."},
+          {"pos":"[22,-29]","do":"Rendre La jetée des enfants perdus à Daimya et prendre immédiatement Le festival de la lanterne. La quête débloque aussi l'Esprit chagrin de Présence d'esprits."}
+        ],
+        "hard_exit":["La jetée des enfants perdus terminée","Nagate faite une seule fois pour la chaîne Domakuro","Le festival de la lanterne active","Esprit chagrin déblocable dans Présence d'esprits","Aucune capture Ocre inventée pour Nagate"],
+        "pause":["Akwadala fermée pour la chaîne principale","Festival = prochain fil Pandala"]
+      }
+    },
+    {
+      "after":"L120-13",
+      "stage": {
+        "id":"L120-13V",
+        "title":"Aerdala — L'équilibre des forces + Hanshi/Shihan + Ocre puis Domakuro",
+        "level":"140+ / Le festival de la lanterne terminé",
+        "duration_min":125,
+        "quests":["L'équilibre des forces","Sang d'encre"],
+        "preparation":[
+          {"name":"Bananagrume","quantity":8},
+          {"name":"Fraise","quantity":3},
+          {"name":"Viscères de Scarafeuille","quantity":3},
+          {"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Hanshi Ocre"}
+        ],
+        "route":[
+          {"pos":"[22,-29] -> Aerdala","do":"Faire L'équilibre des forces et profiter de l'Offrande à l'esprit du Vent: lorsque l'apparence Moon est active, chercher immédiatement l'Esprit malin de Présence d'esprits SI cette quête est déjà active, afin d'éviter de recrafter une offrande plus tard."},
+          {"pos":"Aerdala","do":"Faire les deux interventions Pandissidans/Pandawas/Kozaru de L'équilibre jusqu'à obtenir le droit de combattre pour Ten Rowa. Ne pas entrer au Dojo avant cet objectif."},
+          {"pos":"[20,-37] Dojo du Vent","do":"Entrer avec L'équilibre active. Faire les succès Prudent/Dernier/Spécial/Duo compatibles, vaincre Hanshi et Shihan, et capturer Hanshi avec pierre puissance150 pour l'Ocre."},
+          {"pos":"salle finale","do":"AVANT DE SORTIR, parler à Hanshi, écouter Ten Rowa puis Shihan et récupérer la Permission de circuler. Fermer ensuite les dialogues de L'équilibre."},
+          {"pos":"[22,-29] Village","do":"Rendre L'équilibre des forces à Daimya et prendre immédiatement Sang d'encre."},
+          {"pos":"Pandala","do":"Faire Sang d'encre dans la même session si possible: suivre Ikunochi et les combats/dialogues du walkthrough local jusqu'à la remise finale. La fin de Sang d'encre ferme le succès Les grands esprits se rencontrent et donne le Domakuro."}
+        ],
+        "hard_exit":["L'équilibre des forces terminée","Hanshi capturé Ocre","Sang d'encre terminée","Domakuro obtenu","Les grands esprits se rencontrent terminé","Présence d'esprits peut désormais progresser avec son quota quotidien réel si ses autres blockers sont fermés"],
+        "pause":["Domakuro obtenu","Grobe/Dorigami désormais déblocable au niveau approprié"]
+      }
+    }
+  ],
+  "stage_patches": {}
+}

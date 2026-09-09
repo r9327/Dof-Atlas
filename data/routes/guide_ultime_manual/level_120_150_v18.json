@@ -1,0 +1,182 @@
+{
+  "schema_version": 18,
+  "route_id": "guide_ultime_manual_level_120_150_v18",
+  "title": "Guide Ultime — Niveau 120 à 150, prérequis causaux consolidés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v17.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v17",
+  "stage_count": 37,
+  "depends_on": [
+    "level_100_120_v7.json",
+    "bonta_1_100_v11.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Répare les prérequis prouvés par les données locales et DPLN sans ajouter de fiche: La maire de glace + Full Contact avant Bienvenue, Voyage voyage avant Srambad, Une âme en peine avant Le pouvoir derrière le trône, prérequis Saharach avant Privé de désert, chaîne Cania avant Chachyène, Tuyaux/Gaz après Les joyeux de la couronne, et titre actuel Faire le tas de pins. Les passages de donjons existants restent inchangés.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-maire-de-glace.html",
+    "https://www.dofuspourlesnoobs.com/full-contact.html",
+    "https://www.dofuspourlesnoobs.com/bienvenue-agrave-frigost.html",
+    "https://www.dofuspourlesnoobs.com/voyage-voyage.html",
+    "https://www.dofuspourlesnoobs.com/une-acircme-en-peine.html",
+    "https://www.dofuspourlesnoobs.com/le-pouvoir-derriegravere-le-trocircne.html",
+    "https://www.dofuspourlesnoobs.com/le-plein-depice.html",
+    "https://www.dofuspourlesnoobs.com/le-quiki-de-tous-les-quikis.html",
+    "https://www.dofuspourlesnoobs.com/une-mine-de-deterre.html",
+    "https://www.dofuspourlesnoobs.com/terres-mortes.html",
+    "https://www.dofuspourlesnoobs.com/laccuseacute-de-la-reacuteception.html",
+    "https://www.dofuspourlesnoobs.com/les-monstres-aboient-la-diligence-casse.html",
+    "https://www.dofuspourlesnoobs.com/chachyegravene-de-vie.html",
+    "https://www.dofuspourlesnoobs.com/quest-ce-quon-a-fait-des-tuyaux.html",
+    "https://www.dofuspourlesnoobs.com/lacirccher-les-gaz.html"
+  ],
+  "stage_patches": {
+    "L120-00": {
+      "replace": {
+        "quests": [
+          "Pauvre Kiki",
+          "Gène et tique",
+          "Scierie Bambelle",
+          "conditional:Manque de re-peau si energie<1000",
+          "Ultime réminiscence",
+          "La terre banquise",
+          "La maire de glace",
+          "Full Contact",
+          "Bienvenue à Frigost",
+          "Les monologues du vaccin",
+          "La destinée",
+          "En semant, se ment",
+          "Souvenir, souvenir",
+          "Manque de re-peau",
+          "Fight club",
+          "Michel Shel Enquille un Bouftonmouth"
+        ],
+        "route": [
+          {"pos":"[-6,-3] Marais","do":"Si Ultime réminiscence est disponible, la terminer maintenant afin de fermer le Dofus Émeraude avant d'empiler les nouveaux fils. Si un prérequis manque encore, conserver précisément cet objectif pour le prochain passage."},
+          {"pos":"[-34,-16] Baie de Cania -> Frigost","do":"Prendre le bateau et terminer La terre banquise pendant le trajet si nécessaire. C'est le prérequis réel de La maire de glace."},
+          {"pos":"[-81,-37] Port de givre -> [-77,-42] Hôtel de ville","do":"Prendre La maire de glace auprès de Mousse Haka puis parler à la Maire Cantile: la quête se ferme immédiatement. Seulement après cette fermeture, prendre Full Contact et Bienvenue à Frigost."},
+          {"area":"Bourgade","do":"Faire Full Contact dans la même boucle des PNJ Bourgade/Milice/Taverne/Chef Rhonté. Bienvenue à Frigost reste active en parallèle avec Les monologues du vaccin; ne pas chercher à la prendre avant La maire de glace."},
+          {"pos":"[-78,-41] Frigost","do":"Mémoriser le zaap. Prendre les avis de recherche accessibles à la milice; ils restent opportunistes et ne bloquent jamais la progression principale."},
+          {"pos":"[-77,-38] Taverne","do":"Dans Les monologues du vaccin, atteindre le point de rendez-vous puis choisir une tranche horaire compatible avec la session actuelle ou la prochaine reprise. Noter la tranche choisie et continuer ailleurs au lieu d'attendre immobile."},
+          {"area":"Bourgade","do":"Fermer Pauvre Kiki dès le premier passage: faire le combat de cave puis rendre. Ce prérequis doit être terminé avant Le mal a dit."},
+          {"area":"Champs de glace -> Wogew/Otomaï","do":"Prendre Gène et tique et récupérer dehors les sangs/tics Boufmouth demandés; ces drops ne fonctionnent pas dans Royalmouth. Grouper les remises avec les trajets continent/Otomaï puis fermer la quête avant Le mal a dit."},
+          {"area":"Champs de glace / Scierie","do":"Avec Bricole Girl pas encore active, faire Scierie Bambelle avec le lot préparé et la fermer avant que Bricole Girl occupe Francky."},
+          {"area":"Manque de re-peau — opportuniste","do":"Si l'énergie est naturellement sous1000, lancer ou avancer Manque de re-peau. Si la quête impose un rendez-vous horaire, noter l'heure et continuer autre chose; ne pas provoquer de morts uniquement pour cette quête."},
+          {"pos":"Bonta -> Frigost -> Bonta","do":"Après La terre banquise, faire La destinée pendant les passages déjà prévus et la fermer avant le futur Malédiction !"},
+          {"pos":"[-82,-48] Champs de glace","do":"Sur ce premier passage, choisir la branche Paysan d'Agriculture ou alchimie et faire En semant, se ment pendant les combats Boufmouth naturels; prendre Pomdeupin ensuite pour la future Forêt des Pins."},
+          {"pos":"[-77,-38] cave de la Taverne","do":"Faire Fight club une seule fois pour Chahuteur clandestin; conserver le Savon de Frigost et ne pas programmer de répétitions hebdomadaires inutiles."},
+          {"area":"Champs de glace","do":"Avec Michel Shel Enquille un Bouftonmouth active, utiliser d'abord tous les combats naturels de la zone pour les50 Dents de sagesse puis seulement compléter le reliquat exact. Rendre à Clyde Parker."}
+        ]
+      }
+    },
+    "L120-04": {
+      "prepend": {
+        "quests": ["Voyage, voyage"],
+        "route": [
+          {"pos":"[-22,-24] Tour des Voyageurs","do":"Avant d'entrer dans la chaîne Srambad de Ça katche ou ça casse, terminer Voyage, voyage. La quête est disponible bien avant ce palier et constitue le prérequis réel d'accès aux dimensions; la fermer avant de préparer le Ring évite un retour inutile."}
+        ]
+      }
+    },
+    "L120-08": {
+      "prepend": {
+        "quests": ["Une âme en peine", "Le pouvoir derrière le trône"],
+        "route": [
+          {"pos":"[-39,-11] Antichambre du Minotoror","do":"Comment perdre ses plumes étant terminée au Tofu Royal précédent et les composants Totankama étant prêts, fermer maintenant Le trésor de Totankama. Le piège du socle lance immédiatement Une âme en peine."},
+          {"pos":"Antichambre / combat tactique","do":"Faire Une âme en peine immédiatement, obtenir la Clef du Trône et continuer le dialogue pour prendre Le pouvoir derrière le trône."},
+          {"pos":"Refuge des cent détours -> Donjon des Blops","do":"Avancer Le pouvoir derrière le trône jusqu'à son objectif Royalmouth puis s'arrêter avant le donjon. Le second Royalmouth déjà prévu doit trouver cette quête active; aucun retour Minotoror entre-temps."}
+        ]
+      }
+    },
+    "L120-08S": {
+      "prepend": {
+        "quests": [
+          "L'allégorie de la taverne",
+          "Filouterie épicée",
+          "Désert de revanche",
+          "Les bizarreries du Phare Ouest"
+        ],
+        "route": [
+          {"area":"Saharach — anciens prérequis avant Privé de désert","do":"L'Épice rit étant déjà fermé depuis le palier80, profiter du retour Saharach pour terminer Désert de revanche et Les bizarreries du Phare Ouest avant de prendre leurs suites niveau130."},
+          {"pos":"[15,-57] Sabloon","do":"Faire L'allégorie de la taverne puis enchaîner Filouterie épicée dans la même campagne Port/Dunes. Filouterie doit être fermée avant Terres mortes."},
+          {"area":"Saharach","do":"Vérifier avant le bloc Privé de désert: Désert de revanche terminé, Les bizarreries du Phare Ouest terminé, Filouterie épicée terminée et La barrière des langues terminée ou avancée au bon objectif. Ensuite seulement démarrer Le Quiki de tous les Quikis puis Une mine de déterré et Terres mortes."}
+        ]
+      }
+    },
+    "L120-19": {
+      "replace": {
+        "level": "155-160 / critères locaux"
+      },
+      "prepend": {
+        "quests": ["L'accusé de la réception", "Les monstres aboient, la diligence casse"],
+        "preparation": [
+          {"name":"Bave du Kaskargo","quantity":4,"for":"L'accusé de la réception","policy":"Utiliser les Baves conservées depuis le Kaskargo naturel du palier70; ne pas refaire le Kimbo ou farmer uniquement pour ce prérequis."},
+          {"name":"Feuille de Blop Multicolore Royal","quantity":4,"for":"L'accusé de la réception"},
+          {"name":"Oreille percée du Fricochère","quantity":10,"for":"L'accusé de la réception"},
+          {"name":"Pain d'Incarnam","quantity":1,"for":"Chachyène de vie"}
+        ],
+        "route": [
+          {"pos":"[4,-6] Château d'Amakna","do":"Au niveau150+, faire L'accusé de la réception avec les ressources préparées. Cette quête ouvre Les monstres aboient, la diligence casse."},
+          {"area":"Château d'Amakna -> Bonta -> Cania","do":"Enchaîner Les monstres aboient, la diligence casse à partir du niveau155 et la fermer auprès du Chef Krokouto. Continuer immédiatement son dialogue pour prendre Chachyène de vie."},
+          {"area":"Dents de Pierre","do":"Seulement maintenant avancer Chachyène de vie jusqu'à son objectif Kanigroula. Le subterfuge de la corne doit lui aussi être au boss avant d'entrer afin que la Grotte de Kanigroula serve les deux fils en un passage."}
+        ]
+      }
+    },
+    "L120-20F": {
+      "replace": {
+        "quests": [
+          "Semer ses graines",
+          "Bricole Girl",
+          "Promenons-nous dans les bois",
+          "Pêche en eaux gelées",
+          "La pêche à Mel",
+          "Mel odieuse",
+          "Mel au drame",
+          "Il est frais mon pichon",
+          "L'essentiel est dans Lac Gelé",
+          "Les chasseurs",
+          "Hôtel de glace",
+          "La fonte des glaces",
+          "Pomdeupin vaut mieux que trois tu l'auras",
+          "Massacre au hakapik",
+          "La marche de l'impératrice",
+          "Star ski et Dutch",
+          "conditional:Groméo et Ginette selon fenêtre17-21",
+          "Bricoleur de génie",
+          "Groméo et Ginette",
+          "Faire le tas de pins"
+        ]
+      },
+      "append": {
+        "hard_exit": ["La quête à suivre ici s'appelle bien Faire le tas de pins; ne pas la confondre avec son ancien libellé au singulier."]
+      }
+    },
+    "L120-20G": {
+      "replace": {
+        "title": "Lac Gelé — L'ombre et la glace + Lumière sur l'ombre avant de quitter la zone",
+        "quests": ["L'ombre et la glace", "Lumière sur l'ombre"],
+        "route": [
+          {"area":"Bourgade/Lac Gelé","do":"Rassembler ou échanger les composants de la combinaison thermolactée en utilisant les mêmes PNJ que les étapes précédentes; privilégier HDV pour les ressources échangeables si cela évite un farm sans autre objectif."},
+          {"area":"Lac Gelé","do":"Terminer L'ombre et la glace puis enchaîner Lumière sur l'ombre sans quitter la zone. Descendre avec Waldos, vaincre le Craqueleur de Glace avec la mécanique de vulnérabilité de la combinaison, puis rendre à Waldos/Maire Cantile. Qu'est-ce qu'on a fait des tuyaux ? reste volontairement différée: Les joyeux de la couronne n'est pas encore terminée avant le premier Mansot."}
+        ],
+        "before_leaving": ["L'ombre et la glace terminée", "Lumière sur l'ombre terminée"],
+        "hard_exit": ["Le givre des révélations ne sera plus bloqué par Lumière sur l'ombre", "Tuyaux/Gaz différés après Les joyeux de la couronne", "Aucun donjon supplémentaire"]
+      }
+    },
+    "L120-21": {
+      "append": {
+        "quests": ["Qu'est-ce qu'on a fait des tuyaux ?", "Lâcher les gaz"],
+        "route": [
+          {"area":"Après le premier Mansot — Forêt des Pins/Bourgade","do":"Les joyeux de la couronne étant maintenant terminée, prendre Qu'est-ce qu'on a fait des tuyaux ? en [-58,-69]. Faire l'inspection de la canalisation et les dialogues dans la même boucle de retour Pins/Bourgade. Au combat Dolores, tous les personnages qui ont la quête doivent choisir l'option de partir chercher des renforts; reparler à Dolores après la victoire."},
+          {"pos":"[-55,-57] Dolores Kimo","do":"La quête Lâcher les gaz se lance à la fin de Qu'est-ce qu'on a fait des tuyaux ?. Enchaîner Aurore, Francky, l'Agent puis la grotte des ingénieurs et fermer la quête avant de quitter durablement le bloc. Aucun Mansot supplémentaire n'est ajouté."}
+        ],
+        "before_leaving": [
+          "Les joyeux de la couronne terminée avant le lancement de Qu'est-ce qu'on a fait des tuyaux ?.",
+          "Qu'est-ce qu'on a fait des tuyaux ? terminée.",
+          "Lâcher les gaz terminée.",
+          "Les carrières de glace réellement fermées 6/6."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

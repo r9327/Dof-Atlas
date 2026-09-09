@@ -1,0 +1,252 @@
+{
+  "schema_version": 9,
+  "route_id": "guide_ultime_manual_level_70_100_v9",
+  "title": "Guide Ultime — Niveau 70 à 100 — actions joueur consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_70_100_v8.json",
+  "supersedes": "guide_ultime_manual_level_70_100_v8",
+  "stage_count": 17,
+  "depends_on": [
+    "level_51_70_v3.json",
+    "bonta_1_100_v12.json",
+    "bonta_order_rank40_v1.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Réordonne la fiche d'ouverture des Dofus exactement au moment où La magicienne des marécages débloque les fils, remplace les raccourcis techniques Bonta par leur expansion depuis Bonta v12 et détaille les boucles Wabbit/Moon qui renvoyaient encore vers un walkthrough externe.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-magicienne-des-mareacutecages.html",
+    "https://www.dofuspourlesnoobs.com/plongeon-et-dragon.html",
+    "https://www.dofuspourlesnoobs.com/voir-le-dark-vlad-et-mourir-ou-pas.html",
+    "https://www.dofuspourlesnoobs.com/ruseacute-comme-une-lenalde.html",
+    "https://www.dofuspourlesnoobs.com/sauvegarder-lespegravece.html",
+    "https://www.dofuspourlesnoobs.com/faites-lamour-pas-la-guerre.html",
+    "https://www.dofuspourlesnoobs.com/ccedila-sent-la-cawotte.html",
+    "https://www.dofuspourlesnoobs.com/il-y-a-un-os-de-wabbit.html",
+    "https://www.dofuspourlesnoobs.com/art-gastronomique.html",
+    "https://www.dofuspourlesnoobs.com/expeacutedition-culinaire.html",
+    "https://www.dofuspourlesnoobs.com/voyage-au-centre-du-wabbit.html",
+    "https://www.dofuspourlesnoobs.com/des-pwinces-pas-tregraves-charmants.html",
+    "https://www.dofuspourlesnoobs.com/sur-les-traces-des-moonies.html",
+    "https://www.dofuspourlesnoobs.com/le-combat-des-chefs.html",
+    "https://www.dofuspourlesnoobs.com/bas-les-masques.html",
+    "https://www.dofuspourlesnoobs.com/serrons-nous-la-main.html",
+    "https://www.dofuspourlesnoobs.com/leccedilon-de-cuisine.html"
+  ],
+  "stage_patches": {
+    "L70-00": {
+      "replace": {
+        "title": "Bonta 23-28 — ville, Abraknydes et branche Danathor poison",
+        "route": []
+      }
+    },
+    "L70-00E": {
+      "replace": {
+        "title": "Primordiaux + Émeraude + Ocre d'Ambre — ouvrir les fils au bon moment",
+        "route": [
+          {"pos":"Île des Wabbits [23,-4]","do":"Terminer Un sage parmi les sages : retrouver Ronald dans les souterrains grâce à l'accès Wabbit déjà acquis, le ramener à Wanald puis fermer la quête."},
+          {"pos":"[23,-4] → temple de classe → [4,1] → [-5,13]","do":"Enchaîner Protection divine jusqu'à l'entrée de la Forêt Maléfique : maître du temple, Dopeul Maléfique, prière, Wally Elconom, lecture du livre puis accès au dédale."},
+          {"pos":"[-5,17] Forêt Maléfique","do":"Pour Voir le Dark Vlad et mourir... ou pas, parler au Dark Vlad puis gagner le premier combat solo. Lui reparler, gagner le second combat solo à vagues, lui parler une troisième fois et choisir d'insister pour être expulsé du dédale."},
+          {"pos":"[10,-5] Port de Madrestam","do":"Rendre Voir le Dark Vlad et mourir... ou pas à Ronald et prendre immédiatement La magicienne des marécages."},
+          {"pos":"[-6,-3] Mériana","do":"Terminer La magicienne des marécages. À ce dialogue, prendre Retourner voir le Dark Vlad, toujours sans mourir, Plongeon et dragon et Le Dofus et l'alchimiste. Plongeon et dragon doit rester actif jusqu'au Dragon Cochon puis au Chêne Mou afin de récupérer les deux clefs dans les salles de sortie."},
+          {"pos":"[0,0] Captain Amakna","do":"Terminer Protéger et sévir si ce n'est pas déjà fait afin d'ouvrir correctement la Base des Justiciers avant La raison du plus fort."},
+          {"pos":"[-55,15] Otomaï","do":"Terminer Le Dofus et l'alchimiste auprès d'Otomaï puis prendre La raison du plus fort. Attention à la Bête ! doit déjà être terminée et L'éternelle moisson déjà active."},
+          {"pos":"[-5,3] Akadémie des Gobs","do":"Faire le passage demandé par La raison du plus fort et récupérer le contenu de quête requis avant la sortie. Ce passage est nouveau car la quête n'était pas disponible lors du premier donjon éducatif."},
+          {"pos":"[-55,15] Otomaï","do":"Rendre La raison du plus fort, obtenir la Potion d'Otomaï et prendre Après lui, le déluge."},
+          {"pos":"[-59,15] Grotte Hesque","do":"Revenir dans la Grotte Hesque avec Après lui, le déluge actif. Après le Corailleur Magistral, récupérer l'Ambre antédiluvien puis la purifier avec l'Anneau Ocre avant de quitter."},
+          {"pos":"[-5,-13] Hel Munster","do":"Terminer Après lui, le déluge, prendre Comme un corbac sur sa branche et avancer tous ses objectifs qui ne demandent pas encore l'Antre de la Reine Nyée."},
+          {"pos":"[-6,-3] → Forêt Maléfique → [5,1]","do":"Poursuivre Retourner voir le Dark Vlad, toujours sans mourir : ressources des marécages, Hell Mina, lettre, retour Mériana puis boussole jusqu'à Bowisse."},
+          {"pos":"[5,1] → Brouce Boulgoure → [14,17] → [27,-28]","do":"Avec au moins un métier niveau 50, terminer Qui botte le cul des Culs Bottés ? : récupérer 10 Champignons Ligneux, vaincre le Cordonnier Sombre, réunir les ingrédients des Semelles de Vent, passer par l'atelier de Bowisse puis suivre la boussole jusqu'à Toungousa."},
+          {"pos":"[27,-28] Terrdala","do":"Prendre Le voleur d'âmes avant de partir vers Moon. Prévoir les captures de Draegnerys, Kanniboul Ebil, Nelween et Wa Wobot sur leurs passages déjà planifiés ; pour Boostache, privilégier une âme achetée seulement s'il n'existe aucun autre objectif utile justifiant Maison Fantôme."}
+        ],
+        "hard_exit": [
+          "Mais où sont les Dofus ? terminé et les cinq premiers fils primordiaux accessibles.",
+          "Plongeon et dragon actif avant le Dragon Cochon.",
+          "Le Dofus et l'alchimiste, La raison du plus fort et Après lui, le déluge terminés.",
+          "Comme un corbac sur sa branche conservée jusqu'au futur passage Reine Nyée.",
+          "Le voleur d'âmes actif avant le Village Kanniboul.",
+          "Capture d'âmes connue et métier niveau 50 réellement disponible."
+        ],
+        "pause": [
+          "Le voleur d'âmes actif",
+          "Plongeon et dragon actif",
+          "Kanniboul Ebil = prochaine capture Émeraude naturelle",
+          "Moon peut commencer"
+        ]
+      }
+    },
+    "L70-02": {
+      "replace": {
+        "title": "Wabbit complet avant Château — Cawotte + succès de zone dans une seule campagne",
+        "preparation": [
+          {"name":"Patte de Wabbit","quantity":1,"for":"Art gastronomique"},
+          {"requirement":"3 personnages au même point de Voyage au centre du Wabbit, ou ayant déjà dépassé cette quête, pour ouvrir la grille de dalles","blocking":true},
+          {"name":"Cawotte","quantity":100,"policy":"Uniquement si le sort Cawotte n'est pas encore appris et que tu veux le récupérer auprès de Wob pendant Il y a un os, de Wabbit."}
+        ],
+        "route": [
+          {"pos":"[25,-4]","do":"Mémoriser le zaap principal et terminer le dernier dialogue d'Un sage parmi les sages s'il reste encore ouvert."},
+          {"pos":"[23,-4] Wanald","do":"Prendre Jamais deux sans trois. Pendant toute la campagne, récupérer ses trois clefs aux passages [24,-6], [27,-11] et [22,-5] au lieu de créer trois voyages séparés."},
+          {"pos":"[24,-3] Lilou","do":"Prendre Sauvegarder l'espèce. Récupérer le tapis [24,-6], le bois [24,-7], les baies [26,-9] et le lombric [24,-10], puis revenir à Lilou."},
+          {"pos":"[24,-3] → [24,-4] → [24,-8] → [26,-11] → [22,-7]","do":"Faire Faites l'amour, pas la guerre : prélever le sang de Xiap, déterrer la Cawotte mature, voler le Jus de Cawotte râpée, récupérer l'œuf de Wabbit et vaincre un Black Wabbit sur le trajet. Tout rapporter à Lilou [24,-3]."},
+          {"pos":"[24,-6] → [25,-7] → [24,-7] → [25,-8] → [24,-8] → [23,-9] → [22,-6]","do":"Pour Ça sent la cawotte, utiliser la Seringue de Lilou sur les sept cawottes de cette boucle puis rendre la seringue à Lilou [24,-3]."},
+          {"pos":"[21,-12] → [24,-3] → [25,-4] → [24,-2] → [22,-7]","do":"Pour Il y a un os, de Wabbit, interroger Lelievwe Pâle Pitane, revenir auprès de Lilou, parler au Lenald des Temps Anciens puis à Lily et rejoindre Wob le Wabbit enfermé. Donner 100 Cawottes à Wob uniquement si le sort Cawotte est encore à apprendre, puis revenir à Lilou."},
+          {"pos":"[24,-2] → [24,-4] → [24,-6] → [28,-12] → [24,-4] → [21,-12]","do":"Faire Art gastronomique : interroger le Wabbit survivant auprès de Lily, parler à Caesal, récupérer les trois ingrédients de [24,-6], griller une Patte de Wabbit au barbecue en [28,-12], faire préparer la salade par Caesal puis la livrer à Lelievwe. Ne pas quitter [21,-12] après la remise."},
+          {"pos":"[21,-12] Îlot des Tombeaux","do":"Prendre Expédition culinaire auprès de Lelievwe, tomber dans le passage indiqué, fouiller une tombe, poursuivre les indices, vaincre les Wabbits Squelettes agressifs puis lire le livre obtenu. Lancer Voyage au centre du Wabbit depuis ce livre."},
+          {"pos":"[22,-10]","do":"Pour Voyage au centre du Wabbit, fouiller la tombe, parler à Betamoche puis utiliser le passage secret de la cawotte. Placer trois personnages éligibles sur les dalles, franchir la grille immédiatement et parler au Gawdien Wabbit avant sa fermeture."},
+          {"pos":"derrière la grille de Voyage au centre du Wabbit","do":"Franchir la porte pour lancer Des pwinces pas très charmants. Parler aux trois Pwinces, gagner leur combat, lire le livre récupéré, parler à Tim Bweton puis utiliser l'assistant pour sortir et rendre la quête à Lilou. Le succès Rusé comme une Lenalde doit alors être terminé."},
+          {"pos":"Île des Wabbits","do":"Pendant ces mêmes trajets, prendre et avancer Timassacre entre wabbits → Comme d'wabbitude → Vade Retro Wabbitas → Chasse aux wabbits, ainsi que Un peu de wab → Ça rend aimable → Les pwinces déchus → La chasse de Lily. Utiliser les combats de zone déjà provoqués par la campagne ; ne créer aucune session de monstres séparée tant qu'un objectif de la boucle peut encore les valider."},
+          {"pos":"[27,-14]","do":"Mémoriser le zaap des Laboratoires Wabbits dès le premier passage sur l'Îlot de Waldo."},
+          {"pos":"souterrains [24,-7]","do":"Si Wabbit GM est présent lors du passage, faire le combat utile et Wogew l'hewmite lorsqu'elle est active. S'il est absent, continuer immédiatement : son apparition ne doit jamais bloquer la campagne."}
+        ],
+        "hard_exit": [
+          "Rusé comme une Lenalde terminé.",
+          "Jamais deux sans trois terminé et Château du Wa Wabbit accessible.",
+          "Lancer de Wabbit et Wabbit en feu terminés, ou chaque quête restante est identifiée précisément avant de quitter l'île.",
+          "Le Wa Pythie actif.",
+          "Zaap [27,-14] mémorisé."
+        ],
+        "pause": ["Château Wa prêt", "Trois clefs acquises", "Rusé comme une Lenalde terminé", "Zaaps Wabbit mémorisés"]
+      }
+    },
+    "L70-05": {
+      "replace": {
+        "hard_exit": [
+          "Sacrée Tourbière terminée, ou l'objectif restant est nommé précisément avant de quitter Otomaï.",
+          "Tourbière sans fond et Tourbière nauséabonde accessibles.",
+          "La vengeance du Kito terminée pendant le passage déjà prévu dans l'Arche.",
+          "Le Chevalier Noir et Rose terminé avant le futur Kralamoure.",
+          "Toute Bave du Kaskargo obtenue naturellement est conservée en banque jusqu'au stock cible de 10."
+        ],
+        "pause": ["Sacrée Tourbière fermée", "Accès futur Kralamoure sécurisé", "Baves de Kaskargo conservées en banque"]
+      }
+    },
+    "L70-06": {
+      "replace": {
+        "title": "Laboratoire de Brumen — Bonta 29 + Thelma + 7e compagnie + Émeraude",
+        "route": []
+      }
+    },
+    "L70-07": {
+      "replace": {
+        "title": "Bonta 30-33 + Domaine Ancestral puis Dragon Cochon",
+        "route": [
+          {"pos":"[-1,33] Antre du Dragon Cochon","do":"Entrer uniquement avec Un juge hystérique et Plongeon et dragon actifs. Vaincre le Dragon Cochon, capturer son âme avec une pierre puissance 100 minimum pour l'Ocre et faire les succès compatibles."},
+          {"pos":"salle de sortie du Dragon Cochon","do":"Après la capture, récupérer impérativement la Clef Dentée à gauche du trône pour Plongeon et dragon avant de quitter le donjon."},
+          {"pos":"[-29,-47]","do":"Rendre l'objectif Dragon Cochon à Chris de Naire. Un juge hystérique demande ensuite le Koulosse ; conserver cette étape jusqu'au rang Bonta 40 afin de mutualiser le prochain donjon."}
+        ],
+        "pause": ["Bonta 33 terminé", "Abraknyde Ancestral et Dragon Cochon capturés pour l'Ocre", "Clef Dentée Turquoise obtenue", "Un juge hystérique attend Koulosse"]
+      }
+    },
+    "L70-08": {
+      "replace": {
+        "title": "Saharach 80 + Mastodontes — Thelma et Roi scorpion en un passage",
+        "route": [
+          {"pos":"[12,-6] Port de Madrestam → Saharach [14,-55]","do":"Accéder à Saharach avant le Cimetière des Mastodontes, mémoriser le zaap [15,-58] et prendre L'Épice rit auprès d'Eole Suk."},
+          {"pos":"Port et Dunes de Saharach","do":"Terminer L'Épice rit pendant la même campagne de zone avec les 5 Eaux Potables et la Potion Eau de fée préparées, puis rendre à Eole Suk et prendre Le roi scorpion."},
+          {"pos":"[18,-59] puis atelier sculpteur","do":"Avancer Le roi scorpion jusqu'à obtenir l'Os de Mastodonte, faire fabriquer la flûte avec 10 Manganèses par un Sculpteur niveau 80 minimum puis montrer la flûte avant l'entrée au Cimetière."},
+          {"pos":"[19,-61] Cimetière des Mastodontes","do":"Entrer avec Le fossile et le marteau et Le roi scorpion actifs. Équiper les gants demandés par Le roi scorpion avant Mantiscore, faire les objectifs de salles et les succès compatibles. Après le boss, parler à Carl Os et récupérer Mantiscroc s'il manque encore."},
+          {"pos":"[-16,2] puis Saharach [14,-55]/[15,-57]","do":"Rendre Le fossile et le marteau à Thelma pour prendre Un défilé de Wobots, puis terminer Le roi scorpion. Prendre Ne pas payer de mine lorsqu'elle est proposée et la conserver pour le futur palier Saharach si ses objectifs suivants dépassent cette tranche."}
+        ],
+        "hard_exit": [
+          "L'Épice rit terminée.",
+          "Le roi scorpion terminé pendant le même Mantiscore que Le fossile et le marteau.",
+          "Un défilé de Wobots actif.",
+          "Ne pas payer de mine prise dès qu'elle est proposée, sans imposer un second Mantiscore."
+        ],
+        "pause": ["Saharach palier 80 ouvert", "Mantiscore fermé", "Terrier Wa prêt avec Un défilé de Wobots"]
+      }
+    },
+    "L70-09": {
+      "replace": {
+        "route": [
+          {"pos":"avant départ","do":"Vérifier que Couronne du Wa Wabbit, Bâton du Wa Wabbit et Cape du Wa Wabbit sont présents. Équiper les trois pièces pour le dialogue d'entrée requis puis les retirer pour les combats."},
+          {"pos":"[28,-12] Terrier du Wa Wabbit","do":"Entrer avec L'œuf ou la cawotte ? et Un défilé de Wobots actifs. Faire les succès compatibles et vaincre Wa Wobot. Avec Le voleur d'âmes actif, capturer Wa Wobot avec une pierre puissance 100 minimum pour l'Émeraude."},
+          {"pos":"salle de sortie du Terrier","do":"Rééquiper Couronne + Bâton + Cape avant de parler au Gawdien du Dofus afin d'obtenir le Dofus Cawotte, puis quitter le donjon."},
+          {"pos":"[23,-4] puis [25,-4]","do":"Rendre L'œuf ou la cawotte ?. Prendre Caltes stlatégiques, récupérer les cartes Pierre/Feuille/Ciseaux demandées pendant les combats Wabbit encore ouverts puis terminer Le jeu de Lenald."},
+          {"pos":"Île des Wabbits","do":"Fermer les quêtes restantes de Lancer de Wabbit et Wabbit en feu. Les pwinces déchus ne doit être validée qu'une fois pour le succès."},
+          {"pos":"[27,-28] Terrdala","do":"Après Wa Wobot, vérifier les cinq âmes du Voleur d'âmes. Si Boostache manque seul et qu'aucune autre quête ne demande Maison Fantôme, acheter son âme plutôt que refaire un donjon sans autre progression. Remettre ensuite les cinq âmes à Toungousa, faire le rituel et le combat de Tonam Etanwa, puis suivre la boussole vers le Cimetière des Héros et terminer Le voleur d'âmes."},
+          {"pos":"Cimetière des Héros","do":"Prendre immédiatement L'amour perdu de Nabur auprès de Sellia Renuf après Le voleur d'âmes."},
+          {"pos":"[-16,2]","do":"Rendre Un défilé de Wobots à Thelma et prendre C'est du bateau."}
+        ],
+        "hard_exit": [
+          "Dofus Cawotte obtenu.",
+          "Le voleur d'âmes terminé et L'amour perdu de Nabur actif.",
+          "Les succès Wabbit de cette campagne sont terminés, hors contenu dont l'apparition n'était pas disponible lors du passage.",
+          "C'est du bateau actif."
+        ],
+        "pause": ["Wabbit fermé", "Panoplie Wa conservée en banque", "Bateau du Chouque = prochain fil Thelma/Moon"]
+      }
+    },
+    "L70-10": {
+      "replace": {
+        "route": [
+          {"pos":"Moon avant Bateau","do":"Avant d'entrer, avoir Squelettes et amulettes, Le radeau ivre et C'est du bateau actifs. Compter les ressources déjà obtenues : objectif final 8 Cordes en liane, 11 Troncs de Kokoko et 10 Kole pour le radeau ; compléter les quantités manquantes pendant les combats Moon de cette campagne."},
+          {"pos":"[33,3] Bateau du Chouque","do":"Faire un seul passage pour les trois quêtes. Pendant les salles, obtenir 6 Rhums de Qualité sur les Ivremors et 8 Crânes de pirate ; au boss récupérer le Pavillon noir et valider les objectifs de Squelettes et amulettes et C'est du bateau. Faire les succès compatibles."},
+          {"pos":"salle de sortie du Bateau","do":"Avant de quitter, parler au Chouque et lancer Serrons-nous la main."},
+          {"pos":"[31,10] et Moon","do":"Échanger les 8 Crânes de pirate contre 4 Tonneaux Kannibouls auprès de Kanniboul Khau et terminer les crafts/échanges du Radeau ivre sans retourner au Bateau."},
+          {"pos":"[-16,2]","do":"Rendre C'est du bateau à Thelma et prendre Le spectacle vivant."}
+        ],
+        "hard_exit": ["Bateau du Chouque fait une seule fois pour les fils actifs", "Serrons-nous la main lancée avant sortie", "Le spectacle vivant actif"],
+        "pause": ["Bateau fermé", "Radeau ivre prêt à terminer hors donjon", "Le spectacle vivant actif"]
+      }
+    },
+    "L70-10H": {
+      "replace": {
+        "route": [
+          {"pos":"[-21,14] Route des Roulottes","do":"Prendre Retour aux sources auprès de Chourave, faire les interrogatoires de zone et obtenir les 15 documents signés pendant les combats naturels contre Graboule, Pirolienne, Roukouto et Tivelo."},
+          {"pos":"[-21,14]","do":"Donner à Chourave les ressources demandées dès qu'elles sont prêtes afin d'ouvrir Division par deux sans attendre la fin de Retour aux sources."},
+          {"pos":"[-28,12] → [-23,8] → [-25,3] → [-25,10] → [-28,12] → [-29,5] → [-29,6]","do":"Faire Division par deux : parler à MC Dimote, rejoindre Vegessus, suivre les deux passages du Convoyeur, revenir à MC Dimote, livrer la caisse au Capitaine Bermanes puis entrer dans la réunion en [-29,6] et mener les dialogues jusqu'à la fin de la quête."},
+          {"pos":"Bois des Arak-haï [-5,-13] → [-5,-15] → [-13,-15]","do":"Faire Cours Forestière pendant un seul passage dans le Bois des Arak-haï puis revenir auprès de Chourave."},
+          {"pos":"Landes + convoi [-24,28]","do":"Faire L'air mythe en enchaînant Magik Ermitus, les documents, Georges Clowney puis le convoi et le sorbet avant de revenir à Chourave."},
+          {"pos":"[-21,14]","do":"Lorsque Division par deux, Cours Forestière et L'air mythe sont terminées, rendre Retour aux sources et prendre immédiatement La grande parade. Ne pas entrer au Chapiteau avant cette prise."}
+        ],
+        "hard_exit": ["Retour aux sources terminé", "Division par deux terminée", "Cours Forestière terminée", "L'air mythe terminée", "La grande parade active avant le Chapiteau"],
+        "pause": ["La grande parade active", "Chapiteau = prochaine étape"]
+      }
+    },
+    "L70-11": {
+      "replace": {
+        "route": [
+          {"pos":"[-22,12] Chapiteau Magik Riktus","do":"Entrer seulement lorsque Le spectacle vivant, La lettre anonyme et La grande parade sont actives. Vaincre Choudini, capturer son âme avec une pierre puissance 100 minimum pour l'Ocre et faire les succès compatibles."},
+          {"pos":"salle de Choudini après victoire","do":"Avant de sortir, terminer les dialogues de La grande parade avec Choudini, MC Dimote, Chourave et les interlocuteurs demandés jusqu'à validation de la quête."},
+          {"pos":"[-16,2] → [-45,19]","do":"Rendre Le spectacle vivant à Thelma puis rencontrer Anne Ullaire pour ouvrir sa chaîne de donjons."}
+        ],
+        "hard_exit": ["Bonta 34 terminé", "Le spectacle vivant terminé", "La grande parade terminée avant sortie", "Choudini capturé pour l'Ocre"],
+        "pause": ["Chapiteau fermé", "Anne Ullaire disponible", "Hurlements de rire poursuit plus tard avec Meulou"]
+      }
+    },
+    "L70-12": {
+      "replace": {
+        "title": "Bonta 35-36 — lancer Leçon de cuisine avant le retour Moon",
+        "route": [
+          {"pos":"[-32,-57] milice de Bonta","do":"Après avoir terminé Des badges pour la bonne cause, prendre immédiatement Leçon de cuisine auprès d'Amayiro puis aller deux salles à droite dans les cuisines parler à Rei Nisuc. Ne pas partir spécialement à Moon : les ressources seront prises pendant la campagne Moon finale."}
+        ],
+        "pause": ["Bonta 36 terminé", "Leçon de cuisine active", "Moon final fournira les 3 Boules de Trukikol puis la Cervelle de tortue"]
+      }
+    },
+    "L70-13": {
+      "replace": {
+        "route": [
+          {"pos":"[35,5] → [33,8] → [30,10] → [32,4] → [33,3]","do":"Faire Sur les traces des Moonies : fouiller les livres du bateau échoué, récupérer les parchemins via la Nodkoko puis le tambour, prendre le Chapeau pirate dans l'épave sans cliquer le squelette, récupérer la Clef du Borgne dans le puits puis affronter Ouily le Borgne dans sa caverne et lui reparler après le combat."},
+          {"pos":"[32,12] → [29,10] → [30,9] → [30,6]/[31,6]/[29,7]/[30,8] → [30,9]","do":"Faire Le combat des chefs : aider Fred Hex, vaincre Kanniboul Himik, rapporter le colis à Kanniboul Gour, réunir 8 Bananagrumes et les quatre Œufs de Dodoune puis revenir à Gour pour libérer Gobagrum."},
+          {"pos":"[35,5] Forêt des Masques","do":"Faire Bas les masques : prendre la quête auprès de Kara Hibe, obtenir 5 masques de chaque type de Kanniboul pendant les combats de zone déjà nécessaires puis rendre les masques à Kara Hibe."},
+          {"pos":"[30,5] → [33,3] → [30,5] → [33,4]","do":"Poursuivre Serrons-nous la main : parler à l'Aventurier Maudit et gagner son combat, lui reparler, obtenir une Mâchoire de pirate sur les monstres de la zone, la lui donner, récupérer le Crochet du Chouque en [33,3], le rapporter puis terminer auprès de Kikoz du Chouque en [33,4]."},
+          {"pos":"Jungle Interdite de Moon","do":"Pendant ces trajets, obtenir les 3 Boules de Trukikol de Leçon de cuisine. Ne pas chercher la Cervelle de tortue tant que tous les autres combats Moon de cette étape ne sont pas terminés."},
+          {"pos":"[31,9] puis Arbre de Moon","do":"Terminer Squelettes et amulettes et avancer Rendez-vous avec la lune jusqu'au donjon. Entrer dans l'Arbre de Moon avec tous les fils déjà disponibles, vaincre Moon, capturer son âme avec une pierre puissance 100 minimum pour l'Ocre, faire les succès compatibles et obtenir le Dokoko."},
+          {"pos":"plage de Moon, juste avant départ","do":"Après tous les autres combats, vaincre une Tortue jusqu'à obtenir la Cervelle de tortue de Leçon de cuisine. Dès son obtention, partir immédiatement vers Bonta : l'objet devient inutilisable après 5 minutes."},
+          {"pos":"[-32,-57] cuisines de la milice","do":"Donner la Cervelle de tortue et les 3 Boules de Trukikol à Rei Nisuc avant expiration de la cervelle et terminer Leçon de cuisine, donc le rang Bonta 37."}
+        ],
+        "hard_exit": ["Koko Boy terminé et Dokoko obtenu", "Monnaie de singe terminé", "Moon capturé pour l'Ocre", "Bonta 37 terminé sans voyage Moon séparé"],
+        "pause": ["Moon fermé niveau 90-100", "Dokoko obtenu", "Bonta 38 disponible"]
+      }
+    },
+    "L70-14": {
+      "replace": {
+        "title": "Bonta 38-40 + Koulosse + deuxième rang du même Ordre",
+        "route": [],
+        "hard_exit": ["Bonta 40 terminé", "Deuxième rang du même Ordre terminé", "Koulosse capturé pour l'Ocre", "Un juge hystérique poursuit vers Meulou", "Bonta 41 disponible"],
+        "pause": ["Palier 100 sécurisé", "Cawotte + Dokoko obtenus", "Bonta 40 + deuxième rang d'Ordre terminés", "Captures Ocre 70-100 conservées"]
+      }
+    }
+  },
+  "insertions": []
+}

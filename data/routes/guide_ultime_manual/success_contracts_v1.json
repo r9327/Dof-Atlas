@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "contract_id": "guide_ultime_success_contracts_v1",
+  "title": "Guide Ultime — contrats de couverture succès vérifiés",
+  "status": "BUILDING_VERIFIED_SUBSET",
+  "as_of": "2026-08-24",
+  "policy": "Ces contrats complètent AchievementProvider pour les succès structurants dont la perte d'une quête ne doit jamais être masquée par une mention textuelle vague. Les noms sont vérifiés contre Dofus Pour Les Noobs courant; QuestProvider local reste la vérité d'identité/prérequis à l'exécution.",
+  "contracts": [
+    {
+      "success": "Jouer au docteur",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": [
+        "Les monologues du vaccin",
+        "Épis d'Emi",
+        "Le mal a dit",
+        "Convoi humanitaire",
+        "Sang dessus-dessous",
+        "Un remède à tous les maux"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/jouer-au-docteur.html"
+    },
+    {
+      "success": "Les survivants de Frigost",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": [
+        "Bricole Girl",
+        "Promenons-nous dans les bois",
+        "Les chasseurs",
+        "Il préfère la mort en mer",
+        "Chauffage à moindre frais",
+        "À la recherche de Dan Lavy",
+        "À qui profite le boufmouth",
+        "Dépôt de ravitaillement",
+        "Un ami qui ne vous veut pas que du bien",
+        "Maya la belle"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/les-survivants-de-frigost.html"
+    },
+    {
+      "success": "Agriculture ou alchimie",
+      "zone": "Île de Frigost",
+      "mode": "one_complete_branch",
+      "branches": {
+        "paysan": [
+          "En semant, se ment",
+          "Pomdeupin vaut mieux que trois tu l'auras",
+          "Massacre au hakapik",
+          "Mettre son grain de sel",
+          "Mauvaise graine",
+          "Champ Pomy",
+          "Gant graine",
+          "Les graines de la discorde",
+          "Le champ des héros",
+          "Champ borde le château"
+        ],
+        "alchimiste": [
+          "Cent vingt-trois fleurs, point comme les autres",
+          "Botanique-nique-nique",
+          "À fleur de peau",
+          "Mes lys fleurs",
+          "Rose à lys, Rose à lys, oh !",
+          "Fleuries mais rougissent",
+          "Heureux qui, comme les lys",
+          "Le nom de la mycose",
+          "Crocs n'en bourrent",
+          "Ville fleurie"
+        ]
+      },
+      "source": "https://www.dofuspourlesnoobs.com/agriculture-ou-alchimie.html"
+    },
+    {
+      "success": "Problèmes et solutions",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": [
+        "Pauvre Kiki",
+        "Star ski et Dutch",
+        "Groméo et Ginette",
+        "La marche de l'impératrice",
+        "Gène et tique",
+        "Manque de re-peau",
+        "Scierie Bambelle",
+        "Semer ses graines",
+        "Une blague vaseuse ?",
+        "Un volcan s'éteint"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/problegravemes-et-solutions.html"
+    },
+    {
+      "success": "Fri carré",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": ["La terre banquise", "La maire de glace", "Full Contact"],
+      "source": "https://www.dofuspourlesnoobs.com/fri-carreacute.html"
+    },
+    {
+      "success": "Objets trouvés",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": [
+        "Souvenir, souvenir",
+        "Bricoleur de génie",
+        "Un gros cube, un p'ti cube",
+        "Bijoux de famille",
+        "Obscurantisme",
+        "Monstre aux plantes",
+        "La transe du crystal",
+        "Art nacre",
+        "Glourmandise"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/objets-trouveacutes.html"
+    },
+    {
+      "success": "Halte au péage",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": [
+        "Antiroyaliste",
+        "Les joyeux de la couronne",
+        "Fais dodo, t'auras du gâteau",
+        "Lavomatique",
+        "C'est frais, mais c'est pas grave",
+        "Sans ma barbe, quelle barbe",
+        "Là-haut sur la montagne",
+        "Le pic qui glace"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/halte-au-peacuteage.html"
+    },
+    {
+      "success": "L'heure, c'est l'heure",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": [
+        "Blessure de chasse",
+        "Chasse dangereuse",
+        "Rentrer brocouille",
+        "L'abominable YeCh'Ti",
+        "Bonmonstres de neige",
+        "Le convoi, le sage aussi"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/lheure-cest-lheure.html"
+    },
+    {
+      "success": "Forage à tout va",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": ["Pêche en eaux gelées", "Il est frais mon pichon"],
+      "source": "https://www.dofuspourlesnoobs.com/forage-agrave-tout-va.html"
+    },
+    {
+      "success": "La maire dénie",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": [
+        "Bienvenue à Frigost",
+        "L'essentiel est dans Lac Gelé",
+        "Les rescapés de Frigost",
+        "Frigost, une île pas comme les autres",
+        "Développement durable",
+        "Donjons et trouffions",
+        "Au fion du trou"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/la-maire-deacutenie.html"
+    },
+    {
+      "success": "Les carrières de glace",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": [
+        "Hôtel de glace",
+        "La fonte des glaces",
+        "L'ombre et la glace",
+        "Lumière sur l'ombre",
+        "Qu'est-ce qu'on a fait des tuyaux ?",
+        "Lâcher les gaz"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/les-carriegraveres-de-glace.html"
+    },
+    {
+      "success": "L'hiver arrive",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": [
+        "Les rescapés du Village Enseveli",
+        "Les derniers rescapés",
+        "La vie de château",
+        "La machine à démonter le temps",
+        "Il faut mettre un terme aux maîtres",
+        "Un comte de faits divers"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/lhiver-arrive.html"
+    },
+    {
+      "success": "L'âme de glace",
+      "zone": "Île de Frigost",
+      "mode": "all_plus_one_of",
+      "required_quests": ["Malédiction !", "Mission Solution", "Chaud et froid", "Le givre des révélations"],
+      "one_of": ["La fatalité", "La destinée", "La rivalité"],
+      "source": "https://www.dofuspourlesnoobs.com/lacircme-de-glace.html"
+    },
+    {
+      "success": "Ongles incarnés",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": ["Inferno", "Tous pour un", "Voleur en tout genre", "Le travail c'est la santé"],
+      "source": "https://www.dofuspourlesnoobs.com/ongles-incarneacutes.html"
+    },
+    {
+      "success": "Fraîchement pondu",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": ["Le Dofus des Glaces"],
+      "source": "https://www.dofuspourlesnoobs.com/fraicircchement-pondu.html"
+    },
+    {
+      "success": "Épilogue hivernal",
+      "zone": "Île de Frigost",
+      "mode": "all",
+      "required_quests": ["Mille et un jours, un destin"],
+      "source": "https://www.dofuspourlesnoobs.com/eacutepilogue-hivernal.html"
+    }
+  ]
+}

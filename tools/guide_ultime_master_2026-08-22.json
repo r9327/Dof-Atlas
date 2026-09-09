@@ -1,0 +1,2479 @@
+{
+  "schema_version": 3,
+  "id": "guide_ultime",
+  "title": "Dofus Atlas — Guide Ultime 0→200",
+  "as_of": "2026-08-22",
+  "game_version_floor": "DOFUS 3.6 (2026-06-23)",
+  "status": "CONTENT_LOCK_SPEC_V5_UNIVERSAL_FULL_SUCCESS",
+  "source_of_truth": {
+    "catalog": "QuestProvider / données locales 2026",
+    "prerequisites": "startCriterion Qf=X positif uniquement pour dépendance de complétion; Qa/OR/négations restent des conditions.",
+    "achievements": "AchievementProvider local",
+    "web": "DPLN/officiel seulement pour garde-fous 2026, pièges, ressources et enchaînements",
+    "legacy_guide": "guide_complet_full_succes.json utilisé uniquement comme seed d’ordre; aucune dépendance dure héritée"
+  },
+  "scope": {
+    "quests": "Scope minimum utile: uniquement les quêtes nécessaires aux succès Quêtes, Dofus/Ocre/Sylvestre, Bonta, branches conditionnelles, vrais Qf et minimum QQ.",
+    "quest_achievements": "INCLUS — tous les succès Quêtes permanents ciblés.",
+    "monster_achievements": "INCLUS — FULL SUCCÈS, à greffer au premier combat/farm compatible.",
+    "dungeon_boss_achievements": "INCLUS — FULL SUCCÈS (Duo/Premier/Spécial/Statue/etc.); regrouper les compatibles et minimiser les passages supplémentaires.",
+    "dofus": "Tous les Dofus faisables dans la progression; Sylvestre cible de fermeture.",
+    "alignment": "Bonta = tronc d’alignement du guide maître. Pas de génération par alignement.",
+    "order": "Les 3 Ordres de Bonta sont affichés dans le même guide; le joueur en choisit un une seule fois et suit ses 5 paliers 20/40/60/80/100.",
+    "class": "Une seule carte universelle: faire la quête correspondant à sa classe puis reprendre le tronc commun. Aucun profil par classe.",
+    "events": "Toutes les quêtes événementielles stockées, exécutées seulement si événement disponible; absence calendrier = différé, pas oublié.",
+    "repeatables": "Uniquement si prérequis, succès Quêtes/Monstres, Dofus, fil long terme ou autre nécessité explicite.",
+    "quest_selection_model": "one_universal_master_route_with_inline_class_and_order_branches",
+    "qq_fill_policy": "Ajouter seulement le minimum de quêtes permanentes neutres nécessaire au plus haut QQ, en tenant compte d’une seule branche classe et d’un seul Ordre; jamais Almanax/événement/répétable en filler si évitable.",
+    "profession_acquisition_policy": "Si objet échangeable: HDV recommandé; craft optionnel. Monter un métier uniquement si le jeu vérifie le métier personnel ou l’action personnelle."
+  },
+  "branches": {
+    "class_quests": {
+      "Crâ": "C'est pour ta pomme",
+      "Ecaflip": "Au petit malheur la chance",
+      "Eliotrope": "Un rayon de soleil",
+      "Eniripsa": "Piques de solution",
+      "Enutrof": "La fête de la chocopépite",
+      "Féca": "Tournée d'inspection",
+      "Forgelance": "La routine anodine du chevalier citadin",
+      "Huppermage": "Les paroles s'envolent, les aigris restent",
+      "Iop": "Iop et hop",
+      "Ouginak": "Une vie de milichien",
+      "Osamodas": "Série animalière",
+      "Pandawa": "Trempette dans un verre d'eau",
+      "Roublard": "Braquage à la Roublard",
+      "Sacrieur": "Souffre-douleur",
+      "Sadida": "C'est pourtant naturel",
+      "Sram": "Crime et châtiment",
+      "Steamer": "L'étrange créature de l'étang bleu",
+      "Xélor": "Tarot, t'es très fort",
+      "Zobal": "Zobal Hibaba et les 40 Roublards"
+    },
+    "alignment_orders": {
+      "bonta": {
+        "Ordre du Cœur Vaillant": [
+          433,
+          109,
+          120,
+          421,
+          1916
+        ],
+        "Ordre de l'Esprit Salvateur": [
+          434,
+          111,
+          121,
+          423,
+          1917
+        ],
+        "Ordre de l'Œil Attentif": [
+          435,
+          110,
+          122,
+          425,
+          1918
+        ]
+      },
+      "brakmar": {
+        "Ordre du Cœur Saignant": [
+          436,
+          112,
+          123,
+          422,
+          1919
+        ],
+        "Ordre de l'Esprit Malsain": [
+          437,
+          114,
+          124,
+          424,
+          1920
+        ],
+        "Ordre de l'Œil Putride": [
+          438,
+          113,
+          125,
+          426,
+          1921
+        ]
+      }
+    },
+    "order_alignment_thresholds": [
+      20,
+      40,
+      60,
+      80,
+      100
+    ]
+  },
+  "optimizer_rules": [
+    "Contraintes dures avant géographie: prérequis quête/action, niveau, Bonta, branche Ordre choisie, vraie quête de classe, flags; aucun profil de génération.",
+    "Fermer toutes les actions disponibles sur une map avant de partir.",
+    "Avant un donjon: barrière d’entrée; ne pas entrer tant que quêtes/objets/captures compatibles ne sont pas prêts.",
+    "Après boss: le donjon n’est pas terminé tant que la salle de sortie n’est pas totalement fermée.",
+    "Mutualiser mêmes monstres/familles/drops/donjons et limiter les retours de zone.",
+    "Ne pas imposer une quête précédente comme prérequis simplement parce qu’elle était affichée avant.",
+    "Ne jamais écraser une donnée locale récente par une page web ancienne.",
+    "FULL SUCCÈS Donjons: greffer tous les succès du donjon au premier passage compatible et ne refaire le donjon que pour les incompatibilités prouvées.",
+    "FULL SUCCÈS Monstres: valider les succès de famille pendant les farms, drops et donjons déjà nécessaires."
+  ],
+  "inventory_and_bank_policy": {
+    "no_prices": true,
+    "resource_source_labels": [
+      "HDV",
+      "craft",
+      "farm",
+      "drop",
+      "banque",
+      "quête",
+      "PNJ/monnaie"
+    ],
+    "prepare_window": "Préparer uniquement le prochain bloc de zones/donjons + ressources critiques; le reste reste en banque.",
+    "pods": "Calculer avec poids locaux. Insérer une étape banque avant que le chargement planifié dépasse 80% des pods du personnage; conserver au moins 20% libres pour drops.",
+    "bank_flush": "Après gros bloc de farm/donjons ou avant changement d’île/dimension si ressources futures non utilisées dans les 2 prochains blocs.",
+    "ocre_stones": "Acheter/crafter/retirer de banque seulement les pierres nécessaires au prochain paquet de boss Ocre; ne pas porter tout le stock.",
+    "acquisition_priority": [
+      "banque_si_deja_possede",
+      "HDV_recommande_si_objet_echangeable",
+      "PNJ_monnaie_si_obligatoire_ou_plus_direct",
+      "craft_optionnel_pour_economiser_si_HDV_possible",
+      "craft_obligatoire_uniquement_si_la_quete_exige_action_personnelle_ou_objet_non_achetable",
+      "farm_drop_uniquement_si_non_achetable_ou_acquisition_personnelle_exigee"
+    ],
+    "craft_bank_2026": "Ne pas imposer un retrait banque dédié si l’interface de craft/HDV peut consommer directement les ressources de banque/Havre-Sac; conserver les détours banque pour pods, dépôts et objets nécessitant réellement l’inventaire.",
+    "profession_policy": "Ne jamais imposer de monter un métier uniquement pour fabriquer un objet achetable en HDV. Si l'objet fini est échangeable: afficher HDV comme option rapide recommandée et le craft comme option économique facultative avec le métier/niveau indiqué. Un métier devient un gate dur seulement si le jeu vérifie réellement le niveau du personnage ou exige une récolte/craft/action personnelle.",
+    "player_choice_display": {
+      "buyable_item": [
+        "BANQUE / inventaire si déjà possédé",
+        "HDV — recommandé pour optimiser le temps",
+        "CRAFT — option économique facultative, avec métier/niveau si connu"
+      ],
+      "self_acquisition_required": [
+        "ACTION PERSONNELLE OBLIGATOIRE — HDV ne valide pas la quête",
+        "indiquer le métier/niveau réellement vérifié par le jeu"
+      ]
+    }
+  },
+  "monocompte_policy": {
+    "difficulty_gate": "Ne pas forcer un donjon uniquement parce que le niveau minimum est atteint. Respecter niveau réel, stuff et difficulté monocompte; retarder si aucun prérequis temporel ne l’impose.",
+    "bundle_over_speed": "Mieux vaut retarder un boss pour le fusionner avec plusieurs quêtes que le refaire.",
+    "groupable_content": "Marquer ce qui est groupable, mais la route ne doit pas supposer un passeur."
+  },
+  "long_term_threads": {
+    "ocre": {
+      "unlock": "Niveau ~30: rush Nid du Kwakwa pour Capture d’âmes avant le nettoyage des boss bas niveau.",
+      "stage_1_bosses": [
+        "Mob l'Éponge",
+        "Bouftou Royal",
+        "Tournesol Affamé",
+        "Gelée Royale Bleuet",
+        "Gelée Royale Menthe",
+        "Shin Larve",
+        "Rakoopeur",
+        "Scarabosse Doré",
+        "Bworkette",
+        "Dragon Cochon",
+        "Choudini",
+        "Reine Nyée",
+        "Tofu Royal",
+        "Blop Coco Royal",
+        "Blop Griotte Royal",
+        "Blop Indigo Royal",
+        "Blop Reinette Royal",
+        "Rat Noir",
+        "Rat Blanc",
+        "Minotoror"
+      ],
+      "stage_2_bosses": [
+        "Hell Mina",
+        "Tanukouï San",
+        "Craqueleur Légendaire",
+        "Damadrya",
+        "Gelée Royale Fraise",
+        "Maître Corbac",
+        "Blop Multicolore Royal",
+        "Corailleur Magistral",
+        "Gourlo le Terrible",
+        "Meulou",
+        "Wa Wabbit",
+        "Moon",
+        "Koulosse",
+        "Skeunk",
+        "Abraknyde ancestral",
+        "Hanshi",
+        "Tynril Ahuri",
+        "Tynril Consterné",
+        "Tynril Déconcerté",
+        "Tynril Perfide"
+      ],
+      "stage_3_bosses": [
+        "Gelée Royale Citron",
+        "Founoroshi",
+        "Bworker",
+        "Sphincter Cell",
+        "Minotot",
+        "Silf le Rasboul Majeur",
+        "Crocabulia",
+        "Haute Truche",
+        "Chêne mou",
+        "Ougah",
+        "Kimbo"
+      ],
+      "after_bosses": "Étapes archimonstres 4→18 puis Kralamoure Géant étape 19.",
+      "policy": "Capturer chaque boss Ocre au premier passage utile après acquisition de Capture d’âmes."
+    },
+    "fight_club_postages": {
+      "unlock": "Quand Fight Club devient disponible.",
+      "policy": "Faire Fight Club une seule fois pour valider le succès Quêtes Chahuteur clandestin.",
+      "stop": "Après la première validation nécessaire au succès.",
+      "postages": "Hors tronc du Guide Ultime; ne pas répéter Fight Club pour accumuler 140 savons sauf choix volontaire du joueur."
+    },
+    "dolmanax_almanax": {
+      "mode": "side_thread",
+      "blocking": false,
+      "policy": "Conserver dans le suivi mais ne jamais bloquer la route principale sur l’attente quotidienne."
+    },
+    "vulbis_parangon": {
+      "gate": "Avant le premier gardien de donjon niveau 200, avancer le Vulbis jusqu’à Parangon de puissance.",
+      "drop": "0,7% de base sur gardiens 200 pendant la bonne étape; pas en arène.",
+      "policy": "Tout boss 200 obligatoire doit devenir une tentative gratuite."
+    },
+    "events": {
+      "mode": "calendar_parallel_branch",
+      "examples": [
+        "Pwâk",
+        "Vulkania",
+        "Halouine",
+        "Nowel",
+        "saisons/événements 2026"
+      ],
+      "policy": "Faire la branche complète disponible et ses succès Quêtes/Monstres compatibles; ne jamais bloquer le tronc si l’événement est fermé."
+    }
+  },
+  "tutorial_3_6": {
+    "parallel_quest": "Bien débuter",
+    "linear": [
+      "Premiers pas",
+      "Premières armes",
+      "L’anneau de tous les dangers",
+      "Sous le regard des dieux"
+    ],
+    "note": "Version 3.6; ne pas réutiliser Vaincre les monstres."
+  },
+  "monster_success_specials": {
+    "3_6_additions": [
+      "Chafers des cités",
+      "Muldos sauvages",
+      "Volkornes sauvages",
+      "Intervilles",
+      "Morve Subite"
+    ],
+    "carnage_de_glace": {
+      "required": "Terminer 1 seule chasse aléatoire de Darwin Chester.",
+      "choices": [
+        "Blouson noir",
+        "Boîte de conserve",
+        "Le cinquième élément",
+        "Pousse mousse",
+        "Trop sinistre"
+      ],
+      "stop_after_success": true
+    }
+  },
+  "totems": {
+    "quest": "Les totems de Maïmane",
+    "selected": {
+      "Joie": "Klime",
+      "Tristesse": "Sylargh",
+      "Peur": "Larve de Koutoulou",
+      "Colère": "Missiz Frizz",
+      "Dégoût": "Nileza",
+      "Surprise": "Comte Harebourg"
+    },
+    "rule": "Le boss doit être tué pendant que la quête des Totems est active.",
+    "avoid_as_default": [
+      "Roi Nidas",
+      "Solar",
+      "Ilyzaelle",
+      "Misère",
+      "Corruption"
+    ],
+    "reason": "Ces boss sont souvent forcés avant/après Totems par d’autres chaînes; les choisir crée des répétitions évitables."
+  },
+  "endgame_order": [
+    "Avant les boss 200: ouvrir Parangon Vulbis.",
+    "Avant Nidas/Proto: débloquer Osavora et activer Les gloutons des dimensions.",
+    "Avancer Ébène jusqu’au point où Klime/Koutoulou/Solar peuvent être consommés au bon passage.",
+    "Avancer Eliocalypse/Sylvestre jusqu’à l’activation des Totems; ne tuer aucun boss Totem choisi avant.",
+    "Frigost III fenêtre Totems: Sylargh #1 → Klime → Missiz Frizz; utiliser Missiz pour la progression d’alignement vers 100.",
+    "Finir alignement 100 et ouvrir/avancer Ivoire.",
+    "Faire Nileza quand Totem Dégoût + Ivoire + Dofus des Glaces sont alignés.",
+    "Faire Koutoulou quand Totem Peur + Ébène sont alignés.",
+    "Faire les autres donjons Ivoire en bundles: Chaloeil, Protozorreur, Nidas #1, Tal Kasha, Meno, Katrepat; puis Sylargh #2 pour Ivoire.",
+    "Terminer Ivoire + Ébène + Ocre pour posséder les 6 Primordiaux.",
+    "Ouvrir Dans la gueule du dragon puis S’armer contre le destin et obtenir le Troisième Œil avant les deux boss de destin.",
+    "Premier Vortex seulement avec Les sables du temps + La vérité est au fond du puits + S’armer contre le destin.",
+    "Premier Comte seulement avec Totem Surprise + Le givre des révélations + Un comte de faits divers + S’armer contre le destin (+ avis/Parangon si pertinents).",
+    "Fermer Six sur six.",
+    "Fermer Le secret des Dofus : Prologue + Valonia/L’héritage de l’île brisée puis Dom de Pin.",
+    "Fermer Qui nous protège du Protecteur ?: Nidas #2 + Bataille de l’Aurore Pourpre + Solar #2, avec toutes ressources prêtes.",
+    "Fermer Flovoraison puis En attendant le printemps → Dofus Sylvestre."
+  ],
+  "forced_quest_repeats": {
+    "Sylargh": 2,
+    "Roi Nidas": 2,
+    "Solar": 2
+  },
+  "forced_repeat_notes": {
+    "Sylargh": "Premier passage pour F3/Totem; second pour la fermeture Ivoire selon l’ordre d’accès alignement/Ivoire.",
+    "Roi Nidas": "Premier passage pour Ivoire/Osavora bundles; second post-Totems pour Qui nous protège du Protecteur ?.",
+    "Solar": "Premier passage pour Ébène; second post-Totems pour Qui nous protège du Protecteur ?."
+  },
+  "dungeon_bundles": {
+    "Meulou": {
+      "quests": [
+        "Un juge hystérique",
+        "Allumer le feu",
+        "Draconanthropie",
+        "Mulanthropie",
+        "Apprentissage : Surineur"
+      ],
+      "also": [
+        "Tour du Monde",
+        "Capture Ocre si étape compatible"
+      ]
+    },
+    "Chaloeil": {
+      "quests": [
+        "De l’autre côté du Chaloeil",
+        "Le dragon blanc"
+      ],
+      "policy": "Attendre que les deux soient prêtes."
+    },
+    "Protozorreur": {
+      "quests": [
+        "Examen de passage",
+        "Qui dit baume",
+        "Grand corps malade",
+        "Les gloutons des dimensions"
+      ],
+      "policy": "Synchroniser avant premier passage."
+    },
+    "Tal Kasha": {
+      "quests": [
+        "Nordalie",
+        "Le secret de la pyramide"
+      ],
+      "policy": "Dialoguer avec Tal dans la sortie si demandé."
+    },
+    "Meno": {
+      "quests": [
+        "Une voix de crystal",
+        "Piège de crystal",
+        "La mer en héritage"
+      ]
+    },
+    "Katrepat": {
+      "quests": [
+        "Le mort dans l’âme",
+        "Entretien avec une Vampyre"
+      ]
+    },
+    "Nidas #1": {
+      "quests": [
+        "Casse en Enutrosor",
+        "Un morceau de roi",
+        "Coiffeur de génie",
+        "Les gloutons des dimensions"
+      ],
+      "after_boss": [
+        "Attaquer/ouvrir le Coffret précieux si Casse en Enutrosor le demande."
+      ]
+    },
+    "Nidas #2": {
+      "quests": [
+        "Qui nous protège du Protecteur ?"
+      ],
+      "reason": "répétition structurelle post-Totems/Sylvestre"
+    },
+    "Solar #1": {
+      "quests": [
+        "Un nouvel héritier",
+        "Les cœurs livides"
+      ],
+      "thread": "Dofus Ébène"
+    },
+    "Solar #2": {
+      "quests": [
+        "Qui nous protège du Protecteur ?"
+      ],
+      "reason": "répétition structurelle post-Totems/Sylvestre"
+    },
+    "Vortex": {
+      "quests": [
+        "Les sables du temps",
+        "La vérité est au fond du puits",
+        "S’armer contre le destin"
+      ],
+      "policy": "Premier Vortex seulement quand les trois sont prêtes."
+    },
+    "Comte Harebourg": {
+      "quests": [
+        "Le givre des révélations",
+        "Un comte de faits divers",
+        "S’armer contre le destin",
+        "Les totems de Maïmane"
+      ],
+      "also": [
+        "Avis de recherche si pertinent",
+        "Parangon Vulbis si encore actif"
+      ],
+      "policy": "Ne pas faire le Comte juste après les 4 maîtres; attendre Six sur six/S’armer."
+    },
+    "Sylargh #1": {
+      "threads": [
+        "Totem Tristesse",
+        "Dofus des Glaces",
+        "Frigost III"
+      ],
+      "also": [
+        "Parangon Vulbis"
+      ]
+    },
+    "Klime": {
+      "threads": [
+        "Totem Joie",
+        "Dofus des Glaces",
+        "Dofus Ébène"
+      ],
+      "also": [
+        "Parangon Vulbis"
+      ]
+    },
+    "Missiz Frizz": {
+      "threads": [
+        "Totem Colère",
+        "Dofus des Glaces",
+        "Alignement ~97"
+      ],
+      "also": [
+        "Parangon Vulbis"
+      ]
+    },
+    "Nileza": {
+      "threads": [
+        "Totem Dégoût",
+        "Dofus Ivoire",
+        "Dofus des Glaces"
+      ],
+      "also": [
+        "Parangon Vulbis"
+      ]
+    },
+    "Sylargh #2": {
+      "threads": [
+        "Dofus Ivoire"
+      ],
+      "reason": "répétition structurelle retenue; fermeture de Il est temps de mourir"
+    },
+    "Larve de Koutoulou": {
+      "threads": [
+        "Totem Peur",
+        "Dofus Ébène"
+      ],
+      "also": [
+        "Parangon Vulbis"
+      ]
+    }
+  },
+  "before_leaving_dungeon": [
+    {
+      "dungeon": "Blops Royaux",
+      "action": "Entrer dans l’Antre du Blop Multicolore et prendre la sauvegarde dès que pertinent."
+    },
+    {
+      "dungeon": "Minotoror",
+      "action": "Valider l’étape Pourpre, entrer côté Minotot et prendre la sauvegarde avant de sortir."
+    },
+    {
+      "dungeon": "Koulosse",
+      "action": "Parler à Oshar Marif après le boss; ne pas quitter avant fermeture des objectifs."
+    },
+    {
+      "dungeon": "Dramak",
+      "action": "Parler à Dramak après le boss; salle 3 récupérer Jongler si requis."
+    },
+    {
+      "dungeon": "Chêne Mou",
+      "action": "Si Plongeon et Dragon est active, cliquer l’arbre; si L’art de la langue de bois est active, parler au Chêne Mou."
+    },
+    {
+      "dungeon": "Craqueleur Légendaire",
+      "condition": "Bonta",
+      "action": "Récupérer le Coticule en sortie si l’alignement le demande."
+    },
+    {
+      "dungeon": "Brumen",
+      "condition": "Bonta",
+      "action": "Récupérer le venin en sortie si l’alignement le demande."
+    },
+    {
+      "dungeon": "Forgerons",
+      "condition": "Bonta",
+      "action": "Récupérer le liquide dans la marmite."
+    },
+    {
+      "dungeon": "Kwakwa",
+      "action": "Récupérer Capture d’âmes; branche Brâkmar: cliquer l’œuf si objectif actif."
+    },
+    {
+      "dungeon": "Reine Nyée",
+      "action": "Parler à la Reine pour Silvosse si actif; branche Brâkmar: récupérer le poison si demandé."
+    },
+    {
+      "dungeon": "Terrier Wa Wabbit",
+      "action": "Rééquiper la panoplie Wa avant de parler au Gawdien/Wobot pour le Cawotte."
+    },
+    {
+      "dungeon": "Kanniboul",
+      "action": "Récupérer Kannibulle avant de quitter."
+    },
+    {
+      "dungeon": "Mantiscore",
+      "action": "Récupérer Mantiscroc avant de quitter."
+    },
+    {
+      "dungeon": "Squelettes",
+      "action": "Récupérer Chaferfu avant de quitter."
+    },
+    {
+      "dungeon": "Bateau du Chouque",
+      "action": "Prendre Serrons-nous la main après le boss avant de sortir."
+    },
+    {
+      "dungeon": "Kankreblath",
+      "action": "Prendre Aventure miniature dans la salle de sortie."
+    },
+    {
+      "dungeon": "Maître Corbac",
+      "action": "Parler à Natacha après le boss pour Voler dans les plumes."
+    },
+    {
+      "dungeon": "Fraktale",
+      "action": "Utiliser le détecteur sur la map finale avant de sortir si objectif actif."
+    },
+    {
+      "dungeon": "Dantinéa",
+      "action": "Faire le dialogue post-boss lié aux quêtes actives."
+    },
+    {
+      "dungeon": "Meno",
+      "action": "Parler au Capitaine Meno après la victoire avant de sortir."
+    },
+    {
+      "dungeon": "Razof",
+      "action": "Tonneau + dialogue post-boss, puis enchaîner immédiatement l’étape extérieure chronométrée."
+    },
+    {
+      "dungeon": "Solar",
+      "action": "Fermer les actions de salle finale (cœur livide/dialogues) avant de sortir."
+    },
+    {
+      "dungeon": "Bethel",
+      "action": "Fermer les actions de salle finale (cœur livide/dialogues) avant de sortir."
+    },
+    {
+      "dungeon": "Grolloum",
+      "action": "Si la quête 2026 de Sakaï est active, reparler à Hywan après le boss."
+    },
+    {
+      "dungeon": "Comte Harebourg",
+      "action": "Pour Le givre des révélations: parler au Comte, faire manipulations montre/socle/liquide puis dialogues Djaul/Jiva avant de quitter."
+    }
+  ],
+  "manual_resources": {
+    "Koulosse": {
+      "before_enter": [
+        {
+          "name": "Fleur de Kaliptus",
+          "quantity": 50,
+          "source": "bank|hdv|farm"
+        }
+      ]
+    },
+    "Qui nous protège du Protecteur ?": {
+      "before_start": [
+        {
+          "name": "Pépite",
+          "quantity": 500,
+          "source": "bank|hdv"
+        },
+        {
+          "name": "Aile de Moskito",
+          "quantity": 31,
+          "source": "bank|hdv|farm"
+        },
+        {
+          "name": "Métronome du Début-Temps",
+          "quantity": 24,
+          "source": "Xélorium/Orichor"
+        },
+        {
+          "name": "Poudre de Perlinpainpain",
+          "quantity": 12,
+          "source": "bank|hdv|craft"
+        },
+        {
+          "name": "Capsule Explosive",
+          "quantity": 12,
+          "source": "bank|hdv|craft"
+        },
+        {
+          "name": "Poudre d’Artifice",
+          "quantity": 12,
+          "source": "bank|hdv|craft"
+        },
+        {
+          "name": "Goulobule rouge",
+          "quantity": 12,
+          "source": "bank|hdv|farm"
+        },
+        {
+          "name": "Citron",
+          "quantity": 6,
+          "source": "bank|hdv"
+        },
+        {
+          "name": "Fil de Néfileuse",
+          "quantity": 6,
+          "source": "bank|hdv|farm"
+        },
+        {
+          "name": "Résine",
+          "quantity": 6,
+          "source": "bank|hdv|farm"
+        },
+        {
+          "name": "Kouartz",
+          "quantity": 6,
+          "source": "bank|hdv|craft"
+        },
+        {
+          "name": "Œil de Cycloïde",
+          "quantity": 4,
+          "source": "bank|hdv|farm"
+        },
+        {
+          "name": "Huile de Koode",
+          "quantity": 3,
+          "source": "bank|hdv|craft"
+        },
+        {
+          "name": "Queue de Mantaze",
+          "quantity": 2,
+          "source": "bank|hdv|farm"
+        },
+        {
+          "name": "Fragment d’anomalie",
+          "quantity": 2,
+          "source": "bank|hdv|farm"
+        },
+        {
+          "name": "Ardonite",
+          "quantity": 2,
+          "source": "bank|hdv|craft"
+        },
+        {
+          "name": "Galet Solaire",
+          "quantity": 2,
+          "source": "Almanax/Almatons"
+        },
+        {
+          "name": "Galet Lunaire",
+          "quantity": 1,
+          "source": "Almanax/Almatons"
+        },
+        {
+          "name": "Substrat de Forêt vierge",
+          "quantity": 1,
+          "source": "craft|hdv"
+        },
+        {
+          "name": "Clef de la Clairière du Chêne Mou",
+          "quantity": 1,
+          "source": "craft|hdv"
+        },
+        {
+          "name": "Dague de Will Killson",
+          "quantity": 1,
+          "source": "quest|Kamas de glace"
+        },
+        {
+          "name": "Essence de Torkélonia",
+          "quantity": 1,
+          "source": "craft|hdv"
+        },
+        {
+          "name": "Essence de Tal Kasha",
+          "quantity": 1,
+          "source": "craft|hdv"
+        }
+      ],
+      "critical_before_dungeon": [
+        {
+          "dungeon": "Bataille de l'Aurore Pourpre",
+          "name": "Pépite",
+          "quantity": 500
+        }
+      ]
+    },
+    "Dofus Ivoire": {
+      "campaign_resources": [
+        {
+          "name": "Graisse Gélatineuse",
+          "quantity": 50
+        },
+        {
+          "name": "Frostiz",
+          "quantity": 50
+        },
+        {
+          "name": "Obsidienne",
+          "quantity": 15
+        },
+        {
+          "name": "Pic du Nocturlabe",
+          "quantity": 1
+        },
+        {
+          "name": "Peau de Crocabulia",
+          "quantity": 1
+        },
+        {
+          "name": "Corde du Fancrôme",
+          "quantity": 1
+        },
+        {
+          "name": "Moustache de Rilur",
+          "quantity": 5
+        },
+        {
+          "name": "Perce-Neige",
+          "quantity": 15
+        },
+        {
+          "name": "Blague de Soufre",
+          "quantity": 20
+        },
+        {
+          "name": "Baguette Rikiki",
+          "quantity": 1
+        }
+      ]
+    },
+    "Dofus Ébène": {
+      "campaign_resources": [
+        {
+          "name": "Sel",
+          "quantity": 18
+        },
+        {
+          "name": "Poudre de Perlinpainpain",
+          "quantity": 36
+        },
+        {
+          "name": "Seigle",
+          "quantity": 18
+        },
+        {
+          "name": "Obsidienne",
+          "quantity": 10
+        },
+        {
+          "name": "Dolomite",
+          "quantity": 10
+        },
+        {
+          "name": "Écume de mer",
+          "quantity": 10
+        },
+        {
+          "name": "Corde d'escalade",
+          "quantity": 1
+        },
+        {
+          "name": "Saucisse fumée",
+          "quantity": 10
+        },
+        {
+          "name": "Barbarbe",
+          "quantity": 5
+        },
+        {
+          "name": "Perce-Neige",
+          "quantity": 20
+        }
+      ],
+      "profession_gates": [
+        {
+          "job": "Paysan",
+          "level": 80,
+          "gate_type": "hard_game_requirement",
+          "can_be_bypassed_by_hdv": false
+        },
+        {
+          "job": "Mineur",
+          "level": 20,
+          "gate_type": "hard_game_requirement",
+          "can_be_bypassed_by_hdv": false
+        }
+      ]
+    },
+    "Six sur six": {
+      "campaign_resources": [
+        {
+          "name": "Framboise",
+          "quantity": 1,
+          "alternative": "10 x Carré de Chocolat au Lait"
+        },
+        {
+          "name": "Carré de Chocolat Noir",
+          "quantity": 1
+        },
+        {
+          "name": "Oignon",
+          "quantity": 1
+        },
+        {
+          "name": "Baguette Rikiki",
+          "quantity": 1
+        },
+        {
+          "name": "Kama",
+          "quantity": 1
+        },
+        {
+          "name": "Reflet onirique",
+          "quantity": 600
+        }
+      ],
+      "profession_gates": [
+        {
+          "job_type": "récolte",
+          "level": 200,
+          "gate_type": "hard_game_requirement",
+          "can_be_bypassed_by_hdv": false
+        }
+      ]
+    },
+    "Les gloutons des dimensions": {
+      "campaign_resources": [
+        {
+          "name": "Pomme",
+          "quantity": 5
+        },
+        {
+          "name": "Fraise",
+          "quantity": 5
+        },
+        {
+          "name": "Cerise",
+          "quantity": 5
+        },
+        {
+          "name": "Morue",
+          "quantity": 3
+        },
+        {
+          "name": "Lotte",
+          "quantity": 3
+        },
+        {
+          "name": "Tanche",
+          "quantity": 3
+        },
+        {
+          "name": "Venin d’Éperfide",
+          "quantity": 3
+        },
+        {
+          "name": "Cawotte Transgénique",
+          "quantity": 3
+        },
+        {
+          "name": "Trompe de Tromperelle",
+          "quantity": 3
+        },
+        {
+          "name": "Chair de Zombruth",
+          "quantity": 2
+        }
+      ]
+    },
+    "Sandanwa : Pluralité martiale": {
+      "profession_gates": [
+        {
+          "job": "Sculpteur",
+          "level": 30,
+          "gate_type": "hard_game_requirement",
+          "can_be_bypassed_by_hdv": false,
+          "reason": "Le jeu exige l'action ou le niveau du personnage; acheter l'objet ne valide pas cette condition."
+        }
+      ]
+    },
+    "De l'encre spectaculaire": {
+      "profession_gates": [
+        {
+          "job": "Bricoleur",
+          "level": 30,
+          "gate_type": "hard_game_requirement",
+          "can_be_bypassed_by_hdv": false,
+          "reason": "Le jeu exige l'action ou le niveau du personnage; acheter l'objet ne valide pas cette condition."
+        }
+      ]
+    },
+    "Présence d'esprits": {
+      "profession_gates": [
+        {
+          "job": "Mineur",
+          "level": 10,
+          "gate_type": "hard_game_requirement",
+          "can_be_bypassed_by_hdv": false,
+          "reason": "Le jeu exige l'action ou le niveau du personnage; acheter l'objet ne valide pas cette condition."
+        }
+      ]
+    },
+    "Un héritage tourmenté": {
+      "profession_gates": [
+        {
+          "job": "Mineur",
+          "level": 10,
+          "gate_type": "hard_game_requirement",
+          "can_be_bypassed_by_hdv": false,
+          "reason": "Le jeu exige l'action ou le niveau du personnage; acheter l'objet ne valide pas cette condition."
+        }
+      ]
+    },
+    "Un pouvoir mérydique": {
+      "profession_gates": [
+        {
+          "job": "Alchimiste",
+          "level": 40,
+          "gate_type": "hard_game_requirement",
+          "can_be_bypassed_by_hdv": false,
+          "reason": "Le jeu exige l'action ou le niveau du personnage; acheter l'objet ne valide pas cette condition."
+        }
+      ]
+    },
+    "Jusqu'à leur dernier soupir": {
+      "external_craft_help": [
+        {
+          "job": "Alchimiste",
+          "level": 140,
+          "personal_job_required": false,
+          "instruction": "Demander l'aide d'un artisan; ne pas monter ce métier uniquement pour cette étape."
+        }
+      ]
+    },
+    "Requiem pour un Yokai": {
+      "external_craft_help": [
+        {
+          "job": "Forgeron",
+          "level": 140,
+          "personal_job_required": false,
+          "instruction": "Demander l'aide d'un artisan; ne pas monter ce métier uniquement pour cette étape."
+        }
+      ]
+    }
+  },
+  "chapter_strategy": {
+    "mode": "legacy_seed_plus_dynamic_catalog",
+    "description": "Les 1134 quêtes de l’ancien guide servent uniquement de seed. Toute quête normale supplémentaire du catalogue est injectée dynamiquement dans le chapitre de niveau/zone compatible, puis routée par prérequis réels et géographie.",
+    "legacy_seed_unique_quests": 1134,
+    "chapters": [
+      {
+        "order": 1,
+        "id": "full_succes_01_1_20",
+        "title": "Niv. 1–20 — Incarnam",
+        "legacy_seed_quest_count": 83,
+        "legacy_seed_quest_ids": [
+          2502,
+          1629,
+          2545,
+          1631,
+          1630,
+          1632,
+          1642,
+          1643,
+          1639,
+          1640,
+          1634,
+          1649,
+          2512,
+          1650,
+          1641,
+          1644,
+          826,
+          1651,
+          1635,
+          1633,
+          2513,
+          1655,
+          1638,
+          1645,
+          1646,
+          2004,
+          1637,
+          1647,
+          1648,
+          1423,
+          1198,
+          34,
+          1434,
+          1992,
+          2005,
+          1958,
+          1975,
+          1959,
+          1978,
+          1199,
+          1680,
+          718,
+          1960,
+          1979,
+          1980,
+          2009,
+          1984,
+          1981,
+          896,
+          1996,
+          1994,
+          1985,
+          894,
+          1998,
+          1976,
+          208,
+          138,
+          920,
+          1968,
+          704,
+          1971,
+          1972,
+          1966,
+          132,
+          1970,
+          133,
+          938,
+          1965,
+          1770,
+          2470,
+          134,
+          1677,
+          30,
+          1969,
+          1964,
+          1973,
+          1456,
+          1967,
+          1963,
+          1974,
+          1615,
+          1841,
+          716
+        ],
+        "legacy_linked_achievement_ids": [
+          559,
+          649,
+          1378,
+          1379,
+          1380,
+          1381,
+          1671,
+          1672,
+          1673,
+          1674,
+          1675,
+          1676,
+          1678,
+          1679,
+          8518
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 2,
+        "id": "full_succes_02_21_30",
+        "title": "Niv. 21–30 — Astrub & premiers donjons",
+        "legacy_seed_quest_count": 53,
+        "legacy_seed_quest_ids": [
+          1986,
+          1988,
+          1987,
+          1201,
+          1977,
+          950,
+          135,
+          26,
+          1962,
+          2000,
+          1982,
+          2192,
+          2149,
+          1989,
+          2006,
+          153,
+          154,
+          161,
+          165,
+          163,
+          177,
+          1672,
+          925,
+          941,
+          1825,
+          1851,
+          1607,
+          209,
+          211,
+          216,
+          762,
+          770,
+          763,
+          764,
+          765,
+          766,
+          767,
+          1678,
+          2467,
+          939,
+          768,
+          1842,
+          769,
+          771,
+          773,
+          774,
+          1616,
+          2007,
+          1999,
+          1845,
+          1681,
+          1682,
+          1676
+        ],
+        "legacy_linked_achievement_ids": [
+          559,
+          1036,
+          1656,
+          1671,
+          1672,
+          1673,
+          1674,
+          1675,
+          1676,
+          1678,
+          1679,
+          3034
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 3,
+        "id": "full_succes_03_31_40",
+        "title": "Niv. 31–40 — Bonta, Amakna & Tour du Monde",
+        "legacy_seed_quest_count": 46,
+        "legacy_seed_quest_ids": [
+          55,
+          167,
+          162,
+          56,
+          57,
+          58,
+          1990,
+          59,
+          231,
+          232,
+          60,
+          61,
+          62,
+          63,
+          2003,
+          897,
+          2504,
+          2008,
+          1991,
+          1983,
+          675,
+          827,
+          217,
+          64,
+          168,
+          166,
+          169,
+          117,
+          2193,
+          2194,
+          1824,
+          942,
+          170,
+          215,
+          439,
+          1683,
+          33,
+          1435,
+          235,
+          836,
+          837,
+          2450,
+          2195,
+          1462,
+          1781,
+          2442
+        ],
+        "legacy_linked_achievement_ids": [
+          992,
+          1036,
+          1671,
+          1672,
+          1673,
+          1674,
+          1675,
+          1676,
+          1678,
+          1679
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 4,
+        "id": "full_succes_04_41_50",
+        "title": "Niv. 41–50 — Bworks, Tofus & Cania",
+        "legacy_seed_quest_count": 61,
+        "legacy_seed_quest_ids": [
+          35,
+          828,
+          1821,
+          952,
+          234,
+          236,
+          1463,
+          838,
+          898,
+          899,
+          681,
+          1464,
+          218,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          433,
+          1777,
+          612,
+          1772,
+          829,
+          839,
+          1823,
+          2443,
+          623,
+          2062,
+          2063,
+          2064,
+          2097,
+          2463,
+          2464,
+          2465,
+          2466,
+          621,
+          1780,
+          1938,
+          2468,
+          710,
+          711,
+          1316,
+          1858,
+          1859,
+          221,
+          241,
+          620,
+          1684,
+          32,
+          2098,
+          1666,
+          2099,
+          2120,
+          1667,
+          2133,
+          2135
+        ],
+        "legacy_linked_achievement_ids": [
+          922,
+          992,
+          1048,
+          1397,
+          1656
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 5,
+        "id": "full_succes_05_51_60",
+        "title": "Niv. 51–60 — Larves, Kwaks, Valonia & Otomaï",
+        "legacy_seed_quest_count": 35,
+        "legacy_seed_quest_ids": [
+          840,
+          841,
+          673,
+          830,
+          949,
+          842,
+          219,
+          2505,
+          904,
+          905,
+          906,
+          1768,
+          831,
+          1860,
+          1853,
+          1867,
+          434,
+          435,
+          1675,
+          843,
+          845,
+          844,
+          833,
+          834,
+          137,
+          119,
+          1685,
+          1686,
+          116,
+          1783,
+          1622,
+          222,
+          240,
+          1668,
+          832
+        ],
+        "legacy_linked_achievement_ids": [
+          992,
+          1397,
+          1656
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 6,
+        "id": "full_succes_06_61_70",
+        "title": "Niv. 61–70 — Moon, Wabbits & Cawotte",
+        "legacy_seed_quest_count": 26,
+        "legacy_seed_quest_ids": [
+          149,
+          148,
+          239,
+          2506,
+          907,
+          220,
+          892,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          1773,
+          1861,
+          908,
+          242,
+          230,
+          1771,
+          115,
+          1852,
+          1877,
+          224
+        ],
+        "legacy_linked_achievement_ids": [],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 7,
+        "id": "full_succes_07_71_80",
+        "title": "Niv. 71–80 — Gelées, Saharach & Tour du Monde",
+        "legacy_seed_quest_count": 34,
+        "legacy_seed_quest_ids": [
+          84,
+          225,
+          1795,
+          1798,
+          1800,
+          1797,
+          1794,
+          1796,
+          1810,
+          1804,
+          1814,
+          1805,
+          1816,
+          1799,
+          1819,
+          2166,
+          1689,
+          891,
+          835,
+          846,
+          1673,
+          909,
+          847,
+          1671,
+          1465,
+          1855,
+          1687,
+          1518,
+          1623,
+          1674,
+          542,
+          1431,
+          1484,
+          1692
+        ],
+        "legacy_linked_achievement_ids": [
+          992,
+          1048,
+          1187
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 8,
+        "id": "full_succes_08_81_90",
+        "title": "Niv. 81–90 — Otomaï, Tourbières, Brumen & Koalaks",
+        "legacy_seed_quest_count": 39,
+        "legacy_seed_quest_ids": [
+          150,
+          1424,
+          2431,
+          85,
+          2433,
+          86,
+          87,
+          88,
+          89,
+          1779,
+          155,
+          2164,
+          2163,
+          2507,
+          1618,
+          1619,
+          2444,
+          2435,
+          1878,
+          1879,
+          537,
+          2432,
+          1880,
+          1466,
+          2434,
+          1881,
+          2436,
+          1868,
+          1870,
+          237,
+          2161,
+          2508,
+          1620,
+          1774,
+          1688,
+          538,
+          2445,
+          2509,
+          1775
+        ],
+        "legacy_linked_achievement_ids": [
+          559,
+          1048,
+          1656,
+          7761
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 9,
+        "id": "full_succes_09_91_100",
+        "title": "Niv. 91–100 — Nyée, Abraknydes, Moon & Meulou",
+        "legacy_seed_quest_count": 99,
+        "legacy_seed_quest_ids": [
+          1425,
+          90,
+          91,
+          1467,
+          92,
+          93,
+          94,
+          109,
+          1469,
+          2150,
+          2156,
+          2181,
+          1504,
+          1485,
+          1486,
+          1501,
+          1505,
+          1506,
+          111,
+          110,
+          1275,
+          636,
+          589,
+          600,
+          1612,
+          1273,
+          1693,
+          1694,
+          1695,
+          1703,
+          1704,
+          637,
+          678,
+          535,
+          1277,
+          1285,
+          1470,
+          1271,
+          1487,
+          656,
+          1281,
+          532,
+          1776,
+          2035,
+          2036,
+          2037,
+          1276,
+          1871,
+          1872,
+          1530,
+          1531,
+          1532,
+          613,
+          614,
+          543,
+          243,
+          1268,
+          233,
+          1284,
+          1571,
+          1572,
+          1573,
+          1608,
+          615,
+          631,
+          643,
+          1274,
+          1283,
+          531,
+          533,
+          534,
+          544,
+          1922,
+          1604,
+          1624,
+          530,
+          1653,
+          2157,
+          1609,
+          1613,
+          638,
+          1611,
+          1278,
+          617,
+          1610,
+          618,
+          1669,
+          1670,
+          646,
+          1282,
+          2510,
+          1432,
+          910,
+          911,
+          912,
+          1280,
+          1471,
+          1270,
+          580
+        ],
+        "legacy_linked_achievement_ids": [
+          922,
+          1048,
+          1187,
+          1188,
+          1385,
+          1397,
+          1704,
+          3034
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 10,
+        "id": "full_succes_10_101_110",
+        "title": "Niv. 101–110 — Rats, Rasboul & Pourpre",
+        "legacy_seed_quest_count": 45,
+        "legacy_seed_quest_ids": [
+          257,
+          258,
+          259,
+          260,
+          261,
+          262,
+          263,
+          264,
+          265,
+          266,
+          1812,
+          1811,
+          1803,
+          1815,
+          1806,
+          1813,
+          1817,
+          1818,
+          2182,
+          2151,
+          2152,
+          2153,
+          1705,
+          1533,
+          2171,
+          566,
+          556,
+          557,
+          554,
+          581,
+          2168,
+          1802,
+          1521,
+          2170,
+          2167,
+          558,
+          1430,
+          1923,
+          1808,
+          545,
+          29,
+          1565,
+          577,
+          579,
+          599
+        ],
+        "legacy_linked_achievement_ids": [
+          1101,
+          1188,
+          3034
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 11,
+        "id": "full_succes_11_111_120",
+        "title": "Niv. 111–120 — Frigost, Pandala & Enutrosor",
+        "legacy_seed_quest_count": 30,
+        "legacy_seed_quest_ids": [
+          649,
+          2159,
+          1588,
+          1591,
+          1592,
+          1593,
+          1538,
+          1541,
+          650,
+          619,
+          567,
+          156,
+          157,
+          893,
+          1621,
+          238,
+          674,
+          685,
+          536,
+          1436,
+          1932,
+          1625,
+          1924,
+          546,
+          686,
+          590,
+          591,
+          1522,
+          913,
+          2183
+        ],
+        "legacy_linked_achievement_ids": [
+          559,
+          922,
+          1101,
+          1188,
+          7761
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 12,
+        "id": "full_succes_12_121_130",
+        "title": "Niv. 121–130 — Dimensions, Pandala & Koalaks",
+        "legacy_seed_quest_count": 29,
+        "legacy_seed_quest_ids": [
+          1526,
+          280,
+          281,
+          282,
+          283,
+          284,
+          1778,
+          1807,
+          1542,
+          1543,
+          568,
+          2174,
+          634,
+          1524,
+          582,
+          584,
+          583,
+          1497,
+          1523,
+          1286,
+          1519,
+          547,
+          118,
+          1287,
+          1525,
+          2184,
+          914,
+          1528,
+          1529
+        ],
+        "legacy_linked_achievement_ids": [
+          1101,
+          1188
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 13,
+        "id": "full_succes_13_131_140",
+        "title": "Niv. 131–140 — Srambad, Tanukouï & Frigost",
+        "legacy_seed_quest_count": 31,
+        "legacy_seed_quest_ids": [
+          1473,
+          285,
+          286,
+          290,
+          289,
+          291,
+          120,
+          121,
+          122,
+          1654,
+          2178,
+          1660,
+          539,
+          2154,
+          2155,
+          2175,
+          1317,
+          2185,
+          1656,
+          1665,
+          1657,
+          1626,
+          1926,
+          548,
+          540,
+          687,
+          2177,
+          2197,
+          915,
+          640,
+          541
+        ],
+        "legacy_linked_achievement_ids": [
+          922,
+          1385,
+          3034
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 14,
+        "id": "full_succes_14_141_150",
+        "title": "Niv. 141–150 — Saharach, Pandala & Chêne Mou",
+        "legacy_seed_quest_count": 35,
+        "legacy_seed_quest_ids": [
+          2523,
+          2521,
+          2522,
+          2451,
+          1595,
+          601,
+          642,
+          1594,
+          1488,
+          1502,
+          2186,
+          592,
+          1661,
+          2453,
+          1490,
+          1288,
+          644,
+          2452,
+          1507,
+          1508,
+          1509,
+          569,
+          559,
+          550,
+          1927,
+          1605,
+          1837,
+          2446,
+          1498,
+          1499,
+          1500,
+          688,
+          1577,
+          1596,
+          2520
+        ],
+        "legacy_linked_achievement_ids": [
+          1188,
+          1385
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 15,
+        "id": "full_succes_15_151_160",
+        "title": "Niv. 151–160 — Minotot, Sphincter, Kimbo & Frigost",
+        "legacy_seed_quest_count": 49,
+        "legacy_seed_quest_ids": [
+          293,
+          294,
+          295,
+          296,
+          302,
+          1474,
+          1476,
+          1477,
+          1478,
+          1479,
+          1480,
+          298,
+          299,
+          303,
+          304,
+          333,
+          605,
+          1658,
+          1481,
+          1475,
+          593,
+          594,
+          1555,
+          1708,
+          1698,
+          1659,
+          608,
+          1709,
+          1710,
+          1706,
+          1554,
+          622,
+          1690,
+          2486,
+          2179,
+          560,
+          561,
+          1928,
+          551,
+          1564,
+          1856,
+          1697,
+          2165,
+          689,
+          570,
+          571,
+          2187,
+          1711,
+          635
+        ],
+        "legacy_linked_achievement_ids": [
+          922,
+          1188,
+          1385,
+          3078,
+          7761
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 16,
+        "id": "full_succes_16_161_170",
+        "title": "Niv. 161–170 — Obsidiantre, Tengu & Pandala",
+        "legacy_seed_quest_count": 35,
+        "legacy_seed_quest_ids": [
+          651,
+          595,
+          680,
+          585,
+          632,
+          1589,
+          562,
+          2176,
+          572,
+          2198,
+          1662,
+          1839,
+          1583,
+          1584,
+          1585,
+          1586,
+          1575,
+          1318,
+          2188,
+          602,
+          1929,
+          552,
+          1332,
+          1857,
+          553,
+          690,
+          2447,
+          2180,
+          2173,
+          2162,
+          2172,
+          916,
+          609,
+          1829,
+          1831
+        ],
+        "legacy_linked_achievement_ids": [
+          922,
+          1188,
+          1385,
+          3078
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 17,
+        "id": "full_succes_17_171_180",
+        "title": "Niv. 171–180 — Korriandre, Kolosso, Bworker & Bonta",
+        "legacy_seed_quest_count": 92,
+        "legacy_seed_quest_ids": [
+          318,
+          321,
+          325,
+          326,
+          334,
+          335,
+          328,
+          451,
+          456,
+          457,
+          421,
+          425,
+          423,
+          1883,
+          1863,
+          1514,
+          596,
+          2531,
+          772,
+          775,
+          1491,
+          1765,
+          1862,
+          1433,
+          1751,
+          2533,
+          1536,
+          1876,
+          527,
+          1864,
+          573,
+          2448,
+          1503,
+          1874,
+          1882,
+          563,
+          2121,
+          1539,
+          1544,
+          1537,
+          1749,
+          603,
+          1534,
+          1492,
+          1714,
+          1761,
+          2524,
+          1563,
+          1437,
+          1628,
+          1767,
+          1834,
+          1606,
+          1762,
+          1520,
+          1865,
+          1866,
+          1444,
+          2511,
+          2530,
+          1515,
+          1884,
+          2189,
+          633,
+          624,
+          691,
+          1545,
+          1546,
+          1547,
+          1561,
+          917,
+          918,
+          2532,
+          1873,
+          1663,
+          1782,
+          1784,
+          1553,
+          610,
+          2515,
+          2519,
+          2517,
+          2528,
+          2535,
+          2516,
+          2536,
+          2534,
+          2526,
+          2525,
+          2518,
+          2527,
+          2529
+        ],
+        "legacy_linked_achievement_ids": [
+          922,
+          1188,
+          1385,
+          1498,
+          8518,
+          8855
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 18,
+        "id": "full_succes_18_181_190",
+        "title": "Niv. 181–190 — Ougah, Frigost II, Dimensions & Dofus",
+        "legacy_seed_quest_count": 72,
+        "legacy_seed_quest_ids": [
+          337,
+          343,
+          1715,
+          1717,
+          1719,
+          1721,
+          1723,
+          1728,
+          1729,
+          2038,
+          2039,
+          2040,
+          2041,
+          2042,
+          2043,
+          2044,
+          1730,
+          1885,
+          1887,
+          1889,
+          1891,
+          1893,
+          1895,
+          1897,
+          1899,
+          1901,
+          1903,
+          1916,
+          655,
+          1847,
+          574,
+          653,
+          919,
+          1846,
+          606,
+          625,
+          692,
+          604,
+          1854,
+          564,
+          565,
+          626,
+          1296,
+          1297,
+          1294,
+          1289,
+          1292,
+          1291,
+          1290,
+          1295,
+          1330,
+          1848,
+          1849,
+          1293,
+          588,
+          693,
+          1850,
+          597,
+          598,
+          2471,
+          2472,
+          2473,
+          2474,
+          677,
+          1785,
+          1787,
+          1789,
+          1788,
+          1786,
+          575,
+          652,
+          2190
+        ],
+        "legacy_linked_achievement_ids": [
+          922,
+          1704
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      },
+      {
+        "order": 19,
+        "id": "full_succes_20_200_200",
+        "title": "Niv. 200 — Endgame, Eliocalypse & Sylvestre",
+        "legacy_seed_quest_count": 240,
+        "legacy_seed_quest_ids": [
+          2078,
+          2137,
+          2415,
+          2416,
+          2414,
+          1441,
+          1942,
+          1918,
+          1943,
+          1754,
+          1540,
+          1953,
+          1326,
+          1752,
+          1559,
+          1956,
+          2048,
+          2204,
+          1590,
+          1602,
+          2205,
+          2201,
+          1700,
+          1753,
+          1875,
+          1510,
+          1511,
+          1535,
+          2010,
+          2011,
+          1597,
+          2191,
+          1569,
+          1598,
+          1599,
+          1309,
+          1298,
+          1579,
+          1707,
+          1440,
+          1828,
+          1939,
+          1948,
+          2136,
+          2169,
+          2158,
+          2013,
+          1556,
+          1944,
+          2014,
+          1321,
+          1512,
+          1940,
+          1333,
+          2079,
+          2080,
+          1946,
+          1732,
+          2081,
+          1731,
+          1733,
+          1745,
+          1746,
+          1614,
+          1955,
+          2475,
+          2478,
+          1334,
+          2015,
+          1911,
+          1691,
+          2407,
+          1905,
+          1906,
+          1869,
+          1934,
+          1935,
+          2016,
+          1327,
+          1914,
+          1300,
+          1936,
+          1937,
+          2111,
+          2115,
+          1913,
+          2112,
+          2113,
+          1907,
+          1908,
+          2424,
+          2439,
+          2437,
+          2440,
+          2428,
+          2441,
+          2427,
+          1335,
+          1336,
+          1337,
+          1338,
+          1339,
+          2117,
+          1764,
+          1954,
+          1325,
+          2019,
+          1438,
+          2012,
+          1949,
+          1950,
+          2122,
+          2130,
+          2082,
+          2083,
+          2482,
+          1601,
+          1548,
+          1549,
+          1748,
+          1757,
+          1766,
+          2425,
+          1600,
+          1580,
+          1581,
+          1582,
+          2200,
+          2202,
+          1513,
+          1516,
+          1328,
+          1792,
+          1793,
+          1840,
+          1832,
+          1833,
+          1320,
+          1322,
+          2017,
+          1909,
+          1915,
+          1755,
+          1933,
+          1562,
+          2408,
+          2487,
+          2479,
+          1299,
+          1439,
+          1836,
+          2085,
+          2089,
+          2088,
+          2090,
+          2018,
+          1951,
+          1952,
+          2086,
+          2087,
+          1570,
+          1313,
+          1314,
+          1311,
+          1312,
+          2477,
+          2199,
+          1493,
+          1557,
+          1558,
+          2138,
+          2406,
+          1750,
+          1568,
+          1319,
+          1323,
+          1737,
+          1738,
+          1442,
+          1443,
+          2049,
+          2050,
+          2409,
+          1713,
+          1560,
+          1739,
+          1740,
+          1741,
+          1742,
+          2203,
+          1734,
+          1735,
+          1736,
+          1743,
+          1945,
+          1947,
+          1489,
+          2118,
+          2119,
+          1494,
+          2411,
+          2418,
+          2426,
+          2412,
+          2413,
+          2421,
+          2422,
+          2420,
+          2449,
+          1747,
+          1756,
+          1758,
+          1759,
+          1550,
+          1551,
+          1552,
+          1310,
+          1329,
+          1315,
+          2423,
+          2488,
+          2489,
+          1495,
+          1496,
+          2131,
+          2132,
+          1827,
+          1835,
+          1301,
+          2417,
+          2160,
+          2114,
+          2480,
+          2481,
+          1701,
+          1744,
+          1760,
+          1912,
+          1302,
+          2116
+        ],
+        "legacy_linked_achievement_ids": [
+          922,
+          1188,
+          1498,
+          1622,
+          1656,
+          2198,
+          3082,
+          5162,
+          7761
+        ],
+        "policy": "seed_order_only_not_hard_dependency"
+      }
+    ]
+  },
+  "completion_contract": {
+    "every_catalog_quest_has_status": true,
+    "allowed_statuses": [
+      "included_main",
+      "included_class_branch",
+      "included_alignment_branch",
+      "included_order_branch",
+      "included_event_branch",
+      "included_required_repeatable",
+      "deferred_calendar",
+      "excluded_useless_repeatable",
+      "included_alignment_alternative",
+      "included_choice_repeatable",
+      "deferred_daily",
+      "included_prerequisite",
+      "included_qq_filler",
+      "included_qq_temporal_filler",
+      "excluded_not_needed_for_target"
+    ],
+    "no_unclassified": true,
+    "dependency_closure_required": true,
+    "unknown_hard_criterion": "BLOCK and audit; never guess.",
+    "final_target": "FULL SUCCÈS optimisé: Succès Quêtes + Monstres + Donjons, Dofus/Ocre/Sylvestre, Bonta 1→100, un Ordre de Bonta choisi dans le même guide, une quête de classe conditionnelle, prérequis Qf transitifs et QQ=1600; permanents prioritaires puis minimum calendrier explicitement time-gated si nécessaire.",
+    "single_universal_guide": true,
+    "no_class_generator_parameter": true,
+    "no_order_generator_parameter": true,
+    "no_class_order_alignment_generator_profiles": true,
+    "dungeon_achievements_required": true
+  },
+  "known_2026_guardrails": [
+    "DOFUS 3.6 (23/06/2026): tutoriel refait; Premiers pas/Premières armes.",
+    "DOFUS 3.5: Ocre commence par les captures de boss; monstres normaux non capturables.",
+    "Fight Club: 1 validation pour le succès Chahuteur clandestin; Postages/140 savons hors tronc sauf choix volontaire.",
+    "Frigost III: Carnage de glace ne demande qu’une des 5 chasses Darwin.",
+    "Les données locales récentes priment sur les pages web anciennes."
+  ],
+  "route_contract": {
+    "full_success": "Quêtes + Monstres + Donjons",
+    "universal": "Une seule route maître; classe et Ordre sont des cartes conditionnelles internes.",
+    "acquisition": "HDV recommandé si échangeable; craft optionnel; métier monté seulement si vrai gate personnel."
+  }
+}

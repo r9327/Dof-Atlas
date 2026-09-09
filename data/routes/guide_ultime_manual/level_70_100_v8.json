@@ -1,0 +1,81 @@
+{
+  "schema_version": 8,
+  "route_id": "guide_ultime_manual_level_70_100_v8",
+  "title": "Guide Ultime — Niveau 70 à 100 + Ocre d'Ambre causal",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_70_100_v7.json",
+  "supersedes": "guide_ultime_manual_level_70_100_v7",
+  "stage_count": 17,
+  "depends_on": [
+    "level_51_70_v3.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank40_v1.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Ouvre Ocre d'Ambre au premier moment causal: seulement après La magicienne des marécages, avec Attention à la Bête ! déjà terminée à Astrub et Protéger et sévir fermé avant La raison du plus fort. L'Akadémie des Gobs et la Grotte Hesque ont dû être faites plus tôt pour d'autres fils; leurs nouveaux passages sont donc causalement inévitables. Normalise aussi le titre actuel Squelettes et amulette sans changer sa route Moon.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/le-dofus-et-l-alchimiste.html",
+    "https://www.dofuspourlesnoobs.com/la-raison-du-plus-fort.html",
+    "https://www.dofuspourlesnoobs.com/proteger-et-sevir.html",
+    "https://www.dofuspourlesnoobs.com/apres-lui-le-deluge.html",
+    "https://www.dofuspourlesnoobs.com/comme-un-corbac-sur-sa-branche.html"
+  ],
+  "stage_patches": {
+    "L70-00E": {
+      "append": {
+        "quests": [
+          "Protéger et sévir",
+          "Le Dofus et l'alchimiste",
+          "L'éternelle moisson",
+          "La raison du plus fort",
+          "Après lui, le déluge",
+          "Comme un corbac sur sa branche"
+        ],
+        "preparation": [
+          {"requirement":"Attention à la Bête ! réellement terminée à Astrub avant La raison du plus fort","blocking":true},
+          {"requirement":"L'éternelle moisson déjà active depuis le passage Otomaï 51+","blocking":true},
+          {"requirement":"Protéger et sévir terminé avant d'avancer La raison du plus fort jusqu'à la Base des Justiciers","blocking":true},
+          {"name":"Anneau Ocre de quête","quantity":1,"for":"Après lui, le déluge","policy":"Conserver l'objet de quête et suivre les objectifs affichés; ne pas le confondre avec le Dofus Ocre final."}
+        ],
+        "route": [
+          {"pos":"[0,0] Amakna / Captain Amakna","do":"Après La magicienne des marécages, faire Protéger et sévir si elle n'est pas déjà terminée. La fermer avant La raison du plus fort afin que l'accès à la Base des Justiciers soit déjà disponible lorsqu'il sera demandé."},
+          {"pos":"[-6,-3] Mériana → [-55,15] Otomaï","do":"Avec La magicienne des marécages terminée, prendre Le Dofus et l'alchimiste auprès de Mériana puis parler à Otomaï. L'accès à l'île et L'île des naufragés ont déjà été sécurisés plus tôt: ne refaire aucune traversée."},
+          {"pos":"[-55,15] Otomaï","do":"Vérifier L'éternelle moisson active et Attention à la Bête ! terminée, puis prendre La raison du plus fort et l'avancer jusqu'à son objectif Akadémie des Gobs."},
+          {"pos":"[-5,3] Akadémie des Gobs — second passage nécessaire","do":"Faire le passage demandé par La raison du plus fort. Le premier passage niveau40 servait Donjon éducatif avant que cette quête soit disponible; ce nouveau passage est donc nécessaire."},
+          {"pos":"[-55,15] Otomaï","do":"Fermer La raison du plus fort, obtenir la Potion d'Otomaï et prendre immédiatement Après lui, le déluge. Avancer jusqu'à l'objectif Grotte Hesque."},
+          {"pos":"[-59,15] Grotte Hesque — second passage nécessaire","do":"Vaincre le Corailleur Magistral pour Après lui, le déluge. Après le boss, ne pas sortir: récupérer l'ambre antédiluvien sur le gros corail à droite, équiper l'Anneau Ocre puis purifier l'ambre comme demandé par la quête."},
+          {"pos":"[-5,-13] Hell Munster","do":"Poursuivre Après lui, le déluge jusqu'à Hell Munster puis prendre immédiatement Comme un corbac sur sa branche. Avancer tous les objectifs disponibles hors Reine Nyée et conserver le fil jusqu'au passage Reine déjà prévu au niveau100+."}
+        ],
+        "hard_exit": [
+          "Protéger et sévir terminé avant La raison du plus fort.",
+          "Le Dofus et l'alchimiste terminé seulement après La magicienne des marécages.",
+          "La raison du plus fort terminée après le second passage nécessaire à l'Akadémie des Gobs.",
+          "Après lui, le déluge terminé après le second passage nécessaire à la Grotte Hesque.",
+          "Comme un corbac sur sa branche active avant le futur Antre de la Reine Nyée.",
+          "Aucun passage antérieur considéré comme valable pour une quête qui n'était pas encore disponible."
+        ],
+        "pause": [
+          "Ocre d'Ambre causalement ouvert et avancé",
+          "Comme un corbac sur sa branche actif",
+          "Reine Nyée reste le prochain gros raccord Ocre d'Ambre"
+        ]
+      }
+    },
+    "L70-01": {
+      "append": {
+        "quests": ["Squelettes et amulette"]
+      }
+    },
+    "L70-10": {
+      "replace": {
+        "quests": ["C'est du bateau", "Squelettes et amulette", "Le radeau ivre", "Serrons-nous la main"]
+      }
+    },
+    "L70-13": {
+      "replace": {
+        "quests": ["Squelettes et amulette", "Rendez-vous avec la lune", "Le radeau ivre", "Sur les traces des Moonies", "Le combat des chefs", "Bas les masques", "Serrons-nous la main", "Leçon de cuisine"]
+      }
+    }
+  },
+  "insertions": []
+}

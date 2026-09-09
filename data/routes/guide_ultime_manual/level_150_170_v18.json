@@ -1,0 +1,54 @@
+{
+  "schema_version": 18,
+  "route_id": "guide_ultime_manual_level_150_170_v18",
+  "title": "Guide Ultime — Niveau 150 à 170 + chasses Baka conditionnelles",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v17.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v17",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v18.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Corrige le contrat des chasses Baka: Baka Laïve donne une seule quête aléatoire parmi Complètement givré, L'appel de la forêt, Crocs en jambes et Ourse molle. Ces quatre possibilités restent documentées mais deviennent conditionnelles; elles ne sont plus injectées simultanément comme quêtes actives du tronc commun.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/tire-la-chasse.html",
+    "https://www.dofuspourlesnoobs.com/crocs-en-jambes.html"
+  ],
+  "stage_patches": {
+    "L150-07": {
+      "replace": {
+        "quests": [
+          "C'est frais, mais c'est pas grave",
+          "Gant graine",
+          "L'abominable YeCh'Ti",
+          "Collecte sanglante",
+          "conditional:Complètement givré si Baka l'a réellement donnée",
+          "conditional:L'appel de la forêt si Baka l'a réellement donnée",
+          "conditional:Crocs en jambes si Baka l'a réellement donnée",
+          "conditional:Ourse molle si Baka l'a réellement donnée"
+        ]
+      }
+    },
+    "L150-08": {
+      "replace": {
+        "quests": [
+          "Porte, Tengu Givrefoux, trésor",
+          "Guerriers foux",
+          "Les derniers d'entre nous",
+          "Gant graine",
+          "Obscurantisme",
+          "L'abominable YeCh'Ti",
+          "Collecte sanglante",
+          "conditional:Complètement givré si c'est la chasse Baka active",
+          "conditional:L'appel de la forêt si c'est la chasse Baka active",
+          "conditional:Crocs en jambes si c'est la chasse Baka active",
+          "conditional:Ourse molle si c'est la chasse Baka active"
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

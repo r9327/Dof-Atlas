@@ -1,0 +1,1544 @@
+{
+  "schema_version": 1,
+  "id": "alignement_brakmar",
+  "title": "Alignement Brâkmar",
+  "category": "alignements",
+  "description": "100 quêtes d'alignement Brâkmar, puis les trois Ordres séparés.",
+  "recommended_level_min": 30,
+  "recommended_level_max": 200,
+  "reward_item_id": null,
+  "illustration_item_id": null,
+  "image": null,
+  "completeness_status": "complete",
+  "verified_steps": 115,
+  "total_steps": 115,
+  "validation_warnings": [
+    "Les variantes alternatives de même rang ne sont pas comptées dans la trame principale de 100 quêtes.",
+    "Les trois Ordres sont des branches alternatives affichées séparément après l'alignement 100."
+  ],
+  "generation_source": "doduda+dpln_profile",
+  "sections": [
+    {
+      "id": "alignement_brakmar_1_20",
+      "title": "Rangs 1 à 20",
+      "description": "Quêtes d'alignement Brâkmar rangs 1 à 20.",
+      "steps": [
+        {
+          "id": "alignement_brakmar_quest_375",
+          "type": "quest",
+          "entity_id": 375,
+          "optional": false,
+          "notes": "Rang 1 Doduda.",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_brakmar_quest_376",
+          "type": "quest",
+          "entity_id": 376,
+          "optional": false,
+          "notes": "Rang 2 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 375
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_377",
+          "type": "quest",
+          "entity_id": 377,
+          "optional": false,
+          "notes": "Rang 3 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 376
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_378",
+          "type": "quest",
+          "entity_id": 378,
+          "optional": false,
+          "notes": "Rang 4 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 377
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_379",
+          "type": "quest",
+          "entity_id": 379,
+          "optional": false,
+          "notes": "Rang 5 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 378
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_380",
+          "type": "quest",
+          "entity_id": 380,
+          "optional": false,
+          "notes": "Rang 6 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 379
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_381",
+          "type": "quest",
+          "entity_id": 381,
+          "optional": false,
+          "notes": "Rang 7 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 380
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_382",
+          "type": "quest",
+          "entity_id": 382,
+          "optional": false,
+          "notes": "Rang 8 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 381
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_383",
+          "type": "quest",
+          "entity_id": 383,
+          "optional": false,
+          "notes": "Rang 9 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 382
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_384",
+          "type": "quest",
+          "entity_id": 384,
+          "optional": false,
+          "notes": "Rang 10 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 383
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_385",
+          "type": "quest",
+          "entity_id": 385,
+          "optional": false,
+          "notes": "Rang 11 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 384
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_386",
+          "type": "quest",
+          "entity_id": 386,
+          "optional": false,
+          "notes": "Rang 12 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 385
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_387",
+          "type": "quest",
+          "entity_id": 387,
+          "optional": false,
+          "notes": "Rang 13 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 386
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_388",
+          "type": "quest",
+          "entity_id": 388,
+          "optional": false,
+          "notes": "Rang 14 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 387
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_389",
+          "type": "quest",
+          "entity_id": 389,
+          "optional": false,
+          "notes": "Rang 15 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 388
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_390",
+          "type": "quest",
+          "entity_id": 390,
+          "optional": false,
+          "notes": "Rang 16 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 389
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_391",
+          "type": "quest",
+          "entity_id": 391,
+          "optional": false,
+          "notes": "Rang 17 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 390
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_392",
+          "type": "quest",
+          "entity_id": 392,
+          "optional": false,
+          "notes": "Rang 18 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 391
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_393",
+          "type": "quest",
+          "entity_id": 393,
+          "optional": false,
+          "notes": "Rang 19 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 392
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_394",
+          "type": "quest",
+          "entity_id": 394,
+          "optional": false,
+          "notes": "Rang 20 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 393
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_brakmar_21_40",
+      "title": "Rangs 21 à 40",
+      "description": "Quêtes d'alignement Brâkmar rangs 21 à 40.",
+      "steps": [
+        {
+          "id": "alignement_brakmar_quest_395",
+          "type": "quest",
+          "entity_id": 395,
+          "optional": false,
+          "notes": "Rang 21 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 394
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_396",
+          "type": "quest",
+          "entity_id": 396,
+          "optional": false,
+          "notes": "Rang 22 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 395
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_397",
+          "type": "quest",
+          "entity_id": 397,
+          "optional": false,
+          "notes": "Rang 23 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 396
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_398",
+          "type": "quest",
+          "entity_id": 398,
+          "optional": false,
+          "notes": "Rang 24 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 397
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_399",
+          "type": "quest",
+          "entity_id": 399,
+          "optional": false,
+          "notes": "Rang 25 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 398
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_400",
+          "type": "quest",
+          "entity_id": 400,
+          "optional": false,
+          "notes": "Rang 26 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 399
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_401",
+          "type": "quest",
+          "entity_id": 401,
+          "optional": false,
+          "notes": "Rang 27 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 400
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_402",
+          "type": "quest",
+          "entity_id": 402,
+          "optional": false,
+          "notes": "Rang 28 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 401
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_403",
+          "type": "quest",
+          "entity_id": 403,
+          "optional": false,
+          "notes": "Rang 29 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 402
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_404",
+          "type": "quest",
+          "entity_id": 404,
+          "optional": false,
+          "notes": "Rang 30 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 403
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_405",
+          "type": "quest",
+          "entity_id": 405,
+          "optional": false,
+          "notes": "Rang 31 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 404
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_406",
+          "type": "quest",
+          "entity_id": 406,
+          "optional": false,
+          "notes": "Rang 32 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 405
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_407",
+          "type": "quest",
+          "entity_id": 407,
+          "optional": false,
+          "notes": "Rang 33 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 406
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_408",
+          "type": "quest",
+          "entity_id": 408,
+          "optional": false,
+          "notes": "Rang 34 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 407
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_409",
+          "type": "quest",
+          "entity_id": 409,
+          "optional": false,
+          "notes": "Rang 35 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 408
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_410",
+          "type": "quest",
+          "entity_id": 410,
+          "optional": false,
+          "notes": "Rang 36 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 409
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_411",
+          "type": "quest",
+          "entity_id": 411,
+          "optional": false,
+          "notes": "Rang 37 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 410
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_412",
+          "type": "quest",
+          "entity_id": 412,
+          "optional": false,
+          "notes": "Rang 38 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 411
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_413",
+          "type": "quest",
+          "entity_id": 413,
+          "optional": false,
+          "notes": "Rang 39 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 412
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_414",
+          "type": "quest",
+          "entity_id": 414,
+          "optional": false,
+          "notes": "Rang 40 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 413
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_brakmar_41_60",
+      "title": "Rangs 41 à 60",
+      "description": "Quêtes d'alignement Brâkmar rangs 41 à 60.",
+      "steps": [
+        {
+          "id": "alignement_brakmar_quest_246",
+          "type": "quest",
+          "entity_id": 246,
+          "optional": false,
+          "notes": "Rang 41 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 414
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_247",
+          "type": "quest",
+          "entity_id": 247,
+          "optional": false,
+          "notes": "Rang 42 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 246
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_248",
+          "type": "quest",
+          "entity_id": 248,
+          "optional": false,
+          "notes": "Rang 43 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 247
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_250",
+          "type": "quest",
+          "entity_id": 250,
+          "optional": false,
+          "notes": "Rang 44 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 248
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_251",
+          "type": "quest",
+          "entity_id": 251,
+          "optional": false,
+          "notes": "Rang 45 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 250
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_252",
+          "type": "quest",
+          "entity_id": 252,
+          "optional": false,
+          "notes": "Rang 46 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 251
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_253",
+          "type": "quest",
+          "entity_id": 253,
+          "optional": false,
+          "notes": "Rang 47 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 252
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_255",
+          "type": "quest",
+          "entity_id": 255,
+          "optional": false,
+          "notes": "Rang 48 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 253
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_256",
+          "type": "quest",
+          "entity_id": 256,
+          "optional": false,
+          "notes": "Rang 49 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 255
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_445",
+          "type": "quest",
+          "entity_id": 445,
+          "optional": false,
+          "notes": "Rang 50 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 256
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_267",
+          "type": "quest",
+          "entity_id": 267,
+          "optional": false,
+          "notes": "Rang 51 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 445
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_268",
+          "type": "quest",
+          "entity_id": 268,
+          "optional": false,
+          "notes": "Rang 52 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 267
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_446",
+          "type": "quest",
+          "entity_id": 446,
+          "optional": false,
+          "notes": "Rang 53 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 268
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_270",
+          "type": "quest",
+          "entity_id": 270,
+          "optional": false,
+          "notes": "Rang 54 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 446
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_271",
+          "type": "quest",
+          "entity_id": 271,
+          "optional": false,
+          "notes": "Rang 55 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 270
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_275",
+          "type": "quest",
+          "entity_id": 275,
+          "optional": false,
+          "notes": "Rang 56 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 271
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_276",
+          "type": "quest",
+          "entity_id": 276,
+          "optional": false,
+          "notes": "Rang 57 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 275
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_277",
+          "type": "quest",
+          "entity_id": 277,
+          "optional": false,
+          "notes": "Rang 58 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 276
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_278",
+          "type": "quest",
+          "entity_id": 278,
+          "optional": false,
+          "notes": "Rang 59 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 277
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_279",
+          "type": "quest",
+          "entity_id": 279,
+          "optional": false,
+          "notes": "Rang 60 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 278
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_brakmar_61_80",
+      "title": "Rangs 61 à 80",
+      "description": "Quêtes d'alignement Brâkmar rangs 61 à 80.",
+      "steps": [
+        {
+          "id": "alignement_brakmar_quest_305",
+          "type": "quest",
+          "entity_id": 305,
+          "optional": false,
+          "notes": "Rang 61 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 279
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_306",
+          "type": "quest",
+          "entity_id": 306,
+          "optional": false,
+          "notes": "Rang 62 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 305
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_307",
+          "type": "quest",
+          "entity_id": 307,
+          "optional": false,
+          "notes": "Rang 63 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 306
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_308",
+          "type": "quest",
+          "entity_id": 308,
+          "optional": false,
+          "notes": "Rang 64 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 307
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_309",
+          "type": "quest",
+          "entity_id": 309,
+          "optional": false,
+          "notes": "Rang 65 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 308
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_310",
+          "type": "quest",
+          "entity_id": 310,
+          "optional": false,
+          "notes": "Rang 66 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 309
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_313",
+          "type": "quest",
+          "entity_id": 313,
+          "optional": false,
+          "notes": "Rang 67 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 310
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_314",
+          "type": "quest",
+          "entity_id": 314,
+          "optional": false,
+          "notes": "Rang 68 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 313
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_315",
+          "type": "quest",
+          "entity_id": 315,
+          "optional": false,
+          "notes": "Rang 69 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 314
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_317",
+          "type": "quest",
+          "entity_id": 317,
+          "optional": false,
+          "notes": "Rang 70 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 315
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_319",
+          "type": "quest",
+          "entity_id": 319,
+          "optional": false,
+          "notes": "Rang 71 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 317
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_320",
+          "type": "quest",
+          "entity_id": 320,
+          "optional": false,
+          "notes": "Rang 72 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 319
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_322",
+          "type": "quest",
+          "entity_id": 322,
+          "optional": false,
+          "notes": "Rang 73 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 320
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_323",
+          "type": "quest",
+          "entity_id": 323,
+          "optional": false,
+          "notes": "Rang 74 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 322
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_327",
+          "type": "quest",
+          "entity_id": 327,
+          "optional": false,
+          "notes": "Rang 75 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 323
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_324",
+          "type": "quest",
+          "entity_id": 324,
+          "optional": false,
+          "notes": "Rang 76 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 327
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_329",
+          "type": "quest",
+          "entity_id": 329,
+          "optional": false,
+          "notes": "Rang 77 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 324
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_330",
+          "type": "quest",
+          "entity_id": 330,
+          "optional": false,
+          "notes": "Rang 78 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 329
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_331",
+          "type": "quest",
+          "entity_id": 331,
+          "optional": false,
+          "notes": "Rang 79 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 330
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_332",
+          "type": "quest",
+          "entity_id": 332,
+          "optional": false,
+          "notes": "Rang 80 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 331
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_brakmar_81_100",
+      "title": "Rangs 81 à 100",
+      "description": "Quêtes d'alignement Brâkmar rangs 81 à 100.",
+      "steps": [
+        {
+          "id": "alignement_brakmar_quest_352",
+          "type": "quest",
+          "entity_id": 352,
+          "optional": false,
+          "notes": "Rang 81 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 332
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_474",
+          "type": "quest",
+          "entity_id": 474,
+          "optional": false,
+          "notes": "Rang 82 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 352
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1716",
+          "type": "quest",
+          "entity_id": 1716,
+          "optional": false,
+          "notes": "Rang 83 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 474
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1718",
+          "type": "quest",
+          "entity_id": 1718,
+          "optional": false,
+          "notes": "Rang 84 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1716
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1720",
+          "type": "quest",
+          "entity_id": 1720,
+          "optional": false,
+          "notes": "Rang 85 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1718
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1722",
+          "type": "quest",
+          "entity_id": 1722,
+          "optional": false,
+          "notes": "Rang 86 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1720
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1724",
+          "type": "quest",
+          "entity_id": 1724,
+          "optional": false,
+          "notes": "Rang 87 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1722
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1725",
+          "type": "quest",
+          "entity_id": 1725,
+          "optional": false,
+          "notes": "Rang 88 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1724
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1726",
+          "type": "quest",
+          "entity_id": 1726,
+          "optional": false,
+          "notes": "Rang 89 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1725
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1727",
+          "type": "quest",
+          "entity_id": 1727,
+          "optional": false,
+          "notes": "Rang 90 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1726
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1886",
+          "type": "quest",
+          "entity_id": 1886,
+          "optional": false,
+          "notes": "Rang 91 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1727
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1888",
+          "type": "quest",
+          "entity_id": 1888,
+          "optional": false,
+          "notes": "Rang 92 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1886
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1890",
+          "type": "quest",
+          "entity_id": 1890,
+          "optional": false,
+          "notes": "Rang 93 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1888
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1892",
+          "type": "quest",
+          "entity_id": 1892,
+          "optional": false,
+          "notes": "Rang 94 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1890
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1894",
+          "type": "quest",
+          "entity_id": 1894,
+          "optional": false,
+          "notes": "Rang 95 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1892
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1896",
+          "type": "quest",
+          "entity_id": 1896,
+          "optional": false,
+          "notes": "Rang 96 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1894
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1898",
+          "type": "quest",
+          "entity_id": 1898,
+          "optional": false,
+          "notes": "Rang 97 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1896
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1900",
+          "type": "quest",
+          "entity_id": 1900,
+          "optional": false,
+          "notes": "Rang 98 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1898
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1902",
+          "type": "quest",
+          "entity_id": 1902,
+          "optional": false,
+          "notes": "Rang 99 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1900
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_quest_1904",
+          "type": "quest",
+          "entity_id": 1904,
+          "optional": false,
+          "notes": "Rang 100 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1902
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_brakmar_ordre_1",
+      "title": "Ordre de l'Esprit Malsain",
+      "description": "Quêtes de l'Ordre, rangs 1 à 5 (paliers alignement 20/40/60/80/100).",
+      "optional_branch": true,
+      "exclusive_group": "alignement_brakmar_ordres",
+      "steps": [
+        {
+          "id": "alignement_brakmar_ordre_1_quest_437",
+          "type": "quest",
+          "entity_id": 437,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_brakmar_ordre_1_quest_114",
+          "type": "quest",
+          "entity_id": 114,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 437
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_ordre_1_quest_124",
+          "type": "quest",
+          "entity_id": 124,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 114
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_ordre_1_quest_424",
+          "type": "quest",
+          "entity_id": 424,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_brakmar_ordre_1_quest_1920",
+          "type": "quest",
+          "entity_id": 1920,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 424
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_brakmar_ordre_2",
+      "title": "Ordre de l'Œil Putride",
+      "description": "Quêtes de l'Ordre, rangs 1 à 5 (paliers alignement 20/40/60/80/100).",
+      "optional_branch": true,
+      "exclusive_group": "alignement_brakmar_ordres",
+      "steps": [
+        {
+          "id": "alignement_brakmar_ordre_2_quest_438",
+          "type": "quest",
+          "entity_id": 438,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_brakmar_ordre_2_quest_113",
+          "type": "quest",
+          "entity_id": 113,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 438
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_ordre_2_quest_125",
+          "type": "quest",
+          "entity_id": 125,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 113
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_ordre_2_quest_426",
+          "type": "quest",
+          "entity_id": 426,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_brakmar_ordre_2_quest_1921",
+          "type": "quest",
+          "entity_id": 1921,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 426
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_brakmar_ordre_3",
+      "title": "Ordre du Cœur Saignant",
+      "description": "Quêtes de l'Ordre, rangs 1 à 5 (paliers alignement 20/40/60/80/100).",
+      "optional_branch": true,
+      "exclusive_group": "alignement_brakmar_ordres",
+      "steps": [
+        {
+          "id": "alignement_brakmar_ordre_3_quest_436",
+          "type": "quest",
+          "entity_id": 436,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_brakmar_ordre_3_quest_112",
+          "type": "quest",
+          "entity_id": 112,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 436
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_ordre_3_quest_123",
+          "type": "quest",
+          "entity_id": 123,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 112
+            }
+          ]
+        },
+        {
+          "id": "alignement_brakmar_ordre_3_quest_422",
+          "type": "quest",
+          "entity_id": 422,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_brakmar_ordre_3_quest_1919",
+          "type": "quest",
+          "entity_id": 1919,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 422
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

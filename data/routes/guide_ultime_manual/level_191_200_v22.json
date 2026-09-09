@@ -1,0 +1,122 @@
+{
+  "schema_version": 22,
+  "route_id": "guide_ultime_manual_level_191_200_v22",
+  "title": "Guide Ultime — Niveau 191 à 200, Dazak Nimbos/Totem puis Ébène causal",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v21.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v21",
+  "stage_count": 62,
+  "depends_on": [
+    "level_181_190_v15.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "stage_removals": ["P200-10"],
+  "stage_imports": [
+    {"file":"level_191_200_v20.json","stage_id":"P200-10","before":"P200-13"}
+  ],
+  "optimization_note": "Conserve l'ordre causal v21 qui ouvre Réminiscence/Totems avant leurs boss donneurs, mais replace d'abord P200-10 afin que La colère des dieux + Un pouvoir mérydique + Mort et renouveau soient réellement fermés avant Réminiscence/Totems. Répare aussi L200-15E4 : le premier Dazak sert De Brikke + lancement Bible + progression initiale du Dragon noir + Totem Colère; la Bible est fermée par retour documenté en salle de sortie sans refaire le boss; De Brikke est ensuite terminée auprès de Plénie. Le Dragon noir contrôle son état réel : aucun nouveau boss si la peau/dialogue est déjà accessible, sinon un second Dazak est explicitement un rerun causal créé par le verrou De Brikke. Klime reste un seul passage Ébène avec son dialogue de sortie. Les fusions Totem Dégoût/Nileza, Totem Peur/Koutoulou, Vortex/S'armer contre le destin et le second Grolloum causal sont aussi verrouillées explicitement. Aucune macro-fiche n'est ajoutée.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/de-brikke-et-de-brokke.html",
+    "https://www.dofuspourlesnoobs.com/la-bible-des-rancunes.html",
+    "https://www.dofuspourlesnoobs.com/le-dragon-noir.html",
+    "https://www.dofuspourlesnoobs.com/brasserie-du-roi-dazak.html",
+    "https://www.dofuspourlesnoobs.com/les-totems-de-maimane.html",
+    "https://www.dofuspourlesnoobs.com/laboratoire-de-nileza.html",
+    "https://www.dofuspourlesnoobs.com/temple-de-koutoulou.html",
+    "https://www.dofuspourlesnoobs.com/s-armer-contre-le-destin.html",
+    "https://www.dofuspourlesnoobs.com/oeil-de-vortex.html",
+    "https://www.dofuspourlesnoobs.com/la-colere-des-dieux.html",
+    "https://www.dofuspourlesnoobs.com/un-pouvoir-merydique.html",
+    "https://guidactik.com/dofus/guide-de-progression-pour-rush-xp-sur-dofus-unity/"
+  ],
+  "stage_patches": {
+    "L200-13": {
+      "append": {
+        "hard_exit": [
+          "Totem Dégoût = Nileza réellement obtenu sur ce Nileza postérieur à l'ouverture de Les totems de Maïmane; aucun Nileza dédié aux Totems."
+        ]
+      }
+    },
+    "L200-15E2": {
+      "append": {
+        "hard_exit": [
+          "Totem Peur = Larve de Koutoulou réellement obtenu sur ce Koutoulou causal postérieur à l'ouverture de Les totems de Maïmane; aucun Koutoulou dédié supplémentaire."
+        ]
+      }
+    },
+    "L200-DDG2": {
+      "append": {
+        "hard_exit": [
+          "Grolloum global second passage causal uniquement après Chaud et Froid, pour la Machine à démonter le temps; aucun Grolloum supplémentaire n'est créé par cette fusion."
+        ]
+      }
+    },
+    "L200-NEB5": {
+      "replace": {
+        "dungeon": {
+          "name": "Œil de Vortex",
+          "pass": "nebuleux_two_quests_plus_sarmer_single_pass"
+        }
+      },
+      "append": {
+        "quests": [
+          "S'armer contre le destin"
+        ],
+        "hard_exit": [
+          "Un seul Œil de Vortex = La vérité est au fond du puits + Les sables du temps + S'armer contre le destin lorsque ces trois fils sont réellement actifs.",
+          "Aucun nouveau passage Vortex créé par un dialogue de sortie oublié ou par S'armer contre le destin après ce passage fusionné."
+        ]
+      }
+    },
+    "L200-15E4": {
+      "replace": {
+        "title": "Ébène7 + Nimbos final — Dazak Nimbos/Totem, Bible/De Brikke, puis second passage Ébène seulement si requis",
+        "dungeons": [
+          {"name": "Brasserie du roi Dazak", "pass": "nimbos_bible_totem_primary"},
+          {"name": "Brasserie du roi Dazak", "pass": "ebene_rerun_only_if_skin_blocked"},
+          {"name": "Salons privés de Klime", "pass": "unique_for_ebene_dragon_noir"}
+        ],
+        "take": [
+          "Vérifier Le dragon noir actif, De Brikke et de Brokke exactement au verrou qui demande Dazak et Les totems de Maïmane réellement active avant le premier boss. Le premier Dazak doit donc servir les trois fils disponibles, pas être consommé isolément.",
+          "Ne pas lancer La bible des rancunes avant le boss : elle se prend dans la salle de sortie en consultant le livre à droite de Dazak après la progression De Brikke."
+        ],
+        "route": [
+          {"area": "Brasserie du roi Dazak [-62,-70] — premier passage", "do": "Faire le PREMIER Dazak pour De Brikke et de Brokke + l'étape disponible du Dragon noir + les succès compatibles + Totem de la colère. Les totems de Maïmane étant déjà active grâce à P200-15, vérifier que le Totem de la colère est réellement obtenu pendant ce boss."},
+          {"area": "salle de sortie Dazak — premier passage", "do": "NE PAS SORTIR. Parler à Dazak pour la progression actuellement disponible du Dragon noir sur le portail magique, puis traiter De Brikke : remettre le marteau runique et poursuivre le dialogue jusqu'à l'ouverture des trois affronts. Cliquer ensuite la Bible à droite du roi pour lancer La bible des rancunes. Ne pas attendre ici la très vieille peau de crocodaille : Dazak ne la donne qu'une fois De Brikke et de Brokke terminée."},
+          {"area": "Remparts à vent → Bourgade → Royaume des Martegel", "do": "Fermer les trois tâches de La bible des rancunes dans une seule boucle : récupérer 20 Morceaux de Brikoléreux, traiter le dédommagement via Plénie/Maire Cantile/Banquier et préparer les 20 Poiskaille en Fricassée + 20 Pain de Frostiz + 20 Pizza au boudin de boufmouth + 20 Friswein. Pour Ystrion, arriver avec au moins 6000 pods libres, préparer/percer la caisse puis l'expédier avec Deor Morfont."},
+          {"area": "retour Brasserie du roi Dazak [-62,-70] — sans boss", "do": "Une fois les trois tâches terminées, revenir par l'entrée : gérer l'agression de quête puis parler à Triboulette pour rejoindre la salle de sortie SANS refaire le donjon. Remettre les marchandises à Séninchale Umo, les éléments de dédommagement au Trésorier puis parler à Dazak pour fermer La bible des rancunes. Reparler immédiatement à Dazak pour poursuivre De Brikke et de Brokke avant de quitter la salle."},
+          {"pos": "[-69,-71] Plénie Potentiel", "do": "Annoncer la conclusion de l'entretien avec Dazak et terminer réellement De Brikke et de Brokke. Ne considérer le succès Là-bas sous la montagne fermable qu'après validation réelle de cette quête et des neuf autres quêtes Nimbos."},
+          {"area": "Royaume des Martegel → Ruche des Gloursons", "do": "Pendant le même retour Frigost, échanger les 20 Perce-Neige contre deux Soupes au caillou de Graillevent puis remettre à Ludrune l'Aveugle les deux soupes + 10 Saucisses Fumées + 5 Barbarbes afin d'obtenir la Barbarbe de Ludrune. Mutualiser ce trajet avant Klime."},
+          {"area": "vérification Le dragon noir / Dazak", "do": "Vérifier maintenant l'objectif réel du Dragon noir et l'inventaire de quête. Si la très vieille peau de crocodaille est déjà obtenue ou si le dialogue de Dazak est accessible par un retour de quête sans boss, NE PAS refaire la Brasserie. Sinon, refaire Dazak une SECONDE fois : ce passage est causal parce que De Brikke devait être terminée après le premier boss. Après la victoire, NE PAS SORTIR avant d'avoir parlé à Dazak du portail et obtenu la très vieille peau de crocodaille. Aucun troisième Dazak n'est autorisé pour ce fil."},
+          {"area": "Salons privés de Klime [-63,-93]", "do": "Entrer seulement avec la très vieille peau de crocodaille réellement en inventaire de quête. Faire UN Klime avec tous les fils Frigost/Ébène compatibles."},
+          {"area": "salle de sortie des Salons privés de Klime", "do": "NE PAS SORTIR après le boss. Parler à Klime, lui confier le travail puis poursuivre le dialogue de quête jusqu'à obtenir réellement le Sac en peau de crocodaille. Quitter seulement lorsque l'objet est acquis."},
+          {"area": "marécages / portail Nimbos → fort Vert-de-gris → Tikoltenak", "do": "Utiliser la Barbarbe de Ludrune au point de quête pour révéler le portail, offrir le Sac en peau de crocodaille à Tressa, suivre le Guide Vert-de-gris, récupérer la Larve avide de sang pendant la traversée puis atteindre Grougalorasalar. Fermer Le dragon noir et continuer le dialogue qui ouvre La vengeance du dernier empereur."}
+        ],
+        "before_leaving": [
+          "Totem de la colère réellement obtenu sur le premier Dazak après ouverture des Totems.",
+          "La bible des rancunes terminée via retour salle de sortie sans second boss dédié.",
+          "De Brikke et de Brokke réellement terminée auprès de Plénie avant d'exiger la peau Ébène.",
+          "Le second Dazak n'existe que si l'état réel du Dragon noir exige encore le boss après De Brikke; aucun passage supplémentaire artificiel si un retour sans boss suffit.",
+          "Très vieille peau de crocodaille réellement obtenue avant Klime.",
+          "Barbarbe de Ludrune et Sac en peau de crocodaille réellement obtenus.",
+          "Le dragon noir terminé et La vengeance du dernier empereur disponible."
+        ],
+        "hard_exit": [
+          "Premier Dazak = De Brikke + lancement Bible + progression Dragon noir disponible + Totem Colère.",
+          "Bible fermée par le retour de quête documenté en salle de sortie sans refaire Dazak.",
+          "De Brikke et de Brokke fermée auprès de Plénie avant la condition de peau du Dragon noir.",
+          "Second Dazak causal uniquement si l'état réel du Dragon noir demande encore le boss ou si la peau reste inaccessible après fermeture de De Brikke; sinon il est interdit.",
+          "Aucun troisième Dazak pour cette campagne.",
+          "Dialogue Dazak post-boss du passage Ébène effectué et très vieille peau de crocodaille obtenue AVANT sortie lorsqu'un second passage est requis.",
+          "Dialogue Klime post-boss effectué et Sac en peau de crocodaille obtenu AVANT sortie.",
+          "Là-bas sous la montagne n'est validé qu'après ses dix quêtes réelles, jamais sur la seule victoire Dazak."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — Nimbos fermés, Dragon noir fermé, Totem Colère acquis; aucun Dazak restant pour ces fils"]
+      }
+    }
+  },
+  "insertions": []
+}

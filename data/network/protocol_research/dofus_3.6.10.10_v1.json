@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "purpose": "protocol_research_non_authoritative",
+  "authoritative_runtime_mapping": false,
+  "game_version": "3.6.10.10",
+  "updated_utc": "2026-08-26",
+  "primary_source": {
+    "repository": "Keka-Bron/JondoEmu",
+    "revision": "8f2bc98d57908f3e513da476a393f09d2c9e44bb",
+    "url": "https://github.com/Keka-Bron/JondoEmu"
+  },
+  "source_files": [
+    {
+      "path": "docs/opcodes.md",
+      "blob_sha": "3401980369cfec81c43cdd061aba0e2feb391244",
+      "role": "wire observations and measured payload shapes"
+    },
+    {
+      "path": "docs/protocol.md",
+      "blob_sha": "60390d0070fa14790a09d2c29f699a982120e3f2",
+      "role": "framing and envelope documentation"
+    },
+    {
+      "path": "datos/protocolo_3.6.10.10.proto",
+      "blob_sha": "ae2129fb12d5083d3bda753516332ce033280106",
+      "role": "obfuscated protobuf schema extracted from current client"
+    },
+    {
+      "path": "datos/nombres_reales_3.6.10.10.tsv",
+      "blob_sha": "2684b53b475904c25b4d7014f0c9fa84c6810c2c",
+      "role": "closed semantic-name catalogue recovered from global metadata; names are not linked to opcodes"
+    },
+    {
+      "path": "datos/mapeo_Ankama.Dofus.Protocol.Game_a_3.6.10.10.tsv",
+      "blob_sha": "14e8744761a15383b9d37a652492d8d079563d52",
+      "role": "structural mapping candidates into 3.6.10.10"
+    },
+    {
+      "path": "datos/mapeo_3.6.9.9_a_3.6.10.10.tsv",
+      "blob_sha": "480e8816517d4ed854bf568fc2737afe0573441c",
+      "role": "cross-version alias rotation evidence"
+    },
+    {
+      "path": "datos/opcodes_emulador_3.6.10.10.tsv",
+      "blob_sha": "54dcc2d28cd8bbf64300318b599b0ca9bf4a5773",
+      "role": "opcode usage found in emulator code; dead/legacy labels are explicitly marked"
+    }
+  ],
+  "wire_catalog_summary": {
+    "capture_count": 242,
+    "capture_size_mib": 416,
+    "topic_folder_count": 31,
+    "wire_opcodes": 669,
+    "code_scan_opcodes": 234,
+    "seen_in_both": 128,
+    "capture_only": 541,
+    "code_only": 106,
+    "note": "Counts are reported by JondoEmu docs/opcodes.md for Dofus 3.6.10.10. Dofus Atlas does not vendor the captures."
+  },
+  "framing": {
+    "confidence": "verified_current_wire",
+    "type_url_prefix": "type.ankama.com/",
+    "opcode_shape": "three lowercase letters",
+    "envelope": "protobuf Any",
+    "direction_notes": {
+      "root_field_1": "server push",
+      "root_field_2": "client request",
+      "root_field_3": "server answer"
+    },
+    "atlas_status": "implemented_in_wire_decoder"
+  },
+  "findings": [
+    {
+      "id": "character_roster_kvi",
+      "confidence": "verified_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/kvi",
+      "semantic": "account character roster on selected server",
+      "observed_wire": "10 occurrences / 8 capture files",
+      "payload": {
+        "roster_entry_field": 1,
+        "entry_repeated": true,
+        "entry_message": "lpg",
+        "character_id_path_from_entry": [2],
+        "basic_information_path_from_entry": [1],
+        "character_name_path_from_entry": [1, 2],
+        "character_level_path_from_entry": [1, 3]
+      },
+      "schema_cross_check": [
+        "message kvi { repeated lpg ... = 1; }",
+        "message lpg { int64 ... = 2; lpe ... = 1; ... }",
+        "message lpe { ... string ... = 2; int32 ... = 3; ... }"
+      ],
+      "atlas_status": "identity_roster_correlation_implemented",
+      "progression_authority": false,
+      "notes": "Roster alone never identifies the active character. It only builds volatile same-session id->name evidence."
+    },
+    {
+      "id": "character_selected_kva",
+      "confidence": "verified_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/kva",
+      "semantic": "server confirms the character now being played",
+      "observed_wire": "7 occurrences / 6 capture files",
+      "payload": {
+        "selected_character_id_path": [1, 1, 2]
+      },
+      "schema_cross_check": [
+        "message kva { kuy ... = 1; kux ... = 2; }",
+        "message kuy { lpg ... = 1; }",
+        "message lpg { int64 character-like id = 2; ... }"
+      ],
+      "atlas_status": "identity_selection_correlation_implemented",
+      "progression_authority": "only after exact-build mapping plus same-session kvi correlation",
+      "notes": "Atlas must never resolve kva by id across sessions or from a stale roster."
+    },
+    {
+      "id": "character_select_request_kvw",
+      "confidence": "verified_current_wire",
+      "direction": "client_to_server",
+      "type_url": "type.ankama.com/kvw",
+      "semantic": "client selects character by id",
+      "atlas_status": "research_only",
+      "progression_authority": false,
+      "notes": "Client requests are not authoritative for progression. Useful only for diagnostics/correlation research."
+    },
+    {
+      "id": "character_select_after_creation_kvl",
+      "confidence": "verified_current_wire",
+      "direction": "client_to_server",
+      "type_url": "type.ankama.com/kvl",
+      "semantic": "character selection path immediately after creation",
+      "atlas_status": "research_only",
+      "progression_authority": false
+    },
+    {
+      "id": "character_roster_complete_kvd",
+      "confidence": "verified_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/kvd",
+      "semantic": "character roster completion marker",
+      "payload": "empty",
+      "atlas_status": "future_optional_safety_marker",
+      "progression_authority": false
+    },
+    {
+      "id": "map_load_jru",
+      "confidence": "verified_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/jru",
+      "semantic": "load current map",
+      "observed_wire": "719 occurrences / 86 capture files",
+      "payload": {
+        "map_id_path": [2]
+      },
+      "atlas_status": "future_context_event",
+      "progression_authority": false,
+      "future_uses": [
+        "guide current-location context",
+        "travel/map diagnostics",
+        "correlate quest interactions without auto-completing them"
+      ]
+    },
+    {
+      "id": "map_discovered_hjk",
+      "confidence": "verified_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/hjk",
+      "semantic": "map discovered/current map companion event",
+      "observed_wire": "7 occurrences / 6 capture files",
+      "payload": {
+        "map_ids_field": 1,
+        "encoding": "packed"
+      },
+      "atlas_status": "future_context_event",
+      "progression_authority": false
+    },
+    {
+      "id": "map_actors_jss",
+      "confidence": "verified_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/jss",
+      "semantic": "map actors and subarea context",
+      "observed_wire": "692 occurrences / 87 capture files",
+      "payload_summary": "field 2 map id; field 6 subarea id; repeated actor structures under field 5",
+      "atlas_status": "future_bestiaire_or_context_research",
+      "progression_authority": false
+    },
+    {
+      "id": "characteristics_kub",
+      "confidence": "verified_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/kub",
+      "semantic": "character sheet/characteristics",
+      "observed_wire": "1071 occurrences / 88 capture files",
+      "payload_summary": "field 2 contains experience/kamas/characteristics; characteristic containers vary by characteristic id",
+      "atlas_status": "future_level_stats_alignment_research",
+      "progression_authority": false,
+      "notes": "Do not implement characteristic values from a guessed uniform container; Jondo measurements show container shape varies by characteristic id."
+    },
+    {
+      "id": "jobs_irq",
+      "confidence": "verified_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/irq",
+      "semantic": "profession/job state",
+      "observed_wire": "93 occurrences / 11 capture files",
+      "payload_summary": "repeated field 1 entries containing job id, level and experience fields",
+      "atlas_status": "future_profession_level_sync",
+      "progression_authority": false
+    },
+    {
+      "id": "spells_hms",
+      "confidence": "verified_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/hms",
+      "semantic": "character spell list",
+      "observed_wire": "8 occurrences / 6 capture files",
+      "payload_summary": "repeated field 1; documented subfields include grade and spell id",
+      "atlas_status": "future_character_context",
+      "progression_authority": false
+    },
+    {
+      "id": "quest_current_semantic_catalog",
+      "confidence": "current_public_catalog",
+      "direction": "mixed_or_unknown",
+      "type_url": null,
+      "semantic_names_present_in_3_6_10_10_metadata": [
+        "QuestActive",
+        "QuestStepInformationRequest",
+        "QuestStepValidatedEvent",
+        "QuestsEvent",
+        "NpcsMapQuestStatusUpdateEvent"
+      ],
+      "atlas_status": "needs_opcode_assignment",
+      "progression_authority": false,
+      "notes": "nombres_reales_3.6.10.10.tsv explicitly says names are orphaned and cannot by themselves be assigned to opcodes."
+    },
+    {
+      "id": "quest_isf",
+      "confidence": "candidate",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/isf",
+      "historical_label": "QuestListMessage / active quests notification",
+      "atlas_status": "do_not_use_until_recrossed",
+      "progression_authority": false,
+      "notes": "Jondo opcodes_emulador marks the old label source as dead/descartado even though current code pushes isf. Preserve as a lead only."
+    },
+    {
+      "id": "quest_izu",
+      "confidence": "candidate",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/izu",
+      "historical_label": "QuestStepProgress",
+      "atlas_status": "do_not_use_until_recrossed",
+      "progression_authority": false,
+      "notes": "Old label is explicitly marked discarded; current structure/wire correlation still required."
+    },
+    {
+      "id": "quest_lry",
+      "confidence": "candidate",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/lry",
+      "historical_label": "QuestListMessage / active quest journal",
+      "atlas_status": "do_not_use_until_recrossed",
+      "progression_authority": false
+    },
+    {
+      "id": "achievement_semantic_catalog",
+      "confidence": "current_public_catalog",
+      "type_url": null,
+      "semantic_names_present_in_3_6_10_10_metadata": [
+        "Achievement",
+        "AchievementRewardRequest",
+        "AchievementRewardResultEvent",
+        "AchievementsPioneerRanksResponse"
+      ],
+      "atlas_status": "needs_opcode_assignment",
+      "progression_authority": false
+    },
+    {
+      "id": "alignment_semantic_catalog",
+      "confidence": "current_public_catalog",
+      "type_url": null,
+      "semantic_names_present_in_3_6_10_10_metadata": [
+        "AlignmentInformation"
+      ],
+      "atlas_status": "needs_parent_message_and_field_assignment",
+      "progression_authority": false
+    }
+  ],
+  "historical_semantic_sources": [
+    {
+      "repository": "Yykz/dofus-unity-rs",
+      "revision": "3db2cb263921508478178c032abebcd790f2c59e",
+      "path": "protos/com.ankama.dofus.server.game.protocol.quest.proto",
+      "modified_date": "2024-09-10",
+      "confidence": "historical_semantic",
+      "use": "field semantics only; never current opcode identity",
+      "quest_messages": {
+        "QuestObjectiveValidatedEvent": {
+          "quest_id": [1],
+          "objective_id": [2]
+        },
+        "QuestStartedEvent": {
+          "quest_id": [1]
+        },
+        "QuestStepValidatedEvent": {
+          "quest_id": [1],
+          "step_id": [2]
+        },
+        "QuestValidatedEvent": {
+          "quest_id": [1]
+        },
+        "QuestsEvent": {
+          "finished_quests_field": 1,
+          "active_quests_field": 2,
+          "reinitialized_done_quests_id_field": 3,
+          "player_id_field": 4
+        }
+      }
+    }
+  ],
+  "rejected_findings": [
+    {
+      "id": "hlv_to_kxm_as_quest_validated",
+      "confidence": "rejected",
+      "reason": "cross-repository alias namespaces were mixed; current 3.6.10.10 kxm structure contradicts the expected single quest-id QuestValidatedEvent shape",
+      "rule": "Never transfer a three-letter alias between unrelated mapping namespaces without same-pipeline structural proof."
+    },
+    {
+      "id": "old_aliases_before_august_rotation",
+      "confidence": "rejected",
+      "reason": "public current-protocol work reports alias/field rotation in August 2026; historical three-letter aliases are not current truth",
+      "rule": "Historical names may guide semantic matching only."
+    }
+  ]
+}

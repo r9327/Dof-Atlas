@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "id": "dofoozbz",
+  "title": "Dofoozbz",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofoozbz.",
+  "recommended_level_min": 100,
+  "recommended_level_max": 200,
+  "reward_item_id": 31794,
+  "illustration_item_id": 31794,
+  "image": null,
+  "linked_achievement_ids": [
+    8855
+  ],
+  "completeness_status": "partial",
+  "verified_steps": 14,
+  "total_steps": 14,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "Profil DPLN: parcours encore partiel (14/13 quêtes attendues).",
+    "V4: complétude non démontrée par un profil attendu ou une source explicite."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [
+    "https://www.dofuspourlesnoobs.com/dofoozbz.html"
+  ],
+  "sections": [
+    {
+      "id": "dofoozbz_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        8855
+      ],
+      "steps": [
+        {
+          "id": "dofoozbz_quest_1484",
+          "type": "quest",
+          "entity_id": 1484,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "context"
+        },
+        {
+          "id": "dofoozbz_quest_2515",
+          "type": "quest",
+          "entity_id": 2515,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofoozbz_quest_2520",
+          "type": "quest",
+          "entity_id": 2520,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofoozbz_quest_2516",
+          "type": "quest",
+          "entity_id": 2516,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2515
+            },
+            {
+              "type": "quest",
+              "entity_id": 2520
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofoozbz_quest_2523",
+          "type": "quest",
+          "entity_id": 2523,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2516
+          ]
+        },
+        {
+          "id": "dofoozbz_quest_2521",
+          "type": "quest",
+          "entity_id": 2521,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2516
+          ]
+        },
+        {
+          "id": "dofoozbz_quest_2522",
+          "type": "quest",
+          "entity_id": 2522,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2516
+          ]
+        },
+        {
+          "id": "dofoozbz_quest_2517",
+          "type": "quest",
+          "entity_id": 2517,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2516
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofoozbz_quest_2531",
+          "type": "quest",
+          "entity_id": 2531,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2517
+          ]
+        },
+        {
+          "id": "dofoozbz_quest_2530",
+          "type": "quest",
+          "entity_id": 2530,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2517
+          ]
+        },
+        {
+          "id": "dofoozbz_quest_2518",
+          "type": "quest",
+          "entity_id": 2518,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2517
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofoozbz_quest_2519",
+          "type": "quest",
+          "entity_id": 2519,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2518
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofoozbz_quest_2533",
+          "type": "quest",
+          "entity_id": 2533,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2518
+          ]
+        },
+        {
+          "id": "dofoozbz_quest_2532",
+          "type": "quest",
+          "entity_id": 2532,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2518
+          ]
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

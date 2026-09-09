@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_level_150_170_v2",
+  "title": "Guide Ultime — Niveau 150 à 170 + Ébène causal corrigé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v1.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v1",
+  "stage_count": 18,
+  "optimization_note": "L'épée du rocher exige explicitement de vaincre Skeunk puis de parler à la Bouate à maquillage après le boss pour obtenir la Poudre scintillante. La quête étant ouverte après le premier Skeunk du parcours, ce retour est causal et doit être annoncé comme tel; aucun faux stockage anticipé.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/l-epee-du-rocher.html",
+    "https://www.dofuspourlesnoobs.com/repaire-de-skeunk.html"
+  ],
+  "stage_patches": {
+    "L150-15": {
+      "replace": {
+        "title": "Ébène + Xélorium — Skeunk causal puis Fraktale double-fil",
+        "duration_min": 210
+      },
+      "prepend": {
+        "route": [
+          {"pos":"[-20,10] Repaire de Skeunk","do":"RERUN CAUSAL ÉBÈNE: après avoir lancé L'épée du rocher, refaire Skeunk parce que la Poudre scintillante n'est demandée/obtenable qu'à cette étape. Après le boss, NE PAS sortir: parler à la Bouate à maquillage et récupérer la Poudre scintillante. Ne pas refaire les captures/succès déjà validés sans objectif distinct."}
+        ]
+      },
+      "replace_metadata_note": "Le Skeunk de cette étape ne pouvait pas être fusionné avec l'ancien passage, car L'épée du rocher n'existait pas encore.",
+      "append": {
+        "hard_exit": [
+          "Retour Skeunk explicitement classé causal.",
+          "Poudre scintillante obtenue après le boss avant sortie.",
+          "Aucune affirmation de stockage anticipé de la Poudre scintillante."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

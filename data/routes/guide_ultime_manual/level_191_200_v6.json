@@ -1,0 +1,167 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_level_191_200_v6",
+  "title": "Guide Ultime — Niveau 191 à 200 + Vulbis pré-boss200",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v5.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v5",
+  "stage_count": 36,
+  "optimization_note": "Backpatch Vulbis avant la campagne de boss200. Barnabé + la chaîne Anomalies débloquent Amaknanomalie; La mère des Dragoeufs est avancée jusqu'au Parangon AVANT Sylargh/Klime/Missiz et tous les autres gardiens200 du chapitre. Le Parangon reste un drop de quête à0,7% uniquement en donjon: aucune arène et aucun farm dédié tant que des boss200 obligatoires restent à faire. Crocuzko est ensuite mutualisé avec Larmes de crocodaille et Torkélonia. Le cleanup Vulbis ne devient ciblé qu'après consommation de toutes les tentatives naturelles de la route.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/barnabe-dans-l-espace.html",
+    "https://www.dofuspourlesnoobs.com/chaque-chose-en-son-temps.html",
+    "https://www.dofuspourlesnoobs.com/aux-frontieres-du-reel.html",
+    "https://www.dofuspourlesnoobs.com/ce-sera-mieux-avant.html",
+    "https://www.dofuspourlesnoobs.com/amaknanomalie.html",
+    "https://www.dofuspourlesnoobs.com/la-mere-des-dragoeufs.html",
+    "https://www.dofuspourlesnoobs.com/perdu-dans-le-temps.html",
+    "https://www.dofuspourlesnoobs.com/plongee-dans-un-bain-de-sang.html",
+    "https://www.dofuspourlesnoobs.com/le-sens-du-sacrifice.html",
+    "https://www.dofuspourlesnoobs.com/larmes-de-crocodaille.html",
+    "https://www.dofuspourlesnoobs.com/cauchemar-infini.html",
+    "https://www.dofuspourlesnoobs.com/la-nuit-qui-rugit.html",
+    "https://www.dofuspourlesnoobs.com/les-raisons-de-la-colere.html",
+    "https://www.dofuspourlesnoobs.com/le-temps-des-secrets.html"
+  ],
+  "insertions": [
+    {
+      "before": "L200-DDG1",
+      "stage": {
+        "id": "L200-VUL0",
+        "title": "Vulbis — anomalies puis activer le Parangon AVANT tout gardien200",
+        "level": "200 / avant premier boss200 de la campagne finale",
+        "duration_min": 360,
+        "quests": [
+          "Barnabé dans l'espace",
+          "Chaque chose en son temps",
+          "Aux frontières du réel",
+          "Ce sera mieux avant",
+          "Amaknanomalie",
+          "La mère des Dragoeufs"
+        ],
+        "successes": ["Rêves de dragons"],
+        "preparation": [
+          {"requirement":"Niveau200 réel avant Amaknanomalie","blocking":true},
+          {"requirement":"Barnabé dans l'espace terminé avant l'étape qui le vérifie dans Aux frontières du réel","blocking":true},
+          {"note":"Ne prévoir aucun farm de Parangon maintenant: l'objectif est uniquement d'activer son drop avant tous les gardiens200 déjà obligatoires du guide."}
+        ],
+        "take": [
+          "Faire Barnabé dans l'espace maintenant s'il n'est pas déjà terminé; il n'a pas de prérequis lourd et bloque une étape d'Aux frontières du réel.",
+          "Enchaîner Chaque chose en son temps → Aux frontières du réel → Ce sera mieux avant selon le walkthrough local.",
+          "Au niveau200, faire Amaknanomalie puis prendre immédiatement La mère des Dragoeufs."
+        ],
+        "route": [
+          {"area":"Astrub / Amakna / Xélorium / anomalies","do":"Fermer Barnabé puis la chaîne Anomalies jusqu'à Amaknanomalie. Les positions d'anomalie et états runtime sont lus depuis le jeu/walkthrough courant; aucune ancienne coordonnée n'est transformée en vérité de voyage."},
+          {"area":"La mère des Dragoeufs","do":"Avancer jusqu'à l'objectif qui autorise le drop du Parangon de puissance. STOP dès que le Parangon peut tomber: ne pas consommer un gardien200 avant cet état."},
+          {"area":"registre boss200","do":"À partir de cet instant, chaque gardien de donjon niveau200 obligatoire de DDG/Ivoire/Nébuleux/Ébène et autres fils est aussi une tentative Parangon. Taux de base0,7%; uniquement dans le donjon, jamais en arène. Enregistrer immédiatement le drop s'il tombe."}
+        ],
+        "progress_also": [
+          "Prospection/challenges peuvent améliorer un drop de quête; les utiliser seulement s'ils ne compromettent pas fortement le succès principal ou la sécurité du combat.",
+          "Si le Parangon tombe tôt, conserver l'état et reprendre La mère des Dragoeufs au prochain point géographique rentable; ne casser ni l'ordre Frigost III ni les fusions Bonta/DDG."
+        ],
+        "before_leaving": ["La mère des Dragoeufs active à l'objectif Parangon","Aucun boss200 de la campagne finale consommé avant activation"],
+        "hard_exit": ["Parangon_drop_enabled=true","arena_drop_forbidden=true"],
+        "pause": ["POINT DE PAUSE SÛR — Parangon actif avant campagne boss200"],
+        "next": "L200-VUL1 — Crocuzko/Torkélonia puis campagne DDG"
+      }
+    },
+    {
+      "after": "L200-VUL0",
+      "stage": {
+        "id": "L200-VUL1",
+        "title": "Crocuzko — Larmes de crocodaille + Torkélonia, première chance naturelle de Parangon",
+        "level": "200 / Parangon déjà activé",
+        "duration_min": 520,
+        "quests": [
+          "Perdu dans le temps",
+          "Plongée dans un bain de sang",
+          "Le sens du sacrifice",
+          "Le tort tue",
+          "Elle n'a pas fini d'aimer la viande",
+          "Œufs dans l'eau"
+        ],
+        "successes": ["Larmes de crocodaille"],
+        "dungeon": {"name":"Sanctuaire de Torkélonia","pass":"unique_for_crocuzko_prerequisite","parangon_attempt":true},
+        "preparation": [
+          {"requirement":"Plus de 8000 énergie avant Le sens du sacrifice","blocking":true},
+          {"name":"Arakne Écrabouillée","quantity":5},
+          {"name":"Sourcil de Moskito","quantity":20},
+          {"name":"Écume de mer","quantity":15},
+          {"name":"Salikrone","quantity":20},
+          {"name":"Feuille de Rose Obscure","quantity":5},
+          {"name":"Bec de Dodox","quantity":2},
+          {"name":"Bec de Truchon","quantity":4},
+          {"note":"Vider les pods avant la grande session Crocuzko: plusieurs quêtes demandent des drops/objets de zone simultanément."}
+        ],
+        "take": [
+          "Faire Perdu dans le temps puis prendre immédiatement Plongée dans un bain de sang.",
+          "Sur Crocuzko, activer Le tort tue + Elle n'a pas fini d'aimer la viande + Œufs dans l'eau avant tout farm de crocodailes.",
+          "Après Plongée, prendre Le sens du sacrifice et préparer Torkélonia avant entrée."
+        ],
+        "route": [
+          {"area":"Crocuzko zones","do":"Mutualiser les monstres/drops des trois quêtes latérales avec Plongée. Ne jamais tuer les familles demandées avant que toutes les quêtes qui les comptent soient actives."},
+          {"area":"Sanctuaire de Torkélonia","do":"Faire un seul Torkélonia pour Le sens du sacrifice + succès compatibles. Comme le Parangon est déjà actif, ce boss200 constitue la première tentative naturelle. Faire le dialogue post-boss avant de sortir."},
+          {"area":"Crocuzko","do":"Finir Le sens du sacrifice et les dernières quêtes de Larmes de crocodaille. La mère des Dragoeufs pourra poursuivre dès que le Parangon est effectivement obtenu."}
+        ],
+        "progress_also": [
+          "Si Les totems de Maïmane est réellement actif avant Torkélonia, l'ajouter au même passage; ne pas retarder Torkélonia pour un fil non débloqué.",
+          "Si Parangon ne tombe pas, aucune répétition Torkélonia maintenant: continuer Sylargh/Klime/Missiz et tous les autres boss200 obligatoires."
+        ],
+        "before_leaving": ["Larmes de crocodaille terminée ou reliquat exact identifié","Torkélonia fait une seule fois","Parangon obtenu OU toujours pending sans farm dédié"],
+        "hard_exit": ["Aucun Torkélonia rerun pour Parangon tant que d'autres boss200 obligatoires restent"],
+        "pause": ["POINT DE PAUSE SÛR — Crocuzko fermé, Parangon suivi en parallèle"],
+        "next": "L200-DDG1 — campagne boss200 avec tentative Parangon à chaque gardien éligible"
+      }
+    },
+    {
+      "before": "L200-16",
+      "stage": {
+        "id": "L200-VUL2",
+        "title": "Vulbis — cleanup Parangon puis Cauchemar/Nuit/Colère/Secrets",
+        "level": "200 / après campagne naturelle de gardiens200",
+        "duration_min": 720,
+        "quests": [
+          "La mère des Dragoeufs",
+          "Cauchemar infini",
+          "La Nuit-qui-rugit",
+          "Les raisons de la colère",
+          "Le temps des secrets"
+        ],
+        "successes": ["Rêves de dragons"],
+        "preparation": [
+          {"requirement":"Parangon de puissance obtenu","blocking":true,"policy":"S'il manque après tous les gardiens200 obligatoires, seulement maintenant lancer un cleanup ciblé sur un donjon200 efficace et réellement accessible; jamais arène."},
+          {"requirement":"Alchimiste ou Paysan niveau200","blocking":true,"for":"La Nuit-qui-rugit"},
+          {"name":"Quisnoa","quantity":10},
+          {"name":"Salikrone","quantity":10},
+          {"name":"Bidoche Goûtue","quantity":2},
+          {"name":"Corne brisée de Crocabulia","quantity":1},
+          {"name":"Essence du Comte Harebourg","quantity":1},
+          {"name":"Œil de verre","quantity":2},
+          {"name":"Sablier miniature","quantity":42},
+          {"name":"Essence de Vortex","quantity":1},
+          {"name":"Pépite","quantity":789},
+          {"name":"Galet Solaire","quantity":3},
+          {"name":"Reflet onirique","quantity":500},
+          {"note":"Garder Essence du Comte + Essence de Vortex lors des passages DDG/Nébuleux précédents; ne jamais refaire ces boss uniquement pour la recette si l'essence est achetable/craftable autrement."}
+        ],
+        "route": [
+          {"area":"cleanup Parangon","do":"Si le Parangon n'est toujours pas tombé après toutes les tentatives naturelles, faire le minimum de répétitions d'un gardien200 choisi selon temps/équipe/accès du runtime actuel. Arrêter immédiatement au drop."},
+          {"area":"La mère des Dragoeufs / Crocuzko","do":"Avec Parangon + Perdu dans le temps terminés, fermer La mère des Dragoeufs puis prendre Cauchemar infini."},
+          {"area":"Songes Infinis","do":"Faire Cauchemar infini en Paradoxe I ou supérieur: obtenir les trois objets et rencontrer le PNJ aléatoire sans confondre ce compteur avec les 12 Songes de l'Ébène."},
+          {"area":"Crocuzko / Ixchelonia","do":"Faire La Nuit-qui-rugit avec le métier200 commun déjà préparé et Le sens du sacrifice terminé."},
+          {"area":"Terrakourial / Songes","do":"Faire Les raisons de la colère. Le dragon des forêts peut être contourné selon la méthode du walkthrough courant; ne pas inventer un prérequis obligatoire."},
+          {"area":"Xélorium / Osamodas / Crocuzko","do":"Préparer tous les composants de Le temps des secrets AVANT sa grande boucle, fermer la quête et prendre le Dofus Vulbis uniquement lorsque le runtime le confirme."}
+        ],
+        "progress_also": [
+          "Conserver 600 Reflets oniriques supplémentaires si Six sur six n'est pas encore fermé; ne pas dépenser le stock entre Vulbis et Réunification.",
+          "Les essences Comte/Vortex et ressources de donjons doivent être réservées à la banque dès leur première disponibilité."
+        ],
+        "before_leaving": ["Rêves de dragons terminé","Dofus Vulbis obtenu si et seulement si runtime confirmé"],
+        "hard_exit": ["Aucun faux Vulbis","Parangon réellement obtenu","Aucun farm boss200 commencé avant consommation des tentatives naturelles"],
+        "pause": ["POINT DE PAUSE SÛR — Vulbis fermé ou blocker Parangon exact enregistré"],
+        "next": "L200-16 — audit Dofus finaux / Six sur six"
+      }
+    }
+  ],
+  "stage_patches": {}
+}

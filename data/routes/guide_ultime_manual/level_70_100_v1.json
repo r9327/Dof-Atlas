@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_level_70_100_v1",
+  "title": "Guide Ultime — Niveau 70 à 100 manuel",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "depends_on": ["guide_ultime_manual_level_51_70_v1"],
+  "stage_count": 15,
+  "transversal_routes": ["bonta_1_40_v3.json", "bonta_order_rank40_v1.json", "ocre_capture_registry_v1.json"],
+  "micro_walkthrough_source": "QuestProvider + source_solution_steps enrichis",
+  "core_strategy": "Entrelacer Moon, Wabbit, Alain/Thelma, Un juge hystérique et Bonta afin que Village Kanniboul, Château Wa, Brumen, Domaine Ancestral, Terrier Wa, Bateau du Chouque, Chapiteau et Koulosse ne soient chacun visités qu'au moment où toutes les quêtes compatibles sont actives.",
+  "rules": [
+    "Les succès Wabbit complets sont inclus: Rusé comme une Lenalde, Lancer de Wabbit, Un Wa de pacotille, Poil de Cawotte, Partie prise et Wabbit en feu.",
+    "Les succès Moon complets sont inclus: Koko Boy et Monnaie de singe; les succès monstres et tous les succès de chacun des trois donjons sont tentés au premier passage compatible.",
+    "Wogew l'hewmite/Wabbit GM est opportuniste: ne jamais attendre un repop; si absent, garder un rattrapage Wabbit explicite.",
+    "Le Wa Pythie est actif avant Château Wa grâce au Village Kanniboul fait en premier.",
+    "L'œuf ou la cawotte ? et Un défilé de Wobots sont tous deux actifs avant le Terrier du Wa Wabbit.",
+    "Le radeau ivre, Squelettes et amulettes et C'est du bateau sont tous actifs avant le Bateau du Chouque; Serrons-nous la main est lancée en salle de sortie avant de quitter.",
+    "La lettre anonyme attend Le spectacle vivant pour un seul Chapiteau Magik Riktus et capture Choudini Ocre.",
+    "Leçon de cuisine attend le retour Moon final; la cervelle de tortue est obtenue en dernier puis rendue à Bonta en moins de 5 minutes.",
+    "Les seuils de niveau d'alignement sont relus dans le QuestProvider local; aucun ancien niveau recommandé web n'est traité comme contrainte dure."
+  ],
+  "coverage": {
+    "wabbit_successes": {
+      "Rusé comme une Lenalde": ["Sauvegarder l'espèce","Faites l'amour, pas la guerre","Ça sent la cawotte","Il y a un os, de Wabbit","Art gastronomique","Expédition culinaire","Voyage au centre du Wabbit","Des pwinces pas très charmants"],
+      "Lancer de Wabbit": ["Timassacre entre wabbits","Comme d'wabbitude","Vade Retro Wabbitas","Chasse aux wabbits"],
+      "Un Wa de pacotille": ["Jamais deux sans trois","Le château du Wa","L'œuf ou la cawotte ?"],
+      "Poil de Cawotte": ["Se faire passer pour le Wabbit"],
+      "Partie prise": ["Intrusion chez les wabbits","Caltes stlatégiques","Le jeu de Lenald"],
+      "Wabbit en feu": ["Un peu de wab","Ça rend aimable","Les pwinces déchus","La chasse de Lily"]
+    },
+    "moon_successes": {
+      "Koko Boy": ["Partir un jour sans retour","Un parfum de vacances","Un indigeste chez les indigènes","Squelettes et amulettes","Rendez-vous avec la lune"],
+      "Monnaie de singe": ["Le radeau ivre","Sur les traces des Moonies","Le combat des chefs","Bas les masques","Serrons-nous la main"]
+    },
+    "thelm_alain": ["Un Kanniboul versé","Le Wa Pythie","Gelée bien eue","C'est radical ici","Chéri fais-moi peur","Histoire de chiens","Le fossile et le marteau","Un défilé de Wobots","C'est du bateau","Le spectacle vivant"],
+    "bonta": "rangs 23 à 40 + deuxième rang de l'Ordre choisi"
+  },
+  "preparation": {
+    "moon_access": [
+      {"name":"Casque","quantity":1},
+      {"name":"Ailes en bois","quantity":1},
+      {"name":"Kamas ticket Moon","quantity":1000}
+    ],
+    "wabbit": [
+      {"name":"Panoplie du Wa Wabbit","quantity":1,"parts":["Couronne du Wa Wabbit","Bâton du Wa Wabbit","Cape du Wa Wabbit"],"timing":"doit être prête AVANT le Terrier final, pas forcément avant Château"},
+      {"name":"Cawotte","quantity":100,"optional":"uniquement si le sort Cawotte est encore à obtenir; sinon ne pas imposer ce stock"}
+    ],
+    "moon_full": [
+      {"name":"Tronc de Kokoko","quantity":11,"for":"Le radeau ivre"},
+      {"name":"Kole","quantity":10,"for":"Le radeau ivre"},
+      {"name":"Bananagrume","quantity":8,"for":"Le combat des chefs"}
+    ],
+    "captures": [
+      {"target":"Wa Wabbit","minimum_power":100,"type":"Ocre"},
+      {"target":"4 Gelées Royales simultanément","minimum_power":100,"type":"Ocre"},
+      {"target":"Gourlo le Terrible","minimum_power":100,"type":"Ocre"},
+      {"target":"Abraknyde Ancestral","minimum_power":100,"type":"Ocre"},
+      {"target":"Dragon Cochon","minimum_power":100,"type":"Ocre"},
+      {"target":"Choudini","minimum_power":100,"type":"Ocre"},
+      {"target":"Moon","minimum_power":100,"type":"Ocre"},
+      {"target":"Koulosse","minimum_power":100,"type":"Ocre"}
+    ],
+    "bank_policy":"Les âmes Ocre capturées trop tôt pour l'étape courante sont déposées en banque et étiquetées À GARDER OCRE. La Panoplie Wa est conservée après le Cawotte: elle n'est ni détruite ni vendue avant la fin des usages futurs identifiés."
+  },
+  "stages": [
+    {
+      "id":"L70-00",
+      "title":"Bonta 23-28 — avancer avant les gros donjons partagés",
+      "level":"70+ ou gates locales correspondantes",
+      "duration_min":110,
+      "transversal":"BNT-09 from bonta_1_40_v3.json",
+      "route":[
+        {"pos":"Bonta/Cania/Routes Rocailleuses","do":"Exécuter BNT-09 rangs23→28. Garder la branche Danathor poison déjà verrouillée. Ne pas faire Brumen au rang29 seul: la quête attend Histoire de chiens."}
+      ],
+      "pause":["Bonta28 terminé","Poison de scorbute pour la prison disponible et volontairement suspendue","Moon Village = prochain gros bloc"]
+    },
+    {
+      "id":"L70-01",
+      "title":"Premier vrai Moon — accès, plage, radeau anticipé et Village Kanniboul unique",
+      "level":"70+",
+      "duration_min":95,
+      "quests":["Partir un jour sans retour","Un parfum de vacances","Un indigeste chez les indigènes","T'as les boules","Un Kanniboul versé","Le radeau ivre"],
+      "route":[
+        {"pos":"[-1,2] Amakna","do":"Prendre T'as les boules avant toute entrée Village Kanniboul."},
+        {"pos":"[2,-1] Amakna","do":"Vérifier Un Kanniboul versé active."},
+        {"pos":"[11,10]","do":"Faire Partir un jour sans retour, acheter le ticket, équiper Casque + Ailes en bois et accéder à Moon."},
+        {"pos":"[36,11] Moon","do":"Prendre Le radeau ivre AVANT le Village; les Cordes en liane peuvent tomber sur les Kannibouls et à 40% sur Kanniboul Ebil."},
+        {"pos":"[33,12]","do":"Faire Un parfum de vacances puis lancer Un indigeste chez les indigènes."},
+        {"pos":"[29,9] Village Kanniboul","do":"Entrer avec T'as les boules + Un Kanniboul versé + Un indigeste chez les indigènes actifs. Faire les succès compatibles, récupérer les Cordes en liane utiles au radeau et vaincre Kanniboul Ebil une seule fois. Avant de sortir, lui parler pour la quête Dokoko et récupérer Kannibulle/éléments de sortie disponibles."},
+        {"pos":"[31,9]","do":"Rendre Un indigeste à Mamie Voudou et lancer Squelettes et amulettes. Ramasser/échanger les ressources de radeau opportunistes sans lancer le Bateau maintenant."},
+        {"pos":"[2,-1] Amakna","do":"Rendre Un Kanniboul versé à Alain et prendre Le Wa Pythie."}
+      ],
+      "hard_exit":["Village Kanniboul ne nécessite aucun second passage pour T'as les boules/Alain/Dokoko.","Le Wa Pythie active avant Château Wa.","Squelettes et amulettes active pour le futur Bateau.","Le radeau ivre active avant les drops Kanniboul/Pirates."],
+      "pause":["Moon accessible","Village Kanniboul fermé","Le Wa Pythie active","Squelettes et amulettes + Le radeau ivre actifs"]
+    },
+    {
+      "id":"L70-02",
+      "title":"Wabbit complet avant Château — toutes les chaînes de zone en parallèle",
+      "level":"70-90",
+      "duration_min":150,
+      "quests":["Un sage parmi les sages","Jamais deux sans trois","Sauvegarder l'espèce","Faites l'amour, pas la guerre","Ça sent la cawotte","Il y a un os, de Wabbit","Art gastronomique","Expédition culinaire","Voyage au centre du Wabbit","Des pwinces pas très charmants","Timassacre entre wabbits","Comme d'wabbitude","Vade Retro Wabbitas","Chasse aux wabbits","Un peu de wab","Ça rend aimable","Les pwinces déchus","La chasse de Lily"],
+      "route":[
+        {"pos":"[25,-4]","do":"Mémoriser le zaap principal immédiatement; finir Un sage parmi les sages si son dernier dialogue Wabbit était encore en attente."},
+        {"pos":"[23,-4]","do":"Lancer Jamais deux sans trois dès les prérequis réels satisfaits."},
+        {"pos":"Île Wabbit","do":"Exécuter les 8 quêtes Rusé comme une Lenalde en une grande boucle causale avec le walkthrough local. En parallèle, prendre et avancer les quatre quêtes Lancer de Wabbit et les quatre quêtes Wabbit en feu dès qu'elles deviennent disponibles; ne pas créer une sortie distincte par succès."},
+        {"pos":"trois clefs Château","do":"Récupérer les trois clefs de Jamais deux sans trois pendant les mêmes déplacements: [24,-6], [27,-11], [22,-5]."},
+        {"pos":"[27,-14]","do":"Mémoriser le zaap Laboratoires Wabbits au premier passage sur l'Îlot de Waldo."},
+        {"pos":"souterrains [24,-7]","do":"Si Wabbit GM est présent, faire le combat/challenge requis et Wogew l'hewmite lorsqu'elle est active. S'IL N'EST PAS PRÉSENT, NE PAS ATTENDRE son repop 30-90 min: enregistrer le rattrapage et continuer."}
+      ],
+      "hard_exit":["Rusé comme une Lenalde terminé avant Château.","Jamais deux sans trois terminé et Château accessible.","Lancer de Wabbit/Wabbit en feu terminés ou chaque reliquat a un état précis, jamais 'oublié'.","Le Wa Pythie active."],
+      "pause":["Château Wa prêt","Trois clés acquises","Rusé terminé","Zaaps Wabbit mémorisés"]
+    },
+    {
+      "id":"L70-03",
+      "title":"Château du Wa — Cawotte + Alain + Ocre dans un seul passage",
+      "level":"70-90",
+      "duration_min":55,
+      "quests":["Le château du Wa","Le Wa Pythie"],
+      "route":[
+        {"pos":"[24,-13] Château du Wa Wabbit","do":"Entrer avec Le Wa Pythie actif; Le château du Wa se lance selon son fonctionnement. Faire tous les succès compatibles."},
+        {"pos":"boss Wa Wabbit","do":"Équiper une pierre puissance100 et capturer Wa Wabbit pour l'étape2 Ocre."},
+        {"pos":"[23,-4]","do":"Rendre Le château du Wa à Wanald. Comme Rusé est déjà terminé, lancer L'œuf ou la cawotte ? mais NE PAS faire le Terrier avant que Thelma donne Un défilé de Wobots."},
+        {"pos":"[2,-1] Amakna","do":"Rendre Le Wa Pythie et lancer Gelée bien eue."}
+      ],
+      "pause":["Wa Wabbit capturé Ocre","L'œuf ou la cawotte ? active et volontairement différée","Gelée bien eue active"]
+    },
+    {
+      "id":"L70-04",
+      "title":"Gelax — quatre Royales, quatre captures Ocre en un combat",
+      "level":"70-90",
+      "duration_min":45,
+      "quests":["Gelée bien eue","Comment se mettre au jus"],
+      "route":[
+        {"pos":"[13,25] Sufokia","do":"Prendre Comment se mettre au jus avant de consommer la Multygely."},
+        {"pos":"Gelaxième Dimension","do":"Dans les quatre salles, choisir une couleur majoritaire différente pour obtenir les quatre flaques. Au boss, affronter les 4 Gelées Royales simultanément comme l'exige Gelée bien eue."},
+        {"pos":"boss","do":"Équiper UNE pierre puissance100 et capturer le groupe contenant Gelée Royale Bleuet, Citron, Fraise et Menthe. Les quatre sont requises par différentes étapes Ocre; conserver la pierre jusqu'aux remises correspondantes."},
+        {"pos":"[13,25] puis [2,-1]","do":"Rendre Comment se mettre au jus, puis Gelée bien eue. Prendre C'est radical ici."}
+      ],
+      "hard_exit":["4 Gelées Royales vaincues dans le même passage.","Pierre multi-Royales capturée Ocre.","C'est radical ici active."],
+      "pause":["Gelax fermé sans second passage planifié"]
+    },
+    {
+      "id":"L70-05",
+      "title":"Draegnerys + Gourlo — fermer Donjons avancés et ouvrir Brumen",
+      "level":"75-90",
+      "duration_min":90,
+      "quests":["C'est radical ici","Chéri fais-moi peur"],
+      "route":[
+        {"pos":"[-4,29] Épreuve de Draegnerys","do":"Faire C'est radical ici et les succès compatibles. Draegnerys n'est pas un boss Ocre actuel: ne pas consommer une pierre Ocre par automatisme; sa capture est seulement utile si le fil Émeraude correspondant est actif."},
+        {"pos":"[2,-1]","do":"Rendre C'est radical ici et prendre Chéri fais-moi peur."},
+        {"pos":"Cale de l'arche d'Otomaï","do":"Faire Chéri fais-moi peur, vaincre Gourlo et le capturer avec pierre puissance100 pour l'étape2 Ocre. Faire les succès compatibles."},
+        {"pos":"[2,-1]","do":"Rendre Chéri fais-moi peur. Le succès Donjons avancés est fermé; Histoire de chiens est maintenant déblocable auprès de Thelma."},
+        {"pos":"[-16,2]","do":"Prendre Histoire de chiens et préparer le bloc Brumen partagé avec Bonta29."}
+      ],
+      "pause":["Donjons avancés terminé","Gourlo capturé Ocre","Histoire de chiens active","Bonta29 prêt à fusionner Brumen"]
+    },
+    {
+      "id":"L70-06",
+      "title":"Brumen triple + Bonta29",
+      "level":"gates locales",
+      "duration_min":60,
+      "transversal":"BNT-10 from bonta_1_40_v3.json",
+      "quests":["Poison de scorbute pour la prison","Histoire de chiens","Où est passée la 7e compagnie ?"],
+      "route":[
+        {"pos":"transversal BNT-10","do":"Exécuter le bloc Brumen exactement comme défini dans Bonta: trois quêtes actives, Venin récupéré AVANT sortie, aucune capture Ocre Nelween. Si Le voleur d'âmes Émeraude est actif, sa capture est gérée par ce fil séparé."},
+        {"pos":"[-16,2]","do":"Après Histoire de chiens, lancer Le fossile et le marteau."}
+      ],
+      "pause":["Bonta29 terminé","Histoire de chiens terminée","Le fossile et le marteau active"]
+    },
+    {
+      "id":"L70-07",
+      "title":"Bonta30-33 + Domaine Ancestral + Dragon Cochon",
+      "level":"gates locales jusqu'au rang33",
+      "duration_min":140,
+      "transversal":"BNT-11 + BNT-12 from bonta_1_40_v3.json",
+      "quests":["Dike Tarak, la menace","Des combats pas très légaux","Mission de reconnaissance au cimetière","Vengeance par procuration","Un juge hystérique"],
+      "route":[
+        {"pos":"Bonta/Brâkmar","do":"Faire BNT-11 rangs30→32 dès que chacun est réellement débloqué localement."},
+        {"pos":"[-9,-14] Domaine Ancestral","do":"BNT-12: faire Domaine avec Vengeance par procuration + Un juge hystérique actifs. Capturer Abraknyde Ancestral puissance100 Ocre et faire les succès compatibles."},
+        {"pos":"[-29,-47]","do":"Rendre à Chris; Un juge hystérique pointe vers Dragon Cochon."},
+        {"pos":"[-1,33] Antre du Dragon Cochon","do":"Faire Dragon Cochon maintenant, capturer puissance100 pour l'étape1 Ocre et faire les succès compatibles. Toute quête Pourpre/Turquoise réellement disponible avant l'entrée est injectée par le walkthrough local; ne pas inventer un fil non débloqué."},
+        {"pos":"[-29,-47]","do":"Rendre Dragon Cochon à Chris; Un juge hystérique pointe Koulosse, mais attendre Bonta40 avant d'y aller."}
+      ],
+      "pause":["Bonta33 terminé","Abraknyde Ancestral + Dragon Cochon capturés Ocre","Un juge hystérique attend Koulosse","La lettre anonyme différée Chapiteau"]
+    },
+    {
+      "id":"L70-08",
+      "title":"Mastodontes — faire avancer Thelma jusqu'au Terrier",
+      "level":"80+",
+      "duration_min":50,
+      "quests":["Le fossile et le marteau"],
+      "route":[
+        {"pos":"[19,-61] Cimetière des Mastodontes","do":"Entrer avec Le fossile et le marteau. Si les quêtes locales Le roi scorpion / Sans chair et en os / objet du fémur sont réellement disponibles, les activer avant entrée pour ne pas revenir. Faire les succès compatibles."},
+        {"pos":"[-16,2]","do":"Rendre Le fossile et le marteau à Thelma et lancer Un défilé de Wobots."}
+      ],
+      "pause":["Le fossile et le marteau terminée","Un défilé de Wobots active","Terrier peut désormais mutualiser Cawotte + Thelma"]
+    },
+    {
+      "id":"L70-09",
+      "title":"Terrier Wa — Dofus Cawotte + Thelma + fin des succès Wabbit",
+      "level":"80-95",
+      "duration_min":85,
+      "quests":["L'œuf ou la cawotte ?","Un défilé de Wobots","Caltes stlatégiques","Le jeu de Lenald"],
+      "route":[
+        {"pos":"avant départ","do":"Vérifier la Panoplie du Wa Wabbit complète. L'équiper pour les dialogues requis puis la retirer pour combattre si souhaité."},
+        {"pos":"[28,-12] Terrier du Wa Wabbit","do":"Entrer avec L'œuf ou la cawotte ? + Un défilé de Wobots actifs. Faire les succès compatibles et vaincre Wa Wobot une seule fois. Si Le voleur d'âmes Émeraude est actif, capturer Wa Wobot puissance100; cette capture n'est PAS Ocre."},
+        {"pos":"salle de sortie","do":"ÉQUIPER de nouveau Couronne + Bâton + Cape du Wa avant de parler au Gawdien du Dofus. Obtenir le Dofus Cawotte/Poil de Cawotte."},
+        {"pos":"[23,-4] puis [25,-4]","do":"Rendre L'œuf ou la cawotte ?. Comme Chasse aux wabbits est terminée, lancer Caltes stlatégiques et récupérer ses 10 cartes Pierre/Feuille/Ciseaux en profitant des combats Wabbit encore nécessaires; terminer ensuite Le jeu de Lenald."},
+        {"pos":"Île Wabbit","do":"Fermer tout reliquat Lancer de Wabbit/Wabbit en feu. Une quête journalière telle Les pwinces déchus n'est faite qu'une fois pour le succès; pas de répétition quotidienne automatique."},
+        {"pos":"[-16,2]","do":"Rendre Un défilé de Wobots et lancer C'est du bateau."}
+      ],
+      "hard_exit":["Dofus Cawotte obtenu.","Rusé + Lancer + Un Wa + Poil + Partie prise + Wabbit en feu terminés ou seul Wogew/GM est explicitement différé faute de repop.","C'est du bateau active."],
+      "pause":["Wabbit fermé","Panoplie Wa conservée en banque","Bateau du Chouque = prochain fil Thelma/Moon"]
+    },
+    {
+      "id":"L70-10",
+      "title":"Bateau du Chouque — trois quêtes avant entrée, Serrons lancé avant sortie",
+      "level":"90+",
+      "duration_min":75,
+      "quests":["C'est du bateau","Squelettes et amulettes","Le radeau ivre","Serrons-nous la main"],
+      "route":[
+        {"pos":"Moon avant bateau","do":"Vérifier Squelettes et amulettes + Le radeau ivre + C'est du bateau actifs. Compléter 8 Cordes en liane/11 Troncs/10 Kole si nécessaire, sans finir le radeau avant les drops exclusifs du Bateau."},
+        {"pos":"[33,3] Bateau du Chouque","do":"Faire UN passage pour les trois quêtes. Pendant les salles, obtenir 6 Rhum de Qualité sur Ivremor et 8 Crânes de pirate; au boss obtenir Pavillon noir et les objectifs Squelettes/C'est du bateau. Faire les succès compatibles."},
+        {"pos":"salle de sortie","do":"AVANT de sortir, parler au Chouque et lancer Serrons-nous la main."},
+        {"pos":"Moon","do":"Finir les échanges/crafts du Radeau ivre et les objectifs hors donjon de Squelettes/Serrons sans retourner au Bateau. Le succès Monnaie de singe peut afficher historiquement '2 x Bateau', mais le lancement de Serrons en sortie permet de ne pas programmer un second passage."},
+        {"pos":"[-16,2]","do":"Rendre C'est du bateau à Thelma et lancer Le spectacle vivant."}
+      ],
+      "hard_exit":["Un seul Bateau du Chouque planifié.","Serrons-nous la main lancée en salle de sortie.","Le spectacle vivant active."],
+      "pause":["Bateau fermé","Le radeau ivre terminé ou uniquement crafts hors donjon restants","Le spectacle vivant active"]
+    },
+    {
+      "id":"L70-11",
+      "title":"Chapiteau Magik Riktus — Thelma + Bonta34 + Choudini Ocre",
+      "level":"90+ / Bonta33 terminé",
+      "duration_min":55,
+      "transversal":"BNT-13 from bonta_1_40_v3.json",
+      "quests":["Le spectacle vivant","La lettre anonyme"],
+      "route":[
+        {"pos":"transversal BNT-13","do":"Faire le Chapiteau une seule fois avec Le spectacle vivant + La lettre anonyme. Dropper Poussière magik, vaincre Choudini, capturer Choudini puissance100 Ocre et faire les succès compatibles."},
+        {"pos":"[-16,2] -> [-45,19]","do":"Fermer la chaîne Thelma Donjons trois point cinq et ouvrir la chaîne Anne Ullaire."}
+      ],
+      "pause":["Bonta34 terminé","Choudini capturé Ocre","Donjons trois point cinq terminé","Anne Ullaire débloquée"]
+    },
+    {
+      "id":"L70-12",
+      "title":"Bonta35-36 — préparer rang37 avant Moon final",
+      "level":"gates locales",
+      "duration_min":45,
+      "transversal":"BNT-14 from bonta_1_40_v3.json",
+      "route":[
+        {"pos":"BNT-14","do":"Faire Tabi t'a fleuri puis Des badges pour la bonne cause. À la fin, lancer Leçon de cuisine mais NE PAS faire un voyage Moon spécifique."}
+      ],
+      "pause":["Bonta36 terminé","Leçon de cuisine active","Moon final va fournir les 3 Boules de Trukikol"]
+    },
+    {
+      "id":"L70-13",
+      "title":"Moon final — fermer les deux succès + Dokoko + Moon Ocre + rang37",
+      "level":"90-100",
+      "duration_min":150,
+      "quests":["Squelettes et amulettes","Rendez-vous avec la lune","Le radeau ivre","Sur les traces des Moonies","Le combat des chefs","Bas les masques","Serrons-nous la main","Leçon de cuisine"],
+      "route":[
+        {"pos":"Moon forêt/jungle","do":"Finir toutes les quêtes hors donjon de Monnaie de singe en utilisant le walkthrough local: Sur les traces des Moonies, Le combat des chefs, Bas les masques et Serrons-nous la main. Obtenir 3 Boules de Trukikol pour Bonta37 pendant ces trajets."},
+        {"pos":"[31,9]","do":"Terminer la préparation de Squelettes et amulettes et lancer/progresser Rendez-vous avec la lune jusqu'à l'Arbre."},
+        {"pos":"Arbre de Moon","do":"Faire le donjon avec Rendez-vous avec la lune. Si Tour d'horizon est déjà réellement active, l'injecter avant entrée; sinon ne pas retarder artificiellement Dokoko juste pour cette quête. Équiper pierre puissance100 et capturer Moon pour l'étape2 Ocre. Faire les succès compatibles et obtenir le Dokoko."},
+        {"pos":"plage Moon, départ","do":"APRÈS tous les combats Moon, dropper la Cervelle de tortue du rang37 en dernier. Elle expire en 5 minutes."},
+        {"pos":"retour immédiat Bonta [-32,-57]","do":"Rendre la Cervelle + 3 Boules au cuisinier dans les 5 minutes et terminer Leçon de cuisine/Bonta37."}
+      ],
+      "hard_exit":["Koko Boy terminé et Dokoko obtenu.","Monnaie de singe terminé.","Moon capturé Ocre.","Bonta37 terminé sans voyage Moon dédié."],
+      "pause":["Moon fermé niveau90-100","Dokoko obtenu","Bonta38 disponible"]
+    },
+    {
+      "id":"L70-14",
+      "title":"Bonta38-40 + Koulosse + deuxième Ordre",
+      "level":"jusqu'aux gates locales du rang40",
+      "duration_min":130,
+      "transversal":"BNT-16 + BNT-17 + BNT-18 from bonta_1_40_v3.json",
+      "quests":["Ras le bol de Lenglad","Dapyus n'est pas doué","C'est stupéfiant","Un juge hystérique","conditional:second_bonta_order"],
+      "route":[
+        {"pos":"Bonta/Brâkmar","do":"Faire rang38 puis rang39, lancer C'est stupéfiant."},
+        {"pos":"[-17,8] Caverne du Koulosse","do":"Attendre que Un juge hystérique pointe Koulosse. Faire un seul boss pour les deux quêtes, capturer Koulosse puissance100 Ocre et faire les succès compatibles."},
+        {"pos":"Bonta","do":"Terminer rang40, puis exécuter exactement la deuxième quête du même Ordre depuis bonta_order_rank40_v1.json."},
+        {"pos":"conditional","do":"Accepter le retour causal de la branche: Cœur = partie de Caverne Koulosse sans boss; Œil = Porkoss; Esprit = Jungle Moon sans donjon. Ne pas exécuter les deux autres branches."},
+        {"pos":"[-29,-47]","do":"Rendre Koulosse à Chris; Un juge hystérique pointe maintenant Meulou. Ce fil passe dans le chapitre suivant avec les succès Sidimote afin d'éviter un Meulou isolé."}
+      ],
+      "hard_exit":["Bonta40 terminé.","Deuxième rang du même Ordre terminé.","Koulosse capturé Ocre.","Un juge hystérique = Meulou.","Bonta41 disponible pour tranche suivante."],
+      "pause":["Palier 100 sécurisé","Cawotte + Dokoko obtenus","Bonta40 + Ordre2","Ocre alimenté par les boss 70-100"]
+    }
+  ]
+}

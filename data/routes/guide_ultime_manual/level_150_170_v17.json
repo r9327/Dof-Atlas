@@ -1,0 +1,18 @@
+{
+  "schema_version": 17,
+  "route_id": "guide_ultime_manual_level_150_170_v17",
+  "title": "Guide Ultime — Niveau 150 à 170, chaîne canonique finale",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v16.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v16",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v17.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Raccorde le chapitre à la version120-150 qui expose désormais Pas de vaccin pour les vilains / Une piqûre de plus. Aucun contenu joueur ni nombre de fiches n'est modifié.",
+  "stage_patches": {},
+  "insertions": []
+}

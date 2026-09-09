@@ -1,0 +1,105 @@
+{
+  "schema_version": 14,
+  "route_id": "guide_ultime_manual_bonta_1_100_v14",
+  "title": "Guide Ultime — Alignement Bonta 1 à 100 — actions 51-70 consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_100_v13.json",
+  "supersedes": "guide_ultime_manual_bonta_1_100_v13",
+  "quest_range": [1, 100],
+  "macro_stage_count": 49,
+  "optimization_note": "Nettoie les actions joueur Bonta 51-70 consommées par le palier 120-150, précise les prérequis sociaux/métiers avant déplacement et retire les renvois vers fichiers, walkthroughs et jargon de construction.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/une-partie-de-cache-cache.html",
+    "https://www.dofuspourlesnoobs.com/pour-vivre-heureux.html",
+    "https://www.dofuspourlesnoobs.com/la-tactique-des-gens-d-armes.html",
+    "https://www.dofuspourlesnoobs.com/la-panoplie-du-milicien.html",
+    "https://www.dofuspourlesnoobs.com/ambition-ambigue.html",
+    "https://www.dofuspourlesnoobs.com/bandanarthrie.html"
+  ],
+  "stage_patches": {
+    "BNT-22": {
+      "replace": {
+        "level_gate": "Faire les rangs 51 à 54 dans l'ordre, uniquement lorsque le rang précédent est réellement terminé.",
+        "route": [
+          {"pos":"[-32,-57] → [-29,-12] → [-34,-58] → [-32,-57]","do":"Rang 51 : faire Le port salue, gagner le combat de la Baie de Cania avec la patrouille, informer Jerhyn puis Amayiro. Prendre immédiatement L'équipe ment."},
+          {"pos":"[-30,-56] → [7,-16] Astrub → [-36,-60] → [-32,-57]","do":"Rang 52 : identifier Latem Sa, lui donner 8 Bois d'Érable + 12 Bois de Frêne + 1 Kriptonite, récupérer la Hache Léenne, confronter Danathor puis rendre à Amayiro."},
+          {"pos":"[-30,-56] → [-1,2] → [-2,-3] → [6,0] → [3,29] → [10,11]","do":"Rang 53 : interroger Kosuke Ichazum, Hanniboul Smisse, Otho Laringo, Graham Finame puis Norb. Payer 5 000 kamas à Norb pour localiser Nara. Avant d'entrer en [10,11], avoir 4 Poils d'Arakne Malade + 2 Défenses du Sanglier, puis apporter à Nara 1 Aile de Raie, 1 Bière du Chabrulé et 1 Philtre de Dragofesse. Pour le dernier test, équiper un Slip puis exécuter successivement : se mettre en slip, se mettre à quatre pattes, aboyer et se curer le nez avec les orteils. Ne pas choisir de l'envoyer se faire voir."},
+          {"pos":"[10,11] → [-1,-4] → trois lieux [-2,-5], [1,0], [1,32] → Bonta","do":"Rang 54 : prendre Pour vivre heureux auprès de Nara. Prévoir 3 000 kamas ou un Souvenir d'Enutrof pour l'information de Setag. Visiter les trois lieux proposés et venir à la mine [1,32] avec quatre personnages. Rassembler les ressources demandées, installer Nara puis rendre à Amayiro."}
+        ]
+      }
+    },
+    "BNT-23": {
+      "replace": {
+        "level_gate": "La tactique des gens d'armes disponible, Au nom de l'Art actif et La voie du guerrier arrivée au Tanukouï San.",
+        "route": [
+          {"pos":"[-32,-57] → [-35,-58]","do":"Prendre La tactique des gens d'armes, gagner le combat contre William Lenglad puis avancer la recherche du tacticien jusqu'à devoir entrer à l'Atelier du Tanukouï San."},
+          {"pos":"Pandala","do":"Avant l'entrée, vérifier qu'Au nom de l'Art et La voie du guerrier demandent elles aussi le Tanukouï San. Si l'une n'est pas prête, finir ses objectifs hors donjon avant de partir."},
+          {"pos":"[26,-24] Atelier du Tanukouï San","do":"Entrer avec les trois quêtes prêtes. Pour La tactique des gens d'armes, effectuer l'objectif de la salle 4 et libérer Dréna, puis continuer jusqu'au boss pour les deux autres quêtes. Vaincre Tanukouï San, le capturer avec une pierre puissance 150 minimum pour l'Ocre, faire les succès compatibles et tous les dialogues/objets post-boss avant sortie."},
+          {"pos":"Tour des Ordres / Bonta / Pandala / Maître des clefs","do":"Rendre les trois quêtes auprès de leurs donneurs respectifs. La voie du guerrier doit ensuite demander Founoroshi, Au nom de l'Art doit ouvrir sa suite et le rang Bonta 56 doit être disponible."}
+        ]
+      }
+    },
+    "BNT-24": {
+      "replace": {
+        "title": "Bonta 56-57 — Nara puis arsenal magique avec aides préparées",
+        "level_gate": "Rangs 56 puis 57 réellement disponibles.",
+        "hard_gates": [
+          "Rang 56 : venir à la mine [1,32] avec 4 personnages et 2 Kriptonites + 20 Bois de Noisetier.",
+          "Rang 57 : préparer 500 kamas, 5 Planches de Gravure, 3 Kobalites, 1 Cocon de Ver à Soie et 5 Sépales de Nerbe.",
+          "Rang 57 : Bricoleur niveau 137 minimum disponible pour fabriquer le Seau de Pinces à Linge.",
+          "Rang 57 : avant [-17,-3], réunir les quatre rôles nécessaires : attitude Fleurs, Bûcheron 150+, Alchimiste 150+ et Sadida niveau 56+. Le personnage de quête peut remplir lui-même l'un de ces rôles."
+        ],
+        "route": [
+          {"pos":"[3,29] → [15,21] → [1,32]","do":"Rang 56 : interroger Norb, récupérer le Minerai des profondeurs dans le bateau échoué, puis entrer à quatre dans la mine de Nara. Répartir les lettres N/A/R entre les personnages, effectuer les combats individuels, placer chacun sur la dalle correspondant à sa lettre puis franchir la grille. Donner les ressources à Nara."},
+          {"pos":"Bonta → [-1,9] → [-6,7] → [-35,-57] → [-32,-54]","do":"Rang 57 : enquêter sur la Grafioze. À l'atelier des bricoleurs, payer 500 kamas à Liroye Merline pour obtenir le Schéma de la Pince à Linge, puis faire fabriquer le Seau de Pinces à Linge par un Bricoleur niveau 137 minimum avec 5 Planches de Gravure + 3 Kobalites + le schéma."},
+          {"pos":"[-6,7] → [6,-21] → [1,1] → [6,-21]","do":"Utiliser la pince sur Jibworknouille, faire réparer la poupée par Maskara avec 1 Cocon de Ver à Soie + 5 Sépales de Nerbe et récupérer l'Aiguille Sylvestre auprès d'Aga Dou."},
+          {"pos":"[-17,-3]","do":"Venir avec les quatre rôles préparés : attitude Fleurs, Bûcheron 150+, Alchimiste 150+ et Sadida 56+. Placer les aides sur les dalles, récupérer la Poupée Enchantée puis la rapporter à Danathor et Amayiro."}
+        ],
+        "hard_exit": ["Bonta57 terminé.", "Les aides et le Bricoleur ont été préparés avant leurs déplacements respectifs.", "Trâknar disponible."]
+      }
+    },
+    "BNT-25": {
+      "replace": {
+        "level_gate": "Faire les rangs 58, 59 puis 60 dans l'ordre.",
+        "route": [
+          {"pos":"[-28,32] → milice Brâkmar [-25,33] → [-17,39] → Bonta","do":"Rang 58 : récupérer le registre des rondes, rejoindre Kad et faire l'embuscade, puis rendre à Amayiro."},
+          {"pos":"Bonta → [1,-18] → prison végétale [-12,-6] → Bonta","do":"Rang 59 : préparer les cinq consommables et un Sadida avant la grotte. Ouvrir les grilles, faire les trois combats, récupérer le Vieux Grimoire Bwork et le ramener à Danathor."},
+          {"pos":"Tour Brâkmar [-22,33] → milice [-25,33] → [-29,36] → taverne [-21,39] → tour [-22,33] → Bonta","do":"Rang 60 : voler le premier plan, retrouver Rekojel, payer 500 kamas, obtenir les poils allergènes à la Taverne de la Misère, neutraliser Ledrob et récupérer l'ordre d'annulation. Rendre à Amayiro."},
+          {"pos":"[-34,-58] Tour des Ordres","do":"Après le rang 60, continuer immédiatement avec la troisième quête du même Ordre choisi aux rangs 20 et 40. Ne jamais lancer une quête d'un autre Ordre."}
+        ]
+      }
+    },
+    "BNT-26": {
+      "replace": {
+        "level_gate": "Faire les rangs 61 à 64 dans l'ordre.",
+        "hard_exit": ["Bonta64 terminé.", "Bandanarthrie disponible.", "Fourbacoiffe conservée pour le rang 68.", "Tout objectif Moon/Wabbit restant est précisément identifié."]
+      }
+    },
+    "BNT-27": {
+      "replace": {
+        "title": "Bonta65 — Sphincter Cell avec Tour de rein + Ocre, puis Donjon des Forgerons requis",
+        "level_gate": "Bandanarthrie active et Tour de rein active après le Tynril.",
+        "route": [
+          {"pos":"[5,-8] Repaire de Sphincter Cell","do":"Entrer seulement lorsque Bandanarthrie et Tour de rein sont actives. Faire les succès compatibles, vaincre Sphincter Cell, le capturer avec une pierre puissance 150 minimum pour l'Ocre et récupérer le Bandana Troué."},
+          {"pos":"[16,27] Sufokia","do":"Rendre Tour de rein immédiatement et prendre Tour de main pour le futur Kimbo."},
+          {"pos":"Bonta → [-33,-54] → [2,2]","do":"Présenter le Bandana Troué à Amayiro puis aux tailleurs demandés jusqu'à ce que Sosh réclame le Manuel du tailleur pour les Nuls."},
+          {"pos":"[13,21] Donjon des Forgerons","do":"Faire maintenant le Donjon des Forgerons, car cette demande de Bandanarthrie n'apparaît qu'après le Sphincter Cell. Vaincre le Coffre des Forgerons et récupérer le Manuel du tailleur pour les Nuls."},
+          {"pos":"[2,2] → Bonta","do":"Faire fabriquer le Tissu de Rapiéçage avec un Tailleur niveau 1 minimum et la Teinture Orange Sanguine avec un Alchimiste niveau 155 minimum, puis faire réparer le bandana et terminer Bandanarthrie."}
+        ],
+        "hard_exit": ["Sphincter Cell fait une seule fois pour Bonta65 + Tour de rein + Ocre.", "Tour de main active.", "Donjon des Forgerons terminé après son déblocage dans Bandanarthrie.", "Bonta65 terminé."]
+      }
+    },
+    "BNT-28": {
+      "replace": {
+        "level_gate": "Faire les rangs 66 à 69 dans l'ordre.",
+        "hard_exit": ["Bonta69 terminé.", "Les deux assistants ont été réunis avant le sous-sol du Mage Ax.", "Les ressources du rang 69 ont été apportées en une fois.", "Le subterfuge de la corne actif."]
+      }
+    },
+    "BNT-29": {
+      "replace": {
+        "level_gate": "Le subterfuge de la corne actif et Chachyène de vie arrivée à l'objectif Kanigroula.",
+        "hard_exit": ["Bonta70 terminé.", "Chachyène de vie terminée.", "Kanigroula faite une seule fois pour les deux quêtes.", "Aucune pierre d'âme Ocre utilisée sur Kanigroula."]
+      }
+    }
+  }
+}

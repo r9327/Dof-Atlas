@@ -1,0 +1,28 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_level_70_100_v7",
+  "title": "Guide Ultime — Niveau 70 à 100 + stock Kaskargo futur Frigost",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_70_100_v6.json",
+  "supersedes": "guide_ultime_manual_level_70_100_v6",
+  "stage_count": 17,
+  "depends_on": [
+    "level_51_70_v2.json",
+    "bonta_1_40_v3.json",
+    "bonta_order_rank40_v1.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Anticipe sans créer de farm dédié les 10 Baves de Kaskargo demandées plus tard par Un volcan s'éteint: tout drop naturel des boucles Otomaï est conservé en banque jusqu'à10, puis le reliquat éventuel sera acheté au moment du palier160.",
+  "sources": ["https://www.dofuspourlesnoobs.com/un-volcan-seacuteteint.html"],
+  "stage_patches": {
+    "L70-05": {
+      "append": {
+        "preparation": [
+          {"name":"Bave du Kaskargo","quantity":10,"for":"Un volcan s'éteint niveau160","policy":"Ne pas créer de farm dédié maintenant. Conserver en banque jusqu'à10 exemplaires obtenus naturellement pendant les boucles Otomaï; acheter seulement le reliquat au palier160."}
+        ],
+        "hard_exit": ["Toute Bave du Kaskargo obtenue naturellement est conservée en banque jusqu'au stock cible10; aucune session de farm anticipée imposée."]
+      }
+    }
+  },
+  "insertions": []
+}

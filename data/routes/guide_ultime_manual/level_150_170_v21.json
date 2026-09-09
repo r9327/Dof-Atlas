@@ -1,0 +1,30 @@
+{
+  "schema_version": 21,
+  "route_id": "guide_ultime_manual_level_150_170_v21",
+  "title": "Guide Ultime — Niveau 150 à 170, dépendances canoniques finales",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v20.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v20",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v20.json",
+    "bonta_1_100_v17.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Conserve les 24 fiches v20 et les règles Frigost 3.3, avec Bonta v17 comme unique route d'alignement complète. Clarifie aussi le verrou Xélorium : Anomalies temporelles et Retour vers le présent sont réellement fermées avant la prise de Prisonniers du temps, sans mention prématurée qui puisse inverser l'ordre joueur.",
+  "stage_patches": {
+    "L150-15": {
+      "replace": {
+        "route": [
+          {"pos":"[-20,10] Repaire de Skeunk","do":"Après avoir lancé L'épée du rocher, revenir au Skeunk parce que la Poudre scintillante n'est obtenable qu'à cette étape de la quête. Après le boss, parler à la Bouate à maquillage avant de sortir et récupérer la Poudre scintillante. Ne pas refaire la capture Ocre ni les succès déjà validés sans objectif distinct."},
+          {"pos":"[1,6] Xélorium — Chemins d'hier","do":"À la première arrivée, terminer Anomalies temporelles et C'est ton destin. Dès C'est ton destin terminée, enchaîner Retour vers le présent et récupérer ses 10 fragments de mémoire avant de revenir au Doc Emiette Borgne. Seulement après ces prérequis terminés, prendre Prisonniers du temps."},
+          {"pos":"Xélorium","do":"Quand Anomalies temporelles et Retour vers le présent sont terminées, prendre Prisonniers du temps et l'avancer jusqu'au Mégalithe de Fraktale. Amener L'épée du rocher au même objectif afin que les deux quêtes partagent le donjon."},
+          {"pos":"[7,3] Mégalithe de Fraktale","do":"Entrer avec Prisonniers du temps + L'épée du rocher. La clef réelle est nécessaire. Vaincre Fraktale, récupérer Temps fracassé et utiliser le Détecteur portable pour Prisonniers du temps avant de sortir. Fraktale ne peut pas être capturé pour l'Ocre."},
+          {"pos":"Xélorium/Mériana","do":"Terminer Prisonniers du temps puis les derniers objectifs de L'épée du rocher jusqu'à l'obtention de Crocobur."}
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

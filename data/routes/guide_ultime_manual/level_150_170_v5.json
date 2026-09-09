@@ -1,0 +1,74 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_level_150_170_v5",
+  "title": "Guide Ultime — Niveau 150 à 170 + Osavora pré-180",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v4.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v4",
+  "stage_count": 20,
+  "optimization_note": "Ajoute la partie Osavora réellement disponible dès >149: Ça barde là-haut, Un problème de taille, Le vol des bourdons et les trois quêtes imbriquées de On se fait la bzzzbz. La proie des vérités reste volontairement au palier >179. Cette anticipation évite de refaire l'introduction Kabombz dans le chapitre 180.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/ca-barde-la-haut.html",
+    "https://www.dofuspourlesnoobs.com/un-probleme-de-taille.html",
+    "https://www.dofuspourlesnoobs.com/le-vol-des-bourdons.html",
+    "https://www.dofuspourlesnoobs.com/on-se-fait-la-bzzzbz.html"
+  ],
+  "insertions": [
+    {
+      "before": "L150-16V",
+      "stage": {
+        "id": "L150-16O",
+        "title": "Osavora 150+ — ouvrir la dimension et fermer le bloc Kabombz avant 180",
+        "level": "150-170 / Voyage, voyage terminé",
+        "duration_min": 260,
+        "entry": "Tour des Voyageurs; accès aux dimensions déjà ouvert par le bloc Veilleurs ou à ouvrir dans la même session.",
+        "quests": [
+          "Ça barde là-haut",
+          "Un problème de taille",
+          "Le vol des bourdons",
+          "Des petites bêtes qui font bzzzbz",
+          "Têtes de ponte",
+          "Dérive insectaire"
+        ],
+        "successes": ["On se fait la bzzzbz"],
+        "preparation": [
+          {"name":"Orichor","quantity":3,"alternative":"Bricoleur compatible pour Un problème de taille","policy":"Préférer les Orichor déjà gagnés dans les dimensions plutôt qu'un détour métier dédié."},
+          {"name":"Voile Eidolonique de Balebz","quantity":1,"for":"Dérive insectaire","policy":"Un problème de taille en fournit; en garder au moins un au lieu de le jeter."},
+          {"name":"Clef du Poste de contrôle du Supervizœuf","quantity":1,"for":"Têtes de ponte","blocking":true},
+          {"note":"Le portail Osavora est ouvert/recherché via le système actuel de la Tour. Aucune ancienne coordonnée de portail n'est stockée comme GPS."}
+        ],
+        "take": [
+          "Prendre Ça barde là-haut dès que Voyage, voyage est terminé et que le personnage est >149.",
+          "Prendre Un problème de taille dans la même campagne Osavora avant Le vol des bourdons."
+        ],
+        "route": [
+          {"area":"Tour des Voyageurs → Osavora","do":"Faire Ça barde là-haut et les drops de première zone. Mémoriser l'accès permanent si le fonctionnement runtime le permet; ne jamais mémoriser un portail temporaire comme coordonnée fixe."},
+          {"area":"Queue de Gargandyas","do":"Faire Un problème de taille puis conserver les Voiles Eidoloniques utiles. Enchaîner immédiatement Le vol des bourdons."},
+          {"area":"Toorbz Boorzzbz","do":"Quand Le vol des bourdons bloque sur le langage/les reines/la sonde, exécuter dans le même passage Des petites bêtes qui font bzzzbz + Têtes de ponte + Dérive insectaire. Faire le Poste de contrôle du Supervizœuf une seule fois avec Têtes de ponte et tous les succès de donjon compatibles."},
+          {"area":"Osavora","do":"Reprendre Le vol des bourdons après chaque sous-quête jusqu'à sa clôture. STOP ensuite: La proie des vérités exige >179 et appartient au chapitre 171-180."}
+        ],
+        "progress_also": [
+          "Vérifier les avis de recherche Osavora accessibles mais ne jamais attendre un repop.",
+          "Garder les ressources Osavora et Orichor: plusieurs quêtes niveau180 et futures les réutilisent.",
+          "Ne pas lancer les répétables saisonnières juste pour l'XP; elles seront suivies séparément uniquement si leur succès l'exige."
+        ],
+        "before_leaving": [
+          "Ça barde là-haut terminé.",
+          "Un problème de taille terminé.",
+          "Le vol des bourdons terminé.",
+          "On se fait la bzzzbz terminé.",
+          "Poste de contrôle du Supervizœuf fermé sans rerun de quête.",
+          "La proie des vérités explicitement en attente du niveau180."
+        ],
+        "hard_exit": [
+          "Osavora première zone/Kabombz propre avant niveau180.",
+          "Aucune répétable saisonnière inventée dans le tronc permanent.",
+          "Handoff niveau180 = La proie des vérités."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — Osavora après Le vol des bourdons"],
+        "next": "L150-16V — Veilleurs avant XLII, puis chapitre 171-180 pour Osavora niveau180"
+      }
+    }
+  ],
+  "stage_patches": {}
+}

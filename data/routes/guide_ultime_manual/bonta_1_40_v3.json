@@ -1,0 +1,236 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_bonta_1_40_v3",
+  "title": "Guide Ultime — Alignement Bonta 1 à 40 optimisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_22_v2.json",
+  "supersedes": "guide_ultime_manual_bonta_1_22_v2",
+  "quest_range": [1, 40],
+  "macro_stage_count": 18,
+  "order_rank20_route_file": "bonta_order_rank20_v1.json",
+  "order_rank40_route_file": "bonta_order_rank40_v1.json",
+  "level_gate_policy": "Les niveaux recommandés DPLN sont documentaires. L'activation réelle de chaque rang est gouvernée par le startCriterion/level_min du QuestProvider local; une étape Bonta attend si le rang suivant n'est pas réellement débloqué.",
+  "routing_policy": [
+    "Choix Danathor verrouillé sur la branche empoisonner Rimaraf, déjà choisie au rang 26, afin de conserver une chaîne déterministe et courte.",
+    "Rang 29 Laboratoire Brumen seulement lorsque Histoire de chiens ET Où est passée la 7e compagnie ? sont aussi actives.",
+    "Rang 33 Domaine Ancestral seulement lorsque Un juge hystérique demande aussi l'Abraknyde Ancestral.",
+    "Rang 34 Chapiteau Magik Riktus volontairement différé jusqu'à Le spectacle vivant; la Poussière magik et Choudini sont alors faits dans un seul passage.",
+    "Rang 37 est activé avant le dernier retour Moon; les Boules de Trukikol sont obtenues pendant la jungle, la Cervelle de tortue en dernier puis rendue à Bonta dans les 5 minutes.",
+    "Rang 40 Koulosse seulement lorsque Un juge hystérique demande lui aussi Koulosse; capture Ocre puissance 100 sur ce passage.",
+    "Après rang 40, exactement le deuxième rang du même Ordre sélectionné au rang 20 est exécuté."
+  ],
+  "additional_sources": [
+    "https://www.dofuspourlesnoobs.com/des-capes-bontariennes.html",
+    "https://www.dofuspourlesnoobs.com/corveacutee-de-patate.html",
+    "https://www.dofuspourlesnoobs.com/lyeno-abraknyde-malgreacute-lui.html",
+    "https://www.dofuspourlesnoobs.com/au-service-de-danathor.html",
+    "https://www.dofuspourlesnoobs.com/amayiro-agrave-lombre-du-champo.html",
+    "https://www.dofuspourlesnoobs.com/le-deacutecegraves-de-rimaraf.html",
+    "https://www.dofuspourlesnoobs.com/poison-de-scorbute-pour-la-prison.html",
+    "https://www.dofuspourlesnoobs.com/dike-tarak-la-menace.html",
+    "https://www.dofuspourlesnoobs.com/des-combats-pas-tregraves-leacutegaux.html",
+    "https://www.dofuspourlesnoobs.com/mission-de-reconnaissance-au-cimetiegravere.html",
+    "https://www.dofuspourlesnoobs.com/vengeance-par-procuration.html",
+    "https://www.dofuspourlesnoobs.com/la-lettre-anonyme.html",
+    "https://www.dofuspourlesnoobs.com/tabi-ta-fleuri.html",
+    "https://www.dofuspourlesnoobs.com/des-badges-pour-la-bonne-cause.html",
+    "https://www.dofuspourlesnoobs.com/leccedilon-de-cuisine.html",
+    "https://www.dofuspourlesnoobs.com/ras-le-bol-de-lenglad.html",
+    "https://www.dofuspourlesnoobs.com/dapyus-nest-pas-doueacute.html",
+    "https://www.dofuspourlesnoobs.com/cest-stupeacutefiant.html"
+  ],
+  "preparation_23_40": [
+    {"name":"Cape Bontarienne","quantity":10,"for_rank":23,"policy":"HDV/craft avant le passage Bonta; ne pas farmer 200 Peaux de Larve si les capes sont achetables raisonnablement"},
+    {"name":"Emballage de félicitations","quantity":1,"for_rank":23,"location":"Foire du Trool [-12,-39]"},
+    {"name":"Pomme de Terre épluchée","quantity":25,"for_rank":24},
+    {"name":"Aile de Dragodinde","quantity":4,"for_rank":24},
+    {"name":"Aile de Dragodinde Rousse Sauvage","quantity":4,"for_rank":24},
+    {"name":"Bout de Blop Reinette","quantity":10,"for_rank":26,"why":"5 pour Danathor + 5 pour le Blopisier empoisonné"},
+    {"name":"Bol","quantity":1,"for_rank":26},
+    {"name":"Cerise","quantity":6,"for_rank":26,"why":"3 pour Danathor + 3 pour le Blopisier"},
+    {"name":"Graine de Scorbute","quantity":10,"for_rank":26,"branch":"poison"},
+    {"name":"Gland","quantity":1,"for_rank":35},
+    {"name":"Énergie","quantity_rule":"> 10.5 × niveau personnage","for_rank":30},
+    {"name":"Arc de Mech Riorrax","quantity":1,"for_rank":32,"buy_kamas":1000},
+    {"name":"Pelle de Boisaille","quantity":0,"note":"déjà utilisée au rang20; aucune seconde pelle imposée ici"}
+  ],
+  "insertions": [
+    {
+      "after":"BNT-08",
+      "stage": {
+        "id":"BNT-09",
+        "title":"Bonta 23-28 — ville, Forêt Abraknydes, choix Danathor poison",
+        "level_gate":"QuestProvider local pour rang23 puis séquentiel",
+        "duration_min":110,
+        "ranks":[23,24,25,26,27,28],
+        "quests":["Des capes Bontariennes","Corvée de patate","Lyeno, Abraknyde malgré lui","Au service de Danathor","Amayiro à l'ombre du Champo","Le décès de Rimaraf"],
+        "route":[
+          {"pos":"[-32,-57] -> [-6,-37] -> [-12,-39]","do":"Rang23: distribuer les 10 Capes Bontariennes, prendre l'article du Maître des clefs et l'Emballage de félicitations à la Foire dans la même boucle Cania/Bonta."},
+          {"pos":"[-32,-57]","do":"Rang24: fournir les 25 Pommes de Terre épluchées + 4 Ailes de Dragodinde + 4 Ailes de Dragodinde Rousse Sauvage à la cuisine de la milice."},
+          {"pos":"[-4,-12] -> [-34,-58] -> [-32,-57]","do":"Rang25: retrouver Lyeno dans le labyrinthe Abraknyde, gagner le combat de groupe, le faire désenvoûter puis le ramener Amayiro."},
+          {"pos":"[-36,-60]","do":"Rang26: choisir la branche 'Accepter d'empoisonner Rimaraf'. Donner les ingrédients, préparer le Blopisier empoisonné avec 10 Graines de Scorbute + 5 Bouts de Blop Reinette + 3 Cerises + Bol et le déposer chez Rimaraf [-30,-52]."},
+          {"pos":"Routes Rocailleuses -> [-33,-54] -> Bonta","do":"Rang27: drop Champo Banal sur Maître Bolet (6%), faire la réparation/crottin puis rendre Amayiro. Profiter de cette zone pour tout succès Maître Bolet déjà actif."},
+          {"pos":"Bonta palais/milice","do":"Rang28 branche poison: fabriquer les fausses preuves contre Oni Tnec, utiliser le Formulaire d'enquête puis rendre Amayiro."}
+        ],
+        "pause":["Bonta 28 terminé","Branche Danathor poison verrouillée","Poison de scorbute pour la prison disponible mais attend le bloc Brumen partagé"]
+      }
+    },
+    {
+      "after":"BNT-09",
+      "stage": {
+        "id":"BNT-10",
+        "title":"Brumen mutualisé — Bonta29 + Histoire de chiens + 7e compagnie",
+        "level_gate":"Poison de scorbute réellement disponible + Histoire de chiens réellement active",
+        "duration_min":55,
+        "ranks":[29],
+        "quests":["Poison de scorbute pour la prison","Histoire de chiens","Où est passée la 7e compagnie ?"],
+        "route":[
+          {"pos":"[1,3]","do":"AVANT le laboratoire, lancer Où est passée la 7e compagnie ? auprès de Rish Claymore et effectuer ses dialogues d'entrée selon le walkthrough local."},
+          {"pos":"[-16,2]","do":"Vérifier Histoire de chiens active. Si elle ne l'est pas, ne pas faire Brumen pour Bonta seul: finir d'abord la chaîne Alain jusqu'à Chéri fais-moi peur puis Thelma."},
+          {"pos":"[-27,17] Laboratoire de Brumen","do":"Entrer avec les trois quêtes actives. Vaincre Nelween; si Le voleur d'âmes Émeraude est déjà actif, capturer Nelween avec pierre puissance100, sinon ne pas appeler cette capture 'Ocre'. AVANT de sortir, récupérer le Venin de scorbute dans la salle de sortie."},
+          {"pos":"[-32,-57]","do":"Rendre le venin au Capitaine Essacarf et terminer rang29."},
+          {"pos":"[1,3] puis [-16,2]","do":"Fermer Où est passée la 7e compagnie ? puis Histoire de chiens; lancer immédiatement Le fossile et le marteau auprès de Thelma."}
+        ],
+        "hard_exit":["Un seul Laboratoire Brumen pour ces trois quêtes.","Venin de scorbute récupéré avant sortie.","Le fossile et le marteau active."],
+        "pause":["Bonta29 terminé","Donjons trois point cinq lancé sur Mastodontes"]
+      }
+    },
+    {
+      "after":"BNT-10",
+      "stage": {
+        "id":"BNT-11",
+        "title":"Bonta 30-32 — local Bonta puis reconnaissance Brâkmar",
+        "level_gate":"Chaque rang attend son startCriterion local; le rang32 ne doit pas être forcé depuis un vieux niveau recommandé web.",
+        "duration_min":50,
+        "ranks":[30,31,32],
+        "quests":["Dike Tarak, la menace","Des combats pas très légaux","Mission de reconnaissance au cimetière"],
+        "route":[
+          {"pos":"[-35,-56]","do":"Rang30: provoquer Dike Tarak et abandonner le combat. Vérifier AVANT le défi que l'énergie est strictement supérieure à 10,5 × le niveau afin de ne pas passer fantôme."},
+          {"pos":"[-35,-55] -> [-34,-55] -> [-32,-57]","do":"Rang31: fermer le commerce illégal Ufot dans la même boucle interne Bonta."},
+          {"pos":"[-32,-54] -> [-19,35]","do":"Rang32 seulement lorsqu'il est réellement débloqué localement: acheter/équiper l'Arc de Mech Riorrax, faire le combat longue distance accompagné si nécessaire, puis rendre le compte-rendu."}
+        ],
+        "pause":["Bonta32 terminé","Vengeance par procuration disponible","Arc spécial retiré après usage"]
+      }
+    },
+    {
+      "after":"BNT-11",
+      "stage": {
+        "id":"BNT-12",
+        "title":"Domaine Ancestral — Bonta33 + Un juge + Ocre",
+        "level_gate":"Vengeance par procuration active ET Un juge hystérique étape Abraknyde Ancestral",
+        "duration_min":45,
+        "ranks":[33],
+        "quests":["Vengeance par procuration","Un juge hystérique"],
+        "route":[
+          {"pos":"[-9,-14] Domaine Ancestral","do":"Entrer avec les deux quêtes actives. Équiper une pierre puissance100 et capturer l'Abraknyde Ancestral pour l'Ocre. Si Munster lève le mystère est déjà réellement disponible, l'activer avant l'entrée; sinon ne pas inventer ce prérequis."},
+          {"pos":"[-35,-56] -> [-32,-57]","do":"Donner l'Abragland à Lyeno puis terminer Bonta33."},
+          {"pos":"[-29,-47]","do":"Rendre l'étape à Chris de Naire; Un juge hystérique pointe maintenant vers Dragon Cochon."}
+        ],
+        "pause":["Bonta33 terminé","Abraknyde Ancestral capturé Ocre","Un juge hystérique = Dragon Cochon","La lettre anonyme disponible mais différée jusqu'au Chapiteau partagé"]
+      }
+    },
+    {
+      "after":"BNT-12",
+      "stage": {
+        "id":"BNT-13",
+        "title":"Chapiteau partagé — Bonta34 + Le spectacle vivant + Choudini Ocre",
+        "level_gate":"La lettre anonyme active ET Le spectacle vivant active après le Bateau du Chouque",
+        "duration_min":45,
+        "ranks":[34],
+        "quests":["La lettre anonyme","Le spectacle vivant"],
+        "route":[
+          {"pos":"[-22,12] Chapiteau Magik Riktus","do":"Ne pas entrer plus tôt juste pour la Poussière magik. Avec Le spectacle vivant actif, faire le donjon complet UNE fois; drop la Poussière magik sur Bozoteur, vaincre Choudini, le capturer avec pierre puissance100 pour l'étape1 Ocre et faire les succès compatibles."},
+          {"pos":"[-16,-7]","do":"Récupérer la Bave de Crapopo de La lettre anonyme sur le trajet de retour."},
+          {"pos":"[-33,-54] -> [-36,-60]","do":"Faire la prédiction puis terminer Bonta34 selon la branche Danathor poison."},
+          {"pos":"[-16,2] -> [-45,19]","do":"Rendre Le spectacle vivant à Thelma puis rencontrer Anne Ullaire, ce qui ouvre sa chaîne de donjons."}
+        ],
+        "hard_exit":["Un seul Chapiteau pour Bonta34 + Le spectacle vivant.","Choudini capturé Ocre."],
+        "pause":["Bonta34 terminé","Chaîne Thelma terminée","Anne Ullaire active sa première mission","Tabi t'a fleuri disponible"]
+      }
+    },
+    {
+      "after":"BNT-13",
+      "stage": {
+        "id":"BNT-14",
+        "title":"Bonta 35-36 — Litneg puis embarcadère Brâkmar",
+        "level_gate":"séquentiel local",
+        "duration_min":40,
+        "ranks":[35,36],
+        "quests":["Tabi t'a fleuri","Des badges pour la bonne cause"],
+        "route":[
+          {"pos":"[-34,-61] -> [-29,-54] -> [-15,-59] -> [-34,-61]","do":"Rang35: prendre un Gland, recevoir le pouvoir de l'écureuil miraculeux et NE LANCER AUCUN COMBAT avant d'avoir soigné le Tabi, sinon le pouvoir est perdu."},
+          {"pos":"[-20,39] Brâkmar","do":"Rang36: vaincre le Commando Brâkmarien, récupérer les badges et rendre Amayiro."}
+        ],
+        "pause":["Bonta36 terminé","Leçon de cuisine active avant le prochain vrai passage Moon"]
+      }
+    },
+    {
+      "after":"BNT-14",
+      "stage": {
+        "id":"BNT-15",
+        "title":"Moon opportuniste — rang37 sans voyage dédié",
+        "level_gate":"Leçon de cuisine active avant le retour Moon final",
+        "duration_min":0,
+        "ranks":[37],
+        "quests":["Leçon de cuisine"],
+        "route":[
+          {"pos":"Jungle Interdite Moon","do":"Pendant le chapitre Moon déjà prévu, obtenir 3 Boules de Trukikol. Ne pas obtenir la Cervelle de tortue trop tôt."},
+          {"pos":"plage Moon, juste avant départ","do":"Dropper la Cervelle de tortue EN DERNIER: elle devient inutilisable après 5 minutes."},
+          {"pos":"retour immédiat Bonta [-32,-57]","do":"Utiliser le moyen de voyage le plus rapide disponible et donner la Cervelle + Boules au cuisinier dans les 5 minutes. Terminer rang37."}
+        ],
+        "hard_exit":["Aucun voyage Moon créé uniquement pour le rang37.","Cervelle obtenue en dernier et rendue dans sa fenêtre de 5 minutes."],
+        "pause":["Bonta37 terminé","Rang38 disponible"]
+      }
+    },
+    {
+      "after":"BNT-15",
+      "stage": {
+        "id":"BNT-16",
+        "title":"Bonta 38-39 — rixe locale puis extraction prison Brâkmar",
+        "level_gate":"séquentiel local",
+        "duration_min":40,
+        "ranks":[38,39],
+        "quests":["Ras le bol de Lenglad","Dapyus n'est pas doué"],
+        "route":[
+          {"pos":"[-35,-58]","do":"Rang38: vaincre William Lenglad et ses alliés, rendre le Hood troué."},
+          {"pos":"[-25,33] prison Brâkmar","do":"Rang39: vaincre les cinq gardes, actionner le levier et libérer Houé Dapyus avant la fermeture de la grille; ramener le suiveur à Amayiro."}
+        ],
+        "pause":["Bonta39 terminé","C'est stupéfiant active avant le Koulosse partagé"]
+      }
+    },
+    {
+      "after":"BNT-16",
+      "stage": {
+        "id":"BNT-17",
+        "title":"Koulosse partagé — Bonta40 + Un juge + Ocre",
+        "level_gate":"C'est stupéfiant active ET Un juge hystérique étape Koulosse",
+        "duration_min":70,
+        "ranks":[40],
+        "quests":["C'est stupéfiant","Un juge hystérique"],
+        "route":[
+          {"pos":"[-16,2] -> [-6,13] -> [-32,-57]","do":"Faire l'enquête trafiquants de C'est stupéfiant jusqu'à l'ordre explicite de confronter Koulosse."},
+          {"pos":"[-17,8] Caverne du Koulosse","do":"Entrer seulement quand Un juge hystérique demande aussi Koulosse. Équiper une pierre puissance100, vaincre/capturer Koulosse pour l'Ocre et mettre à jour les deux quêtes."},
+          {"pos":"[-32,-57]","do":"Interroger Wid puis rendre Amayiro: terminer rang40 et ouvrir le deuxième rang de l'Ordre sélectionné."},
+          {"pos":"[-29,-47]","do":"Rendre l'étape Koulosse à Chris de Naire; Un juge hystérique continue vers Meulou puis Rats."}
+        ],
+        "hard_exit":["Un seul boss Koulosse pour Bonta40 + Un juge.","Koulosse capturé Ocre.","Alignement40 terminé.","Deuxième rang du même Ordre maintenant disponible."],
+        "pause":["Bonta40","Major de promotion canapé validable","Ordre rang2 prêt"]
+      }
+    },
+    {
+      "after":"BNT-17",
+      "stage": {
+        "id":"BNT-18",
+        "title":"Deuxième rang d'Ordre — même choix persistant",
+        "level_gate":"Bonta40 + prérequis locaux de l'option sélectionnée",
+        "duration_min":30,
+        "ranks":[],
+        "conditional_route":"bonta_order_rank40_v1.json",
+        "route":[
+          {"pos":"conditional","do":"Exécuter exactement l'option du même Ordre persistant depuis bonta_order_rank40_v1.json. Cœur Vaillant implique un retour partiel Koulosse sans boss; Œil Attentif une boucle Porkoss; Esprit Salvateur un retour Jungle Moon sans donjon."}
+        ],
+        "pause":["Deuxième rang de l'Ordre sélectionné terminé","Deux autres Ordres toujours exclus","Prochain rang d'Ordre bloqué jusqu'à alignement60","Bonta41 disponible"]
+      }
+    }
+  ]
+}

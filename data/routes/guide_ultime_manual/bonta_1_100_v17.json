@@ -1,0 +1,97 @@
+{
+  "schema_version": 17,
+  "route_id": "guide_ultime_manual_bonta_1_100_v17",
+  "title": "Guide Ultime — Alignement Bonta 1 à 100 — actions 91-100 consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_100_v16.json",
+  "supersedes": "guide_ultime_manual_bonta_1_100_v16",
+  "quest_range": [1, 100],
+  "macro_stage_count": 49,
+  "optimization_note": "Nettoie les actions joueur Bonta 91-100, prépare les groupes et ressources avant Maimane, mutualise Missiz Frizz et Ilyzaelle avec les fils déjà disponibles, verrouille les dialogues de sortie et conserve les reruns causaux des quêtes niveau200 ouvertes trop tard, puis ouvre uniquement le cinquième rang du même Ordre sans exposer BNT, runtime, merge hook, fichier ou sélecteur interne.",
+  "stage_patches": {
+    "BNT-43": {
+      "replace": {
+        "title":"Bonta 91-92 — cambriolage puis piste Trukipu",
+        "entry":"Bonta 90 terminé et niveau 191 atteint.",
+        "route":[
+          {"area":"Bonta — palais / milice","do":"Rang 91 : enquêter sur la relique volée et terminer Cambriolage à durée déterminée avant de prendre la quête suivante."},
+          {"area":"Égouts de Bonta → Astrub → Cania → Moon","do":"Rang 92 : suivre Profaigri dans les égouts, gagner le combat de groupe, interroger l'herboriste puis poursuivre la piste jusqu'au laboratoire et à Moon. Aucun boss Moon n'est demandé par cette quête."},
+          {"area":"Bonta","do":"Rendre C'est toujours dur le matin et confirmer le rang 92 avant de partir au Roc des Salbatroces."}
+        ],
+        "hard_exit":["Bonta 92 terminé.","Je panse donc j'essuie disponible."]
+      }
+    },
+    "BNT-44": {
+      "replace": {
+        "title":"Bonta 93-94 — Salbatroces puis Cimetière des Héros",
+        "route":[
+          {"area":"Roc des Salbatroces → Sufokia","do":"Rang 93 : faire l'enquête Krobes, fournir les prélèvements et ressources préparés puis terminer les dialogues. Les combats de zone peuvent servir aux succès encore ouverts mais ne doivent pas être prolongés si leurs objectifs sont déjà validés."},
+          {"area":"Cimetière des Héros","do":"Rang 94 : suivre les traces dans l'ordre demandé, déclencher les renforts avant les combats de groupe, libérer Kaleb puis gagner le combat à vagues de l'Individu Encapuchonné."},
+          {"area":"Bonta","do":"Lire le document demandé et rendre la quête à Amayiro."}
+        ],
+        "hard_exit":["Bonta 94 terminé.","Un chemin tout tracé disponible."]
+      }
+    },
+    "BNT-45": {
+      "replace": {
+        "title":"Bonta 95-96 — Quadraforce puis Enigma avec groupe préparé",
+        "entry":"Bonta 94 terminé; Faire le mort terminé avant la Cathédrale; cinq personnages organisés avant Maimane.",
+        "route":[
+          {"area":"Amakna → Brâkmar → Sidimote","do":"Rang 95 : faire l'enquête Helster/Falistos. Vérifier Faire le mort terminé avant de fabriquer ou acheter le Breuvage d'Erazal puis seulement aller à la Cathédrale de Triste Âme."},
+          {"area":"Pandala → Rok → Lacs enchantés → Saharach → Grobe","do":"Rang 96 : arriver avec les quatre Artefacts Pandawushu Vent, Eau, Feu et Roc déjà en inventaire, faire la boucle élémentaire et préparer le jus altéré sans retour banque."},
+          {"area":"Maimane","do":"Venir directement avec cinq personnages pour la mécanique. Résoudre les dalles et le morpion puis faire le combat final à quatre maximum. Ne pas recruter après être arrivé sur place."},
+          {"area":"Bonta","do":"Rendre Enigma. À glacer le sang devient disponible pour Missiz Frizz."}
+        ],
+        "hard_exit":["Bonta 96 terminé.","Groupe et Artefacts préparés avant Maimane.","À glacer le sang disponible."]
+      }
+    },
+    "BNT-46": {
+      "replace": {
+        "title":"Bonta 97 — Missiz Frizz partagée avec les fils déjà ouverts",
+        "route":[
+          {"area":"Frigost III","do":"Avancer À glacer le sang jusqu'à Missiz Frizz. Avant d'entrer, activer toutes les quêtes et succès Frigost/Ivoire déjà disponibles qui demandent réellement ce boss."},
+          {"area":"Forgefroide de Missiz Frizz","do":"Faire un seul passage pour À glacer le sang et les autres fils actifs. Après le boss, parler à Missiz Frizz au sujet d'Erazal avant de sortir."},
+          {"area":"Bonta","do":"Rendre le rang 97 puis prendre À l'ombre des murs."}
+        ],
+        "hard_exit":["Bonta 97 terminé.","Missiz Frizz n'a pas été faite isolément si un autre fil compatible était déjà disponible."]
+      }
+    },
+    "BNT-47": {
+      "replace": {
+        "title":"Bonta 98 — Srambad sans donjon",
+        "route":[
+          {"area":"Srambad","do":"Faire la boucle avant-poste, taverne, marché, Fenmorte, Mama Phia, Euph et Nicole Ombine. Le contact d'avant-poste peut varier selon l'état du personnage : suivre l'objectif de quête affiché plutôt qu'un nom fixé à l'avance."},
+          {"area":"Hauts Ténébreux","do":"Prévoir l'agression en quittant la carte après Mama Phia. En multicompte, garder les aides une carte avant pour éviter de déclencher plusieurs combats simultanément."},
+          {"area":"Bonta","do":"Rendre le rapport. Fée d'hiver devient disponible."}
+        ],
+        "hard_exit":["Bonta 98 terminé.","Aucun donjon Srambad ajouté pour ce rang."]
+      }
+    },
+    "BNT-48": {
+      "replace": {
+        "title":"Bonta 99-100 — Ilyzaelle sécurisée puis exorcisme d'Erazal",
+        "route":[
+          {"area":"Îlot Estitch → Belvédère d'Ilyzaelle [-73,-76]","do":"Rang 99 : avancer Fée d'hiver jusqu'au Belvédère. Avant l'entrée, activer seulement les autres fils déjà réellement disponibles qui demandent Ilyzaelle. Si L'avis de la Mort est déjà active au niveau200 et demande son Feu dévoreur, la garder au même passage; sinon NE PAS retarder Bonta99 pour attendre cette quête Eliocalypse ouverte plus tard."},
+          {"area":"Belvédère d'Ilyzaelle — boss","do":"Faire un seul Ilyzaelle pour Fée d'hiver et tous les fils réellement actifs. Si L'avis de la Mort est au bon objectif, récupérer automatiquement son Feu dévoreur pendant cette victoire. Une dernière volonté et Les totems de Maïmane ne doivent jamais être anticipées si elles ne sont pas encore causalement ouvertes."},
+          {"area":"salle de sortie du Belvédère","do":"NE PAS SORTIR après le combat tant que Fée d'hiver est active. Parler à Ilyzaelle, expliquer la mission confiée par Jiva et obtenir la bénédiction de son Dofus blanc. Vérifier l'avancement réel de Fée d'hiver avant de quitter la salle."},
+          {"area":"Bonta → Srambad","do":"Rendre Fée d'hiver, prendre L'exorciste puis avancer Euph et Vilppu jusqu'à la planque d'Erazal. Si L'avis de la Mort n'était pas disponible au Belvédère, conserver son futur Ilyzaelle comme rerun causal de niveau200 plutôt que falsifier une fusion impossible."},
+          {"area":"planque d'Erazal","do":"Gagner le combat final puis rendre à Amayiro. Le rang 100 n'est acquis qu'après la vraie fin de L'exorciste."},
+          {"area":"Tour des Ordres","do":"Après le rang 100, ouvrir uniquement la cinquième quête correspondant au même Ordre choisi depuis le rang 20. Les deux autres Ordres restent masqués."}
+        ],
+        "progress_also":[
+          "Terminer la cinquième quête de l'Ordre avant Examen de passage du Dofus Ivoire.",
+          "Le Belvédère Bonta99 n'attend jamais artificiellement L'avis de la Mort, Une dernière volonté ou Les totems de Maïmane : seul un fil déjà réellement au boss peut être fusionné."
+        ],
+        "hard_exit":[
+          "Dialogue Ilyzaelle de Fée d'hiver et bénédiction du Dofus blanc effectués AVANT sortie.",
+          "Bonta 100 terminé.",
+          "Même Ordre conservé depuis le rang 20.",
+          "Cinquième quête de cet Ordre disponible.",
+          "L'avis de la Mort fusionnée uniquement si elle demandait déjà le Feu dévoreur; sinon son futur Ilyzaelle reste causal.",
+          "Aucun Belvédère retardé pour une quête niveau200 non encore disponible."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

@@ -1,0 +1,41 @@
+{
+  "schema_version": 5,
+  "registry_id": "guide_ultime_temporal_registry_v5",
+  "status": "RESEARCH_IN_PROGRESS",
+  "base_file": "temporal_registry_v4.json",
+  "supersedes": "temporal_registry_v4.json",
+  "entry_insertions": [
+    {
+      "id":"pandala_presence_esprits_transcription_cap",
+      "type":"daily_capacity_chain",
+      "area":"Pandala",
+      "quest":"Présence d'esprits",
+      "objective":"Répertorier 21 esprits dans le Dikoyokai",
+      "total_targets":21,
+      "documented_max_transcriptions_per_active_day":4,
+      "fatigue_delay_hours":24,
+      "tracking_item":"Dikoyokai reposé / Dikoyokai fatigué",
+      "minimum_active_windows":6,
+      "priority":"critical_multi_day_coverage",
+      "prerequisite_policy":"Ne lancer/compter ce fil que lorsque Présence d'esprits est réellement disponible. Ses nombreux blockers Pandala sont gouvernés par le QuestProvider/walkthrough local; aucun esprit n'est considéré validé artificiellement.",
+      "runtime_rule":"Dès Présence d'esprits active, profiter de CHAQUE passage Pandala pour faire jusqu'à quatre transcriptions utiles. Après la quatrième, enregistrer l'heure de fatigue et poursuivre la route ailleurs pendant 24 h. Une fois le délai écoulé, double-cliquer le Dikoyokai fatigué pour le rendre reposé et reprendre jusqu'à 21/21. Ne jamais réserver six journées dédiées: absorber les fenêtres dans Pandawushu, Domakuro, Dorigami, Grobe et les retours Pandala.",
+      "optimization_notes":[
+        "L'Esprit malin doit être cherché pendant L'équilibre des forces lorsque l'apparence Moon est déjà active, si Présence d'esprits est elle-même active; cela évite de fabriquer une seconde Offrande à l'esprit du Vent.",
+        "L'Esprit chagrin devient accessible après La jetée des enfants perdus; le récupérer au prochain créneau de transcription disponible.",
+        "L'Esprit d'initiative conserve son propre calendrier du samedi dans pandala_presence_esprits_initiative: capacité quotidienne et fenêtre hebdomadaire sont deux contraintes indépendantes."
+      ],
+      "source":"https://www.dofuspourlesnoobs.com/presence-d-esprits.html"
+    }
+  ],
+  "entry_patches": {
+    "pandala_presence_esprits_initiative": {
+      "independent_daily_capacity_timer":"pandala_presence_esprits_transcription_cap",
+      "runtime_rule":"Une fois l'objectif Esprit d'initiative réellement débloqué, intégrer l'Esprit d'initiative le samedi avant la fin de la fenêtre, mais seulement si le Dikoyokai possède encore une capacité de transcription pour la fenêtre active. Si les 4 transcriptions du jour sont déjà consommées, arbitrer le dernier slot AVANT de le consommer afin de ne pas rater le samedi."
+    }
+  },
+  "research_notes":[
+    "Présence d'esprits demande 21 esprits et le Dikoyokai permet environ quatre transcriptions avant fatigue 24 h: minimum six fenêtres actives, à répartir sur la route.",
+    "Le samedi de l'Esprit d'initiative et la fatigue 24 h du Dikoyokai doivent être suivis séparément."
+  ],
+  "sources":["https://www.dofuspourlesnoobs.com/presence-d-esprits.html"]
+}

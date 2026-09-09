@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "categories": [
+    {
+      "id": "aventure",
+      "label": "Aventure",
+      "order": 10
+    },
+    {
+      "id": "dofus",
+      "label": "Dofus",
+      "order": 20
+    },
+    {
+      "id": "alignements",
+      "label": "Alignements",
+      "order": 30
+    }
+  ],
+  "guides": [
+    {
+      "id": "guide_complet",
+      "file": "guide_complet.json",
+      "category": "aventure",
+      "order": 10,
+      "enabled": true
+    },
+    {
+      "id": "dofus_argente",
+      "file": "dofus_argente.json",
+      "category": "dofus",
+      "order": 10,
+      "enabled": true
+    },
+    {
+      "id": "dofus_cawotte",
+      "file": "dofus_cawotte.json",
+      "category": "dofus",
+      "order": 20,
+      "enabled": true
+    },
+    {
+      "id": "dokoko",
+      "file": "dokoko.json",
+      "category": "dofus",
+      "order": 30,
+      "enabled": true
+    },
+    {
+      "id": "dofus_emeraude",
+      "file": "dofus_emeraude.json",
+      "category": "dofus",
+      "order": 40,
+      "enabled": true
+    },
+    {
+      "id": "dolmanax",
+      "file": "dolmanax.json",
+      "category": "dofus",
+      "order": 50,
+      "enabled": true
+    },
+    {
+      "id": "dofus_pourpre",
+      "file": "dofus_pourpre.json",
+      "category": "dofus",
+      "order": 60,
+      "enabled": true
+    },
+    {
+      "id": "domakuro",
+      "file": "domakuro.json",
+      "category": "dofus",
+      "order": 70,
+      "enabled": true
+    },
+    {
+      "id": "dorigami",
+      "file": "dorigami.json",
+      "category": "dofus",
+      "order": 80,
+      "enabled": true
+    },
+    {
+      "id": "dofus_turquoise",
+      "file": "dofus_turquoise.json",
+      "category": "dofus",
+      "order": 90,
+      "enabled": true
+    },
+    {
+      "id": "dofus_des_veilleurs",
+      "file": "dofus_des_veilleurs.json",
+      "category": "dofus",
+      "order": 100,
+      "enabled": true
+    },
+    {
+      "id": "dofoozbz",
+      "file": "dofoozbz.json",
+      "category": "dofus",
+      "order": 110,
+      "enabled": true
+    },
+    {
+      "id": "dofus_des_glaces",
+      "file": "dofus_des_glaces.json",
+      "category": "dofus",
+      "order": 120,
+      "enabled": true
+    },
+    {
+      "id": "dofus_nebuleux",
+      "file": "dofus_nebuleux.json",
+      "category": "dofus",
+      "order": 130,
+      "enabled": true
+    },
+    {
+      "id": "dofus_abyssal",
+      "file": "dofus_abyssal.json",
+      "category": "dofus",
+      "order": 140,
+      "enabled": true
+    },
+    {
+      "id": "dofus_ivoire",
+      "file": "dofus_ivoire.json",
+      "category": "dofus",
+      "order": 150,
+      "enabled": true
+    },
+    {
+      "id": "dofus_ebene",
+      "file": "dofus_ebene.json",
+      "category": "dofus",
+      "order": 160,
+      "enabled": true
+    },
+    {
+      "id": "dofus_vulbis",
+      "file": "dofus_vulbis.json",
+      "category": "dofus",
+      "order": 170,
+      "enabled": true
+    },
+    {
+      "id": "dofus_tachete",
+      "file": "dofus_tachete.json",
+      "category": "dofus",
+      "order": 180,
+      "enabled": true
+    },
+    {
+      "id": "dofus_dom_de_pin",
+      "file": "dofus_dom_de_pin.json",
+      "category": "dofus",
+      "order": 190,
+      "enabled": true
+    },
+    {
+      "id": "dofus_sylvestre",
+      "file": "dofus_sylvestre.json",
+      "category": "dofus",
+      "order": 200,
+      "enabled": true
+    },
+    {
+      "id": "dofus_du_cauchemar",
+      "file": "dofus_du_cauchemar.json",
+      "category": "dofus",
+      "order": 210,
+      "enabled": true
+    },
+    {
+      "id": "dokille",
+      "file": "dokille.json",
+      "category": "dofus",
+      "order": 220,
+      "enabled": true
+    },
+    {
+      "id": "dofus_forgelave",
+      "file": "dofus_forgelave.json",
+      "category": "dofus",
+      "order": 1040,
+      "enabled": true
+    },
+    {
+      "id": "alignement_bonta",
+      "file": "alignement_bonta.json",
+      "category": "alignements",
+      "order": 10,
+      "enabled": true
+    },
+    {
+      "id": "alignement_brakmar",
+      "file": "alignement_brakmar.json",
+      "category": "alignements",
+      "order": 20,
+      "enabled": true
+    }
+  ]
+}

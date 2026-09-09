@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "scenarios": [
+    {
+      "id": "missing_file",
+      "test": "tests.test_fault_injection_contracts.FaultInjectionContractsTests.test_missing_json_returns_isolated_empty_state_without_creating_file"
+    },
+    {
+      "id": "invalid_json",
+      "test": "tests.test_json_store.JsonStoreTests.test_corrupt_json_is_backed_up_before_default_is_returned"
+    },
+    {
+      "id": "invalid_image",
+      "test": "tests.test_guide_home_async_images.GuideHomeAsyncImageTests.test_worker_preserves_candidate_priority_and_falls_through_corrupt_file"
+    },
+    {
+      "id": "provider_unavailable",
+      "test": "tests.test_fault_injection_contracts.FaultInjectionContractsTests.test_unavailable_provider_reaches_explicit_terminal_failure"
+    },
+    {
+      "id": "empty_progress",
+      "test": "tests.test_quest_progress_read_snapshot_tolerance.QuestProgressReadSnapshotToleranceTests.test_malformed_legacy_containers_are_treated_as_empty"
+    },
+    {
+      "id": "legacy_persistence",
+      "test": "tests.test_character_identity_invariants.CharacterIdentityInvariantTests.test_legacy_slot_progress_migrates_losslessly_and_idempotently"
+    },
+    {
+      "id": "async_job_cancelled",
+      "test": "tests.test_guide_home_async_images.GuideHomeAsyncImageTests.test_deferred_widget_callback_is_cancelled_with_its_owner"
+    },
+    {
+      "id": "callback_after_destruction",
+      "test": "tests.test_guide_home_async_images.GuideHomeAsyncImageTests.test_solution_worker_result_is_ignored_after_label_is_destroyed"
+    },
+    {
+      "id": "partial_data",
+      "test": "tests.test_network_diagnostics.NetworkDiagnosticsTests.test_malformed_payload_is_counted_without_partial_shape"
+    },
+    {
+      "id": "navigation_before_load",
+      "test": "tests.test_equipment_deferred_start.EquipmentDeferredStartTests.test_equipment_shell_is_navigation_ready_before_webengine"
+    }
+  ]
+}

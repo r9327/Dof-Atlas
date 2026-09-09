@@ -1,0 +1,244 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_level_200_plus_v2",
+  "title": "Guide Ultime — Post-200 + Eliocalypse, Tacheté et Prologue",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v1.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v1",
+  "stage_count": 17,
+  "optimization_note": "Ferme les dettes Eliocalypse nécessaires au Secret des Dofus: termine Résonance, les quatre zones des Cavaliers, L'avenir du futur, le Dofus Tacheté, Après la pluie/Résilience, Ravagés/Pandamonium, Démons et merveilles et Réminiscence. La Bataille de l'Aurore Pourpre sert La danse de la dissonance et le drop Démons simultanément. Les six Totems de Maïmane sont traités comme six reruns boss200 causaux après ouverture réelle de la quête, avec choix dynamique du boss le plus rentable dans chaque groupe d'émotion. Entretemps + La bête ferment enfin Le secret des Dofus : Prologue.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/eliocalypse-resonance.html",
+    "https://www.dofuspourlesnoobs.com/quetes-des-4-cavaliers-de-l-eliocalypse.html",
+    "https://www.dofuspourlesnoobs.com/l-avenir-du-futur.html",
+    "https://www.dofuspourlesnoobs.com/quetes-du-dofus-tachete.html",
+    "https://www.dofuspourlesnoobs.com/deux-dragons-entrent-dans-un-bar.html",
+    "https://www.dofuspourlesnoobs.com/apres-la-pluie.html",
+    "https://www.dofuspourlesnoobs.com/eliocalypse-resilience.html",
+    "https://www.dofuspourlesnoobs.com/quetes-du-pandamonium.html",
+    "https://www.dofuspourlesnoobs.com/quetes-de-l-eliocalypse.html",
+    "https://www.dofuspourlesnoobs.com/la-danse-de-la-dissonance.html",
+    "https://www.dofuspourlesnoobs.com/les-totems-de-maimane.html",
+    "https://www.dofuspourlesnoobs.com/entretemps-une-renaissance.html",
+    "https://www.dofuspourlesnoobs.com/la-bete-au-bois-dormant.html",
+    "https://www.dofuspourlesnoobs.com/le-secret-des-dofus-prologue.html"
+  ],
+  "global_preparation_post_eliocalypse": [
+    {"name":"Pépite","quantity":800,"policy":"Réserver un stock commun Résonance/Cavaliers/Réminiscence; retirer par lot pour limiter les pods."},
+    {"name":"Bois de Noyer","quantity":20},
+    {"name":"Fil de Soie","quantity":6},
+    {"name":"Sauge","quantity":10},
+    {"name":"Charbon","quantity":8},
+    {"name":"Eau Potable","quantity":4},
+    {"name":"Galet Saisonnier","quantity":2},
+    {"name":"Huile de Koode","quantity":2},
+    {"name":"Pierre de Rubis","quantity":1},
+    {"name":"Pierre d'Émeraude","quantity":1},
+    {"name":"Pierre de Saphir","quantity":1},
+    {"name":"Pierre de Cristal","quantity":1},
+    {"requirement":"Alchimiste20 minimum","for":"Rêves translucides","blocking":true},
+    {"requirement":"Mineur40 minimum","for":"zone Guerre / Cavaliers","blocking":true},
+    {"requirement":"Paysan100 minimum","for":"L'avenir du futur","blocking":true},
+    {"note":"Le métier de récolte200 déjà préparé pour Vulbis/Six sur six couvre automatiquement ces petits seuils si le choix est Alchimiste ou Paysan; Mineur40 reste à préparer séparément si nécessaire."}
+  ],
+  "insertions": [
+    {
+      "after":"P200-08",
+      "stage": {
+        "id":"P200-09",
+        "title":"Eliocalypse Résonance — fermer les six quêtes restantes",
+        "level":"200+ / Ce sera mieux avant déjà terminé par le backpatch Vulbis",
+        "duration_min":900,
+        "quests":["Cauchemars prémonitoires","Partie de chasse","Quatre contre un","Rêves translucides","Veilleur sous surveillance","La source de tous les maux"],
+        "successes":["Eliocalypse : Résonance"],
+        "preparation":[{"name":"Bois de Noyer","quantity":20},{"name":"Fil de Soie","quantity":6},{"name":"Sauge","quantity":10},{"name":"Charbon","quantity":8},{"name":"Eau Potable","quantity":4},{"name":"Galet Saisonnier","quantity":2},{"name":"Huile de Koode","quantity":2},{"name":"Pépite","quantity":100},{"requirement":"Alchimiste20 minimum","blocking":true}],
+        "route":[
+          {"area":"Songes / cauchemars","do":"Enchaîner Cauchemars prémonitoires → Partie de chasse → Quatre contre un → Rêves translucides. Un pendule pour guider ses pas, déjà nécessaire au fil Ocre d'Ambre, doit être vérifié avant la portion Partie de chasse; sinon afficher la dette exacte."},
+          {"area":"anomalies/dimensions","do":"Fermer Veilleur sous surveillance puis La source de tous les maux en regroupant ses passages Ecaflipus/Srambad/Enutrosor/Xélorium. Ne jamais transformer une anomalie fermée en attente immobile: utiliser toute anomalie valide disponible selon le walkthrough runtime."}
+        ],
+        "before_leaving":["Eliocalypse : Résonance terminé","La source de tous les maux terminée","Les sentiers de la guerre disponible"],
+        "hard_exit":["Aucune fausse validation des combats Songes/anomalies"],
+        "pause":["POINT DE PAUSE SÛR — Résonance fermée"]
+      }
+    },
+    {
+      "after":"P200-09",
+      "stage": {
+        "id":"P200-10",
+        "title":"L'avenir du futur — quatre Cavaliers par zone puis Prise de conscience",
+        "level":"200+ / Résonance fermée",
+        "duration_min":1800,
+        "quests":[
+          "Les sentiers de la guerre","Les quatre volontés",
+          "Le jour le plus long","Au-delà de la gloire","Voyage au bout de l'Externam",
+          "Le navire aux esclaves","Briser ses chaines","Une boite pour les asservir tous",
+          "Le vent se lève","Tournent les vents","Avis de tempête",
+          "Les racines du mal","Un pouvoir mérydique","Mort et renouveau",
+          "L'avis de la Mort","La guerre de Cania n'aura pas lieu","Prise de conscience"
+        ],
+        "successes":["La guerre éternelle","Prisonniers de la mer","Jugement dernier","Je suis malade, complétement malade","L'avenir du futur"],
+        "preparation":[
+          {"requirement":"Paysan100 minimum","blocking":true},
+          {"requirement":"Mineur40 minimum","blocking":true},
+          {"name":"Ticket de la Foire du Trool","quantity":1},
+          {"name":"Planche de Salut","quantity":16},{"name":"Planche de Gravure","quantity":16},{"name":"Planche de Surf","quantity":16},{"name":"Planche de Toilette","quantity":16},
+          {"name":"Tentacule de Tentaclaque","quantity":5},{"name":"Fleur de Kaliptus","quantity":20},{"name":"Eau Potable","quantity":80},
+          {"note":"Préparer les quatre lots de zone avant Les quatre volontés. Les quêtes des quatre Cavaliers deviennent disponibles ensemble: les exécuter zone par zone plutôt que faire des allers-retours entre Cavaliers."}
+        ],
+        "route":[
+          {"area":"Cania / Sanctuaire","do":"Faire Les sentiers de la guerre puis lancer Les quatre volontés jusqu'à l'ouverture des quatre tâches. Chachyène de vie est déjà une dette Bonta historique à vérifier; ne pas l'inventer terminée."},
+          {"area":"Blessures de Guerre","do":"Fermer Le jour le plus long → Au-delà de la gloire → Voyage au bout de l'Externam avec un seul Trône de sang pour la chaîne Guerre."},
+          {"area":"Galère de Servitude","do":"Fermer Le navire aux esclaves → Briser ses chaines → Une boite pour les asservir tous avec un seul Fers de la Tyrannie."},
+          {"area":"Désert de Misère","do":"Fermer Le vent se lève → Tournent les vents → Avis de tempête avec une seule Sentence de la Balance."},
+          {"area":"Royaume Corrompu","do":"Fermer Les racines du mal → Un pouvoir mérydique → Mort et renouveau. Les passages Kimbo/Chêne Mou/Ougah/Arbre de mort sont des reruns causaux ouverts par cette chaîne; mutualiser les succès encore manquants et ne jamais recapturer Ocre déjà validé."},
+          {"area":"L'avenir du futur","do":"Quand les quatre zones sont réellement fermées, terminer Les quatre volontés puis faire L'avis de la Mort + La guerre de Cania n'aura pas lieu et enfin Prise de conscience. L'avis de la Mort est débloqué grâce à Le silence est d'Aure déjà récupéré pendant P200-06; Prise utilise La source de tous les maux déjà fermée en P200-09."}
+        ],
+        "before_leaving":["Quatre succès Cavaliers terminés","Prise de conscience terminée","L'avenir du futur terminé","Mort et renouveau terminé pour future Réminiscence"],
+        "hard_exit":["Aucun Cavalier déclaré terminé sans ses trois quêtes de zone"],
+        "pause":["POINT DE PAUSE SÛR — L'avenir du futur fermé"]
+      }
+    },
+    {
+      "after":"P200-10",
+      "stage": {
+        "id":"P200-11",
+        "title":"Pandala200 — Deux dragons entrent dans un bar + Dofus Tacheté",
+        "level":"200+ / Requiem fermé / Dorigami + Domakuro dans l'inventaire",
+        "duration_min":1500,
+        "quests":[
+          "Main dans la main","De l'encre spectaculaire","L'effet dragon","Pour que son coeur batte comme des ailes","Tant de mots et si peu de temps","Des aliments extraordinaires pour un chacha extraordinaire","L'épopée du moine pèlerin","Deux souffles, une inspiration","En ce jardin qui nous unit"
+        ],
+        "successes":["Deux dragons entrent dans un bar...","Un rêve en clair-obscur"],
+        "preparation":[
+          {"name":"Pizwa","quantity":2},{"name":"Limo d'Grobe","quantity":1},{"name":"Pandneken","quantity":1},{"name":"Pandazahi","quantity":1},{"name":"Épice","quantity":1},
+          {"name":"Riz","quantity":102},{"name":"Bois de Bambou Sacré","quantity":20},{"name":"Pwimen","quantity":10},{"name":"Artefact Pandawushu Bois","quantity":10},{"name":"Artefact Pandawushu Feu","quantity":10},{"name":"Artefact Pandawushu Eau","quantity":10},{"name":"Artefact Pandawushu Vent","quantity":10},{"name":"Artefact Pandawushu Roc","quantity":10},
+          {"requirement":"Bricoleur30 personnel","for":"De l'encre spectaculaire","blocking":true},
+          {"note":"Main dans la main doit être avancée jusqu'à la chope métallique AVANT d'ouvrir les quêtes de la Taverne interdite. L'épopée du moine pèlerin n'est donc pas un prérequis antérieur: elle est synchronisée pendant Main."}
+        ],
+        "route":[
+          {"area":"Aerdala / Taverne interdite","do":"Avancer Main dans la main jusqu'à la chope métallique; ouvrir alors De l'encre spectaculaire et L'épopée du moine pèlerin ainsi que les autres quêtes Deux dragons disponibles. Ne pas quitter la taverne avec une branche accessible non prise."},
+          {"area":"Wukin/Wukang","do":"Faire les six quêtes Deux dragons entrent dans un bar en regroupant les farms Papier/Encre. Les passages Mémoire d'Orukam et Souvenir d'Imagiro servent tous les drops compatibles ouverts avant entrée."},
+          {"area":"réunion des dragons","do":"Faire Deux souffles, une inspiration pendant Main dans la main avec Dorigami + Domakuro dans l'inventaire, puis terminer Main et En ce jardin qui nous unit. Récupérer le Dofus Tacheté uniquement lorsque le runtime valide Un rêve en clair-obscur."}
+        ],
+        "before_leaving":["Deux dragons entrent dans un bar terminé","Main dans la main terminé","Deux souffles terminé","En ce jardin terminé","Dofus Tacheté obtenu"],
+        "hard_exit":["Aucun faux Tacheté"],
+        "pause":["POINT DE PAUSE SÛR — Tacheté obtenu, Après la pluie prêt"]
+      }
+    },
+    {
+      "after":"P200-11",
+      "stage": {
+        "id":"P200-12",
+        "title":"Après la pluie — fermer Résilience et le gate Au détour",
+        "level":"200+ / La source de tous les maux + Tacheté terminés",
+        "duration_min":1200,
+        "quests":["Quand l'éveil n'est qu'un songe","Si loin, si proches","Le dernier rempart","Par ce serment s'écrit le monde","Une bien étrange prophétie"],
+        "successes":["Après la pluie","Eliocalypse : Résilience"],
+        "preparation":[
+          {"name":"Pépite","quantity":200},{"name":"Riz","quantity":50},{"name":"Bois de Bambou Sacré","quantity":40},{"name":"Dolomite","quantity":20},{"name":"Pétale d'encre","quantity":5},{"name":"Pétale de Papier","quantity":5},{"name":"Umeshushu","quantity":1},
+          {"requirement":"Sculpteur180 ou artisan coopératif","for":"Pinceau de calligraphie","blocking":true},
+          {"note":"Infâme pourriture + Le Saule du Promeneur ont été backpatchés dans level_100_120_v5; L'art de la langue de bois est déjà un prérequis Frigost/Pandala traité plus tôt. Barnabé est fermé par le Vulbis."}
+        ],
+        "route":[
+          {"area":"Réceptacle","do":"Prendre Quand l'éveil n'est qu'un songe puis ouvrir ses trois tâches sans les faire au hasard."},
+          {"area":"Grobe/Plantala","do":"Faire Si loin, si proches avant Le dernier rempart. Cette dette niveau170 est fermée maintenant seulement si elle ne l'était pas; mutualiser ses combats Grobe avec tout reliquat succès monstre."},
+          {"area":"Pandala","do":"Faire Le dernier rempart, Par ce serment s'écrit le monde et Une bien étrange prophétie. Pour le serment, vérifier Le Saule + Infâme pourriture; pour la prophétie, De l'encre spectaculaire + Barnabé sont désormais fermés."},
+          {"area":"Réceptacle","do":"Rendre les trois tâches et fermer Quand l'éveil n'est qu'un songe. Résilience/Après la pluie ne sont validés qu'après confirmation runtime."}
+        ],
+        "before_leaving":["Quand l'éveil n'est qu'un songe terminé","Par ce serment s'écrit le monde terminé","Eliocalypse : Résilience terminé","Au détour d'un rêve perdu disponible"],
+        "hard_exit":["Cultures et turpitudes futur désormais débloquable grâce à Par ce serment"],
+        "pause":["POINT DE PAUSE SÛR — Résilience fermée"]
+      }
+    },
+    {
+      "after":"P200-12",
+      "stage": {
+        "id":"P200-13",
+        "title":"Au détour d'un rêve perdu + Ravagés/Pandamonium",
+        "level":"200+ / Six sur six + Quand l'éveil terminés",
+        "duration_min":760,
+        "quests":["Au détour d'un rêve perdu","Toute possession dépossède","Le chant du Pandamonium","Le début de la fin"],
+        "successes":["Ravagés"],
+        "preparation":[{"name":"Saucisson de Porkania","quantity":1,"alternative":"2000 kamas"},{"name":"Vodkawa","quantity":6},{"name":"Umeshushu","quantity":6},{"name":"Shaké à haute fermentation","quantity":6,"alternative":"6 Artefacts Pandawushu de chaque élément"},{"name":"Clef du Ventre de la Baleine","quantity":1}],
+        "route":[
+          {"area":"Réceptacle / rêve","do":"Faire Au détour d'un rêve perdu maintenant que La fin... ou le commencement + Quand l'éveil + six Dofus sont vrais. Respecter le choix de voie persisté de Six sur six; ne jamais sélectionner une autre réponse arbitrairement."},
+          {"area":"Ravageurs/Pandamonium","do":"Enchaîner Toute possession dépossède → Le chant du Pandamonium → Le début de la fin. Faire le Rituel de Kabahal une seule fois lorsque Le chant le demande, avec toutes les ressources déjà préparées."}
+        ],
+        "before_leaving":["Au détour d'un rêve perdu terminé","Ravagés terminé","Le début de la fin terminé","La danse de la dissonance disponible"],
+        "hard_exit":["Aucun second Kabahal pour ce succès"],
+        "pause":["POINT DE PAUSE SÛR — Pandamonium fermé, Réminiscence ouverte"]
+      }
+    },
+    {
+      "after":"P200-13",
+      "stage": {
+        "id":"P200-14",
+        "title":"Démons et merveilles + Bataille de l'Aurore Pourpre partagée",
+        "level":"200+ / avant La danse de la dissonance",
+        "duration_min":1200,
+        "quests":["Le poids de son regard","Démongraphie galopante","Leçon d'histoire","Le cauchemar du chemin de l'orme","Au bout du rouleau","Ancré dans nos âmes","Ce qui hante les morts","Soldats d'infortune","La danse de la dissonance","Descendre aux cendres"],
+        "successes":["Démons et merveilles","Eliocalypse : Réminiscence"],
+        "dungeon":{"name":"Bataille de l'Aurore Pourpre","pass":"shared_dance_and_demons"},
+        "preparation":[{"name":"Bois d'Orme","quantity":10},{"name":"Boufballe dédicacée de Brâkmar","quantity":1},{"name":"Boufballe dédicacée de Bonta","quantity":1},{"name":"Blopisier empoisonné","quantity":1},{"name":"Pain de Frostiz","quantity":1,"alternative":"Pain Tahde"},{"name":"Eau Potable","quantity":1,"alternative":"Lailait"},{"requirement":"800 Force pour une interaction de La danse","blocking":true},{"requirement":"0 Sagesse lors de l'interaction dédiée","blocking":true,"policy":"Utiliser la malédiction prévue si le parchotage empêche d'atteindre0."}],
+        "route":[
+          {"area":"Cauchemar des Ravageurs","do":"Ouvrir les huit quêtes Démons et merveilles avant les farms de zone. Avancer Le poids de son regard au Rituel de la Dissonance afin que La danse puisse réellement entrer dans le Cauchemar."},
+          {"area":"Bataille de l'Aurore Pourpre","do":"Entrer avec La danse de la dissonance ET les drops Démons concernés actifs. Un seul passage sert le boss de La danse et le drop 10% sur Démoloch; si le drop Démons ne tombe pas, ne refaire que les salles nécessaires selon le walkthrough, pas le boss sans raison."},
+          {"area":"Réminiscence","do":"Fermer La danse puis Descendre aux cendres. En parallèle terminer les huit quêtes Démons et merveilles, y compris le drop Songes RêveIII+ lorsqu'il est réellement disponible."}
+        ],
+        "before_leaving":["Démons et merveilles terminé","La danse de la dissonance terminée","Descendre aux cendres terminée"],
+        "hard_exit":["Aurore Pourpre boss fait une seule fois pour La danse","Prise de conscience déjà fermée depuis P200-10"],
+        "pause":["POINT DE PAUSE SÛR — Réminiscence prête Héritage/Totems"]
+      }
+    },
+    {
+      "after":"P200-14",
+      "stage": {
+        "id":"P200-15",
+        "title":"Réminiscence — Un héritage tourmenté + six Totems de Maïmane",
+        "level":"200+ / Descendre + Prise + Mort et renouveau fermés",
+        "duration_min":1200,
+        "quests":["Un héritage tourmenté","Les totems de Maïmane"],
+        "successes":["Eliocalypse : Réminiscence"],
+        "preparation":[{"name":"Pépite","quantity":200},{"name":"Artefact Pandawushu Roc","quantity":10},{"name":"Artefact Pandawushu Vent","quantity":5},{"name":"Artefact Pandawushu Bois","quantity":5},{"name":"Artefact Pandawushu Feu","quantity":5},{"name":"Artefact Pandawushu Eau","quantity":5},{"name":"Métaria Mage jaune","quantity":4},{"name":"Métaria Mage rouge","quantity":4},{"name":"Métaria Mage verte","quantity":4},{"name":"Métaria Mage bleue","quantity":4},{"name":"Rune astrale majeure","quantity":2},{"name":"Harmonie","quantity":1},{"requirement":"Mineur10 minimum","blocking":true}],
+        "totem_policy": {
+          "dynamic_choice": true,
+          "joy":["Klime","Merkator","Roi Imagami","Roi Nidas","Servitude"],
+          "sadness":["Capitaine Meno","Reine Amirukam","Sylargh","Torkélonia","Vortex"],
+          "fear":["Anerice la Shushess","Ilyzaelle","Larve de Koutoulou","Misère"],
+          "anger":["Dazak Martegel","Guerre","Missiz Frizz","Solar","Tal Kasha"],
+          "disgust":["Bethel Akarna","Corruption","Dantinéa","Nileza","Protozorreur"],
+          "surprise":["Chaloeil","Comte Harebourg","Kabahal","Prêtresse de Kao","Reine des Voleurs"],
+          "selection":"Pour chaque émotion choisir le boss au temps estimé le plus faible selon équipe, accès, clef et succès encore manquants. Chaque totem impose un nouveau passage car Les totems de Maïmane n'était pas active lors des anciens boss."
+        },
+        "route":[
+          {"area":"Un héritage tourmenté","do":"Avancer jusqu'à la fabrication de la Rune d'Harmonie; prendre alors Les totems de Maïmane."},
+          {"area":"six donjons200","do":"Faire exactement un boss autorisé par émotion pour récupérer les six Totems. Avant chaque entrée, vérifier si un succès Donjon/Monstre encore absent peut être mutualisé. Aucun choix de boss n'est figé par une vieille coordonnée ou un ancien temps de route."},
+          {"area":"Cauchemar / Héritage","do":"Rendre les six Totems, obtenir le Totem de l'équilibre puis finir Un héritage tourmenté."}
+        ],
+        "before_leaving":["Six Totems obtenus réellement","Les totems de Maïmane terminé","Un héritage tourmenté terminé","Eliocalypse : Réminiscence terminé"],
+        "hard_exit":["Six reruns boss200 causaux documentés, pas davantage"],
+        "pause":["POINT DE PAUSE SÛR — Réminiscence fermée"]
+      }
+    },
+    {
+      "after":"P200-15",
+      "stage": {
+        "id":"P200-16",
+        "title":"Le secret des Dofus : Prologue — Entretemps puis La bête",
+        "level":"200+ / Six sur six + Au détour + Prise + Descendre",
+        "duration_min":360,
+        "quests":["Entretemps, une renaissance","La bête au bois dormant"],
+        "successes":["Le secret des Dofus : Prologue"],
+        "preparation":[{"name":"Substrat de Sylve","quantity":1},{"name":"Enchanterelle","quantity":1,"policy":"Objet/ressource selon état de quête; suivre le walkthrough courant plutôt qu'une ancienne position."}],
+        "route":[
+          {"area":"Réceptacle / Mer de Poussière","do":"Prendre Entretemps, une renaissance seulement quand Descendre aux cendres + Au détour d'un rêve perdu + Prise de conscience + La fin... ou le commencement sont réellement terminés et les six Primordiaux dans l'inventaire. Faire ses deux combats solo sans créer de donjon."},
+          {"area":"Forêt Maléfique","do":"Prendre La bête au bois dormant après Entretemps. Le serment de l'ambre est déjà fermé depuis le palier180; apporter Substrat de Sylve + Enchanterelle avant déplacement et terminer les deux combats solo."}
+        ],
+        "before_leaving":["Entretemps terminé","La bête au bois dormant terminée","Le secret des Dofus : Prologue validé"],
+        "hard_exit":["Prologue réel requis avant Dom de Pin"],
+        "pause":["POINT DE PAUSE SÛR — Prologue fermé; Valonia/Dom de Pin peut commencer"]
+      }
+    }
+  ],
+  "stage_patches": {}
+}

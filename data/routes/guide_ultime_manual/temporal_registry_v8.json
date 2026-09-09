@@ -1,0 +1,54 @@
+{
+  "schema_version": 8,
+  "registry_id": "guide_ultime_temporal_registry_v8",
+  "title": "Guide Ultime — contraintes temporelles jusqu'au palier 180",
+  "status": "MANUAL_TEMPORAL_WORKING_SET",
+  "base_file": "temporal_registry_v7.json",
+  "supersedes": "guide_ultime_temporal_registry_v7",
+  "entry_patches": {},
+  "entry_insertions": [
+    {
+      "id": "bonta73_gambling_den_access",
+      "type": "time_window_with_bypass",
+      "quest": "De drôles de témoins",
+      "documented_window_start_local": "20:00",
+      "hard_wait_forbidden": true,
+      "alternative_route_available": true,
+      "alternative_requirements": [
+        "1 Lait de Dragodinde Dorée (objet de quête)",
+        "1 Sac d'épices amaknéennes (objet de quête)",
+        "1 Filet Mignon"
+      ],
+      "route_policy": "Ne jamais attendre immobile le soir. Si le sous-sol n'est pas accessible au moment naturel de la session, utiliser la route alternative du walkthrough courant ou suspendre Bonta73 et poursuivre un autre fil.",
+      "source": "Dofus Pour Les Noobs — De drôles de témoins",
+      "source_note": "La page documente >20h et signale qu'une ouverture vers 19h a déjà fonctionné; ne pas transformer cette observation en règle dure."
+    },
+    {
+      "id": "ocre_ambre_malterego_repop",
+      "type": "approx_respawn",
+      "quest": "Quand les esprits s'échauffent",
+      "approx_respawn_minutes": 15,
+      "hard_wait_forbidden": true,
+      "route_policy": "Si un PNJ de combat Malterego n'est pas disponible, enregistrer le point manquant et continuer une autre boucle. Revenir uniquement lors d'un passage rentable.",
+      "source": "Dofus Pour Les Noobs — Quand les esprits s'échauffent"
+    },
+    {
+      "id": "fungus_agrypnite_grilled_respawn",
+      "type": "approx_respawn",
+      "quest": "Champallucination",
+      "approx_respawn_minutes": 10,
+      "hard_wait_forbidden": true,
+      "route_policy": "Récolter les Agrypnites disponibles pendant la boucle Fungus. Si les deux grillées ne sont pas présentes, avancer les 20 combats de Restes de Fungus ou une autre action locale au lieu d'attendre.",
+      "source": "Dofus Pour Les Noobs — Champallucination"
+    },
+    {
+      "id": "fungus_sword_fishing_spot_respawn",
+      "type": "approx_respawn",
+      "quest": "Le baptême du feu",
+      "approx_respawn_minutes": 1,
+      "hard_wait_forbidden": true,
+      "route_policy": "Alterner les deux spots de pêche et les actions locales; ne pas créer une étape macro dédiée au repop.",
+      "source": "Dofus Pour Les Noobs — Le baptême du feu"
+    }
+  ]
+}

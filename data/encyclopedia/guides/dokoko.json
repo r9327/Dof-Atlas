@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "id": "dokoko",
+  "title": "Dokoko",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dokoko.",
+  "recommended_level_min": 50,
+  "recommended_level_max": 100,
+  "reward_item_id": 17078,
+  "illustration_item_id": 17078,
+  "image": null,
+  "linked_achievement_ids": [
+    1397
+  ],
+  "completeness_status": "complete",
+  "verified_steps": 5,
+  "total_steps": 5,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "Profil DPLN: parcours obligatoire résolu dans le catalogue local."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [],
+  "sections": [
+    {
+      "id": "dokoko_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        1397
+      ],
+      "steps": [
+        {
+          "id": "dokoko_quest_1666",
+          "type": "quest",
+          "entity_id": 1666,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dokoko_quest_1667",
+          "type": "quest",
+          "entity_id": 1667,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1666
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dokoko_quest_1668",
+          "type": "quest",
+          "entity_id": 1668,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1667
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dokoko_quest_1669",
+          "type": "quest",
+          "entity_id": 1669,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1668
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dokoko_quest_1670",
+          "type": "quest",
+          "entity_id": 1670,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1669
+            }
+          ],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

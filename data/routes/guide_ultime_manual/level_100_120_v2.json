@@ -1,0 +1,47 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_level_100_120_v2",
+  "title": "Guide Ultime — Niveau 100 à 120 + Damadrya complet",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_100_120_v1.json",
+  "supersedes": "guide_ultime_manual_level_100_120_v1",
+  "stage_count": 16,
+  "optimization_note": "Damadrya ne doit jamais être faite seulement pour Sous le bois de sa colère: Le Saule du Promeneur et Rester planté là sont activés avant l'entrée. À la sortie, Au nom de l'Art est pris immédiatement pour préparer Tanukouï San, qui sera ensuite fusionné avec Bonta55 et l'Ocre.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/sous-le-bois-de-sa-colere.html",
+    "https://www.dofuspourlesnoobs.com/le-saule-du-promeneur.html",
+    "https://www.dofuspourlesnoobs.com/bambusaie-de-damadrya.html",
+    "https://www.dofuspourlesnoobs.com/au-nom-de-l-art.html"
+  ],
+  "stage_patches": {
+    "L100-15": {
+      "replace": {
+        "title": "Pandala 110 + Damadrya complet + Gokwa + gates niveau120",
+        "level": "110-120",
+        "duration_min": 150
+      },
+      "append": {
+        "quests": ["Le Saule du Promeneur", "Rester planté là", "Au nom de l'Art"],
+        "preparation": [
+          {"requirement":"Avancer Dites-le avec des fleurs jusqu'au point permettant de parler à Sobomori pour Le Saule du Promeneur.","blocking":true},
+          {"name":"Pierre d'âme boss","minimum_power":150,"quantity":1,"for":"Damadrya Ocre"}
+        ],
+        "route": [
+          {"pos":"Plantala","do":"AVANT la Bambusaie, avancer Le Saule du Promeneur jusqu'à demander la Feuille de Damadrya et prendre/avancer Rester planté là jusqu'à son objectif de donjon. Ne pas entrer tant que Sous le bois de sa colère + Le Saule du Promeneur + Rester planté là ne sont pas simultanément prêts."},
+          {"pos":"[26,-30] Bambusaie de Damadrya","do":"Faire un seul donjon pour les trois quêtes. Dans Sous le bois de sa colère, cliquer/lire le document de la salle 4 AVANT de continuer. Vaincre Damadrya, capturer son âme avec une pierre puissance150 minimum pour l'Ocre et effectuer tous les dialogues/objets post-boss des trois fils avant sortie."},
+          {"pos":"Plantala / [22,-29]","do":"Fermer les trois fils selon leurs walkthroughs locaux. Dès Sous le bois de sa colère rendu à Daimya, prendre immédiatement Au nom de l'Art; ne pas faire Tanukouï San dans ce chapitre tant que Bonta55 n'est pas prêt."}
+        ],
+        "hard_exit": [
+          "Sous le bois de sa colère terminée.",
+          "Le Saule du Promeneur terminé ou son reliquat post-donjon explicitement localisé.",
+          "Rester planté là terminé ou son reliquat post-donjon explicitement localisé.",
+          "Damadrya capturée pour l'Ocre.",
+          "Au nom de l'Art active AVANT de quitter Pandala.",
+          "Tanukouï San volontairement différé pour fusion Bonta55 + Au nom de l'Art + Ocre."
+        ],
+        "pause": ["Damadrya faite une seule fois","Au nom de l'Art active","Tanukouï réservé au bloc Bonta55"]
+      }
+    }
+  },
+  "insertions": []
+}

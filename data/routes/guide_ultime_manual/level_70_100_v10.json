@@ -1,0 +1,98 @@
+{
+  "schema_version": 10,
+  "route_id": "guide_ultime_manual_level_70_100_v10",
+  "title": "Guide Ultime — Niveau 70 à 100, dettes causales Bonta/Fratrie anticipées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_70_100_v9.json",
+  "supersedes": "guide_ultime_manual_level_70_100_v9",
+  "stage_count": 17,
+  "depends_on": [
+    "level_51_70_v4.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank40_v1.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "transversal_routes": [],
+  "optimization_note": "Conserve les 17 fiches et Bonta v17, neutralise explicitement l'ancien transversal Bonta 1-40 hérité de v1, tout en fermant les prérequis futurs au premier passage rentable : À plus dans l'muldobus et la Fratrie jusqu'à Sombres desseins sont absorbés dans Cania/Saharach, tandis que Le mort dort puis Faire le mort sont intégrés à la campagne Landes de Sidimote déjà obligatoire afin que Bonta95 n'arrive jamais à la Cathédrale de Triste Âme avec ce prérequis manquant.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/a-plus-dans-l-muldobus.html",
+    "https://www.dofuspourlesnoobs.com/la-fratrie-des-oublies.html",
+    "https://www.dofuspourlesnoobs.com/ne-tirez-pas-sur-le-messager.html",
+    "https://www.dofuspourlesnoobs.com/sombres-desseins.html",
+    "https://www.dofuspourlesnoobs.com/le-mort-dort.html",
+    "https://www.dofuspourlesnoobs.com/faire-le-mort.html"
+  ],
+  "stage_patches": {
+    "L70-00": {
+      "append": {
+        "quests": ["À plus dans l'muldobus"],
+        "route": [
+          {"pos":"[-28,-31] Routes Rocailleuses","do":"Pendant la boucle Cania déjà obligatoire de Bonta 23→28, parler à Agathe Mainate, répondre correctement à son questionnaire et terminer À plus dans l'muldobus. L'accès Nimotopia doit être permanent avant le futur fil Fratrie; ne créer aucun aller-retour dédié plus tard."}
+        ],
+        "hard_exit": ["À plus dans l'muldobus terminée et accès Nimotopia permanent avant le premier passage Saharach."]
+      }
+    },
+    "L70-08": {
+      "replace": {
+        "title": "Saharach 80 + Fratrie jusqu'à Sombres desseins + Mantiscore mutualisé",
+        "route": [
+          {"pos":"[12,-6] Port de Madrestam → Saharach [14,-55]","do":"Accéder à Saharach, mémoriser le zaap [15,-58] et prendre L'Épice rit auprès d'Eole Suk. Avant d'engager le Cimetière des Mastodontes, profiter de ce premier vrai passage Saharach pour fermer le fil Fratrie disponible."},
+          {"pos":"[8,-67] Temple Ouginak","do":"Avec Aventure miniature, À plus dans l'muldobus et Mieux vaut ne pas se fier à la première impression déjà terminées, prendre Ne tirez pas sur le messager. Suivre son fil Saharach → Kerubim [3,-17] → Nimotopia et le fermer auprès de Coqueline [-63,29]."},
+          {"pos":"Nimotopia [-63,29] → Brâkmar [-20,39] → [9,-4] → [-19,-19]","do":"Enchaîner immédiatement À la rescousse des magypus depuis Coqueline. Prévoir 10 001 kamas, faire les objectifs Nimotopia, identifier l'acheteur via Brâkmar, libérer les magypus puis les ramener à Coqueline; terminer le fil chez Kerubim [3,-17] sans session Nimotopia séparée."},
+          {"pos":"[8,-67] Temple Ouginak → Brâkmar [-27,33]","do":"Prendre Dernier contact auprès de Chalcas et exécuter sa boucle nécromancien/rituel avec les combats solo prévus par la quête. Revenir au Temple Ouginak et prendre immédiatement La voix des morts."},
+          {"pos":"Temple Ouginak → clans Ouginaks / Cania","do":"Faire La voix des morts avec 1 Eau potable et 2 000 kamas préparés. Grouper les dialogues des clans et les deux combats solo dans la même campagne, ramener Imaguni et terminer auprès de Nosya afin de débloquer Le fléau de Burin."},
+          {"pos":"[-12,22] → [-28,33] → mine [-23,21] → Volkaragnar → [-27,17] → Fungus [-12,31]","do":"Faire Le fléau de Burin intégralement dès son déblocage. Aller jusqu'à Volkaragnar réellement dans la quête, poursuivre l'enquête puis vaincre la Chasseuse de Srambad dans la Caverne des Fungus. Revenir au Temple Ouginak pour fermer la quête : ce point supprime le futur blocage Nimbos/Ébène."},
+          {"pos":"[8,-67] → Srambad [5,2]","do":"Prendre Le gang des Toxines et suivre son infiltration Srambad jusqu'à Incognita. Enchaîner Sombres desseins directement devant la Taverne du Bourreau; utiliser Mieux vaut ne pas se fier à la première impression déjà terminée pour le passage chez Prim et remettre les 50 Trèfles à 5 feuilles préparés."},
+          {"pos":"Saharach [14,-55] / Port et Dunes","do":"Une fois Sombres desseins terminée, reprendre la campagne Saharach déjà ouverte : terminer L'Épice rit avec les ressources prévues, rendre à Eole Suk et prendre Le roi scorpion."},
+          {"pos":"[18,-59] puis atelier sculpteur","do":"Avancer Le roi scorpion jusqu'à obtenir l'Os de Mastodonte, faire fabriquer la flûte avec 10 Manganèses par un Sculpteur niveau 80 minimum puis montrer la flûte avant l'entrée au Cimetière."},
+          {"pos":"[19,-61] Cimetière des Mastodontes","do":"Entrer avec Le fossile et le marteau et Le roi scorpion actifs. Équiper les gants demandés par Le roi scorpion avant Mantiscore, faire les objectifs de salles et les succès compatibles. Après le boss, parler à Carl Os et récupérer Mantiscroc s'il manque encore."},
+          {"pos":"[-16,2] puis Saharach [14,-55]/[15,-57]","do":"Rendre Le fossile et le marteau à Thelma pour prendre Un défilé de Wobots, puis terminer Le roi scorpion. Prendre Ne pas payer de mine lorsqu'elle est proposée et la conserver pour le futur palier Saharach si ses objectifs suivants dépassent cette tranche."}
+        ]
+      },
+      "prepend": {
+        "quests": ["Ne tirez pas sur le messager","À la rescousse des magypus","Dernier contact","La voix des morts","Le fléau de Burin","Le gang des Toxines","Sombres desseins"],
+        "preparation": [
+          {"requirement":"Aventure miniature terminée pendant la Cache de Kankreblath à Astrub","blocking":true},
+          {"requirement":"À plus dans l'muldobus terminée pendant L70-00","blocking":true},
+          {"requirement":"Mieux vaut ne pas se fier à la première impression terminée à Astrub","blocking":true},
+          {"kamas":12001,"for":"À la rescousse des magypus + La voix des morts","policy":"Prévoir le montant avant de lancer la longue campagne Fratrie afin d'éviter un retour banque."},
+          {"name":"Eau potable","quantity":1,"for":"La voix des morts"},
+          {"name":"Trèfle à 5 feuilles","quantity":50,"for":"Sombres desseins","policy":"Préparer avant le départ Saharach et conserver jusqu'au passage chez Prim."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Sombres desseins terminée avant de quitter durablement la campagne Saharach.",
+          "Le fléau de Burin réellement terminé après le passage Volkaragnar; aucun futur Nimbos ne doit découvrir ce prérequis à niveau 200.",
+          "Le jour des assassins est explicitement différée jusqu'à La colère des dieux au niveau 200; ce n'est pas un oubli.",
+          "L'Épice rit et Le roi scorpion terminés pendant le même passage Saharach/Mantiscore que Le fossile et le marteau."
+        ],
+        "pause": ["Fratrie fermée jusqu'à Sombres desseins","Le jour des assassins attend La colère des dieux niveau 200","Mantiscore fermé sans second passage"]
+      }
+    },
+    "L70-10H": {
+      "prepend": {
+        "quests": ["Le mort dort","Faire le mort"],
+        "preparation": [
+          {"name":"Bière du Chabrulé","quantity":1,"for":"Le mort dort"},
+          {"name":"Bière Atolmond","minimum_quantity":3,"for":"Faire le mort","policy":"Trois minimum pour les transformations prévues; prévoir une marge seulement si le trajet expose à une consommation supplémentaire réelle."},
+          {"name":"Trèfle à 5 feuilles","minimum_quantity":15,"for":"Faire le mort"},
+          {"name":"Mâchoire du Chafer Draugr","minimum_quantity":3,"for":"Faire le mort"},
+          {"requirement":"Alchimiste niveau 1 ou trois Breuvages d'Erazal déjà craftés avant la boucle du Cimetière","blocking":true}
+        ],
+        "route": [
+          {"pos":"[-33,33] → [-10,38] Cimetière des Torturés","do":"Prendre Le mort dort auprès du Prêtre Fantomatique. Rejoindre la cérémonie, vaincre les quatre Chafers trouble-fête avec le groupe déjà disponible puis reparler au prêtre."},
+          {"pos":"[-25,33] Geôles magmatiques","do":"Aller voir Karl Groucho, acheter au préalable la Bière du Chabrulé et la donner au Geôlier Joy pour prendre sa relève. Libérer Karl en suivant le Militant Chafer puis le panneau à tête de mort, et terminer Le mort dort."},
+          {"pos":"[-26,36] geôles → Cimetière des Torturés","do":"Prendre immédiatement Faire le mort auprès de Karl Groucho. Fabriquer ou avoir déjà les Breuvages d'Erazal : chacun utilise 1 Bière Atolmond + 5 Trèfles à 5 feuilles + 1 Mâchoire du Chafer Draugr."},
+          {"pos":"[-17,37] → indice [-14,41] ou [-16,41]","do":"Consommer le Breuvage avant Clictus, rechercher uniquement l'indice actif affiché par la quête, chasser le Fantôme Amer puis revenir à Clictus avec la transformation demandée. Ne jamais figer l'une des deux positions variables comme unique GPS."},
+          {"pos":"[-15,35] → [-12,36] → [-11,36]","do":"Poursuivre auprès de Clikeur puis Clikorn, engager le Vampire Omane en combat solo et revenir parler à Clikorn après victoire en respectant les transformations demandées."},
+          {"pos":"[-14,37] Cathédrale de Triste Âme","do":"Parler à Clikea et terminer Faire le mort. L'accès à la Cathédrale est désormais sécurisé très longtemps avant Bonta95; le futur Breuvage d'Erazal du rang95 ne découvrira plus ce prérequis à la dernière minute."}
+        ]
+      },
+      "append": {
+        "hard_exit": ["Le mort dort terminé.","Faire le mort terminé et accès Cathédrale de Triste Âme sécurisé avant la fin de la campagne Landes de Sidimote.","Bonta95 ne doit plus afficher Faire le mort comme prérequis manquant dans le suivi."]
+      }
+    }
+  },
+  "insertions": []
+}

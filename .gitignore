@@ -1,0 +1,80 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Runtime / utilisateur
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+data/local/*.sqlite
+data/local/*.sqlite-wal
+data/local/*.sqlite-shm
+data/local/quest_progress.json
+data/local/network_character_bindings.json
+data/local/craft_selection.json
+data/encyclopedia/progress/achievement_progress.json
+data/encyclopedia/progress/guide_progress.json
+data/bootstrap_status.txt
+config/zaap_shortcuts.json
+data/client_index.ini
+data/client_index.json
+data/client_profiles.json
+logs/*.log
+logs/*.old
+logs/*.png
+logs/start_log.txt
+logs/startup_profile.jsonl
+*.tmp
+*.sqlite-wal
+*.sqlite-shm
+
+# Diagnostics et profils locaux
+*.dmp
+*.dump
+*.prof
+*.pstats
+.coverage
+coverage.xml
+htmlcov/
+
+# Données massives régénérables
+data/exports/
+data/raw/
+data/cache/
+data/reports/
+data/archive/
+
+# Artefacts / audits / archives
+artifacts/
+*.zip
+*.tar
+*.tar.gz
+
+# Backups générés
+*.bak
+*.bak_v4
+*.before_*
+*.before*
+*_backup_*/
+
+# Rapports Encyclopédie régénérables
+data/encyclopedia/quests/enrichment_report.json
+data/encyclopedia/quests/orphan_images_report.json
+
+# Ancien dépôt Git temporaire
+.git_old_*/
+
+# Dépendances / caches Codex
+.codex_deps/
+.pytest_cache/
+.cache/
+build/
+dist/

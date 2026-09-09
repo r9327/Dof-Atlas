@@ -1,0 +1,120 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_level_200_plus_v4",
+  "title": "Guide Ultime — Post-200 + Silvosse, Flovoraison et Dofus Sylvestre",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v3.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v3",
+  "stage_count": 26,
+  "optimization_note": "Ferme l'objectif historique Sylvestre sans confondre l'objet de quête et le vrai Dofus final. Cultures et turpitudes devient disponible grâce à Par ce serment s'écrit le monde fermé dans l'Eliocalypse. Qui nous protège du Protecteur collecte les douze sigils, avec Nidas/Aurore Pourpre/Solar comme reruns causaux ouverts seulement à ce moment, puis reforge et bénit le Ménologium jusqu'à Elya Wood. Flovoraison est alors lancée avec Dom de Pin + six Primordiaux, régénère le réceptacle et impose un Belladone causal. Le premier Dofus Sylvestre obtenu dans la sylve est un objet de quête: il devient Dofus Verdoyant pour soigner Silvosse. Le vrai Dofus Sylvestre récompense n'est enregistré qu'après guérison de Silvosse, fermeture de L'arbre qui cache la forêt et plantation de la nouvelle graine d'Albuera.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/quetes-de-silvosse.html",
+    "https://www.dofuspourlesnoobs.com/cultures-et-turpitudes.html",
+    "https://www.dofuspourlesnoobs.com/qui-nous-protege-du-protecteur.html",
+    "https://www.dofuspourlesnoobs.com/qui-nous-protege-du-protecteur-p2.html",
+    "https://www.dofuspourlesnoobs.com/flovoraison.html"
+  ],
+  "insertions": [
+    {
+      "after":"P200-21",
+      "stage": {
+        "id":"P200-22",
+        "title":"Silvosse — Cultures et turpitudes, fermer le dernier prérequis de l'Arbre",
+        "level":"200+ / Dom de Pin obtenu",
+        "duration_min":360,
+        "quests":["Cultures et turpitudes"],
+        "successes":["L'arbre qui cache la forêt"],
+        "entry":"Les derniers d'entre nous terminé au palier180; Par ce serment s'écrit le monde terminé en P200-12; vérifier Gobstination d'un Grobelin réellement terminée dans le fil Grobe/Dorigami avant de lancer.",
+        "preparation":[
+          {"name":"Jus de cawotte fwelaté","quantity":1,"alternative":"100000 kamas"},
+          {"name":"Élixir des Trépasseurs","quantity":1},
+          {"note":"Si Gobstination d'un Grobelin manque malgré la progression Grobe déjà exécutée, traiter ce point comme dette de synchronisation explicite avant Cultures; ne pas falsifier le prérequis."}
+        ],
+        "route":[
+          {"area":"Château d'Amakna / Forêt des Abraknydes / fils Silvosse","do":"Prendre Cultures et turpitudes seulement lorsque Les derniers d'entre nous + Gobstination d'un Grobelin + Par ce serment s'écrit le monde sont réellement fermés. Exécuter ses combats solo/compagnon et vagues via le walkthrough local, en groupant toute collecte Abraknyde/Forêt encore utile aux succès monstres."},
+          {"area":"Silvosse","do":"Rendre Cultures et turpitudes et prendre immédiatement Qui nous protège du Protecteur ? si ses autres prérequis globaux sont vrais."}
+        ],
+        "before_leaving":["Cultures et turpitudes terminée","Qui nous protège du Protecteur disponible"],
+        "hard_exit":["Aucun prérequis Gobstination/Serment supposé sans runtime"],
+        "pause":["POINT DE PAUSE SÛR — L'arbre qui cache la forêt prêt pour sa quête finale"]
+      }
+    },
+    {
+      "after":"P200-22",
+      "stage": {
+        "id":"P200-23",
+        "title":"Qui nous protège du Protecteur ? — 12 sigils, Ménologium et arrêt exact à Elya Wood",
+        "level":"200+ / Cultures + Mort et renouveau + Un héritage tourmenté + Givre fermés",
+        "duration_min":1200,
+        "quests":["Qui nous protège du Protecteur ?"],
+        "successes":["L'arbre qui cache la forêt"],
+        "preparation":[
+          {"name":"Pépite","quantity":500},{"name":"Aile de Moskito","quantity":31},{"name":"Métronome du Début-Temps","quantity":24,"alternative":"24 Orichor"},{"name":"Poudre de Perlinpainpain","quantity":12},{"name":"Capsule Explosive","quantity":12},{"name":"Poudre d'Artifice","quantity":12},{"name":"Goulobule rouge","quantity":12},{"name":"Citron","quantity":6},{"name":"Fil de Néfileuse","quantity":6},{"name":"Résine","quantity":6},{"name":"Kouartz","quantity":6},{"name":"Tourmaline","quantity":4},{"name":"Œil de Cycloïde","quantity":4},{"name":"Huile de Koode","quantity":3},{"name":"Queue de Mantaze","quantity":2},{"name":"Fragment d'anomalie","quantity":2},{"name":"Ardonite","quantity":2},{"name":"Galet Solaire","quantity":2},{"name":"Galet Lunaire","quantity":1},{"name":"Substrat de Forêt vierge","quantity":1},{"name":"Clef de la Clairière du Chêne Mou","quantity":1},{"name":"Dague de Will Killson","quantity":1,"alternative":"20 Kama de glace ou HDV apparat"},{"name":"Essence de Torkélonia","quantity":1},{"name":"Essence de Tal Kasha","quantity":1},{"name":"Signe de Masse","quantity":1,"optional":true},
+          {"requirement":"Forgeron180 ou artisan pour Tapette à moskitos","blocking":true},
+          {"note":"Dites-le avec des fleurs est backpatchée en level_100_120_v6; Pas de fumée sans feu et Le givre des révélations sont déjà fermées. Le travail c'est la santé n'est PAS bloquant si la Dague de Will Killson est obtenue par HDV/apparat ou autre source autorisée."}
+        ],
+        "route": [
+          {"area":"Temples / Protecteurs sans donjon","do":"Prendre Qui nous protège du Protecteur ?. Obtenir le sigil initial puis grouper géographiquement les Protecteurs hors boss via le walkthrough local. Pour Silvosse, gérer les boutures/écailles en Forêt Maléfique; pour Rosal, Dites-le avec des fleurs est déjà terminée; pour Hécate, Pas de fumée permet l'Enchanterelle et préparer la Tapette avant déplacement; pour Brumaire, utiliser Le givre + Dague de Will Killson préparée."},
+          {"area":"Palais du Roi Nidas","do":"RERUN CAUSAL SIGIL SUMENS: vaincre Nidas seulement lorsque le sigil est demandé, puis parler à Sumens AVANT sortie. Les anciens passages Ivoire/Nébuleux précèdent cette quête."},
+          {"area":"Clairière du Chêne Mou","do":"Pour Pouchecot, suivre le raccourci/accès décrit par le walkthrough avec la clef. Ne vaincre le Chêne Mou que si l'état runtime le demande réellement; le dialogue de sigil n'est pas converti en boss kill arbitraire."},
+          {"area":"Bataille de l'Aurore Pourpre","do":"RERUN CAUSAL SIGIL RAVAL: entrer avec les500 pépites déjà sur le personnage, parler à Raval dans la salle demandée, vaincre l'Éternel Conflit puis reparler à Raval AVANT sortie et remettre les pépites."},
+          {"area":"Atoll des Possédés → Tour de Solar","do":"SIGIL DJAUL: Bonta doit capturer100 Âmes de Possédé avec la pierre démoniaque, SAUF si le choix final Six sur six a réellement donné le titre La Griffe des Démons, auquel cas25 suffisent. Ne jamais supposer cette réduction. Puis RERUN CAUSAL Solar et parler à Djaul/Solar avant sortie."},
+          {"area":"Horloge de Xélor / Almanax","do":"Avec les12 sigils réels, reforger le Ménologium avec les24 Métronomes,6 Kouartz,4 Œils de Cycloïde,3 Huiles de Koode,2 Galets Solaires,1 Essence Torkélonia et1 Essence Tal Kasha. Obtenir ensuite les quatre bénédictions saisonnières au sanctuaire de l'Almanax."},
+          {"area":"Temple Eniripsa","do":"Parler à Elya Wood et atteindre exactement le point où elle demande un réceptacle lié à Silvosse. STOP ICI et lancer Flovoraison; ne pas partir combattre Silvosse sans Dom de Pin régénéré."}
+        ],
+        "progress_also":[
+          "Avant chacun des trois boss causaux Nidas/Aurore/Solar, vérifier le rapport final de couverture et ajouter les succès Donjon/Monstre encore ouverts compatibles.",
+          "Les captures de Possédés de Djaul ne sont jamais inscrites dans l'Ocre: pierre démoniaque de quête indépendante."
+        ],
+        "before_leaving":["12 sigils réels obtenus","Ménologium béni obtenu","Qui nous protège avancée jusqu'à Elya Wood","Flovoraison disponible avec Dom de Pin"],
+        "hard_exit":["Nidas/Aurore/Solar reruns explicitement causaux","Djaul Bonta=100 âmes sauf réduction runtime prouvée","Aucun faux combat Silvosse avant Flovoraison"],
+        "pause":["POINT DE PAUSE SÛR — Elya Wood atteinte, Flovoraison à lancer"]
+      }
+    },
+    {
+      "after":"P200-23",
+      "stage": {
+        "id":"P200-24",
+        "title":"Flovoraison — régénérer Dom de Pin, Belladone causal et fabriquer le réceptacle Sylvestre de quête",
+        "level":"200+ / Elya Wood atteinte / Dom de Pin + six Primordiaux possédés",
+        "duration_min":520,
+        "quests":["Flovoraison","Qui nous protège du Protecteur ?"],
+        "successes":["En attendant le printemps"],
+        "dungeon":{"name":"Chambre des maléfices","boss":"Belladone","pass":"flovoraison_causal"},
+        "route": [
+          {"area":"Temple Eniripsa / Sylve céleste","do":"Prendre Flovoraison au milieu de Qui nous protège. Parler à Eniripsa puis Sadida; conserver les six Dofus Primordiaux et Dom de Pin disponibles pour les interactions de rituel."},
+          {"area":"Albuera","do":"Équiper Dom de Pin et récupérer les quatre graines du grand arbre via le walkthrough local. Les anciennes coordonnées DPLN servent uniquement d'aide de micro-parcours et ne sont pas enregistrées comme commandes travel dans la route."},
+          {"area":"Valonia / pacte des champignons","do":"Renouer le pacte avec Girol/Huskri. Équiper le Dofus Ocre lorsque le walkthrough l'exige et gagner le combat à vagues; aucun donjon Fungus n'est ajouté."},
+          {"area":"Chambre des maléfices","do":"RERUN CAUSAL BELLADONE: Flovoraison n'existait pas lors du Belladone de Valonia. Vaincre Belladone, NE PAS SORTIR, équiper le Dofus Ébène puis obtenir auprès d'elle les colliers nécessaires aux esprits sauvages. Mutualiser tous succès Belladone encore ouverts."},
+          {"area":"Sylve céleste","do":"Après les trois branches, équiper Turquoise + Pourpre + Dom de Pin pour le rituel de Sadida, déposer le Dom et les graines, puis équiper Ivoire lorsque Eniripsa le demande. Récupérer le 'Dofus Sylvestre' apparu: MARQUER CET OBJET COMME RÉCEPTACLE DE QUÊTE, PAS comme récompense finale du guide."}
+        ],
+        "progress_also":["Le vrai Dofus Sylvestre donnant les bonus n'est PAS encore obtenu à ce stade. Le suivi doit afficher 'réceptacle Sylvestre obtenu — final en attente de Silvosse'."],
+        "before_leaving":["Flovoraison avancée après régénération Dom de Pin","Réceptacle Sylvestre de quête obtenu","Belladone causal fermé"],
+        "hard_exit":["final_dofus_sylvestre=false","quest_receptacle_sylvestre=true"],
+        "pause":["POINT DE PAUSE SÛR — réceptacle Sylvestre prêt, retour à Qui nous protège"]
+      }
+    },
+    {
+      "after":"P200-24",
+      "stage": {
+        "id":"P200-25",
+        "title":"Silvosse final — Verdoyant, soin 200000 PV, vrai Dofus Sylvestre et nouvelle graine",
+        "level":"200+ / Ménologium béni + réceptacle Sylvestre de quête",
+        "duration_min":180,
+        "quests":["Qui nous protège du Protecteur ?","Flovoraison"],
+        "successes":["L'arbre qui cache la forêt","En attendant le printemps"],
+        "preparation":[{"name":"Signe de Masse","quantity":1,"optional":true,"policy":"Masse est le seul compagnon autorisé par ce combat selon le walkthrough; ne pas imposer son utilisation."}],
+        "route": [
+          {"area":"Temple Eniripsa","do":"Reprendre Qui nous protège du Protecteur. Plonger le réceptacle Sylvestre dans le chaudron pour obtenir le Dofus Verdoyant de combat."},
+          {"area":"Forêt sombre / Silvosse","do":"Équiper Dofus Verdoyant + Ménologium béni, éventuellement le Signe de Masse. Le but du combat est de SOIGNER Silvosse de2000 à200000 PV, jamais de le tuer. Utiliser le sort Verdoyant et les sorts saisonniers; convertir les Gnauls dans votre camp pour augmenter le soin."},
+          {"area":"après combat","do":"Quand Silvosse atteint réellement200000/200000 et le combat se termine, parler à Silvosse puis au fantôme de Simple et donner le Dofus Verdoyant. Cela ferme Flovoraison. Revenir/parler à Silvosse pour fermer Qui nous protège du Protecteur ? et valider L'arbre qui cache la forêt."},
+          {"area":"Silvosse → ancienne Albuera","do":"Accepter de suivre Silvosse seulement après la fermeture précédente. RECEVOIR alors le vrai Dofus Sylvestre récompense, puis avec le Sylvestre + les six Primordiaux planter la nouvelle graine à l'ancien site du Grand Arbre d'Albuera. Valider En attendant le printemps uniquement après confirmation runtime."}
+        ],
+        "before_leaving":["Flovoraison terminée","Qui nous protège du Protecteur ? terminée","L'arbre qui cache la forêt terminé","Vrai Dofus Sylvestre reçu","En attendant le printemps terminé après plantation"],
+        "hard_exit":["Silvosse healed_to=200000","final_dofus_sylvestre=true only_if_runtime_confirmed","Aucune confusion avec le réceptacle de quête"],
+        "pause":["POINT DE PAUSE SÛR — Dofus Sylvestre final obtenu; chantier principal Dofus post-200 fermé"]
+      }
+    }
+  ],
+  "stage_patches": {}
+}

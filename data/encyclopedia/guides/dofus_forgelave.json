@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "id": "dofus_forgelave",
+  "title": "Dofus Forgelave",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofus Forgelave.",
+  "recommended_level_min": 40,
+  "recommended_level_max": 200,
+  "reward_item_id": 19398,
+  "illustration_item_id": 19398,
+  "image": null,
+  "linked_achievement_ids": [
+    1656
+  ],
+  "completeness_status": "partial",
+  "verified_steps": 28,
+  "total_steps": 28,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "V4: complétude non démontrée par un profil attendu ou une source explicite."
+  ],
+  "generation_source": "doduda+v4_graph",
+  "source_urls": [],
+  "sections": [
+    {
+      "id": "dofus_forgelave_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        1656
+      ],
+      "steps": [
+        {
+          "id": "dofus_forgelave_quest_1607",
+          "type": "quest",
+          "entity_id": 1607,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1845",
+          "type": "quest",
+          "entity_id": 1845,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1607
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1853",
+          "type": "quest",
+          "entity_id": 1853,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1845
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1867",
+          "type": "quest",
+          "entity_id": 1867,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1853
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1868",
+          "type": "quest",
+          "entity_id": 1868,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1867
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1869",
+          "type": "quest",
+          "entity_id": 1869,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1868
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1934",
+          "type": "quest",
+          "entity_id": 1934,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1869
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1935",
+          "type": "quest",
+          "entity_id": 1935,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1934
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1936",
+          "type": "quest",
+          "entity_id": 1936,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1935
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1937",
+          "type": "quest",
+          "entity_id": 1937,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1936
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1942",
+          "type": "quest",
+          "entity_id": 1942,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1943",
+          "type": "quest",
+          "entity_id": 1943,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1953",
+          "type": "quest",
+          "entity_id": 1953,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1938",
+          "type": "quest",
+          "entity_id": 1938,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1939",
+          "type": "quest",
+          "entity_id": 1939,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1938
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "quest:1946:or:1",
+            "quest:1951:or:1"
+          ]
+        },
+        {
+          "id": "dofus_forgelave_quest_1948",
+          "type": "quest",
+          "entity_id": 1948,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1939
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1944",
+          "type": "quest",
+          "entity_id": 1944,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1943
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1946",
+          "type": "quest",
+          "entity_id": 1946,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1944
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1954",
+          "type": "quest",
+          "entity_id": 1954,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1938
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1956",
+          "type": "quest",
+          "entity_id": 1956,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1954
+          ]
+        },
+        {
+          "id": "dofus_forgelave_quest_1940",
+          "type": "quest",
+          "entity_id": 1940,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1954
+          ]
+        },
+        {
+          "id": "dofus_forgelave_quest_1955",
+          "type": "quest",
+          "entity_id": 1955,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1954
+          ]
+        },
+        {
+          "id": "dofus_forgelave_quest_1949",
+          "type": "quest",
+          "entity_id": 1949,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1939
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1950",
+          "type": "quest",
+          "entity_id": 1950,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1949
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1951",
+          "type": "quest",
+          "entity_id": 1951,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1952",
+          "type": "quest",
+          "entity_id": 1952,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1951
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1945",
+          "type": "quest",
+          "entity_id": 1945,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1944
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_forgelave_quest_1947",
+          "type": "quest",
+          "entity_id": 1947,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1942
+            },
+            {
+              "type": "quest",
+              "entity_id": 1945
+            },
+            {
+              "type": "quest",
+              "entity_id": 1946
+            }
+          ],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

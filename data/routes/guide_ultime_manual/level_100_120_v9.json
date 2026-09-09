@@ -1,0 +1,16 @@
+{
+  "schema_version": 9,
+  "route_id": "guide_ultime_manual_level_100_120_v9",
+  "title": "Guide Ultime — Niveau 100 à 120, dépendances canoniques finales",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_100_120_v8.json",
+  "supersedes": "guide_ultime_manual_level_100_120_v8",
+  "stage_count": 17,
+  "depends_on": [
+    "level_70_100_v10.json",
+    "bonta_1_100_v17.json"
+  ],
+  "optimization_note": "Raccord de dépendances uniquement : le parcours v8 est conservé et les hooks Bonta sont résolus depuis la route canonique complète v17.",
+  "stage_patches": {},
+  "insertions": []
+}

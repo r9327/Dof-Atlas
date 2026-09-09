@@ -1,0 +1,55 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_bonta_1_70_v7",
+  "title": "Guide Ultime — Alignement Bonta 1 à 70 + Sphincter Turquoise synchronisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_70_v6.json",
+  "supersedes": "guide_ultime_manual_bonta_1_70_v6",
+  "quest_range": [1, 70],
+  "macro_stage_count": 30,
+  "optimization_note": "Corrige le contrat du rang65: Bandanarthrie n'autorise plus un Sphincter avant La bénédiction de Thomahon. Le passage attend désormais Thomahon + Tour de rein + Ocre afin que Sphincter Cell soit fait une seule fois pour les quatre fils compatibles.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-beacuteneacutediction-de-thomahon.html",
+    "https://www.dofuspourlesnoobs.com/donjon-des-rats-du-chacircteau-damakna.html"
+  ],
+  "routing_policy_61_70": [
+    "Rangs61-64 constituent une seule campagne Corne Edfrit Bonta/Moon/Wabbit: préparer Fourbacoiffe, deux Gloutoburg, Salace de poissons et Corde d'escalade avant le départ afin de ne pas multiplier les retours.",
+    "Rang65 Bandanarthrie attend obligatoirement Tour de rein ET La bénédiction de Thomahon active avec l'Idole de Thomahon Nauséabonde prête. Sphincter Cell mutualise alors Bonta65 + Tour de rein + Ocre + Thomahon dans un seul passage.",
+    "Le Donjon des Forgerons du rang65 est un rerun causalement inévitable: Bandanarthrie ne demande le manuel qu'après avoir vaincu Sphincter Cell et rapporté le Bandana Troué.",
+    "Rangs66-69 sont regroupés en une campagne Cania/Brâkmar/Moon/Astrub; toutes les ressources de rang69 et les deux assistants sont réunis avant le sous-sol du Mage Ax.",
+    "Rang70 Kanigroula attend Chachyène de vie au bon objectif afin de fusionner les deux quêtes et tous les succès du donjon. La bénédiction de Foluk n'est pas attendue car elle appartient à un arc beaucoup plus tardif.",
+    "Aucune quête Brâkmar d'alignement n'est injectée dans cette route Bonta même si les pages de donjon la listent comme quête liée."
+  ],
+  "stage_patches": {
+    "BNT-27": {
+      "replace": {
+        "title": "Bonta65 — Sphincter unique: Bandanarthrie + Tour de rein + Ocre + Thomahon",
+        "level_gate": "Bandanarthrie active ET Tour de rein active ET La bénédiction de Thomahon active; Idole de Thomahon Nauséabonde craftée",
+        "quests": ["Bandanarthrie", "Tour de rein", "La bénédiction de Thomahon"],
+        "preparation": [
+          {"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Sphincter Cell Ocre"},
+          {"name":"Idole de Thomahon Nauséabonde","quantity":1,"for":"La bénédiction de Thomahon","blocking":true},
+          {"requirement":"Première + Deuxième clef Sphincter disponibles via Rat Blanc/Rat Noir ou trousseau selon fonctionnement actuel","blocking":true}
+        ],
+        "route": [
+          {"pos":"Larmes d'Ouronigride [-69,-88] / état de quête","do":"AVANT de déclencher le rang65, vérifier que La bénédiction de Thomahon est réellement active depuis Autel du Nord et que l'Idole de Thomahon Nauséabonde a été craftée par le personnage suivi. Si ce fil n'est pas encore actif, continuer les blocs Turquoise/Frigost prévus au lieu de faire Sphincter trop tôt."},
+          {"pos":"[5,-8] Repaire de Sphincter Cell","do":"Entrer seulement lorsque Bandanarthrie + Tour de rein + La bénédiction de Thomahon sont simultanément actives. Dans la salle finale utiliser l'Idole de Thomahon Nauséabonde AVANT le combat, faire tous les succès compatibles, vaincre Sphincter Cell, capturer puissance150 pour l'Ocre et récupérer le Bandana Troué."},
+          {"pos":"sortie Sphincter","do":"Vérifier explicitement la validation Sphincter dans La bénédiction de Thomahon avant de quitter le fil. Aucun futur Sphincter ne doit être nécessaire pour le Turquoise."},
+          {"pos":"[16,27] Sufokia","do":"Rendre Tour de rein immédiatement et prendre Tour de main. Le futur Kimbo reste réservé pour Tour de main + Thomahon + Ocre."},
+          {"pos":"Bonta -> [2,2]","do":"Rendre/présenter le Bandana Troué et avancer Bandanarthrie jusqu'au Manuel du tailleur pour les Nuls."},
+          {"pos":"[13,21] Donjon des Forgerons","do":"Faire le rerun CAUSALEMENT INÉVITABLE du Donjon des Forgerons: cette demande n'existe qu'après le Sphincter. Récupérer le Manuel du tailleur pour les Nuls et faire uniquement les succès réellement manqués."},
+          {"pos":"[2,2] -> Bonta","do":"Faire fabriquer le Tissu de Rapiéçage et la Teinture Orange Sanguine avec les ressources préparées, réparer le bandana et terminer Bandanarthrie."}
+        ],
+        "hard_exit": [
+          "Sphincter Cell fait une seule fois pour Bonta65 + Tour de rein + Ocre + Thomahon.",
+          "Altération Idole de Thomahon Nauséabonde validée sur ce passage.",
+          "Tour de main active.",
+          "Forgerons rerun documenté comme causal et non comme oubli d'optimisation.",
+          "Bonta65 terminé."
+        ],
+        "pause": ["Alignement65", "Sphincter définitivement fermé pour les fils actuels", "Tour de main = Kimbo futur"]
+      }
+    }
+  },
+  "insertions": []
+}

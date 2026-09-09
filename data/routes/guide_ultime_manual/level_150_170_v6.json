@@ -1,0 +1,49 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_level_150_170_v6",
+  "title": "Guide Ultime — Niveau 150 à 170 + Minotot Tour du Monde restauré",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v5.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v5",
+  "stage_count": 21,
+  "optimization_note": "Restaure l'étape Minotot manquante de La voie du guerrier au vrai palier160. La sauvegarde vers le Minotot a déjà été préparée lors du Minotoror; le passage sert simultanément Tour du Monde + succès du donjon + capture Ocre et ouvre Bworker sans refaire le labyrinthe complet.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-voie-du-guerrier.html",
+    "https://www.dofuspourlesnoobs.com/minotot.html",
+    "https://www.dofuspourlesnoobs.com/guide-de-progression-dofus3-p5.html"
+  ],
+  "insertions": [
+    {
+      "before": "L150-03",
+      "stage": {
+        "id": "L150-02T",
+        "title": "Tour du Monde — Minotot unique + capture Ocre, ouvrir Bworker",
+        "level": "160+ réel / La voie du guerrier pointe Minotot",
+        "duration_min": 65,
+        "entry": "Chêne Mou déjà validé pour La voie du guerrier au chapitre précédent; sauvegarde Minotot préparée au passage Minotoror.",
+        "quests": ["La voie du guerrier"],
+        "successes": ["succès Salle du Minotot encore ouverts"],
+        "dungeon": {"name":"Salle du Minotot","pass":"unique_for_current_threads","capture_ocre":true,"minimum_soul_stone_power":190},
+        "preparation": [
+          {"name":"Énorme pierre d'âme","minimum_power":190,"quantity":1,"for":"Minotot Ocre","policy":"Capturer maintenant même si l'étape Ocre courante n'accepte pas encore l'âme; la garder en banque jusqu'à remise."},
+          {"note":"Réutiliser la sauvegarde vers le Minotot préparée lors de L120-03. Si la sauvegarde runtime existe, ne jamais refaire volontairement tout le labyrinthe Minotoror."}
+        ],
+        "take": ["Vérifier auprès du Maître des clefs que La voie du guerrier demande réellement le Minotot avant le déplacement."],
+        "route": [
+          {"area":"Île du Minotoror → Salle du Minotot","do":"Reprendre l'exploration depuis la sauvegarde Minotot lorsque disponible. Entrer uniquement avec La voie du guerrier au bon objectif; faire les succès compatibles et vaincre Minotot."},
+          {"area":"boss Minotot","do":"Capturer Minotot avec une pierre puissance190 minimum pour L'éternelle moisson. Si la quête Ocre n'est pas encore à l'étape3, déposer l'âme en banque et la marquer À GARDER OCRE."},
+          {"area":"Maître des clefs","do":"Rendre l'étape Minotot immédiatement. La voie du guerrier doit désormais pointer la Grotte du Bworker. Ne pas faire Bworker avant le niveau180: le réserver au chapitre171-180 afin de tenter de fusionner La dernière pierre si l'Ocre est déjà obtenu."}
+        ],
+        "progress_also": [
+          "Vérifier tous les succès Minotot non validés pendant cet unique passage.",
+          "Ne pas attendre l'obtention de l'Ocre pour faire Minotot: sa capture peut être conservée en avance et Tour du Monde doit continuer."
+        ],
+        "before_leaving": ["Minotot vaincu","Âme Minotot Ocre sécurisée","La voie du guerrier pointe Bworker"],
+        "hard_exit": ["Minotot fait une seule fois pour les fils actuellement ouverts","Bworker explicitement différé au niveau180"],
+        "pause": ["POINT DE PAUSE SÛR — Tour du Monde attend Bworker180"],
+        "next": "L150-03 — Obsidiantre PASS1; Bworker sera fusionné au palier180"
+      }
+    }
+  ],
+  "stage_patches": {}
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": 11,
+  "route_id": "guide_ultime_manual_level_200_plus_v11",
+  "title": "Guide Ultime — Post-200, raccord final après Dazak causal v22",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v10.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v10",
+  "stage_count": 12,
+  "depends_on": [
+    "level_191_200_v22.json",
+    "ocre_final_route_v2.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v15.json"
+  ],
+  "optimization_note": "Raccord de dépendances : conserve les 12 fiches post-200 de v10 et fait dépendre explicitement la finale du chapitre 191-200 v22 qui restaure La bible des rancunes/De Brikke et modélise le second Dazak uniquement lorsqu'il est causalement requis par Le dragon noir. Corrige aussi la métadonnée structurée de P200-24 : Flovoraison se lance au milieu de Qui nous protège du Protecteur ? et cette quête reste active pendant toute la régénération du réceptacle avant de reprendre pour le combat Silvosse. Le trajet, l'ordre et les donjons restent inchangés.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/flovoraison.html",
+    "https://www.dofuspourlesnoobs.com/qui-nous-protege-du-protecteur-p2.html"
+  ],
+  "stage_patches": {
+    "P200-24": {
+      "replace": {
+        "quests": [
+          "Qui nous protège du Protecteur ?",
+          "Flovoraison"
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

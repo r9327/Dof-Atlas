@@ -1,0 +1,74 @@
+name: Guide Ultime V5 UI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+
+defaults:
+  run:
+    shell: powershell -NoProfile -ExecutionPolicy Bypass -File "{0}"
+
+jobs:
+  tests:
+    # Detailed Guide-only diagnostic on the registered Windows x64 runner.
+    # The PowerShell CI script is the same entry point used for local validation.
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository without bulk LFS payloads
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+
+      - name: Verify local Python 3.13
+        run: |
+          & py -3.13 --version
+          if ($LASTEXITCODE -ne 0) { throw "Python 3.13 is not available through the Windows py launcher." }
+          & py -3.13 -m pip --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize Guide visual regression fixture
+        run: |
+          & git lfs pull --include="data/encyclopedia/images/quests/1653/**" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from pathlib import Path
+
+          root = Path("data/encyclopedia/images/quests/1653")
+          pointer_header = b"version https://git-lfs.github.com/spec/v1"
+          images = [path for path in root.rglob("*") if path.suffix.lower() in {".png", ".webp"}]
+          if not images:
+              raise SystemExit(f"no image fixtures: {root}")
+          pointers = [
+              path
+              for path in images
+              if path.read_bytes()[: len(pointer_header)] == pointer_header
+          ]
+          print(f"Guide visual fixtures checked: {len(images)}")
+          if pointers:
+              raise SystemExit("\n".join(f"unmaterialized LFS pointer: {path}" for path in pointers))
+          '@ | & py -3.13 -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run Guide Ultime Windows CI
+        run: |
+          & .\tools\run_guide_ultime_ci.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload Guide Ultime audit outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guide-ultime-ci-outputs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ci_guide_ultime_logs/**
+          if-no-files-found: warn
+          retention-days: 30

@@ -1,0 +1,41 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_level_100_120_v5",
+  "title": "Guide Ultime — Niveau 100 à 120 + prérequis Résilience mutualisés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_100_120_v4.json",
+  "supersedes": "guide_ultime_manual_level_100_120_v4",
+  "stage_count": 16,
+  "optimization_note": "Ajoute Infâme pourriture et Le Saule du Promeneur avant le Damadrya déjà prévu dans L100-15. Saule + Sous le bois de sa colère + Rester planté là utilisent ainsi le même passage Damadrya; aucun boss supplémentaire n'est créé. Ces quêtes sécurisent les futurs serments de Par ce serment s'écrit le monde.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/infame-pourriture.html",
+    "https://www.dofuspourlesnoobs.com/le-saule-du-promeneur.html",
+    "https://www.dofuspourlesnoobs.com/bambusaie-de-damadrya.html"
+  ],
+  "stage_patches": {
+    "L100-15": {
+      "prepend": {
+        "quests": ["Infâme pourriture", "Le Saule du Promeneur"],
+        "preparation": [
+          {"name":"Eau Potable","quantity":5,"for":"Le Saule du Promeneur"},
+          {"name":"Huile de Koode","quantity":1,"for":"Le Saule du Promeneur"},
+          {"requirement":"Alchimiste niveau1 personnel","for":"Remède pour Yinagi","blocking":true,"policy":"Monter au niveau1 immédiatement si nécessaire; craft coopératif impossible mais coût négligeable."},
+          {"note":"Les Feuilles de Fujibakama sont échangeables. Si les spots sont vides, acheter/banque plutôt qu'attendre 5-7 minutes immobile."}
+        ],
+        "route": [
+          {"area":"Village/Plantala","do":"Prendre et terminer Infâme pourriture pendant les combats Plantala déjà nécessaires. Les 20 Mildiou se font sur les monstres de zone; ne pas créer une session de farm séparée si d'autres objectifs Plantala sont actifs."},
+          {"area":"Plantala","do":"Prendre Le Saule du Promeneur, préparer le Remède pour Yinagi et avancer jusqu'à la demande Feuille de Damadrya. Si Dites-le avec des fleurs n'a pas encore atteint l'aide à Sobomori, avancer exactement jusqu'à ce gate avant le donjon."},
+          {"area":"Bambusaie de Damadrya","do":"Le passage Damadrya de L100-15 sert simultanément Sous le bois de sa colère + Le Saule du Promeneur + Rester planté là et les autres fils déjà préparés. Récupérer la Feuille de Damadrya avant sortie."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Infâme pourriture terminée avant Par ce serment s'écrit le monde.",
+          "Le Saule du Promeneur terminé sans nouveau Damadrya.",
+          "Damadrya reste un passage mutualisé, pas un rerun ajouté par ce backpatch."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

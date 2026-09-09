@@ -1,0 +1,96 @@
+{
+  "schema_version": 8,
+  "route_id": "guide_ultime_manual_level_181_190_v8",
+  "title": "Guide Ultime — Niveau 181 à 190 + Baka/Intérimaire absorbés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v7.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v7",
+  "stage_count": 22,
+  "depends_on": [
+    "level_171_180_v8.json",
+    "level_150_170_v14.json",
+    "level_120_150_v15.json",
+    "bonta_1_90_v10.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Ferme les résultats Baka Crocs/Ourse sur les farms Agriculture déjà obligatoires et ajoute Intérimaire frigostien sans second métier. Le métier de récolte200 déjà prévu pour Vulbis/Six sur six sert à deux quêtes métier Frigost sur deux journées naturelles; aucun blocage jusqu'au reset. Collecte sanglante reste surveillée à chaque passage Village tant que l'invasion n'a pas été rencontrée.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/crocs-en-jambes.html",
+    "https://www.dofuspourlesnoobs.com/ourse-molle.html",
+    "https://www.dofuspourlesnoobs.com/inteacuterimaire-frigostien.html",
+    "https://www.dofuspourlesnoobs.com/collecte-sanglante.html"
+  ],
+  "stage_patches": {
+    "L181-00": {
+      "append": {
+        "quests": ["Le calendrier des récoltes", "J'aurais voulu être un artisan"],
+        "temporal_hooks": ["frigost_interimaire_two_daily_completions"],
+        "progress_also": [
+          "INTÉRIMAIRE FRIGOSTIEN — Dès que le métier de récolte choisi pour Vulbis/Six sur six atteint200, faire la quête Frigost compatible du jour (priorité Le calendrier des récoltes avec la sous-quête du métier choisi). Compteur cible=1/2 après cette première journée. Si le métier n'est pas encore200, ne détourner aucune session uniquement pour Intérimaire."
+        ],
+        "hard_exit": ["Intérimaire: compteur réel0/2 ou1/2 conservé; aucune validation fictive avant métier200."
+        ]
+      }
+    },
+    "L185-02": {
+      "append": {
+        "quests": ["Le calendrier des récoltes", "J'aurais voulu être un artisan"],
+        "temporal_hooks": ["frigost_interimaire_two_daily_completions"],
+        "route": [
+          {"area":"Bourgade — journée suivante naturelle","do":"Si le métier choisi est200 et Intérimaire est à1/2, faire une seconde quête métier Frigost compatible lors d'un jour différent. Utiliser le même métier; ne jamais en monter un second uniquement pour ce succès. Si le reset n'est pas encore passé, poursuivre la route et réinjecter au prochain passage Bourgade."
+          }
+        ],
+        "successes": ["Intérimaire frigostien"],
+        "hard_exit": ["Intérimaire frigostien terminé après2 validations réelles ou deuxième journée explicitement pending; aucun temps mort de reset."]
+      }
+    },
+    "L190-00": {
+      "append": {
+        "quests": ["Crocs en jambes"],
+        "progress_also": [
+          "TIRE LA CHASSE — Si Crocs en jambes est la chasse Baka active, les40 monstres Crocs de verre de Le champ des héros + les salles Kolosso servent d'abord aux50 Objets bizarres à100%. Aucun farm50 séparé avant ces passages."
+        ]
+      }
+    },
+    "L190-04": {
+      "append": {
+        "quests": ["Crocs en jambes"],
+        "route": [
+          {"area":"Crocs de verre/Kolosso PASS2","do":"Si Crocs en jambes est active, compléter ses50 Objets bizarres avec le reliquat Le champ des héros + deux Kolosso; cleanup seulement après. Rendre à Baka dès le prochain passage Village libéré et fermer Tire la chasse."
+          }
+        ]
+      }
+    },
+    "L190-05": {
+      "append": {
+        "quests": ["Ourse molle"],
+        "progress_also": [
+          "TIRE LA CHASSE — Si Ourse molle est la chasse Baka active, les40 monstres Mont Torrideau/Ruche de Champ borde le château + les salles Glours servent d'abord aux50 Cuillères à100%."
+        ]
+      }
+    },
+    "L190-06": {
+      "append": {
+        "quests": ["Ourse molle"],
+        "route": [
+          {"area":"Mont Torrideau/Ruche/Glours PASS2","do":"Si Ourse molle est active, compléter ses50 Cuillères avec Champ borde + deux Glours; seulement ensuite faire le reliquat exact. Rendre à Baka au Village libéré et fermer Tire la chasse."
+          }
+        ],
+        "hard_exit": ["Si la chasse Baka était Crocs en jambes ou Ourse molle, elle est terminée/remise avant de quitter Frigost II durablement; aucune deuxième chasse lancée."]
+      }
+    },
+    "L190-03": {
+      "append": {
+        "quests": ["Collecte sanglante"],
+        "temporal_hooks": ["frigost_collecte_sanglante_village_state", "frigost_tire_la_chasse_village_free"],
+        "route": [
+          {"area":"Village Enseveli — passage Maya/Rescapés","do":"Relire l'état Village. Si Collecte sanglante n'a jamais pu être lancée et le Village est enfin envahi, la prendre maintenant et profiter du nettoyage obligatoire de l'invasion pour obtenir les10 Dentiers avant libération. Après libération, rendre Collecte; si Tire la chasse n'est pas encore validé, prendre/terminer l'unique chasse Baka selon la zone active."
+          }
+        ],
+        "hard_exit": ["Dans les dents reste pending uniquement si aucune invasion naturelle n'a encore été rencontrée; le blocker d'état est visible, jamais masqué."]
+      }
+    }
+  },
+  "insertions": []
+}

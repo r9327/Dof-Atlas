@@ -1,0 +1,57 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_level_70_100_v6",
+  "title": "Guide Ultime — Niveau 70 à 100 + Sacrée Tourbière sans rerun Gourlo",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_70_100_v5.json",
+  "supersedes": "guide_ultime_manual_level_70_100_v5",
+  "stage_count": 17,
+  "optimization_note": "Backpatch Sacrée Tourbière sur le passage Gourlo déjà obligatoire. Le Gardien du Pont, Kito et Peggy sont pris avant l'Arche; les monstres de La vengeance du Kito sont validés pendant le donjon déjà prévu, puis Le Chevalier Noir et Rose est fermé juste après. Aucun second Gourlo ni retour Otomaï dédié.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/sacreacutee-tourbiegravere.html",
+    "https://www.dofuspourlesnoobs.com/le-gardien-du-pont-de-la-mort.html",
+    "https://www.dofuspourlesnoobs.com/la-vengeance-du-kito.html",
+    "https://www.dofuspourlesnoobs.com/la-vengeance-de-peggy-la-porkass.html",
+    "https://www.dofuspourlesnoobs.com/le-chevalier-noir-et-rose.html"
+  ],
+  "stage_patches": {
+    "L70-05": {
+      "replace": {
+        "title": "Otomaï 80+ — Sacrée Tourbière + Gourlo/Thelma/Ocre en un seul passage",
+        "level": "80-90 / niveau80 réel avant Pont de la Mort",
+        "duration_min": 135
+      },
+      "prepend": {
+        "quests": [
+          "Le Gardien du Pont de la Mort",
+          "La vengeance du Kito",
+          "La vengeance de Peggy la Porkass",
+          "Le Chevalier Noir et Rose"
+        ],
+        "preparation": [
+          {"requirement":"Niveau80 réel avant le Gardien du Pont de la Mort","blocking":true},
+          {"note":"Avant le quiz du Gardien, regarder les pods libres du personnage: la réponse sur les coraux dépend de l'espace réellement disponible. Ne pas utiliser une réponse fixe."},
+          {"requirement":"Groupe disponible pour Le Chevalier Noir et Rose si le personnage ne peut pas le gérer seul","blocking":false}
+        ],
+        "route": [
+          {"pos":"[-56,0] Pont de la Mort","do":"AVANT l'Arche, faire Le Gardien du Pont de la Mort avec les réponses adaptées au personnage et à ses pods. Cela ouvre la Tourbière sans fond sans combat inutile."},
+          {"pos":"[-49,14] puis [-57,4]","do":"Prendre La vengeance du Kito puis La vengeance de Peggy la Porkass AVANT d'entrer dans l'Arche. Kito doit profiter des Sparo/Barbroussa/Flib déjà rencontrés pendant le passage Gourlo; Peggy attend le Chevalier après le donjon."}
+        ]
+      },
+      "append": {
+        "route": [
+          {"pos":"Arche d'Otomaï / sortie Gourlo","do":"Vérifier que La vengeance du Kito s'est terminée grâce aux monstres de l'Arche. Aucun farm ou second donjon ne doit être ajouté pour cette quête."},
+          {"pos":"[-58,-5] Tourbière sans fond","do":"Après Gourlo, parler au Chevalier Noir et Rose avec La vengeance de Peggy active, prendre Le Chevalier Noir et Rose puis gagner le combat. Cette victoire ferme les deux fils et ouvre définitivement la Tourbière nauséabonde."}
+        ],
+        "hard_exit": [
+          "Sacrée Tourbière terminée ou seul reliquat exact explicitement visible.",
+          "Tourbière sans fond et Tourbière nauséabonde accessibles.",
+          "La vengeance du Kito n'a provoqué aucun passage Arche supplémentaire.",
+          "Le Chevalier Noir et Rose terminé avant le futur Le tour est joué/Kralamoure."
+        ],
+        "pause": ["Sacrée Tourbière fermée", "Accès futur Kralamoure sécurisé sans rerun Gourlo"]
+      }
+    }
+  },
+  "insertions": []
+}

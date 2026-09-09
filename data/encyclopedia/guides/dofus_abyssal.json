@@ -1,0 +1,544 @@
+{
+  "schema_version": 1,
+  "id": "dofus_abyssal",
+  "title": "Dofus Abyssal",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofus Abyssal.",
+  "recommended_level_min": 180,
+  "recommended_level_max": 200,
+  "reward_item_id": 18043,
+  "illustration_item_id": 18043,
+  "image": null,
+  "linked_achievement_ids": [
+    1020,
+    1498,
+    1511,
+    1512,
+    1513,
+    1514,
+    1515,
+    1516
+  ],
+  "completeness_status": "complete",
+  "verified_steps": 40,
+  "total_steps": 40,
+  "validation_warnings": [
+    "Profil DPLN: parcours obligatoire résolu dans le catalogue local."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [
+    "https://www.dofuspourlesnoobs.com/quetes-du-dofus-abyssal.html"
+  ],
+  "sections": [
+    {
+      "id": "dofus_abyssal_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        1020,
+        1498,
+        1511,
+        1512,
+        1513,
+        1514,
+        1515,
+        1516
+      ],
+      "steps": [
+        {
+          "id": "dofus_abyssal_quest_1441",
+          "type": "quest",
+          "entity_id": 1441,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1752",
+          "type": "quest",
+          "entity_id": 1752,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1753",
+          "type": "quest",
+          "entity_id": 1753,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1765",
+          "type": "quest",
+          "entity_id": 1765,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1440",
+          "type": "quest",
+          "entity_id": 1440,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1433",
+          "type": "quest",
+          "entity_id": 1433,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1751",
+          "type": "quest",
+          "entity_id": 1751,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1754",
+          "type": "quest",
+          "entity_id": 1754,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1751
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1732",
+          "type": "quest",
+          "entity_id": 1732,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1731",
+          "type": "quest",
+          "entity_id": 1731,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1745",
+          "type": "quest",
+          "entity_id": 1745,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1731
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1733",
+          "type": "quest",
+          "entity_id": 1733,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1731
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1746",
+          "type": "quest",
+          "entity_id": 1746,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1745
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1764",
+          "type": "quest",
+          "entity_id": 1764,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1438",
+          "type": "quest",
+          "entity_id": 1438,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1748",
+          "type": "quest",
+          "entity_id": 1748,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1749",
+          "type": "quest",
+          "entity_id": 1749,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1757",
+          "type": "quest",
+          "entity_id": 1757,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1748
+            },
+            {
+              "type": "quest",
+              "entity_id": 1749
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1766",
+          "type": "quest",
+          "entity_id": 1766,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1757
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1755",
+          "type": "quest",
+          "entity_id": 1755,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1439",
+          "type": "quest",
+          "entity_id": 1439,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1750",
+          "type": "quest",
+          "entity_id": 1750,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1737",
+          "type": "quest",
+          "entity_id": 1737,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1731
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1738",
+          "type": "quest",
+          "entity_id": 1738,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1737
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1442",
+          "type": "quest",
+          "entity_id": 1442,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1443",
+          "type": "quest",
+          "entity_id": 1443,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1442
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1739",
+          "type": "quest",
+          "entity_id": 1739,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1738
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1740",
+          "type": "quest",
+          "entity_id": 1740,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1739
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1741",
+          "type": "quest",
+          "entity_id": 1741,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1740
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1742",
+          "type": "quest",
+          "entity_id": 1742,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1741
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1734",
+          "type": "quest",
+          "entity_id": 1734,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1733
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1735",
+          "type": "quest",
+          "entity_id": 1735,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1734
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1736",
+          "type": "quest",
+          "entity_id": 1736,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1735
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1743",
+          "type": "quest",
+          "entity_id": 1743,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1736
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1747",
+          "type": "quest",
+          "entity_id": 1747,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1746
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1756",
+          "type": "quest",
+          "entity_id": 1756,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1747
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1758",
+          "type": "quest",
+          "entity_id": 1758,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1756
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1759",
+          "type": "quest",
+          "entity_id": 1759,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1758
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1744",
+          "type": "quest",
+          "entity_id": 1744,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1743
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_abyssal_quest_1760",
+          "type": "quest",
+          "entity_id": 1760,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1742
+            },
+            {
+              "type": "quest",
+              "entity_id": 1744
+            },
+            {
+              "type": "quest",
+              "entity_id": 1759
+            }
+          ],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

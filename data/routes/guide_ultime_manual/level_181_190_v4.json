@@ -1,0 +1,28 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_level_181_190_v4",
+  "title": "Guide Ultime — Niveau 181 à 190 + préparation métier post-200",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v3.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v3",
+  "stage_count": 21,
+  "optimization_note": "Backpatch de préparation uniquement: dès181, choisir un seul métier de récolte à pousser jusqu'au niveau200 pour couvrir à la fois le prérequis Vulbis (Alchimiste ou Paysan200) et Six sur six (métier de récolte200). Aucun boss, ordre de quête ou passage donjon n'est modifié.",
+  "stage_patches": {
+    "L181-00": {
+      "prepend": {
+        "preparation": [
+          {
+            "requirement": "Un métier de récolte niveau200 avant le bloc post-200",
+            "preferred": ["Alchimiste", "Paysan"],
+            "for": ["Dofus Vulbis — La Nuit-qui-rugit", "Six sur six — S'armer contre le destin"],
+            "policy": "Choisir le métier déjà le plus haut ou le moins coûteux à monter. Ne pas monter les deux uniquement pour ces quêtes. Profiter des traversées de zones 181-200 pour récolter quand cela ne crée pas de détour significatif."
+          }
+        ],
+        "progress_also": [
+          "Afficher le niveau du métier choisi dans le suivi 181-200 et prévenir avant le niveau200 s'il reste en retard; objectif final = 200 avant Vulbis/Six sur six."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

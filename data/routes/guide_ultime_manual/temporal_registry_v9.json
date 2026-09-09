@@ -1,0 +1,72 @@
+{
+  "schema_version": 9,
+  "registry_id": "guide_ultime_temporal_registry_v9",
+  "title": "Guide Ultime — contraintes temporelles jusqu'au palier 180 + Osavora",
+  "status": "MANUAL_TEMPORAL_WORKING_SET",
+  "base_file": "temporal_registry_v8.json",
+  "supersedes": "guide_ultime_temporal_registry_v8",
+  "entry_patches": {},
+  "entry_insertions": [
+    {
+      "id": "osavora_season_cycle",
+      "type": "weekly_rotating_season",
+      "area": "Osavora",
+      "rotation_order": [
+        "Naissance",
+        "Chasse",
+        "Repos"
+      ],
+      "change_weekday": "MO",
+      "change_local_time": "08:00",
+      "timezone_policy": "server_local_time",
+      "hard_wait_forbidden": true,
+      "route_policy": "Lire la saison runtime avant toute quête saisonnière. Ne jamais bloquer la route principale pour attendre le lundi; conserver l'état du succès et reprendre à la prochaine saison utile.",
+      "source": "Dofus Pour Les Noobs — Quêtes d'Osavora",
+      "source_note": "Les saisons alternent une par semaine dans l'ordre Naissance → Chasse → Repos; changement le lundi à 08:00."
+    },
+    {
+      "id": "osavora_a_la_petite_semaine",
+      "type": "seasonal_success_progress",
+      "success": "À la petite semaine",
+      "minimum_level": 180,
+      "baseline_weekly_quest": "Une petite démangeaison",
+      "season_quests": {
+        "Naissance": "Que la chasse commence !",
+        "Chasse": "Suivre son instinct",
+        "Repos": "Un divin nectar"
+      },
+      "hard_wait_forbidden": true,
+      "repeat_policy": "Faire chaque composante nécessaire au succès lorsqu'elle est disponible. Une petite démangeaison n'est pas répétée après validation sauf bénéfice explicite indépendant; les trois quêtes saisonnières restent un fil temporel multi-semaines.",
+      "out_of_success_repeatable": {
+        "quest": "Le gourmet solitaire",
+        "minimum_hunter_level": 170,
+        "auto_repeat": false,
+        "policy": "Hors succès: ne pas répéter automatiquement. Ne l'exécuter que si un objectif/récompense explicite le justifie."
+      },
+      "source": "Dofus Pour Les Noobs — À la petite semaine / quêtes d'Osavora"
+    },
+    {
+      "id": "osavora_gargandyas_weekend",
+      "type": "weekend_access_window",
+      "boss": "Gargandyas",
+      "dungeon": "Temple de Gargandyas",
+      "linked_quest": "Destructeur de mondes",
+      "open_weekday": "FR",
+      "open_local_time": "19:00",
+      "close_weekday": "MO",
+      "close_local_time": "08:00",
+      "capture_allowed": false,
+      "weekly_victory_cap": 5,
+      "attempt_count_policy": "verify_runtime_calendar_due_source_wording_conflict",
+      "hard_wait_forbidden": true,
+      "offering_by_season": {
+        "Naissance": "Peau de Zarbivore",
+        "Chasse": "Peigne de Rhoarim",
+        "Repos": "Touffe de Kabombz"
+      },
+      "route_policy": "Ne pas attendre devant le temple. Quand Destructeur de mondes est actif, préparer l'offrande de la saison et exécuter Gargandyas pendant une fenêtre naturelle du week-end. Hors fenêtre, poursuivre les autres fils et conserver Destructeur en attente.",
+      "source": "Dofus Pour Les Noobs — Temple de Gargandyas / Quêtes d'Osavora",
+      "source_note": "Fenêtre documentée vendredi 19:00 → lundi 08:00; le boss n'est pas capturable. Les pages DPLN emploient des formulations divergentes sur tentatives/victoires après 3.4: le runtime/calendrier jeu reste la vérité."
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_level_51_70_v2",
+  "title": "Guide Ultime — Niveau 51 à 70 + Ocre d'Ambre synchronisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_51_70_v1.json",
+  "supersedes": "guide_ultime_manual_level_51_70_v1",
+  "stage_count": 7,
+  "depends_on": [
+    "amakna_40_60_v4.json",
+    "bonta_1_22_v2.json",
+    "bonta_order_rank20_v1.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "L'accès Otomaï et La raison du plus fort ont été avancés dans AMK v4. Le chapitre 51-70 ne refait donc plus la traversée: il reprend Après lui, le déluge et fusionne son unique Grotte Hesque avec Donjon magistral + capture Ocre.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/apres-lui-le-deluge.html",
+    "https://www.dofuspourlesnoobs.com/grotte-hesque.html",
+    "https://www.dofuspourlesnoobs.com/comme-un-corbac-sur-sa-branche.html"
+  ],
+  "stage_patches": {
+    "L51-01": {
+      "replace": {
+        "title": "Otomaï déjà ouvert — préparer Après lui, le déluge avant la Grotte Hesque",
+        "level": "51+ / Ocre d'Ambre ouvert en AMK-02O",
+        "duration_min": 20,
+        "quests": ["Après lui, le déluge", "L'éternelle moisson"],
+        "route": [
+          {"pos":"Otomaï / progression runtime","do":"Vérifier que Le nouveau monde et L'île des naufragés sont déjà terminées par AMK-02O. Ne jamais refaire la traversée. Vérifier Après lui, le déluge active et avancer ses éventuels objectifs précédant la Grotte Hesque jusqu'à ce que Corailleur Magistral soit explicitement demandé."},
+          {"pos":"banque/HDV si nécessaire","do":"Préparer une pierre d'âme puissance50 pour Corailleur Magistral et conserver l'Anneau Ocre de quête. Le prochain passage Grotte doit servir simultanément Ocre d'Ambre + Donjon magistral + Éternelle moisson."}
+        ],
+        "hard_exit": [
+          "Accès Otomaï déjà permanent, aucune traversée répétée.",
+          "Après lui, le déluge au verrou Grotte Hesque.",
+          "Donjon magistral actif.",
+          "Pierre puissance50 disponible pour Corailleur Ocre."
+        ],
+        "pause": ["Grotte Hesque prête triple-fil"]
+      }
+    },
+    "L51-02": {
+      "append": {
+        "quests": ["Après lui, le déluge", "Comme un corbac sur sa branche"],
+        "route": [
+          {"pos":"Grotte Hesque — APRÈS Corailleur","do":"Ne pas sortir après le boss. Avec Après lui, le déluge actif, cliquer le gros corail requis pour obtenir l'ambre antédiluvien, puis purifier l'ambre avec l'Anneau Ocre selon le walkthrough. Cette action nécessite le vrai donjon et doit être faite avant sortie."},
+          {"pos":"Otomaï -> Hel Munster [-5,-13]","do":"Fermer Après lui, le déluge après le passage Hesque puis prendre immédiatement Comme un corbac sur sa branche. Avancer tous ses objectifs hors Reine Nyée; conserver le fil jusqu'au passage Reine déjà planifié au niveau100+."}
+        ],
+        "hard_exit": [
+          "Grotte Hesque faite une seule fois pour Donjon magistral + Après lui, le déluge + Corailleur Ocre.",
+          "Ambre antédiluvien récupéré/purifié.",
+          "Comme un corbac sur sa branche active avant le futur Antre de la Reine Nyée."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

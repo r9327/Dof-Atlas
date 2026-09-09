@@ -1,0 +1,19 @@
+{
+  "schema_version": 10,
+  "route_id": "guide_ultime_manual_level_200_plus_v10",
+  "title": "Guide Ultime — Post-200, raccord final après Totems v21",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v9.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v9",
+  "stage_count": 12,
+  "depends_on": [
+    "level_191_200_v21.json",
+    "ocre_final_route_v2.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v15.json"
+  ],
+  "optimization_note": "Raccord de dépendances uniquement : conserve les 12 fiches post-200 de v9 et fait dépendre explicitement la finale du chapitre 191-200 v21 où Réminiscence/Totems sont replacés avant leurs boss donneurs.",
+  "stage_patches": {},
+  "insertions": []
+}

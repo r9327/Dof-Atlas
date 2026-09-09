@@ -1,0 +1,224 @@
+{
+  "schema_version": 2,
+  "registry_id": "guide_ultime_temporal_registry_v2",
+  "status": "RESEARCH_IN_PROGRESS",
+  "supersedes": "temporal_registry_v1.json",
+  "policy": {
+    "start_as_soon_as_profitable": true,
+    "never_start_before_real_prerequisites": true,
+    "never_block_main_route_while_waiting": true,
+    "reinject_before_losing_next_cycle": true,
+    "calendar_content_never_hidden_in_permanent_route": true,
+    "event_content_never_required_when_event_closed": true,
+    "repeat_same_quest_only_when_it_has_explicit_value": true,
+    "require_source_before_activation": true
+  },
+  "entries": [
+    {
+      "id": "astrub_kerubim_daily",
+      "type": "daily_repeatable",
+      "area": "Astrub / Amakna",
+      "quest": "Bien velu, c'est Kerubim",
+      "minimum_level": 10,
+      "prerequisite": "Scène de ménage",
+      "location": "[3,-17]",
+      "reward": [{"name":"Poils de Kerubim","quantity":10}],
+      "priority": "do_once_for_success_and_weekly_material",
+      "runtime_rule": "Lancer dès Scène de ménage terminée. Absorber les trois combats dans les passages naturels [6,-16], [-3,-24] et [3,1] plutôt que créer un détour dédié. Rendre ensuite à Kerubim. Une seule validation est requise pour Faire le keke; répéter uniquement pour une raison économique ou un besoin explicite de Poils.",
+      "source": "https://www.dofuspourlesnoobs.com/bien-velu-cest-kerubim.html"
+    },
+    {
+      "id": "astrub_kerubim_weekly",
+      "type": "weekly_repeatable",
+      "area": "Astrub",
+      "quest": "Il faut que cha brille",
+      "minimum_level": 10,
+      "prerequisite": "Scène de ménage",
+      "location": "[3,-17]",
+      "required_items": [
+        {"name":"Graisse Gélatineuse","quantity":5},
+        {"name":"Défense du Sanglier","quantity":2},
+        {"name":"Groin de Sanglier des Plaines","quantity":2},
+        {"name":"Poils de Kerubim","quantity":1}
+      ],
+      "craft_location": "Atelier alchimiste [3,-21]",
+      "priority": "do_once_immediately_after_first_daily_completion",
+      "runtime_rule": "Faire une première fois dès que Bien velu a fourni le Poil et que les ressources sont disponibles, idéalement au retour naturel vers Astrub. La répétition hebdomadaire du même ID n'ajoute pas de quête unique: ne pas la répéter sans bénéfice explicite.",
+      "source": "https://www.dofuspourlesnoobs.com/il-faut-que-cha-brille.html",
+      "source_last_update": "2024-12-24"
+    },
+    {
+      "id": "pandawushu_grade_chain",
+      "type": "fixed_delay_chain",
+      "area": "Pandala",
+      "priority": "critical_after_level_100_unlock",
+      "unlock": {
+        "recommended_level": 100,
+        "required_quest": "À la croisée des mondes",
+        "intro_quest": "Les voies du Pandawushu",
+        "first_grade": "Rokwa : Voie du poing",
+        "location_intro": "[20,-28]",
+        "location_grades": "[20,-31]"
+      },
+      "delay_policy": {
+        "first_24h_timer_starts_after": "Rokwa : Voie du poing",
+        "delay_hours_between_following_grades": 24,
+        "do_not_detour_before_unlock": true
+      },
+      "known_sequence": [
+        "Les voies du Pandawushu",
+        "Rokwa : Voie du poing",
+        "Gokwa : Voie du bâton",
+        "Yonkwa : Voie du sabre",
+        "Sankwa : Voie du bouclier",
+        "Nikwa : Voie des cinq griffes",
+        "Ikwa : Voie du guerrier ivre",
+        "Shodanwa : Perfection martiale",
+        "Nidanwa : Harmonie intérieure",
+        "Sandanwa : Pluralité martiale",
+        "Yondanwa : Maîtrise absolue",
+        "Godanwa : Transcendance"
+      ],
+      "runtime_rule": "Ne jamais faire un détour Pandawushu au niveau 30: la chaîne n'est pas disponible. Dès À la croisée des mondes terminée vers le palier 100, faire Les voies du Pandawushu puis Rokwa au premier passage rentable. Après Rokwa, chaque grade suivant doit être relancé dès son délai de 24 h écoulé, avec priorité au retour dojo si attendre ferait perdre un cycle entier.",
+      "tracking_item": "Passage de grade",
+      "sources": [
+        "https://www.dofuspourlesnoobs.com/a-la-croisee-des-mondes.html",
+        "https://www.dofuspourlesnoobs.com/les-voies-du-pandawushu.html",
+        "https://www.dofuspourlesnoobs.com/rokwa-voie-du-poing.html",
+        "https://www.dofuspourlesnoobs.com/gokwa-voie-du-baton.html",
+        "https://www.dofuspourlesnoobs.com/suivre-la-voie.html"
+      ]
+    },
+    {
+      "id": "pandala_presence_esprits_initiative",
+      "type": "weekly_calendar_window",
+      "area": "Pandala",
+      "quest": "Présence d'esprits",
+      "objective": "Esprit d'initiative",
+      "recommended_level": "100-140",
+      "weekday": "Saturday",
+      "window_hours": 24,
+      "location": "Village de Pandala",
+      "priority": "high_when_prerequisites_complete",
+      "prerequisite_policy": "Ne pas activer ce rappel au simple déblocage de Pandala. Présence d'esprits possède plusieurs prérequis Pandala; le rappel samedi ne devient actif que lorsque l'objectif Esprit d'initiative est réellement accessible.",
+      "runtime_rule": "Une fois l'étape concernée de Présence d'esprits débloquée, intégrer l'Esprit d'initiative le samedi avant la fin de la fenêtre. Si 42 Almatons peuvent forcer l'apparition et que leur coût d'opportunité est acceptable, proposer cette alternative au lieu d'attendre une semaine.",
+      "source": "https://www.dofuspourlesnoobs.com/presence-d-esprits.html"
+    },
+    {
+      "id": "pandala_shake_one_hour",
+      "type": "fixed_delay_single_quest",
+      "area": "Pandala",
+      "quest": "Les habitudes ont l'eau-de-vie dure",
+      "recommended_level": 130,
+      "delay_hours": 1,
+      "priority": "normal",
+      "runtime_rule": "Lors du chapitre Akwadala, déclencher le délai d'une heure avant de faire les autres objectifs de zone; réinjecter la suite après une heure sans attendre sur place.",
+      "source": "https://www.dofuspourlesnoobs.com/les-habitudes-ont-l-eau-de-vie-dure.html"
+    },
+    {
+      "id": "amakna_allister_daily_meat",
+      "type": "daily_repeatable",
+      "area": "Château d'Amakna",
+      "quest": "De la viande pour la tablée d'Allister",
+      "minimum_level": 50,
+      "location": "[5,-4]",
+      "required_items": [{"name":"Viande Avariée","quantity":10}],
+      "reward": [{"name":"Parchemin de Chasseur","quantity":2}],
+      "priority": "do_once_at_first_eligible_castle_passage",
+      "runtime_rule": "Au premier passage au Château après le niveau 50, faire la quête une fois si 10 Viandes Avariées sont disponibles à coût raisonnable. L'achat HDV est préféré à un détour de farm si Chasseur 70 n'est pas déjà acquis. Ne pas répéter chaque jour automatiquement: une répétition du même ID n'augmente pas la couverture de quêtes uniques et ne vaut le détour que si un objectif métier/économique explicite le justifie.",
+      "source": "https://www.dofuspourlesnoobs.com/de-la-viande-pour-la-tablee-d-allister.html",
+      "source_checked": "2026-08-23",
+      "source_last_update": "2026-06-25"
+    },
+    {
+      "id": "sufokia_costaud_daily",
+      "type": "daily_repeatable",
+      "area": "Sufokia / Territoire des bandits",
+      "quest": "C'est du costaud",
+      "recommended_level": 45,
+      "location": "[17,28]",
+      "targets": [
+        {"name":"Bandit du clan des Roublards","quantity":5},
+        {"name":"Mineur Sombre","quantity":2},
+        {"name":"Forgeron Sombre","quantity":2},
+        {"name":"Boulanger Sombre","quantity":2}
+      ],
+      "priority": "do_once_for_sufokons_ensemble",
+      "runtime_rule": "Lancer avant le premier passage Territoire des bandits/Donjon des Forgerons qui peut fournir les familles demandées. Faire une validation pour Sufokons ensemble; ne répéter quotidiennement que si un objectif XP/kamas explicite le justifie.",
+      "source": "https://www.dofuspourlesnoobs.com/cest-du-costaud.html"
+    },
+    {
+      "id": "wabbit_pwinces_daily",
+      "type": "daily_repeatable",
+      "area": "Îlot des Tombeaux — Wabbit",
+      "quest": "Les pwinces déchus",
+      "recommended_level": 60,
+      "prerequisite": "Des pwinces pas très charmants",
+      "location": "[22,-10]",
+      "group_requirement": "2 personnages supplémentaires pour ouvrir la grille; combat réalisable en groupe",
+      "priority": "do_once_for_wabbit_en_feu",
+      "runtime_rule": "Dès Des pwinces pas très charmants terminé et lors du premier passage naturel sur l'Îlot des Tombeaux, réunir 3 personnages pour ouvrir la grille et valider la quête une fois pour Wabbit en feu. Ne pas répéter quotidiennement sans bénéfice explicite.",
+      "source": "https://www.dofuspourlesnoobs.com/les-pwinces-deacutechus.html"
+    },
+    {
+      "id": "frigost_vaccine_duration",
+      "type": "temporary_buff_duration",
+      "area": "Frigost",
+      "quest": "Les monologues du vaccin",
+      "duration_days": 7,
+      "effect": "Vaccin contre le rube",
+      "priority": "high",
+      "runtime_rule": "Programmer les contenus de Frigost dépendant du vaccin dans la fenêtre de 7 jours ou renouveler le vaccin avant expiration. Le chapitre Frigost doit grouper ces contenus avant validation.",
+      "source": "https://www.dofuspourlesnoobs.com/les-monologues-du-vaccin.html"
+    },
+    {
+      "id": "nowel_atelier_seven_days",
+      "type": "daily_repetition_chain",
+      "area": "Île de Nowel",
+      "quest": "L'Étoile de l'Atelier",
+      "repeat_quest": "Distribution de marrons",
+      "required_completions": 7,
+      "cadence": "daily",
+      "event_only": true,
+      "priority": "seasonal_critical_when_event_open",
+      "runtime_rule": "Pendant Nowel, lancer cette chaîne le premier jour possible et effectuer Distribution de marrons chaque jour jusqu'à 7 bons points. Hors événement elle reste totalement séparée et ne bloque jamais la route permanente.",
+      "source": "https://www.dofuspourlesnoobs.com/lrsquoeacutetoile-de-lrsquoatelier.html"
+    },
+    {
+      "id": "nowel_preparatifs_three_days",
+      "type": "daily_repetition_chain",
+      "area": "Île de Nowel",
+      "quest": "L'Étoile des Donjons",
+      "repeat_quest": "Préparatifs de Nowel",
+      "required_completions": 3,
+      "minimum_real_days": 3,
+      "daily_reset_local_hour": 7,
+      "event_only": true,
+      "priority": "seasonal_critical_when_event_open",
+      "runtime_rule": "Pendant Nowel, commencer Préparatifs de Nowel au premier jour possible dans la tranche de niveau courante et le faire trois jours au minimum pour L'Étoile des Donjons. Ne pas remplacer par Joyeux Nowel lorsqu'on vise l'étoile, car Joyeux Nowel ne compte pas pour ce compteur.",
+      "source": "https://www.dofuspourlesnoobs.com/lrsquoeacutetoile-des-donjons.html"
+    },
+    {
+      "id": "nowel_joyeux_unique_versions",
+      "type": "daily_multi_version_quest",
+      "area": "Village d'Amakna / Île de Nowel",
+      "quest": "Joyeux Nowel",
+      "minimum_level": 20,
+      "daily_reset_local_hour": 7,
+      "event_only": true,
+      "known_distinct_versions": 34,
+      "priority": "seasonal_qq_optimization",
+      "runtime_rule": "Pendant Nowel uniquement, exploiter les versions distinctes de Joyeux Nowel correspondant aux tranches de niveau pour le compteur de quêtes uniques. Un boss représente une version distincte; après 2 h Félix peut proposer une autre mission de la même tranche. Ne jamais injecter ces 34 versions dans la route permanente hors saison.",
+      "source": "https://www.dofuspourlesnoobs.com/joyeux-nowel.html"
+    }
+  ],
+  "research_backlog": [
+    "Auditer toutes les autres quêtes quotidiennes/hebdomadaires de Pandala avant le chapitre niveau 100.",
+    "Auditer toutes les étapes calendaires de Présence d'esprits et leur jour exact.",
+    "Auditer les autres quêtes répétables du Château/Amakna et distinguer couverture unique de farm économique.",
+    "Auditer les autres quêtes répétables Sufokia/Wabbit avant leurs chapitres.",
+    "Auditer Frigost pour toutes les dépendances au vaccin de 7 jours.",
+    "Auditer Almanax et événements saisonniers séparément de la route permanente.",
+    "Auditer toutes les quêtes nécessitant une attente réelle d'une heure ou plus avant leur chapitre de première disponibilité."
+  ]
+}

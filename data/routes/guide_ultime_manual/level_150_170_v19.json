@@ -1,0 +1,55 @@
+{
+  "schema_version": 19,
+  "route_id": "guide_ultime_manual_level_150_170_v19",
+  "title": "Guide Ultime — Niveau 150 à 170 + prérequis Xélorium causaux",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v18.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v18",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v18.json",
+    "bonta_1_100_v11.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Répare l'ouverture Xélorium avant Prisonniers du temps. Anomalies temporelles et C'est ton destin sont traitées dès l'arrivée; C'est ton destin ouvre Retour vers le présent. Prisonniers du temps ne démarre qu'une fois Anomalies + Retour réellement fermées, puis consomme le même Fraktale déjà prévu avec L'épée du rocher. Failles spatio-temporelles au palier170 hérite ainsi d'Anomalies déjà terminée. Aucun donjon supplémentaire.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/anomalies-temporelles.html",
+    "https://www.dofuspourlesnoobs.com/cest-ton-destin.html",
+    "https://www.dofuspourlesnoobs.com/retour-vers-le-preacutesent.html",
+    "https://www.dofuspourlesnoobs.com/prisonniers-du-temps.html",
+    "https://www.dofuspourlesnoobs.com/failles-spatio-temporelles.html"
+  ],
+  "stage_patches": {
+    "L150-15": {
+      "prepend": {
+        "quests": [
+          "Anomalies temporelles",
+          "C'est ton destin",
+          "Retour vers le présent"
+        ],
+        "route": [
+          {"pos":"[1,6] Xélorium — Chemins d'hier","do":"À la première arrivée dans Xélorium, prendre et terminer Anomalies temporelles et C'est ton destin avant de lancer Prisonniers du temps. Grouper leurs combats et collectes sur la même boucle de première zone."},
+          {"pos":"[1,6] Xélorium — Doc Emiette Borgne","do":"C'est ton destin terminé, enchaîner Retour vers le présent. Utiliser les trajets Sufokia/Tour déjà ouverts, récupérer les10 fragments de mémoire puis revenir rendre la quête au Doc Emiette Borgne."},
+          {"pos":"[1,6] Xélorium","do":"Vérifier Anomalies temporelles + Retour vers le présent réellement terminées. Seulement alors prendre Prisonniers du temps et l'avancer jusqu'au Mégalithe de Fraktale, afin que le Fraktale déjà prévu serve simultanément Prisonniers + L'épée du rocher."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Anomalies temporelles terminée avant Prisonniers du temps.",
+          "C'est ton destin puis Retour vers le présent terminées dans cet ordre.",
+          "Prisonniers du temps n'entre au Fraktale qu'après ses deux prérequis réels.",
+          "Le Fraktale reste un seul passage partagé pour Prisonniers du temps et L'épée du rocher."
+        ]
+      }
+    },
+    "L150-17": {
+      "append": {
+        "hard_exit": [
+          "Anomalies temporelles doit déjà être terminée avant de lancer Failles spatio-temporelles."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

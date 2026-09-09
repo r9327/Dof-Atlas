@@ -1,0 +1,173 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_level_181_190_v2",
+  "title": "Guide Ultime — Niveau 181 à 190 + Abyssal intégré",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v1.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v1",
+  "stage_count": 21,
+  "optimization_note": "Remplace le simple checkpoint Abyssal du V1 par une route complète: La pêche aux infos ouvre les trois chaînes principales en parallèle; Ancienne Sufokia mutualise La mer en héritage avec Le vieux gob/Nos chairs voisines; Meno, Dantinéa et Koutoulou sont chacun faits une seule fois pour leurs fils; les équipements d'exploration sont achetés en HDV par défaut plutôt que d'imposer cinq métiers200. Le héros de Sufokia est gardé pour la fin, après les six autres succès + Test d'étanchéité, et le Dofus n'est déclaré obtenu que si le runtime le confirme.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/quetes-du-dofus-abyssal.html",
+    "https://www.dofuspourlesnoobs.com/plouf.html",
+    "https://www.dofuspourlesnoobs.com/la-mer-en-heacuteritage.html",
+    "https://www.dofuspourlesnoobs.com/la-guerre-des-profondeurs.html",
+    "https://www.dofuspourlesnoobs.com/lappel-de-koutoulou.html",
+    "https://www.dofuspourlesnoobs.com/vous-ne-descendrez-pas-plus-bas.html",
+    "https://www.dofuspourlesnoobs.com/silence-on-coule.html"
+  ],
+  "global_abyssal_preparation": [
+    {"name":"Sceau des fondateurs","quantity":1,"policy":"Acheter en HDV par défaut. Craft Bijoutier200 uniquement si déjà disponible/rentable."},
+    {"name":"Volant hydraulique","quantity":1,"policy":"HDV par défaut; Forgeron200 non imposé."},
+    {"name":"Accélérateur de propulsion","quantity":1,"policy":"HDV par défaut; Tailleur200 non imposé."},
+    {"name":"Lest anti-tourbillon","quantity":1,"policy":"HDV par défaut; Cordonnier200 non imposé."},
+    {"name":"Attrape-peur","quantity":1,"policy":"HDV par défaut; Sculpteur200 non imposé."},
+    {"name":"Statuette de Snedon","quantity":1,"policy":"HDV par défaut lorsque disponible; ne farmer les 50 Patte de Li-Fo que si économiquement préférable."},
+    {"name":"Pépite","quantity":200},
+    {"name":"Peau de Rouquette","quantity":10},
+    {"name":"Saucisse Fumée","quantity":5},
+    {"name":"Kobalite","quantity":5},
+    {"name":"Écorce de Brouture","quantity":3},
+    {"name":"Dent de Fantômat","quantity":3},
+    {"name":"Écume de mer","quantity":3},
+    {"name":"Patelle","quantity":3},
+    {"name":"Quisnoa","quantity":3},
+    {"name":"Bois d'Aquajou","quantity":3},
+    {"name":"Salikrone","quantity":3},
+    {"name":"Viande Goûtue","quantity":3},
+    {"requirement":"Au moins un métier niveau200 sur le personnage si une quête Abyssal le vérifie personnellement","blocking":"runtime_only"},
+    {"note":"Les composants d'exploration sont lourds/coûteux. Acheter les objets finis, les garder jusqu'à fermeture de toutes les zones Abyssal, puis les revendre seulement quand aucun fil ne les utilise encore."}
+  ],
+  "insertions": [
+    {
+      "before": "L190-11",
+      "stage": {
+        "id":"L190-10A",
+        "title":"Abyssal — La pêche aux infos + ouvrir les trois grandes chaînes",
+        "level":"190+ / accès Sufokia et Base Abyssale",
+        "duration_min":150,
+        "quests":["La pêche aux infos","Il y a de l'électricité dans l'eau","Reine de beauté","Celle qui glougloutait dans les ténèbres","Les sept Mercemers"],
+        "successes":["Plouf !","La mer en héritage","La guerre des profondeurs","L'appel de Koutoulou","Silence on coule"],
+        "take":["Prendre La pêche aux infos auprès de Pollie et la fermer avant d'organiser les donjons Abyssal.","Après sa fin, prendre immédiatement Il y a de l'électricité dans l'eau, Reine de beauté et lancer Celle qui glougloutait via le Livre détrempé. Prendre aussi Les sept Mercemers pendant les passages chantier/base."],
+        "route":[{"area":"Palais/Sufokia/Base Abyssale","do":"Faire La pêche aux infos en protégeant Pollie; grouper interviews et déplacements avec les PNJ utilisés par les autres fils. À la fin conserver le Livre détrempé."},{"area":"Sufokia","do":"Ouvrir les trois arcs Mer/Guerre/Koutoulou et Silence. Ne pas partir farmer une zone tant que les quêtes compatibles de cette même profondeur ne sont pas actives."}],
+        "progress_also":["Test d'étanchéité est déjà terminé depuis le Merkator180 et compte comme septième succès Abyssal; aucun nouveau Merkator."],
+        "before_leaving":["La pêche aux infos terminée","Mer/Guerre/Koutoulou ouverts","Silence ouvert"],
+        "hard_exit":["Aucun donjon Abyssal commencé isolément"],
+        "pause":["POINT DE PAUSE SÛR — trois arcs Abyssal ouverts"],
+        "next":"L190-10B"
+      }
+    },
+    {
+      "after":"L190-10A",
+      "stage": {
+        "id":"L190-10B",
+        "title":"Ancienne Sufokia — La mer en héritage + Vieux gob/Silence, Meno unique",
+        "level":"190+ / startCriteria réels",
+        "duration_min":460,
+        "quests":["Il y a de l'électricité dans l'eau","Topo le petit robot","Piège de crystal","Son nom est Personne","La clef de l'énigme","Une porte vers le passé","Le vieux gob et la mer","Nos chairs voisines"],
+        "successes":["La mer en héritage","Vous ne descendrez pas plus bas","Silence on coule"],
+        "dungeon":{"name":"Vaisseau du Capitaine Meno","pass":"unique_for_abyssal","quest":"Piège de crystal"},
+        "preparation":[{"name":"Sceau des fondateurs","quantity":1},{"name":"Volant hydraulique","quantity":1},{"note":"Pendant le farm Ancienne Sufokia, activer Nos chairs voisines avant les Greuvettes du Vieux gob afin que les mêmes monstres alimentent les deux fils."}],
+        "take":["Enchaîner Électricité → Topo → Piège selon leur causalité. Dès accès Ancienne Sufokia, prendre Le vieux gob et Nos chairs voisines avant tout farm."],
+        "route":[{"area":"Ville submergée/Ancienne Sufokia","do":"Faire Électricité puis Topo avec le Sceau déjà prêt. Regrouper les combats et collectes de zone avec Le vieux gob/Nos chairs; ne pas refaire les mêmes familles pour deux quêtes séparées."},{"area":"Vaisseau du Capitaine Meno","do":"Quand Piège de crystal demande Meno, faire UN seul donjon, tous succès compatibles, vaincre Meno et lui parler avant sortie."},{"area":"Ancienne Sufokia/Vestiges","do":"Enchaîner Son nom est Personne, La clef de l'énigme et Une porte vers le passé avec le Volant hydraulique déjà acquis; faire les combats finaux du sanctuaire sans nouveau Meno."}],
+        "progress_also":["Le vieux gob peut être fermé dans la même session de zone. Les trois autres quêtes de Vous ne descendrez pas plus bas attendent les profondeurs suivantes."],
+        "before_leaving":["La mer en héritage terminé","Meno fait une seule fois","Le vieux gob terminé","Nos chairs voisines avancée/terminée"],
+        "hard_exit":["Aucun second Meno pour l'Abyssal"],
+        "pause":["POINT DE PAUSE SÛR — Mer en héritage fermée"],
+        "next":"L190-10C"
+      }
+    },
+    {
+      "after":"L190-10B",
+      "stage": {
+        "id":"L190-10C",
+        "title":"Domaine/Faille des Trithons — Guerre des profondeurs, Dantinéa unique",
+        "level":"190+ / startCriteria réels",
+        "duration_min":480,
+        "quests":["Reine de beauté","Rançon nage","Stratégie en Trithon Réel","Sur fond de crise","Risquer un œil","La gueule de l'enfer"],
+        "successes":["La guerre des profondeurs"],
+        "dungeon":{"name":"Palais de Dantinéa","pass":"unique_for_abyssal","quest":"Reine de beauté"},
+        "preparation":[{"name":"Accélérateur de propulsion","quantity":1},{"name":"Lest anti-tourbillon","quantity":1},{"name":"Pépite","quantity":200},{"name":"Peau de Rouquette","quantity":10},{"name":"Saucisse Fumée","quantity":5},{"name":"Kobalite","quantity":5},{"name":"Écorce de Brouture","quantity":3},{"name":"Dent de Fantômat","quantity":3},{"name":"Défense du Phossile","quantity":1}],
+        "take":["Prendre Reine de beauté et n'entrer au Palais que lorsque ses autres actions hors donjon sont prêtes."],
+        "route":[{"area":"Palais de Dantinéa","do":"Faire UN Dantinéa pour Reine de beauté + succès compatibles; interroger Dantinéa avant sortie."},{"area":"Domaine/Faille/Tréfonds","do":"Enchaîner Rançon nage → Stratégie → Sur fond de crise → Risquer un œil → La gueule de l'enfer. Utiliser Accélérateur et Lest achetés/préparés avant descente et grouper les collectes/combats de chaque profondeur."}],
+        "progress_also":["Pendant Faille/Tréfonds, prendre les quêtes indépendantes de Vous ne descendrez pas plus bas/Silence lorsqu'elles partagent exactement les mêmes monstres ou cartes."],
+        "before_leaving":["La guerre des profondeurs terminée","Dantinéa fait une seule fois"],
+        "hard_exit":["Aucun second Dantinéa pour l'Abyssal"],
+        "pause":["POINT DE PAUSE SÛR — Guerre fermée"],
+        "next":"L190-10D"
+      }
+    },
+    {
+      "after":"L190-10C",
+      "stage": {
+        "id":"L190-10D",
+        "title":"Profondeurs — fermer Vous ne descendrez pas plus bas + Silence on coule",
+        "level":"190+ / accès aux profondeurs",
+        "duration_min":600,
+        "quests":["Le vieux gob et la mer","Demain, j'arête","L'effet Paula Rice","Fhtagn !","Les sept Mercemers","Nos chairs voisines","Concurrence déloyale","Qui a la plus grosse ?","Droit de cuissage","La musique de Rykke Zane","Mémoires d'un amnésique","L'odeur devant le seuil","Aux grands mots les grands remèdes"],
+        "successes":["Vous ne descendrez pas plus bas","Silence on coule"],
+        "preparation":[{"name":"Tentacule de Grofond","quantity":1},{"name":"Tentacule de N'Yalg","quantity":1},{"name":"Œil de Shokkoth","quantity":1},{"name":"Peau de Trithon","quantity":1},{"name":"Parasite Aquatique","quantity":1},{"name":"Encre de Poulpée","quantity":1},{"name":"Pince de Crabe Yoloniste","quantity":1},{"name":"Bave de Mol Usk","quantity":1},{"name":"Trident de Tryde","quantity":1},{"name":"Lanterne de Tourthon","quantity":1},{"name":"Écaille de Gambaf","quantity":1},{"name":"Écume de mer","quantity":3},{"name":"Patelle","quantity":3},{"name":"Quisnoa","quantity":3},{"name":"Bois d'Aquajou","quantity":3},{"name":"Salikrone","quantity":3},{"name":"Viande Goûtue","quantity":3}],
+        "take":["Prendre les quêtes par profondeur AVANT leur farm. Ne pas collecter 7 Greuvettes, tentacules ou drops de Klûtistes avant que les quêtes qui les comptent soient actives."],
+        "route":[{"area":"Ancienne Sufokia → Faille → Tréfonds → Fosse/Abîme","do":"Fermer les trois quêtes restantes de Vous ne descendrez pas plus bas et les neuf quêtes Silence en une descente progressive. Regrouper les monstres identiques entre les deux succès et les trois arcs principaux; utiliser la Mixture Indicible seulement au vrai objectif."}],
+        "progress_also":["Ces deux succès n'ajoutent aucun boss de donjon listé par le guide Abyssal; ne programmer ni Meno, Dantinéa ni Koutoulou pour eux seuls."],
+        "before_leaving":["Vous ne descendrez pas plus bas terminé","Silence on coule terminé"],
+        "hard_exit":["Tous les farms de profondeurs mutualisés"],
+        "pause":["POINT DE PAUSE SÛR — deux succès latéraux Abyssal fermés"],
+        "next":"L190-10E"
+      }
+    },
+    {
+      "after":"L190-10D",
+      "stage": {
+        "id":"L190-10E",
+        "title":"Koutoulou — chaîne Pollie + signe des Anciens, un seul Temple",
+        "level":"190+ / La pêche aux infos terminée",
+        "duration_min":520,
+        "quests":["Celle qui glougloutait dans les ténèbres","L'affaire Pollie Perkine","Trop Pollie pour être honnête","Quand les astres seront propices","Il suffira d'un signe","De mal en impie"],
+        "successes":["L'appel de Koutoulou"],
+        "dungeon":{"name":"Temple de Koutoulou","pass":"unique_for_abyssal","quest":"De mal en impie"},
+        "preparation":[{"name":"Attrape-peur","quantity":1},{"name":"Statuette de Snedon","quantity":1},{"name":"Tentacule de Grofond","quantity":5},{"name":"Tentacule de N'Yalg","quantity":5},{"name":"Œil de Shokkoth","quantity":5},{"name":"Patte de Li-Fo","quantity":5},{"name":"Flûte de Klûtiste","quantity":5},{"note":"Acheter Attrape-peur/Statuette finis si le craft forcerait Sculpteur200 ou des dizaines de drops supplémentaires."}],
+        "take":["Double-cliquer le Livre détrempé pour commencer Celle qui glougloutait, puis suivre la chaîne sans pause artificielle jusqu'à De mal en impie."],
+        "route":[{"area":"Sufokia/Profondeurs","do":"Enchaîner l'enquête Pollie et préparer le Signe des Très Vieux Anciens en utilisant les ressources déjà récoltées pendant les autres succès."},{"area":"Temple de Koutoulou","do":"N'entrer que lorsque De mal en impie est active. Faire UN Temple, vaincre la Larve de Koutoulou, faire les succès compatibles, puis le combat Prêtre en jaune post-boss avant de rendre à la Reine."}],
+        "progress_also":["Ne pas faire le Temple avant De mal en impie même si le groupe est disponible: cela créerait un rerun de quête."],
+        "before_leaving":["L'appel de Koutoulou terminé","Koutoulou fait une seule fois"],
+        "hard_exit":["Aucun second Temple pour Abyssal"],
+        "pause":["POINT DE PAUSE SÛR — trois grandes chaînes closes"],
+        "next":"L190-10F"
+      }
+    },
+    {
+      "after":"L190-10E",
+      "stage": {
+        "id":"L190-10F",
+        "title":"Abyssal — Le héros de Sufokia en fermeture, uniquement si tous les succès sont réels",
+        "level":"190-200 / startCriterion runtime",
+        "duration_min":30,
+        "quests":["Le héros de Sufokia"],
+        "successes":["Plouf !","Abysses"],
+        "entry":"La mer en héritage + La guerre des profondeurs + L'appel de Koutoulou + Vous ne descendrez pas plus bas + Silence on coule + Test d'étanchéité réellement terminés.",
+        "take":["Ne prendre Le héros de Sufokia qu'après vérification runtime des trois prérequis nommés par la quête et, pour la route full succès, des six autres succès Abyssal déjà fermés."],
+        "route":[{"area":"Palais de Sufokia → Temple Steamer","do":"Parler Reine Viktorie, Roi Talas puis Jelus Verne. Si le runtime remet effectivement le Dofus Abyssal, l'enregistrer et fermer Plouf/Abysses. Si un niveau/startCriterion dur empêche la quête avant200, conserver cet unique dialogue final pour le chapitre suivant sans refaire aucun donjon."}],
+        "progress_also":["Les équipements d'exploration peuvent être revendus seulement après confirmation qu'aucune quête Abyssal ouverte ne les utilise encore."],
+        "before_leaving":["Dofus Abyssal obtenu OU unique gate final Le héros de Sufokia enregistré pour200"],
+        "hard_exit":["Aucun faux Abyssal si Hero n'est pas démarrable"],
+        "pause":["POINT DE PAUSE SÛR — Abyssal fermé ou dialogue final200 uniquement"],
+        "next":"L190-11 — Ébène/Osavora checkpoint"
+      }
+    }
+  ],
+  "stage_patches": {
+    "L190-11": {
+      "replace": {
+        "title":"Ébène / Osavora — checkpoints fin de tranche après Abyssal",
+        "quests":["Jusqu'au bout du rêve","La proie des vérités"],
+        "route":[{"area":"Songes","do":"Si les 12 rencontres de Jusqu'au bout du rêve sont réellement terminées et le gate >189 est vrai, autoriser le prochain arc Ébène; sinon conserver le compteur réel sans simulation."},{"area":"Osavora","do":"Continuer uniquement les fils permanents/saisonniers dont les startCriteria sont vrais; aucune attente saison/week-end."}],
+        "progress_also":["Abyssal est désormais routé par L190-10A..F; il ne reste dans ce stage que les fils asynchrones Ébène/Osavora."],
+        "before_leaving":["Ébène compteur exact","Osavora state exact"],
+        "hard_exit":["Aucune fausse completion Ébène/Osavora"],
+        "pause":["POINT DE PAUSE SÛR — fin 181-190"],
+        "next":"Audit transversal puis promotion si aucun contrat dur ne casse"
+      }
+    }
+  }
+}

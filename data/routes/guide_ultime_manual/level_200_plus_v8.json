@@ -1,0 +1,86 @@
+{
+  "schema_version": 8,
+  "route_id": "guide_ultime_manual_level_200_plus_v8",
+  "title": "Guide Ultime — Post-200, route finale consolidée",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v7.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v7",
+  "stage_count": 12,
+  "depends_on": [
+    "level_191_200_v19.json",
+    "ocre_final_route_v1.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v15.json"
+  ],
+  "optimization_note": "Raccorde la finale à 191-200 v19 et nettoie les dernières consignes techniques de Silvosse/Sylvestre. Les retours Nidas, Aurore Pourpre, Solar et Belladone restent uniquement lorsqu'un sigil ou Flovoraison devenu disponible après les anciens passages les exige. Le réceptacle Sylvestre de Flovoraison reste distinct du vrai Dofus récompense.",
+  "stage_patches": {
+    "P200-AU-DETOUR": {
+      "replace": {
+        "route":[
+          {"area":"Réceptacle des Dofus / rêve perdu","do":"Prendre Au détour d'un rêve perdu après La fin... ou le commencement. Respecter le choix final déjà fait dans cette quête et ne jamais le modifier pour optimiser la route."},
+          {"area":"rêve perdu","do":"Faire les combats et dialogues demandés puis revenir au Réceptacle. Toute possession dépossède est déjà terminée plus tôt et ne doit pas être rejouée."}
+        ],
+        "before_leaving":["Au détour d'un rêve perdu terminée.","Entretemps, une renaissance peut suivre si Descendre aux cendres + Prise de conscience sont réellement terminées."],
+        "hard_exit":["Choix final Six sur six conservé.","Aucun arc Ravageurs répété."]
+      }
+    },
+    "P200-22": {
+      "replace": {
+        "entry":"Les derniers d'entre nous, Gobstination d'un Grobelin et Par ce serment s'écrit le monde réellement terminés.",
+        "route":[
+          {"area":"Château d'Amakna / Forêt des Abraknydes","do":"Prendre Cultures et turpitudes seulement lorsque ses trois prérequis sont réellement terminés. Faire ses combats et collectes en regroupant les objectifs Abraknydes ou Forêt encore ouverts."},
+          {"area":"Silvosse","do":"Terminer Cultures et turpitudes puis prendre immédiatement Qui nous protège du Protecteur ? lorsque la quête est proposée."}
+        ],
+        "before_leaving":["Cultures et turpitudes terminée.","Qui nous protège du Protecteur ? disponible."],
+        "hard_exit":["Aucun prérequis de Cultures supposé terminé sans validation réelle."]
+      }
+    },
+    "P200-23": {
+      "replace": {
+        "title":"Qui nous protège du Protecteur ? — douze sigils puis Ménologium",
+        "route":[
+          {"area":"Temples / Protecteurs hors donjon","do":"Récupérer les sigils hors boss en regroupant les déplacements par zone. Préparer chaque objet demandé avant de partir; les captures ou objets propres aux Protecteurs ne comptent jamais pour l'Ocre."},
+          {"area":"Palais du Roi Nidas","do":"Revenir au Nidas uniquement lorsque Sumens demande son sigil. Cette demande n'existait pas lors des précédents Nidas : vaincre le boss, parler à Sumens avant de sortir et faire seulement les succès encore ouverts."},
+          {"area":"Clairière du Chêne Mou","do":"Pour Pouchecot, suivre l'accès de la quête avec la clef préparée. Ne vaincre le Chêne Mou que si l'objectif actuel le demande réellement."},
+          {"area":"Bataille de l'Aurore Pourpre","do":"Revenir uniquement lorsque Raval demande son sigil. Arriver avec 500 Pépites, parler à Raval dans la salle demandée, vaincre l'Éternel Conflit puis reparler à Raval avant de sortir et lui remettre les Pépites."},
+          {"area":"Atoll des Possédés → Tour de Solar","do":"Pour Djaul, capturer les Âmes de Possédé avec la pierre démoniaque de quête. En route Bonta, en prévoir 100 sauf si le titre obtenu lors de Six sur six réduit réellement ce nombre. Revenir à Solar uniquement lorsque le sigil est demandé puis parler aux PNJ concernés avant la sortie."},
+          {"area":"Horloge de Xélor / Almanax","do":"Avec les douze sigils réellement obtenus, reforger le Ménologium avec les ressources préparées puis obtenir les quatre bénédictions saisonnières au sanctuaire de l'Almanax."},
+          {"area":"Temple Eniripsa","do":"Parler à Elya Wood jusqu'au moment où elle demande le réceptacle lié à Silvosse. À ce point, lancer Flovoraison avant d'affronter Silvosse afin de régénérer Dom de Pin."}
+        ],
+        "progress_also":["Avant Nidas, Aurore Pourpre ou Solar, faire les succès de donjon encore ouverts compatibles. Les Âmes de Possédé de Djaul utilisent leur pierre de quête et ne sont jamais des captures Ocre."],
+        "before_leaving":["Douze sigils réellement obtenus.","Ménologium béni obtenu.","Qui nous protège du Protecteur ? avancée jusqu'à Elya Wood.","Flovoraison disponible avec Dom de Pin."],
+        "hard_exit":["Les nouveaux passages Nidas, Aurore Pourpre et Solar sont justifiés par l'ouverture tardive de leurs sigils.","Aucun combat Silvosse avant Flovoraison."]
+      }
+    },
+    "P200-24": {
+      "replace": {
+        "title":"Flovoraison — régénérer Dom de Pin et fabriquer le réceptacle Sylvestre",
+        "route":[
+          {"area":"Temple Eniripsa / Sylve céleste","do":"Prendre Flovoraison pendant Qui nous protège du Protecteur ?. Parler à Eniripsa puis Sadida et garder les six Dofus Primordiaux ainsi que Dom de Pin disponibles pour les rituels."},
+          {"area":"Albuera","do":"Équiper Dom de Pin et récupérer les quatre graines du grand arbre selon les objectifs de quête affichés. Utiliser les coordonnées comme aide de parcours uniquement lorsqu'elles correspondent encore à la carte actuelle."},
+          {"area":"Valonia / pacte des champignons","do":"Renouer le pacte avec Girol et Huskri. Équiper le Dofus Ocre lorsque la quête le demande et gagner le combat à vagues; aucun donjon Fungus supplémentaire n'est nécessaire."},
+          {"area":"Chambre des maléfices","do":"Revenir à Belladone uniquement parce que Flovoraison s'est ouverte après l'ancien passage Valonia. Vaincre Belladone, rester dans le donjon, équiper le Dofus Ébène puis obtenir les colliers nécessaires aux esprits sauvages. Faire les succès Belladone encore ouverts pendant ce passage."},
+          {"area":"Sylve céleste","do":"Après les trois branches, équiper Turquoise + Pourpre + Dom de Pin pour le rituel de Sadida, déposer Dom de Pin et les graines puis équiper Ivoire lorsque Eniripsa le demande. Récupérer le Dofus Sylvestre apparu : à ce stade c'est un objet de quête servant à soigner Silvosse, pas encore le vrai Dofus récompense."}
+        ],
+        "progress_also":["Le suivi doit distinguer clairement « réceptacle Sylvestre obtenu » de « vrai Dofus Sylvestre obtenu »."],
+        "before_leaving":["Flovoraison avancée après régénération de Dom de Pin.","Réceptacle Sylvestre de quête obtenu.","Belladone terminé pour ce nouveau fil."],
+        "hard_exit":["Le vrai Dofus Sylvestre n'est pas encore considéré obtenu."]
+      }
+    },
+    "P200-25": {
+      "replace": {
+        "title":"Silvosse — Verdoyant, guérison puis vrai Dofus Sylvestre",
+        "route":[
+          {"area":"Temple Eniripsa","do":"Reprendre Qui nous protège du Protecteur ? et plonger le réceptacle Sylvestre dans le chaudron pour obtenir le Dofus Verdoyant de combat."},
+          {"area":"Forêt sombre / Silvosse","do":"Équiper Dofus Verdoyant + Ménologium béni et éventuellement le Signe de Masse. Le but est de guérir Silvosse, pas de le tuer : utiliser le sort Verdoyant et les pouvoirs saisonniers jusqu'à atteindre 200000 PV."},
+          {"area":"après combat","do":"Quand Silvosse est réellement soigné, lui parler puis parler au fantôme de Simple et remettre le Dofus Verdoyant. Terminer Flovoraison puis Qui nous protège du Protecteur ? et valider L'arbre qui cache la forêt."},
+          {"area":"Silvosse → ancienne Albuera","do":"Suivre Silvosse après ces validations, recevoir le vrai Dofus Sylvestre récompense puis, avec le Sylvestre et les six Primordiaux, planter la nouvelle graine sur l'ancien site du Grand Arbre d'Albuera. Valider En attendant le printemps seulement après confirmation réelle de cette dernière étape."}
+        ],
+        "before_leaving":["Silvosse réellement guéri.","Flovoraison terminée.","Qui nous protège du Protecteur ? terminée.","L'arbre qui cache la forêt terminé.","Vrai Dofus Sylvestre obtenu.","Nouvelle graine d'Albuera plantée.","En attendant le printemps validé."],
+        "hard_exit":["Aucun faux Dofus Sylvestre : le réceptacle de quête et la récompense finale restent distincts."]
+      }
+    }
+  },
+  "insertions": []
+}

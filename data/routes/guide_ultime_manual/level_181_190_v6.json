@@ -1,0 +1,64 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_level_181_190_v6",
+  "title": "Guide Ultime — Niveau 181 à 190 + Objets trouvés finalisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v5.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v5",
+  "stage_count": 21,
+  "depends_on": [
+    "level_171_180_v6.json",
+    "level_150_170_v11.json",
+    "level_120_150_v11.json",
+    "bonta_1_90_v10.json",
+    "temporal_registry_v12.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Ferme les deux derniers Objets trouvés: La transe du crystal profite des40 monstres Crocs de verre déjà imposés par Le champ des héros; Glourmandise profite des40 monstres Mont Torrideau/Ruche de Champ borde le château + deux Glours. Les objets journaliers ne sont validés qu'une fois et ne génèrent jamais une répétition quotidienne automatique.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/objets-trouveacutes.html",
+    "https://www.dofuspourlesnoobs.com/la-transe-du-crystal.html",
+    "https://www.dofuspourlesnoobs.com/glourmandise.html"
+  ],
+  "stage_patches": {
+    "L190-00": {
+      "append": {
+        "quests": ["La transe du crystal"],
+        "progress_also": [
+          "OBJET TROUVÉ — Crocs de verre: pendant Le champ des héros, surveiller le Crystal de résonance (drop rare). Dès qu'il tombe, double-cliquer et conserver la quête active; visiter les trois cristaux dans l'ordre du walkthrough pendant la campagne Crocs. La remise finale attend seulement que le Village Enseveli soit libéré si nécessaire."
+        ],
+        "hard_exit": ["La transe du crystal lancée si Crystal obtenu; aucun farm dédié avant les40 monstres Le champ des héros + salles Kolosso."]
+      }
+    },
+    "L190-04": {
+      "append": {
+        "quests": ["La transe du crystal"],
+        "route": [
+          {"area":"Crocs de verre après Kolosso PASS2","do":"Si le Crystal de résonance manque encore après les40 Graines de Comique + deux passages Kolosso, finir seulement alors un cleanup Crocs ciblé jusqu'au premier drop. Double-cliquer, faire les trois résonances puis remettre au Village dès qu'il est libéré; une seule quête suffit au succès."}
+        ],
+        "hard_exit": ["La transe du crystal terminée ou seule remise Village explicitement pending, jamais le drop caché comme accompli."]
+      }
+    },
+    "L190-05": {
+      "append": {
+        "quests": ["Glourmandise"],
+        "progress_also": [
+          "OBJET TROUVÉ — Mont Torrideau/Ruche: pendant Champ borde le château et les combats vers Glours, surveiller l'Œuf de larve (drop rare). Dès qu'il tombe, double-cliquer; ne pas lancer de farm spécifique avant les40 Graines Pops + les deux passages Glours déjà obligatoires."
+        ],
+        "hard_exit": ["Premières tentatives naturelles Glourmandise consommées avant tout cleanup."]
+      }
+    },
+    "L190-06": {
+      "append": {
+        "quests": ["Glourmandise"],
+        "successes": ["Objets trouvés"],
+        "route": [
+          {"area":"Mont Torrideau/Ruche après Glours PASS2","do":"Si l'Œuf de larve n'est toujours pas tombé après Champ borde + deux Glours, cleanup ciblé autorisé jusqu'au premier exemplaire. Double-cliquer, nourrir Serlecc puis récupérer ses résidus via le boyau et fermer Glourmandise; ne jamais répéter la journalière."},
+          {"area":"audit Objets trouvés","do":"Vérifier les neuf quêtes: Souvenir, Bricoleur de génie, Un gros cube, Bijoux de famille, Obscurantisme, Monstre aux plantes, La transe du crystal, Art nacre et Glourmandise. Valider Objets trouvés uniquement quand les neuf sont réellement terminées; afficher le nom exact du reliquat sinon."}
+        ],
+        "hard_exit": ["Objets trouvés terminé ou reliquat exact unique/explicite, aucune quête rare supposée validée sur simple nombre de combats."]
+      }
+    }
+  },
+  "insertions": []
+}

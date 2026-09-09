@@ -1,0 +1,66 @@
+{
+  "schema_version": 18,
+  "route_id": "guide_ultime_manual_level_191_200_v18",
+  "title": "Guide Ultime — 191-200 + couverture tardive et prérequis causaux",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v17.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v17",
+  "stage_count": 62,
+  "depends_on": [
+    "level_181_190_v13.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Promote la couverture tardive déjà préparée par V16/V17 (Pandawushu/Tacheté + Enutrosor) et corrige deux dépendances que l'audit causal rendait invisibles ou trop tardives. S'armer contre le destin est désormais déclarée au moment où elle est réellement prise, après Dans la gueule du dragon, tandis que sa fiche de fermeture ne recrée pas une seconde occurrence de quête. La loi du plus faible est exécutée après Toute possession dépossède et avant Leçon d'histoire dans la même campagne Pandamonium/Ravageurs.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/s-armer-contre-le-destin.html",
+    "https://www.dofuspourlesnoobs.com/lecon-d-histoire.html",
+    "https://www.dofuspourlesnoobs.com/la-loi-du-plus-faible.html",
+    "https://www.dofuspourlesnoobs.com/toute-possession-depossede.html"
+  ],
+  "stage_patches": {
+    "P200-07-PREP": {
+      "replace": {
+        "quests": ["S'armer contre le destin"]
+      },
+      "append": {
+        "hard_exit": [
+          "Prendre S'armer contre le destin ici, après Dans la gueule du dragon. Ne pas chercher à la reprendre plus tard: elle reste active jusqu'à sa fermeture."
+        ]
+      }
+    },
+    "P200-07-CLOSE": {
+      "replace": {
+        "quests": []
+      },
+      "append": {
+        "hard_exit": [
+          "S'armer contre le destin doit déjà être active en arrivant ici; terminer la quête sans chercher à la reprendre."
+        ]
+      }
+    },
+    "P200-14": {
+      "prepend": {
+        "quests": ["La loi du plus faible"],
+        "route": [
+          {"area":"[39,-53] Port des Ravageurs puis Pandamonium","do":"Toute possession dépossède étant terminée, prendre La loi du plus faible auprès de Gob'Li'Terr le Ravagé puis la terminer avant de lancer Leçon d'histoire. Préparer le Sceptre brisé de Kabahal et plus de800 Force avant de partir pour éviter d'interrompre la campagne Pandamonium/Ravageurs."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "La loi du plus faible terminée avant Leçon d'histoire."
+        ]
+      }
+    },
+    "L200-ENUT-CLOSE": {
+      "append": {
+        "pause": [
+          "POINT DE PAUSE SÛR — Enutrosor Le roi et moi fermé après le Nidas partagé."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

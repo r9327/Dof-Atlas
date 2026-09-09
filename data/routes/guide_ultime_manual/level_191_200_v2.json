@@ -1,0 +1,140 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_level_191_200_v2",
+  "title": "Guide Ultime — Niveau 191 à 200 + Ébène causal après Songes",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v1.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v1",
+  "stage_count": 24,
+  "optimization_note": "Ajoute la seconde moitié du Dofus Ébène uniquement après validation réelle des 12 Songes de Crocobur. Bethel, Koutoulou, Dazak, Klime, Reine des Voleurs et Solar sont tous réservés à leurs objectifs actifs. Le Koutoulou Ébène est un rerun causal car Le creuset de Mériana n'existe qu'après À la recherche de Crocoburio, donc après les Songes; aucune fausse fusion avec le Koutoulou Abyssal190.",
+  "global_ebene_preparation":[
+    {"name":"Obsidienne","quantity":10,"for":"Le creuset de Mériana"},
+    {"name":"Dolomite","quantity":10,"for":"Le creuset de Mériana"},
+    {"name":"Écume de mer","quantity":10,"for":"Le creuset de Mériana"},
+    {"name":"Corde d'escalade","quantity":1,"for":"Une douloureuse séparation"},
+    {"name":"Saucisse Fumée","quantity":10,"for":"Le dragon noir"},
+    {"name":"Barbarbe","quantity":5,"for":"Le dragon noir","policy":"Achat via un personnage/ami éligible si La dernière barbe avant la fin du monde n'est pas faite; ne pas ouvrir une branche non obligatoire juste pour l'achat."},
+    {"name":"Perce-Neige","quantity":20,"for":"Le dragon noir"},
+    {"kamas":20500,"for":"La vengeance du dernier empereur"},
+    {"requirement":"Paysan80 minimum","for":"Le creuset de Mériana","blocking":true},
+    {"requirement":"Mineur20 minimum","for":"Le creuset de Mériana","blocking":true},
+    {"requirement":"Nécronyx disponible","for":"Bethel + Solar et autres combats nécrotiques","blocking":true},
+    {"note":"Les ressources Ébène sont stockées en banque jusqu'à fermeture réelle de Jusqu'au bout du rêve. Ne pas charger les pods pendant les Songes."}
+  ],
+  "insertions":[
+    {
+      "before":"L200-16",
+      "stage":{
+        "id":"L200-15E1",
+        "title":"Ébène3-4 — fermer les 12 Songes puis Bethel, jamais avant",
+        "level":"200 / Jusqu'au bout du rêve réellement terminé",
+        "duration_min":300,
+        "quests":["Jusqu'au bout du rêve","À la recherche de Crocoburio"],
+        "dungeon":{"name":"Tour de Bethel","pass":"unique_for_ebene_crocoburio"},
+        "entry":"Le forgeur de légende terminé depuis L150-16; compteur Crocobur = 12/12 confirmé par la quête. Si compteur <12, SUSPENDRE ce stage et poursuivre les autres fils200.",
+        "take":["Après le douzième Songe, rendre Jusqu'au bout du rêve à Volkaragnar/Mériana et prendre À la recherche de Crocoburio seulement si La colère des dieux permet réellement de poursuivre."],
+        "route":[
+          {"area":"Songes → Mériana","do":"Ne jamais simuler la douzième rencontre. Ce stage n'existe dans la session que lorsque la quête Jusqu'au bout du rêve est réellement terminée."},
+          {"area":"Épaves Silencieuses / Tour de Bethel","do":"Vérifier La colère des dieux terminée et Nécronyx disponible. Faire UN Bethel pour À la recherche de Crocoburio + Les cœurs livides/Les totems de Maïmane seulement s'ils sont déjà actifs; récupérer la Coquille d'âme corrompue."},
+          {"area":"Monde des Douze → Mériana","do":"Suivre les indices du parchemin, retrouver Léane et la ramener à Mériana. Fermer À la recherche de Crocoburio."}
+        ],
+        "hard_exit":["Jusqu'au bout du rêve terminé réellement","Bethel Ébène fait une fois","À la recherche de Crocoburio terminée"],
+        "pause":["POINT DE PAUSE SÛR — Creuset disponible"]
+      }
+    },
+    {
+      "after":"L200-15E1",
+      "stage":{
+        "id":"L200-15E2",
+        "title":"Ébène5 — Creuset de Mériana, Koutoulou rerun causal",
+        "level":"200",
+        "duration_min":420,
+        "quests":["Le creuset de Mériana"],
+        "dungeon":{"name":"Temple de Koutoulou","pass":"rerun_causal_after_abyssal"},
+        "preparation":[{"name":"Obsidienne","quantity":10},{"name":"Dolomite","quantity":10},{"name":"Écume de mer","quantity":10},{"requirement":"Paysan80","blocking":true},{"requirement":"Mineur20","blocking":true}],
+        "route":[
+          {"area":"Marécages / Monde des Douze","do":"Lire la page du grimoire et collecter Eau vive, Arbre fondateur, Pierre alchimique, Brins des possibles et autres composants en regroupant les zones déjà ouvertes. Acheter le Métal abyssal si plus rentable qu'un farm à 25/10%."},
+          {"area":"Temple de Koutoulou","do":"RERUN CAUSAL: Le creuset de Mériana n'existait pas lors du Koutoulou Abyssal190. Faire un seul Koutoulou pour obtenir l'Huile immiscible et indicible et tous fils/succès encore compatibles."},
+          {"area":"Mériana","do":"Placer les composants du creuset dans l'ordre exact du walkthrough local; une erreur déclenche un combat/recommencement. Fermer Le creuset."}
+        ],
+        "hard_exit":["Koutoulou global +1 explicitement causal","Le creuset de Mériana terminé","Aucun Koutoulou supplémentaire planifié pour ce fil"],
+        "pause":["POINT DE PAUSE SÛR — séparation des âmes"]
+      }
+    },
+    {
+      "after":"L200-15E2",
+      "stage":{
+        "id":"L200-15E3",
+        "title":"Ébène6 — Une douloureuse séparation, aucun donjon",
+        "level":"200",
+        "duration_min":260,
+        "quests":["Une douloureuse séparation"],
+        "preparation":[{"name":"Corde d'escalade","quantity":1}],
+        "route":[
+          {"area":"Bonta / caverne de la larme","do":"Faire les combats de Vapeurs puis la séquence miliciens/Joris. Garder la corde jusqu'au dernier retour dans la caverne."},
+          {"area":"rituel Mériana","do":"Exécuter le combat Crocoburio avec les sorts Planter/Récupérer Crocobur; reprendre l'épée après chaque pose afin de ne pas perdre l'invocation."}
+        ],
+        "hard_exit":["Une douloureuse séparation terminée","Le dragon noir disponible"]
+      }
+    },
+    {
+      "after":"L200-15E3",
+      "stage":{
+        "id":"L200-15E4",
+        "title":"Ébène7 — Dazak + Klime dans Le dragon noir",
+        "level":"200 / De Brikke et de Brokke au vrai gate",
+        "duration_min":420,
+        "quests":["Le dragon noir"],
+        "dungeons":[{"name":"Brasserie du roi Dazak","pass":"unique_for_ebene_dragon_noir"},{"name":"Salons privés de Klime","pass":"unique_for_ebene_dragon_noir"}],
+        "preparation":[{"name":"Saucisse Fumée","quantity":10},{"name":"Barbarbe","quantity":5},{"name":"Perce-Neige","quantity":20}],
+        "route":[
+          {"area":"Royaume des Martegel / Dazak","do":"Ne partir que si De Brikke et de Brokke est terminé ou exactement à l'étape permettant le dialogue Dazak. Faire UN Dazak avec tous les fils/succès compatibles, puis obtenir la peau/autorisation requise."},
+          {"area":"Ruche des Gloursons / Klime","do":"Préparer les victuailles/Barbarbes avant déplacement, puis faire UN Klime pour faire travailler la peau de crocodaille; mutualiser tout fil Frigost/Ébène compatible avant entrée."},
+          {"area":"portail Nimbos → Tikoltenak","do":"Utiliser la Barbarbe au vrai point de quête, franchir le portail et atteindre Grougalorasalar. Fermer Le dragon noir sans inventer de coordonnée GPS de portail."}
+        ],
+        "hard_exit":["Dazak Ébène une fois","Klime Ébène une fois","Le dragon noir terminé"],
+        "pause":["POINT DE PAUSE SÛR — vengeance Crocahualpa"]
+      }
+    },
+    {
+      "after":"L200-15E4",
+      "stage":{
+        "id":"L200-15E5",
+        "title":"Ébène8-9 — vengeance sans donjon puis Reine des Voleurs",
+        "level":"200",
+        "duration_min":360,
+        "quests":["La vengeance du dernier empereur","L'oeuf de Crocabulia"],
+        "dungeon":{"name":"Trône de la Cour Sombre","pass":"unique_for_oeuf_crocabulia"},
+        "preparation":[{"kamas":20500,"for":"dictionnaire + informations du boucher"}],
+        "route":[
+          {"area":"Tikoltenak → Astrub → Brâkmar → Gisgoul / Monde des Douze","do":"Faire La vengeance du dernier empereur, dont les deux combats solo Shushus/Bulak. Ne jamais attendre sur place si Talok disparaît après une mauvaise réponse; continuer un micro-objectif puis revenir après son repop."},
+          {"area":"Amakna → Srambad","do":"Prendre L'oeuf de Crocabulia, enquêter sur le cambriolage puis régler le conflit Smisse avant le donjon."},
+          {"area":"Trône de la Cour Sombre","do":"Faire UNE Reine des Voleurs pour récupérer le Coffret verrouillé + tous fils Nébuleux/Srambad/succès réellement actifs. Revenir Franche Smisse, gérer le combat et récupérer l'œuf."}
+        ],
+        "hard_exit":["La vengeance du dernier empereur terminée","Reine des Voleurs Ébène une fois","L'oeuf de Crocabulia terminé"],
+        "pause":["POINT DE PAUSE SÛR — quête finale Ébène"]
+      }
+    },
+    {
+      "after":"L200-15E5",
+      "stage":{
+        "id":"L200-15E6",
+        "title":"Ébène10 — Solar puis héritier, obtenir l'Ébène au vrai final",
+        "level":"200 / La colère des dieux + Nécronyx",
+        "duration_min":360,
+        "quests":["Un nouvel héritier"],
+        "dungeon":{"name":"Tour de Solar","pass":"unique_for_ebene_final"},
+        "entry":"L'oeuf de Crocabulia terminé; accès Marches Magmatiques par La colère des dieux; Nécronyx disponible.",
+        "route":[
+          {"area":"Marches Magmatiques","do":"Activer Un nouvel héritier, farmer exactement 20 Âmes de Calciné HORS donjon et les utiliser; grouper Les cœurs livides/monstres de zone uniquement s'ils sont actifs."},
+          {"area":"Tour de Solar","do":"Faire UN Solar avec Nécronyx pour la quête finale + tous succès/fils compatibles. Ne pas tenter de compter les Âmes de Calciné dans le donjon: le drop n'y fonctionne pas."},
+          {"area":"Volkaragnar → Incarnam → Mériana/Grougalorasalar","do":"Libérer/réincarner Crocoburio selon le walkthrough, rendre Crocobur à son créateur puis effectuer le combat tactique final contre Grougalorasalar."},
+          {"area":"socle Ébène","do":"Prendre le Dofus uniquement au vrai objectif final. Le guide ne valide Noir d'Ébène que si la quête Un nouvel héritier est réellement terminée et l'objet/progression runtime le confirme."}
+        ],
+        "hard_exit":["Un nouvel héritier terminé","Dofus Ébène obtenu seulement si runtime confirme","Noir d'Ébène validable","Aucun faux achèvement si le fil Songes avait été suspendu"],
+        "pause":["POINT DE PAUSE SÛR — Ébène fermé réellement"]
+      }
+    }
+  ],
+  "stage_patches":{}
+}

@@ -1,0 +1,314 @@
+{
+  "schema_version": 8,
+  "route_id": "guide_ultime_manual_level_191_200_v8",
+  "title": "Guide Ultime — 191-200, Totems causaux + DDG/Comte/Vortex fusionnés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v6.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v7",
+  "stage_count": 56,
+  "optimization_note": "Corrige V7: Les totems de Maïmane ne peuvent pas être ouverts avant Prise de conscience; Prise dépend de L'avis de la Mort, qui exige Le silence est d'Aure, lui-même postérieur à Dans la gueule du dragon. La route ferme donc d'abord Ivoire + Ébène, puis Ocre/Quatre sur six jusqu'à Le silence, puis Cavaliers/Prise, Résilience, Ravagés et Réminiscence. Toute possession dépossède est faite avant La fin... ou le commencement afin de ne pas imposer Au détour d'un rêve perdu trop tôt. Une fois les Totems actifs, le bloc DDG est volontairement exécuté: Sylargh donne Tristesse, Klime Joie, un rerun Missiz causal partagé DDG donne Colère, un rerun Nileza causal partagé DDG donne Dégoût, et le Comte donne Surprise + premier éclat de S'armer. Koutoulou est le seul rerun dédié Totem: son passage Ébène était obligatoirement antérieur à l'ouverture des Totems. Le Vortex unique Nébuleux fournit le second éclat de S'armer. Avec les mappings verrouillés, trois passages supplémentaires après les passages pré-Totems sont donc justifiés: Koutoulou, Missiz et Nileza; aucun quatrième rerun Totem n'est ajouté.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/le-silence-est-daure.html",
+    "https://www.dofuspourlesnoobs.com/lavis-de-la-mort.html",
+    "https://www.dofuspourlesnoobs.com/prise-de-conscience.html",
+    "https://www.dofuspourlesnoobs.com/toute-possession-depossede.html",
+    "https://www.dofuspourlesnoobs.com/la-danse-de-la-dissonance.html",
+    "https://www.dofuspourlesnoobs.com/un-heritage-tourmente.html",
+    "https://www.dofuspourlesnoobs.com/les-totems-de-maimane.html",
+    "https://www.dofuspourlesnoobs.com/s-armer-contre-le-destin.html"
+  ],
+  "stage_removals": [
+    "L200-DDG1",
+    "L200-DDG2",
+    "L200-DDG3"
+  ],
+  "stage_patches": {
+    "L197-02": {
+      "replace": {
+        "title": "Bonta97 Missiz — passage Bonta avant ouverture des Totems",
+        "quests": ["À glacer le sang"],
+        "route": [
+          {"area":"Forgefroide de Missiz Frizz","do":"Faire maintenant le passage Bonta97 pour À glacer le sang et tous les fils réellement actifs à cet instant. Les quêtes DDG ne sont volontairement pas ouvertes: leur futur Missiz sera un rerun causal post-Totems, utilisé aussi pour le Totem de la colère."},
+          {"area":"Bonta","do":"Rendre À glacer le sang et confirmer Bonta97 avant de poursuivre Srambad98."}
+        ],
+        "hard_exit": [
+          "Bonta97 terminé",
+          "Aucun objectif DDG artificiellement validé",
+          "Missiz post-Totems explicitement réservé au futur bloc DDG"
+        ]
+      }
+    },
+    "L200-13": {
+      "replace": {
+        "title": "Ivoire8 — Une voix de crystal, Nileza puis Meno causal",
+        "quests": ["Une voix de crystal"],
+        "route": [
+          {"area":"Frigost III","do":"Faire Nileza au moment exact demandé par Une voix de crystal, avec les fils Ivoire/succès réellement actifs. Il faut mettre un terme aux maîtres n'est pas encore ouvert: le futur Nileza DDG sera donc un rerun causal post-Totems et portera aussi le Totem du dégoût."},
+          {"area":"Abysses de Sufokia","do":"RERUN CAUSAL MENO: Une voix de crystal n'existait pas au Meno Abyssal190. Vérifier Son nom est Personne au bon état, vaincre Meno et lui parler avant sortie."},
+          {"area":"Monde des Douze → Sufokia","do":"Collecter les sept partitions en une boucle, puis utiliser le retour Pichon pour les remettre à Meno sans refaire le donjon."}
+        ],
+        "hard_exit": [
+          "Une voix de crystal terminée",
+          "Meno global +1 causal uniquement",
+          "Aucun troisième Meno pour rendre les partitions",
+          "Nileza DDG post-Totems non consommé prématurément"
+        ]
+      }
+    },
+    "L200-VUL1": {
+      "replace": {
+        "progress_also": [
+          "Les Totems ne sont pas encore déverrouillables ici à cause du verrou Prise de conscience → L'avis de la Mort → Le silence est d'Aure. Ne pas retarder Torkélonia et ne pas prétendre y prendre Tristesse.",
+          "Si Parangon ne tombe pas, aucune répétition Torkélonia maintenant: continuer les boss200 obligatoires jusqu'au cleanup Vulbis prévu."
+        ]
+      }
+    },
+    "L200-NEB5": {
+      "append": {
+        "route": [
+          {"area":"Œil de Vortex","do":"Avec le Troisième Œil encore en inventaire, ce même Vortex déjà préparé pour La vérité est au fond du puits + Les sables du temps fournit le second éclat de destin brisé de S'armer contre le destin."}
+        ],
+        "hard_exit": [
+          "Un seul Vortex pour les deux quêtes Nébuleux + S'armer contre le destin",
+          "Éclat de destin brisé du Vortex réellement obtenu"
+        ]
+      }
+    }
+  },
+  "stage_imports": [
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-00",
+      "after": "L200-15E6",
+      "replace": {
+        "take": ["Fermer maintenant uniquement les captures Ocre réellement manquantes avant d'ouvrir Quatre sur six."],
+        "route": [
+          {"area":"registre Ocre","do":"Remettre les boss puis les archimonstres réellement obtenus. Traiter uniquement les reliquats runtime; aucune capture de monstre classique depuis DOFUS 3.5."},
+          {"area":"Antre du Kralamoure Géant","do":"Quand l'étape finale est réellement ouverte et qu'une ouverture communautaire existe, utiliser la pierre spéciale Ocre et fusionner Le tour est joué si son objectif est actif. Sinon continuer les autres objectifs et revenir à une ouverture disponible."}
+        ]
+      }
+    },
+    {"file":"level_200_plus_v4.json","stage_id":"P200-01","after":"P200-00"},
+    {"file":"level_200_plus_v4.json","stage_id":"P200-02","after":"P200-01"},
+    {"file":"level_200_plus_v4.json","stage_id":"P200-03","after":"P200-02"},
+    {"file":"level_200_plus_v4.json","stage_id":"P200-04","after":"P200-03"},
+    {"file":"level_200_plus_v4.json","stage_id":"P200-05","after":"P200-04"},
+    {"file":"level_200_plus_v4.json","stage_id":"P200-06","after":"P200-05"},
+
+    {"file":"level_200_plus_v4.json","stage_id":"P200-09","after":"P200-06"},
+    {"file":"level_200_plus_v4.json","stage_id":"P200-10","after":"P200-09"},
+    {"file":"level_200_plus_v4.json","stage_id":"P200-11","after":"P200-10"},
+    {"file":"level_200_plus_v4.json","stage_id":"P200-12","after":"P200-11"},
+    {
+      "file":"level_200_plus_v4.json",
+      "stage_id":"P200-13",
+      "after":"P200-12",
+      "replace": {
+        "title":"Ravagés + Pandamonium AVANT la finale Six sur six",
+        "level":"200 / Quand l'éveil n'est qu'un songe terminé / La fin... ou le commencement PAS encore terminée",
+        "quests":["Toute possession dépossède","Le chant du Pandamonium","Le début de la fin"],
+        "route":[
+          {"area":"Réceptacle / Pandamonium","do":"Prendre Toute possession dépossède maintenant, avant de terminer La fin... ou le commencement. Dans cet état précis, Au détour d'un rêve perdu n'est pas encore un prérequis; ne pas attendre la finale Six sur six."},
+          {"area":"Ravageurs/Pandamonium","do":"Enchaîner Toute possession dépossède → Le chant du Pandamonium → Le début de la fin. Faire le Rituel de Kabahal une seule fois lorsque Le chant le demande, avec toutes les ressources déjà préparées."}
+        ],
+        "before_leaving":["Ravagés terminé","Le début de la fin terminé","La danse de la dissonance disponible","Au détour d'un rêve perdu volontairement différé après La fin... ou le commencement"],
+        "hard_exit":["Aucun second Kabahal pour ce succès","Ne pas imposer Au détour avant la finale Six sur six"],
+        "pause":["POINT DE PAUSE SÛR — Pandamonium fermé, Réminiscence ouverte"]
+      }
+    },
+    {"file":"level_200_plus_v4.json","stage_id":"P200-14","after":"P200-13"},
+    {
+      "file":"level_200_plus_v4.json",
+      "stage_id":"P200-15",
+      "after":"P200-14",
+      "replace": {
+        "title":"Réminiscence — ouvrir les six Totems après les vrais prérequis",
+        "duration_min":220,
+        "quests":[],
+        "take":[
+          "Prendre Un héritage tourmenté seulement après Descendre aux cendres + Prise de conscience + Mort et renouveau réellement terminés.",
+          "Avancer Un héritage tourmenté jusqu'au point qui permet de prendre Les totems de Maïmane, puis prendre la quête des six Totems."
+        ],
+        "totem_policy": {
+          "dynamic_choice":false,
+          "planned_merges": {
+            "joy":"Klime",
+            "sadness":"Sylargh",
+            "fear":"Larve de Koutoulou",
+            "anger":"Missiz Frizz",
+            "disgust":"Nileza",
+            "surprise":"Comte Harebourg"
+          },
+          "selection":"Mappings verrouillés. Sylargh/Klime/Comte sont absorbés dans le DDG retardé. Missiz et Nileza sont les reruns causaux du DDG désormais ouvert; Koutoulou est un rerun dédié inévitable parce que le passage Ébène précède causalement l'ouverture des Totems."
+        },
+        "route":[
+          {"area":"Un héritage tourmenté / Cauchemar des Ravageurs","do":"Ouvrir Les totems de Maïmane puis STOP avant de rendre l'Héritage. Ne lancer aucun boss au hasard: les six cibles sont planifiées dans les fiches suivantes et trois seulement sont des passages supplémentaires par rapport aux passages pré-Totems."}
+        ],
+        "before_leaving":["Les totems de Maïmane active","Six émotions manquantes enregistrées","DDG différé prêt à absorber cinq cibles dont deux reruns causaux"],
+        "hard_exit":["Totems réellement ouverts avant boss post-Totems","Aucune promesse zéro rerun"],
+        "pause":["POINT DE PAUSE SÛR — Totems ouverts"]
+      }
+    },
+    {
+      "file":"level_200_plus_v4.json",
+      "stage_id":"P200-07",
+      "new_id":"P200-07-PREP",
+      "after":"P200-15",
+      "replace": {
+        "title":"S'armer contre le destin — obtenir le Troisième Œil avant Comte/Vortex",
+        "duration_min":180,
+        "quests":[],
+        "dungeon":null,
+        "take":["Prendre S'armer contre le destin après Dans la gueule du dragon."],
+        "route":[
+          {"area":"Temple Huppermage / fils du destin","do":"Faire la préparation de S'armer contre le destin jusqu'à obtenir le Troisième Œil et atteindre la demande des deux éclats de destin brisé. Préparer les Ciseaux du Destin et les Reflets oniriques demandés sans entrer dans le Comte ni le Vortex."},
+          {"area":"avant donjons","do":"STOP avec le Troisième Œil obtenu. Les éclats sont récupérés plus loin sur le Comte puis le Vortex déjà nécessaires à la route."}
+        ],
+        "before_leaving":["S'armer contre le destin active","Troisième Œil obtenu","Comte + Vortex demandés pour les éclats"],
+        "hard_exit":["Aucun Comte ni Vortex avant Troisième Œil"],
+        "pause":["POINT DE PAUSE SÛR — Troisième Œil prêt"]
+      }
+    },
+    {
+      "file":"level_191_200_v6.json",
+      "stage_id":"L200-DDG1",
+      "after":"P200-07-PREP",
+      "replace": {
+        "title":"DDG200 retardé — Sylargh Tristesse + Klime Joie",
+        "route":[
+          {"area":"Transporteur de Sylargh","do":"Avec Les totems de Maïmane active, faire Sylargh pour Les desseins de Sylargh + Chaud et Froid et récupérer le Totem de la tristesse. Ce passage DDG reste nécessaire indépendamment du Sylargh Ivoire déjà consommé."},
+          {"area":"Salons privés de Klime","do":"Prendre Vous avez demandé la peau lisse ?, faire Klime avec Chaud et Froid et récupérer le Totem de la joie. Récupérer la Peau Magique et le fluide avant sortie selon le walkthrough local."},
+          {"area":"Château","do":"Rendre Klime et prendre La dernière carte. Le prochain Missiz est volontairement un rerun causal: Bonta97 a dû être fermé avant l'Ivoire et avant l'ouverture des Totems."}
+        ],
+        "before_leaving":["Totem Tristesse obtenu sur Sylargh","Totem Joie obtenu sur Klime","La dernière carte active","Chaud et Froid attend Missiz"],
+        "hard_exit":["Sylargh DDG validé","Klime DDG validé","Aucun boss alternatif utilisé pour Joie/Tristesse"],
+        "next":"L200-DDG-MISSIZ"
+      }
+    },
+    {
+      "file":"level_191_200_v6.json",
+      "stage_id":"L200-DDG2",
+      "after":"L200-DDG-MISSIZ",
+      "replace": {
+        "title":"DDG200 — Rescapés + Machine, préparer le Nileza post-Totems",
+        "route":[
+          {"area":"Frigost III/Village/Remparts","do":"Faire les quatre sous-quêtes de Les derniers rescapés en regroupant monstres et PNJ par zone; ne refaire aucun boss non explicitement demandé."},
+          {"area":"Mine de Sakaï","do":"RERUN CAUSAL GROLLOUM: La machine à démonter le temps n'existait pas lors du passage Bonta90. Faire ce second Grolloum uniquement pour la Pierre d'Autre Temps + succès encore ouverts."},
+          {"area":"Henual → Tour Clepsydre","do":"Crafter/poser le Stabilisateur, expulser les chronanomalies puis fermer La machine à démonter le temps."},
+          {"area":"Lac Gelé/Hazieff/Tour","do":"Avancer Le givre des révélations jusqu'au verrou Comte. Il faut mettre un terme aux maîtres attend encore Nileza: le passage Ivoire était antérieur à l'ouverture de cette quête."}
+        ],
+        "before_leaving":["Les derniers rescapés terminé","La machine à démonter le temps terminée","Le givre des révélations prêt Comte","Nileza DDG encore requis"],
+        "hard_exit":["Grolloum second passage causal uniquement","Comte réservé après Nileza post-Totems"],
+        "next":"L200-DDG-NILEZA"
+      }
+    },
+    {
+      "file":"level_191_200_v6.json",
+      "stage_id":"L200-DDG3",
+      "after":"L200-DDG-NILEZA",
+      "replace": {
+        "title":"Comte unique — DDG final + Totem Surprise + premier éclat de S'armer",
+        "dungeon":{"name":"Donjon du Comte Harebourg","pass":"ddg_totem_sarmer_single_pass"}
+      },
+      "append": {
+        "route":[
+          {"area":"Donjon du Comte Harebourg","do":"Entrer avec Les totems de Maïmane active ET le Troisième Œil. Ce même Comte donne le Totem de la surprise et le premier éclat de destin brisé de S'armer contre le destin, en plus des fils DDG déjà préparés."}
+        ],
+        "hard_exit":["Totem Surprise obtenu sur Comte Harebourg","Éclat de destin brisé du Comte obtenu avec Troisième Œil","Aucun second Comte pour Totem ou S'armer"]
+      }
+    },
+    {
+      "file":"level_200_plus_v4.json",
+      "stage_id":"P200-07",
+      "new_id":"P200-07-CLOSE",
+      "after":"L200-NEB5",
+      "replace": {
+        "title":"S'armer contre le destin — fermer après Comte + Vortex fusionnés",
+        "duration_min":45,
+        "quests":["S'armer contre le destin"],
+        "preparation":[],
+        "dungeon":null,
+        "take":[],
+        "route":[
+          {"area":"Temple Huppermage","do":"Avec les deux éclats de destin brisé réellement obtenus, faire enchanter les Ciseaux du Destin puis retourner auprès de Rimanda. Fermer S'armer contre le destin sans nouveau donjon."}
+        ],
+        "before_leaving":["S'armer contre le destin terminée","La fin... ou le commencement disponible"],
+        "hard_exit":["Aucun Comte supplémentaire pour S'armer","Aucun Vortex supplémentaire pour S'armer"],
+        "pause":["POINT DE PAUSE SÛR — S'armer fermé"]
+      }
+    }
+  ],
+  "insertions": [
+    {
+      "after":"P200-15",
+      "stage": {
+        "id":"P200-15-FEAR",
+        "title":"Totem Peur — Koutoulou, rerun causal unique et explicite",
+        "level":"200 / Les totems de Maïmane active",
+        "duration_min":100,
+        "quests":[],
+        "dungeon":{"name":"Temple de Koutoulou","pass":"totem_fear_rerun_after_ebene"},
+        "route":[
+          {"area":"Temple de Koutoulou","do":"Refaire Larve de Koutoulou une seule fois pour le Totem de la peur. Ce rerun est causal et inévitable avec le mapping verrouillé: le Koutoulou Ébène devait être terminé avant P200-06, alors que les Totems ne peuvent s'ouvrir qu'après P200-06 → L'avis de la Mort → Prise de conscience."}
+        ],
+        "before_leaving":["Totem Peur obtenu sur Larve de Koutoulou"],
+        "hard_exit":["Koutoulou post-Totems +1 et pas davantage"],
+        "pause":["POINT DE PAUSE SÛR — Peur obtenue"]
+      }
+    },
+    {
+      "after":"L200-DDG1",
+      "stage": {
+        "id":"L200-DDG-MISSIZ",
+        "title":"Missiz causal — DDG + Totem Colère, sans refaire Bonta",
+        "level":"200 / La dernière carte + Chaud et Froid actives / Totems actifs",
+        "duration_min":110,
+        "quests":["La dernière carte","Chaud et Froid"],
+        "dungeon":{"name":"Forgefroide de Missiz Frizz","pass":"ddg_totem_anger_rerun"},
+        "route":[
+          {"area":"Forgefroide de Missiz Frizz","do":"Faire ce second Missiz pour La dernière carte + Chaud et Froid, récupérer le fluide demandé et le Totem de la colère. Ne refaire aucune interaction Bonta97 déjà validée."},
+          {"area":"Château/Bourgade","do":"Rendre La dernière carte et poursuivre Chaud et Froid selon son objectif courant. Conserver tous les fluides jusqu'au retour Nileza prévu après la Machine."}
+        ],
+        "before_leaving":["Totem Colère obtenu sur Missiz Frizz","La dernière carte fermée","Bonta97 non répétée"],
+        "hard_exit":["Missiz post-Totems +1 causal uniquement"],
+        "pause":["POINT DE PAUSE SÛR — Colère obtenue, Machine suivante"]
+      }
+    },
+    {
+      "after":"L200-DDG2",
+      "stage": {
+        "id":"L200-DDG-NILEZA",
+        "title":"Nileza causal — quatrième maître + Totem Dégoût",
+        "level":"200 / Il faut mettre un terme aux maîtres actif / Totems actifs",
+        "duration_min":100,
+        "quests":["Il faut mettre un terme aux maîtres"],
+        "dungeon":{"name":"Laboratoire de Nileza","pass":"ddg_totem_disgust_rerun"},
+        "route":[
+          {"area":"Laboratoire de Nileza","do":"Refaire Nileza maintenant que Il faut mettre un terme aux maîtres est réellement actif. Ce passage valide le quatrième maître et donne le Totem du dégoût; le Nileza Ivoire antérieur ne pouvait pas compter rétroactivement."},
+          {"area":"Nileza/Tour","do":"Fermer Il faut mettre un terme aux maîtres et vérifier que Le givre des révélations est toujours au verrou Comte avant de partir."}
+        ],
+        "before_leaving":["Totem Dégoût obtenu sur Nileza","Il faut mettre un terme aux maîtres terminé","Comte débloqué pour DDG"],
+        "hard_exit":["Nileza post-Totems +1 causal uniquement"],
+        "pause":["POINT DE PAUSE SÛR — Dégoût obtenu, Comte prêt"]
+      }
+    },
+    {
+      "after":"L200-DDG3",
+      "stage": {
+        "id":"P200-15-CLOSE",
+        "title":"Totems — remettre les six émotions et fermer Un héritage tourmenté",
+        "level":"200 / six Totems réellement obtenus",
+        "duration_min":90,
+        "quests":["Les totems de Maïmane","Un héritage tourmenté"],
+        "successes":["Eliocalypse : Réminiscence"],
+        "route":[
+          {"area":"Cauchemar des Ravageurs","do":"Vérifier les six Totems réels: Joie Klime, Tristesse Sylargh, Peur Koutoulou, Colère Missiz, Dégoût Nileza, Surprise Comte. Les remettre à Maïmane pour obtenir le Totem de l'équilibre."},
+          {"area":"Un héritage tourmenté","do":"Reprendre la fabrication de la Rune d'Harmonie et fermer Un héritage tourmenté selon le walkthrough local. Aucun nouveau donjon n'est ajouté par cette fermeture."}
+        ],
+        "before_leaving":["Les totems de Maïmane terminée","Un héritage tourmenté terminée","Eliocalypse : Réminiscence terminée"],
+        "hard_exit":["Six Totems réels","Trois passages post-Totems supplémentaires justifiés: Koutoulou + Missiz + Nileza","Aucun quatrième rerun Totem"],
+        "pause":["POINT DE PAUSE SÛR — Réminiscence fermée"]
+      }
+    }
+  ]
+}

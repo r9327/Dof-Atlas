@@ -1,0 +1,443 @@
+name: Dofus Atlas Application CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "local_dofus_data/**"
+      - "data/encyclopedia/**"
+      - "data/cartography/**"
+      - "data/images/**"
+      - "data/routes/**"
+      - "data/dofus_atlas_world.db"
+      - "tools/**"
+      - "scripts/**"
+      - "config/**"
+      - "tests/**"
+      - "launch.py"
+      - "main.py"
+      - "sitecustomize.py"
+      - "requirements-pyside.txt"
+      - "Dofus_Atlas.bat"
+      - "Install_Dofus_Atlas.bat"
+      - "bootstrap_dofus_atlas.ps1"
+      - ".gitignore"
+      - ".gitattributes"
+      - "AGENTS.md"
+      - "DEVELOPMENT_GUARDRAILS.md"
+      - "PERFORMANCE_GUARDRAILS.md"
+      - ".github/workflows/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "local_dofus_data/**"
+      - "data/encyclopedia/**"
+      - "data/cartography/**"
+      - "data/images/**"
+      - "data/routes/**"
+      - "data/dofus_atlas_world.db"
+      - "tools/**"
+      - "scripts/**"
+      - "config/**"
+      - "tests/**"
+      - "launch.py"
+      - "main.py"
+      - "sitecustomize.py"
+      - "requirements-pyside.txt"
+      - "Dofus_Atlas.bat"
+      - "Install_Dofus_Atlas.bat"
+      - "bootstrap_dofus_atlas.ps1"
+      - ".gitignore"
+      - ".gitattributes"
+      - "AGENTS.md"
+      - "DEVELOPMENT_GUARDRAILS.md"
+      - "PERFORMANCE_GUARDRAILS.md"
+      - ".github/workflows/**"
+
+concurrency:
+  group: dofus-atlas-app-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+defaults:
+  run:
+    shell: powershell -NoProfile -ExecutionPolicy Bypass -File "{0}"
+
+jobs:
+  code-validation:
+    name: Integrity Policy / Fast Code Validation
+    # Keep the first signal independent from LFS, Doduda and generated catalogs.
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository without LFS payloads
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+
+      - name: Create fast CI log directory
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/ci_app_fast_logs" | Out-Null
+
+      - name: Verify local Python 3.13
+        run: |
+          & py -3.13 --version 2>&1 | Tee-Object -FilePath "artifacts/ci_app_fast_logs/00_python.log"
+          if ($LASTEXITCODE -ne 0) { throw "Python 3.13 is not available through the Windows py launcher." }
+          & py -3.13 -m pip --version 2>&1 | Tee-Object -FilePath "artifacts/ci_app_fast_logs/00_python.log" -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run Atlas integrity FAST gate
+        run: |
+          $baseRef = "${{ github.event.pull_request.base.sha }}"
+          if ([string]::IsNullOrWhiteSpace($baseRef)) { $baseRef = "${{ github.event.before }}" }
+          if ([string]::IsNullOrWhiteSpace($baseRef) -or $baseRef -match '^0+$') { $baseRef = "HEAD^" }
+          & py -3.13 -X faulthandler -m tools.atlas_integrity fast --base-ref $baseRef 2>&1 | Tee-Object -FilePath "artifacts/ci_app_fast_logs/01_integrity_gate.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install application dependencies
+        run: |
+          & py -3.13 -m pip install -r requirements-pyside.txt 2>&1 | Tee-Object -FilePath "artifacts/ci_app_fast_logs/01_dependencies.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Compile application
+        run: |
+          & py -3.13 -m compileall -q app local_dofus_data main.py 2>&1 | Tee-Object -FilePath "artifacts/ci_app_fast_logs/02_compile.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run catalog-independent critical tests
+        run: |
+          $ErrorActionPreference = "Continue"
+          & py -3.13 -X faulthandler -m unittest -v `
+            tests.test_character_identity_invariants `
+            tests.test_character_data_service `
+            tests.test_network_progress_runtime `
+            tests.test_network_runtime_robustness `
+            tests.test_progress_cross_surface_reload `
+            tests.test_guide_ultime_manual_success_sync `
+            tests.test_performance_guardrails `
+            2>&1 | Tee-Object -FilePath "artifacts/ci_app_fast_logs/03_critical_unittest.log"
+          $code = $LASTEXITCODE
+          if ($null -eq $code) { $code = 0 }
+          if ($code -ne 0) { exit $code }
+
+      - name: Upload fast code validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-fast-ci-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ci_app_fast_logs/**
+          if-no-files-found: warn
+          retention-days: 30
+
+  architecture:
+    name: Architecture
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Run architecture guardrails
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_architecture_debt_baseline tests.test_clean_foundation_guardrails tests.test_project_guardrails
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  identity-persistence:
+    name: Identity / Persistence
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Run canonical identity and persistence contracts
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_character_identity_contract tests.test_character_identity_guardrails tests.test_character_identity_invariants tests.test_character_write_boundaries tests.test_progress_concurrent_instances tests.test_progress_cross_surface_reload tests.test_quest_progress_batch_contract
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  startup-lazy:
+    name: Startup / Lazy
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Run startup and lazy-loading contracts
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_launcher_fast_path tests.test_main_import_startup_boundary tests.test_main_startup_fast_path tests.test_main_startup_import_boundaries tests.test_startup_preflight tests.test_startup_preloader tests.test_startup_resource_contracts tests.test_encyclopedia_on_demand_loading tests.test_lazy_quests_page_performance
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  qt-async:
+    name: Qt Lifecycle / Async
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Run Qt lifecycle and non-accumulation contracts
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_atlas_window_runtime_cleanup tests.test_guide_home_async_images tests.test_organizer_shutdown_guard tests.test_qt_async_non_accumulation tests.test_quest_visuals_lot6 tests.test_runtime_async_startup tests.test_runtime_hook_lifecycle tests.test_world_scan_async_loading
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  resource-budgets:
+    name: Resource Budgets
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Enforce deterministic resource budgets
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_performance_budgets tests.test_startup_resource_contracts tests.test_lazy_quests_page_performance tests.test_qt_async_non_accumulation
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  golden-flows:
+    name: Golden Flows
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Run Guide Quests Success Home golden flows
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_achievements_lot7 tests.test_guide_ultime_v5_runtime tests.test_guide_ultime_v5_ui tests.test_home_guide_ultime_source tests.test_quest_detail_navigation
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  monolithic-lifecycle:
+    name: Monolithic Lifecycle
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Run representative lifecycle modules in one process
+        run: |
+          & py -3.13 -X faulthandler -m unittest -v tests.test_pyside_shell tests.test_guide_home_async_images tests.test_world_scan_async_loading tests.test_runtime_async_startup tests.test_atlas_window_runtime_cleanup tests.test_qt_async_non_accumulation
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  guide-data:
+    name: Guide / Quests / Success / Data Integrity
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Run canonical Guide and data integrity runner
+        run: |
+          & .\tools\run_guide_ultime_ci.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload Guide and data audit outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-guide-data-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ci_guide_ultime_logs/**
+          if-no-files-found: warn
+          retention-days: 30
+
+  full-validation:
+    name: Full Application Suite
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository without bulk LFS payloads
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
+
+      - name: Create full CI output directories
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/ci_app_logs" | Out-Null
+          New-Item -ItemType Directory -Force -Path "artifacts/ci_guide_ultime_logs" | Out-Null
+
+      - name: Verify local Python 3.13
+        run: |
+          & py -3.13 --version 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/00_python.log"
+          if ($LASTEXITCODE -ne 0) { throw "Python 3.13 is not available through the Windows py launcher." }
+          & py -3.13 -m pip --version 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/00_python.log" -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Record environment
+        run: |
+          $log = "artifacts/ci_app_logs/00_environment.txt"
+          @(
+            "GITHUB_SHA=$env:GITHUB_SHA"
+            "GITHUB_REF=$env:GITHUB_REF"
+            "RUNNER_OS=$env:RUNNER_OS"
+            "RUNNER_NAME=$env:RUNNER_NAME"
+          ) | Set-Content -Encoding UTF8 $log
+          & git status --short --branch 2>&1 | Tee-Object -FilePath $log -Append
+
+      - name: Install application dependencies
+        run: |
+          & py -3.13 -m pip install -r requirements-pyside.txt 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/01_dependencies.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize full-validation LFS fixtures
+        id: lfs
+        continue-on-error: true
+        run: |
+          $log = "artifacts/ci_app_logs/02_lfs_materialization.log"
+          & git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude="" 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from pathlib import Path
+
+          quest_ids = (26, 29, 55, 72, 260, 691, 1653, 1760, 1851, 2464)
+          pointer_header = b"version https://git-lfs.github.com/spec/v1"
+          errors = []
+          checked = 0
+
+          logo = Path("data/images/misc/dofus_atlas_logo.png")
+          if not logo.is_file():
+              errors.append(f"missing canonical application logo: {logo}")
+          elif logo.read_bytes()[: len(pointer_header)] == pointer_header:
+              errors.append(f"unmaterialized LFS pointer: {logo}")
+          else:
+              checked += 1
+
+          doduda = Path("tools/doduda/doduda.exe")
+          if not doduda.is_file():
+              errors.append(f"missing Doduda executable: {doduda}")
+          elif doduda.read_bytes()[: len(pointer_header)] == pointer_header:
+              errors.append(f"unmaterialized LFS pointer: {doduda}")
+
+          for quest_id in quest_ids:
+              root = Path("data/encyclopedia/images/quests") / str(quest_id)
+              if not root.is_dir():
+                  errors.append(f"missing fixture directory: {root}")
+                  continue
+              images = [path for path in root.rglob("*") if path.suffix.lower() in {".png", ".webp"}]
+              if not images:
+                  errors.append(f"no image fixtures: {root}")
+                  continue
+              for path in images:
+                  checked += 1
+                  if path.read_bytes()[: len(pointer_header)] == pointer_header:
+                      errors.append(f"unmaterialized LFS pointer: {path}")
+          print(f"Materialized visual fixtures checked: {checked}")
+          if errors:
+              raise SystemExit("\n".join(errors))
+          '@ | & py -3.13 - 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize local Dofus catalog
+        id: catalog
+        continue-on-error: true
+        run: |
+          $log = "artifacts/ci_app_logs/03_catalog_materialization.log"
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          "Preparing local Dofus catalog: $catalog" | Set-Content -Encoding UTF8 $log
+          if (Test-Path -LiteralPath $catalog) {
+            foreach ($attempt in 1..3) {
+              try {
+                Remove-Item -LiteralPath $catalog -Recurse -Force -ErrorAction Stop
+                break
+              } catch {
+                "Catalog cleanup attempt $attempt failed: $($_.Exception.Message)" | Tee-Object -FilePath $log -Append
+                if ($attempt -eq 3) { throw }
+                Start-Sleep -Seconds 2
+              }
+            }
+          }
+          if (Test-Path -LiteralPath $catalog) { throw "Catalog cleanup left stale data at $catalog" }
+          # Windows PowerShell 5.1 promotes redirected native stderr to errors.
+          # Doduda writes progress there; its exit code determines success.
+          $previousErrorActionPreference = $ErrorActionPreference
+          try {
+            $ErrorActionPreference = "Continue"
+            & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*" 2>&1 | Tee-Object -FilePath $log -Append
+            $dodudaExitCode = $LASTEXITCODE
+          } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+          }
+          if ($dodudaExitCode -ne 0) { exit $dodudaExitCode }
+          @'
+          from app.quest_catalog import QuestCatalog
+          catalog = QuestCatalog.load()
+          count = len(catalog.quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
+          '@ | & py -3.13 - 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run full application test suite
+        id: full_tests
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = "Continue"
+          & py -3.13 -X faulthandler -m unittest discover -v -s tests -p "test_*.py" 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/04_full_unittest.log"
+          $code = $LASTEXITCODE
+          if ($null -eq $code) { $code = 0 }
+          if ($code -ne 0) { exit $code }
+
+      - name: Report full validation outcomes
+        if: always()
+        run: |
+          $rows = @(
+            "LFS fixtures: ${{ steps.lfs.outcome }}"
+            "Doduda catalog: ${{ steps.catalog.outcome }}"
+            "Full application suite: ${{ steps.full_tests.outcome }}"
+          )
+          $rows | Set-Content -Encoding UTF8 "artifacts/ci_app_logs/07_full_outcomes.txt"
+          $rows | ForEach-Object { Write-Host $_ }
+          if ($env:GITHUB_STEP_SUMMARY) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Dofus Atlas full validation"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            foreach ($row in $rows) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- $row"
+            }
+          }
+
+      - name: Upload full validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-full-ci-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/ci_app_logs/**
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail full validation when a full check failed
+        if: ${{ always() }}
+        run: |
+          $failures = @()
+          if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
+          if ("${{ steps.catalog.outcome }}" -ne "success") { $failures += "Doduda catalog" }
+          if ("${{ steps.full_tests.outcome }}" -ne "success") { $failures += "full application suite" }
+          if ($failures.Count -gt 0) {
+            throw ("Full validation failed: " + ($failures -join ", "))
+          }
+          Write-Host "Full validation verdict: success"

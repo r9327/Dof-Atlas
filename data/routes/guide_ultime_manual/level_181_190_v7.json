@@ -1,0 +1,90 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_level_181_190_v7",
+  "title": "Guide Ultime — Niveau 181 à 190 + Ongles incarnés consolidé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v6.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v6",
+  "stage_count": 22,
+  "depends_on": [
+    "level_171_180_v7.json",
+    "level_150_170_v13.json",
+    "level_120_150_v14.json",
+    "bonta_1_90_v10.json",
+    "temporal_registry_v12.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Ferme Ongles incarnés en une seule campagne sociale au lieu de recruter quatre fois. Avant cette campagne, la route consomme toutes les tentatives naturelles de Clefs secrètes sur les boss déjà causaux: Obsidiantre PASS1/PASS2 + rerun S.L.I.P., Tengu x2, Korriandre x2 + Bonta85, Kolosso x2. Seulement après ces tentatives, rerun ciblé du boss correspondant si une clef5% manque encore, puis Inferno/Tous/Voleur/Travail sont faits dans une même session avec le groupe le plus contraignant déjà organisé.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/ongles-incarneacutes.html",
+    "https://www.dofuspourlesnoobs.com/inferno.html",
+    "https://www.dofuspourlesnoobs.com/tous-pour-un.html",
+    "https://www.dofuspourlesnoobs.com/voleur-en-tout-genre.html",
+    "https://www.dofuspourlesnoobs.com/le-travail-cest-la-santeacute.html"
+  ],
+  "stage_patches": {
+    "L185-02": {
+      "append": {
+        "progress_also": [
+          "ONGLES INCARNÉS — Korriandre Bonta85: troisième tentative naturelle de Clef secrète de la forêt pétrifiée. Dépôt de ravitaillement est déjà fermé depuis le chapitre180; si la clef tombe, la conserver pour la session sociale190. Si elle manque encore, ne rerun qu'à la phase cleanup Ongles."
+        ]
+      }
+    },
+    "L190-02": {
+      "append": {
+        "progress_also": [
+          "ONGLES INCARNÉS — Kolosso PASS1: surveiller la Clef secrète des crocs de verre (5% sur Kolosso). Un ami qui ne vous veut pas que du bien se ferme après ce passage, ce qui lève le prérequis de Le travail c'est la santé; conserver la clef si obtenue."
+        ]
+      }
+    },
+    "L190-04": {
+      "append": {
+        "progress_also": [
+          "ONGLES INCARNÉS — Kolosso PASS2: deuxième tentative naturelle de Clef secrète des crocs de verre. Aucun troisième Kolosso pour cette clef avant la phase cleanup consolidée."
+        ]
+      }
+    }
+  },
+  "insertions": [
+    {
+      "after": "L190-06",
+      "stage": {
+        "id": "L190-06O",
+        "title": "Ongles incarnés — cleanup des clefs puis une seule session sociale",
+        "level": "190+ / Dan Lavy + À qui profite le boufmouth + Dépôt + Un ami terminés",
+        "duration_min": 480,
+        "quests": ["Inferno", "Tous pour un", "Voleur en tout genre", "Le travail c'est la santé"],
+        "successes": ["Ongles incarnés"],
+        "entry": "Tous les prérequis narratifs sont fermés; tentatives naturelles consommées: Obsidiantre>=3, Tengu>=2, Korriandre>=3, Kolosso>=2.",
+        "preparation": [
+          {"name":"Kama de glace","quantity":100,"for":"25 x chacun des quatre rendus Ongles","policy":"Prévoir 100 au total avant la session afin de ne pas interrompre le groupe."},
+          {"requirement":"Inferno: 7 personnages qualifiés par la quête active/terminée","blocking":true},
+          {"requirement":"Tous pour un: 8 personnages qualifiés par la quête active/terminée","blocking":true},
+          {"requirement":"Voleur en tout genre: 8 personnages qualifiés par la quête active/terminée","blocking":true},
+          {"requirement":"Le travail c'est la santé: préparer les 8 personnages de dalles avec métier200 demandés par la mécanique courante, plus le personnage porteur de la quête devant la grille","blocking":true,"policy":"DPLN a encore signalé des changements de cette mécanique en 2026; revalider le nombre/placement runtime si la grille ne s'ouvre pas."},
+          {"note":"Organiser une seule session sociale suffisamment large pour enchaîner les quatre salles. Les helpers déjà terminés peuvent être réutilisés lorsque la quête l'autorise."}
+        ],
+        "take": [
+          "Inventorier les quatre Clefs secrètes réellement obtenues avant tout rerun.",
+          "Pour chaque clef manquante seulement, refaire le boss correspondant jusqu'au premier drop: Obsidiantre→Inferno, Tengu→Tous pour un, Korriandre→Voleur, Kolosso→Le travail. Mutualiser tout succès donjon encore ouvert pendant ces reruns de cleanup.",
+          "Double-cliquer chaque clef seulement lorsque son prérequis narratif est réellement fermé afin de lancer la quête correspondante."
+        ],
+        "route": [
+          {"pos":"[-71,-83] Hypogée de l'Obsidiantre","do":"Inferno: avec la Clef secrète de l'Hypogée et À la recherche de Dan Lavy terminé, entrer dans la salle secrète avec le groupe qualifié, gagner le combat transformé, récupérer la caisse puis la rendre à Mamie Rexpress avec25 Kamas de glace."},
+          {"pos":"[-78,-78] Crevasse Perge","do":"Tous pour un: avec la Clef secrète de la Crevasse et À qui profite le boufmouth terminé, entrer à8 qualifiés, exécuter le combat des vagues dans l'ordre, récupérer la caisse puis rendre avec25 Kamas de glace."},
+          {"pos":"[-82,-72] Forêt pétrifiée","do":"Voleur en tout genre: avec la Clef secrète de la forêt et Dépôt de ravitaillement terminé, entrer avec8 personnages qualifiés, ouvrir les dalles, prendre la caisse puis la rendre avec25 Kamas de glace."},
+          {"pos":"[-65,-67] Crocs de verre","do":"Le travail c'est la santé: avec la Clef secrète des crocs et Un ami qui ne vous veut pas que du bien terminé, placer les helpers métier200 sur les dalles selon la mécanique courante, garder le porteur de quête au point requis, récupérer la caisse puis rendre avec25 Kamas de glace."},
+          {"area":"audit Ongles incarnés","do":"Vérifier Inferno + Tous pour un + Voleur en tout genre + Le travail c'est la santé réellement terminées. Une clef en inventaire ou une salle ouverte ne vaut jamais validation de la quête."}
+        ],
+        "before_leaving": ["Ongles incarnés terminé réellement ou blocker social/drop exact encore visible."],
+        "hard_exit": [
+          "Aucun rerun de boss pour une clef avant épuisement de ses passages causaux naturels.",
+          "Aucun recrutement séparé quatre fois lorsque les quatre salles peuvent être groupées en une session.",
+          "Les quatre quêtes doivent être réellement fermées avant de considérer le contrat Ongles couvert."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — si un helper ou une clef manque, conserver exactement ce reliquat et poursuivre sans falsifier le succès."],
+        "next": "L190-07"
+      }
+    }
+  ]
+}

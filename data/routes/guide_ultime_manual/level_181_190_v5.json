@@ -1,0 +1,94 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_level_181_190_v5",
+  "title": "Guide Ultime — Niveau 181 à 190 + Agriculture finalisée sur Kolosso/Glours",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v4.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v4",
+  "stage_count": 21,
+  "depends_on": [
+    "level_171_180_v5.json",
+    "level_150_170_v9.json",
+    "level_120_150_v9.json",
+    "bonta_1_90_v10.json",
+    "temporal_registry_v11.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Remplace le rattrapage Agriculture ou alchimie de 520 minutes au niveau190. Les huit premières quêtes Paysan sont déjà absorbées par les chapitres précédents. Le champ des héros consomme Crocs de verre + deux Kolosso déjà causaux; Champ borde le château consomme Mont Torrideau/Ruche + deux Glours déjà causaux. Développement durable est pris à190 puis rendu seulement après la dixième quête, avant La maire dénie.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/le-champ-des-heacuteros.html",
+    "https://www.dofuspourlesnoobs.com/champ-borde-le-chacircteau.html",
+    "https://www.dofuspourlesnoobs.com/deacuteveloppement-durable.html",
+    "https://www.dofuspourlesnoobs.com/la-maire-deacutenie.html"
+  ],
+  "stage_patches": {
+    "L190-00": {
+      "replace": {
+        "title": "Développement durable — ouvrir le rendu final et Le champ des héros",
+        "duration_min": 55,
+        "quests": ["Développement durable","Le champ des héros"],
+        "preparation": [
+          {"note":"Sur route neuve, les huit premières quêtes de la branche Paysan doivent déjà être terminées. Si un personnage repris a choisi Alchimie, conserver sa branche et afficher son reliquat exact au lieu de basculer Paysan."}
+        ],
+        "take": [
+          "[-77,-42] Prendre Développement durable après L'essentiel est dans Lac Gelé.",
+          "[-71,-43] Si Les graines de la discorde est terminée et le niveau190 réel, prendre Le champ des héros avant toute campagne Crocs de verre/Kolosso."
+        ],
+        "route": [
+          {"area":"audit Agriculture ou alchimie","do":"Vérifier la branche réellement persistée. Sur route neuve Paysan, huit quêtes doivent déjà être fermées; ne refaire aucune ancienne zone. Développement durable reste actif pendant les deux dernières quêtes niveau190."},
+          {"area":"Crocs de verre","do":"Pour Le champ des héros, récolter les 5 Graines de Destinée pendant les déplacements vers Kolosso et laisser les combats naturels commencer les 40 Graines de Comique. Ne pas farmer 40 dehors avant les deux Kolosso déjà obligatoires."}
+        ],
+        "progress_also": ["Les deux derniers objectifs Agriculture sont désormais synchronisés avec Kolosso puis Glours; aucun bloc de 520 minutes séparé."],
+        "before_leaving": ["Développement durable active","Le champ des héros active avant Kolosso PASS1"],
+        "hard_exit": ["Aucune ancienne quête Agriculture rejouée","Branche persistée respectée"],
+        "pause": ["POINT DE PAUSE SÛR — Agriculture 8/10 sur route neuve, Kolosso prêt"],
+        "next": "L190-01"
+      }
+    },
+    "L190-02": {
+      "append": {
+        "quests": ["Le champ des héros"],
+        "route": [
+          {"pos":"Cavernes du Kolosso — salles PASS1","do":"Chaque monstre compatible sert au compteur Le champ des héros. Continuer jusqu'au Kolosso pour Là-haut + Un remède; ne jamais reset des salles uniquement pour Agriculture."}
+        ],
+        "hard_exit": ["Compteur Le champ des héros conservé après Kolosso PASS1."]
+      }
+    },
+    "L190-04": {
+      "append": {
+        "quests": ["Le champ des héros","Champ borde le château"],
+        "route": [
+          {"pos":"Cavernes du Kolosso — salles PASS2","do":"Compléter d'abord le reliquat des 40 Graines de Comique pendant le deuxième Kolosso causal. S'il manque encore quelques graines après les deux passages, finir seulement le reliquat aux Crocs de verre pendant les objectifs déjà actifs."},
+          {"pos":"[-71,-43]","do":"Rendre Le champ des héros dès 40 Comique + 5 Destinée puis prendre immédiatement Champ borde le château AVANT la campagne Mont Torrideau/Ruche/Glours."}
+        ],
+        "hard_exit": ["Le champ des héros terminée.","Champ borde le château active avant Glours PASS1."]
+      }
+    },
+    "L190-05": {
+      "append": {
+        "quests": ["Champ borde le château"],
+        "route": [
+          {"area":"Mont Torrideau/Ruche — avant Antichambre","do":"Récolter les 5 Graines de Lupin pendant les trajets et utiliser les combats déjà nécessaires pour commencer les 40 Graines Pops. Ne pas compléter dehors avant les salles Glours."},
+          {"pos":"Antichambre des Gloursons — salles PASS1","do":"Tous les monstres compatibles du premier Glours servent au compteur Champ borde le château pendant que Mission Solution utilise les trois premières salles. Continuer au boss normalement."}
+        ],
+        "hard_exit": ["Compteur Champ borde le château conservé après Glours PASS1."]
+      }
+    },
+    "L190-06": {
+      "append": {
+        "quests": ["Champ borde le château","Développement durable"],
+        "route": [
+          {"pos":"Antichambre des Gloursons — salles PASS2","do":"Compléter d'abord le reliquat des 40 Graines Pops pendant le deuxième Glours causal. Ne faire dehors que le reliquat strictement nécessaire si les deux passages n'ont pas suffi."},
+          {"pos":"[-71,-43] puis [-77,-42]","do":"Rendre Champ borde le château dès 40 Pops + 5 Lupin. La branche Agriculture ou alchimie est alors réellement complète; rendre Développement durable à Lucette Brifian avant de poursuivre La maire dénie."}
+        ],
+        "hard_exit": ["Agriculture ou alchimie terminée.","Développement durable terminée avant L190-07."]
+      }
+    },
+    "L190-07": {
+      "append": {
+        "prerequisites": ["Développement durable terminée réellement avant la validation La maire dénie."]
+      }
+    }
+  },
+  "insertions": []
+}

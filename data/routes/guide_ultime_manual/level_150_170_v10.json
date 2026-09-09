@@ -1,0 +1,72 @@
+{
+  "schema_version": 10,
+  "route_id": "guide_ultime_manual_level_150_170_v10",
+  "title": "Guide Ultime — Niveau 150 à 170 + Problèmes et solutions fermé aux Larmes",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v9.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v9",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v10.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v12.json"
+  ],
+  "optimization_note": "Retire La marche de l'impératrice du palier160 puisqu'elle est désormais fermée avant Star ski/Mansot. Une blague vaseuse ? et Un volcan s'éteint sont absorbées dans la campagne Larmes/Obsidiantre. Les ressources Otomaï d'Un volcan sont préparées avant Kimiya afin d'éviter un second trajet. Groméo et Manque de re-peau restent les seuls fils éventuellement temporels de Problèmes et solutions; ils sont repris à chaque fenêtre naturelle jusqu'à fermeture, sans bloquer les donjons.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/problegravemes-et-solutions.html",
+    "https://www.dofuspourlesnoobs.com/une-blague-vaseuse.html",
+    "https://www.dofuspourlesnoobs.com/un-volcan-seacuteteint.html",
+    "https://www.dofuspourlesnoobs.com/gromeacuteo-et-ginette.html",
+    "https://www.dofuspourlesnoobs.com/manque-de-re-peau.html"
+  ],
+  "stage_patches": {
+    "L150-01F": {
+      "replace": {
+        "quests": ["Il préfère la mort en mer","Chauffage à moindre frais","À la recherche de Dan Lavy"],
+        "route": [
+          {"area":"Bourgade → zones maritimes Frigost","do":"Fermer Il préfère la mort en mer avec sa pierre de quête et les combats demandés. Ne pas enregistrer cette âme dans le registre Ocre."},
+          {"area":"Larmes d'Ouronigride / Pandala","do":"Faire Chauffage à moindre frais: arriver avec la boisson du Pandazaap, grouper les drops de roses/Atomystiques avec les combats de zone et ne pas attendre immobile les fleurs repop."},
+          {"area":"Bourgade → entrée Hypogée","do":"Prendre À la recherche de Dan Lavy et l'avancer jusqu'à ce que les quatre premières salles de l'Hypogée soient explicitement demandées. STOP avant d'entrer: L150-03 fera ces salles avec Lavomatique/Thomahon/Champ Pomy."}
+        ],
+        "before_leaving": ["Il préfère la mort en mer terminé","Chauffage à moindre frais terminé","À la recherche de Dan Lavy au verrou Hypogée salle4"],
+        "hard_exit": ["Aucun passage Obsidiantre ajouté pour Dan Lavy","La marche de l'impératrice déjà terminée au chapitre120-150; aucun farm Mamansot tardif"],
+        "next": "L150-02 — Kimbo puis Minotot; L150-03 fusionnera Dan Lavy"
+      }
+    },
+    "L150-03": {
+      "prepend": {
+        "quests": ["Une blague vaseuse ?","Un volcan s'éteint"],
+        "preparation": [
+          {"name":"Bave du Kaskargo","quantity":10,"for":"Un volcan s'éteint","policy":"Utiliser le stock conservé d'Otomaï ou acheter en HDV; ne jamais refaire un donjon uniquement pour ces baves."},
+          {"name":"Pistil du Tynril","quantity":1,"for":"Un volcan s'éteint","policy":"Retirer celui réservé au passage Tynril du chapitre précédent; achat HDV si le stock n'a pas été sécurisé."},
+          {"name":"Oeuf de Crapeur","quantity":5,"for":"Un volcan s'éteint","policy":"Les obtenir pendant les combats Larmes déjà nécessaires ou en HDV avant le départ Otomaï."}
+        ],
+        "route": [
+          {"area":"Larmes d'Ouronigride","do":"Prendre Une blague vaseuse ? et faire ses extracteurs/combats aléatoires pendant la même boucle Larmes que Mauvaise graine, Chauffage et la préparation Obsidiantre. Bricole Girl est déjà terminée, donc aucun verrou Valy ne subsiste."},
+          {"area":"Larmes d'Ouronigride","do":"Prendre Un volcan s'éteint et visiter ses six points de prélèvement pendant la boucle. AVANT de partir vers Otomaï/Kimiya, vérifier 10 Baves Kaskargo + 1 Pistil Tynril + 5 Œufs Crapeur dans le stock; ne pas découvrir la liste une fois arrivé au laboratoire."},
+          {"area":"Bourgade → Otomaï / laboratoire de Kimiya","do":"Faire l'aller Otomaï d'Un volcan avec le lot complet et fermer toute la partie laboratoire en un seul passage. Revenir aux Larmes déposer la créature modifiée et terminer la quête; Art nacre devient un fil futur, pas une raison de quitter le chapitre."}
+        ]
+      },
+      "append": {
+        "successes": ["Problèmes et solutions"],
+        "hard_exit": [
+          "Une blague vaseuse ? terminée pendant la campagne Larmes.",
+          "Un volcan s'éteint terminée sans second aller Otomaï pour ressources oubliées.",
+          "Les huit quêtes Problèmes et solutions non temporelles sont fermées; Groméo/Manque restent uniquement si leur fenêtre/état n'a pas encore permis la fermeture."
+        ]
+      }
+    },
+    "L150-08R": {
+      "append": {
+        "quests": ["conditional:Groméo et Ginette si encore ouverte","conditional:Manque de re-peau si encore ouverte"],
+        "temporal_hooks": ["frigost_gromeo_ginette_start_window","frigost_manque_repeau_energy_gate","frigost_manque_repeau_19h_appointment"],
+        "route": [
+          {"area":"Bourgade/Champs — contrôle Problèmes et solutions","do":"Avant de considérer le grand bloc Frigost170 propre, vérifier Groméo et Ginette + Manque de re-peau. Si leur fenêtre/énergie est disponible, les fermer pendant les nombreux retours Bourgade/Champs de À qui profite. Si ce n'est pas disponible, conserver un rappel temporel prioritaire mais ne pas retarder Tengu/Korriandre."}
+        ],
+        "before_leaving": ["Problèmes et solutions terminé ou seul blocker temporel Groméo/Manque explicitement enregistré avec prochaine fenêtre naturelle."],
+        "hard_exit": ["Aucune autre quête permanente du succès Problèmes et solutions oubliée."]
+      }
+    }
+  },
+  "insertions": []
+}

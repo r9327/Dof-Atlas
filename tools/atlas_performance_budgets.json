@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "metrics": {
+    "provider_constructions_per_encyclopedia_shell": {
+      "baseline": 1,
+      "regression_limit": 1,
+      "hard_limit": 2,
+      "unit": "count",
+      "owner": "tests/test_encyclopedia_on_demand_loading.py"
+    },
+    "pending_image_futures_after_x50": {
+      "baseline": 0,
+      "regression_limit": 0,
+      "hard_limit": 1,
+      "unit": "count",
+      "owner": "tests/test_qt_async_non_accumulation.py"
+    },
+    "active_image_timers_after_x50": {
+      "baseline": 0,
+      "regression_limit": 2,
+      "hard_limit": 4,
+      "unit": "count",
+      "owner": "tests/test_qt_async_non_accumulation.py"
+    },
+    "quest_rows_before_open": {
+      "baseline": 0,
+      "regression_limit": 0,
+      "hard_limit": 1,
+      "unit": "count",
+      "owner": "tests/test_lazy_quests_page_performance.py"
+    },
+    "quest_rows_after_one_series_action": {
+      "baseline": 2,
+      "regression_limit": 2,
+      "hard_limit": 4,
+      "unit": "count",
+      "owner": "tests/test_lazy_quests_page_performance.py"
+    }
+  },
+  "measured_only": {
+    "owner": "app/modules/encyclopedia/tools/benchmark_guides_performance.py",
+    "metrics": [
+      "startup_stabilized_ms",
+      "startup_stabilized_rss_mb",
+      "quests_open_ms",
+      "guide_open_ms",
+      "achievements_open_ms",
+      "idle_cpu_percent_one_core"
+    ],
+    "reason": "Wall-clock and RSS measurements vary by Windows runner and have no same-environment comparison gate yet."
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": 11,
+  "route_id": "guide_ultime_manual_level_191_200_v11",
+  "title": "Guide Ultime — 191-200 + C'est assez fusionné à l'Ivoire",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v10.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v10",
+  "stage_count": 57,
+  "depends_on": [
+    "level_181_190_v8.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Ferme C'est assez sans ajouter de Protozorreur. Ponctions létales + Grand corps malade + Qui dit baume sont préparées juste après Le dragon blanc/avant Examen. Grand corps consomme seulement les salles1-4 puis sort comme recommandé par DPLN. Examen de passage fait déjà le Protozorreur: ce même boss ferme Qui dit baume, pendant que Ponctions profite des Krobes de zone/donjon. Ainsi C'est assez et Ivoire partagent le seul boss Ventre nécessaire à cette séquence.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/cest-assez.html",
+    "https://www.dofuspourlesnoobs.com/ponctions-leacutetales.html",
+    "https://www.dofuspourlesnoobs.com/grand-corps-malade.html",
+    "https://www.dofuspourlesnoobs.com/qui-dit-baume.html",
+    "https://www.dofuspourlesnoobs.com/ventre-de-la-baleine.html"
+  ],
+  "stage_patches": {
+    "L200-07": {
+      "append": {
+        "quests": ["Ponctions létales", "Qui dit baume"],
+        "route": [
+          {"area":"Roc des Salbatroces / Ventre de la Baleine","do":"Avant l'entrée Examen, vérifier Qui dit baume exactement au verrou Protozorreur et Ponctions létales encore active seulement si ses derniers Kroboplasmes peuvent profiter des salles. Ne faire qu'un seul passage boss pour Examen + Qui dit baume + succès Ventre compatibles."},
+          {"pos":"Protozorreur — fin Examen","do":"Vaincre Protozorreur pour Examen de passage ET Qui dit baume. Après le boss, parler à Kidibom pour Qui dit baume avant de quitter la salle, puis poursuivre le dialogue de l'Esprit de Kidibom demandé par Examen."},
+          {"area":"Roc des Salbatroces","do":"Rendre la boursouflure à Jangakuq pour terminer Qui dit baume. Si Ponctions létales n'est pas encore fermée, ne refaire aucun donjon: finir uniquement son reliquat exact sur Krobes extérieurs puis Ninae. Vérifier Ponctions + Grand corps + Qui dit baume réellement terminées."
+          }
+        ],
+        "successes": ["C'est assez"],
+        "hard_exit": [
+          "Protozorreur unique pour Examen de passage + Qui dit baume.",
+          "C'est assez terminé réellement; aucun second Protozorreur créé par Grand corps malade."
+        ]
+      }
+    }
+  },
+  "insertions": [
+    {
+      "after": "L200-06",
+      "stage": {
+        "id": "L200-06C",
+        "title": "Roc des Salbatroces — préparer C'est assez jusqu'au Protozorreur Ivoire",
+        "level": "200 / Le dragon blanc terminé / Examen de passage ouvert",
+        "duration_min": 260,
+        "quests": ["Ponctions létales", "Grand corps malade", "Qui dit baume"],
+        "preparation": [
+          {"name":"Pyrute","quantity":1,"for":"Qui dit baume"},
+          {"name":"Obsidienne","quantity":7,"for":"Qui dit baume"},
+          {"name":"Vomer d'Apériglours","quantity":1,"for":"Qui dit baume"},
+          {"name":"Écorce d'Abrazif","quantity":1,"for":"Qui dit baume"},
+          {"name":"Bois de Tremble","quantity":7,"for":"Qui dit baume"},
+          {"name":"Perce-Neige","quantity":1,"for":"Qui dit baume"},
+          {"name":"Pain de Frostiz","quantity":1,"for":"Qui dit baume"},
+          {"note":"Arriver avec toutes les ressources Qui dit baume. Le but est de quitter Grand corps après la salle4, puis de réserver le boss au passage Examen déjà obligatoire."}
+        ],
+        "take": [
+          "[-84,-60] Prendre Ponctions létales à Ninae Charpe avant tout farm Krobe.",
+          "[-83,-58] Prendre Grand corps malade au Capitaine Pol Ouatnos.",
+          "[-84,-57] Prendre Qui dit baume à Jangakuq et l'avancer avec ses ressources déjà préparées."
+        ],
+        "route": [
+          {"area":"Roc des Salbatroces / Krobes","do":"Faire les5 prélèvements de Kroboplasme de chaque type pour Ponctions létales pendant les combats de zone utiles à Grand corps/Qui dit baume. Rendre les prélèvements et faire la transformation Krobe isolé demandée; terminer Ponctions dès que possible sans donjon dédié."},
+          {"area":"Roc → Jardins d'Hiver → Bourgade","do":"Faire les déchets de Grand corps, récupérer Herbe Usse + Plante Ureuse, passer par Albert Paisse et le combat solo Pataugerbe, puis revenir Ninae. Grouper ces trajets avec les objectifs Frigost III/Jardins encore ouverts."},
+          {"area":"Monde des Douze / Frigost","do":"Avancer Qui dit baume: déchets toxiques, paire de couteaux sacrés et quatre bénédictions. Arriver à la demande Protozorreur AVANT la future entrée Examen."},
+          {"pos":"[-85,-59] Ventre de la Baleine — salles1 à4","do":"Pour Grand corps malade, entrer et aller seulement jusqu'à la salle4. Donner l'Inoculateur à Disnez Loth puis SORTIR avant le boss. Ne pas terminer le donjon maintenant: le boss est réservé au passage Examen de passage + Qui dit baume."},
+          {"pos":"[-83,-58]","do":"Rendre Grand corps malade au Capitaine. Vérifier Qui dit baume au verrou Protozorreur et Examen de passage actif; alors seulement passer à L200-07."
+          }
+        ],
+        "before_leaving": [
+          "Grand corps malade terminé.",
+          "Ponctions létales terminée ou seul reliquat Krobe extérieur exact visible.",
+          "Qui dit baume au verrou Protozorreur.",
+          "Examen de passage actif."
+        ],
+        "hard_exit": [
+          "Aucun Protozorreur pendant Grand corps malade.",
+          "Aucun second Ventre complet avant le passage Ivoire.",
+          "Les ressources Qui dit baume ont été préparées avant les déplacements."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — C'est assez prêt boss, Examen prêt à partager Protozorreur"],
+        "next": "L200-07"
+      }
+    }
+  ]
+}

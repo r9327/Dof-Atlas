@@ -1,0 +1,152 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_bonta_1_80_v7",
+  "title": "Guide Ultime — Alignement Bonta 1 à 80 optimisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_70_v6.json",
+  "supersedes": "guide_ultime_manual_bonta_1_70_v6",
+  "quest_range": [1, 80],
+  "macro_stage_count": 35,
+  "order_route_file_rank80": "bonta_order_rank80_v1.json",
+  "routing_policy_71_80": [
+    "Le rang71 n'est lancé que lorsque le startCriterion local le permet; la documentation actuelle le recommande au niveau171.",
+    "Rangs71-74 sont une seule enquête Trev Bonta/Astrub/Amakna. Au rang73, utiliser l'alternative sans attente horaire plutôt que patienter jusqu'après20h si les trois objets peuvent être obtenus immédiatement.",
+    "Rangs75-76 sont préparés ensemble: recruter trois autres joueurs avant la crypte du vampire et conserver le groupe pour la mécanique quatre joueurs de Esprit, es-tu là ? lorsque possible.",
+    "Rang77 Vol du Temps est explicitement SOURCE_CONFLICT_3_5: la mise à jour3.5 indique que la quête de capture a été modifiée tandis que la fiche détaillée conserve l'ancien texte des quatre âmes Hordémons. Le Guide Ultime suit les objectifs du QuestProvider local 2026 et n'impose jamais quatre captures depuis cette source documentaire obsolète.",
+    "Rangs78-79 sont regroupés: préparer Psychine puis assistance Pandawa et Forgeron179 avant le trajet Pandala.",
+    "Rang80 prépare le Masque à Zag par HDV si rentable et rassemble trois autres joueurs avant l'îlot Estitch; la quête débloque ensuite exactement l'Ordre80 persisté.",
+    "Aucun Ougah n'est fait dans la route Bonta elle-même: l'Ordre80 est synchronisé avec Tour de force + Appui sur le champignon + Ocre dans le chapitre171-180."
+  ],
+  "preparation_71_80": [
+    {"name":"Mauvaise Pioche","quantity":1,"for_rank":72,"recipe":{"Bois de Frêne":10,"Fer":5},"profession":"Forgeron6+"},
+    {"name":"Bois de Bombu","quantity":80,"for_rank":72},
+    {"name":"Ebonite","quantity":3,"for_rank":72},
+    {"requirement":"Bricoleur niveau172 minimum pour le Tonneau en Bombu","for_rank":72,"blocking":true},
+    {"name":"Lait de Dragodinde Dorée","quantity":1,"for_rank":73,"policy":"alternative anti-attente >20h"},
+    {"name":"Sac d'épices amaknéennes","quantity":1,"for_rank":73,"policy":"alternative anti-attente >20h"},
+    {"name":"Filet Mignon","quantity":1,"for_rank":73,"policy":"alternative anti-attente >20h"},
+    {"name":"Marteau de Raclage","quantity":1,"for_rank":74,"recipe":{"Sourcil de Moskito":1,"Plume de Piou Vert":3}},
+    {"name":"kamas","quantity":500,"for_rank":75},
+    {"requirement":"Trois personnages assistants disponibles avant la crypte [9,15] du rang75","for_rank":75,"blocking":true},
+    {"name":"Dent en Or de Craqueleur","quantity":1,"for_rank":76},
+    {"name":"Poudre Temporelle","quantity":10,"for_rank":76},
+    {"name":"Pièce du Trésor du Badoul","quantity":1,"for_rank":76},
+    {"name":"Or","quantity":35,"for_rank":76},
+    {"name":"Maïs","quantity":35,"for_rank":76},
+    {"name":"Cuir de Maho Givrefoux","quantity":1,"for_rank":76},
+    {"name":"Laine de Yokaï Givrefoux","quantity":10,"for_rank":76},
+    {"requirement":"Quatre joueurs minimum pour le combat des coffres de Esprit, es-tu là ?","for_rank":76,"blocking":true},
+    {"warning":"Vol du Temps rang77: NE PAS acheter quatre Énormes pierres d'âme sur la seule base de la fiche web; résoudre les objectifs actuels depuis QuestProvider local 2026 avant préparation."},
+    {"name":"Larme d'Eniripsa","quantity":5,"for_rank":78},
+    {"name":"Pain des Champs","quantity":5,"for_rank":78},
+    {"name":"Corde d'escalade","quantity":1,"for_rank":78},
+    {"requirement":"Un personnage Pandawa disponible pour ouvrir la cave en [18,-24]","for_rank":79,"blocking":true},
+    {"name":"Planche à Pain","quantity":1,"for_rank":79},
+    {"name":"Pyrute","quantity":1,"for_rank":79},
+    {"requirement":"Forgeron niveau179 minimum pour la Pelle Hectrochoc","for_rank":79,"blocking":true},
+    {"name":"Masque à Zag","quantity":1,"for_rank":80,"policy":"HDV recommandé si moins cher/plus rapide que craft; objet non perdu"},
+    {"requirement":"Tailleur180 seulement si le Masque à Zag doit être crafté","for_rank":80},
+    {"requirement":"Trois autres joueurs disponibles pour le combat de forge sur l'îlot Estitch","for_rank":80,"blocking":true}
+  ],
+  "insertions": [
+    {
+      "after":"BNT-29",
+      "stage": {
+        "id":"BNT-30",
+        "title":"Bonta71-74 — enquête Trev sans attente horaire",
+        "level_gate":"startCriterion local rang71 puis rangs successifs",
+        "duration_min":150,
+        "ranks":[71,72,73,74],
+        "quests":["Un coupable idéal","Un peu de juge hot","De drôles de témoins","Sram d'Égoutant"],
+        "route":[
+          {"pos":"Bonta [-32,-57]","do":"Rang71: faire les trois vérifications de l'emploi du temps de Trev dans Bonta, comparer la lanière et rendre l'enquête à Amayiro. Aucun achat requis."},
+          {"pos":"Bonta -> Astrub -> Amakna","do":"Rang72: venir avec Mauvaise Pioche, 80 Bombus et 3 Ebonites. Faire la boucle des refus à Astrub, récupérer l'hydre au miel avec le Tonneau en Bombu crafté par Bricoleur172, puis obtenir le délai de procès sans retour ressource."},
+          {"pos":"Bonta","do":"Rang73: refaire le trajet de Trev et interroger les témoins. Plutôt que d'attendre artificiellement après20h, utiliser l'alternative documentée: Lait de Dragodinde Dorée + Sac d'épices amaknéennes + Filet Mignon -> jambon -> chaîne Rei/Mente. N'utiliser le créneau horaire que s'il est déjà naturellement ouvert et plus rapide."},
+          {"pos":"Égouts Bonta -> Bonta -> [9,21]/[3,17]","do":"Rang74: capturer Gnerah, fournir le Marteau de Raclage, obtenir/dresser le Chacharlatan et faire le procès. Choix Guide Ultime Bonta: défendre l'innocence de Trev pour rester cohérent avec Amayiro; le succès ne nécessite pas une branche Danathor séparée."}
+        ],
+        "hard_exit":["Bonta74 terminé","Aucune attente volontaire jusqu'à20h","Trev innocenté","Marteau de Lumière rang75 disponible"],
+        "pause":["Alignement74","Préparer groupe4 avant rang75"]
+      }
+    },
+    {
+      "after":"BNT-30",
+      "stage": {
+        "id":"BNT-31",
+        "title":"Bonta75-76 — Marteau de Lumière + médium, groupe4 préparé une seule fois",
+        "level_gate":"rangs75-76 réellement disponibles",
+        "duration_min":210,
+        "ranks":[75,76],
+        "quests":["Si j'avais un marteau","Esprit, es-tu là ?"],
+        "hard_gates":["Trois assistants recrutés AVANT la crypte vampire du rang75.","Conserver/reformer immédiatement le groupe pour le combat des coffres du rang76 lorsque le timing de session le permet."],
+        "route":[
+          {"pos":"Bonta/Brâkmar -> Forêt pétrifiée -> [9,15]","do":"Rang75: faire la boucle des temples/égouts, récupérer l'Écorce sombre pétrifiée pendant le passage Frigost, la faire sculpter pour500k, puis ouvrir la crypte à quatre. Vaincre le vampire et rapporter le Marteau de Lumière sans esprit."},
+          {"pos":"Bonta/Astrub/Amakna/Minotoror","do":"Rang76: avec Dent en Or, Poudres Temporelles et Pièce du Trésor déjà prêtes, valider les trois dalles sans trajet d'achat. Faire le combat des coffres avec quatre joueurs minimum, retrouver Nosilla puis préparer immédiatement la Poupée de Remplacement avec Or/Maïs/Cuir Maho/Laines Yokaï."},
+          {"pos":"[-14,40] -> Tour Bonta","do":"Donner la poupée à l'Esprit de Lumière, l'escorter à Ebru et fermer rang76."}
+        ],
+        "hard_exit":["Bonta76 terminé","Groupe social annoncé avant les deux mécaniques","Vol du Temps disponible mais sous contrat source3.5"],
+        "pause":["Alignement76","Rang77 sera résolu par objectifs locaux"]
+      }
+    },
+    {
+      "after":"BNT-31",
+      "stage": {
+        "id":"BNT-32",
+        "title":"Bonta77 — Vol du Temps 3.5, QuestProvider local arbitre",
+        "level_gate":"rang77 réellement disponible",
+        "duration_min":120,
+        "ranks":[77],
+        "quests":["Vol du Temps"],
+        "source_conflict": {
+          "web_detailed_page":"La fiche mise à jour le 03/03/2026 affiche encore quatre captures Hordémons/Énormes pierres d'âme.",
+          "web_patch_notes":"La mise à jour3.5 liste explicitement Vol du Temps parmi les quêtes modifiées à cause du nouveau système de pierres/captures.",
+          "authority":"QuestProvider local / objectifs bruts du client 2026",
+          "forbidden_assumption":"Ne jamais convertir automatiquement la vieille liste des 4 âmes en required_items/actions."
+        },
+        "route":[
+          {"pos":"Bonta -> Temple Huppermage -> Vil Smisse -> Tour Bonta","do":"Faire la partie stable de la quête: lettre Maha, négociation, service Vil Smisse et combat de la Caisse Mystérieuse avec quatre joueurs max selon walkthrough actuel."},
+          {"pos":"objectif runtime suivant","do":"À partir du moment où Vil Smisse demande le Fragment de Temps, lire les objectifs réels du QuestProvider local. Si la version actuelle demande encore des actions Xélorium, les exécuter exactement comme déclarées localement; sinon suivre le nouveau contrat. Ne jamais demander quatre pierres/âmes uniquement parce que DPLN contient encore l'ancien paragraphe."},
+          {"pos":"Danathor Bonta","do":"Rendre le Fragment de Temps selon l'objectif local et fermer rang77."}
+        ],
+        "hard_exit":["Bonta77 terminé selon données locales 2026","0 capture/ressource inventée depuis source web contradictoire","La mémoire en lambeaux disponible"],
+        "pause":["Alignement77","Conflit3.5 résolu au runtime"]
+      }
+    },
+    {
+      "after":"BNT-32",
+      "stage": {
+        "id":"BNT-33",
+        "title":"Bonta78-79 — Psychine + Pensepillon avec Pandawa préparé",
+        "level_gate":"rangs78-79 réellement disponibles",
+        "duration_min":155,
+        "ranks":[78,79],
+        "quests":["La mémoire en lambeaux","Pense-bête"],
+        "route":[
+          {"pos":"Bonta -> [-14,-31] -> temple Osa -> [-17,1] -> Brâkmar -> Dents de Pierre","do":"Rang78: enquêter sur les psychines, libérer Pouere, puis arriver à Nyangaspar avec 5 Larmes d'Eniripsa + 5 Pains des Champs + Corde d'escalade déjà prêts. Récupérer la Psychine et rendre à Danathor."},
+          {"pos":"Bonta/Astrub -> Pandala [20,-27]/[18,-24]","do":"Rang79: venir AVANT le déplacement avec un Pandawa disponible. Ouvrir la cave, récupérer l'Eau Sacrée, la faire transmuter puis faire fabriquer la Pelle Hectrochoc par Forgeron179 avec Planche à Pain + Pyrute."},
+          {"pos":"Pandala -> [-14,2] -> [-20,9] -> Bonta","do":"Soigner Meuh Sieurchance, obtenir la pensée de Solar via Greu Nouille puis remettre la Pensée perdue à Danathor."}
+        ],
+        "hard_exit":["Bonta79 terminé","Pandawa recruté avant [18,-24]","Forgeron179 prévu avant craft","L'Éclat de l'Aube disponible"],
+        "pause":["Alignement79","Préparer Masque à Zag + groupe4 pour rang80"]
+      }
+    },
+    {
+      "after":"BNT-33",
+      "stage": {
+        "id":"BNT-34",
+        "title":"Bonta80 — L'Éclat de l'Aube + déblocage Ordre80",
+        "level_gate":"rang80 réellement disponible / documentation niveau180",
+        "duration_min":115,
+        "ranks":[80],
+        "quests":["L'Éclat de l'Aube"],
+        "route":[
+          {"pos":"Bonta -> Temple Sacrieur -> [-32,40] -> Pandala","do":"Prendre rang80. Acheter le Masque à Zag en HDV si rentable; sinon seulement alors le faire crafter par Tailleur180 avec la recette du walkthrough. Traverser la zone de gaz et récupérer les Larmes de Sacrieur selon l'interaction actuelle, sans figer les anciennes cases signalées comme à vérifier."},
+          {"pos":"Temple Huppermage [38,-20] -> [-36,-10] -> îlot Estitch","do":"Venir avec trois autres joueurs AVANT l'aller îlot. Fouiller les notes, rencontrer Rob Mirbelec et faire le combat de forge à quatre maximum. En cas d'échec, réacheter seulement les passes nécessaires; aucun aller-retour de recrutement après arrivée."},
+          {"pos":"Danathor [-36,-60]","do":"Rendre L'Éclat de l'Aube. Bonta80 terminé. Débloquer exactement la quatrième quête du même Ordre persisté, mais NE PAS entrer Ougah tant que Tour de force + Appui sur le champignon + capture Ocre + branche Ordre80 ne sont pas simultanément préparés."}
+        ],
+        "hard_exit":["Bonta1-80 couvert sans trou","L'Éclat de l'Aube terminé","Même Ordre20/40/60 conservé pour rang80","Ougah encore non fait dans cette tranche d'alignement","Ordre80 prêt à fusion Ougah"],
+        "pause":["Alignement80","Ordre80 = prochain bloc Ougah partagé"]
+      }
+    }
+  ],
+  "stage_patches": {}
+}

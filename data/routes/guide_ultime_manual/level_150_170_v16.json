@@ -1,0 +1,18 @@
+{
+  "schema_version": 16,
+  "route_id": "guide_ultime_manual_level_150_170_v16",
+  "title": "Guide Ultime — Niveau 150 à 170, dépendances canoniques consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v15.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v15",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v16.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Consolide les dépendances après Forage, micro-succès, Village/Baka et contraintes temporelles Frigost. Aucun déplacement joueur supplémentaire et aucune nouvelle fiche.",
+  "stage_patches": {},
+  "insertions": []
+}

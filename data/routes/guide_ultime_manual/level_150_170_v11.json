@@ -1,0 +1,51 @@
+{
+  "schema_version": 11,
+  "route_id": "guide_ultime_manual_level_150_170_v11",
+  "title": "Guide Ultime — Niveau 150 à 170 + Objets trouvés Larmes/Crevasse",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v10.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v10",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v11.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v12.json"
+  ],
+  "optimization_note": "Ajoute Art nacre et Obscurantisme au succès Objets trouvés. Art nacre ne peut être recherchée qu'après Un volcan s'éteint: consommer alors tous les combats Larmes encore actifs avant cleanup. Obscurantisme profite des40 monstres de Gant graine en Crevasse/Village; aucune répétition journalière après sa première validation.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/objets-trouveacutes.html",
+    "https://www.dofuspourlesnoobs.com/art-nacre.html",
+    "https://www.dofuspourlesnoobs.com/obscurantisme.html"
+  ],
+  "stage_patches": {
+    "L150-03": {
+      "append": {
+        "quests": ["Art nacre"],
+        "route": [
+          {"area":"Larmes d'Ouronigride — APRÈS Un volcan s'éteint","do":"Art nacre devient seulement maintenant éligible. Pendant tous les combats Larmes encore nécessaires à Une blague vaseuse ?, Mauvaise graine, Chauffage ou autres fils non fermés, surveiller la Broche en nacre. Dès qu'elle tombe, double-cliquer puis l'offrir à Oynop lors du retour déjà prévu. Ne compter aucun combat effectué avant Un volcan comme tentative valide."},
+          {"area":"Larmes d'Ouronigride — cleanup rare","do":"Si tous les autres objectifs Larmes sont fermés et la Broche n'est toujours pas tombée, faire seulement alors un cleanup ciblé de monstres de la zone jusqu'au drop. Arrêter immédiatement au premier exemplaire et terminer Art nacre; ne pas répéter la quête."}
+        ],
+        "hard_exit": ["Art nacre terminée après Un volcan s'éteint; aucun faux crédit rétroactif des combats antérieurs."]
+      }
+    },
+    "L150-06": {
+      "append": {
+        "quests": ["Obscurantisme"],
+        "progress_also": [
+          "OBJET TROUVÉ — Crevasse/Village Enseveli: pendant Gant graine et tous les combats naturels de Crevasse, surveiller le Livre scellé (drop rare). Dès qu'il tombe, double-cliquer puis l'apporter à Hugo Frais lors du prochain retour Bourgade. Une seule validation journalière est nécessaire pour Objets trouvés."
+        ],
+        "hard_exit": ["Obscurantisme terminée ou Livre encore manquant après tous les combats Crevasse utiles; cleanup seulement après ces combats."]
+      }
+    },
+    "L150-08": {
+      "append": {
+        "quests": ["Obscurantisme"],
+        "route": [
+          {"area":"Crevasse/Village après Tengu PASS2","do":"Si Obscurantisme est encore absente, consommer d'abord tout reliquat Gant graine/Rescapés/Village. Une fois ces combats utiles épuisés, cleanup Livre scellé autorisé; double-cliquer et rendre au premier drop, sans répétition journalière."}
+        ],
+        "hard_exit": ["Obscurantisme terminée avant de quitter durablement le palier170, sauf indisponibilité de zone explicitement enregistrée."]
+      }
+    }
+  },
+  "insertions": []
+}

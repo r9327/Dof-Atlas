@@ -1,0 +1,1143 @@
+{
+  "schema_version": 1,
+  "id": "dofus_des_glaces",
+  "title": "Dofus des Glaces",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofus des Glaces.",
+  "recommended_level_min": 50,
+  "recommended_level_max": 200,
+  "reward_item_id": 7043,
+  "illustration_item_id": 7043,
+  "image": null,
+  "linked_achievement_ids": [
+    551,
+    552,
+    553,
+    554,
+    920,
+    921,
+    922
+  ],
+  "completeness_status": "partial",
+  "verified_steps": 74,
+  "total_steps": 74,
+  "validation_warnings": [
+    "Parcours partiel : 30 quêtes locales positionnées sur 72 annoncées par la source externe.",
+    "Parcours partiel : 43 quêtes locales positionnées sur 72 annoncées par la source externe.",
+    "Profil DPLN: parcours encore partiel (74/72 quêtes attendues).",
+    "V4: complétude non démontrée par un profil attendu ou une source explicite."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [
+    "https://www.dofuspourlesnoobs.com/dofus-des-glaces.html"
+  ],
+  "sections": [
+    {
+      "id": "dofus_des_glaces_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        551,
+        552,
+        553,
+        554,
+        920,
+        921,
+        922
+      ],
+      "steps": [
+        {
+          "id": "dofus_des_glaces_quest_375",
+          "type": "quest",
+          "entity_id": 375,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_710",
+          "type": "quest",
+          "entity_id": 710,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "alternative",
+          "alternative_groups": [
+            "achievement:554:objective:2751:or:1",
+            "quest:1317:or:1",
+            "quest:1329:or:1"
+          ]
+        },
+        {
+          "id": "dofus_des_glaces_quest_711",
+          "type": "quest",
+          "entity_id": 711,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "alternative",
+          "alternative_groups": [
+            "achievement:554:objective:2751:or:2",
+            "quest:1317:or:2",
+            "quest:1329:or:2"
+          ]
+        },
+        {
+          "id": "dofus_des_glaces_quest_1316",
+          "type": "quest",
+          "entity_id": 1316,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "alternative",
+          "alternative_groups": [
+            "achievement:554:objective:2751:or:3",
+            "quest:1317:or:3",
+            "quest:1329:or:3"
+          ]
+        },
+        {
+          "id": "dofus_des_glaces_quest_589",
+          "type": "quest",
+          "entity_id": 589,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_613",
+          "type": "quest",
+          "entity_id": 613,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_614",
+          "type": "quest",
+          "entity_id": 614,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 613
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_612",
+          "type": "quest",
+          "entity_id": 612,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_615",
+          "type": "quest",
+          "entity_id": 615,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_556",
+          "type": "quest",
+          "entity_id": 556,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_619",
+          "type": "quest",
+          "entity_id": 619,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_649",
+          "type": "quest",
+          "entity_id": 649,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 613
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_557",
+          "type": "quest",
+          "entity_id": 557,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 556
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_590",
+          "type": "quest",
+          "entity_id": 590,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 589
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_581",
+          "type": "quest",
+          "entity_id": 581,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_582",
+          "type": "quest",
+          "entity_id": 582,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 581
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_543",
+          "type": "quest",
+          "entity_id": 543,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_558",
+          "type": "quest",
+          "entity_id": 558,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 557
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_577",
+          "type": "quest",
+          "entity_id": 577,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_579",
+          "type": "quest",
+          "entity_id": 579,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 577
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_578",
+          "type": "quest",
+          "entity_id": 578,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 577
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_629",
+          "type": "quest",
+          "entity_id": 629,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 577
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_628",
+          "type": "quest",
+          "entity_id": 628,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 577
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_650",
+          "type": "quest",
+          "entity_id": 650,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 649
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_583",
+          "type": "quest",
+          "entity_id": 583,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 581
+            },
+            {
+              "type": "quest",
+              "entity_id": 582
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_591",
+          "type": "quest",
+          "entity_id": 591,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 590
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_620",
+          "type": "quest",
+          "entity_id": 620,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1286",
+          "type": "quest",
+          "entity_id": 1286,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 583
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1317",
+          "type": "quest",
+          "entity_id": 1317,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_621",
+          "type": "quest",
+          "entity_id": 621,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_592",
+          "type": "quest",
+          "entity_id": 592,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 591
+            },
+            {
+              "type": "quest",
+              "entity_id": 619
+            },
+            {
+              "type": "quest",
+              "entity_id": 620
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_559",
+          "type": "quest",
+          "entity_id": 559,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 558
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_593",
+          "type": "quest",
+          "entity_id": 593,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 592
+            },
+            {
+              "type": "quest",
+              "entity_id": 621
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_594",
+          "type": "quest",
+          "entity_id": 594,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 593
+            },
+            {
+              "type": "quest",
+              "entity_id": 621
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_622",
+          "type": "quest",
+          "entity_id": 622,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_560",
+          "type": "quest",
+          "entity_id": 560,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 559
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_561",
+          "type": "quest",
+          "entity_id": 561,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 560
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_595",
+          "type": "quest",
+          "entity_id": 595,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 543
+            },
+            {
+              "type": "quest",
+              "entity_id": 594
+            },
+            {
+              "type": "quest",
+              "entity_id": 622
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_623",
+          "type": "quest",
+          "entity_id": 623,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_562",
+          "type": "quest",
+          "entity_id": 562,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 561
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_651",
+          "type": "quest",
+          "entity_id": 651,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 650
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1318",
+          "type": "quest",
+          "entity_id": 1318,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1317
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_678",
+          "type": "quest",
+          "entity_id": 678,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_596",
+          "type": "quest",
+          "entity_id": 596,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 595
+            },
+            {
+              "type": "quest",
+              "entity_id": 623
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_563",
+          "type": "quest",
+          "entity_id": 563,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 562
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_624",
+          "type": "quest",
+          "entity_id": 624,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_652",
+          "type": "quest",
+          "entity_id": 652,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 650
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_653",
+          "type": "quest",
+          "entity_id": 653,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 650
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_919",
+          "type": "quest",
+          "entity_id": 919,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 653
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_655",
+          "type": "quest",
+          "entity_id": 655,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 650
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_625",
+          "type": "quest",
+          "entity_id": 625,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_564",
+          "type": "quest",
+          "entity_id": 564,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 563
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_565",
+          "type": "quest",
+          "entity_id": 565,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 564
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_626",
+          "type": "quest",
+          "entity_id": 626,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1330",
+          "type": "quest",
+          "entity_id": 1330,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 651
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_597",
+          "type": "quest",
+          "entity_id": 597,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 596
+            },
+            {
+              "type": "quest",
+              "entity_id": 624
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_598",
+          "type": "quest",
+          "entity_id": 598,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 597
+            },
+            {
+              "type": "quest",
+              "entity_id": 625
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1326",
+          "type": "quest",
+          "entity_id": 1326,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1318
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1309",
+          "type": "quest",
+          "entity_id": 1309,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 626
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1333",
+          "type": "quest",
+          "entity_id": 1333,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1326
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1334",
+          "type": "quest",
+          "entity_id": 1334,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 626
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1327",
+          "type": "quest",
+          "entity_id": 1327,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1326
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1335",
+          "type": "quest",
+          "entity_id": 1335,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 626
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1336",
+          "type": "quest",
+          "entity_id": 1336,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1335
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1325",
+          "type": "quest",
+          "entity_id": 1325,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 598
+            },
+            {
+              "type": "quest",
+              "entity_id": 626
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1321",
+          "type": "quest",
+          "entity_id": 1321,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1325
+          ]
+        },
+        {
+          "id": "dofus_des_glaces_quest_1337",
+          "type": "quest",
+          "entity_id": 1337,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1336
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1320",
+          "type": "quest",
+          "entity_id": 1320,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1325
+          ]
+        },
+        {
+          "id": "dofus_des_glaces_quest_1322",
+          "type": "quest",
+          "entity_id": 1322,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1325
+          ]
+        },
+        {
+          "id": "dofus_des_glaces_quest_1319",
+          "type": "quest",
+          "entity_id": 1319,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1325
+          ]
+        },
+        {
+          "id": "dofus_des_glaces_quest_1310",
+          "type": "quest",
+          "entity_id": 1310,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1309
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1329",
+          "type": "quest",
+          "entity_id": 1329,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 612
+            },
+            {
+              "type": "quest",
+              "entity_id": 613
+            },
+            {
+              "type": "quest",
+              "entity_id": 614
+            },
+            {
+              "type": "quest",
+              "entity_id": 619
+            },
+            {
+              "type": "quest",
+              "entity_id": 620
+            },
+            {
+              "type": "quest",
+              "entity_id": 621
+            },
+            {
+              "type": "quest",
+              "entity_id": 622
+            },
+            {
+              "type": "quest",
+              "entity_id": 623
+            },
+            {
+              "type": "quest",
+              "entity_id": 624
+            },
+            {
+              "type": "quest",
+              "entity_id": 625
+            },
+            {
+              "type": "quest",
+              "entity_id": 626
+            },
+            {
+              "type": "quest",
+              "entity_id": 649
+            },
+            {
+              "type": "quest",
+              "entity_id": 650
+            },
+            {
+              "type": "quest",
+              "entity_id": 651
+            },
+            {
+              "type": "quest",
+              "entity_id": 652
+            },
+            {
+              "type": "quest",
+              "entity_id": 653
+            },
+            {
+              "type": "quest",
+              "entity_id": 655
+            },
+            {
+              "type": "quest",
+              "entity_id": 919
+            },
+            {
+              "type": "quest",
+              "entity_id": 1309
+            },
+            {
+              "type": "quest",
+              "entity_id": 1310
+            },
+            {
+              "type": "quest",
+              "entity_id": 1317
+            },
+            {
+              "type": "quest",
+              "entity_id": 1318
+            },
+            {
+              "type": "quest",
+              "entity_id": 1325
+            },
+            {
+              "type": "quest",
+              "entity_id": 1326
+            },
+            {
+              "type": "quest",
+              "entity_id": 1327
+            },
+            {
+              "type": "quest",
+              "entity_id": 1330
+            },
+            {
+              "type": "quest",
+              "entity_id": 1333
+            },
+            {
+              "type": "quest",
+              "entity_id": 1334
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1338",
+          "type": "quest",
+          "entity_id": 1338,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1337
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_glaces_quest_1339",
+          "type": "quest",
+          "entity_id": 1339,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1338
+            }
+          ],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

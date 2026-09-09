@@ -1,0 +1,35 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_level_171_180_v7",
+  "title": "Guide Ultime — Niveau 171 à 180 + clef Mandrin anticipée",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v6.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v6",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v13.json",
+    "bonta_1_80_v9.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v12.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Prépare Voleur en tout genre sans casser la causalité: les deux Korriandre du bloc180 donnent d'abord deux chances naturelles à5% pour la Clef secrète de la forêt pétrifiée. Dépôt de ravitaillement n'étant fermé qu'en fin de chapitre, la quête elle-même reste différée à la session Ongles190; Bonta85 offrira encore une troisième chance naturelle avant cleanup.",
+  "sources": ["https://www.dofuspourlesnoobs.com/voleur-en-tout-genre.html"],
+  "stage_patches": {
+    "L180-05": {
+      "append": {
+        "progress_also": [
+          "ONGLES INCARNÉS — Korriandre PASS1: surveiller la Clef secrète de la forêt pétrifiée (5% sur Korriandre). Si elle tombe, la conserver. Voleur en tout genre exige Dépôt de ravitaillement, donc ne pas créer une salle sociale prématurée."
+        ]
+      }
+    },
+    "L180-07": {
+      "append": {
+        "progress_also": [
+          "ONGLES INCARNÉS — Korriandre PASS2: deuxième tentative naturelle de Clef secrète. Si elle manque encore, ne rerun pas maintenant: le Korriandre causal Bonta85 donnera une troisième tentative au palier185 avant cleanup."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

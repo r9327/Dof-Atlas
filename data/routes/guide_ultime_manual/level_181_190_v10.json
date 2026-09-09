@@ -1,0 +1,20 @@
+{
+  "schema_version": 10,
+  "route_id": "guide_ultime_manual_level_181_190_v10",
+  "title": "Guide Ultime — Niveau 181 à 190, chaîne canonique finale",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v9.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v9",
+  "stage_count": 22,
+  "depends_on": [
+    "level_171_180_v10.json",
+    "level_150_170_v17.json",
+    "level_120_150_v17.json",
+    "bonta_1_90_v10.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Raccorde la campagne190 aux versions canoniques finales précédentes. Conserve Ongles incarnés, Baka, Intérimaire, C'est assez, Agriculture/Objets trouvés et les préparations Vulbis/Six sur six.",
+  "stage_patches": {},
+  "insertions": []
+}

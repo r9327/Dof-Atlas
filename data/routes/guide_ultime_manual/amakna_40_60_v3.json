@@ -1,0 +1,64 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_amakna_40_60_v3",
+  "title": "Guide Ultime — Amakna 40-60 + Capture au premier moment rentable",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "amakna_40_60_v2.json",
+  "supersedes": "guide_ultime_manual_amakna_40_60_v2",
+  "stage_count": 9,
+  "optimization_note": "Le Nid du Kwakwa est exécuté dès que Donjon douillet est débloquée, juste après l'Akadémie des Gobs. Capture d'âmes est ainsi disponible avant Scarabosse Doré, Bworkette et Shin Larve, trois boss de l'étape 1 actuelle de L'éternelle moisson.",
+  "stage_order": ["AMK-00","AMK-01","AMK-02","AMK-03","AMK-07","AMK-04","AMK-05","AMK-06","AMK-08"],
+  "stage_patches": {
+    "AMK-07": {
+      "replace": {
+        "title": "Nid du Kwakwa au premier déblocage — apprendre Capture d'âmes",
+        "level": "50+",
+        "duration_min": 35
+      },
+      "append": {
+        "capture_transition": [
+          "Le Kwakwa donne Capture d'âmes mais n'appartient pas à la liste actuelle des boss de L'éternelle moisson: ne pas consommer une capture Ocre sur lui.",
+          "Préparer ensuite trois Petites pierres d'âme puissance 50 minimum pour Scarabosse Doré, Bworkette et Shin Larve.",
+          "La route n'exige plus aucune capture de monstre classique: depuis DOFUS 3.5 l'Ocre commence par les boss puis les archimonstres."
+        ],
+        "pause": [
+          "Capture d'âmes appris AVANT Scarafeuilles/Bworks/Larves",
+          "Pierres puissance 50 prévues pour Scarabosse Doré, Bworkette et Shin Larve"
+        ]
+      }
+    },
+    "AMK-04": {
+      "append": {
+        "route": [
+          {"pos":"[1,26] Donjon des Scarafeuilles","do":"Équiper une Petite pierre d'âme puissance 50 et capturer Scarabosse Doré pour l'étape 1 de L'éternelle moisson pendant ce premier passage."}
+        ],
+        "pause": ["Âme de Scarabosse Doré capturée ou rattrapage explicitement enregistré"]
+      }
+    },
+    "AMK-05": {
+      "append": {
+        "route": [
+          {"pos":"[-5,10] Donjon des Bworks","do":"En plus de Les sbires du maître + rang Bonta 11, équiper une Petite pierre d'âme puissance 50 et capturer Bworkette pour l'étape 1 de L'éternelle moisson."}
+        ],
+        "pause": ["Âme de Bworkette capturée ou rattrapage explicitement enregistré"]
+      }
+    },
+    "AMK-06": {
+      "replace": {
+        "title": "Donjon des Larves — quatrième sbire + capture Shin Larve",
+        "level": "50+",
+        "duration_min": 40
+      },
+      "append": {
+        "route": [
+          {"pos":"[-2,-5] Donjon des Larves","do":"Avant le combat de Shin Larve, équiper une Petite pierre d'âme puissance 50 et utiliser Capture d'âmes. Shin Larve appartient à l'étape 1 actuelle de L'éternelle moisson."}
+        ],
+        "pause": [
+          "Âme de Shin Larve capturée ou rattrapage explicitement enregistré",
+          "Scarabosse Doré + Bworkette + Shin Larve ont tous été rencontrés après l'obtention de Capture d'âmes"
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

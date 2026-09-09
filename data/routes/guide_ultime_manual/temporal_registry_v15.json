@@ -1,0 +1,43 @@
+{
+  "schema_version": 15,
+  "registry_id": "guide_ultime_temporal_registry_v15",
+  "title": "Guide Ultime — contraintes temporelles joueur 3.3 consolidées",
+  "status": "MANUAL_TEMPORAL_WORKING_SET",
+  "base_file": "temporal_registry_v14.json",
+  "supersedes": "temporal_registry_v14.json",
+  "entry_patches": {
+    "frigost_hunter_blessure_to_chasse": {
+      "route_policy": "Depuis la mise à jour 3.3, Blessure de chasse n'a plus de restriction de jour ou d'heure, mais sa position dépend toujours du jour. Termine-la au premier passage rentable puis note l'heure exacte : Chasse dangereuse devient disponible 13 h plus tard. Pour Chasse dangereuse, va à la position du jour : lundi [-65,-63], mardi [-61,-62], mercredi [-64,-58], jeudi [-69,-60], vendredi [-71,-53], samedi [-70,-57], dimanche [-74,-54]. Pendant les 13 h, continue le guide ailleurs."
+    },
+    "frigost_hunter_chasse_to_brocouille": {
+      "route_policy": "Après Chasse dangereuse, note l'heure exacte de fin puis continue le guide : Rentrer brocouille devient disponible 13 h plus tard. Sa position dépend du jour : lundi [-56,-66], mardi [-53,-63], mercredi [-57,-69], jeudi [-60,-65], vendredi [-53,-67], samedi [-58,-60], dimanche [-54,-60]. Il n'existe plus de restriction d'heure depuis la mise à jour 3.3."
+    },
+    "frigost_bonmonstres_attempt_window": {
+      "route_policy": "Bonmonstres de neige peut être lancé à n'importe quelle heure. Prépare l'itinéraire avant de parler à Nico [-76,-79], puis inspecte les cinq bonmonstres en moins de 5 minutes : [-75,-83], [-79,-82], [-77,-77], [-79,-78], [-81,-78]. Si les 5 minutes sont dépassées, continue le guide ailleurs et reviens au moins 1 h plus tard; n'attends pas sur place."
+    },
+    "pandala_selenite_fight_respawn": {
+      "route_policy": "Pour les quatre Pierres de Sélénite, utilise d'abord les combats Tanuki disponibles pendant le passage Terrdala. Si les pierres ne sont pas toutes obtenues, achète les manquantes si le prix est acceptable ou poursuis le guide et reviens environ 1 h plus tard. Ne reste jamais sur place à attendre une réapparition."
+    },
+    "pandala_yokaiku_itinerant_respawn": {
+      "route_policy": "Pour les Yokaiku itinérants et leurs Haïkus, contrôle les cartes utiles pendant les passages naturels à Pandala/Grobe. Après une rencontre ou une tentative, reprends le guide et recontrôle environ 2 h plus tard si nécessaire; ne tourne pas en boucle sur les cartes en attendant."
+    },
+    "osavora_a_la_petite_semaine": {
+      "route_policy": "Faire chaque composante nécessaire au succès lorsqu'elle est disponible. Une petite démangeaison n'est pas répétée après validation sauf bénéfice explicite indépendant; les trois quêtes saisonnières restent un fil temporel multi-semaines."
+    }
+  },
+  "research_notes": [
+    "Mise à jour 3.3 : Blessure de chasse, Chasse dangereuse, Rentrer brocouille, Le convoi le sage aussi, L'abominable YeCh'Ti et Bonmonstres de neige n'ont plus de fenêtre de jour/heure imposée.",
+    "Les deux délais de 13 h de la chaîne Blessure de chasse -> Chasse dangereuse -> Rentrer brocouille restent actifs; seules les anciennes restrictions horaires ont disparu.",
+    "Les positions de lancement des trois quêtes du chasseur restent variables selon le jour de la semaine.",
+    "Bonmonstres de neige conserve sa contrainte d'exécution de 5 minutes et son délai de 1 h après un échec."
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/mise-a-jour-303.html",
+    "https://www.dofuspourlesnoobs.com/blessure-de-chasse.html",
+    "https://www.dofuspourlesnoobs.com/chasse-dangereuse.html",
+    "https://www.dofuspourlesnoobs.com/rentrer-brocouille.html",
+    "https://www.dofuspourlesnoobs.com/bonmonstres-de-neige.html",
+    "https://www.dofuspourlesnoobs.com/jusqu-a-leur-dernier-soupir.html",
+    "https://www.dofuspourlesnoobs.com/tant-de-mots-et-si-peu-de-temps.html"
+  ]
+}

@@ -1,0 +1,3986 @@
+{
+  "schema_version": 1,
+  "id": "dofus_du_cauchemar",
+  "title": "Dofus du Cauchemar",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofus du Cauchemar.",
+  "recommended_level_min": 30,
+  "recommended_level_max": 200,
+  "reward_item_id": 26066,
+  "illustration_item_id": 26066,
+  "image": null,
+  "linked_achievement_ids": [
+    5162
+  ],
+  "completeness_status": "partial",
+  "verified_steps": 197,
+  "total_steps": 197,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "Parcours partiel : peu de quêtes reliées directement au succès Doduda.",
+    "Profil DPLN: parcours encore partiel (dépendance dofus_argente: guide encore partiel).",
+    "V4: complétude non démontrée par un profil attendu ou une source explicite.",
+    "V4: références de succès invalides: [811]"
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [
+    "https://www.dofuspourlesnoobs.com/quetes-du-dofus-du-cauchemar.html"
+  ],
+  "sections": [
+    {
+      "id": "dofus_du_cauchemar_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        5162
+      ],
+      "steps": [
+        {
+          "id": "dofus_du_cauchemar_quest_2502",
+          "type": "quest",
+          "entity_id": 2502,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "quest:1629:or:1"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1629",
+          "type": "quest",
+          "entity_id": 1629,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1631",
+          "type": "quest",
+          "entity_id": 1631,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1630",
+          "type": "quest",
+          "entity_id": 1630,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1629
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1632",
+          "type": "quest",
+          "entity_id": 1632,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1642",
+          "type": "quest",
+          "entity_id": 1642,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1639",
+          "type": "quest",
+          "entity_id": 1639,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1643",
+          "type": "quest",
+          "entity_id": 1643,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1642
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1640",
+          "type": "quest",
+          "entity_id": 1640,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1639
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1634",
+          "type": "quest",
+          "entity_id": 1634,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1632
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1649",
+          "type": "quest",
+          "entity_id": 1649,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1644",
+          "type": "quest",
+          "entity_id": 1644,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1643
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2512",
+          "type": "quest",
+          "entity_id": 2512,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1649
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1650",
+          "type": "quest",
+          "entity_id": 1650,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2512
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1655",
+          "type": "quest",
+          "entity_id": 1655,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1641",
+          "type": "quest",
+          "entity_id": 1641,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1640
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1651",
+          "type": "quest",
+          "entity_id": 1651,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1650
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1645",
+          "type": "quest",
+          "entity_id": 1645,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1644
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1637",
+          "type": "quest",
+          "entity_id": 1637,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1633",
+          "type": "quest",
+          "entity_id": 1633,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1646",
+          "type": "quest",
+          "entity_id": 1646,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1645
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1635",
+          "type": "quest",
+          "entity_id": 1635,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1634
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1647",
+          "type": "quest",
+          "entity_id": 1647,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1646
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2513",
+          "type": "quest",
+          "entity_id": 2513,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1651
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1648",
+          "type": "quest",
+          "entity_id": 1648,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1647
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1638",
+          "type": "quest",
+          "entity_id": 1638,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2004",
+          "type": "quest",
+          "entity_id": 2004,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1635
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1992",
+          "type": "quest",
+          "entity_id": 1992,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1958",
+          "type": "quest",
+          "entity_id": 1958,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1975",
+          "type": "quest",
+          "entity_id": 1975,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1958
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1959",
+          "type": "quest",
+          "entity_id": 1959,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1958
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "quest:1960:or:10",
+            "quest:1960:or:11",
+            "quest:1960:or:12",
+            "quest:1960:or:13",
+            "quest:1960:or:14",
+            "quest:1960:or:15",
+            "quest:1960:or:16",
+            "quest:1960:or:17",
+            "quest:1960:or:18",
+            "quest:1960:or:4",
+            "quest:1960:or:7",
+            "quest:1960:or:8",
+            "quest:1960:or:9"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1978",
+          "type": "quest",
+          "entity_id": 1978,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1959
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_718",
+          "type": "quest",
+          "entity_id": 718,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1979",
+          "type": "quest",
+          "entity_id": 1979,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1978
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1980",
+          "type": "quest",
+          "entity_id": 1980,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1979
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2009",
+          "type": "quest",
+          "entity_id": 2009,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1959
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "quest:1960:or:10",
+            "quest:1960:or:11",
+            "quest:1960:or:12",
+            "quest:1960:or:13",
+            "quest:1960:or:14",
+            "quest:1960:or:15",
+            "quest:1960:or:16",
+            "quest:1960:or:17",
+            "quest:1960:or:18",
+            "quest:1960:or:4",
+            "quest:1960:or:7",
+            "quest:1960:or:8",
+            "quest:1960:or:9"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1677",
+          "type": "quest",
+          "entity_id": 1677,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:2",
+            "quest:1960:or:2"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1968",
+          "type": "quest",
+          "entity_id": 1968,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:13",
+            "quest:1960:or:13"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_704",
+          "type": "quest",
+          "entity_id": 704,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:6",
+            "quest:1960:or:6"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1971",
+          "type": "quest",
+          "entity_id": 1971,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:10",
+            "quest:1960:or:10"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1972",
+          "type": "quest",
+          "entity_id": 1972,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:9",
+            "quest:1960:or:9"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1966",
+          "type": "quest",
+          "entity_id": 1966,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:15",
+            "quest:1960:or:15"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1981",
+          "type": "quest",
+          "entity_id": 1981,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1979
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1970",
+          "type": "quest",
+          "entity_id": 1970,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:11",
+            "quest:1960:or:11"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_938",
+          "type": "quest",
+          "entity_id": 938,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:4",
+            "quest:1960:or:4"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1965",
+          "type": "quest",
+          "entity_id": 1965,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:16",
+            "quest:1960:or:16"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1996",
+          "type": "quest",
+          "entity_id": 1996,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2470",
+          "type": "quest",
+          "entity_id": 2470,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:19",
+            "quest:1960:or:19"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1969",
+          "type": "quest",
+          "entity_id": 1969,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:12",
+            "quest:1960:or:12"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1998",
+          "type": "quest",
+          "entity_id": 1998,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1964",
+          "type": "quest",
+          "entity_id": 1964,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:17",
+            "quest:1960:or:17"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1976",
+          "type": "quest",
+          "entity_id": 1976,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1975
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1973",
+          "type": "quest",
+          "entity_id": 1973,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:8",
+            "quest:1960:or:8"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1967",
+          "type": "quest",
+          "entity_id": 1967,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:14",
+            "quest:1960:or:14"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1963",
+          "type": "quest",
+          "entity_id": 1963,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:18",
+            "quest:1960:or:18"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1974",
+          "type": "quest",
+          "entity_id": 1974,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:7",
+            "quest:1960:or:7"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1615",
+          "type": "quest",
+          "entity_id": 1615,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:3",
+            "quest:1960:or:3"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1841",
+          "type": "quest",
+          "entity_id": 1841,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:1",
+            "quest:1960:or:1"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_716",
+          "type": "quest",
+          "entity_id": 716,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "mandatory",
+          "alternative_groups": [
+            "achievement:1678:objective:5371:or:5",
+            "quest:1960:or:5"
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1960",
+          "type": "quest",
+          "entity_id": 1960,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1984",
+          "type": "quest",
+          "entity_id": 1984,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1960
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1985",
+          "type": "quest",
+          "entity_id": 1985,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1984
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1986",
+          "type": "quest",
+          "entity_id": 1986,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1985
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1988",
+          "type": "quest",
+          "entity_id": 1988,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1960
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1977",
+          "type": "quest",
+          "entity_id": 1977,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1976
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1962",
+          "type": "quest",
+          "entity_id": 1962,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1960
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2000",
+          "type": "quest",
+          "entity_id": 2000,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1982",
+          "type": "quest",
+          "entity_id": 1982,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1979
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1999",
+          "type": "quest",
+          "entity_id": 1999,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1987",
+          "type": "quest",
+          "entity_id": 1987,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1986
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2192",
+          "type": "quest",
+          "entity_id": 2192,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1962
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2149",
+          "type": "quest",
+          "entity_id": 2149,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1994",
+          "type": "quest",
+          "entity_id": 1994,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1989",
+          "type": "quest",
+          "entity_id": 1989,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1988
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1990",
+          "type": "quest",
+          "entity_id": 1990,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1989
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_231",
+          "type": "quest",
+          "entity_id": 231,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_232",
+          "type": "quest",
+          "entity_id": 232,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 231
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1607",
+          "type": "quest",
+          "entity_id": 1607,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_439",
+          "type": "quest",
+          "entity_id": 439,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2007",
+          "type": "quest",
+          "entity_id": 2007,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2008",
+          "type": "quest",
+          "entity_id": 2008,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1991",
+          "type": "quest",
+          "entity_id": 1991,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1990
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1983",
+          "type": "quest",
+          "entity_id": 1983,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1979
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1845",
+          "type": "quest",
+          "entity_id": 1845,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1607
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1853",
+          "type": "quest",
+          "entity_id": 1853,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1845
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1867",
+          "type": "quest",
+          "entity_id": 1867,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1853
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1868",
+          "type": "quest",
+          "entity_id": 1868,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1867
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1869",
+          "type": "quest",
+          "entity_id": 1869,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1868
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2193",
+          "type": "quest",
+          "entity_id": 2193,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2192
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2194",
+          "type": "quest",
+          "entity_id": 2194,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2193
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2195",
+          "type": "quest",
+          "entity_id": 2195,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2194
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1462",
+          "type": "quest",
+          "entity_id": 1462,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2195
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1781",
+          "type": "quest",
+          "entity_id": 1781,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1462
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2442",
+          "type": "quest",
+          "entity_id": 2442,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 232
+            },
+            {
+              "type": "quest",
+              "entity_id": 1462
+            },
+            {
+              "type": "quest",
+              "entity_id": 1781
+            }
+          ],
+          "relation": "mandatory",
+          "context_quests": [
+            439
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1463",
+          "type": "quest",
+          "entity_id": 1463,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1462
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2443",
+          "type": "quest",
+          "entity_id": 2443,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2442
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2062",
+          "type": "quest",
+          "entity_id": 2062,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2063",
+          "type": "quest",
+          "entity_id": 2063,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2062
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2064",
+          "type": "quest",
+          "entity_id": 2064,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2063
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2097",
+          "type": "quest",
+          "entity_id": 2097,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2064
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2098",
+          "type": "quest",
+          "entity_id": 2098,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2097
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2099",
+          "type": "quest",
+          "entity_id": 2099,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2098
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1464",
+          "type": "quest",
+          "entity_id": 1464,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1463
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1465",
+          "type": "quest",
+          "entity_id": 1465,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1464
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2120",
+          "type": "quest",
+          "entity_id": 2120,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2099
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2133",
+          "type": "quest",
+          "entity_id": 2133,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2120
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2135",
+          "type": "quest",
+          "entity_id": 2135,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2133
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2444",
+          "type": "quest",
+          "entity_id": 2444,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2443
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1466",
+          "type": "quest",
+          "entity_id": 1466,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1465
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2150",
+          "type": "quest",
+          "entity_id": 2150,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2149
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_589",
+          "type": "quest",
+          "entity_id": 589,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1467",
+          "type": "quest",
+          "entity_id": 1467,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1466
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1469",
+          "type": "quest",
+          "entity_id": 1469,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1467
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1470",
+          "type": "quest",
+          "entity_id": 1470,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1469
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1653",
+          "type": "quest",
+          "entity_id": 1653,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1462
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1521",
+          "type": "quest",
+          "entity_id": 1521,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1462
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2445",
+          "type": "quest",
+          "entity_id": 2445,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2444
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2151",
+          "type": "quest",
+          "entity_id": 2151,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2150
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2035",
+          "type": "quest",
+          "entity_id": 2035,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1462
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2036",
+          "type": "quest",
+          "entity_id": 2036,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2035
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_590",
+          "type": "quest",
+          "entity_id": 590,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 589
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1522",
+          "type": "quest",
+          "entity_id": 1522,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1521
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1471",
+          "type": "quest",
+          "entity_id": 1471,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1470
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2152",
+          "type": "quest",
+          "entity_id": 2152,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2151
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2037",
+          "type": "quest",
+          "entity_id": 2037,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2036
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2153",
+          "type": "quest",
+          "entity_id": 2153,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2152
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1523",
+          "type": "quest",
+          "entity_id": 1523,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1522
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1524",
+          "type": "quest",
+          "entity_id": 1524,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1523
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1526",
+          "type": "quest",
+          "entity_id": 1526,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1523
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1525",
+          "type": "quest",
+          "entity_id": 1525,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1523
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1528",
+          "type": "quest",
+          "entity_id": 1528,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1523
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1529",
+          "type": "quest",
+          "entity_id": 1529,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1528
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1654",
+          "type": "quest",
+          "entity_id": 1654,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1653
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2154",
+          "type": "quest",
+          "entity_id": 2154,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2153
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2155",
+          "type": "quest",
+          "entity_id": 2155,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2154
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1656",
+          "type": "quest",
+          "entity_id": 1656,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1654
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1665",
+          "type": "quest",
+          "entity_id": 1665,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1656
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2197",
+          "type": "quest",
+          "entity_id": 2197,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2155
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1657",
+          "type": "quest",
+          "entity_id": 1657,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1656
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1660",
+          "type": "quest",
+          "entity_id": 1660,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1657
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2446",
+          "type": "quest",
+          "entity_id": 2446,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2445
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1658",
+          "type": "quest",
+          "entity_id": 1658,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1657
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1661",
+          "type": "quest",
+          "entity_id": 1661,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1658
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2179",
+          "type": "quest",
+          "entity_id": 2179,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2197
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2447",
+          "type": "quest",
+          "entity_id": 2447,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2446
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2180",
+          "type": "quest",
+          "entity_id": 2180,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2179
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1659",
+          "type": "quest",
+          "entity_id": 1659,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1658
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1662",
+          "type": "quest",
+          "entity_id": 1662,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1659
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2448",
+          "type": "quest",
+          "entity_id": 2448,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2447
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1663",
+          "type": "quest",
+          "entity_id": 1663,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1659
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1782",
+          "type": "quest",
+          "entity_id": 1782,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 439
+            },
+            {
+              "type": "quest",
+              "entity_id": 1471
+            },
+            {
+              "type": "quest",
+              "entity_id": 1529
+            },
+            {
+              "type": "quest",
+              "entity_id": 1663
+            },
+            {
+              "type": "quest",
+              "entity_id": 2448
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1784",
+          "type": "quest",
+          "entity_id": 1784,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1782
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1785",
+          "type": "quest",
+          "entity_id": 1785,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1665
+            },
+            {
+              "type": "quest",
+              "entity_id": 1784
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1786",
+          "type": "quest",
+          "entity_id": 1786,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1785
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1787",
+          "type": "quest",
+          "entity_id": 1787,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1785
+            }
+          ],
+          "relation": "mandatory",
+          "context_quests": [
+            1786
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1789",
+          "type": "quest",
+          "entity_id": 1789,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1785
+            }
+          ],
+          "relation": "mandatory",
+          "context_quests": [
+            1786
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1791",
+          "type": "quest",
+          "entity_id": 1791,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1785
+            }
+          ],
+          "relation": "mandatory",
+          "context_quests": [
+            1786
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1788",
+          "type": "quest",
+          "entity_id": 1788,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1785
+            }
+          ],
+          "relation": "mandatory",
+          "context_quests": [
+            1786
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2038",
+          "type": "quest",
+          "entity_id": 2038,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2037
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2039",
+          "type": "quest",
+          "entity_id": 2039,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2038
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1905",
+          "type": "quest",
+          "entity_id": 1905,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1462
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1906",
+          "type": "quest",
+          "entity_id": 1906,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1905
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1907",
+          "type": "quest",
+          "entity_id": 1907,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1906
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1908",
+          "type": "quest",
+          "entity_id": 1908,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1907
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2121",
+          "type": "quest",
+          "entity_id": 2121,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2120
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2122",
+          "type": "quest",
+          "entity_id": 2122,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2121
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2200",
+          "type": "quest",
+          "entity_id": 2200,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2180
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2202",
+          "type": "quest",
+          "entity_id": 2202,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2200
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1792",
+          "type": "quest",
+          "entity_id": 1792,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1786
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1793",
+          "type": "quest",
+          "entity_id": 1793,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1792
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1909",
+          "type": "quest",
+          "entity_id": 1909,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1908
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1915",
+          "type": "quest",
+          "entity_id": 1915,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1909
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1911",
+          "type": "quest",
+          "entity_id": 1911,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1909
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1914",
+          "type": "quest",
+          "entity_id": 1914,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1909
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1913",
+          "type": "quest",
+          "entity_id": 1913,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1909
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2138",
+          "type": "quest",
+          "entity_id": 2138,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2122
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2136",
+          "type": "quest",
+          "entity_id": 2136,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2138
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2137",
+          "type": "quest",
+          "entity_id": 2137,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2138
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2406",
+          "type": "quest",
+          "entity_id": 2406,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2135
+            },
+            {
+              "type": "quest",
+              "entity_id": 2202
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2411",
+          "type": "quest",
+          "entity_id": 2411,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2406
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2412",
+          "type": "quest",
+          "entity_id": 2412,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2411
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2413",
+          "type": "quest",
+          "entity_id": 2413,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2412
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2421",
+          "type": "quest",
+          "entity_id": 2421,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2413
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2422",
+          "type": "quest",
+          "entity_id": 2422,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2421
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2423",
+          "type": "quest",
+          "entity_id": 2423,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2138
+            },
+            {
+              "type": "quest",
+              "entity_id": 2422
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2425",
+          "type": "quest",
+          "entity_id": 2425,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            2423
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2040",
+          "type": "quest",
+          "entity_id": 2040,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2039
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2041",
+          "type": "quest",
+          "entity_id": 2041,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2040
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2042",
+          "type": "quest",
+          "entity_id": 2042,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2041
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2043",
+          "type": "quest",
+          "entity_id": 2043,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2042
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2044",
+          "type": "quest",
+          "entity_id": 2044,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2043
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_1912",
+          "type": "quest",
+          "entity_id": 1912,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1909
+          ]
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2048",
+          "type": "quest",
+          "entity_id": 2048,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 704
+            },
+            {
+              "type": "quest",
+              "entity_id": 716
+            },
+            {
+              "type": "quest",
+              "entity_id": 938
+            },
+            {
+              "type": "quest",
+              "entity_id": 1462
+            },
+            {
+              "type": "quest",
+              "entity_id": 1463
+            },
+            {
+              "type": "quest",
+              "entity_id": 1464
+            },
+            {
+              "type": "quest",
+              "entity_id": 1465
+            },
+            {
+              "type": "quest",
+              "entity_id": 1466
+            },
+            {
+              "type": "quest",
+              "entity_id": 1467
+            },
+            {
+              "type": "quest",
+              "entity_id": 1469
+            },
+            {
+              "type": "quest",
+              "entity_id": 1470
+            },
+            {
+              "type": "quest",
+              "entity_id": 1471
+            },
+            {
+              "type": "quest",
+              "entity_id": 1521
+            },
+            {
+              "type": "quest",
+              "entity_id": 1522
+            },
+            {
+              "type": "quest",
+              "entity_id": 1523
+            },
+            {
+              "type": "quest",
+              "entity_id": 1524
+            },
+            {
+              "type": "quest",
+              "entity_id": 1525
+            },
+            {
+              "type": "quest",
+              "entity_id": 1526
+            },
+            {
+              "type": "quest",
+              "entity_id": 1528
+            },
+            {
+              "type": "quest",
+              "entity_id": 1529
+            },
+            {
+              "type": "quest",
+              "entity_id": 1615
+            },
+            {
+              "type": "quest",
+              "entity_id": 1631
+            },
+            {
+              "type": "quest",
+              "entity_id": 1632
+            },
+            {
+              "type": "quest",
+              "entity_id": 1634
+            },
+            {
+              "type": "quest",
+              "entity_id": 1635
+            },
+            {
+              "type": "quest",
+              "entity_id": 1653
+            },
+            {
+              "type": "quest",
+              "entity_id": 1654
+            },
+            {
+              "type": "quest",
+              "entity_id": 1656
+            },
+            {
+              "type": "quest",
+              "entity_id": 1657
+            },
+            {
+              "type": "quest",
+              "entity_id": 1658
+            },
+            {
+              "type": "quest",
+              "entity_id": 1659
+            },
+            {
+              "type": "quest",
+              "entity_id": 1660
+            },
+            {
+              "type": "quest",
+              "entity_id": 1661
+            },
+            {
+              "type": "quest",
+              "entity_id": 1662
+            },
+            {
+              "type": "quest",
+              "entity_id": 1663
+            },
+            {
+              "type": "quest",
+              "entity_id": 1677
+            },
+            {
+              "type": "quest",
+              "entity_id": 1781
+            },
+            {
+              "type": "quest",
+              "entity_id": 1782
+            },
+            {
+              "type": "quest",
+              "entity_id": 1784
+            },
+            {
+              "type": "quest",
+              "entity_id": 1785
+            },
+            {
+              "type": "quest",
+              "entity_id": 1786
+            },
+            {
+              "type": "quest",
+              "entity_id": 1787
+            },
+            {
+              "type": "quest",
+              "entity_id": 1788
+            },
+            {
+              "type": "quest",
+              "entity_id": 1789
+            },
+            {
+              "type": "quest",
+              "entity_id": 1791
+            },
+            {
+              "type": "quest",
+              "entity_id": 1792
+            },
+            {
+              "type": "quest",
+              "entity_id": 1793
+            },
+            {
+              "type": "quest",
+              "entity_id": 1841
+            },
+            {
+              "type": "quest",
+              "entity_id": 1905
+            },
+            {
+              "type": "quest",
+              "entity_id": 1906
+            },
+            {
+              "type": "quest",
+              "entity_id": 1907
+            },
+            {
+              "type": "quest",
+              "entity_id": 1908
+            },
+            {
+              "type": "quest",
+              "entity_id": 1909
+            },
+            {
+              "type": "quest",
+              "entity_id": 1911
+            },
+            {
+              "type": "quest",
+              "entity_id": 1912
+            },
+            {
+              "type": "quest",
+              "entity_id": 1913
+            },
+            {
+              "type": "quest",
+              "entity_id": 1914
+            },
+            {
+              "type": "quest",
+              "entity_id": 1915
+            },
+            {
+              "type": "quest",
+              "entity_id": 1958
+            },
+            {
+              "type": "quest",
+              "entity_id": 1959
+            },
+            {
+              "type": "quest",
+              "entity_id": 1960
+            },
+            {
+              "type": "quest",
+              "entity_id": 1962
+            },
+            {
+              "type": "quest",
+              "entity_id": 1963
+            },
+            {
+              "type": "quest",
+              "entity_id": 1964
+            },
+            {
+              "type": "quest",
+              "entity_id": 1965
+            },
+            {
+              "type": "quest",
+              "entity_id": 1966
+            },
+            {
+              "type": "quest",
+              "entity_id": 1967
+            },
+            {
+              "type": "quest",
+              "entity_id": 1968
+            },
+            {
+              "type": "quest",
+              "entity_id": 1969
+            },
+            {
+              "type": "quest",
+              "entity_id": 1970
+            },
+            {
+              "type": "quest",
+              "entity_id": 1971
+            },
+            {
+              "type": "quest",
+              "entity_id": 1972
+            },
+            {
+              "type": "quest",
+              "entity_id": 1973
+            },
+            {
+              "type": "quest",
+              "entity_id": 1974
+            },
+            {
+              "type": "quest",
+              "entity_id": 2004
+            },
+            {
+              "type": "quest",
+              "entity_id": 2009
+            },
+            {
+              "type": "quest",
+              "entity_id": 2035
+            },
+            {
+              "type": "quest",
+              "entity_id": 2036
+            },
+            {
+              "type": "quest",
+              "entity_id": 2037
+            },
+            {
+              "type": "quest",
+              "entity_id": 2038
+            },
+            {
+              "type": "quest",
+              "entity_id": 2039
+            },
+            {
+              "type": "quest",
+              "entity_id": 2040
+            },
+            {
+              "type": "quest",
+              "entity_id": 2041
+            },
+            {
+              "type": "quest",
+              "entity_id": 2042
+            },
+            {
+              "type": "quest",
+              "entity_id": 2043
+            },
+            {
+              "type": "quest",
+              "entity_id": 2044
+            },
+            {
+              "type": "quest",
+              "entity_id": 2192
+            },
+            {
+              "type": "quest",
+              "entity_id": 2193
+            },
+            {
+              "type": "quest",
+              "entity_id": 2194
+            },
+            {
+              "type": "quest",
+              "entity_id": 2195
+            },
+            {
+              "type": "quest",
+              "entity_id": 2442
+            },
+            {
+              "type": "quest",
+              "entity_id": 2443
+            },
+            {
+              "type": "quest",
+              "entity_id": 2444
+            },
+            {
+              "type": "quest",
+              "entity_id": 2445
+            },
+            {
+              "type": "quest",
+              "entity_id": 2446
+            },
+            {
+              "type": "quest",
+              "entity_id": 2447
+            },
+            {
+              "type": "quest",
+              "entity_id": 2448
+            },
+            {
+              "type": "quest",
+              "entity_id": 2470
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2049",
+          "type": "quest",
+          "entity_id": 2049,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2048
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2050",
+          "type": "quest",
+          "entity_id": 2050,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2049
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2409",
+          "type": "quest",
+          "entity_id": 2409,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 704
+            },
+            {
+              "type": "quest",
+              "entity_id": 716
+            },
+            {
+              "type": "quest",
+              "entity_id": 938
+            },
+            {
+              "type": "quest",
+              "entity_id": 1462
+            },
+            {
+              "type": "quest",
+              "entity_id": 1463
+            },
+            {
+              "type": "quest",
+              "entity_id": 1464
+            },
+            {
+              "type": "quest",
+              "entity_id": 1465
+            },
+            {
+              "type": "quest",
+              "entity_id": 1466
+            },
+            {
+              "type": "quest",
+              "entity_id": 1467
+            },
+            {
+              "type": "quest",
+              "entity_id": 1469
+            },
+            {
+              "type": "quest",
+              "entity_id": 1470
+            },
+            {
+              "type": "quest",
+              "entity_id": 1471
+            },
+            {
+              "type": "quest",
+              "entity_id": 1521
+            },
+            {
+              "type": "quest",
+              "entity_id": 1522
+            },
+            {
+              "type": "quest",
+              "entity_id": 1523
+            },
+            {
+              "type": "quest",
+              "entity_id": 1524
+            },
+            {
+              "type": "quest",
+              "entity_id": 1525
+            },
+            {
+              "type": "quest",
+              "entity_id": 1526
+            },
+            {
+              "type": "quest",
+              "entity_id": 1528
+            },
+            {
+              "type": "quest",
+              "entity_id": 1529
+            },
+            {
+              "type": "quest",
+              "entity_id": 1615
+            },
+            {
+              "type": "quest",
+              "entity_id": 1631
+            },
+            {
+              "type": "quest",
+              "entity_id": 1632
+            },
+            {
+              "type": "quest",
+              "entity_id": 1634
+            },
+            {
+              "type": "quest",
+              "entity_id": 1635
+            },
+            {
+              "type": "quest",
+              "entity_id": 1653
+            },
+            {
+              "type": "quest",
+              "entity_id": 1654
+            },
+            {
+              "type": "quest",
+              "entity_id": 1656
+            },
+            {
+              "type": "quest",
+              "entity_id": 1657
+            },
+            {
+              "type": "quest",
+              "entity_id": 1658
+            },
+            {
+              "type": "quest",
+              "entity_id": 1659
+            },
+            {
+              "type": "quest",
+              "entity_id": 1660
+            },
+            {
+              "type": "quest",
+              "entity_id": 1661
+            },
+            {
+              "type": "quest",
+              "entity_id": 1662
+            },
+            {
+              "type": "quest",
+              "entity_id": 1663
+            },
+            {
+              "type": "quest",
+              "entity_id": 1677
+            },
+            {
+              "type": "quest",
+              "entity_id": 1781
+            },
+            {
+              "type": "quest",
+              "entity_id": 1782
+            },
+            {
+              "type": "quest",
+              "entity_id": 1784
+            },
+            {
+              "type": "quest",
+              "entity_id": 1785
+            },
+            {
+              "type": "quest",
+              "entity_id": 1786
+            },
+            {
+              "type": "quest",
+              "entity_id": 1787
+            },
+            {
+              "type": "quest",
+              "entity_id": 1788
+            },
+            {
+              "type": "quest",
+              "entity_id": 1789
+            },
+            {
+              "type": "quest",
+              "entity_id": 1791
+            },
+            {
+              "type": "quest",
+              "entity_id": 1792
+            },
+            {
+              "type": "quest",
+              "entity_id": 1793
+            },
+            {
+              "type": "quest",
+              "entity_id": 1841
+            },
+            {
+              "type": "quest",
+              "entity_id": 1905
+            },
+            {
+              "type": "quest",
+              "entity_id": 1906
+            },
+            {
+              "type": "quest",
+              "entity_id": 1907
+            },
+            {
+              "type": "quest",
+              "entity_id": 1908
+            },
+            {
+              "type": "quest",
+              "entity_id": 1909
+            },
+            {
+              "type": "quest",
+              "entity_id": 1911
+            },
+            {
+              "type": "quest",
+              "entity_id": 1912
+            },
+            {
+              "type": "quest",
+              "entity_id": 1913
+            },
+            {
+              "type": "quest",
+              "entity_id": 1914
+            },
+            {
+              "type": "quest",
+              "entity_id": 1915
+            },
+            {
+              "type": "quest",
+              "entity_id": 1958
+            },
+            {
+              "type": "quest",
+              "entity_id": 1959
+            },
+            {
+              "type": "quest",
+              "entity_id": 1960
+            },
+            {
+              "type": "quest",
+              "entity_id": 1962
+            },
+            {
+              "type": "quest",
+              "entity_id": 1963
+            },
+            {
+              "type": "quest",
+              "entity_id": 1964
+            },
+            {
+              "type": "quest",
+              "entity_id": 1965
+            },
+            {
+              "type": "quest",
+              "entity_id": 1966
+            },
+            {
+              "type": "quest",
+              "entity_id": 1967
+            },
+            {
+              "type": "quest",
+              "entity_id": 1968
+            },
+            {
+              "type": "quest",
+              "entity_id": 1969
+            },
+            {
+              "type": "quest",
+              "entity_id": 1970
+            },
+            {
+              "type": "quest",
+              "entity_id": 1971
+            },
+            {
+              "type": "quest",
+              "entity_id": 1972
+            },
+            {
+              "type": "quest",
+              "entity_id": 1973
+            },
+            {
+              "type": "quest",
+              "entity_id": 1974
+            },
+            {
+              "type": "quest",
+              "entity_id": 2004
+            },
+            {
+              "type": "quest",
+              "entity_id": 2009
+            },
+            {
+              "type": "quest",
+              "entity_id": 2035
+            },
+            {
+              "type": "quest",
+              "entity_id": 2036
+            },
+            {
+              "type": "quest",
+              "entity_id": 2037
+            },
+            {
+              "type": "quest",
+              "entity_id": 2038
+            },
+            {
+              "type": "quest",
+              "entity_id": 2039
+            },
+            {
+              "type": "quest",
+              "entity_id": 2040
+            },
+            {
+              "type": "quest",
+              "entity_id": 2041
+            },
+            {
+              "type": "quest",
+              "entity_id": 2042
+            },
+            {
+              "type": "quest",
+              "entity_id": 2043
+            },
+            {
+              "type": "quest",
+              "entity_id": 2044
+            },
+            {
+              "type": "quest",
+              "entity_id": 2048
+            },
+            {
+              "type": "quest",
+              "entity_id": 2049
+            },
+            {
+              "type": "quest",
+              "entity_id": 2050
+            },
+            {
+              "type": "quest",
+              "entity_id": 2192
+            },
+            {
+              "type": "quest",
+              "entity_id": 2193
+            },
+            {
+              "type": "quest",
+              "entity_id": 2194
+            },
+            {
+              "type": "quest",
+              "entity_id": 2195
+            },
+            {
+              "type": "quest",
+              "entity_id": 2406
+            },
+            {
+              "type": "quest",
+              "entity_id": 2442
+            },
+            {
+              "type": "quest",
+              "entity_id": 2443
+            },
+            {
+              "type": "quest",
+              "entity_id": 2444
+            },
+            {
+              "type": "quest",
+              "entity_id": 2445
+            },
+            {
+              "type": "quest",
+              "entity_id": 2446
+            },
+            {
+              "type": "quest",
+              "entity_id": 2447
+            },
+            {
+              "type": "quest",
+              "entity_id": 2448
+            },
+            {
+              "type": "quest",
+              "entity_id": 2470
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_du_cauchemar_quest_2420",
+          "type": "quest",
+          "entity_id": 2420,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 704
+            },
+            {
+              "type": "quest",
+              "entity_id": 716
+            },
+            {
+              "type": "quest",
+              "entity_id": 938
+            },
+            {
+              "type": "quest",
+              "entity_id": 1462
+            },
+            {
+              "type": "quest",
+              "entity_id": 1463
+            },
+            {
+              "type": "quest",
+              "entity_id": 1464
+            },
+            {
+              "type": "quest",
+              "entity_id": 1465
+            },
+            {
+              "type": "quest",
+              "entity_id": 1466
+            },
+            {
+              "type": "quest",
+              "entity_id": 1467
+            },
+            {
+              "type": "quest",
+              "entity_id": 1469
+            },
+            {
+              "type": "quest",
+              "entity_id": 1470
+            },
+            {
+              "type": "quest",
+              "entity_id": 1471
+            },
+            {
+              "type": "quest",
+              "entity_id": 1521
+            },
+            {
+              "type": "quest",
+              "entity_id": 1522
+            },
+            {
+              "type": "quest",
+              "entity_id": 1523
+            },
+            {
+              "type": "quest",
+              "entity_id": 1524
+            },
+            {
+              "type": "quest",
+              "entity_id": 1525
+            },
+            {
+              "type": "quest",
+              "entity_id": 1526
+            },
+            {
+              "type": "quest",
+              "entity_id": 1528
+            },
+            {
+              "type": "quest",
+              "entity_id": 1529
+            },
+            {
+              "type": "quest",
+              "entity_id": 1615
+            },
+            {
+              "type": "quest",
+              "entity_id": 1631
+            },
+            {
+              "type": "quest",
+              "entity_id": 1632
+            },
+            {
+              "type": "quest",
+              "entity_id": 1634
+            },
+            {
+              "type": "quest",
+              "entity_id": 1635
+            },
+            {
+              "type": "quest",
+              "entity_id": 1653
+            },
+            {
+              "type": "quest",
+              "entity_id": 1654
+            },
+            {
+              "type": "quest",
+              "entity_id": 1656
+            },
+            {
+              "type": "quest",
+              "entity_id": 1657
+            },
+            {
+              "type": "quest",
+              "entity_id": 1658
+            },
+            {
+              "type": "quest",
+              "entity_id": 1659
+            },
+            {
+              "type": "quest",
+              "entity_id": 1660
+            },
+            {
+              "type": "quest",
+              "entity_id": 1661
+            },
+            {
+              "type": "quest",
+              "entity_id": 1662
+            },
+            {
+              "type": "quest",
+              "entity_id": 1663
+            },
+            {
+              "type": "quest",
+              "entity_id": 1677
+            },
+            {
+              "type": "quest",
+              "entity_id": 1781
+            },
+            {
+              "type": "quest",
+              "entity_id": 1782
+            },
+            {
+              "type": "quest",
+              "entity_id": 1784
+            },
+            {
+              "type": "quest",
+              "entity_id": 1785
+            },
+            {
+              "type": "quest",
+              "entity_id": 1786
+            },
+            {
+              "type": "quest",
+              "entity_id": 1787
+            },
+            {
+              "type": "quest",
+              "entity_id": 1788
+            },
+            {
+              "type": "quest",
+              "entity_id": 1789
+            },
+            {
+              "type": "quest",
+              "entity_id": 1791
+            },
+            {
+              "type": "quest",
+              "entity_id": 1792
+            },
+            {
+              "type": "quest",
+              "entity_id": 1793
+            },
+            {
+              "type": "quest",
+              "entity_id": 1841
+            },
+            {
+              "type": "quest",
+              "entity_id": 1905
+            },
+            {
+              "type": "quest",
+              "entity_id": 1906
+            },
+            {
+              "type": "quest",
+              "entity_id": 1907
+            },
+            {
+              "type": "quest",
+              "entity_id": 1908
+            },
+            {
+              "type": "quest",
+              "entity_id": 1909
+            },
+            {
+              "type": "quest",
+              "entity_id": 1911
+            },
+            {
+              "type": "quest",
+              "entity_id": 1912
+            },
+            {
+              "type": "quest",
+              "entity_id": 1913
+            },
+            {
+              "type": "quest",
+              "entity_id": 1914
+            },
+            {
+              "type": "quest",
+              "entity_id": 1915
+            },
+            {
+              "type": "quest",
+              "entity_id": 1958
+            },
+            {
+              "type": "quest",
+              "entity_id": 1959
+            },
+            {
+              "type": "quest",
+              "entity_id": 1960
+            },
+            {
+              "type": "quest",
+              "entity_id": 1962
+            },
+            {
+              "type": "quest",
+              "entity_id": 1963
+            },
+            {
+              "type": "quest",
+              "entity_id": 1964
+            },
+            {
+              "type": "quest",
+              "entity_id": 1965
+            },
+            {
+              "type": "quest",
+              "entity_id": 1966
+            },
+            {
+              "type": "quest",
+              "entity_id": 1967
+            },
+            {
+              "type": "quest",
+              "entity_id": 1968
+            },
+            {
+              "type": "quest",
+              "entity_id": 1969
+            },
+            {
+              "type": "quest",
+              "entity_id": 1970
+            },
+            {
+              "type": "quest",
+              "entity_id": 1971
+            },
+            {
+              "type": "quest",
+              "entity_id": 1972
+            },
+            {
+              "type": "quest",
+              "entity_id": 1973
+            },
+            {
+              "type": "quest",
+              "entity_id": 1974
+            },
+            {
+              "type": "quest",
+              "entity_id": 2004
+            },
+            {
+              "type": "quest",
+              "entity_id": 2009
+            },
+            {
+              "type": "quest",
+              "entity_id": 2035
+            },
+            {
+              "type": "quest",
+              "entity_id": 2036
+            },
+            {
+              "type": "quest",
+              "entity_id": 2037
+            },
+            {
+              "type": "quest",
+              "entity_id": 2038
+            },
+            {
+              "type": "quest",
+              "entity_id": 2039
+            },
+            {
+              "type": "quest",
+              "entity_id": 2040
+            },
+            {
+              "type": "quest",
+              "entity_id": 2041
+            },
+            {
+              "type": "quest",
+              "entity_id": 2042
+            },
+            {
+              "type": "quest",
+              "entity_id": 2043
+            },
+            {
+              "type": "quest",
+              "entity_id": 2044
+            },
+            {
+              "type": "quest",
+              "entity_id": 2048
+            },
+            {
+              "type": "quest",
+              "entity_id": 2049
+            },
+            {
+              "type": "quest",
+              "entity_id": 2050
+            },
+            {
+              "type": "quest",
+              "entity_id": 2138
+            },
+            {
+              "type": "quest",
+              "entity_id": 2192
+            },
+            {
+              "type": "quest",
+              "entity_id": 2193
+            },
+            {
+              "type": "quest",
+              "entity_id": 2194
+            },
+            {
+              "type": "quest",
+              "entity_id": 2195
+            },
+            {
+              "type": "quest",
+              "entity_id": 2409
+            },
+            {
+              "type": "quest",
+              "entity_id": 2442
+            },
+            {
+              "type": "quest",
+              "entity_id": 2443
+            },
+            {
+              "type": "quest",
+              "entity_id": 2444
+            },
+            {
+              "type": "quest",
+              "entity_id": 2445
+            },
+            {
+              "type": "quest",
+              "entity_id": 2446
+            },
+            {
+              "type": "quest",
+              "entity_id": 2447
+            },
+            {
+              "type": "quest",
+              "entity_id": 2448
+            },
+            {
+              "type": "quest",
+              "entity_id": 2470
+            }
+          ],
+          "relation": "mandatory",
+          "context_quests": [
+            2422
+          ]
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_astrub_v5",
+  "title": "Guide Ultime — Astrub + prérequis Fratrie/Ébène anticipés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "astrub_v4.json",
+  "supersedes": "guide_ultime_manual_astrub_v4",
+  "stage_count": 16,
+  "optimization_note": "Conserve les identités QuestProvider canoniques et ferme deux prérequis globaux au premier moment rentable : Mieux vaut ne pas se fier à la première impression est absorbée dans la boucle Égouts/Carrière d'Astrub, et Aventure miniature est prise et terminée pendant l'unique Cache de Kankreblath avant de quitter la salle de sortie. Aucun donjon supplémentaire n'est ajouté.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/mieux-vaut-ne-pas-se-fier-a-la-premiere-impression.html",
+    "https://www.dofuspourlesnoobs.com/aventure-miniature.html",
+    "https://www.dofuspourlesnoobs.com/cache-de-kankreblath.html"
+  ],
+  "stage_patches": {
+    "AST-02": {
+      "replace": {
+        "route": [
+          {"pos":"[3,-17]","do":"Prendre Shushu et Lulu et Bien velu, c'est Kerubim. Les deux restent dans le même fil Kérubim."},
+          {"pos":"[6,-18]","do":"Pour Shushu et Lulu, acheter/donner 1 Bière d'Astrub à Gralahad; profiter du même passage pour Bière qui roule n'amasse pas mousse."},
+          {"pos":"[3,-17]","do":"Rendre compte à Kerubim pour poursuivre Shushu et Lulu."},
+          {"pos":"[4,-15]","do":"Faire le combat de groupe contre Gilou Aychwesh pour Shushu et Lulu."},
+          {"pos":"[3,-17]","do":"Ramener Gilou à Kerubim."},
+          {"pos":"[6,-18]","do":"Prévenir Gralahad de la présence du faux Shushu."},
+          {"pos":"[1,-19]","do":"Faire le combat solo de Shushu et Lulu, parler à Kerubim caché dans le tonneau et récupérer son ticket."},
+          {"pos":"[0,-18]","do":"Montrer le ticket à Hassen Cehef et débloquer définitivement la Diligence d'Astrub vers Baie de Cania, Cimetière des Héros et Domaine des Fungus."},
+          {"pos":"[6,-16]","do":"Faire le premier des trois combats de Bien velu, c'est Kerubim. Les deux autres seront faits pendant les passages naturels Forêt puis Amakna."},
+          {"pos":"quête de classe","do":"Faire intégralement la quête correspondant à la classe réelle du personnage, puis lancer Ça sent le gaz dès son déblocage."},
+          {"pos":"[5,-19]","do":"Rendre Bière qui roule n'amasse pas mousse et lancer Combat de rue."},
+          {"pos":"[5,-17]","do":"Prendre Les as de la cambriole; garder les 15 Vilinsekts pour le futur passage Rikiki."}
+        ]
+      }
+    },
+    "AST-03": {
+      "prepend": {
+        "quests": ["Mieux vaut ne pas se fier à la première impression"],
+        "preparation": [
+          {"kamas":100,"for":"Mieux vaut ne pas se fier à la première impression"},
+          {"name":"Laine de Bouftou","quantity":5,"for":"Mieux vaut ne pas se fier à la première impression","policy":"Acheter avant la boucle si les 5 laines ne sont pas déjà disponibles; ne pas attendre le futur Donjon Bouftou pour ce petit stock."}
+        ]
+      },
+      "replace": {
+        "route": [
+          {"pos":"[7,-19] → [3,-17] → [7,-19]","do":"Prendre Mieux vaut ne pas se fier à la première impression auprès de Prim, acheter le recueil à Nacrf Virgil pour 50 kamas, le lire jusqu'au bout puis revenir voir Prim."},
+          {"pos":"[3,-21] → [5,-15]","do":"Parler à Cirle Drawde puis au Mercenaire d'Astrub; payer une seule fois le passe de 50 kamas et accepter le service de Thélène Teh."},
+          {"pos":"[-2,-21] et [-1,-21]","do":"Vaincre les 6 Bandits Manchés en deux combats, puis revenir à Cirle Drawde [3,-21]. Cette petite sortie remplace un retour dédié ultérieur."},
+          {"pos":"[4,-19]","do":"Avancer Ça sent le gaz / Crise sanitaire avant d'entrer dans les souterrains, afin de mutualiser les objectifs Égouts et Carrière avec Mieux vaut ne pas se fier."},
+          {"pos":"[5,-17] Égouts d'Astrub","do":"Faire les objectifs Égouts déjà prévus et vaincre 5 Milirats Strubiens pour récupérer automatiquement les 5 Crottes de Milirat de Mieux vaut ne pas se fier."},
+          {"pos":"[9,-19] → [10,-19] → [10,-20] Carrière","do":"Collecter les 3 Limailles collantes. Le premier tas déclenche un combat puis doit être recliqué après victoire. Mutualiser [10,-19] avec la progression Carrière de Ça sent le gaz et libérer Rathrosk lorsque l'objectif correspondant est actif."},
+          {"pos":"[3,-21]","do":"Donner à Cirle Drawde les 5 Laines de Bouftou, 3 Limailles collantes et 5 Crottes de Milirat afin d'obtenir la Poudre Révélatrice."},
+          {"pos":"[7,-19]","do":"Donner la Poudre Révélatrice à Prim et terminer Mieux vaut ne pas se fier à la première impression; ce prérequis global ne doit plus réapparaître pour Sombres desseins ni le futur Dofus Ébène."},
+          {"pos":"[4,-19] puis [7,-19]","do":"Reprendre les rendus déjà prévus : présenter Rathrosk si nécessaire, fermer Ça sent le gaz selon son état puis lancer les fils suivants L'histoire en mouvement / Balade en forêt sans créer de retour supplémentaire."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Mieux vaut ne pas se fier à la première impression terminée avant de quitter la boucle Égouts/Carrière.",
+          "Le futur passage chez Prim de Sombres desseins et la récupération de poudre du Dofus Ébène sont causalement débloqués."
+        ]
+      }
+    },
+    "AST-06": {
+      "replace": {
+        "quests": ["Déjeuner à la fourchette", "Le tour du monde"],
+        "route": [
+          {"pos":"[7,-24]","do":"Entrer avec Le tour du monde + Déjeuner à la fourchette actifs; utiliser les plantes du donjon pour les kills compatibles et faire les succès réalisables sans second passage."},
+          {"pos":"[5,-22]","do":"Compléter seulement ce qui manque puis rendre/avancer Déjeuner à la fourchette."}
+        ],
+        "pause": ["Grange faite pour Le tour du monde", "Déjeuner à la fourchette terminée ou manque explicitement identifié", "Succès Grange enregistrés"]
+      }
+    },
+    "AST-08": {
+      "replace": {
+        "quests": ["Balade en forêt", "Chacha Blues", "Le tour du monde", "Donjon en mousse"],
+        "route": [
+          {"pos":"[1,-15]","do":"Rendre Donjon en mousse et prendre la suite Rikiki si elle est proposée; elle restera différée."},
+          {"pos":"[5,-19]","do":"Après l'attaque Forêt, passer Badufron pour Balade en forêt."},
+          {"pos":"[4,-19]","do":"Terminer Balade en forêt auprès de Fallanster; Le réceptacle des Dofus est désormais ouvert."},
+          {"pos":"[7,-20]","do":"Finir Chacha Blues si Soki a fait ses quatre passages."},
+          {"pos":"[6,-18]","do":"Mettre à jour Le tour du monde et prendre l'étape Bouftou."}
+        ],
+        "pause": ["Balade en forêt terminée", "Le réceptacle des Dofus disponible", "Chacha Blues terminée", "Le tour du monde pointe vers Bouftou"]
+      }
+    },
+    "AST-09": {
+      "replace": {
+        "quests": ["Restauration rapide", "Le génie se meut", "La coupe des vices", "Le tour du monde", "Combat de rue"],
+        "route": [
+          {"pos":"[0,-32]","do":"Récupérer le Lailait de boufette de Restauration rapide."},
+          {"pos":"[1,-28]","do":"Récupérer l'écorce de Restauration rapide."},
+          {"pos":"[1,-29]","do":"Prendre Le génie se meut avant les Chefs de Guerre Bouftou."},
+          {"pos":"[2,-31]","do":"Prendre La coupe des vices avant le Donjon Bouftou."},
+          {"pos":"[2,-34]","do":"Faire Donjon Bouftou avec Le tour du monde; mutualiser Bouftous/Chefs pour La coupe des vices + Le génie se meut et faire les succès compatibles."},
+          {"pos":"Tainéla","do":"Compléter uniquement les échantillons/monstres manquants puis rendre La coupe des vices."}
+        ],
+        "pause": ["Donjon Bouftou fait pour Le tour du monde", "La coupe des vices terminée", "5 échantillons de Chef de Guerre de Le génie se meut obtenus", "Deux ressources Restauration rapide obtenues"]
+      }
+    },
+    "AST-14": {
+      "replace": {
+        "quests": ["Légende d'automne", "L'invasion des profanateurs de sépultures", "Le repos est dans le champ", "La petite mission dans la prairie"],
+        "route": [
+          {"pos":"[3,-14]","do":"Prendre La petite mission dans la prairie; faire ses Larves proches et son combat [3,-9] pendant cette sortie, pas dans une étape dédiée."},
+          {"pos":"[-1,-13]","do":"Prendre L'invasion des profanateurs de sépultures avant de toucher aux tombes."},
+          {"pos":"[2,-14]","do":"Prendre Le repos est dans le champ avec ses ingrédients déjà préparés; avancer Légende d'automne avec Nistracolamus."},
+          {"pos":"Cimetière","do":"Dans une seule boucle: tombes/combats de L'invasion + trois esprits du Repos + spectres/Gargrouilles de Légende. Ne pas sortir avant les 3 Ceintures de Gargrouille."},
+          {"pos":"[1,-11]","do":"Faire le caveau de L'invasion lorsque sa piste y mène."},
+          {"pos":"[2,-11]","do":"Terminer le rituel Chevalier de l'automne de Légende d'automne."},
+          {"pos":"[2,-14]","do":"Rendre Le repos est dans le champ avant de quitter le Cimetière."}
+        ]
+      }
+    },
+    "AST-15": {
+      "replace": {
+        "title": "Rikiki + Aventure miniature + clôture Astrub — aucun second Kankreblath",
+        "duration_min": 70,
+        "route": [
+          {"pos":"[5,-17]","do":"Vérifier Les as de la cambriole active et la Baguette Rikiki disponible."},
+          {"pos":"accès [6,-15] [1,-16] [4,-19] [6,-21]","do":"Faire les 15 Vilinsekts; retirer la Baguette Rikiki une fois à l'intérieur des planques."},
+          {"pos":"Cache de Kankreblath [3,-17]","do":"Faire l'unique Cache avec Donjon rikiki / Les as de la cambriole actifs et les succès compatibles. Ne pas quitter la salle de sortie après le boss."},
+          {"pos":"salle de sortie Kankreblath [3,-17]","do":"Prendre Aventure miniature sur la Croquette Magique, interroger Kankreblath, équiper la Baguette Rikiki puis reparler à la Croquette pour l'emporter. Cette prise est obligatoire avant toute sortie du donjon."},
+          {"pos":"[3,-17] Kerubim → épicerie [1,-16]","do":"Montrer la croquette à Kerubim, aller à l'épicerie, équiper la Baguette Rikiki pour passer par le trou du tonneau, parler à Cendre Mystigrize et gagner le combat solo."},
+          {"pos":"[3,-17] Kerubim","do":"Revenir raconter les événements à Kerubim et terminer Aventure miniature. La Fratrie des Oubliés est désormais ouverte sans aucun second Kankreblath."},
+          {"pos":"[5,-17]","do":"Rendre Les as de la cambriole."},
+          {"pos":"[1,-15]","do":"Rendre Donjon rikiki à Emma Tompouce et prendre Donjon en lambeaux. Ne pas quitter Astrub sans cette suite active."},
+          {"pos":"[5,-19]","do":"Rendre Combat de rue si les quatre missions sont complètes."},
+          {"pos":"[6,-18]","do":"Retourner voir Metag Robill après le Donjon Bouftou: rendre Revenons à nos bouftons et prendre Le Maître des clefs."},
+          {"pos":"[4,-19]","do":"Rendre Le rebelle de la forêt si nécessaire; vérifier les succès Astrub + Incarnam, récupérer le Dofus Argenté puis prendre Le réceptacle des Dofus dès que Balade en forêt le permet."}
+        ]
+      },
+      "append": {
+        "quests": ["Aventure miniature"],
+        "preparation": [
+          {"name":"Baguette Rikiki","quantity":1,"for":"Aventure miniature","policy":"Déjà nécessaire pour l'accès Kankreblath; la garder équipée au moment des interactions Croquette/épicerie puis la conserver en banque après Astrub."}
+        ],
+        "before_leave": ["Aventure miniature terminée; aucune Cache de Kankreblath ne devra être refaite pour la Fratrie."],
+        "hard_exit": ["Aventure miniature terminée avant de fermer Astrub."]
+      }
+    }
+  },
+  "insertions": []
+}

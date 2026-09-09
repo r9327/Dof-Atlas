@@ -1,0 +1,57 @@
+{
+  "schema_version": 20,
+  "route_id": "guide_ultime_manual_level_120_150_v20",
+  "title": "Guide Ultime — Niveau 120 à 150, dépendances canoniques finales",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v19.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v19",
+  "stage_count": 37,
+  "depends_on": [
+    "level_100_120_v9.json",
+    "bonta_1_100_v17.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Raccord de dépendances final : conserve les 37 fiches v19, utilise Bonta v17 et le registre temporel v15, et corrige dans L120-20F le faux pluriel Faire le tas de pins introduit par une ancienne consolidation. Le titre canonique reste Faire le tas de pin, sans modifier la route joueur déjà correcte.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/faire-le-tas-de-pin.html"
+  ],
+  "stage_patches": {
+    "L120-20F": {
+      "replace": {
+        "quests": [
+          "Semer ses graines",
+          "Bricole Girl",
+          "Promenons-nous dans les bois",
+          "Pêche en eaux gelées",
+          "La pêche à Mel",
+          "Mel odieuse",
+          "Mel au drame",
+          "Il est frais mon pichon",
+          "L'essentiel est dans Lac Gelé",
+          "Les chasseurs",
+          "Hôtel de glace",
+          "La fonte des glaces",
+          "Pomdeupin vaut mieux que trois tu l'auras",
+          "Massacre au hakapik",
+          "La marche de l'impératrice",
+          "Star ski et Dutch",
+          "conditional:Groméo et Ginette selon fenêtre17-21",
+          "Bricoleur de génie",
+          "Groméo et Ginette",
+          "Faire le tas de pin"
+        ],
+        "hard_exit": [
+          "Semer ses graines terminée.",
+          "Bricole Girl terminée après Scierie Bambelle.",
+          "La marche de l'impératrice terminée avant Star ski et Dutch.",
+          "Star ski et Dutch terminée avant le premier Mansot.",
+          "Faire le tas de pin terminée une fois.",
+          "Bricoleur de génie terminée si la Gomme à mâcher est tombée; sinon seuls les combats encore utiles de la zone sont utilisés avant tout farm ciblé.",
+          "Groméo et Ginette terminée ou sa prochaine fenêtre 17 h-21 h est connue sans attente immobile."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

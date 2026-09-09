@@ -1,0 +1,1135 @@
+[
+  {
+    "worldmap_id": 1,
+    "view_key": "world_amakna",
+    "name": "Monde des Douze / Continent Amaknien",
+    "kind": "main_world",
+    "asset_path": "data/cartography/assets/world/amakna/world.png",
+    "final_size": [
+      3000,
+      2400
+    ],
+    "cropped_source_size": [
+      10000,
+      8000
+    ],
+    "bytes": 7958007,
+    "catalog_paths": 80,
+    "placed_tiles": 55,
+    "expected_tiles": 80,
+    "status": "incomplete_no_valid_replacement",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\world_amakna.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "surface map filtered: dark/parchment/layer fragments rejected",
+    "grid_expected_tiles": 80,
+    "empty_grid_cells_are_not_missing_source_tiles": false,
+    "source_note": "incomplete: no valid complete Dofus 3 worldmap replacement found; only fragments/background/layers available",
+    "promoted_source": "data/cartography/assets/world/amakna/world.png",
+    "promoted_size": [
+      3000,
+      2400
+    ],
+    "previous_asset_backup": ""
+  },
+  {
+    "worldmap_id": 2,
+    "view_key": "world_incarnam",
+    "name": "Incarnam",
+    "kind": "main_world",
+    "asset_path": "data/cartography/assets/world/incarnam/world.png",
+    "final_size": [
+      1024,
+      976
+    ],
+    "cropped_source_size": [
+      4750,
+      2048
+    ],
+    "bytes": 1550300,
+    "catalog_paths": 13,
+    "placed_tiles": 9,
+    "expected_tiles": 20,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\world_incarnam.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 20,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/cache/dofus_maps/raw/doduda_cli/img/worldmap/1_#135_1.png",
+    "promoted_size": [
+      1024,
+      976
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/02_incarnam_world.png"
+  },
+  {
+    "worldmap_id": 3,
+    "view_key": "worldmap_03_souterrain_d_astrub",
+    "name": "Souterrain d'Astrub",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_03_souterrain_d_astrub/world.png",
+    "final_size": [
+      2328,
+      2400
+    ],
+    "cropped_source_size": [
+      2980,
+      3072
+    ],
+    "bytes": 3168583,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 12,
+    "status": "client_visual_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_03_souterrain_d_astrub.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 12,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "current Dofus 3 asset visually usable; no better replacement promoted",
+    "promoted_source": "data/cartography/assets/world/worldmap_03_souterrain_d_astrub/world.png",
+    "promoted_size": [
+      2328,
+      2400
+    ],
+    "previous_asset_backup": ""
+  },
+  {
+    "worldmap_id": 4,
+    "view_key": "worldmap_04_labyrinthe_du_minotoror",
+    "name": "Labyrinthe du Minotoror",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_04_labyrinthe_du_minotoror/world.png",
+    "final_size": [
+      2400,
+      1773
+    ],
+    "cropped_source_size": [
+      2463,
+      1820
+    ],
+    "bytes": 5276999,
+    "catalog_paths": 22,
+    "placed_tiles": 6,
+    "expected_tiles": 6,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_04_labyrinthe_du_minotoror.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 6,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 5,
+    "view_key": "worldmap_05_labyrinthe_du_dragon_cochon",
+    "name": "Labyrinthe du Dragon Cochon",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_05_labyrinthe_du_dragon_cochon/world.png",
+    "final_size": [
+      2400,
+      1500
+    ],
+    "cropped_source_size": [
+      3200,
+      2000
+    ],
+    "bytes": 4741681,
+    "catalog_paths": 20,
+    "placed_tiles": 8,
+    "expected_tiles": 8,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_05_labyrinthe_du_dragon_cochon.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 8,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 6,
+    "view_key": "worldmap_06_bibliotheque_du_maitre_corbac",
+    "name": "Bibliothèque du Maître Corbac",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_06_bibliotheque_du_maitre_corbac/world.png",
+    "final_size": [
+      2100,
+      2100
+    ],
+    "cropped_source_size": [
+      2100,
+      2100
+    ],
+    "bytes": 4706752,
+    "catalog_paths": 39,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_06_bibliotheque_du_maitre_corbac.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 7,
+    "view_key": "worldmap_07_cavernes_des_givrefoux",
+    "name": "Cavernes des Givrefoux",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_07_cavernes_des_givrefoux/world.png",
+    "final_size": [
+      1800,
+      1400
+    ],
+    "cropped_source_size": [
+      1800,
+      1400
+    ],
+    "bytes": 2769949,
+    "catalog_paths": 4,
+    "placed_tiles": 4,
+    "expected_tiles": 4,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_07_cavernes_des_givrefoux.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 4,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 8,
+    "view_key": "worldmap_08_canaux_mephitiques",
+    "name": "Canaux Méphitiques",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_08_canaux_mephitiques/world.png",
+    "final_size": [
+      2400,
+      1827
+    ],
+    "cropped_source_size": [
+      2840,
+      2162
+    ],
+    "bytes": 1614739,
+    "catalog_paths": 65,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_08_canaux_mephitiques.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 9,
+    "view_key": "worldmap_09_entrailles_de_brakmar",
+    "name": "Entrailles de Brâkmar",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_09_entrailles_de_brakmar/world.png",
+    "final_size": [
+      2400,
+      1827
+    ],
+    "cropped_source_size": [
+      2840,
+      2162
+    ],
+    "bytes": 2014294,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_09_entrailles_de_brakmar.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 10,
+    "view_key": "worldmap_10_village_de_la_canopee",
+    "name": "Village de la Canopée",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_10_village_de_la_canopee/world.png",
+    "final_size": [
+      892,
+      704
+    ],
+    "cropped_source_size": [
+      3559,
+      2804
+    ],
+    "bytes": 1403173,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 12,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_10_village_de_la_canopee.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 12,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_e9eb73b900.png",
+    "promoted_size": [
+      892,
+      704
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/10_worldmap_10_village_de_la_canopee_world.png"
+  },
+  {
+    "worldmap_id": 11,
+    "view_key": "worldmap_11_duty_free",
+    "name": "Duty free",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_11_duty_free/world.png",
+    "final_size": [
+      2120,
+      1530
+    ],
+    "cropped_source_size": [
+      2120,
+      1530
+    ],
+    "bytes": 5852721,
+    "catalog_paths": 6,
+    "placed_tiles": 6,
+    "expected_tiles": 6,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_11_duty_free.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 6,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 12,
+    "view_key": "worldmap_12_chateau_de_harebourg",
+    "name": "Château de Harebourg",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_12_chateau_de_harebourg/world.png",
+    "final_size": [
+      820,
+      624
+    ],
+    "cropped_source_size": [
+      3274,
+      2498
+    ],
+    "bytes": 1199850,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 12,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_12_chateau_de_harebourg.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 12,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_d64055df0d.png",
+    "promoted_size": [
+      820,
+      624
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/12_worldmap_12_chateau_de_harebourg_world.png"
+  },
+  {
+    "worldmap_id": 13,
+    "view_key": "dimension_enutrosor",
+    "name": "Enutrosor",
+    "kind": "dimension",
+    "asset_path": "data/cartography/assets/world/enutrosor/world.png",
+    "final_size": [
+      1024,
+      648
+    ],
+    "cropped_source_size": [
+      4089,
+      2589
+    ],
+    "bytes": 1899855,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 12,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\dimension_enutrosor.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 12,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_11dadc9190.png",
+    "promoted_size": [
+      1024,
+      648
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/13_enutrosor_world.png"
+  },
+  {
+    "worldmap_id": 14,
+    "view_key": "dimension_srambad",
+    "name": "Srambad",
+    "kind": "dimension",
+    "asset_path": "data/cartography/assets/world/srambad/world.png",
+    "final_size": [
+      1024,
+      976
+    ],
+    "cropped_source_size": [
+      4750,
+      2048
+    ],
+    "bytes": 2790985,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 20,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\dimension_srambad.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 20,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_75512f8dac.png",
+    "promoted_size": [
+      1024,
+      976
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/14_srambad_world.png"
+  },
+  {
+    "worldmap_id": 15,
+    "view_key": "dimension_xelorium",
+    "name": "Xelorium",
+    "kind": "dimension",
+    "asset_path": "data/cartography/assets/world/xelorium/world.png",
+    "final_size": [
+      1024,
+      896
+    ],
+    "cropped_source_size": [
+      4171,
+      2048
+    ],
+    "bytes": 2570309,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 20,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\dimension_xelorium.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 20,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_4352b3c0cc.png",
+    "promoted_size": [
+      1024,
+      896
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/15_xelorium_world.png"
+  },
+  {
+    "worldmap_id": 16,
+    "view_key": "dimension_ecaflipus",
+    "name": "Ecaflipus",
+    "kind": "dimension",
+    "asset_path": "data/cartography/assets/world/ecaflipus/world.png",
+    "final_size": [
+      2400,
+      970
+    ],
+    "cropped_source_size": [
+      5069,
+      2048
+    ],
+    "bytes": 4683658,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 30,
+    "status": "incomplete_no_valid_replacement",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\dimension_ecaflipus.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 30,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "incomplete: no valid complete Dofus 3 worldmap replacement found; only fragments/background/layers available",
+    "promoted_source": "data/cartography/assets/world/ecaflipus/world.png",
+    "promoted_size": [
+      2400,
+      970
+    ],
+    "previous_asset_backup": ""
+  },
+  {
+    "worldmap_id": 17,
+    "view_key": "worldmap_17_profondeurs_de_sufokia",
+    "name": "Profondeurs de Sufokia",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_17_profondeurs_de_sufokia/world.png",
+    "final_size": [
+      2400,
+      1238
+    ],
+    "cropped_source_size": [
+      3333,
+      1719
+    ],
+    "bytes": 2735905,
+    "catalog_paths": 8,
+    "placed_tiles": 8,
+    "expected_tiles": 8,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_17_profondeurs_de_sufokia.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 8,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 18,
+    "view_key": "worldmap_18_pyramide_maudite",
+    "name": "Pyramide Maudite",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_18_pyramide_maudite/world.png",
+    "final_size": [
+      884,
+      592
+    ],
+    "cropped_source_size": [
+      3529,
+      2357
+    ],
+    "bytes": 1235405,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 12,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_18_pyramide_maudite.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 12,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_3a2298a6f7.png",
+    "promoted_size": [
+      884,
+      592
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/18_worldmap_18_pyramide_maudite_world.png"
+  },
+  {
+    "worldmap_id": 19,
+    "view_key": "worldmap_19_mappemondes",
+    "name": "Mappemondes",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_19_mappemondes/world.png",
+    "final_size": [
+      2400,
+      1827
+    ],
+    "cropped_source_size": [
+      2496,
+      1900
+    ],
+    "bytes": 2666222,
+    "catalog_paths": 6,
+    "placed_tiles": 6,
+    "expected_tiles": 6,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_19_mappemondes.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 6,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 20,
+    "view_key": "worldmap_20_epaves_silencieuses",
+    "name": "Épaves Silencieuses",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_20_epaves_silencieuses/world.png",
+    "final_size": [
+      2400,
+      1238
+    ],
+    "cropped_source_size": [
+      3333,
+      1719
+    ],
+    "bytes": 3346560,
+    "catalog_paths": 8,
+    "placed_tiles": 8,
+    "expected_tiles": 8,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_20_epaves_silencieuses.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 8,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 21,
+    "view_key": "worldmap_21_ile_de_pwak",
+    "name": "Île de Pwâk",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_21_ile_de_pwak/world.png",
+    "final_size": [
+      892,
+      700
+    ],
+    "cropped_source_size": [
+      3560,
+      2802
+    ],
+    "bytes": 1439561,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 12,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_21_ile_de_pwak.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 12,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_37be5a0fe9.png",
+    "promoted_size": [
+      892,
+      700
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/21_worldmap_21_ile_de_pwak_world.png"
+  },
+  {
+    "worldmap_id": 22,
+    "view_key": "worldmap_22_crocuzko",
+    "name": "Crocuzko",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_22_crocuzko/world.png",
+    "final_size": [
+      2016,
+      1719
+    ],
+    "cropped_source_size": [
+      2016,
+      1719
+    ],
+    "bytes": 2960471,
+    "catalog_paths": 4,
+    "placed_tiles": 4,
+    "expected_tiles": 4,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_22_crocuzko.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 4,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 24,
+    "view_key": "worldmap_24_blessures_de_guerre",
+    "name": "Blessures de Guerre",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_24_blessures_de_guerre/world.png",
+    "final_size": [
+      2400,
+      1834
+    ],
+    "cropped_source_size": [
+      2840,
+      2170
+    ],
+    "bytes": 1888553,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_24_blessures_de_guerre.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 25,
+    "view_key": "worldmap_25_royaume_corrompu",
+    "name": "Royaume Corrompu",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_25_royaume_corrompu/world.png",
+    "final_size": [
+      2400,
+      1827
+    ],
+    "cropped_source_size": [
+      2840,
+      2162
+    ],
+    "bytes": 2843708,
+    "catalog_paths": 13,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_25_royaume_corrompu.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 26,
+    "view_key": "worldmap_26_desert_de_misere",
+    "name": "Désert de Misère",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_26_desert_de_misere/world.png",
+    "final_size": [
+      2400,
+      1834
+    ],
+    "cropped_source_size": [
+      2840,
+      2170
+    ],
+    "bytes": 2425525,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_26_desert_de_misere.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 27,
+    "view_key": "worldmap_27_galere_de_servitude",
+    "name": "Galère de Servitude",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_27_galere_de_servitude/world.png",
+    "final_size": [
+      2400,
+      1827
+    ],
+    "cropped_source_size": [
+      2840,
+      2162
+    ],
+    "bytes": 2315899,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_27_galere_de_servitude.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 28,
+    "view_key": "worldmap_28_wukin_et_wukang",
+    "name": "Wukin et Wukang",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_28_wukin_et_wukang/world.png",
+    "final_size": [
+      1000,
+      728
+    ],
+    "cropped_source_size": [
+      4000,
+      2900
+    ],
+    "bytes": 1439234,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 12,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_28_wukin_et_wukang.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 12,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_80f4554f6f.png",
+    "promoted_size": [
+      1000,
+      728
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/28_worldmap_28_wukin_et_wukang_world.png"
+  },
+  {
+    "worldmap_id": 29,
+    "view_key": "worldmap_29_ecaflip_city",
+    "name": "Ecaflip City",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_29_ecaflip_city/world.png",
+    "final_size": [
+      1800,
+      1400
+    ],
+    "cropped_source_size": [
+      1800,
+      1400
+    ],
+    "bytes": 1483006,
+    "catalog_paths": 4,
+    "placed_tiles": 4,
+    "expected_tiles": 4,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_29_ecaflip_city.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 4,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 30,
+    "view_key": "worldmap_30_cauchemar",
+    "name": "Cauchemar",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_30_cauchemar/world.png",
+    "final_size": [
+      2400,
+      1827
+    ],
+    "cropped_source_size": [
+      2840,
+      2162
+    ],
+    "bytes": 1896580,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_30_cauchemar.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 31,
+    "view_key": "worldmap_31_galeries_d_ereboria",
+    "name": "Galeries d'Ereboria",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_31_galeries_d_ereboria/world.png",
+    "final_size": [
+      2366,
+      2400
+    ],
+    "cropped_source_size": [
+      2840,
+      2881
+    ],
+    "bytes": 3008674,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_31_galeries_d_ereboria.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 32,
+    "view_key": "worldmap_32_caverne_des_fungus",
+    "name": "Caverne des Fungus",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_32_caverne_des_fungus/world.png",
+    "final_size": [
+      2400,
+      1827
+    ],
+    "cropped_source_size": [
+      2840,
+      2162
+    ],
+    "bytes": 3129358,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 9,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_32_caverne_des_fungus.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 9,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 33,
+    "view_key": "worldmap_33_base_abyssale",
+    "name": "Base Abyssale",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_33_base_abyssale/world.png",
+    "final_size": [
+      2070,
+      2400
+    ],
+    "cropped_source_size": [
+      2649,
+      3072
+    ],
+    "bytes": 3709349,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 18,
+    "status": "client_visual_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_33_base_abyssale.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 18,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "current Dofus 3 asset visually usable; no better replacement promoted",
+    "promoted_source": "data/cartography/assets/world/worldmap_33_base_abyssale/world.png",
+    "promoted_size": [
+      2070,
+      2400
+    ],
+    "previous_asset_backup": ""
+  },
+  {
+    "worldmap_id": 34,
+    "view_key": "worldmap_34_osavora",
+    "name": "Osavora",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_34_osavora/world.png",
+    "final_size": [
+      2400,
+      774
+    ],
+    "cropped_source_size": [
+      6350,
+      2048
+    ],
+    "bytes": 830586,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 42,
+    "status": "incomplete_no_valid_replacement",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_34_osavora.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 42,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "incomplete: no valid complete Dofus 3 worldmap replacement found; only fragments/background/layers available",
+    "promoted_source": "data/cartography/assets/world/worldmap_34_osavora/world.png",
+    "promoted_size": [
+      2400,
+      774
+    ],
+    "previous_asset_backup": ""
+  },
+  {
+    "worldmap_id": 35,
+    "view_key": "worldmap_35_dimension_obscure",
+    "name": "Dimension Obscure",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_35_dimension_obscure/world.png",
+    "final_size": [
+      868,
+      1024
+    ],
+    "cropped_source_size": [
+      3461,
+      3072
+    ],
+    "bytes": 1166615,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 16,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_35_dimension_obscure.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 16,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_f94ded4caa.png",
+    "promoted_size": [
+      868,
+      1024
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/35_worldmap_35_dimension_obscure_world.png"
+  },
+  {
+    "worldmap_id": 36,
+    "view_key": "worldmap_36_sanctuaire_des_dragoeufs",
+    "name": "Sanctuaire des Dragoeufs",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_36_sanctuaire_des_dragoeufs/world.png",
+    "final_size": [
+      1842,
+      1585
+    ],
+    "cropped_source_size": [
+      1842,
+      1585
+    ],
+    "bytes": 1457607,
+    "catalog_paths": 4,
+    "placed_tiles": 4,
+    "expected_tiles": 4,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_36_sanctuaire_des_dragoeufs.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 4,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 37,
+    "view_key": "worldmap_37_gouffre_du_gigalodon",
+    "name": "Gouffre du Gigalodon",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_37_gouffre_du_gigalodon/world.png",
+    "final_size": [
+      2400,
+      980
+    ],
+    "cropped_source_size": [
+      5013,
+      2048
+    ],
+    "bytes": 529440,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 25,
+    "status": "incomplete_no_valid_replacement",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_37_gouffre_du_gigalodon.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 25,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "incomplete: no valid complete Dofus 3 worldmap replacement found; only fragments/background/layers available",
+    "promoted_source": "data/cartography/assets/world/worldmap_37_gouffre_du_gigalodon/world.png",
+    "promoted_size": [
+      2400,
+      980
+    ],
+    "previous_asset_backup": ""
+  },
+  {
+    "worldmap_id": 38,
+    "view_key": "worldmap_38_village_des_brigandins",
+    "name": "Village des Brigandins",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_38_village_des_brigandins/world.png",
+    "final_size": [
+      1024,
+      716
+    ],
+    "cropped_source_size": [
+      4085,
+      2861
+    ],
+    "bytes": 1506862,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 12,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_38_village_des_brigandins.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 12,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_a9e8b0d641.png",
+    "promoted_size": [
+      1024,
+      716
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/38_worldmap_38_village_des_brigandins_world.png"
+  },
+  {
+    "worldmap_id": 39,
+    "view_key": "worldmap_39_domaine_de_draconiros",
+    "name": "Domaine de Draconiros",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_39_domaine_de_draconiros/world.png",
+    "final_size": [
+      2400,
+      1466
+    ],
+    "cropped_source_size": [
+      2482,
+      1516
+    ],
+    "bytes": 2525853,
+    "catalog_paths": 6,
+    "placed_tiles": 6,
+    "expected_tiles": 6,
+    "status": "client_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_39_domaine_de_draconiros.jpg",
+    "grid_status": "full_grid",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 6,
+    "empty_grid_cells_are_not_missing_source_tiles": true
+  },
+  {
+    "worldmap_id": 40,
+    "view_key": "worldmap_40_sanctuaire_des_jardins_eternels",
+    "name": "Sanctuaire des Jardins éternels",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_40_sanctuaire_des_jardins_eternels/world.png",
+    "final_size": [
+      992,
+      696
+    ],
+    "cropped_source_size": [
+      7226,
+      2048
+    ],
+    "bytes": 948725,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 40,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_40_sanctuaire_des_jardins_eternels.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 40,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/0965_worldmap_assets_sprite_4_51bdbdd4ed.png",
+    "promoted_size": [
+      992,
+      696
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/40_worldmap_40_sanctuaire_des_jardins_eternels_world.png"
+  },
+  {
+    "worldmap_id": 41,
+    "view_key": "worldmap_41_temple_celeste",
+    "name": "Temple Céleste",
+    "kind": "worldmap",
+    "asset_path": "data/cartography/assets/world/worldmap_41_temple_celeste/world.png",
+    "final_size": [
+      940,
+      568
+    ],
+    "cropped_source_size": [
+      3763,
+      2263
+    ],
+    "bytes": 726577,
+    "catalog_paths": 9,
+    "placed_tiles": 9,
+    "expected_tiles": 12,
+    "status": "client_overview_complete",
+    "preview": "data\\reports\\dofus_worldmap_scan\\integration_all_worldmaps\\previews\\worldmap_41_temple_celeste.jpg",
+    "grid_status": "partial_canvas",
+    "client_status_note": "all usable client worldmap tiles integrated; empty grid cells are transparent canvas/padding",
+    "grid_expected_tiles": 12,
+    "empty_grid_cells_are_not_missing_source_tiles": true,
+    "source_note": "visually validated complete Dofus 3 overview promoted; replaces partial tile mosaic",
+    "promoted_source": "data/reports/dofus_worldmap_scan/exports/1045_worldmap_assets_sprite_1_909ca455a3.png",
+    "promoted_size": [
+      940,
+      568
+    ],
+    "previous_asset_backup": "data/reports/dofus_worldmap_scan/promoted_backups/20260709_172329/41_worldmap_41_temple_celeste_world.png"
+  }
+]

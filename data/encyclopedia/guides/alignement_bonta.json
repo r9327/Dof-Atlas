@@ -1,0 +1,1543 @@
+{
+  "schema_version": 1,
+  "id": "alignement_bonta",
+  "title": "Alignement Bonta",
+  "category": "alignements",
+  "description": "100 quêtes d'alignement Bonta, puis les trois Ordres séparés.",
+  "recommended_level_min": 30,
+  "recommended_level_max": 200,
+  "reward_item_id": null,
+  "illustration_item_id": null,
+  "image": null,
+  "completeness_status": "complete",
+  "verified_steps": 115,
+  "total_steps": 115,
+  "validation_warnings": [
+    "Les trois Ordres sont des branches alternatives affichées séparément après l'alignement 100."
+  ],
+  "generation_source": "doduda+dpln_profile",
+  "sections": [
+    {
+      "id": "alignement_bonta_1_20",
+      "title": "Rangs 1 à 20",
+      "description": "Quêtes d'alignement Bonta rangs 1 à 20.",
+      "steps": [
+        {
+          "id": "alignement_bonta_quest_55",
+          "type": "quest",
+          "entity_id": 55,
+          "optional": false,
+          "notes": "Rang 1 Doduda.",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_bonta_quest_56",
+          "type": "quest",
+          "entity_id": 56,
+          "optional": false,
+          "notes": "Rang 2 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 55
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_57",
+          "type": "quest",
+          "entity_id": 57,
+          "optional": false,
+          "notes": "Rang 3 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 56
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_58",
+          "type": "quest",
+          "entity_id": 58,
+          "optional": false,
+          "notes": "Rang 4 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 57
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_59",
+          "type": "quest",
+          "entity_id": 59,
+          "optional": false,
+          "notes": "Rang 5 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 58
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_60",
+          "type": "quest",
+          "entity_id": 60,
+          "optional": false,
+          "notes": "Rang 6 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 59
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_61",
+          "type": "quest",
+          "entity_id": 61,
+          "optional": false,
+          "notes": "Rang 7 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 60
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_62",
+          "type": "quest",
+          "entity_id": 62,
+          "optional": false,
+          "notes": "Rang 8 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 61
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_63",
+          "type": "quest",
+          "entity_id": 63,
+          "optional": false,
+          "notes": "Rang 9 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 62
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_64",
+          "type": "quest",
+          "entity_id": 64,
+          "optional": false,
+          "notes": "Rang 10 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 63
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_65",
+          "type": "quest",
+          "entity_id": 65,
+          "optional": false,
+          "notes": "Rang 11 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 64
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_66",
+          "type": "quest",
+          "entity_id": 66,
+          "optional": false,
+          "notes": "Rang 12 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 65
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_67",
+          "type": "quest",
+          "entity_id": 67,
+          "optional": false,
+          "notes": "Rang 13 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 66
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_68",
+          "type": "quest",
+          "entity_id": 68,
+          "optional": false,
+          "notes": "Rang 14 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 67
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_69",
+          "type": "quest",
+          "entity_id": 69,
+          "optional": false,
+          "notes": "Rang 15 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 68
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_70",
+          "type": "quest",
+          "entity_id": 70,
+          "optional": false,
+          "notes": "Rang 16 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 69
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_71",
+          "type": "quest",
+          "entity_id": 71,
+          "optional": false,
+          "notes": "Rang 17 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 70
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_72",
+          "type": "quest",
+          "entity_id": 72,
+          "optional": false,
+          "notes": "Rang 18 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 71
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_73",
+          "type": "quest",
+          "entity_id": 73,
+          "optional": false,
+          "notes": "Rang 19 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 72
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_74",
+          "type": "quest",
+          "entity_id": 74,
+          "optional": false,
+          "notes": "Rang 20 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 73
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_bonta_21_40",
+      "title": "Rangs 21 à 40",
+      "description": "Quêtes d'alignement Bonta rangs 21 à 40.",
+      "steps": [
+        {
+          "id": "alignement_bonta_quest_75",
+          "type": "quest",
+          "entity_id": 75,
+          "optional": false,
+          "notes": "Rang 21 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 74
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_76",
+          "type": "quest",
+          "entity_id": 76,
+          "optional": false,
+          "notes": "Rang 22 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 75
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_77",
+          "type": "quest",
+          "entity_id": 77,
+          "optional": false,
+          "notes": "Rang 23 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 76
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_78",
+          "type": "quest",
+          "entity_id": 78,
+          "optional": false,
+          "notes": "Rang 24 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 77
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_79",
+          "type": "quest",
+          "entity_id": 79,
+          "optional": false,
+          "notes": "Rang 25 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 78
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_80",
+          "type": "quest",
+          "entity_id": 80,
+          "optional": false,
+          "notes": "Rang 26 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 79
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_81",
+          "type": "quest",
+          "entity_id": 81,
+          "optional": false,
+          "notes": "Rang 27 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 80
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_82",
+          "type": "quest",
+          "entity_id": 82,
+          "optional": false,
+          "notes": "Rang 28 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 81
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_83",
+          "type": "quest",
+          "entity_id": 83,
+          "optional": false,
+          "notes": "Rang 29 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 82
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_84",
+          "type": "quest",
+          "entity_id": 84,
+          "optional": false,
+          "notes": "Rang 30 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 83
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_85",
+          "type": "quest",
+          "entity_id": 85,
+          "optional": false,
+          "notes": "Rang 31 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 84
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_86",
+          "type": "quest",
+          "entity_id": 86,
+          "optional": false,
+          "notes": "Rang 32 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 85
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_87",
+          "type": "quest",
+          "entity_id": 87,
+          "optional": false,
+          "notes": "Rang 33 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 86
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_88",
+          "type": "quest",
+          "entity_id": 88,
+          "optional": false,
+          "notes": "Rang 34 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 87
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_89",
+          "type": "quest",
+          "entity_id": 89,
+          "optional": false,
+          "notes": "Rang 35 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 88
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_90",
+          "type": "quest",
+          "entity_id": 90,
+          "optional": false,
+          "notes": "Rang 36 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 89
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_91",
+          "type": "quest",
+          "entity_id": 91,
+          "optional": false,
+          "notes": "Rang 37 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 90
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_92",
+          "type": "quest",
+          "entity_id": 92,
+          "optional": false,
+          "notes": "Rang 38 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 91
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_93",
+          "type": "quest",
+          "entity_id": 93,
+          "optional": false,
+          "notes": "Rang 39 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 92
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_94",
+          "type": "quest",
+          "entity_id": 94,
+          "optional": false,
+          "notes": "Rang 40 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 93
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_bonta_41_60",
+      "title": "Rangs 41 à 60",
+      "description": "Quêtes d'alignement Bonta rangs 41 à 60.",
+      "steps": [
+        {
+          "id": "alignement_bonta_quest_257",
+          "type": "quest",
+          "entity_id": 257,
+          "optional": false,
+          "notes": "Rang 41 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 94
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_258",
+          "type": "quest",
+          "entity_id": 258,
+          "optional": false,
+          "notes": "Rang 42 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 257
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_259",
+          "type": "quest",
+          "entity_id": 259,
+          "optional": false,
+          "notes": "Rang 43 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 258
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_260",
+          "type": "quest",
+          "entity_id": 260,
+          "optional": false,
+          "notes": "Rang 44 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 259
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_261",
+          "type": "quest",
+          "entity_id": 261,
+          "optional": false,
+          "notes": "Rang 45 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 260
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_262",
+          "type": "quest",
+          "entity_id": 262,
+          "optional": false,
+          "notes": "Rang 46 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 261
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_263",
+          "type": "quest",
+          "entity_id": 263,
+          "optional": false,
+          "notes": "Rang 47 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 262
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_264",
+          "type": "quest",
+          "entity_id": 264,
+          "optional": false,
+          "notes": "Rang 48 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 263
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_265",
+          "type": "quest",
+          "entity_id": 265,
+          "optional": false,
+          "notes": "Rang 49 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 264
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_266",
+          "type": "quest",
+          "entity_id": 266,
+          "optional": false,
+          "notes": "Rang 50 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 265
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_280",
+          "type": "quest",
+          "entity_id": 280,
+          "optional": false,
+          "notes": "Rang 51 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 266
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_281",
+          "type": "quest",
+          "entity_id": 281,
+          "optional": false,
+          "notes": "Rang 52 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 280
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_282",
+          "type": "quest",
+          "entity_id": 282,
+          "optional": false,
+          "notes": "Rang 53 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 281
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_283",
+          "type": "quest",
+          "entity_id": 283,
+          "optional": false,
+          "notes": "Rang 54 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 282
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_284",
+          "type": "quest",
+          "entity_id": 284,
+          "optional": false,
+          "notes": "Rang 55 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 283
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_285",
+          "type": "quest",
+          "entity_id": 285,
+          "optional": false,
+          "notes": "Rang 56 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 284
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_286",
+          "type": "quest",
+          "entity_id": 286,
+          "optional": false,
+          "notes": "Rang 57 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 285
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_290",
+          "type": "quest",
+          "entity_id": 290,
+          "optional": false,
+          "notes": "Rang 58 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 286
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_289",
+          "type": "quest",
+          "entity_id": 289,
+          "optional": false,
+          "notes": "Rang 59 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 290
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_291",
+          "type": "quest",
+          "entity_id": 291,
+          "optional": false,
+          "notes": "Rang 60 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 289
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_bonta_61_80",
+      "title": "Rangs 61 à 80",
+      "description": "Quêtes d'alignement Bonta rangs 61 à 80.",
+      "steps": [
+        {
+          "id": "alignement_bonta_quest_293",
+          "type": "quest",
+          "entity_id": 293,
+          "optional": false,
+          "notes": "Rang 61 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 291
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_294",
+          "type": "quest",
+          "entity_id": 294,
+          "optional": false,
+          "notes": "Rang 62 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 293
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_295",
+          "type": "quest",
+          "entity_id": 295,
+          "optional": false,
+          "notes": "Rang 63 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 294
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_296",
+          "type": "quest",
+          "entity_id": 296,
+          "optional": false,
+          "notes": "Rang 64 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 295
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_302",
+          "type": "quest",
+          "entity_id": 302,
+          "optional": false,
+          "notes": "Rang 65 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 296
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_298",
+          "type": "quest",
+          "entity_id": 298,
+          "optional": false,
+          "notes": "Rang 66 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 302
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_299",
+          "type": "quest",
+          "entity_id": 299,
+          "optional": false,
+          "notes": "Rang 67 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 298
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_303",
+          "type": "quest",
+          "entity_id": 303,
+          "optional": false,
+          "notes": "Rang 68 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 299
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_304",
+          "type": "quest",
+          "entity_id": 304,
+          "optional": false,
+          "notes": "Rang 69 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 303
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_333",
+          "type": "quest",
+          "entity_id": 333,
+          "optional": false,
+          "notes": "Rang 70 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 304
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_318",
+          "type": "quest",
+          "entity_id": 318,
+          "optional": false,
+          "notes": "Rang 71 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 333
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_321",
+          "type": "quest",
+          "entity_id": 321,
+          "optional": false,
+          "notes": "Rang 72 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 318
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_325",
+          "type": "quest",
+          "entity_id": 325,
+          "optional": false,
+          "notes": "Rang 73 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 321
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_326",
+          "type": "quest",
+          "entity_id": 326,
+          "optional": false,
+          "notes": "Rang 74 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 325
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_334",
+          "type": "quest",
+          "entity_id": 334,
+          "optional": false,
+          "notes": "Rang 75 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 326
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_335",
+          "type": "quest",
+          "entity_id": 335,
+          "optional": false,
+          "notes": "Rang 76 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 334
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_328",
+          "type": "quest",
+          "entity_id": 328,
+          "optional": false,
+          "notes": "Rang 77 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 335
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_451",
+          "type": "quest",
+          "entity_id": 451,
+          "optional": false,
+          "notes": "Rang 78 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 328
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_456",
+          "type": "quest",
+          "entity_id": 456,
+          "optional": false,
+          "notes": "Rang 79 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 451
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_457",
+          "type": "quest",
+          "entity_id": 457,
+          "optional": false,
+          "notes": "Rang 80 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 456
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_bonta_81_100",
+      "title": "Rangs 81 à 100",
+      "description": "Quêtes d'alignement Bonta rangs 81 à 100.",
+      "steps": [
+        {
+          "id": "alignement_bonta_quest_337",
+          "type": "quest",
+          "entity_id": 337,
+          "optional": false,
+          "notes": "Rang 81 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 457
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_343",
+          "type": "quest",
+          "entity_id": 343,
+          "optional": false,
+          "notes": "Rang 82 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 337
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1715",
+          "type": "quest",
+          "entity_id": 1715,
+          "optional": false,
+          "notes": "Rang 83 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 343
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1717",
+          "type": "quest",
+          "entity_id": 1717,
+          "optional": false,
+          "notes": "Rang 84 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1715
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1719",
+          "type": "quest",
+          "entity_id": 1719,
+          "optional": false,
+          "notes": "Rang 85 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1717
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1721",
+          "type": "quest",
+          "entity_id": 1721,
+          "optional": false,
+          "notes": "Rang 86 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1719
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1723",
+          "type": "quest",
+          "entity_id": 1723,
+          "optional": false,
+          "notes": "Rang 87 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1721
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1728",
+          "type": "quest",
+          "entity_id": 1728,
+          "optional": false,
+          "notes": "Rang 88 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1723
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1729",
+          "type": "quest",
+          "entity_id": 1729,
+          "optional": false,
+          "notes": "Rang 89 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1728
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1730",
+          "type": "quest",
+          "entity_id": 1730,
+          "optional": false,
+          "notes": "Rang 90 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1729
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1885",
+          "type": "quest",
+          "entity_id": 1885,
+          "optional": false,
+          "notes": "Rang 91 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1730
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1887",
+          "type": "quest",
+          "entity_id": 1887,
+          "optional": false,
+          "notes": "Rang 92 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1885
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1889",
+          "type": "quest",
+          "entity_id": 1889,
+          "optional": false,
+          "notes": "Rang 93 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1887
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1891",
+          "type": "quest",
+          "entity_id": 1891,
+          "optional": false,
+          "notes": "Rang 94 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1889
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1893",
+          "type": "quest",
+          "entity_id": 1893,
+          "optional": false,
+          "notes": "Rang 95 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1891
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1895",
+          "type": "quest",
+          "entity_id": 1895,
+          "optional": false,
+          "notes": "Rang 96 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1893
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1897",
+          "type": "quest",
+          "entity_id": 1897,
+          "optional": false,
+          "notes": "Rang 97 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1895
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1899",
+          "type": "quest",
+          "entity_id": 1899,
+          "optional": false,
+          "notes": "Rang 98 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1897
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1901",
+          "type": "quest",
+          "entity_id": 1901,
+          "optional": false,
+          "notes": "Rang 99 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1899
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_quest_1903",
+          "type": "quest",
+          "entity_id": 1903,
+          "optional": false,
+          "notes": "Rang 100 Doduda.",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1901
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_bonta_ordre_1",
+      "title": "Ordre de l'Esprit Salvateur",
+      "description": "Quêtes de l'Ordre, rangs 1 à 5 (paliers alignement 20/40/60/80/100).",
+      "optional_branch": true,
+      "exclusive_group": "alignement_bonta_ordres",
+      "steps": [
+        {
+          "id": "alignement_bonta_ordre_1_quest_434",
+          "type": "quest",
+          "entity_id": 434,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_bonta_ordre_1_quest_111",
+          "type": "quest",
+          "entity_id": 111,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 434
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_ordre_1_quest_121",
+          "type": "quest",
+          "entity_id": 121,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 111
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_ordre_1_quest_423",
+          "type": "quest",
+          "entity_id": 423,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_bonta_ordre_1_quest_1917",
+          "type": "quest",
+          "entity_id": 1917,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 423
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_bonta_ordre_2",
+      "title": "Ordre de l'Œil Attentif",
+      "description": "Quêtes de l'Ordre, rangs 1 à 5 (paliers alignement 20/40/60/80/100).",
+      "optional_branch": true,
+      "exclusive_group": "alignement_bonta_ordres",
+      "steps": [
+        {
+          "id": "alignement_bonta_ordre_2_quest_435",
+          "type": "quest",
+          "entity_id": 435,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_bonta_ordre_2_quest_110",
+          "type": "quest",
+          "entity_id": 110,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 435
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_ordre_2_quest_122",
+          "type": "quest",
+          "entity_id": 122,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 110
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_ordre_2_quest_425",
+          "type": "quest",
+          "entity_id": 425,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_bonta_ordre_2_quest_1918",
+          "type": "quest",
+          "entity_id": 1918,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 425
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alignement_bonta_ordre_3",
+      "title": "Ordre du Cœur Vaillant",
+      "description": "Quêtes de l'Ordre, rangs 1 à 5 (paliers alignement 20/40/60/80/100).",
+      "optional_branch": true,
+      "exclusive_group": "alignement_bonta_ordres",
+      "steps": [
+        {
+          "id": "alignement_bonta_ordre_3_quest_433",
+          "type": "quest",
+          "entity_id": 433,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_bonta_ordre_3_quest_109",
+          "type": "quest",
+          "entity_id": 109,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 433
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_ordre_3_quest_120",
+          "type": "quest",
+          "entity_id": 120,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 109
+            }
+          ]
+        },
+        {
+          "id": "alignement_bonta_ordre_3_quest_421",
+          "type": "quest",
+          "entity_id": 421,
+          "optional": true,
+          "notes": "",
+          "prerequisites": []
+        },
+        {
+          "id": "alignement_bonta_ordre_3_quest_1916",
+          "type": "quest",
+          "entity_id": 1916,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 421
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

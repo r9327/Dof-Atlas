@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_amakna_40_60_v1",
+  "title": "Guide Ultime — Amakna 40-60 manuel",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "depends_on": ["guide_ultime_manual_pandala_access_v1"],
+  "game_floor": "DOFUS 3.6",
+  "stage_count": 9,
+  "micro_walkthrough_source": "QuestProvider + source_solution_steps enrichis",
+  "rules": [
+    "Une seule visite de donjon lorsque plusieurs quêtes peuvent être actives avant l'entrée.",
+    "Les quêtes de succès de zone sont injectées quand elles partagent réellement la même boucle géographique.",
+    "Les choix qui évitent un combat ou un détour sont préférés quand ils valident le même succès.",
+    "Capture d'âmes n'est considérée disponible qu'après le Kwakwa; aucune capture n'est inventée avant ce point.",
+    "Après obtention de Capture d'âmes, préparer les pierres avant les boss réellement utiles à Ocre/Émeraude; pour les boss déjà faits, préférer la PDA HDV si échangeable à un rerun sans autre intérêt.",
+    "La chaîne Allister suit la branche traître parce qu'elle valide le même succès avec moins de combats et ouvre un passage Bonta exploitable pour l'alignement.",
+    "Le fil Bonta reste séparé en sous-route: le chapitre Amakna déclenche son premier passage mais ne mélange pas arbitrairement les 100 rangs dans les étapes Amakna."
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/fantomes-contre-fantomes.html",
+    "https://www.dofuspourlesnoobs.com/donjon-en-lambeaux.html",
+    "https://www.dofuspourlesnoobs.com/le-maitre-des-clefs.html",
+    "https://www.dofuspourlesnoobs.com/le-guide-du-roublard.html",
+    "https://www.dofuspourlesnoobs.com/crypte-honnie.html",
+    "https://www.dofuspourlesnoobs.com/traicirctre-ou-pas-traicirctre-telle-est-la-question.html",
+    "https://www.dofuspourlesnoobs.com/info-pour-un-vrai-traitre.html",
+    "https://www.dofuspourlesnoobs.com/les-sbires-du-maitre.html",
+    "https://www.dofuspourlesnoobs.com/donjon-educatif.html",
+    "https://www.dofuspourlesnoobs.com/donjon-douillet.html",
+    "https://www.dofuspourlesnoobs.com/l-ascension.html",
+    "https://www.dofuspourlesnoobs.com/nid-du-kwakwa.html",
+    "https://www.dofuspourlesnoobs.com/pinta-gone-veut-se-remplir-de-biegravere-bwork.html",
+    "https://www.dofuspourlesnoobs.com/kaiumlra.html",
+    "https://www.dofuspourlesnoobs.com/le-theacuteacirctre-des-gobelins.html"
+  ],
+  "resource_plan": {
+    "before_amk_02_bonta": [
+      {"name":"Fil de Soie","quantity":3,"why":"Info pour un vrai traître à l'atelier tailleur de Bonta"},
+      {"name":"Épée de Boisaille","quantity":10,"why":"recrutement Bontarien au premier passage à la milice"}
+    ],
+    "before_allister_wabbit_branch": [
+      {"name":"Bâton du Grand Pa Wabbit","quantity":2,"why":"Usuwpation d'identité; reporter la quête si le stock Wabbit n'est pas encore naturellement disponible"},
+      {"name":"Oreille du Tiwabbit","quantity":5,"why":"Usuwpation d'identité"},
+      {"name":"Cawotte","quantity":5,"why":"Usuwpation d'identité"},
+      {"name":"Estomac de Wo Wabbit","quantity":1,"why":"Usuwpation d'identité"},
+      {"name":"Sauge","quantity":50,"why":"Usuwpation d'identité"},
+      {"name":"Patte de Wabbit","quantity":10,"why":"Usuwpation d'identité"}
+    ],
+    "bwork_zone": [
+      {"name":"Canine de Gobelin","quantity":3,"why":"choix ressource de De tape et de crocs; le combat alternatif est accepté si plus rapide"},
+      {"name":"Panoplie Prespic + Baguette de Liriel","quantity":1,"why":"option de Une baguette pour Chef Bworkestre; ne pas acheter si le combat de groupe est moins coûteux"}
+    ],
+    "capture_policy_after_kwakwa": {
+      "enabled_after_stage":"AMK-07",
+      "first_spell":"Capture d'âmes",
+      "stone_rule":"acheter/crafter la puissance exacte utile avant le boss ciblé; ne pas accumuler un stock arbitraire",
+      "retroactive_boss_rule":"si un boss antérieur est demandé plus tard et sa PDA est échangeable, comparer HDV au coût d'un rerun avant de refaire le donjon"
+    },
+    "pod_policy":"Conserver seulement les ressources explicitement utilisées dans ce chapitre ou un fil futur déjà identifié. Déposer les gros stocks Wabbit/Bwork à la banque si la branche correspondante est différée."
+  },
+  "carry_threads_in": [
+    "Donjon en lambeaux",
+    "Le maître des clefs",
+    "Tour du Monde",
+    "Le réceptacle des Dofus / Un sage parmi les sages bloqué Wabbit",
+    "Bien velu, c'est Kerubim / Il faut que cha brille selon état réel"
+  ],
+  "stages": [
+    {
+      "id":"AMK-00",
+      "title":"Village d'Amakna + Foire du Trool — Maison Fantôme une seule fois",
+      "level":"40+",
+      "duration_min":35,
+      "quests":["Fantômes contre fantômes","Donjon en lambeaux","Donjon éducatif"],
+      "route":[
+        {"pos":"[-1,2]","do":"Prendre Fantômes contre fantômes auprès d'Hanniboul Smisse avant tout départ Foire du Trool."},
+        {"pos":"[-13,-41]","do":"Faire Maison Fantôme avec Fantômes contre fantômes ET Donjon en lambeaux actifs; tenter les succès compatibles dans ce passage unique."},
+        {"pos":"sortie Maison Fantôme","do":"Valider Fantômes contre fantômes en sortant; ne pas programmer de second Boostache pour cette quête."},
+        {"pos":"[1,-15]","do":"Rendre Donjon en lambeaux à Emma et prendre immédiatement Donjon éducatif."}
+      ],
+      "capture_note":"Capture d'âmes n'est pas encore garantie à ce point. Ne pas refaire Boostache juste pour une future âme; Le voleur d'âmes permettra plus tard d'acheter la PDA si plus rentable.",
+      "pause":["Fantômes contre fantômes terminée","Donjon en lambeaux terminée","Donjon éducatif active","Aucun second passage Maison Fantôme planifié pour ces deux quêtes"]
+    },
+    {
+      "id":"AMK-01",
+      "title":"Château + Cimetière — Roublards et Squelettes dans la même boucle",
+      "level":"40+",
+      "duration_min":55,
+      "quests":["Le Guide du Roublard","Crypte Honnie","Le maître des clefs","Traître ou pas traître, telle est la question...","Info pour un vrai traître"],
+      "route":[
+        {"pos":"[4,-6]","do":"Prendre Le Guide du Roublard auprès du Conseiller Yse Vewybad."},
+        {"pos":"[-4,0]","do":"Faire l'étape Temple Sram du Guide du Roublard pendant la descente vers le cimetière."},
+        {"pos":"[10,16]","do":"Fermer Le Guide du Roublard et lancer Crypte Honnie."},
+        {"pos":"[11,16] [10,15] [9,15] [8,16]","do":"Visiter les cryptes de Crypte Honnie. Au passage [10,15], faire le Donjon des Squelettes demandé par Le maître des clefs et les succès compatibles."},
+        {"pos":"[10,17] puis [10,16]","do":"Continuer Crypte Honnie jusqu'au repaire Roublard."},
+        {"pos":"[4,-6] puis [10,16] puis [7,-5]","do":"Finir la négociation Yse/Vil et terminer Crypte Honnie."},
+        {"pos":"[7,-5]","do":"Dans Traître ou pas traître, choisir 'Se ranger du côté de Vewybad et de Vil Smisse'. La quête se ferme immédiatement et ouvre Info pour un vrai traître."},
+        {"pos":"[-6,-37]","do":"Après le Chafer Rōnin, mettre à jour Le maître des clefs afin que le prochain objectif soit le Donjon des Tofus."}
+      ],
+      "pause":["Crypte Honnie terminée","Branche Allister = traître verrouillée","Info pour un vrai traître active","Le maître des clefs pointe vers le Batofu"]
+    },
+    {
+      "id":"AMK-02",
+      "title":"Tofus + premier passage Bonta — finir Le maître des clefs et ouvrir deux fils longs",
+      "level":"40-50",
+      "duration_min":50,
+      "quests":["Le maître des clefs","Info pour un vrai traître","Usuwpation d'identité","Entraînement avec Tarche","Les sbires du maître"],
+      "route":[
+        {"pos":"[5,6]","do":"Faire le Donjon des Tofus pour Le maître des clefs; profiter de la zone pour le succès monstre Tofu si encore manquant."},
+        {"pos":"[-6,-37]","do":"Rendre l'étape Batofu au Maître des clefs."},
+        {"pos":"[5,0]","do":"Parler à Pat Akess pour terminer Le maître des clefs et lancer Les sbires du maître."},
+        {"pos":"[-33,-54] Bonta","do":"Faire le passage tailleur de Info pour un vrai traître avec 3 Fils de Soie déjà préparés."},
+        {"pos":"[-32,-57] Bonta","do":"Au même voyage, donner 10 Épées de Boisaille à Amayiro, devenir Bontarien et lancer Entraînement avec Tarche. Le reste de l'alignement est repris par la sous-route Bonta dédiée."},
+        {"pos":"[7,-5] puis [9,-2] puis [7,-5]","do":"Finir Info pour un vrai traître et ouvrir Usuwpation d'identité."}
+      ],
+      "defer":"Usuwpation d'identité demande un gros lot Wabbit. Ne pas provoquer un détour Wabbit juste pour elle; la reprendre dans le vrai chapitre Cawotte/Wabbit avec les ressources déjà rassemblées.",
+      "pause":["Le maître des clefs terminée","Les sbires du maître active: Scarabosse Doré en premier","Bonta choisi et Alignement 1 lancé","Usuwpation d'identité active mais volontairement différée jusqu'au bloc Wabbit"]
+    },
+    {
+      "id":"AMK-03",
+      "title":"Campement Gobelin — Akadémie + Emma sans second Grunob",
+      "level":"40-50",
+      "duration_min":35,
+      "quests":["Donjon éducatif"],
+      "route":[
+        {"pos":"[-5,3]","do":"Faire l'Akadémie des Gobs pour Donjon éducatif; avant le premier combat récupérer le parchemin du sort Foudroiement de Grunob si pas déjà appris; faire les succès compatibles."},
+        {"pos":"[1,-15]","do":"Rendre Donjon éducatif à Emma et prendre Donjon douillet."}
+      ],
+      "future_merge":"Si De joyeux petits arbres ou La raison du plus fort sont réellement débloquées avant ce passage dans l'état du personnage, elles doivent être activées avant l'entrée; sinon ne pas inventer leur disponibilité et accepter qu'elles appartiennent à un futur passage Ocre/Forêt Maléfique.",
+      "pause":["Donjon éducatif terminée","Donjon douillet active","Sort Foudroiement de Grunob récupéré si disponible"]
+    },
+    {
+      "id":"AMK-04",
+      "title":"Scarafeuilles + Forgerons — deux sbires, Sufokia et Maîtrise d'armes",
+      "level":"40-55",
+      "duration_min":55,
+      "quests":["Les sbires du maître","C'est du costaud"],
+      "route":[
+        {"pos":"[1,26]","do":"Faire Donjon des Scarafeuilles, vaincre Scarabosse Doré et tenter les succès compatibles."},
+        {"pos":"[5,0]","do":"Repasser Pat Akess uniquement parce que la quête l'impose; récupérer l'objectif Coffre des Forgerons."},
+        {"pos":"[17,28] Sufokia","do":"Prendre C'est du costaud avant le Donjon des Forgerons."},
+        {"pos":"[13,21]","do":"Faire Donjon des Forgerons avec Les sbires du maître + C'est du costaud; récupérer automatiquement Maîtrise d'armes en fin de donjon et faire les succès compatibles."},
+        {"pos":"[5,0]","do":"Rendre l'étape Forgerons à Pat Akess; prochain objectif Bworkette."}
+      ],
+      "pause":["Scarabosse Doré validé","Coffre des Forgerons validé","Maîtrise d'armes apprise","Les sbires du maître pointe vers Bworkette"]
+    },
+    {
+      "id":"AMK-05",
+      "title":"Campement des Bworks — faire Kaïra + Théâtre pendant le passage Bworkette",
+      "level":"40-55",
+      "duration_min":90,
+      "quests":["Les sbires du maître","Pinta Gone veut se remplir de bière Bwork","Bienvenue au Krazybwork saloon","Bworkidais le paxifik","De tape et de crocs","Une baguette pour Chef Bworkestre","Les Gobelins de la Manufacture","Gobmichet vibre pour Gobrose","Ange de Gobriel","Titi Gobelait le magobelin","Manque de moule","Un avenir de krotte de Trooll","De joyeux petits arbres"],
+      "route":[
+        {"pos":"[2,-1]","do":"Prendre Pinta Gone avant de descendre au campement; ses découvertes se font sur les mêmes maps que la boucle Bwork."},
+        {"pos":"[-1,8] puis [-6,6] puis [-5,10]","do":"Avancer Pinta Gone sans détour supplémentaire et prendre/avancer les quêtes Kaïra et Théâtre disponibles sur le chemin."},
+        {"pos":"Campement/Village des Bworks","do":"Fermer les quêtes Kaïra et Théâtre des gobelins en suivant leurs dépendances locales. Préférer les choix sans combat quand ils valident la même quête; utiliser HDV pour les petites ressources si cela évite du farm hors zone."},
+        {"pos":"[-5,10]","do":"Faire Donjon des Bworks pour Les sbires du maître; si une quête/étape locale demande Bworknroll ou Bworkette, la garder active avant l'entrée; faire les succès compatibles."},
+        {"pos":"[2,-1]","do":"Rendre Pinta Gone au premier retour Village d'Amakna."},
+        {"pos":"[5,0]","do":"Rendre l'étape Bworkette à Pat Akess; prochain objectif Shin Larve."}
+      ],
+      "choice_policy":[
+        "Bworkidais le paxifik: respecter son pacifisme pour terminer sans combat.",
+        "De tape et de crocs: 3 Canines de Gobelin si déjà disponibles/bon marché; sinon le choix combat peut être plus rapide.",
+        "Une baguette pour Chef Bworkestre: ne pas acheter une panoplie complète si le combat de groupe est plus rentable."
+      ],
+      "pause":["Bworkette validée pour Les sbires du maître","Pinta Gone terminée","Succès Kaïra fermé ou reste explicite documenté","Succès Le théâtre des gobelins fermé ou reste explicite documenté","Prochain sbire = Shin Larve"]
+    },
+    {
+      "id":"AMK-06",
+      "title":"Donjon des Larves — fermer le quatrième sbire sans détour",
+      "level":"45-55",
+      "duration_min":35,
+      "quests":["Les sbires du maître"],
+      "route":[
+        {"pos":"[-2,-5]","do":"Faire Donjon des Larves avec l'Oeuf de Larve Dorée fourni par Pat Akess; le donjon nécessite au moins deux personnages distincts pour son mécanisme de séparation."},
+        {"pos":"[5,0]","do":"Rendre Shin Larve à Pat Akess; la suite part vers Refuge Sylvestre sur Valonia puis Craqueleur Légendaire. Ne pas forcer Valonia dans cette étape si le niveau/chapitre suivant est plus adapté."}
+      ],
+      "pause":["Shin Larve validée","Les sbires du maître conserve ses deux objectifs suivants: Refuge Sylvestre puis Pitons Rocheux"]
+    },
+    {
+      "id":"AMK-07",
+      "title":"Nid du Kwakwa — trois objectifs + obtention de Capture d'âmes",
+      "level":"50+",
+      "duration_min":35,
+      "quests":["Donjon douillet","L'Ascension"],
+      "route":[
+        {"pos":"[-1,2]","do":"À partir du niveau recommandé 50, prendre L'Ascension auprès d'Hanniboul avant de partir en montagne."},
+        {"pos":"[-4,-7]","do":"Faire le Nid du Kwakwa avec Donjon douillet + L'Ascension actifs; faire les succès compatibles."},
+        {"pos":"fin du Nid du Kwakwa","do":"AVANT de sortir, parler à l'Esprit Volatile et apprendre Capture d'âmes. Ce point active définitivement la politique pierres/captures du Guide Ultime."},
+        {"pos":"sortie","do":"Valider L'Ascension auprès du Gentil Organisateur Kwakerbak."},
+        {"pos":"[1,-15]","do":"Rendre Donjon douillet à Emma et prendre Donjon magistral; cette dernière sera différée jusqu'à l'accès Otomaï (Le nouveau monde + L'Île des naufragés)."}
+      ],
+      "capture_transition":[
+        "À partir d'ici, chaque prochain boss est audité pour Ocre/Émeraude avant entrée.",
+        "Préparer des pierres de puissance adaptées uniquement quand un boss/monstre ciblé est connu.",
+        "Ne pas refaire immédiatement les boss antérieurs; comparer leur PDA HDV à un rerun lorsqu'une quête les réclame."
+      ],
+      "pause":["L'Ascension terminée","Donjon douillet terminée","Capture d'âmes appris","Donjon magistral active mais bloquée accès Otomaï"]
+    },
+    {
+      "id":"AMK-08",
+      "title":"Château niveau 50 — quotidienne utile une fois + préparation des fils suivants",
+      "level":"50+",
+      "duration_min":20,
+      "quests":["De la viande pour la tablée d'Allister","Usuwpation d'identité"],
+      "route":[
+        {"pos":"[5,-4]","do":"Au premier passage Château après niveau 50, faire De la viande pour la tablée d'Allister une fois si 10 Viandes Avariées sont disponibles à coût raisonnable; sinon HDV plutôt qu'un détour de farm."},
+        {"pos":"[7,-5]","do":"Vérifier Usuwpation d'identité. Si le lot Wabbit est déjà naturellement disponible, l'avancer; sinon la conserver pour le chapitre Wabbit/Cawotte où toutes les ressources seront mutualisées."}
+      ],
+      "temporal_rule":"La quotidienne Allister n'est pas répétée automatiquement chaque jour: une validation suffit pour la couverture unique, sauf objectif métier/économique explicite.",
+      "carry_forward":[
+        "Les sbires du maître: Refuge Sylvestre -> Pitons Rocheux",
+        "Donjon magistral: accès Otomaï -> Grotte Hesque",
+        "Destination aventure: T'as les boules -> Village Kanniboul",
+        "Usuwpation d'identité -> Wabbit",
+        "Bonta alignement -> sous-route dédiée",
+        "Capture d'âmes -> Ocre/Émeraude actif pour les prochains boss"
+      ],
+      "pause":["Palier 50 sécurisé","Capture d'âmes disponible","Fils Wabbit/Otomaï/Valonia/Bonta explicitement conservés sans les mélanger au hasard"]
+    }
+  ]
+}

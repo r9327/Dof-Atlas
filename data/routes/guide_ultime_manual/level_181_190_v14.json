@@ -1,0 +1,348 @@
+{
+  "schema_version": 14,
+  "route_id": "guide_ultime_manual_level_181_190_v14",
+  "title": "Guide Ultime — Niveau 181 à 190, route joueur consolidée",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v13.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v13",
+  "stage_count": 24,
+  "depends_on": [
+    "level_171_180_v12.json",
+    "level_150_170_v20.json",
+    "level_120_150_v19.json",
+    "bonta_1_100_v16.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Raccorde le palier aux sources actives, restaure les quêtes Agriculture/Objets trouvés masquées par le patch Baka, garde une seule chasse Baka conditionnelle, met Le travail c'est la santé sur la mécanique actuelle métier200, et retire des champs rendus les renvois BNT, PASS, rerun, runtime, walkthrough, gate, cleanup et audit sans supprimer les retours de donjon réellement imposés par des quêtes ouvertes plus tard.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/mise-a-jour-303.html",
+    "https://www.dofuspourlesnoobs.com/le-travail-cest-la-santeacute.html",
+    "https://www.dofuspourlesnoobs.com/inteacuterimaire-frigostien.html",
+    "https://www.dofuspourlesnoobs.com/le-heros-de-sufokia.html",
+    "https://www.dofuspourlesnoobs.com/de-mal-en-impie.html"
+  ],
+  "stage_patches": {
+    "L181-00": {
+      "replace": {
+        "title":"Bonta 81-82 + préparation du métier 200",
+        "preparation":[
+          {"requirement":"Choisir un seul métier de récolte à mener au niveau 200 avant Vulbis/Six sur six.","preferred":["Alchimiste","Paysan"],"policy":"Prendre celui déjà le plus haut ou le moins coûteux. Ne pas monter deux métiers uniquement pour le guide."}
+        ],
+        "take":[],
+        "route":[],
+        "temporal_hooks":["frigost_interimaire_two_daily_completions"],
+        "progress_also":["Suivre le niveau du métier choisi pendant 181-200. Dès qu'il atteint 200, faire une quête métier Frigost compatible lors d'une journée naturelle pour commencer Intérimaire frigostien; aucune attente de changement de jour."],
+        "before_leaving":["Bonta 82 terminé.","Métier 200 choisi et progression conservée.","Intérimaire frigostien reste à 0/2 ou 1/2 selon les validations réellement faites."],
+        "hard_exit":["Aucun faux délai Bus Nain et aucun second métier monté uniquement pour Intérimaire."]
+      }
+    },
+    "L183-01": {
+      "replace": {
+        "title":"Bonta 83-84 — Pierres d'Araknas puis Leng",
+        "take":[],
+        "route":[],
+        "progress_also":["Préparer tout le Dissolvant Phosphorescent du rang 85 sauf la Fleur de Korriandre avant de quitter Bonta."],
+        "before_leaving":["Bonta 84 terminé.","Composants du Dissolvant prêts hors Fleur de Korriandre."],
+        "hard_exit":["Gelé à pierre fendre disponible au niveau 185."]
+      }
+    },
+    "L185-02": {
+      "replace": {
+        "title":"Bonta 85 — nouveau Korriandre imposé par Gelé à pierre fendre",
+        "take":[],
+        "route":[
+          {"area":"Bourgade — jour suivant naturel","do":"Si le métier choisi est déjà niveau 200 et Intérimaire frigostien est à 1/2, faire une seconde quête Frigost compatible lors d'un jour différent. Utiliser le même métier et continuer immédiatement la route si le changement de jour n'a pas encore eu lieu."}
+        ],
+        "temporal_hooks":["frigost_interimaire_two_daily_completions"],
+        "progress_also":["Pendant ce Korriandre Bonta, profiter d'une troisième tentative naturelle de Clef secrète de la Forêt pétrifiée pour Ongles incarnés. Si elle manque encore, ne refaire aucun Korriandre uniquement pour cette clef avant la session Ongles."],
+        "before_leaving":["Bonta 85 terminé.","Intérimaire frigostien terminé après deux validations réelles ou seconde journée encore à venir.","État de la Clef secrète Korriandre conservé."],
+        "hard_exit":["Le troisième Korriandre global est expliqué par l'ouverture du rang 85; aucun quatrième Korriandre prévu ici."]
+      }
+    },
+    "L186-03": {
+      "replace": {
+        "title":"Bonta 86 — chasse légendaire puis Qu'Tan",
+        "take":[],
+        "route":[],
+        "progress_also":["La chasse est propre à chaque personnage : suivre les indices affichés en jeu et organiser le groupe avant le combat final plutôt que chercher une coordonnée fixe."],
+        "before_leaving":["Bonta 86 terminé.","Qu'Tan jamais compté dans l'Ocre."],
+        "hard_exit":["Aucune attente devant le Temple maudit faute de groupe."]
+      }
+    },
+    "L187-04": {
+      "replace": {
+        "title":"Bonta 87-89 — fermer le bloc avant Sakaï",
+        "take":[],
+        "route":[],
+        "progress_also":["Au niveau 189, préparer le Rossignol et le voyage vers Sakaï, mais attendre que Au fion du trou demande aussi Grolloum avant l'entrée de la Mine."],
+        "before_leaving":["Bonta 89 terminé.","Rossignol prêt.","Grolloum réservé au passage partagé du niveau 190."],
+        "hard_exit":["Aucun Grolloum avant Au fion du trou."]
+      }
+    },
+    "L190-00": {
+      "replace": {
+        "title":"Développement durable — deux dernières quêtes Paysan + Crocs de verre",
+        "duration_min":55,
+        "quests":[
+          "Développement durable",
+          "Le champ des héros",
+          "La transe du crystal",
+          "conditional:Crocs en jambes si c'est la chasse Baka active"
+        ],
+        "preparation":[{"note":"Sur une nouvelle progression, les huit premières quêtes de la branche Paysan doivent déjà être terminées. Si ce personnage avait choisi la branche Alchimiste auparavant, conserver cette branche et suivre uniquement son reliquat réel."}],
+        "take":["Prendre Développement durable auprès de Lucette Brifian.","Si Les graines de la discorde est terminée et le niveau 190 atteint, prendre Le champ des héros avant les Crocs de verre et le Kolosso."],
+        "route":[
+          {"area":"Crocs de verre","do":"Pour Le champ des héros, récolter les 5 Graines de Destinée pendant les déplacements vers Kolosso et utiliser d'abord tous les combats déjà nécessaires pour les 40 Graines de Comique. Ne compléter dehors qu'après les deux passages Kolosso réellement requis."}
+        ],
+        "progress_also":["Pendant ces mêmes combats, surveiller le Crystal de résonance de La transe du crystal. Si Crocs en jambes est la chasse Baka active, les monstres des Crocs de verre et des salles Kolosso alimentent aussi ses 50 Objets bizarres; aucune seconde chasse n'est ajoutée."],
+        "before_leaving":["Développement durable active.","Le champ des héros active avant le premier Kolosso.","La transe du crystal suivie pendant les combats naturels."],
+        "hard_exit":["Une seule branche Agriculture ou alchimie conservée; aucune ancienne quête rejouée."]
+      }
+    },
+    "L190-01": {
+      "replace": {
+        "title":"Avant Kolosso — Un remède + Un ami + Là-haut prêts ensemble",
+        "take":["Prendre Un remède à tous les maux auprès d'Albert Paisse, donner les ressources déjà gardées puis l'avancer jusqu'au Kolosso.","Prendre Un ami qui ne vous veut pas que du bien après Dépôt de ravitaillement et l'avancer jusqu'à la quatrième salle des Cavernes.","Vérifier Sans ma barbe, quelle barbe terminé afin que Là-haut sur la montagne soit prête à l'entrée."],
+        "route":[{"area":"Bourgade / Village Enseveli / Crocs de verre","do":"Faire tous les objectifs hors donjon des trois quêtes. N'entrer aux Cavernes que lorsque Un remède demande le boss et Un ami demande les quatre premières salles."}],
+        "progress_also":["Préparer deux accès Kolosso avant le départ : après la première victoire, Porte, Kolosso, trésor et C'est Rébro deviendront seulement alors disponibles."],
+        "before_leaving":["Un remède demande Kolosso.","Un ami demande la quatrième salle.","Là-haut sur la montagne prête."],
+        "hard_exit":["Les trois fils sont prêts avant le premier passage Kolosso."]
+      }
+    },
+    "L190-02": {
+      "replace": {
+        "title":"Kolosso — premier passage avec Là-haut + Un remède + Un ami",
+        "quests":["Là-haut sur la montagne","Un remède à tous les maux","Un ami qui ne vous veut pas que du bien","Le champ des héros"],
+        "route":[
+          {"area":"Cavernes du Kolosso — salles 1 à 4","do":"Faire les quatre salles. En salle 4, effectuer l'interaction de Francis pour Un ami qui ne vous veut pas que du bien. Les monstres compatibles servent aussi aux Graines de Comique de Le champ des héros. Continuer ensuite vers le boss au lieu de sortir."},
+          {"area":"Kolosso","do":"Vaincre Kolosso pour Là-haut sur la montagne et Un remède à tous les maux, faire les succès compatibles et sortir vers le Mont Torrideau. Kolosso n'est pas une cible Ocre de la route actuelle."},
+          {"area":"Bourgade / Village Enseveli","do":"Terminer Un remède et Un ami. Prendre ensuite Porte, Kolosso, trésor et C'est Rébro, qui n'existaient pas avant cette victoire."}
+        ],
+        "progress_also":["Sur le Kolosso, surveiller la Clef secrète des Crocs de verre pour Ongles incarnés; ne refaire aucun boss uniquement pour cette clef à ce stade."],
+        "before_leaving":["Là-haut sur la montagne terminée.","Un remède à tous les maux terminée.","Un ami qui ne vous veut pas que du bien terminée.","Porte Kolosso + C'est Rébro actives.","Compteur Le champ des héros conservé."],
+        "hard_exit":["Le second Kolosso est désormais justifié par les deux quêtes débloquées après la première victoire."]
+      }
+    },
+    "L190-03": {
+      "replace": {
+        "title":"Maya la belle — fermer les rescapés du Village Enseveli",
+        "quests":["Maya la belle","Les rescapés du Village Enseveli","Collecte sanglante"],
+        "temporal_hooks":["frigost_collecte_sanglante_village_state","frigost_tire_la_chasse_village_free"],
+        "take":["Prendre Maya la belle après Un ami qui ne vous veut pas que du bien et Là-haut sur la montagne. Équiper un compagnon avant le combat final."],
+        "route":[
+          {"area":"Village Enseveli → Mont Torrideau / Ruche","do":"Faire les canalisations et les objectifs de Maya en profitant de la boucle vers la Ruche. Le Village doit être libéré pour les dialogues concernés."},
+          {"area":"Ruche","do":"Faire le combat final obligatoirement seul avec un compagnon contre 3 Gloursaya, puis rendre Maya la belle."},
+          {"area":"Village Enseveli","do":"Dépôt de ravitaillement + Un ami + Maya étant terminés, rendre Les rescapés du Village Enseveli. Vérifier aussi l'état du Village : si Collecte sanglante n'a jamais pu être lancée et que le Village est envahi, la prendre et obtenir ses 10 Dentiers uniquement dans le Village avant sa libération."}
+        ],
+        "progress_also":["Si le Village est libéré et Tire la chasse n'est pas encore validé, conserver uniquement l'unique chasse Baka déjà tirée ou en prendre une seule si aucune n'a encore été prise."],
+        "before_leaving":["Maya la belle terminée.","Les rescapés du Village Enseveli terminés.","Collecte sanglante terminée ou uniquement bloquée par l'absence naturelle d'invasion."],
+        "hard_exit":["Le combat final Maya est fait seul avec un compagnon et 3 Gloursaya."]
+      }
+    },
+    "L190-04": {
+      "replace": {
+        "title":"Kolosso — second passage devenu nécessaire pour Porte + C'est Rébro",
+        "quests":["Porte, Kolosso, trésor","C'est Rébro","Le champ des héros","La transe du crystal","conditional:Crocs en jambes si c'est la chasse Baka active"],
+        "route":[
+          {"area":"Cavernes du Kolosso","do":"Revenir uniquement parce que Porte, Kolosso, trésor et C'est Rébro se sont ouvertes après le premier Kolosso. Vaincre le boss pour ces deux quêtes et effectuer la capture ou validation propre à C'est Rébro. Ne faire aucune capture Ocre."},
+          {"area":"Crocs de verre","do":"Utiliser d'abord ce second passage et les combats encore nécessaires pour terminer les 40 Graines de Comique. Dès le compteur complet, rendre Le champ des héros puis prendre Champ borde le château avant le Mont Torrideau et les Glours."},
+          {"area":"Crocs de verre","do":"Si le Crystal de résonance de La transe du crystal manque encore après les combats du champ et les deux Kolosso, seulement alors terminer ce drop. Utiliser l'objet, visiter les trois cristaux demandés puis rendre la quête dès que le Village est libéré."},
+          {"area":"Crocs de verre / Village Enseveli","do":"Si Crocs en jambes est l'unique chasse Baka active, compléter ses 50 Objets bizarres avec ces mêmes combats, puis la rendre à Baka lors du prochain passage Village libéré."}
+        ],
+        "progress_also":["Deuxième tentative naturelle de Clef secrète des Crocs de verre sur Kolosso pour Ongles incarnés; si elle manque encore, attendre la session Ongles consolidée avant tout nouveau boss."],
+        "before_leaving":["Porte, Kolosso, trésor terminée.","C'est Rébro terminée.","Le champ des héros terminé.","Champ borde le château active.","La transe du crystal terminée ou seule remise finale encore à faire."],
+        "hard_exit":["Deux Kolosso seulement pour les objectifs permanents de cette tranche."]
+      }
+    },
+    "L190-05": {
+      "replace": {
+        "title":"Glourséleste — premier passage avec Le pic + Mission Solution + Agriculture",
+        "quests":["Le pic qui glace","Mission Solution","Champ borde le château","Glourmandise","conditional:Ourse molle si c'est la chasse Baka active"],
+        "take":["Vérifier que Mission Solution demande exactement les trois premières salles et que Le pic qui glace est actif avant l'entrée."],
+        "route":[
+          {"area":"Mont Torrideau / Ruche","do":"Pour Champ borde le château, récolter les 5 Graines de Lupin pendant les déplacements et utiliser les combats déjà nécessaires pour commencer les 40 Graines Pops. Surveiller aussi l'Œuf de larve de Glourmandise sans lancer de chasse au drop séparée."},
+          {"area":"Antichambre des Gloursons — salles 1 à 3","do":"Effectuer toutes les interactions de Mission Solution avant de dépasser les trois premières salles. Les monstres compatibles alimentent en même temps Champ borde le château et, si elle est active, Ourse molle."},
+          {"area":"Glourséleste","do":"Continuer le même passage, vaincre Glourséleste pour Le pic qui glace et faire les succès compatibles. Sortir pour ouvrir Frigost III puis terminer le reliquat de Mission Solution hors donjon."}
+        ],
+        "progress_also":["L'Œuf de larve de Glourmandise et les 50 Cuillères d'Ourse molle restent des objectifs secondaires pendant les combats utiles; aucun farm ciblé avant le second Glours."],
+        "before_leaving":["Le pic qui glace terminé.","Frigost III ouvert.","Mission Solution terminée.","Porte Glours et Glourson et lumière disponibles.","Compteur Champ borde le château conservé."],
+        "hard_exit":["Le second Glours est désormais justifié par les quêtes débloquées après cette première victoire."]
+      }
+    },
+    "L190-06": {
+      "replace": {
+        "title":"Glourséleste — second passage pour Porte + Glourson, puis clôture Agriculture/Objets",
+        "quests":["Porte, Glourséleste, trésor","Glourson et lumière","L'arène et le roi","Champ borde le château","Développement durable","Glourmandise","conditional:Ourse molle si c'est la chasse Baka active"],
+        "route":[
+          {"area":"Antichambre des Gloursons","do":"Revenir avec Porte, Glourséleste, trésor et Glourson et lumière toutes les deux actives. Vaincre Glourséleste, effectuer la capture ou validation de Glourson et faire les succès encore ouverts."},
+          {"area":"Mont Torrideau / Ruche","do":"Compléter uniquement le reliquat des 40 Graines Pops après les deux passages Glours, puis rendre Champ borde le château et Développement durable. Ne faire dehors que les combats strictement nécessaires."},
+          {"area":"Mont Torrideau / Ruche","do":"Si l'Œuf de larve de Glourmandise manque encore après Champ borde le château et les deux Glours, terminer uniquement ce drop, utiliser l'objet puis nourrir Serlecc et récupérer ses résidus pour fermer la quête."},
+          {"area":"Village Enseveli","do":"Si Ourse molle est l'unique chasse Baka active, compléter ses 50 Cuillères avec les mêmes combats et rendre à Baka. Ne jamais lancer une deuxième chasse après cette validation."},
+          {"area":"Objets trouvés","do":"Vérifier que les neuf quêtes sont réellement terminées : Souvenir, Bricoleur de génie, Un gros cube un p'ti cube, Bijoux de famille, Obscurantisme, Monstre aux plantes, La transe du crystal, Art nacre et Glourmandise. S'il reste un nom, conserver ce seul reliquat au lieu de considérer le succès terminé."},
+          {"area":"Bourgade","do":"Rendre Glourson et lumière puis fermer L'arène et le roi maintenant que toute la série d'alignement Frigost est terminée."}
+        ],
+        "before_leaving":["Porte Glours terminée.","Glourson et lumière terminée.","L'arène et le roi terminée.","Agriculture ou alchimie et Développement durable terminés.","Objets trouvés terminé ou reliquat exact affiché."],
+        "hard_exit":["Deux Glours seulement pour les objectifs permanents de cette tranche."]
+      }
+    },
+    "L190-06O": {
+      "replace": {
+        "title":"Ongles incarnés — clefs manquantes puis une seule session sociale",
+        "entry":"À la recherche de Dan Lavy, À qui profite le boufmouth, Dépôt de ravitaillement et Un ami qui ne vous veut pas que du bien terminés; toutes les tentatives naturelles de clefs faites sur Obsidiantre, Tengu, Korriandre et Kolosso.",
+        "preparation":[
+          {"name":"Kama de glace","quantity":100,"for":"25 pour chacune des quatre quêtes"},
+          {"requirement":"Inferno : 7 personnages qualifiés par la quête en cours ou terminée.","blocking":true},
+          {"requirement":"Tous pour un : 8 personnages qualifiés par la quête en cours ou terminée.","blocking":true},
+          {"requirement":"Voleur en tout genre : 8 personnages qualifiés par la quête en cours ou terminée.","blocking":true},
+          {"requirement":"Le travail c'est la santé : 8 personnages disposant chacun d'au moins un métier niveau 200 pour les huit dalles, plus le personnage porteur de la quête devant la grille.","blocking":true,"policy":"Depuis les changements récents, n'importe quel métier niveau 200 convient; aucun métier précis n'est imposé."},
+          {"note":"Organiser une seule grande session sociale. Les personnages ayant déjà terminé une quête peuvent être réutilisés lorsqu'ils remplissent encore les conditions d'accès."}
+        ],
+        "take":["Inventorier les quatre Clefs secrètes déjà obtenues.","Seulement pour une clef encore manquante après toutes les tentatives naturelles, refaire le boss correspondant jusqu'au premier drop : Obsidiantre pour Inferno, Tengu pour Tous pour un, Korriandre pour Voleur en tout genre, Kolosso pour Le travail c'est la santé.","Utiliser chaque clef uniquement après le prérequis narratif de sa quête réellement terminé."],
+        "route":[
+          {"pos":"[-71,-83] Hypogée de l'Obsidiantre","do":"Inferno : entrer avec le groupe qualifié, gagner le combat transformé, récupérer la caisse puis la rendre à Mamie Rexpress avec 25 Kamas de glace."},
+          {"pos":"[-78,-78] Crevasse Perge","do":"Tous pour un : entrer avec les huit personnages qualifiés, réussir le combat des vagues dans l'ordre, récupérer la caisse puis rendre avec 25 Kamas de glace."},
+          {"pos":"[-82,-72] Forêt pétrifiée","do":"Voleur en tout genre : entrer avec huit personnages qualifiés, activer les dalles, récupérer la caisse puis rendre avec 25 Kamas de glace."},
+          {"pos":"[-65,-67] Crocs de verre","do":"Le travail c'est la santé : placer huit personnages ayant chacun un métier niveau 200 sur les huit dalles et garder le porteur de la quête devant la grille, récupérer la caisse puis rendre avec 25 Kamas de glace."},
+          {"area":"Ongles incarnés","do":"Vérifier que les quatre quêtes sont réellement terminées. Une clef obtenue ou une porte ouverte ne vaut pas validation de la quête."}
+        ],
+        "before_leaving":["Ongles incarnés terminé ou seul manque exact de clef/groupe encore visible."],
+        "hard_exit":["Aucun boss refait pour une clef avant l'épuisement de ses passages déjà nécessaires.","Une seule session sociale privilégiée pour les quatre salles.","Les quatre quêtes doivent être réellement terminées avant de valider Ongles incarnés."]
+      }
+    },
+    "L190-07": {
+      "replace": {
+        "title":"La maire dénie — onze cartes + validation rétroactive des huit donjons",
+        "quests":["Frigost, une île pas comme les autres","Donjons et trouffions","Au fion du trou"],
+        "prerequisites":["Développement durable réellement terminé avant de vérifier La maire dénie."],
+        "take":["Prendre Frigost une île pas comme les autres et Donjons et trouffions auprès de Lucette Brifian après L'essentiel est dans Lac Gelé."],
+        "route":[
+          {"area":"Frigost I et II","do":"Découvrir les 11 cartes demandées de Frigost une île pas comme les autres en une seule boucle grâce aux zaaps et raccourcis déjà ouverts."},
+          {"area":"Lucette Brifian","do":"Donjons et trouffions doit reconnaître les huit boss déjà vaincus : Royalmouth, Mansot Royal, Ben le Ripate, Obsidiantre, Tengu Givrefoux, Korriandre, Kolosso et Glourséleste. Ne refaire aucun de ces boss pour cette quête."},
+          {"area":"Bourgade","do":"Rendre les deux quêtes puis prendre Au fion du trou. La conserver pour le Grolloum partagé avec le rang Bonta 90."}
+        ],
+        "progress_also":["La maire dénie est un succès : vérifier sa validation après Développement durable + ces quêtes, sans l'injecter comme une quête à prendre."],
+        "before_leaving":["Frigost une île pas comme les autres terminée.","Donjons et trouffions terminée sans nouveau boss.","Au fion du trou active."],
+        "hard_exit":["Zéro nouveau donjon Frigost I/II pour Donjons et trouffions."]
+      }
+    },
+    "L190-08": {
+      "replace": {
+        "title":"Bonta 90 + Au fion du trou — un seul Grolloum maintenant",
+        "take":[],
+        "route":[],
+        "progress_also":["La machine à démonter le temps est une quête de niveau 200 ouverte plus tard et pourra alors imposer un nouveau Grolloum. Ne pas bloquer Bonta 90 jusqu'au niveau 200 uniquement pour économiser ce futur passage."],
+        "before_leaving":["Bonta 90 terminé.","Au fion du trou terminé."],
+        "hard_exit":["Bonta 91 attend le niveau 191; le futur Grolloum de La machine à démonter le temps reste explicitement séparé."]
+      }
+    },
+    "L190-09": {
+      "replace": {
+        "title":"Dofus des Glaces — point de progression avant le niveau 200",
+        "quests":[],
+        "successes":["La maire dénie","L'âme de glace","L'hiver arrive"],
+        "route":[
+          {"area":"Frigost","do":"Vérifier La maire dénie après Bienvenue à Frigost, L'essentiel est dans Lac Gelé, Les rescapés de Frigost, Frigost une île pas comme les autres, Développement durable, Donjons et trouffions et Au fion du trou."},
+          {"area":"suivi Dofus des Glaces","do":"Les rescapés du Village Enseveli et Mission Solution sont terminés, mais plusieurs quêtes restantes — dont Chaud et froid, Le givre des révélations, La machine à démonter le temps et des fils Frigost III — appartiennent au niveau 200. Conserver ces objectifs pour le chapitre suivant."}
+        ],
+        "progress_also":["Ne jamais annoncer le Dofus des Glaces obtenu au niveau 190 tant que les quêtes et succès de niveau 200 ne sont pas réellement terminés."],
+        "before_leaving":["La maire dénie validé si tous ses critères sont remplis.","Les objectifs de niveau 200 de L'âme de glace et L'hiver arrive restent clairement identifiés."],
+        "hard_exit":["La maire dénie, L'âme de glace et L'hiver arrive restent des succès, jamais de fausses quêtes."]
+      }
+    },
+    "L190-10": {
+      "replace": {
+        "title":"Dofus Nébuleux — conserver les succès de zones 200 pour plus tard",
+        "quests":[],
+        "thread":"Dofus Nébuleux — suivi des succès dimensionnels",
+        "route":[{"area":"Dimensions divines","do":"Vérifier les succès Enutrosor, Srambad et Xélorium déjà fermés jusqu'aux zones accessibles. Les chaînes demandant Nidas, Reine des Voleurs, Vortex et les zones 200 restent pour leur vraie tranche; ne faire aucun boss 200 uniquement pour forcer le Nébuleux ici."}],
+        "progress_also":["Le Dofus des Veilleurs est déjà obtenu. La quête finale de l'Oiseau du Temps ne doit être considérée prête qu'après les quêtes dimensionnelles réellement exigées."],
+        "before_leaving":["Succès dimensionnels de niveau 200 encore nécessaires clairement conservés."],
+        "hard_exit":["Aucune validation fictive du Nébuleux."]
+      }
+    },
+    "L190-10A": {
+      "replace": {
+        "title":"Abyssal — La pêche aux infos puis ouverture des trois chaînes",
+        "take":["Faire La pêche aux infos auprès de Pollie Perkine avant d'organiser les donjons Abyssal.","À sa fin, ouvrir Il y a de l'électricité dans l'eau, Reine de beauté et Celle qui glougloutait dans les ténèbres avec le Livre détrempé. Prendre aussi Les sept Mercemers lors des passages chantier/base."],
+        "route":[
+          {"area":"Palais de Sufokia / Base Abyssale","do":"Faire La pêche aux infos en protégeant Pollie et regrouper les interviews avec les PNJ des autres fils. Conserver le Livre détrempé obtenu à la fin."},
+          {"area":"Sufokia","do":"Ouvrir les arcs La mer en héritage, La guerre des profondeurs, L'appel de Koutoulou et Silence on coule. Ne commencer une zone profonde qu'une fois ses quêtes compatibles déjà actives."}
+        ],
+        "progress_also":["Test d'étanchéité est déjà terminé avec Merkator au palier précédent; aucun nouveau Merkator pour l'Abyssal."],
+        "hard_exit":["La pêche aux infos terminée et chaînes Abyssal ouvertes avant tout donjon."]
+      }
+    },
+    "L190-10B": {
+      "replace": {
+        "title":"Ancienne Sufokia — La mer en héritage + Meno une seule fois",
+        "route":[
+          {"area":"Ville submergée / Ancienne Sufokia","do":"Enchaîner Il y a de l'électricité dans l'eau puis Topo le petit robot avec le Sceau des fondateurs déjà prêt. Prendre Le vieux gob et Nos chairs voisines avant de tuer les familles de monstres qu'elles demandent afin que les mêmes combats servent les deux fils."},
+          {"area":"Vaisseau du Capitaine Meno","do":"Quand Piège de crystal demande Meno, faire un seul Vaisseau pour cette quête et les succès compatibles, puis parler à Meno avant de sortir."},
+          {"area":"Ancienne Sufokia / Vestiges","do":"Continuer Son nom est Personne, La clef de l'énigme et Une porte vers le passé avec le Volant hydraulique déjà préparé, sans nouveau Meno."}
+        ],
+        "progress_also":["Le vieux gob peut être terminé pendant cette même campagne. Les autres quêtes de Vous ne descendrez pas plus bas seront absorbées par les profondeurs suivantes."],
+        "hard_exit":["La mer en héritage terminée et aucun second Meno planifié pour ces quêtes."]
+      }
+    },
+    "L190-10C": {
+      "replace": {
+        "title":"Trithons — La guerre des profondeurs avec un seul Dantinéa",
+        "take":["Prendre Reine de beauté et terminer ses objectifs hors donjon avant d'entrer au Palais de Dantinéa."],
+        "route":[
+          {"area":"Palais de Dantinéa","do":"Faire un seul Palais pour Reine de beauté et les succès compatibles puis interroger Dantinéa avant de sortir."},
+          {"area":"Domaine / Faille / Tréfonds","do":"Enchaîner Rançon nage, Stratégie en Trithon Réel, Sur fond de crise, Risquer un œil et La gueule de l'enfer. Utiliser l'Accélérateur de propulsion et le Lest anti-tourbillon déjà préparés et grouper les collectes par profondeur."}
+        ],
+        "progress_also":["Prendre les quêtes latérales de Vous ne descendrez pas plus bas et Silence on coule lorsqu'elles utilisent les mêmes monstres ou cartes."],
+        "hard_exit":["La guerre des profondeurs terminée et aucun second Dantinéa planifié."]
+      }
+    },
+    "L190-10D": {
+      "replace": {
+        "title":"Profondeurs — Vous ne descendrez pas plus bas + Silence on coule",
+        "take":["Prendre les quêtes d'une profondeur avant de tuer ou ramasser ce qu'elles comptent. Ne pas accumuler des drops de quête avant leur activation."],
+        "route":[{"area":"Ancienne Sufokia → Faille → Tréfonds → Fosse / Abîme","do":"Fermer les quêtes restantes de Vous ne descendrez pas plus bas et Silence on coule en une descente progressive. Quand deux quêtes demandent la même famille de monstres, utiliser les mêmes combats; n'utiliser la Mixture Indicible qu'à l'objectif qui la demande."}],
+        "progress_also":["Ces deux succès latéraux ne justifient aucun nouveau Meno, Dantinéa ou Koutoulou à eux seuls."],
+        "hard_exit":["Vous ne descendrez pas plus bas et Silence on coule terminés avec leurs combats mutualisés."]
+      }
+    },
+    "L190-10E": {
+      "replace": {
+        "title":"Koutoulou — chaîne Pollie et Temple seulement quand De mal en impie est disponible",
+        "take":["Utiliser le Livre détrempé pour commencer Celle qui glougloutait dans les ténèbres puis avancer L'affaire Pollie Perkine, Trop Pollie pour être honnête, Quand les astres seront propices et Il suffira d'un signe."],
+        "route":[
+          {"area":"Sufokia / Profondeurs","do":"Préparer le Signe des Très Vieux Anciens avec les ressources déjà obtenues pendant les autres campagnes Abyssal."},
+          {"area":"Temple de Koutoulou","do":"Entrer uniquement si De mal en impie est réellement disponible et active. Faire un seul Temple, vaincre la Larve de Koutoulou, faire les succès compatibles puis gagner le combat contre le Prêtre en jaune avant de retourner voir la Reine Viktorie. Si De mal en impie n'est pas encore disponible au niveau actuel, conserver cette seule fin de chaîne pour le palier 200 sans refaire les autres quêtes."}
+        ],
+        "progress_also":["L'odeur devant le seuil doit être avancée avant le Temple si elle est déjà disponible afin que les monstres de la zone servent aussi ses drops."],
+        "before_leaving":["L'appel de Koutoulou terminé si De mal en impie était disponible, sinon seul ce dernier passage reste pour le niveau 200."],
+        "hard_exit":["Aucun Temple de Koutoulou avant De mal en impie et aucun second Temple pour l'Abyssal."]
+      }
+    },
+    "L190-10F": {
+      "replace": {
+        "title":"Abyssal — dialogue final Le héros de Sufokia seulement lorsqu'il est disponible",
+        "entry":"La mer en héritage, La guerre des profondeurs et L'appel de Koutoulou réellement terminés.",
+        "take":["Prendre Le héros de Sufokia uniquement si la Reine Viktorie le propose réellement. Le niveau recommandé actuel est 200 : si le dialogue n'est pas disponible à 190, conserver simplement cette fermeture pour le chapitre 200."],
+        "route":[{"area":"Palais de Sufokia → Temple Steamer","do":"Si la quête est disponible, parler à la Reine Viktorie puis au Roi Talas et enfin à Jelus Verne. Enregistrer le Dofus Abyssal uniquement lorsque la quête le remet réellement. Si elle n'est pas disponible, ne refaire aucun donjon : les trois grandes chaînes restent acquises."}],
+        "progress_also":["Revendre les équipements d'exploration uniquement lorsque plus aucune quête Abyssal encore ouverte ne les utilise."],
+        "before_leaving":["Dofus Abyssal obtenu réellement ou seul dialogue final Le héros de Sufokia conservé pour le niveau 200."],
+        "hard_exit":["Aucune fausse obtention de l'Abyssal et aucun donjon répété pour débloquer le dialogue final."]
+      }
+    },
+    "L190-11": {
+      "replace": {
+        "title":"Ébène / Osavora — conserver les états exacts avant 191",
+        "quests":["Jusqu'au bout du rêve","La proie des vérités"],
+        "route":[
+          {"area":"Songes Infinis","do":"Si les 12 rencontres de Jusqu'au bout du rêve sont réellement terminées et que sa suite est disponible, poursuivre l'arc Ébène. Sinon conserver exactement le nombre de rencontres validées sans simulation."},
+          {"area":"Osavora","do":"Continuer uniquement les quêtes permanentes ou saisonnières réellement disponibles pendant la saison courante; ne jamais attendre un changement de saison ou un week-end sur place."}
+        ],
+        "progress_also":["L'Abyssal est soit terminé, soit ne conserve plus que ses quêtes de niveau 200 réellement indisponibles. Aucun ancien donjon Abyssal ne doit être refait pour ce motif."],
+        "before_leaving":["Compteur Ébène exact.","État Osavora exact.","État Abyssal exact."],
+        "hard_exit":["Aucune validation artificielle Ébène, Osavora ou Abyssal."]
+      }
+    }
+  },
+  "insertions": []
+}

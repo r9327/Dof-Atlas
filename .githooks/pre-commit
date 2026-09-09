@@ -1,0 +1,2 @@
+#!/bin/sh
+exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/pre_commit.ps1

@@ -1,0 +1,145 @@
+{
+  "schema_version": 15,
+  "route_id": "guide_ultime_manual_level_181_190_v15",
+  "title": "Guide Ultime — Niveau 181 à 190, dépendances canoniques finales + Nimotopia avant Ivoire",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v14.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v14",
+  "stage_count": 24,
+  "depends_on": [
+    "level_171_180_v13.json",
+    "level_150_170_v21.json",
+    "level_120_150_v20.json",
+    "bonta_1_100_v17.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Conserve les 24 fiches et les campagnes Frigost/Abyssal/Ongles de v14, ferme au niveau190 le succès Nimotopia La chasse aux chasseurs devenu prérequis dur du Dofus Ivoire et verrouille les sorties Meno/Dantinéa/Koutoulou afin qu'aucun dialogue post-boss oublié ne crée un rerun Abyssal.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-chasse-aux-chasseurs.html",
+    "https://www.dofuspourlesnoobs.com/frais-de-porc-inclus.html",
+    "https://www.dofuspourlesnoobs.com/nos-amies-les-betes.html",
+    "https://www.dofuspourlesnoobs.com/il-a-fui-il-a-tout-compris.html",
+    "https://www.dofuspourlesnoobs.com/shyriiwook.html",
+    "https://www.dofuspourlesnoobs.com/a-armes-egales.html",
+    "https://www.dofuspourlesnoobs.com/la-valse-des-manuels.html",
+    "https://www.dofuspourlesnoobs.com/camp-du-comte-razof.html",
+    "https://www.dofuspourlesnoobs.com/le-bonheur-est-dans-le-spray.html",
+    "https://www.dofuspourlesnoobs.com/piegravege-de-crystal.html",
+    "https://www.dofuspourlesnoobs.com/reine-de-beauteacute.html",
+    "https://www.dofuspourlesnoobs.com/de-mal-en-impie.html"
+  ],
+  "stage_patches": {
+    "L190-09": {
+      "replace": {
+        "title": "DDG pré-200 + Nimotopia — fermer La chasse aux chasseurs avant l'Ivoire",
+        "dungeon": {
+          "name": "Camp du Comte Razof",
+          "boss": "Comte Razof",
+          "pass": "single_causal_pass_for_la_valse_des_manuels",
+          "capture_ocre": false
+        }
+      },
+      "append": {
+        "quests": [
+          "Frais de porc inclus",
+          "Nos amies les bêtes",
+          "Il a fui, il a tout compris",
+          "Shyriiwook",
+          "À armes égales",
+          "La valse des manuels"
+        ],
+        "successes": ["La chasse aux chasseurs"],
+        "preparation": [
+          {"name":"Bois d'Orme","quantity":32,"for":"Nos amies les bêtes"},
+          {"name":"Eau Potable","quantity":20,"for":"Frais de porc inclus + À armes égales"},
+          {"name":"Dolomite","quantity":16,"for":"Nos amies les bêtes"},
+          {"name":"Mandragore","quantity":8,"for":"À armes égales"},
+          {"name":"Bois de Bambou Sacré","quantity":7,"for":"À armes égales"},
+          {"name":"Bière d'Amakna","quantity":7,"for":"À armes égales"},
+          {"name":"Brioche Dorée","quantity":5,"for":"Frais de porc inclus"},
+          {"name":"Espadon Poêlé","quantity":5,"for":"Frais de porc inclus"},
+          {"name":"Andouillette de Gibier","quantity":5,"for":"Frais de porc inclus"},
+          {"name":"Cawotte","quantity":2,"for":"À armes égales"},
+          {"name":"Pyrute","quantity":1,"for":"À armes égales"},
+          {"name":"Viande Noire","quantity":1,"for":"À armes égales"},
+          {"kamas":220,"for":"La chasse aux chasseurs — dépenses fixes documentées hors transports"},
+          {"requirement":"Bricoleur niveau 190 ou artisan disponible pour le Coffre de Pièges à Chasseur d'À armes égales.","blocking":true},
+          {"requirement":"Alchimiste niveau 190 ou artisan disponible pour le Breuvage Musculaire d'À armes égales.","blocking":true},
+          {"requirement":"Forgeron niveau 190 ou artisan disponible pour les Implants Rustiques d'À armes égales.","blocking":true},
+          {"requirement":"Ne tirez pas sur le messager déjà terminée dans la campagne Fratrie du palier70-100 avant de prendre Frais de porc inclus.","blocking":true},
+          {"note":"Vider les pods avant Nimotopia et emporter le stock ci-dessus en une seule fois. Les objets de quête de Nos amies les bêtes, Shyriiwook, Il a fui et La valse sont obtenus sur place; ne pas inventer de stock banque pour eux."}
+        ],
+        "route": [
+          {"area":"Bonta [-31,-55] → port [-36,-54] → Nimotopia","do":"Prendre Frais de porc inclus auprès de Robert Gine, faire sa boucle Bonta/port et le combat solo, remettre les provisions déjà préparées puis utiliser le navire de la quête. Sur Nimotopia, obtenir le Déguisement de Crâmbo sur les Crâmbos, enquêter au camp puis conserver le retour final à Robert Gine pour la sortie de campagne afin d'éviter un aller-retour supplémentaire."},
+          {"area":"Nimotopia — ouverture parallèle","do":"Lancer Nos amies les bêtes en [-66,30], Shyriiwook en [-64,29] et À armes égales en [-65,33]. Pendant tous leurs combats de zone, chercher en parallèle le Manuel Scolaire de La valse des manuels; dès qu'il tombe, le double-cliquer puis montrer le manuel à Coqueline [-63,29]."},
+          {"area":"Nimotopia — combats et drops mutualisés","do":"Faire d'abord les objectifs de Nos amies les bêtes et Shyriiwook qui utilisent les monstres de l'île : les 8 Fléchettes Tranquillisantes, le Contrat de Travail aux cartes prévues, les 4 Sacs de Plumes sur Chevrotines et les autres combats de leurs chaînes. Ne lancer aucun farm séparé tant qu'un autre objectif Nimotopia peut produire les mêmes combats."},
+          {"area":"Nos amies les bêtes → Il a fui, il a tout compris","do":"Terminer Nos amies les bêtes auprès de Bérénice Corny; seulement alors prendre Il a fui, il a tout compris auprès de Rod [-62,30]. Cette quête comporte des indices, PNJ, bouteilles et positions qui peuvent varier : suivre l'objectif en jeu et les indications de Rem au moment réel, sans figer une variante historique comme vérité universelle."},
+          {"area":"À armes égales — crafts regroupés","do":"Avancer Jano Wapin avec le Coffre de Pièges à Chasseur, le Breuvage Musculaire et les Implants Rustiques fabriqués par les artisans 190 préparés. Grouper les retours continent nécessaires avec les rendus Bonta/banque de la campagne au lieu de faire un voyage par craft."},
+          {"area":"Shyriiwook","do":"Terminer l'enquête Jabeurwookie et le combat de la forêt secrète, puis rendre l'Épée Vorpale à Armelle. Les 4 Chevrotines nécessaires aux Sacs de Plumes doivent avoir été consommées comme combats utiles de la campagne, pas comme farm isolé ajouté après coup."},
+          {"area":"La valse des manuels → Camp du Comte Razof [-68,30]","do":"N'entrer au Camp qu'une fois La valse des manuels réellement avancée jusqu'au Comte Razof. Faire un seul donjon pour la quête et les succès Razof encore ouverts. Après la victoire, NE PAS SORTIR : cliquer le tonneau de la salle du boss puis parler au Comte Razof pour localiser les manuels."},
+          {"area":"sortie Razof → [-68,31] → Coqueline [-63,29]","do":"À la sortie, parler à Misha Braque puis descendre immédiatement vers le Brokouillon Pressé. Cette poursuite est chronométrée mais l'issue tardive ne bloque pas la quête : ne programmer aucun second Razof en cas de délai dépassé. Revenir ensuite à Coqueline et terminer La valse des manuels."},
+          {"area":"Nimotopia → Bonta","do":"Fermer les éventuels derniers dialogues d'À armes égales et Il a fui, puis retourner une seule fois auprès de Robert Gine [-31,-55] pour terminer Frais de porc inclus. Vérifier que les sept quêtes du succès, dont À plus dans l'muldobus déjà terminée, valident réellement La chasse aux chasseurs avant de passer au contenu niveau200."}
+        ],
+        "before_leaving": [
+          "Nos amies les bêtes terminée avant Il a fui, il a tout compris.",
+          "Un seul Comte Razof effectué pour La valse des manuels; tonneau et dialogue Razof faits avant sortie.",
+          "Frais de porc inclus, Nos amies les bêtes, Il a fui, il a tout compris, Shyriiwook, À armes égales et La valse des manuels terminées.",
+          "À plus dans l'muldobus déjà terminée au palier70-100.",
+          "Succès La chasse aux chasseurs réellement validé."
+        ],
+        "hard_exit": [
+          "La chasse aux chasseurs est fermée au niveau190 avant Le bonheur est dans le spray; aucune cascade Nimotopia de l'Ivoire ne doit découvrir ce prérequis au niveau200.",
+          "Aucun second Camp du Comte Razof planifié pour les quêtes de ce succès.",
+          "Le total canonique reste 267 fiches : la campagne est absorbée dans L190-09."
+        ]
+      }
+    },
+    "L190-10B": {
+      "replace": {
+        "route": [
+          {"area":"Ville submergée / Ancienne Sufokia","do":"Enchaîner Il y a de l'électricité dans l'eau puis Topo le petit robot avec le Sceau des fondateurs déjà prêt. Prendre Le vieux gob et Nos chairs voisines avant de tuer les familles de monstres qu'elles demandent afin que les mêmes combats servent les deux fils."},
+          {"area":"Vaisseau du Capitaine Meno [24,27]","do":"Entrer seulement quand Piège de crystal demande réellement Meno. Faire un seul Vaisseau pour cette quête et tous les succès/fils Abyssal déjà compatibles."},
+          {"area":"salle de sortie du Vaisseau du Capitaine Meno","do":"NE PAS SORTIR après le boss tant que Piège de crystal est actif. Parler au Capitaine Meno pour découvrir son rôle et obtenir son avertissement destiné aux steamers. Piège de crystal doit réellement se terminer ici et ouvrir Son nom est Personne avant de quitter la salle."},
+          {"area":"Ancienne Sufokia / Vestiges","do":"Continuer Son nom est Personne, La clef de l'énigme et Une porte vers le passé avec le Volant hydraulique déjà préparé. Aucun second Meno n'est nécessaire pour La mer en héritage; le futur Meno d'Une voix de crystal reste séparé car cette quête Ivoire s'ouvre plus tard."}
+        ],
+        "hard_exit": [
+          "Dialogue Capitaine Meno de Piège de crystal effectué AVANT sortie.",
+          "Piège de crystal terminé et Son nom est Personne disponible depuis la salle finale.",
+          "Un seul Meno pour La mer en héritage; aucun rerun Abyssal causé par un dialogue oublié."
+        ]
+      }
+    },
+    "L190-10C": {
+      "replace": {
+        "route": [
+          {"area":"Domaine des Trithons / avant Palais de Dantinéa [19,26]","do":"Prendre Reine de beauté et terminer ses objectifs hors donjon avant l'entrée. Activer les fils de zone compatibles, notamment Mémoires d'un amnésique s'il est réellement disponible, avant les combats de monstres."},
+          {"area":"Palais de Dantinéa","do":"Faire un seul Palais pour Reine de beauté et les succès/fils réellement compatibles, puis vaincre Dantinéa."},
+          {"area":"salle de sortie du Palais de Dantinéa","do":"NE PAS SORTIR après le boss tant que Reine de beauté est active. Interroger Dantinéa sur ce qu'il est advenu de Dame Askina et de son escorte, puis écouter ses exigences pour la libération des otages. Vérifier l'avancement réel avant de quitter le donjon."},
+          {"area":"Palais de Sufokia → Domaine / Faille / Tréfonds","do":"Transmettre immédiatement les exigences à la Reine Viktorie pour fermer Reine de beauté et ouvrir Rançon nage, puis enchaîner Stratégie en Trithon Réel, Sur fond de crise, Risquer un œil et La gueule de l'enfer. Utiliser l'Accélérateur de propulsion et le Lest anti-tourbillon déjà préparés et grouper les collectes par profondeur."}
+        ],
+        "hard_exit": [
+          "Dialogue Dantinéa sur Dame Askina effectué AVANT sortie.",
+          "Reine de beauté rendue à Viktorie et Rançon nage ouverte sans second Palais.",
+          "Un seul Dantinéa pour La guerre des profondeurs."
+        ]
+      }
+    },
+    "L190-10E": {
+      "replace": {
+        "route": [
+          {"area":"Sufokia / Profondeurs","do":"Utiliser le Livre détrempé pour commencer Celle qui glougloutait dans les ténèbres puis avancer L'affaire Pollie Perkine, Trop Pollie pour être honnête, Quand les astres seront propices et Il suffira d'un signe. Préparer le Signe des Très Vieux Anciens avec les ressources obtenues pendant les autres campagnes Abyssal."},
+          {"area":"Temple de Koutoulou [27,26]","do":"Entrer uniquement si De mal en impie est réellement active. L'odeur devant le seuil doit être avancée avant le Temple si elle est disponible afin que les monstres du donjon servent aussi ses drops. Faire un seul Temple et vaincre la Larve de Koutoulou avec les succès compatibles."},
+          {"area":"après Larve de Koutoulou — même séquence de quête","do":"NE PAS QUITTER la séquence après le boss. Parler au Capitaine Skaille, puis au Prêtre en jaune et lancer le combat de groupe avec Skaille. Une fois le Prêtre vaincu, parler obligatoirement à Pollie Perkine puis au Capitaine Skaille avant de repartir vers le palais."},
+          {"area":"Palais de Sufokia [23,24]","do":"Annoncer la victoire sur le Prêtre en jaune à la Reine Viktorie et terminer De mal en impie. Vérifier que L'appel de Koutoulou est réellement fermé; aucun second Temple n'est nécessaire pour l'Abyssal."}
+        ],
+        "hard_exit": [
+          "Larve de Koutoulou vaincue une seule fois pour De mal en impie.",
+          "Capitaine Skaille → Prêtre en jaune → Pollie Perkine → Capitaine Skaille effectués dans cet ordre après le boss.",
+          "De mal en impie et L'appel de Koutoulou fermés sans second Temple Abyssal."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

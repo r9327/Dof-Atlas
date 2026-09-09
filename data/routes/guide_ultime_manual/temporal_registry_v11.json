@@ -1,0 +1,34 @@
+{
+  "schema_version": 11,
+  "registry_id": "guide_ultime_temporal_registry_v11",
+  "title": "Guide Ultime — contraintes temporelles jusqu'au palier 190 + S.L.I.P.",
+  "status": "MANUAL_TEMPORAL_WORKING_SET",
+  "base_file": "temporal_registry_v10.json",
+  "supersedes": "guide_ultime_temporal_registry_v10",
+  "entry_patches": {},
+  "entry_insertions": [
+    {
+      "id": "frigost_depot_lulu_day_window",
+      "type": "daily_time_window",
+      "quest": "Dépôt de ravitaillement",
+      "npc": "Lulu Cotte",
+      "open_local_time": "08:00",
+      "close_local_time": "20:00",
+      "hard_wait_forbidden": true,
+      "route_policy": "Avancer Dépôt jusqu'à Lulu pendant un passage naturel entre 08:00 et 20:00. Si la fenêtre est fermée, suspendre la quête et continuer un autre fil; ne jamais attendre au Village Enseveli.",
+      "source": "Dofus Pour Les Noobs — Dépôt de ravitaillement"
+    },
+    {
+      "id": "frigost_chaud_slip_night_window",
+      "type": "daily_time_window",
+      "quest": "Chaud du S.L.I.P.",
+      "open_local_time": "20:00",
+      "close_local_time": "08:00",
+      "wraps_midnight": true,
+      "hard_wait_forbidden": true,
+      "availability_condition": "Dépôt de ravitaillement avancé jusqu'au rendez-vous Lulu/Hypogée et Village Enseveli libéré",
+      "route_policy": "Faire les interactions S.L.I.P. seulement pendant une fenêtre nocturne naturelle. Les reruns Royalmouth et Obsidiantre requis par la quête sont causaux et préparés avant de lancer leurs donjons. En dehors de 20:00–08:00, continuer le guide et reprendre cette quête à la prochaine fenêtre.",
+      "source": "Dofus Pour Les Noobs — Chaud du S.L.I.P."
+    }
+  ]
+}

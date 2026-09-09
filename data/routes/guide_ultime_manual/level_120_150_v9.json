@@ -1,0 +1,74 @@
+{
+  "schema_version": 9,
+  "route_id": "guide_ultime_manual_level_120_150_v9",
+  "title": "Guide Ultime — Niveau 120 à 150 + Agriculture lancée et absorbée par Mansot/Ben",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v8.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v8",
+  "stage_count": 37,
+  "optimization_note": "Déplace le succès Agriculture ou alchimie hors du rattrapage niveau190. Pour un personnage neuf, la branche Paysan est choisie parce que ses drops s'absorbent naturellement dans Champs/Pins/Mansot/Ben/Obsidiantre/Tengu/Korriandre/Kolosso/Glours. En semant est fermé dès le premier Frigost, Massacre au hakapik utilise les salles Mansot, Mettre son grain de sel utilise Berceau + Ben. Un personnage ayant déjà engagé la branche Alchimiste conserve sa branche existante: aucun changement impossible n'est forcé.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/agriculture-ou-alchimie.html",
+    "https://www.dofuspourlesnoobs.com/en-semant-se-ment.html",
+    "https://www.dofuspourlesnoobs.com/pomdeupin-vaut-mieux-que-trois-tu-lauras.html",
+    "https://www.dofuspourlesnoobs.com/massacre-au-hakapik.html",
+    "https://www.dofuspourlesnoobs.com/mettre-son-grain-de-sel.html"
+  ],
+  "stage_patches": {
+    "L120-00": {
+      "append": {
+        "quests": ["En semant, se ment"],
+        "preparation": [
+          {"name":"Frostiz","quantity":10,"for":"En semant, se ment","policy":"Acheter en HDV si aucun Paysan200; le métier n'est pas un prérequis de la quête."},
+          {"note":"Agriculture ou alchimie: sur personnage neuf, choisir la branche Paysan. Si le runtime détecte qu'une quête de la branche Alchimiste est déjà active ou terminée, conserver cette branche et ne jamais prendre En semant, se ment."}
+        ],
+        "route": [
+          {"pos":"[-82,-48] Champs de glace","do":"Pendant le premier vrai passage Frigost, prendre En semant, se ment auprès de Cassiopée Hisane si aucune branche Agriculture ou alchimie n'a déjà été choisie. La fermer avant le futur Le mal a dit: obtenir 40 Graines de Pois sur les Boufmouths des Champs, récolter les 5 Graines d'Engrain pendant la boucle déjà nécessaire et donner les 10 Frostiz préparés."},
+          {"pos":"[-82,-48]","do":"Dès En semant terminée, prendre Pomdeupin vaut mieux que trois tu l'auras. Ne pas créer une session dédiée immédiatement: garder la quête active jusqu'au prochain passage naturel Forêt des Pins perdus."}
+        ],
+        "hard_exit": [
+          "Branche Agriculture ou alchimie choisie explicitement et persistée.",
+          "Sur route neuve: En semant, se ment terminée avant Le mal a dit.",
+          "Pomdeupin active pour absorber les combats Forêt des Pins."
+        ]
+      }
+    },
+    "L120-20F": {
+      "append": {
+        "quests": ["Pomdeupin vaut mieux que trois tu l'auras","Massacre au hakapik"],
+        "route": [
+          {"area":"Forêt des Pins perdus — avant le bloc Lac Gelé","do":"Avec Pomdeupin active, obtenir les 40 Graines Ola sur les monstres rencontrés et récolter 5 Graines Deupin pendant la boucle. Ne pas faire de groupe supplémentaire après 40/40."},
+          {"pos":"[-82,-48]","do":"Rendre Pomdeupin dès le lot complet et prendre immédiatement Massacre au hakapik AVANT de repartir vers le Lac Gelé/Mansot. Massacre reste volontairement ouverte jusqu'au premier Mansot afin que ses salles fournissent les Graines de Lentille."}
+        ],
+        "hard_exit": ["Massacre au hakapik active avant L120-21 Mansot PASS1."]
+      }
+    },
+    "L120-21": {
+      "append": {
+        "quests": ["Massacre au hakapik","Mettre son grain de sel"],
+        "route": [
+          {"pos":"Excavation du Mansot Royal — toutes les salles","do":"Massacre au hakapik doit être active AVANT l'entrée. Chaque monstre du Lac gelé/Excavation fournit une Graine de Lentille; consommer d'abord les salles Mansot déjà obligatoires. Ne faire dehors que le reliquat éventuel sous 40/40."},
+          {"pos":"[-82,-48] après Mansot","do":"Dès 40 Graines de Lentille obtenues, rendre Massacre puis prendre immédiatement Mettre son grain de sel. Cette quête attend le Berceau d'Alma et le premier Ben déjà planifié; aucun farm Berceau séparé maintenant."}
+        ],
+        "hard_exit": [
+          "Massacre au hakapik terminée sans farm Lac dédié avant le donjon.",
+          "Mettre son grain de sel active avant le premier Ben/Berceau."
+        ]
+      }
+    },
+    "L120-20B": {
+      "append": {
+        "quests": ["Mettre son grain de sel","Mauvaise graine"],
+        "route": [
+          {"area":"Berceau d'Alma + Épave du Grolandais violent","do":"Mettre son grain de sel est active. Les Grains de Sel tombent sur les monstres du Berceau et dans le donjon Ben: utiliser d'abord la boucle Berceau déjà requise par La méchante sorcière puis toutes les salles du Ben PASS1. Ne compléter dehors que le reliquat sous 40/40."},
+          {"pos":"[-82,-48] après Ben","do":"Dès 40 Grains de Sel obtenus, rendre Mettre son grain de sel et prendre immédiatement Mauvaise graine. La garder active pour la campagne Larmes d'Ouronigride du chapitre suivant, où elle sera fusionnée avec l'Obsidiantre."}
+        ],
+        "hard_exit": [
+          "Mettre son grain de sel terminée sans farm Berceau dédié préalable.",
+          "Mauvaise graine active pour le chapitre 150-170."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

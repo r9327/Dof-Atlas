@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_level_51_70_v1",
+  "title": "Guide Ultime — Niveau 51 à 70 manuel",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "depends_on": ["guide_ultime_manual_amakna_40_60_v3"],
+  "stage_count": 7,
+  "transversal_routes": ["bonta_1_22_v2.json", "bonta_order_rank20_v1.json", "ocre_capture_registry_v1.json"],
+  "micro_walkthrough_source": "QuestProvider + source_solution_steps enrichis",
+  "rules": [
+    "Intrusion chez les wabbits est terminée avant Bonta 16; aucune attente du Dofus Cawotte n'est nécessaire pour le vaccin.",
+    "Le Clos des Blops n'est fait qu'après Donjon magistral afin que Entre quatre blops et Bonta 19 soient actifs ensemble.",
+    "Le premier Ordre Bonta sélectionné est terminé immédiatement après le rang 20; les autres Ordres restent invisibles.",
+    "L'éternelle moisson est lancée au premier passage rentable chez Otomaï après accès à l'île et obtention de Capture d'âmes.",
+    "Corailleur Magistral, Blop Royal rencontré, Rakoopeur et Craqueleur Légendaire sont capturés au premier passage pour l'Ocre.",
+    "La série Valonia L'enfant regardait tomber la neige est menée jusqu'à Association de fureteurs AVANT d'entrer au Refuge Sylvestre, puis La complote des P.O.M.S. est lancée avant de quitter le boss.",
+    "Un rerun ne peut être ajouté que si une dépendance apparue après le premier passage le rend réellement inévitable."
+  ],
+  "source_conflicts": [
+    {
+      "entity":"Grotte Hesque",
+      "source_a":"Donjon magistral",
+      "value_a":"[-59,15]",
+      "source_b":"page Grotte Hesque",
+      "value_b":"[-59,14]",
+      "policy":"Ne pas générer un /travel depuis ce conflit documentaire. Utiliser la position/map locale QuestProvider comme arbitre avant affichage."
+    }
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/intrusion-chez-les-wabbits.html",
+    "https://www.dofuspourlesnoobs.com/le-nouveau-monde.html",
+    "https://www.dofuspourlesnoobs.com/licircle-des-naufrageacutes.html",
+    "https://www.dofuspourlesnoobs.com/donjon-magistral.html",
+    "https://www.dofuspourlesnoobs.com/grotte-hesque.html",
+    "https://www.dofuspourlesnoobs.com/leacuteternelle-moisson.html",
+    "https://www.dofuspourlesnoobs.com/entre-quatre-blops.html",
+    "https://www.dofuspourlesnoobs.com/dis-scierie.html",
+    "https://www.dofuspourlesnoobs.com/colonie-de-vaillance.html",
+    "https://www.dofuspourlesnoobs.com/dans-la-gueule-du-trankilou.html",
+    "https://www.dofuspourlesnoobs.com/association-de-fureteurs.html",
+    "https://www.dofuspourlesnoobs.com/la-complote-des-poms.html",
+    "https://www.dofuspourlesnoobs.com/refuge-sylvestre.html",
+    "https://www.dofuspourlesnoobs.com/pitons-rocheux-des-craqueleurs.html"
+  ],
+  "preparation": {
+    "wabbit_access": [
+      {"name":"Aile de Scarafeuille Bleu","quantity":1},
+      {"name":"Aile de Scarafeuille Blanc","quantity":1},
+      {"name":"Aile de Scarafeuille Vert","quantity":1},
+      {"name":"Aile de Scarafeuille Rouge","quantity":1}
+    ],
+    "otomai_access": [
+      {"name":"Miséricorde du Chafer d'Élite","quantity":2},
+      {"name":"Gros Boulet","quantity":1},
+      {"name":"Oreille de Foufayteur","quantity":1},
+      {"name":"Huile de Sésame","quantity":1},
+      {"name":"Tronc de Kokoko","quantity":1},
+      {"name":"Tranche de Nodkoko","quantity":1},
+      {"name":"Kokopaille","quantity":1},
+      {"name":"Coffret maudit du Flib","quantity":1}
+    ],
+    "bonta_21": [
+      {"name":"Anneau d'Agilité","quantity":20,"policy":"HDV recommandé si 60 Reliques d'Incarnam ne sont pas déjà disponibles"}
+    ],
+    "captures": [
+      {"target":"Corailleur Magistral","minimum_power":50},
+      {"target":"Blop Royal choisi pour Entre quatre blops","minimum_power":100},
+      {"target":"Rakoopeur","minimum_power":50},
+      {"target":"Craqueleur Légendaire","minimum_power":100}
+    ],
+    "pods":"Acheter les ressources d'accès légères avant le départ Sufokia. Les âmes de boss capturées qui ne sont pas encore rendables sont déposées en banque et marquées À GARDER OCRE."
+  },
+  "stages": [
+    {
+      "id":"L51-00",
+      "title":"Cania + accès Wabbit + Bonta 15 à 18",
+      "level":"51+",
+      "duration_min":95,
+      "quests":["Une brèche à Bonta","Intrusion chez les wabbits","D'égouts temps","L'élite squelettique","La foire du Trool suspectée"],
+      "route":[
+        {"pos":"transversal BNT-05","do":"Faire le rang 15 dans la première vraie boucle Pics de Cania et le rendre."},
+        {"pos":"[-2,-4]","do":"Si ce n'est pas déjà fait, terminer Intrusion chez les wabbits avec les quatre Ailes de Scarafeuille. La Potion Wabbit donne l'accès permanent; cette quête n'attend aucune autre quête Cawotte."},
+        {"pos":"transversal BNT-06 part 1","do":"Exécuter les rangs 16, 17 et 18: vaccin Wabbit, égouts Bonta, Chafers d'Élite et Foire du Trool. S'arrêter avant rang 19 car Entre quatre blops n'est pas encore active."}
+      ],
+      "opportunistic":[
+        "Prendre les affiches d'avis de recherche accessibles dans les zones visitées, mais ne jamais attendre leur repop.",
+        "Si un archimonstre apparaît naturellement et Capture d'âmes est disponible, le capturer avec une pierre adaptée sans bloquer la route s'il disparaît."
+      ],
+      "pause":["Bonta 18 terminé","Rang 19 disponible mais volontairement en attente de Entre quatre blops","Intrusion chez les wabbits terminée","Accès total Wabbit permanent"]
+    },
+    {
+      "id":"L51-01",
+      "title":"Sufokia → Île des naufragés → Otomaï — ouvrir l'Ocre",
+      "level":"51+",
+      "duration_min":65,
+      "quests":["Le nouveau monde","L'île des naufragés","Le secret des Flaqueux","L'éternelle moisson"],
+      "route":[
+        {"pos":"[15,28] Sufokia","do":"Donner les ressources de Le nouveau monde à Capitaine Kradoc puis enchaîner immédiatement la traversée et L'île des naufragés."},
+        {"pos":"navire / île des naufragés","do":"Faire les trois combats de traversée et remettre les quatre ressources de réparation. Faire Le secret des Flaqueux pendant l'échouage si sa prise est disponible sur le trajet; elle donne une récompense de prospection et n'exige pas une seconde traversée dédiée."},
+        {"pos":"[-46,18] Otomaï","do":"À l'arrivée, mémoriser immédiatement le zaap du village côtier."},
+        {"pos":"[-55,15] Village de la Canopée","do":"Au premier passage rentable en haut de l'arbre, parler à Otomaï et lancer L'éternelle moisson puisque Capture d'âmes est déjà apprise. Ne pas confondre cette quête avec les anciennes étapes de monstres supprimées en 3.5."}
+      ],
+      "pause":["Accès Otomaï permanent","Zaap [-46,18] mémorisé","L'éternelle moisson lancée","Registre Ocre boss/archis actif"]
+    },
+    {
+      "id":"L51-02",
+      "title":"Grotte Hesque — terminer Première édition et capturer Corailleur",
+      "level":"51+",
+      "duration_min":40,
+      "quests":["Donjon magistral"],
+      "route":[
+        {"pos":"Grotte Hesque / position locale vérifiée","do":"Entrer avec Donjon magistral active. Équiper une pierre d'âme puissance 50 minimum et capturer Corailleur Magistral, requis par l'étape 2 actuelle de L'éternelle moisson. Faire les succès compatibles dans ce même passage."},
+        {"pos":"[1,-15] Astrub","do":"Rendre Donjon magistral à Emma Tompouce."},
+        {"pos":"[2,-1] Amakna","do":"Parler à Alain Deix pour fermer Donjon magistral/Première édition et lancer immédiatement Entre quatre blops."}
+      ],
+      "hard_exit":["Entre quatre blops active AVANT de reprendre Bonta 19.","Âme du Corailleur Magistral conservée pour l'Ocre."],
+      "pause":["Première édition de donjons terminée","Entre quatre blops active","Corailleur Magistral capturé ou rattrapage explicite"]
+    },
+    {
+      "id":"L51-03",
+      "title":"Clos des Blops + Bonta 19-20 + premier Ordre",
+      "level":"55-60",
+      "duration_min":95,
+      "quests":["Entre quatre blops","Le Tabi d'Amayiro","Le fantôme de Tsog","conditional:first_bonta_order"],
+      "route":[
+        {"pos":"[-7,-43] Clos des Blops","do":"Reprendre BNT-06 au rang 19 avec Entre quatre blops active. Faire UN SEUL Clos, vaincre un Blop Royal adapté au groupe, capturer ce Royal avec une pierre puissance 100 et faire les succès compatibles. Avant de quitter, entrer dans la salle du Blop Multicolore Royal pour enregistrer le checkpoint demandé plus tard."},
+        {"pos":"Bonta / Cimetière / Sufokia","do":"Finir Bonta 19 puis 20 selon BNT-06. Équiper la Pelle de Boisaille AVANT la map du coffre de Tsog à Sufokia."},
+        {"pos":"[-34,-58] Bonta","do":"Dès rang 20 terminé, exécuter exactement la branche choisie de bonta_order_rank20_v1.json. Les deux autres Ordres restent hors route."},
+        {"pos":"[2,-1] Amakna","do":"Rendre Entre quatre blops à Alain Deix et prendre Un Kanniboul versé; ne pas partir à Moon dans cette étape."
+        }
+      ],
+      "capture_note":"L'Ocre demande les quatre Blops Royaux. Cette étape capture uniquement celui réellement combattu; les trois autres ne sont pas déclarés acquis et devront être mutualisés avec de futurs passages utiles ou HDV.",
+      "pause":["Bonta 20 terminé","Exactement un Ordre Bonta rang 1 terminé","Entre quatre blops terminée","Un Kanniboul versé active","Un Blop Royal capturé et checkpoint Multicolore enregistré"]
+    },
+    {
+      "id":"L51-04",
+      "title":"Bonta 21 — champs d'Amakna puis préparer Holbaïd",
+      "level":"55-60",
+      "duration_min":45,
+      "quests":["Des anneaux sur le bout des doigts","La fureur du Holbaïd"],
+      "route":[
+        {"pos":"transversal BNT-08 part 1","do":"Donner 20 Anneaux d'Agilité, négocier le fourrage [5,6], faire les trois combats [8,5] [10,8] [7,9], revenir Hogias/Amayiro et terminer rang 21."},
+        {"pos":"[8,2] -> [1,3]","do":"Lancer La fureur du Holbaïd et faire ses dialogues préparatoires. ARRÊTER avant les Pitons Rocheux: Les sbires du maître doit d'abord atteindre son dernier objectif Craqueleur après Refuge Sylvestre."}
+      ],
+      "pause":["Bonta 21 terminé","La fureur du Holbaïd active et prête au Craqueleur","Ne pas faire Pitons avant le Refuge"]
+    },
+    {
+      "id":"L51-05",
+      "title":"Valonia complet bas niveau — cinq quêtes + Refuge Sylvestre + Rakoopeur Ocre",
+      "level":"50-70",
+      "duration_min":120,
+      "quests":["Dis, scierie ?","Colonie de vaillance","Dans la gueule du Trankilou","Association de fureteurs","La complote des P.O.M.S.","Les sbires du maître"],
+      "route":[
+        {"pos":"[10,-3] Amakna -> Valonia","do":"Prendre le bateau pour Albuera puis mémoriser le zaap [39,-82] dès le premier passage."},
+        {"pos":"[38,-77]","do":"Lancer Dis, scierie ? et suivre sa boucle scierie/livraison sans quitter Valonia. Enchaîner immédiatement Colonie de vaillance."},
+        {"pos":"Valonia","do":"Terminer Colonie de vaillance puis Dans la gueule du Trankilou. L'objectif est causal: Association de fureteurs doit être active AVANT l'entrée au Refuge."},
+        {"pos":"[36,-77] puis barrage","do":"Faire Association de fureteurs jusqu'à l'ordre explicite d'aller affronter Rakoopeur."},
+        {"pos":"[40,-84] Refuge Sylvestre","do":"Entrer avec Association de fureteurs + Les sbires du maître actifs. Équiper une pierre puissance 50 minimum et capturer Rakoopeur, devenu boss Ocre requis depuis la refonte 3.5. Faire les succès compatibles."},
+        {"pos":"boss Refuge","do":"Après le combat, finir Association de fureteurs et CONTINUER le dialogue avec Rakoopeur pour lancer La complote des P.O.M.S. avant de quitter la zone."},
+        {"pos":"hauteurs d'Albuera","do":"Terminer La complote des P.O.M.S. avec le walkthrough local; cette quête ferme le succès L'enfant regardait tomber la neige."},
+        {"pos":"[5,0] Amakna","do":"Rendre Rakoopeur à Pat Akess; Les sbires du maître pointe maintenant vers Craqueleur Légendaire."}
+      ],
+      "hard_exit":["5/5 quêtes L'enfant regardait tomber la neige terminées.","Rakoopeur capturé pour Ocre ou rattrapage explicite.","Les sbires du maître pointe Craqueleur Légendaire."],
+      "pause":["Valonia bas niveau fermé","Refuge Sylvestre ne nécessite aucun rerun pour ces fils","Craqueleur = prochain objectif commun Sbires+Bonta22"]
+    },
+    {
+      "id":"L51-06",
+      "title":"Pitons Rocheux — Craqueleur unique pour Sbires + Bonta22 + Ocre",
+      "level":"60-70",
+      "duration_min":50,
+      "quests":["Les sbires du maître","La fureur du Holbaïd"],
+      "route":[
+        {"pos":"[-3,-7] Pitons Rocheux","do":"Entrer seulement lorsque Les sbires du maître ET La fureur du Holbaïd sont actifs. Équiper une pierre puissance 100 minimum et capturer Craqueleur Légendaire pour l'étape 2 de L'éternelle moisson."},
+        {"pos":"fin du donjon","do":"AVANT de sortir, récupérer le Coticule près de l'Orme pour La fureur du Holbaïd."},
+        {"pos":"[1,3] -> [8,2] -> [-32,-57]","do":"Rendre Coticule/fragment/lettre et terminer Bonta 22."},
+        {"pos":"[5,0] -> [-29,-47]","do":"Rendre le Craqueleur à Pat Akess puis aller voir Chris de Naire pour terminer Les sbires du maître et ouvrir Un juge hystérique."}
+      ],
+      "hard_exit":["Craqueleur Légendaire fait une seule fois.","Bonta 22 terminé.","Les sbires du maître terminé.","Un juge hystérique active ou disponible.","Capture Craqueleur conservée pour Ocre."],
+      "pause":["Bloc 51-70 fermé","Tour du Monde prêt pour sa suite","Moon/Cawotte disponibles comme prochains gros chapitres","Bonta 23 disponible"]
+    }
+  ]
+}

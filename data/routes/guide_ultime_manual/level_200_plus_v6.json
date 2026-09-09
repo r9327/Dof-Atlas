@@ -1,0 +1,19 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_level_200_plus_v6",
+  "title": "Guide Ultime — Post-200, dépendances finales consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v5.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v5",
+  "stage_count": 12,
+  "depends_on": [
+    "level_191_200_v17.json",
+    "ocre_final_route_v1.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v13.json"
+  ],
+  "optimization_note": "Raccorde le post-200 à la version191-200 qui ferme désormais Frigost/Enutrosor/Nimbos/Wukin-Wukang avant la finale. Aucun contenu joueur et aucune fiche supplémentaire: seulement la dépendance canonique réelle.",
+  "stage_patches": {},
+  "insertions": []
+}

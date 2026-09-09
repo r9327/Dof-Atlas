@@ -1,0 +1,71 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_level_200_plus_v7",
+  "title": "Guide Ultime — Post-200 + ordre Valonia causal",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v6.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v6",
+  "stage_count": 12,
+  "depends_on": [
+    "level_191_200_v18.json",
+    "ocre_final_route_v1.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v13.json"
+  ],
+  "optimization_note": "Réordonne uniquement les deux macro-fiches Valonia concernées: Le bouquet final jusqu'à La sorcière exilée est traité avant Conseiller en patrimoine, car La graine de la révolte exige La sorcière exilée. La sorcière débloque ensuite La graine et Pour que la flamme vacille; aucune quête n'est ajoutée ni supprimée. Le post-200 consomme la couverture tardive 191-200 v18 validée par les mêmes garde-fous.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-sorciere-exilee.html",
+    "https://www.dofuspourlesnoobs.com/la-graine-de-la-revolte.html",
+    "https://www.dofuspourlesnoobs.com/quetes-de-l-archipel-de-valonia.html"
+  ],
+  "stage_order": [
+    "P200-08",
+    "P200-AU-DETOUR",
+    "P200-16",
+    "P200-17",
+    "P200-18",
+    "P200-20",
+    "P200-19",
+    "P200-21",
+    "P200-22",
+    "P200-23",
+    "P200-24",
+    "P200-25"
+  ],
+  "stage_patches": {
+    "P200-18": {
+      "replace": {
+        "before_leaving": [
+          "Un clan hétéroclite 4/4 terminé",
+          "Barbéryl succès compatibles traités",
+          "La graine de la révolte reste verrouillée tant que La sorcière exilée n'est pas terminée; finir d'abord Le bouquet final."
+        ]
+      }
+    },
+    "P200-20": {
+      "append": {
+        "hard_exit": [
+          "La sorcière exilée réellement terminée avant de commencer La graine de la révolte."
+        ]
+      }
+    },
+    "P200-19": {
+      "prepend": {
+        "take": [
+          "Avant de commencer La graine de la révolte, vérifier La sorcière exilée terminée ainsi que Ça sent le gaz et Jusqu'à leur dernier soupir déjà fermées plus tôt dans l'aventure.",
+          "[33,-84] Ancienne Albuera — parler à Nascherite dans le temple Forgelance pour lancer La graine de la révolte."
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "La sorcière exilée terminée.",
+          "Ça sent le gaz terminée.",
+          "Jusqu'à leur dernier soupir terminée.",
+          "La graine de la révolte lancée en [33,-84] uniquement après ces prérequis."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

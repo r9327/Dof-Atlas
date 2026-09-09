@@ -1,0 +1,37 @@
+{
+  "schema_version": 12,
+  "route_id": "guide_ultime_manual_level_120_150_v12",
+  "title": "Guide Ultime — Niveau 120 à 150 + Carrières de glace 6/6",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v11.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v11",
+  "stage_count": 37,
+  "optimization_note": "Ferme réellement les six quêtes Les carrières de glace. Après Hôtel/Fonte/Ombre/Lumière déjà routées, Qu'est-ce qu'on a fait des tuyaux ? et Lâcher les gaz sont exécutées dans la même campagne Pins/Bourgade avant le Mansot. Le combat Dolores est groupable si tous les personnages choisissent la réponse renforts; le dialogue post-combat est obligatoire et lance immédiatement Lâcher les gaz.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/les-carriegraveres-de-glace.html",
+    "https://www.dofuspourlesnoobs.com/quest-ce-quon-a-fait-des-tuyaux.html",
+    "https://www.dofuspourlesnoobs.com/lacirccher-les-gaz.html"
+  ],
+  "stage_patches": {
+    "L120-20G": {
+      "append": {
+        "quests": ["Qu'est-ce qu'on a fait des tuyaux ?","Lâcher les gaz"],
+        "route": [
+          {"area":"Forêt des Pins perdus — après Fonte/Ombre/Lumière","do":"Prendre Qu'est-ce qu'on a fait des tuyaux ? seulement lorsque Hôtel de glace + La fonte des glaces + Bricole Girl et les prérequis Royalmouth sont réellement fermés. Inspecter la canalisation puis grouper ses dialogues Bourgade/Forêt dans la même boucle que Star ski/Problèmes."},
+          {"pos":"[-55,-57] Dolores Kimo","do":"Avant le combat, si plusieurs personnages suivent la quête, chacun doit choisir l'option de partir chercher des renforts afin que la victoire mette à jour tous les personnages. Gagner le combat puis REPARLER à Dolores avant de quitter la map; la victoire seule ne termine pas la quête."},
+          {"pos":"[-55,-57]","do":"Continuer immédiatement le dialogue final pour lancer Lâcher les gaz. Faire Aurore/Francky/Agent dans la même boucle Pins/Bourgade, entrer dans la grotte des ingénieurs, vaincre les deux créatures de gaz en un combat de groupe puis fermer la quête avant de quitter définitivement le bloc Pins/Lac."}
+        ],
+        "before_leaving": [
+          "Qu'est-ce qu'on a fait des tuyaux ? terminée avec dialogue post-combat Dolores.",
+          "Lâcher les gaz terminée.",
+          "Les carrières de glace = Hôtel + Fonte + Ombre + Lumière + Tuyaux + Gaz réellement terminées."
+        ],
+        "hard_exit": [
+          "Succès Les carrières de glace 6/6 fermé ou blocker exact affiché.",
+          "Aucun retour niveau200 pour deux quêtes Pins oubliées."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

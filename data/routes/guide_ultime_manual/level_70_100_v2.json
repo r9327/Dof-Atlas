@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_level_70_100_v2",
+  "title": "Guide Ultime — Niveau 70 à 100 optimisé + Hurlements",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_70_100_v1.json",
+  "supersedes": "guide_ultime_manual_level_70_100_v1",
+  "stage_count": 16,
+  "optimization_note": "Le Chapiteau Magik Riktus ne doit être fait qu'une fois: avant L70-11, la route avance Hurlements de rire jusqu'à rendre La grande parade active; le même passage sert alors Le spectacle vivant + La lettre anonyme/Bonta34 + La grande parade + capture Ocre Choudini.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/retour-aux-sources.html",
+    "https://www.dofuspourlesnoobs.com/division-par-deux.html",
+    "https://www.dofuspourlesnoobs.com/cours-forestiere.html",
+    "https://www.dofuspourlesnoobs.com/l-air-mythe.html",
+    "https://www.dofuspourlesnoobs.com/la-grande-parade.html",
+    "https://www.dofuspourlesnoobs.com/chapiteau-des-magik-riktus.html"
+  ],
+  "stage_patches": {
+    "L70-11": {
+      "replace": {
+        "title": "Chapiteau Magik Riktus — Thelma + Bonta34 + La grande parade + Ocre",
+        "level": "90+ / Bonta33 terminé / La grande parade active",
+        "duration_min": 60
+      },
+      "append": {
+        "quests": ["La grande parade"],
+        "route": [
+          {"pos":"[-22,12] Chapiteau Magik Riktus","do":"Entrer uniquement lorsque Le spectacle vivant + La lettre anonyme + La grande parade sont toutes actives. Faire un seul donjon, vaincre Choudini et capturer son âme avec une pierre puissance 100 minimum pour l'Ocre."},
+          {"pos":"salle de Choudini après victoire","do":"AVANT DE SORTIR, exécuter les dialogues de La grande parade avec Choudini, MC Dimote, Chourave et Magik Ermitus/Yrucrem. La quête se termine dans la salle; sortir avant ces dialogues imposerait un rerun inutile."}
+        ],
+        "hard_exit": [
+          "Le spectacle vivant validé sur ce passage.",
+          "Bonta34/La lettre anonyme validé sur ce passage.",
+          "La grande parade terminée avant sortie du Chapiteau.",
+          "Choudini capturé pour l'Ocre ou rattrapage explicite enregistré.",
+          "Aucun second Chapiteau prévu pour ces trois fils."
+        ],
+        "pause": [
+          "La grande parade terminée",
+          "Hurlements de rire reste volontairement à Le casse-bonbon + La bête intérieure + Allumer le feu",
+          "Allumer le feu sera synchronisée avec le futur Meulou"
+        ]
+      }
+    }
+  },
+  "insertions": [
+    {
+      "before": "L70-11",
+      "stage": {
+        "id": "L70-10H",
+        "title": "Landes de Sidimote — ouvrir La grande parade AVANT le Chapiteau",
+        "level": "90+ ou critères locaux correspondants",
+        "duration_min": 85,
+        "quests": ["Retour aux sources", "Division par deux", "Cours Forestière", "L'air mythe", "La grande parade"],
+        "preparation": [
+          {"name":"Pelle de Rapage","quantity":5,"policy":"préparer avant le retour Chourave; craft/HDV selon économie réelle"},
+          {"name":"Bois d'Oliviolet","quantity":25},
+          {"name":"Manganèse","quantity":30},
+          {"name":"Cawotte","quantity":5},
+          {"name":"Oignon","quantity":10},
+          {"name":"Pomme de Terre","quantity":10},
+          {"name":"Aubergine","quantity":10},
+          {"name":"Bananagrume","quantity":1},
+          {"name":"Noix de Kokoko","quantity":1}
+        ],
+        "route": [
+          {"pos":"[-21,14] Route des Roulottes","do":"Prendre Retour aux sources auprès de Chourave et faire les interrogatoires de zone. Pendant les combats naturels sur Graboule/Pirolienne/Roukouto/Tivelo, obtenir les 15 documents signés; ne pas créer une session farm séparée tant que la boucle de zone n'est pas terminée."},
+          {"pos":"[-21,14]","do":"Donner la liste de ressources à Chourave dès que prête; cela ouvre Division par deux pendant Retour aux sources."},
+          {"pos":"Route des Roulottes / relais / réunion","do":"Faire Division par deux avec le walkthrough local en regroupant [-28,12], [-23,8], [-25,3], [-25,10], [-29,5], [-29,6]."},
+          {"pos":"Bois des Arak-haï [-5,-13] -> [-5,-15] -> [-13,-15]","do":"Faire Cours Forestière en un passage Bois des Arak-haï puis revenir Chourave."},
+          {"pos":"Landes + convoi [-24,28]","do":"Faire L'air mythe: Magik Ermitus, documents, Georges Clowney, convoi/sorbet, puis retour Chourave."},
+          {"pos":"[-21,14]","do":"Fermer Retour aux sources lorsque Division par deux + Cours Forestière + L'air mythe sont terminées, puis prendre immédiatement La grande parade. NE PAS entrer au Chapiteau avant cette prise."}
+        ],
+        "hard_exit": [
+          "Retour aux sources terminé.",
+          "Division par deux terminée.",
+          "Cours Forestière terminée.",
+          "L'air mythe terminée.",
+          "La grande parade active avant L70-11."
+        ],
+        "pause": ["La grande parade active", "Chapiteau = prochaine étape", "Aucun dialogue Hurlements requis derrière avant d'entrer"]
+      }
+    }
+  ]
+}

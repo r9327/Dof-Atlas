@@ -1,0 +1,41 @@
+{
+  "schema_version": 7,
+  "registry_id": "guide_ultime_temporal_registry_v7",
+  "status": "RESEARCH_IN_PROGRESS",
+  "base_file": "temporal_registry_v6.json",
+  "supersedes": "temporal_registry_v6.json",
+  "entry_insertions": [
+    {
+      "id": "pandala_selenite_fight_respawn",
+      "type": "approximate_respawn",
+      "area": "Pandala — Terrdala",
+      "content": "Combats Tanuki pour Pierres de Sélénite",
+      "approx_respawn_minutes": 60,
+      "positions": [[25,-22],[24,-25],[26,-26]],
+      "priority": "never_wait_in_place",
+      "runtime_rule": "Lorsque les quatre Pierres de Sélénite ne sont pas obtenues pendant la première bénédiction Souffle d'airgile, enregistrer les combats déjà consommés et continuer la route. Revenir environ une heure plus tard ou acheter les pierres échangeables; ne jamais bloquer une étape devant un repop.",
+      "source": "https://www.dofuspourlesnoobs.com/jusqu-a-leur-dernier-soupir.html"
+    },
+    {
+      "id": "pandala_yokaiku_itinerant_respawn",
+      "type": "approximate_respawn_random_map",
+      "area": "Pandala / Grobe",
+      "content": "Yokaiku itinérant — Haïkus",
+      "approx_respawn_minutes": 120,
+      "random_map_count": 7,
+      "priority": "opportunistic_async",
+      "runtime_rule": "Après une tentative/rencontre de Yokaiku itinérant, ne jamais tourner sur les sept cartes en attendant. Enregistrer l'heure et la zone; reprendre les quêtes principales puis recontrôler après environ deux heures au prochain passage rentable. Pour Grobe, le premier accès peut demander l'Élixir des Trépasseurs selon l'objectif concerné.",
+      "source": "https://www.dofuspourlesnoobs.com/tant-de-mots-et-si-peu-de-temps.html"
+    }
+  ],
+  "entry_patches": {},
+  "research_notes": [
+    "Les groupes Tanuki spéciaux utilisés pour les Pierres de Sélénite reviennent approximativement après une heure; les pierres étant échangeables, l'HDV est une alternative au temps mort.",
+    "Les Yokaiku itinérants réapparaissent environ toutes les deux heures sur une des sept cartes possibles de leur zone; ce contenu doit rester opportuniste et asynchrone."
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/jusqu-a-leur-dernier-soupir.html",
+    "https://www.dofuspourlesnoobs.com/securite-routiere.html",
+    "https://www.dofuspourlesnoobs.com/tant-de-mots-et-si-peu-de-temps.html"
+  ]
+}

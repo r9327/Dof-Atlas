@@ -1,0 +1,62 @@
+{
+  "schema_version": 12,
+  "route_id": "guide_ultime_manual_level_181_190_v12",
+  "title": "Guide Ultime — Niveau 181 à 190 + chasses Baka conditionnelles",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v11.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v11",
+  "stage_count": 24,
+  "depends_on": [
+    "level_171_180_v11.json",
+    "level_150_170_v19.json",
+    "level_120_150_v18.json",
+    "bonta_1_90_v10.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Conserve les optimisations Crocs de verre/Kolosso et Mont Torrideau/Glours pour la chasse Baka réellement tirée, sans injecter Crocs en jambes et Ourse molle comme deux quêtes simultanément actives. Tire la chasse reste un état aléatoire: une seule chasse réelle est suivie jusqu'à validation. Les fils permanents de Développement durable, Kolosso et Glours sont explicitement préservés dans les listes finales.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/tire-la-chasse.html",
+    "https://www.dofuspourlesnoobs.com/crocs-en-jambes.html",
+    "https://www.dofuspourlesnoobs.com/ourse-molle.html"
+  ],
+  "stage_patches": {
+    "L190-00": {
+      "replace": {
+        "quests": [
+          "Développement durable",
+          "conditional:Crocs en jambes si c'est la chasse Baka active"
+        ]
+      }
+    },
+    "L190-04": {
+      "replace": {
+        "quests": [
+          "Porte, Kolosso, trésor",
+          "C'est Rébro",
+          "conditional:Crocs en jambes si c'est la chasse Baka active"
+        ]
+      }
+    },
+    "L190-05": {
+      "replace": {
+        "quests": [
+          "Le pic qui glace",
+          "Mission Solution",
+          "conditional:Ourse molle si c'est la chasse Baka active"
+        ]
+      }
+    },
+    "L190-06": {
+      "replace": {
+        "quests": [
+          "Porte, Glourséleste, trésor",
+          "Glourson et lumière",
+          "L'arène et le roi",
+          "conditional:Ourse molle si c'est la chasse Baka active"
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

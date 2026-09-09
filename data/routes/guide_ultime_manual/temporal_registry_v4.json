@@ -1,0 +1,93 @@
+{
+  "schema_version": 4,
+  "registry_id": "guide_ultime_temporal_registry_v4",
+  "status": "RESEARCH_IN_PROGRESS",
+  "base_file": "temporal_registry_v3.json",
+  "supersedes": "temporal_registry_v3.json",
+  "entry_patches": {
+    "frigost_vaccine_duration": {
+      "quest": "Les monologues du vaccin",
+      "starts_when": "Les monologues du vaccin terminée / Vaccin contre le rube temporaire obtenu",
+      "duration_days": 7,
+      "expires_into_quest": "Le mal a dit",
+      "followup_prerequisite": "Épis d'Emi",
+      "followup_blockers": [
+        "Bienvenue à Frigost",
+        "Pauvre Kiki",
+        "Gène et Tique",
+        "En semant se ment OU Cent vingt trois fleurs, point comme les autres"
+      ],
+      "runtime_rule": "Enregistrer l'heure exacte d'obtention du vaccin temporaire. Continuer la route pendant les sept jours; ne jamais attendre sur Frigost. Avant l'expiration, terminer Épis d'Emi et les quêtes qui bloquent les dialogues de Le mal a dit. À expiration, Le mal a dit devient prioritaire au prochain passage Frigost, surtout si le second Royalmouth peut alors fusionner plusieurs fils.",
+      "source": "https://www.dofuspourlesnoobs.com/le-mal-a-dit.html"
+    }
+  },
+  "entry_insertions": [
+    {
+      "id": "frigost_vaccine_appointment",
+      "type": "user_selected_time_window",
+      "area": "Frigost — Bourgade",
+      "quest": "Les monologues du vaccin",
+      "trigger": "Après le refus d'Éric Azaraille et le retour auprès du Capitaine Gneux",
+      "location": "Taverne du Paradis Frigostien [-77,-38]",
+      "selection_policy": "Choisir une tranche horaire compatible avec la session en cours ou la prochaine reprise prévue; ne jamais sélectionner une tranche au hasard.",
+      "reschedule_lock_hours": 24,
+      "tracking_item": "papier de rendez-vous dans l'inventaire de quête",
+      "runtime_rule": "Afficher la tranche choisie dans le fil temporel et rappeler l'étape quand la fenêtre est ouverte. Si la session ne permet pas le rendez-vous, poursuivre le guide. Éviter de changer la tranche car un changement peut être verrouillé 24 h.",
+      "source": "https://www.dofuspourlesnoobs.com/les-monologues-du-vaccin.html"
+    },
+    {
+      "id": "frigost_vaccine_expiry_gate",
+      "type": "fixed_delay_unlock",
+      "area": "Frigost",
+      "quest": "Le mal a dit",
+      "starts_when": "Vaccin contre le rube temporaire obtenu",
+      "delay_days": 7,
+      "requires_quest": "Épis d'Emi",
+      "blocking_quests": [
+        "Bienvenue à Frigost",
+        "Pauvre Kiki",
+        "Gène et Tique",
+        "En semant se ment OU Cent vingt trois fleurs, point comme les autres"
+      ],
+      "priority": "high_after_expiry",
+      "runtime_rule": "Ne jamais avancer Le mal a dit avant l'expiration réelle du vaccin temporaire. Pendant les sept jours, utiliser le temps pour Pourpre, Tour du Monde, Bonta, Pandala, Tynril et les prérequis Frigost. Dès expiration, si tous les blockers sont fermés, reprendre Le mal a dit et synchroniser son Royalmouth avec les autres fils post-Antiroyaliste.",
+      "source": "https://www.dofuspourlesnoobs.com/le-mal-a-dit.html"
+    },
+    {
+      "id": "frigost_no_vaccine_weekly",
+      "type": "weekly_repeatable",
+      "area": "Frigost — Bourgade",
+      "quest": "Pas de vaccin pour les vilains",
+      "minimum_level": 120,
+      "prerequisite": "Le mal a dit",
+      "location": "[-80,-45]",
+      "priority": "do_once_immediately_after_unlock_for_unique_coverage",
+      "runtime_rule": "Lancer et terminer une fois dès Le mal a dit terminé: un échantillon de Boufmouth puis retour Albert. Ne pas répéter chaque semaine sans bénéfice explicite, car répéter le même ID n'augmente pas la couverture de quêtes uniques.",
+      "source": "https://www.dofuspourlesnoobs.com/pas-de-vaccin-pour-les-vilains.html"
+    },
+    {
+      "id": "frigost_hiques_respawn",
+      "type": "resource_respawn_estimate",
+      "area": "Frigost",
+      "quest": "Le mal a dit",
+      "resource": "Racines Hiques",
+      "location": "[-64,-48]",
+      "estimated_respawn_minutes": 60,
+      "priority": "never_wait_in_place",
+      "runtime_rule": "Si les Racines Hiques ne sont pas disponibles, enregistrer un rattrapage et continuer la route. Revenir après environ une heure ou lors du prochain passage naturel; ne jamais bloquer une étape macro en attendant le repop.",
+      "source": "https://www.dofuspourlesnoobs.com/le-mal-a-dit.html"
+    }
+  ],
+  "research_notes": [
+    "Le rendez-vous des Monologues est une fenêtre choisie par le joueur; la modifier peut imposer 24 h, donc la sélection doit être consciente.",
+    "Le vaccin temporaire dure sept jours et son expiration est un prérequis dur de Le mal a dit.",
+    "Le mal a dit donne le vaccin permanent et débloque Pas de vaccin pour les vilains.",
+    "Les Racines Hiques ont un repop documentaire d'environ une heure: ce n'est jamais une raison pour attendre sur la map."
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/les-monologues-du-vaccin.html",
+    "https://www.dofuspourlesnoobs.com/eacutepis-demi.html",
+    "https://www.dofuspourlesnoobs.com/le-mal-a-dit.html",
+    "https://www.dofuspourlesnoobs.com/pas-de-vaccin-pour-les-vilains.html"
+  ]
+}

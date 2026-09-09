@@ -1,0 +1,27 @@
+{
+  "schema_version":5,
+  "route_id":"guide_ultime_manual_level_191_200_v5",
+  "title":"Guide Ultime — Niveau 191 à 200 + checkpoints de reprise complets",
+  "status":"MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file":"level_191_200_v4.json",
+  "supersedes":"guide_ultime_manual_level_191_200_v4",
+  "stage_count":33,
+  "optimization_note":"Correction structurelle uniquement: ajoute un point de pause sûr aux macro-stages hérités qui n'en avaient pas. Aucun ordre, prérequis, donjon, rerun, ressource ou règle de validation n'est modifié.",
+  "stage_patches":{
+    "L197-02":{"append":{"pause":["POINT DE PAUSE SÛR — Missiz triple-fil fermée, Bonta97 validé"]}},
+    "L198-03":{"append":{"pause":["POINT DE PAUSE SÛR — Bonta98 fermé, avant Ilyzaelle99"]}},
+    "L200-07":{"append":{"pause":["POINT DE PAUSE SÛR — Examen de passage fermé, Le pays gris prêt"]}},
+    "L200-08":{"append":{"pause":["POINT DE PAUSE SÛR — Casse en Enutrosor prête après audit Espionnage industriel"]}},
+    "L200-09":{"append":{"pause":["POINT DE PAUSE SÛR — Nidas partagé fermé, Nordalie disponible"]}},
+    "L200-10":{"append":{"pause":["POINT DE PAUSE SÛR — quatre missions Nordalie actives"]}},
+    "L200-11":{"append":{"pause":["POINT DE PAUSE SÛR — Bonheur et Guerrier noir fermés"]}},
+    "L200-12":{"append":{"pause":["POINT DE PAUSE SÛR — Le mort dans l'âme fermé"]}},
+    "L200-13":{"append":{"pause":["POINT DE PAUSE SÛR — Une voix de crystal fermée et quatre maîtres Frigost III validés"]}},
+    "L200-14":{"append":{"pause":["POINT DE PAUSE SÛR — Nordalie/Tal Kasha fermés"]}},
+    "L200-16":{"append":{"pause":["POINT DE PAUSE SÛR — audit runtime enregistré, aucune validation synthétique"]}},
+    "L200-17":{"append":{"pause":["POINT DE PAUSE SÛR — fin du working set, dettes globales explicitement listées"]}},
+    "L200-15E3":{"append":{"pause":["POINT DE PAUSE SÛR — séparation Crocoburio terminée, Le dragon noir prêt"]}},
+    "L200-NEB4":{"append":{"pause":["POINT DE PAUSE SÛR — Srambad Nébuleux fermé, Dieu Sram rencontré"]}}
+  },
+  "insertions":[]
+}

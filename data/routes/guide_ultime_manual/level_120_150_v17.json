@@ -1,0 +1,37 @@
+{
+  "schema_version": 17,
+  "route_id": "guide_ultime_manual_level_120_150_v17",
+  "title": "Guide Ultime — Niveau 120 à 150 + Une piqûre de plus explicite",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v16.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v16",
+  "stage_count": 37,
+  "depends_on": [
+    "level_100_120_v7.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Pas de vaccin pour les vilains était déjà exécuté dans le texte du Royalmouth PASS2 après Le mal a dit, mais n'était pas déclaré comme quête de la fiche. Il devient une vraie quête QuestProvider et ferme explicitement Une piqûre de plus, sans aucune répétition hebdomadaire supplémentaire.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/pas-de-vaccin-pour-les-vilains.html",
+    "https://www.dofuspourlesnoobs.com/une-piqucircre-de-plus.html"
+  ],
+  "stage_patches": {
+    "L120-07": {
+      "append": {
+        "pause": [
+          "Tofu Royal fermé en un passage ; reprendre sur la destination suivante de la route sans rerun immédiat."
+        ]
+      }
+    },
+    "L120-20": {
+      "append": {
+        "quests": ["Pas de vaccin pour les vilains"],
+        "successes": ["Une piqûre de plus"],
+        "hard_exit": ["Pas de vaccin pour les vilains réellement terminée une fois après Le mal a dit; aucune répétition hebdomadaire automatique.", "Une piqûre de plus réellement validée."]
+      }
+    }
+  },
+  "insertions": []
+}

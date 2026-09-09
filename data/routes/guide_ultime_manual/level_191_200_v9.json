@@ -1,0 +1,19 @@
+{
+  "schema_version": 9,
+  "route_id": "guide_ultime_manual_level_191_200_v9",
+  "title": "Guide Ultime — 191-200, Totems causaux + dépendances globales actualisées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v8.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v8",
+  "stage_count": 56,
+  "depends_on": [
+    "level_181_190_v6.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v12.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Ne change aucune causalité Totems/DDG/Vulbis/Ivoire de V8. Cette version raccorde seulement le palier191-200 aux chapitres Frigost désormais complets Agriculture/Problèmes/Objets trouvés, au registre temporel V12 et à la route Bonta1-100 réellement expansée par le composeur.",
+  "stage_patches": {},
+  "insertions": []
+}

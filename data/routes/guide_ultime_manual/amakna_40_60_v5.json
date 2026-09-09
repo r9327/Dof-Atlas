@@ -1,0 +1,75 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_amakna_40_60_v5",
+  "title": "Guide Ultime — Amakna 40-60 + accès Otomaï causal",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "amakna_40_60_v4.json",
+  "supersedes": "guide_ultime_manual_amakna_40_60_v4",
+  "stage_count": 10,
+  "optimization_note": "Corrige l'ouverture prématurée d'Ocre d'Ambre: Le Dofus et l'alchimiste exige La magicienne des marécages. Le chapitre conserve l'accès Otomaï anticipé, mais La raison du plus fort et Après lui, le déluge sont repoussées au premier passage Mériana réellement causal au niveau70+.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/le-dofus-et-l-alchimiste.html",
+    "https://www.dofuspourlesnoobs.com/la-raison-du-plus-fort.html",
+    "https://www.dofuspourlesnoobs.com/la-magicienne-des-mareacutecages.html",
+    "https://www.dofuspourlesnoobs.com/le-nouveau-monde.html",
+    "https://www.dofuspourlesnoobs.com/licircle-des-naufrageacutes.html"
+  ],
+  "stage_patches": {
+    "AMK-02O": {
+      "replace": {
+        "title": "Otomaï anticipé — sécuriser l'accès sans ouvrir Ocre d'Ambre trop tôt",
+        "level": "40+ / accès Otomaï",
+        "duration_min": 55,
+        "quests": [
+          "Le nouveau monde",
+          "L'île des naufragés"
+        ],
+        "preparation": [
+          {"name":"Miséricorde du Chafer d'Élite","quantity":2,"for":"Le nouveau monde"},
+          {"name":"Gros Boulet","quantity":1,"for":"Le nouveau monde"},
+          {"name":"Oreille de Foufayteur","quantity":1,"for":"Le nouveau monde"},
+          {"name":"Huile de Sésame","quantity":1,"for":"Le nouveau monde"},
+          {"name":"Tronc de Kokoko","quantity":1,"for":"L'île des naufragés","policy":"Peut être obtenu sur l'île; l'avoir avant le départ raccourcit la traversée."},
+          {"name":"Tranche de Nodkoko","quantity":1,"for":"L'île des naufragés","policy":"Peut être obtenue sur l'île; l'avoir avant le départ raccourcit la traversée."},
+          {"name":"Kokopaille","quantity":1,"for":"L'île des naufragés","policy":"Peut être obtenue sur l'île; l'avoir avant le départ raccourcit la traversée."},
+          {"name":"Coffret maudit du Flib","quantity":1,"for":"L'île des naufragés","policy":"Peut être obtenu sur l'île; l'avoir avant le départ raccourcit la traversée."}
+        ],
+        "route": [
+          {"pos":"[15,28] Sufokia","do":"Faire Le nouveau monde auprès du Capitaine Kradoc avec les ressources préparées, puis lui reparler pour embarquer et enchaîner L'île des naufragés."},
+          {"pos":"Île des Naufragés","do":"Faire les trois combats du voyage puis récupérer les ressources de réparation encore manquantes. Remettre le lot au Capitaine Kradoc pour terminer L'île des naufragés et poursuivre jusqu'à Otomaï."},
+          {"pos":"[-46,18] Village côtier","do":"Dès l'arrivée sur l'île d'Otomaï, mémoriser le zaap du Village côtier. Les futurs retours ne devront plus refaire la traversée en bateau."},
+          {"pos":"[-55,15] Otomaï","do":"Monter jusqu'à Otomaï afin de connaître le trajet. Le Dofus et l'alchimiste et La raison du plus fort restent pour plus tard, après La magicienne des marécages."}
+        ],
+        "hard_exit": [
+          "Accès Otomaï permanent obtenu avant AMK-03.",
+          "Zaap du Village côtier [-46,18] mémorisé pour les retours futurs.",
+          "Aucune quête Ocre d'Ambre déclarée active avant La magicienne des marécages."
+        ],
+        "pause": [
+          "Accès Otomaï sécurisé",
+          "Ocre d'Ambre volontairement différé jusqu'au passage Mériana causal"
+        ]
+      }
+    },
+    "AMK-03": {
+      "replace": {
+        "title": "Campement Gobelin — Akadémie + Emma, premier passage uniquement",
+        "level": "40-50",
+        "duration_min": 35,
+        "quests": ["Donjon éducatif"],
+        "route": [
+          {"pos":"[-5,3]","do":"Faire l'Akadémie des Gobs pour Donjon éducatif; avant le premier combat récupérer le parchemin du sort Foudroiement de Grunob si pas déjà appris; faire les succès compatibles."},
+          {"pos":"[1,-15]","do":"Rendre Donjon éducatif à Emma et prendre Donjon douillet."}
+        ],
+        "hard_exit": [
+          "Donjon éducatif terminée.",
+          "Donjon douillet active.",
+          "Sort Foudroiement de Grunob récupéré si disponible.",
+          "La raison du plus fort et Après lui, le déluge restent non disponibles pendant ce premier passage."
+        ],
+        "future_merge": "La raison du plus fort demandera plus tard un second passage à l'Akadémie, après La magicienne des marécages. Ce nouveau passage est nécessaire parce que la quête n'est pas encore disponible ici."
+      }
+    }
+  },
+  "insertions": []
+}

@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_ocre_final_route_v1",
+  "status": "MANUAL_TRANSVERSAL_WORKING_SET",
+  "base_file": "ocre_completion_route_v1.json",
+  "alias_policy": "Référence canonique du manifeste. La route détaillée reste définie une seule fois dans ocre_completion_route_v1.json.",
+  "stage_count": 5
+}

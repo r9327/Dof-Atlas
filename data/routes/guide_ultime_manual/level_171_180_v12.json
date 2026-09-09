@@ -1,0 +1,335 @@
+{
+  "schema_version": 12,
+  "route_id": "guide_ultime_manual_level_171_180_v12",
+  "title": "Guide Ultime — Niveau 171 à 180, route joueur consolidée",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v11.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v11",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v20.json",
+    "bonta_1_100_v15.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Aligne le palier sur 150-170 v20, Bonta v15 et temporal v15; remplace les renvois BNT/fichiers et les termes PASS/rerun/runtime/walkthrough/gate/cleanup dans les champs rendus; conserve les deux Korriandre réellement causaux, le retour Bworker conditionnel de La dernière pierre et les retours Royalmouth/Obsidiantre imposés par Chaud du S.L.I.P.",
+  "global_preparation": [
+    {"name":"Clefs de dimension","policy":"Préparer les clefs Malléfisk, Phossile et Toxoliath avant leurs campagnes; le trousseau ne fonctionne pas dans les dimensions."},
+    {"name":"Idole de Foluk Dorée","quantity":1,"for":"Phossile","policy":"Chaque personnage qui valide Foluk doit utiliser sa propre idole."},
+    {"name":"Idole de Foluk Griffée","quantity":1,"for":"Kanigroula","policy":"Chaque personnage qui valide Foluk doit utiliser sa propre idole."},
+    {"name":"Idole de Foluk Féérique","quantity":1,"for":"premier Korriandre avec La bénédiction de Foluk","policy":"Chaque personnage qui valide Foluk doit utiliser sa propre idole."},
+    {"name":"Pierre d'âme","minimum_power":190,"quantity":2,"for":"Korriandre et Ougah si leur capture Ocre est encore manquante","policy":"Ne consommer une pierre pour l'Ocre que si la cible n'est pas déjà validée."},
+    {"requirement":"4 personnages minimum pour le Temple du Grand Ougah et les mécaniques Bonta concernées.","blocking":true},
+    {"requirement":"Conserver exactement le même Ordre Bonta choisi depuis le rang 20 pour la quête d'Ordre 80.","blocking":true},
+    {"requirement":"Alchimiste 180 ou Essence du Korriandre disponible pour Les derniers d'entre nous.","policy":"Préparer l'Essence de Sylvesprit avant le Korriandre si cette option est choisie."},
+    {"name":"Baguette Rikiki","quantity":1,"for":"Fungus"},
+    {"name":"Bocal","quantity":1,"for":"La prolifération a crû"},
+    {"name":"Eau de la fontaine de Noffoub","quantity":1,"for":"La prolifération a crû"},
+    {"name":"Fluide glacial","quantity":1,"for":"La prolifération a crû"},
+    {"name":"Huile de mamansot","quantity":1,"for":"La prolifération a crû"}
+  ],
+  "stage_patches": {
+    "L171-01": {
+      "replace": {
+        "title":"Bonta 71-74 — enquête, témoins puis égouts",
+        "entry":"Bonta 70 terminé et rang 71 réellement disponible.",
+        "temporal_hooks":["bonta73_gambling_den_access"],
+        "take":[],
+        "route":[],
+        "progress_also":["Récupérer à la banque les ressources déjà prévues pour les rangs 75 à 80 avant de quitter Bonta."],
+        "before_leaving":["Bonta 74 terminé.","Si j'avais un marteau disponible."],
+        "hard_exit":["Bonta 74 terminé avant la suite de l'alignement."]
+      }
+    },
+    "L171-02": {
+      "replace": {
+        "entry":"Le disparu de Sufokia a déjà partagé le XLII avec Carpe Diem au palier précédent.",
+        "route":[
+          {"area":"Tour des Voyageurs / Enutrosor / Srambad / Xélorium","do":"Rendre Le disparu de Sufokia si nécessaire puis faire Rendez-vous avec la mort, Secret de fabrication, S'emparer des commandes et C'est dans la boîte en regroupant chaque déplacement par dimension."},
+          {"area":"Veilleurs","do":"Terminer Crise d'identité et valider Par-delà les apparences. Obtenir le Dofus des Veilleurs uniquement lorsque les autres succès requis sont eux aussi réellement terminés."}
+        ],
+        "progress_also":["Pendant Enutrosor, préparer la campagne Malléfisk et les quêtes de la Carrière Aurifère qui suivent."],
+        "hard_exit":["Par-delà les apparences terminé.","Aucun second XLII créé pour Le disparu de Sufokia."]
+      }
+    },
+    "L171-03": {
+      "replace": {
+        "route":[
+          {"area":"Creuset des Fortunés","do":"Activer les quêtes de Même pas malle selon leurs dépendances et regrouper leurs combats et dialogues avant la Fabrique."},
+          {"area":"Fabrique de Malléfisk","do":"Entrer seulement lorsque tous les objectifs Malléfisk compatibles sont prêts. Faire un seul passage pour ces quêtes et les succès de donjon encore ouverts."}
+        ],
+        "progress_also":["Prendre les avis de recherche rencontrés naturellement, sans attendre leur apparition."],
+        "hard_exit":["Même pas malle terminé sans deuxième Malléfisk pour ces objectifs."]
+      }
+    },
+    "L171-04": {
+      "replace": {
+        "route":[{"area":"Carrière Aurifère","do":"Enchaîner Crache Test, La quatrième dimension, Déphorrestation, La meilleure défense c'est l'attaque, Phorreurs dans la brume et Le phormidiable au corps, puis avancer La pelle de la phorrée jusqu'à devoir vaincre Phossile. Regrouper combats, drops et dialogues par sous-zone."}],
+        "progress_also":["Préparer la clef de la Galerie du Phossile et l'Idole de Foluk Dorée, mais attendre le niveau 180 et La bénédiction de Foluk avant d'entrer."],
+        "before_leaving":["La pelle de la phorrée demande Phossile.","Aucun Phossile fait prématurément."],
+        "hard_exit":["Phossile réservé au passage commun avec Foluk."]
+      }
+    },
+    "L171-05": {
+      "replace": {
+        "title":"Bonta 75-76 — Marteau et Esprit de Lumière avec les groupes préparés",
+        "entry":"Bonta 74 terminé; aides Bonta 75 et 76 organisées avant les déplacements.",
+        "take":[],
+        "route":[],
+        "progress_also":["Pendant la Forêt pétrifiée, conserver les ressources et drops utiles à Foluk, aux cinq Globes Mystiques et aux futures quêtes Fungus."],
+        "before_leaving":["Bonta 76 terminé.","Quatre Énormes pierres d'âme préparées pour Vol du Temps."],
+        "hard_exit":["Bonta 76 terminé sans recherche de groupe au dernier moment."]
+      }
+    },
+    "L171-06": {
+      "replace": {
+        "title":"Bonta 77-79 — quatre Hordémons puis Pense-bête",
+        "entry":"Bonta 76 terminé.",
+        "take":[],
+        "route":[],
+        "progress_also":["Vider les pods avant Xélorium et Pandala et conserver les ressources déjà prévues pour le rang 80."],
+        "before_leaving":["Bonta 79 terminé.","L'Éclat de l'Aube disponible au niveau 180."],
+        "hard_exit":["Bonta 79 terminé; les quatre captures Hordémon n'ont jamais été comptées dans l'Ocre."]
+      }
+    },
+    "L180-00": {
+      "replace": {
+        "title":"Bonta 80 — L'Éclat de l'Aube puis quatrième quête du même Ordre",
+        "entry":"Niveau 180 atteint, Bonta 79 terminé et Ordre choisi depuis le rang 20 toujours connu.",
+        "take":[],
+        "route":[],
+        "progress_also":["Après le rang 80, préparer immédiatement la quatrième quête du même Ordre et l'avancer jusqu'à son objectif Ougah. Ne partir au Temple du Grand Ougah que lorsque Tour de force et Appui sur le champignon seront eux aussi prêts."],
+        "before_leaving":["Bonta 80 terminé.","Même Ordre conservé depuis le rang 20.","Quatrième quête de cet Ordre prise et avancée autant que possible avant Ougah."],
+        "hard_exit":["Bonta 80 terminé; aucune autre branche d'Ordre proposée."]
+      }
+    },
+    "L180-01": {
+      "replace": {
+        "route":[{"area":"Turquoise — Ouest","do":"Avancer Il était une foi dans l'Ouest jusqu'au Disciple de Foluk puis prendre La bénédiction de Foluk. Préparer les trois idoles Foluk Dorée, Griffée et Féérique avant le premier boss; chaque personnage doit utiliser ses propres idoles."}],
+        "progress_also":["Phossile attend déjà La pelle de la phorrée, Kanigroula devra être refaite parce que Foluk n'existait pas lors du premier passage, et le premier Korriandre servira aussi Les derniers d'entre nous."],
+        "hard_exit":["La bénédiction de Foluk active et trois idoles prêtes avant Phossile, Kanigroula ou Korriandre."]
+      }
+    },
+    "L180-02": {
+      "replace": {
+        "route":[{"area":"Galerie du Phossile","do":"Entrer avec La pelle de la phorrée et La bénédiction de Foluk. Utiliser l'Idole de Foluk Dorée avant le boss, vaincre Phossile et faire les succès encore ouverts. Phossile ne peut pas être capturé pour l'Ocre."}],
+        "progress_also":["Pendant le trajet, terminer seulement les objectifs Monstres de la Carrière Aurifère encore ouverts."],
+        "before_leaving":["La pelle de la phorrée avancée après Phossile.","Foluk Dorée validée.","Aucune capture Ocre tentée sur Phossile."],
+        "hard_exit":["Un seul Phossile pour ces objectifs."]
+      }
+    },
+    "L180-03": {
+      "replace": {
+        "route":[{"area":"Carrière Aurifère / Avant-poste","do":"Après Phossile, faire Les grandes galeries, Un cœur d'or et Maudite générosité dans une seule campagne Enutrosor afin de fermer Après les phorreurs, le réconfort sans revenir au boss."}],
+        "progress_also":["Échantillonnage ne doit être prise que si elle est réellement disponible; ne pas forcer une chaîne de niveau supérieur."],
+        "hard_exit":["Après les phorreurs, le réconfort terminé sans second Phossile."]
+      }
+    },
+    "L180-04": {
+      "replace": {
+        "title":"Kanigroula — retour devenu nécessaire pour Foluk + préparation Forêt pétrifiée",
+        "route":[
+          {"pos":"[-71,-43] Frigost","do":"Si le personnage suit la branche Paysan d'Agriculture ou alchimie, prendre Les graines de la discorde avant de repartir en Forêt pétrifiée. Récolter les 5 Graines de Vesce au fil du trajet et commencer les 40 Graines de Ricin sur les combats naturels."},
+          {"area":"Forêt pétrifiée","do":"Surveiller la Clef végétale pétrifiée de Monstre aux plantes pendant les combats utiles. Si L'appel de la forêt est la chasse Baka réellement active, chaque monstre de la zone compte aussi pour ses 50 Lichens."},
+          {"area":"Caverne de Kanigroula","do":"Revenir à Kanigroula uniquement parce que La bénédiction de Foluk n'était pas disponible au premier passage. Utiliser l'Idole de Foluk Griffée, vaincre Kanigroula et faire seulement les succès encore manquants."}
+        ],
+        "progress_also":["Ne faire aucun combat de Forêt uniquement pour la Clef végétale, les Graines de Ricin ou les Lichens avant d'avoir consommé les deux passages Korriandre et les Globes Mystiques à venir."],
+        "before_leaving":["Foluk Griffée validée.","Les graines de la discorde active si branche Paysan.","Compteurs Forêt conservés exactement."],
+        "hard_exit":["Le retour Kanigroula est justifié par l'ouverture tardive de Foluk."]
+      }
+    },
+    "L180-05": {
+      "replace": {
+        "title":"Korriandre — premier passage avec Foluk + Les derniers + Sans ma barbe",
+        "route":[
+          {"area":"Antre du Korriandre — salles","do":"Entrer avec Les derniers d'entre nous au boss et La bénédiction de Foluk active. Utiliser les salles pour les Graines de Ricin et, si elle est active, la chasse L'appel de la forêt. Surveiller aussi la Clef végétale pétrifiée et la Clef secrète de la Forêt pétrifiée sans prolonger le donjon pour ces drops."},
+          {"area":"Antre du Korriandre — boss","do":"Utiliser l'Idole de Foluk Féérique, vaincre Korriandre, faire les succès compatibles et le capturer avec une pierre puissance 190 uniquement si sa capture Ocre manque encore."},
+          {"area":"après boss","do":"Avant de sortir, parler à Kroa et faire toutes les interactions de Les derniers d'entre nous avec l'essence préparée. Terminer aussi Sans ma barbe, quelle barbe lorsque le donjon la valide."}
+        ],
+        "progress_also":["Conserver tous les Globes Mystiques obtenus pour Une âme en colère. Si la Clef secrète de la Forêt pétrifiée tombe, la garder pour Voleur en tout genre après Dépôt de ravitaillement; aucun groupe de huit n'est recruté maintenant."],
+        "before_leaving":["Sans ma barbe, quelle barbe terminée.","Les derniers d'entre nous terminée.","Foluk Féérique validée.","Interactions après le boss terminées."],
+        "hard_exit":["Le premier Korriandre est terminé; Porte, Korriandre, trésor et Donjon sans dragon peuvent seulement maintenant devenir disponibles."]
+      }
+    },
+    "L180-06": {
+      "replace": {
+        "route":[{"area":"Turquoise","do":"Rendre La bénédiction de Foluk, terminer Il était une foi dans l'Ouest puis prendre Une âme en colère. Avancer jusqu'à la demande de 5 Globes Mystiques et compter ceux déjà conservés avant tout combat supplémentaire."}],
+        "progress_also":["Pendant les prochains combats de Forêt pétrifiée, ne récupérer que le nombre de Globes réellement manquant."],
+        "hard_exit":["La bénédiction de Foluk terminée.","Il était une foi dans l'Ouest terminée.","Une âme en colère active avec nombre exact de Globes manquant connu."]
+      }
+    },
+    "L180-07": {
+      "replace": {
+        "title":"Korriandre — second passage devenu nécessaire pour Porte + Donjon sans dragon",
+        "route":[
+          {"area":"Antre du Korriandre","do":"Revenir uniquement parce que Porte, Korriandre, trésor et Donjon sans dragon se sont débloquées après Sans ma barbe. Vaincre Korriandre pour ces deux quêtes; effectuer la capture demandée par Donjon sans dragon et ne refaire aucune capture Ocre si elle est déjà validée."},
+          {"area":"Antre / Forêt pétrifiée","do":"Utiliser les salles et ce boss pour finir en priorité les Graines de Ricin, la chasse L'appel de la forêt si elle est active et les tentatives naturelles de Clef végétale et Clef secrète. Aucun troisième Korriandre n'est créé pour ces drops."},
+          {"area":"Forêt pétrifiée","do":"Après les deux Korriandre, compléter uniquement les Globes Mystiques manquants pour arriver à 5. Si Les graines de la discorde ou L'appel de la forêt ont encore un reliquat, le finir pendant ces mêmes combats puis arrêter dès les compteurs complets."},
+          {"pos":"[-71,-43] / Village Enseveli","do":"Rendre Les graines de la discorde si elle est complète. Si L'appel de la forêt est la chasse active et ses 50 Lichens sont obtenus, la rendre à Baka lors d'un passage où elle est disponible."},
+          {"area":"Forêt pétrifiée — Kordis","do":"Dès que la Clef végétale pétrifiée est obtenue, l'utiliser puis faire Kordis et terminer Monstre aux plantes. Si elle manque encore après les deux Korriandre et tous les combats Globes/Ricin/Lichens, seulement alors terminer ce drop de manière ciblée."}
+        ],
+        "progress_also":["La Clef secrète de la Forêt pétrifiée obtenue sur Korriandre est conservée pour la session sociale Ongles incarnés; si elle manque encore, attendre les futures tentatives Korriandre déjà imposées plutôt que refaire le boss maintenant."],
+        "before_leaving":["Porte, Korriandre, trésor terminée.","Donjon sans dragon terminée.","5 Globes Mystiques disponibles.","Les graines de la discorde terminée ou seulement son reliquat exact absorbé dans les mêmes combats.","Monstre aux plantes terminée ou Clef végétale encore manquante seulement après toutes les tentatives naturelles."],
+        "hard_exit":["Deux Korriandre seulement pour ce bloc; aucun troisième passage planifié pour ces objectifs."]
+      }
+    },
+    "L180-08": {
+      "replace": {
+        "route":[
+          {"area":"Monde des Douze","do":"Remettre les 5 Globes Mystiques puis faire les cinq captures d'esprits d'eau demandées par Une âme en colère en regroupant les déplacements autant que possible."},
+          {"area":"combat final Furye","do":"Faire le combat tactique final puis terminer Une âme en colère et récupérer le Dofus Turquoise."}
+        ],
+        "progress_also":["Ces esprits et Globes n'ont aucun lien avec les captures de l'Ocre."],
+        "hard_exit":["Une âme en colère terminée et Dofus Turquoise obtenu."]
+      }
+    },
+    "L180-09": {
+      "replace": {
+        "temporal_hooks":["fungus_agrypnite_grilled_respawn","fungus_sword_fishing_spot_respawn"],
+        "route":[
+          {"area":"Domaine / Cavernes des Fungus","do":"Faire Champallucination en regroupant les 20 combats de Restes de Fungus et les récoltes. Prendre deux Agrypnites tue-sommeil supplémentaires pour Le baptême du feu; si les Agrypnites grillées ne sont pas disponibles, avancer les combats ou une autre action locale au lieu d'attendre."},
+          {"area":"Fungus","do":"Enchaîner Le baptême du feu puis Passe le fungus autour de toi. Dès Passe terminée, prendre Appui sur le champignon et l'avancer jusqu'au Temple du Grand Ougah sans entrer."},
+          {"area":"Fungus","do":"Prendre La prolifération a crû dès qu'elle est disponible et faire ses échantillons ou récoltes compatibles pendant ces mêmes boucles avec les ressources déjà préparées."}
+        ],
+        "progress_also":["Fermer les succès Monstres Fungus pendant les combats déjà imposés, sans créer de session supplémentaire."],
+        "before_leaving":["Appui sur le champignon demande Ougah.","La prolifération a crû avancée autant que possible avant Ougah."],
+        "hard_exit":["Ne pas entrer au Temple du Grand Ougah avant la synchronisation de la fiche suivante."]
+      }
+    },
+    "L180-10": {
+      "replace": {
+        "title":"Pré-Ougah — synchroniser Tour de force + Appui + Ordre 80",
+        "entry":"Tour de force et Appui sur le champignon actives; Bonta 80 terminé et quatrième quête du même Ordre en cours.",
+        "take":["Terminer les préparations de la quatrième quête de l'Ordre déjà choisi et l'amener jusqu'à son objectif Ougah."],
+        "route":[{"area":"préparation Ougah","do":"Partir au Temple seulement lorsque Tour de force, Appui sur le champignon et la quatrième quête de l'Ordre choisi demandent toutes Ougah. Ajouter une pierre puissance 190 uniquement si la capture Ougah pour l'Ocre manque encore."}],
+        "progress_also":["Les coûts du sort est ajouté uniquement si elle est déjà disponible; ne jamais attendre l'Ocre avant ce passage juste pour cette quête. Un pouvoir mérydique appartient à un arc plus tardif."],
+        "before_leaving":["Groupe de quatre présent.","Pierre puissance 190 disponible si Ocre nécessaire.","Ressources de l'Ordre choisies prêtes."],
+        "hard_exit":["Ougah prêt pour une seule entrée avec tous les objectifs actuellement compatibles."]
+      }
+    },
+    "L180-11": {
+      "replace": {
+        "route":[
+          {"area":"Temple du Grand Ougah","do":"Faire les interactions d'Appui sur le champignon dans les salles 1, 2, 3 et 8 avant de les dépasser. Vaincre Ougah avec le groupe préparé et le capturer avec une pierre puissance 190 seulement si l'Ocre le demande encore."},
+          {"area":"après boss","do":"Avant de sortir, effectuer l'interaction spécifique de la quatrième quête de l'Ordre choisi si elle se trouve après Ougah, puis terminer les dialogues d'Appui, d'Ordre et de Tour de force."}
+        ],
+        "progress_also":["Faire les succès Ougah compatibles encore ouverts pendant ce même passage."],
+        "before_leaving":["Tour de force validée.","Appui sur le champignon validée.","Interaction d'Ordre après boss effectuée si nécessaire.","Ougah capturé pour l'Ocre uniquement si encore requis."],
+        "hard_exit":["Ougah fait une seule fois pour tous les objectifs actuellement disponibles."]
+      }
+    },
+    "L180-12": {
+      "replace": {
+        "route":[{"area":"Domaine / Cavernes des Fungus","do":"Terminer La prolifération a crû : réaliser les six échantillons, six récoltes et relevés climatiques dans une seule boucle, fournir Bocal, Eau de Noffoub, Fluide glacial et Huile de mamansot déjà préparés puis gagner le combat solo final."}],
+        "progress_also":["Fermer les succès Monstres Fungus encore ouverts pendant les combats imposés."],
+        "hard_exit":["La prolifération a crû terminée et Les spores, c'est la santé validé sans second Ougah."]
+      }
+    },
+    "L180-13": {
+      "replace": {
+        "temporal_hooks":["ocre_ambre_malterego_repop"],
+        "route":[{"area":"Ocre d'Ambre","do":"Prendre Le serment de l'ambre lorsqu'il est disponible. Obtenir ou renouveler l'altération Au-delà des apparences au passage, équiper l'Anneau Ocre demandé puis faire le combat tactique et rendre la quête. Si un combat nécessaire n'est pas disponible, avancer un autre objectif et revenir plus tard."}],
+        "progress_also":["La Demeure des Esprits a déjà été utilisée avec Requiem et Quand les esprits s'échauffent : aucun nouveau passage n'est nécessaire ici."],
+        "hard_exit":["Le serment de l'ambre terminé et Ocre d'Ambre obtenu sans nouvelle Demeure des Esprits."]
+      }
+    },
+    "L180-13B": {
+      "replace": {
+        "title":"Tour du Monde — Bworker + Ocre, La dernière pierre seulement si déjà ouverte",
+        "entry":"La voie du guerrier demande Bworker depuis le Minotot du palier précédent.",
+        "preparation":[
+          {"name":"Énorme pierre d'âme","minimum_power":190,"quantity":1,"for":"Bworker Ocre","policy":"Capturer Bworker puis garder l'âme en banque si la remise Ocre correspondante n'est pas encore disponible."},
+          {"name":"Clef de la Grotte du Bworker","quantity":1},
+          {"conditional":"La dernière pierre déjà active","requirements":["25 Éklâme majestueuse","5 Potion minérale","5 Potion d'altération","Mineur 20 minimum","quatre Dofus primordiaux présents"],"policy":"Si La dernière pierre n'est pas encore disponible, ne pas retarder Tour du Monde; un futur retour Bworker sera alors imposé par cette nouvelle quête."}
+        ],
+        "route":[
+          {"area":"Gisgoul","do":"Si La dernière pierre est déjà active, faire ses combats et crafts préparatoires jusqu'à devoir obtenir le Jeton prismatique du Bworker. Sinon aller directement au donjon avec La voie du guerrier."},
+          {"area":"Grotte du Bworker","do":"Vaincre Bworker, faire les succès compatibles et capturer son âme avec une pierre puissance 190 pour l'Ocre. Si La dernière pierre est active, récupérer aussi le Jeton prismatique avant de sortir."},
+          {"area":"Maître des clefs","do":"Terminer La voie du guerrier puis enchaîner Le tracas du guerrier afin de fermer Le tour du monde en 27 donjons."},
+          {"area":"Quatre sur six","do":"Si La dernière pierre était active, terminer sa suite après Bworker. Si elle ne l'était pas, conserver clairement qu'elle exigera plus tard un nouveau Bworker parce qu'elle s'est ouverte après ce passage."}
+        ],
+        "progress_also":["Ruée sur le Bworker est une ancienne quête événementielle et n'entre pas dans le tronc permanent. Pendant les combats Gisgoul réellement nécessaires, faire les succès Monstres encore ouverts."],
+        "before_leaving":["Bworker capturé pour l'Ocre.","La voie du guerrier terminée.","Le tracas du guerrier terminé.","Le tour du monde en 27 donjons terminé."],
+        "hard_exit":["Tour du Monde terminé; état de La dernière pierre conservé sans masquer un éventuel retour Bworker futur."]
+      }
+    },
+    "L180-13S": {
+      "replace": {
+        "title":"Sufokia — Test d'étanchéité + Pollution + Tour nage sur un Merkator",
+        "route":[
+          {"area":"Sufokia → base abyssale","do":"Prendre Tour nage, Pollution je dis non et les quêtes Test d'étanchéité disponibles. Descendre dans la base en regroupant L'ivresse des profondeurs, Les Mercemers sont bien outillés, Pêche aux krabouilleurs, À bas Kralab Rah, KO pour Bosko Tho et Relevez les niveaux; récupérer les Piles Steamers pendant les combats imposés."},
+          {"area":"entrée Aquadôme","do":"Après Relevez les niveaux, prendre Prise de notes. N'entrer que lorsque Tour nage et Pollution je dis non demandent Merkator et que Prise de notes est active."},
+          {"area":"Aquadôme de Merkator","do":"Faire un seul passage : relever les notes des cinq salles, faire les succès compatibles et vaincre Merkator pour Tour nage + Pollution. Après le boss, effectuer le dialogue demandé par Pollution avant de sortir. Merkator n'est pas une capture Ocre."},
+          {"area":"Sufokia / Amakna","do":"Terminer Prise de notes, Test d'étanchéité et Pollution je dis non. Rendre Tour nage et prendre Le tour est joué."},
+          {"area":"Kralamoure","do":"Ne pas organiser une ouverture uniquement pour Le tour est joué. Si L'éternelle moisson est réellement arrivée au Kralamoure avec sa pierre spéciale et qu'une ouverture existe, faire les deux objectifs ensemble; sinon conserver Le tour est joué actif pour cette future fusion."}
+        ],
+        "progress_also":["Une seule validation de L'ivresse des profondeurs suffit ici. Le Kralamoure utilise sa pierre spéciale Ocre, jamais une pierre standard."],
+        "hard_exit":["Merkator fait une seule fois pour les objectifs disponibles.","Le tour est joué actif si Kralamoure n'a pas pu être fusionné avec l'Ocre.","Aucun Kralamoure organisé uniquement pour Tour nage."]
+      }
+    },
+    "L180-13F": {
+      "replace": {
+        "title":"Frigost — Dépôt + Chaud du S.L.I.P. puis Mission Solution prête Glours",
+        "route":[
+          {"area":"Village Enseveli / Forêt pétrifiée","do":"Faire les caisses et l'enquête de Dépôt de ravitaillement. Parler à Lulu pendant une plage 08:00–20:00 rencontrée naturellement; hors plage, continuer un autre objectif et revenir plus tard."},
+          {"area":"Hypogée de l'Obsidiantre — 20:00–08:00","do":"Quand Dépôt demande l'aide du S.L.I.P., lancer Chaud du S.L.I.P. pendant une plage nocturne naturelle. Arriver avec les ressources préparées afin de ne pas perdre cette fenêtre en achats."},
+          {"area":"Serre du Royalmouth","do":"Revenir au Royalmouth uniquement parce que Chaud du S.L.I.P. exige maintenant un combat avec un slip compatible. Cette quête n'existait pas lors des anciens Royalmouth; faire seulement les succès encore ouverts et aucune nouvelle capture Ocre."},
+          {"area":"Hypogée de l'Obsidiantre","do":"Revenir à l'Obsidiantre uniquement pour les salles, interactions et ressources demandées par Chaud du S.L.I.P. Cette exigence s'est ouverte après les anciens passages et ne doit pas être traitée comme un oubli d'optimisation."},
+          {"area":"S.L.I.P. / artisans","do":"Terminer les missions, fabriquer le Slip Iholo lorsque sa recette devient utile puis obtenir la Potion du S.L.I.P. et terminer Chaud du S.L.I.P."},
+          {"area":"Village Enseveli","do":"Reprendre Dépôt avec la potion, libérer les bûcherons et terminer la quête. Un ami qui ne vous veut pas que du bien sera utilisé au niveau 190."},
+          {"area":"Bourgade / Frigost","do":"Prendre Mission Solution après Chauffage à moindre frais + Malédiction ! + Chaud du S.L.I.P. Faire tous ses objectifs hors Glours et l'avancer jusqu'à demander explicitement les trois premières salles de l'Antichambre des Gloursons."},
+          {"area":"Antichambre des Gloursons","do":"Ne pas entrer encore. Le premier Glours du palier 190 doit partager ces trois salles avec les autres quêtes déjà préparées."}
+        ],
+        "progress_also":["Pendant les retours Royalmouth et Obsidiantre imposés par Chaud du S.L.I.P., faire uniquement les succès encore manquants. Préparer Mission Solution avant le premier Glours afin d'éviter un retour de salles plus tard."],
+        "before_leaving":["Dépôt de ravitaillement terminé.","Chaud du S.L.I.P. terminé.","Mission Solution demande les trois premières salles Glours.","Un ami qui ne vous veut pas que du bien disponible pour le niveau 190."],
+        "hard_exit":["Aucune attente jour/nuit immobile.","Aucune entrée Glours avant que les autres fils du palier 190 soient prêts."]
+      }
+    },
+    "L180-14": {
+      "replace": {
+        "route":[{"area":"Srambad niveau 180","do":"Enchaîner Nécrotiques tiques tiques, La pêche au poison, Les troupiers, Épidémiologie, Tique attaque et Sa Majesté des Nécrotiques selon leurs dépendances. Avancer L'art me ment jusqu'à devoir vaincre Toxoliath, en regroupant les combats et PNJ par sous-zone."}],
+        "progress_also":["Préparer la clef de la Cave du Toxoliath et les succès encore ouverts; aucune pierre d'âme Ocre car Toxoliath ne peut pas être capturé."],
+        "hard_exit":["L'art me ment demande Toxoliath avant l'entrée de la fiche suivante."]
+      }
+    },
+    "L180-15": {
+      "replace": {
+        "route":[
+          {"area":"Cave du Toxoliath","do":"Faire un seul passage pour L'art me ment et les succès compatibles. Toxoliath ne peut pas être capturé pour l'Ocre."},
+          {"area":"Srambad","do":"Enchaîner Viande fraîche, La morte Adèle et Comme un poison dans l'eau afin de fermer Crache ton venin."}
+        ],
+        "progress_also":["La grosse commission n'est ajoutée que si elle est réellement disponible et si sa condition de caractéristique est remplie; ne pas retarder la campagne pour elle."],
+        "hard_exit":["Crache ton venin terminé.","Toxoliath fait une seule fois et jamais marqué comme capture Ocre."]
+      }
+    },
+    "L180-16": {
+      "replace": {
+        "title":"Osavora 180 — avancer La proie des vérités jusqu'au prochain accès disponible",
+        "entry":"Le vol des bourdons et On se fait la bzzzbz terminés au palier précédent.",
+        "temporal_hooks":["osavora_season_cycle","osavora_a_la_petite_semaine"],
+        "progress_also":["Les objectifs saisonniers déjà ouverts avancent lorsqu'ils coïncident avec la saison actuelle; aucune attente de changement de saison."],
+        "hard_exit":["Osavora avancé uniquement jusqu'aux quêtes réellement disponibles; aucun accès niveau 200 forcé."]
+      }
+    },
+    "L180-17": {
+      "replace": {
+        "entry":"La proie des vérités réellement terminée et les suites proposées par le jeu disponibles.",
+        "temporal_hooks":["osavora_season_cycle","osavora_a_la_petite_semaine","osavora_gargandyas_weekend"],
+        "progress_also":["Le goût de la vie sauvage reste ouvert tant que Les gloutons des dimensions exige encore des contenus plus tardifs comme Nidas ou le Ventre de la Baleine."],
+        "hard_exit":["Aucune attente volontaire d'une saison ou d'un week-end Gargandyas.","Gargandyas jamais traité comme capture Ocre.","Dofoozbz considéré obtenu uniquement après Question d'équilibre réellement validé."]
+      }
+    },
+    "L180-18": {
+      "replace": {
+        "title":"Ébène — poursuivre Jusqu'au bout du rêve au niveau 180",
+        "entry":"Le forgeur de légende terminé et Jusqu'au bout du rêve active depuis le palier précédent.",
+        "take":["Vérifier le nombre réel de rencontres Crocobur déjà validées et le palier actuel des Songes."],
+        "route":[{"area":"Songes Infinis","do":"Le palier de niveau 180 permet de nouvelles rencontres de Crocobur. Faire celles qui apparaissent naturellement et ne valider que ce qui a réellement été rencontré; poursuivre les autres quêtes entre les sessions de Songes."}],
+        "progress_also":["À la recherche de Crocoburio appartient à une tranche plus tardive et ne doit pas être forcée avant ses prérequis."],
+        "hard_exit":["Dofus Ébène non déclaré obtenu tant que Jusqu'au bout du rêve n'est pas réellement terminé.","Aucune rencontre Songes inventée."]
+      }
+    }
+  },
+  "insertions": []
+}

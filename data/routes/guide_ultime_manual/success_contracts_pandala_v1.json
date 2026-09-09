@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "contract_id": "guide_ultime_success_contracts_pandala_v1",
+  "title": "Guide Ultime — contrats Pandala Wukin/Wukang",
+  "status": "BUILDING_VERIFIED_SUBSET",
+  "as_of": "2026-08-24",
+  "contracts": [
+    {
+      "success": "Les secrets du Pandawushu",
+      "zone": "Pandala",
+      "mode": "all",
+      "required_quests": [
+        "Shodanwa : Perfection martiale",
+        "Nidanwa : Harmonie intérieure",
+        "Sandanwa : Pluralité martiale",
+        "Yondanwa : Maîtrise absolue",
+        "Godanwa : Transcendance"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/les-secrets-du-pandawushu.html"
+    },
+    {
+      "success": "Deux dragons entrent dans un bar...",
+      "zone": "Wukin/Wukang",
+      "mode": "all",
+      "required_quests": [
+        "De l'encre spectaculaire",
+        "L'effet dragon",
+        "Pour que son coeur batte comme des ailes",
+        "Tant de mots et si peu de temps",
+        "Des aliments extraordinaires pour un chacha extraordinaire",
+        "L'épopée du moine pèlerin"
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/deux-dragons-entrent-dans-un-bar.html"
+    },
+    {
+      "success": "Un rêve en clair-obscur",
+      "zone": "Wukin/Wukang",
+      "mode": "all",
+      "required_quests": ["Main dans la main", "Deux souffles, une inspiration", "En ce jardin qui nous unit"],
+      "source": "https://www.dofuspourlesnoobs.com/un-reve-en-clair-obscur.html"
+    }
+  ]
+}

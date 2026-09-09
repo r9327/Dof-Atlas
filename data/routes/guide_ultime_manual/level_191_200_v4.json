@@ -1,0 +1,199 @@
+{
+  "schema_version":4,
+  "route_id":"guide_ultime_manual_level_191_200_v4",
+  "title":"Guide Ultime — Niveau 191 à 200 + Ivoire/Ébène/DDG/Nébuleux",
+  "status":"MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file":"level_191_200_v3.json",
+  "supersedes":"guide_ultime_manual_level_191_200_v3",
+  "stage_count":33,
+  "optimization_note":"Ferme les six succès dimensionnels Nébuleux encore manquants sans recopier 101 quêtes déjà faites. Raisons de retraite prépare Espionnage industriel avant l'Ivoire. Le roi et moi est avancé jusqu'à ses deux objectifs Nidas puis fusionné avec le Nidas de Casse en Enutrosor. Le jeu du trône et Les voleurs de Srambad sont groupés dans les Hauts Ténébreux; la Reine des Voleurs se fusionne avec L'oeuf de Crocabulia si l'Ébène a rattrapé les Songes, sinon elle est faite pour le Nébuleux et le futur rerun Ébène reste causal. Les deux quêtes Vortex sont activées ensemble pour un unique Œil de Vortex. Les trois Dieux sont visités seulement après fermeture réelle de leur dimension, puis La quête de l'oiseau du temps se fait à quatre.",
+  "sources":[
+    "https://www.dofuspourlesnoobs.com/quetes-du-dofus-nebuleux.html",
+    "https://www.dofuspourlesnoobs.com/enutrosor.html",
+    "https://www.dofuspourlesnoobs.com/le-roi-et-moi.html",
+    "https://www.dofuspourlesnoobs.com/srambad.html",
+    "https://www.dofuspourlesnoobs.com/le-jeu-du-trocircne.html",
+    "https://www.dofuspourlesnoobs.com/les-voleurs-de-srambad.html",
+    "https://www.dofuspourlesnoobs.com/xeacutelorium.html",
+    "https://www.dofuspourlesnoobs.com/les-puits-du-fou.html",
+    "https://www.dofuspourlesnoobs.com/moments-deacutegarement.html",
+    "https://www.dofuspourlesnoobs.com/la-quete-de-l-oiseau-du-temps.html"
+  ],
+  "stage_patches":{
+    "L200-09":{
+      "prepend":{
+        "quests":["Un morceau de roi","Coiffeur de génie"]
+      },
+      "append":{
+        "route":[
+          {"area":"Palais du roi Nidas","do":"Le Nidas Ivoire de Casse en Enutrosor sert aussi les DEUX objectifs Nébuleux préparés Un morceau de roi + Coiffeur de génie. Les deux quêtes doivent être actives avant entrée; parler à Nidas pour chaque fil avant sortie puis gérer le Coffret précieux de Casse."}
+        ],
+        "hard_exit":["Un seul Nidas pour Casse Ivoire + deux quêtes Le roi et moi"]
+      }
+    },
+    "L200-15E5":{
+      "prepend":{
+        "quests":["La cour des miracles"]
+      },
+      "append":{
+        "route":[
+          {"area":"Trône de la Cour Sombre","do":"Si La cour des miracles Nébuleux est encore active au moment où L'oeuf de Crocabulia atteint la Reine, fusionner les deux dans ce même passage. Si la Reine a déjà été faite pour le Nébuleux pendant que l'Ébène attendait les Songes, ce passage Ébène est un rerun causal explicite et non une erreur de route."}
+        ]
+      }
+    },
+    "L200-16":{
+      "replace":{
+        "title":"Audit final Ébène/Nébuleux/DDG — seulement les reliquats runtime",
+        "duration_min":45
+      },
+      "append":{
+        "route":[
+          {"area":"audit runtime","do":"Après les blocs dédiés, Nébuleux/DDG/Ébène doivent être soit réellement obtenus, soit accompagnés d'un blocker runtime exact (Songes, prérequis local, succès ancien manquant). Aucun compteur synthétique ne vaut validation."}
+        ]
+      }
+    }
+  },
+  "insertions":[
+    {
+      "before":"L200-08",
+      "stage":{
+        "id":"L200-NEB1",
+        "title":"Nébuleux Enutrosor — Raisons de retraite + Le roi et moi jusqu'au Nidas partagé",
+        "level":"200 / accès Enutrosor",
+        "duration_min":720,
+        "quests":[
+          "Touchez pas à Grisebigle","Échantillonnage","Le silence est d'or","Espionnage industriel","Prise d'otages","La grève de la fin","Malle des profondeurs","Reconnaissance de dettes","Laissé en plan",
+          "On ne prête qu'à Richard","Pour quelques kamas de plus","Tout ce qui brille n'est pas or","Un morceau de roi","Prime de lèche-majesté","Coiffeur de génie"
+        ],
+        "successes":["Raisons de retraite","Le roi et moi"],
+        "preparation":[
+          {"name":"Corne de Kamasterisk","quantity":1},
+          {"name":"Sourcil de Barbétoal","quantity":1},
+          {"name":"Dent de Lévitrof","quantity":1},
+          {"name":"Morceau de clef de Paspartou","quantity":1},
+          {"note":"Échantillonnage demande 10 sangs Enutrofor à drop hors Palais Nidas. Grouper ce farm avec les autres combats Retraite/Fort Thune; ne pas le chercher dans le donjon."}
+        ],
+        "take":[
+          "Fermer d'abord Raisons de retraite: cela garantit notamment Espionnage industriel, prérequis de Casse en Enutrosor Ivoire.",
+          "Ensuite enchaîner Le roi et moi jusqu'à ce que Un morceau de roi ET Coiffeur de génie demandent tous deux Nidas. STOP devant le Palais."
+        ],
+        "route":[
+          {"area":"Retraite des Éternels/Fort Thune/Enutrosor","do":"Exécuter les neuf quêtes Raisons de retraite en regroupant drops, combats et retours d'avant-poste; parler au walkthrough local pour les critères de caractéristiques/choix. Ne pas entrer au Nidas pour ce succès."},
+          {"area":"Creuset/Fort Thune","do":"Enchaîner On ne prête qu'à Richard → Pour quelques kamas de plus → Tout ce qui brille n'est pas or puis les branches Un morceau de roi / Prime de lèche-majesté / Coiffeur de génie. Préparer simultanément les deux objectifs Nidas."},
+          {"area":"Palais du roi Nidas","do":"STOP AVANT ENTRÉE. Le stage Ivoire L200-09 fera Nidas une seule fois pour Casse + Un morceau + Coiffeur."}
+        ],
+        "before_leaving":["Raisons de retraite terminé","Espionnage industriel terminé","Deux fils Le roi et moi prêts Nidas"],
+        "hard_exit":["Aucun Nidas isolé avant Casse Ivoire"],
+        "pause":["POINT DE PAUSE SÛR — Nidas triple-fil prêt"],
+        "next":"L200-08 puis L200-09"
+      }
+    },
+    {
+      "after":"L200-09",
+      "stage":{
+        "id":"L200-NEB2",
+        "title":"Nébuleux Enutrosor — fermer Le roi et moi et parler au Dieu Enutrof",
+        "level":"200",
+        "duration_min":120,
+        "quests":[],
+        "successes":["Le pays des Vermeils","Le roi et moi","Raisons de retraite"],
+        "route":[
+          {"area":"Enutrosor","do":"Fermer les rendus post-Nidas de Un morceau de roi et Coiffeur de génie, vérifier Le roi et moi réellement validé et que Même pas malle + Après les phorreurs + Raisons de retraite sont tous fermés."},
+          {"area":"Dieu Enutrof","do":"Seulement lorsque TOUTES les quêtes Enutrosor sont terminées selon le runtime, parler au Héraut puis au Dieu Enutrof. Ne pas utiliser le simple fait d'avoir quatre succès dans le JSON si une quête locale reste active."}
+        ],
+        "hard_exit":["Toutes quêtes Enutrosor terminées","Dieu Enutrof rencontré","Le pays des Vermeils validable"],
+        "pause":["POINT DE PAUSE SÛR — Enutrosor Nébuleux fermé"]
+      }
+    },
+    {
+      "before":"L200-15E5",
+      "stage":{
+        "id":"L200-NEB3",
+        "title":"Nébuleux Srambad — Voleurs + Jeu du trône jusqu'à Reine",
+        "level":"200 / Crache ton venin + Sauvé par le gong déjà fermés",
+        "duration_min":760,
+        "quests":[
+          "Les sentiers de la perdition","Le Bazar du Bizarre","Un Chafer dans le placard","Bouchées à la reine","La cour des miracles","Os sitôt dit, aussitôt fait",
+          "Faux-semblants","Mémoires d'outre-tombe","Balance la sauce","La chapelle noire","Présumé coupable","Depuis l'enfer","Courir après des ombres","Sortir de l'ombre","La grosse commission"
+        ],
+        "successes":["Le jeu du trône","Les voleurs de Srambad"],
+        "preparation":[
+          {"name":"Pomme de Terre","quantity":35,"alternative":"combat ou 32000 kamas selon Os sitôt dit"},
+          {"name":"Crâne magique de Magouille","quantity":1},
+          {"requirement":">800 Force ou Intelligence ou Chance ou Agilité OU >5000 Vitalité pour La grosse commission","blocking":true,"policy":"Vérifier caractéristique de base/runtime exact; ne pas supposer qu'un stuff corrige un critère qui l'interdit."}
+        ],
+        "route":[
+          {"area":"Hauts Ténébreux","do":"Faire Les sentiers → Bazar → Chafer → Bouchées en regroupant les mêmes PNJ/cartes avec Faux-semblants et la chaîne Voleurs. Avancer La cour des miracles jusqu'au verrou Reine des Voleurs."},
+          {"area":"Srambad","do":"Fermer Os sitôt dit et toute la chaîne Les voleurs de Srambad, y compris La grosse commission seulement si son critère de caractéristique est réellement satisfait. Si non, afficher ce blocker avant tout déplacement final."},
+          {"area":"Trône de la Cour Sombre","do":"Si L'oeuf de Crocabulia Ébène est déjà actif, STOP et fusionner Reine dans L200-15E5. Si l'Ébène est encore bloqué par Songes mais que tout le Nébuleux peut être fermé maintenant, faire UNE Reine pour La cour des miracles; le futur passage Ébène sera alors causal."}
+        ],
+        "hard_exit":["Les voleurs de Srambad terminé ou blocker caractéristique exact","Le jeu du trône terminé ou uniquement Reine réservée à merge Ébène"],
+        "pause":["POINT DE PAUSE SÛR — Srambad Nébuleux au choix dynamique Reine"]
+      }
+    },
+    {
+      "after":"L200-15E5",
+      "stage":{
+        "id":"L200-NEB4",
+        "title":"Nébuleux Srambad — fermer Reine et parler au Dieu Sram",
+        "level":"200",
+        "duration_min":100,
+        "quests":[],
+        "route":[
+          {"area":"Srambad","do":"Vérifier La cour des miracles réellement terminée après le passage Reine utilisé par Nébuleux ou fusionné Ébène. Vérifier les quatre succès Srambad: Sauvé par le gong, Crache ton venin, Le jeu du trône, Les voleurs de Srambad."},
+          {"area":"Dieu Sram","do":"Quand toutes les quêtes Srambad sont réellement terminées, parler au Héraut puis au Dieu Sram. Ne pas choisir/consommer un bonus comme substitut de validation de quête."}
+        ],
+        "hard_exit":["Toutes quêtes Srambad terminées","Dieu Sram rencontré","Le royaume des ombres validable"]
+      }
+    },
+    {
+      "after":"L200-NEB4",
+      "stage":{
+        "id":"L200-NEB5",
+        "title":"Nébuleux Xélorium — Les puits + Moments, Vortex unique",
+        "level":"200 / Les temps qui courent + Carpe Diem déjà terminés",
+        "duration_min":860,
+        "quests":[
+          "Juste une illusion","Maboul de cristal","L'armée des 12 dingues","La vérité est au fond du puits","Les sables du temps",
+          "Déchirures temporelles","Futur antérieur","Guerre temporelle","L'étendue Gödelique","Les visiteurs du futur","Demain ne meurt jamais"
+        ],
+        "successes":["Les puits du fou","Moments d'égarement"],
+        "dungeon":{"name":"Œil de Vortex","pass":"unique_for_two_nebuleux_quests"},
+        "preparation":[
+          {"name":"Corne de Méjaire","quantity":"1-3"},{"name":"Serre d'Ikargn","quantity":"1-3"},{"name":"Œil de Harpille","quantity":"1-3"},{"name":"Griffe de Buboxor","quantity":"1-3"},
+          {"note":"Conserver les montres avance/retard et préparer les pixels/trame dimensionnelle demandés par les walkthroughs avant la grande boucle passé-présent-futur."}
+        ],
+        "route":[
+          {"area":"Xélorium","do":"Enchaîner Juste une illusion → Maboul → Armée des 12 dingues puis avancer La vérité est au fond du puits. En parallèle ouvrir Les sables du temps dès son vrai prérequis afin que les DEUX demandent Vortex avant entrée."},
+          {"area":"Œil de Vortex","do":"Faire UN Vortex pour La vérité est au fond du puits + Les sables du temps, succès compatibles et dialogues Vortex/Tessie avant sortie. DPLN indique explicitement que les deux passages deviennent un seul si les deux quêtes sont lancées ensemble."},
+          {"area":"Xélorium passé/présent/futur","do":"Fermer Moments d'égarement: Déchirures temporelles → Futur antérieur → Guerre temporelle → L'étendue Gödelique → Les visiteurs du futur → Demain ne meurt jamais, en groupant les mêmes bascules temporelles et combats."},
+          {"area":"Dieu Xélor","do":"Quand Les temps qui courent + Carpe Diem + Les puits du fou + Moments d'égarement sont tous réellement validés, parler au Héraut puis au Dieu Xélor."}
+        ],
+        "hard_exit":["Vortex fait une fois pour les deux quêtes","Toutes quêtes Xélorium terminées","Dieu Xélor rencontré","Le domaine des possibles validable"],
+        "pause":["POINT DE PAUSE SÛR — trois dimensions Nébuleux fermées"]
+      }
+    },
+    {
+      "after":"L200-NEB5",
+      "stage":{
+        "id":"L200-NEB6",
+        "title":"Nébuleux final — Oiseau du temps à quatre puis Dofus",
+        "level":"200 / trois dimensions + Veilleurs fermés",
+        "duration_min":180,
+        "quests":["La quête de l'oiseau du temps"],
+        "successes":["Je rêvais d'un autre monde"],
+        "preparation":[
+          {"requirement":"Dofus des Veilleurs possédé","blocking":true},
+          {"requirement":"4 personnages pour le combat final: joueur + 3 amis à la même étape ou ayant déjà terminé","blocking":true}
+        ],
+        "entry":"Le pays des Vermeils + Le royaume des ombres + Le domaine des possibles + Odyssée en trois dimensions réellement validés.",
+        "route":[
+          {"area":"fil Khelebragon/Méthée","do":"Faire La quête de l'oiseau du temps selon le walkthrough local. Ne pas partir au combat final avant que les trois aides soient déjà réunies."},
+          {"area":"Xélorium / Dieu Xélor","do":"Conduire Khelebragon devant Xélor au vrai objectif final; parler au Dieu puis à Khelebragon et prendre le Dofus uniquement lorsque la quête le donne réellement."}
+        ],
+        "hard_exit":["La quête de l'oiseau du temps terminée","Dofus Nébuleux obtenu uniquement si runtime confirme","Je rêvais d'un autre monde validable"],
+        "pause":["POINT DE PAUSE SÛR — Nébuleux fermé réellement"]
+      }
+    }
+  ]
+}

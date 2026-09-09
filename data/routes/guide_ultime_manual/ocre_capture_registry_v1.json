@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "registry_id": "guide_ultime_ocre_capture_registry_v1",
+  "title": "Guide Ultime — registre Ocre DOFUS 3.5+",
+  "status": "CURRENT_RULES_WORKING_SET",
+  "as_of": "2026-08-23",
+  "rules": {
+    "minimum_game_version": "3.5",
+    "capture_spell": "Capture d'âmes",
+    "capture_spell_unlock": "Nid du Kwakwa — parler à l'Esprit Volatile avant de sortir",
+    "classic_monsters_required": false,
+    "bosses_required": true,
+    "archimonsters_required": true,
+    "kralamoure_special_capture": true,
+    "hdv_policy": "Une âme de boss déjà manquée peut être achetée à l'HDV des âmes si le prix est plus rentable qu'un rerun sans autre objectif. Les archimonstres suivent leurs règles spécifiques/Bouataklônes.",
+    "route_policy": "Avant chaque boss du registre rencontré après obtention du sort, le Guide Ultime doit afficher la capture et la pierre minimale connue. Un boss rencontré avant le sort est marqué backfill, jamais considéré capturé artificiellement.",
+    "version_35_change": "Depuis 3.5 les monstres classiques ne sont plus capturables pour l'Ocre; L'éternelle moisson commence par les boss. Certains anciens objectifs ont été remplacés, notamment Wabbit GM par Rakoopeur."
+  },
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/mise-a-jour-305.html",
+    "https://www.dofuspourlesnoobs.com/leacuteternelle-moisson.html"
+  ],
+  "boss_steps": {
+    "1": [
+      "Mob l'Éponge",
+      "Bouftou Royal",
+      "Tournesol Affamé",
+      "Gelée Royale Bleuet",
+      "Gelée Royale Menthe",
+      "Shin Larve",
+      "Rakoopeur",
+      "Scarabosse Doré",
+      "Bworkette",
+      "Dragon Cochon",
+      "Choudini",
+      "Reine Nyée",
+      "Tofu Royal",
+      "Blop Coco Royal",
+      "Blop Griotte Royal",
+      "Blop Indigo Royal",
+      "Blop Reinette Royal",
+      "Rat Noir",
+      "Rat Blanc",
+      "Minotoror"
+    ],
+    "2": [
+      "Hell Mina",
+      "Tanukouï San",
+      "Craqueleur Légendaire",
+      "Damadrya",
+      "Gelée Royale Fraise",
+      "Maître Corbac",
+      "Blop Multicolore Royal",
+      "Corailleur Magistral",
+      "Gourlo le Terrible",
+      "Meulou",
+      "Wa Wabbit",
+      "Moon",
+      "Koulosse",
+      "Skeunk",
+      "Abraknyde Ancestral",
+      "Hanshi",
+      "Tynril Ahuri",
+      "Tynril Consterné",
+      "Tynril Déconcerté",
+      "Tynril Perfide"
+    ],
+    "3": [
+      "Gelée Royale Citron",
+      "Founoroshi",
+      "Bworker",
+      "Sphincter Cell",
+      "Minotot",
+      "Silf le Rasboul Majeur",
+      "Crocabulia",
+      "Haute Truche",
+      "Chêne Mou",
+      "Ougah",
+      "Kimbo"
+    ]
+  },
+  "early_route_state": [
+    {"boss":"Mob l'Éponge","state":"backfill_if_not_already_owned","reason":"rencontré avant la première fenêtre Capture d'âmes du Guide Ultime"},
+    {"boss":"Bouftou Royal","state":"backfill_if_not_already_owned","reason":"Donjon Bouftou antérieur au déblocage du sort"},
+    {"boss":"Tournesol Affamé","state":"backfill_if_not_already_owned","reason":"Grange antérieure au déblocage du sort"},
+    {"boss":"Scarabosse Doré","state":"capture_first_pass","route":"AMK-04 after AMK-07 reorder","minimum_power":50},
+    {"boss":"Bworkette","state":"capture_first_pass","route":"AMK-05 after AMK-07 reorder","minimum_power":50},
+    {"boss":"Shin Larve","state":"capture_first_pass","route":"AMK-06 after AMK-07 reorder","minimum_power":50},
+    {"boss":"Rakoopeur","state":"capture_first_pass","route":"upcoming Valonia/Refuge","minimum_power":50},
+    {"boss":"Corailleur Magistral","state":"capture_first_pass","route":"upcoming Otomaï/Grotte Hesque","minimum_power":50},
+    {"boss":"Craqueleur Légendaire","state":"capture_first_pass","route":"BNT-08 + Les sbires du maître","minimum_power":100},
+    {"boss":"Blop Royal au choix","state":"capture_matching_royal_first_pass","route":"BNT-06 + Entre quatre blops","minimum_power":100}
+  ],
+  "runtime_checks": [
+    "Ne pas afficher de capture Ocre pour un boss absent de boss_steps.",
+    "Ne pas considérer une âme en banque comme remise à Otomaï tant que la progression Ocre ne la confirme pas.",
+    "Si l'étape Ocre courante n'accepte pas encore une âme capturée en avance, la conserver en banque et indiquer explicitement de ne pas la vendre.",
+    "Pour un archimonstre croisé après déblocage, proposer la capture sans attendre son étape si une pierre adaptée est disponible; il pourra être remis plus tard.",
+    "Ne jamais attendre le repop d'un archimonstre pour bloquer la route principale."
+  ]
+}

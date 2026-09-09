@@ -1,0 +1,30 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_astrub_v4",
+  "title": "Guide Ultime — Astrub + prérequis Six sur six",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "astrub_v3.json",
+  "supersedes": "guide_ultime_manual_astrub_v3",
+  "stage_count": 16,
+  "optimization_note": "Ajoute Bûcherons en détresse dans la boucle Forêt AST-05 déjà obligatoire. La quête niveau30 ne doit plus réapparaître comme dette au post-200 pour La fin... ou le commencement.",
+  "sources": ["https://www.dofuspourlesnoobs.com/bucherons-en-detresse.html"],
+  "stage_patches": {
+    "AST-05": {
+      "prepend": {
+        "quests": ["Bûcherons en détresse"],
+        "route": [
+          {"pos":"[0,-25] Forêt d'Astrub","do":"Prendre Bûcherons en détresse auprès du Disciple de Sêpt, puis vaincre 5 Milimulou dans la Forêt. Revenir ensuite lui parler en [0,-25]."},
+          {"pos":"[3,-21] Dispensaire","do":"Interroger le Bûcheron traumatisé et récupérer la griffe de l'animal qui l'a attaqué."},
+          {"pos":"[1,-23] Forêt d'Astrub","do":"Montrer la griffe à Unterix Unter pour identifier la piste de l'ours dressé."},
+          {"pos":"[1,-16] Astrub","do":"Acheter le miel demandé à Seth Sourcet pour 100 kamas, puis parler à Artand sur la même carte."},
+          {"pos":"[-2,-16] Astrub","do":"Fouiller les tonneaux, affronter l'Homme-Ours avec Artand, récupérer le grimoire puis reparler à Artand après le combat."},
+          {"pos":"[0,-25] Forêt d'Astrub","do":"Retourner voir le Disciple de Sêpt pour terminer Bûcherons en détresse."}
+        ]
+      },
+      "append": {
+        "hard_exit": ["Bûcherons en détresse terminée avant de quitter durablement Astrub; futur prérequis La fin... ou le commencement sécurisé."]
+      }
+    }
+  },
+  "insertions": []
+}

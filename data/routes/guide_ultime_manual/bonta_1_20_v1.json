@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_bonta_1_20_v1",
+  "title": "Guide Ultime — Alignement Bonta 1 à 20 manuel",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "alignment": "Bonta",
+  "quest_range": [1, 20],
+  "macro_stage_count": 7,
+  "insertion_policy": "Sous-route transversale injectée aux moments géographiquement rentables dans les chapitres principaux; elle ne crée pas un chapitre Bonta artificiellement isolé.",
+  "hard_rules": [
+    "Les rangs restent strictement séquentiels.",
+    "Le rang 11 doit être actif avant le Donjon des Bworks du chapitre Amakna afin de mutualiser Bworkette avec Les sbires du maître.",
+    "Le rang 12 ne peut être lancé qu'après la Bworkette du rang 11; le second Donjon des Forgerons est donc un retour causal inévitable et non un défaut d'optimisation.",
+    "Le rang 16 n'est jamais lancé comme faisable tant que Intrusion chez les wabbits n'est pas terminée.",
+    "Les rangs 16 à 20 sont repris dans le chapitre Wabbit/Cawotte; les rangs 19/20 sont regroupés avec Clos des Blops, Cimetière des Héros et Sufokia lorsque ces zones sont naturellement visitées.",
+    "Après le rang 20, exactement un Ordre Bontarien est choisi par personnage; aucune branche d'Ordre n'est hardcodée dans ce fichier."
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/alignement-bontarien.html",
+    "https://www.dofuspourlesnoobs.com/entraicircnement-avec-tarche.html",
+    "https://www.dofuspourlesnoobs.com/la-tenanciegravere-dame-cloude.html",
+    "https://www.dofuspourlesnoobs.com/du-pain-pour-les-braves.html",
+    "https://www.dofuspourlesnoobs.com/ned-le-dentiste.html",
+    "https://www.dofuspourlesnoobs.com/entraicircnement-avec-torche.html",
+    "https://www.dofuspourlesnoobs.com/cartes-speacuteciales-damayiro.html",
+    "https://www.dofuspourlesnoobs.com/agrave-vol-doiseau.html",
+    "https://www.dofuspourlesnoobs.com/pas-de-faineacuteants-dans-les-rangs.html",
+    "https://www.dofuspourlesnoobs.com/premiegravere-visite-agrave-bracirckmar.html",
+    "https://www.dofuspourlesnoobs.com/un-sanglier-un-peu-trop-agressif.html",
+    "https://www.dofuspourlesnoobs.com/du-repos-mais-pas-trop.html",
+    "https://www.dofuspourlesnoobs.com/recouvrement-de-dette-agrave-la-tabasse.html",
+    "https://www.dofuspourlesnoobs.com/pot-lagent-double.html",
+    "https://www.dofuspourlesnoobs.com/de-la-poudre-aux-yeux-de-bracirckmar.html",
+    "https://www.dofuspourlesnoobs.com/une-bregraveche-agrave-bonta.html",
+    "https://www.dofuspourlesnoobs.com/deacutegouts-temps.html",
+    "https://www.dofuspourlesnoobs.com/leacutelite-squelettique.html",
+    "https://www.dofuspourlesnoobs.com/la-foire-du-trool-suspecteacutee.html",
+    "https://www.dofuspourlesnoobs.com/le-tabi-damayiro.html",
+    "https://www.dofuspourlesnoobs.com/le-fantocircme-de-tsog.html"
+  ],
+  "preparation": {
+    "before_first_bonta_passage": [
+      {"name":"Épée de Boisaille","quantity":10,"why":"recrutement Bontarien"},
+      {"name":"Fougasse","quantity":20,"why":"rang 3; HDV préféré à une boucle métier dédiée si non disponible"},
+      {"name":"Bière du Feubuk","quantity":1,"why":"rang 6; acheter pendant le passage obligatoire à la taverne"}
+    ],
+    "before_rank_11": [
+      {"name":"Bâton de Boisaille","quantity":10,"why":"rang 11"},
+      {"name":"Bakélélite","quantity":1,"why":"rang 11; HDV si Mineur 80 n'est pas déjà disponible"}
+    ],
+    "before_rank_18_20": [
+      {"name":"Ticket de la Foire du Trool","quantity":1,"why":"rang 18"},
+      {"name":"Bout de Blop Griotte","quantity":1,"why":"rang 19"},
+      {"name":"Bout de Blop Coco","quantity":1,"why":"rang 19"},
+      {"name":"Bout de Blop Indigo","quantity":1,"why":"rang 19"},
+      {"name":"Bout de Blop Reinette","quantity":1,"why":"rang 19"},
+      {"name":"Pelle de Boisaille","quantity":1,"why":"rang 20; l'équiper AVANT d'arriver sur la map du coffre à Sufokia"}
+    ],
+    "kamas_reserved": 2300,
+    "note":"Les achats HDV courts sont préférés aux détours de récolte/craft qui n'apportent pas d'autre progression."
+  },
+  "rank_contract": [
+    {"rank":1,"quest":"Entraînement avec Tarche","recommended_level":31},
+    {"rank":2,"quest":"La serveuse Dame Cloude","recommended_level":32},
+    {"rank":3,"quest":"Du pain pour les braves","recommended_level":33},
+    {"rank":4,"quest":"Ned le dentiste","recommended_level":34},
+    {"rank":5,"quest":"Entraînement avec Torche","recommended_level":35},
+    {"rank":6,"quest":"Cartes spéciales d'Amayiro","recommended_level":36},
+    {"rank":7,"quest":"À vol d'oiseau","recommended_level":37},
+    {"rank":8,"quest":"Pas de fainéants dans les rangs !","recommended_level":38},
+    {"rank":9,"quest":"Première visite à Brâkmar","recommended_level":39},
+    {"rank":10,"quest":"Un sanglier un peu trop agressif...","recommended_level":40},
+    {"rank":11,"quest":"Du repos mais pas trop...","recommended_level":41},
+    {"rank":12,"quest":"Recouvrement de dette à la Tabasse","recommended_level":42},
+    {"rank":13,"quest":"Pot l'agent double","recommended_level":43},
+    {"rank":14,"quest":"De la poudre aux yeux de Brâkmar","recommended_level":44},
+    {"rank":15,"quest":"Une brèche à Bonta","recommended_level":45},
+    {"rank":16,"quest":"D'égouts temps","recommended_level":46,"hard_prerequisite":"Intrusion chez les wabbits"},
+    {"rank":17,"quest":"L'élite squelettique","recommended_level":47},
+    {"rank":18,"quest":"La foire du Trool suspectée","recommended_level":48},
+    {"rank":19,"quest":"Le Tabi d'Amayiro","recommended_level":49},
+    {"rank":20,"quest":"Le fantôme de Tsog","recommended_level":50}
+  ],
+  "stages": [
+    {
+      "id":"BNT-00",
+      "title":"Premier passage Bonta — recrutement, rangs 1 à 4 ouverts",
+      "activation_hook":"AMK-02 after Info pour un vrai traître reaches Bonta",
+      "level":"31+",
+      "duration_min":25,
+      "ranks":[1,2,3,4],
+      "route":[
+        {"pos":"[-32,-57]","do":"Donner 10 Épées de Boisaille à Amayiro, devenir Bontarien, faire le duel Tarche et rendre le rang 1."},
+        {"pos":"[-29,-59]","do":"Faire l'aller-retour Dame Cloude du rang 2 pendant la même boucle de ville."},
+        {"pos":"[-32,-57]","do":"Donner 20 Fougasses pour le rang 3 puis lancer Ned le dentiste."}
+      ],
+      "hard_exit":"Ned le dentiste active avant de quitter Bonta.",
+      "pause":["Alignement Bonta actif","Rangs 1-3 terminés","Rang 4 active","Compteur de dents de Chafer à 0/32"]
+    },
+    {
+      "id":"BNT-01",
+      "title":"Cimetière des Héros + grande boucle Bonta — fermer 4 puis enchaîner 5 à 8",
+      "level":"34-38",
+      "duration_min":55,
+      "ranks":[4,5,6,7,8],
+      "route":[
+        {"pos":"Cimetière des Héros","do":"Tuer EXACTEMENT 32 Chafers pour Ned le dentiste. Surveiller les Dents de Chafer dans la barre de raccourcis; 33 dents invalideraient la collecte."},
+        {"pos":"[-30,-52]","do":"Donner exactement 32 dents à Ned; le rang 5 se débloque."},
+        {"pos":"[-32,-57] -> [-29,-59] -> [-32,-57]","do":"Faire Entraînement avec Torche."},
+        {"pos":"[-35,-56]","do":"Rang 6: récupérer la carte et acheter la Bière du Feubuk avant de repartir."},
+        {"pos":"[-36,-60] -> [-33,-55]","do":"Rang 7: vaincre le Corbac devant le Palais puis faire réparer le collier au bijoutier contre 1000 kamas."},
+        {"pos":"[-35,-55] [-35,-56] [-36,-58]","do":"Rang 8: récupérer les trois badges de tavernes dans une seule boucle et rendre à Amayiro."}
+      ],
+      "pause":["Rangs 1-8 terminés","Première visite à Brâkmar disponible"]
+    },
+    {
+      "id":"BNT-02",
+      "title":"Brâkmar + Champs de Cania — atteindre 10 et préparer Bworkette",
+      "level":"39-41",
+      "duration_min":45,
+      "ranks":[9,10,11],
+      "route":[
+        {"pos":"[-26,31] [-26,32] [-26,31]","do":"Rang 9: détourner le garde de Brâkmar, examiner le levier, puis rendre à Bonta."},
+        {"pos":"Champs de Cania","do":"Rang 10: trouver et vaincre un Sanglier agressif; ne pas attendre son repop si absent, continuer une autre boucle Cania et revenir plus tard."},
+        {"pos":"[-32,-57]","do":"Rendre le rang 10 et lancer immédiatement Du repos mais pas trop..."},
+        {"pos":"Bonta","do":"Donner les 10 Bâtons de Boisaille, récupérer le besoin de discours, transformer la Bakélélite à l'atelier mineur; préparer tout ce qui peut l'être AVANT le Donjon des Bworks."}
+      ],
+      "hard_exit":"Du repos mais pas trop... doit attendre uniquement la Bière de Bworkette avant AMK-05.",
+      "pause":["Rangs 1-10 terminés","Succès Garde à vous récupérable","Rang 11 actif et préparé","Bworkette = prochain verrou"]
+    },
+    {
+      "id":"BNT-03",
+      "title":"Bworkette mutualisée — rang 11 + Les sbires du maître",
+      "activation_hook":"embedded in AMK-05",
+      "level":"41+",
+      "duration_min":0,
+      "ranks":[11],
+      "route":[
+        {"pos":"[-5,10] Donjon des Bworks","do":"Entrer avec Du repos mais pas trop... ET Les sbires du maître actifs. Vaincre Bworkette une seule fois; AVANT de sortir parler à Magobwork pour récupérer la Bière de Bworkette du rang 11."},
+        {"pos":"[-28,-55] -> [-36,-58] -> [-32,-57]","do":"Au retour Bonta, finir la Bière de Bworkette ferraillée, le discours puis rendre le rang 11. Lancer rang 12."}
+      ],
+      "pause":["Bworkette faite une seule fois pour les deux fils","Rang 11 terminé","Rang 12 active"]
+    },
+    {
+      "id":"BNT-04",
+      "title":"Retour Forgerons causal + espionnage Brâkmar — rangs 12 à 14",
+      "level":"42-44",
+      "duration_min":70,
+      "ranks":[12,13,14],
+      "route":[
+        {"pos":"[-35,-55]","do":"Rang 12: vaincre le tavernier de la Tabasse et rendre son chèque à Amayiro."},
+        {"pos":"[13,21] Donjon des Forgerons","do":"SECOND passage Forgerons, réellement imposé par la causalité: récupérer le Liquide des Forgerons dans la marmite AVANT de sortir. Ce retour ne pouvait pas être fusionné au premier passage car le rang 12 n'existait pas encore."},
+        {"pos":"[-30,-56] -> [-32,-57]","do":"Faire réparer le katana et terminer rang 12; lancer rang 13."},
+        {"pos":"[-28,32] -> [-20,40] -> [-22,34]","do":"Rang 13: récupérer rapport/infos à Brâkmar en une seule boucle, puis retour Bonta."},
+        {"pos":"[-32,-55] -> [-29,-54] -> [-32,-55] -> [-32,-57]","do":"Rang 14: traiter la poudre à canon dans une boucle interne Bonta."}
+      ],
+      "pause":["Rangs 1-14 terminés","Deuxième Forgerons justifié et fermé","Une brèche à Bonta disponible"]
+    },
+    {
+      "id":"BNT-05",
+      "title":"Pics de Cania — rang 15 puis arrêt volontaire au verrou Wabbit",
+      "level":"45+",
+      "duration_min":30,
+      "ranks":[15,16],
+      "route":[
+        {"pos":"[-29,-53] -> [-28,-55]","do":"Rang 15: prendre la pioche réquisitionnée puis partir vers les Pics de Cania."},
+        {"pos":"Pics de Cania","do":"Extraire 5 Blocs de pierre sur les points de la quête pendant une vraie boucle Cania; aucun aller-retour dédié si une étape Cania est déjà planifiée."},
+        {"pos":"[-29,-53] -> [-32,-57]","do":"Rendre les blocs et terminer rang 15."},
+        {"pos":"[-32,-57]","do":"Le rang 16 est maintenant disponible MAIS ne peut pas être avancé sans Intrusion chez les wabbits. Le marquer 'bloqué Wabbit' et quitter Bonta sans détour inutile."}
+      ],
+      "pause":["Rangs 1-15 terminés","D'égouts temps disponible mais bloquée sur Intrusion chez les wabbits","Sous-route suspendue jusqu'au chapitre Cawotte"]
+    },
+    {
+      "id":"BNT-06",
+      "title":"Reprise Wabbit → Cimetière → Foire → Blops → Sufokia — rangs 16 à 20",
+      "activation_hook":"chapter Wabbit/Cawotte after Intrusion chez les wabbits",
+      "level":"46-60",
+      "duration_min":120,
+      "ranks":[16,17,18,19,20],
+      "route":[
+        {"pos":"[24,-3] -> [26,-8] -> [24,-3]","do":"Rang 16: une fois Intrusion chez les wabbits réellement terminée, récupérer l'alcool de cawotte, obtenir le vaccin, puis revenir à Bonta."},
+        {"pos":"Égouts de Bonta entrée [-32,-58]","do":"Finir D'égouts temps: identifier la source de contamination et tuer un Rat contaminé pour son sang."},
+        {"pos":"Cimetière des Héros","do":"Rang 17: obtenir automatiquement 15 Casques de Chafer d'Élite; grouper avec toute autre quête/succès Chafer active."},
+        {"pos":"[-11,-37] Foire du Trool","do":"Rang 18: effectuer les deux passages Leonzi demandés dans la même session Foire, acheter le Ticket, voir Yova Etna [-9,-40], acheter le Burger [-10,-38], puis rendre Bonta."},
+        {"pos":"[-7,-43] Clos des Blops","do":"Rang 19: faire le Clos des Blops pendant le vrai bloc Blop/Tour du Monde, récupérer automatiquement l'Huile de Blop Royal. Préparer la Bouillie avec les quatre Bouts de Blop au concasseur [-29,-57], puis rendre."},
+        {"pos":"[-31,-56] -> [-21,-61]","do":"Rang 20: localiser le caveau de Tsog au Cimetière des Héros et obtenir les Paroles de Tsog."},
+        {"pos":"[22,21] Sufokia","do":"ÉQUIPER la Pelle de Boisaille AVANT d'arriver sur la map du coffre, récupérer le Coffre caché de Tsog, puis revenir Amayiro."}
+      ],
+      "hard_exit":[
+        "Rangs 1-20 terminés.",
+        "Succès Chef oui chef récupérable.",
+        "Les trois Ordres Bonta sont maintenant accessibles; exactement un doit être choisi selon le choix persistant du personnage.",
+        "Ne pas lancer une quête d'un Ordre non sélectionné."
+      ],
+      "pause":["Alignement Bonta 20","Choix d'Ordre requis avant la première quête d'Ordre","Rang 21 disponible mais sera repris dans la tranche Bonta suivante"]
+    }
+  ],
+  "order_gate_after_rank_20": {
+    "minimum_recommended_level":60,
+    "selection_source":"progression personnage / choix persistant déjà prévu dans l'UI",
+    "options":[
+      {"order":"Coeur Vaillant","first_quest":"Apprentissage : Disciple de Ménalt"},
+      {"order":"Oeil Attentif","first_quest":"Apprentissage : Disciple de Silvosse"},
+      {"order":"Esprit Salvateur","first_quest":"Apprentissage : Disciple de Jiva"}
+    ],
+    "rule":"Une seule option devient active; les deux autres restent hors route."
+  }
+}

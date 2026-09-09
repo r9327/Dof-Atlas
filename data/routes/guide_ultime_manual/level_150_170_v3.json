@@ -1,0 +1,17 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_level_150_170_v3",
+  "title": "Guide Ultime — Niveau 150 à 170 + dépendances transversales synchronisées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v2.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v2",
+  "stage_count": 18,
+  "depends_on": [
+    "level_120_150_v4.json",
+    "bonta_1_70_v7.json",
+    "temporal_registry_v7.json"
+  ],
+  "optimization_note": "Aucune étape joueur n'est modifiée. Cette version aligne uniquement la dépendance transversale sur bonta_1_70_v7, où Sphincter Cell est désormais correctement synchronisé avec Bonta65 + Tour de rein + Ocre + La bénédiction de Thomahon.",
+  "stage_patches": {},
+  "insertions": []
+}

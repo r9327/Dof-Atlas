@@ -1,0 +1,44 @@
+{
+  "schema_version": 8,
+  "route_id": "guide_ultime_manual_level_171_180_v8",
+  "title": "Guide Ultime — Niveau 171 à 180 + chasse Baka Forêt absorbée",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v7.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v7",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v14.json",
+    "bonta_1_80_v9.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Consomme L'appel de la forêt si c'est la chasse Baka tirée au chapitre précédent. Les50 Lichens à100% utilisent d'abord Les graines de la discorde, Globes Mystiques et les deux Korriandre déjà causaux; cleanup seulement après ces combats. Les autres résultats Baka restent conservés vers leur zone naturelle future.",
+  "sources": ["https://www.dofuspourlesnoobs.com/lappel-de-la-forecirct.html"],
+  "stage_patches": {
+    "L180-04": {
+      "append": {
+        "quests": ["L'appel de la forêt"],
+        "progress_also": [
+          "TIRE LA CHASSE — Si la chasse Baka active est L'appel de la forêt, chaque monstre de Forêt pétrifiée tué pour Les graines de la discorde/Globes compte pour les50 Lichens. Ne pas tuer50 monstres séparément avant les Korriandre."
+        ]
+      }
+    },
+    "L180-05": {
+      "append": {
+        "quests": ["L'appel de la forêt"],
+        "progress_also": ["Korriandre PASS1 et ses monstres de Forêt servent au compteur50 Lichens si L'appel de la forêt est la chasse active."]
+      }
+    },
+    "L180-07": {
+      "append": {
+        "quests": ["L'appel de la forêt"],
+        "route": [
+          {"area":"Forêt pétrifiée/Korriandre PASS2","do":"Si L'appel de la forêt est active, compléter d'abord ses50 Lichens avec PASS2 + farm Globes Mystiques déjà nécessaire. Seulement après ces objectifs naturels, tuer le reliquat exact éventuel puis rendre à Baka lors du prochain passage Village libéré."}
+        ],
+        "hard_exit": ["Si L'appel de la forêt a été tirée, elle est terminée ou son unique remise Baka est pending; aucun farm Forêt distinct avant les deux Korriandre."]
+      }
+    }
+  },
+  "insertions": []
+}

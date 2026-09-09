@@ -1,0 +1,103 @@
+{
+  "schema_version": 11,
+  "route_id": "guide_ultime_manual_level_171_180_v11",
+  "title": "Guide Ultime — Niveau 171 à 180, raccord prérequis et chasses conditionnelles",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v10.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v10",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v19.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Raccord de dépendance uniquement: le palier 171-180 consomme désormais le chapitre 150-170 où les quatre résultats aléatoires de Baka sont conditionnels et où les prérequis Xélorium de Prisonniers/Failles sont causalement fermés. Aucun ordre, aucune quête et aucun nombre de fiche ne changent dans ce chapitre.",
+  "stage_patches": {
+    "L171-00": {
+      "replace": {
+        "title": "Trou de mémoire — fermer le prérequis avant le fil Fungus",
+        "take": [
+          "Prendre ou reprendre Trou de mémoire selon l'état actuel de la quête."
+        ],
+        "route": [
+          {"area":"Trou de mémoire","do":"Terminer la quête maintenant. Aucun donjon supplémentaire n'est nécessaire; cette fermeture débloquera Le baptême du feu plus tard."}
+        ],
+        "before_leaving": [
+          "Trou de mémoire terminée ou prérequis manquant précisément identifié."
+        ],
+        "hard_exit": [
+          "Trou de mémoire terminée avant d'ouvrir le fil Fungus qui en dépend."
+        ]
+      }
+    },
+    "L180-16": {
+      "replace": {
+        "title": "Osavora180 — avancer La proie des vérités jusqu'au prochain accès réel",
+        "route": [
+          {"area":"Osavora","do":"Avancer La proie des vérités et Quand on la cherche, on finit par tomber dessus. Si Frappez, ami, et entrez n'est pas encore disponible dans le journal de quêtes, conserver ce fil en attente et poursuivre immédiatement un autre objectif; ne pas tenter d'accéder prématurément aux zones Martegel niveau200."},
+          {"area":"Breuil du Vénérable","do":"Seulement si Devoir de réserve est réellement disponible: faire le passage demandé et parler au Vénérable ou au PNJ indiqué après le boss avant de quitter."}
+        ],
+        "before_leaving": [
+          "État exact de La proie des vérités conservé.",
+          "Aucun accès niveau200 forcé avant son vrai déblocage."
+        ],
+        "hard_exit": [
+          "Osavora avancé uniquement jusqu'aux objectifs réellement disponibles."
+        ]
+      }
+    },
+    "L180-17": {
+      "replace": {
+        "route": [
+          {"area":"Village Rhoarim / Osavora","do":"Fermer Un hôte de marque et L'union sacrée lorsqu'elles sont demandées, terminer Trois cœurs, un roi puis prendre Destructeur de mondes."},
+          {"area":"Temple de Gargandyas","do":"Si Gargandyas est accessible pendant sa fenêtre naturelle et que Destructeur de mondes est actif, préparer l'offrande de la saison, faire Gargandyas et toutes les interactions après le boss avant de sortir. Gargandyas n'est pas une cible de capture Ocre."},
+          {"area":"Osavora","do":"Après Destructeur de mondes, parler aux reines des Kabombz seulement si les objectifs du succès Question d'équilibre sont réellement terminés afin d'obtenir le Dofoozbz; sinon conserver les objectifs encore manquants."
+          }
+        ],
+        "before_leaving": [
+          "Aucune attente volontaire jusqu'à la prochaine fenêtre de Gargandyas.",
+          "Dofoozbz considéré obtenu uniquement après validation réelle de Question d'équilibre."
+        ],
+        "hard_exit": [
+          "Gargandyas jamais traité comme cible Ocre.",
+          "Dofoozbz non considéré obtenu tant que le succès n'est pas réellement validé."
+        ]
+      }
+    },
+    "L180-18": {
+      "replace": {
+        "title": "Ébène — poursuivre Jusqu'au bout du rêve au niveau180",
+        "take": [
+          "Vérifier le nombre réel de rencontres Crocobur déjà validées et le palier actuel des Songes."
+        ],
+        "before_leaving": [
+          "Progression réelle de Jusqu'au bout du rêve conservée pour la prochaine session de Songes."
+        ]
+      }
+    },
+    "L180-19": {
+      "replace": {
+        "title": "Vérification de sortie niveau180 — quêtes, succès, Dofus et Bonta",
+        "entry": "Toutes les fiches obligatoires précédentes ont été traitées; les objectifs conditionnels conservent leur état réel.",
+        "route": [
+          {"area":"vérification finale","do":"Comparer la progression du Guide, des Quêtes et des Succès pour Bonta80, le même Ordre80, Veilleurs, Turquoise, Ocre d'Ambre, Fungus/Ougah, Enutrosor170, Srambad180, Osavora et Ébène. Ne considérer aucun fil terminé sans sa validation réelle en jeu."}
+        ],
+        "before_leaving": [
+          "Bonta80 terminé.",
+          "Même Ordre80 terminé ou objectif suivant précisément identifié.",
+          "Veilleurs, Turquoise et Ocre d'Ambre synchronisés avec leur état réel.",
+          "État Osavora conservé.",
+          "Progression Ébène conservée exactement."
+        ],
+        "hard_exit": [
+          "Aucun objectif bloqué masqué.",
+          "Bonta81 non lancé avant son vrai déblocage.",
+          "Passage vers 181-190 avec tous les reliquats identifiés."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

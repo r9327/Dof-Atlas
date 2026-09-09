@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "purpose": "quest_protocol_review_non_authoritative",
+  "authoritative_runtime_mapping": false,
+  "game_version": "3.6.10.10",
+  "reviewed_utc": "2026-08-30",
+  "supersedes_for_quest_progression": "dofus_3.6.10.10_v1.json quest opcode candidates",
+  "runtime_authority_rule": "Only an exact local executable SHA-256 mapping installed after same-session calibration may mutate progression.",
+  "primary_source": {
+    "repository": "Keka-Bron/JondoEmu",
+    "revision": "cd97a887718b1d19eb449f096098511549947e3c"
+  },
+  "source_files": [
+    {
+      "path": "Jondo.Unity.Server/Network/QuestProtocol.cs",
+      "role": "401-capture-derived quest message shapes and full journal structure"
+    },
+    {
+      "path": "Jondo.Unity.Server/Managers/Quests.cs",
+      "role": "wire order when a quest step and quest finish"
+    },
+    {
+      "path": "Jondo.Unity.World/Quests/QuestProgress.cs",
+      "role": "ordered quest-step state machine; quest finishes when the current step advances past the final step"
+    },
+    {
+      "path": "Jondo.Unity.Protocol/Op.cs",
+      "role": "reviewed opcode identities and capture notes"
+    },
+    {
+      "path": "datos/anclas_3.6.10.10.tsv",
+      "role": "capture-derived opcode direction/shape evidence"
+    },
+    {
+      "path": "datos/mapeo_3.6.10.10_a_3.6.10.11.tsv",
+      "role": "structural cross-version mapping evidence"
+    }
+  ],
+  "reviewed_findings": [
+    {
+      "id": "character_identity_kvi_kva",
+      "confidence": "reviewed_current_wire",
+      "progression_authority": "identity only",
+      "roster_type_url": "type.ankama.com/kvi",
+      "selected_type_url": "type.ankama.com/kva",
+      "rule": "kva selection must correlate against the kvi roster from the same transport session; no cross-session or stale-id resolution"
+    },
+    {
+      "id": "quest_step_validated_idz",
+      "confidence": "reviewed_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/idz",
+      "observed_capture_count": 21,
+      "payload": {
+        "quest_id_field": 1,
+        "validated_step_id_field": 2
+      },
+      "wire_semantic": "the server validates the step that was just in hand",
+      "atlas_completion_rule": "An idz becomes quest_completed only when quest_id is known locally and validated_step_id equals the id of the final item in that quest's ordered local step list.",
+      "non_final_step_behavior": "reject as quest-completion evidence",
+      "unknown_quest_or_step_behavior": "reject as quest-completion evidence",
+      "progression_authority": "only after exact-build mapping, same-session character identity, and final-step local proof"
+    },
+    {
+      "id": "quest_journal_idr",
+      "confidence": "reviewed_current_wire",
+      "direction": "server_to_client",
+      "type_url": "type.ankama.com/idr",
+      "capture_basis": "QuestProtocol.cs documents the journal from 401 real captures; the measured login block contains 261 active entries and 548 f3 finished entries plus 74 packed f4 ids, matching 622 displayed finished entries.",
+      "payload": {
+        "active_entries_field": 1,
+        "active_entry_body_field": 2,
+        "active_entry_quest_id_field": 3,
+        "finished_entries_field": 3,
+        "finished_entry_marker_field": 1,
+        "finished_entry_marker_value": 1,
+        "finished_entry_quest_id_field": 2,
+        "additional_finished_packed_field": 4
+      },
+      "atlas_rules": [
+        "active quest ids are structural/context evidence only and can never be promoted to completed",
+        "finished ids are filtered against the local quest catalog",
+        "journal progress is additive only; absence never clears manual or migrated progress",
+        "the journal has no player id, so it is applied only after the exact transport session has proved a concrete character id through correlated kvi+kva",
+        "achievement derivation runs once after the full journal batch"
+      ],
+      "cross_version_structure": "datos/mapeo_3.6.10.10_a_3.6.10.11.tsv maps idr to idr structurally",
+      "progression_authority": "catch-up only after exact-build calibration and same-session character identity"
+    }
+  ],
+  "rejected_findings": [
+    {
+      "id": "lqn_message_56_as_quest_completion",
+      "type_url": "type.ankama.com/lqn",
+      "confidence": "rejected_for_current_progression",
+      "reason": "The capture-derived anclas_3.6.10.10.tsv and Op.cs describe captured lqn as an unidentified one-field message appearing around map changes/reset flows. That contradicts the former Atlas assumption that lqn message id 56 with a quest-id string parameter is the live quest-end signal. Jondo's helper code that emits information messages through Op.Lqn is insufficient to override the real-capture contradiction.",
+      "atlas_action": "Current profile contains no lqn completion decoder. Bootstrap strips the exact legacy Atlas lqn rule before capability checks; calibration cannot use it; the installer recognizes only the exact legacy Atlas form for safe atomic replacement."
+    },
+    {
+      "id": "historical_quests_event_shape_as_current_journal",
+      "confidence": "rejected_for_current_progression",
+      "reason": "Historical QuestsEvent field semantics do not establish a current three-letter alias. Current catch-up uses independently reviewed idr instead.",
+      "atlas_action": "Legacy FinishedQuestsSnapshotEvent mutation path remains closed."
+    },
+    {
+      "id": "isf_izu_lry_as_current_quest_snapshot_aliases",
+      "confidence": "rejected_for_current_progression",
+      "reason": "Current reviewed Jondo evidence does not support those historical labels as the current whole quest journal. They remain research history only."
+    }
+  ],
+  "calibration_contract": {
+    "same_transport_session_required": true,
+    "exact_build_sha256_required": true,
+    "character_identity": "correlated kvi+kva",
+    "minimum_distinct_live_completions": 2,
+    "live_completion_evidence": "two distinct known quests with reviewed idz whose validated step equals each quest's final local ordered step",
+    "quest_journal_evidence": "at least one strict reviewed idr observation",
+    "journal_may_precede_identity": true,
+    "reidentification_clears_prior_session_character_evidence": true,
+    "different_sessions_cannot_combine_evidence": true
+  },
+  "runtime_contract": {
+    "current_profile_manifest": "must equal the canonical Atlas kvi/kva + idz mapping, optionally with idr, after unsafe legacy rules are stripped",
+    "capability_names_alone_are_not_authority": true,
+    "old_lqn_mapping_runtime_behavior": "disabled and sent through recalibration/upgrade path",
+    "old_shape_snapshot_runtime_behavior": "stripped and never used for progression"
+  },
+  "version_scope": {
+    "structural_3_6_10_11_evidence": "kvi/kva/idz/idr aliases are structurally mapped as stable by Jondo's 3.6.10.10 to 3.6.10.11 mapping",
+    "runtime_profile_created_for_3_6_10_11": false,
+    "reason": "Atlas still requires exact local executable SHA-256 proof; structural alias stability alone is not sufficient to invent a new runtime profile."
+  }
+}

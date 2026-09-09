@@ -1,0 +1,79 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_level_171_180_v4",
+  "title": "Guide Ultime — Niveau 171 à 180 + Dépôt/S.L.I.P./Mission préparés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v3.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v3",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v8.json",
+    "bonta_1_80_v9.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v11.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Dépôt de ravitaillement est ouvert dès 180 après À qui profite le boufmouth. Les fenêtres Lulu jour / S.L.I.P. nuit restent asynchrones. Chaud du S.L.I.P. impose des reruns Royalmouth et Obsidiantre qui sont causalement nouveaux; ils sont exécutés uniquement pendant la quête. Après Dépôt + Chaud, Mission Solution est avancée au maximum hors Glours et laissée au verrou des trois premières salles afin de les fusionner avec le premier Glours190.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/deacutepocirct-de-ravitaillement.html",
+    "https://www.dofuspourlesnoobs.com/chaud-du-slip.html",
+    "https://www.dofuspourlesnoobs.com/mission-solution.html"
+  ],
+  "insertions": [
+    {
+      "after": "L180-13S",
+      "stage": {
+        "id": "L180-13F",
+        "title": "Frigost180 — Dépôt + S.L.I.P. asynchrones, Mission Solution prête Glours",
+        "level": "180+ / À qui profite le boufmouth + Malédiction ! + Chauffage à moindre frais terminés",
+        "duration_min": 420,
+        "entry": "Les rescapés de Frigost fermés; Village Enseveli accessible/libérable; Malédiction ! terminée depuis le palier précédent.",
+        "quests": ["Dépôt de ravitaillement","Chaud du S.L.I.P.","Mission Solution"],
+        "temporal_hooks": ["frigost_depot_lulu_day_window","frigost_chaud_slip_night_window"],
+        "preparation": [
+          {"name":"Laine de Yokaï Givrefoux","quantity":5,"for":"Chaud du S.L.I.P."},
+          {"name":"Malléole de Yomi Givrefoux","quantity":5,"for":"Chaud du S.L.I.P."},
+          {"name":"Queue de Yomi Givrefoux","quantity":1,"for":"Chaud du S.L.I.P."},
+          {"name":"Laine de Maho Givrefoux","quantity":5,"for":"Chaud du S.L.I.P."},
+          {"name":"Cuir de Maho Givrefoux","quantity":1,"for":"Chaud du S.L.I.P."},
+          {"name":"Lamelle de Dramanite","quantity":5,"for":"Chaud du S.L.I.P."},
+          {"name":"Pédoncule de Fongeur","quantity":1,"for":"Chaud du S.L.I.P."},
+          {"name":"Slip compatible","quantity":1,"for":"combat Royalmouth S.L.I.P.","policy":"Préparer un slip autorisé par le walkthrough courant avant la fenêtre nocturne."},
+          {"name":"Slip Iholo","quantity":1,"for":"fin Chaud du S.L.I.P. / Mission Solution","policy":"Crafter seulement quand la recette de quête est active; préparer auparavant Bitte d'amarrage, Vertèbre/Scories d'Obsidiantre, Téphra d'Atomystique, Pierre de Mofette, Résidu de Solfataré, Pierre précieuse du Kimbo et Galets Rutilants."},
+          {"kamas":29999,"for":"Mission Solution"},
+          {"note":"Ne pas remplir l'inventaire avant Dépôt: libération des bûcherons et ressources S.L.I.P. ajoutent des objets de quête. Prévoir une banque/pods propres."}
+        ],
+        "take": [
+          "Prendre Dépôt de ravitaillement au Village Enseveli seulement après niveau180 réel et À qui profite le boufmouth terminé.",
+          "Avancer Dépôt jusqu'au dialogue Lulu; suivre la fenêtre 08:00–20:00 du registre, sans attendre si elle est fermée.",
+          "Quand Dépôt demande explicitement l'aide des prophètes, lancer Chaud du S.L.I.P. uniquement entre 20:00 et 08:00."
+        ],
+        "route": [
+          {"area":"Village Enseveli / Forêt pétrifiée","do":"Faire les caisses et l'enquête de Dépôt. Parler à Lulu pendant une fenêtre jour naturelle; si hors fenêtre, suspendre ce fil et poursuivre les autres stages180."},
+          {"area":"Hypogée annexe — fenêtre nuit","do":"Pendant une fenêtre 20:00–08:00 naturelle, lancer Chaud du S.L.I.P. et avancer ses prophètes. Préparer tous les composants avant chaque départ; ne jamais consommer la fenêtre à faire des achats évitables."},
+          {"area":"Serre du Royalmouth","do":"RERUN CAUSAL S.L.I.P.: vaincre Royalmouth avec l'équipement autorisé par l'objectif Chaud du S.L.I.P. Ce passage ne pouvait pas être fusionné aux anciens Royalmouth car la quête n'existait pas alors. Faire uniquement les succès encore ouverts compatibles."},
+          {"area":"Hypogée de l'Obsidiantre","do":"RERUN CAUSAL S.L.I.P.: exécuter les salles/interactions/ressources demandées par Chaud du S.L.I.P. et l'objectif lié à l'Obsidiantre. Ne pas prétendre que ce rerun aurait pu être évité aux passages160."},
+          {"area":"S.L.I.P. / artisans","do":"Terminer les trois missions, préparer le Slip Iholo au vrai moment de recette puis obtenir la Potion du S.L.I.P. Rendre Chaud du S.L.I.P."},
+          {"area":"Village Enseveli","do":"Reprendre Dépôt avec la potion, libérer les bûcherons et terminer la quête. Un ami qui ne vous veut pas que du bien devient alors disponible pour le palier190."},
+          {"area":"Bourgade / Frigost","do":"Comme Chauffage à moindre frais + Malédiction ! + Chaud du S.L.I.P. sont terminés, prendre Mission Solution. Faire toutes ses pistes/combat hors Glours et l'avancer jusqu'à ce que les trois premières salles de l'Antichambre des Gloursons soient explicitement demandées."},
+          {"area":"Antichambre des Gloursons","do":"STOP AVANT ENTRÉE. Mission Solution est réservée au premier Glours du chapitre190; aucune traversée des trois salles isolée avant que Le pic qui glace soit également prêt."}
+        ],
+        "progress_also": [
+          "Les deux reruns Royalmouth/Obsidiantre sont des coûts causaux du S.L.I.P.; profiter d'eux pour tout succès donjon encore manquant, sans recaptures Ocre inutiles.",
+          "Une fois Dépôt terminé, garder Un ami qui ne vous veut pas que du bien en attente niveau190: ses quatre premières salles Kolosso seront fusionnées avec Là-haut sur la montagne.",
+          "Mission Solution doit arriver au chapitre190 déjà prête aux salles Glours, sinon le premier Glours créerait un retour évitable."
+        ],
+        "before_leaving": [
+          "Dépôt de ravitaillement terminé.",
+          "Chaud du S.L.I.P. terminé.",
+          "Mission Solution active au verrou des trois premières salles Glours.",
+          "Un ami qui ne vous veut pas que du bien disponible pour niveau190."
+        ],
+        "hard_exit": ["Aucune attente jour/nuit immobile","Aucun premier Glours consommé avant Mission Solution"],
+        "pause": ["POINT DE PAUSE SÛR — DDG prêt Kolosso/Glours190"],
+        "next": "L180-14 — finir les autres fils180; chapitre181-190 prendra Un ami/Un remède/Kolosso"
+      }
+    }
+  ],
+  "stage_patches": {}
+}

@@ -1,0 +1,132 @@
+{
+  "schema_version": 9,
+  "route_id": "guide_ultime_manual_level_200_plus_v9",
+  "title": "Guide Ultime — Post-200, dépendances canoniques finales",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v8.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v8",
+  "stage_count": 12,
+  "depends_on": [
+    "level_191_200_v20.json",
+    "ocre_final_route_v2.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v15.json"
+  ],
+  "optimization_note": "Raccorde la finale à 191-200 v20 et à la route Ocre finale v2. P200-22 détaille la vraie collecte de Cultures et turpitudes : six ressources Pandala à 20/20, cinq points fixes par zone, boucle multi-zones sans attente immobile pendant le repop d'environ 20 minutes et un seul Élixir à Grobe. P200-23 détaille les douze sigils du Ménologium pour l'alignement Bonta, impose Ulgrude avant Hécate et verrouille les sorties Nidas, Aurore Pourpre et Solar. P200-24 couvre les TROIS branches réelles de Flovoraison : quatre graines, pacte Girol/Huskri avec Ocre et combat à trois vagues, puis Belladone avec Ébène et deux esprits; le rituel final impose Turquoise+Pourpre+Dom de Pin puis Ivoire. P200-25 sépare le réceptacle Sylvestre, le Verdoyant de combat et le vrai Dofus Sylvestre final. Les 12 fiches finales sont conservées.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/cultures-et-turpitudes.html",
+    "https://www.dofuspourlesnoobs.com/qui-nous-protege-du-protecteur.html",
+    "https://www.dofuspourlesnoobs.com/qui-nous-protege-du-protecteur-p2.html",
+    "https://www.dofuspourlesnoobs.com/flovoraison.html"
+  ],
+  "stage_patches": {
+    "P200-22": {
+      "replace": {
+        "title":"Cultures et turpitudes — combats puis boucle Pandala 6×20 sans attente",
+        "entry":"Les derniers d'entre nous, Gobstination d'un Grobelin et Par ce serment s'écrit le monde réellement terminés.",
+        "preparation":[
+          {"name":"Jus de cawotte fwelaté","quantity":1,"alternative":"100000 kamas"},
+          {"name":"Élixir des Trépasseurs","quantity":1,"for":"récoltes de Grobe","policy":"Ne le consommer qu'au moment d'entrer dans la boucle Grobe; profiter de ses 44 combats d'effet et ne pas prévoir un second Élixir pour cette collecte."},
+          {"note":"Vider les pods avant la grande boucle Pandala. Les six ressources de quête doivent être gardées jusqu'au rendu 20/20 de chaque famille; ne jamais les jeter pour libérer de la place."}
+        ],
+        "route":[
+          {"area":"Château d'Amakna / temple Sadida / Ingalsse","do":"Prendre Cultures et turpitudes uniquement lorsque Les derniers d'entre nous + Gobstination d'un Grobelin + Par ce serment s'écrit le monde sont réellement terminés. Faire les premiers combats et dialogues de la quête, puis la séquence de Gobergine, avant de partir pour la grande collecte Pandala."},
+          {"area":"Grobe — Grobelin Jardinier [34,-40]","do":"Ouvrir l'étape de collecte et vérifier que les six compteurs sont actifs : 20 Humus plantalien, 20 Pierres fertiles, 20 Limons des cascades, 20 Cendres fécondes, 20 Akènes à tout vent et 20 Pandouilles fantômes. Il y a cinq points de récolte fixes par zone; chaque interaction donne directement 1 à 2 ressources ou déclenche un combat solo de Protecteur qui en fournit davantage."},
+          {"area":"Terrdala","do":"Faire une première passe sur les cinq Pierres fertiles : [25,-27], [23,-26], [24,-24], [25,-23] et [25,-22] dans la mine. Arrêter immédiatement à 20/20; si le compteur reste incomplet après les cinq points, partir vers la zone suivante au lieu d'attendre."},
+          {"area":"Akwadala","do":"Faire les cinq Limons des cascades : [23,-23], [23,-22], [20,-21], [19,-22], [21,-24]. Arrêter à 20/20; sinon continuer la boucle sans attendre la réapparition."},
+          {"area":"Feudala","do":"Faire les cinq Cendres fécondes : [18,-31], [17,-30], [14,-33], [16,-35], [18,-36]. Garder le compteur exact et quitter la zone dès le cinquième point si 20/20 n'est pas encore atteint."},
+          {"area":"Aerdala","do":"Faire les cinq Akènes à tout vent : [20,-35], [20,-32], [21,-34], [22,-37], [23,-36]. Aucun tour supplémentaire immédiat : la boucle globale sert de minuterie naturelle."},
+          {"area":"Plantala","do":"Faire les cinq Humus plantaliens : [24,-33], [25,-34], [26,-32], [25,-30], [26,-28]. Arrêter à 20/20 ou continuer vers Grobe sans rester sur place."},
+          {"area":"Grobe","do":"Juste avant les points de Grobe, consommer l'unique Élixir des Trépasseurs afin d'obtenir l'état permettant de voir les morts. Faire les cinq Pandouilles fantômes : [35,-41], [36,-42], [37,-43], [37,-45], [37,-46]. Profiter de l'effet de 44 combats pour tout objectif Grobe encore compatible; ne pas gaspiller l'effet en attente immobile."},
+          {"area":"boucle Pandala — repop","do":"Après une passe complète des six zones, relire les six compteurs. Les points réapparaissent environ 20 minutes après leur collecte et une seule passe de cinq points suffit rarement à atteindre 20. Continuer entre-temps un objectif rentable du guide ou les autres zones encore disponibles, puis revenir uniquement sur les familles incomplètes lorsque le délai a naturellement eu le temps de s'écouler. En pratique prévoir 2 à 3 passes, jamais 20 minutes d'attente sur une carte."},
+          {"area":"Grobe — Grobelin Jardinier [34,-40]","do":"Lorsque les six familles sont réellement à 20/20, rendre les 120 ressources. Pour éviter le délai de 5 minutes lié à une mauvaise réponse, choisir successivement les réponses correspondant à : « pas pas pas patient », « vous êtes un mort réincarné », puis « rester immobile ». Ne quitter Grobe qu'une fois cette partie validée."},
+          {"area":"Ingalsse [7,5] / temple Sadida","do":"Revenir auprès d'Ingalsse, utiliser la terre magique, le chant et la formule lorsque les objectifs les demandent, puis gagner le combat solo avec compagnon prévu par la quête. Terminer Cultures et turpitudes au temple Sadida et vérifier que Qui nous protège du Protecteur ? devient réellement disponible avant de poursuivre."}
+        ],
+        "progress_also":["Afficher en permanence les six compteurs séparés 0-20; une famille à 20/20 est retirée des prochaines passes.","Les ressources de quête pèsent sur les pods : banque et inventaire normal doivent être préparés avant la boucle, mais les 120 ressources de quête restent conservées jusqu'au rendu.","Le repop d'environ 20 minutes est une contrainte de revisite, jamais une raison d'attendre immobile; utiliser ce temps pour une autre zone, un rendu ou un autre objectif du Guide Ultime."],
+        "before_leaving":["Humus plantalien 20/20.","Pierre fertile 20/20.","Limon des cascades 20/20.","Cendres fécondes 20/20.","Akènes à tout vent 20/20.","Pandouilles fantômes 20/20.","Cultures et turpitudes terminée.","Qui nous protège du Protecteur ? disponible."],
+        "hard_exit":["Aucun des trois prérequis de Cultures supposé terminé sans validation réelle.","Aucune attente immobile pendant le repop d'environ 20 minutes.","Un seul Élixir des Trépasseurs prévu pour la boucle Grobe.","Aucun compteur de ressource déclaré terminé avant 20/20 réel."]
+      }
+    },
+    "P200-23": {
+      "replace": {
+        "title":"Qui nous protège du Protecteur ? — 12 sigils Bonta, trois boss puis Ménologium",
+        "entry":"Cultures et turpitudes + Mort et renouveau + Un héritage tourmenté + Dites-le avec des fleurs + Pas de fumée sans feu + Le givre des révélations réellement terminés. Le travail c'est la santé n'est pas obligatoire si la Dague de Will Killson est obtenue autrement.",
+        "preparation":[
+          {"name":"Pépite","quantity":500,"policy":"Avoir les 500 sur le personnage AVANT la Bataille de l'Aurore Pourpre; ne pas les laisser en banque."},{"name":"Aile de Moskito","quantity":31},{"name":"Métronome du Début-Temps","quantity":24,"alternative":"24 Orichor"},{"name":"Poudre de Perlinpainpain","quantity":12},{"name":"Capsule Explosive","quantity":12},{"name":"Poudre d'Artifice","quantity":12},{"name":"Goulobule rouge","quantity":12},{"name":"Citron","quantity":6},{"name":"Fil de Néfileuse","quantity":6},{"name":"Résine","quantity":6},{"name":"Kouartz","quantity":6},{"name":"Tourmaline","quantity":4},{"name":"Œil de Cycloïde","quantity":4},{"name":"Huile de Koode","quantity":3},{"name":"Queue de Mantaze","quantity":2},{"name":"Fragment d'anomalie","quantity":2},{"name":"Ardonite","quantity":2},{"name":"Galet Solaire","quantity":2},{"name":"Galet Lunaire","quantity":1},{"name":"Substrat de Forêt vierge","quantity":1},{"name":"Clef de la Clairière du Chêne Mou","quantity":1},{"name":"Dague de Will Killson","quantity":1,"alternative":"20 Kama de glace ou HDV apparat"},{"name":"Essence de Torkélonia","quantity":1},{"name":"Essence de Tal Kasha","quantity":1},{"name":"Signe de Masse","quantity":1,"optional":true},{"requirement":"Forgeron180 ou artisan disponible pour fabriquer la Tapette à moskitos avant Hécate.","blocking":true},{"note":"Alignement canonique Bonta : Jiva demande 25 Douleurs de Brûlâme; Djaul demande 100 Âmes de Possédé sauf si le choix final de Six sur six a réellement donné le titre La Griffe des Démons, auquel cas 25 suffisent. Ne jamais appliquer la réduction sans titre runtime."}
+        ],
+        "route":[
+          {"area":"Temple Sadida [-1,9] → Maïmane","do":"Prendre Qui nous protège du Protecteur ?. Maïmane remet son propre sigil : il reste donc 11 Protecteurs à convaincre. Ouvrir la campagne complète avant de disperser les déplacements."},
+          {"area":"Bonta — Tour des Ordres [-34,-58] / Caserne du Jour sans fin","do":"SIGIL JIVA — En Bonta, parler à Jiva puis récupérer exactement 25 Douleurs de Brûlâme à 100% sur les monstres de la Caserne du Jour sans fin. Retourner ensuite à Jiva et rendre les 25 avant de quitter Bonta. Ne jamais utiliser les valeurs Neutre/Brâkmar du walkthrough pour ce personnage canonique Bontarien."},
+          {"area":"Forêt Maléfique / Sakaï / Cania","do":"SIGILS SILVOSSE + ULGRUDE + SILOUATE — Traiter la doyenne Gnaughra et les boutures/écailles de Silvosse, puis appeler Ulgrude à Sakaï avec les 1000 kamas prévus. Pour Silouate, lire d'abord la zone donnée par son familier [-27,-34], puis aller à la position correspondante : rocheuses [-17,-49], landes [-11,-47], champs [-25,-41], pics [-14,-40], lac [-6,-37], massif [-9,-28]. Ne parcourir qu'une seule de ces six positions, celle annoncée."},
+          {"area":"Pandala / Forêt Maléfique","do":"SIGILS ROSAL + HÉCATE — Rosal nécessite Dites-le avec des fleurs déjà terminé. Pour Hécate, fabriquer la Tapette à moskitos et consommer une Enchanterelle grâce à Pas de fumée sans feu. Gagner son combat, puis seulement APRÈS avoir déjà obtenu le Sigil d'Ulgrude, reparler à Hécate et lui montrer ce sigil : Hécate ne doit jamais être planifiée avant Ulgrude."},
+          {"area":"Clairière du Chêne Mou","do":"SIGIL POUCHECOT — Venir avec la clef réelle, utiliser l'accès de Josette Taplane et parler à Pouchecot. Le trousseau ne remplace pas cette clef. Ne tuer le Chêne Mou que si le journal courant le demande réellement : le sigil est un dialogue, pas un boss artificiel."},
+          {"area":"Palais du Roi Nidas — salle finale","do":"SIGIL SUMENS — Faire le rerun Nidas uniquement maintenant, car la quête des sigils n'existait pas lors des passages Ivoire/Nébuleux. APRÈS la victoire, NE PAS SORTIR : parler à Sumens et récupérer réellement son sigil avant toute sortie."},
+          {"area":"Bataille de l'Aurore Pourpre — salle 4 puis sortie","do":"SIGIL RAVAL — Entrer avec les 500 Pépites SUR le personnage. En salle 4 Le Chant du Nécromant, parler à Raval avant de poursuivre. Vaincre l'Éternel Conflit puis, APRÈS le boss, NE PAS SORTIR : reparler à Raval, choisir le dialogue de quête et lui remettre les 500 Pépites pour obtenir son sigil."},
+          {"area":"Frigost / Caverne du Destin","do":"SIGIL BRUMAIRE — Le givre des révélations étant terminé, rencontrer Brumaire puis entrer dans la Caverne du Destin. Échanger auprès de Clothurde la Dague de Will Killson contre la Griffe de Givre demandée, ressortir et la remettre à Brumaire. Le travail c'est la santé n'est requis que pour acheter la dague contre des Kamas de glace, pas si elle vient de l'HDV/apparat."},
+          {"area":"Brâkmar → Atoll des Possédés","do":"SIGIL DJAUL — Parler à Djaul dans la Tour des Ordres de Brâkmar et équiper sa Pierre d'âme démoniaque dans les consommables de combat. Comme le personnage est Bontarien, capturer 100 Âmes de Possédé à l'Atoll; réduire à 25 uniquement si le titre La Griffe des Démons est réellement présent depuis le choix final Six sur six. Cette pierre est indépendante de l'Ocre."},
+          {"area":"Tour de Solar — salle finale","do":"Toujours pour DJAUL, revenir lui montrer les âmes puis faire le Solar qu'il exige. APRÈS le boss, NE PAS SORTIR : parler d'abord à Djaul, écouter Solar qui accepte d'être témoin, puis REPARLER à Djaul pour recevoir effectivement son sigil. La séquence Djaul → Solar → Djaul est obligatoire avant sortie."},
+          {"area":"Horloge de Xélor → Sanctuaire de l'Almanax","do":"Avec Maïmane + les 11 autres sigils réellement obtenus, rejoindre la forge de l'Horloge, récupérer les 12 morceaux du Ménologium et le reforger avec 24 Métronomes, 6 Kouartz, 4 Œils de Cycloïde, 3 Huiles de Koode, 2 Galets Solaires, 1 Essence de Torkélonia et 1 Essence de Tal Kasha. Aller ensuite au sanctuaire de l'Almanax et prier dans les quatre salles saisonnières jusqu'à obtenir le Ménologium béni."},
+          {"area":"Temple Eniripsa [7,1] — Elya Wood","do":"Parler à Elya Wood avec le Ménologium béni et atteindre exactement l'étape où elle demande le puissant réceptacle lié à Silvosse. STOP ICI : Flovoraison doit maintenant régénérer le Dom de Pin avant le combat Silvosse."}
+        ],
+        "progress_also":["Les trois boss Nidas, Aurore Pourpre et Solar sont des retours causaux ouverts seulement par cette quête; avant chaque entrée, ajouter uniquement les succès Donjon/Monstre encore réellement manquants.","Jiva et Djaul dépendent de l'alignement : conserver les valeurs Bonta 25 Brûlâmes et 100 Possédés comme vérité de cette route, sauf réduction Djaul prouvée par le titre final.","Hécate dépend du sigil d'Ulgrude : si Ulgrude n'est pas encore réellement obtenu, poursuivre vers Sakaï avant de revenir à Hécate au lieu de tenter le dialogue en boucle."],
+        "before_leaving":["12 Sigils réellement obtenus, Maïmane inclus.","Jiva fermée avec 25 Douleurs de Brûlâme pour Bonta.","Hécate fermée seulement après Ulgrude.","Sumens récupéré avant sortie Nidas.","Raval récupéré après boss avec 500 Pépites avant sortie.","Djaul récupéré après la séquence Djaul → Solar → Djaul avant sortie.","Ménologium reforgé puis béni par les quatre saisons.","Elya Wood atteinte et Flovoraison disponible avec Dom de Pin."],
+        "hard_exit":["Aucun sigil synthétique : chaque Protecteur doit avoir réellement remis le sien.","Aucun second Nidas/Aurore/Solar créé par oubli d'un dialogue de salle.","500 Pépites présentes avant l'entrée Aurore Pourpre.","Pierre démoniaque de Djaul jamais mélangée au registre Ocre.","Aucun combat Silvosse avant la régénération du Dom de Pin par Flovoraison."]
+      }
+    },
+    "P200-24": {
+      "replace": {
+        "title":"Flovoraison — graines + pacte Ocre + Belladone Ébène + rituel Primordiaux",
+        "level":"200+ / Qui nous protège arrivé à Elya Wood + Dom de Pin + six Primordiaux",
+        "duration_min":420,
+        "quests":["Flovoraison"],
+        "successes":["En attendant le printemps"],
+        "dungeon":{"name":"Chambre des maléfices","boss":"Belladone","pass":"flovoraison_causal_after_quest_unlock"},
+        "entry":"Qui nous protège du Protecteur ? est arrivé à Elya Wood; Dom de Pin et les six Dofus Primordiaux sont réellement possédés.",
+        "preparation":[
+          {"requirement":"Dom de Pin dans l'inventaire et équipable pendant les graines.","blocking":true},
+          {"requirement":"Dofus Ocre disponible pour purifier le pacte Girol/Huskri.","blocking":true},
+          {"requirement":"Dofus Ébène disponible à équiper DANS la salle post-Belladone avant le dialogue.","blocking":true},
+          {"requirement":"Dofus Turquoise + Pourpre disponibles pour le rituel Sadida, puis Dofus Ivoire disponible pour la finition Eniripsa.","blocking":true}
+        ],
+        "route":[
+          {"area":"Temple Eniripsa [7,1] → sylve céleste","do":"Prendre Flovoraison auprès d'Elya Wood puis rejoindre la sylve céleste. Parler à Eniripsa et Sadida afin d'ouvrir les trois tâches de régénération : quatre graines d'Albuera, pacte des champignons, esprits sauvages. Les trois branches peuvent être faites dans n'importe quel ordre; la route les groupe par Valonia."},
+          {"area":"Albuera — quatre graines","do":"Équiper le Dom de Pin avant de parler aux Pom de pin. Récupérer les quatre graines en [40,-84], [38,-80], dans la cave de la taverne [38,-78], puis dans les souterrains accessibles par [38,-77] jusqu'à [38,-81]. Sur la quatrième, gagner le combat solo avec compagnon contre le Grolours grognon puis reparler à la Pom de pin avant de partir."},
+          {"area":"Valonia/Fungus — Girol [31,-62] → Tom Nindex [33,-64]","do":"PACTE DES CHAMPIGNONS — Parler à Girol, aller chercher auprès de Tom Nindex le vieux livre servant de cadeau puis revenir à Girol. Quand elle propose le premier champignon, choisir d'émettre quelques réserves afin d'éviter la mauvaise malédiction -50 dommages pour 3 combats; consommer ensuite l'oronge correcte et parler à Huskri avec le livre."},
+          {"area":"Girol/Huskri — Dofus Ocre","do":"AVANT la suite des dialogues de purification, équiper le Dofus Ocre. Montrer son pouvoir à Girol puis à Huskri et approcher l'Ocre du livre corrompu. Ne lancer le combat tant que l'Ocre n'est pas réellement équipé et l'objectif correspondant ouvert."},
+          {"area":"combat du pacte — 3 vagues solo","do":"Gagner le combat à vagues avec Huskri + deux Russul contrôlables : vague1 = 3 Gandredogues embusqués + 1 Dolid embusqué; vague2 deux tours plus tard = 2 Gandredogues + 2 Dolids; vague3 au tour suivant = 2 Gandredogues + 1 Dolid + 1 Pistilangue. Après le combat, REPARLER à Huskri avec l'Ocre pour purifier définitivement le livre et valider le pacte avant de quitter."},
+          {"pos":"[29,-88] Chambre des maléfices — Belladone","do":"RERUN CAUSAL BELLADONE : Flovoraison n'existait pas lors du passage Valonia précédent. Vaincre Belladone puis NE PAS SORTIR. Dans sa salle post-boss, équiper d'abord le Dofus Ébène, ensuite seulement parler à Belladone comme experte en sortilèges vénéneux. La menacer de devoir vous revoir encore et encore jusqu'à ce qu'elle confie les Colliers de ronces. Aucun second Belladone ne doit être nécessaire."},
+          {"area":"Valonia — esprits sauvages","do":"Avec les Colliers de ronces, dompter l'Esprit sauvage en [23,-80] puis celui en [22,-81]. Ne revenir à la sylve céleste qu'une fois les quatre graines + le pacte Girol/Huskri + les deux esprits réellement validés."},
+          {"area":"sylve céleste — rituel Sadida","do":"AVANT de parler à Sadida, équiper simultanément Dofus Turquoise + Dofus Pourpre + Dom de Pin. Parler à Sadida puis cliquer la grosse fleur/calice au centre pour déposer le Dom de Pin et les quatre graines selon l'objectif. Ne changer d'équipement qu'après validation de cette étape."},
+          {"area":"sylve céleste — finition Eniripsa","do":"Après le pouvoir de Sadida puis celui d'Eniripsa, équiper le Dofus Ivoire lorsque le journal le demande. Parler au Dom de Pin/réceptacle afin de solidifier le pouvoir et le transformer en Dofus Sylvestre. Récupérer l'objet avant de quitter la sylve."},
+          {"area":"retour Qui nous protège","do":"Ce Dofus Sylvestre est encore le RÉCEPTACLE DE QUÊTE, pas le Dofus Sylvestre final à bonus. Reprendre immédiatement Qui nous protège du Protecteur ? pour le transformer en Dofus Verdoyant et combattre Silvosse; Flovoraison ne se terminera qu'après ce combat et le don du Verdoyant."}
+        ],
+        "before_leaving":["Quatre graines d'Albuera réellement récupérées.","Pacte Girol/Huskri purifié avec Dofus Ocre équipé et combat à trois vagues terminé.","Belladone traitée une seule fois; Dofus Ébène équipé AVANT son dialogue et Colliers de ronces obtenus avant sortie.","Deux esprits sauvages domptés.","Turquoise + Pourpre + Dom de Pin équipés au rituel Sadida.","Ivoire équipé à la finition Eniripsa.","Dofus Sylvestre de quête récupéré, sans le confondre avec le Dofus final."],
+        "hard_exit":["Les trois branches Flovoraison sont réellement fermées : graines + pacte champignons + esprits.","Aucun second Belladone créé par oubli d'équiper l'Ébène ou de parler après boss.","Aucune validation du pacte sans Ocre équipé et dialogue Huskri post-combat.","Aucune validation Flovoraison avant la suite du combat Silvosse.","Le Dofus Sylvestre obtenu ici est explicitement un réceptacle de quête; il n'est jamais enregistré comme Dofus final."],
+        "pause":["POINT DE PAUSE SÛR — trois branches Flovoraison fermées, réceptacle Sylvestre prêt pour Verdoyant/Silvosse"]
+      }
+    },
+    "P200-25": {
+      "replace": {
+        "title":"Silvosse — Verdoyant, soin à 200000 puis vrai Dofus Sylvestre",
+        "level":"200+ / Ménologium béni + Dofus Sylvestre de quête",
+        "duration_min":180,
+        "quests":["Qui nous protège du Protecteur ?","Flovoraison"],
+        "successes":["L'arbre qui cache la forêt","En attendant le printemps"],
+        "preparation":[{"requirement":"Ménologium béni équipé pour les quatre sorts saisonniers.","blocking":true},{"requirement":"Dofus Verdoyant équipé pour le sort de soin spécial.","blocking":true},{"name":"Signe de Masse","quantity":1,"optional":true,"policy":"Masse est le seul compagnon prévu; le combat reste faisable sans lui."}],
+        "route":[
+          {"area":"Temple Eniripsa [7,1]","do":"Reprendre Qui nous protège du Protecteur ? avec le Dofus Sylvestre de quête. Le plonger dans le chaudron devant la statue d'Eniripsa pour obtenir le Dofus Verdoyant. Équiper immédiatement Dofus Verdoyant + Ménologium béni; Masse reste facultatif."},
+          {"pos":"[-11,-13] clairière de la Forêt Sombre","do":"Retrouver Maïmane puis lancer Silvosse seulement avec l'équipement spécial prêt. Le but n'est PAS de tuer Silvosse : il commence autour de 2000/200000 PV et doit être soigné jusqu'à 200000. Les quatre sorts du Ménologium suivent les saisons Printemps → Été → Automne → Hiver, chacune durant trois tours."},
+          {"area":"combat Silvosse","do":"Utiliser le soin du Dofus Verdoyant sur Silvosse chaque tour utile. Tuer rapidement les Gnauls ennemis pour les faire passer dans votre camp : chaque Gnaul allié augmente fortement le soin du Verdoyant. Protéger 2 à 3 Gnauls si possible; lorsqu'un Gnaul allié va mourir, Amour de la nature peut le sacrifier pour soigner Silvosse plutôt que le perdre gratuitement."},
+          {"area":"combat Silvosse — saisons/seuils","do":"Éviter les glyphes saisonniers au début du tour de Silvosse et détruire les Jeunes pousses avant qu'elles deviennent des Germinions qui retirent des PV à Silvosse. À l'approche de 162000 PV, préparer un ou deux Gnauls ennemis affaiblis : Silvosse renvoie alors vos Gnauls alliés dans son camp et il faut les reconvertir vite. À 200000/200000, ne plus chercher à frapper ni sur-soigner : attendre que Silvosse joue son tour pour déclencher la victoire."},
+          {"area":"après combat — ordre des dialogues","do":"Reparler à Silvosse, puis au fantôme de Simple. À sa demande, donner le Dofus Verdoyant à Silvosse pour achever la guérison : c'est à ce moment que Flovoraison se termine. Reparler ensuite à Silvosse jusqu'à ce qu'il vous confie la garde du Dofus Sylvestre."},
+          {"area":"Albuera — ancien Grand Arbre","do":"Accepter de suivre Silvosse avec le Dofus Sylvestre qu'il vous remet et les six Dofus Primordiaux. Planter la Nouvelle graine d'Albuera à l'emplacement du Grand Arbre abattu. Attendre la validation réelle de En attendant le printemps : seulement maintenant enregistrer le VRAI Dofus Sylvestre final et fermer le Guide Ultime."}
+        ],
+        "before_leaving":["Silvosse soigné à 200000/200000 et combat terminé par son tour.","Dofus Verdoyant donné à Silvosse après le dialogue de Simple.","Flovoraison réellement terminée.","Nouvelle graine d'Albuera plantée avec six Primordiaux.","En attendant le printemps réellement terminé.","Vrai Dofus Sylvestre final obtenu uniquement après la replantation."],
+        "hard_exit":["Ne jamais tenter de tuer Silvosse comme un boss normal.","Réceptacle Sylvestre et Verdoyant ne sont jamais enregistrés comme Dofus Sylvestre final.","Aucune fermeture synthétique : le vrai Dofus final exige le dialogue Silvosse puis la Nouvelle graine d'Albuera."],
+        "pause":["POINT FINAL — Dofus Sylvestre réel obtenu, route canonique post-200 fermée"]
+      }
+    }
+  },
+  "insertions": []
+}

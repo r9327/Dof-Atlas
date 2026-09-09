@@ -1,0 +1,88 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_level_150_170_v7",
+  "title": "Guide Ultime — Niveau 150 à 170 + Les rescapés de Frigost optimisés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v6.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v6",
+  "stage_count": 23,
+  "optimization_note": "Ferme la chaîne Les rescapés de Frigost sans ajouter d'Obsidiantre. Il préfère la mort en mer + Chauffage à moindre frais sont faits avant le PASS1 Obsidiantre, À la recherche de Dan Lavy est amenée à la salle4 puis fusionnée dans L150-03, et À qui profite le boufmouth est fermée au palier170 après Lavomatique. La marche de l'impératrice est anticipée pour ne pas bloquer son enquête.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/les-rescapeacutes-de-frigost.html",
+    "https://www.dofuspourlesnoobs.com/il-preacutefegravere-la-mort-en-mer.html",
+    "https://www.dofuspourlesnoobs.com/chauffage-agrave-moindre-frais.html",
+    "https://www.dofuspourlesnoobs.com/a-la-recherche-de-dan-lavy.html",
+    "https://www.dofuspourlesnoobs.com/a-qui-profite-le-boufmouth.html",
+    "https://www.dofuspourlesnoobs.com/la-marche-de-limpeacuteratrice.html"
+  ],
+  "insertions": [
+    {
+      "after": "L150-01",
+      "stage": {
+        "id": "L150-01F",
+        "title": "Frigost rescapés — mer + chauffage + Dan Lavy prêts avant Obsidiantre",
+        "level": "160+ / Les chasseurs + Fais dodo terminés",
+        "duration_min": 220,
+        "entry": "Les chasseurs fermé au premier Mansot; Fais dodo terminé au premier Ben.",
+        "quests": ["Il préfère la mort en mer","Chauffage à moindre frais","À la recherche de Dan Lavy","La marche de l'impératrice"],
+        "preparation": [
+          {"name":"Moyenne pierre d'âme","quantity":1,"for":"Il préfère la mort en mer","policy":"Capture de quête, jamais Ocre."},
+          {"name":"Pandaburg ou Pandapils","quantity":1,"for":"Chauffage à moindre frais"},
+          {"note":"Chauffage demande des drops/récoltes Larmes d'Ouronigride; garder des pods libres et profiter des combats déjà nécessaires dans la zone."}
+        ],
+        "take": [
+          "Prendre Il préfère la mort en mer puisque Les chasseurs est terminé.",
+          "Après Il préfère, prendre Chauffage à moindre frais puisque Fais dodo est déjà fermé.",
+          "Faire La marche de l'impératrice pendant les passages Mansot/Bourgade avant l'enquête À qui profite le boufmouth."
+        ],
+        "route": [
+          {"area":"Bourgade → zones maritimes Frigost","do":"Fermer Il préfère la mort en mer avec sa pierre de quête et les combats demandés. Ne pas enregistrer cette âme dans le registre Ocre."},
+          {"area":"Larmes d'Ouronigride / Pandala","do":"Faire Chauffage à moindre frais: arriver avec la boisson du Pandazaap, grouper les drops de roses/Atomystiques avec les combats de zone et ne pas attendre immobile les fleurs repop."},
+          {"area":"Bourgade → entrée Hypogée","do":"Prendre À la recherche de Dan Lavy et l'avancer jusqu'à ce que les quatre premières salles de l'Hypogée soient explicitement demandées. STOP avant d'entrer: L150-03 fera ces salles avec Lavomatique/Thomahon."},
+          {"area":"Bourgade/Lac","do":"Fermer La marche de l'impératrice si elle ne l'est pas déjà en capturant/livrant les Mamansots au fil des combats naturels de zone; éviter un farm isolé si les passages précédents l'ont déjà alimentée."}
+        ],
+        "progress_also": ["Préparer la future enquête À qui profite le boufmouth: Lavomatique sera le dernier vrai verrou au niveau170."],
+        "before_leaving": ["Il préfère la mort en mer terminé","Chauffage à moindre frais terminé","À la recherche de Dan Lavy au verrou Hypogée salle4","La marche de l'impératrice terminée"],
+        "hard_exit": ["Aucun passage Obsidiantre ajouté pour Dan Lavy"],
+        "pause": ["POINT DE PAUSE SÛR — Dan Lavy attend L150-03"],
+        "next": "L150-02 — Kimbo puis Minotot; L150-03 fusionnera Dan Lavy"
+      }
+    },
+    {
+      "after": "L150-08",
+      "stage": {
+        "id": "L150-08R",
+        "title": "Frigost170 — À qui profite le boufmouth + fermer Les rescapés de Frigost",
+        "level": "170+ / Lavomatique + Dan Lavy + Marche impératrice terminés",
+        "duration_min": 160,
+        "entry": "Crevasse Perge accessible; À la recherche de Dan Lavy terminée; Lavomatique fermée.",
+        "quests": ["À qui profite le boufmouth","Les rescapés de Frigost"],
+        "take": ["Prendre À qui profite le boufmouth uniquement lorsque les trois prérequis réels sont validés."],
+        "route": [
+          {"area":"Champs de glace → Crevasse → Bourgade","do":"Faire l'enquête À qui profite le boufmouth en regroupant les nombreux retours Bourgade. La marche de l'impératrice étant déjà terminée, le dialogue Ken Tucky ne bloque pas."},
+          {"area":"Bourgade","do":"Après À qui profite le boufmouth, retourner à la Maire Cantille. Bricole Girl + Promenons + Les chasseurs + Il préfère + Chauffage + Dan Lavy sont déjà fermés: terminer Les rescapés de Frigost sans détour supplémentaire."}
+        ],
+        "progress_also": [
+          "À qui profite le boufmouth ouvre Dépôt de ravitaillement. Garder ce fil pour Les rescapés du Village Enseveli au palier190 plutôt que le faire au hasard maintenant.",
+          "Si le PNJ variable de l'enquête n'est pas sur sa première position, utiliser son emplacement alternatif documenté; aucune attente horaire immobile."
+        ],
+        "before_leaving": ["À qui profite le boufmouth terminé","Les rescapés de Frigost terminé","Dépôt de ravitaillement disponible"],
+        "hard_exit": ["Chaîne La maire dénie préparée pour palier190","Succès Les survivants de Frigost prêt à poursuivre avec Village Enseveli"],
+        "pause": ["POINT DE PAUSE SÛR — Rescapés de Frigost fermés"],
+        "next": "suite chapitre170 / futur Village Enseveli190"
+      }
+    }
+  ],
+  "stage_patches": {
+    "L150-03": {
+      "append": {
+        "quests": ["À la recherche de Dan Lavy"],
+        "route": [
+          {"pos":"Hypogée de l'Obsidiantre — salles1 à4","do":"Pendant le PASS1 déjà obligatoire, suivre l'objectif À la recherche de Dan Lavy jusqu'à la salle4 et effectuer son interaction avant de poursuivre vers Obsidiantre. Ne jamais programmer un second passage partiel pour cette quête."},
+          {"pos":"Bourgade post-Hypogée","do":"Terminer le reliquat de À la recherche de Dan Lavy avant le palier170; À qui profite le boufmouth attendra ensuite Lavomatique + niveau170."}
+        ],
+        "hard_exit": ["À la recherche de Dan Lavy terminée sans Obsidiantre supplémentaire"]
+      }
+    }
+  }
+}

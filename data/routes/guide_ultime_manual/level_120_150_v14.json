@@ -1,0 +1,43 @@
+{
+  "schema_version": 14,
+  "route_id": "guide_ultime_manual_level_120_150_v14",
+  "title": "Guide Ultime — Niveau 120 à 150 + Forage à tout va fermé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v13.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v13",
+  "stage_count": 37,
+  "optimization_note": "Répare Forage à tout va et trois quêtes hors succès nécessaires à sa seconde quête. Après le Mansot déjà obligatoire pour Pêche en eaux gelées, le guide reste au Lac et enchaîne La pêche à Mel → Mel Odieuse → Mel au drame → Il est frais mon pichon. Aucun nouveau donjon; seulement les combats Mansot de la chaîne et les livraisons temporisées de30 minutes une par une.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/forage-agrave-tout-va.html",
+    "https://www.dofuspourlesnoobs.com/pecircche-en-eaux-geleacutees.html",
+    "https://www.dofuspourlesnoobs.com/la-pecircche-agrave-mel.html",
+    "https://www.dofuspourlesnoobs.com/mel-odieuse.html",
+    "https://www.dofuspourlesnoobs.com/mel-au-drame.html",
+    "https://www.dofuspourlesnoobs.com/il-est-frais-mon-pichon.html"
+  ],
+  "stage_patches": {
+    "L120-21": {
+      "append": {
+        "quests": ["La pêche à Mel", "Mel Odieuse", "Mel au drame", "Il est frais mon pichon"],
+        "route": [
+          {"pos":"[-64,-55] Lac gelé — après fermeture de Pêche en eaux gelées","do":"Ne quitte pas le Lac après le Mansot. Parler à Mel et faire La pêche à Mel: vaincre le groupe de mansots demandé, revenir à Mel. La quête suivante Mel Odieuse se lance automatiquement."},
+          {"pos":"[-64,-55]","do":"Faire immédiatement Mel Odieuse avec son groupe de mansots, revenir à Mel; Mel au drame se lance. Faire de même pour Mel au drame puis reparler à Mel. Il est frais mon pichon se lance automatiquement."},
+          {"area":"Lac gelé — Il est frais mon pichon","do":"Faire Damar puis Ordralfabétist. Pour chaque Mansobèse transporteur, le délai maximal de30 minutes commence avec le transport concerné: faire une livraison à la fois et revenir chercher le suivant, sans détour entre les deux."},
+          {"pos":"[-64,-51] Bambelle","do":"Avant la deuxième livraison, vérifier qu'Épis d'Emi n'est plus active; cette quête bloque le dialogue avec Bambelle. Gagner l'agression à l'arrivée puis livrer les poiskaille."},
+          {"area":"Lac gelé / Bourgade","do":"Terminer la troisième livraison puis revenir à Ordralfabétist. Vérifier Pêche en eaux gelées + Il est frais mon pichon réellement terminées: Forage à tout va est alors fermé."
+          }
+        ],
+        "successes": ["Forage à tout va"],
+        "before_leaving": [
+          "La pêche à Mel terminée.",
+          "Mel Odieuse terminée.",
+          "Mel au drame terminée.",
+          "Il est frais mon pichon terminée.",
+          "Forage à tout va terminé avant de quitter durablement Lac gelé."
+        ],
+        "hard_exit": ["Aucun retour Mansot/donjon ajouté pour la chaîne Mel; les quatre quêtes sont consommées dans le même bloc post-Mansot."]
+      }
+    }
+  },
+  "insertions": []
+}

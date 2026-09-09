@@ -1,0 +1,203 @@
+{
+  "schema_version": 12,
+  "route_id": "guide_ultime_manual_level_191_200_v12",
+  "title": "Guide Ultime — 191-200 + DDG causal + annexes Frigost III",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v11.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v11",
+  "stage_count": 59,
+  "depends_on": [
+    "level_181_190_v8.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Corrige le cycle impossible de V8: La machine à démonter le temps exige Chaud et Froid, donc elle ne peut pas précéder le Nileza qui ferme Chaud. Le nouvel ordre est Sylargh+Klime → Missiz → quatre sous-quêtes Les derniers rescapés → Au-delà du mur prêt → Nileza partagé Chaud/Au-delà/Maîtres/Totem/Porte → Crise d'ex-Emma → Les derniers rescapés fermé → Machine/Grolloum → Givre → Comte. Donjons à l'ancienne réutilise les reruns Totems pour Sylargh/Klime/Missiz/Nileza; seul Porte Comte exige un second Comte causal. Carnage de glace et Regarde ce que j'ai trouvé sont absorbés dans les mêmes cinq zones Frigost III, cleanup rare seulement après les combats naturels.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-machine-agrave-deacutemonter-le-temps.html",
+    "https://www.dofuspourlesnoobs.com/chaud-et-froid.html",
+    "https://www.dofuspourlesnoobs.com/les-derniers-rescapeacutes.html",
+    "https://www.dofuspourlesnoobs.com/au-delagrave-du-mur.html",
+    "https://www.dofuspourlesnoobs.com/crise-dex-emma.html",
+    "https://www.dofuspourlesnoobs.com/donjons-agrave-lancienne.html",
+    "https://www.dofuspourlesnoobs.com/carnage-de-glace.html",
+    "https://www.dofuspourlesnoobs.com/regarde-ce-que-jai-trouveacute.html",
+    "https://www.dofuspourlesnoobs.com/ya-pas-eacutecrit-la-poste.html"
+  ],
+  "stage_patches": {
+    "L200-DDG1": {
+      "append": {
+        "quests": ["Porte, Sylargh, trésor", "Porte, Klime, trésor", "Blouson noir", "Boîte de conserve", "Le cinquième élément", "Pousse mousse"],
+        "take": [
+          "[-65,-76] Avant de disperser les combats Frigost III, prendre UNE quête aléatoire de Darwin Chester pour Carnage de glace. Comme Il faut mettre un terme aux maîtres n'est pas encore terminé, conserver la chasse réellement proposée parmi les options disponibles; une seule chasse terminée suffit au succès.",
+          "[-52,-87] Sylargh ayant déjà été vaincu pour l'Ivoire, prendre Porte, Sylargh, trésor AVANT le passage Sylargh DDG/Totem.",
+          "[-63,-93] Klime ayant déjà été vaincu pour l'Ébène, prendre Porte, Klime, trésor AVANT le passage Klime DDG/Totem."
+        ],
+        "route": [
+          {"area":"Transporteur de Sylargh","do":"Le passage DDG/Totem ferme aussi Porte, Sylargh, trésor. Avant/après le donjon, tous les monstres extérieurs Remparts à vent servent d'abord à la chasse Darwin Pousse mousse si elle a été tirée et donnent des tentatives Serviette égarée à1%. Le drop Darwin ne fonctionne pas en donjon."},
+          {"area":"Tannerie Écarlate / Klime","do":"Le passage DDG/Totem ferme aussi Porte, Klime, trésor. Sur les monstres EXTÉRIEURS de Tannerie, consommer d'abord toute chasse Darwin Blouson noir active et surveiller le String en poils de nez à1%; conserver le String jusqu'à accès Géofourneaux avec Scaphandre."},
+          {"area":"Jardins d'Hiver / Bastion des froides légions","do":"Pendant Le tour de guet, Guerre froide et autres objectifs de zone, surveiller respectivement Bouteille de Cocalane et Vieux magazine à1%. Si Darwin a tiré Le cinquième élément ou Boîte de conserve, ses50 drops100% sont faits dehors dans la même campagne, jamais en donjon."}
+        ],
+        "hard_exit": [
+          "Porte Sylargh + Porte Klime terminées sur les reruns déjà causaux.",
+          "Une seule chasse Darwin active ou déjà terminée; aucune deuxième chasse automatique.",
+          "Drops rares Frigost III conservés dès leur première obtention."
+        ]
+      }
+    },
+    "L200-DDG-MISSIZ": {
+      "append": {
+        "quests": ["Porte, Missiz Frizz, trésor"],
+        "take": ["Missiz ayant déjà été vaincue à Bonta97, prendre Porte, Missiz Frizz, trésor à l'entrée avant ce rerun DDG/Totem."],
+        "hard_exit": ["Porte, Missiz Frizz, trésor terminée sur le rerun post-Totems; aucun Missiz supplémentaire pour Donjons à l'ancienne."]
+      }
+    },
+    "L200-DDG2": {
+      "replace": {
+        "title": "DDG200 — Les derniers rescapés jusqu'à Au-delà du mur, STOP avant Nileza",
+        "quests": ["Les derniers rescapés", "Rappel à la vie", "Moteur à explosion", "La fifille à son papa", "Mutinerie chez les Armutins", "Au-delà du mur"],
+        "route": [
+          {"area":"Frigost III / Village / Remparts / Bastion","do":"Faire réellement Rappel à la vie + Moteur à explosion + La fifille à son papa + Mutinerie chez les Armutins en regroupant combats et PNJ par zone. Après les quatre, retourner à Mina Spirite: NE PAS déclarer Les derniers rescapés terminé."},
+          {"area":"Géofourneaux [-61,-81]","do":"Chaud et Froid étant suffisamment avancée pour fournir le Scaphandre Magmatique, parler à Hazieff dans le cadre de Les derniers rescapés puis prendre Au-delà du mur. Faire Noo, Stalak errant, Jean Neige/phénix et les retours Hazieff jusqu'à la demande du Laboratoire de Nileza."},
+          {"area":"avant Laboratoire de Nileza","do":"STOP avec Au-delà du mur + Chaud et Froid + Il faut mettre un terme aux maîtres au bon état. La machine à démonter le temps est INTERDITE ici car son prérequis Chaud et Froid n'est pas encore fermé."
+          }
+        ],
+        "before_leaving": [
+          "Quatre sous-quêtes Les derniers rescapés terminées.",
+          "Les derniers rescapés encore active, pas faussement fermée.",
+          "Au-delà du mur au verrou Nileza.",
+          "Chaud et Froid attend Nileza.",
+          "La machine à démonter le temps pas encore lancée."
+        ],
+        "hard_exit": ["Aucune Machine avant Chaud et Froid terminé.", "Nileza post-Totems prêt à absorber tous les fils compatibles."],
+        "next": "L200-DDG-NILEZA"
+      }
+    },
+    "L200-DDG-NILEZA": {
+      "replace": {
+        "title": "Nileza maximal — Chaud + Au-delà + Maîtres + Totem + Porte, puis Machine",
+        "level": "200 / Totems actifs / Au-delà du mur + Chaud et Froid au Nileza",
+        "duration_min": 560,
+        "quests": [
+          "Chaud et Froid",
+          "Il faut mettre un terme aux maîtres",
+          "Au-delà du mur",
+          "Porte, Nileza, trésor",
+          "Crise d'ex-Emma",
+          "Les derniers rescapés",
+          "La machine à démonter le temps",
+          "Le givre des révélations"
+        ],
+        "dungeon": {"name":"Laboratoire de Nileza","pass":"ddg_totem_disgust_au_dela_porte_single_rerun"},
+        "preparation": [
+          {"requirement":"Au-delà du mur réellement au Nileza","blocking":true},
+          {"requirement":"Chaud et Froid réellement au Nileza","blocking":true},
+          {"requirement":"Porte, Nileza, trésor prise après le premier Nileza Ivoire","blocking":true},
+          {"requirement":"Les totems de Maïmane active","blocking":true},
+          {"requirement":"Groupe disponible pour les combats Au-delà/Crise et, si première énigme Henual, 7 personnages pour les dalles","blocking":true}
+        ],
+        "take": [
+          "[-59,-74] Nileza ayant déjà été vaincu pour Une voix de crystal, prendre Porte, Nileza, trésor avant d'entrer.",
+          "N'entrer que lorsque Chaud et Froid + Au-delà du mur + Il faut mettre un terme aux maîtres + Totem Dégoût + Porte Nileza peuvent tous avancer."
+        ],
+        "route": [
+          {"area":"Laboratoire de Nileza","do":"Faire UN Nileza post-Totems pour Chaud et Froid + Au-delà du mur + Il faut mettre un terme aux maîtres + Totem Dégoût + Porte Nileza. Pour Au-delà, effectuer l'interaction machine demandée dans la dernière salle AVANT le combat si le walkthrough l'affiche. Aucun autre Nileza n'est ajouté pour ces fils."},
+          {"area":"Géofourneaux / Château","do":"Finir Au-delà du mur auprès de Jean/Hazieff puis prendre immédiatement Crise d'ex-Emma. Il faut mettre un terme aux maîtres doit maintenant être réellement terminé après les quatre lieutenants; cela ouvre la Tour de la Clepsydre."},
+          {"area":"Tour de la Clepsydre","do":"Faire Crise d'ex-Emma: récupérer les Notes de Missiz puis gagner le combat groupable Emma + Sinistros, reparler à Emma et rendre au Baron. Retourner ensuite à Mina Spirite pour fermer ENFIN Les derniers rescapés et valider Mais où qu'ils sont les Frigostiens ?."},
+          {"area":"Géofourneaux → Maison du Temps → Sakaï","do":"Chaud et Froid étant maintenant terminé, prendre La machine à démonter le temps. Résoudre les dalles Henual seulement si jamais faites; sinon utiliser le Cadran. Récupérer12 Rouages en Or sur les Sinistros de la Clepsydre et2 Métal Éternel sur Frimar; faire le Grolloum causal pour la Pierre d'Autre Temps."},
+          {"area":"Tour de la Clepsydre","do":"Fabriquer/poser le Stabilisateur, expulser les trois chronanomalies et fermer La machine à démonter le temps. Avancer Le givre des révélations jusqu'au verrou Comte."}
+        ],
+        "successes": ["Mais où qu'ils sont les Frigostiens ?", "La glace répare, la glace remplace"],
+        "before_leaving": [
+          "Totem Dégoût obtenu.",
+          "Porte Nileza terminée.",
+          "Chaud et Froid terminé.",
+          "Il faut mettre un terme aux maîtres terminé.",
+          "Au-delà du mur + Crise d'ex-Emma terminées.",
+          "Les derniers rescapés terminé réellement.",
+          "La machine à démonter le temps terminée.",
+          "Le givre des révélations prêt Comte."
+        ],
+        "hard_exit": [
+          "Cycle Machine/Nileza supprimé: Machine seulement après Chaud fermé.",
+          "Nileza post-Totems +1 causal unique pour tous les fils.",
+          "Aucune fausse clôture Les derniers rescapés après seulement quatre sous-quêtes."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — Frigostiens + Machine fermés, Comte prêt"],
+        "next": "L200-FRI3-ANNEX"
+      }
+    },
+    "L200-DDG3": {
+      "append": {
+        "route": [
+          {"area":"après premier Comte","do":"Ce premier Comte ferme Un comte de faits divers / Givre / Totem Surprise / éclat S'armer. Porte, Comte Harebourg, trésor ne peut être prise qu'APRÈS cette victoire: ne pas prétendre la fusionner rétroactivement."
+          }
+        ],
+        "hard_exit": ["Premier Comte réellement terminé avant ouverture de Porte Comte."]
+      }
+    }
+  },
+  "insertions": [
+    {
+      "after": "L200-DDG-NILEZA",
+      "stage": {
+        "id": "L200-FRI3-ANNEX",
+        "title": "Frigost III annexes — Carnage + cinq objets trouvés après les essais naturels",
+        "level": "200 / quatre zones des lieutenants traversées / Clepsydre ouverte",
+        "duration_min": 360,
+        "quests": [
+          "Blouson noir",
+          "Boîte de conserve",
+          "Le cinquième élément",
+          "Pousse mousse",
+          "Passer du Cocalane",
+          "Le jour de la serviette",
+          "Un string de caractère",
+          "Voila où ça nous mène",
+          "Y'a pas écrit le poste"
+        ],
+        "successes": ["Carnage de glace", "Regarde ce que j'ai trouvé"],
+        "entry": "Tous les combats naturels Noblesse/DDG/Machine des cinq zones ont été consommés avant cleanup rare.",
+        "route": [
+          {"area":"chasse Darwin active","do":"Terminer l'UNIQUE chasse réellement tirée: Tannerie=Blouson noir, Bastion=Boîte de conserve, Jardins=Le cinquième élément, Remparts=Pousse mousse. Les50 drops sont à100% dehors et ne fonctionnent pas en donjon. Si la chasse est déjà terminée, ne jamais en relancer une seconde; Carnage de glace est acquis avec une seule."},
+          {"area":"Jardins d'Hiver","do":"Si la Bouteille de Cocalane1% n'est pas encore tombée après tous les combats naturels, cleanup uniquement du reliquat jusqu'au premier drop. Double-cliquer puis montrer la bouteille à Karla Shnikoff [-65,-76]."},
+          {"area":"Remparts à vent","do":"Si la Serviette égarée1% manque, cleanup après les combats naturels/chasse seulement. Double-cliquer puis remettre à Taylor Parfait [-60,-80]."},
+          {"area":"Tannerie Écarlate","do":"Si le String en poils de nez1% manque, cleanup seulement maintenant. Double-cliquer, équiper le Scaphandre Magmatique de Chaud et Froid et remettre le String à Hazieff [-61,-81]."},
+          {"area":"Bastion des froides légions","do":"Si le Vieux magazine1% manque, cleanup après les combats naturels/chasse. Double-cliquer puis remettre à Aimé Ryckeno [-75,-75] lorsque le Village Enseveli est libéré."},
+          {"area":"Tour de la Clepsydre","do":"Si la Lettre de noblesse1% manque, profiter d'abord des12 Rouages/combats Machine et Crise. Cleanup seulement ensuite sur Sinistros, double-cliquer la Lettre puis la poster en [-67,-75]."},
+          {"area":"audit annexes Frigost III","do":"Vérifier une chasse Darwin terminée + les cinq quêtes rares terminées une fois. Aucune journalière n'est répétée après sa première validation."
+          }
+        ],
+        "before_leaving": ["Carnage de glace terminé.", "Regarde ce que j'ai trouvé terminé."],
+        "hard_exit": [
+          "Aucun drop rare considéré acquis sur simple nombre de combats.",
+          "Cleanup1% uniquement après consommation des combats naturels de chaque zone.",
+          "Aucune seconde quête Darwin ni répétition journalière des objets."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — annexes Fri3 fermées avant Comte"]
+      }
+    },
+    {
+      "after": "L200-DDG3",
+      "stage": {
+        "id": "L200-DDG-COMTE-PORTE",
+        "title": "Comte PASS2 causal — Porte Comte, fermer Donjons à l'ancienne",
+        "level": "200 / premier Comte terminé",
+        "duration_min": 95,
+        "quests": ["Porte, Comte Harebourg, trésor"],
+        "successes": ["Donjons à l'ancienne"],
+        "dungeon": {"name":"Donjon du Comte Harebourg","pass":"second_causal_for_porte_comte"},
+        "take": ["Après la première victoire Comte, prendre Porte, Comte Harebourg, trésor à l'entrée de la Tour. Cette quête ne pouvait légalement être active au premier passage."],
+        "route": [
+          {"area":"Donjon du Comte Harebourg","do":"Faire le second Comte uniquement pour Porte, Comte Harebourg, trésor + succès Comte encore manquants. Aucun Totem, Givre ou éclat S'armer n'est répété artificiellement."},
+          {"area":"audit Donjons à l'ancienne","do":"Vérifier Porte Nileza + Sylargh + Klime + Missiz + Comte réellement terminées. Les quatre premières ont été absorbées par leurs reruns déjà causaux; seul ce Comte constitue un passage supplémentaire pour le succès."
+          }
+        ],
+        "before_leaving": ["Porte, Comte Harebourg, trésor terminée.", "Donjons à l'ancienne terminé."],
+        "hard_exit": ["Un seul Comte supplémentaire dû au prérequis 'avoir déjà fait le donjon'."],
+        "pause": ["POINT DE PAUSE SÛR — Donjons à l'ancienne fermé"]
+      }
+    }
+  ]
+}

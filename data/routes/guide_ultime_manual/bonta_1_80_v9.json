@@ -1,0 +1,24 @@
+{
+  "schema_version": 9,
+  "route_id": "guide_ultime_manual_bonta_1_80_v9",
+  "title": "Guide Ultime — Alignement Bonta 1 à 80 + sortie rang80 vérifiée",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_80_v8.json",
+  "supersedes": "guide_ultime_manual_bonta_1_80_v8",
+  "quest_range": [1, 80],
+  "macro_stage_count": 37,
+  "optimization_note": "Retire une mention de succès non vérifiée du hard_exit rang80. La sortie canonique ne promet plus que les états causaux réellement nécessaires: rang80 terminé, même Ordre conservé et Ordre80 disponible.",
+  "stage_patches": {
+    "BNT-36": {
+      "replace": {
+        "hard_exit": [
+          "Bonta80 terminé.",
+          "Même Ordre persistant confirmé.",
+          "Ordre80 disponible.",
+          "Bonta81 réservé à la tranche suivante."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

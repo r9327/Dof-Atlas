@@ -1,0 +1,81 @@
+{
+  "schema_version": 15,
+  "route_id": "guide_ultime_manual_level_120_150_v15",
+  "title": "Guide Ultime — Niveau 120 à 150 + micro-succès Frigost absorbés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v14.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v14",
+  "stage_count": 37,
+  "optimization_note": "Ajoute sans répétition inutile Chahuteur clandestin, Chasse gardée, L'hiver sera rude, Tourisme hivernal et Parent indigne. Fight club n'est fait qu'une fois pour son succès. Michel Shel est actif avant les combats Boufmouth déjà nécessaires et n'ajoute que le reliquat jusqu'à50 monstres. Faire le tas de pin partage les allers-retours Bourgade/Pins; Vacances sur glace et Adoption éphémère partagent le Lac gelé. Les répétitions hebdo/journalières restent hors route sauf objectif explicite futur.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/fight-club.html",
+    "https://www.dofuspourlesnoobs.com/chasse-gardeacutee.html",
+    "https://www.dofuspourlesnoobs.com/michel-shel-enquille-un-bouftonmouth.html",
+    "https://www.dofuspourlesnoobs.com/faire-le-tas-de-pin.html",
+    "https://www.dofuspourlesnoobs.com/vacances-sur-glace.html",
+    "https://www.dofuspourlesnoobs.com/adoption-eacutepheacutemegravere.html"
+  ],
+  "stage_patches": {
+    "L120-00": {
+      "append": {
+        "quests": ["Fight club", "Michel Shel Enquille un Bouftonmouth"],
+        "take": [
+          "[-77,-38] Pendant le premier passage Taverne/Port de givre, prendre Fight club et faire son combat solo une seule fois. Le succès Chahuteur clandestin ne demande pas de répéter l'hebdomadaire.",
+          "[-76,-42] Avant les combats Champs de glace de Gène et tique + En semant, se ment, prendre Michel Shel Enquille un Bouftonmouth auprès de Clyde Parker."
+        ],
+        "route": [
+          {"pos":"[-77,-38] cave de la Taverne","do":"Gagner le combat Fight club, récupérer le Savon de Frigost puis reparler à Chuck pour sortir/terminer. Conserver le savon; aucun objectif du Guide n'impose les postages de10 à140 semaines."},
+          {"area":"Champs de glace","do":"Avec Michel Shel active, chaque monstre Boufmouth des combats déjà nécessaires donne une Dent de sagesse à100%. Consommer d'abord Gène et tique + En semant, se ment + autres combats naturels; seulement ensuite tuer le reliquat exact pour atteindre50 Dents."},
+          {"pos":"[-76,-42]","do":"Rendre les50 Dents à Clyde. Une seule quête de chasse suffit à Chasse gardée: ne continuer Espèce Menacée/Pied joyeux que si un autre objectif futur les exige explicitement."
+          }
+        ],
+        "successes": ["Chahuteur clandestin", "Chasse gardée"],
+        "hard_exit": [
+          "Fight club terminé une fois; aucune répétition hebdomadaire automatique.",
+          "Michel Shel Enquille un Bouftonmouth terminé après consommation des combats Champs naturels.",
+          "Chahuteur clandestin + Chasse gardée réellement validés ou blocker exact visible."
+        ]
+      }
+    },
+    "L120-20F": {
+      "append": {
+        "quests": ["Faire le tas de pin"],
+        "take": [
+          "[-65,-50] Pendant la campagne Forêt des Pins, prendre Faire le tas de pin à Gormor. Une seule exécution suffit au succès L'hiver sera rude."
+        ],
+        "route": [
+          {"area":"Forêt des Pins ↔ Bourgade","do":"Synchroniser les quatre livraisons de Troncs de Pin à Chef Rhonté [-76,-33] avec les retours déjà nécessaires pour Semer ses graines, Star ski, Bricole Girl et autres quêtes Bourgade/Pins. À la troisième prise de troncs, gagner l'agression solo de trois monstres de zone."},
+          {"pos":"[-65,-50]","do":"Après la dernière livraison, revenir à Gormor pour constater la rupture de stock et terminer la quête. Ne pas attendre24h ni relancer la journalière pour ce succès."
+          }
+        ],
+        "successes": ["L'hiver sera rude"],
+        "hard_exit": ["Faire le tas de pin terminé une fois; aucune répétition24h automatique."]
+      }
+    },
+    "L120-21": {
+      "append": {
+        "quests": ["Vacances sur glace", "Adoption éphémère"],
+        "preparation": [
+          {"name":"Bois de Tremble","quantity":70,"for":"Vacances sur glace","policy":"Préparer/acheter avant la boucle Lac; ne pas quitter le Lac pour récolter après avoir parlé à Aurore."},
+          {"name":"Planche de Gravure","quantity":1,"for":"Vacances sur glace"},
+          {"name":"Poisskaille","quantity":1,"for":"Adoption éphémère"}
+        ],
+        "take": [
+          "[-61,-58] Au premier passage rentable au Lac gelé, prendre puis rendre Vacances sur glace avec70 Bois de Tremble +1 Planche de Gravure déjà en inventaire.",
+          "[-63,-58] Après La fonte des glaces, prendre Adoption éphémère et donner immédiatement1 Poisskaille à Agnès Péha."
+        ],
+        "route": [
+          {"area":"Lac gelé","do":"Faire Vacances sur glace + Adoption éphémère pendant la même campagne que Mansot/Pêche/Mel. Les deux quêtes sont répétables mais une seule validation est nécessaire pour Tourisme hivernal et Parent indigne; ne pas programmer leurs resets."
+          }
+        ],
+        "successes": ["Tourisme hivernal", "Parent indigne"],
+        "hard_exit": [
+          "Vacances sur glace terminée une fois.",
+          "Adoption éphémère terminée une fois.",
+          "Tourisme hivernal + Parent indigne réellement validés."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

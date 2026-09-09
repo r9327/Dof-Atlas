@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_incarnam_v2",
+  "title": "Guide Ultime — Incarnam manuel — inventaire structuré",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "incarnam_v1.json",
+  "stage_count": 9,
+  "stage_patches": {
+    "INC-01": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Lailait",
+            "quantity": 1,
+            "for": "La galette secrète",
+            "acquisition_default": "Acheter à Grobid pendant la boucle du village."
+          }
+        ]
+      }
+    },
+    "INC-02": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Blé",
+            "quantity": 18,
+            "for": "Produits naturels + Boune un jour + La galette secrète",
+            "policy": "Conserver le stock jusqu'aux crafts déjà routés dans le chapitre."
+          },
+          {
+            "name": "Poudre de Perlinpainpain",
+            "quantity": 4,
+            "for": "La galette secrète",
+            "policy": "Ne pas vendre avant la fermeture de La galette secrète."
+          },
+          {
+            "name": "Œuf Chimérique",
+            "quantity": 2,
+            "for": "La galette secrète",
+            "policy": "La galette secrète doit être active avant le farm; conserver les 2 œufs."
+          },
+          {
+            "name": "Pétale Diaphane",
+            "quantity": 2,
+            "for": "Boune un jour, boune toujours",
+            "policy": "Conserver pour le craft de la panoplie Boune."
+          },
+          {
+            "name": "Plume Chimérique",
+            "quantity": 2,
+            "for": "Boune un jour, boune toujours",
+            "policy": "Conserver pour le craft de la panoplie Boune."
+          }
+        ]
+      }
+    },
+    "INC-03": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Goujon",
+            "quantity": 8,
+            "for": "Produits naturels + Boune un jour",
+            "policy": "Atteindre 8 au total pendant le passage Lac."
+          },
+          {
+            "name": "Peau de Gloot",
+            "quantity": 2,
+            "for": "Boune un jour, boune toujours",
+            "policy": "Conserver pour le craft de la panoplie Boune."
+          }
+        ]
+      }
+    },
+    "INC-04": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Laine Céleste",
+            "quantity": 2,
+            "for": "Boune un jour, boune toujours",
+            "policy": "Conserver pour le craft de la panoplie Boune."
+          },
+          {
+            "name": "Bave de Bouftou",
+            "quantity": 4,
+            "for": "La galette secrète",
+            "policy": "Conserver jusqu'à la cuisson de la galette."
+          },
+          {
+            "name": "Bois de Frêne",
+            "quantity": 10,
+            "for": "La hache et la pioche",
+            "policy": "Conserver jusqu'à la Planche Agglomérée."
+          },
+          {
+            "name": "Ortie",
+            "quantity": 13,
+            "for": "Produits naturels + Boune un jour + La galette secrète",
+            "policy": "Atteindre 13 au total avant de quitter la boucle forêt."
+          },
+          {
+            "name": "Cendres Éternelles",
+            "quantity": 11,
+            "for": "Boune un jour + Préparation au combat + La galette secrète",
+            "policy": "Atteindre 11 au total et conserver jusqu'aux crafts concernés."
+          },
+          {
+            "name": "Feu Intérieur",
+            "quantity": 2,
+            "for": "Boune un jour, boune toujours",
+            "policy": "Conserver pour le craft de la panoplie Boune."
+          },
+          {
+            "name": "Viande Intangible",
+            "quantity": 5,
+            "for": "Le métier des aventuriers + Préparation au combat",
+            "policy": "Chasser avec le couteau équipé et atteindre 5 au total."
+          }
+        ]
+      }
+    },
+    "INC-05": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Fer",
+            "quantity": 10,
+            "for": "La hache et la pioche",
+            "policy": "Récolter pendant l'unique passage mine."
+          },
+          {
+            "name": "Poudre d'Aminite",
+            "quantity": 3,
+            "for": "Un peu de pigment",
+            "policy": "Obtenir pendant que la quête est active, dans le même passage mine."
+          }
+        ]
+      }
+    },
+    "INC-06": {
+      "append": {
+        "preparation": [
+          {
+            "name": "Relique d'Incarnam",
+            "quantity": 3,
+            "for": "Préparation au combat — Clef de la Crypte de Kardorim",
+            "policy": "Conserver les 3 reliques obtenues au Cimetière jusqu'au craft de la clef."
+          }
+        ]
+      }
+    },
+    "INC-07": {
+      "replace": {
+        "dungeon": {
+          "name": "Crypte de Kardorim",
+          "boss": "Kardorim",
+          "pass": "single_optimized_pass"
+        }
+      }
+    }
+  },
+  "validation_notes": [
+    "Aucun ordre, waypoint, titre de quête, coordonnée ou quantité n'est inventé dans v2.",
+    "Les quantités proviennent du resource_plan et des actions déjà écrites dans incarnam_v1.",
+    "La Crypte de Kardorim devient une cible donjon structurée sans modifier le passage unique existant.",
+    "Les succès Kardorim restent portés par le waypoint du donjon et sont consommés par le contrat d'auto-validation."
+  ]
+}

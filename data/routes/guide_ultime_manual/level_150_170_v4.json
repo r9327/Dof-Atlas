@@ -1,0 +1,113 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_level_150_170_v4",
+  "title": "Guide Ultime — Niveau 150 à 170 + Veilleurs synchronisés avant XLII",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v3.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v3",
+  "stage_count": 19,
+  "optimization_note": "Corrige une dette de route réelle: L150-17 ne doit plus espérer que Le disparu de Sufokia soit déjà disponible. Les trois succès d'introduction dimensionnelle sont désormais fermés avant l'Horologium de XLII, Le disparu est avancé jusqu'au Diamant Dimensionnel, puis le XLII existant valide simultanément Carpe Diem + Veilleurs sans second donjon.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/voyage-voyage.html",
+    "https://www.dofuspourlesnoobs.com/dun-monde-agrave-lautre.html",
+    "https://www.dofuspourlesnoobs.com/aux-portes-de-la-nuit.html",
+    "https://www.dofuspourlesnoobs.com/geacuteneacuterations-futures.html",
+    "https://www.dofuspourlesnoobs.com/le-disparu-de-sufokia.html",
+    "https://www.dofuspourlesnoobs.com/horologium-de-xlii.html"
+  ],
+  "insertions": [
+    {
+      "before": "L150-17",
+      "stage": {
+        "id": "L150-16V",
+        "title": "Veilleurs — ouvrir les 3 dimensions AVANT le XLII déjà prévu",
+        "level": "165-170 / avant L150-17",
+        "duration_min": 260,
+        "entry": "Tour des Voyageurs Dimensionnels; Voyage, voyage non terminé ou prérequis Veilleurs incomplets.",
+        "quests": [
+          "Voyage, voyage",
+          "La porte d'Enutrosor",
+          "Orichomania",
+          "La cité de l'indicible mal",
+          "Messager clandestin",
+          "La voix de son maître",
+          "Le maître des zaaps",
+          "Énergie renouvelable",
+          "Traitement de choc",
+          "Le disparu de Sufokia"
+        ],
+        "successes": ["D'un monde à l'autre", "Aux portes de la nuit", "Générations futures"],
+        "preparation": [
+          {"name":"Rossignol","quantity":1,"for":"Aux portes de la nuit","policy":"Préparer avant Srambad; ne pas quitter la dimension pour l'acheter au milieu du fil."},
+          {"name":"Pixel de Brikablak","quantity":1,"for":"Énergie renouvelable"},
+          {"name":"Pixel d'Éklatleth","quantity":1,"for":"Énergie renouvelable"},
+          {"name":"Pixel de Gromorso","quantity":1,"for":"Énergie renouvelable"},
+          {"name":"Pixel de Farfacette","quantity":1,"for":"Énergie renouvelable"},
+          {"note":"Les portails de dimensions sont recherchés au runtime. Aucune ancienne coordonnée de portail n'est stockée comme destination fixe."}
+        ],
+        "take": [
+          "Si Voyage, voyage n'est pas déjà terminé, le prendre à la Tour des Voyageurs; c'est le point d'entrée commun.",
+          "Prendre chaque quête suivante immédiatement à la fin de sa dépendance afin de ne pas refaire une recherche de portail."
+        ],
+        "route": [
+          {"area":"Tour des Voyageurs → Enutrosor","do":"Fermer Voyage, voyage puis La porte d'Enutrosor et Orichomania dans une seule campagne Enutrosor. Terminer le succès D'un monde à l'autre avant de revenir à la Tour."},
+          {"area":"Tour des Voyageurs → Srambad","do":"Avec Orichomania terminé, enchaîner La cité de l'indicible mal → Messager clandestin → La voix de son maître. Regrouper les distributions/dialogues Srambad avant retour et fermer Aux portes de la nuit."},
+          {"area":"Tour des Voyageurs → Xélorium","do":"La voix de son maître terminée débloque Le maître des zaaps. Enchaîner Le maître des zaaps → Énergie renouvelable → Traitement de choc et fermer Générations futures. Utiliser les montres/positions temporelles du walkthrough local actuel; aucune coordonnée temporelle historique n'est considérée permanente."},
+          {"area":"Champs de Cania → Sufokia","do":"Prendre maintenant Le disparu de Sufokia, dont les trois prérequis sont garantis. Faire ses deux combats solo et tous les objectifs Sufokia jusqu'à ce que le journal demande explicitement le Diamant Dimensionnel sur XLII pour la tranche niveau165-189. STOP avant de refaire un donjon: L150-17 contient déjà l'Horologium nécessaire."}
+        ],
+        "progress_also": [
+          "À chaque dimension, prendre les avis de recherche accessibles mais ne jamais bloquer la route sur leur repop.",
+          "Conserver Orichor et ressources dimensionnelles utiles aux chaînes 171-180; ne pas les vendre avant l'audit Enutrosor/Srambad suivant."
+        ],
+        "before_leaving": [
+          "D'un monde à l'autre validé.",
+          "Aux portes de la nuit validé.",
+          "Générations futures validé.",
+          "Le disparu de Sufokia actif AU BON OBJECTIF Diamant Dimensionnel = XLII.",
+          "Aucun XLII fait dans cette étape."
+        ],
+        "hard_exit": [
+          "Les trois prérequis du Dofus des Veilleurs sont fermés avant L150-17.",
+          "Le disparu de Sufokia attend exactement le XLII déjà prévu.",
+          "Aucun rerun XLII créé par omission de route."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — Le disparu de Sufokia au verrou XLII"],
+        "next": "L150-17 — Carpe Diem + Le disparu de Sufokia sur un XLII unique"
+      }
+    }
+  ],
+  "stage_patches": {
+    "L150-17": {
+      "replace": {
+        "title": "Xélorium 170 — Carpe Diem + Le disparu de Sufokia, XLII unique",
+        "quests": [
+          "Les voleurs de couleurs",
+          "Terminutor : le jugement de la machine",
+          "Les démons de midi",
+          "Aux origines du mal",
+          "De fil en aiguille",
+          "La Vie, l'Hormonde et le Reste",
+          "Failles spatio-temporelles",
+          "C'est quoi ton 06 ?",
+          "Aujourd'hui à jamais",
+          "Tout ce qu'il te faut, c'est tuer",
+          "Le disparu de Sufokia"
+        ],
+        "route": [
+          {"area":"Xélorium","do":"Faire les dix quêtes Carpe Diem comme une seule campagne dimensionnelle, en suivant les dépendances locales et les états temporels réels plutôt que de découper chaque micro-action en étape joueur."},
+          {"area":"avant Horologium","do":"Vérifier DEUX objectifs actifs avant entrée: La Vie, l'Hormonde et le Reste demande XLII ET Le disparu de Sufokia demande son Diamant Dimensionnel sur XLII. Si l'un manque, ne pas entrer et corriger le fil causal."},
+          {"area":"Horologium de XLII","do":"Faire un seul Horologium pour les deux quêtes et les succès compatibles. Récupérer le Diamant Dimensionnel de Le disparu de Sufokia pendant ce passage. XLII ne peut pas être capturé: aucune pierre Ocre."},
+          {"area":"Xélorium → Sufokia/Cania","do":"Terminer La Vie et les reliquats Carpe Diem, puis remettre le Diamant et fermer Le disparu de Sufokia. Pour Failles spatio-temporelles, résoudre la position temporelle actuelle du PNJ via le walkthrough local au lieu de stocker une coordonnée permanente."}
+        ],
+        "hard_exit": [
+          "Carpe Diem terminé ou reliquat exact documenté.",
+          "Le disparu de Sufokia terminé.",
+          "XLII fait une seule fois pour Carpe Diem + Veilleurs.",
+          "XLII jamais marqué capturable/Ocre.",
+          "Jusqu'au bout du rêve reste asynchrone si incomplet."
+        ],
+        "pause": ["Fin tranche 150-170", "Prochaine tranche: 171-180 Bonta71-80 + Ordre80 + Korriandre/Foluk + suite Dimensions/Ébène"]
+      }
+    }
+  }
+}

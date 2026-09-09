@@ -1,0 +1,52 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_level_70_100_v5",
+  "title": "Guide Ultime — Niveau 70 à 100 + Saharach anticipé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_70_100_v4.json",
+  "supersedes": "guide_ultime_manual_level_70_100_v4",
+  "stage_count": 17,
+  "optimization_note": "L'Épice rit puis Le roi scorpion sont lancées au palier80 avant le Cimetière des Mastodontes déjà requis par Le fossile et le marteau. Mantiscore est donc fait une seule fois pour Thelma + Saharach; Ne pas payer de mine est ensuite suspendue jusqu'au palier130.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/l-epice-rit.html",
+    "https://www.dofuspourlesnoobs.com/le-roi-scorpion.html",
+    "https://www.dofuspourlesnoobs.com/cimetiere-des-mastodontes.html",
+    "https://www.dofuspourlesnoobs.com/au-clair-de-la-dune.html"
+  ],
+  "stage_patches": {
+    "L70-08": {
+      "replace": {
+        "title": "Saharach 80 + Mastodontes — Thelma et Le roi scorpion en un passage",
+        "duration_min": 110
+      },
+      "prepend": {
+        "quests": ["L'Épice rit", "Le roi scorpion"],
+        "preparation": [
+          {"name":"Eau Potable","quantity":5,"for":"L'Épice rit"},
+          {"name":"Potion Eau de fée","quantity":1,"for":"L'Épice rit"},
+          {"name":"Manganèse","quantity":10,"for":"Flûte de Le roi scorpion"},
+          {"requirement":"Sculpteur niveau80 minimum ou artisan coopératif pour la flûte","blocking":true}
+        ],
+        "route": [
+          {"pos":"[12,-6] Port de Madrestam -> Saharach [14,-55]","do":"Avant le Cimetière déjà prévu pour Thelma, accéder à Saharach, mémoriser le zaap [15,-58] et prendre L'Épice rit auprès d'Eole Suk."},
+          {"pos":"Port/Dunes Saharach","do":"Faire L'Épice rit en une boucle: Corporation, convoi, informations et soin de Bento Mology avec les ressources préparées. Rendre à Eole Suk et prendre immédiatement Le roi scorpion."},
+          {"pos":"[18,-59] / atelier sculpteur","do":"Avancer Le roi scorpion jusqu'à obtenir l'Os de Mastodonte, fabriquer la flûte avec 10 Manganèses et revenir la montrer AVANT d'entrer au Cimetière."}
+        ]
+      },
+      "append": {
+        "route": [
+          {"pos":"[19,-61] Cimetière des Mastodontes — boss","do":"Entrer avec Le fossile et le marteau + Le roi scorpion simultanément actifs. Équiper les gants de quête du Roi scorpion AVANT Mantiscore, faire les succès compatibles et tous les objectifs de salles déjà disponibles. Après le boss, parler à Carl Os et récupérer le sort Mantiscroc si encore manquant avant sortie."},
+          {"pos":"Saharach [14,-55]/[15,-57]","do":"Fermer Le roi scorpion et prendre Ne pas payer de mine. Ne pas la forcer maintenant si le startCriterion local de sa partie niveau130 n'est pas satisfait: conserver ce fil pour le bloc Saharach130."}
+        ],
+        "hard_exit": [
+          "L'Épice rit terminée.",
+          "Le roi scorpion terminée sur le même Mantiscore que Le fossile et le marteau.",
+          "Aucun futur rerun Mantiscore pour Au clair de la dune.",
+          "Ne pas payer de mine active ou gate local exact enregistré pour niveau130."
+        ],
+        "pause": ["Saharach palier80 ouvert", "Mantiscore fermé", "Saharach130 attend Ne pas payer de mine"]
+      }
+    }
+  },
+  "insertions": []
+}

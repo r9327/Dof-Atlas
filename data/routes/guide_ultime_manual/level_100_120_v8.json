@@ -1,0 +1,195 @@
+{
+  "schema_version": 8,
+  "route_id": "guide_ultime_manual_level_100_120_v8",
+  "title": "Guide Ultime — Niveau 100 à 120 — actions joueur consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_100_120_v7.json",
+  "supersedes": "guide_ultime_manual_level_100_120_v7",
+  "stage_count": 17,
+  "depends_on": [
+    "level_70_100_v9.json",
+    "bonta_1_100_v13.json"
+  ],
+  "optimization_note": "Met à jour Présence d'esprits sur les règles 3.3+, rend Pandawushu autonome côté joueur, retire les références internes Bonta visibles et reconstruit la fin Damadrya/Gokwa dans l'ordre réellement jouable.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/presence-d-esprits.html",
+    "https://www.dofuspourlesnoobs.com/mise-a-jour-303.html",
+    "https://www.dofuspourlesnoobs.com/les-voies-du-pandawushu.html",
+    "https://www.dofuspourlesnoobs.com/rokwa-voie-du-poing.html",
+    "https://www.dofuspourlesnoobs.com/gokwa-voie-du-baton.html",
+    "https://www.dofuspourlesnoobs.com/bambusaie-de-damadrya.html"
+  ],
+  "stage_patches": {
+    "L100-00": {
+      "replace": {
+        "title": "Pandala 100 — À la croisée + Pandawushu + Rokwa",
+        "route": [
+          {"pos":"[20,-29] Pandala","do":"Lancer À la croisée des mondes. Faire les trois combats solo, fabriquer puis équiper le Pandaclier et terminer la rencontre avec Imagiro, Orukam et Daimya. À la fin, Sous le bois de sa colère et Les voies du Pandawushu deviennent disponibles."},
+          {"pos":"[20,-28] → [21,-27] → [20,-31] → [20,-27] → [22,-29]","do":"Faire Les voies du Pandawushu. Au questionnaire répondre dans cet ordre : « Pour se défendre contre les esprits malfaisants », « Le bouclier », « Pandhidharma », « Transcender les limites de son corps », « Voie du sabre et Voie des cinq griffes », « École du poing bestial ». Une erreur impose 24 h. Pour l'attestation : 50 000 kamas = aucune attente, 10 000 = 2 h, 1 000 = 24 h, gratuit = 48 h."},
+          {"pos":"[20,-31] → [23,-27] → [20,-31]","do":"Dès Les voies du Pandawushu terminée, faire Rokwa. Préparer 500 Force pour briser le rocher, terminer les épreuves puis le duel solo. Noter l'heure exacte de fin : Gokwa devient disponible 24 h plus tard."}
+        ],
+        "hard_exit": [
+          "À la croisée des mondes terminée.",
+          "Rokwa terminée.",
+          "Heure exacte de fin de Rokwa conservée pour le délai de 24 h vers Gokwa.",
+          "Aucune attente immobile : reprendre le Guide pendant le délai."
+        ],
+        "pause": ["Pandawushu lancé", "Sous le bois de sa colère disponible", "Gokwa attend seulement son délai réel"]
+      },
+      "prepend": {
+        "preparation": [
+          {"requirement":"Tailleur niveau 10 ou artisan disponible pour fabriquer le Bandeau d'apprenti Pandawushu; la Tenue demande seulement Tailleur niveau 1.","blocking":true}
+        ]
+      }
+    },
+    "L100-00N": {
+      "replace": {
+        "preparation": [
+          {"name":"Riz","quantity":420,"for":"Nékinékologie + La voix de la soif + Présence d'esprits","policy":"200 pour Nékinékologie, 20 pour La voix de la soif et 200 pour l'Esprit embourbé. Retirer ou acheter les lots au moment utile pour limiter les pods."},
+          {"name":"Bois de Bambou","quantity":80,"for":"Nékinékologie"},
+          {"name":"Bois de Bambou Sombre","quantity":60,"for":"Nékinékologie + La voix de la soif"},
+          {"name":"Bois de Bambou Sacré","quantity":85,"for":"Nékinékologie + La voix de la soif"},
+          {"name":"Dolomite","quantity":40,"for":"Nékinékologie"},
+          {"name":"Graine de Pandouille","quantity":95,"for":"Nékinékologie + La voix de la soif"},
+          {"name":"Dorade Grise","quantity":50,"for":"Nékinékologie"},
+          {"name":"Pelle de Boisaille","quantity":1,"for":"La voix de la soif"},
+          {"name":"Pandaburg","quantity":1,"alternative":"40 kamas","for":"La voix de la soif"},
+          {"name":"Artefact Pandawushu Roc","quantity":10,"for":"Présence d'esprits — cinq Vertus"},
+          {"name":"Artefact Pandawushu Eau","quantity":5,"for":"Présence d'esprits — cinq Vertus"},
+          {"name":"Artefact Pandawushu Vent","quantity":5,"for":"Présence d'esprits — cinq Vertus"},
+          {"name":"Artefact Pandawushu Feu","quantity":5,"for":"Présence d'esprits — cinq Vertus"},
+          {"name":"Artefact Pandawushu Bois","quantity":5,"for":"Présence d'esprits — cinq Vertus"},
+          {"name":"Bananagrume","quantity":8,"for":"Présence d'esprits"},
+          {"name":"Fraise","quantity":3,"for":"Présence d'esprits — Esprit malin"},
+          {"name":"Viscères de Scarafeuille","quantity":3,"for":"Présence d'esprits — Esprit malin"},
+          {"name":"Pandakwak","quantity":10,"alternative":"800 kamas","for":"Présence d'esprits"},
+          {"kamas":3015,"for":"Présence d'esprits — achats fixes hors alternative Pandakwak"},
+          {"requirement":"Prévoir au moins 3000 pods libres avant l'Esprit ouvert; Kameoza pèse ensuite 20000 pods jusqu'à la taverne Nimbos.","blocking":false},
+          {"requirement":"Pouvoir atteindre 500 Force pour l'Esprit fermé.","blocking":true},
+          {"requirement":"Mineur niveau 10 personnel pour fabriquer les cinq Vertus de l'Esprit saint à l'atelier [24,-22]; craft coopératif impossible.","blocking":true},
+          {"requirement":"Esprit de famille : prévoir 4 autres personnages maintenus sur la carte d'entrée de Damadrya [26,-30] pendant que ton personnage va chercher les Kodamas.","blocking":true},
+          {"requirement":"Esprit saint : prévoir 5 autres personnages, un sur chacune des cinq dalles de Terrdala, pendant que ton personnage parle à Qilin [25,-23].","blocking":true},
+          {"note":"Ne pas porter tout le stock de Présence d'esprits en permanence. Rendre Nékinékologie dès que possible puis conserver en banque uniquement les ressources des esprits encore non validés."}
+        ],
+        "progress_also": [
+          "À chaque futur passage Pandala, vérifier les esprits nouvellement accessibles avant de quitter la zone et privilégier ceux dont les conditions sont déjà réunies.",
+          "Esprit d'initiative : après Rokwa, le faire un samedi au dojo [20,-31], ou utiliser une Semaine des sept samedis contre 42 Almatons si cette dépense est acceptable.",
+          "Esprit fertile : attendre Infâme pourriture + Sous le bois de sa colère, puis utiliser un passage Plantala existant; l'offrande donne 1 h pour trouver l'esprit.",
+          "Esprit critique : attendre Au nom de l'Art. Esprit chagrin : attendre La jetée des enfants perdus. Esprit malin : profiter de la transformation Moon de L'équilibre des forces.",
+          "Esprit dérangé : vaincre 8 Kwapas sur une même carte d'Akwadala puis changer de carte si l'esprit n'apparaît pas; ne pas utiliser l'ancien compteur variable.",
+          "Esprit torturé : après Le foux fou Fifoux, garder la Brûlure cuisante 3 h avant la prière finale. Continuer d'autres objectifs pendant ce délai.",
+          "Esprit de sacrifice : après apparition en [21,-33], garder l'anneau Sacrifice volontaire 1 h; l'étape se valide sans attendre immobile devant l'esprit."
+        ]
+      }
+    },
+    "L100-01": {
+      "replace": {
+        "hard_exit": [
+          "Draconanthropie active et tous ses objectifs hors Meulou terminés.",
+          "Aucun Meulou effectué avant que les trois fils compatibles soient prêts.",
+          "Prérequis d'élevage réellement validés avant la remise des trois Dragodindes."
+        ]
+      }
+    },
+    "L100-04": {
+      "replace": {
+        "pause": ["Reine Nyée terminée", "Munster lève le mystère et Tour d'honneur actifs", "Le prochain Domaine Ancestral est désormais requis par Munster"]
+      }
+    },
+    "L100-05": {
+      "replace": {
+        "title": "Munster — second Domaine Ancestral devenu obligatoire",
+        "route": [
+          {"pos":"[-6,-10] → [-5,-13]","do":"Avancer Munster lève le mystère avec les 6 Glandes d'Arak-haï et les objectifs demandés auprès de Hell Munster."},
+          {"pos":"[-9,-14] Domaine Ancestral","do":"Refaire le Domaine Ancestral uniquement parce que Munster lève le mystère vient maintenant de débloquer cet objectif, après la Reine Nyée. Si l'Abraknyde Ancestral a déjà été capturé pour l'Ocre, ne consomme pas une nouvelle pierre d'âme."},
+          {"pos":"Forêt des Abraknydes","do":"Terminer Munster lève le mystère. L'art de la langue de bois demande le niveau 120 : la reprendre dès que le niveau réel est atteint, sans monter artificiellement uniquement pour cette quête."}
+        ],
+        "hard_exit": ["Munster lève le mystère terminée.", "Le second Domaine Ancestral est expliqué par l'ouverture tardive de Munster, pas par un oubli de route."],
+        "pause": ["Silvosse reprend au niveau 120"]
+      }
+    },
+    "L100-08": {
+      "replace": {
+        "title": "Moon — second passage demandé par Anne, sans seconde capture Ocre",
+        "route": [
+          {"pos":"[29,6] Arbre de Moon","do":"Refaire Moon parce que Tour d'horizon n'est disponible qu'après Dramak, donc après le premier passage Dokoko. Profiter de ce combat pour les succès encore manquants, mais ne pas capturer une seconde âme si Moon est déjà validé pour l'Ocre."},
+          {"pos":"[-45,19]","do":"Rendre Tour d'horizon à Anne Ullaire et prendre Tour à tour pour le Silf le Rasboul Majeur."}
+        ],
+        "pause": ["Tour à tour active", "Deuxième Moon terminé sans capture Ocre inutile"]
+      }
+    },
+    "L100-09": {
+      "replace": {
+        "title": "Rat Blanc — Bonta 41 + Un juge + Frères ennemis + Ocre",
+        "route": []
+      }
+    },
+    "L100-10": {
+      "replace": {
+        "title": "Bonta 42 à 46 — campagne Ecaflip regroupée",
+        "route": []
+      }
+    },
+    "L100-13": {
+      "replace": {
+        "route": [
+          {"pos":"[-7,-43] Clos des Blops — salle Multicolore","do":"Faire le Blop Multicolore maintenant pour Tour de table. Il n'était pas utile lors du premier passage au Clos des Blops. Capturer le Blop Multicolore Royal pour l'Ocre et faire ses succès encore manquants."},
+          {"pos":"[-45,19]","do":"Rendre Tour de table à Anne Ullaire. Sa prochaine mission concerne les Tynrils : la conserver pour le palier où ce donjon servira aussi l'Ocre et les autres quêtes compatibles."}
+        ]
+      }
+    },
+    "L100-15": {
+      "replace": {
+        "title": "Pandala 110-120 — Plantala + Damadrya + Gokwa + seuil 120",
+        "quests": [
+          "Dites-le avec des fleurs",
+          "Infâme pourriture",
+          "Sous le bois de sa colère",
+          "Le Saule du Promeneur",
+          "Rester planté là",
+          "Gokwa : Voie du bâton",
+          "Au nom de l'Art",
+          "Pas de fumée sans feu",
+          "Ultime réminiscence",
+          "L'art de la langue de bois"
+        ],
+        "preparation": [
+          {"name":"Eau Potable","quantity":5,"for":"Le Saule du Promeneur"},
+          {"name":"Huile de Koode","quantity":1,"for":"Le Saule du Promeneur"},
+          {"requirement":"Alchimiste niveau 1 personnel pour le Remède pour Yinagi; craft coopératif impossible.","blocking":true},
+          {"note":"Si les Feuilles de Fujibakama nécessaires sont indisponibles sur leurs points de récolte, acheter les exemplaires échangeables plutôt que rester immobile à attendre leur réapparition."},
+          {"name":"Pierre d'âme boss","minimum_power":150,"quantity":1,"for":"Damadrya Ocre"},
+          {"name":"Trèfle à 5 feuilles","quantity":30,"for":"Gokwa"},
+          {"name":"Menthe Sauvage","quantity":25,"for":"Gokwa"},
+          {"name":"Orchidée Freyesque","quantity":20,"for":"Gokwa"},
+          {"name":"Edelweiss","quantity":15,"for":"Gokwa"},
+          {"name":"Ginseng","quantity":10,"for":"Gokwa"},
+          {"name":"Mandragore","quantity":5,"for":"Gokwa"},
+          {"name":"Substrat de Fourré","quantity":1,"for":"Gokwa"},
+          {"name":"Tige de Bambouto","quantity":15,"for":"Gokwa"},
+          {"name":"Bourgeon explosif de Damadrya","quantity":1,"for":"Gokwa","policy":"Le récupérer pendant le passage Damadrya de cette même fiche."},
+          {"name":"Nectar de l'Orient","quantity":6,"for":"Gokwa"}
+        ],
+        "route": [
+          {"pos":"Village de Pandala / Plantala","do":"Terminer Dites-le avec des fleurs puis Infâme pourriture pendant la boucle Plantala. Avancer Sous le bois de sa colère, Le Saule du Promeneur et Rester planté là jusqu'à ce que les trois quêtes demandent réellement la Bambusaie de Damadrya."},
+          {"pos":"[26,-30] Bambusaie de Damadrya","do":"Entrer uniquement avec Sous le bois de sa colère + Le Saule du Promeneur + Rester planté là prêts. Dans Sous le bois de sa colère, lire le document de la salle 4 avant de continuer. Vaincre Damadrya, capturer son âme avec une pierre puissance 150 minimum, récupérer la Feuille de Damadrya et le Bourgeon explosif nécessaire à Gokwa, puis faire tous les dialogues et objets post-boss avant de sortir."},
+          {"pos":"Plantala / Village de Pandala","do":"Terminer Sous le bois de sa colère, Le Saule du Promeneur et Rester planté là. Prendre immédiatement Au nom de l'Art. Prendre aussi Pas de fumée sans feu dès qu'elle est disponible et conserver ses objectifs Forêt Maléfique pour leur futur passage naturel au lieu de créer un détour."},
+          {"pos":"[20,-31] Dojo → [24,-32] → [24,-33] → [26,-28]","do":"Dès que 24 h se sont écoulées depuis Rokwa et que le niveau 110 est atteint, lancer Gokwa. Parler à Shinotake [24,-32], vaincre seul les deux Chasseurs de Yokai [24,-33] et [26,-28], puis revenir lui donner les plantes préparées."},
+          {"pos":"[24,-32] → [24,-29] → [24,-32] → [20,-31]","do":"Prendre la Branche de bambou spirituel, fabriquer le Bâton en bambou spirituel avec le Substrat de Fourré, 15 Tiges de Bambouto, le Bourgeon explosif de Damadrya et 6 Nectars de l'Orient, faire bénir le bâton par Shinotake, l'équiper puis gagner le duel solo au dojo pour terminer Gokwa."},
+          {"pos":"seuil niveau 120","do":"Si le personnage a réellement atteint le niveau 120, reprendre Ultime réminiscence pour fermer l'Émeraude et L'art de la langue de bois pour poursuivre Silvosse vers le Chêne Mou. Sinon ces deux quêtes deviennent les premières priorités du chapitre 120+, sans session d'expérience artificielle uniquement pour faire correspondre le numéro du chapitre."}
+        ],
+        "hard_exit": [
+          "Dites-le avec des fleurs et Infâme pourriture terminées.",
+          "Sous le bois de sa colère, Le Saule du Promeneur et Rester planté là terminées sur un seul passage Damadrya.",
+          "Damadrya capturée pour l'Ocre et Bourgeon explosif récupéré pour Gokwa.",
+          "Gokwa terminée si les 24 h depuis Rokwa sont écoulées; sinon son heure de disponibilité reste conservée.",
+          "Au nom de l'Art active avant de quitter Pandala.",
+          "Pas de fumée sans feu active dès que ses prérequis sont réellement satisfaits.",
+          "Ultime réminiscence et L'art de la langue de bois ont un état de reprise explicite au niveau 120."
+        ],
+        "pause": ["Fin du palier 100-120", "Royalmouth + Pourpre + Bonta 51+ deviennent les prochains gros raccords"]
+      }
+    }
+  },
+  "insertions": []
+}

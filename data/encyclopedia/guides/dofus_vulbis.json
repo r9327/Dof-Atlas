@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "id": "dofus_vulbis",
+  "title": "Dofus Vulbis",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofus Vulbis.",
+  "recommended_level_min": 50,
+  "recommended_level_max": 200,
+  "reward_item_id": 6980,
+  "illustration_item_id": 6980,
+  "image": null,
+  "linked_achievement_ids": [
+    2198
+  ],
+  "completeness_status": "complete",
+  "verified_steps": 12,
+  "total_steps": 12,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "Profil DPLN: parcours obligatoire résolu dans le catalogue local."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [
+    "https://www.dofuspourlesnoobs.com/quetes-du-dofus-vulbis.html"
+  ],
+  "sections": [
+    {
+      "id": "dofus_vulbis_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        2198
+      ],
+      "steps": [
+        {
+          "id": "dofus_vulbis_quest_2062",
+          "type": "quest",
+          "entity_id": 2062,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2063",
+          "type": "quest",
+          "entity_id": 2063,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2062
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2064",
+          "type": "quest",
+          "entity_id": 2064,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2063
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2078",
+          "type": "quest",
+          "entity_id": 2078,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2064
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2079",
+          "type": "quest",
+          "entity_id": 2079,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2078
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2080",
+          "type": "quest",
+          "entity_id": 2080,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2079
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2081",
+          "type": "quest",
+          "entity_id": 2081,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2080
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2082",
+          "type": "quest",
+          "entity_id": 2082,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2081
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2083",
+          "type": "quest",
+          "entity_id": 2083,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2082
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2085",
+          "type": "quest",
+          "entity_id": 2085,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2086",
+          "type": "quest",
+          "entity_id": 2086,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2085
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_vulbis_quest_2087",
+          "type": "quest",
+          "entity_id": 2087,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2086
+            }
+          ],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

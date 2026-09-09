@@ -1,0 +1,51 @@
+{
+  "schema_version": 13,
+  "route_id": "guide_ultime_manual_level_150_170_v13",
+  "title": "Guide Ultime — Niveau 150 à 170 + clefs Ongles anticipées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v12.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v12",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v14.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v12.json"
+  ],
+  "optimization_note": "Prépare le succès Ongles incarnés sans recrutement prématuré. Les passages Obsidiantre et Tengu déjà causaux servent d'abord aux drops5% des Clefs secrètes; toute clef obtenue est conservée jusqu'à une session sociale groupée au palier190. Aucun rerun de boss n'est créé ici pour une clef rare.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/inferno.html",
+    "https://www.dofuspourlesnoobs.com/tous-pour-un.html",
+    "https://www.dofuspourlesnoobs.com/ongles-incarneacutes.html"
+  ],
+  "stage_patches": {
+    "L150-03": {
+      "append": {
+        "progress_also": [
+          "ONGLES INCARNÉS — Obsidiantre PASS1: surveiller la Clef secrète de l'Hypogée de l'Obsidiantre (5% sur Obsidiantre) après À la recherche de Dan Lavy. Si elle tombe, la conserver pour la session Ongles190; ne recruter personne maintenant et ne rerun pas le boss pour elle."
+        ]
+      }
+    },
+    "L150-05": {
+      "append": {
+        "progress_also": [
+          "ONGLES INCARNÉS — Obsidiantre PASS2: deuxième tentative naturelle de Clef secrète. Si elle manque encore, conserver le reliquat; le futur rerun S.L.I.P. donnera une troisième tentative avant tout cleanup dédié."
+        ]
+      }
+    },
+    "L150-07": {
+      "append": {
+        "progress_also": [
+          "ONGLES INCARNÉS — Tengu PASS1: surveiller la Clef secrète de la Crevasse Perge (5% sur Tengu Givrefoux). Si elle tombe, la conserver; Tous pour un attend de toute façon À qui profite le boufmouth et sera groupée dans la session sociale190."
+        ]
+      }
+    },
+    "L150-08": {
+      "append": {
+        "progress_also": [
+          "ONGLES INCARNÉS — Tengu PASS2: deuxième tentative naturelle de Clef secrète de la Crevasse. Aucun troisième Tengu uniquement pour cette clef dans ce chapitre; le cleanup éventuel est différé à la session Ongles après toutes les tentatives gratuites."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

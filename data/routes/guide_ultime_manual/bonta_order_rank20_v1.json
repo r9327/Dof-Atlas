@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_bonta_order_rank20_v1",
+  "title": "Guide Ultime — premier rang d'Ordre Bonta",
+  "status": "MANUAL_CONDITIONAL_ROUTE_WORKING_SET",
+  "trigger": {
+    "alignment": "Bonta",
+    "minimum_alignment_rank": 20,
+    "required_quest": "Le fantôme de Tsog",
+    "recommended_level": 60
+  },
+  "selection_policy": {
+    "source": "choix d'Ordre persistant du personnage",
+    "exactly_one": true,
+    "manual_reselection_after_choice": false,
+    "unselected_routes_hidden": true
+  },
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/apprentissage--disciple-de-meacutenalt.html",
+    "https://www.dofuspourlesnoobs.com/apprentissage-disciple-de-silvosse.html",
+    "https://www.dofuspourlesnoobs.com/apprentissage-disciple-de-jiva.html"
+  ],
+  "options": {
+    "coeur vaillant": {
+      "quest": "Apprentissage : Disciple de Ménalt",
+      "route": [
+        {"pos":"[-34,-58]","do":"Parler à Jerhyn Gholein au premier étage à droite et choisir l'Ordre du Cœur Vaillant."},
+        {"pos":"[-29,-59]","do":"Récupérer le badge du greffier Tabach à la taverne de la Bagrutte."},
+        {"pos":"[-34,-58]","do":"Revenir montrer le badge et confirmer le choix d'Ordre."},
+        {"pos":"[-36,-60]","do":"Obtenir l'Attestation Royale auprès du Roi Beldarion."},
+        {"pos":"[-34,-58]","do":"Donner l'attestation à Jerhyn Gholein et terminer le rang d'Ordre 1."}
+      ],
+      "next_order_gate": {"alignment_rank":40,"quest":"Apprentissage : Écuyer"}
+    },
+    "oeil attentif": {
+      "quest": "Apprentissage : Disciple de Silvosse",
+      "route": [
+        {"pos":"[-34,-58]","do":"Parler à Ebru of El au sous-sol et choisir l'Ordre de l'Œil Attentif."},
+        {"pos":"[-35,-55]","do":"Récupérer le badge d'Aigurraf le Greffier à la taverne de la Tabasse."},
+        {"pos":"[-34,-58]","do":"Revenir montrer le badge et confirmer le choix d'Ordre."},
+        {"pos":"[-36,-60]","do":"Obtenir l'Attestation Royale auprès du Roi Beldarion."},
+        {"pos":"[-34,-58]","do":"Donner l'attestation à Ebru of El et terminer le rang d'Ordre 1."}
+      ],
+      "next_order_gate": {"alignment_rank":40,"quest":"Apprentissage : Espion silencieux"}
+    },
+    "esprit salvateur": {
+      "quest": "Apprentissage : Disciple de Jiva",
+      "route": [
+        {"pos":"[-34,-58]","do":"Parler à Elviana Tirips au deuxième étage et choisir l'Ordre de l'Esprit Salvateur."},
+        {"pos":"[-36,-58]","do":"Récupérer le badge d'Ybaul à la taverne Alakarte."},
+        {"pos":"[-34,-58]","do":"Revenir montrer le badge et confirmer le choix d'Ordre."},
+        {"pos":"[-36,-60]","do":"Obtenir l'Attestation Royale auprès du Roi Beldarion."},
+        {"pos":"[-34,-58]","do":"Donner l'attestation à Elviana Tirips et terminer le rang d'Ordre 1."}
+      ],
+      "next_order_gate": {"alignment_rank":40,"quest":"Apprentissage : Apprenti Éclairé"}
+    }
+  },
+  "hard_exit": [
+    "Exactement une des trois quêtes est terminée.",
+    "Le choix d'Ordre est persisté avant de reprendre les quêtes d'alignement 21+.",
+    "Aucune quête d'un autre Ordre ne doit apparaître dans le parcours."
+  ]
+}

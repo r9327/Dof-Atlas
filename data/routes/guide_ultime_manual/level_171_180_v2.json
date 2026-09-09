@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_level_171_180_v2",
+  "title": "Guide Ultime — Niveau 171 à 180 manuel optimisé V2",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v1.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v1",
+  "stage_count": 27,
+  "optimization_note": "Corrige le nom canonique de la quête Fungus: La prolifération a crû. Aucun changement de causalité ni de nombre de passages donjon.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-proliferation-a-cru.html",
+    "https://www.dofuspourlesnoobs.com/les-spores-c-est-la-sante.html"
+  ],
+  "global_preparation": [
+    {"name":"Clefs de dimension","policy":"Préparer les clefs Malléfisk, Phossile et Toxoliath avant la session; le trousseau ne fonctionne pas dans les dimensions."},
+    {"name":"Idole de Foluk Dorée","quantity":1,"for":"Phossile","policy":"Chaque personnage qui valide Foluk possède et utilise sa propre idole."},
+    {"name":"Idole de Foluk Griffée","quantity":1,"for":"Kanigroula","policy":"Chaque personnage qui valide Foluk possède et utilise sa propre idole."},
+    {"name":"Idole de Foluk Féérique","quantity":1,"for":"Korriandre PASS1","policy":"Chaque personnage qui valide Foluk possède et utilise sa propre idole."},
+    {"name":"Pierre d'âme","minimum_power":190,"quantity":2,"for":"Korriandre/Ougah Ocre si cibles encore ouvertes","policy":"Ne sortir la pierre que si le registre Ocre confirme la cible non validée."},
+    {"requirement":"Groupe4 minimum","for":"Temple du Grand Ougah et certains rangs Bonta","blocking":true},
+    {"requirement":"Même Ordre Bonta persisté depuis rang20","for":"Ordre80","blocking":true},
+    {"requirement":"Alchimiste180 ou Essence du Korriandre","for":"Les derniers d'entre nous","policy":"Préparer l'Essence de Sylvesprit avant Korriandre si cette option est choisie."},
+    {"name":"Baguette Rikiki","quantity":1,"for":"Fungus"},
+    {"name":"Bocal","quantity":1,"for":"La prolifération a crû"},
+    {"name":"Eau de la fontaine de Noffoub","quantity":1,"for":"La prolifération a crû"},
+    {"name":"Fluide glacial","quantity":1,"for":"La prolifération a crû"},
+    {"name":"Huile de mamansot","quantity":1,"for":"La prolifération a crû"}
+  ],
+  "stage_patches": {
+    "L180-09": {
+      "replace": {
+        "progress_also": [
+          "Activer La prolifération a crû dès que rentable mais ne laisser aucun manque de ressource provoquer un détour après Ougah."
+        ]
+      }
+    },
+    "L180-12": {
+      "replace": {
+        "title": "Fungus — fermer La prolifération a crû et le succès de zone",
+        "quests": ["La prolifération a crû"],
+        "take": ["Prendre/reprendre La prolifération a crû auprès d'Amy Kolog."]
+      }
+    }
+  },
+  "insertions": []
+}

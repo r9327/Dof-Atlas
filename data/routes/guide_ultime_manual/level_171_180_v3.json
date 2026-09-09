@@ -1,0 +1,128 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_level_171_180_v3",
+  "title": "Guide Ultime — Niveau 171 à 180 + Bworker/Tour du Monde + Merkator optimisés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v2.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v2",
+  "stage_count": 29,
+  "optimization_note": "Ferme la dette Tour du Monde avec le Bworker au palier180, en fusionnant La dernière pierre uniquement si l'Ocre est déjà réellement obtenu. Ajoute ensuite un unique Merkator pour Tour nage + Pollution, je dis non + Test d'étanchéité. Le tour est joué est pris après Merkator mais le Kralamoure est volontairement différé jusqu'à l'étape19 Ocre afin de n'organiser qu'une seule ouverture serveur.",
+  "depends_on": [
+    "level_150_170_v6.json",
+    "bonta_1_80_v9.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v10.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-voie-du-guerrier.html",
+    "https://www.dofuspourlesnoobs.com/grotte-du-bworker.html",
+    "https://www.dofuspourlesnoobs.com/la-derniere-pierre.html",
+    "https://www.dofuspourlesnoobs.com/le-tracas-du-guerrier.html",
+    "https://www.dofuspourlesnoobs.com/tour-nage.html",
+    "https://www.dofuspourlesnoobs.com/pollution-je-dis-non.html",
+    "https://www.dofuspourlesnoobs.com/test-deacutetancheacuteiteacute.html",
+    "https://www.dofuspourlesnoobs.com/aquadocircme-de-merkator.html",
+    "https://www.dofuspourlesnoobs.com/le-tour-est-joueacute.html",
+    "https://www.dofuspourlesnoobs.com/antre-du-kralamoure-geacuteant.html"
+  ],
+  "insertions": [
+    {
+      "after": "L180-13",
+      "stage": {
+        "id": "L180-13B",
+        "title": "Tour du Monde — Bworker180 + Ocre, La dernière pierre seulement si déjà ouverte",
+        "level": "180+ / La voie du guerrier pointe Bworker depuis Minotot160",
+        "duration_min": 110,
+        "entry": "Minotot validé dans level_150_170_v6; La voie du guerrier attend son dernier boss.",
+        "quests": [
+          "La voie du guerrier",
+          "Le tracas du guerrier",
+          "conditional:La dernière pierre si L'éternelle moisson + Vert émeraude + Pourpre profond + Bleu turquoise + Ocre d'ambre sont terminés et les quatre Dofus primordiaux sont présents"
+        ],
+        "successes": ["Le tour du monde en 27 donjons"],
+        "dungeon": {"name":"Grotte du Bworker","pass":"one_now_plus_future_only_if_causally_unlocked","capture_ocre":true,"minimum_soul_stone_power":190},
+        "preparation": [
+          {"name":"Énorme pierre d'âme","minimum_power":190,"quantity":1,"for":"Bworker Ocre","policy":"Capturer même si l'étape3 Ocre n'est pas encore rendable; conserver l'âme en banque."},
+          {"name":"Clef de la Grotte du Bworker","quantity":1},
+          {"conditional":"La dernière pierre déjà active","requirements":["25 Éklâme majestueuse","5 Potion minérale","5 Potion d'altération","Mineur20 minimum","quatre Dofus primordiaux présents"],"policy":"Si ces critères ne sont pas réunis, ne pas retarder Tour du Monde. Le futur retour Bworker de La dernière pierre sera alors causalement inévitable."}
+        ],
+        "take": [
+          "Vérifier que La voie du guerrier demande réellement Bworker avant l'entrée.",
+          "Si La dernière pierre est déjà disponible, l'avancer jusqu'à son objectif Bworker AVANT le donjon; sinon l'exclure de ce passage sans bloquer."
+        ],
+        "route": [
+          {"area":"Gisgoul hors donjon","do":"Si La dernière pierre est active, faire ses combats/drops/crafts préparatoires et atteindre explicitement l'objectif Jeton prismatique du Bworker avant d'entrer. Sinon aller directement au donjon avec La voie du guerrier."},
+          {"area":"Grotte du Bworker","do":"Vaincre Bworker avec tous les succès compatibles encore ouverts. Capturer Bworker avec une pierre puissance190 pour L'éternelle moisson. Si La dernière pierre est active, récupérer également son Jeton prismatique avant sortie."},
+          {"area":"Astrub / Maître des clefs","do":"Fermer La voie du guerrier selon le walkthrough local puis enchaîner immédiatement Le tracas du guerrier afin de fermer définitivement le succès Le tour du monde en 27 donjons."},
+          {"area":"fil Quatre sur six conditionnel","do":"Si La dernière pierre était active, terminer son reliquat post-Bworker. Sinon enregistrer explicitement qu'un futur second Bworker sera causal lorsque l'Ocre aura été obtenu; ne jamais le présenter comme un oubli de ce passage."}
+        ],
+        "progress_also": [
+          "Ruée sur le Bworker est une ancienne quête événementielle 2018 et n'est pas injectée dans le tronc permanent.",
+          "Vérifier les succès monstres Gisgoul pendant les drops imposés, sans farm supplémentaire si déjà validés."
+        ],
+        "before_leaving": ["Bworker capturé Ocre","La voie du guerrier terminée","Le tracas du guerrier terminé","Le tour du monde en 27 donjons fermé"],
+        "hard_exit": ["Tour du Monde complet","État La dernière pierre exact: terminée/active ou future rerun Bworker causal documenté"],
+        "pause": ["POINT DE PAUSE SÛR — Tour du Monde fermé"],
+        "next": "L180-13S — Sufokia/Merkator"
+      }
+    },
+    {
+      "after": "L180-13B",
+      "stage": {
+        "id": "L180-13S",
+        "title": "Sufokia180 — Test d'étanchéité + Pollution + Tour nage sur un seul Merkator",
+        "level": "180+ / Tour de force terminé au passage Ougah",
+        "duration_min": 260,
+        "entry": "Ougah fermé; Ainsi font les petites marionnettes terminé depuis le palier100; accès base abyssale disponible.",
+        "quests": [
+          "Tour nage",
+          "Pollution, je dis non",
+          "L'ivresse des profondeurs",
+          "Les Mercemers sont bien outillés",
+          "Pêche aux krabouilleurs",
+          "À bas Kralab Rah",
+          "KO pour Bosko Tho",
+          "Relevez les niveaux",
+          "Prise de notes",
+          "Le tour est joué"
+        ],
+        "successes": ["Test d'étanchéité", "La tornade des donjons"],
+        "dungeon": {"name":"Aquadôme de Merkator","pass":"unique_for_current_threads","capture_allowed":false},
+        "preparation": [
+          {"name":"Piles Steamer","minimum_quantity":12,"policy":"Les obtenir pendant les combats imposés de la base; avertir pods/temps avant le farm et ne pas en jeter tant que Test d'étanchéité n'est pas fermé."},
+          {"requirement":"Au moins une aide pour la mécanique de Test d'étanchéité qui le demande","blocking":true},
+          {"note":"Merkator n'est pas une cible Ocre: aucune pierre d'âme pour ce boss."}
+        ],
+        "take": [
+          "À Sufokia [16,27], rendre Tour de force si nécessaire et prendre Tour nage.",
+          "À Amakna, prendre Pollution, je dis non puisque Ainsi font les petites marionnettes est déjà terminé.",
+          "Avant de descendre dans la base, prendre L'ivresse des profondeurs puis toutes les quêtes Test d'étanchéité accessibles sur le chemin."
+        ],
+        "route": [
+          {"area":"Sufokia → base abyssale","do":"Avancer Pollution jusqu'à l'accès Merkator. Dans la même descente, faire L'ivresse des profondeurs, Les Mercemers sont bien outillés, Pêche aux krabouilleurs, À bas Kralab Rah, KO pour Bosko Tho et Relevez les niveaux selon leurs dépendances; récolter les Piles Steamers pendant les combats déjà imposés."},
+          {"area":"entrée Aquadôme","do":"Prendre Prise de notes seulement après Relevez les niveaux. Ne pas entrer tant que Tour nage + Pollution, je dis non sont au boss et que Prise de notes est active."},
+          {"area":"Aquadôme de Merkator","do":"UN passage: cliquer les notes dans chacune des cinq salles pour Prise de notes, faire tous les succès compatibles, puis vaincre Merkator pour Tour nage + Pollution. Après le boss, effectuer le dialogue Pollution avec Merkator avant de quitter."},
+          {"area":"Sufokia/Amakna","do":"Rendre Prise de notes/Test d'étanchéité et finir les objectifs post-Merkator de Pollution, je dis non. Rendre Tour nage à Lorie Culère et prendre immédiatement Le tour est joué."},
+          {"area":"Kralamoure — NE PAS ENTRER PAR DÉFAUT","do":"Le tour est joué reste actif. Si et seulement si L'éternelle moisson est déjà à l'étape19 avec la pierre spéciale Ocre et qu'une ouverture est disponible/organisée, fusionner Kralamoure Tour + Ocre. Sinon suivre temporal_registry_v10 et différer l'Antre: aucune ouverture de dizaines de joueurs uniquement pour Tour."}
+        ],
+        "progress_also": [
+          "Test d'étanchéité constitue un premier bloc du Dofus Abyssal niveau180; conserver les ressources abyssales pour les autres succès Abyssal futurs.",
+          "L'ivresse des profondeurs est journalière mais une seule validation est requise ici; ne pas la répéter automatiquement.",
+          "Le Kralamoure n'est capturé pour l'Ocre qu'avec la pierre spéciale de l'étape19; aucune pierre standard."
+        ],
+        "before_leaving": [
+          "Test d'étanchéité terminé ou reliquat exact identifié sans second Merkator.",
+          "Tour nage terminé.",
+          "Pollution, je dis non terminé.",
+          "Le tour est joué actif.",
+          "Kralamoure différé jusqu'à fusion Ocre étape19 sauf si les deux fils ont réellement été fermés ensemble."
+        ],
+        "hard_exit": ["Merkator fait une seule fois pour tous les fils180 disponibles","Aucun Kralamoure isolé planifié","Abyssal fil Sufokia ouvert"],
+        "pause": ["POINT DE PAUSE SÛR — Sufokia; Le tour est joué attend Ocre étape19"],
+        "next": "L180-14 — reprendre les fils Srambad/Osavora/Ébène restants"
+      }
+    }
+  ],
+  "stage_patches": {}
+}

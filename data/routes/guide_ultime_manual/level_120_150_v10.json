@@ -1,0 +1,109 @@
+{
+  "schema_version": 10,
+  "route_id": "guide_ultime_manual_level_120_150_v10",
+  "title": "Guide Ultime — Niveau 120 à 150 + Problèmes et solutions avant Mansot",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v9.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v9",
+  "stage_count": 37,
+  "optimization_note": "Répare les prérequis Frigost que la route supposait encore. Pauvre Kiki + Gène et tique sont fermées avant Le mal a dit; Scierie Bambelle est faite avant d'activer Bricole Girl; Semer ses graines profite de la Forêt des Pins; Bricole Girl ouvre ensuite les Rescapés; La marche de l'impératrice puis Star ski et Dutch sont fermées avant le premier Mansot, dont l'accès exige Star ski. Groméo et Manque de re-peau restent des fils temporels asynchrones sans attente immobile.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/problegravemes-et-solutions.html",
+    "https://www.dofuspourlesnoobs.com/pauvre-kiki.html",
+    "https://www.dofuspourlesnoobs.com/gegravene-et-tique.html",
+    "https://www.dofuspourlesnoobs.com/scierie-bambelle.html",
+    "https://www.dofuspourlesnoobs.com/semer-ses-graines.html",
+    "https://www.dofuspourlesnoobs.com/bricole-girl.html",
+    "https://www.dofuspourlesnoobs.com/la-marche-de-limpeacuteratrice.html",
+    "https://www.dofuspourlesnoobs.com/star-ski-et-dutch.html",
+    "https://www.dofuspourlesnoobs.com/gromeacuteo-et-ginette.html",
+    "https://www.dofuspourlesnoobs.com/manque-de-re-peau.html",
+    "https://www.dofuspourlesnoobs.com/le-mal-a-dit.html",
+    "https://www.dofuspourlesnoobs.com/excavation-du-mansot-royal.html"
+  ],
+  "stage_patches": {
+    "L120-00": {
+      "prepend": {
+        "quests": ["Pauvre Kiki","Gène et tique","Scierie Bambelle","conditional:Manque de re-peau si energie<1000"],
+        "preparation": [
+          {"name":"Marteau de Boisaille","quantity":1,"for":"Scierie Bambelle"},
+          {"name":"Huile de Koode","quantity":4,"for":"Scierie Bambelle"},
+          {"name":"Metaria rouge","quantity":4,"for":"Scierie Bambelle"},
+          {"name":"Bakélélite","quantity":5,"for":"Scierie Bambelle"},
+          {"name":"Pyrute","quantity":5,"for":"Scierie Bambelle"},
+          {"name":"Bois de Chêne","quantity":20,"for":"Scierie Bambelle"},
+          {"name":"Bois de Tremble","quantity":35,"for":"Scierie Bambelle"},
+          {"name":"Pizza au boudin de boufmouth","quantity":5,"for":"Scierie Bambelle"},
+          {"note":"Scierie Bambelle doit être terminée AVANT de lancer Bricole Girl. Si Bricole Girl est déjà active sur un personnage repris, terminer Bricole Girl d'abord puis revenir à Scierie; ne jamais bloquer Francky en laissant les deux fils se chevaucher."},
+          {"note":"Gène et tique: les drops Boufmouth ne fonctionnent PAS dans la Serre du Royalmouth. Cette quête est une exception explicite à la règle farm-donjon et se fait dans les Champs de glace extérieurs."}
+        ],
+        "route": [
+          {"area":"Bourgade","do":"Fermer Pauvre Kiki dès le premier passage: faire le combat de cave puis rendre. Ce prérequis doit être vrai avant Le mal a dit afin de ne pas découvrir le verrou après l'expiration du vaccin."},
+          {"area":"Champs de glace → Wogew/Otomaï","do":"Prendre Gène et tique et récupérer dehors les sangs/tics Boufmouth demandés; ne pas tenter ces drops dans Royalmouth. Enchaîner ses remises Wogew/Otomaï lors des passages continent/Otomaï déjà utiles puis fermer la quête avant Le mal a dit."},
+          {"area":"Champs de glace / Scierie","do":"Avec Bricole Girl PAS active, faire Scierie Bambelle avec tout le lot déjà préparé. Effectuer plans/canalisations dans la même campagne et fermer la quête avant de permettre à Bricole Girl d'occuper Francky."},
+          {"area":"Manque de re-peau — opportuniste","do":"Si l'énergie est naturellement sous1000, lancer/avancer Manque de re-peau pendant cette boucle Champs/Bourgade. À chaque dialogue Esprit Zonier, vérifier énergie<1000. À l'étape du rendez-vous19h, enregistrer le gate et continuer autre chose; ne pas provoquer plusieurs morts uniquement pour cette quête."}
+        ]
+      },
+      "append": {
+        "temporal_hooks": ["frigost_manque_repeau_energy_gate","frigost_manque_repeau_19h_appointment"],
+        "hard_exit": [
+          "Pauvre Kiki terminée avant Le mal a dit.",
+          "Gène et tique terminée avant Le mal a dit.",
+          "Scierie Bambelle terminée avant toute activation Bricole Girl.",
+          "Manque de re-peau terminée ou son seul gate énergie/19h enregistré explicitement."
+        ]
+      }
+    },
+    "L120-20F": {
+      "prepend": {
+        "quests": ["Semer ses graines"],
+        "route": [
+          {"area":"Forêt des Pins perdus — AVANT Bricole Girl","do":"Scierie Bambelle étant fermée, prendre Semer ses graines. Planter les graines sur les cinq sites pendant la même campagne Forêt des Pins que Pomdeupin/Promenons et gagner les agressions associées. Terminer Semer avant de quitter la Forêt; aucun donjon n'est ajouté."}
+        ]
+      },
+      "append": {
+        "quests": ["La marche de l'impératrice","Star ski et Dutch","conditional:Groméo et Ginette selon fenêtre17-21"],
+        "temporal_hooks": ["frigost_gromeo_ginette_start_window"],
+        "preparation": [
+          {"name":"Planche à Repasser","quantity":2,"for":"Star ski et Dutch"},
+          {"name":"Planche de Salut","quantity":2,"for":"Star ski et Dutch"},
+          {"name":"Planche à Pain","quantity":2,"for":"Star ski et Dutch"},
+          {"name":"Planche à Pâtisserie","quantity":2,"for":"Star ski et Dutch"},
+          {"name":"Obsidienne","quantity":35,"for":"Star ski et Dutch"},
+          {"name":"Fer","quantity":2,"for":"Star ski et Dutch"},
+          {"requirement":"Équipement temporaire permettant 200 Chance OU 200 Force, 200 Sagesse et 200 Intelligence OU 200 Sagesse pour les ventes Star ski; La marche terminée remplace seulement le test 200 Agilité de Ken Tucky.","blocking":true},
+          {"name":"Perce-Neige","quantity":2,"for":"Groméo et Ginette"},
+          {"name":"Herbe à chacha","quantity":1,"for":"Groméo et Ginette"},
+          {"kamas":300000,"for":"Groméo et Ginette — condition de dialogue Vieux Capoué","policy":"Avoir plus de300000 kamas disponibles au moment du dialogue; ne pas immobiliser cette somme avant la quête."}
+        ],
+        "route": [
+          {"area":"Lac gelé / Mamansots","do":"Après Bricole Girl, faire La marche de l'impératrice avant Star ski. Capturer/livrer les six Mamansots au fil des combats naturels de la zone; si le compteur n'est pas complet, finir uniquement le reliquat dehors. La quête doit être fermée avant la vente Star ski à Ken et avant le futur À qui profite le boufmouth."},
+          {"area":"Bourgade / Forêt des Pins","do":"Prendre puis terminer Star ski et Dutch après Bricole Girl + La marche. Arriver avec les planches, Obsidienne/Fer et les équipements de caractéristiques préparés. Obtenir les 10 Longs poils de Kaniglou sur les Kaniglous et les 5 Sèves de Mycos sur les Écumouths pendant la boucle Forêt des Pins; Star ski est un prérequis d'accès Mansot, donc aucun de ces drops ne peut être reporté à la Forêt pétrifiée future."},
+          {"area":"Bourgade — fenêtre 17:00–21:00 heure de DOFUS","do":"Si la fenêtre est ouverte et Groméo et Ginette n'est pas encore lancée, la prendre maintenant. Ensuite avancer ses étapes lors des passages Bourgade/Forêt des Pins/continent déjà nécessaires; hors fenêtre, utiliser les positions alternatives des deux PNJ documentées et ne jamais attendre jusqu'à17h sur place."}
+        ],
+        "hard_exit": [
+          "Semer ses graines terminée.",
+          "Bricole Girl terminée.",
+          "La marche de l'impératrice terminée avant Star ski/À qui profite.",
+          "Star ski et Dutch terminée avant L120-21 Mansot PASS1.",
+          "Groméo et Ginette terminée ou fil lancé/pending sur prochaine fenêtre sans attente immobile."
+        ]
+      }
+    },
+    "L120-15": {
+      "append": {
+        "preparation": [
+          {"name":"Pistil du Tynril","quantity":1,"for":"Un volcan s'éteint niveau160","policy":"Conserver en banque un Pistil obtenu/acheté pendant ce passage; ne jamais refaire Tynril uniquement pour cette ressource."}
+        ],
+        "hard_exit": ["1 Pistil du Tynril réservé en banque pour Un volcan s'éteint ou achat HDV explicitement prévu."]
+      }
+    },
+    "L120-21": {
+      "append": {
+        "prerequisites": ["Star ski et Dutch terminée avant l'accès à l'Excavation du Mansot Royal."],
+        "hard_exit": ["Accès Mansot n'a jamais été tenté avant validation réelle de Star ski et Dutch."]
+      }
+    }
+  },
+  "insertions": []
+}

@@ -1,0 +1,58 @@
+{
+  "schema_version": 13,
+  "registry_id": "guide_ultime_temporal_registry_v13",
+  "title": "Guide Ultime — contraintes temporelles + Village Enseveli/Intérimaire",
+  "status": "MANUAL_TEMPORAL_WORKING_SET",
+  "base_file": "temporal_registry_v12.json",
+  "supersedes": "temporal_registry_v12.json",
+  "entry_patches": {
+    "bonta73_gambling_den_access": {
+      "route_policy": "Si tu arrives avant 20:00, n'attends pas. Utilise la route alternative : après les dialogues requis, récupère 1 Lait de Dragodinde Dorée, 1 Sac d'épices amaknéennes en [-5,25] et 1 Filet Mignon; échange-les contre le Jambon d'Ala Raine en [-30,-52], donne-le à Jett Marte en [-31,-58], parle à Rei Rosert en [-36,-60] puis à Mente Heur en [-34,-55], et retourne rendre le nom de Gnerah à Amayiro en [-32,-57]. Après 20:00, la voie normale par les témoins reste utilisable."
+    },
+    "osavora_season_cycle": {
+      "route_policy": "Vérifie la saison d'Osavora affichée en jeu avant de lancer une quête saisonnière. Les saisons tournent Naissance → Chasse → Repos le lundi à 08:00. Si la saison utile n'est pas active, continue les autres chapitres et reviens lors d'une semaine correspondante; n'attends jamais sur place."
+    },
+    "frigost_chaud_slip_night_window": {
+      "route_policy": "Entre 20:00 et 08:00, avec le Village Enseveli libéré et Dépôt de ravitaillement avancé jusqu'à cette étape, lance puis progresse Chaud du S.L.I.P. Prépare les ressources demandées ainsi que les passages Royalmouth et Obsidiantre avant d'entrer dans leurs donjons. Hors de cette fenêtre, continue le guide et reprends la quête à la prochaine nuit utile."
+    },
+    "frigost_gromeo_ginette_start_window": {
+      "route_policy": "Entre 17:00 et 21:00, lance Groméo et Ginette auprès de Groméo ou Ginette en [-74,-32]. Une fois la quête lancée, poursuis-la même hors de cette fenêtre : Ginette est en [-73,-40] hors 17:00–21:00 et Groméo en [-82,-43]. Si tu rates la fenêtre de lancement, continue le guide et reviens le prochain jour entre 17:00 et 21:00."
+    },
+    "frigost_manque_repeau_energy_gate": {
+      "route_policy": "Pour les dialogues avec l'Esprit Zonier, l'énergie doit être inférieure à 1000. N'enchaîne pas volontairement des morts uniquement pour ouvrir la quête : profite d'une baisse d'énergie naturelle, fais les dialogues concernés tant que la condition est remplie, puis continue le guide. Si l'énergie remonte avant un autre dialogue requis, reporte seulement ce dialogue."
+    },
+    "frigost_manque_repeau_19h_appointment": {
+      "route_policy": "Quand Ghislaine fixe le rendez-vous à 19:00, continue le guide jusqu'à la prochaine occurrence naturelle de 19:00 puis reviens faire le rendez-vous et le combat. Ne reste pas immobile devant le PNJ en attendant l'heure."
+    }
+  },
+  "entry_insertions": [
+    {
+      "id":"frigost_collecte_sanglante_village_state",
+      "type":"world_state_gate",
+      "quest":"Collecte sanglante",
+      "availability_condition":"Village Enseveli envahi par les givrefoux pour lancer et obtenir les10 Dentiers; Village Enseveli entièrement libéré pour rendre avec récompense.",
+      "hard_wait_forbidden":true,
+      "route_policy":"À chaque passage naturel au Village Enseveli à partir du niveau170, vérifier son état. Si envahi, prendre immédiatement Collecte sanglante à Baka Laïve [-75,-74] et tuer uniquement des monstres DANS le Village jusqu'à10 Dentiers; les drops ne fonctionnent ni en Crevasse ni dans le donjon. Ne pas attendre une invasion. Une fois Fuji éliminée et toutes les maps du Village nettoyées/libérées, revenir rendre les10 Dentiers. Une seule complétion est nécessaire pour Dans les dents.",
+      "source":"Dofus Pour Les Noobs — Collecte sanglante"
+    },
+    {
+      "id":"frigost_tire_la_chasse_village_free",
+      "type":"world_state_gate",
+      "quest":"Tire la chasse — une quête Baka Laïve",
+      "availability_condition":"Village Enseveli libéré; Baka Laïve disponible en [-75,-74].",
+      "hard_wait_forbidden":true,
+      "route_policy":"Prendre une seule chasse Baka Laïve lorsque le Village est naturellement libéré. La quête est aléatoire parmi Complètement givré (Crevasse), L'appel de la forêt (Forêt pétrifiée), Crocs en jambes (Crocs de verre) et Ourse molle (Mont Torrideau/Ruche). Conserver la chasse active jusqu'à sa prochaine campagne naturelle de zone; ne jamais relancer une seconde chasse après validation du succès Tire la chasse.",
+      "source":"Dofus Pour Les Noobs — Tire la chasse"
+    },
+    {
+      "id":"frigost_interimaire_two_daily_completions",
+      "type":"daily_completion_counter",
+      "quest":"Intérimaire frigostien — quête métier Frigost",
+      "target_completions":2,
+      "availability_condition":"Au moins un métier de récolte ou d'artisanat niveau200 compatible avec une quête Frigost.",
+      "hard_wait_forbidden":true,
+      "route_policy":"Réutiliser le métier200 déjà monté pour Vulbis/Six sur six. À la première journée naturelle où le métier atteint200, faire une quête Frigost compatible. Refaire une quête compatible lors d'une journée suivante; ne monter aucun second métier et ne rester jamais bloqué jusqu'au reset. Arrêter définitivement après2 validations réelles du succès Intérimaire frigostien.",
+      "source":"Dofus Pour Les Noobs — Intérimaire frigostien"
+    }
+  ]
+}

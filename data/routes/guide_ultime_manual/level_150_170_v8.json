@@ -1,0 +1,69 @@
+{
+  "schema_version": 8,
+  "route_id": "guide_ultime_manual_level_150_170_v8",
+  "title": "Guide Ultime — Niveau 150 à 170 + Jouer au docteur préparé avant Kolosso",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v7.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v7",
+  "stage_count": 24,
+  "optimization_note": "Ajoute Convoi humanitaire au premier moment où ses trois prérequis sont vrais: Le mal a dit + La fonte des glaces + accès Village Enseveli après le premier Tengu. Le Chêne Mou demandé est un rerun causal car Convoi n'existait pas lors du passage Tour du Monde. Sang dessus-dessous est fermé immédiatement ensuite afin que Un remède à tous les maux soit prêt avant le Kolosso190.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/convoi-humanitaire.html",
+    "https://www.dofuspourlesnoobs.com/sang-dessus-dessous.html",
+    "https://www.dofuspourlesnoobs.com/jouer-au-docteur.html",
+    "https://www.dofuspourlesnoobs.com/clairiegravere-du-checircne-mou.html"
+  ],
+  "insertions": [
+    {
+      "after": "L150-07",
+      "stage": {
+        "id": "L150-07D",
+        "title": "Jouer au docteur — Convoi humanitaire + Sang, Chêne Mou rerun causal",
+        "level": "170+ / C'est frais, mais c'est pas grave terminé",
+        "duration_min": 260,
+        "entry": "Le mal a dit + La fonte des glaces terminés; Village Enseveli accessible après Tengu PASS1.",
+        "quests": ["Convoi humanitaire","Sang dessus-dessous","Un remède à tous les maux"],
+        "successes": ["Jouer au docteur"],
+        "preparation": [
+          {"name":"Aubergine","quantity":50},
+          {"name":"Pain de frostiz","quantity":30},
+          {"name":"Poêlée paysanne","quantity":10},
+          {"name":"Grillade Brâkmarienne","quantity":10},
+          {"name":"Marinade Sucrée-Salée","quantity":10},
+          {"name":"Boudin noir","quantity":10},
+          {"name":"Filet Mignon","quantity":10},
+          {"name":"Potion Torboyo","quantity":10},
+          {"name":"Poisskaille en Fricassée","quantity":10},
+          {"name":"Laine de Yokaï Givrefoux","quantity":10},
+          {"name":"Laine de Maho Givrefoux","quantity":10},
+          {"name":"Pelle Teuze","quantity":10},
+          {"name":"Pelle de Boisaille","quantity":10},
+          {"name":"Marteau de Boisaille","quantity":10},
+          {"name":"Planche de Salut","quantity":5},
+          {"note":"Cette étape est lourde en pods. Acheter/crafter les fournitures puis les regrouper en banque; retirer le lot complet juste avant Albert Paisse. Les aliments/crafts sont échangeables: ne pas monter un métier personnel uniquement pour eux."}
+        ],
+        "take": [
+          "Prendre Convoi humanitaire dès que C'est frais, mais c'est pas grave est terminé et que les deux autres prérequis sont déjà fermés.",
+          "Ne pas refaire Chêne Mou avant que Convoi demande explicitement sa Branche."
+        ],
+        "route": [
+          {"area":"Bourgade / Frigost","do":"Donner les fournitures préparées à Albert Paisse puis exécuter les courses PNJ de Convoi en regroupant Bourgade/Lac/Village. Faire les drops de zone imposés au passage."},
+          {"area":"Clairière du Chêne Mou","do":"RERUN CAUSAL: entrer uniquement quand Convoi humanitaire demande la Branche du Chêne Mou. Faire les succès du boss encore manquants si compatibles, obtenir la Branche automatiquement. Ne pas recapturer Ocre si Chêne Mou est déjà validé."},
+          {"area":"Île de Grobe","do":"Lors du même grand déplacement que les fils Pandala/Grobe encore actifs, vaincre Tsume-bozu et récupérer son objet de quête pour Convoi."},
+          {"area":"Village Enseveli → Bourgade","do":"Livrer le convoi uniquement lorsque le village est libéré, revenir Albert Paisse et terminer Convoi humanitaire."},
+          {"area":"Forêt pétrifiée / Frigost","do":"Prendre immédiatement Sang dessus-dessous. Cliquer les quatre prisonniers de glace dans une boucle Forêt pétrifiée déjà connue puis rendre les prélèvements à Albert Paisse."},
+          {"area":"Bourgade","do":"Terminer Sang dessus-dessous. Un remède à tous les maux devient alors disponible au palier190; le conserver sans le lancer si le niveau190 n'est pas réel."}
+        ],
+        "progress_also": [
+          "Pendant Chêne Mou et Grobe, fermer tout succès monstre/donjon encore ouvert sans transformer le rerun causal en nouveau farm.",
+          "Garder en banque 5 Écorces d'Abrazif, 5 Lamelles de Dramanite, 5 Volves de Fistulor, 5 Volves de Fongeur, 5 Lamelles de Mérulette et 1 Patte de Korriandre pour Un remède à tous les maux au niveau190. Acheter les manquants plutôt que refaire Korriandre." 
+        ],
+        "before_leaving": ["Convoi humanitaire terminé","Sang dessus-dessous terminé","Un remède à tous les maux débloqué pour niveau190"],
+        "hard_exit": ["Jouer au docteur attend uniquement Un remède à tous les maux","Aucun nouveau Korriandre prévu pour ses ressources"],
+        "pause": ["POINT DE PAUSE SÛR — Un remède prêt pour Kolosso190"],
+        "next": "L150-08 — Tengu PASS2 puis suite Frigost"
+      }
+    }
+  ],
+  "stage_patches": {}
+}

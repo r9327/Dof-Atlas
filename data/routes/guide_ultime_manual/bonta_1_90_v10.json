@@ -1,0 +1,240 @@
+{
+  "schema_version": 10,
+  "route_id": "guide_ultime_manual_bonta_1_90_v10",
+  "title": "Guide Ultime — Alignement Bonta 1 à 90",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_80_v9.json",
+  "supersedes": "guide_ultime_manual_bonta_1_80_v9",
+  "quest_range": [1, 90],
+  "macro_stage_count": 43,
+  "optimization_note": "Étend la route Bonta 81-90 avec six macro-sessions. Le Korriandre du rang85 est un troisième passage global explicitement causal car Gelé à pierre fendre n'existe qu'au palier185. Le mini-donjon Qu'Tan est préparé avec groupe/chasse avant déplacement. Le rang90 réserve Grolloum à la route principale pour le fusionner avec tous les fils Sakaï compatibles avant l'entrée.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/alignement-bontarien.html",
+    "https://www.dofuspourlesnoobs.com/ingerence-en-amakna.html",
+    "https://www.dofuspourlesnoobs.com/petites-faveurs-entre-amis.html",
+    "https://www.dofuspourlesnoobs.com/les-gardiens-de-la-galerie.html",
+    "https://www.dofuspourlesnoobs.com/le-plateau-de-leng.html",
+    "https://www.dofuspourlesnoobs.com/gele-a-pierre-fendre.html",
+    "https://www.dofuspourlesnoobs.com/l-ascension-de-qu-tan.html",
+    "https://www.dofuspourlesnoobs.com/il-ne-faut-pas-se-fier-aux-apparences.html",
+    "https://www.dofuspourlesnoobs.com/on-se-calme.html",
+    "https://www.dofuspourlesnoobs.com/tout-est-bien-qui-finit-mal.html",
+    "https://www.dofuspourlesnoobs.com/ca-fait-froid-dans-le-dos.html"
+  ],
+  "routing_policy_81_90": [
+    "Chaque rang n'est injecté qu'après validation réelle du rang précédent et au niveau recommandé correspondant; aucun saut 81→90.",
+    "Les embranchements Amayiro/Danathor dépendent du choix historique Au service de Danathor; la route suit l'état runtime du personnage et n'impose pas rétrospectivement un autre choix.",
+    "Le bon de commande Bus Nain 2000 du rang82 est remis immédiatement à Larry Poller: le délai de fabrication annoncé n'est pas un timer bloquant pour la quête.",
+    "Le rang84 exige deux passages Srambad mais aucun donjon; préparer la clef du caveau avant de partir et l'Élixir d'Arakne seulement en recraft si échec.",
+    "Le Korriandre du rang85 est causal et distinct des deux passages Turquoise/Frigost précédents. Il doit être mutualisé avec tout objectif Korriandre réellement disponible à185, mais le guide ne retarde pas artificiellement Gelé à pierre fendre pour un futur fil non ouvert.",
+    "La chasse légendaire du rang86 varie par personnage. Aucune coordonnée de trésor n'est enregistrée dans la route; organiser jusqu'à huit personnages avant le combat final et le mini-donjon Qu'Tan.",
+    "Le rang88 réutilise Balade en forêt et le livre L'Invasion d'Uk'Not'Allag', tous deux issus des fils Astrub déjà nécessaires au Dofus Argenté; s'ils manquent au runtime, c'est une dette de synchronisation à corriger, pas une nouvelle branche 188.",
+    "Le rang89 préfère Venin d'Éperfide + Pince de Lucrane via Srambad si déjà disponibles; payer 150000 kamas reste le bypass immédiat si le détour/farm coûterait plus cher.",
+    "Le rang90 ne capture plus Panterreur avec une pierre: la version courante donne l'âme/personnage suiveur en le vainquant. Grolloum doit être fusionné avec les succès/quêtes Sakaï compatibles avant l'entrée et Gobiling doit être interrogé avant de quitter le donjon.",
+    "Après rang90, Bonta91 reste hors tranche tant que niveau191/startCriterion ne sont pas vrais."
+  ],
+  "insertions": [
+    {
+      "after": "BNT-36",
+      "stage": {
+        "id": "BNT-37",
+        "title": "Bonta81-82 — crise d'Amakna + faveurs sans faux timer de dix jours",
+        "level": "181-182 / L'Éclat de l'Aube terminé",
+        "duration_min": 170,
+        "ranks": [81,82],
+        "entry": "Milice de Bonta; rang80 terminé; niveau181+ réel.",
+        "quests": ["Ingérence en Amakna","Petites faveurs entre amis"],
+        "take": [
+          "Prendre Ingérence en Amakna auprès d'Amayiro seulement quand le niveau181/startCriterion local est vrai.",
+          "Après validation rang81, prendre Petites faveurs entre amis auprès d'Amayiro ou Danathor selon le choix historique Au service de Danathor."
+        ],
+        "preparation": [
+          {"note":"Aucune ressource obligatoire au rang81; combat solo avec alliés."},
+          {"target":"Cœur de Dramanite","quantity":1,"for":"Petites faveurs entre amis","policy":"Drop automatique sur Dramanite en Forêt pétrifiée. Le récupérer pendant tout passage naturel de la zone avant le retour Astrub."}
+        ],
+        "route": [
+          {"area":"Amakna — village/mines/château","do":"Rang81: faire la boucle Commandant Imagiro → habitants → trois mines → Sergent Gracia → San Lavalss, puis rendre selon la branche Amayiro/Danathor réellement persistée."},
+          {"area":"Bonta → Astrub → Forêt pétrifiée → Amakna","do":"Rang82: interroger les trois notables de Bonta, faire la tournée des femmes d'Astrub, récupérer un Cœur de Dramanite lors d'un passage Forêt pétrifiée, l'échanger contre le bon Bus Nain 2000 puis remettre immédiatement ce bon à Larry Poller. Ne jamais attendre dix jours: la fabrication future n'est pas requise pour fermer la quête."},
+          {"area":"Amakna","do":"Finir San Lavalss → Farle → Agride, gagner le combat solo du Bûcheron puis rendre au donneur correspondant à la branche historique."}
+        ],
+        "progress_also": [
+          "Si le Cœur de Dramanite est déjà en objet de quête grâce à un passage antérieur compatible, ne pas refaire la Forêt pétrifiée.",
+          "Profiter d'Astrub pour vérifier que Balade en forêt + L'histoire en mouvement sont bien synchronisées avant le futur rang88."
+        ],
+        "before_leaving": ["Bonta82 terminé","Aucun timer Bus Nain créé","Rang83 disponible au niveau183"],
+        "hard_exit": ["Bonta82 terminé","Les gardiens de la galerie disponible au vrai palier183"],
+        "pause": ["POINT DE PAUSE SÛR — Bonta après rang82"],
+        "next": "BNT-38 — Pierres sacrées d'Araknas rang83-84"
+      }
+    },
+    {
+      "after": "BNT-37",
+      "stage": {
+        "id": "BNT-38",
+        "title": "Bonta83-84 — Pierres d'Araknas, Cybworks, caveau puis double Srambad",
+        "level": "183-184",
+        "duration_min": 300,
+        "ranks": [83,84],
+        "entry": "Bonta82 terminé; niveau183+.",
+        "quests": ["Les gardiens de la galerie","Le plateau de Leng"],
+        "take": ["Prendre Les gardiens de la galerie à183 puis Le plateau de Leng à184, jamais avant leur rang précédent."],
+        "preparation": [
+          {"name":"Viande Gâtée","quantity":2},
+          {"name":"Tanche","quantity":14},
+          {"name":"Millet","quantity":14},
+          {"requirement":"Groupe disponible pour le combat du repaire des Cybworks","for":"Les gardiens de la galerie"},
+          {"name":"Pyrute","quantity":1,"for":"Clef du caveau du Roi Léorictus"},
+          {"name":"Aigue-Marine","quantity":1,"for":"Clef du caveau du Roi Léorictus"},
+          {"name":"Mandragore","quantity":15,"for":"Clef du caveau du Roi Léorictus"},
+          {"name":"Clochettes","quantity":1,"for":"Clef du caveau du Roi Léorictus"},
+          {"kamas":5000,"for":"Recette de la clef du caveau"},
+          {"requirement":"Bricoleur184 minimum","for":"Clef du caveau du Roi Léorictus","blocking":true},
+          {"requirement":"Alchimiste184 uniquement si recraft Élixir d'Arakne après échec","blocking":false}
+        ],
+        "route": [
+          {"area":"Amakna/Sufokia/marécages","do":"Rang83: préparer les appâts et le piège avant le trajet, capturer Crosodaille, l'échanger auprès de Tati contre la première pierre, puis libérer Lars Tord dans le repaire Cybwork avec le groupe déjà organisé."},
+          {"area":"Bonta → Sufokia → Srambad → caveau","do":"Rang84: trouver Lao à Srambad, revenir acheter/préparer la clef du caveau puis terminer le combat tactique de la tombe et récupérer Urne + Élixir. Tout crafter avant le second passage Srambad."},
+          {"area":"Srambad → Leng","do":"Second passage Srambad: échanger l'urne contre le diamant, subir la transition Leng puis effectuer les deux combats tactiques sous Élixir d'Arakne. Recraft uniquement en cas d'échec réel."},
+          {"area":"Bonta","do":"Rendre la pierre et confirmer rang84 fermé avant de préparer Korriandre85."}
+        ],
+        "progress_also": [
+          "Pendant les trajets Amakna/Sufokia, avancer seulement les objectifs déjà actifs; ne pas injecter de nouveaux donjons.",
+          "Avant de quitter Bonta, préparer tout le dissolvant du rang85 sauf la Fleur de Korriandre."
+        ],
+        "before_leaving": ["Bonta84 terminé","Composants dissolvant85 prêts hors Fleur de Korriandre"],
+        "hard_exit": ["Le plateau de Leng terminé","Gelé à pierre fendre disponible au niveau185"],
+        "pause": ["POINT DE PAUSE SÛR — avant Korriandre85"],
+        "next": "BNT-39 — Korriandre causal rang85"
+      }
+    },
+    {
+      "after": "BNT-38",
+      "stage": {
+        "id": "BNT-39",
+        "title": "Bonta85 — troisième Korriandre global, explicitement causal",
+        "level": "185+",
+        "duration_min": 110,
+        "ranks": [85],
+        "entry": "Le plateau de Leng terminé; niveau185; Gelé à pierre fendre active.",
+        "quests": ["Gelé à pierre fendre"],
+        "take": ["Prendre Gelé à pierre fendre puis avancer jusqu'au verrou Korriandre avant l'entrée du donjon."],
+        "preparation": [
+          {"name":"Lamelle de Mérulette","quantity":2},
+          {"name":"Volve de Fongeur","quantity":3},
+          {"name":"Mandragore","quantity":35},
+          {"name":"Pépite","quantity":2},
+          {"name":"Dolomite","quantity":10},
+          {"name":"Blague de Soufre","quantity":1},
+          {"requirement":"Alchimiste185 minimum","for":"Dissolvant Phosphorescent","blocking":true}
+        ],
+        "route": [
+          {"area":"Frigost / Forêt pétrifiée","do":"Faire bibliothèque → alchimiste → taverne, puis le combat solo à l'entrée du Korriandre. Ne lancer le donjon qu'une fois Gelé à pierre fendre est réellement au boss."},
+          {"area":"Antre du Korriandre","do":"PASS3 GLOBAL CAUSAL: vaincre Korriandre, récupérer 1 Fleur de Korriandre. Mutualiser uniquement les succès/objectifs encore réellement ouverts; aucune nouvelle capture Ocre si Korriandre déjà validé dans le registre."},
+          {"area":"sortie Antre → craft → fond de l'antre","do":"Crafter le Dissolvant immédiatement, revenir par le raccourci de Sylvie Barbe, dissoudre la toile puis gagner le combat solo contre Rammola et récupérer la dernière pierre."}
+        ],
+        "progress_also": ["Ce passage n'est pas une erreur d'optimisation des deux Korriandre180: le rang85 n'était pas disponible avant niveau185."],
+        "before_leaving": ["Dernière pierre Araknas récupérée","Bonta85 terminé","Aucune capture Ocre Korriandre dupliquée"],
+        "hard_exit": ["Korriandre total guide = 3 passages à ce point, chacun causal","Bonta85 terminé"],
+        "pause": ["POINT DE PAUSE SÛR — avant chasse légendaire Qu'Tan"],
+        "next": "BNT-40 — Qu'Tan rang86"
+      }
+    },
+    {
+      "after": "BNT-39",
+      "stage": {
+        "id": "BNT-40",
+        "title": "Bonta86 — chasse légendaire Araknas + mini-donjon Qu'Tan",
+        "level": "186+",
+        "duration_min": 190,
+        "ranks": [86],
+        "entry": "Bonta85 terminé; niveau186; groupe organisé avant la chasse finale.",
+        "quests": ["L'ascension de Qu'Tan"],
+        "take": ["Prendre L'ascension de Qu'Tan puis récupérer la Carte d'Araknas à la Malle aux Trésors."],
+        "preparation": [
+          {"requirement":"Groupe jusqu'à8 recommandé pour combat final de chasse et Qu'Tan","blocking":true},
+          {"note":"La chasse est différente par personnage: aucune position/indice de chasse n'est persisté dans le fichier de route."},
+          {"name":"Clef du temple maudit","policy":"Les personnages au bon état de quête entrent via les pierres; crafter seulement pour les aides qui n'ont pas ce droit d'entrée.","recipe_if_needed":["10 Millet","10 Mandragore","10 Bois d'orme","10 Tanche","1 Viande gâtée","10 Dolomite"]},
+          {"requirement":"Bricoleur186 seulement pour les clefs des helpers","blocking":false}
+        ],
+        "route": [
+          {"area":"Malle aux Trésors","do":"Lancer la chasse légendaire avec la Carte d'Araknas. La résoudre individuellement; si échec, relancer via la table sans modifier la route géographique globale."},
+          {"area":"combat final chasse","do":"Arriver avec le groupe organisé et terminer l'Œuf d'Arakne Géante dans sa contrainte de combat. Ouvrir le coffre et utiliser le Mode d'emploi."},
+          {"area":"Temple maudit","do":"Entrer avec les helpers correctement munis de clef si nécessaire; faire les deux salles puis Qu'Tan. Ne pas enregistrer ce mini-donjon comme cible Ocre."},
+          {"area":"après Qu'Tan","do":"Récupérer le Pacte de non-agression AVANT sortie puis rendre à Amayiro."}
+        ],
+        "progress_also": ["Le groupe8 sert à éviter un blocage social; ne pas attendre devant le temple si le groupe n'est pas prêt."],
+        "before_leaving": ["Pacte récupéré","Bonta86 terminé","Qu'Tan non ajouté au registre Ocre"],
+        "hard_exit": ["Bonta86 terminé","Il ne faut pas se fier aux apparences disponible à187"],
+        "pause": ["POINT DE PAUSE SÛR — Bonta après Qu'Tan"],
+        "next": "BNT-41 — rang87-89"
+      }
+    },
+    {
+      "after": "BNT-40",
+      "stage": {
+        "id": "BNT-41",
+        "title": "Bonta87-89 — faux pacte, apaiser Amakna puis Gisgoul",
+        "level": "187-189",
+        "duration_min": 230,
+        "ranks": [87,88,89],
+        "entry": "Bonta86 terminé.",
+        "quests": ["Il ne faut pas se fier aux apparences","On se calme","Tout est bien qui finit mal"],
+        "take": ["Prendre chaque rang à son niveau réel et uniquement après le précédent."],
+        "preparation": [
+          {"name":"Millet","quantity":7,"for":"On se calme"},
+          {"name":"Aubergine","quantity":5,"for":"On se calme"},
+          {"name":"Mesure de poivre","quantity":5,"for":"On se calme"},
+          {"name":"Viande gâtée","quantity":1,"for":"On se calme"},
+          {"name":"Eau potable","quantity":1,"for":"On se calme"},
+          {"name":"Bière d'Amakna","quantity":1,"for":"On se calme"},
+          {"name":"Épice","quantity":5,"for":"On se calme"},
+          {"name":"L'Invasion d'Uk'Not'Allag'","quantity":1,"for":"On se calme","policy":"Récompense de L'histoire en mouvement; récupérer la copie/état déjà acquis dans le fil Astrub plutôt que refaire une chaîne."},
+          {"name":"Venin d'Éperfide","quantity":1,"for":"Tout est bien qui finit mal","alternative":"150000 kamas"},
+          {"name":"Pince de Lucrane","quantity":1,"for":"Tout est bien qui finit mal","alternative":"150000 kamas"},
+          {"name":"Oreille de Blérice","quantity":1},
+          {"name":"Saphir","quantity":1}
+        ],
+        "route": [
+          {"area":"Frigost ↔ Bonta","do":"Rang87: vérifier le faux pacte via bibliothèque/Tour des Ordres et terminer sans détour de donjon."},
+          {"area":"Amakna ↔ Astrub ↔ Bonta","do":"Rang88: faire les plaintes et la réconciliation Amakna, ouvrir le livre Uk'Not'Allag' puis parler à Fallanster. Balade en forêt est déjà une condition historique du Dofus Argenté; si runtime la marque absente, corriger la synchro avant de continuer."},
+          {"area":"Bonta → Srambad optionnel → Sufokia → Gisgoul","do":"Rang89: choisir soit les deux ressources Srambad déjà disponibles, soit le bypass150000 kamas. Réparer le mysténergiomètre avec Oreille de Blérice + Saphir puis faire les relevés Gisgoul et le combat de groupe."}
+        ],
+        "progress_also": ["Préparer le Rossignol rang90 avant de revenir à Bonta.","Si la route principale prévoit déjà Sakaï niveau190, ne lancer aucun Grolloum avant que les fils compatibles soient actifs."],
+        "before_leaving": ["Bonta89 terminé","Rossignol prêt","Grolloum réservé au merge hook niveau190"],
+        "hard_exit": ["Bonta89 terminé","Ça fait froid dans le dos disponible au niveau190"],
+        "pause": ["POINT DE PAUSE SÛR — avant Sakaï/Grolloum"],
+        "next": "BNT-42 — rang90 Grolloum mutualisé"
+      }
+    },
+    {
+      "after": "BNT-41",
+      "stage": {
+        "id": "BNT-42",
+        "title": "Bonta90 — Panterreur moderne + Grolloum à mutualiser avant entrée",
+        "level": "190+",
+        "duration_min": 150,
+        "ranks": [90],
+        "entry": "Bonta89 terminé; niveau190; Rossignol préparé; route principale a audité les autres fils Grolloum/Sakaï.",
+        "quests": ["Ça fait froid dans le dos"],
+        "take": ["Prendre Ça fait froid dans le dos auprès d'Amayiro uniquement au niveau190 réel."],
+        "preparation": [
+          {"name":"Rossignol","quantity":1,"recipe":["3 Poils d'Arakne Malade","2 Champignon","3 Cuir de Scélérat Strubien","1 Canine Vampiresque","1 Crochet rouillé"],"craft":"Bricoleur130+"},
+          {"note":"Panterreur: aucune pierre d'âme. La version courante de la quête donne l'âme/personnage suiveur après victoire."},
+          {"requirement":"Avant Mine de Sakaï: activer tous les succès/quêtes Grolloum compatibles de la route principale","blocking":true}
+        ],
+        "route": [
+          {"area":"Hel Munster → Temple Huppermage → Estitch → Bonta","do":"Faire l'enquête sur les entraves, acheter le passe Estitch si nécessaire puis localiser la planque d'Ereziah via la Tour des Ordres."},
+          {"area":"planque d'Ereziah → dimension obscure","do":"Ouvrir avec le Rossignol, gagner le combat solo, puis vaincre Panterreur pour obtenir son âme de quête. Ne pas utiliser de pierre d'âme et ne pas l'ajouter à Ocre."},
+          {"area":"Mine de Sakaï","do":"MERGE HOOK: entrer seulement quand les autres fils Grolloum190 réellement disponibles sont activés. Vaincre Grolloum et faire tous les succès compatibles du passage."},
+          {"area":"après boss","do":"NE PAS SORTIR: parler à Gobiling pour traduire Grolloum, puis terminer Roi Beldarion → Ereziah → Amayiro."}
+        ],
+        "progress_also": ["La route principale décide si ce passage peut fermer des quêtes/succès Sakaï supplémentaires; BNT-42 interdit une entrée isolée prématurée."],
+        "before_leaving": ["Gobiling interrogé avant sortie","Bonta90 terminé","Panterreur non capturé","Bonta91 non injecté avant191"],
+        "hard_exit": ["Bonta90 terminé","next_rank=91","aucune capture Panterreur Ocre"],
+        "pause": ["POINT DE PAUSE SÛR — Bonta90"],
+        "next": "Bonta91 au niveau191/startCriterion réel"
+      }
+    }
+  ],
+  "stage_patches": {}
+}

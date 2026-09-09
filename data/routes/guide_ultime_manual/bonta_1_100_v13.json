@@ -1,0 +1,34 @@
+{
+  "schema_version": 13,
+  "route_id": "guide_ultime_manual_bonta_1_100_v13",
+  "title": "Guide Ultime — Alignement Bonta 1 à 100 — actions 41-50 consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_100_v12.json",
+  "supersedes": "guide_ultime_manual_bonta_1_100_v12",
+  "quest_range": [1, 100],
+  "macro_stage_count": 49,
+  "optimization_note": "Nettoie les consignes joueur des rangs 41-46 utilisées dans le palier 100-120 sans dupliquer la route Bonta ni changer son ordre causal.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/vin-diou.html",
+    "https://www.dofuspourlesnoobs.com/la-geste-de-ratagnan.html",
+    "https://www.dofuspourlesnoobs.com/les-ecas-ne-flippent-pas.html"
+  ],
+  "stage_patches": {
+    "BNT-19": {
+      "replace": {
+        "level_gate": "Vin diou disponible et Un juge hystérique arrivé au Rat Blanc.",
+        "route": [
+          {"pos":"[-32,-57] Bonta","do":"Prendre Vin diou auprès d'Amayiro et faire l'enquête préalable jusqu'à l'objectif Rat Blanc."},
+          {"pos":"Canaux méphitiques","do":"Avancer La Geste de Ratagnan, Cuisine raffinée et Le pacte des profondeurs autant que leurs objectifs le permettent avant le donjon. Si la Gardienne des égouts apparaît naturellement, profiter de ce passage pour son succès sans attendre sa réapparition."},
+          {"pos":"[-34,-59] Garde-manger du Rat Blanc","do":"Entrer uniquement lorsque Vin diou, Un juge hystérique et La Geste de Ratagnan demandent tous le Rat Blanc. Faire les succès compatibles, capturer le Rat Blanc avec une pierre puissance 150 minimum pour l'Ocre et terminer les dialogues post-boss de La Geste avant de sortir."},
+          {"pos":"Bonta puis [-29,-47]","do":"Rendre Vin diou et La Geste de Ratagnan, puis retourner voir Chris de Naire pour mettre à jour Un juge hystérique et faire apparaître sa prochaine cible."}
+        ]
+      }
+    },
+    "BNT-20": {
+      "replace": {
+        "level_gate": "Terminer chaque rang précédent avant de commencer le suivant, du rang 42 au rang 46."
+      }
+    }
+  }
+}

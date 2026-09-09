@@ -1,0 +1,73 @@
+{
+  "schema_version": 9,
+  "route_id": "guide_ultime_manual_level_150_170_v9",
+  "title": "Guide Ultime — Niveau 150 à 170 + Agriculture absorbée par Obsidiantre/Tengu",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v8.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v8",
+  "stage_count": 24,
+  "optimization_note": "Poursuit la branche Paysan du succès Agriculture ou alchimie choisie en 120-150. Mauvaise graine est fermée dans la campagne Larmes; Champ Pomy utilise les deux passages Obsidiantre déjà causaux et ne crée jamais un troisième Hypogée; Gant graine utilise Crevasse/Village puis les deux Tengu déjà causaux. La branche Alchimiste déjà engagée sur un personnage repris reste prioritaire et ne doit pas être écrasée.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/mauvaise-graine.html",
+    "https://www.dofuspourlesnoobs.com/champ-pomy.html",
+    "https://www.dofuspourlesnoobs.com/gant-graine.html",
+    "https://www.dofuspourlesnoobs.com/agriculture-ou-alchimie.html"
+  ],
+  "stage_patches": {
+    "L150-03": {
+      "prepend": {
+        "quests": ["Mauvaise graine","Champ Pomy"],
+        "route": [
+          {"area":"Larmes d'Ouronigride — AVANT Hypogée","do":"Mauvaise graine est active depuis le Ben. Pendant la boucle Larmes déjà nécessaire, obtenir 40 Graines Hade sur les monstres et récolter 5 Graines Haye. Ne pas dépasser les quantités une fois les compteurs complets."},
+          {"pos":"[-82,-48]","do":"Rendre Mauvaise graine puis prendre immédiatement Champ Pomy AVANT d'entrer à l'Hypogée. Ne jamais consommer un passage Obsidiantre sans cette quête si la branche Paysan est celle du personnage."}
+        ]
+      },
+      "append": {
+        "route": [
+          {"pos":"Hypogée de l'Obsidiantre — salles PASS1","do":"Avec Champ Pomy active, chaque monstre de l'Hypogée fournit une Graine de Basalte. Ramasser aussi une Graine Houille dans l'une des salles prévues. Faire le boss normalement pour Lavomatique + Thomahon: ne pas quitter avant boss puisque ce passage est déjà requis."},
+          {"area":"après PASS1","do":"Si Champ Pomy est déjà à 40 Basalte + 1 Houille, la rendre immédiatement. Sinon conserver le compteur exact: le PASS2 Obsidiantre déjà causal complètera le reliquat, sans aucun farm extérieur possible ni troisième donjon."}
+        ],
+        "hard_exit": ["Champ Pomy complète ou reliquat exact réservé au PASS2 Obsidiantre."]
+      }
+    },
+    "L150-05": {
+      "append": {
+        "quests": ["Champ Pomy","Gant graine"],
+        "route": [
+          {"pos":"Hypogée de l'Obsidiantre — salles PASS2","do":"Si Champ Pomy n'est pas encore 40/40, compléter uniquement le reliquat de Graines de Basalte pendant ce second passage déjà causal. Récupérer 1 Graine Houille si elle manque encore. Aucun troisième passage n'est autorisé pour cette quête."},
+          {"pos":"[-82,-48] puis [-71,-43]","do":"Rendre Champ Pomy dès les objectifs complets, puis prendre Gant graine auprès de Circé Réal. La quête doit être active AVANT les longues boucles Crevasse/Tengu qui suivent."}
+        ],
+        "hard_exit": ["Champ Pomy terminée avant de quitter définitivement le bloc Obsidiantre.","Gant graine active avant Crevasse/Tengu."]
+      }
+    },
+    "L150-06": {
+      "append": {
+        "quests": ["Gant graine"],
+        "route": [
+          {"area":"Crevasse Perge","do":"Avec Gant graine active, récolter les 5 Graines de Star pendant les déplacements et accumuler les Grains de Malice sur les monstres déjà combattus. Ne pas farmer jusqu'à 40 dehors: garder le reliquat pour les deux Tengu déjà obligatoires."}
+        ],
+        "hard_exit": ["Gant graine a profité de la boucle Crevasse avant toute session de farm dédiée."]
+      }
+    },
+    "L150-07": {
+      "append": {
+        "quests": ["Gant graine"],
+        "route": [
+          {"pos":"Tanière Givrefoux — salles PASS1","do":"Tous les monstres compatibles de la Tanière servent d'abord au compteur Gant graine. Après le boss, relever le total exact; ne compléter dehors que si cela évite réellement d'attendre le PASS2 imminent."}
+        ],
+        "hard_exit": ["Compteur Gant graine conservé après Tengu PASS1."]
+      }
+    },
+    "L150-08": {
+      "append": {
+        "quests": ["Gant graine"],
+        "route": [
+          {"pos":"Tanière Givrefoux — salles PASS2","do":"Compléter le reliquat Gant graine pendant le deuxième Tengu causal. Une fois 40 Grains de Malice + 5 Graines de Star obtenus, ne tuer aucun groupe supplémentaire pour cette quête."},
+          {"pos":"[-71,-43]","do":"Rendre Gant graine après le PASS2. Les graines de la discorde s'ouvrira au niveau180: enregistrer ce prochain fil sans forcer le niveau ni refaire Tengu."}
+        ],
+        "hard_exit": ["Gant graine terminée avant le palier180.","Les graines de la discorde préparée comme prochaine quête de la branche Paysan."]
+      }
+    }
+  },
+  "insertions": []
+}

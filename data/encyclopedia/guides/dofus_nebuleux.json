@@ -1,0 +1,1741 @@
+{
+  "schema_version": 1,
+  "id": "dofus_nebuleux",
+  "title": "Dofus Nébuleux",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofus Nébuleux.",
+  "recommended_level_min": 100,
+  "recommended_level_max": 200,
+  "reward_item_id": 8698,
+  "illustration_item_id": 8698,
+  "image": null,
+  "linked_achievement_ids": [
+    1072,
+    1073,
+    1074,
+    1075,
+    1076,
+    1102,
+    1103,
+    1104,
+    1105,
+    1106,
+    1142,
+    1143,
+    1144,
+    1145,
+    1146,
+    1186,
+    1188
+  ],
+  "completeness_status": "complete",
+  "verified_steps": 101,
+  "total_steps": 101,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "Profil DPLN: parcours obligatoire résolu dans le catalogue local."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [
+    "https://www.dofuspourlesnoobs.com/quetes-du-dofus-nebuleux.html"
+  ],
+  "sections": [
+    {
+      "id": "dofus_nebuleux_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        1072,
+        1073,
+        1074,
+        1075,
+        1076,
+        1102,
+        1103,
+        1104,
+        1105,
+        1106,
+        1142,
+        1143,
+        1144,
+        1145,
+        1146,
+        1186,
+        1188
+      ],
+      "steps": [
+        {
+          "id": "dofus_nebuleux_quest_1504",
+          "type": "quest",
+          "entity_id": 1504,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1501",
+          "type": "quest",
+          "entity_id": 1501,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1505",
+          "type": "quest",
+          "entity_id": 1505,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1504
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1506",
+          "type": "quest",
+          "entity_id": 1506,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1505
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1484",
+          "type": "quest",
+          "entity_id": 1484,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1485",
+          "type": "quest",
+          "entity_id": 1485,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1484
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1487",
+          "type": "quest",
+          "entity_id": 1487,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1484
+            }
+          ],
+          "relation": "mandatory",
+          "context_quests": [
+            1485
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1486",
+          "type": "quest",
+          "entity_id": 1486,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1485
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1530",
+          "type": "quest",
+          "entity_id": 1530,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1486
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1531",
+          "type": "quest",
+          "entity_id": 1531,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1530
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1532",
+          "type": "quest",
+          "entity_id": 1532,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1531
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1571",
+          "type": "quest",
+          "entity_id": 1571,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1532
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1572",
+          "type": "quest",
+          "entity_id": 1572,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1571
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1573",
+          "type": "quest",
+          "entity_id": 1573,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1572
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1608",
+          "type": "quest",
+          "entity_id": 1608,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1573
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1609",
+          "type": "quest",
+          "entity_id": 1609,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1608
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1612",
+          "type": "quest",
+          "entity_id": 1612,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1609
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1613",
+          "type": "quest",
+          "entity_id": 1613,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1609
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1611",
+          "type": "quest",
+          "entity_id": 1611,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1609
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1610",
+          "type": "quest",
+          "entity_id": 1610,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1609
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1588",
+          "type": "quest",
+          "entity_id": 1588,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1591",
+          "type": "quest",
+          "entity_id": 1591,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1592",
+          "type": "quest",
+          "entity_id": 1592,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1591
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1593",
+          "type": "quest",
+          "entity_id": 1593,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1588
+            },
+            {
+              "type": "quest",
+              "entity_id": 1592
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1533",
+          "type": "quest",
+          "entity_id": 1533,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1538",
+          "type": "quest",
+          "entity_id": 1538,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1541",
+          "type": "quest",
+          "entity_id": 1541,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1542",
+          "type": "quest",
+          "entity_id": 1542,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1541
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1543",
+          "type": "quest",
+          "entity_id": 1543,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1542
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1488",
+          "type": "quest",
+          "entity_id": 1488,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1502",
+          "type": "quest",
+          "entity_id": 1502,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1501
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1497",
+          "type": "quest",
+          "entity_id": 1497,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1506
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1490",
+          "type": "quest",
+          "entity_id": 1490,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1507",
+          "type": "quest",
+          "entity_id": 1507,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1498",
+          "type": "quest",
+          "entity_id": 1498,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1497
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1499",
+          "type": "quest",
+          "entity_id": 1499,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1498
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1500",
+          "type": "quest",
+          "entity_id": 1500,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1499
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1508",
+          "type": "quest",
+          "entity_id": 1508,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1507
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1509",
+          "type": "quest",
+          "entity_id": 1509,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1508
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1595",
+          "type": "quest",
+          "entity_id": 1595,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1594",
+          "type": "quest",
+          "entity_id": 1594,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1589",
+          "type": "quest",
+          "entity_id": 1589,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1588
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1583",
+          "type": "quest",
+          "entity_id": 1583,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1593
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1584",
+          "type": "quest",
+          "entity_id": 1584,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1583
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1585",
+          "type": "quest",
+          "entity_id": 1585,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1584
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1586",
+          "type": "quest",
+          "entity_id": 1586,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1585
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1575",
+          "type": "quest",
+          "entity_id": 1575,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1577",
+          "type": "quest",
+          "entity_id": 1577,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1484
+            }
+          ],
+          "relation": "mandatory",
+          "context_quests": [
+            1485
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1596",
+          "type": "quest",
+          "entity_id": 1596,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1595
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1555",
+          "type": "quest",
+          "entity_id": 1555,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1554",
+          "type": "quest",
+          "entity_id": 1554,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1536",
+          "type": "quest",
+          "entity_id": 1536,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1484
+            }
+          ],
+          "relation": "mandatory",
+          "context_quests": [
+            1485
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1539",
+          "type": "quest",
+          "entity_id": 1539,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1538
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1544",
+          "type": "quest",
+          "entity_id": 1544,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1539
+            },
+            {
+              "type": "quest",
+              "entity_id": 1543
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1534",
+          "type": "quest",
+          "entity_id": 1534,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1545",
+          "type": "quest",
+          "entity_id": 1545,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1544
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1546",
+          "type": "quest",
+          "entity_id": 1546,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1545
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1547",
+          "type": "quest",
+          "entity_id": 1547,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1546
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1553",
+          "type": "quest",
+          "entity_id": 1553,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1540",
+          "type": "quest",
+          "entity_id": 1540,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1539
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1514",
+          "type": "quest",
+          "entity_id": 1514,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1559",
+          "type": "quest",
+          "entity_id": 1559,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1590",
+          "type": "quest",
+          "entity_id": 1590,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1589
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1602",
+          "type": "quest",
+          "entity_id": 1602,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1594
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1491",
+          "type": "quest",
+          "entity_id": 1491,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1510",
+          "type": "quest",
+          "entity_id": 1510,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1506
+            },
+            {
+              "type": "quest",
+              "entity_id": 1507
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1535",
+          "type": "quest",
+          "entity_id": 1535,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1597",
+          "type": "quest",
+          "entity_id": 1597,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1589
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1598",
+          "type": "quest",
+          "entity_id": 1598,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1597
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1579",
+          "type": "quest",
+          "entity_id": 1579,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1586
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1599",
+          "type": "quest",
+          "entity_id": 1599,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1598
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1556",
+          "type": "quest",
+          "entity_id": 1556,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1561",
+          "type": "quest",
+          "entity_id": 1561,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1547
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1503",
+          "type": "quest",
+          "entity_id": 1503,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1502
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1601",
+          "type": "quest",
+          "entity_id": 1601,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1596
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1548",
+          "type": "quest",
+          "entity_id": 1548,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1547
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1549",
+          "type": "quest",
+          "entity_id": 1549,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1548
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1600",
+          "type": "quest",
+          "entity_id": 1600,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1580",
+          "type": "quest",
+          "entity_id": 1580,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1579
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1581",
+          "type": "quest",
+          "entity_id": 1581,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1580
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1582",
+          "type": "quest",
+          "entity_id": 1582,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1581
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1537",
+          "type": "quest",
+          "entity_id": 1537,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1492",
+          "type": "quest",
+          "entity_id": 1492,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1500
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1562",
+          "type": "quest",
+          "entity_id": 1562,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1555
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1493",
+          "type": "quest",
+          "entity_id": 1493,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1492
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1557",
+          "type": "quest",
+          "entity_id": 1557,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1556
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1558",
+          "type": "quest",
+          "entity_id": 1558,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1557
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1511",
+          "type": "quest",
+          "entity_id": 1511,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1510
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1512",
+          "type": "quest",
+          "entity_id": 1512,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1511
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1513",
+          "type": "quest",
+          "entity_id": 1513,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1512
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1516",
+          "type": "quest",
+          "entity_id": 1516,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1506
+            },
+            {
+              "type": "quest",
+              "entity_id": 1513
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1515",
+          "type": "quest",
+          "entity_id": 1515,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1560",
+          "type": "quest",
+          "entity_id": 1560,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1559
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1489",
+          "type": "quest",
+          "entity_id": 1489,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1484
+          ]
+        },
+        {
+          "id": "dofus_nebuleux_quest_1494",
+          "type": "quest",
+          "entity_id": 1494,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1493
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1550",
+          "type": "quest",
+          "entity_id": 1550,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1549
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1551",
+          "type": "quest",
+          "entity_id": 1551,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1550
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1552",
+          "type": "quest",
+          "entity_id": 1552,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1551
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1495",
+          "type": "quest",
+          "entity_id": 1495,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1494
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1496",
+          "type": "quest",
+          "entity_id": 1496,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1495
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_nebuleux_quest_1614",
+          "type": "quest",
+          "entity_id": 1614,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1487
+            },
+            {
+              "type": "quest",
+              "entity_id": 1488
+            },
+            {
+              "type": "quest",
+              "entity_id": 1489
+            },
+            {
+              "type": "quest",
+              "entity_id": 1490
+            },
+            {
+              "type": "quest",
+              "entity_id": 1491
+            },
+            {
+              "type": "quest",
+              "entity_id": 1492
+            },
+            {
+              "type": "quest",
+              "entity_id": 1493
+            },
+            {
+              "type": "quest",
+              "entity_id": 1494
+            },
+            {
+              "type": "quest",
+              "entity_id": 1495
+            },
+            {
+              "type": "quest",
+              "entity_id": 1496
+            },
+            {
+              "type": "quest",
+              "entity_id": 1497
+            },
+            {
+              "type": "quest",
+              "entity_id": 1498
+            },
+            {
+              "type": "quest",
+              "entity_id": 1499
+            },
+            {
+              "type": "quest",
+              "entity_id": 1500
+            },
+            {
+              "type": "quest",
+              "entity_id": 1501
+            },
+            {
+              "type": "quest",
+              "entity_id": 1502
+            },
+            {
+              "type": "quest",
+              "entity_id": 1503
+            },
+            {
+              "type": "quest",
+              "entity_id": 1504
+            },
+            {
+              "type": "quest",
+              "entity_id": 1505
+            },
+            {
+              "type": "quest",
+              "entity_id": 1506
+            },
+            {
+              "type": "quest",
+              "entity_id": 1507
+            },
+            {
+              "type": "quest",
+              "entity_id": 1508
+            },
+            {
+              "type": "quest",
+              "entity_id": 1509
+            },
+            {
+              "type": "quest",
+              "entity_id": 1510
+            },
+            {
+              "type": "quest",
+              "entity_id": 1511
+            },
+            {
+              "type": "quest",
+              "entity_id": 1512
+            },
+            {
+              "type": "quest",
+              "entity_id": 1513
+            },
+            {
+              "type": "quest",
+              "entity_id": 1514
+            },
+            {
+              "type": "quest",
+              "entity_id": 1515
+            },
+            {
+              "type": "quest",
+              "entity_id": 1516
+            },
+            {
+              "type": "quest",
+              "entity_id": 1533
+            },
+            {
+              "type": "quest",
+              "entity_id": 1534
+            },
+            {
+              "type": "quest",
+              "entity_id": 1535
+            },
+            {
+              "type": "quest",
+              "entity_id": 1536
+            },
+            {
+              "type": "quest",
+              "entity_id": 1537
+            },
+            {
+              "type": "quest",
+              "entity_id": 1538
+            },
+            {
+              "type": "quest",
+              "entity_id": 1539
+            },
+            {
+              "type": "quest",
+              "entity_id": 1540
+            },
+            {
+              "type": "quest",
+              "entity_id": 1541
+            },
+            {
+              "type": "quest",
+              "entity_id": 1542
+            },
+            {
+              "type": "quest",
+              "entity_id": 1543
+            },
+            {
+              "type": "quest",
+              "entity_id": 1544
+            },
+            {
+              "type": "quest",
+              "entity_id": 1545
+            },
+            {
+              "type": "quest",
+              "entity_id": 1546
+            },
+            {
+              "type": "quest",
+              "entity_id": 1547
+            },
+            {
+              "type": "quest",
+              "entity_id": 1548
+            },
+            {
+              "type": "quest",
+              "entity_id": 1549
+            },
+            {
+              "type": "quest",
+              "entity_id": 1550
+            },
+            {
+              "type": "quest",
+              "entity_id": 1551
+            },
+            {
+              "type": "quest",
+              "entity_id": 1552
+            },
+            {
+              "type": "quest",
+              "entity_id": 1553
+            },
+            {
+              "type": "quest",
+              "entity_id": 1554
+            },
+            {
+              "type": "quest",
+              "entity_id": 1555
+            },
+            {
+              "type": "quest",
+              "entity_id": 1556
+            },
+            {
+              "type": "quest",
+              "entity_id": 1557
+            },
+            {
+              "type": "quest",
+              "entity_id": 1558
+            },
+            {
+              "type": "quest",
+              "entity_id": 1559
+            },
+            {
+              "type": "quest",
+              "entity_id": 1560
+            },
+            {
+              "type": "quest",
+              "entity_id": 1561
+            },
+            {
+              "type": "quest",
+              "entity_id": 1562
+            },
+            {
+              "type": "quest",
+              "entity_id": 1575
+            },
+            {
+              "type": "quest",
+              "entity_id": 1577
+            },
+            {
+              "type": "quest",
+              "entity_id": 1579
+            },
+            {
+              "type": "quest",
+              "entity_id": 1580
+            },
+            {
+              "type": "quest",
+              "entity_id": 1581
+            },
+            {
+              "type": "quest",
+              "entity_id": 1582
+            },
+            {
+              "type": "quest",
+              "entity_id": 1583
+            },
+            {
+              "type": "quest",
+              "entity_id": 1584
+            },
+            {
+              "type": "quest",
+              "entity_id": 1585
+            },
+            {
+              "type": "quest",
+              "entity_id": 1586
+            },
+            {
+              "type": "quest",
+              "entity_id": 1588
+            },
+            {
+              "type": "quest",
+              "entity_id": 1589
+            },
+            {
+              "type": "quest",
+              "entity_id": 1590
+            },
+            {
+              "type": "quest",
+              "entity_id": 1591
+            },
+            {
+              "type": "quest",
+              "entity_id": 1592
+            },
+            {
+              "type": "quest",
+              "entity_id": 1593
+            },
+            {
+              "type": "quest",
+              "entity_id": 1594
+            },
+            {
+              "type": "quest",
+              "entity_id": 1595
+            },
+            {
+              "type": "quest",
+              "entity_id": 1596
+            },
+            {
+              "type": "quest",
+              "entity_id": 1597
+            },
+            {
+              "type": "quest",
+              "entity_id": 1598
+            },
+            {
+              "type": "quest",
+              "entity_id": 1599
+            },
+            {
+              "type": "quest",
+              "entity_id": 1600
+            },
+            {
+              "type": "quest",
+              "entity_id": 1601
+            },
+            {
+              "type": "quest",
+              "entity_id": 1602
+            },
+            {
+              "type": "quest",
+              "entity_id": 1613
+            }
+          ],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

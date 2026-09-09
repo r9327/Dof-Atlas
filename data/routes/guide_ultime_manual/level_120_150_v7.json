@@ -1,0 +1,50 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_level_120_150_v7",
+  "title": "Guide Ultime — Niveau 120 à 150 + Carrières de glace complètes",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v6.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v6",
+  "stage_count": 34,
+  "optimization_note": "Répare le fil Carrières de glace manquant après La fonte des glaces: L'ombre et la glace puis Lumière sur l'ombre sont fermées dans la même campagne Lac Gelé. Cela évite de découvrir au niveau200 que Le givre des révélations est bloqué. Aucun donjon n'est ajouté.",
+  "sources":[
+    "https://www.dofuspourlesnoobs.com/lombre-et-la-glace.html",
+    "https://www.dofuspourlesnoobs.com/lumiegravere-sur-lombre.html",
+    "https://www.dofuspourlesnoobs.com/les-carriegraveres-de-glace.html"
+  ],
+  "insertions":[
+    {
+      "after":"L120-20F",
+      "stage":{
+        "id":"L120-20G",
+        "title":"Lac Gelé — L'ombre et la glace + Lumière sur l'ombre avant de quitter la zone",
+        "level":"140-150 / La fonte des glaces terminée",
+        "duration_min":210,
+        "quests":["L'ombre et la glace","Lumière sur l'ombre"],
+        "successes":["Les carrières de glace"],
+        "preparation":[
+          {"policy":"Préparer/acheter les ressources de la combinaison thermolactée en même temps que les achats Hôtel/Fonte. Ne pas refaire un tour HDV au niveau200."},
+          {"note":"Les ressources périssables/versions artificielles demandées par Mac Givré sont échangées auprès des PNJ indiqués par le walkthrough local; ne pas remplacer leurs variantes par un item de nom proche."},
+          {"requirement":"Groupe jusqu'à4 pour le Craqueleur de Glace de Lumière sur l'ombre si nécessaire","blocking":false}
+        ],
+        "take":[
+          "Après La fonte des glaces, poursuivre la chaîne Carrières de glace avec L'ombre et la glace avant de quitter le Lac Gelé.",
+          "Prendre Lumière sur l'ombre immédiatement auprès de Waldos à la fin de L'ombre et la glace."
+        ],
+        "route":[
+          {"area":"Bourgade/Lac Gelé","do":"Rassembler/échanger les composants de la combinaison thermolactée en utilisant les mêmes PNJ que les étapes précédentes; privilégier HDV pour les ressources échangeables si cela évite un farm sans autre objectif."},
+          {"area":"Lac Gelé","do":"Terminer L'ombre et la glace puis enchaîner Lumière sur l'ombre sans quitter la zone. Descendre avec Waldos, vaincre le Craqueleur de Glace avec la mécanique de vulnérabilité de la combinaison, puis rendre à Waldos/Maire Cantile."}
+        ],
+        "progress_also":[
+          "Si Qu'est-ce qu'on a fait des tuyaux ? ou Lâcher les gaz sont déjà disponibles au runtime et partagent exactement cette boucle, les avancer; ne pas les inventer comme prérequis du DDG.",
+          "Conserver la combinaison/accès utiles pour le futur Le givre des révélations et les contenus légendaires."
+        ],
+        "before_leaving":["L'ombre et la glace terminée","Lumière sur l'ombre terminée"],
+        "hard_exit":["Le givre des révélations ne sera plus bloqué par Lumière sur l'ombre","Aucun donjon supplémentaire"],
+        "pause":["POINT DE PAUSE SÛR — Carrières de glace prêtes DDG200"],
+        "next":"L120-21 — Mansot Royal PASS1"
+      }
+    }
+  ],
+  "stage_patches":{}
+}

@@ -1,0 +1,87 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_level_120_150_v5",
+  "title": "Guide Ultime — Niveau 120 à 150 + L'essentiel préparé avant Mansot",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v4.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v4",
+  "stage_count": 32,
+  "optimization_note": "Répare les prérequis que L120-21 supposait sans les router. Bricole Girl puis Promenons-nous dans les bois sont fermées avant le premier Mansot; Pêche en eaux gelées et Les chasseurs sont amenées au boss, afin que le même Mansot serve Les joyeux de la couronne + ces deux fils. Les quêtes Mel sont ensuite fermées et L'essentiel est dans Lac Gelé est rendu sans second Mansot.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/lessentiel-est-dans-le-lac-geleacute.html",
+    "https://www.dofuspourlesnoobs.com/bricole-girl.html",
+    "https://www.dofuspourlesnoobs.com/promenons-nous-dans-les-bois.html",
+    "https://www.dofuspourlesnoobs.com/pecircche-en-eaux-geleacutees.html",
+    "https://www.dofuspourlesnoobs.com/les-chasseurs.html"
+  ],
+  "insertions": [
+    {
+      "before": "L120-21",
+      "stage": {
+        "id": "L120-20F",
+        "title": "Frigost — préparer L'essentiel + Les chasseurs AVANT le premier Mansot",
+        "level": "130-150 / Bienvenue à Frigost terminé",
+        "duration_min": 190,
+        "entry": "Royalmouth déjà vaincu; Bienvenue à Frigost fermé ou tous ses quatre fils validés.",
+        "quests": [
+          "Bricole Girl",
+          "Promenons-nous dans les bois",
+          "Pêche en eaux gelées",
+          "La pêche à Mel",
+          "Mel odieuse",
+          "Mel au drame",
+          "Il est frais mon pichon",
+          "L'essentiel est dans Lac Gelé",
+          "Les chasseurs"
+        ],
+        "preparation": [
+          {"name":"Bois de Tremble","quantity":35,"for":"Pêche en eaux gelées"},
+          {"name":"Laine de Boufmouth","quantity":30,"for":"Pêche en eaux gelées"},
+          {"name":"Laine de Boufmouth légendaire","quantity":15,"for":"Pêche en eaux gelées"},
+          {"name":"Laine du Royalmouth","quantity":1,"for":"Pêche en eaux gelées","policy":"Utiliser celle déjà gardée du Royalmouth si disponible; ne pas refaire le boss."},
+          {"name":"Défense du Sanglacier","quantity":5,"for":"Pêche en eaux gelées"},
+          {"name":"Dent de Smilomouth","quantity":5,"for":"Pêche en eaux gelées"},
+          {"note":"Prévoir des pods avant les ressources pêche. Déposer en banque tout excédent Frigost à conserver; ne pas jeter les ressources encore utilisées par les quêtes de l'île."}
+        ],
+        "take": [
+          "Faire Bricole Girl avant Pêche en eaux gelées: elle bloque une étape de la quête du lac.",
+          "Enchaîner Promenons-nous dans les bois, puis prendre Les chasseurs dès son déblocage.",
+          "Prendre L'essentiel est dans Lac Gelé auprès de la Maire seulement lorsque Bienvenue à Frigost est réellement terminé."
+        ],
+        "route": [
+          {"area":"Bourgade / Champs de glace","do":"Fermer Bricole Girl puis Promenons-nous dans les bois. Les deux quêtes sont de la même chaîne des rescapés; aucun donjon n'est ajouté ici."},
+          {"area":"Lac gelé","do":"Lancer Pêche en eaux gelées et fournir les ressources déjà préparées. L'avancer jusqu'à l'objectif Alliance de Damar sur Mansot Royal puis STOP avant le donjon."},
+          {"area":"Bourgade / Lac","do":"Prendre Les chasseurs après Promenons-nous et l'avancer jusqu'à son objectif Mansot Royal. Avancer les autres quêtes de L'essentiel qui sont faisables avant le boss; ne pas programmer un passage Mansot séparé pour elles."}
+        ],
+        "progress_also": [
+          "Les ressources Boufmouth/Mansot nécessaires à d'autres fils Frigost restent en banque tant que leur usage futur n'est pas fermé.",
+          "Le premier Mansot de L120-21 est désormais le point de convergence: Les joyeux de la couronne + Pêche en eaux gelées + Les chasseurs."
+        ],
+        "before_leaving": [
+          "Bricole Girl terminée.",
+          "Promenons-nous dans les bois terminée.",
+          "Pêche en eaux gelées au verrou Mansot.",
+          "Les chasseurs au verrou Mansot."
+        ],
+        "hard_exit": ["Aucun Mansot supplémentaire créé par L'essentiel/Les chasseurs"],
+        "pause": ["POINT DE PAUSE SÛR — trois fils prêts pour le premier Mansot"],
+        "next": "L120-21 — Mansot PASS1 mutualisé"
+      }
+    }
+  ],
+  "stage_patches": {
+    "L120-21": {
+      "append": {
+        "route": [
+          {"pos":"Lac gelé / Bourgade après Mansot","do":"Après avoir récupéré l'Alliance de Damar et validé Les chasseurs, terminer Pêche en eaux gelées puis enchaîner/rendre La pêche à Mel, Mel odieuse, Mel au drame et Il est frais mon pichon selon leur état déjà préparé. Rendre enfin L'essentiel est dans Lac Gelé à la Maire Cantille."}
+        ],
+        "hard_exit": [
+          "Pêche en eaux gelées terminée sans second Mansot.",
+          "Les chasseurs terminée sans second Mansot.",
+          "L'essentiel est dans Lac Gelé terminé ou unique reliquat hors donjon explicitement visible.",
+          "Les rescapés de Frigost désormais déblocable pour la tranche170."
+        ]
+      }
+    }
+  }
+}

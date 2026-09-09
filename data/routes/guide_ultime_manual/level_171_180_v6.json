@@ -1,0 +1,52 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_level_171_180_v6",
+  "title": "Guide Ultime — Niveau 171 à 180 + Monstre aux plantes absorbé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v5.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v5",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v11.json",
+    "bonta_1_80_v9.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v12.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Ajoute Monstre aux plantes au succès Objets trouvés. La Clef végétale pétrifiée est recherchée pendant les40 Graines de Ricin + deux passages Korriandre déjà causaux. Le combat Kordis est fait dès le premier drop; cleanup1% seulement après tous ces combats utiles.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/objets-trouveacutes.html",
+    "https://www.dofuspourlesnoobs.com/monstre-aux-plantes.html"
+  ],
+  "stage_patches": {
+    "L180-04": {
+      "append": {
+        "quests": ["Monstre aux plantes"],
+        "progress_also": [
+          "OBJET TROUVÉ — Forêt pétrifiée: pendant Les graines de la discorde et les autres combats forêt, surveiller la Clef végétale pétrifiée (drop rare). Dès qu'elle tombe, double-cliquer puis garder le combat Kordis pour cette même campagne; ne pas farmer spécifiquement la Clef avant Korriandre."
+        ],
+        "hard_exit": ["Clef végétale surveillée pendant tous les combats Forêt naturels; aucun cleanup avant les deux Korriandre."]
+      }
+    },
+    "L180-05": {
+      "append": {
+        "quests": ["Monstre aux plantes"],
+        "route": [
+          {"pos":"Antre du Korriandre — PASS1","do":"Le Korriandre et les monstres de la Forêt pétrifiée peuvent fournir la Clef végétale. Si elle tombe pendant ce passage, double-cliquer après le combat sûr puis planifier Kordis avant de quitter la grande campagne Forêt; ne pas interrompre les fils boss en cours."}
+        ],
+        "hard_exit": ["Première tentative donjon Clef végétale consommée sans reset dédié."]
+      }
+    },
+    "L180-07": {
+      "append": {
+        "quests": ["Monstre aux plantes"],
+        "route": [
+          {"pos":"Antre du Korriandre — PASS2","do":"Deuxième tentative naturelle de Clef végétale pendant le rerun déjà causal. Si la clef n'est toujours pas tombée après les deux Korriandre +40 Ricin, utiliser le farm Globes/Forêt déjà nécessaire avant de créer un cleanup dédié."},
+          {"area":"Forêt pétrifiée — Kordis","do":"Dès obtention de la Clef végétale, double-cliquer puis faire le combat Kordis avec un groupe si utile. Terminer Monstre aux plantes réellement; ne pas conserver la clef indéfiniment en banque."}
+        ],
+        "hard_exit": ["Monstre aux plantes terminée ou Clef encore manquante seulement après tous les combats Forêt/Korriandre/Globes, alors cleanup ciblé autorisé."]
+      }
+    }
+  },
+  "insertions": []
+}

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "id": "dolmanax",
+  "title": "Dolmanax",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dolmanax.",
+  "recommended_level_min": 20,
+  "recommended_level_max": 100,
+  "reward_item_id": 13344,
+  "illustration_item_id": 13344,
+  "image": null,
+  "linked_achievement_ids": [
+    568
+  ],
+  "completeness_status": "complete",
+  "verified_steps": 1,
+  "total_steps": 1,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "Parcours partiel : peu de quêtes reliées directement au succès Doduda.",
+    "Profil DPLN: parcours obligatoire résolu dans le catalogue local."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [],
+  "sections": [
+    {
+      "id": "dolmanax_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        568
+      ],
+      "steps": [
+        {
+          "id": "dolmanax_quest_954",
+          "type": "quest",
+          "entity_id": 954,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

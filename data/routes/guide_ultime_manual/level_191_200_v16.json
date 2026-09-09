@@ -1,0 +1,101 @@
+{
+  "schema_version": 16,
+  "route_id": "guide_ultime_manual_level_191_200_v16",
+  "title": "Guide Ultime — 191-200 + Wukin/Wukang causal et Pandawushu fermé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v15.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v15",
+  "stage_count": 60,
+  "depends_on": [
+    "level_181_190_v10.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Corrige P200-11: Les secrets du Pandawushu est explicitement fermé avec ses vrais gates de caractéristiques/Sculpteur. Tant de mots et si peu de temps n'est plus mélangée arbitrairement aux cinq autres quêtes Deux dragons: elle attend Deux souffles réellement terminé ainsi que La voix de la soif, Maudite disparition, Où est mon samouraï ? et Jusqu'à leur dernier soupir. Puisque Deux souffles utilise déjà Mémoire d'Orukam + Souvenir d'Imagiro avant que Tant puisse être lancée, les nouveaux passages demandés par Tant sont causaux et sont nommés comme tels, jamais présentés comme évitables.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/quetes-de-pandala.html",
+    "https://www.dofuspourlesnoobs.com/les-secrets-du-pandawushu.html",
+    "https://www.dofuspourlesnoobs.com/un-reve-en-clair-obscur.html",
+    "https://www.dofuspourlesnoobs.com/deux-souffles-une-inspiration.html",
+    "https://www.dofuspourlesnoobs.com/tant-de-mots-et-si-peu-de-temps.html",
+    "https://www.dofuspourlesnoobs.com/deux-dragons-entrent-dans-un-bar.html"
+  ],
+  "stage_patches": {
+    "P200-11": {
+      "replace": {
+        "title": "Pandala200 — Pandawushu + Deux dragons + Tacheté dans l'ordre causal",
+        "level": "200+ / Dorigami + Domakuro / prérequis Grobe-Pandala fermés",
+        "duration_min": 1800,
+        "quests": [
+          "Shodanwa : Perfection martiale",
+          "Nidanwa : Harmonie intérieure",
+          "Sandanwa : Pluralité martiale",
+          "Yondanwa : Maîtrise absolue",
+          "Godanwa : Transcendance",
+          "Main dans la main",
+          "De l'encre spectaculaire",
+          "L'effet dragon",
+          "Pour que son coeur batte comme des ailes",
+          "Des aliments extraordinaires pour un chacha extraordinaire",
+          "L'épopée du moine pèlerin",
+          "Deux souffles, une inspiration",
+          "Tant de mots et si peu de temps",
+          "En ce jardin qui nous unit"
+        ],
+        "successes": ["Les secrets du Pandawushu", "Deux dragons entrent dans un bar...", "Un rêve en clair-obscur"],
+        "preparation": [
+          {"requirement":"Bricoleur niveau30 personnel","for":"De l'encre spectaculaire","blocking":true,"policy":"Craft coopératif impossible."},
+          {"requirement":"Paysan niveau20 personnel","for":"Deux souffles, une inspiration","blocking":true,"policy":"Craft coopératif impossible; le monter avant d'entrer dans la longue macro si le métier n'existe pas."},
+          {"requirement":"Sculpteur niveau30 personnel","for":"Sandanwa : Pluralité martiale","blocking":true,"policy":"Craft coopératif impossible."},
+          {"requirement":"800 Agilité disponibles via équipement/caractéristiques","for":"Les secrets du Pandawushu","blocking":true},
+          {"requirement":"800 Intelligence disponibles via équipement/caractéristiques","for":"Les secrets du Pandawushu","blocking":true},
+          {"requirement":"700 Force disponibles via équipement/caractéristiques","for":"Les secrets du Pandawushu","blocking":true},
+          {"requirement":"Pêcheur OU Mineur OU Alchimiste niveau200 seulement si l'option de récolte correspondante de Tant de mots est choisie","blocking":false,"policy":"Non obligatoire selon DPLN; ne jamais monter un métier200 supplémentaire juste pour Tant."},
+          {"name":"Riz","quantity":102},{"name":"Bois de Bambou Sacré","quantity":20},{"name":"Pwimen","quantity":10},
+          {"name":"Artefact Pandawushu Bois","quantity":10},{"name":"Artefact Pandawushu Feu","quantity":10},{"name":"Artefact Pandawushu Eau","quantity":10},{"name":"Artefact Pandawushu Vent","quantity":10},{"name":"Artefact Pandawushu Roc","quantity":10},
+          {"name":"Pichon d'encre","quantity":15},{"name":"Fer","quantity":12},{"name":"Ginseng","quantity":12},{"name":"Épice","quantity":10},{"name":"Pluie de Pandala","quantity":5},{"name":"Cristal liquide","quantity":5},{"name":"Tulipe en papier","quantity":5},{"name":"Cristal pliable","quantity":5},{"name":"Etain","quantity":5},{"name":"Papier Charbon","quantity":5},{"name":"Pierre de Sélénite","quantity":4},{"name":"Étoffe de Samouraï fantôme","quantity":4},{"name":"Planche de Toilette","quantity":2},{"name":"Malt","quantity":2},
+          {"name":"Pizwa","quantity":2},{"name":"Bière Tsingtawo","quantity":5},{"name":"Kirim","quantity":1},{"name":"Dernière pour la route","quantity":1},{"name":"Pétale d'encre","quantity":1},{"name":"Pétale de Papier","quantity":1},{"name":"Limo d'Grobe","quantity":1},{"name":"Pandneken","quantity":1},{"name":"Pandazahi","quantity":1},{"name":"Umeshushu","quantity":1},{"name":"Gnôle de Grobe","quantity":1},{"name":"Bière forte légère","quantity":1},
+          {"kamas":4444,"for":"Tant de mots et si peu de temps"},
+          {"note":"Préparer des équipements dédiés aux seuils800 Agi /800 Int /700 Force avant la session Pandawushu afin de ne pas interrompre les grades par des allers-retours HDV."}
+        ],
+        "prerequisites": [
+          "Dorigami dans l'inventaire.",
+          "Domakuro dans l'inventaire.",
+          "La voix de la soif terminée avant achat/utilisation du Kirim de Tant de mots.",
+          "Maudite disparition terminée avant Tant de mots.",
+          "Où est mon samouraï ? terminée avant l'étape correspondante de Tant de mots.",
+          "Jusqu'à leur dernier soupir terminée avant l'étape correspondante de Tant de mots.",
+          "Dites-le avec des fleurs déjà terminée: évite le combat optionnel de Deux souffles.",
+          "Main dans la main avancée jusqu'à la chope métallique avant ouverture de la Taverne interdite."
+        ],
+        "route": [
+          {"area":"Pandala / dojo Pandawushu","do":"Avant la longue campagne Wukin/Wukang, terminer tout grade Pandawushu encore manquant dans l'ordre Shodanwa→Nidanwa→Sandanwa→Yondanwa→Godanwa. Utiliser les équipements préparés pour les seuils800 Agi /800 Int /700 Force et Sculpteur30 lorsque le grade le demande. Si les cinq sont déjà terminés grâce aux réinjections temporelles antérieures, ne refaire aucun grade."},
+          {"area":"Aerdala / Taverne interdite","do":"Avancer Main dans la main jusqu'à la chope métallique. Prendre alors De l'encre spectaculaire, L'effet dragon, Pour que son coeur batte comme des ailes, Des aliments extraordinaires pour un chacha extraordinaire et L'épopée du moine pèlerin. Tant de mots reste VOLONTAIREMENT fermé à ce stade."},
+          {"area":"Royaumes d'encre et de papier","do":"Fermer les cinq quêtes Deux dragons déjà disponibles en groupant leurs drops10%/6%, cartes et combats. De l'encre utilise Bricoleur30 personnel; préparer tous les crafts avant déplacement."},
+          {"area":"Main dans la main → Deux souffles","do":"Avancer Main jusqu'au moment où la Déesse invite à retrouver les deux souffles, puis prendre Deux souffles, une inspiration. Faire ses deux branches, les crafts Paysan20, Mémoire d'Orukam + Souvenir d'Imagiro et fermer Deux souffles réellement avant de considérer Tant de mots disponible."},
+          {"area":"gate Tant de mots","do":"Vérifier maintenant Deux souffles terminé + La voix de la soif + Maudite disparition + Où est mon samouraï ? + Jusqu'à leur dernier soupir. Acheter/avoir Kirim et se transformer en Léopardo au bon moment; si un de ces prérequis manque, afficher précisément ce reliquat au lieu d'entrer dans le Royaume au hasard."},
+          {"area":"Mémoire d'Orukam + Souvenir d'Imagiro — Tant de mots","do":"RERUNS CAUSAUX: Tant de mots ne peut exister qu'après Deux souffles terminé, alors que Deux souffles exige déjà ces deux donjons. Refaire seulement les passages nécessaires aux drops8%/12% de Tant de mots et mutualiser tous succès/drops encore ouverts. Ne jamais prétendre que ces deux reruns pouvaient être activés avant le premier passage."},
+          {"area":"Royaumes Wukin/Wukang","do":"Fermer le reste de Tant de mots avec les Haïkus/drops actuels sans boucle d'attente; le métier200 est une option, pas un blocage obligatoire. Fermer alors Deux dragons entrent dans un bar... réellement."},
+          {"area":"réunion des dragons","do":"Terminer Main dans la main puis En ce jardin qui nous unit avec Dorigami + Domakuro. Récupérer le Dofus Tacheté uniquement lorsque Un rêve en clair-obscur est réellement validé par le runtime."}
+        ],
+        "before_leaving": [
+          "Les secrets du Pandawushu5/5 réellement terminé.",
+          "Deux dragons entrent dans un bar6/6 réellement terminé.",
+          "Main dans la main + Deux souffles + En ce jardin terminés.",
+          "Dofus Tacheté réellement obtenu.",
+          "Deux reruns Wukin/Wukang de Tant explicitement causaux, aucun autre rerun gratuit ajouté."
+        ],
+        "hard_exit": [
+          "Tant de mots jamais lancé avant Deux souffles terminé.",
+          "Aucun métier200 supplémentaire imposé pour Tant.",
+          "Aucun grade Pandawushu considéré validé sur simple seuil de caractéristique.",
+          "Aucun faux Tacheté."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — Tacheté + Pandawushu fermés"]
+      }
+    }
+  },
+  "insertions": []
+}

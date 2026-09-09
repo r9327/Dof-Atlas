@@ -1,0 +1,23 @@
+{
+  "schema_version": 13,
+  "route_id": "guide_ultime_manual_level_120_150_v13",
+  "title": "Guide Ultime — Niveau 120 à 150 + quêtes temporelles Frigost obligatoires",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v12.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v12",
+  "stage_count": 37,
+  "optimization_note": "Groméo et Ginette et Manque de re-peau sont des quêtes obligatoires du succès Problèmes et solutions. Seules leurs fenêtres sont conditionnelles. Elles sont donc présentes comme vraies quêtes de couverture QuestProvider, tandis que les temporal_hooks continuent de décider quand les actions sont affichées/exécutées.",
+  "stage_patches": {
+    "L120-00": {
+      "append": {
+        "quests": ["Manque de re-peau"]
+      }
+    },
+    "L120-20F": {
+      "append": {
+        "quests": ["Groméo et Ginette"]
+      }
+    }
+  },
+  "insertions": []
+}

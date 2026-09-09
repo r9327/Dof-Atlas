@@ -1,0 +1,134 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_bonta_1_60_v5",
+  "title": "Guide Ultime — Alignement Bonta 1 à 60 optimisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_50_v4.json",
+  "supersedes": "guide_ultime_manual_bonta_1_50_v4",
+  "quest_range": [1, 60],
+  "macro_stage_count": 25,
+  "order_route_file_rank60": "bonta_order_rank60_v1.json",
+  "routing_policy_51_60": [
+    "Rangs51-54 sont traités en une campagne Bonta/Amakna/Cania avec les ressources préparées avant le premier départ.",
+    "Rang55 La tactique des gens d'armes est volontairement différé tant que Au nom de l'Art et La voie du guerrier ne demandent pas eux aussi Tanukouï San; le premier passage Atelier doit servir les trois fils + Ocre.",
+    "Rang56 impose quatre personnages pour la mécanique NARA; annoncer ce gate social avant la mine en [1,32].",
+    "Rang57 impose attitude Fleurs + Bûcheron150 + Alchimiste150 + Sadida56, et un Bricoleur au niveau réellement exigé par le craft local; aucun de ces gates ne doit apparaître au dernier moment.",
+    "Rangs58-60 sont enchaînés après les gates sociaux afin de fermer Lieutenant Colon et débloquer exactement la troisième quête du même Ordre au rang60.",
+    "Le choix d'Ordre est immuable: rank60 utilise bonta_order_rank60_v1.json avec la même option qu'aux rangs20 et40."
+  ],
+  "preparation_51_60": [
+    {"name":"Bois d'Érable","quantity":8,"for_rank":52},
+    {"name":"Bois de Frêne","quantity":12,"for_rank":52},
+    {"name":"Kriptonite","quantity":3,"for_ranks":[52,54,56]},
+    {"name":"Poil d'Arakne Malade","quantity":4,"for_rank":53},
+    {"name":"Défense du Sanglier","quantity":2,"for_rank":53},
+    {"name":"Bière du Chabrulé","quantity":1,"for_rank":53},
+    {"name":"Aile de Raie","quantity":1,"for_rank":53},
+    {"name":"Philtre de Dragofesse","quantity":1,"for_rank":53},
+    {"requirement":"Slip équipable","for_rank":53},
+    {"name":"Bois de Noisetier","quantity":26,"for_ranks":[54,56]},
+    {"name":"Blague de Soufre","quantity":1,"for_rank":54},
+    {"name":"Étoffe Zoth","quantity":2,"for_rank":54},
+    {"requirement":"4 personnages disponibles","for_ranks":[54,56],"blocking":true},
+    {"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Tanukouï San Ocre"},
+    {"name":"Planche de Gravure","quantity":5,"for_rank":57},
+    {"name":"Kobalite","quantity":3,"for_rank":57},
+    {"name":"Cocon de Ver à Soie","quantity":1,"for_rank":57},
+    {"name":"Sépale de Nerbe","quantity":5,"for_rank":57},
+    {"requirement":"Attitude Fleurs","for_rank":57,"blocking":true,"note":"normalement obtenue via T'as les boules; vérifier au runtime"},
+    {"requirement":"Bûcheron niveau150+ ou allié","for_rank":57,"blocking":true},
+    {"requirement":"Alchimiste niveau150+ ou allié","for_rank":57,"blocking":true},
+    {"requirement":"Sadida niveau56+ ou allié","for_rank":57,"blocking":true},
+    {"name":"Aile de Scarafeuille Blanc","quantity":2,"for_rank":59},
+    {"name":"Aile de Scarafeuille Rouge","quantity":2,"for_rank":59},
+    {"name":"Poudre de Perlinpainpain","quantity":1,"for_rank":59},
+    {"name":"Patte d'Arakne Majeure","quantity":1,"for_rank":59},
+    {"name":"Ambre","quantity":1,"for_rank":59},
+    {"requirement":"Sadida pour ouvrir la prison végétale du rang59","for_rank":59,"blocking":true},
+    {"name":"kamas","quantity":500,"for_rank":60}
+  ],
+  "insertions": [
+    {
+      "after":"BNT-21",
+      "stage": {
+        "id":"BNT-22",
+        "title":"Bonta 51-54 — baie, forgerons et installation de Nara",
+        "level_gate":"rangs réellement disponibles; DPLN recommande 131-134",
+        "duration_min":190,
+        "ranks":[51,52,53,54],
+        "quests":["Le port salue","L'équipe ment","Une partie de cache-cache","Pour vivre heureux"],
+        "route":[
+          {"pos":"[-32,-57] -> [-29,-12] -> [-34,-58] -> [-32,-57]","do":"Rang51: prendre Le port salue, faire le combat solo de la Baie de Cania avec la patrouille, informer Jerhyn puis Amayiro. Enchaîner immédiatement L'équipe ment."},
+          {"pos":"[-30,-56] -> [7,-16] Astrub -> [-36,-60] -> [-32,-57]","do":"Rang52: identifier Latem Sa, lui donner 8 Érables + 12 Frênes + 1 Kriptonite, récupérer la Hache Léenne, confronter Danathor puis rendre à Amayiro."},
+          {"pos":"Bonta -> [-1,2] -> [-2,-3] -> [6,0] -> [3,29] -> [10,11]","do":"Rang53: suivre les quatre pistes de forgerons jusqu'à Nara. Préparer les ressources AVANT d'entrer dans sa grotte afin d'éviter de repayer l'accès; équiper le Slip uniquement au dialogue qui le demande et suivre les réponses du walkthrough local."},
+          {"pos":"[10,11] -> trois lieux [-2,-5], [1,0], [1,32] -> ressources Cania/Morh'Kitu -> [1,32] -> Bonta","do":"Rang54: visiter les trois ateliers possibles. Pour la mine Porcos, venir directement avec quatre personnes. Profiter de la boucle Cirque de Cania pour obtenir les 5 Morceaux de Truche et, si les quêtes de succès Truche sont déjà disponibles, les lancer/avancer sans entrer encore à la Volière. Donner toutes les ressources à Nara, récupérer le Katana et rendre à Amayiro."}
+        ],
+        "hard_exit":["Bonta54 terminé","Nara installé","La tactique des gens d'armes disponible mais volontairement différée jusqu'à fusion Tanukouï"],
+        "pause":["Alignement54","Prochaine étape Bonta55 = Atelier Tanukouï synchronisé"]
+      }
+    },
+    {
+      "after":"BNT-22",
+      "stage": {
+        "id":"BNT-23",
+        "title":"Tanukouï San unique — Bonta55 + Au nom de l'Art + La voie du guerrier + Ocre",
+        "level_gate":"La tactique des gens d'armes disponible ET Au nom de l'Art actif ET La voie du guerrier pointe Tanukouï",
+        "duration_min":90,
+        "ranks":[55],
+        "quests":["La tactique des gens d'armes","Au nom de l'Art","La voie du guerrier"],
+        "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Tanukouï San Ocre"}],
+        "route":[
+          {"pos":"[-32,-57] -> [-35,-58]","do":"Prendre La tactique des gens d'armes, gagner le combat William Lenglad puis avancer la recherche du tacticien jusqu'à devoir entrer à l'Atelier du Tanukouï San."},
+          {"pos":"Pandala","do":"Vérifier Au nom de l'Art au bon objectif Tanukouï et La voie du guerrier au deuxième boss après Skeunk. Si l'un des deux n'est pas prêt, NE PAS entrer: terminer ses objectifs hors donjon d'abord."},
+          {"pos":"[26,-24] Atelier du Tanukouï San","do":"Entrer avec les trois quêtes. Dans La tactique, effectuer l'objectif de salle4 et libérer Dréna; contrairement à la quête Bonta seule, continuer jusqu'au boss parce que les deux autres fils l'exigent. Vaincre Tanukouï San, capturer puissance150 pour l'Ocre, faire les succès compatibles et tous les dialogues/objets post-boss avant sortie."},
+          {"pos":"Tour des ordres -> Amayiro / Pandala / Maître des clefs","do":"Rendre séparément les trois fils selon leurs walkthroughs locaux. La voie du guerrier doit alors pointer Fabrique de foux d'artifice; Au nom de l'Art ouvre la suite Domakuro; Bonta56 devient disponible."}
+        ],
+        "hard_exit":["Un seul Atelier Tanukouï","Bonta55 terminé","Au nom de l'Art terminé ou suite explicitement active","La voie du guerrier pointe Founoroshi","Tanukouï San capturé Ocre"],
+        "pause":["Tanukouï fermé","Bonta56 disponible","Founoroshi futur"]
+      }
+    },
+    {
+      "after":"BNT-23",
+      "stage": {
+        "id":"BNT-24",
+        "title":"Bonta 56-57 — mécanique NARA et arsenal magique avec gates sociaux",
+        "level_gate":"rangs réellement disponibles",
+        "duration_min":180,
+        "ranks":[56,57],
+        "quests":["La panoplie du milicien","Ambition ambigüe"],
+        "hard_gates":[
+          "Rang56: quatre personnages disponibles avant d'entrer dans la mine [1,32].",
+          "Rang57: attitude Fleurs + Bûcheron150+ + Alchimiste150+ + Sadida56+ réunis avant le déplacement [-17,-3].",
+          "Rang57: niveau de Bricoleur exigé par le craft du Seau de Pinces à Linge vérifié dans le QuestProvider/walkthrough actuel avant achat des ressources."
+        ],
+        "route":[
+          {"pos":"[3,29] -> [15,21] -> [1,32]","do":"Rang56: interroger Norb, récupérer Minerai des profondeurs au bateau échoué, puis entrer à quatre dans la mine de Nara avec 2 Kriptonites + 20 Noisetiers. Répartir les lettres N/A/R entre les personnages, ouvrir les dalles et remettre les ressources à Nara."},
+          {"pos":"Bonta -> temple Sadida [-1,9] -> [-6,7] -> bibliothèque/atelier -> [6,-21] -> [1,1]","do":"Rang57: lancer l'étude de la Grafioze, fabriquer la pince à linge, réparer la poupée avec les ressources préparées. Ne pas aller encore à [-17,-3] tant que les quatre rôles sociaux ne sont pas présents."},
+          {"pos":"[-17,-3]","do":"Faire l'ouverture multi-rôles avec attitude Fleurs, Bûcheron150, Alchimiste150, Sadida56. Récupérer la Poupée Enchantée puis rendre à Danathor/Amayiro."}
+        ],
+        "hard_exit":["Bonta57 terminé","Tous gates sociaux utilisés sans aller-retour de recrutement après arrivée sur la map","Trâknar disponible"],
+        "pause":["Alignement57","Bloc Brâkmar 58-60 prêt"]
+      }
+    },
+    {
+      "after":"BNT-24",
+      "stage": {
+        "id":"BNT-25",
+        "title":"Bonta 58-60 — patrouille, Grafioze, plans d'attaque et palier Ordre",
+        "level_gate":"rangs successifs réellement disponibles; DPLN recommande jusqu'à140",
+        "duration_min":140,
+        "ranks":[58,59,60],
+        "quests":["Trâknar","La Grafioze","Attaque à retardement"],
+        "route":[
+          {"pos":"[-28,32] -> milice Brâkmar [-25,33] -> [-17,39] -> Bonta","do":"Rang58: récupérer le registre des rondes, rejoindre Kad et faire l'embuscade solo avec les Bontariens puis rendre à Amayiro."},
+          {"pos":"Bonta -> [1,-18] -> prison végétale [-12,-6] -> Bonta","do":"Rang59: préparer les cinq consommables et le Sadida AVANT la grotte. Ouvrir les grilles, faire les trois combats, récupérer le Vieux Grimoire Bwork et le ramener à Danathor."},
+          {"pos":"Tour Brâkmar [-22,33] -> milice [-25,33] -> [-29,36] -> taverne [-21,39] -> tour [-22,33] -> Bonta","do":"Rang60: voler le premier plan, retrouver Rekojel, payer 500 kamas, obtenir les poils allergènes à la Taverne de la Misère, neutraliser Ledrob et récupérer l'ordre d'annulation. Rendre à Amayiro."},
+          {"pos":"[-34,-58] Tour des ordres","do":"Rang60 terminé: exécuter IMMÉDIATEMENT exactement la troisième quête du même Ordre persisté via bonta_order_rank60_v1.json. Ne jamais proposer les deux autres options."}
+        ],
+        "hard_exit":["Bonta1-60 couvert sans trou","Lieutenant Colon validable","Même Ordre conservé aux rangs20/40/60","Troisième quête d'Ordre terminée ou blocage de sa branche explicitement visible"],
+        "pause":["Alignement60","Ordre niveau3","Prochaine alignement: Une rumeur intéressante (61)"]
+      }
+    }
+  ],
+  "stage_patches": {}
+}

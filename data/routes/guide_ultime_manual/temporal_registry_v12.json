@@ -1,0 +1,41 @@
+{
+  "schema_version": 12,
+  "registry_id": "guide_ultime_temporal_registry_v12",
+  "title": "Guide Ultime — contraintes temporelles + Problèmes et solutions Frigost",
+  "status": "MANUAL_TEMPORAL_WORKING_SET",
+  "base_file": "temporal_registry_v11.json",
+  "supersedes": "temporal_registry_v11.json",
+  "entry_patches": {},
+  "entry_insertions": [
+    {
+      "id":"frigost_gromeo_ginette_start_window",
+      "type":"daily_time_window",
+      "quest":"Groméo et Ginette",
+      "open_local_time":"17:00",
+      "close_local_time":"21:00",
+      "hard_wait_forbidden":true,
+      "availability_condition":"Niveau130+ réel; Groméo et Ginette pas encore lancée.",
+      "route_policy":"Lancer Groméo et Ginette uniquement pendant une fenêtre 17:00–21:00 heure de DOFUS lors d'un passage naturel Bourgade. Une fois la quête lancée, les positions de Groméo/Ginette varient selon l'heure mais la quête peut continuer hors de cette fenêtre; suivre le walkthrough courant. Ne jamais attendre quatre heures sur place pour la lancer.",
+      "source":"Dofus Pour Les Noobs — Groméo et Ginette, mise à jour 02/09/2025"
+    },
+    {
+      "id":"frigost_manque_repeau_energy_gate",
+      "type":"state_gate",
+      "quest":"Manque de re-peau",
+      "condition":"Énergie du personnage <1000 pour chaque dialogue avec l'Esprit Zonier",
+      "hard_wait_forbidden":true,
+      "route_policy":"Ne pas sacrifier volontairement plusieurs morts uniquement pour ouvrir Manque de re-peau. Dès qu'un passage naturel laisse l'énergie sous1000, greffer la quête au prochain passage Champs/Bourgade et conserver cet état pour les dialogues Esprit Zonier requis. Si l'énergie est remontée, reporter ce seul dialogue plutôt que casser la route principale.",
+      "source":"Dofus Pour Les Noobs — Manque de re-peau, mise à jour 30/01/2025"
+    },
+    {
+      "id":"frigost_manque_repeau_19h_appointment",
+      "type":"daily_exact_time",
+      "quest":"Manque de re-peau",
+      "trigger_local_time":"19:00",
+      "hard_wait_forbidden":true,
+      "availability_condition":"Manque de re-peau avancée jusqu'au rendez-vous donné par Ghislaine.",
+      "route_policy":"Lorsque Ghislaine donne rendez-vous à19:00 heure de DOFUS, enregistrer ce gate. Revenir à la première fenêtre naturelle où l'étape est disponible; ne jamais immobiliser la session devant le rendez-vous. Après le combat, terminer la quête selon le choix joueur sans inventer une plage horaire plus large que celle documentée.",
+      "source":"Dofus Pour Les Noobs — Manque de re-peau, mise à jour 30/01/2025"
+    }
+  ]
+}

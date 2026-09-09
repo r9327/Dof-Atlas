@@ -1,0 +1,70 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_level_120_150_v4",
+  "title": "Guide Ultime — Niveau 120 à 150 + Saharach complet palier130",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v3.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v3",
+  "stage_count": 31,
+  "optimization_note": "Ferme les succès Privé de désert + Au clair de la dune au palier130. Le Mantiscore de Le roi scorpion a déjà été fusionné avec Thelma au palier80; aucun second Cimetière. El Piko n'est fait qu'une fois lorsque L'Étoile de la Mer et Le monde entier est un cactus sont tous deux au bon objectif.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/prive-de-desert.html",
+    "https://www.dofuspourlesnoobs.com/au-clair-de-la-dune.html",
+    "https://www.dofuspourlesnoobs.com/la-barriere-des-langues.html",
+    "https://www.dofuspourlesnoobs.com/le-quiki-de-tous-les-quikis.html",
+    "https://www.dofuspourlesnoobs.com/une-mine-de-deterre.html",
+    "https://www.dofuspourlesnoobs.com/terres-mortes.html",
+    "https://www.dofuspourlesnoobs.com/l-etoile-de-la-mer.html",
+    "https://www.dofuspourlesnoobs.com/ne-pas-payer-de-mine.html",
+    "https://www.dofuspourlesnoobs.com/le-monde-entier-est-un-cactus.html",
+    "https://www.dofuspourlesnoobs.com/caverne-d-el-piko.html"
+  ],
+  "insertions": [
+    {
+      "after": "L120-08",
+      "stage": {
+        "id": "L120-08S",
+        "title": "Saharach 130 — Privé de désert + Au clair de la dune + El Piko unique",
+        "level": "130+ / critères locaux",
+        "duration_min": 210,
+        "quests": [
+          "L'Étoile de la Mer",
+          "Le fou rit et rôde",
+          "La barrière des langues",
+          "Donner l'amour, pas le fouet",
+          "Taper ou parler, il faut choisir",
+          "Le Quiki de tous les Quikis",
+          "Une mine de déterré",
+          "Terres mortes",
+          "Ne pas payer de mine",
+          "Le monde entier est un cactus"
+        ],
+        "successes": ["Privé de désert", "Au clair de la dune"],
+        "preparation": [
+          {"name":"Eau Potable","quantity":15,"minimum_for":"Au clair de la dune + El Piko","policy":"Compléter le stock exact demandé par les walkthroughs des quêtes Privé si davantage est requis au runtime."},
+          {"name":"Manganèse","quantity":10,"note":"Le roi scorpion a déjà consommé son lot au palier80; ne pas racheter si la quête est terminée."},
+          {"name":"Potion Eau de fée","quantity":1,"policy":"Uniquement si un reliquat Saharach actif la demande encore."},
+          {"requirement":"Équipement temporaire >6000 initiative disponible pour les combats de Ne pas payer de mine","blocking":true}
+        ],
+        "route": [
+          {"pos":"[15,-58] Zaap Saharach","do":"Reprendre la zone au palier130. Vérifier que L'Épice rit + Le roi scorpion sont déjà terminées depuis L70-08 et que Ne pas payer de mine est disponible. Si le startCriterion local la retarde, suspendre cette macro sans refaire Mantiscore."},
+          {"pos":"Port/Dunes de Saharach","do":"Faire en priorité La barrière des langues afin de comprendre les Cacterres. Cela permet ensuite d'éviter les combats inutiles de Taper ou parler, il faut choisir et ouvre plusieurs dialogues/branches du succès Privé de désert."},
+          {"pos":"Port/Dunes/Territoire Cacterre","do":"Exécuter les quêtes Privé de désert dans leur ordre de dépendances local: L'Étoile de la Mer, Le fou rit et rôde, Donner l'amour pas le fouet, Taper ou parler, Le Quiki de tous les Quikis, Une mine de déterré et Terres mortes. Ne pas entrer à El Piko dès que L'Étoile le demande: la conserver active."},
+          {"pos":"Port/Territoire Cacterre","do":"Terminer Ne pas payer de mine avec le stuff initiative préparé. Comme La barrière des langues est déjà terminée, prendre et avancer immédiatement Le monde entier est un cactus jusqu'à son objectif Caverne d'El Piko."},
+          {"pos":"[15,-65] Caverne d'El Piko — AVANT entrée","do":"Vérifier DEUX fils simultanés: L'Étoile de la Mer demande El Piko ET Le monde entier est un cactus demande El Piko. Si l'un manque, finir ses objectifs hors donjon avant d'entrer."},
+          {"pos":"Caverne d'El Piko","do":"Faire un seul donjon pour les deux quêtes et tous les succès compatibles. Après le boss, parler aux PNJ de L'Étoile et à Laure Hion/Scytus selon le walkthrough AVANT sortie."},
+          {"pos":"Saharach","do":"Fermer les reliquats post-donjon des deux quêtes et vérifier les deux succès. Le monde entier est un cactus devient le prérequis déjà satisfait de Un ver, ça va, trop de vers, bonjour les dégâts au niveau170."}
+        ],
+        "hard_exit": [
+          "Privé de désert terminé ou reliquat exact explicitement identifié.",
+          "Au clair de la dune terminé.",
+          "Le roi scorpion n'a provoqué aucun second Mantiscore.",
+          "El Piko fait une seule fois pour L'Étoile de la Mer + Le monde entier est un cactus.",
+          "Le monde entier est un cactus terminé: chaîne Corporation niveau170 pré-débloquée."
+        ],
+        "pause": ["Saharach130 fermé", "Père Ver futur niveau170", "Aucun donjon Saharach130 à refaire pour ces succès"]
+      }
+    }
+  ],
+  "stage_patches": {}
+}

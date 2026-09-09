@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "protections": [
+    {
+      "id": "ARCH_RUNTIME_PATCH_ZERO",
+      "category": "architecture",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_architecture_debt_baseline.py",
+        "symbol": "ArchitectureDebtBaselineTests.test_existing_runtime_patches_are_an_exact_closed_baseline"
+      },
+      "zero_baseline": "RUNTIME_PATCH_BASELINE"
+    },
+    {
+      "id": "ARCH_LEGACY_IMPORT_ZERO",
+      "category": "architecture",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_architecture_debt_baseline.py",
+        "symbol": "ArchitectureDebtBaselineTests.test_existing_legacy_imports_are_an_exact_closed_baseline"
+      },
+      "zero_baseline": "LEGACY_IMPORT_BASELINE"
+    },
+    {
+      "id": "ARCH_RUNTIME_VERSION_ZERO",
+      "category": "architecture",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_architecture_debt_baseline.py",
+        "symbol": "ArchitectureDebtBaselineTests.test_existing_runtime_versions_are_an_exact_closed_baseline"
+      },
+      "zero_baseline": "RUNTIME_VERSION_BASELINE"
+    },
+    {
+      "id": "IDENTITY_LEGACY_DEBT_ZERO",
+      "category": "identity",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_character_identity_guardrails.py",
+        "symbol": "CharacterIdentityGuardrailTests.test_only_legacy_resolver_may_reference_slot_business_keys"
+      },
+      "zero_baseline": "KNOWN_SLOT_BUSINESS_DEBT"
+    },
+    {
+      "id": "IDENTITY_CANONICAL_CHARACTER",
+      "category": "identity",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_character_identity_contract.py",
+        "symbol": "CharacterIdentityContractTests.test_character_key_is_the_single_canonical_business_format"
+      }
+    },
+    {
+      "id": "PERSISTENCE_CANONICAL_WRITE_BOUNDARY",
+      "category": "persistence",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_character_write_boundaries.py",
+        "symbol": "CharacterWriteBoundaryTests.test_modern_progress_services_reject_noncanonical_writes"
+      }
+    },
+    {
+      "id": "PERSISTENCE_MIGRATION_IDEMPOTENCE",
+      "category": "persistence",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_character_identity_invariants.py",
+        "symbol": "CharacterIdentityInvariantTests.test_legacy_slot_progress_migrates_losslessly_and_idempotently"
+      }
+    },
+    {
+      "id": "PERSISTENCE_BATCH_IDEMPOTENCE",
+      "category": "persistence",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_quest_progress_batch_contract.py",
+        "symbol": "QuestProgressBatchContractTests.test_batch_keeps_existing_local_progress_and_is_idempotent"
+      }
+    },
+    {
+      "id": "PERSISTENCE_CONCURRENT_MERGE",
+      "category": "persistence",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_progress_concurrent_instances.py",
+        "symbol": "ProgressConcurrentInstanceTests.test_two_quest_services_preserve_each_others_writes"
+      }
+    },
+    {
+      "id": "PROJECT_GUARDRAILS",
+      "category": "guardrails",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_project_guardrails.py",
+        "symbol": "ProjectGuardrailsTests.test_agents_requires_project_guardrails"
+      }
+    },
+    {
+      "id": "META_INTEGRITY_VERIFIER",
+      "category": "guardrails",
+      "owner": {
+        "kind": "script",
+        "path": "tools/atlas_meta_integrity.py"
+      }
+    },
+    {
+      "id": "META_INTEGRITY_ATTACK_TESTS",
+      "category": "guardrails",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_meta_integrity.py",
+        "symbol": "AtlasMetaIntegrityTests.test_missing_hard_logical_id_is_blocked"
+      }
+    },
+    {
+      "id": "INTEGRITY_GATE_POLICY",
+      "category": "guardrails",
+      "owner": {
+        "kind": "script",
+        "path": "tools/atlas_integrity_policy.json"
+      }
+    },
+    {
+      "id": "INTEGRITY_GATE_RUNNER",
+      "category": "guardrails",
+      "owner": {
+        "kind": "script",
+        "path": "tools/atlas_integrity.py"
+      }
+    },
+    {
+      "id": "INTEGRITY_GATE_CONTRACT",
+      "category": "guardrails",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_atlas_integrity.py",
+        "symbol": "AtlasIntegrityGateTests.test_required_not_run_group_prevents_acceptable"
+      }
+    },
+    {
+      "id": "INTEGRITY_GATE_CI",
+      "category": "ci",
+      "owner": {
+        "kind": "workflow",
+        "path": ".github/workflows/app-ci.yml"
+      }
+    },
+    {
+      "id": "RESOURCE_BUDGET_POLICY",
+      "category": "performance",
+      "owner": {
+        "kind": "script",
+        "path": "tools/atlas_performance_budgets.json"
+      }
+    },
+    {
+      "id": "RESOURCE_BUDGET_CONTRACT",
+      "category": "performance",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_performance_budgets.py",
+        "symbol": "PerformanceBudgetTests.test_hard_limit_exceeded_fails"
+      }
+    },
+    {
+      "id": "QT_ASYNC_NON_ACCUMULATION",
+      "category": "qt_lifecycle",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_qt_async_non_accumulation.py",
+        "symbol": "QtAsyncNonAccumulationTests.test_guide_navigation_x50_does_not_accumulate_pending_image_futures"
+      }
+    },
+    {
+      "id": "STARTUP_RESOURCE_CONTRACT",
+      "category": "startup",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_startup_resource_contracts.py",
+        "symbol": "StartupResourceContractTests.test_window_constructor_does_not_preload_heavy_encyclopedia_owners"
+      }
+    },
+    {
+      "id": "CI_RUNNER_CONTRACT",
+      "category": "ci",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_ci_runner_guardrails.py",
+        "symbol": "CiRunnerGuardrailsTests.test_every_explicit_ci_reference_exists"
+      }
+    },
+    {
+      "id": "APP_CI_WORKFLOW",
+      "category": "ci",
+      "owner": {
+        "kind": "workflow",
+        "path": ".github/workflows/app-ci.yml"
+      }
+    },
+    {
+      "id": "CI_FINAL_VERDICT",
+      "category": "ci",
+      "owner": {
+        "kind": "workflow",
+        "path": ".github/workflows/app-ci.yml"
+      }
+    },
+    {
+      "id": "FULL_DISCOVERY_SCOPE",
+      "category": "test_discovery",
+      "owner": {
+        "kind": "workflow",
+        "path": ".github/workflows/app-ci.yml"
+      }
+    },
+    {
+      "id": "GUIDE_CI_WORKFLOW",
+      "category": "ci",
+      "owner": {
+        "kind": "workflow",
+        "path": ".github/workflows/guide-ultime-v5-ui.yml"
+      }
+    },
+    {
+      "id": "GUIDE_CANONICAL_RUNNER",
+      "category": "ci",
+      "owner": {
+        "kind": "script",
+        "path": "tools/run_guide_ultime_ci.ps1"
+      }
+    },
+    {
+      "id": "QT_CROSS_SUITE_TEARDOWN",
+      "category": "qt_lifecycle",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_quest_visuals_lot6.py",
+        "symbol": "QuestVisualsLot6Tests.test_dispose_widget_does_not_drain_unrelated_qt_events"
+      }
+    },
+    {
+      "id": "QT_HOOK_SHUTDOWN",
+      "category": "qt_lifecycle",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_runtime_hook_lifecycle.py",
+        "symbol": "RuntimeHookLifecycleTests.test_base_hooks_use_shared_deterministic_message_loop_shutdown"
+      }
+    },
+    {
+      "id": "GUIDE_PREREQUISITE_AUDIT",
+      "category": "data",
+      "owner": {
+        "kind": "script",
+        "path": "tools/audit_guide_ultime_manual_prerequisites.py"
+      }
+    },
+    {
+      "id": "GUIDE_FINAL_COVERAGE_AUDIT",
+      "category": "data",
+      "owner": {
+        "kind": "script",
+        "path": "tools/audit_guide_ultime_manual_final_coverage.py"
+      }
+    },
+    {
+      "id": "GENERATED_FILES_GUARD",
+      "category": "repository_hygiene",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_generated_files_guard.py",
+        "symbol": "GeneratedFilesGuardTests.test_runtime_and_generated_groups_are_rejected"
+      }
+    },
+    {
+      "id": "REPOSITORY_HOOKS",
+      "category": "repository_hygiene",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_repository_git_hooks.py",
+        "symbol": "RepositoryGitHooksTests.test_tracked_hook_entrypoints_and_installer_exist"
+      }
+    },
+    {
+      "id": "RANDOM_ORDER_RUNNER",
+      "category": "test_integrity",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_random_order_runner.py",
+        "symbol": "RandomOrderRunnerTests.test_same_seed_reproduces_exact_order"
+      }
+    },
+    {
+      "id": "FAULT_INJECTION_CONTRACTS",
+      "category": "fault_injection",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_fault_injection_contracts.py",
+        "symbol": "FaultInjectionContractsTests.test_unavailable_provider_reaches_explicit_terminal_failure"
+      }
+    },
+    {
+      "id": "TARGETED_MUTATION_CONTRACT",
+      "category": "mutation",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_targeted_mutation.py",
+        "symbol": "TargetedMutationTests.test_every_registered_critical_mutant_is_killed"
+      }
+    },
+    {
+      "id": "CRITICAL_COVERAGE_CONTRACT",
+      "category": "coverage",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_critical_coverage.py",
+        "symbol": "CriticalCoverageTests.test_thresholds_are_nonzero_and_owned_by_real_modules_and_tests"
+      }
+    },
+    {
+      "id": "DEEP_VALIDATION_WORKFLOW",
+      "category": "ci",
+      "owner": {
+        "kind": "workflow",
+        "path": ".github/workflows/deep-validation.yml"
+      }
+    }
+  ]
+}

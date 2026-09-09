@@ -1,0 +1,127 @@
+{
+  "schema_version": 15,
+  "route_id": "guide_ultime_manual_bonta_1_100_v15",
+  "title": "Guide Ultime — Alignement Bonta 1 à 100 — actions 71-80 consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_100_v14.json",
+  "supersedes": "guide_ultime_manual_bonta_1_100_v14",
+  "quest_range": [1, 100],
+  "macro_stage_count": 49,
+  "optimization_note": "Nettoie les actions joueur Bonta 71-80, conserve les besoins groupe/métiers avant déplacement, sépare les quatre captures Hordémon de l'Ocre et retire les renvois vers fichiers, registres, walkthroughs et termes internes.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/de-droles-de-temoins.html",
+    "https://www.dofuspourlesnoobs.com/si-j-avais-un-marteau.html",
+    "https://www.dofuspourlesnoobs.com/esprit-es-tu-la.html",
+    "https://www.dofuspourlesnoobs.com/vol-du-temps.html",
+    "https://www.dofuspourlesnoobs.com/pense-bete.html",
+    "https://www.dofuspourlesnoobs.com/l-eclat-de-l-aube.html"
+  ],
+  "stage_patches": {
+    "BNT-30": {
+      "replace": {
+        "title":"Bonta 71-73 — Trev, juge puis témoins sans attente inutile",
+        "entry":"Bonta 70 terminé et niveau 171 atteint.",
+        "take":["Prendre Un coupable idéal auprès d'Amayiro dès qu'elle est disponible."],
+        "route":[
+          {"area":"Bonta","do":"Faire Un coupable idéal dans une seule boucle Milice, ateliers et quartiers puis rendre immédiatement pour ouvrir Un peu de juge hot."},
+          {"area":"Astrub + Amakna","do":"Pour Un peu de juge hot, regrouper les refus d'Astrub puis récupérer l'hydre au miel avec la Mauvaise Pioche et le Tonneau déjà préparés. Rendre au juge puis à Amayiro."},
+          {"area":"Bonta","do":"Faire De drôles de témoins jusqu'au cercle de jeu. Si le sous-sol n'est pas accessible pendant la session, utiliser l'alternative prévue par la quête avec les objets préparés si elle est disponible; sinon poursuivre un autre objectif et revenir plus tard. Ne jamais attendre immobile devant l'accès."},
+          {"area":"Bonta","do":"Identifier Gnerah puis rendre à Amayiro. Ne commencer Sram d'Égoutant qu'une fois De drôles de témoins réellement terminée."}
+        ],
+        "progress_also":["Profiter des passages Astrub/Amakna pour gérer banque et pods et récupérer les ressources déjà conservées pour les rangs 75 à 80."],
+        "before_leaving":["Mauvaise Pioche conservée jusqu'à la fin du rang 72.","Bonta 73 réellement terminé avant de descendre au rang 74."],
+        "hard_exit":["Bonta 73 terminé.","Sram d'Égoutant disponible.","Aucune attente horaire subie."]
+      }
+    },
+    "BNT-31": {
+      "replace": {
+        "entry":"Bonta 73 terminé.",
+        "route":[
+          {"area":"Égouts de Bonta","do":"Descendre avec le Marteau de Raclage déjà prêt, retrouver Gnerah et faire le combat solo demandé."},
+          {"area":"Bonta","do":"Enchaîner le dressage, l'interrogatoire et le procès sans quitter la ville, puis reparler à Amayiro pour terminer le rang."}
+        ],
+        "progress_also":["Pendant la boucle des égouts, faire les objectifs monstres ou succès encore ouverts uniquement s'ils se trouvent naturellement sur le trajet."],
+        "before_leaving":["Sram d'Égoutant terminée.","Si j'avais un marteau disponible."],
+        "hard_exit":["Bonta 74 terminé."]
+      }
+    },
+    "BNT-32": {
+      "replace": {
+        "title":"Bonta 75 — Marteau de Lumière et crypte à quatre",
+        "entry":"Bonta 74 terminé; trois autres personnages organisés avant la crypte.",
+        "route":[
+          {"area":"Temples du Monde des Douze","do":"Faire la tournée d'enquête du Marteau de Lumière en regroupant les temples par zone plutôt que revenir à Bonta entre chaque dialogue."},
+          {"area":"Brâkmar puis Bonta — égouts","do":"Récupérer le livre auprès du culte de Julith et le fluide de la machine de Bonta dans une seule séquence de déplacement."},
+          {"area":"Forêt pétrifiée","do":"Récupérer l'Écorce sombre pétrifiée pendant un passage Frigost déjà utile. Si elle est déjà en inventaire ou en banque, ne revenir sous aucun prétexte uniquement pour elle."},
+          {"area":"Amakna — crypte","do":"Arriver avec les trois aides déjà présentes, activer les quatre dalles, vaincre le Saigneur Vampire et récupérer le Marteau de Lumière sans esprit."},
+          {"area":"Bonta — Tour des Ordres","do":"Rendre le Marteau à Ebru of El et terminer le rang 75."}
+        ],
+        "progress_also":["Synchroniser la Forêt pétrifiée avec les quêtes Frigost actives afin de ne pas créer un trajet isolé."],
+        "before_leaving":["Marteau de Lumière remis.","Les trois aides ne sont plus nécessaires pour cette quête.","Esprit, es-tu là ? disponible."],
+        "hard_exit":["Bonta 75 terminé."]
+      }
+    },
+    "BNT-33": {
+      "replace": {
+        "title":"Bonta 76 — trois dalles, coffiots et Esprit de Lumière",
+        "entry":"Bonta 75 terminé; trois autres personnages disponibles avant la grotte.",
+        "route":[
+          {"area":"Amakna / Astrub / Pandala","do":"Faire l'enquête de Nosilla puis désactiver les trois dalles avec les ressources déjà préparées. Utiliser les accès indiqués par les objectifs de la quête pour les grottes et intérieurs."},
+          {"area":"Grotte de Nosilla","do":"Entrer avec les trois aides, résoudre le combat des coffiots, ouvrir la seconde grotte et obtenir la vision de l'Esprit de Lumière."},
+          {"area":"Astrub","do":"Donner à Maskara les ressources préparées pour fabriquer la Poupée de Remplacement."},
+          {"area":"Amakna → Bonta","do":"Récupérer l'Esprit de Lumière, le ramener à Ebru of El et terminer le rang 76."}
+        ],
+        "progress_also":["Retirer de banque les ressources Maho et Yokaï avant Maskara; ne lancer aucun farm Frigost si elles sont déjà stockées."],
+        "before_leaving":["Esprit de Lumière remis.","Vol du Temps disponible.","Préparer quatre Énormes pierres d'âme avant Xélorium."],
+        "hard_exit":["Bonta 76 terminé."]
+      }
+    },
+    "BNT-34": {
+      "replace": {
+        "title":"Bonta 77 — Vol du Temps et quatre captures Hordémon",
+        "entry":"Bonta 76 terminé; accès Xélorium fonctionnel; Capture d'âmes connue.",
+        "take":["Prendre Vol du Temps auprès d'Amayiro puis suivre les demandes de Danathor."],
+        "route":[
+          {"area":"Bonta / Temple Huppermage / Temple Roublard","do":"Faire la séquence Danathor → Maha Shoja → Vil Smisse, acheter le sanglier demandé puis voler la Caisse Mystérieuse avec le groupe préparé."},
+          {"area":"Xélorium","do":"Capturer exactement une âme de Seith, Trantroa, Vindeux et Trezz avec quatre Énormes pierres d'âme. Une seule espèce utile est capturable par combat pour cette quête : prévoir quatre combats et ne jamais compter ces âmes comme captures Ocre."},
+          {"area":"Xélorium","do":"Pendant ces combats, avancer les succès Monstres et les quêtes dimensionnelles déjà actives qui utilisent réellement les mêmes Hordémons."},
+          {"area":"Temple Roublard → Bonta","do":"Échanger les quatre âmes contre le Fragment de Temps volé puis le remettre à Danathor."}
+        ],
+        "progress_also":["Ne refaire aucun XLII déjà terminé : Vol du Temps ne demande que les quatre captures Hordémon."],
+        "before_leaving":["Quatre âmes Hordémon remises.","Aucune progression Ocre attribuée à ces captures.","La mémoire en lambeaux disponible."],
+        "hard_exit":["Bonta 77 terminé."]
+      }
+    },
+    "BNT-35": {
+      "replace": {
+        "title":"Bonta 78-79 — Psychine puis Pense-bête avec Pandawa préparé",
+        "entry":"Bonta 77 terminé; Pandawa et Forgeron 179 organisés avant le déplacement Pandala.",
+        "route":[
+          {"area":"Amakna / Brâkmar / Dents de Pierre","do":"Pour La mémoire en lambeaux, libérer Pouere Fettard, descendre au repaire avec les ressources préparées, récupérer la Psychine puis rendre à Danathor."},
+          {"area":"Pandala [18,-24]","do":"Pour Pense-bête, venir avec un personnage Pandawa. Le Pandawa ouvre le passage permettant de récupérer l'Eau Sacrée; repartir seulement une fois l'eau obtenue."},
+          {"area":"Astrub / atelier Forgeron","do":"Faire transmuter l'Eau Sacrée puis faire fabriquer la Pelle Hectrochoc avec 1 Eau transmutée + 1 Planche à Pain + 1 Pyrute par un Forgeron niveau 179 minimum."},
+          {"area":"Pandala / Koalaks → Bonta","do":"Remettre le traitement à Surivitna, retrouver Meuh Sieurchance, récupérer la Pensée perdue puis la remettre à Danathor."}
+        ],
+        "progress_also":["Pendant le retour Pandala, traiter un objectif Présence d'esprits seulement s'il est déjà disponible et compatible avec le trajet."],
+        "before_leaving":["Pandawa libéré après récupération de l'Eau Sacrée.","Pelle Hectrochoc fabriquée et utilisée.","L'Éclat de l'Aube disponible."],
+        "hard_exit":["Bonta 79 terminé."]
+      }
+    },
+    "BNT-36": {
+      "replace": {
+        "title":"Bonta 80 — L'Éclat de l'Aube et quatrième rang du même Ordre",
+        "entry":"Pense-bête terminé, niveau 180 atteint et trois autres personnages organisés pour la forge finale.",
+        "route":[
+          {"area":"Temple Sacrieur → Pandala [24,-27]","do":"Apprendre comment atteindre les Larmes de Sacrieur puis obtenir la recette du Masque à Zag. Faire fabriquer le masque par un Tailleur niveau 180 minimum ou l'acheter en HDV; il n'est pas consommé par la quête."},
+          {"area":"[-32,40] sud-ouest de Brâkmar","do":"Avec le Masque à Zag en inventaire, utiliser l'accès proposé par Pu Shan puis suivre le labyrinthe et récupérer les Larmes de Sacrieur via l'interaction actuellement disponible dans la zone."},
+          {"area":"Temple Huppermage → îlot Estitch","do":"Aller voir Maha Shoja puis rejoindre l'îlot Estitch avec les trois alliés déjà prêts. Récupérer les recherches de Nileza et effectuer la forge de l'Éclat de l'Aube; le combat peut se faire à quatre maximum."},
+          {"area":"Bonta","do":"Remettre l'Éclat à Danathor. Le rang 80 est alors terminé et la quatrième quête du même Ordre choisi aux rangs 20, 40 et 60 devient disponible; ne proposer aucune autre branche."}
+        ],
+        "progress_also":["Conserver le Masque à Zag. Préparer ensuite les ressources de la quatrième quête de l'Ordre déjà choisi avant le futur Ougah."],
+        "before_leaving":["Bonta 80 validé.","Même Ordre conservé depuis le rang 20.","Deux Ordres non choisis restent masqués.","Bonta 81 attend la tranche suivante."],
+        "hard_exit":["Bonta 80 terminé.","Quatrième quête du même Ordre disponible."]
+      }
+    }
+  },
+  "insertions": []
+}

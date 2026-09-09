@@ -1,0 +1,53 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_level_200_plus_v5",
+  "title": "Guide Ultime — Post-200 après fusions boss200",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v4.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v4",
+  "stage_count": 12,
+  "optimization_note": "Les blocs Ocre/Quatre sur six/S'armer et Eliocalypse jusqu'à l'ouverture/fermeture des Totems ont été déplacés dans level_191_200_v8 après leurs vrais prérequis. Ils sont retirés ici explicitement avec stage_removals: aucune carte dupliquée. V8 ne promet pas zéro rerun Totem: avec les mappings verrouillés, Koutoulou, Missiz et Nileza sont les trois passages post-Totems supplémentaires explicitement justifiés; Sylargh/Klime/Comte sont absorbés dans le DDG retardé et le Vortex dans le Nébuleux. La finale Six sur six reste en tête de ce chapitre. Au détour d'un rêve perdu est isolé juste après La fin... ou le commencement, car Toute possession dépossède a volontairement été faite avant cette finale et ne devait donc pas attendre Au détour.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/toute-possession-depossede.html",
+    "https://www.dofuspourlesnoobs.com/au-detour-d-un-reve-perdu.html",
+    "https://www.dofuspourlesnoobs.com/s-armer-contre-le-destin.html",
+    "https://www.dofuspourlesnoobs.com/les-totems-de-maimane.html"
+  ],
+  "stage_removals": [
+    "P200-00",
+    "P200-01",
+    "P200-02",
+    "P200-03",
+    "P200-04",
+    "P200-05",
+    "P200-06",
+    "P200-07",
+    "P200-09",
+    "P200-10",
+    "P200-11",
+    "P200-12",
+    "P200-13",
+    "P200-14",
+    "P200-15"
+  ],
+  "insertions": [
+    {
+      "after": "P200-08",
+      "stage": {
+        "id": "P200-AU-DETOUR",
+        "title": "Après Six sur six — Au détour d'un rêve perdu",
+        "level": "200+ / La fin... ou le commencement terminée",
+        "duration_min": 150,
+        "quests": ["Au détour d'un rêve perdu"],
+        "entry": "Quand l'éveil n'est qu'un songe + La fin... ou le commencement terminés; six Dofus Primordiaux réellement possédés.",
+        "route": [
+          {"area":"Réceptacle des Dofus / rêve perdu","do":"Prendre maintenant Au détour d'un rêve perdu. Respecter la voie finale déjà choisie dans La fin... ou le commencement; ne jamais changer ou inventer ce choix."},
+          {"area":"rêve perdu","do":"Faire les combats et dialogues de la quête selon le walkthrough local, puis revenir au Réceptacle. Toute possession dépossède est déjà terminée depuis la préparation pré-boss; ne pas refaire son arc."}
+        ],
+        "before_leaving": ["Au détour d'un rêve perdu terminé","Entretemps, une renaissance déverrouillable avec Descendre aux cendres + Prise de conscience déjà terminées"],
+        "hard_exit": ["Choix Six sur six persistant respecté","Aucun arc Ravagés répété"],
+        "pause": ["POINT DE PAUSE SÛR — Au détour fermé, Prologue prêt"]
+      }
+    }
+  ]
+}

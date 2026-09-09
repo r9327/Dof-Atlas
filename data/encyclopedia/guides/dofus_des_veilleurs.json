@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "id": "dofus_des_veilleurs",
+  "title": "Dofus des Veilleurs",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofus des Veilleurs.",
+  "recommended_level_min": 100,
+  "recommended_level_max": 100,
+  "reward_item_id": 16061,
+  "illustration_item_id": 16061,
+  "image": null,
+  "linked_achievement_ids": [
+    1072,
+    1102,
+    1142,
+    1186,
+    1187
+  ],
+  "completeness_status": "complete",
+  "verified_steps": 15,
+  "total_steps": 15,
+  "validation_warnings": [
+    "Profil DPLN: parcours obligatoire résolu dans le catalogue local."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [
+    "https://www.dofuspourlesnoobs.com/dofus-des-veilleurs.html"
+  ],
+  "sections": [
+    {
+      "id": "dofus_des_veilleurs_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        1072,
+        1102,
+        1142,
+        1186,
+        1187
+      ],
+      "steps": [
+        {
+          "id": "dofus_des_veilleurs_quest_1484",
+          "type": "quest",
+          "entity_id": 1484,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1485",
+          "type": "quest",
+          "entity_id": 1485,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1484
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1486",
+          "type": "quest",
+          "entity_id": 1486,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1485
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1530",
+          "type": "quest",
+          "entity_id": 1530,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1486
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1531",
+          "type": "quest",
+          "entity_id": 1531,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1530
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1532",
+          "type": "quest",
+          "entity_id": 1532,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1531
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1571",
+          "type": "quest",
+          "entity_id": 1571,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1532
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1572",
+          "type": "quest",
+          "entity_id": 1572,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1571
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1573",
+          "type": "quest",
+          "entity_id": 1573,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1572
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1608",
+          "type": "quest",
+          "entity_id": 1608,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1573
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1609",
+          "type": "quest",
+          "entity_id": 1609,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1608
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1612",
+          "type": "quest",
+          "entity_id": 1612,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1609
+          ]
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1613",
+          "type": "quest",
+          "entity_id": 1613,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1609
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1611",
+          "type": "quest",
+          "entity_id": 1611,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1609
+          ]
+        },
+        {
+          "id": "dofus_des_veilleurs_quest_1610",
+          "type": "quest",
+          "entity_id": 1610,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory",
+          "context_quests": [
+            1609
+          ]
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

@@ -1,0 +1,335 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_incarnam_v1",
+  "title": "Guide Ultime — Incarnam manuel",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "game_floor": "DOFUS 3.6",
+  "principles": [
+    "Une étape est une boucle logique avec un point de pause sûr, jamais une action isolée.",
+    "Les coordonnées sont écrites uniquement lorsqu'elles ont été recoupées dans une source documentaire explicite.",
+    "Les micro-objectifs restent résolus depuis le catalogue local et les solutions enrichies; ce fichier ne duplique pas les fiches quête.",
+    "Les ressources sont anticipées seulement lorsqu'une quête future du même chapitre les consomme avec certitude.",
+    "Les quêtes de donjon sont activées avant l'entrée afin d'éviter un second passage.",
+    "Les timers quotidiens/hebdomadaires seront toujours lancés au premier moment rentable; aucun timer n'existe dans ce chapitre Incarnam.",
+    "Un point de pause définit un état vérifiable du personnage afin de reprendre sans perdre le fil."
+  ],
+  "coverage": {
+    "chapter": "Incarnam",
+    "quest_successes_targeted": [
+      "En route pour l'aventure",
+      "Poussé par le vent",
+      "Service dans la milice",
+      "C'est le métier qui rentre",
+      "Ramdam sur Incarnam"
+    ],
+    "dungeon": "Crypte de Kardorim",
+    "dungeon_successes": ["Zombie", "Premier", "Spécial", "Duo"],
+    "next_chapter": "Astrub"
+  },
+  "sources": {
+    "primary": "Dofus Pour Les Noobs",
+    "catalog_authority": "Dofus Atlas local QuestProvider / données Dofus",
+    "pages": [
+      "https://www.dofuspourlesnoobs.com/bien-debuter.html",
+      "https://www.dofuspourlesnoobs.com/reacuteponses-agrave-tout.html",
+      "https://www.dofuspourlesnoobs.com/le-village-dans-les-nuages.html",
+      "https://www.dofuspourlesnoobs.com/espoirs-et-trageacutedies.html",
+      "https://www.dofuspourlesnoobs.com/dans-la-gueule-du-milimilou.html",
+      "https://www.dofuspourlesnoobs.com/destination-astrub.html",
+      "https://www.dofuspourlesnoobs.com/pousseacute-par-le-vent.html",
+      "https://www.dofuspourlesnoobs.com/service-dans-la-milice.html",
+      "https://www.dofuspourlesnoobs.com/cest-le-meacutetier-qui-rentre.html",
+      "https://www.dofuspourlesnoobs.com/ramdam-sur-incarnam.html",
+      "https://www.dofuspourlesnoobs.com/crypte-de-kardorim.html"
+    ]
+  },
+  "resource_plan": {
+    "collect_before_leaving_incarnam": [
+      {"name": "Blé", "quantity": 18, "why": "4 Produits naturels + 4 Boune un jour + 10 La galette secrète"},
+      {"name": "Goujon", "quantity": 8, "why": "4 Produits naturels + 4 Boune un jour"},
+      {"name": "Ortie", "quantity": 13, "why": "4 Produits naturels + 4 Boune un jour + 5 confiture de La galette secrète"},
+      {"name": "Bois de Frêne", "quantity": 10, "why": "La hache et la pioche"},
+      {"name": "Fer", "quantity": 10, "why": "La hache et la pioche"},
+      {"name": "Cendres Éternelles", "quantity": 11, "why": "2 Boune un jour + 5 Préparation au combat + 4 La galette secrète"},
+      {"name": "Viande Intangible", "quantity": 5, "why": "1 Le métier des aventuriers + 4 Préparation au combat; chasser avec le couteau équipé"},
+      {"name": "Relique d'Incarnam", "quantity": 3, "why": "Clef de la Crypte de Kardorim dans Préparation au combat"},
+      {"name": "Plume Chimérique", "quantity": 2, "why": "Boune un jour, boune toujours"},
+      {"name": "Feu Intérieur", "quantity": 2, "why": "Boune un jour, boune toujours"},
+      {"name": "Pétale Diaphane", "quantity": 2, "why": "Boune un jour, boune toujours"},
+      {"name": "Peau de Gloot", "quantity": 2, "why": "Boune un jour, boune toujours"},
+      {"name": "Laine Céleste", "quantity": 2, "why": "Boune un jour, boune toujours"},
+      {"name": "Bave de Bouftou", "quantity": 4, "why": "La galette secrète"},
+      {"name": "Poudre de Perlinpainpain", "quantity": 4, "why": "La galette secrète; à farmer pendant la mission des Champs"},
+      {"name": "Œuf Chimérique", "quantity": 2, "why": "La galette secrète; ne peut tomber que si la quête est déjà active"},
+      {"name": "Lailait", "quantity": 1, "why": "La galette secrète; achat à Grobid"}
+    ],
+    "pod_policy": "Ne pas prolonger le farm au-delà des quantités du chapitre. Si les pods approchent de la limite, convertir immédiatement les récoltes en crafts de quête lors du prochain passage aux ateliers."
+  },
+  "stages": [
+    {
+      "id": "INC-00",
+      "title": "Tutoriel céleste — sortir équipé et avec le trousseau",
+      "expected_level": "1-3",
+      "estimated_duration_min": 15,
+      "start": {"kind": "instance", "label": "Statue du dieu de la classe", "travelable": false},
+      "end": {"x": 1, "y": 1, "zone": "Temple Céleste", "travelable": false},
+      "quest_sequence": [
+        "Premiers pas",
+        "Premières armes",
+        "L'anneau de tous les dangers",
+        "Sous le regard des dieux"
+      ],
+      "parallel_quests": ["Bien débuter"],
+      "instructions": [
+        "Suivre le tutoriel guidé sans le quitter afin de conserver le déroulé déterministe.",
+        "Réclamer les récompenses de succès lorsque le jeu les débloque, notamment le Trousseau de Clef à la fin du tutoriel.",
+        "Ne créer aucune étape intermédiaire dans le guide: les quatre quêtes sont linéaires et constituent une seule session logique."
+      ],
+      "pause_checkpoint": {
+        "safe": true,
+        "location": "Temple Céleste [1,1]",
+        "state": [
+          "Sous le regard des dieux terminée",
+          "Réponses à tout disponible",
+          "Trousseau de Clef obtenu"
+        ]
+      }
+    },
+    {
+      "id": "INC-01",
+      "title": "Village d'Incarnam — ouvrir toutes les chaînes avant de farmer",
+      "expected_level": "3-6",
+      "estimated_duration_min": 20,
+      "start": {"x": 1, "y": 1, "zone": "Temple Céleste", "travelable": false},
+      "end": {"x": 2, "y": -3, "zone": "Incarnam", "travelable": true},
+      "waypoints": [
+        {"x": 1, "y": 1, "actions": ["Terminer Réponses à tout avec Ganymède."], "quests": ["Réponses à tout"]},
+        {"x": -2, "y": -3, "actions": ["Prendre Le village dans les nuages auprès de Lykhen."], "quests": ["Le village dans les nuages"]},
+        {"x": -1, "y": -3, "actions": ["Avancer Le village dans les nuages avec Ternette.", "Prendre Transport peu commun dès maintenant."], "quests": ["Le village dans les nuages", "Transport peu commun"]},
+        {"x": 0, "y": -3, "actions": ["Parler à Berb pour Le village dans les nuages et prendre Produits naturels.", "Parler au tavernier pour la visite de la quête principale.", "Prendre et terminer Mort au rat ! sur place si disponible.", "Acheter 1 Lailait pour La galette secrète."], "quests": ["Le village dans les nuages", "Produits naturels", "Mort au rat !"]},
+        {"x": 0, "y": -4, "actions": ["Parler au Capitaine pour Le village dans les nuages.", "Prendre Mise à l'épreuve, battre Mynerve dans la tour, rendre immédiatement et prendre Champs de bataille."], "quests": ["Le village dans les nuages", "Mise à l'épreuve", "Champs de bataille"]},
+        {"x": 1, "y": -3, "actions": ["Parler à Hollie pour Le village dans les nuages."], "quests": ["Le village dans les nuages"]},
+        {"x": -1, "y": -3, "actions": ["Rendre la boucle de présentation à Ternette."], "quests": ["Le village dans les nuages"]},
+        {"x": 2, "y": -3, "actions": ["Terminer Le village dans les nuages auprès de Fécaline puis prendre Espoirs et tragédies."], "quests": ["Le village dans les nuages", "Espoirs et tragédies"]},
+        {"x": 1, "y": -2, "actions": ["Prendre La galette secrète AVANT le passage aux Champs afin que les Œufs Chimériques puissent tomber."], "quests": ["La galette secrète"]}
+      ],
+      "pause_checkpoint": {
+        "safe": true,
+        "location": "Incarnam [1,-2] / village",
+        "state": [
+          "Le village dans les nuages terminée",
+          "Espoirs et tragédies active",
+          "Transport peu commun active",
+          "Produits naturels active",
+          "Champs de bataille active",
+          "La galette secrète active",
+          "Mort au rat ! terminée si disponible"
+        ]
+      }
+    },
+    {
+      "id": "INC-02",
+      "title": "Nord d'Incarnam — zaap, Champs et drops conditionnels",
+      "expected_level": "5-8",
+      "estimated_duration_min": 25,
+      "start": {"x": -1, "y": -3, "zone": "Incarnam", "travelable": true},
+      "end": {"x": 0, "y": -4, "zone": "Incarnam", "travelable": true},
+      "waypoints": [
+        {"x": 2, "y": -5, "actions": ["Parler à Xélora pour Transport peu commun et examiner le zaap."], "quests": ["Transport peu commun"]},
+        {"x": 3, "y": -5, "actions": ["Prendre Un peu de pigment auprès de Marylork avant de passer par la mine."], "quests": ["Un peu de pigment"]},
+        {"x": -1, "y": -3, "actions": ["Rendre Transport peu commun et prendre Des vestiges de légende."], "quests": ["Transport peu commun", "Des vestiges de légende"]},
+        {"x": 0, "y": -5, "actions": ["Valider le vestige Ecaflip de Des vestiges de légende.", "Faire les combats requis par Champs de bataille dans la zone Champs."], "quests": ["Des vestiges de légende", "Champs de bataille"]},
+        {"kind": "zone", "label": "Champs d'Incarnam", "actions": ["Monter le stock de Blé à 18.", "Obtenir 4 Poudres de Perlinpainpain.", "Obtenir 2 Œufs Chimériques; la quête La galette secrète doit être active.", "Conserver au moins 2 Pétales Diaphanes et 2 Plumes Chimériques pour Boune un jour."], "quests": ["Produits naturels", "La galette secrète", "Boune un jour, boune toujours"]},
+        {"x": 0, "y": -4, "actions": ["Rendre Champs de bataille au Capitaine et prendre Coups d'épée dans l'eau."], "quests": ["Champs de bataille", "Coups d'épée dans l'eau"]}
+      ],
+      "pause_checkpoint": {
+        "safe": true,
+        "location": "Milice [0,-4]",
+        "state": [
+          "Champs de bataille terminée",
+          "Coups d'épée dans l'eau active",
+          "Des vestiges de légende active",
+          "Un peu de pigment active",
+          "18 Blé visés avant de quitter définitivement les Champs",
+          "La galette secrète a ses drops de Champs ou reste explicitement à compléter"
+        ]
+      }
+    },
+    {
+      "id": "INC-03",
+      "title": "Lac — pêche, vestige et déblocage du métier de chasseur",
+      "expected_level": "6-9",
+      "estimated_duration_min": 30,
+      "start": {"x": 0, "y": -4, "zone": "Incarnam", "travelable": true},
+      "end": {"x": 0, "y": -3, "zone": "Incarnam", "travelable": true},
+      "waypoints": [
+        {"x": -2, "y": -2, "actions": ["Valider le vestige Sacrieur.", "Récolter les Orties rencontrées jusqu'à atteindre le stock prévu.", "Faire les combats de Coups d'épée dans l'eau dans la zone Lac."], "quests": ["Des vestiges de légende", "Coups d'épée dans l'eau", "Produits naturels"]},
+        {"kind": "zone", "label": "Lac d'Incarnam", "actions": ["Pêcher 8 Goujons au total.", "Conserver au moins 2 Peaux de Gloot pour Boune un jour."], "quests": ["Produits naturels", "Boune un jour, boune toujours"]},
+        {"x": 0, "y": -4, "actions": ["Rendre Coups d'épée dans l'eau et prendre Décime-moi des bouftous."], "quests": ["Coups d'épée dans l'eau", "Décime-moi des bouftous"]},
+        {"x": -1, "y": -4, "actions": ["Cuire le Pain d'Incarnam requis par Produits naturels avec 4 Blé."], "quests": ["Produits naturels"]},
+        {"x": -2, "y": -2, "actions": ["Fabriquer la Potion de Mini Soin avec 4 Orties."], "quests": ["Produits naturels"]},
+        {"x": 0, "y": -1, "actions": ["Préparer le Goujon en tranche avec 4 Goujons."], "quests": ["Produits naturels"]},
+        {"x": 0, "y": -3, "actions": ["Rendre Produits naturels à Berb.", "Prendre Le métier des aventuriers et équiper immédiatement le Couteau de chasse de Berb."], "quests": ["Produits naturels", "Le métier des aventuriers"]}
+      ],
+      "pause_checkpoint": {
+        "safe": true,
+        "location": "Berb Nhin [0,-3]",
+        "state": [
+          "Produits naturels terminée",
+          "Le métier des aventuriers active",
+          "Couteau de chasse équipé avant les prochains combats de zone",
+          "Décime-moi des bouftous active"
+        ]
+      }
+    },
+    {
+      "id": "INC-04",
+      "title": "Pâturages puis forêt — rentabiliser chaque combat et préparer tous les crafts",
+      "expected_level": "7-10",
+      "estimated_duration_min": 35,
+      "start": {"x": 0, "y": -3, "zone": "Incarnam", "travelable": true},
+      "end": {"x": 0, "y": -4, "zone": "Incarnam", "travelable": true},
+      "waypoints": [
+        {"x": 1, "y": -5, "actions": ["Valider le vestige Féca.", "Faire les combats de Décime-moi des bouftous.", "Avec le couteau équipé, profiter des combats pour commencer le stock de Viande Intangible."], "quests": ["Des vestiges de légende", "Décime-moi des bouftous", "Le métier des aventuriers"]},
+        {"kind": "zone", "label": "Pâturages d'Incarnam", "actions": ["Conserver 2 Laines Célestes.", "Obtenir 4 Baves de Bouftou pour La galette secrète.", "Continuer le stock de Viande Intangible."], "quests": ["Boune un jour, boune toujours", "La galette secrète", "Le métier des aventuriers"]},
+        {"x": 0, "y": -4, "actions": ["Rendre Décime-moi des bouftous et prendre Chasse aux chapardams."], "quests": ["Décime-moi des bouftous", "Chasse aux chapardams"]},
+        {"x": 1, "y": -1, "actions": ["Valider le vestige Crâ pendant la boucle forêt."], "quests": ["Des vestiges de légende"]},
+        {"kind": "zone", "label": "Forêt / Route des âmes d'Incarnam", "actions": ["Faire les combats de Chasse aux chapardams.", "Récolter 10 Bois de Frêne.", "Monter le stock d'Ortie à 13 pour l'ensemble du chapitre.", "Monter le stock de Cendres Éternelles à 11 pour l'ensemble du chapitre.", "Conserver 2 Feux Intérieurs.", "Avec le couteau équipé, atteindre 5 Viandes Intangibles au total si possible."], "quests": ["Chasse aux chapardams", "La hache et la pioche", "Boune un jour, boune toujours", "Préparation au combat", "La galette secrète", "Le métier des aventuriers"]},
+        {"x": 0, "y": -4, "actions": ["Rendre Chasse aux chapardams et prendre Leçon d'humilité."], "quests": ["Chasse aux chapardams", "Leçon d'humilité"]}
+      ],
+      "pause_checkpoint": {
+        "safe": true,
+        "location": "Milice [0,-4]",
+        "state": [
+          "Chasse aux chapardams terminée",
+          "Leçon d'humilité active",
+          "Stocks Pâturages/Forêt conservés pour les crafts",
+          "Viandes Intangibles obtenues avec le couteau autant que possible"
+        ]
+      }
+    },
+    {
+      "id": "INC-05",
+      "title": "Ateliers, mine et fermeture des chaînes secondaires",
+      "expected_level": "8-11",
+      "estimated_duration_min": 40,
+      "start": {"x": 0, "y": -4, "zone": "Incarnam", "travelable": true},
+      "end": {"x": -1, "y": -3, "zone": "Incarnam", "travelable": true},
+      "waypoints": [
+        {"x": -1, "y": -2, "actions": ["Préparer 1 Bouillon de Chair dès qu'une Viande Intangible est disponible."], "quests": ["Le métier des aventuriers"]},
+        {"x": 0, "y": -3, "actions": ["Rendre Le métier des aventuriers puis prendre La hache et la pioche."], "quests": ["Le métier des aventuriers", "La hache et la pioche"]},
+        {"x": 2, "y": -4, "actions": ["Dans la mine, récolter 10 Fer.", "Pendant que Un peu de pigment est active, obtenir 3 Poudres d'Aminite.", "Fondre 1 Ferrite."], "quests": ["La hache et la pioche", "Un peu de pigment"]},
+        {"x": 2, "y": -2, "actions": ["Fabriquer 1 Planche Agglomérée avec les 10 Bois de Frêne."], "quests": ["La hache et la pioche"]},
+        {"x": 3, "y": -5, "actions": ["Rendre les 3 Poudres d'Aminite et terminer Un peu de pigment."], "quests": ["Un peu de pigment"]},
+        {"x": 0, "y": -3, "actions": ["Rendre Ferrite + Planche à Berb, prendre Boune un jour, boune toujours."], "quests": ["La hache et la pioche", "Boune un jour, boune toujours"]},
+        {"x": 1, "y": -4, "actions": ["Fabriquer les deux bijoux de la panoplie Boune."], "quests": ["Boune un jour, boune toujours"]},
+        {"x": 0, "y": -2, "actions": ["Fabriquer les bottes, ceinture, cape et coiffe de la panoplie Boune."], "quests": ["Boune un jour, boune toujours"]},
+        {"x": 0, "y": -3, "actions": ["Rendre la panoplie à Berb puis prendre Préparation au combat."], "quests": ["Boune un jour, boune toujours", "Préparation au combat"]},
+        {"x": -1, "y": -3, "actions": ["Après avoir validé les cinq vestiges de zones, rendre Des vestiges de légende et prendre Vu du ciel."], "quests": ["Des vestiges de légende", "Vu du ciel"]}
+      ],
+      "pause_checkpoint": {
+        "safe": true,
+        "location": "Ternette [-1,-3]",
+        "state": [
+          "C'est le métier qui rentre avancé jusqu'à Préparation au combat active",
+          "Un peu de pigment terminée",
+          "Vu du ciel active",
+          "Leçon d'humilité active",
+          "Ferrite et Planche Agglomérée déjà créées"
+        ]
+      }
+    },
+    {
+      "id": "INC-06",
+      "title": "Télescopes, Milice finale et préparation du passage Kardorim",
+      "expected_level": "9-12",
+      "estimated_duration_min": 30,
+      "start": {"x": -1, "y": -3, "zone": "Incarnam", "travelable": true},
+      "end": {"x": 5, "y": -1, "zone": "Cimetière d'Incarnam", "travelable": true},
+      "waypoints": [
+        {"x": -1, "y": -6, "actions": ["Utiliser la lunette de Matu Vuh pour Vu du ciel."], "quests": ["Vu du ciel"]},
+        {"x": -2, "y": -3, "actions": ["Parler à Lykhen pour Espoirs et tragédies si ce dialogue n'a pas encore été fait."], "quests": ["Espoirs et tragédies"]},
+        {"x": 0, "y": -3, "actions": ["Parler à Aléha dans la taverne pour Espoirs et tragédies si nécessaire."], "quests": ["Espoirs et tragédies"]},
+        {"x": 2, "y": -1, "actions": ["Parler à Oskar Khas et gagner le combat de Espoirs et tragédies."], "quests": ["Espoirs et tragédies"]},
+        {"x": 2, "y": -3, "actions": ["Rendre Espoirs et tragédies et prendre Dans la gueule du Milimilou. Ne pas terminer Milimilou avant d'avoir préparé la confiture."], "quests": ["Espoirs et tragédies", "Dans la gueule du Milimilou"]},
+        {"x": -1, "y": 1, "actions": ["Utiliser la lunette de Galilea pour Vu du ciel."], "quests": ["Vu du ciel"]},
+        {"x": 1, "y": 0, "actions": ["Battre Kruella Freuz pour Leçon d'humilité."], "quests": ["Leçon d'humilité"]},
+        {"x": 0, "y": -4, "actions": ["Rendre Leçon d'humilité et prendre Des chafers qui marchent."], "quests": ["Leçon d'humilité", "Des chafers qui marchent"]},
+        {"kind": "zone", "label": "Cimetière d'Incarnam", "actions": ["Tuer les espèces de chafers demandées par Des chafers qui marchent.", "Récupérer au moins 3 Reliques d'Incarnam pour Préparation au combat."], "quests": ["Des chafers qui marchent", "Préparation au combat"]},
+        {"x": 4, "y": 1, "actions": ["Entrer dans le tombeau de Percy Klop, le vaincre et récupérer le Sac de Bijoux."], "quests": ["Des chafers qui marchent"]},
+        {"x": 5, "y": -1, "actions": ["Parler à Klasmor pour Dans la gueule du Milimilou. Préparer le passage unique de la Crypte, mais ne pas entrer avant la validation du bloc Kardorim suivant."], "quests": ["Dans la gueule du Milimilou"]}
+      ],
+      "pause_checkpoint": {
+        "safe": true,
+        "location": "Entrée Crypte de Kardorim [5,-1]",
+        "state": [
+          "Dans la gueule du Milimilou active et Klasmor interrogé",
+          "Des chafers qui marchent objectif Percy terminé",
+          "3 Reliques d'Incarnam visées pour la clef",
+          "Vu du ciel a ses deux observations ou reste seulement à rendre",
+          "La galette secrète doit être terminée avant le dialogue Milimilou si l'on veut éviter son combat solo"
+        ]
+      }
+    },
+    {
+      "id": "INC-07",
+      "title": "Galette + Crypte de Kardorim — un seul passage de donjon",
+      "expected_level": "10-15",
+      "estimated_duration_min": 35,
+      "start": {"x": 5, "y": -1, "zone": "Cimetière d'Incarnam", "travelable": true},
+      "end": {"x": 2, "y": -3, "zone": "Incarnam", "travelable": true},
+      "waypoints": [
+        {"x": -1, "y": -4, "actions": ["Après avoir consulté la recette de quête, cuire la Galette secrète avec les ingrédients stockés."], "quests": ["La galette secrète"]},
+        {"x": 1, "y": -2, "actions": ["Donner la galette à Anta puis récupérer sa demande de confiture."], "quests": ["La galette secrète"]},
+        {"x": 2, "y": -3, "actions": ["Échanger 5 Orties avec Pipelette contre le Pot de Confiture Maison."], "quests": ["La galette secrète"]},
+        {"x": 1, "y": -2, "actions": ["Rendre la confiture à Anta et terminer La galette secrète; conserver le pot de confiture de quête utilisable avec Milimilou."], "quests": ["La galette secrète"]},
+        {"x": 5, "y": -1, "actions": ["Entrer dans la Crypte de Kardorim. Cryptologie se lance au passage si elle n'est pas déjà active.", "Faire le maximum de succès compatibles dans ce passage: Premier, Spécial, Zombie et Duo selon la composition.", "À la fin, parler à Kardorim et choisir d'en savoir plus pour valider Cryptologie.", "Profiter de ce même passage pour progresser Dans la gueule du Milimilou; utiliser le pot de confiture lorsqu'il permet d'éviter le combat solo supplémentaire."], "quests": ["Cryptologie", "Dans la gueule du Milimilou"], "successes": ["Kardorim — Premier", "Kardorim — Spécial", "Kardorim — Zombie", "Kardorim — Duo"]},
+        {"x": 2, "y": -3, "actions": ["Rendre Dans la gueule du Milimilou à Fécaline et prendre Destination Astrub."], "quests": ["Dans la gueule du Milimilou", "Destination Astrub"]}
+      ],
+      "pause_checkpoint": {
+        "safe": true,
+        "location": "Fécaline [2,-3]",
+        "state": [
+          "Cryptologie terminée",
+          "Dans la gueule du Milimilou terminée",
+          "Destination Astrub active",
+          "Aucun second passage Kardorim requis pour une quête; seuls des succès réellement ratés peuvent justifier un retour"
+        ]
+      }
+    },
+    {
+      "id": "INC-08",
+      "title": "Nettoyage Incarnam et départ définitif vers Astrub",
+      "expected_level": "10-15",
+      "estimated_duration_min": 20,
+      "start": {"x": 2, "y": -3, "zone": "Incarnam", "travelable": true},
+      "end": {"zone": "Temple des Douze — Astrub", "travelable": false},
+      "waypoints": [
+        {"x": 1, "y": -2, "actions": ["Avec 3 Reliques + 5 Cendres, fabriquer la Clef de la Crypte de Kardorim demandée par Préparation au combat si ce craft n'a pas encore été fait."], "quests": ["Préparation au combat"]},
+        {"x": 3, "y": -3, "actions": ["Fabriquer La Halte Efkat si nécessaire."], "quests": ["Préparation au combat"]},
+        {"x": 2, "y": -4, "actions": ["Fabriquer Bounihimée si nécessaire."], "quests": ["Préparation au combat"]},
+        {"x": 0, "y": -3, "actions": ["Rendre les trois crafts à Berb et fermer C'est le métier qui rentre."], "quests": ["Préparation au combat"]},
+        {"x": 0, "y": -4, "actions": ["Rendre le Sac de Bijoux et fermer Service dans la milice."], "quests": ["Des chafers qui marchent"]},
+        {"x": -1, "y": -3, "actions": ["Rendre Vu du ciel et fermer Poussé par le vent."], "quests": ["Vu du ciel"]},
+        {"x": 4, "y": -3, "actions": ["Parler à Maître Anemo pour Destination Astrub et prendre le portail vers le Monde des Douze."], "quests": ["Destination Astrub"]},
+        {"kind": "instance", "label": "Temple des Douze — Astrub", "actions": ["Parler à l'Envoyée des Douze pour terminer Destination Astrub et débloquer Les principes d'Archie m'aident."], "quests": ["Destination Astrub", "Les principes d'Archie m'aident"]}
+      ],
+      "before_leaving_area": [
+        "Vérifier que les cinq succès de quêtes Incarnam ciblés sont terminés.",
+        "Vérifier les succès de la Crypte de Kardorim et noter uniquement ceux réellement manqués.",
+        "Ne conserver aucune ressource d'Incarnam sans usage futur identifié; les objets de quête restent gérés par le jeu.",
+        "Destination Astrub doit être la seule transition de chapitre."
+      ],
+      "pause_checkpoint": {
+        "safe": true,
+        "location": "Temple des Douze — Astrub",
+        "state": [
+          "Destination Astrub terminée",
+          "Les principes d'Archie m'aident disponible",
+          "Chapitre Incarnam fermé",
+          "Prochain chapitre: Astrub"
+        ]
+      }
+    }
+  ]
+}

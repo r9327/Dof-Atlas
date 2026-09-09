@@ -1,0 +1,151 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_astrub_v3",
+  "title": "Guide Ultime — Astrub manuel optimisé + Kérubim",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "astrub_v2.json",
+  "supersedes": "guide_ultime_manual_astrub_v2",
+  "game_floor": "DOFUS 3.6",
+  "stage_count": 16,
+  "coverage": {
+    "dofus_argente_quest_count": 32,
+    "dofus_argente_success_count": 7,
+    "additional_global_success_threads": [
+      "Faire le keke",
+      "Il faut que cha brille"
+    ],
+    "kerubim_strategy": "Scène de ménage et Shushu et Lulu sont terminées à Astrub; Bien velu est lancé et ses combats sont absorbés par les passages naturels Astrub/Amakna; l'hebdomadaire est fait une fois dès que le Poil de Kerubim est obtenu."
+  },
+  "stage_patches": {
+    "AST-01": {
+      "replace": {
+        "title": "Grande boucle centre-ville — œufs, escroquerie, Chacha, habitat et Scène de ménage",
+        "duration_min": 45,
+        "quests": [
+          "On marche sur des oeufs",
+          "Ça tombe à l'eau",
+          "Six pieds sous terre",
+          "Chacha Blues",
+          "Les deux font l'impair",
+          "Attention à la Bête !",
+          "Conseil de classe",
+          "Bière qui roule n'amasse pas mousse",
+          "Scène de ménage"
+        ],
+        "route": [
+          {"pos":"[2,-20]","do":"Avancer Ça tombe à l'eau."},
+          {"pos":"[3,-17]","do":"Prendre Scène de ménage auprès de Kerubim avant de parcourir la ville."},
+          {"pos":"[1,-17]","do":"Entrer dans la mine et récupérer la plume de Tofu Ranifftou pour Scène de ménage."},
+          {"pos":"[4,-18]","do":"Mutualiser la banque: avancer Ça tombe à l'eau, prendre Les deux font l'impair et récupérer les informations/plume de Scène de ménage."},
+          {"pos":"[6,-18]","do":"Mutualiser la taverne pour On marche sur des oeufs, Ça tombe à l'eau et Scène de ménage; récupérer la plume dans le balai, acheter le Lailait de Chacha Blues et garder une Bière d'Astrub pour les quêtes qui la demandent."},
+          {"pos":"[4,-17]","do":"Avancer Ça tombe à l'eau avec Camille."},
+          {"pos":"[7,-19]","do":"Mutualiser Herdegrize: récupérer la plume de Scribouillard de Scène de ménage, fermer la phase bibliothèque de Ça tombe à l'eau et lancer Six pieds sous terre."},
+          {"pos":"[3,-17]","do":"Rendre les trois plumes à Kerubim. Scène de ménage terminée; Shushu et Lulu et Bien velu, c'est Kerubim sont désormais débloquées."},
+          {"pos":"[7,-20]","do":"Prendre Chacha Blues, donner Lailait + Goujon; garder Soki pendant les déplacements de ville."},
+          {"pos":"[2,-21]","do":"Prendre Attention à la Bête !; ne faire que les interrogatoires de ville, Mine reportée."},
+          {"pos":"[2,-15]","do":"Avancer On marche sur des oeufs; prendre Maîtrise des Invocations si disponible."},
+          {"pos":"[1,-15]","do":"Lancer la quête de donjon Château Ensablé avant sa future sortie."},
+          {"pos":"[5,-19]","do":"Livrer Nowa; prendre Bière qui roule n'amasse pas mousse dès déblocage."},
+          {"pos":"[4,-19]","do":"Terminer On marche sur des oeufs et lancer Conseil de classe."}
+        ],
+        "opportunistic": [
+          "Faire passer Soki par [6,-19], [3,-19], [3,-17] et [6,-17] au fil du trajet plutôt que créer quatre détours dédiés.",
+          "Pour Les deux font l'impair, parler aux recruteuses [7,-17] et [1,-18] lorsqu'une boucle passe de chaque côté de la ville.",
+          "Ne jamais refaire les passages banque/taverne pour Scène de ménage: ils sont intégrés à la boucle principale."
+        ],
+        "pause": [
+          "Scène de ménage terminée",
+          "Shushu et Lulu disponible",
+          "Bien velu, c'est Kerubim disponible",
+          "Conseil de classe active",
+          "Six pieds sous terre active",
+          "Attention à la Bête ! active",
+          "Chacha Blues avancée",
+          "Quête Château Ensablé active"
+        ]
+      }
+    },
+    "AST-02": {
+      "replace": {
+        "title": "Kérubim + branche de classe + ouverture Mercenariat",
+        "duration_min": 45,
+        "quests": [
+          "Shushu et Lulu",
+          "Bien velu, c'est Kerubim",
+          "Conseil de classe",
+          "conditional:class_quest",
+          "Ça sent le gaz",
+          "Bière qui roule n'amasse pas mousse",
+          "Combat de rue",
+          "Les as de la cambriole"
+        ],
+        "route": [
+          {"pos":"[3,-17]","do":"Prendre Shushu et Lulu et Bien velu, c'est Kerubim. Les deux restent dans le même fil Kérubim."},
+          {"pos":"[6,-18]","do":"Pour Shushu et Lulu, acheter/donner 1 Bière d'Astrub à Gralahad; profiter du même passage pour Bière qui roule n'amasse pas mousse."},
+          {"pos":"[3,-17]","do":"Rendre compte à Kerubim pour poursuivre Shushu et Lulu."},
+          {"pos":"[4,-15]","do":"Faire le combat de groupe contre Gilou Aychwesh pour Shushu et Lulu."},
+          {"pos":"[3,-17]","do":"Ramener Gilou à Kerubim."},
+          {"pos":"[6,-18]","do":"Prévenir Gralahad de la présence du faux Shushu."},
+          {"pos":"[1,-19]","do":"Faire le combat solo de Shushu et Lulu, parler à Kerubim caché dans le tonneau et récupérer son ticket."},
+          {"pos":"[0,-18]","do":"Montrer le ticket à Hassen Cehef et débloquer définitivement la Diligence d'Astrub vers Baie de Cania, Cimetière des Héros et Domaine des Fungus."},
+          {"pos":"[6,-16]","do":"Faire le premier des trois combats de Bien velu, c'est Kerubim. Les deux autres sont volontairement différés vers les passages naturels Forêt et Amakna."},
+          {"pos":"conditional","do":"Exécuter exactement la sous-route de la classe réelle depuis astrub_class_branches_v1.json, puis lancer Ça sent le gaz."},
+          {"pos":"[5,-19]","do":"Rendre Bière qui roule n'amasse pas mousse et lancer Combat de rue."},
+          {"pos":"[5,-17]","do":"Prendre Les as de la cambriole; différer les 15 Vilinsekts jusqu'au bloc Rikiki."}
+        ],
+        "pause": [
+          "Shushu et Lulu terminée",
+          "Diligence d'Astrub débloquée",
+          "Bien velu, c'est Kerubim active avec le combat [6,-16] terminé",
+          "Quête de classe terminée",
+          "Ça sent le gaz active",
+          "Combat de rue active",
+          "Les as de la cambriole active"
+        ]
+      }
+    },
+    "AST-05": {
+      "append": {
+        "quests": ["Bien velu, c'est Kerubim"],
+        "route": [
+          {"pos":"[-3,-24]","do":"Pendant la boucle Forêt/Champs, faire le deuxième combat de Bien velu, c'est Kerubim. Ne pas revenir à Kerubim: le troisième combat [3,1] sera absorbé par la première sortie Amakna."}
+        ],
+        "hard_exit": [
+          "Bien velu, c'est Kerubim ne doit plus avoir que le combat [3,1] puis le retour à Kerubim."
+        ]
+      }
+    },
+    "AST-15": {
+      "replace": {
+        "title": "Rikiki + clôture Astrub — Mercenaire, handoffs donjons et Dofus Argenté",
+        "duration_min": 55
+      },
+      "append": {
+        "quests": ["Donjon rikiki", "Donjon en lambeaux", "Revenons à nos bouftons", "Le Maître des clefs", "Le réceptacle des Dofus", "Bien velu, c'est Kerubim"],
+        "route": [
+          {"pos":"[1,-15]","do":"Après la Cache de Kankreblath, retourner immédiatement voir Emma Tompouce: rendre Donjon rikiki et prendre Donjon en lambeaux. Ne pas quitter Astrub sans cette suite active."},
+          {"pos":"[6,-18]","do":"Retourner voir Metag Robill après le Donjon Bouftou: rendre Revenons à nos bouftons et prendre Le Maître des clefs. Ne pas laisser la chaîne Tour du Monde entre deux quêtes."},
+          {"pos":"[4,-19]","do":"Prendre Le réceptacle des Dofus auprès de Rathrosk/Fallanster dès que Balade en forêt le permet; cette quête conduira à Pandala après Le réveil de Pandala."}
+        ],
+        "before_leave": [
+          "Donjon en lambeaux doit être active.",
+          "Le Maître des clefs doit être active.",
+          "Le réceptacle des Dofus doit être active.",
+          "Bien velu, c'est Kerubim reste volontairement active avec seulement [3,1] + retour Kerubim à faire; ce n'est pas un oubli."
+        ],
+        "pause": [
+          "Dofus Argenté obtenu",
+          "32 quêtes Astrub du Dofus Argenté couvertes",
+          "Scène de ménage et Shushu et Lulu terminées",
+          "Diligence d'Astrub débloquée",
+          "Bien velu, c'est Kerubim prêt pour son dernier combat [3,1] au prochain passage Amakna",
+          "Donjon en lambeaux active",
+          "Le Maître des clefs active",
+          "Le réceptacle des Dofus active",
+          "Transition Amakna/Pandala prête"
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

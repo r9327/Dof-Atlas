@@ -1,0 +1,40 @@
+{
+  "schema_version": 3,
+  "registry_id": "guide_ultime_temporal_registry_v3",
+  "status": "RESEARCH_IN_PROGRESS",
+  "base_file": "temporal_registry_v2.json",
+  "supersedes": "temporal_registry_v2.json",
+  "entry_patches": {
+    "pandawushu_grade_chain": {
+      "intro_wait_policy": {
+        "quest": "Les voies du Pandawushu",
+        "bad_quiz_answer_delay_hours": 24,
+        "attestation_choices": [
+          {"cost_kamas": 50000, "delay_hours": 0, "guide_priority": 1},
+          {"cost_kamas": 10000, "delay_hours": 2, "guide_priority": 2},
+          {"cost_kamas": 1000, "delay_hours": 24, "guide_priority": 3},
+          {"cost_kamas": 0, "delay_hours": 48, "guide_priority": 4}
+        ],
+        "default_optimized_choice": 50000,
+        "runtime_rule": "Réussir le questionnaire du premier coup; une erreur ajoute 24 h. Pour l'attestation, payer 50 000 kamas par défaut afin de supprimer l'attente, sauf si la réserve de kamas nécessaire aux achats obligatoires du chapitre serait mise en danger. Dans ce cas choisir le palier inférieur et continuer la route pendant l'attente."
+      },
+      "delay_policy": {
+        "first_24h_timer_starts_after": "Rokwa : Voie du poing",
+        "delay_hours_between_following_grades": 24,
+        "do_not_detour_before_unlock": true,
+        "independent_from_intro_attestation_wait": true
+      },
+      "runtime_rule": "Au niveau/critères réels de À la croisée des mondes, terminer Les voies du Pandawushu en gérant séparément son délai d'attestation, puis faire Rokwa au premier moment possible. L'heure exacte de fin de Rokwa démarre ensuite le timer de 24 h vers Gokwa. Ne jamais confondre ces deux temporisations. Après Rokwa, relancer chaque grade dès que son délai est écoulé si attendre ferait perdre un cycle complet."
+    }
+  },
+  "research_notes": [
+    "Les voies du Pandawushu: 50 000 kamas = aucune attente; 10 000 = 2 h; 1 000 = 24 h; gratuit = 48 h.",
+    "Une mauvaise réponse au questionnaire de Les voies impose 24 h avant une nouvelle tentative.",
+    "Rokwa possède un délai distinct: Gokwa n'est disponible que 24 h après la fin de Rokwa."
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/les-voies-du-pandawushu.html",
+    "https://www.dofuspourlesnoobs.com/rokwa-voie-du-poing.html",
+    "https://www.dofuspourlesnoobs.com/gokwa-voie-du-baton.html"
+  ]
+}

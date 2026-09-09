@@ -1,0 +1,282 @@
+{
+  "schema_version": 19,
+  "route_id": "guide_ultime_manual_level_120_150_v19",
+  "title": "Guide Ultime — Niveau 120 à 150 — actions joueur consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v18.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v18",
+  "stage_count": 37,
+  "depends_on": [
+    "level_100_120_v8.json",
+    "bonta_1_100_v14.json",
+    "temporal_registry_v14.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Propage les sources 100-120/Bonta/temps déjà consolidées, retire les références techniques visibles et rend les rendez-vous Frigost, Bonta 51-70, Turquoise et deux passages Mansot/Royalmouth directement compréhensibles côté joueur.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/les-monologues-du-vaccin.html",
+    "https://www.dofuspourlesnoobs.com/il-faut-battre-le-lait-quand-il-est-chaud.html",
+    "https://www.dofuspourlesnoobs.com/la-fonte-des-glaces.html",
+    "https://www.dofuspourlesnoobs.com/une-partie-de-cache-cache.html",
+    "https://www.dofuspourlesnoobs.com/ambition-ambigue.html",
+    "https://www.dofuspourlesnoobs.com/bandanarthrie.html"
+  ],
+  "global_preparation": [
+    {"name":"Tête de mort","quantity":1,"for":"L'anneau de Tot"},
+    {"name":"Clef du Ring du Capitaine Ekarlatte","quantity":1,"policy":"Le trousseau ne remplace pas cette clef."},
+    {"name":"Tige de Bambouto","quantity":1,"for":"Regrets d'éternailes"},
+    {"name":"Tablette de Totankama","quantity":1,"policy":"La construire avec cinq morceaux. Utiliser d'abord les récompenses archéologiques déjà obtenues pendant les boss et seulement ensuite les chasses encore nécessaires."},
+    {"name":"Panoplie Koalak complète","quantity":1,"optional":true,"for":"Koalak Sanguin au Skeunk uniquement si le familier est souhaité"},
+    {"name":"Boomerangs Koalak","optional":true,"for":"Boomerang Perfide au Skeunk uniquement si le sort est réellement recherché"},
+    {"requirement":"Avant chaque campagne Bonta 51-70, préparer les ressources, métiers et aides affichés par la fiche Bonta correspondante; ne recruter personne une fois arrivé sur les dalles.","blocking":true},
+    {"requirement":"Pour les captures Ocre, n'utiliser une pierre que lorsque la fiche indique explicitement que le boss doit être capturé.","blocking":true}
+  ],
+  "stage_patches": {
+    "L120-00": {
+      "prepend": {
+        "preparation": [
+          {"requirement":"Prévoir 3 personnages d'aide pour la cave des Monologues du vaccin lors du rendez-vous choisi.","blocking":true}
+        ]
+      },
+      "replace": {
+        "hard_exit": [
+          "Ultime réminiscence terminée ou son prérequis encore manquant précisément identifié.",
+          "La maire de glace puis Full Contact lancées dans le bon ordre.",
+          "Pauvre Kiki et Gène et tique terminées avant Le mal a dit.",
+          "Scierie Bambelle terminée avant Bricole Girl.",
+          "La tranche horaire des Monologues du vaccin est choisie et conservée.",
+          "En semant, se ment terminée sur la branche Paysan si cette branche est celle du personnage.",
+          "Fight club et Michel Shel Enquille un Bouftonmouth terminés une fois pour leurs succès.",
+          "Manque de re-peau terminée ou sa prochaine condition énergie/horaire précisément connue."
+        ]
+      }
+    },
+    "L120-01": {
+      "replace": {
+        "title": "Monologues — rendez-vous, cave et vaccin temporaire de 7 jours",
+        "route": [
+          {"pos":"[-77,-38] Taverne du Paradis Frigostien","do":"Revenir uniquement pendant la tranche de rendez-vous choisie. Parler à Gneux et suivre la discussion jusqu'à la cave."},
+          {"pos":"cave de la Taverne","do":"Venir avec 3 personnages d'aide et les placer sur les emplacements nécessaires pour ouvrir la grille. Seul le personnage qui fait la quête passe la grille et obtient le Sortilège d'Albert Paisse."},
+          {"pos":"cave — combat contre La Bête","do":"Lancer le Sortilège d'Albert Paisse sur La Bête AVANT de la tuer, sinon sa mort peut éliminer toute l'équipe. Gagner le combat et récupérer l'Échantillon de sang de La Bête."},
+          {"pos":"[-80,-45] Albert Paisse","do":"Rapporter l'échantillon à Albert. À l'obtention du Vaccin contre le rube temporaire, noter immédiatement l'heure : il reste valable 7 jours réels."},
+          {"pos":"Frigost / Bourgade","do":"Prendre et avancer Épis d'Emi immédiatement puis reprendre le Guide. Ne pas rester sur Frigost à attendre l'expiration du vaccin."
+          }
+        ],
+        "hard_exit": ["Vaccin temporaire obtenu.", "Heure exacte d'expiration à +7 jours conservée.", "Épis d'Emi active ou terminée.", "Le Guide reprend immédiatement pendant les 7 jours."]
+      }
+    },
+    "L120-02": {
+      "replace": {
+        "title": "Royalmouth — premier passage pour ouvrir les quêtes suivantes",
+        "hard_exit": ["Premier Royalmouth terminé.", "Porte, Royalmouth, trésor active.", "Monarchie absolue active.", "Des donjons, encore des donjons demande maintenant le Minotoror.", "Ne pas refaire Royalmouth avant que les quêtes du second passage soient toutes prêtes."]
+      }
+    },
+    "L120-04": {
+      "replace": {
+        "route": [
+          {"pos":"[-22,-24] Tour des Voyageurs","do":"Terminer Voyage, voyage avant d'entrer dans la chaîne Srambad. Cela sécurise l'accès aux dimensions avant la préparation du Ring."},
+          {"pos":"[-6,-3] Mériana","do":"Avancer Le trésor de Totankama jusqu'à la demande Perle de lait doré + Poudre d'éternaile + Anneau de Tot + Tablette de Totankama."},
+          {"pos":"[-42,-17] Refuge des cent détours","do":"Prendre Regrets d'éternailes et Il faut battre le lait quand il est chaud, puis avancer tous leurs objectifs hors donjon. Ne pas entrer au Blop Multicolore avant que la quête du lait le demande réellement."},
+          {"pos":"[3,-17] Astrub","do":"Prendre L'anneau de Tot auprès de Kerubim et avancer jusqu'au trafic de Srambad."},
+          {"pos":"Srambad","do":"Faire la chaîne Sauvé par le gong jusqu'à terminer Ça se katche et obtenir Un ring pour les gouverner tous. Ne partir vers le Capitaine Ekarlatte que lorsque L'anneau de Tot et Un ring pour les gouverner tous sont actives ensemble."},
+          {"pos":"Malle aux trésors","do":"Si la Tablette de Totankama n'est pas complète, utiliser d'abord les récompenses archéologiques déjà obtenues pendant la route, puis seulement les chasses restantes."
+          }
+        ]
+      }
+    },
+    "L120-06": {
+      "replace": {
+        "title": "Blop Multicolore — Perle de lait doré devenue disponible",
+        "route": [
+          {"pos":"[-42,-17] Refuge des cent détours","do":"Parler à Apisaphé et prendre le lait doré dans le seau de la pièce. La quête demande ensuite un élément du Blop Multicolore et un chaudron magique."},
+          {"pos":"[-7,-43] Antre du Blop Multicolore Royal","do":"Faire ce nouveau passage parce que la quête du lait n'était pas encore disponible lors du précédent Blop Multicolore. Vaincre le boss et récupérer l'élément demandé. Ne refaire que les succès encore manquants."},
+          {"pos":"cabane près du donjon","do":"Parler à Bibiblop puis gagner l'agression contre les quatre Roublards avec Gavroch vivant. Récupérer l'Insigne Roublard d'Astrub."},
+          {"pos":"Lired","do":"Donner l'etork à Lired puis suivre ses indications pour maintenir correctement la température du chaudron. Une mauvaise réponse bloque le dialogue environ 10 minutes : lire chaque choix avant de valider. Obtenir la Perle de lait doré."
+          }
+        ],
+        "hard_exit": ["Perle de lait doré obtenue.", "Le nouveau passage Blop est dû au déblocage tardif de cette quête.", "Aucune capture Ocre déjà validée n'est refaite."]
+      }
+    },
+    "L120-09": {
+      "replace": {
+        "hard_exit": ["Skeunk capturé pour l'Ocre.", "Dofus Kaliptus obtenu.", "Tous les dialogues et objets demandés par L'épée du rocher ont été faits avant de sortir.", "La voie du guerrier demande maintenant le Tanukouï San."]
+      }
+    },
+    "L120-10": {
+      "replace": {"title":"Bonta 51-54 — préparer le Tanukouï San","level":"conditions des rangs 51 à 54","route":[]}
+    },
+    "L120-11": {
+      "replace": {"route":[]}
+    },
+    "L120-11W": {
+      "replace": {
+        "route": [
+          {"pos":"[21,-21] Akwadala — avant Nagate","do":"Lire l'affiche et prendre Cent kamas pour un Kwapa avant d'entrer dans la Vallée de la Dame des eaux. Les objectifs demandent 25 Sarkapwane + 25 Kokom + 25 Akakwa + 25 Betto."},
+          {"pos":"Vallée de la Dame des eaux — salles 1 à 4","do":"Utiliser d'abord tous les monstres des salles pour remplir les quatre compteurs. Après Nagate, terminer dehors uniquement les espèces encore sous 25/25; ne recommencer aucune salle uniquement pour compléter ces compteurs."
+          }
+        ]
+      }
+    },
+    "L120-11S": {
+      "replace": {
+        "route": [
+          {"area":"Akwadala — pendant la fermentation","do":"Compléter seulement les monstres encore manquants pour Cent kamas pour un Kwapa. Dès 25/25 sur les quatre familles, poursuivre les autres quêtes de la zone."},
+          {"pos":"[23,-24] Terrdala","do":"Pendant la même heure, prendre Les métamorphoses d'un Tanuki. Utiliser le sort Capture d'âmes déjà appris et la pierre spéciale donnée par la quête, puis faire la boucle œuvres, taverne et chaman."},
+          {"pos":"[22,-25] Terrdala","do":"Prendre L'égalité des sexes. Faire les objectifs mâle/femelle et la boucle des deux Tanuki; conserver au moins 750 pods libres avant de ramasser les cinq cailloux de 150 pods."},
+          {"area":"Terrdala / Présence d'esprits","do":"Si le Dikoyokai peut encore transcrire, profiter du passage pour les esprits déjà débloqués. Pour l'Esprit saint, venir avec Mineur niveau 10 sur le personnage de quête et 5 autres personnages pour les dalles; sinon garder cette étape pour un prochain passage Pandala sans attendre sur place."},
+          {"pos":"[20,-25] Akwadala","do":"Quand l'heure de fermentation est écoulée, reprendre Les habitudes ont l'eau-de-vie dure, faire sa seconde partie puis la rendre. Si l'heure n'est pas terminée après les autres objectifs, continuer le Guide ailleurs et revenir plus tard."
+          }
+        ]
+      }
+    },
+    "L120-12": {
+      "replace": {"title":"Bonta 56-60 + troisième rang du même Ordre","level":"conditions des rangs 56 à 60","route":[]}
+    },
+    "L120-13V": {
+      "replace": {
+        "route": [
+          {"pos":"Dojo du Vent — toutes les salles","do":"Entrer avec Halte aux singeries active. Chaque Lichangoro, Fangshu, Kurookin et Ino-Naru tué dans les salles compte d'abord pour les objectifs. Faire L'équilibre des forces, Hanshi, la capture Ocre et les succès compatibles sans recommencer une salle uniquement pour Halte."},
+          {"pos":"Aerdala — après le Dojo","do":"Vérifier les quatre compteurs de Halte aux singeries. Finir dehors uniquement les espèces encore sous 10/10, puis rendre la quête en [23,-35]."
+          }
+        ]
+      }
+    },
+    "L120-14T": {
+      "replace": {
+        "level":"140-150 / conditions de quête satisfaites",
+        "route": [
+          {"pos":"[-19,-23] → sanctuaire Aguabrial","do":"Avec la Clef Dentée du Dragon Cochon et la Clef Griffue du Chêne Mou, terminer la partie sanctuaire de Plongeon et dragon puis revenir à Mériana. Aucun nouveau Dragon Cochon ni Chêne Mou n'est nécessaire."},
+          {"pos":"quête Turquoise","do":"Faire Extinction des feux puis revenir à Mériana et prendre On dirait le Sud."},
+          {"pos":"Bonta / Sud Amakna","do":"Faire On dirait le Sud avec les ressources demandées et la Pelle du Clan Terra. Lorsque Joris devient disponible à Bonta, lancer et terminer L'ombre et la proie pendant cette même campagne."},
+          {"pos":"[-6,-3] Mériana","do":"Terminer On dirait le Sud et prendre La méchante sorcière de l'Est dès qu'elle est disponible."},
+          {"pos":"Berceau d'Alma","do":"La méchante sorcière demande ensuite des monstres du Berceau d'Alma. Tant que le premier Mansot n'a pas ouvert cette zone, garder la quête active et poursuivre vers le Mansot sans chercher un autre accès."
+          }
+        ],
+        "hard_exit": ["Plongeon et dragon terminé sans nouveau Dragon Cochon ni Chêne Mou.", "Extinction des feux terminée.", "On dirait le Sud terminée.", "L'ombre et la proie terminée pendant sa première fenêtre utile.", "La méchante sorcière de l'Est active et n'attend plus que l'accès au Berceau si celui-ci est encore fermé."]
+      }
+    },
+    "L120-14F": {
+      "replace": {
+        "title":"Founoroshi — passage supplémentaire imposé par La bénédiction de Viti",
+        "route": [
+          {"pos":"[14,-32] Fabrique de foux d'artifice","do":"Revenir à Founoroshi parce que La bénédiction de Viti n'était pas disponible lors du premier passage. Dans la salle finale, utiliser l'Idole de Viti Roussie avant le combat puis vaincre Founoroshi sous l'altération."},
+          {"pos":"sortie","do":"Ne refaire que les succès encore manquants. Les objectifs Ocre, Festival et La voie du guerrier déjà validés restent acquis."
+          }
+        ],
+        "hard_exit": ["Founoroshi validé pour La bénédiction de Viti.", "Ce passage supplémentaire est uniquement dû au déblocage tardif de Viti.", "Aucun troisième Founoroshi n'est nécessaire pour le Turquoise."]
+      }
+    },
+    "L120-15": {
+      "replace": {
+        "hard_exit": ["Tynril Perfide validé pour La bénédiction de Viti lors de ce passage.", "Tour de passe-passe terminée et Tour de rein disponible.", "Tynril capturé pour l'Ocre si cette capture est encore demandée.", "Un Pistil du Tynril conservé en banque pour Un volcan s'éteint ou son achat est prévu."]
+      }
+    },
+    "L120-16": {
+      "replace": {"level":"conditions des rangs 61 à 64","route":[]}
+    },
+    "L120-17": {
+      "replace": {"level":"Bonta64 terminé / Bandanarthrie + Tour de rein actives","route":[],"hard_exit":["Bonta65 terminé.","Tour de main active.","Sphincter Cell capturé pour l'Ocre.","Le Donjon des Forgerons demandé après le Sphincter a été terminé."]}
+    },
+    "L120-18": {
+      "replace": {"level":"conditions des rangs 66 à 69","route":[],"hard_exit":["Bonta69 terminé.","Le subterfuge de la corne active.","Les aides et ressources du Mage Ax ont été préparées avant le déplacement."]}
+    },
+    "L120-19": {
+      "replace": {
+        "level":"155-160 / Chachyène de vie disponible",
+        "take": [
+          "[4,-6] Château d'Amakna : au niveau 150+, faire L'accusé de la réception avec les ressources préparées.",
+          "Enchaîner Les monstres aboient, la diligence casse à partir du niveau 155 et terminer la quête auprès du Chef Krokouto; prendre immédiatement Chachyène de vie.",
+          "Dans les Dents de Pierre, avancer Chachyène de vie et Le subterfuge de la corne jusqu'à ce que les deux demandent Kanigroula."
+        ],
+        "route": [],
+        "hard_exit": ["Bonta70 terminé.", "Chachyène de vie terminée.", "Kanigroula faite une seule fois pour les deux quêtes.", "Aucune pierre d'âme Ocre utilisée sur Kanigroula."]
+      }
+    },
+    "L120-20": {
+      "replace": {
+        "title":"Royalmouth — second passage lorsque les quatre quêtes convergent",
+        "activation":"Ne faire ce second Royalmouth que lorsque Porte, Royalmouth, trésor + Monarchie absolue + Le pouvoir derrière le trône + Le mal a dit sont toutes actives au boss et que le vaccin temporaire a réellement expiré. Sinon continuer le Guide et revenir plus tard.",
+        "route": [
+          {"pos":"[-84,-49] Serre du Royalmouth","do":"Entrer seulement lorsque les quatre quêtes sont prêtes. Faire ce second passage et ne pas utiliser de pierre Ocre sur Royalmouth si la fiche de capture ne le demande pas."},
+          {"pos":"salle finale","do":"Après le boss, faire impérativement le dialogue de Gavroch pour Le pouvoir derrière le trône avant de sortir, puis terminer les dialogues de Le mal a dit, Porte, Royalmouth, trésor et Monarchie absolue."},
+          {"pos":"Frigost","do":"Terminer Le mal a dit, obtenir le vaccin permanent puis faire Pas de vaccin pour les vilains une fois pour le succès Une piqûre de plus."},
+          {"pos":"quête Pourpre","do":"Terminer Le pouvoir derrière le trône et récupérer le Dofus Pourpre dès que ses autres composants sont validés."},
+          {"pos":"[-76,-46]","do":"Rendre Monarchie absolue. Monarchie parlementaire attend encore Les joyeux de la couronne et sera prise après le premier Mansot."
+          }
+        ],
+        "hard_exit": ["Deuxième Royalmouth utilisé pour quatre quêtes simultanées.", "Porte, Royalmouth, trésor terminée.", "Monarchie absolue terminée.", "Vaccin permanent obtenu.", "Pas de vaccin pour les vilains terminée une fois.", "Dofus Pourpre obtenu ou son dernier objectif précis est connu.", "Aucun troisième Royalmouth prévu pour ces quêtes."]
+      }
+    },
+    "L120-20F": {
+      "replace": {
+        "hard_exit": [
+          "Semer ses graines terminée.",
+          "Bricole Girl terminée après Scierie Bambelle.",
+          "La marche de l'impératrice terminée avant Star ski et Dutch.",
+          "Star ski et Dutch terminée avant le premier Mansot.",
+          "Faire le tas de pins terminée une fois.",
+          "Bricoleur de génie terminée si la Gomme à mâcher est tombée; sinon seuls les combats encore utiles de la zone sont utilisés avant tout farm ciblé.",
+          "Groméo et Ginette terminée ou sa prochaine fenêtre 17 h-21 h est connue sans attente immobile."
+        ]
+      }
+    },
+    "L120-20G": {
+      "replace": {
+        "preparation": [
+          {"policy":"Préparer ou acheter les ressources de la combinaison thermolactée en même temps que les achats Hôtel de glace / La fonte des glaces. Les variantes exactes demandées par Mac Givré doivent être obtenues auprès des PNJ ou via les recettes de la quête; ne pas substituer un objet au nom proche."},
+          {"requirement":"Prévoir un groupe jusqu'à 4 pour le Craqueleur de Glace de Lumière sur l'ombre si le personnage ne peut pas le gérer seul.","blocking":false}
+        ],
+        "progress_also": [
+          "Conserver la combinaison et les accès utiles pour Le givre des révélations.",
+          "Qu'est-ce qu'on a fait des tuyaux ? et Lâcher les gaz ne se lancent qu'après Les joyeux de la couronne; ne pas les chercher avant le premier Mansot."
+        ]
+      }
+    },
+    "L120-20M": {
+      "replace": {
+        "title":"Mansot Royal — second passage pour Viti + Porte Mansot + Monarchie parlementaire",
+        "activation":"Faire ce second Mansot uniquement après le premier Mansot, lorsque La bénédiction de Viti a déjà validé Founoroshi + Tynril, que Porte, Mansot Royal, trésor est active et que Monarchie parlementaire est disponible.",
+        "route": [
+          {"pos":"[-64,-55] Excavation du Mansot Royal","do":"Entrer avec La bénédiction de Viti + Porte, Mansot Royal, trésor + Monarchie parlementaire actives. Dans la salle finale, utiliser l'Idole de Viti Glacée avant le combat puis vaincre le Mansot Royal."},
+          {"pos":"sortie","do":"Terminer Porte, Mansot Royal, trésor et Monarchie parlementaire, puis vérifier que Founoroshi, Tynril et Mansot sont tous validés dans La bénédiction de Viti."
+          }
+        ],
+        "hard_exit": ["La bénédiction de Viti a ses trois boss validés.", "Porte, Mansot Royal, trésor terminée.", "Monarchie parlementaire terminée.", "Aucun troisième Mansot nécessaire pour ces quêtes."]
+      }
+    },
+    "L120-20B": {
+      "replace": {
+        "title":"Ben le Ripate — ouvrir les Larmes et avancer Sorcière + Agriculture",
+        "route": [
+          {"pos":"Berceau d'Alma","do":"Avec La méchante sorcière de l'Est active, utiliser toute la boucle du Berceau et le trajet vers Ben pour obtenir les 7 exemplaires demandés de chaque famille. Compléter dehors uniquement les espèces encore manquantes."},
+          {"pos":"[-60,-84] Épave du Grolandais violent","do":"Faire le premier Ben avec Fais dodo, t'auras du gâteau active et les succès compatibles. La bénédiction de Thomahon n'est pas encore active et ne doit pas retarder ce passage."},
+          {"pos":"sortie Ben","do":"Rendre Fais dodo auprès de Fantômahawk et choisir la sortie qui ouvre les Larmes d'Ouronigride. Prendre Porte, Ben le Ripate, trésor immédiatement."},
+          {"area":"Berceau d'Alma + donjon Ben","do":"Avec Mettre son grain de sel active, utiliser d'abord tous les monstres de la boucle et des salles pour obtenir les 40 Grains de Sel. Ne compléter dehors que ce qui manque après le donjon."},
+          {"pos":"[-82,-48] après Ben","do":"Dès 40 Grains de Sel obtenus, rendre Mettre son grain de sel et prendre Mauvaise graine pour la future campagne des Larmes d'Ouronigride."
+          }
+        ],
+        "hard_exit": ["Fais dodo, t'auras du gâteau terminée.", "Larmes d'Ouronigride accessibles.", "La méchante sorcière de l'Est a ses monstres du Berceau terminés ou le nombre exact restant est connu.", "Mettre son grain de sel terminée.", "Mauvaise graine active.", "Bijoux de famille terminée si le Coffre familial est tombé; sinon seuls les combats encore utiles du Berceau sont consommés avant tout farm ciblé."]
+      }
+    },
+    "L120-21": {
+      "replace": {
+        "title":"Mansot Royal — premier passage + Lac Gelé + Forage",
+        "route": [
+          {"area":"Lac Gelé — avant l'Excavation","do":"Terminer les préparatifs de Pêche en eaux gelées et Les chasseurs jusqu'à leur objectif Mansot. Massacre au hakapik doit être active pour profiter des monstres du Lac et des salles. Faire aussi Vacances sur glace et Adoption éphémère pendant cette campagne si elles sont disponibles."},
+          {"pos":"[-64,-55] Excavation du Mansot Royal","do":"Entrer avec Les joyeux de la couronne + Pêche en eaux gelées + Les chasseurs + Massacre au hakapik au bon objectif. Faire les succès compatibles et tous les dialogues/objets post-boss avant de sortir."},
+          {"pos":"sortie Mansot","do":"Prendre Porte, Mansot Royal, trésor après Les joyeux de la couronne. Si Monarchie absolue est déjà terminée, prendre aussi Monarchie parlementaire; sinon la prendre dès que ce prérequis sera fermé."},
+          {"area":"Lac Gelé","do":"Terminer Pêche en eaux gelées et Les chasseurs. Utiliser ensuite les combats encore nécessaires pour atteindre les 40 Graines de Lentille de Massacre au hakapik, rendre la quête puis prendre Mettre son grain de sel."},
+          {"pos":"[-64,-55] Mel","do":"Après Pêche en eaux gelées, enchaîner La pêche à Mel, Mel Odieuse puis Mel au drame sans quitter le Lac. À chaque fois, faire le groupe de mansots demandé puis revenir parler à Mel."},
+          {"area":"Il est frais mon pichon","do":"Enchaîner Damar puis Ordralfabétist. Transporter les Mansobèses un par un : chaque livraison a sa propre limite de 30 minutes. Avant la livraison à Bambelle, vérifier qu'Épis d'Emi n'empêche plus son dialogue."},
+          {"pos":"[-64,-51] Bambelle","do":"Faire la livraison concernée, gagner l'agression puis poursuivre les livraisons jusqu'à terminer Il est frais mon pichon. Rendre ensuite L'essentiel est dans Lac Gelé à la Maire Cantile."},
+          {"area":"Forêt des Pins / Bourgade — après Les joyeux de la couronne","do":"Prendre Qu'est-ce qu'on a fait des tuyaux ? en [-58,-69], inspecter la canalisation et faire les dialogues. Lors du combat de Dolores, chaque personnage qui suit la quête doit choisir de partir chercher des renforts; reparler à Dolores après la victoire."},
+          {"pos":"[-55,-57] Dolores Kimo","do":"Enchaîner immédiatement Lâcher les gaz : faire Aurore, Francky, l'Agent puis la grotte des ingénieurs, vaincre les deux créatures de gaz et terminer la quête."},
+          {"area":"Lac Gelé / Objets trouvés","do":"Sur tous les Mansots utilisés par ces quêtes, surveiller la Plume Vibrante. Si elle tombe, lancer puis terminer Un gros cube, un p'ti cube. Si elle manque encore après les passages Mansot nécessaires, garder uniquement ce drop précis comme rattrapage."
+          }
+        ],
+        "hard_exit": ["Premier Mansot terminé avec tous les fils disponibles.", "Les joyeux de la couronne terminée et Berceau d'Alma accessible.", "Porte, Mansot Royal, trésor active.", "Pêche en eaux gelées et Les chasseurs terminées.", "Massacre au hakapik terminée et Mettre son grain de sel active.", "La pêche à Mel, Mel Odieuse, Mel au drame et Il est frais mon pichon terminées.", "L'essentiel est dans Lac Gelé terminé.", "Vacances sur glace et Adoption éphémère terminées une fois si disponibles.", "Qu'est-ce qu'on a fait des tuyaux ? et Lâcher les gaz terminées.", "Un gros cube, un p'ti cube terminé si la Plume est tombée; sinon seul ce drop précis reste à récupérer."]
+      }
+    }
+  },
+  "insertions": []
+}

@@ -1,0 +1,100 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_level_100_120_v7",
+  "title": "Guide Ultime — Niveau 100 à 120 + Nature spirituelle lancée au plus tôt",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_100_120_v6.json",
+  "supersedes": "guide_ultime_manual_level_100_120_v6",
+  "stage_count": 17,
+  "depends_on": [
+    "level_70_100_v8.json",
+    "bonta_1_100_v11.json"
+  ],
+  "optimization_note": "Lance Présence d'esprits dès la première fenêtre légale après Surivitna afin d'absorber ses 21 esprits dans les passages Pandala suivants. Ferme La voix de la soif et Nékinékologie au niveau100 au lieu de les découvrir comme prérequis post-200 de Tant de mots et si peu de temps.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/presence-d-esprits.html",
+    "https://www.dofuspourlesnoobs.com/la-voix-de-la-soif.html",
+    "https://www.dofuspourlesnoobs.com/nekinekologie.html",
+    "https://www.dofuspourlesnoobs.com/nature-spirituelle.html"
+  ],
+  "insertions": [
+    {
+      "after": "L100-00",
+      "stage": {
+        "id": "L100-00N",
+        "title": "Pandala 100 — lancer Présence d'esprits + fermer La voix de la soif/Nékinékologie",
+        "level": "100+ / Le réveil terminé / À la croisée avancée au moins jusqu'à Surivitna",
+        "duration_min": 240,
+        "quests": [
+          "Présence d'esprits",
+          "La voix de la soif",
+          "Nékinékologie"
+        ],
+        "successes": ["Nature spirituelle"],
+        "temporal_hooks": [
+          "pandala_presence_esprits_transcription_cap",
+          "pandala_presence_esprits_initiative"
+        ],
+        "entry": "Présence d'esprits: À la croisée des mondes doit avoir atteint la rencontre avec Surivitna. La voix de la soif et Nékinékologie demandent Le réveil de Pandala terminé et leur niveau conseillé.",
+        "preparation": [
+          {"name":"Riz","quantity":420,"for":"Nékinékologie + La voix de la soif + Présence d'esprits","policy":"200 pour Nékinékologie, 20 pour La voix de la soif et 200 pour l'Esprit embourbé de Présence. Acheter/retirer en lots au moment utile pour limiter les pods."},
+          {"name":"Bois de Bambou","quantity":80,"for":"Nékinékologie"},
+          {"name":"Bois de Bambou Sombre","quantity":60,"for":"Nékinékologie + La voix de la soif"},
+          {"name":"Bois de Bambou Sacré","quantity":85,"for":"Nékinékologie + La voix de la soif"},
+          {"name":"Dolomite","quantity":40,"for":"Nékinékologie"},
+          {"name":"Graine de Pandouille","quantity":95,"for":"Nékinékologie + La voix de la soif"},
+          {"name":"Dorade Grise","quantity":50,"for":"Nékinékologie"},
+          {"name":"Pelle de Boisaille","quantity":1,"for":"La voix de la soif"},
+          {"name":"Pandaburg","quantity":1,"alternative":"40 kamas","for":"La voix de la soif"},
+          {"name":"Artefact Pandawushu Roc","quantity":10,"for":"Présence d'esprits"},
+          {"name":"Artefact Pandawushu Eau","quantity":5,"for":"Présence d'esprits"},
+          {"name":"Artefact Pandawushu Vent","quantity":5,"for":"Présence d'esprits"},
+          {"name":"Artefact Pandawushu Feu","quantity":5,"for":"Présence d'esprits"},
+          {"name":"Artefact Pandawushu Bois","quantity":5,"for":"Présence d'esprits"},
+          {"name":"Bananagrume","quantity":8,"for":"Présence d'esprits"},
+          {"name":"Fraise","quantity":3,"for":"Présence d'esprits — offrande Esprit malin"},
+          {"name":"Viscères de Scarafeuille","quantity":3,"for":"Présence d'esprits — offrande Esprit malin"},
+          {"name":"Pandakwak","quantity":10,"alternative":"800 kamas","for":"Présence d'esprits"},
+          {"kamas":3015,"for":"Présence d'esprits — achats/interactions fixes hors alternative Pandakwak"},
+          {"requirement":"Prévoir au moins 3000 pods libres avant l'Esprit ouvert; Kameoza pèse ensuite 20000 pods jusqu'à la taverne Nimbos.","blocking":false},
+          {"requirement":"Pouvoir atteindre 500 Force pour l'Esprit fermé.","blocking":true},
+          {"requirement":"Mineur niveau10 personnel pour fabriquer les cinq Vertus de l'Esprit saint; craft coopératif impossible.","blocking":true},
+          {"requirement":"Pouvoir réunir jusqu'à 5 autres personnages pour les esprits à dalles/rassemblement.","blocking":true},
+          {"note":"Ne pas porter tout le stock Nature spirituelle en permanence. Remettre Nékinékologie dès que ses ressources sont réunies et garder en banque seulement les ressources Présence encore non consommées."}
+        ],
+        "take": [
+          "[20,-27] Dès que Surivitna a été rencontré dans À la croisée des mondes, prendre Présence d'esprits.",
+          "[21,-27] Entrer dans la bibliothèque et parler à Dikoyokai pour commencer les 21 esprits. Ne pas attendre la fin du Domakuro: cette quête doit progresser en parallèle sur plusieurs jours.",
+          "[20,-30] Prendre Nékinékologie et remettre les ressources préparées dans cette même session afin de libérer immédiatement les pods.",
+          "[19,-31] Prendre La voix de la soif avant de repartir dans les zones de Pandala/Grobe."
+        ],
+        "route": [
+          {"area":"Village / Pandala","do":"Avec Présence d'esprits active, référencer jusqu'à quatre esprits disponibles sur les zones déjà traversées. Après la quatrième transcription, le Dikoyokai devient fatigué: continuer le reste du guide et revenir au moins 24 heures plus tard, puis double-cliquer le Dikoyokai pour le remettre au repos."},
+          {"area":"Plantala / Terrdala / Feudala / Aerdala","do":"Faire les collectes et combats de La voix de la soif pendant les déplacements déjà nécessaires. Les 15 Racines sauvages tombent sur les monstres de Plantala; pour les deux Venins de cooleuvre, si le venin ne tombe pas, quitter la zone et revenir après le délai de réapparition plutôt que d'attendre sur place."},
+          {"area":"Grobe","do":"Profiter du passage de La voix de la soif pour chercher le Mauvais esprit de Présence d'esprits si le Dikoyokai peut encore transcrire et si l'énergie du personnage est déjà à 1000 ou moins. Ne pas faire mourir volontairement le personnage uniquement pour provoquer cette condition si un autre passage Grobe est déjà prévu."},
+          {"area":"Village / Aerdala","do":"Terminer la Pandabsynthe, déterrer le coffre en [12,-22] avec la Pelle de Boisaille équipée, puis faire le combat Daïgoro. Fermer La voix de la soif maintenant afin que Tant de mots et si peu de temps ne provoque aucun retour niveau200."},
+          {"area":"Banque Pandala","do":"Après les remises, déposer les Artefacts, Bananagrumes et autres ressources encore réservées à Présence d'esprits, puis vider les excédents lourds. Conserver la progression des 21 esprits jusqu'aux prochaines fenêtres naturelles."}
+        ],
+        "progress_also": [
+          "À chaque futur passage Pandala, vérifier les esprits nouvellement accessibles avant de quitter la zone; privilégier ceux dont la transformation, l'offrande ou le prérequis est déjà disponible.",
+          "Esprit d'initiative: après Rokwa, le faire un samedi lorsque possible; l'objet Semaine des sept samedis peut forcer cette disponibilité si son coût en Almatons est acceptable. Ne pas gaspiller une transcription si le Dikoyokai est déjà fatigué.",
+          "Esprit fertile: attendre Infâme pourriture + Sous le bois de sa colère, puis utiliser un passage Plantala existant.",
+          "Esprit critique: attendre Au nom de l'Art; Esprit chagrin: attendre La jetée des enfants perdus; Esprit malin: le faire pendant L'équilibre des forces lorsque la transformation Moon est déjà active; Esprit torturé: attendre Le foux fou Fifoux."
+        ],
+        "before_leaving": [
+          "Présence d'esprits active avec la progression du Dikoyokai conservée.",
+          "Nékinékologie terminée.",
+          "La voix de la soif terminée ou objectif réellement indisponible précisément identifié.",
+          "Aucune attente 24 h dédiée à Présence d'esprits."
+        ],
+        "hard_exit": [
+          "Tant de mots et si peu de temps ne sera plus bloqué par La voix de la soif.",
+          "Nature spirituelle reste ouverte sur Présence d'esprits tant que les 21 esprits ne sont pas tous référencés."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — Dikoyokai actif, Nature spirituelle lancée au plus tôt"],
+        "next": "reprendre la route 100-120 et profiter des passages Pandala suivants pour référencer les esprits disponibles"
+      }
+    }
+  ],
+  "stage_patches": {}
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_level_181_190_v3",
+  "title": "Guide Ultime — Niveau 181 à 190 + suivi Nébuleux hors catalogue quêtes",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v2.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v2",
+  "stage_count": 21,
+  "optimization_note": "Le checkpoint Nébuleux reste une vérification transversale mais n'est plus déclaré comme une pseudo-quête. Cela évite de polluer l'audit QuestProvider avec un libellé synthétique qui n'existe pas dans le catalogue jeu.",
+  "stage_patches": {
+    "L190-10": {
+      "replace": {
+        "quests": [],
+        "thread": "Dofus Nébuleux — suivi de complétude des succès dimensionnels"
+      }
+    }
+  },
+  "insertions": []
+}

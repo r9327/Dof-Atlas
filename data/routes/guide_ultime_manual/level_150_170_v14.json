@@ -1,0 +1,58 @@
+{
+  "schema_version": 14,
+  "route_id": "guide_ultime_manual_level_150_170_v14",
+  "title": "Guide Ultime — Niveau 150 à 170 + succès état Village Enseveli",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v13.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v13",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v15.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v13.json"
+  ],
+  "optimization_note": "Ajoute Dans les dents et Tire la chasse comme états asynchrones du Village Enseveli. Après le premier Tengu, le guide lit l'état réel du Village: envahi -> Collecte sanglante pendant l'invasion; libéré -> une seule chasse Baka. Aucune attente d'invasion/libération et aucune seconde chasse après validation. Les chasses aléatoires sont conservées jusqu'à leur prochaine campagne naturelle de zone.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/collecte-sanglante.html",
+    "https://www.dofuspourlesnoobs.com/tire-la-chasse.html",
+    "https://www.dofuspourlesnoobs.com/complegravetement-givreacute.html",
+    "https://www.dofuspourlesnoobs.com/lappel-de-la-forecirct.html",
+    "https://www.dofuspourlesnoobs.com/crocs-en-jambes.html",
+    "https://www.dofuspourlesnoobs.com/ourse-molle.html"
+  ],
+  "stage_patches": {
+    "L150-07": {
+      "append": {
+        "quests": ["Collecte sanglante", "Complètement givré", "L'appel de la forêt", "Crocs en jambes", "Ourse molle"],
+        "temporal_hooks": ["frigost_collecte_sanglante_village_state", "frigost_tire_la_chasse_village_free"],
+        "route": [
+          {"area":"Village Enseveli — première lecture après accès Tengu","do":"Lire l'état réel du Village sans attendre. S'il est envahi, demander Collecte sanglante à Baka Laïve [-75,-74], obtenir10 Dentiers UNIQUEMENT sur les monstres du Village et conserver la quête jusqu'à libération. Si le Village est libéré, proposer immédiatement une seule chasse Baka pour Tire la chasse."},
+          {"area":"Baka Laïve — chasse aléatoire","do":"Si Baka donne Complètement givré, conserver la quête jusqu'aux prochains combats Crevasse/Tengu. S'il donne L'appel de la forêt, la conserver pour Forêt pétrifiée/Korriandre. S'il donne Crocs en jambes, la conserver pour Crocs de verre/Kolosso. S'il donne Ourse molle, la conserver pour Mont Torrideau/Ruche/Glours. Chaque chasse exige50 drops à100%; ne jamais farmer immédiatement une zone future uniquement pour la chasse."}
+        ],
+        "progress_also": [
+          "Si Collecte sanglante est active, ne pas chercher ses Dentiers en Crevasse ou dans le donjon: ils ne tombent que dans le Village envahi.",
+          "Si une chasse Baka est active, tous les combats naturels de la zone cible doivent compter avant tout cleanup extérieur."
+        ],
+        "hard_exit": [
+          "État Collecte sanglante exact conservé: non disponible / active avec compteur Dentiers / prête à rendre après libération / terminée.",
+          "Tire la chasse: au maximum une chasse Baka active; aucune relance après validation du succès."
+        ]
+      }
+    },
+    "L150-08": {
+      "append": {
+        "quests": ["Collecte sanglante", "Complètement givré", "L'appel de la forêt"],
+        "route": [
+          {"area":"Crevasse/Tengu PASS2","do":"Si la chasse active est Complètement givré, consommer les combats Crevasse + salles du Tengu PASS2 pour les50 Givranchys avant cleanup. Si elle est L'appel de la forêt, ne pas détourner la route: la prochaine campagne Forêt pétrifiée du chapitre180 l'absorbera."},
+          {"area":"Village Enseveli","do":"Si Collecte sanglante a ses10 Dentiers et le Village vient d'être libéré, rendre maintenant à Baka avec récompense et valider Dans les dents. Si le Village est libéré et aucune chasse n'a encore été prise, prendre une seule chasse Baka pour Tire la chasse."}
+        ],
+        "successes": ["Dans les dents", "Tire la chasse"],
+        "hard_exit": [
+          "Dans les dents n'est considéré terminé qu'après une vraie remise Collecte sanglante; l'absence d'invasion reste un blocker d'état, jamais une validation.",
+          "Tire la chasse reste actif jusqu'à la vraie remise de la chasse aléatoire; ne jamais la remplacer par une autre parce que sa zone arrive plus tard."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

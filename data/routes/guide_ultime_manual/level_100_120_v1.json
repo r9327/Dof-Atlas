@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_level_100_120_v1",
+  "title": "Guide Ultime — Niveau 100 à 120 manuel optimisé",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "depends_on": ["level_70_100_v3.json", "bonta_1_50_v4.json"],
+  "stage_count": 16,
+  "micro_walkthrough_source": "QuestProvider + source_solution_steps enrichis",
+  "rules": [
+    "Le Pandawushu est lancé au premier passage niveau100 réellement éligible; le coût de 50 000 kamas est l'option d'optimisation temps par défaut pour supprimer l'attente administrative, sauf trésorerie insuffisante explicitement détectée.",
+    "Après Rokwa, le délai de 24 h vers Gokwa est un fil temporel asynchrone: continuer le guide et réinjecter Gokwa au premier moment rentable après expiration.",
+    "Le Meulou n'est fait que lorsque Allumer le feu + Un juge hystérique + Draconanthropie sont simultanément au bon objectif; une seule capture Ocre.",
+    "Le Rat Blanc attend Vin diou + Un juge hystérique + La Geste de Ratagnan; les autres quêtes Frères ennemis sont avancées autour du même passage.",
+    "Le Rat Noir attend Un juge hystérique + Fait comme un rat et les deux autres quêtes brâkmariennes du succès Frères ennemis.",
+    "Reine Nyée est mutualisée avec Arak-haï en pagaille + Tour du propriétaire + Ocre; le Domaine Ancestral de Munster est un rerun causalement inévitable car Munster ne se débloque qu'après la Reine.",
+    "Dramak est mutualisé avec Ainsi font les petites marionnettes + Tour de marionnettes; aucun second Théâtre pour ces deux fils.",
+    "Le retour Moon de Tour d'horizon est causalement inévitable car Anne ne donne cette quête qu'après Dramak; ne pas recapturer Moon si l'âme Ocre a déjà été sécurisée au premier passage.",
+    "Maître Corbac attend Des donjons, encore des donjons + Le livre des Taures avant entrée; une seule capture Ocre.",
+    "Chaque étape possède un checkpoint de reprise et toute condition sociale/métier réellement bloquante est affichée avant le déplacement."
+  ],
+  "global_preparation": [
+    {"name":"Pierre d'âme boss","minimum_power":100,"quantity":3,"for":["Reine Nyée","Meulou","Blop Multicolore Royal"]},
+    {"name":"Pierre d'âme boss","minimum_power":150,"quantity":4,"for":["Rat Blanc","Rat Noir","Silf le Rasboul Majeur","Maître Corbac"]},
+    {"name":"Glande d'Arak-haï","quantity":6,"for":"Munster lève le mystère"},
+    {"name":"Oignon","quantity":15,"for":"Frères ennemis"},
+    {"name":"Aubergine","quantity":10,"for":"Frères ennemis"},
+    {"name":"Gelée Bleuet","quantity":10,"for":"Frères ennemis"},
+    {"name":"Champignon Luidegît","quantity":10,"for":"Frères ennemis"},
+    {"name":"Kole","quantity":5,"for":"Cuisine raffinée"},
+    {"name":"Feuille de Salace","quantity":5,"for":"Frères ennemis"},
+    {"name":"Viande Tendre","quantity":3,"for":"Frères ennemis"},
+    {"name":"Sachet d'Épices","quantity":1,"for":"Cuisine raffinée"},
+    {"name":"Bol","quantity":1,"for":"Cuisine raffinée"},
+    {"name":"kamas","quantity":50000,"for":"Les voies du Pandawushu — supprimer le délai d'attestation","policy":"option temps optimale; si la trésorerie du personnage ne permet pas ce paiement sans casser les achats obligatoires à court terme, utiliser 10 000/1 000/0 et laisser le timer runtime gérer 2h/24h/48h"}
+  ],
+  "temporal_hooks": [
+    {
+      "id":"gokwa_after_rokwa",
+      "quest":"Gokwa : Voie du bâton",
+      "condition":"24 h réelles après Rokwa : Voie du poing ET niveau/critères locaux satisfaits",
+      "priority":"high",
+      "rule":"Dès disponibilité, greffer Gokwa au prochain passage Pandala; si attendre le prochain passage ferait perdre un cycle de 24 h, faire le détour dojo pour relancer immédiatement le grade suivant."
+    },
+    {
+      "id":"presence_esprit_initiative",
+      "quest":"Présence d'esprits",
+      "condition":"objectif Esprit d'initiative réellement débloqué + samedi, ou Semaine des sept samedis disponible",
+      "priority":"calendar",
+      "rule":"Ne jamais afficher le rappel avant tous les prérequis réels de Présence d'esprits."
+    }
+  ],
+  "stages": [
+    {
+      "id":"L100-00",
+      "title":"Pandala 100 — À la croisée + initiation Pandawushu + démarrage du timer",
+      "level":"100+ / critères locaux",
+      "duration_min":95,
+      "quests":["À la croisée des mondes","Les voies du Pandawushu","Rokwa : Voie du poing"],
+      "preparation":[
+        {"name":"Artefact Pandawushu Roc","quantity":2},{"name":"Artefact Pandawushu Vent","quantity":2},{"name":"Artefact Pandawushu Bois","quantity":2},{"name":"Artefact Pandawushu Feu","quantity":2},{"name":"Artefact Pandawushu Eau","quantity":2},{"name":"Bois de Bambou","quantity":20},{"name":"Pandaburg","quantity":1},{"name":"Pandazahi ou Pandaporo","quantity":1},{"requirement":"Façonneur niveau 10 minimum pour À la croisée des mondes","blocking":true},{"name":"Tige de Bambouto","quantity":10},{"name":"Pistil de Floristile","quantity":10},{"name":"Épine de Bulbuisson","quantity":10},{"name":"Langue de Grenufar","quantity":10},{"requirement":"500 Force au moment du rocher Rokwa; équipement temporaire autorisé","blocking":true}
+      ],
+      "route":[
+        {"pos":"[20,-29] Pandala","do":"Lancer À la croisée des mondes. Faire les trois combats solo, fabriquer/équiper le Pandaclier et terminer la rencontre Imagiro/Orukam/Daimya. À la fin, Sous le bois de sa colère et Les voies du Pandawushu sont débloquées."},
+        {"pos":"[20,-28] -> [21,-27] -> [20,-31] -> [20,-27] -> [22,-29]","do":"Faire Les voies du Pandawushu. Réussir le questionnaire; une mauvaise réponse provoque 24 h d'attente, donc utiliser les réponses validées du walkthrough local. Pour l'attestation, payer 50 000 kamas par défaut afin d'éviter 48 h; alternatives: 10 000 = 2 h, 1 000 = 24 h, gratuit = 48 h."},
+        {"pos":"[20,-31] -> [23,-27] -> [20,-31]","do":"Dès Les voies terminée, faire Rokwa. Préparer 500 Force pour briser le rocher, réussir les kwatas et le duel solo. La fin de Rokwa démarre le vrai délai de 24 h avant Gokwa."}
+      ],
+      "hard_exit":["À la croisée des mondes terminée","Rokwa terminée","Passage de grade enregistré avec heure exacte","Gokwa planifiée à +24 h, sans attendre sur place"],
+      "pause":["Pandawushu timer actif","Sous le bois de sa colère disponible","Retour route principale pendant l'attente"]
+    },
+    {
+      "id":"L100-01",
+      "title":"Émeraude — fermer Nabur, préparer l'élevage 3.5 et obtenir les Bandits de Cania",
+      "level":"100+",
+      "duration_min":180,
+      "quests":["L'amour perdu de Nabur","Naissance d'une vocation","Les bandits de Cania","Draconanthropie"],
+      "hard_gates":[
+        "Naissance d'une vocation: succès Ce n'est qu'un prélèvement validé.",
+        "Naissance d'une vocation: succès Elle a peut-être trop mangé ? validé.",
+        "Métier Éleveur niveau 20 minimum.",
+        "Posséder ou capturer une Dragodinde Rousse, une Amande et une Dorée de génération 1.",
+        "Les bandits de Cania: obtenir 9 Primatons via avis de recherche niveau 120 ou moins déjà capturés; si insuffisant, faire des avis disponibles jusqu'à 9, sans attendre un repop spécifique."
+      ],
+      "route":[
+        {"pos":"[-21,-58] -> [3,-17] -> [-4,25] -> Château [4,-6] -> [11,16] -> [-32,-57]","do":"Faire L'amour perdu de Nabur dans une seule grande boucle généalogique et terminer auprès de Captain Starky; prendre immédiatement Naissance d'une vocation."},
+        {"pos":"Bonta [-32,-57] / quartier éleveurs [-30,-58]","do":"Faire Naissance d'une vocation selon les règles élevage 3.5: valider les deux succès d'élevage, Éleveur20, et donner exactement les trois Dragodindes génération1. Mettre en banque toute monture précieuse homonyme avant le dialogue de remise."},
+        {"pos":"chasses/avis -> [-25,-36] malle aux trésors","do":"Pour Les bandits de Cania, convertir 9 Primatons en trois fragments différents, assembler la Carte de Cania puis lancer la chasse légendaire. Faire le combat des trois bandits en groupe si nécessaire et ouvrir le coffre pour les trois écailles."},
+        {"pos":"[-6,-3] Mériana","do":"Rendre les écailles, terminer Les bandits de Cania et prendre immédiatement Draconanthropie. Préparer ses deux objets hors-donjon avant le Meulou: Pendentif en Obsidienne à Gisgoul et Fleur des Tourmentés au Cimetière des Torturés."}
+      ],
+      "hard_exit":["Draconanthropie ACTIVE et ne manque plus que la Bague Enchantée du Meulou après préparation hors-donjon","Aucun Meulou effectué avant cet état","Gate élevage résolu et documenté"],
+      "pause":["Émeraude prêt Meulou","Meulou encore volontairement non fait"]
+    },
+    {
+      "id":"L100-02",
+      "title":"Hauts des Hurlements — fermer les quêtes de zone et préparer Allumer le feu",
+      "level":"100+",
+      "duration_min":110,
+      "quests":["Le casse-bonbon","La bête intérieure","Allumer le feu"],
+      "route":[
+        {"pos":"[-23,35] -> Route des Roulottes","do":"Faire Le casse-bonbon pendant la boucle Sidimote: Walter, Gradibus, Dragodinde brâkmarienne, tests de ballons et retours. Fermer la quête avant de quitter la route."},
+        {"pos":"[-26,-5] Hauts des Hurlements","do":"Faire La bête intérieure. Pendant les combats de zone obtenir 5 Baves infectées et 5 Crocs infectés; préférer payer 5 000 kamas pour la croquette si cela évite un farm dédié des 2 Œils de Cocholou."},
+        {"pos":"[-26,-5] -> [-27,-3]","do":"Prendre Allumer le feu et récupérer les cinq os hors donjon: poussière, boue, sang, pierre, écailles. L'os de fer du Meulou reste volontairement le dernier."}
+      ],
+      "hard_exit":["Le casse-bonbon terminée","La bête intérieure terminée","Allumer le feu active avec 5/6 os hors Meulou","Draconanthropie attend aussi Meulou","Un juge hystérique attend Meulou"],
+      "pause":["Trois fils simultanément prêts Meulou"]
+    },
+    {
+      "id":"L100-03",
+      "title":"Tanière du Meulou — Hurlements + Un juge + Émeraude + Ocre en UN passage",
+      "level":"100+ / trois fils actifs",
+      "duration_min":45,
+      "quests":["Allumer le feu","Un juge hystérique","Draconanthropie"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":100,"quantity":1,"for":"Meulou Ocre"}],
+      "route":[
+        {"pos":"[-23,0] Tanière du Meulou","do":"Entrer uniquement quand Allumer le feu + Un juge hystérique + Draconanthropie demandent toutes le Meulou. Faire les succès compatibles, vaincre le boss et le capturer puissance100 pour l'Ocre. Le combat fournit l'Os de fer et la Bague Enchantée du Meulou."},
+        {"pos":"Hauts des Hurlements","do":"Rendre les six os à Hyrini puis Cronan pour terminer Allumer le feu et fermer le succès Hurlements de rire."},
+        {"pos":"[-6,-3]","do":"Rendre Draconanthropie à Mériana; si niveau120 réel atteint, Ultime réminiscence devient planifiable en L100-15, sinon conserver le fil sans forcer le niveau."},
+        {"pos":"[-29,-47]","do":"Rendre l'étape Meulou de Un juge hystérique à Chris de Naire; Rat Blanc devient la prochaine cible."}
+      ],
+      "hard_exit":["Un seul Meulou pour trois quêtes + Ocre","Hurlements de rire fermé","Draconanthropie terminée","Un juge pointe Rat Blanc","Âme Meulou sécurisée Ocre"],
+      "pause":["Meulou fermé","Rat Blanc futur","Émeraude attend niveau120 pour Ultime si nécessaire"]
+    },
+    {
+      "id":"L100-04",
+      "title":"Forêt Abraknydes — Silvosse + Reine Nyée + Anne + Ocre",
+      "level":"90+",
+      "duration_min":105,
+      "quests":["C'est tout simple","Arak-haï en pagaille","Tour du propriétaire"],
+      "route":[
+        {"pos":"[-6,-15] -> [-1,9] -> [5,-6]","do":"Faire C'est tout simple: enquête dans le Bois, escorter Simple au temple Sadida et prévenir le Colonel Rumo; prendre immédiatement Arak-haï en pagaille."},
+        {"pos":"Bois des Arak-haï -> [-6,-10]","do":"Faire les observations 3× sur les quatre familles Arak-haï et l'embuscade de Cornelia. Ne pas entrer dans l'Antre tant que Tour du propriétaire n'est pas active auprès d'Anne [-45,19]."},
+        {"pos":"[-6,-15] Antre Reine Nyée","do":"Entrer avec Arak-haï en pagaille + Tour du propriétaire. Capturer Reine Nyée puissance100 pour l'Ocre. APRÈS le boss, parler à Reine Nyée avant de sortir pour Arak-haï et découvrir la carte de sortie pour Anne."},
+        {"pos":"[-6,-10] puis [-45,19]","do":"Rendre Arak-haï à Cornelia et Tour du propriétaire à Anne. Prendre Munster lève le mystère et Tour d'honneur."}
+      ],
+      "hard_exit":["Un seul Reine Nyée","Reine Nyée capturée Ocre","Arak-haï en pagaille terminée","Tour du propriétaire terminée","Munster + Tour d'honneur actifs"],
+      "pause":["Reine fermée","Domaine Ancestral rerun Silvosse maintenant causalement débloqué"]
+    },
+    {
+      "id":"L100-05",
+      "title":"Munster — Domaine Ancestral rerun causalement inévitable",
+      "level":"90+",
+      "duration_min":50,
+      "quests":["Munster lève le mystère"],
+      "route":[
+        {"pos":"[-6,-10] -> [-5,-13]","do":"Avancer Munster avec les 6 Glandes d'Arak-haï et les objectifs Hel Munster."},
+        {"pos":"[-9,-14] Domaine Ancestral","do":"Refaire le Domaine Ancestral uniquement pour l'objectif nouvellement débloqué de Munster. Ce rerun est causalement inévitable: Munster n'existe qu'après Arak-haï/Reine, alors que notre premier Domaine avait servi Bonta33 + Un juge. Ne pas recapturer Abraknyde Ancestral si l'Ocre est déjà sécurisé."},
+        {"pos":"Forêt Abraknydes","do":"Fermer Munster lève le mystère. La suite Silvosse L'art de la langue de bois exige niveau>119 et sera reprise au seuil réel, sans forcer ici."}
+      ],
+      "hard_exit":["Munster terminée","Rerun Domaine documenté comme causal, pas comme échec d'optimisation"],
+      "pause":["Silvosse suspendu jusqu'au niveau120"]
+    },
+    {
+      "id":"L100-06",
+      "title":"Kharnozor — Anne Ullaire sans détour annexe",
+      "level":"80+",
+      "duration_min":35,
+      "quests":["Tour d'honneur"],
+      "route":[
+        {"pos":"[-3,25] Repaire du Kharnozor","do":"Faire le Repaire une seule fois avec Tour d'honneur active. Après la victoire, découvrir obligatoirement la carte de sortie avant de repartir."},
+        {"pos":"[-45,19]","do":"Rendre Tour d'honneur à Anne et prendre Tour de marionnettes."}
+      ],
+      "pause":["Tour de marionnettes active","Dramak attend préparation Ça va faire du vilain"]
+    },
+    {
+      "id":"L100-07",
+      "title":"Captain Amakna → Théâtre de Dramak — deux quêtes dans un seul donjon",
+      "level":"100+ / À la croisée déjà terminée",
+      "duration_min":100,
+      "quests":["Protéger et sévir","Quelque chose de pourri au royaume d'Amakna","Ainsi font les petites marionnettes","Tour de marionnettes"],
+      "route":[
+        {"pos":"[0,0] Village Amakna","do":"Si Protéger et sévir n'a jamais été validée, la faire une fois maintenant; elle est répétable mais une validation suffit pour le prérequis. Prendre ensuite Quelque chose de pourri au royaume d'Amakna."},
+        {"pos":"Monde des Douze / Temple des alliances","do":"Faire la grande boucle politique de Quelque chose de pourri. À la croisée des mondes est déjà suffisamment avancée/terminée, donc ce verrou ne peut plus surprendre l'étape."},
+        {"pos":"[0,0]","do":"Rendre Quelque chose de pourri puis prendre Ainsi font les petites marionnettes. Vérifier Tour de marionnettes déjà active depuis Anne."},
+        {"pos":"[21,7] Théâtre de Dramak","do":"Entrer avec les deux quêtes. Faire Dramak/Maître des Pantins selon les objectifs locaux, profiter de l'énigme Jongler si non obtenue, et APRÈS le boss parler à Dramak pour Ainsi font avant de sortir. Découvrir la sortie pour Anne."},
+        {"pos":"[0,0] puis [-45,19]","do":"Rendre Ainsi font au Captain puis Tour de marionnettes à Anne; prendre Tour d'horizon."}
+      ],
+      "hard_exit":["Un seul Théâtre pour Ainsi font + Tour de marionnettes","Dialogue Dramak post-boss fait avant sortie","Tour d'horizon active"],
+      "pause":["Dramak fermé","Moon rerun Anne maintenant causalement nécessaire"]
+    },
+    {
+      "id":"L100-08",
+      "title":"Moon — rerun Anne causal, sans recapture Ocre",
+      "level":"100+",
+      "duration_min":40,
+      "quests":["Tour d'horizon"],
+      "route":[
+        {"pos":"[29,6] Arbre de Moon","do":"Refaire Moon uniquement parce que Tour d'horizon n'existe qu'après Dramak, donc après notre premier passage Moon/Dokoko. Faire les succès encore manqués si possible, mais ne pas capturer une seconde âme si Moon est déjà sécurisé dans le registre Ocre."},
+        {"pos":"[-45,19]","do":"Rendre Tour d'horizon et prendre Tour à tour pour le Rasboul."}
+      ],
+      "pause":["Tour à tour active","Rerun Moon justifié causalement"]
+    },
+    {
+      "id":"L100-09",
+      "title":"Rat Blanc — Bonta41 + Un juge + Frères ennemis + Ocre",
+      "level":"110 environ / critères locaux",
+      "duration_min":90,
+      "transversal":"BNT-19 from bonta_1_50_v4.json",
+      "quests":["Vin diou","Un juge hystérique","La Geste de Ratagnan","Cuisine raffinée","Le pacte des profondeurs"],
+      "route":[
+        {"pos":"Bonta Palais/égouts","do":"Avant le boss, faire/avancer Cuisine raffinée, La Geste de Ratagnan et Le pacte des profondeurs pendant la même grande boucle Canaux méphitiques."},
+        {"pos":"transversal BNT-19","do":"Exécuter exactement le bloc Rat Blanc du transversal Bonta41: Vin diou + Un juge + Geste au bon objectif, capture Ocre puissance150 et dialogues Ratagnan post-boss avant sortie."},
+        {"pos":"[-29,-47]","do":"Mettre à jour Un juge hystérique: Rat Noir devient la prochaine cible."}
+      ],
+      "hard_exit":["Rat Blanc fait une fois","Bonta41 terminé","Rat Blanc capturé Ocre","3 quêtes Frères ennemis traitées ou leur état exact consigné"],
+      "pause":["Un juge = Rat Noir","Bonta42 disponible"]
+    },
+    {
+      "id":"L100-10",
+      "title":"Bonta 42→46 — campagne Ecaflip pendant que les fils donjons avancent",
+      "level":"critères locaux",
+      "duration_min":150,
+      "transversal":"BNT-20 from bonta_1_50_v4.json",
+      "quests":["Les Ecas ne flippent pas","Plaine de chats","À l'endroit, à l'envers","Dans la gueule du chacha","Alimentaire mon cher"],
+      "route":[{"pos":"Bonta / Cania / repaire Ecaflip","do":"Exécuter BNT-20 comme une seule campagne. Conserver la Corde d'escalade et ne pas diviser les retours milice en étapes joueur séparées."}],
+      "pause":["Bonta46 terminé","Verrou social Bonta47 annoncé avant le futur bloc"]
+    },
+    {
+      "id":"L100-11",
+      "title":"Rasboul — Anne Ullaire + Ocre",
+      "level":"100+",
+      "duration_min":45,
+      "quests":["Tour à tour"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Silf le Rasboul Majeur Ocre"}],
+      "route":[
+        {"pos":"[-51,9] Goulet du Rasboul","do":"Faire Tour à tour et capturer Silf le Rasboul Majeur puissance150 pour l'Ocre. Faire les succès compatibles au premier passage."},
+        {"pos":"[-45,19]","do":"Rendre Tour à tour à Anne et prendre Tour de table pour le Blop Multicolore."}
+      ],
+      "pause":["Rasboul capturé Ocre","Tour de table active"]
+    },
+    {
+      "id":"L100-12",
+      "title":"Rat Noir — fermer Un juge + Frères ennemis + Ocre",
+      "level":"110+",
+      "duration_min":95,
+      "quests":["Un juge hystérique","Déficience immunitaire","Fait comme un rat","La lumière au bout des égouts"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Rat Noir Ocre"}],
+      "route":[
+        {"pos":"Brâkmar / égouts","do":"Avant le boss, faire Déficience immunitaire et La lumière au bout des égouts jusqu'à leur état optimal, puis prendre/avancer Fait comme un rat jusqu'au donjon."},
+        {"pos":"Sousouricière du Rat Noir","do":"Entrer avec Un juge hystérique + Fait comme un rat actifs. Faire les succès compatibles et capturer Rat Noir puissance150 pour l'Ocre."},
+        {"pos":"Brâkmar puis [-29,-47] -> [-19,30]","do":"Fermer les quêtes Frères ennemis restantes, rendre Rat Noir à Chris de Naire puis aller voir Kal Vissi pour terminer Un juge hystérique et prendre Des donjons, encore des donjons."}
+      ],
+      "hard_exit":["Un juge hystérique terminé","Frères ennemis fermé ou reliquat exact explicite","Rat Noir capturé Ocre","Des donjons, encore des donjons active"],
+      "pause":["Chaîne Kal Vissi = Maître Corbac","Dofus Pourpre doit être lancé avant ce boss"]
+    },
+    {
+      "id":"L100-13",
+      "title":"Blop Multicolore — Anne Ullaire + Ocre",
+      "level":"110+",
+      "duration_min":35,
+      "quests":["Tour de table"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Blop Multicolore Royal Ocre"}],
+      "route":[
+        {"pos":"[-7,-43] Clos des Blops — salle Multicolore","do":"Revenir uniquement pour le Blop Multicolore demandé par Anne. Le premier passage Bonta19 avait volontairement évité ce boss inutile à ce moment. Capturer Blop Multicolore Royal pour l'Ocre et faire ses succès manquants."},
+        {"pos":"[-45,19]","do":"Rendre Tour de table. Anne ouvre la suite Tynrils; la différer au futur palier où le Tynril sert également Ocre et autres fils."}
+      ],
+      "pause":["Blop Multicolore capturé Ocre","Anne/Tynril volontairement différé"]
+    },
+    {
+      "id":"L100-14",
+      "title":"Maître Corbac — Pourpre + Kal Vissi + Ocre en un passage",
+      "level":"110+",
+      "duration_min":70,
+      "quests":["Le livre des Taures","Des donjons, encore des donjons"],
+      "preparation":[{"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Maître Corbac Ocre"}],
+      "route":[
+        {"pos":"[-6,-3] Mériana","do":"AVANT la Bibliothèque, lancer Le livre des Taures. Faire sa tournée de bibliothèques Bonta/Brâkmar/Sufokia/Amakna/Pandala/Astrub puis revenir Mériana jusqu'à l'objectif Maître Corbac."},
+        {"pos":"[-15,-62] Bibliothèque du Maître Corbac","do":"Entrer avec Le livre des Taures + Des donjons, encore des donjons. Trouver les trois monstres uniques sans attendre volontairement un repop si l'un est déjà engagé: traiter les autres salles/activités puis revenir. Vaincre Maître Corbac, récupérer Livre + Os et capturer le boss puissance150 pour l'Ocre."},
+        {"pos":"[-6,-3] puis [-19,30]","do":"Rendre Le livre des Taures à Mériana et prendre Taures et détours si niveau120/critères satisfaits. Rendre le Maître Corbac à Kal Vissi; la prochaine cible devient Royalmouth."}
+      ],
+      "hard_exit":["Un seul Maître Corbac pour Pourpre + Kal Vissi + Ocre","Maître Corbac capturé Ocre","Des donjons pointe Royalmouth","Pourpre pointe Taures et détours lorsque disponible"],
+      "pause":["Royalmouth futur","Pourpre Minotoror futur"]
+    },
+    {
+      "id":"L100-15",
+      "title":"Pandala 110 + fin de palier — Damadrya, Gokwa et gates niveau120",
+      "level":"110-120",
+      "duration_min":100,
+      "quests":["Sous le bois de sa colère","Gokwa : Voie du bâton","Ultime réminiscence","L'art de la langue de bois"],
+      "route":[
+        {"pos":"Pandala / Plantala","do":"Faire Sous le bois de sa colère selon le walkthrough local et n'entrer dans la Bambusaie de Damadrya que lorsque toutes les quêtes Plantala actuellement accessibles et liées au donjon ont été auditées/activées. Capturer Damadrya pour l'Ocre avec la puissance indiquée par le registre local."},
+        {"pos":"[20,-31] Dojo","do":"Si les 24 h après Rokwa sont écoulées et les critères Gokwa satisfaits, exécuter Gokwa immédiatement. Préparer son gros lot d'alchimie avant le retour dojo et récupérer le Bourgeon explosif de Damadrya pendant le passage Plantala."},
+        {"pos":"niveau120 gate","do":"Si le personnage a réellement atteint le niveau requis: reprendre Ultime réminiscence pour fermer le Dofus Émeraude, et L'art de la langue de bois pour poursuivre Silvosse/Chêne Mou. Sinon ces deux fils deviennent les premières priorités du chapitre 120+; aucun grind artificiel juste pour faire coïncider le numéro de chapitre."}
+      ],
+      "hard_exit":[
+        "Damadrya capturée Ocre si le donjon a été effectué.",
+        "Timer Pandawushu jamais oublié: Gokwa faite si disponible, sinon heure de disponibilité conservée.",
+        "Émeraude et Silvosse ont chacun un état de reprise explicite au niveau120.",
+        "Des donjons, encore des donjons reste sur Royalmouth pour le prochain bloc Frigost si non traité ici."
+      ],
+      "pause":["Fin palier 100-120","Prochain chapitre: Frigost/Royalmouth + Minotoror/Pourpre + Bonta51+ + Pandala approfondi"]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schema_version": 12,
+  "route_id": "guide_ultime_manual_bonta_1_100_v12",
+  "title": "Guide Ultime — Alignement Bonta 1 à 100 — consignes joueur consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_100_v11.json",
+  "supersedes": "guide_ultime_manual_bonta_1_100_v11",
+  "quest_range": [1, 100],
+  "macro_stage_count": 49,
+  "optimization_note": "Nettoie les deux raccords 23-40 utilisés par le chapitre 70-100 sans dupliquer la route Bonta : le pré-donjon de la 7e compagnie est explicite et le deuxième rang d'Ordre ne référence plus un fichier interne dans la consigne joueur.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/mains-sur-les-hanches.html",
+    "https://www.dofuspourlesnoobs.com/poison-de-scorbute-pour-la-prison.html"
+  ],
+  "stage_patches": {
+    "BNT-10": {
+      "replace": {
+        "route": [
+          {"pos":"[1,3] Temple Iop","do":"Prendre Où est passée la 7e compagnie ? auprès de Rish Claymore avant le Laboratoire de Brumen Tinctorias."},
+          {"pos":"[-27,17] Laboratoire de Brumen Tinctorias — avant le donjon","do":"Découvrir Number Anticroist puis entrer dans l'auberge. Interroger les clients dans cet ordre : Feruor Mithridate, Yzua puis Tassa. Prévoir une Clef du Laboratoire si cette quête n'a jamais été faite : le trousseau ne remplace pas cette première clef pour l'étape de quête."},
+          {"pos":"[-16,2]","do":"Vérifier que Histoire de chiens est active avant d'entrer. Si elle ne l'est pas encore, terminer d'abord Chéri fais-moi peur puis revenir après avoir pris Histoire de chiens auprès de Thelma Geur."},
+          {"pos":"[-27,17] Laboratoire de Brumen Tinctorias","do":"Entrer avec Où est passée la 7e compagnie ?, Histoire de chiens et Poison de scorbute pour la prison actives. Vaincre Nelween. Si Le voleur d'âmes est actif, capturer Nelween avec une pierre d'âme puissance 100 minimum pour l'Émeraude."},
+          {"pos":"salle de sortie du Laboratoire","do":"Avant de quitter, cliquer sur le tube phosphorescent en haut à droite pour récupérer le Venin de scorbute."},
+          {"pos":"[-32,-57] prison de la milice de Bonta","do":"Donner le Venin de scorbute au Capitaine Essacarf et terminer le rang 29."},
+          {"pos":"[1,3] puis [-16,2]","do":"Faire le rapport à Rish Claymore pour terminer Où est passée la 7e compagnie ?, puis rendre Histoire de chiens à Thelma Geur et prendre Le fossile et le marteau."}
+        ],
+        "hard_exit": [
+          "Les trois quêtes ont partagé le même Laboratoire de Brumen Tinctorias.",
+          "Venin de scorbute récupéré avant la sortie.",
+          "Le fossile et le marteau actif."
+        ],
+        "pause": ["Bonta 29 terminé", "Donjons trois point cinq poursuit vers le Cimetière des Mastodontes"]
+      }
+    },
+    "BNT-18": {
+      "replace": {
+        "route": [
+          {"pos":"[-34,-58] Tour des Ordres","do":"Après le rang 40, poursuivre uniquement la deuxième quête de l'Ordre choisi au rang 20. Cœur Vaillant demande une incursion partielle dans la Caverne du Koulosse sans refaire le boss ; Œil Attentif mène vers les Porkass ; Esprit Salvateur mène dans la Jungle Interdite de Moon sans donjon. Les deux autres Ordres restent hors parcours."}
+        ],
+        "pause": [
+          "Deuxième rang de l'Ordre sélectionné terminé",
+          "Les deux autres Ordres restent exclus",
+          "Prochain rang d'Ordre disponible après l'alignement 60",
+          "Bonta 41 disponible"
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

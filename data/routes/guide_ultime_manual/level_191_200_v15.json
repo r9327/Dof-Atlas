@@ -1,0 +1,138 @@
+{
+  "schema_version": 15,
+  "route_id": "guide_ultime_manual_level_191_200_v15",
+  "title": "Guide Ultime — 191-200, DDG/Frigost III/Nimbos consolidés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v12.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v12",
+  "stage_count": 60,
+  "depends_on": [
+    "level_181_190_v10.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Version finale de travail de la passe Frigost: conserve les59 fiches de V12 (DDG causal corrigé, Mais où qu'ils sont les Frigostiens, Machine après Chaud et Froid, Donjons à l'ancienne, Carnage/Regarde, Ocre final, C'est assez) et ajoute exactement une fiche Nimbos. Le succès Là-bas sous la montagne est fermé avant la continuation Ébène; De Brikke et de Brokke + La bible des rancunes + Le dragon noir partagent un seul Dazak. La dernière barbe n'utilise que les salles1-4 du Korriandre, sans boss supplémentaire.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-bas-sous-la-montagne.html",
+    "https://www.dofuspourlesnoobs.com/frappez-ami-et-entrez.html",
+    "https://www.dofuspourlesnoobs.com/de-brikke-et-de-brokke.html",
+    "https://www.dofuspourlesnoobs.com/les-ninsoumis.html",
+    "https://www.dofuspourlesnoobs.com/les-ennemis-de-mes-ennemis-sont-mes-ennemis.html",
+    "https://www.dofuspourlesnoobs.com/la-bible-des-rancunes.html",
+    "https://www.dofuspourlesnoobs.com/la-derniere-barbe-avant-la-fin-du-monde.html",
+    "https://www.dofuspourlesnoobs.com/le-dragon-noir.html"
+  ],
+  "insertions": [
+    {
+      "before": "L200-15E4",
+      "stage": {
+        "id": "L200-NIMBOS",
+        "title": "Nimbos — fermer 8 quêtes et préparer De Brikke au Dazak",
+        "level": "200 / Star ski terminée / Fléau de Burin avancé Volkaragnar / Légende d'automne terminée",
+        "duration_min": 520,
+        "quests": [
+          "Frappez, ami, et entrez",
+          "De Brikke et de Brokke",
+          "Les ennemis de mes ennemis sont mes ennemis",
+          "Les Ninsoumis",
+          "La dernière barbe avant la fin du monde",
+          "Lâches de glace",
+          "Le gang des postiches",
+          "Nincassable",
+          "Planche-Neige et les Sept Nimb'"
+        ],
+        "successes": ["Là-bas sous la montagne"],
+        "preparation": [
+          {"requirement": "Alchimiste niveau10 minimum", "for": "La dernière barbe avant la fin du monde", "blocking": true},
+          {"name": "Poiskaille en Fricassée", "quantity": 20, "for": "La bible des rancunes", "policy": "Préparer en banque avant Dazak; retirer avec le reste du banquet seulement lors du retour salle de sortie."},
+          {"name": "Pain de Frostiz", "quantity": 20, "for": "La bible des rancunes"},
+          {"name": "Pizza au boudin de boufmouth", "quantity": 20, "for": "La bible des rancunes"},
+          {"name": "Friswein", "quantity": 20, "for": "La bible des rancunes"},
+          {"requirement": "6000 pods libres", "for": "caisse Ystrion / La bible des rancunes", "blocking": true},
+          {"note": "Ne pas charger les quatre lots du banquet pendant les quêtes Nimbos ordinaires: banque puis 6000 pods libres avant Ystrion."}
+        ],
+        "take": [
+          "[-69,-71] Faire Frappez, ami, et entrez et franchir réellement la Porte de Ferfroid; cette quête ouvre De Brikke et de Brokke.",
+          "[-69,-71] Prendre De Brikke et de Brokke puis avancer immédiatement ses sous-quêtes obligatoires.",
+          "Prendre les quêtes Nimbos indépendantes lors de la boucle Royaume/Forêt afin d'éviter plusieurs campagnes séparées."
+        ],
+        "route": [
+          {"pos": "[-66,-72]", "do": "Dans De Brikke, prendre/fermer Les ennemis de mes ennemis sont mes ennemis avec Brikke/Boll et les combats demandés, puis reprendre De Brikke."},
+          {"pos": "[-63,-70]", "do": "Lorsque De Brikke demande le Général Dourak, prendre Les Ninsoumis, effectuer sa livraison puis son combat solo à quatre vagues et libérer Dourak. Reprendre immédiatement De Brikke."},
+          {"area": "Volkaragnar → Astrub/Rathrosk → temple Sram → Brikke", "do": "Respecter les verrous de De Brikke: Le fléau de Burin doit être arrivé à Volkaragnar et Légende d'automne terminée. Récupérer l'histoire du marteau, le reprendre puis aider Brikke à le réparer. STOP lorsque De Brikke demande Dazak: ce boss est réservé au passage Ébène suivant."},
+          {"pos": "[-70,-69]", "do": "Faire La dernière barbe avant la fin du monde: 10 Miels de Boulglours pendant les combats Mont Torrideau utiles, puis entrer à l'Antre du Korriandre uniquement pour les salles1 à4 et cliquer les quatre champignons. SORTIR avant le boss; aucun Korriandre supplémentaire. Finir oranges, quatre Glutins, Eau-de-vie et distillation Alchimiste10."},
+          {"area": "Royaume des Martegel", "do": "Fermer Lâches de glace et Le gang des postiches dans une même boucle. Les combats de Gang sont groupables; ne répéter aucun combat une fois les compteurs fermés."},
+          {"area": "Royaume → Crocs de verre → mine du Jour sans fin", "do": "Faire Nincassable avec Dundivad et ses trois combats solo; profiter du passage Crocs déjà connu sans ouvrir un Kolosso."},
+          {"area": "Royaume → Lac Gelé → Bourgade/Serre", "do": "Faire Planche-Neige et les Sept Nimb' puisque Star ski et Dutch est déjà fermée. Grouper les trois combats aux trajets Frigost encore utiles et rendre les quatre types de skis."}
+        ],
+        "before_leaving": [
+          "Frappez terminé et Royaume accessible.",
+          "Les ennemis + Les Ninsoumis terminés.",
+          "De Brikke et de Brokke exactement au verrou Dazak avec marteau réparé.",
+          "La dernière barbe + Lâches + Gang + Nincassable + Planche-Neige terminées.",
+          "Dazak PAS encore consommé: réservé à la fusion De Brikke + Bible + Le dragon noir."
+        ],
+        "hard_exit": [
+          "Aucun Korriandre boss pour La dernière barbe: salles1-4 seulement.",
+          "Aucun Dazak avant Le dragon noir actif et De Brikke au bon objectif.",
+          "6000 pods + banquet préparés avant la phase Bible."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — devant Dazak avec De Brikke prête; Ébène fournit le second fil"]
+      }
+    }
+  ],
+  "stage_patches": {
+    "L200-15E4": {
+      "replace": {
+        "title": "Ébène7 + Nimbos final — Dazak unique puis Klime",
+        "level": "200 / De Brikke au verrou Dazak / Le dragon noir actif",
+        "duration_min": 520,
+        "quests": ["Le dragon noir", "De Brikke et de Brokke", "La bible des rancunes"],
+        "successes": ["Là-bas sous la montagne"],
+        "dungeons": [
+          {"name": "Brasserie du roi Dazak", "pass": "single_shared_nimbos_ebene"},
+          {"name": "Salons privés de Klime", "pass": "unique_for_ebene_dragon_noir"}
+        ],
+        "preparation": [
+          {"name": "Saucisse Fumée", "quantity": 10},
+          {"name": "Barbarbe", "quantity": 5, "policy": "Acheter à Lambik puisque La dernière barbe est maintenant fermée; ne dépendre d'aucun tiers."},
+          {"name": "Perce-Neige", "quantity": 20},
+          {"name": "Poiskaille en Fricassée", "quantity": 20},
+          {"name": "Pain de Frostiz", "quantity": 20},
+          {"name": "Pizza au boudin de boufmouth", "quantity": 20},
+          {"name": "Friswein", "quantity": 20},
+          {"requirement": "6000 pods libres avant la caisse Ystrion", "blocking": true}
+        ],
+        "take": [
+          "Vérifier Le dragon noir actif ET De Brikke au point qui demande de vaincre Dazak avant d'entrer.",
+          "Ne pas lancer La bible des rancunes avant le boss: elle se prend dans la salle de sortie en consultant le livre à droite de Dazak."
+        ],
+        "route": [
+          {"pos": "[-62,-70] Brasserie du roi Dazak", "do": "Faire UN SEUL Dazak avec Le dragon noir + De Brikke et tous succès compatibles. Après victoire, parler à Dazak pour De Brikke et rendre le marteau, puis consulter la Bible à droite du roi pour lancer La bible des rancunes. Ne pas réclamer la peau Ébène tant que De Brikke n'est pas terminée."},
+          {"area": "Remparts à vent / Bourgade / Royaume des Martegel", "do": "Faire les trois doléances de La bible des rancunes: 20 Brikoléreux, dédommagements et banquet préparé, puis Ystrion avec caisse et6000 pods libres. Mutualiser les20 monstres Remparts avec Carnage/Regarde si un reliquat existe."},
+          {"pos": "[-62,-70] salle de sortie Dazak", "do": "Revenir dans la salle de sortie SANS refaire le donjon; gérer le combat d'accueil de la Bible s'il se déclenche, remettre les trois doléances et parler à Dazak pour fermer La bible des rancunes. Reprendre Dazak/Plénie afin de terminer De Brikke et de Brokke."},
+          {"pos": "[-62,-70] Dazak", "do": "De Brikke étant terminée, reprendre Le dragon noir et obtenir la très ancienne peau de Crocodaile. Vérifier les10 quêtes de Là-bas sous la montagne réellement fermées avant de quitter durablement le Royaume."},
+          {"area": "Ruche des Gloursons / Ludrune", "do": "Avec10 Saucisses Fumées +5 Barbarbes +20 Perce-Neige, préparer les soupes et obtenir la Barbarbe de Ludrune sans retour Nimbos supplémentaire."},
+          {"area": "Salons privés de Klime", "do": "Faire UN Klime pour Le dragon noir et tous fils encore compatibles; faire travailler la peau de crocodaille gelée et obtenir le sac avant sortie."},
+          {"area": "portail Nimbos → Tikoltenak", "do": "Utiliser la Barbarbe de Ludrune au point prévu par le walkthrough pour révéler le portail et atteindre Grougalorasalar. Fermer Le dragon noir selon la progression réelle."}
+        ],
+        "before_leaving": [
+          "La bible des rancunes terminée sans second Dazak.",
+          "De Brikke et de Brokke terminée.",
+          "Là-bas sous la montagne10/10 réellement validable.",
+          "Peau ancienne obtenue puis travaillée par Klime.",
+          "Le dragon noir terminé."
+        ],
+        "hard_exit": [
+          "Dazak global unique pour Nimbos + Le dragon noir.",
+          "Aucun retour Dazak avec boss: retour salle de sortie uniquement pour Bible/De Brikke.",
+          "Klime Ébène une fois pour ce fil.",
+          "Le succès Nimbos n'est jamais marqué terminé sur la seule victoire Dazak: les10 quêtes doivent être fermées."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — Nimbos + Le dragon noir fermés"]
+      }
+    }
+  }
+}

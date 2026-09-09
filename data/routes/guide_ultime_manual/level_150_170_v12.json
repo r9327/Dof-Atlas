@@ -1,0 +1,59 @@
+{
+  "schema_version": 12,
+  "route_id": "guide_ultime_manual_level_150_170_v12",
+  "title": "Guide Ultime — Niveau 150 à 170 + L'heure c'est l'heure fermé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v11.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v11",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v13.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v12.json"
+  ],
+  "optimization_note": "Répare deux quêtes manquantes du succès L'heure, c'est l'heure. Le convoi, le sage aussi est fait pendant la première campagne Crevasse. L'abominable YeCh'Ti est activée avant les combats Givrefoux et consomme d'abord Gant graine + Crevasse + les deux passages Tengu déjà causaux; cleanup 3% seulement après ces tentatives naturelles.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/lheure-cest-lheure.html",
+    "https://www.dofuspourlesnoobs.com/labominable-yechti.html",
+    "https://www.dofuspourlesnoobs.com/le-convoi-le-sage-aussi.html"
+  ],
+  "stage_patches": {
+    "L150-06": {
+      "append": {
+        "quests": ["L'abominable YeCh'Ti", "Le convoi, le sage aussi"],
+        "take": [
+          "[-80,-81] Fais dodo étant terminé et niveau150+ réel, prendre L'abominable YeCh'Ti AVANT les combats Crevasse/Tengu.",
+          "[-81,-75] Prendre Le convoi, le sage aussi pendant la même traversée Crevasse."
+        ],
+        "route": [
+          {"area":"Crevasse Perge — campagne Gant graine/timers","do":"Pour L'abominable YeCh'Ti, surveiller les 5 Fourrures intactes de Givrefoux à3% pendant tous les combats Givrefoux déjà nécessaires. Le drop fonctionne aussi dans la Tanière Givrefoux: ne créer aucun farm dédié avant les deux Tengu causaux."},
+          {"pos":"[-81,-75]","do":"Pour Le convoi, le sage aussi, parler au Maho Tsétougivré puis gagner le combat avec le groupe. REPARLER à Merton Valence après la victoire avant de faire un autre combat sur la map afin de conserver l'issue complète et fermer la quête."}
+        ],
+        "before_leaving": ["Le convoi, le sage aussi terminé.","L'abominable YeCh'Ti active avec compteur Fourrures exact visible."]
+      }
+    },
+    "L150-07": {
+      "append": {
+        "quests": ["L'abominable YeCh'Ti"],
+        "route": [
+          {"pos":"Tanière Givrefoux — Tengu PASS1","do":"Tous les Givrefoux compatibles du passage servent au drop des Fourrures intactes de L'abominable YeCh'Ti. Continuer normalement jusqu'au boss; aucun reset de salles pour le drop."}
+        ],
+        "hard_exit": ["Tentatives Fourrures du Tengu PASS1 consommées naturellement."]
+      }
+    },
+    "L150-08": {
+      "append": {
+        "quests": ["L'abominable YeCh'Ti"],
+        "route": [
+          {"pos":"Tanière Givrefoux — Tengu PASS2","do":"Deuxième série naturelle de tentatives Fourrures pendant le passage déjà causal Porte + Guerriers foux. Aucun troisième Tengu n'est créé pour L'abominable."},
+          {"area":"Crevasse Perge — cleanup L'heure","do":"Après Gant graine + combats Crevasse + Tengu PASS1 + PASS2, si les5 Fourrures ne sont toujours pas obtenues, faire seulement alors un cleanup ciblé Givrefoux jusqu'au reliquat exact. Rendre L'abominable YeCh'Ti au Chef des chasseurs."},
+          {"area":"audit L'heure, c'est l'heure","do":"Vérifier réellement Blessure de chasse + Chasse dangereuse + Rentrer brocouille + L'abominable YeCh'Ti + Bonmonstres de neige + Le convoi, le sage aussi. N'afficher le succès fermé que lorsque les six quêtes le sont."
+          }
+        ],
+        "successes": ["L'heure, c'est l'heure"],
+        "hard_exit": ["L'heure, c'est l'heure terminé ou seul reliquat temporel exact Blessure/Chasse/Brocouille/Bonmonstres encore daté par le registre; aucune quête Crevasse manquante silencieuse."]
+      }
+    }
+  },
+  "insertions": []
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_level_51_70_v4",
+  "title": "Guide Ultime — Niveau 51 à 70, dépendances canoniques finales",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_51_70_v3.json",
+  "supersedes": "guide_ultime_manual_level_51_70_v3",
+  "stage_count": 7,
+  "depends_on": [
+    "amakna_40_60_v5.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank20_v1.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "transversal_routes": [],
+  "optimization_note": "Raccord de dépendances uniquement : le parcours joueur reste identique à v3, tous les hooks Bonta sont résolus depuis la route canonique complète v17 et l'ancien transversal Bonta 1-22 hérité de v1 est explicitement neutralisé.",
+  "stage_patches": {},
+  "insertions": []
+}

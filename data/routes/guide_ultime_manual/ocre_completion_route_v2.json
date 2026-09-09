@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_ocre_completion_route_v2",
+  "title": "Guide Ultime — Ocre final 3.5+, dépendances temporelles finales",
+  "status": "MANUAL_TRANSVERSAL_WORKING_SET",
+  "base_file": "ocre_completion_route_v1.json",
+  "supersedes": "guide_ultime_manual_ocre_completion_route_v1",
+  "depends_on": [
+    "ocre_capture_registry_v1.json",
+    "temporal_registry_v15.json"
+  ],
+  "rules": [
+    "Depuis DOFUS3.5 L'éternelle moisson comporte 19 étapes: boss1-3, archimonstres4-18, Kralamoure19; aucune capture de monstre classique.",
+    "Toute âme capturée en avance reste en banque jusqu'à ce que l'étape courante l'accepte; ne jamais vendre une cible Ocre encore non remise.",
+    "Un boss manqué n'impose pas automatiquement un nouveau passage: comparer prix HDV de l'âme, autres succès/quêtes du boss et coût du donjon avant décision.",
+    "Les archimonstres croisés naturellement sont capturés immédiatement si possible; aucun repop d'archimonstre ne bloque la progression principale.",
+    "Le rattrapage des archimonstres utilise en priorité les outils actuels du jeu, notamment Fées à tête chercheuse/Bouataklônes et HDV lorsque disponible, plutôt qu'une boucle aveugle de zones.",
+    "Le Kralamoure n'est tenté qu'après étape18 réellement terminée. Il fusionne L'éternelle moisson étape19 + Le tour est joué et utilise la pierre spéciale fournie par la quête, jamais une pierre standard.",
+    "L'ouverture communautaire suit temporal_registry_v15: si l'antre n'est pas ouverte naturellement et qu'aucune ouverture n'est organisée, conserver cet objectif en attente et continuer les autres contenus."
+  ],
+  "optimization_note": "Raccord de dépendances uniquement : le parcours Ocre v1 reste identique; le registre temporel canonique passe à v15.",
+  "stage_patches": {},
+  "insertions": []
+}

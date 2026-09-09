@@ -1,0 +1,823 @@
+{
+  "count": 47,
+  "generated_at": "2026-06-02",
+  "source": "manual_extraction_from_user_screenshots_dofus_3_5_zaap_list",
+  "note": "Liste basée uniquement sur les zaaps visibles dans les captures utilisateur. Orthographe, accents et apostrophes corrigés. Doublons et entrées non visibles retirés.",
+  "duplicates_detected": [],
+  "zaaps": [
+    {
+      "label": "Cimetière [3,0]",
+      "name": "Cimetière",
+      "region": "Incarnam",
+      "posX": 3,
+      "posY": 0,
+      "search": "Cimetière",
+      "mapId": 153880064,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Crypte de Kardorim"
+      ]
+    },
+    {
+      "label": "Pâturages [2,-5]",
+      "name": "Pâturages",
+      "region": "Incarnam",
+      "posX": 2,
+      "posY": -5,
+      "search": "Pâturages",
+      "mapId": null,
+      "source": "screenshots_dofus_3_5_zaap_list"
+    },
+    {
+      "label": "Route des âmes [-1,-3]",
+      "name": "Route des âmes",
+      "region": "Incarnam",
+      "posX": -1,
+      "posY": -3,
+      "search": "Route des âmes",
+      "mapId": null,
+      "source": "screenshots_dofus_3_5_zaap_list"
+    },
+    {
+      "label": "Mont des Tombeaux [40,-44]",
+      "name": "Mont des Tombeaux",
+      "region": "Île de Grobe",
+      "posX": 40,
+      "posY": -44,
+      "search": "Mont des Tombeaux",
+      "mapId": 207095811,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Cimetière de Grobe",
+        "Demeure des Esprits",
+        "Mont des Tombeaux",
+        "Pandamonium",
+        "Port des Ravageurs",
+        "Rituel de Kabahal",
+        "Tombe du Shogun Tofugawa"
+      ]
+    },
+    {
+      "label": "Village de la Canopée [-54,16]",
+      "name": "Village de la Canopée",
+      "region": "Île d'Otomaï",
+      "posX": -54,
+      "posY": 16,
+      "search": "Village de la Canopée",
+      "mapId": 20973313,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Canopée du Kimbo",
+        "Feuillage de l'arbre Hakam",
+        "Laboratoire du Tynril",
+        "Tronc de l'arbre Hakam",
+        "Village de la Canopée"
+      ]
+    },
+    {
+      "label": "Village des Zoths [-53,18]",
+      "name": "Village des Zoths",
+      "region": "Île d'Otomaï",
+      "posX": -53,
+      "posY": 18,
+      "search": "Village des Zoths",
+      "mapId": 28050436,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Village des Zoths"
+      ]
+    },
+    {
+      "label": "Foire du Trool [-11,-36]",
+      "name": "Foire du Trool",
+      "region": "Foire du Trool",
+      "posX": -11,
+      "posY": -36,
+      "search": "Foire du Trool",
+      "mapId": 165153537,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Foire du Trool",
+        "Maison Fantôme"
+      ]
+    },
+    {
+      "label": "Temple des alliances [13,35]",
+      "name": "Temple des alliances",
+      "region": "Baie de Sufokia",
+      "posX": 13,
+      "posY": 35,
+      "search": "Temple des alliances",
+      "mapId": null,
+      "source": "screenshots_dofus_3_5_zaap_list"
+    },
+    {
+      "label": "Plaine des Scarafeuilles [-1,24]",
+      "name": "Plaine des Scarafeuilles",
+      "region": "Amakna",
+      "posX": -1,
+      "posY": 24,
+      "search": "Plaine des Scarafeuilles",
+      "mapId": 88212481,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Antre de Crocabulia",
+        "Antre du Dragon Cochon",
+        "Donjon des Scarafeuilles",
+        "Labyrinthe du Dragon Cochon",
+        "Plaine des Scarafeuilles",
+        "Potager d'Halouine",
+        "Presqu'île des Dragoeufs",
+        "Repaire du Kharnozor",
+        "Sanctuaire des Dragoeufs",
+        "Souterrains des Dragoeufs",
+        "Territoire des Porcos",
+        "Village des Dragoeufs",
+        "Épreuve de Draegnerys"
+      ]
+    },
+    {
+      "label": "Port de Madrestam [7,-4]",
+      "name": "Port de Madrestam",
+      "region": "Amakna",
+      "posX": 7,
+      "posY": -4,
+      "search": "Port de Madrestam",
+      "mapId": 68419587,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Caverne de Nowel",
+        "Côte d'Asse",
+        "Donjon de Nowel",
+        "Maison du Papa Nowel",
+        "Port de Madrestam",
+        "Rivière Kawaii"
+      ]
+    },
+    {
+      "label": "Dunes des ossements [15,-58]",
+      "name": "Dunes des ossements",
+      "region": "Saharach",
+      "posX": 15,
+      "posY": -58,
+      "search": "Dunes des ossements",
+      "mapId": 173278210,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Boyau du Père Ver",
+        "Caverne d'El Piko",
+        "Cimetière des Mastodontes",
+        "Dunes des ossements",
+        "Territoire Cacterre"
+      ]
+    },
+    {
+      "label": "Massif de Cania [-13,-28]",
+      "name": "Massif de Cania",
+      "region": "Plaines de Cania",
+      "posX": -13,
+      "posY": -28,
+      "search": "Massif de Cania",
+      "mapId": 165152263,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Massif de Cania"
+      ]
+    },
+    {
+      "label": "Plaine des Porkass [-5,-23]",
+      "name": "Plaine des Porkass",
+      "region": "Plaines de Cania",
+      "posX": -5,
+      "posY": -23,
+      "search": "Plaine des Porkass",
+      "mapId": 84806401,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Antre de la Reine Nyée",
+        "Clairière du Chêne Mou",
+        "Domaine Ancestral",
+        "Plaine des Porkass"
+      ]
+    },
+    {
+      "label": "Village des Brigandins [-16,-24]",
+      "name": "Village des Brigandins",
+      "region": "Plaines de Cania",
+      "posX": -16,
+      "posY": -24,
+      "search": "Village des Brigandins",
+      "mapId": 14419207,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Village des Brigandins"
+      ]
+    },
+    {
+      "label": "Nimotopia [-67,29]",
+      "name": "Nimotopia",
+      "region": "Nimotopia",
+      "posX": -67,
+      "posY": 29,
+      "search": "Nimotopia",
+      "mapId": 179306497,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Camp du Comte Razof",
+        "Nimotopia"
+      ]
+    },
+    {
+      "label": "La Cuirasse [-26,37]",
+      "name": "La Cuirasse",
+      "region": "Brâkmar",
+      "posX": -26,
+      "posY": 37,
+      "search": "La Cuirasse",
+      "mapId": 212861955,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Bordure de Brâkmar",
+        "Cimetière des Torturés",
+        "Entrailles de Brâkmar",
+        "Haras de Brâkmar",
+        "L'Ancre",
+        "L'Enclume",
+        "La Cuirasse",
+        "La Marmite",
+        "Sousouricière du Rat Noir"
+      ]
+    },
+    {
+      "label": "Rivage sufokien [10,22]",
+      "name": "Rivage sufokien",
+      "region": "Baie de Sufokia",
+      "posX": 10,
+      "posY": 22,
+      "search": "Rivage sufokien",
+      "mapId": 88085249,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Bassin des Muldos",
+        "Cimetière",
+        "Cryptes du cimetière",
+        "Donjon des Forgerons",
+        "Donjon des Squelettes",
+        "Forêt d'Amakna",
+        "Péninsule des gelées",
+        "Rivage sufokien",
+        "Territoire des Bandits"
+      ]
+    },
+    {
+      "label": "Crocuzko [-83,-15]",
+      "name": "Crocuzko",
+      "region": "Archipel des Écailles",
+      "posX": -83,
+      "posY": -15,
+      "search": "Crocuzko",
+      "mapId": 197920772,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Crocuzko",
+        "Sanctuaire de Torkélonia"
+      ]
+    },
+    {
+      "label": "Futaie enneigée [39,-82]",
+      "name": "Futaie enneigée",
+      "region": "Archipel de Valonia",
+      "posX": 39,
+      "posY": -82,
+      "search": "Futaie enneigée",
+      "mapId": 223349001,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Bastion des Marteaux-Aigris",
+        "Chambre des maléfices",
+        "Ephedrya",
+        "Ereboria",
+        "Futaie enneigée",
+        "Galeries d'Ereboria",
+        "Refuge sylvestre",
+        "Souterrains d'Albuera"
+      ]
+    },
+    {
+      "label": "Bord de la forêt maléfique [-1,13]",
+      "name": "Bord de la forêt maléfique",
+      "region": "Amakna",
+      "posX": -1,
+      "posY": 13,
+      "search": "Bord de la forêt maléfique",
+      "mapId": 88212746,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Bord de la forêt maléfique",
+        "Campement des Bworks",
+        "Campement des Gobelins",
+        "Donjon des Bworks",
+        "Dédale du Dark Vlad",
+        "Marécages d'Amakna",
+        "Pyramide d'Ombre",
+        "Tertre du long sommeil",
+        "Village des Bworks"
+      ]
+    },
+    {
+      "label": "Château d'Amakna [3,-5]",
+      "name": "Château d'Amakna",
+      "region": "Amakna",
+      "posX": 3,
+      "posY": -5,
+      "search": "Château d'Amakna",
+      "mapId": 68552706,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Château d'Amakna",
+        "Cloaque d'Amakna",
+        "Repaire de Sphincter Cell"
+      ]
+    },
+    {
+      "label": "Coin des Bouftous [5,7]",
+      "name": "Coin des Bouftous",
+      "region": "Amakna",
+      "posX": 5,
+      "posY": 7,
+      "search": "Coin des Bouftous",
+      "mapId": 88082704,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Campagne d'Amakna",
+        "Champ des Ingalsse",
+        "Clairière de Brouce Boulgoure",
+        "Coin des Boos",
+        "Coin des Bouftous",
+        "Donjon des Tofus",
+        "Milifutaie",
+        "Tofulailler Royal"
+      ]
+    },
+    {
+      "label": "Montagne des Craqueleurs [-5,-8]",
+      "name": "Montagne des Craqueleurs",
+      "region": "Amakna",
+      "posX": -5,
+      "posY": -8,
+      "search": "Montagne des Craqueleurs",
+      "mapId": 185860609,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Bois des Arak-haï",
+        "Forêt Sombre",
+        "Montagne des Craqueleurs",
+        "Nid du Kwakwa",
+        "Orée de la forêt des Abraknydes",
+        "Pitons Rocheux des Craqueleurs"
+      ]
+    },
+    {
+      "label": "Île de la Cawotte [25,-4]",
+      "name": "Île de la Cawotte",
+      "region": "Île des Wabbits",
+      "posX": 25,
+      "posY": -4,
+      "search": "Île de la Cawotte",
+      "mapId": 99615238,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Château du Wa Wabbit",
+        "Galeries abandonnées",
+        "Terrier du Wa Wabbit",
+        "Île de la Cawotte",
+        "Îlot de la Couronne",
+        "Îlot de Waldo",
+        "Îlot des Tombeaux"
+      ]
+    },
+    {
+      "label": "Laboratoires abandonnés [27,-14]",
+      "name": "Laboratoires abandonnés",
+      "region": "Île des Wabbits",
+      "posX": 27,
+      "posY": -14,
+      "search": "Laboratoires abandonnés",
+      "mapId": 115737095,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Laboratoires abandonnés"
+      ]
+    },
+    {
+      "label": "Village de Pandala [20,-29]",
+      "name": "Village de Pandala",
+      "region": "Île de Pandala",
+      "posX": 20,
+      "posY": -29,
+      "search": "Village de Pandala",
+      "mapId": 207619076,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Aerdala",
+        "Akwadala",
+        "Atelier du Tanukouï San",
+        "Bambusaie de Damadrya",
+        "Dojo du Vent",
+        "Fabrique de foux d'artifice",
+        "Feudala",
+        "Plantala",
+        "Terrdala",
+        "Vallée de la Dame des eaux",
+        "Village de Pandala"
+      ]
+    },
+    {
+      "label": "Plage de la Tortue [35,12]",
+      "name": "Plage de la Tortue",
+      "region": "Île de Moon",
+      "posX": 35,
+      "posY": 12,
+      "search": "Plage de la Tortue",
+      "mapId": 156762120,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Arbre de Moon",
+        "Bateau du Chouque",
+        "Chemin du Crâne",
+        "Forêt des Masques",
+        "Jungle Interdite",
+        "Plage de la Tortue",
+        "Village Kanniboul"
+      ]
+    },
+    {
+      "label": "Entrée du château de Harebourg [-67,-77]",
+      "name": "Entrée du château de Harebourg",
+      "region": "Île de Frigost",
+      "posX": -67,
+      "posY": -77,
+      "search": "Entrée du château de Harebourg",
+      "mapId": 108789760,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Bastion des froides légions",
+        "Belvédère d'Ilyzaelle",
+        "Caserne du Jour sans fin",
+        "Donjon du Comte Harebourg",
+        "Entrée du château de Harebourg",
+        "Forgefroide de Missiz Frizz",
+        "Jardins d'Hiver",
+        "Laboratoire de Nileza",
+        "Remparts à vent",
+        "Salons privés de Klime",
+        "Tannerie Écarlate",
+        "Tour de la Clepsydre",
+        "Transporteur de Sylargh"
+      ]
+    },
+    {
+      "label": "La Bourgade [-78,-41]",
+      "name": "La Bourgade",
+      "region": "Île de Frigost",
+      "posX": -78,
+      "posY": -41,
+      "search": "La Bourgade",
+      "mapId": 54172969,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Champs de glace",
+        "Excavation du Mansot Royal",
+        "Forêt des pins perdus",
+        "La Bourgade",
+        "Lac gelé",
+        "Port de givre",
+        "Serre du Royalmouth"
+      ]
+    },
+    {
+      "label": "Village enseveli [-77,-73]",
+      "name": "Village enseveli",
+      "region": "Île de Frigost",
+      "posX": -77,
+      "posY": -73,
+      "search": "Village enseveli",
+      "mapId": 54172489,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Antichambre des Gloursons",
+        "Antre du Korriandre",
+        "Brasserie du roi Dazak",
+        "Cavernes des Givrefoux",
+        "Cavernes du Kolosso",
+        "Crevasse Perge",
+        "Crocs de verre",
+        "Forêt pétrifiée",
+        "Hypogée de l'Obsidiantre",
+        "Mont Torrideau",
+        "Royaume des Martegel",
+        "Ruche des Gloursons",
+        "Tanière Givrefoux",
+        "Village enseveli"
+      ]
+    },
+    {
+      "label": "Village côtier [-46,18]",
+      "name": "Village côtier",
+      "region": "Île d'Otomaï",
+      "posX": -46,
+      "posY": 18,
+      "search": "Village côtier",
+      "mapId": 154642,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Antre du Kralamoure Géant",
+        "Arche d'Otomaï",
+        "Cale de l'arche d'Otomaï",
+        "Goulet du Rasboul",
+        "Grotte Hesque",
+        "Jungle obscure",
+        "Plage de Corail",
+        "Plaines herbeuses",
+        "Tourbière nauséabonde",
+        "Tourbière sans fond",
+        "Village côtier",
+        "Île des naufragés"
+      ]
+    },
+    {
+      "label": "Champs de Cania [-27,-36]",
+      "name": "Champs de Cania",
+      "region": "Plaines de Cania",
+      "posX": -27,
+      "posY": -36,
+      "search": "Champs de Cania",
+      "mapId": 142087694,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Champs de Cania"
+      ]
+    },
+    {
+      "label": "Lac de Cania [-3,-42]",
+      "name": "Lac de Cania",
+      "region": "Plaines de Cania",
+      "posX": -3,
+      "posY": -42,
+      "search": "Lac de Cania",
+      "mapId": 156240386,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Antre du Blop Multicolore Royal",
+        "Cirque de Cania",
+        "Clos des Blops",
+        "Dents de Pierre",
+        "Grotte de Kanigroula",
+        "Lac de Cania",
+        "Landes de Cania",
+        "Volière de la Haute Truche"
+      ]
+    },
+    {
+      "label": "Plaines Rocheuses [-17,-47]",
+      "name": "Plaines Rocheuses",
+      "region": "Plaines de Cania",
+      "posX": -17,
+      "posY": -47,
+      "search": "Plaines Rocheuses",
+      "mapId": 147590153,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Bibliothèque du Maître Corbac",
+        "Bois de Litneg",
+        "Pics de Cania",
+        "Plaines Rocheuses",
+        "Pénates du Corbac",
+        "Salle de lecture du Maître Corbac"
+      ]
+    },
+    {
+      "label": "Village des Dopeuls [-34,-8]",
+      "name": "Village des Dopeuls",
+      "region": "Plaines de Cania",
+      "posX": -34,
+      "posY": -8,
+      "search": "Village des Dopeuls",
+      "mapId": 100270593,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Village des Dopeuls"
+      ]
+    },
+    {
+      "label": "Village des Kanigs [0,-56]",
+      "name": "Village des Kanigs",
+      "region": "Plaines de Cania",
+      "posX": 0,
+      "posY": -56,
+      "search": "Village des Kanigs",
+      "mapId": 126094107,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Village des Kanigs"
+      ]
+    },
+    {
+      "label": "Cimetière primitif [-12,19]",
+      "name": "Cimetière primitif",
+      "region": "Montagne des Koalaks",
+      "posX": -12,
+      "posY": 19,
+      "search": "Cimetière primitif",
+      "mapId": 64487936,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Cimetière primitif"
+      ]
+    },
+    {
+      "label": "Route des Roulottes [-25,12]",
+      "name": "Route des Roulottes",
+      "region": "Landes de Sidimote",
+      "posX": -25,
+      "posY": 12,
+      "search": "Route des Roulottes",
+      "mapId": 171967506,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Chapiteau des Magik Riktus",
+        "Désolation de Sidimote",
+        "Gisgoul",
+        "Grotte du Bworker",
+        "Hauts des Hurlements",
+        "Laboratoire de Brumen Tinctorias",
+        "Marches Magmatiques",
+        "Passage vers Brâkmar",
+        "Route des Roulottes",
+        "Tanière du Meulou",
+        "Tour de Solar"
+      ]
+    },
+    {
+      "label": "Terres Désacrées [-15,25]",
+      "name": "Terres Désacrées",
+      "region": "Landes de Sidimote",
+      "posX": -15,
+      "posY": 25,
+      "search": "Terres Désacrées",
+      "mapId": 179831296,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Caverne des Fungus",
+        "Domaine des Fungus",
+        "Manoir des Katrepat",
+        "Temple du Grand Ougah",
+        "Temple maudit d'Araknas",
+        "Terres Désacrées"
+      ]
+    },
+    {
+      "label": "Routes Rocailleuses [-20,-20]",
+      "name": "Routes Rocailleuses",
+      "region": "Plaines de Cania",
+      "posX": -20,
+      "posY": -20,
+      "search": "Routes Rocailleuses",
+      "mapId": 164364304,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Baie de Cania",
+        "Mine des Dopeuls",
+        "Routes Rocailleuses"
+      ]
+    },
+    {
+      "label": "Village des Éleveurs [-16,1]",
+      "name": "Village des Éleveurs",
+      "region": "Montagne des Koalaks",
+      "posX": -16,
+      "posY": 1,
+      "search": "Village des Éleveurs",
+      "mapId": 73400320,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Antre du Koulosse",
+        "Canyon sauvage",
+        "Caverne du Koulosse",
+        "Forêt de Kaliptus",
+        "Lacs enchantés",
+        "Marécages nauséabonds",
+        "Marécages sans fond",
+        "Repaire de Skeunk",
+        "Territoire des dragodindes sauvages",
+        "Vallée de la Morh'Kitu",
+        "Village des Éleveurs"
+      ]
+    },
+    {
+      "label": "Cœur immaculé [-31,-56]",
+      "name": "Cœur immaculé",
+      "region": "Bonta",
+      "posX": -31,
+      "posY": -56,
+      "search": "Cœur immaculé",
+      "mapId": 212600323,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Canaux méphitiques",
+        "Cimetière des Héros",
+        "Cœur immaculé",
+        "Faubourgs des artisans",
+        "Garde-manger du Rat Blanc",
+        "Havres d'ivoire",
+        "Promontoire des cieux",
+        "Rives iridescentes"
+      ]
+    },
+    {
+      "label": "Sufokia [13,26]",
+      "name": "Sufokia",
+      "region": "Baie de Sufokia",
+      "posX": 13,
+      "posY": 26,
+      "search": "Sufokia",
+      "mapId": 95422468,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Abîme de R'lyugluglu",
+        "Ancienne Sufokia",
+        "Aquadôme de Merkator",
+        "Domaine des Trithons",
+        "Faille des Trithons",
+        "Fosse de R'lyugluglu",
+        "Gelaxième dimension",
+        "Palais de Dantinéa",
+        "Plateau de R'lyugluglu",
+        "Salles des Abîmes",
+        "Salles des Courants",
+        "Salles des Embruns",
+        "Sufokia",
+        "Temple de Koutoulou",
+        "Tréfonds des Trithons",
+        "Vaisseau du Capitaine Meno",
+        "Vestiges engloutis",
+        "Ville submergée"
+      ]
+    },
+    {
+      "label": "Cité d'Astrub [5,-18]",
+      "name": "Cité d'Astrub",
+      "region": "Astrub",
+      "posX": 5,
+      "posY": -18,
+      "search": "Cité d'Astrub",
+      "mapId": 191105026,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Cache de Kankreblath",
+        "Château Ensablé",
+        "Grange du Tournesol Affamé"
+      ]
+    },
+    {
+      "label": "Tainéla [1,-32]",
+      "name": "Tainéla",
+      "region": "Astrub",
+      "posX": 1,
+      "posY": -32,
+      "search": "Tainéla",
+      "mapId": null,
+      "source": "screenshots_dofus_3_5_zaap_list"
+    },
+    {
+      "label": "Village d'Amakna [-2,0]",
+      "name": "Village d'Amakna",
+      "region": "Amakna",
+      "posX": -2,
+      "posY": 0,
+      "search": "Village d'Amakna",
+      "mapId": 88213271,
+      "source": "screenshots_dofus_3_5_zaap_list",
+      "subareas": [
+        "Akadémie des Gobs",
+        "Croquanterie",
+        "Donjon des Larves",
+        "Fonderie des Waddicts",
+        "Montagne basse des Craqueleurs",
+        "Temple du dieu Kao",
+        "Village d'Amakna"
+      ]
+    },
+    {
+      "label": "Arche de Vili [15,-20]",
+      "name": "Arche de Vili",
+      "region": "Profondeurs d'Astrub",
+      "posX": 15,
+      "posY": -20,
+      "search": "Arche de Vili",
+      "mapId": null,
+      "source": "screenshots_dofus_3_5_zaap_list"
+    }
+  ],
+  "orthographe_corrigee": true
+}

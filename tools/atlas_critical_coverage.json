@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "module": "app/core/character_identity.py",
+      "minimum_percent": 90,
+      "tests": ["tests.test_character_identity_contract", "tests.test_character_identity_invariants", "tests.test_character_write_boundaries"]
+    },
+    {
+      "module": "app/core/json_store.py",
+      "minimum_percent": 85,
+      "tests": ["tests.test_json_store", "tests.test_guide_progress_persistence"]
+    },
+    {
+      "module": "app/preload.py",
+      "minimum_percent": 70,
+      "tests": ["tests.test_startup_preloader"]
+    },
+    {
+      "module": "app/network/progress_bridge.py",
+      "minimum_percent": 60,
+      "tests": ["tests.test_network_progress_runtime", "tests.test_network_identity_routing"]
+    },
+    {
+      "module": "tools/atlas_meta_integrity.py",
+      "minimum_percent": 70,
+      "tests": ["tests.test_meta_integrity"]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_level_100_120_v6",
+  "title": "Guide Ultime — Niveau 100 à 120 + Dites-le avec des fleurs explicite",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_100_120_v5.json",
+  "supersedes": "guide_ultime_manual_level_100_120_v5",
+  "stage_count": 16,
+  "optimization_note": "Corrige une dette sémantique: Dites-le avec des fleurs était seulement mentionnée comme gate de Le Saule du Promeneur. Elle est désormais réellement routée dans la même boucle Plantala de L100-15, avant Saule et Damadrya. Cela sécurise le futur sigil de Rosal dans Qui nous protège du Protecteur sans détour post-200.",
+  "sources": ["https://www.dofuspourlesnoobs.com/dites-le-avec-des-fleurs.html"],
+  "stage_patches": {
+    "L100-15": {
+      "prepend": {
+        "quests": ["Dites-le avec des fleurs"],
+        "route": [
+          {"area":"Plantala / Village de Pandala","do":"Prendre Dites-le avec des fleurs dès que Le réveil de Pandala est terminé. Faire les deux combats Plantala, apprendre le langage des fleurs auprès de Sobomori puis finir la boucle Fleur-esprit/Wanakotoba avant d'avancer Le Saule du Promeneur. Cette quête partage exactement la zone déjà utilisée par les autres fils Plantala; aucun déplacement post-200 ne doit subsister."}
+        ]
+      },
+      "append": {
+        "hard_exit": ["Dites-le avec des fleurs terminée avant Le Saule du Promeneur et avant le futur sigil de Rosal."]
+      }
+    }
+  },
+  "insertions": []
+}

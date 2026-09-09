@@ -1,0 +1,108 @@
+{
+  "schema_version":1,
+  "route_id":"guide_ultime_manual_ocre_completion_route_v1",
+  "title":"Guide Ultime — Ocre final 3.5+, boss → archimonstres → Kralamoure",
+  "status":"MANUAL_TRANSVERSAL_WORKING_SET",
+  "depends_on":["ocre_capture_registry_v1.json","temporal_registry_v13.json"],
+  "mandatory":true,
+  "entry":"Capture d'âmes obtenue; L'éternelle moisson lancée; captures boss suivies par ocre_capture_registry_v1",
+  "exit":"Dofus Ocre obtenu réellement; La fin de l'éternité validable; Six sur six déblocable selon les cinq autres Primordiaux",
+  "rules":[
+    "Depuis DOFUS3.5 L'éternelle moisson comporte 19 étapes: boss1-3, archimonstres4-18, Kralamoure19; aucune capture de monstre classique.",
+    "Toute âme capturée en avance reste en banque jusqu'à ce que l'étape courante l'accepte; ne jamais vendre une cible Ocre encore non remise.",
+    "Un boss manqué n'impose pas automatiquement un nouveau passage: comparer prix HDV de l'âme, autres succès/quêtes du boss et coût du donjon avant décision.",
+    "Les archimonstres croisés naturellement sont capturés immédiatement si possible; aucun repop d'archimonstre ne bloque la progression principale.",
+    "Le rattrapage des archimonstres utilise en priorité les outils actuels du jeu, notamment Fées à tête chercheuse/Bouataklônes et HDV lorsque disponible, plutôt qu'une boucle aveugle de zones.",
+    "Le Kralamoure n'est tenté qu'après étape18 réellement terminée. Il fusionne L'éternelle moisson étape19 + Le tour est joué et utilise la pierre spéciale fournie par la quête, jamais une pierre standard.",
+    "L'ouverture communautaire suit temporal_registry_v13: si l'antre n'est pas ouverte naturellement et qu'aucune ouverture n'est organisée, conserver cet objectif en attente et continuer les autres contenus."
+  ],
+  "global_preparation":[
+    {"requirement":"Capture d'âmes","source":"Nid du Kwakwa"},
+    {"policy":"Conserver un stock de pierres de puissances adaptées aux boss/archimonstres restant; vérifier la puissance du plus haut niveau, pas le niveau total du groupe."},
+    {"policy":"Vider régulièrement l'inventaire des pierres déjà inutiles/remises et garder une banque dédiée Ocre pour éviter pods/inventaire saturés."},
+    {"policy":"Avant le rattrapage des archimonstres, relève la liste exacte des étapes4-18 encore manquantes dans ta progression; ne farme jamais une cible déjà validée."},
+    {"requirement":"Ouverture communautaire Kralamoure","minimum_people_current_source":49,"blocking":true},
+    {"requirement":"Pierre d'âme spéciale Kralamoure remise par la quête au vrai objectif étape19","blocking":true}
+  ],
+  "stages":[
+    {
+      "id":"OCRE-F1",
+      "title":"Boss étapes1-3 — vérification des captures de toute l'aventure",
+      "level":"dès que les boss sont accessibles / vérification finale recommandée avant archimonstres",
+      "duration_min":60,
+      "quests":["L'éternelle moisson"],
+      "route":[
+        {"area":"Assistante d'Otomaï","do":"Remettre les âmes boss déjà capturées par étapes1→3. Le registre Ocre est la liste de vérité des boss depuis3.5."},
+        {"area":"boss manquants","do":"Pour chaque boss encore absent, choisir: âme HDV si rentable; sinon refaire le donjon seulement avec succès/quêtes/ressources encore utiles. Les boss affrontés avant Capture d'âmes restent à rattraper explicitement."}
+      ],
+      "hard_exit":["Étapes boss1-3 réellement terminées","Aucun boss considéré remis sur simple présence en banque"],
+      "pause":["POINT DE PAUSE SÛR — Ocre prêt archimonstres"]
+    },
+    {
+      "id":"OCRE-F2",
+      "title":"Archimonstres étapes4-18 — vider d'abord toutes les captures opportunistes",
+      "level":"après boss1-3",
+      "duration_min":90,
+      "quests":["L'éternelle moisson"],
+      "route":[
+        {"area":"Assistante d'Otomaï","do":"Remettre tous les archimonstres déjà capturés pendant l'aventure, dans l'ordre des étapes4-18 accepté par la quête. Après chaque remise, recalculer la liste réellement manquante."},
+        {"area":"banque/HDV","do":"Comparer les doublons, anciennes pierres encore échangeables, HDV des âmes et besoins restants. Ne pas acheter un archimonstre déjà présent sur une autre pierre en banque."}
+      ],
+      "hard_exit":["Liste exacte des archimonstres encore manquants produite après toutes les remises"],
+      "pause":["POINT DE PAUSE SÛR — rattrapage archimonstres ciblé"]
+    },
+    {
+      "id":"OCRE-F3",
+      "title":"Archimonstres — rattrapage ciblé par zones + Bouataklônes",
+      "level":"étapes4-18",
+      "duration_min":"variable / asynchrone",
+      "quests":["L'éternelle moisson"],
+      "preparation":[
+        {"name":"Fées à tête chercheuse d'archimonstres","policy":"Crafter/acheter selon quantité rentable pour les zones de la liste des cibles manquantes."},
+        {"name":"Bouataklônes","policy":"Utiliser pour les archimonstres réellement manquants lorsque cette voie est plus rapide/rentable; préparer la pierre adaptée avant le combat solo."}
+      ],
+      "route":[
+        {"area":"zones des archimonstres manquants","do":"Trier les cibles par zone et par autres objectifs Monstres/Quêtes encore non validés. Faire une zone une seule fois par boucle, utiliser les outils de localisation actuels et capturer toute cible manquante rencontrée."},
+        {"area":"Bouataklônes","do":"Pour les cibles à repop pénible/coût de déplacement élevé, utiliser les boîtes disponibles. Si le combat est perdu ou la capture oubliée, garder simplement la cible comme manquante."},
+        {"area":"Assistante d'Otomaï","do":"Faire des remises par lots dès qu'une étape peut être fermée. Recalculer après chaque étape pour éviter tout achat/farm obsolète."}
+      ],
+      "hard_exit":["Étape18 réellement terminée","Aucun archimonstre encore manquant avant de passer à l'étape19"],
+      "pause":["POINT DE PAUSE SÛR — Ocre étape19 Kralamoure"]
+    },
+    {
+      "id":"OCRE-F4",
+      "title":"Kralamoure unique — Ocre étape19 + Le tour est joué",
+      "level":"étape19 réelle",
+      "duration_min":180,
+      "quests":["L'éternelle moisson","Le tour est joué"],
+      "temporal_hook":"kralamoure_server_opening",
+      "dungeon":{"name":"Antre du Kralamoure Géant","pass":"unique_for_ocre_and_tour","standard_soul_stone_forbidden":true},
+      "entry":"Étape18 terminée; Le tour est joué actif depuis Merkator; accès Tourbière nauséabonde obtenu via Sacrée Tourbière; pierre spéciale Ocre en inventaire.",
+      "route":[
+        {"area":"ouverture communautaire","do":"Ne se déplacer au Kralamoure que si l'antre est ouverte ou une ouverture réellement organisée. Le mécanisme actuel demande une mobilisation communautaire importante; ne jamais attendre des heures à l'entrée."},
+        {"area":"Antre du Kralamoure Géant","do":"Entrer avec Le tour est joué + étape19 Ocre + pierre spéciale. Faire les succès du Kralamoure encore manquants, vaincre et capturer le boss avec la mécanique spéciale de la quête."},
+        {"area":"sortie/Assistante/Otomaï","do":"Fermer Le tour est joué et remettre l'âme Kralamoure. Considérer l'Ocre obtenu seulement après la remise finale et la récompense réellement reçue en jeu."}
+      ],
+      "hard_exit":["Kralamoure un seul passage pour Tour + Ocre final","Dofus Ocre obtenu réellement","La fin de l'éternité validable"],
+      "pause":["POINT DE PAUSE SÛR — Ocre fermé"]
+    },
+    {
+      "id":"OCRE-F5",
+      "title":"Après Ocre — débloquer Six sur six sans faux raccourci",
+      "level":"200 ou dès six Primordiaux réels",
+      "duration_min":30,
+      "quests":[],
+      "route":[
+        {"area":"vérification des Primordiaux","do":"Vérifier Émeraude + Pourpre + Turquoise + Ocre + Ivoire + Ébène réellement possédés et leurs succès associés terminés. Six sur six ne s'ouvre pas uniquement parce que le guide a parcouru ces objectifs."}
+      ],
+      "hard_exit":["Six Primordiaux réels ou prérequis manquant précisément identifié","Six sur six prêt à être routé"],
+      "pause":["POINT DE PAUSE SÛR — réunification des six"]
+    }
+  ],
+  "sources":[
+    "https://www.dofuspourlesnoobs.com/leacuteternelle-moisson.html",
+    "https://www.dofuspourlesnoobs.com/mise-a-jour-305.html",
+    "https://www.dofuspourlesnoobs.com/antre-du-kralamoure-geacuteant.html",
+    "https://www.dofuspourlesnoobs.com/six-sur-six.html"
+  ]
+}

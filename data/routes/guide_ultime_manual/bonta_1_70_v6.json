@@ -1,0 +1,148 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_bonta_1_70_v6",
+  "title": "Guide Ultime — Alignement Bonta 1 à 70 optimisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_60_v5.json",
+  "supersedes": "guide_ultime_manual_bonta_1_60_v5",
+  "quest_range": [1, 70],
+  "macro_stage_count": 30,
+  "routing_policy_61_70": [
+    "Rangs61-64 constituent une seule campagne Corne Edfrit Bonta/Moon/Wabbit: préparer Fourbacoiffe, deux Gloutoburg, Salace de poissons et Corde d'escalade avant le départ afin de ne pas multiplier les retours.",
+    "Rang65 Bandanarthrie attend obligatoirement Tour de rein afin de mutualiser Sphincter Cell avec la chaîne Lorie Culère et la capture Ocre. La bénédiction de Thomahon est volontairement hors de ce passage car son vrai prérequis arrive bien plus tard.",
+    "Le Donjon des Forgerons du rang65 est un rerun causalement inévitable: Bandanarthrie ne demande le manuel qu'après avoir vaincu Sphincter Cell et rapporté le Bandana Troué.",
+    "Rangs66-69 sont regroupés en une campagne Cania/Brâkmar/Moon/Astrub; toutes les ressources de rang69 et les deux assistants sont réunis avant le sous-sol du Mage Ax.",
+    "Rang70 Kanigroula attend Chachyène de vie au bon objectif afin de fusionner les deux quêtes et tous les succès du donjon. La bénédiction de Foluk n'est pas attendue car elle appartient à un arc beaucoup plus tardif.",
+    "Aucune quête Brâkmar d'alignement n'est injectée dans cette route Bonta même si les pages de donjon la listent comme quête liée."
+  ],
+  "preparation_61_70": [
+    {"name":"Griffe de Phorrêveur","quantity":1,"for_rank":61},
+    {"name":"Peau de Métaphorreur","quantity":1,"for_rank":61},
+    {"name":"Corne de Père Phorreur","quantity":1,"for_rank":61},
+    {"name":"Œil de Phozami","quantity":1,"for_rank":61},
+    {"name":"Fourbacoiffe","quantity":1,"for_ranks":[62,63,68]},
+    {"name":"Bouteille de Gloutoburg","quantity":2,"for_ranks":[62,63,68],"note":"Le nombre réellement consommé dépend de la durée de l'effet; en préparer deux avant Moon évite un retour."},
+    {"name":"Requin Marteau-Faucille","quantity":12,"for_rank":63},
+    {"name":"Bâton de Crabe","quantity":3,"for_rank":63},
+    {"name":"Citron","quantity":2,"for_rank":63},
+    {"name":"Feuille de Salace","quantity":14,"for_ranks":[62,63,68],"note":"4 pour Salace de poissons + 10 pour un Gloutoburg futur; ajuster selon bouteilles déjà possédées."},
+    {"name":"Huile de Fantimonier","quantity":1,"for_rank":63},
+    {"name":"Cerise","quantity":10,"for_rank":63},
+    {"requirement":"Pêcheur niveau153+ ou artisan disponible pour la Salace de poissons","for_rank":63,"blocking":true},
+    {"name":"Corde d'escalade","quantity":1,"for_rank":64},
+    {"name":"Étoffe de Kurookin","quantity":5,"for_rank":65},
+    {"name":"Concombre","quantity":5,"for_rank":65},
+    {"name":"Duvet du Kilibriss","quantity":3,"for_rank":65},
+    {"name":"Étoffe de Firefoux","quantity":1,"for_rank":65},
+    {"name":"Fil de Soie","quantity":1,"for_rank":65},
+    {"name":"Teinture Magique de Rougeur","quantity":1,"for_rank":65},
+    {"name":"Teinture Magique Orange","quantity":1,"for_rank":65},
+    {"name":"Sang de Wabbit Garou","quantity":3,"for_rank":65},
+    {"name":"Lotte","quantity":30,"for_rank":65},
+    {"requirement":"Alchimiste niveau155+ ou artisan disponible pour la Teinture Orange Sanguine","for_rank":65,"blocking":true},
+    {"name":"Bouteille de Gloutoburg","quantity":1,"for_rank":68,"note":"à conserver si une bouteille préparée rang62 n'a pas été consommée"},
+    {"name":"Potion de Crachin","quantity":5,"for_rank":69},
+    {"name":"Eau potable","quantity":10,"for_rank":69},
+    {"name":"Graine de Pandouille","quantity":10,"for_rank":69},
+    {"name":"Poudre de Perlinpainpain","quantity":4,"for_rank":69},
+    {"name":"Bois de Charme","quantity":2,"for_rank":69},
+    {"name":"Potion de Courant d'air","quantity":4,"for_rank":69},
+    {"requirement":"Deux personnages assistants disponibles avant le sous-sol du Mage Ax","for_rank":69,"blocking":true},
+    {"warning":"Ne pas avoir de Blague de Soufre dans l'inventaire pendant la manipulation du rang69; la déposer en banque avant l'étape."}
+  ],
+  "insertions": [
+    {
+      "after":"BNT-25",
+      "stage": {
+        "id":"BNT-26",
+        "title":"Bonta 61-64 — Corne Edfrit, Moon et tortue en une seule campagne",
+        "level_gate":"rangs successifs réellement disponibles; niveaux web seulement documentaires",
+        "duration_min":170,
+        "ranks":[61,62,63,64],
+        "quests":["Une rumeur intéressante","Investigations à Moon","Manière douce","Histoires de tortues"],
+        "hard_gates":[
+          "Fourbacoiffe prête avant le premier départ Moon.",
+          "Deux Gloutoburg préparés ou ressources exactes disponibles avant Moon.",
+          "Pêcheur153+ disponible avant Manière douce.",
+          "Corde d'escalade prête avant le sauvetage du Bwak."
+        ],
+        "route":[
+          {"pos":"Bonta [-32,-57] -> [12,24] -> [4,1] -> [2,-1] -> Bonta","do":"Rang61: prendre Une rumeur intéressante avec les quatre ressources Phorreur déjà en inventaire, payer l'information au Ripate, faire Harry Stote + Laura Soho dans la même boucle et rendre Amayiro."},
+          {"pos":"Moon [31,8]","do":"Rang62: avec Fourbacoiffe équipée et Gloutoburg actif, utiliser le passage secret, interroger Turorte et terminer les recherches demandées. Ne pas repartir de Moon avant d'avoir préparé l'étape63."},
+          {"pos":"Moon [33,12] -> [31,8]","do":"Rang63: récupérer la recette, fabriquer/faire fabriquer la Salace de poissons avec les ressources préparées, réutiliser le passage secret et donner le plat à Turorte. Rendre ensuite à Amayiro."},
+          {"pos":"[9,21] -> [11,19] -> Wabbit [25,-4] -> Bonta","do":"Rang64: aller voir Oshimo, sauver le Bwak avec la Corde d'escalade, poursuivre l'enquête tortue jusqu'au Wabbit demandé puis rendre. Profiter de ce retour Wabbit uniquement pour les reliquats déjà identifiés; ne pas recréer une boucle full zone."}
+        ],
+        "hard_exit":["Bonta64 terminé","Bandanarthrie disponible","Fourbacoiffe conservée pour le rang68","Tout reliquat Moon/Wabbit possède un état explicite"],
+        "pause":["Alignement64","Prochaine étape attend Tour de rein avant Sphincter"]
+      }
+    },
+    {
+      "after":"BNT-26",
+      "stage": {
+        "id":"BNT-27",
+        "title":"Bonta65 — Sphincter Cell partagé avec Tour de rein + Ocre, puis Forgerons causal",
+        "level_gate":"Bandanarthrie active ET Tour de rein active après Tour de passe-passe/Tynrils",
+        "duration_min":105,
+        "ranks":[65],
+        "quests":["Bandanarthrie","Tour de rein"],
+        "preparation":[
+          {"name":"Pierre d'âme","minimum_power":150,"quantity":1,"for":"Sphincter Cell Ocre"},
+          {"requirement":"Première + Deuxième clef Sphincter disponibles via Rat Blanc/Rat Noir ou trousseau selon fonctionnement actuel","blocking":true}
+        ],
+        "route":[
+          {"pos":"[5,-8] Repaire de Sphincter Cell","do":"Entrer seulement lorsque Bandanarthrie ET Tour de rein sont actives. Faire tous les succès compatibles, vaincre Sphincter Cell, capturer puissance150 pour l'Ocre et récupérer le Bandana Troué. Ne pas attendre La bénédiction de Thomahon: son arc est beaucoup plus tardif."},
+          {"pos":"[16,27] Sufokia","do":"Rendre Tour de rein immédiatement et prendre Tour de main. Le futur Kimbo est maintenant un fil explicite."},
+          {"pos":"Bonta -> [2,2]","do":"Rendre/présenter le Bandana Troué et avancer Bandanarthrie jusqu'au Manuel du tailleur pour les Nuls."},
+          {"pos":"[13,21] Donjon des Forgerons","do":"Faire le rerun CAUSALEMENT INÉVITABLE du Donjon des Forgerons: cette demande n'existe qu'après le Sphincter. Récupérer le Manuel du tailleur pour les Nuls et faire uniquement les succès réellement manqués."},
+          {"pos":"[2,2] -> Bonta","do":"Faire fabriquer le Tissu de Rapiéçage et la Teinture Orange Sanguine avec les ressources préparées, réparer le bandana et terminer Bandanarthrie."}
+        ],
+        "hard_exit":["Sphincter Cell fait une seule fois pour Bonta65 + Tour de rein + Ocre","Tour de main active","Forgerons rerun documenté comme causal et non comme oubli d'optimisation","Bonta65 terminé"],
+        "pause":["Alignement65","Tour de main = Kimbo futur","Course-poursuite disponible"]
+      }
+    },
+    {
+      "after":"BNT-27",
+      "stage": {
+        "id":"BNT-28",
+        "title":"Bonta 66-69 — poursuite de la Corne, Moon puis extraction magique",
+        "level_gate":"rangs successifs réellement disponibles",
+        "duration_min":145,
+        "ranks":[66,67,68,69],
+        "quests":["Course-poursuite","À la poursuite d'Octolliard rouge","Une Corne Edfrit sans sel","Un sombre pouvoir"],
+        "hard_gates":[
+          "Fourbacoiffe + Gloutoburg prêts avant rang68.",
+          "Deux assistants + toutes les ressources rang69 réunis AVANT [3,-21].",
+          "Blague de Soufre déposée en banque avant la manipulation de Un sombre pouvoir."
+        ],
+        "route":[
+          {"pos":"Bonta -> [-27,-31] -> Danathor/Bonta","do":"Rang66: vaincre l'Agent de Brâkmar en groupe si souhaité. Utiliser la branche Danathor seulement si elle reste cohérente avec la branche déjà verrouillée; rendre ensuite Amayiro."},
+          {"pos":"[-25,13] -> [-22,34] -> Bonta","do":"Rang67: couvrir la fuite de l'espion, gagner le combat de groupe, remettre les faux documents puis les vrais à Amayiro."},
+          {"pos":"Moon [31,8] -> passage secret/corne -> Bonta","do":"Rang68: équiper Fourbacoiffe, consommer Gloutoburg, retrouver Turorte et suivre le passage vers la Corne Edfrit. Terminer le combat solo et revenir Bonta sans refaire un contenu Moon déjà clos."},
+          {"pos":"[3,-21] Astrub","do":"Rang69: venir avec DEUX assistants et toutes les potions/ressources préparées. Déposer toute Blague de Soufre avant cette étape. Réaliser la manipulation du Mage Ax et les actions de sous-sol en une fois, puis terminer le combat solo et rendre à Bonta."}
+        ],
+        "hard_exit":["Bonta69 terminé","Deux assistants n'ont pas été recrutés après arrivée sur la map","Ressources rang69 consommées sans aller-retour","Le subterfuge de la corne actif"],
+        "pause":["Alignement69","Kanigroula différée jusqu'à Chachyène de vie prête"]
+      }
+    },
+    {
+      "after":"BNT-28",
+      "stage": {
+        "id":"BNT-29",
+        "title":"Kanigroula — Bonta70 + Chachyène de vie + succès en un passage",
+        "level_gate":"Le subterfuge de la corne active ET Chachyène de vie au bon objectif Kanigroula",
+        "duration_min":85,
+        "ranks":[70],
+        "quests":["Le subterfuge de la corne","Chachyène de vie"],
+        "preparation":[{"note":"Kanigroula n'est pas dans le registre Ocre actuel: aucune pierre Ocre imposée."}],
+        "route":[
+          {"pos":"Dents de Pierre","do":"AVANT l'entrée, finir les objectifs de zone de Chachyène de vie jusqu'à devoir vaincre Kanigroula. Le subterfuge de la corne doit lui aussi être au bon objectif après les dialogues/combats Alhyènes."},
+          {"pos":"[-5,-54] Grotte de Kanigroula","do":"Entrer avec les deux quêtes actives. Faire Premier, Hardi, Spécial et Duo selon composition/compatibilité et vaincre Kanigroula une seule fois. Faire tous les dialogues post-boss de Chachyène et du rang70 avant sortie."},
+          {"pos":"Dents de Pierre -> Bonta","do":"Fermer Chachyène de vie puis rendre Le subterfuge de la corne à Amayiro. Ne pas attendre La bénédiction de Foluk: elle appartient à un futur arc 170-180 et créera si nécessaire un passage causal distinct."}
+        ],
+        "hard_exit":["Bonta1-70 couvert sans trou","Ohé, ohé, capitaine abandonné validable côté Bonta","Chachyène de vie terminée","Kanigroula n'a pas été faite seule pour l'alignement","Aucune capture Ocre inventée pour Kanigroula"],
+        "pause":["Alignement70","Succès alignement61-70 prêt","Prochain rang: Un coupable idéal"]
+      }
+    }
+  ],
+  "stage_patches": {}
+}

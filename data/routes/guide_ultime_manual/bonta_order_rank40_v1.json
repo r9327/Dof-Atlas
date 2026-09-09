@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_bonta_order_rank40_v1",
+  "title": "Guide Ultime — deuxième rang d'Ordre Bonta",
+  "status": "MANUAL_CONDITIONAL_ROUTE_WORKING_SET",
+  "trigger": {
+    "alignment": "Bonta",
+    "minimum_alignment_rank": 40,
+    "required_quest": "C'est stupéfiant",
+    "recommended_level": 100
+  },
+  "selection_policy": {
+    "source": "même choix d'Ordre persistant que le rang 20",
+    "exactly_one": true,
+    "order_change_forbidden": true,
+    "unselected_routes_hidden": true
+  },
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/apprentissage-ecuyer.html",
+    "https://www.dofuspourlesnoobs.com/apprentissage-espion-silencieux.html",
+    "https://www.dofuspourlesnoobs.com/apprentissage-apprenti-eclaire.html",
+    "https://www.dofuspourlesnoobs.com/cest-stupeacutefiant.html"
+  ],
+  "options": {
+    "coeur vaillant": {
+      "quest": "Apprentissage : Écuyer",
+      "preparation": [
+        {"name":"Edelweiss","quantity":40},
+        {"name":"Bourgeon de Fourbasse","quantity":10},
+        {"requirement":"3 Alchimistes niveau 80+"},
+        {"requirement":"3 Paysans niveau 40+"}
+      ],
+      "route": [
+        {"pos":"[-34,-58]","do":"Parler à Jerhyn Gholein et accepter de devenir Écuyer."},
+        {"pos":"[-29,-54]","do":"Donner 40 Edelweiss + 10 Bourgeons de Fourbasse à Merlan l'Enchaîneur."},
+        {"pos":"Caverne du Koulosse [-17,8]","do":"Entrer dans la Caverne, récupérer les champignons dans la première salle puis atteindre la sixième salle pour brûler la mixture sur le socle enflammé. Le boss Koulosse n'est pas nécessaire pour cette quête : sortir dès la mixture obtenue."},
+        {"pos":"[-29,-54]","do":"Rendre la mixture brûlée à Merlan."},
+        {"pos":"[-30,-44]","do":"Venir avec 3 Alchimistes niveau 80+ et 3 Paysans niveau 40+. Placer les Alchimistes sur les dalles noires et les Paysans sur les blanches, puis parler à Mac Ronald pour lancer la Transgénèse."},
+        {"pos":"[5,-21] Astrub","do":"Informer Raymond Santho."},
+        {"pos":"[-34,-58]","do":"Rendre à Jerhyn et terminer le deuxième rang d'Ordre."}
+      ],
+      "causal_revisit":"Caverne du Koulosse partielle obligatoire après C'est stupéfiant; le boss n'est pas refait.",
+      "next_order_gate": {"alignment_rank":60,"quest":"Apprentissage : Chevalier de l'Espoir"}
+    },
+    "oeil attentif": {
+      "quest": "Apprentissage : Espion Silencieux",
+      "preparation": [{"requirement":"3 combats réalisables en groupe"}],
+      "route": [
+        {"pos":"[-34,-58]","do":"Parler à Ebru of El au sous-sol et accepter de devenir Espion Silencieux."},
+        {"pos":"[-28,32] Brâkmar","do":"Rencontrer le Guerrier Bishom Pot."},
+        {"pos":"[1,32]","do":"Vaincre les trois Renégats bontariens."},
+        {"pos":"[0,26]","do":"Rattraper et vaincre de nouveau les renégats."},
+        {"pos":"[14,21]","do":"Vaincre le Chef des renégats bontariens."},
+        {"pos":"[-34,-58]","do":"Rendre à Ebru of El et terminer le deuxième rang d'Ordre."}
+      ],
+      "causal_revisit":"Aucun donjon à refaire; nouvelle boucle Porkoss/Brâkmar uniquement.",
+      "next_order_gate": {"alignment_rank":60,"quest":"Apprentissage : Chasseur de Renégats"}
+    },
+    "esprit salvateur": {
+      "quest": "Apprentissage : Apprenti Éclairé",
+      "preparation": [
+        {"name":"Potion de Guérisseur","quantity":1},
+        {"name":"Poudre de Perlinpainpain","quantity":15}
+      ],
+      "route": [
+        {"pos":"[-34,-58]","do":"Parler à Elviana Tirips au deuxième étage et accepter de devenir Apprenti Éclairé."},
+        {"pos":"[-35,-57]","do":"Récupérer La bénédiction d'Erazal à la bibliothèque puis revenir Elviana."},
+        {"pos":"Jungle Interdite de Moon","do":"Vaincre des Gloutovores jusqu'à obtenir l'Amulette de Lear. L'objet de quête tombe à 25 % de base ; aucun boss ou donjon Moon n'est nécessaire."},
+        {"pos":"[-34,-58]","do":"Donner Potion de Guérisseur + 15 Poudres de Perlinpainpain + Amulette de Lear à Elviana."},
+        {"pos":"[-32,-57] prison","do":"Utiliser le rituel d'Erazal sur la Dépouille de renégat."},
+        {"pos":"[-34,-58]","do":"Rendre à Elviana et terminer le deuxième rang d'Ordre."}
+      ],
+      "causal_revisit":"Retour Jungle Moon obligatoire après C'est stupéfiant; aucun boss/donjon Moon ne doit être refait pour cette quête.",
+      "next_order_gate": {"alignment_rank":60,"quest":"Apprentissage : Adepte des Écrits"}
+    }
+  },
+  "hard_exit": [
+    "Exactement l'option correspondant au même Ordre choisi au rang 20 est terminée.",
+    "Aucune quête d'un autre Ordre n'est exécutée.",
+    "Tout retour Koulosse/Moon est identifié comme dépendance apparue seulement après C'est stupéfiant, jamais comme optimisation ratée.",
+    "Le prochain rang d'Ordre reste bloqué jusqu'à l'alignement 60."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "contract_id": "guide_ultime_success_contracts_enutrosor_v1",
+  "title": "Guide Ultime — contrats Enutrosor",
+  "status": "BUILDING_VERIFIED_SUBSET",
+  "as_of": "2026-08-24",
+  "contracts": [
+    {"success":"D'un monde à l'autre","zone":"Enutrosor","mode":"all","required_quests":["Voyage, voyage","La porte d'Enutrosor","Orichomania"],"source":"https://www.dofuspourlesnoobs.com/enutrosor.html"},
+    {"success":"Même pas malle","zone":"Enutrosor","mode":"all","required_quests":["Elle va finir par se faire coffrer","Pompe à fric","Koffrologie","Trésorphelinat","Malladie"],"source":"https://www.dofuspourlesnoobs.com/enutrosor.html"},
+    {"success":"Après les phorreurs, le réconfort","zone":"Enutrosor","mode":"all","required_quests":["Crache Test","La quatrième dimension","Déphorrestation","La meilleure défense, c'est l'attaque","Phorreurs dans la brume","Le phormidiable au corps","La pelle de la phorrée","Les grandes galeries","Un cœur d'or","Maudite générosité"],"source":"https://www.dofuspourlesnoobs.com/enutrosor.html"},
+    {"success":"Le roi et moi","zone":"Enutrosor","mode":"all","required_quests":["On ne prête qu'à Richard","Pour quelques kamas de plus","Tout ce qui brille n'est pas or","Un morceau de roi","Prime de lèche-majesté","Coiffeur de génie"],"source":"https://www.dofuspourlesnoobs.com/le-roi-et-moi.html"},
+    {"success":"Raisons de retraite","zone":"Enutrosor","mode":"all","required_quests":["Touchez pas à Grisebigle","Échantillonnage","Le silence est d'or","Espionnage industriel","Prise d'otages","La grève de la fin","Malle des profondeurs","Reconnaissance de dettes","Laissé en plan"],"source":"https://www.dofuspourlesnoobs.com/raisons-de-retraite.html"}
+  ]
+}

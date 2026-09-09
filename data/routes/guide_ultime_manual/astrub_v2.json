@@ -1,0 +1,283 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_astrub_v2",
+  "title": "Guide Ultime — Astrub manuel optimisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "supersedes": "guide_ultime_manual_astrub_v1",
+  "depends_on": ["guide_ultime_manual_incarnam_v1"],
+  "game_floor": "DOFUS 3.6",
+  "stage_count": 16,
+  "micro_walkthrough_source": "QuestProvider + source_solution_steps enrichis",
+  "rules": [
+    "Une étape est une boucle géographique ou causale complète et possède un point de pause sûr.",
+    "Les quêtes de donjon sont actives avant l'entrée; les monstres du donjon servent d'abord aux objectifs de farm compatibles.",
+    "Les quêtes niveau 40 Cimetière/Rikiki sont différées jusqu'à leur fenêtre naturelle.",
+    "La branche de classe réelle est injectée automatiquement depuis astrub_class_branches_v1.json.",
+    "Aucune coordonnée n'est inventée pour une carte intérieure; les entrées monde sont conservées.",
+    "Les micro-retours imposés par une quête restent dans la même étape au lieu de devenir des étapes joueur séparées."
+  ],
+  "coverage": {
+    "astrub_success_quest_count": 32,
+    "astrub_success_count": 7,
+    "target": "Dofus Argenté",
+    "class_branch_count": 19,
+    "dungeon_threads": ["Grange du Tournesol Affamé", "Château Ensablé", "Donjon Bouftou", "Cache de Kankreblath"],
+    "carry_forward": ["Tour du Monde", "Le réceptacle des Dofus"]
+  },
+  "stages": [
+    {
+      "id": "AST-00",
+      "title": "Arrivée — ouvrir le tronc citoyen",
+      "level": "15+",
+      "duration_min": 15,
+      "quests": ["Les principes d'Archie m'aident", "On marche sur des oeufs", "Ça tombe à l'eau"],
+      "route": [
+        {"pos":"[6,-19]","do":"Prendre Les principes d'Archie m'aident."},
+        {"pos":"[4,-19]","do":"Rendre, lancer On marche sur des oeufs et prendre Ça tombe à l'eau dès disponibilité."}
+      ],
+      "pause": ["On marche sur des oeufs active", "Ça tombe à l'eau active ou disponible", "Retour [4,-19]"]
+    },
+    {
+      "id": "AST-01",
+      "title": "Grande boucle centre-ville — œufs, escroquerie, Chacha, habitat",
+      "level": "15-20",
+      "duration_min": 40,
+      "quests": ["On marche sur des oeufs", "Ça tombe à l'eau", "Six pieds sous terre", "Chacha Blues", "Les deux font l'impair", "Attention à la Bête !", "Conseil de classe", "Bière qui roule n'amasse pas mousse"],
+      "route": [
+        {"pos":"[2,-20]","do":"Avancer Ça tombe à l'eau."},
+        {"pos":"[6,-18]","do":"Mutualiser taverne pour les quêtes actives; acheter Lailait et garder une bière si requis."},
+        {"pos":"[4,-17]","do":"Avancer Ça tombe à l'eau."},
+        {"pos":"[4,-18]","do":"Avancer Ça tombe à l'eau et prendre Les deux font l'impair."},
+        {"pos":"[7,-20]","do":"Prendre Chacha Blues, donner Lailait + Goujon; conserver Soki pendant la boucle."},
+        {"pos":"[7,-19]","do":"Fermer Ça tombe à l'eau et lancer Six pieds sous terre."},
+        {"pos":"[2,-21]","do":"Prendre Attention à la Bête !; ne faire que les interrogatoires de ville, Mine reportée."},
+        {"pos":"[2,-15]","do":"Avancer On marche sur des oeufs; prendre Maîtrise des Invocations si disponible."},
+        {"pos":"[1,-15]","do":"Lancer la quête de donjon Château Ensablé (Donjon en mousse) avant sa future sortie."},
+        {"pos":"[5,-19]","do":"Livrer Nowa; prendre Bière qui roule n'amasse pas mousse dès déblocage."},
+        {"pos":"[4,-19]","do":"Terminer On marche sur des oeufs et lancer Conseil de classe."}
+      ],
+      "opportunistic": ["Faire passer Soki par [6,-19], [3,-19], [3,-17], [6,-17] au fil du trajet.", "Valider les recruteuses de Les deux font l'impair en [7,-17] et [1,-18] lorsque la boucle passe à proximité."],
+      "pause": ["Conseil de classe active", "Six pieds sous terre active", "Attention à la Bête ! active", "Chacha Blues avancée", "Quête Château Ensablé active"]
+    },
+    {
+      "id": "AST-02",
+      "title": "Branche de classe + ouverture Mercenariat",
+      "level": "20-25",
+      "duration_min": 30,
+      "branch_file": "astrub_class_branches_v1.json",
+      "quests": ["Conseil de classe", "conditional:class_quest", "Ça sent le gaz", "Bière qui roule n'amasse pas mousse", "Combat de rue", "Les as de la cambriole"],
+      "route": [
+        {"pos":"conditional","do":"Exécuter exactement la sous-route de la classe réelle, puis lancer Ça sent le gaz."},
+        {"pos":"[6,-18]","do":"Acheter/valider la bière de la Milice pendant le passage taverne."},
+        {"pos":"[5,-19]","do":"Rendre Bière qui roule n'amasse pas mousse et lancer Combat de rue."},
+        {"pos":"[5,-17]","do":"Prendre Les as de la cambriole; différer les 15 Vilinsekts jusqu'au bloc Rikiki."}
+      ],
+      "pause": ["Quête de classe terminée", "Ça sent le gaz active", "Combat de rue active", "Les as de la cambriole active"]
+    },
+    {
+      "id": "AST-03",
+      "title": "Égouts + Carrière I — Ça sent le gaz et L'occasion",
+      "level": "25+",
+      "duration_min": 40,
+      "quests": ["Ça sent le gaz", "Six pieds sous terre", "Crise sanitaire", "L'histoire en mouvement", "Balade en forêt", "Tel est pris qui croyait prendre"],
+      "route": [
+        {"pos":"[4,-19]","do":"Avancer Ça sent le gaz et prendre Crise sanitaire dès que Paule la propose."},
+        {"pos":"entrée [5,-17]","do":"Mutualiser le premier réseau d'égouts pour Ça sent le gaz et Six pieds sous terre autant que leurs états le permettent."},
+        {"pos":"[10,-19]","do":"Faire l'enquête Carrière de Ça sent le gaz et libérer Rathrosk."},
+        {"pos":"[4,-19]","do":"Présenter Rathrosk à Fallanster."},
+        {"pos":"[7,-19]","do":"Terminer Ça sent le gaz; lancer L'histoire en mouvement et prendre Balade en forêt."}
+      ],
+      "pause": ["Ça sent le gaz terminée", "Crise sanitaire active", "L'histoire en mouvement active", "Balade en forêt active", "Six pieds sous terre au maximum de progression permis"]
+    },
+    {
+      "id": "AST-04",
+      "title": "Bibliothèque + ville — ouvrir les recherches avant de sortir",
+      "level": "25-30",
+      "duration_min": 30,
+      "quests": ["L'histoire en mouvement", "Restauration rapide", "Six pieds sous terre", "Tel est pris qui croyait prendre", "Les deux font l'impair", "Qui sème le vent récolte l'Artempeth"],
+      "route": [
+        {"pos":"[3,-17]","do":"Avancer L'histoire en mouvement."},
+        {"pos":"[7,-16]","do":"Récupérer le livre brûlé."},
+        {"pos":"[7,-19]","do":"Rendre L'histoire en mouvement et lancer Restauration rapide."},
+        {"pos":"ville","do":"Fermer Les deux font l'impair et avancer/terminer Tel est pris qui croyait prendre dès que Six pieds sous terre le permet, sans sortie de zone dédiée."},
+        {"pos":"[0,-19]","do":"Prendre Qui sème le vent récolte l'Artempeth avant la première boucle Forêt/Champs."}
+      ],
+      "pause": ["Restauration rapide active", "Qui sème le vent active", "L'occasion fait le larron fermée si ses états le permettaient, sinon son prochain déclencheur est explicite"]
+    },
+    {
+      "id": "AST-05",
+      "title": "Forêt + Lac + Champs — cinq échantillons et préparation Grange",
+      "level": "25-35",
+      "duration_min": 50,
+      "quests": ["Balade en forêt", "Crise sanitaire", "Qui sème le vent récolte l'Artempeth", "Déjeuner à la fourchette", "Combat de rue"],
+      "route": [
+        {"pos":"[1,-21]","do":"Arroser les plantes de Qui sème le vent avec l'eau préparée."},
+        {"pos":"[-1,-23]","do":"Faire l'attaque de Balade en forêt; prendre en passant les échantillons bois/plante de Crise sanitaire."},
+        {"pos":"[1,-23]","do":"Passage Unterix pour Crise sanitaire et quêtes déjà ouvertes."},
+        {"pos":"Lac","do":"Obtenir le Goujon contaminé de Crise sanitaire; ne pêcher davantage que si une quête active le demande."},
+        {"pos":"Cité/Pious","do":"Avec une arme de chasse équipée, obtenir la viande contaminée de Crise sanitaire."},
+        {"pos":"[5,-22]","do":"Prendre Déjeuner à la fourchette avant les combats de plantes."},
+        {"pos":"[7,-24]","do":"Avancer Qui sème le vent, obtenir l'échantillon de céréale et lancer Le tour du monde avant la Grange."}
+      ],
+      "hard_exit": ["Les cinq échantillons de Crise sanitaire sont obtenus.", "Déjeuner à la fourchette active.", "Le tour du monde active avant la Grange."],
+      "pause": ["Boucle Forêt/Lac/Champs terminée", "Aucun échantillon sanitaire à rechercher lors d'une future sortie"]
+    },
+    {
+      "id": "AST-06",
+      "title": "Grange du Tournesol Affamé — donjon + plantes",
+      "level": "25-35",
+      "duration_min": 25,
+      "quests": ["Déjeuner à la fourchette", "Tour du Monde"],
+      "route": [
+        {"pos":"[7,-24]","do":"Entrer avec Tour du Monde + Déjeuner à la fourchette actifs; utiliser les plantes du donjon pour les kills compatibles et faire les succès réalisables sans second passage."},
+        {"pos":"[5,-22]","do":"Compléter seulement ce qui manque puis rendre/avancer Déjeuner à la fourchette."}
+      ],
+      "pause": ["Grange faite pour Tour du Monde", "Déjeuner à la fourchette terminée ou manque explicitement identifié", "Succès Grange enregistrés"]
+    },
+    {
+      "id": "AST-07",
+      "title": "Calanques + Château Ensablé — Pichons sans farm séparé",
+      "level": "25-35",
+      "duration_min": 30,
+      "quests": ["Comme un pichon hors de l'eau", "Donjon en mousse", "Combat de rue"],
+      "route": [
+        {"pos":"[11,-24]","do":"Prendre Comme un pichon hors de l'eau avant le donjon."},
+        {"pos":"[13,-28]","do":"Faire Château Ensablé avec Donjon en mousse; utiliser les Pichons du donjon pour la quête et faire les succès compatibles."},
+        {"pos":"Calanques","do":"Compléter uniquement les types de Pichons manquants."},
+        {"pos":"[11,-24]","do":"Rendre Comme un pichon hors de l'eau."}
+      ],
+      "pause": ["Château Ensablé fait", "Comme un pichon hors de l'eau terminée", "Pas de farm Pichon restant"]
+    },
+    {
+      "id": "AST-08",
+      "title": "Retour ville — fermer Balade/Chacha et préparer Bouftou",
+      "level": "30-35",
+      "duration_min": 25,
+      "quests": ["Balade en forêt", "Chacha Blues", "Tour du Monde", "Donjon en mousse"],
+      "route": [
+        {"pos":"[1,-15]","do":"Rendre Donjon en mousse et prendre la suite Rikiki si elle est proposée; elle restera différée."},
+        {"pos":"[5,-19]","do":"Après l'attaque Forêt, passer Badufron pour Balade en forêt."},
+        {"pos":"[4,-19]","do":"Terminer Balade en forêt auprès de Fallanster; Le réceptacle des Dofus est désormais ouvert."},
+        {"pos":"[7,-20]","do":"Finir Chacha Blues si Soki a fait ses quatre passages."},
+        {"pos":"[6,-18]","do":"Mettre à jour Tour du Monde et prendre l'étape Bouftou."}
+      ],
+      "pause": ["Balade en forêt terminée", "Le réceptacle des Dofus disponible", "Chacha Blues terminée", "Tour du Monde pointe vers Bouftou"]
+    },
+    {
+      "id": "AST-09",
+      "title": "Tainéla — Bouftou + Restauration + démarrage Génie",
+      "level": "30-40",
+      "duration_min": 45,
+      "quests": ["Restauration rapide", "Le génie se meut", "La coupe des vices", "Tour du Monde", "Combat de rue"],
+      "route": [
+        {"pos":"[0,-32]","do":"Récupérer le Lailait de boufette de Restauration rapide."},
+        {"pos":"[1,-28]","do":"Récupérer l'écorce de Restauration rapide."},
+        {"pos":"[1,-29]","do":"Prendre Le génie se meut avant les Chefs de Guerre Bouftou."},
+        {"pos":"[2,-31]","do":"Prendre La coupe des vices avant le Donjon Bouftou."},
+        {"pos":"[2,-34]","do":"Faire Donjon Bouftou avec Tour du Monde; mutualiser Bouftous/Chefs pour La coupe des vices + Le génie se meut et faire les succès compatibles."},
+        {"pos":"Tainéla","do":"Compléter uniquement les échantillons/monstres manquants puis rendre La coupe des vices."}
+      ],
+      "pause": ["Donjon Bouftou fait pour Tour du Monde", "La coupe des vices terminée", "5 échantillons de Chef de Guerre de Le génie se meut obtenus", "Deux ressources Restauration rapide obtenues"]
+    },
+    {
+      "id": "AST-10",
+      "title": "Ville — fermer Restauration AVANT le second réseau d'égouts",
+      "level": "30-40",
+      "duration_min": 25,
+      "quests": ["Restauration rapide", "De vrais rats de bibliothèque", "Crise sanitaire", "Le génie se meut", "Attention à la Bête !"],
+      "route": [
+        {"pos":"[3,-21]","do":"Donner les ressources de Restauration rapide à Mage Ax et les cinq échantillons de Crise sanitaire à Nibé Lulle; avancer aussi Le génie se meut avec Nibé."},
+        {"pos":"[7,-19]","do":"Rendre Restauration rapide et lancer De vrais rats de bibliothèque AVANT toute nouvelle entrée dans les égouts."},
+        {"pos":"ville","do":"Finir les interrogatoires d'Attention à la Bête ! et préparer son camouflage/piège; aucune nouvelle sortie Mine séparée."}
+      ],
+      "hard_exit": ["De vrais rats de bibliothèque active avant AST-11.", "Crise sanitaire prête pour son enquête souterraine."],
+      "pause": ["Trois quêtes souterraines prêtes à être mutualisées: Crise sanitaire + De vrais rats + Attention à la Bête"]
+    },
+    {
+      "id": "AST-11",
+      "title": "Égouts + Mine II — dernier passage souterrain Astrub",
+      "level": "30-40",
+      "duration_min": 55,
+      "quests": ["Crise sanitaire", "De vrais rats de bibliothèque", "Six pieds sous terre", "Attention à la Bête !", "Tel est pris qui croyait prendre", "Légende d'automne", "Livraison par intérim"],
+      "route": [
+        {"pos":"entrée [5,-17] / réseau [1,-17]","do":"Faire l'enquête souterraine de Crise sanitaire ET les trois combats/chef rat de De vrais rats de bibliothèque; finir Six pieds sous terre si un état résiduel subsiste."},
+        {"pos":"[7,-19]","do":"Rendre De vrais rats de bibliothèque et lancer Légende d'automne dès la sortie du réseau."},
+        {"pos":"[10,-19]","do":"Faire l'enquête Mine de Crise sanitaire et la boucle d'appâts/combat final d'Attention à la Bête ! [8,-19] [9,-19] [9,-20] [10,-20] [10,-19]."},
+        {"pos":"[4,-19]","do":"Rendre Crise sanitaire et lancer Livraison par intérim."},
+        {"pos":"ville","do":"Si Six pieds sous terre vient seulement d'être fermée, terminer Tel est pris qui croyait prendre dans ce retour de ville, pas dans une nouvelle étape géographique."}
+      ],
+      "hard_exit": ["Aucun troisième passage Égouts/Mine n'est planifié pour les quêtes Astrub."],
+      "pause": ["Crise sanitaire terminée", "De vrais rats terminée", "Légende d'automne active", "Attention à la Bête ! terminée", "Livraison par intérim active"]
+    },
+    {
+      "id": "AST-12",
+      "title": "Livraison + Golémancien — boucle artisans",
+      "level": "30-40",
+      "duration_min": 40,
+      "quests": ["Livraison par intérim", "Golémancien", "Le rebelle de la forêt"],
+      "route": [
+        {"pos":"[9,-11]","do":"Faire livraison/combat de Livraison par intérim."},
+        {"pos":"[3,-19]","do":"Livrer à l'HDV consommables."},
+        {"pos":"[4,-19]","do":"Rendre Livraison et lancer Golémancien; vérifier Ferrite, Serviette de Plage, Cuir de Scélérat Strubien, Planche Contreplaquée."},
+        {"pos":"ateliers [7,-16] [7,-15] [4,-15] [2,-16] [3,-15] [3,-21]","do":"Fabriquer/assembler/enchanter la quintaine en une seule boucle d'ateliers."},
+        {"pos":"[5,-19]","do":"Livrer la quintaine à Badufron."},
+        {"pos":"[4,-19]","do":"Rendre Golémancien et lancer Le rebelle de la forêt."}
+      ],
+      "pause": ["Golémancien terminée", "Le rebelle de la forêt active", "Aucune pièce de quintaine à conserver"]
+    },
+    {
+      "id": "AST-13",
+      "title": "Forêt II + fil Génie — Rebelle, Bûcherons, Artempeth",
+      "level": "35-40",
+      "duration_min": 60,
+      "quests": ["Le rebelle de la forêt", "Bûcherons en détresse", "Qui sème le vent récolte l'Artempeth", "Le génie se meut"],
+      "route": [
+        {"pos":"Tainéla [1,-29] puis [0,-29] [-2,-29]","do":"Reprendre Le génie se meut après l'étape Nibé et suivre les traces avant de monter vers la Forêt."},
+        {"pos":"[0,-25]","do":"Prendre Bûcherons en détresse avant les Milimulous."},
+        {"pos":"Forêt","do":"Faire les 5 Milimulous de Bûcherons pendant la route de Le rebelle de la forêt; suivre sa piste [-3,-15] [-2,-18] [-3,-22] [-2,-24]."},
+        {"pos":"[3,-21]","do":"Avancer Bûcherons/Artempeth avec Nibé si requis."},
+        {"pos":"[1,-23]","do":"Mutualiser Unterix pour Bûcherons et Le génie se meut."},
+        {"pos":"[1,-16] puis [-2,-16]","do":"Acheter le miel/recruter Artand puis faire le combat Homme-Ours de Bûcherons."},
+        {"pos":"[0,-19] + greniers [6,-23] [5,-26]","do":"Fermer les tests/greniers/restes de Qui sème le vent dans cette seconde boucle Forêt-Champs."},
+        {"pos":"[0,-25]","do":"Rendre Bûcherons en détresse."},
+        {"pos":"Tainéla [1,-29]","do":"Revenir une dernière fois terminer Le génie se meut après Unterix; ce retour est causal et clôt le fil Tainéla."}
+      ],
+      "pause": ["Bûcherons en détresse terminée", "Le génie se meut terminée", "Qui sème le vent terminée", "Le rebelle de la forêt prêt à rendre ou terminé"]
+    },
+    {
+      "id": "AST-14",
+      "title": "Cimetière + Prairie — quatre quêtes dans la même sortie nord",
+      "level": "40+",
+      "duration_min": 70,
+      "quests": ["Légende d'automne", "L'invasion des profanateurs de sépulture", "Le repos est dans le champ", "La petite mission dans la prairie"],
+      "route": [
+        {"pos":"[3,-14]","do":"Prendre La petite mission dans la prairie; faire ses Larves proches et son combat [3,-9] pendant cette sortie, pas dans une étape dédiée."},
+        {"pos":"[-1,-13]","do":"Prendre L'invasion des profanateurs de sépulture avant de toucher aux tombes."},
+        {"pos":"[2,-14]","do":"Prendre Le repos est dans le champ avec ses ingrédients déjà préparés; avancer Légende d'automne avec Nistracolamus."},
+        {"pos":"Cimetière","do":"Dans une seule boucle: tombes/combats de L'invasion + trois esprits du Repos + spectres/Gargrouilles de Légende. Ne pas sortir avant les 3 Ceintures de Gargrouille."},
+        {"pos":"[1,-11]","do":"Faire le caveau de L'invasion lorsque sa piste y mène."},
+        {"pos":"[2,-11]","do":"Terminer le rituel Chevalier de l'automne de Légende d'automne."},
+        {"pos":"[2,-14]","do":"Rendre Le repos est dans le champ avant de quitter le Cimetière."}
+      ],
+      "hard_exit": ["La grande biblioquête terminée.", "L'invasion terminée.", "Le repos est dans le champ terminée.", "La petite mission dans la prairie terminée."],
+      "pause": ["Cimetière fermé sans retour Astrub planifié"]
+    },
+    {
+      "id": "AST-15",
+      "title": "Rikiki + clôture Astrub — Mercenaire, Dofus Argenté, transition",
+      "level": "40+",
+      "duration_min": 45,
+      "quests": ["Les as de la cambriole", "Combat de rue", "Le rebelle de la forêt", "Balade en forêt"],
+      "route": [
+        {"pos":"[5,-17]","do":"Vérifier Les as de la cambriole active et la Baguette Rikiki disponible."},
+        {"pos":"accès [6,-15] [1,-16] [4,-19] [6,-21]","do":"Faire les 15 Vilinsekts; retirer la Baguette Rikiki une fois à l'intérieur des planques."},
+        {"pos":"Cache de Kankreblath","do":"Faire la Cache dans le même bloc si sa quête est active, avec succès compatibles."},
+        {"pos":"[5,-17]","do":"Rendre Les as de la cambriole."},
+        {"pos":"[5,-19]","do":"Rendre Combat de rue si les quatre missions sont complètes."},
+        {"pos":"[4,-19]","do":"Rendre Le rebelle de la forêt si nécessaire; vérifier les 7 succès Astrub + 5 succès Incarnam puis récupérer le Dofus Argenté auprès de Rathrosk."}
+      ],
+      "before_leave": ["Conserver Baguette Rikiki en banque.", "Conserver les quêtes Tour du Monde et Le réceptacle des Dofus actives pour les chapitres suivants.", "Tout succès Astrub non terminé doit avoir une raison explicite et non un oubli."],
+      "pause": ["Dofus Argenté obtenu", "32 quêtes Astrub couvertes par les 7 succès", "Transition Amakna/Dofus prête"]
+    }
+  ]
+}

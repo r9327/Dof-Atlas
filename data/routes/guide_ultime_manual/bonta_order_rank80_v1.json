@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_bonta_order_rank80_v1",
+  "title": "Guide Ultime — Ordre Bonta palier alignement 80",
+  "status": "MANUAL_CONDITIONAL_ROUTE_WORKING_SET",
+  "selection_policy": {
+    "selector": "persisted_bonta_order",
+    "exactly_one": true,
+    "order_change_forbidden": true,
+    "same_choice_required_from": ["bonta_order_rank20_v1.json", "bonta_order_rank40_v1.json", "bonta_order_rank60_v1.json"],
+    "unselected_routes_hidden": true
+  },
+  "trigger": {"alignment":"Bonta","minimum_rank":80,"after_quest":"L'Éclat de l'Aube"},
+  "shared_dungeon_contract": {
+    "dungeon":"Temple du Grand Ougah",
+    "minimum_group_size":4,
+    "minimum_soul_stone_power":190,
+    "must_wait_for":["Tour de force","Appui sur le champignon","exactly_one:persisted_bonta_order_rank80","L'éternelle moisson:Ougah_target_not_already_validated"],
+    "optional_only_if_already_unlocked":["Les coûts du sort"],
+    "never_wait_for":["Un pouvoir mérydique"],
+    "reason":"Les coûts du sort exige déjà Pourpre + Émeraude + Turquoise + Ocre; il ne doit pas retarder le premier Ougah si l'Ocre n'est pas encore obtenu. Un pouvoir mérydique est niveau200 et appartient à un arc bien plus tardif.",
+    "before_exit":"Exécuter les interactions de salle/post-boss de l'Ordre choisi et Appui sur le champignon avant de quitter; capturer Ougah puissance190 pour l'Ocre si encore requis."
+  },
+  "options": {
+    "coeur vaillant": {
+      "quest":"Apprentissage : Champion Merveilleux",
+      "preparation":[
+        {"name":"Bave de Champ à Gnons","quantity":1},{"name":"Brochet","quantity":5},{"name":"Tanche","quantity":7},{"name":"Viande Gâtée","quantity":1},{"name":"Aile de Puceronde","quantity":1},{"name":"Graine de Sésame","quantity":7},{"name":"Millet","quantity":14},{"name":"Mandragore","quantity":14},{"name":"Bois d'Orme","quantity":14},{"name":"Eau Potable","quantity":10},{"requirement":"Pêcheur180 pour Brochet farceur ou artisan disponible","blocking":true},{"requirement":"Alchimiste180 pour Potion de Sésanabolisant ou artisan disponible","blocking":true},{"requirement":"4 personnages minimum pour franchir le Temple du Grand Ougah","blocking":true},{"name":"Pierre d'âme","minimum_power":190,"quantity":1,"for":"Ougah Ocre si la capture est encore manquante"},{"name":"Viscères de Tanuki","quantity":2,"policy":"Drop uniquement à l'étape correspondante de la quête; HDV autorisé car échangeable. Ne pas farmer avant activation."}
+      ],
+      "pre_ougah_route":[{"pos":"[-34,-58] Tour des ordres","do":"Prendre Champion Merveilleux auprès de Jerhyn et gagner le combat solo de protection de la statuette."},{"pos":"[-29,-54] → Terrdala","do":"Obtenir la recette de sésanabolisant. Quand l'étape Viscères devient active, obtenir 2 Viscères de Tanuki ou les acheter; faire fabriquer Brochet farceur puis Potion de Sésanabolisant."},{"pos":"[-9,29] Temple du Grand Ougah","do":"N'entrer qu'avec 4 personnages minimum, Champion Merveilleux au boss, Tour de force et Appui sur le champignon également prêts. Prendre une pierre puissance190 si l'Ougah doit encore être capturé pour l'Ocre."}],
+      "ougah_actions":["Vaincre Ougah avec groupe4 minimum.","Obtenir l'Ougahstrique pour Champion Merveilleux.","Faire toutes les interactions Appui sur le champignon dans les salles avant de les dépasser.","Capturer Ougah puissance190 pour l'Ocre si cible encore ouverte."],
+      "post_ougah_route":[{"pos":"[-29,-54] → [-34,-58]","do":"Donner Ougahstrique + Potion à Merlan, récupérer les graines et les remettre à Jerhyn. Terminer Champion Merveilleux."}],
+      "next_order_gate":{"alignment_rank":100,"quest":"Apprentissage : Héros Légendaire"}
+    },
+    "oeil attentif": {
+      "quest":"Apprentissage : Assassin Suprême",
+      "preparation":[{"name":"Kamas","quantity":1000},{"requirement":"4 personnages minimum pour franchir le Temple du Grand Ougah","blocking":true},{"name":"Pierre d'âme","minimum_power":190,"quantity":1,"for":"Ougah Ocre si la capture est encore manquante"}],
+      "pre_ougah_route":[{"pos":"[-34,-58] → [-29,-53] → [-11,-59] → [-9,-60]","do":"Prendre Assassin Suprême auprès d'Ebru, enquêter sur Dike et gagner le combat solo de l'objet étrange. Revenir à Ebru pour rendre l'enquête et activer l'objectif Ougah."},{"pos":"[-9,29] Temple du Grand Ougah","do":"N'entrer qu'avec 4 personnages minimum, Assassin Suprême au boss, Tour de force et Appui sur le champignon également prêts. Prendre une pierre puissance190 si l'Ougah doit encore être capturé pour l'Ocre."}],
+      "ougah_actions":["Vaincre Ougah avec groupe4 minimum.","APRÈS le boss, parler à Dike Tarak avant sortie.","Faire les interactions Appui sur le champignon dans les salles.","Capturer Ougah puissance190 pour l'Ocre si encore requis."],
+      "post_ougah_route":[{"pos":"[-34,-58] → [-28,32] → [-25,37] → [-22,33]","do":"Informer Ebru, enquêter sur la statuette de Sumens à Brâkmar, payer 1000 kamas puis gagner le combat de groupe dans la tour et voler la statuette."},{"pos":"[-34,-58]","do":"Rapporter la statuette à Ebru et terminer Assassin Suprême."}],
+      "next_order_gate":{"alignment_rank":100,"quest":"Apprentissage : Maître des Illusions"}
+    },
+    "esprit salvateur": {
+      "quest":"Apprentissage : Maître des Parchemins",
+      "preparation":[{"name":"Potion de Vieillesse","quantity":5},{"name":"Poudre de Perlinpainpain","quantity":10},{"name":"Mandragore","quantity":14},{"name":"Millet","quantity":14},{"name":"Tanche","quantity":14},{"name":"Écorce d'Abrakne Sombre","quantity":4},{"name":"Corde d'escalade","quantity":4,"note":"Vous + trois joueurs qui descendent; deux autres personnages restent sur les dalles supérieures."},{"requirement":"Six personnages au total pour la mécanique d'eau enchantée: 2 sur dalles hautes + 4 en souterrain","blocking":true},{"requirement":"4 personnages minimum pour franchir ensuite le Temple du Grand Ougah","blocking":true},{"name":"Pierre d'âme","minimum_power":190,"quantity":1,"for":"Ougah Ocre si la capture est encore manquante"}],
+      "pre_ougah_route":[{"pos":"[-34,-58] → [-29,-59] → [-29,-54]","do":"Prendre Maître des Parchemins auprès d'Elviana, interroger Terra Cogita et faire préparer la potion mémoire avec toutes les ressources en une fois."},{"pos":"Lacs enchantés [-15,-5]","do":"Venir avec six personnages. Garder deux personnages sur les dalles supérieures; descendre à quatre avec chacun une Corde d'escalade, ouvrir les grilles et récupérer l'eau enchantée. Organiser le groupe avant le déplacement."},{"pos":"Bonta","do":"Faire boire la potion à Terra, informer Elviana et recevoir la Potion de remouflage améliorée."},{"pos":"[-9,29] Temple du Grand Ougah","do":"N'entrer qu'avec 4 personnages minimum, Maître des Parchemins au boss, Tour de force et Appui sur le champignon également prêts. Prendre une pierre puissance190 si l'Ougah doit encore être capturé pour l'Ocre."}],
+      "ougah_actions":["Vaincre Ougah avec groupe4 minimum.","APRÈS le boss, parler à la Statuette de Sumens transformée avant sortie.","Faire les interactions Appui sur le champignon dans les salles.","Capturer Ougah puissance190 pour l'Ocre si encore requis."],
+      "post_ougah_route":[{"pos":"[-34,-58]","do":"Rapporter la statuette à Elviana et terminer Maître des Parchemins."}],
+      "next_order_gate":{"alignment_rank":100,"quest":"Apprentissage : Gardien du Savoir"}
+    }
+  },
+  "sources":["https://www.dofuspourlesnoobs.com/apprentissage-champion-merveilleux.html","https://www.dofuspourlesnoobs.com/apprentissage-assassin-supreme.html","https://www.dofuspourlesnoobs.com/apprentissage-maitre-des-parchemins.html","https://www.dofuspourlesnoobs.com/temple-du-grand-ougah.html","https://www.dofuspourlesnoobs.com/tour-de-force.html","https://www.dofuspourlesnoobs.com/appui-sur-le-champignon.html","https://www.dofuspourlesnoobs.com/les-couts-du-sort.html"]
+}

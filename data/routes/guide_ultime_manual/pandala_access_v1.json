@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_pandala_access_v1",
+  "title": "Guide Ultime — transition Astrub vers Pandala",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "depends_on": ["guide_ultime_manual_astrub_v3"],
+  "stage_count": 2,
+  "purpose": "Fermer les fils Astrub qui se combinent géographiquement avec l'accès Pandala, ouvrir l'île sans détour, terminer Le réceptacle des Dofus et avancer Un sage parmi les sages jusqu'au vrai blocage Wabbit.",
+  "hard_rules": [
+    "Ne pas lancer Pandawushu ici: la chaîne utile des grades attend le vrai palier autour du niveau 100.",
+    "Le réveil de Pandala est obligatoire avant le pont et doit être terminé avant d'essayer Le réceptacle des Dofus.",
+    "Le combat [3,1] de Bien velu est absorbé par la première incursion Amakna; il ne crée pas une étape dédiée.",
+    "Il faut que cha brille est validée une fois pour la couverture; son caractère hebdomadaire ne justifie pas des répétitions automatiques."
+  ],
+  "preparation": [
+    {"name":"Laine de Boufton Noir","quantity":5,"for":"Le réveil de Pandala","policy":"prendre en banque/HDV avant PAD-00; aucun farm Bouftou dédié"},
+    {"name":"Ortie","quantity":50,"for":"Le réveil de Pandala","policy":"prendre en banque/HDV; ne pas refaire une boucle récolte Astrub"},
+    {"name":"Graisse Gélatineuse","quantity":5,"for":"Il faut que cha brille","policy":"HDV si non possédée"},
+    {"name":"Défense du Sanglier","quantity":2,"for":"Il faut que cha brille","policy":"utiliser les 2 Défenses obtenues par Balade en forêt si elles ont été conservées; sinon HDV"},
+    {"name":"Groin de Sanglier des Plaines","quantity":2,"for":"Il faut que cha brille","policy":"HDV si non possédé"},
+    {"name":"Poils de Kerubim","quantity":1,"for":"Il faut que cha brille","policy":"fourni par la première validation de Bien velu; ne pas acheter avant"}
+  ],
+  "stages": [
+    {
+      "id": "PAD-00",
+      "title": "Fermer Kérubim + fabriquer le sérum — un seul retour Astrub",
+      "expected_level": "40+",
+      "estimated_duration_min": 55,
+      "start": {"zone":"Astrub / premier passage Amakna","travelable":true},
+      "end": {"x":19,"y":-28,"zone":"Entrée de Pandala","travelable":true},
+      "quests": [
+        "Bien velu, c'est Kerubim",
+        "Il faut que cha brille",
+        "Le réveil de Pandala",
+        "Le réceptacle des Dofus"
+      ],
+      "route": [
+        {"pos":"[3,1]","do":"Faire le troisième et dernier combat de Bien velu, c'est Kerubim pendant la première sortie naturelle au sud d'Astrub. Les combats [6,-16] et [-3,-24] doivent déjà être validés par Astrub V3."},
+        {"pos":"retour Astrub [3,-17]","do":"Rendre Bien velu à Kerubim. Faire le keke est désormais complet et les Poils de Kerubim sont obtenus."},
+        {"pos":"[3,-17]","do":"Lancer Il faut que cha brille une première fois avec les ressources préparées."},
+        {"pos":"[3,-21]","do":"À l'atelier alchimiste, fabriquer la cire de Il faut que cha brille avec 2 Groins de Sanglier des Plaines + 5 Graisses Gélatineuses + 2 Défenses du Sanglier + 1 Poil de Kerubim."},
+        {"pos":"[3,-17]","do":"Lustrer les cinq meubles, rendre Il faut que cha brille. La répétition hebdomadaire n'est plus nécessaire pour la couverture unique."},
+        {"pos":"[12,-21]","do":"Prendre Le réveil de Pandala auprès de Moktwa et tuer 5 Martoa + 5 Sherpoa + 5 Douzdoa + 5 Pikdoa dans la Carrière."},
+        {"pos":"[12,-21]","do":"Après avoir vaincu les 5 Martoa, 5 Sherpoa, 5 Douzdoa et 5 Pikdoa, reparler à Moktwa. Il t'envoie ensuite au dispensaire pour te faire vacciner contre la Pandrista."},
+        {"pos":"[3,-21]","do":"Parler à Nepra Lido puis Nibé Lulle sur la même map pour débloquer la fabrication du sérum."},
+        {"pos":"[6,-18]","do":"Prélever l'échantillon sanguin de Sel Dawa. Ce passage taverne est le dernier retour centre-ville requis par Le réveil."},
+        {"pos":"[3,-21]","do":"Fabriquer 1 Sérum contre la Pandrista avec 5 Laines de Boufton Noir + 50 Orties + l'échantillon sanguin puis le remettre à Nepra Lido."},
+        {"pos":"pont [12,-21] → [19,-28]","do":"Traverser le pont, parler au Garde Chopynju, boire la pinte de lait fermenté, rencontrer Doukwang et sortir devant le Pandazaap. Le réveil de Pandala est terminé."}
+      ],
+      "before_leave": [
+        "Faire le keke validé.",
+        "Il faut que cha brille validée au moins une fois.",
+        "Le réveil de Pandala terminé.",
+        "Le réceptacle des Dofus était déjà actif depuis Astrub V3 et peut maintenant progresser."
+      ],
+      "pause": [
+        "Pandala accessible définitivement",
+        "Pandazaap atteint",
+        "Aucun timer Pandawushu à lancer à ce niveau",
+        "Le réceptacle des Dofus actif"
+      ]
+    },
+    {
+      "id": "PAD-01",
+      "title": "Réceptacle des Dofus — boucle Pandala puis arrêt exactement au verrou Wabbit",
+      "expected_level": "40+",
+      "estimated_duration_min": 35,
+      "start": {"x":19,"y":-28,"zone":"Pandala","travelable":true},
+      "end": {"x":22,"y":-28,"zone":"Village de Pandala","travelable":true},
+      "quests": ["Le réceptacle des Dofus", "Un sage parmi les sages"],
+      "route": [
+        {"pos":"[22,-29]","do":"Remettre la lettre de Fallanster au Pandarin Sudopong dans le palais de bambou."},
+        {"pos":"[20,-27]","do":"Parler au chaman Surivitna au sujet des six Dofus."},
+        {"pos":"[22,-27]","do":"À la taverne du Fermenthé, chasser les clients éméchés en combat de groupe puis récupérer la Pinte du visionnaire."},
+        {"pos":"[19,-32]","do":"Parler à l'Assistant du chaman pour être conduit vers l'entrée du réceptacle."},
+        {"pos":"[21,-33]","do":"Entrer sous la cascade, boire la Pinte du visionnaire et vaincre seul le Feu prophétique. En cas d'échec, le combat peut être relancé sur place sans perte d'énergie."},
+        {"pos":"[20,-27]","do":"Rendre Le réceptacle des Dofus à Surivitna et lancer immédiatement Un sage parmi les sages."},
+        {"pos":"[22,-28]","do":"Parler à Guipol, accepter son défi et gagner le combat solo. Parler ensuite à Helmeline pour apprendre que Ronald est parti sur l'île des Wabbits."}
+      ],
+      "hard_stop": "À partir de ce point, Un sage parmi les sages nécessite le passage Wabbit et la protection obtenue via Intrusion chez les wabbits pour accéder correctement à l'île. Ne pas faire d'aller-retour Pandala supplémentaire avant le chapitre Wabbit.",
+      "next_transport": "Après Le réveil de Pandala, le bateau Madrestam ↔ Pandala devient utilisable pour 100 kamas et pourra servir à rejoindre le bloc Amakna/Wabbit.",
+      "pause": [
+        "Le réceptacle des Dofus terminé",
+        "Un sage parmi les sages active et avancée jusqu'au départ vers Wabbit",
+        "Mais où sont les Dofus ? en cours",
+        "Pandawushu volontairement différé jusqu'à son vrai palier/prérequis",
+        "Prochaine optimisation: Amakna niveau 40-60 puis Wabbit/Cawotte"
+      ]
+    }
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/bien-velu-cest-kerubim.html",
+    "https://www.dofuspourlesnoobs.com/il-faut-que-cha-brille.html",
+    "https://www.dofuspourlesnoobs.com/le-reveil-de-pandala.html",
+    "https://www.dofuspourlesnoobs.com/le-receptacle-des-dofus.html",
+    "https://www.dofuspourlesnoobs.com/un-sage-parmi-les-sages.html",
+    "https://www.dofuspourlesnoobs.com/quetes-de-pandala.html"
+  ]
+}

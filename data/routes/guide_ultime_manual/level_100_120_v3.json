@@ -1,0 +1,58 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_level_100_120_v3",
+  "title": "Guide Ultime — Niveau 100 à 120 + Ocre d'Ambre synchronisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_100_120_v2.json",
+  "supersedes": "guide_ultime_manual_level_100_120_v2",
+  "stage_count": 16,
+  "optimization_note": "Comme un corbac sur sa branche est amenée jusqu'à la Reine Nyée avant L100-04 puis terminée dans la même boucle; Rester planté là est alors active avant Damadrya. Après Damadrya, Pas de fumée sans feu est pris pour préparer la Demeure partagée au palier170.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/comme-un-corbac-sur-sa-branche.html",
+    "https://www.dofuspourlesnoobs.com/antre-de-la-reine-nyee.html",
+    "https://www.dofuspourlesnoobs.com/rester-plante-la.html",
+    "https://www.dofuspourlesnoobs.com/pas-de-fumee-sans-feu.html"
+  ],
+  "stage_patches": {
+    "L100-04": {
+      "prepend": {
+        "preparation": [
+          {"name":"Ambre","quantity":30,"for":"Comme un corbac sur sa branche"},
+          {"name":"Ambre d'Abraknyde","quantity":6,"for":"Comme un corbac sur sa branche"},
+          {"name":"Ambre d'Abraknyde Sombre","quantity":6,"for":"Comme un corbac sur sa branche"},
+          {"name":"Métaria jaune","quantity":6,"for":"Comme un corbac sur sa branche"},
+          {"name":"Substrat de Futaie","quantity":1,"for":"Comme un corbac sur sa branche"}
+        ]
+      },
+      "append": {
+        "quests": ["Comme un corbac sur sa branche", "Rester planté là"],
+        "route": [
+          {"pos":"[-5,-13] -> Domaine Ancestral sans donjon","do":"AVANT l'Antre de Nyée, avancer Comme un corbac sur sa branche jusqu'à ce que l'Oeuf noir de Nyée soit explicitement demandé. Le passage auprès de l'Abraknyde Ancestral ne demande pas de refaire son donjon."},
+          {"pos":"[-6,-15] Antre de la Reine Nyée","do":"Le passage Reine déjà prévu sert maintenant Arak-haï en pagaille + Tour du propriétaire + Comme un corbac sur sa branche + capture Ocre et succès. Ne pas sortir sans l'Oeuf noir de quête."},
+          {"pos":"Domaine Ancestral / Athanor sylvestre","do":"Après Nyée, remettre l'Oeuf noir, fabriquer l'ambre enchanté avec les ressources déjà préparées, terminer les combats/dialogues et purifier l'ambre avec l'Anneau Ocre."},
+          {"pos":"[-11,-13] Silvosse","do":"Terminer Comme un corbac sur sa branche et prendre immédiatement Rester planté là. La garder active jusqu'au passage Damadrya L100-15."}
+        ],
+        "hard_exit": [
+          "Reine Nyée faite une seule fois pour tous les fils compatibles.",
+          "Comme un corbac sur sa branche terminée.",
+          "Rester planté là active avant Damadrya."
+        ]
+      }
+    },
+    "L100-15": {
+      "append": {
+        "quests": ["Pas de fumée sans feu"],
+        "route": [
+          {"pos":"Plantala / après Damadrya","do":"Fermer Rester planté là jusqu'au bout: ramener la pousse du bûcheron, purifier l'ambre spirituel avec l'Anneau Ocre, puis reprendre le dialogue avec l'Esprit serein."},
+          {"pos":"[24,-35] Plantala","do":"Prendre immédiatement Pas de fumée sans feu. Ne pas forcer ses blockers Forêt Maléfique si le startCriterion local n'est pas prêt; enregistrer exactement Un pendule pour guider ses pas / Arrête-la si tu peux comme fils à fermer avant la Demeure niveau170."}
+        ],
+        "hard_exit": [
+          "Rester planté là terminée après le passage Damadrya partagé.",
+          "Pas de fumée sans feu active ou son blocker local exact enregistré.",
+          "Aucun futur rerun Damadrya pour Ocre d'Ambre."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

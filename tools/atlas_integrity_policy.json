@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "groups": {
+    "META_INTEGRITY": {
+      "critical": true,
+      "owner": "tools/atlas_meta_integrity.py",
+      "runner": "meta_integrity"
+    },
+    "SYNTAX": {
+      "critical": true,
+      "owner": "Python compileall",
+      "runner": "compileall",
+      "paths": [
+        "app",
+        "local_dofus_data",
+        "main.py",
+        "tools/atlas_integrity.py",
+        "tools/atlas_meta_integrity.py",
+        "tools/check_generated_files.py"
+      ]
+    },
+    "GENERATED_FILES": {
+      "critical": true,
+      "owner": "tools/check_generated_files.py",
+      "runner": "generated_files"
+    },
+    "ARCHITECTURE": {
+      "critical": true,
+      "owner": "existing architecture guardrails",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_architecture_debt_baseline",
+        "tests.test_clean_foundation_guardrails",
+        "tests.test_project_guardrails"
+      ]
+    },
+    "IDENTITY": {
+      "critical": true,
+      "owner": "canonical character identity tests",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_character_identity_contract",
+        "tests.test_character_identity_guardrails",
+        "tests.test_character_identity_invariants",
+        "tests.test_character_write_boundaries"
+      ]
+    },
+    "PERSISTENCE": {
+      "critical": true,
+      "owner": "existing progression persistence tests",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_achievement_progress_concurrent_instances",
+        "tests.test_achievement_progress_json_store",
+        "tests.test_guide_progress_persistence",
+        "tests.test_progress_concurrent_instances",
+        "tests.test_progress_cross_surface_reload",
+        "tests.test_quest_progress_batch_contract"
+      ]
+    },
+    "STARTUP": {
+      "critical": true,
+      "owner": "existing startup tests",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_launcher_fast_path",
+        "tests.test_main_import_startup_boundary",
+        "tests.test_main_startup_fast_path",
+        "tests.test_main_startup_import_boundaries",
+        "tests.test_startup_preflight",
+        "tests.test_startup_preloader"
+      ]
+    },
+    "LAZY_LOADING": {
+      "critical": true,
+      "owner": "existing lazy-loading guardrails",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_encyclopedia_on_demand_loading",
+        "tests.test_lazy_encyclopedia_public_packages",
+        "tests.test_lazy_encyclopedia_services_package",
+        "tests.test_lazy_quests_detail_cache",
+        "tests.test_performance_guardrails"
+      ]
+    },
+    "ASYNC_LIFECYCLE": {
+      "critical": true,
+      "owner": "existing Qt and runtime lifecycle tests",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_atlas_window_runtime_cleanup",
+        "tests.test_organizer_shutdown_guard",
+        "tests.test_quest_visuals_lot6",
+        "tests.test_qt_async_non_accumulation",
+        "tests.test_runtime_async_startup",
+        "tests.test_runtime_hook_lifecycle",
+        "tests.test_world_scan_async_loading"
+      ]
+    },
+    "RESOURCE_BUDGETS": {
+      "critical": true,
+      "owner": "tools/atlas_performance_budgets.json",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_performance_budgets",
+        "tests.test_startup_resource_contracts",
+        "tests.test_lazy_quests_page_performance",
+        "tests.test_qt_async_non_accumulation"
+      ]
+    },
+    "TEST_INTEGRITY": {
+      "critical": true,
+      "owner": "tests/critical_regression_inventory.json",
+      "runner": "critical_inventory"
+    },
+    "CI_INTEGRITY": {
+      "critical": true,
+      "owner": "tests/test_ci_runner_guardrails.py",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_ci_runner_guardrails"
+      ]
+    },
+    "FAULT_INJECTION": {
+      "critical": true,
+      "owner": "tools/atlas_fault_injection.json",
+      "runner": "fault_injection"
+    },
+    "CRITICAL_COVERAGE": {
+      "critical": true,
+      "owner": "tools/atlas_critical_coverage.json",
+      "runner": "critical_coverage"
+    },
+    "TARGETED_MUTATION": {
+      "critical": true,
+      "owner": "tools/atlas_mutation.py",
+      "runner": "targeted_mutation"
+    },
+    "RANDOM_ORDER": {
+      "critical": true,
+      "owner": "tools/random_order_tests.py",
+      "runner": "random_order"
+    },
+    "MONOLITHIC_LIFECYCLE": {
+      "critical": true,
+      "owner": "tests/test_qt_async_non_accumulation.py",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_pyside_shell",
+        "tests.test_guide_home_async_images",
+        "tests.test_world_scan_async_loading",
+        "tests.test_runtime_async_startup",
+        "tests.test_atlas_window_runtime_cleanup",
+        "tests.test_qt_async_non_accumulation"
+      ]
+    },
+    "TIMING_PERFORMANCE": {
+      "critical": false,
+      "blocking": false,
+      "success_status": "MEASURED_ONLY",
+      "owner": "app/modules/encyclopedia/tools/benchmark_guides_performance.py",
+      "runner": "timing_performance"
+    },
+    "GOLDEN_FLOWS": {
+      "critical": true,
+      "owner": "existing Guide Quests Achievements Home tests",
+      "runner": "unittest_modules",
+      "modules": [
+        "tests.test_achievements_lot7",
+        "tests.test_guide_ultime_v5_runtime",
+        "tests.test_guide_ultime_v5_ui",
+        "tests.test_home_guide_ultime_source",
+        "tests.test_quest_detail_navigation"
+      ]
+    },
+    "DIFF_TARGETS": {
+      "critical": true,
+      "owner": "modified test modules",
+      "runner": "changed_tests"
+    },
+    "DATA_INTEGRITY": {
+      "critical": true,
+      "owner": "tools/run_guide_ultime_ci.ps1",
+      "runner": "guide_ci",
+      "failure_semantics": "BLOCKING",
+      "known_blockers": [
+        "GUIDE_PREREQUISITE_DATA",
+        "GUIDE_FINAL_COVERAGE"
+      ],
+      "blocker_ids": {
+        "07_prerequisite_order_audit": "GUIDE_PREREQUISITE_DATA",
+        "09_final_success_coverage_audit": "GUIDE_FINAL_COVERAGE"
+      }
+    },
+    "FULL_SUITE": {
+      "critical": true,
+      "owner": ".github/workflows/app-ci.yml",
+      "runner": "full_unittest_discovery"
+    }
+  },
+  "modes": {
+    "FAST": [
+      "META_INTEGRITY",
+      "SYNTAX",
+      "GENERATED_FILES",
+      "ARCHITECTURE",
+      "IDENTITY",
+      "DIFF_TARGETS"
+    ],
+    "CRITICAL": [
+      "META_INTEGRITY",
+      "SYNTAX",
+      "GENERATED_FILES",
+      "ARCHITECTURE",
+      "IDENTITY",
+      "PERSISTENCE",
+      "STARTUP",
+      "LAZY_LOADING",
+      "ASYNC_LIFECYCLE",
+      "RESOURCE_BUDGETS",
+      "TEST_INTEGRITY",
+      "CI_INTEGRITY",
+      "GOLDEN_FLOWS",
+      "DIFF_TARGETS"
+    ],
+    "FULL": [
+      "META_INTEGRITY",
+      "SYNTAX",
+      "GENERATED_FILES",
+      "ARCHITECTURE",
+      "IDENTITY",
+      "PERSISTENCE",
+      "STARTUP",
+      "LAZY_LOADING",
+      "ASYNC_LIFECYCLE",
+      "RESOURCE_BUDGETS",
+      "TEST_INTEGRITY",
+      "CI_INTEGRITY",
+      "GOLDEN_FLOWS",
+      "DIFF_TARGETS",
+      "FULL_SUITE",
+      "DATA_INTEGRITY"
+    ],
+    "DEEP": [
+      "META_INTEGRITY",
+      "SYNTAX",
+      "GENERATED_FILES",
+      "ARCHITECTURE",
+      "IDENTITY",
+      "PERSISTENCE",
+      "STARTUP",
+      "LAZY_LOADING",
+      "ASYNC_LIFECYCLE",
+      "RESOURCE_BUDGETS",
+      "TEST_INTEGRITY",
+      "CI_INTEGRITY",
+      "GOLDEN_FLOWS",
+      "FAULT_INJECTION",
+      "CRITICAL_COVERAGE",
+      "TARGETED_MUTATION",
+      "RANDOM_ORDER",
+      "MONOLITHIC_LIFECYCLE",
+      "TIMING_PERFORMANCE",
+      "FULL_SUITE",
+      "DATA_INTEGRITY"
+    ]
+  },
+  "risk_requirements": {
+    "LOW": [],
+    "MEDIUM": [
+      "GOLDEN_FLOWS"
+    ],
+    "HIGH": [
+      "PERSISTENCE",
+      "STARTUP",
+      "LAZY_LOADING",
+      "ASYNC_LIFECYCLE",
+      "RESOURCE_BUDGETS"
+    ],
+    "CRITICAL": [
+      "TEST_INTEGRITY",
+      "CI_INTEGRITY"
+    ]
+  }
+}

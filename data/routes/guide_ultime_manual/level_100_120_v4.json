@@ -1,0 +1,42 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_level_100_120_v4",
+  "title": "Guide Ultime — Niveau 100 à 120 + À la croisée des mondes avant Damadrya",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_100_120_v3.json",
+  "supersedes": "guide_ultime_manual_level_100_120_v3",
+  "stage_count": 16,
+  "optimization_note": "Backpatch Pandala: À la croisée des mondes est fermée avant le bloc Damadrya déjà obligatoire. Sous le bois de sa colère est ensuite amenée au même Damadrya, supprimant un futur prérequis Six sur six et évitant un passage supplémentaire de la Bambusaie.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/a-la-croisee-des-mondes.html",
+    "https://www.dofuspourlesnoobs.com/sous-le-bois-de-sa-colere.html"
+  ],
+  "stage_patches": {
+    "L100-15": {
+      "prepend": {
+        "quests": ["À la croisée des mondes", "Sous le bois de sa colère"],
+        "preparation": [
+          {"requirement":"Façonneur niveau10 minimum ou montée rapide avant la quête","blocking":true,"for":"À la croisée des mondes"},
+          {"name":"Artefact Pandawushu Roc","quantity":2},
+          {"name":"Artefact Pandawushu Vent","quantity":2},
+          {"name":"Artefact Pandawushu Bois","quantity":2},
+          {"name":"Artefact Pandawushu Feu","quantity":2},
+          {"name":"Artefact Pandawushu Eau","quantity":2},
+          {"name":"Bois de Bambou","quantity":20},
+          {"note":"Ça est frugal, une fois réduit le coût mais n'est pas rendu bloquant: payer le coût si cela évite une longue dette latérale non rentable."}
+        ],
+        "route": [
+          {"area":"Village de Pandala","do":"Avec Le réveil de Pandala déjà fermé par la progression Pandala, faire À la croisée des mondes avant toute entrée Damadrya. Préparer les artefacts/bois et le Façonneur10 avant déplacement."},
+          {"area":"Pandala / Plantala","do":"Prendre immédiatement Sous le bois de sa colère et l'avancer jusqu'à la Bambusaie de Damadrya. Le Damadrya déjà prévu dans ce stage sert aussi cette quête; aucun nouveau passage ne doit être ajouté."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "À la croisée des mondes terminée avant post-200.",
+          "Sous le bois de sa colère profite du Damadrya existant; aucun second Damadrya pour ce backpatch."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

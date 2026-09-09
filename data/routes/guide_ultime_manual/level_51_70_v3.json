@@ -1,0 +1,133 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_level_51_70_v3",
+  "title": "Guide Ultime — Niveau 51 à 70 causal + quête Allister 3.6",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_51_70_v2.json",
+  "supersedes": "guide_ultime_manual_level_51_70_v2",
+  "stage_count": 7,
+  "depends_on": [
+    "amakna_40_60_v5.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank20_v1.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Corrige la dépendance impossible héritée d'AMK v4: Après lui, le déluge n'est pas disponible avant La magicienne des marécages. Le chapitre garde l'accès Otomaï déjà acquis, lance L'éternelle moisson au premier moment rentable et fait la Grotte Hesque pour Donjon magistral + capture Ocre uniquement. Il conserve aussi la version3.6 de De la viande pour la tablée d'Allister. Le futur second Hesque d'Ocre d'Ambre est un nouveau passage causal, pas un passage artificiellement fusionnable.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/leacuteternelle-moisson.html",
+    "https://www.dofuspourlesnoobs.com/donjon-magistral.html",
+    "https://www.dofuspourlesnoobs.com/grotte-hesque.html",
+    "https://www.dofuspourlesnoobs.com/apres-lui-le-deluge.html",
+    "https://www.dofuspourlesnoobs.com/de-la-viande-pour-la-tablee-d-allister.html",
+    "https://www.dofuspourlesnoobs.com/mise-a-jour-306.html",
+    "https://www.dofuspourlesnoobs.com/intrusion-chez-les-wabbits.html",
+    "https://www.dofuspourlesnoobs.com/deacutegouts-temps.html",
+    "https://www.dofuspourlesnoobs.com/leacutelite-squelettique.html",
+    "https://www.dofuspourlesnoobs.com/le-tabi-damayiro.html",
+    "https://www.dofuspourlesnoobs.com/la-complote-des-poms.html"
+  ],
+  "stage_patches": {
+    "L51-00": {
+      "replace": {
+        "route": [
+          {"pos":"[-29,-53] → [-28,-55] → Pics de Cania","do":"Pour le rang 15, récupérer la pioche réquisitionnée puis extraire les 5 Blocs de pierre demandés pendant la boucle des Pics de Cania. Revenir ensuite à Bonta et terminer Une brèche à Bonta auprès d'Amayiro."},
+          {"pos":"[-2,-4] Amakna","do":"Si Intrusion chez les wabbits n'est pas encore terminée, remettre à l'Assistant d'Otomaï 1 Aile de Scarafeuille Bleu, Blanc, Vert et Rouge afin d'obtenir la Potion Wabbit et l'accès permanent à l'île."},
+          {"pos":"[24,-3] → [26,-8] → [24,-3] Île des Wabbits","do":"Pour le rang 16, récupérer l'alcool de cawotte, faire préparer le vaccin expérimental puis revenir à Bonta."},
+          {"pos":"Égouts de Bonta — entrée [-32,-58]","do":"Terminer D'égouts temps en identifiant la source de contamination et en obtenant le sang du Rat contaminé demandé."},
+          {"pos":"Cimetière des Héros","do":"Pour L'élite squelettique, obtenir les 15 Casques de Chafer d'Élite pendant les combats utiles de la zone puis les remettre à Amayiro."},
+          {"pos":"[-11,-37] Foire du Trool","do":"Faire La foire du Trool suspectée dans la même session : effectuer les passages auprès de Leonzi, acheter le Ticket, voir Yova Etna en [-9,-40], acheter le Burger en [-10,-38], puis revenir à Bonta."}
+        ]
+      }
+    },
+    "L51-01": {
+      "replace": {
+        "title": "Otomaï déjà ouvert — lancer l'Éternelle moisson sans ouvrir Ocre d'Ambre trop tôt",
+        "level": "51+ / Capture d'âmes acquise",
+        "duration_min": 20,
+        "quests": ["L'éternelle moisson"],
+        "route": [
+          {"pos":"Otomaï / zaap déjà mémorisé","do":"Vérifier que Le nouveau monde et L'île des naufragés sont déjà terminées. Ne jamais refaire la traversée si l'accès à Otomaï est déjà acquis."},
+          {"pos":"[-55,15] Otomaï","do":"Avec Capture d'âmes désormais apprise, lancer L'éternelle moisson si elle ne l'est pas encore. Ne pas lancer La raison du plus fort: Le Dofus et l'alchimiste attend toujours La magicienne des marécages."},
+          {"pos":"banque/HDV","do":"Préparer une pierre d'âme puissance50 pour Corailleur Magistral. Le prochain passage en Grotte Hesque sert Donjon magistral + capture Ocre seulement; Après lui, le déluge n'est pas à faire à ce stade."}
+        ],
+        "hard_exit": [
+          "Accès Otomaï permanent, aucune traversée répétée.",
+          "L'éternelle moisson active.",
+          "Donjon magistral actif.",
+          "Pierre puissance50 disponible pour Corailleur Ocre.",
+          "Après lui, le déluge reste non disponible avant La magicienne des marécages."
+        ],
+        "pause": ["Grotte Hesque prête Donjon magistral + capture Ocre"]
+      }
+    },
+    "L51-02": {
+      "replace": {
+        "title": "Grotte Hesque — Donjon magistral + capture Corailleur, Ocre d'Ambre plus tard",
+        "level": "51+",
+        "duration_min": 40,
+        "quests": ["Donjon magistral", "L'éternelle moisson"],
+        "route": [
+          {"pos":"[-59,15] Grotte Hesque","do":"Entrer avec Donjon magistral actif. Équiper une pierre d'âme puissance50 minimum et capturer Corailleur Magistral pour L'éternelle moisson. Faire les succès compatibles dans ce passage."},
+          {"pos":"[-59,15] sortie Grotte Hesque","do":"Ne pas chercher l'ambre antédiluvien d'Après lui, le déluge: cette quête n'est pas encore disponible. Un second passage sera fait plus tard, après La magicienne des marécages, lorsqu'Ocre d'Ambre sera réellement ouvert."},
+          {"pos":"[1,-15] Astrub","do":"Rendre Donjon magistral à Emma Tompouce."},
+          {"pos":"[2,-1] Amakna","do":"Parler à Alain Deix pour fermer Donjon magistral/Première édition et lancer immédiatement Entre quatre blops."}
+        ],
+        "hard_exit": [
+          "Entre quatre blops active avant de poursuivre les quêtes d'alignement.",
+          "Âme du Corailleur Magistral conservée pour l'Ocre.",
+          "Après lui, le déluge et Comme un corbac sur sa branche restent non validées à ce stade."
+        ],
+        "pause": [
+          "Première édition de donjons terminée",
+          "Entre quatre blops active",
+          "Corailleur Magistral capturé ou à rattraper plus tard",
+          "Second passage Hesque Ocre d'Ambre différé jusqu'au prérequis Mériana"
+        ]
+      }
+    },
+    "L51-03": {
+      "replace": {
+        "route": [
+          {"pos":"[-7,-43] Clos des Blops","do":"Entrer avec Entre quatre blops et Le Tabi d'Amayiro actifs. Vaincre le Blop Royal choisi pour la quête, le capturer avec une pierre puissance100 pour l'Ocre et faire les succès compatibles. Avant de quitter, entrer dans la salle du Blop Multicolore Royal si l'objectif de progression le demande."},
+          {"pos":"[-29,-57] puis [-32,-57] Bonta","do":"Fabriquer la Bouillie de Fleurs de Blop au concasseur avec 1 Bout de Blop Griotte, Coco, Indigo et Reinette, puis remettre la Bouillie et l'Huile de Blop Royal à Amayiro pour terminer le rang 19."},
+          {"pos":"Cimetière des Héros [-31,-56] → [-21,-61]","do":"Faire Le fantôme de Tsog : localiser le caveau et récupérer les Paroles de Tsog, puis suivre la piste jusqu'au coffre de Sufokia."},
+          {"pos":"[22,21] Sufokia","do":"Équiper la Pelle de Boisaille AVANT d'arriver sur la carte du coffre, récupérer le Coffre caché de Tsog puis revenir à Amayiro pour terminer le rang 20."},
+          {"pos":"Bonta — Tour des Ordres","do":"Après le rang 20, exécuter uniquement la première quête de l'Ordre choisi pour ce personnage. Les deux autres Ordres ne doivent pas être lancés."},
+          {"pos":"[2,-1] Amakna","do":"Rendre Entre quatre blops à Alain Deix et prendre Un Kanniboul versé. Garder cette nouvelle quête pour le futur passage Moon."}
+        ]
+      }
+    },
+    "L51-04": {
+      "append": {
+        "quests": ["De la viande pour la tablée d'Allister"],
+        "preparation": [
+          {"name":"Viande Avariée","quantity":10,"for":"De la viande pour la tablée d'Allister","policy":"Acheter avant la boucle Amakna si Chasseur70+ n'est pas déjà disponible. Ne pas lancer un farm dédié si l'HDV est plus rentable."}
+        ],
+        "route": [
+          {"pos":"[5,-4] Château d'Amakna","do":"Pendant la même boucle que Des anneaux sur le bout des doigts / fourrage [5,6], parler à Haraquiri, accepter De la viande pour la tablée d'Allister et remettre immédiatement10 Viandes Avariées préparées. La quête est journalière, mais une seule validation suffit ici tant qu'aucun succès actuel n'exige une répétition."}
+        ],
+        "hard_exit": ["De la viande pour la tablée d'Allister terminée une fois avec 10 Viandes Avariées; aucune répétition n'est nécessaire pour ce passage du guide."]
+      }
+    },
+    "L51-05": {
+      "replace": {
+        "route": [
+          {"pos":"[10,-3] Amakna → Valonia","do":"Prendre le bateau pour Albuera puis mémoriser le zaap [39,-82] dès le premier passage."},
+          {"pos":"[38,-77] Nouvelle Albuera","do":"Lancer Dis, scierie ? et terminer sa boucle de scierie/livraison sans quitter Valonia. Enchaîner ensuite Colonie de vaillance."},
+          {"pos":"Valonia","do":"Terminer Colonie de vaillance puis Dans la gueule du Trankilou afin de débloquer Association de fureteurs avant l'entrée au Refuge Sylvestre."},
+          {"pos":"[36,-77] puis barrage","do":"Avancer Association de fureteurs jusqu'à l'objectif qui demande d'aller affronter Rakoopeur."},
+          {"pos":"[40,-84] Refuge Sylvestre","do":"Entrer avec Association de fureteurs et Les sbires du maître actifs. Équiper une pierre puissance50 minimum, vaincre et capturer Rakoopeur pour l'Ocre, puis faire les succès compatibles."},
+          {"pos":"[40,-84] après Rakoopeur","do":"Terminer Association de fureteurs et continuer immédiatement la discussion avec Rakoopeur pour lancer La complote des P.O.M.S. avant de repartir."},
+          {"pos":"[37,-84] Hauteurs d'Albuera","do":"Examiner le sandwich près des rondins, se cacher derrière le rocher, suivre le passage secret puis vaincre les membres des P.O.M.S. Après le combat, parler aux protagonistes et retourner auprès de Thorbjarn en [36,-77] pour terminer La complote des P.O.M.S."},
+          {"pos":"[5,0] Amakna","do":"Retourner voir Pat Akess après Rakoopeur. Les sbires du maître doit maintenant demander le Craqueleur Légendaire."}
+        ],
+        "hard_exit": [
+          "Les cinq quêtes de L'enfant regardait tomber la neige sont terminées.",
+          "Rakoopeur capturé pour l'Ocre ou capture explicitement à refaire si elle a échoué.",
+          "Les sbires du maître demande désormais le Craqueleur Légendaire."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

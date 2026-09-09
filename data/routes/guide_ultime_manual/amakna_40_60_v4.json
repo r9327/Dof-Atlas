@@ -1,0 +1,65 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_amakna_40_60_v4",
+  "title": "Guide Ultime — Amakna 40-60 + Ocre d'Ambre anticipé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "amakna_40_60_v3.json",
+  "supersedes": "guide_ultime_manual_amakna_40_60_v3",
+  "stage_count": 10,
+  "optimization_note": "Avance l'accès Otomaï avant l'Akadémie des Gobs afin de lancer Le Dofus et l'alchimiste, L'éternelle moisson et La raison du plus fort. L'Akadémie déjà requise par Donjon éducatif valide ainsi aussi Ocre d'Ambre et évite un futur rerun.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/le-dofus-et-l-alchimiste.html",
+    "https://www.dofuspourlesnoobs.com/la-raison-du-plus-fort.html",
+    "https://www.dofuspourlesnoobs.com/ocre-d-ambre.html"
+  ],
+  "insertions": [
+    {
+      "before": "AMK-03",
+      "stage": {
+        "id": "AMK-02O",
+        "title": "Otomaï anticipé — ouvrir Éternelle moisson + Ocre d'Ambre AVANT l'Akadémie",
+        "level": "40+ / critères locaux",
+        "duration_min": 70,
+        "quests": [
+          "Le nouveau monde",
+          "L'île des naufragés",
+          "Le Dofus et l'alchimiste",
+          "L'éternelle moisson",
+          "La raison du plus fort"
+        ],
+        "preparation": [
+          {"requirement":"Ressources exactes d'accès Otomaï depuis le walkthrough local; les acheter/récolter avant Sufokia afin de ne pas revenir au continent en plein trajet."},
+          {"requirement":"Capture d'âmes déjà apprise au Kwakwa selon l'ordre AMK v3 avant activation effective des captures Ocre; si le personnage arrive ici avant ce sort pour une raison de progression migrée, lancer quand même les quêtes mais ne simuler aucune capture."}
+        ],
+        "route": [
+          {"pos":"[15,28] Sufokia -> Île des Naufragés -> Otomaï","do":"Faire Le nouveau monde puis L'île des naufragés avec toutes les ressources préparées. Mémoriser le zaap côtier dès l'arrivée. Cette traversée est désormais faite ici, avant l'Akadémie, et ne doit plus être rejouée au chapitre 51-70."},
+          {"pos":"[-55,15] Otomaï","do":"Monter jusqu'à Otomaï. Via Mériana/Otomaï selon le walkthrough local, fermer Le Dofus et l'alchimiste, lancer L'éternelle moisson puis La raison du plus fort. Cette série narrative est indépendante de l'obtention finale du Dofus Ocre mais elle doit être synchronisée avec les donjons déjà présents dans la route."},
+          {"pos":"progression La raison du plus fort","do":"Avancer tous les objectifs hors donjon jusqu'à ce que l'Akadémie des Gobs soit explicitement demandée. Ne pas entrer à l'Akadémie dans cette étape: le passage est fusionné avec Donjon éducatif en AMK-03."}
+        ],
+        "hard_exit": [
+          "Accès Otomaï permanent obtenu avant AMK-03.",
+          "L'éternelle moisson active.",
+          "La raison du plus fort active et au verrou Akadémie des Gobs.",
+          "Le futur Akadémie ne nécessitera aucun rerun Ocre d'Ambre."
+        ],
+        "pause": ["Ocre + Ocre d'Ambre ouverts", "Akadémie = prochain donjon partagé"]
+      }
+    }
+  ],
+  "stage_patches": {
+    "AMK-03": {
+      "append": {
+        "quests": ["La raison du plus fort", "Après lui, le déluge"],
+        "route": [
+          {"pos":"[-5,3] Akadémie des Gobs","do":"Entrer avec Donjon éducatif ET La raison du plus fort au bon objectif. Faire ce seul passage pour les deux fils et les succès compatibles."},
+          {"pos":"après Akadémie / Otomaï","do":"Finir les objectifs restants de La raison du plus fort via le walkthrough local, obtenir la Potion d'Otomaï et prendre immédiatement Après lui, le déluge. Cette dernière doit être active avant la future Grotte Hesque."}
+        ],
+        "hard_exit": [
+          "La raison du plus fort terminée.",
+          "Après lui, le déluge active avant Grotte Hesque.",
+          "Akadémie des Gobs faite une seule fois pour Donjon éducatif + Ocre d'Ambre."
+        ]
+      }
+    }
+  }
+}

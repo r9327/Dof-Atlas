@@ -1,0 +1,19 @@
+{
+  "schema_version": 10,
+  "route_id": "guide_ultime_manual_level_171_180_v10",
+  "title": "Guide Ultime — Niveau 171 à 180, chaîne canonique finale",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v9.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v9",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v17.json",
+    "bonta_1_80_v9.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Raccorde le palier180 à la chaîne Frigost finale. Toutes les optimisations Tour du Monde, Agriculture, Objets trouvés, Baka, Dépôt/S.L.I.P. restent inchangées.",
+  "stage_patches": {},
+  "insertions": []
+}

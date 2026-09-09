@@ -1,0 +1,37 @@
+{
+  "schema_version": 13,
+  "route_id": "guide_ultime_manual_level_181_190_v13",
+  "title": "Guide Ultime — Niveau 181 à 190 + checkpoints DDG typés correctement",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_181_190_v12.json",
+  "supersedes": "guide_ultime_manual_level_181_190_v12",
+  "stage_count": 24,
+  "depends_on": [
+    "level_171_180_v11.json",
+    "level_150_170_v19.json",
+    "level_120_150_v18.json",
+    "bonta_1_100_v11.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Corrige L190-09: La maire dénie, L'âme de glace et L'hiver arrive sont des succès de regroupement, pas des noms de quêtes QuestProvider. La fiche conserve leur checkpoint de progression mais ne les injecte plus comme quêtes actives fictives.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-maire-deacutenie.html",
+    "https://www.dofuspourlesnoobs.com/lacircme-de-glace.html",
+    "https://www.dofuspourlesnoobs.com/lhiver-arrive.html"
+  ],
+  "stage_patches": {
+    "L190-09": {
+      "replace": {
+        "quests": [],
+        "successes": ["La maire dénie", "L'âme de glace", "L'hiver arrive"]
+      },
+      "append": {
+        "hard_exit": [
+          "La maire dénie, L'âme de glace et L'hiver arrive sont des succès à vérifier ici; ce ne sont pas des quêtes à prendre."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

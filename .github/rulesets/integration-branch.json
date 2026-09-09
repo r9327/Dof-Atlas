@@ -1,0 +1,56 @@
+{
+  "name": "Protect Dofus Atlas integration branch",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": {
+      "include": [
+        "refs/heads/feature/guide-ultime-v5-ui"
+      ],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_approving_review_count": 0,
+        "required_review_thread_resolution": true,
+        "automatic_copilot_code_review_enabled": false,
+        "allowed_merge_methods": [
+          "merge",
+          "squash",
+          "rebase"
+        ]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": true,
+        "required_status_checks": [
+          {"context": "Integrity Policy / Fast Code Validation"},
+          {"context": "Architecture"},
+          {"context": "Identity / Persistence"},
+          {"context": "Startup / Lazy"},
+          {"context": "Qt Lifecycle / Async"},
+          {"context": "Resource Budgets"},
+          {"context": "Golden Flows"},
+          {"context": "Monolithic Lifecycle"},
+          {"context": "Full Application Suite"}
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_level_191_200_v1",
+  "title": "Guide Ultime — Niveau 191 à 200, Bonta100 + Ordre100 + Dofus Ivoire",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "depends_on":[
+    "level_181_190_v3.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v11.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "stage_count":18,
+  "entry":"niveau191+ / Bonta90 / Frigost III ouvert / Abyssal190 avancé ou fermé selon runtime / fils Ébène-Nébuleux conservés",
+  "exit":"niveau200 / Bonta100 + même Ordre100 / Dofus Ivoire obtenu si runtime confirme / DDG-Ébène-Nébuleux non artificiellement validés",
+  "micro_walkthrough_source":"QuestProvider + source_solution_steps enrichis + DPLN courant",
+  "core_strategy":"Fermer Bonta91-100 en profitant des zones déjà ouvertes, exécuter exactement le même Ordre au rang100, puis enchaîner Blanc Ivoire. Les boss Ivoire sont réservés aux fils compatibles actifs. Meno Ivoire est un rerun causal car Une voix de crystal n'existait pas lors du Meno Abyssal190. Ébène/Nébuleux/DDG restent des fils parallèles jusqu'à audit complet de leurs gates200.",
+  "rules":[
+    "Bonta91-100 suit bonta_1_100_v11 sans saut; les rangs97 Missiz et99 Ilyzaelle sont des merge hooks.",
+    "Après L'exorciste, ouvrir exactement bonta_order_rank100_v1 avec persisted_bonta_order; aucun changement d'Ordre autorisé.",
+    "Le Merkator Ordre100 est un rerun causal car l'Ordre5 n'existe qu'après Bonta100; réutiliser l'Accélérateur de propulsion Abyssal si possible.",
+    "Le dragon blanc attend niveau200 et toutes les ressources générales Ivoire prêtes avant Chaloeil.",
+    "Examen de passage ne doit pas commencer ses étapes verrouillées tant que l'Ordre100 n'est pas réellement terminé.",
+    "Nidas, Tal Kasha, Katrepat, Nileza, Meno et Sylargh ne sont faits qu'aux objectifs Ivoire correspondants; ajouter toutes les quêtes/succès compatibles avant entrée.",
+    "Meno Ivoire est distinct du Meno Abyssal190: rerun causal explicite. Après ce Meno, utiliser le retour Pichon pour rendre les partitions sans troisième Meno.",
+    "Le Dofus Ivoire n'est déclaré obtenu qu'après Il est temps de mourir et interaction finale avec Dardondakal confirmées par le runtime.",
+    "Aucun compteur Ébène/Nébuleux/DDG n'est converti en validation par la route."
+  ],
+  "global_preparation":[
+    {"name":"Graisse Gélatineuse","quantity":50,"for":"Dofus Ivoire"},
+    {"name":"Frostiz","quantity":50,"for":"Dofus Ivoire / Le mort dans l'âme"},
+    {"name":"Obsidienne","quantity":15,"for":"Dofus Ivoire"},
+    {"name":"Pic du Nocturlabe","quantity":1},
+    {"name":"Peau de Crocabulia","quantity":1},
+    {"name":"Corde du Fancrôme","quantity":1},
+    {"name":"Moustache de Rilur","quantity":5},
+    {"name":"Perce-Neige","quantity":15},
+    {"name":"Blague de Soufre","quantity":20},
+    {"name":"Baguette Rikiki","quantity":1},
+    {"name":"Corde d'escalade","quantity":1,"for":"Examen de passage"},
+    {"name":"Accélérateur de propulsion","quantity":1,"for":"Ordre100","policy":"Conserver/réutiliser celui de l'Abyssal si possible."},
+    {"note":"Gros chapitre à ressources: stocker les lots Ivoire en banque et ne retirer que ceux de la macro en cours; garder au moins 150-250 pods libres avant chaque chaîne de collectes."}
+  ],
+  "stages":[
+    {
+      "id":"L191-00",
+      "title":"Bonta91-94 — cambriolage, Trukipu, Salbatroces et morts-vivants",
+      "level":"191+",
+      "duration_min":520,
+      "route_hooks":["BNT-43","BNT-44"],
+      "quests":["Cambriolage à durée déterminée","C'est toujours dur le matin","Je panse donc j'essuie","L'aube des morts-vivants"],
+      "route":[{"area":"Bonta → Moon/Cania → Roc des Salbatroces/Sufokia → Cimetière des Héros","do":"Exécuter BNT-43 puis BNT-44. Retirer à l'avance les ressources Krobes/Perce-Neige/Écume/Sel de Baleine et grouper les combats de zone avec succès encore ouverts."}],
+      "hard_exit":["Bonta94 terminé","Un chemin tout tracé disponible"],
+      "pause":["POINT DE PAUSE SÛR — Bonta94"]
+    },
+    {
+      "id":"L195-01",
+      "title":"Bonta95-96 — Quadraforce + Enigma, groupe5 préparé",
+      "level":"195+",
+      "duration_min":420,
+      "route_hooks":["BNT-45"],
+      "quests":["Un chemin tout tracé","Enigma"],
+      "route":[{"area":"Amakna/Brâkmar/Sidimote/Pandala/Rok/Saharach/Grobe/Maimane","do":"Exécuter BNT-45 avec Faire le mort déjà confirmé, Breuvage d'Erazal prêt, quatre artefacts Pandawushu en inventaire et cinq personnages organisés AVANT le mécanisme Maimane."}],
+      "hard_exit":["Bonta96 terminé","À glacer le sang active"],
+      "pause":["POINT DE PAUSE SÛR — avant Missiz97"]
+    },
+    {
+      "id":"L197-02",
+      "title":"Bonta97 Missiz — passage principal partagé",
+      "level":"197-200",
+      "duration_min":110,
+      "route_hooks":["BNT-46"],
+      "quests":["À glacer le sang"],
+      "dungeon":{"name":"Forgefroide de Missiz Frizz","pass":"single_for_active_threads"},
+      "route":[{"area":"Frigost III","do":"Avant entrée, auditer les quêtes DDG/Frigost/succès Missiz immédiatement activables. Faire le boss une seule fois avec À glacer le sang et tous les fils compatibles, puis dialogue Erazal post-boss."}],
+      "hard_exit":["Bonta97 terminé","Missiz non refaite isolément si un fil compatible était disponible"]
+    },
+    {
+      "id":"L198-03",
+      "title":"Bonta98 — Srambad sans donjon",
+      "level":"198+",
+      "duration_min":150,
+      "route_hooks":["BNT-47"],
+      "quests":["À l'ombre des murs"],
+      "route":[{"area":"Srambad","do":"Exécuter la boucle BNT-47. Profiter du passage pour les objectifs Nébuleux Srambad déjà actifs, sans ouvrir de donjon uniquement pour Bonta98."}],
+      "hard_exit":["Bonta98 terminé","Fée d'hiver disponible"]
+    },
+    {
+      "id":"L199-04",
+      "title":"Bonta99-100 — Ilyzaelle puis Erazal",
+      "level":"199-200",
+      "duration_min":300,
+      "route_hooks":["BNT-48"],
+      "quests":["Fée d'hiver","L'exorciste"],
+      "dungeon":{"name":"Belvédère d'Ilyzaelle","pass":"single_for_active_threads_at_rank99"},
+      "route":[{"area":"Îlot Estitch → Ilyzaelle → Srambad","do":"Exécuter BNT-48. Avant Ilyzaelle, auditer Fratrie/Ivoire/autres fils immédiatement disponibles; après Bonta99, fermer L'exorciste à Srambad."}],
+      "hard_exit":["Bonta100 terminé","Ordre100 disponible","Travail d'intérêt général validable selon runtime"],
+      "pause":["POINT DE PAUSE SÛR — Bonta100"]
+    },
+    {
+      "id":"L200-05",
+      "title":"Ordre100 — même choix depuis rang20, Merkator causal",
+      "level":"200 / Bonta100",
+      "duration_min":420,
+      "conditional_route":"bonta_order_rank100_v1.json",
+      "quests":["conditional:Apprentissage : Héros Légendaire","conditional:Apprentissage : Maître des Illusions","conditional:Apprentissage : Gardien du Savoir"],
+      "preparation":[{"requirement":"3 personnages représentant les trois Ordres et au bon état de quête","blocking":true},{"name":"Accélérateur de propulsion","quantity":1}],
+      "route":[{"area":"Tour des Ordres → Merkator → trois puits","do":"Exécuter UNIQUEMENT la branche persisted_bonta_order. Le Merkator est un rerun causal; faire ensuite les combats personnels/leviers des trois puits et le combat de groupe Seigneur Seisde."}],
+      "hard_exit":["exactly_one:persisted_bonta_order_rank100 terminé","Ordre5 réel","Examen de passage déverrouillable"],
+      "pause":["POINT DE PAUSE SÛR — alignement100 + Ordre5"]
+    },
+    {
+      "id":"L200-06",
+      "title":"Ivoire1 — Le dragon blanc, Chaloeil unique",
+      "level":"200",
+      "duration_min":240,
+      "quests":["Le dragon blanc"],
+      "dungeon":{"name":"Défi du Chaloeil","pass":"unique_for_ivoire_opening"},
+      "route":[{"area":"Mériana/quête primordiale → Ecaflipus","do":"Avancer Le dragon blanc jusqu'au Chaloeil. Avant entrée, activer les quêtes/succès Ecaflipus compatibles immédiatement disponibles. Vaincre Chaloeil puis entrer dans la salle secrète et parler à Dardondakal AVANT sortie."}],
+      "hard_exit":["Le dragon blanc terminé","Examen de passage active","Chaloeil ouvert une fois pour ce bloc"],
+      "pause":["POINT DE PAUSE SÛR — Examen actif"]
+    },
+    {
+      "id":"L200-07",
+      "title":"Ivoire2 — Examen de passage, 12 tombeaux + Protozorreur",
+      "level":"200 / Ordre5 terminé",
+      "duration_min":520,
+      "quests":["Examen de passage"],
+      "dungeon":{"name":"Ventre de la Baleine","boss":"Protozorreur","pass":"unique_for_examen"},
+      "preparation":[{"name":"Corde d'escalade","quantity":1},{"requirement":"Ordre100 terminé avant récupération du masque de Jack","blocking":true}],
+      "route":[{"area":"Bonta/Incarnam/Monde des Douze","do":"Obtenir/restaurer le masque mortuaire. Faire les douze tombeaux dans une boucle géographique avec tous combats correspondants; aucun trajet dédié ne doit être répété si une zone est déjà visitée pour Bonta/Ivoire."},{"area":"Ventre de la Baleine","do":"Faire un seul Protozorreur pour Examen + succès/quêtes compatibles; en sortie demander à l'Esprit de Kidibom de bénir le masque."},{"area":"Blessure d'Ilyzaelle","do":"Accéder à Ilyzaelle via le Gardien sans refaire son boss et fermer Examen; Le pays gris s'ouvre."}],
+      "hard_exit":["Examen de passage terminé","Masque mortuaire fonctionnel","Le pays gris disponible"]
+    },
+    {
+      "id":"L200-08",
+      "title":"Ivoire3 — Le pays gris puis Casse en Enutrosor préparé",
+      "level":"200",
+      "duration_min":220,
+      "quests":["Le pays gris","Casse en Enutrosor"],
+      "route":[{"area":"Externam","do":"Faire Le pays gris jusqu'à l'audience/relique demandée. À l'ouverture de Casse en Enutrosor, vérifier Espionnage industriel terminé avant de partir en dimension."}],
+      "hard_exit":["Le pays gris terminé","Casse en Enutrosor active","Espionnage industriel vrai ou blocker exact visible"]
+    },
+    {
+      "id":"L200-09",
+      "title":"Ivoire4 — Nidas unique pour Casse en Enutrosor",
+      "level":"200",
+      "duration_min":260,
+      "quests":["Casse en Enutrosor"],
+      "dungeon":{"name":"Palais du roi Nidas","pass":"unique_for_ivoire"},
+      "route":[{"area":"Enutrosor","do":"Entrer dans la Koffrérie seulement avec Espionnage industriel satisfait, puis faire UN Nidas pour Casse + succès/quêtes Nidas compatibles. APRÈS le boss, combattre le Coffret précieux avant sortie."},{"area":"Externam → Ecaflipus","do":"Rendre la relique/audience puis retourner Dardondakal; Nordalie s'ouvre."}],
+      "hard_exit":["Casse en Enutrosor terminée","Nidas Ivoire fait une fois","Nordalie active"]
+    },
+    {
+      "id":"L200-10",
+      "title":"Ivoire5 — Nordalie ouvre quatre missions en parallèle",
+      "level":"200",
+      "duration_min":160,
+      "quests":["Nordalie","Le bonheur est dans le spray","Une voix de crystal","Le mort dans l'âme","Le guerrier noir"],
+      "entry":"Malédiction ! déjà terminée; vérifier Allumer le feu + La garde meurt mais ne se rend pas avant leurs étapes bloquantes.",
+      "route":[{"area":"Caverne du Destin","do":"Avancer Nordalie jusqu'à l'ouverture des quatre missions des Nordes. Prendre les quatre AVANT de partir dans leurs zones; cela permet de grouper Frigost/Sufokia/Srambad et les donjons associés."}],
+      "hard_exit":["Quatre missions Nordalie actives","Aucun Tal Kasha lancé avant leurs prérequis"]
+    },
+    {
+      "id":"L200-11",
+      "title":"Ivoire6 — Bonheur + Guerrier noir, farms transversaux",
+      "level":"200",
+      "duration_min":430,
+      "quests":["Le bonheur est dans le spray","Le guerrier noir"],
+      "preparation":[{"name":"Baguette Rikiki","quantity":1},{"kamas":4010},{"requirement":"Succès La chasse aux chasseurs terminé pour franchir la cascade","blocking":true}],
+      "route":[{"area":"cascade/Likrone","do":"Fermer Le bonheur est dans le spray; si La chasse aux chasseurs manque, corriger ce reliquat avant la cascade, pas après déplacement."},{"area":"Brâkmar/Gisgoul/Astrub/Sufokia/Srambad","do":"Faire Le guerrier noir en groupant les drops de trois types de crânes avec les monstres/succès encore ouverts dans Tannerie Écarlate, Profondeurs de Sufokia et Hauts Ténébreux."}],
+      "hard_exit":["Le bonheur est dans le spray terminé","Le guerrier noir terminé"]
+    },
+    {
+      "id":"L200-12",
+      "title":"Ivoire7 — Le mort dans l'âme, Katrepat unique",
+      "level":"200",
+      "duration_min":260,
+      "quests":["Le mort dans l'âme"],
+      "dungeon":{"name":"Manoir des Katrepat","pass":"unique_for_ivoire"},
+      "preparation":[{"name":"Frostiz","quantity":50}],
+      "route":[{"area":"Brâkmar/Amakna","do":"Préparer pain à l'ail, eau bénite et pieu; ne partir au Manoir qu'une fois les trois essais prêts."},{"area":"Manoir des Katrepat","do":"Faire UN Anerice pour Le mort dans l'âme + succès/quêtes compatibles, puis dialogues Anerice/Funestaro avant sortie."}],
+      "hard_exit":["Le mort dans l'âme terminé","Anerice Ivoire une fois"]
+    },
+    {
+      "id":"L200-13",
+      "title":"Ivoire8 — Une voix de crystal, Nileza puis Meno causal",
+      "level":"200",
+      "duration_min":420,
+      "quests":["Une voix de crystal"],
+      "dungeons":[
+        {"name":"Laboratoire de Nileza","pass":"unique_for_ivoire_voice"},
+        {"name":"Vaisseau du Capitaine Meno","pass":"rerun_causal_after_abyssal"}
+      ],
+      "route":[{"area":"Frigost III","do":"Faire Nileza au moment exact demandé par Une voix de crystal, avec tout fil Frigost/succès compatible déjà actif."},{"area":"Abysses de Sufokia","do":"RERUN CAUSAL MENO: Une voix de crystal n'existait pas au Meno Abyssal190. Vérifier Son nom est Personne lancé/terminé pour obtenir les bons dialogues. Vaincre Meno et lui parler avant sortie."},{"area":"Monde des Douze → Sufokia","do":"Collecter les sept partitions en une boucle, puis utiliser le Pichon kloune pour retourner à Meno SANS refaire le donjon et remettre les partitions."}],
+      "hard_exit":["Une voix de crystal terminée","Meno global +1 causal uniquement","Aucun troisième Meno pour rendre les partitions"]
+    },
+    {
+      "id":"L200-14",
+      "title":"Ivoire9 — Tal Kasha puis fermeture Nordalie/Hyrkul",
+      "level":"200",
+      "duration_min":300,
+      "quests":["Nordalie"],
+      "dungeon":{"name":"Chambre de Tal Kasha","pass":"unique_for_nordalie"},
+      "entry":"Bonheur + Voix + Mort dans l'âme + Guerrier noir terminés; Malédiction/Allumer le feu/La garde meurt mais ne se rend pas satisfaits.",
+      "route":[{"area":"Caverne du Destin → Pyramide maudite","do":"Une fois les quatre missions terminées, avancer Nordalie jusqu'au Tal Kasha et faire UN donjon avec tous fils/succès compatibles."},{"area":"Blessure d'Ilyzaelle","do":"Placer le fil au métier à tisser puis faire le combat solo Hyrkul avec les alliés Centoror. Ne pas refaire Ilyzaelle."}],
+      "hard_exit":["Nordalie terminée ou seul dernier dialogue exact restant","Tal Kasha Ivoire une fois"]
+    },
+    {
+      "id":"L200-15",
+      "title":"Ivoire10 — final Frigost, Nileza/Sylargh et Il est temps de mourir",
+      "level":"200",
+      "duration_min":420,
+      "quests":["Il est temps de mourir"],
+      "dungeons":[{"name":"Transporteur de Sylargh","pass":"unique_for_ivoire_final"}],
+      "route":[{"area":"Frigost III / route Ivoire finale","do":"Suivre le walkthrough local d'Il est temps de mourir. Si les objectifs demandent un boss déjà fait dans une étape Ivoire précédente, utiliser l'état runtime exact; ne programmer un rerun que s'il est causalement requis. Pour Sylargh, faire un seul passage avec tous fils Frigost/Ivoire/succès actifs."},{"area":"Externam → Ecaflipus","do":"Après Hyrkul/les Nordes et les validations finales, entrer via le masque mortuaire, obtenir l'accord de Thanatena puis retourner auprès de Dardondakal. Cliquer le piédestal uniquement au vrai objectif final."}],
+      "hard_exit":["Il est temps de mourir terminée","Dofus Ivoire obtenu uniquement si le runtime le confirme","Blanc Ivoire validable"],
+      "pause":["POINT DE PAUSE SÛR — Ivoire fermé"]
+    },
+    {
+      "id":"L200-16",
+      "title":"Ébène/Nébuleux/DDG — checkpoint strict, aucune fausse clôture",
+      "level":"200",
+      "duration_min":30,
+      "quests":[],
+      "route":[{"area":"audit runtime","do":"Lire les compteurs et quêtes réelles Ébène, Nébuleux et Dofus des Glaces. Ne marquer aucun Dofus terminé par déduction. Le prochain patch du chapitre ajoutera leurs séquences200 après audit exhaustif des prérequis/donjons restants."}],
+      "hard_exit":["Aucune fausse validation Ébène","Aucune fausse validation Nébuleux","Aucune fausse validation DDG"]
+    },
+    {
+      "id":"L200-17",
+      "title":"Fin de working set 191-200 — audit avant fermeture du Guide Ultime",
+      "level":"200",
+      "duration_min":60,
+      "quests":[],
+      "route":[{"area":"audit global","do":"Comparer quêtes/succès/donjons/monstres/Dofus/Ocre/alignement/Ordre réellement terminés aux registres locaux. Toute dette devient un patch causal avant de déclarer le Guide Ultime terminé."}],
+      "hard_exit":["Bonta100 réel","Ordre100 réel","Ivoire réel ou blocker exact","Ébène/Nébuleux/DDG encore explicitement audités"]
+    }
+  ],
+  "sources":[
+    "https://www.dofuspourlesnoobs.com/alignement-bontarien.html",
+    "https://www.dofuspourlesnoobs.com/quecirctes-du-dofus-ivoire.html",
+    "https://www.dofuspourlesnoobs.com/le-dragon-blanc.html",
+    "https://www.dofuspourlesnoobs.com/examen-de-passage.html",
+    "https://www.dofuspourlesnoobs.com/casse-en-enutrosor.html",
+    "https://www.dofuspourlesnoobs.com/nordalie.html",
+    "https://www.dofuspourlesnoobs.com/le-bonheur-est-dans-le-spray.html",
+    "https://www.dofuspourlesnoobs.com/une-voix-de-crystal.html",
+    "https://www.dofuspourlesnoobs.com/le-mort-dans-l-ame.html",
+    "https://www.dofuspourlesnoobs.com/le-guerrier-noir.html",
+    "https://www.dofuspourlesnoobs.com/il-est-temps-de-mourir.html"
+  ]
+}

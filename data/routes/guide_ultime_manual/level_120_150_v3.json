@@ -1,0 +1,201 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_level_120_150_v3",
+  "title": "Guide Ultime — Niveau 120 à 150 + Turquoise Viti/Thomahon optimisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v2.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v2",
+  "stage_count": 30,
+  "optimization_note": "Réordonne Frigost/Pandala après le Chêne Mou pour ouvrir le Turquoise sans sacrifier les fusions. Founoroshi-Viti reste un rerun causal, mais le premier Tynril valide directement Viti et le premier Sphincter valide directement Thomahon. Mansot pass2 absorbe Viti + Porte Mansot + Monarchie parlementaire.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/plongeon-et-dragon.html",
+    "https://www.dofuspourlesnoobs.com/extinction-des-feux.html",
+    "https://www.dofuspourlesnoobs.com/on-dirait-le-sud.html",
+    "https://www.dofuspourlesnoobs.com/lombre-et-la-proie.html",
+    "https://www.dofuspourlesnoobs.com/la-meacutechante-sorciegravere-de-lest.html",
+    "https://www.dofuspourlesnoobs.com/la-beacuteneacutediction-de-viti.html",
+    "https://www.dofuspourlesnoobs.com/autel-du-nord.html",
+    "https://www.dofuspourlesnoobs.com/la-beacuteneacutediction-de-thomahon.html",
+    "https://www.dofuspourlesnoobs.com/fais-dodo-tauras-du-gacircteau.html",
+    "https://www.dofuspourlesnoobs.com/excavation-du-mansot-royal.html"
+  ],
+  "stage_patches": {
+    "L120-14": {
+      "append": {
+        "quests": ["Plongeon et dragon"],
+        "route": [
+          {"pos":"Clairière du Chêne Mou — APRÈS boss","do":"Plongeon et dragon est actif depuis level_70_100_v4 et la Clef Dentée a été récupérée au Dragon Cochon. Avant de sortir du Chêne Mou, passer derrière le grand arbre, faire le passage de la stèle et récupérer impérativement la Clef Griffue. Une PDA/arène ne peut pas fournir cette clef."}
+        ],
+        "hard_exit": [
+          "Clef Dentée Dragon Cochon déjà possédée.",
+          "Clef Griffue Chêne Mou obtenue avant sortie.",
+          "Plongeon et dragon peut désormais être terminé sans aucun rerun Dragon Cochon/Chêne Mou."
+        ]
+      }
+    },
+    "L120-15": {
+      "append": {
+        "quests": ["La bénédiction de Viti"],
+        "preparation": [
+          {"name":"Idole de Viti Végétale","quantity":1,"craft_location":"[6,3]","recipe":["8 Estomac de Black Wo Wabbit","5 Bakélélite","1 Carapace du Mantiscore","3 Laine de Dardalaine","3 Écorce de Liroye Merline"]}
+        ],
+        "route": [
+          {"pos":"Laboratoire du Tynril — salle finale","do":"AVANT de lancer le combat déjà prévu pour Tour de passe-passe/Ocre, utiliser l'Idole de Viti Végétale afin d'obtenir l'altération. Chaque personnage qui suit La bénédiction de Viti doit avoir crafté/utilisé sa propre idole. Vaincre le Tynril Perfide sous altération dans ce PREMIER passage."}
+        ],
+        "hard_exit": [
+          "Tynril Perfide validé pour La bénédiction de Viti au premier passage.",
+          "Aucun futur Tynril uniquement pour Viti."
+        ]
+      }
+    },
+    "L120-17": {
+      "append": {
+        "quests": ["La bénédiction de Thomahon"],
+        "preparation": [
+          {"name":"Idole de Thomahon Nauséabonde","quantity":1,"craft_location":"[6,3]","recipe":["5 Kouartz","10 Peau de Don Dorgan","10 Moustache du Mufafah","10 Oreille de Rhinoféroce","1 Chaussette trouée de Dramak"]}
+        ],
+        "route": [
+          {"pos":"Repaire de Sphincter Cell — salle finale","do":"La bénédiction de Thomahon doit être active AVANT cette étape. Utiliser l'Idole de Thomahon Nauséabonde dans la salle finale avant le combat, puis exécuter le Sphincter déjà mutualisé Bonta65 + Tour de rein + Ocre. Chaque personnage doit activer sa propre idole."}
+        ],
+        "hard_exit": [
+          "Sphincter Cell validé pour Thomahon au même passage que Bonta65 + Tour de rein + Ocre.",
+          "Aucun Sphincter futur uniquement pour Turquoise."
+        ]
+      }
+    },
+    "L120-19": {
+      "append": {
+        "hard_exit": [
+          "NOTE TURQUOISE: Kanigroula sera demandée plus tard par La bénédiction de Foluk, dont Il était une foi dans l'Ouest est documentée bien plus tard (~180). Ce passage Bonta70 reste provisoirement conservé pour ne pas bloquer les rangs71-80; le futur audit Bonta71-80 décidera si attendre Foluk est globalement plus rentable qu'un second Kanigroula."
+        ]
+      }
+    },
+    "L120-21": {
+      "append": {
+        "hard_exit": [
+          "Ce premier Mansot ouvre le Berceau d'Alma: il est volontairement placé avant La bénédiction de Viti, car La méchante sorcière de l'Est exige des monstres du Berceau avant de pouvoir obtenir Viti.",
+          "La bénédiction de Viti ne peut donc pas être validée sur Mansot pass1; le deuxième passage est causal et sera fusionné avec Porte Mansot + Monarchie parlementaire."
+        ]
+      }
+    }
+  },
+  "insertions": [
+    {
+      "after":"L120-14",
+      "stage": {
+        "id":"L120-14T",
+        "title":"Turquoise — finir Plongeon, Extinction, On dirait le Sud et ouvrir la Sorcière de l'Est",
+        "level":"140-150 / startCriteria locaux",
+        "duration_min":170,
+        "quests":["Plongeon et dragon","Extinction des feux","On dirait le Sud","L'ombre et la proie","La méchante sorcière de l'Est"],
+        "route":[
+          {"pos":"[-19,-23] -> sanctuaire Aguabrial","do":"Avec Clef Dentée + Clef Griffue, terminer la partie sanctuaire de Plongeon et dragon et revenir à Mériana. Aucun Dragon Cochon ni Chêne Mou supplémentaire."},
+          {"pos":"Turquoise","do":"Enchaîner Extinction des feux immédiatement via le walkthrough local; revenir Mériana et prendre On dirait le Sud."},
+          {"pos":"Bonta / Sud Amakna","do":"Faire On dirait le Sud avec les ressources demandées et la Pelle du Clan Terra. Quand Joris devient disponible à Bonta au milieu de la quête, lancer et terminer L'ombre et la proie dans cette même campagne plutôt que revenir plus tard uniquement pour le titre/quête unique."},
+          {"pos":"[-6,-3]","do":"Terminer On dirait le Sud et prendre La méchante sorcière de l'Est dès que le startCriterion local le permet."},
+          {"pos":"Berceau d'Alma","do":"La méchante sorcière demande la zone Berceau d'Alma. Tant que le premier Mansot n'est pas terminé, NE PAS chercher de faux accès: suspendre proprement la quête au verrou d'accès et passer à L120-21 Mansot pass1."}
+        ],
+        "hard_exit":["Plongeon et dragon terminé sans rerun DC/CM","Extinction des feux terminée","On dirait le Sud terminée","L'ombre et la proie faite dès sa fenêtre utile","La méchante sorcière de l'Est active et bloquée uniquement par accès Berceau si nécessaire"],
+        "pause":["Turquoise attend le premier Mansot pour le Berceau"]
+      }
+    },
+    {
+      "after":"L120-21",
+      "stage": {
+        "id":"L120-20B",
+        "title":"Ben le Ripate PASS 1 — ouvrir les Larmes pendant que la Sorcière farme le Berceau",
+        "level":"150+ / Antiroyaliste + Les joyeux de la couronne",
+        "duration_min":90,
+        "quests":["Fais dodo, t'auras du gâteau","La méchante sorcière de l'Est"],
+        "route":[
+          {"pos":"Berceau d'Alma","do":"Avec La méchante sorcière active, profiter de toute la boucle Berceau et du trajet Ben pour avancer les 7 exemplaires de chaque famille demandée. Compléter uniquement les espèces qui manquent; pas de farm au-delà de 7/7."},
+          {"pos":"[-60,-84] Épave du Grolandais violent","do":"Faire le PREMIER Ben avec Fais dodo, t'auras du gâteau active et tous les succès compatibles. Thomahon n'est pas encore actif: ce premier Ben ne peut pas compter pour sa bénédiction."},
+          {"pos":"sortie Ben","do":"Rendre Fais dodo auprès de Fantômahawk et choisir la sortie qui ouvre les Larmes d'Ouronigride. Prendre Porte, Ben le Ripate, trésor immédiatement, mais NE PAS refaire Ben avant Thomahon + Piwates."}
+        ],
+        "hard_exit":["Fais dodo terminé","Larmes d'Ouronigride accessibles","Porte Ben active","Premier Ben documenté comme causal avant Thomahon","La méchante sorcière a ses kills Berceau terminés ou reliquat exact"],
+        "pause":["Larmes ouvertes","Sorcière de l'Est prête Viti"]
+      }
+    },
+    {
+      "after":"L120-20B",
+      "stage": {
+        "id":"L120-14E",
+        "title":"Turquoise Est — atteindre Viti et crafter les trois idoles avant les reruns",
+        "level":"150+",
+        "duration_min":80,
+        "quests":["La méchante sorcière de l'Est","La bénédiction de Viti"],
+        "preparation":[
+          {"name":"Idole de Viti Roussie","quantity":1,"recipe":["10 Peau de Don Duss Ang","5 Kouartz","10 Canine de Mergranlou","10 Coquille de Dragoss Charbon","1 Peau de Moon"]},
+          {"name":"Idole de Viti Végétale","quantity":1,"recipe":["8 Estomac de Black Wo Wabbit","5 Bakélélite","1 Carapace du Mantiscore","3 Laine de Dardalaine","3 Écorce de Liroye Merline"]},
+          {"name":"Idole de Viti Glacée","quantity":1,"recipe":["10 Corne de Berserkoffre","5 Substrat de Bosquet","10 Plume de Gobvious","1 Chaussette trouée de Dramak","3 Coquille de Dragoss Ardoise"]}
+        ],
+        "route":[
+          {"pos":"Berceau d'Alma -> [27,-30] Plantala","do":"Finir les 7 de chaque monstre du Berceau pour La méchante sorcière, obtenir la marque demandée et rejoindre le Disciple de Viti."},
+          {"pos":"[27,-30]","do":"Prendre La bénédiction de Viti. Ne pas se contenter d'avoir un allié avec les idoles: chaque personnage doit avoir crafté ses idoles de quête."},
+          {"pos":"[6,3] atelier spécial","do":"Crafter les trois idoles Viti AVANT de partir aux trois boss. Cette préparation évite un aller-retour atelier entre Founoroshi, Tynril et Mansot."}
+        ],
+        "hard_exit":["La bénédiction de Viti active","Trois idoles Viti craftées personnellement","Founoroshi/Tynril/Mansot identifiés comme trois validations distinctes"],
+        "pause":["Viti active","Founoroshi rerun causal prochain"]
+      }
+    },
+    {
+      "after":"L120-14E",
+      "stage": {
+        "id":"L120-14F",
+        "title":"Founoroshi Viti — unique rerun Turquoise causal",
+        "level":"150+",
+        "duration_min":55,
+        "quests":["La bénédiction de Viti"],
+        "route":[
+          {"pos":"[14,-32] Fabrique de foux d'artifice","do":"Retour CAUSALEMENT INÉVITABLE: lors du premier Founoroshi, Plongeon n'était pas encore terminé car La voie du guerrier impose Founoroshi avant le Chêne Mou. Dans la salle finale, utiliser l'Idole de Viti Roussie AVANT le combat puis vaincre Founoroshi sous altération."},
+          {"pos":"sortie","do":"Ne refaire que les succès réellement manqués. Ocre/Festival/La voie ont déjà été validés au premier passage; ne pas les simuler une seconde fois."}
+        ],
+        "hard_exit":["Founoroshi validé Viti","Rerun explicitement causal","Aucun troisième Founoroshi planifié pour Turquoise"],
+        "pause":["Viti 1/3","Tynril premier passage fera 2/3"]
+      }
+    },
+    {
+      "after":"L120-20",
+      "stage": {
+        "id":"L120-20M",
+        "title":"Mansot PASS 2 — Viti + Porte Mansot + Monarchie parlementaire en un passage",
+        "level":"150+ / Royalmouth PASS2 terminé",
+        "duration_min":75,
+        "quests":["La bénédiction de Viti","Porte, Mansot Royal, trésor","Monarchie parlementaire"],
+        "activation":"Attendre que La bénédiction de Viti ait Founoroshi + Tynril validés ET que Royalmouth PASS2 ait fermé Monarchie absolue afin que Monarchie parlementaire soit active. Pendant l'attente du vaccin, continuer Bonta61-64 et les autres fils: ne jamais attendre sur Frigost.",
+        "route":[
+          {"pos":"[-64,-55] Excavation du Mansot Royal","do":"Entrer avec les trois quêtes actives. Dans la salle finale utiliser l'Idole de Viti Glacée AVANT le combat. Faire les succès encore manquants puis vaincre Mansot une seconde fois."},
+          {"pos":"sortie","do":"Fermer Porte Mansot + Monarchie parlementaire et vérifier que La bénédiction de Viti affiche bien Founoroshi/Tynril/Mansot tous validés. Aucun troisième Mansot pour ces fils."}
+        ],
+        "hard_exit":["Viti 3/3 boss","Porte Mansot terminé","Monarchie parlementaire terminée","Deuxième Mansot absorbe trois quêtes","Aucun troisième Mansot prévu pour Viti"],
+        "pause":["Viti peut être rendue","Larmes déjà accessibles grâce à Ben pass1"]
+      }
+    },
+    {
+      "after":"L120-20M",
+      "stage": {
+        "id":"L120-20T",
+        "title":"Turquoise — fermer Viti puis ouvrir Thomahon AVANT Sphincter",
+        "level":"150-160",
+        "duration_min":75,
+        "quests":["La bénédiction de Viti","La méchante sorcière de l'Est","Autel du Nord","La bénédiction de Thomahon"],
+        "preparation":[
+          {"name":"Idole de Thomahon Nauséabonde","quantity":1,"for":"Sphincter","recipe":["5 Kouartz","10 Peau de Don Dorgan","10 Moustache du Mufafah","10 Oreille de Rhinoféroce","1 Chaussette trouée de Dramak"]},
+          {"name":"Idole de Thomahon Marine","quantity":1,"for":"Ben pass2","recipe":["5 Magnésite","10 Aile de Dragodinde","10 Poil de Rat d'Égoutant","10 Fleur de Gloutoblop","1 Carniflore"]},
+          {"name":"Idole de Thomahon Arboricole","quantity":1,"for":"Kimbo","recipe":["5 Kriptonite","3 Rotule du Disciple Zoth","3 Aile Atrophiée de Tofu Dodu","200 Pépite","1 Feuille de Blop Multicolore Royal","10 Duvet de Truchon"]},
+          {"name":"Idole de Thomahon d'Obsidienne","quantity":1,"for":"Obsidiantre","recipe":["5 Ebonite","10 Tronc de Kokoko","5 Lait de Tortue","10 Casque Cassé du Chafer","1 Plume du Kwakwa"]}
+        ],
+        "route":[
+          {"pos":"[27,-30]","do":"Rendre La bénédiction de Viti et recevoir la bénédiction. Continuer La méchante sorcière de l'Est, récupérer son totem puis rendre à Mériana pour ouvrir Autel du Nord."},
+          {"pos":"Larmes d'Ouronigride [-69,-88]","do":"Les Larmes sont déjà accessibles grâce au Ben pass1. Avancer Autel du Nord jusqu'au Disciple de Thomahon et prendre immédiatement La bénédiction de Thomahon."},
+          {"pos":"[6,3] atelier spécial","do":"Crafter les quatre idoles Thomahon avant le premier boss de la liste. Ne jamais compter l'idole d'un allié à la place de celle du personnage suivi."}
+        ],
+        "hard_exit":["Viti terminée","La méchante sorcière de l'Est terminée","Autel du Nord actif","La bénédiction de Thomahon active AVANT Sphincter","Quatre idoles Thomahon disponibles"],
+        "pause":["Thomahon active","Sphincter peut maintenant être premier passage Turquoise"]
+      }
+    }
+  ],
+  "stage_order": [
+    "L120-00","L120-01","L120-02","L120-03","L120-04","L120-05","L120-06","L120-07","L120-08","L120-09","L120-10","L120-11","L120-11W","L120-12","L120-13","L120-13V","L120-14","L120-14T","L120-21","L120-20B","L120-14E","L120-14F","L120-15","L120-16","L120-20","L120-20M","L120-20T","L120-17","L120-18","L120-19"
+  ]
+}

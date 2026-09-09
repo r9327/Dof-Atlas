@@ -1,0 +1,49 @@
+{
+  "schema_version": 15,
+  "route_id": "guide_ultime_manual_level_150_170_v15",
+  "title": "Guide Ultime — Niveau 150 à 170 + Ondine ensemble ce soir",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_150_170_v14.json",
+  "supersedes": "guide_ultime_manual_level_150_170_v14",
+  "stage_count": 24,
+  "depends_on": [
+    "level_120_150_v15.json",
+    "bonta_1_70_v6.json",
+    "temporal_registry_v13.json"
+  ],
+  "optimization_note": "Ajoute Et l'emmental ? immédiatement après Un volcan s'éteint dans la campagne Larmes. Tous les consommables et ressources sont préparés avant Oynop; le détour Bois des Arak-haï/falaise est fait une seule fois et le retour naturel aux Larmes ferme Ondine ensemble ce soir.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/ondine-ensemble-ce-soir.html",
+    "https://www.dofuspourlesnoobs.com/et-lemmental.html"
+  ],
+  "stage_patches": {
+    "L150-03": {
+      "append": {
+        "quests": ["Et l'emmental ?"],
+        "preparation": [
+          {"name":"Amulette Ementaire","quantity":1,"for":"Et l'emmental ?","policy":"Acheter/crafter et ÉQUIPER avant de parler à Oynop; le jet/exo sera perdu lors de l'amélioration."},
+          {"name":"Corde d'escalade","quantity":1,"for":"Et l'emmental ?"},
+          {"name":"Fiole à élément","quantity":1,"for":"Et l'emmental ?"},
+          {"requirement":"1 autre personnage disponible pour la dalle de la falaise [-22,-27]","blocking":true},
+          {"name":"Pierre d'Atomystique","quantity":5,"for":"Et l'emmental ?"},
+          {"name":"Téphra d'Atomystique","quantity":1,"for":"Et l'emmental ?"},
+          {"name":"Cœur de Crapeur","quantity":5,"for":"Et l'emmental ?"},
+          {"name":"Œuf de Crapeur","quantity":1,"for":"Et l'emmental ?"},
+          {"name":"Résidu de Solfataré","quantity":5,"for":"Et l'emmental ?"},
+          {"name":"Ulna de Solfataré","quantity":1,"for":"Et l'emmental ?"}
+        ],
+        "take": [
+          "Après validation réelle de Un volcan s'éteint, équiper l'Amulette Ementaire puis parler à Oynop en [-73,-84] pour prendre Et l'emmental ?."
+        ],
+        "route": [
+          {"area":"Larmes → Bourgade → Bois des Arak-haï","do":"Demander la Potion de brise quadramentale à Éric Azaraille puis Hel Munster. Ne partir vers la falaise qu'avec Corde d'escalade + Fiole à élément + helper déjà prêts."},
+          {"pos":"[-22,-27] falaise","do":"Placer l'autre personnage sur la dalle documentée, utiliser la Corde pour descendre et récupérer la Potion de brise quadramentale. Ne pas improviser une autre position/dalle."},
+          {"pos":"[-73,-84] Oynop","do":"Revenir pendant la campagne Larmes, donner la potion puis le lot Atomystique/Crapeur/Solfataré déjà préparé. Accepter la transformation de l'Amulette Ementaire en Amulette Ementaire Deluxe et fermer la quête."}
+        ],
+        "successes": ["Ondine ensemble ce soir"],
+        "hard_exit": ["Et l'emmental ? terminée après Un volcan s'éteint; Ondine ensemble ce soir réellement validé."]
+      }
+    }
+  },
+  "insertions": []
+}

@@ -1,0 +1,53 @@
+{
+  "schema_version": 5,
+  "route_id": "guide_ultime_manual_level_171_180_v5",
+  "title": "Guide Ultime — Niveau 171 à 180 + Agriculture absorbée par Korriandre",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v4.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v4",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v9.json",
+    "bonta_1_80_v9.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v11.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Poursuit la branche Paysan du succès Agriculture ou alchimie: Les graines de la discorde est active avant la Forêt pétrifiée et les deux Korriandre déjà causaux. Les 5 graines à récolter sont prises pendant la route, les 40 drops consomment d'abord les salles PASS1 puis PASS2; aucun troisième Korriandre ni farm dédié préalable.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/les-graines-de-la-discorde.html",
+    "https://www.dofuspourlesnoobs.com/agriculture-ou-alchimie.html"
+  ],
+  "stage_patches": {
+    "L180-04": {
+      "append": {
+        "quests": ["Les graines de la discorde"],
+        "route": [
+          {"pos":"[-71,-43]","do":"Dès le niveau180 réel, prendre Les graines de la discorde si la branche Paysan est celle du personnage. Elle doit être active AVANT les passages Forêt pétrifiée/Korriandre."},
+          {"area":"Forêt pétrifiée — trajet vers Korriandre","do":"Récolter les 5 Graines de Vesce sur les positions croisées et laisser les combats naturels commencer le compteur de 40 Graines de Ricin. Ne pas farmer 40 dehors avant les deux donjons déjà nécessaires."}
+        ],
+        "hard_exit": ["Les graines de la discorde active avant Korriandre PASS1."]
+      }
+    },
+    "L180-05": {
+      "append": {
+        "quests": ["Les graines de la discorde"],
+        "route": [
+          {"pos":"Antre du Korriandre — salles PASS1","do":"Tous les monstres compatibles du premier Korriandre servent au compteur de 40 Graines de Ricin. Faire le boss pour Sans ma barbe + Les derniers + Foluk/Ocre comme prévu; ne pas reset le donjon pour la quête Agriculture."}
+        ],
+        "hard_exit": ["Compteur Les graines de la discorde conservé après Korriandre PASS1."]
+      }
+    },
+    "L180-07": {
+      "append": {
+        "quests": ["Les graines de la discorde"],
+        "route": [
+          {"pos":"Antre du Korriandre — salles PASS2","do":"Compléter d'abord le reliquat de Graines de Ricin pendant le second Korriandre causal. Si le total reste sous40 après les deux passages, finir seulement le reliquat en Forêt pétrifiée pendant le farm déjà prévu des Globes Mystiques, jamais dans une session Agriculture isolée."},
+          {"pos":"[-71,-43]","do":"Dès 40 Graines de Ricin + 5 Graines de Vesce obtenues, rendre Les graines de la discorde. Le champ des héros attend le niveau190: enregistrer ce prochain fil sans forcer le niveau."}
+        ],
+        "hard_exit": ["Les graines de la discorde terminée avant le palier190 ou reliquat exact absorbé par le farm Globes déjà nécessaire."]
+      }
+    }
+  },
+  "insertions": []
+}

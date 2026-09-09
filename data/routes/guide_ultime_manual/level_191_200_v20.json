@@ -1,0 +1,386 @@
+{
+  "schema_version": 20,
+  "route_id": "guide_ultime_manual_level_191_200_v20",
+  "title": "Guide Ultime — Niveau 191 à 200, dépendances canoniques finales + gates Ivoire",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v19.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v19",
+  "stage_count": 62,
+  "depends_on": [
+    "level_181_190_v15.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Raccorde le chapitre à 181-190 v15/Bonta v17/temporal v15, ferme les dettes Fratrie/Trépamorts avant Ébène, construit réellement les gates Nordalie et verrouille les salles de sortie critiques de l'Ivoire. Tal Kasha est replacé dans Nordalie AVANT l'ouverture des quatre missions avec dialogue Hem le Maudit avant sortie; le Tal Kasha tardif de L200-14 est supprimé. Une voix de crystal impose désormais les dialogues Nileza puis Meno avant sortie. La garde meurt mais ne se rend pas est exécutée pendant le même passage Frigost de Nordalie avant le Poiskaille; Il est temps de mourir détruit le brikoléreux auprès du Nékoléreux instable avant toute sortie du Transporteur de Sylargh. La passe DDG/Nébuleux verrouille aussi les interactions de salle finale du Comte et du Vortex afin qu'aucun dialogue post-boss manqué ne crée un rerun. La passe Ébène verrouille les dialogues post-boss Dazak puis Klime de Le dragon noir et remet Solar dans l'ordre joueur réel : âmes hors donjon, Nécronyx, boss, coeur livide/Dieu Sram avant sortie, puis finale Ébène. La passe Frigost III verrouille enfin le dialogue Erazal de Missiz avant sortie et interdit de fusionner le Klime DDG avec Le dragon noir tant que Dazak n'a pas été fait et que la quête Ébène n'est pas réellement au verrou Klime. La passe Eliocalypse remonte La colère des dieux dans P200-10 avant Un pouvoir mérydique, verrouille Kimbo puis Chêne Mou puis Ougah avec Bourgeon parasite détruit avant chaque sortie, et fait réutiliser l'accès Domaine plus tard par L'arme fatale sans reprendre La colère. Enfin le Totem Colère est déplacé de Missiz, déjà passée avant l'ouverture des Totems, vers Dazak qui est un boss Ébène obligatoire postérieur à P200-15.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/nordalie.html",
+    "https://www.dofuspourlesnoobs.com/la-garde-meurt-mais-ne-se-rend-pas.html",
+    "https://www.dofuspourlesnoobs.com/une-voix-de-crystal.html",
+    "https://www.dofuspourlesnoobs.com/il-est-temps-de-mourir.html",
+    "https://www.dofuspourlesnoobs.com/la-colere-des-dieux.html",
+    "https://www.dofuspourlesnoobs.com/l-arme-fatale.html",
+    "https://www.dofuspourlesnoobs.com/les-coeurs-livides.html",
+    "https://www.dofuspourlesnoobs.com/craquements-de-coeur.html",
+    "https://www.dofuspourlesnoobs.com/la-guerre-des-marches.html",
+    "https://www.dofuspourlesnoobs.com/la-quete-sous-l-eau.html",
+    "https://www.dofuspourlesnoobs.com/le-jour-des-assassins.html",
+    "https://www.dofuspourlesnoobs.com/le-piege-se-referme.html",
+    "https://www.dofuspourlesnoobs.com/le-givre-des-reacuteveacutelations.html",
+    "https://www.dofuspourlesnoobs.com/mille-et-un-jours-un-destin.html",
+    "https://www.dofuspourlesnoobs.com/le-dofus-des-glaces.html",
+    "https://www.dofuspourlesnoobs.com/s-armer-contre-le-destin.html",
+    "https://www.dofuspourlesnoobs.com/la-veacuteriteacute-est-au-fond-du-puits.html",
+    "https://www.dofuspourlesnoobs.com/les-sables-du-temps.html",
+    "https://www.dofuspourlesnoobs.com/le-dragon-noir.html",
+    "https://www.dofuspourlesnoobs.com/un-nouvel-heritier.html",
+    "https://www.dofuspourlesnoobs.com/a-glacer-le-sang.html",
+    "https://www.dofuspourlesnoobs.com/la-derniegravere-carte.html",
+    "https://www.dofuspourlesnoobs.com/chaud-et-froid.html",
+    "https://www.dofuspourlesnoobs.com/vous-avez-demandeacute-la-peau-lisse.html",
+    "https://www.dofuspourlesnoobs.com/un-pouvoir-merydique.html",
+    "https://www.dofuspourlesnoobs.com/les-totems-de-maimane.html"
+  ],
+  "stage_patches": {
+    "L197-02": {
+      "replace": {
+        "route": [
+          {"area":"Frigost III / avant Forgefroide de Missiz Frizz [-71,-88]","do":"Entrer seulement lorsque À glacer le sang + La dernière carte + Chaud et Froid demandent réellement Missiz Frizz. Il faut mettre un terme aux maîtres doit également être actif si son compteur Missiz n'est pas déjà validé. Ne consommer aucun Missiz avec l'un de ces fils encore disponible mais non lancé."},
+          {"area":"Forgefroide de Missiz Frizz","do":"Faire UN Missiz pour Bonta97 + La dernière carte + Chaud et Froid + Il faut mettre un terme aux maîtres et tous les succès compatibles. La victoire fournit le Plan d'Invasion du village Enseveli pour La dernière carte et la Larme de Missiz Frizz pour Chaud et Froid; vérifier ces objets de quête avant toute sortie. Les totems de Maïmane n'est pas encore ouverte à ce stade : ne jamais compter ce Missiz comme Totem Colère."},
+          {"area":"salle de sortie de la Forgefroide","do":"NE PAS SORTIR après le boss. Parler à Missiz Frizz et choisir le dialogue pour en savoir plus au sujet d'Erazal. Continuer jusqu'à ce qu'elle indique qu'Erazal a fui vers la cité des voleurs; À glacer le sang doit réellement avoir avancé avant de quitter la salle."},
+          {"area":"Château de Harebourg / Bonta / Laboratoire de Nileza","do":"Rendre le Plan d'Invasion au Baron pour fermer La dernière carte et Noblesse oblige, faire le rapport Erazal à Amayiro pour terminer Bonta97, puis remettre à Nileza les fluides Sylargh + Klime + Missiz déjà réunis afin de fermer Chaud et Froid sans refaire de boss. Ne pas lancer le boss Nileza ici uniquement pour ces rendus."}
+        ],
+        "hard_exit": [
+          "Missiz Frizz fait une seule fois pour À glacer le sang + La dernière carte + Chaud et Froid + maître Frigost actif.",
+          "Plan d'Invasion et Larme de Missiz Frizz obtenus pendant la victoire.",
+          "Dialogue Missiz au sujet d'Erazal effectué AVANT toute sortie de la salle finale.",
+          "Totem Colère non attendu ici car Les totems de Maïmane s'ouvre plus tard; la Colère est réservée à Dazak.",
+          "Bonta97 + Noblesse oblige + Chaud et Froid fermés sans second Missiz.",
+          "Aucun rerun Missiz créé par un dialogue post-boss oublié."
+        ]
+      }
+    },
+    "P200-10": {
+      "prepend": {
+        "quests": ["La colère des dieux"]
+      },
+      "append": {
+        "preparation": [
+          {"requirement":"Alchimiste niveau 40 personnel pour fabriquer la Potion de Bivoak quand Un pouvoir mérydique le demande; ne pas compter sur un craft coopératif pour cette étape.","blocking":true},
+          {"name":"Élixir uchronique mineur","quantity":1,"for":"Un pouvoir mérydique"},
+          {"name":"Poudre Temporelle","quantity":10,"for":"Un pouvoir mérydique"},
+          {"name":"Potion de Foyer","quantity":1,"for":"Un pouvoir mérydique"},
+          {"name":"Patte de Nheur'Gueule","quantity":10,"for":"Un pouvoir mérydique"},
+          {"name":"Bois de Bambou Sacré","quantity":10,"for":"Un pouvoir mérydique"},
+          {"name":"Peau pourrie de Dolid","quantity":10,"for":"Un pouvoir mérydique"},
+          {"name":"Pétale de Gangredogue","quantity":10,"for":"Un pouvoir mérydique"},
+          {"name":"Mycoses gelées","quantity":10,"for":"Un pouvoir mérydique"},
+          {"note":"Les 20 Fleurs de Kaliptus et les autres stocks déjà présents dans la préparation Eliocalypse restent mutualisés; retirer seulement les lots Mérydiques au moment d'entrer dans la branche Corruption pour limiter les pods."}
+        ]
+      },
+      "replace": {
+        "title":"L'avenir du futur — quatre Cavaliers, La colère puis chaîne Mérydique sécurisée",
+        "route": [
+          {"area":"Cania / Sanctuaire","do":"Faire Les sentiers de la guerre puis lancer Les quatre volontés jusqu'à l'ouverture des quatre tâches. Chachyène de vie est déjà une dette Bonta historique à vérifier; ne pas l'inventer terminée."},
+          {"area":"Blessures de Guerre","do":"Fermer Le jour le plus long → Au-delà de la gloire → Voyage au bout de l'Externam avec un seul Trône de sang pour la chaîne Guerre."},
+          {"area":"Galère de Servitude","do":"Fermer Le navire aux esclaves → Briser ses chaines → Une boite pour les asservir tous avec un seul Fers de la Tyrannie."},
+          {"area":"Désert de Misère","do":"Fermer Le vent se lève → Tournent les vents → Avis de tempête avec une seule Sentence de la Balance."},
+          {"area":"Royaume Corrompu → temple de la classe réelle","do":"Avancer Les racines du mal jusqu'à ouvrir Un pouvoir mérydique. AVANT l'étape qui exige l'accès au Domaine des dieux, aller au temple de la classe réelle, prendre La colère des dieux, utiliser la statue de classe pour rejoindre le Domaine et fermer immédiatement cette courte quête d'accès. Ne pas lancer L'arme fatale ni Les coeurs livides ici : ils restent regroupés plus tard dans la campagne Trépamorts/Ébène."},
+          {"area":"Un pouvoir mérydique — préparation","do":"Avancer la quête jusqu'à obtenir l'Idole Mérydique et préparer la Potion de Bivoak ainsi que les offrandes demandées. Vérifier l'altération Mérydique active avant chacun des trois anciens donjons; aucun de ces boss ne doit être consommé sans que l'objectif correspondant soit réellement affiché."},
+          {"area":"Canopée du Kimbo — salle finale","do":"Faire le Kimbo causal avec l'altération Mérydique et tous les succès encore compatibles. APRÈS le boss, NE PAS SORTIR : parler au Bourgeon parasite, utiliser l'Idole Mérydique pour le détruire puis reparler au Kimbo pour faire avancer la quête. Quitter seulement lorsque l'étape Kimbo est réellement validée."},
+          {"area":"Clairière du Chêne Mou — salle finale","do":"Faire le Chêne Mou causal avec l'altération Mérydique. APRÈS le boss, NE PAS SORTIR : parler au Bourgeon parasite, le détruire avec l'Idole Mérydique puis terminer le dialogue requis avec le Chêne Mou. Ne jamais sortir avec le Bourgeon encore présent ou l'objectif ouvert."},
+          {"area":"Temple du Grand Ougah — salle finale","do":"Faire le second Ougah causal uniquement lorsque Un pouvoir mérydique le demande; le premier Ougah niveau180 ne pouvait pas valider cette quête. Combattre sous l'altération Mérydique puis, APRÈS le boss, NE PAS SORTIR : parler au Bourgeon parasite et le détruire avec l'Idole Mérydique avant de quitter. Ne pas refaire de capture Ocre déjà acquise."},
+          {"area":"Mage Ax / Bivoak → Arbre des vagabonds","do":"Utiliser le retour prévu par la quête pour atteindre l'Arbre des vagabonds. Détruire le dernier Bourgeon parasite avec l'Idole Mérydique, organiser le groupe avant le combat final puis gagner le combat demandé. Fermer réellement Un pouvoir mérydique avant de poursuivre Mort et renouveau."},
+          {"area":"Royaume Corrompu / L'avenir du futur","do":"Terminer Mort et renouveau. Quand les quatre zones sont réellement fermées, terminer Les quatre volontés puis faire L'avis de la Mort + La guerre de Cania n'aura pas lieu et enfin Prise de conscience. L'avis de la Mort est débloqué grâce à Le silence est d'Aure déjà récupéré pendant P200-06; Prise utilise La source de tous les maux déjà fermée en P200-09."}
+        ],
+        "hard_exit": [
+          "La colère des dieux terminée AVANT l'étape bloquante de Un pouvoir mérydique; accès Domaine des dieux conservé pour la campagne Trépamorts ultérieure.",
+          "Kimbo Mérydique : Bourgeon parasite détruit + dialogue Kimbo effectués avant sortie.",
+          "Chêne Mou Mérydique : Bourgeon parasite détruit + dialogue Chêne Mou effectués avant sortie.",
+          "Ougah Mérydique : Bourgeon parasite détruit avant sortie; aucun troisième Ougah créé par oubli post-boss.",
+          "Un pouvoir mérydique puis Mort et renouveau réellement terminés avant la future ouverture de Un héritage tourmenté.",
+          "Quatre succès Cavaliers + Prise de conscience + L'avenir du futur réellement terminés.",
+          "Aucune nouvelle macro-fiche créée par cette réparation."
+        ]
+      }
+    },
+    "P200-15": {
+      "replace": {
+        "totem_policy": {
+          "dynamic_choice": false,
+          "planned_merges": {
+            "joy": "Klime",
+            "sadness": "Sylargh",
+            "fear": "Larve de Koutoulou",
+            "anger": "Dazak Martegel",
+            "disgust": "Nileza",
+            "surprise": "Comte Harebourg"
+          },
+          "selection": "Ces six boss sont obligatoires APRÈS l'ouverture réelle des Totems. Ne faire aucun donjon dédié aux Totems. Missiz Frizz est explicitement exclue du plan Colère car son passage Bonta97 a lieu avant l'ouverture de la quête; Dazak absorbe la Colère pendant Le dragon noir."
+        },
+        "route": [
+          {"area":"Un héritage tourmenté / Cauchemar des Ravageurs","do":"Avancer Un héritage tourmenté jusqu'au point qui permet réellement de prendre Les totems de Maïmane, puis prendre la quête des six Totems. STOP avant tout donjon dédié : la route va les absorber naturellement dans Sylargh, Klime, Koutoulou, Dazak, Nileza et le Comte."}
+        ]
+      }
+    },
+    "P200-15-CLOSE": {
+      "replace": {
+        "route": [
+          {"area":"Cauchemar des Ravageurs","do":"Vérifier les six Totems réels : Joie Klime, Tristesse Sylargh, Peur Koutoulou, Colère Dazak Martegel, Dégoût Nileza, Surprise Comte Harebourg. Les remettre à Maïmane pour obtenir le Totem de l'équilibre. Missiz ne doit jamais être exigée ici puisqu'elle a été consommée avant l'ouverture des Totems."},
+          {"area":"Un héritage tourmenté","do":"Reprendre la fabrication de la Rune d'Harmonie et fermer Un héritage tourmenté selon le walkthrough local. Aucun donjon supplémentaire n'est requis par cette fermeture."}
+        ]
+      }
+    },
+    "L200-10": {
+      "prepend": {
+        "quests": ["La garde meurt mais ne se rend pas"],
+        "preparation": [
+          {"requirement":"Malédiction ! réellement terminée depuis le prologue DDG/Frigost afin d'entrer dans la Caverne du Destin.","blocking":true},
+          {"requirement":"Allumer le feu réellement terminée depuis le Meulou niveau100 afin de parler à Cronan pendant Nordalie.","blocking":true},
+          {"requirement":"Niveau200 réel avant de lancer La garde meurt mais ne se rend pas.","blocking":true},
+          {"requirement":"Groupe disponible si nécessaire pour les trois combats de casques du Jour sans fin; ils sont réalisables à plusieurs.","blocking":false}
+        ]
+      },
+      "replace": {
+        "title":"Ivoire5 — Nordalie : trois démonstrations, Tal Kasha + La garde, puis quatre missions",
+        "entry":"Malédiction ! + Allumer le feu déjà terminées; Tal Kasha et La garde meurt mais ne se rend pas seront fermés pendant les trois démonstrations AVANT l'ouverture des quatre missions des Nordes.",
+        "dungeon":{"name":"Chambre de Tal Kasha","pass":"unique_for_nordalie_demo"},
+        "route": [
+          {"area":"Caverne du Destin [-76,-80]","do":"Avancer Nordalie auprès d'Astrokulda, Clothurde et Lachandi jusqu'à ce qu'Astrokulda demande les trois démonstrations du destin. Les trois objectifs peuvent être faits dans n'importe quel ordre; les regrouper ici pour réduire les retours géographiques."},
+          {"area":"Frigost — Taverne d'Argent [-77,-44]","do":"Commencer la démonstration du Frigostien qui a défié le destin en parlant à Walter Aygo. Garder ce fil actif pendant les autres actions Frigost avant de partir vers Saharach."},
+          {"area":"Frigost — Aparluk [-59,-58] → Caserne du Jour sans fin [-72,-79]","do":"Faire en parallèle la démonstration de l'oracle amateur de mansots. Parler à Aparluk puis, avant de demander le Poiskaille fantôme, parler au Pêcheur du Jour sans fin et prendre La garde meurt mais ne se rend pas. Cette quête doit être fermée maintenant : le Pêcheur ne donne pas le Poiskaille tant qu'elle reste incomplète."},
+          {"area":"Caserne / Jour sans fin","do":"Vaincre 10 exemplaires de chaque type de monstre demandé par l'objectif de quête en consommant d'abord tous les combats déjà utiles de la zone. Ne pas figer une liste d'espèces historique : suivre les compteurs affichés par la quête actuelle et arrêter chaque type dès 10/10."},
+          {"pos":"[-76,-81]","do":"Cliquer le premier casque et gagner le combat contre les trois Armutins améliorés. Le combat peut être partagé avec le groupe préparé."},
+          {"pos":"[-70,-77]","do":"Cliquer le deuxième casque et gagner le combat contre les deux Armutins améliorés."},
+          {"pos":"[-70,-75]","do":"Cliquer le troisième casque et gagner le combat contre les trois Armutins améliorés. Ne quitter la Caserne qu'une fois les trois casques et tous les compteurs 10/10 réellement validés."},
+          {"pos":"[-72,-79] Pêcheur du Jour sans fin","do":"Rendre La garde meurt mais ne se rend pas puis demander immédiatement le Poiskaille fantôme pour Nordalie. Aucun second passage Caserne ne doit être nécessaire."},
+          {"area":"Frigost — radeau [-74,-53] / récif","do":"Utiliser le Poiskaille fantôme pour l'offrande du Mansot, prendre le radeau, rencontrer Galaethiel et Maewin et terminer la démonstration de l'oracle. Toutes les actions Frigost de Nordalie sont alors consommées avant de quitter l'île."},
+          {"area":"Saharach [15,-56] → Pyramide maudite [8,-76]","do":"Reprendre la piste de Hem depuis Walter Aygo : parler à Goblédo puis Moum-Ra, qui confirme que Hem est devenu serviteur de Tal Kasha. Ne pas repartir de Saharach avant le donjon."},
+          {"pos":"[12,-77] Chambre de Tal Kasha","do":"Faire l'unique Tal Kasha de Nordalie avec tous les succès/quêtes déjà compatibles. AVANT de quitter la salle de sortie, parler obligatoirement à Hem le Maudit pour valider la démonstration du Frigostien qui a défié le destin."},
+          {"area":"Hauts des Hurlements [-26,-5] / [-27,-3]","do":"Faire la démonstration du chef ouginak qui lutte contre le destin : parler à Cronan puis Hyrini et méditer devant le feu sacré. Allumer le feu est déjà terminé depuis l'unique Meulou niveau100; ne refaire aucune quête Hurlements ici."},
+          {"area":"Caverne du Destin [-76,-80]","do":"Retourner auprès d'Astrokulda seulement lorsque Tal Kasha + dialogue Hem, l'oracle/récif et le chef ouginak sont tous réellement terminés. Astrokulda accepte alors de changer le destin du dragon sous conditions et ouvre les quatre missions : Le bonheur est dans le spray, Une voix de crystal, Le mort dans l'âme et Le guerrier noir. Prendre les quatre AVANT de repartir dans leurs zones."}
+        ],
+        "hard_exit": [
+          "Malédiction ! satisfaite pour l'entrée Caverne du Destin.",
+          "Allumer le feu satisfaite pour le dialogue Cronan.",
+          "La garde meurt mais ne se rend pas réellement terminée pendant le passage Frigost de Nordalie.",
+          "Poiskaille fantôme réellement obtenu après la fin de La garde, sans second passage Caserne.",
+          "Tal Kasha terminé pendant la démonstration Nordalie et Hem le Maudit interrogé AVANT sortie.",
+          "Les trois démonstrations du destin terminées avant l'ouverture des quatre missions.",
+          "Les quatre missions Nordalie actives seulement après retour à Astrokulda.",
+          "Aucune nouvelle macro-fiche créée par cette réparation."
+        ]
+      }
+    },
+    "L200-13": {
+      "replace": {
+        "title":"Ivoire8 — Une voix de crystal, dialogues Nileza/Meno avant sortie",
+        "route":[
+          {"area":"Caserne du Jour sans fin → Laboratoire de Nileza [-59,-74]","do":"Avancer Une voix de crystal jusqu'à la demande de Nileza. Faire l'unique Nileza Ivoire avec tous les fils/succès déjà compatibles. AVANT de quitter sa salle de sortie, parler à Nileza du chant de Kallishindri et du crystal cassé; ne jamais sortir tant que ce dialogue n'a pas réellement avancé la quête."},
+          {"area":"Abysses de Sufokia / avant Vaisseau du Capitaine Meno","do":"Vérifier Son nom est Personne en cours ou terminée avant d'entrer, sinon le dialogue requis avec Meno n'est pas disponible. Ce Meno reste un rerun causal : Une voix de crystal n'existait pas lors du Meno Abyssal niveau190."},
+          {"pos":"[24,27] Vaisseau du Capitaine Meno","do":"Faire le Meno demandé par Une voix de crystal. AVANT de quitter la salle de sortie, parler au Capitaine Meno de Kallishindri et des crystaux pour ouvrir la collecte des sept partitions."},
+          {"area":"Monde des Douze","do":"Récupérer les sept partitions en une boucle géographique en profitant des passages encore utiles. Ne retourner en donjon pour aucune partition."},
+          {"pos":"[24,27] retour Meno","do":"Utiliser le Pichon kloune de Meno pour revenir auprès du Capitaine SANS refaire le donjon, remettre les sept partitions, récupérer le crystal contenant la voix de Kallishindri puis rendre la quête à Lachandi."}
+        ],
+        "hard_exit":[
+          "Dialogue Nileza de salle de sortie réellement effectué après le boss.",
+          "Son nom est Personne en cours ou terminée avant Meno.",
+          "Dialogue Meno de salle de sortie réellement effectué après le boss.",
+          "Sept partitions rendues via le Pichon kloune sans troisième Meno.",
+          "Une voix de crystal terminée."
+        ]
+      }
+    },
+    "L200-14": {
+      "replace": {
+        "title":"Ivoire9 — quatre missions rendues, métier à tisser puis Hyrkul",
+        "dungeon":null,
+        "entry":"Le bonheur est dans le spray + Une voix de crystal + Le mort dans l'âme + Le guerrier noir terminés; Tal Kasha + Hem ont déjà été traités pendant L200-10 avant l'ouverture de ces quatre missions.",
+        "route":[
+          {"area":"Caverne du Destin [-76,-80]","do":"Les quatre missions étant réellement terminées, placer le fil de Dardondakal sur le métier à tisser. Ne programmer aucun Tal Kasha ici : ce donjon et le dialogue Hem ont déjà été consommés causalement avant l'ouverture des quatre missions."},
+          {"area":"Blessure d'Ilyzaelle [-73,-76]","do":"Aller à l'entrée par le chemin de quête sans refaire Ilyzaelle. Affronter Hyrkul dans le combat solo avec l'aide des deux Centoror du Cœur Vaillant."},
+          {"area":"Blessure d'Ilyzaelle","do":"Après la victoire, parler à l'Esprit de Menalt. Nordalie se termine ici et ouvre Il est temps de mourir; aucun retour Tal Kasha n'est autorisé dans cette fiche."}
+        ],
+        "hard_exit":[
+          "Les quatre missions des Nordes réellement terminées.",
+          "Fil de Dardondakal placé sur le métier à tisser.",
+          "Hyrkul vaincu avec les Centoror.",
+          "Nordalie terminée et Il est temps de mourir disponible.",
+          "Aucun Tal Kasha après l'ouverture des quatre missions."
+        ]
+      }
+    },
+    "L200-15": {
+      "replace": {
+        "title":"Ivoire10 — Sylargh, brikoléreux avant sortie, Hyrkul puis Dofus Ivoire",
+        "route": [
+          {"area":"Jour sans fin / accès Externam","do":"Après Nordalie, suivre l'Esprit de Menalt et rencontrer Agonie par le passage vers Externam avec le Masque mortuaire déjà obtenu. Ne refaire aucun Belvédère d'Ilyzaelle : utiliser l'accès de quête prévu par le Gardien du Jour sans fin."},
+          {"pos":"[-52,-87] Transporteur de Sylargh","do":"Entrer seulement quand Il est temps de mourir demande réellement Sylargh. Faire un seul Transporteur pour cette quête et tous les succès/fils Frigost déjà compatibles, puis vaincre Sylargh."},
+          {"area":"salle de sortie du Transporteur de Sylargh","do":"NE PAS SORTIR après le boss. Se placer devant le Nékoléreux instable et lui parler pour choisir de détruire le brikoléreux. L'explosion tue automatiquement le personnage : cette mort est l'étape normale de la quête, pas un échec à éviter."},
+          {"pos":"[-52,-87] entrée Sylargh","do":"Après résurrection, revenir devant le donjon et parler à Agonie pour confirmer la destruction de l'automate et recevoir la piste du phylactère d'Hyrkul. Aucun second Sylargh ne doit être nécessaire."},
+          {"area":"Gisgoul [-14,21] → Vallée de Morh'Kitu [-16,13]","do":"Récupérer la terre de la tombe d'Hyrkul puis gagner le combat contre les Chevaucheurs/Vieux Fauchalak pour obtenir l'objet de quête. Double-cliquer l'Os de Snifalos lorsque la quête le demande avant de partir vers la cache d'Hyrkul."},
+          {"pos":"[-33,38] Caverne du Tendancieux","do":"Faire le combat solo final contre Hyrkul avec l'équipement adapté au besoin de mobilité. Ne considérer le fil fermé qu'après sa vraie victoire, pas après la simple découverte de la caverne."},
+          {"area":"Belvédère d'Ilyzaelle → Externam → Ecaflipus","do":"Retourner par le Gardien du Jour sans fin, entrer dans Externam avec le Masque mortuaire, obtenir l'accord de Thanatena puis revenir auprès de Dardondakal. Cliquer le piédestal uniquement au vrai objectif final et enregistrer le Dofus Ivoire seulement lorsqu'il est réellement remis en jeu."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Nékoléreux instable traité et brikoléreux détruit AVANT toute sortie du Transporteur de Sylargh.",
+          "Mort automatique post-brikoléreux acceptée puis résurrection effectuée.",
+          "Agonie revue après Sylargh; aucun second Transporteur nécessaire pour Il est temps de mourir.",
+          "Hyrkul réellement vaincu dans la Caverne du Tendancieux.",
+          "Dofus Ivoire enregistré uniquement après la remise réelle sur le piédestal."
+        ]
+      }
+    },
+    "L200-DDG1": {
+      "replace": {
+        "progress_also": [
+          "Le Klime DDG ne peut servir Le dragon noir que si cette quête est DÉJÀ exactement à son objectif Klime : Dazak a été vaincu auparavant, le dialogue post-Dazak a été effectué et la très vieille peau de crocodaille est réellement obtenue. Le simple fait que Le dragon noir soit actif ne suffit jamais pour fusionner ce passage.",
+          "Si Le dragon noir n'est pas encore au verrou Klime, ne pas retarder DDG en attendant Dazak ou les étapes Ébène : terminer le Klime DDG maintenant; le futur Klime de Le dragon noir reste alors un rerun causal créé par le déblocage tardif de cette quête.",
+          "Garder tous les fluides de Chaud et Froid jusqu'au retour Nileza après Missiz."
+        ]
+      }
+    },
+    "L200-DDG3": {
+      "replace": {
+        "route": [
+          {"area":"Tour de la Clepsydre / avant Comte","do":"Entrer seulement lorsque Le givre des révélations + Un comte de faits divers demandent réellement le Comte, que les six Totems sont actifs et que S'armer contre le destin a déjà fourni le Troisième Œil. Ce passage doit absorber DDG final + Totem Surprise + éclat de destin brisé."},
+          {"area":"Donjon du Comte Harebourg","do":"Faire UN Comte Harebourg pour Le givre des révélations + Un comte de faits divers + succès/avis compatibles. Avec le Troisième Œil, récupérer l'éclat de destin brisé de S'armer; récupérer aussi le Totem de la surprise pendant ce même boss."},
+          {"area":"salle finale du Comte Harebourg","do":"NE PAS SORTIR. Pour Le givre des révélations, parler au Comte, lui donner la montre enchantée puis la reprendre, cliquer le socle du Dofus des Glaces pour prélever le Liquide de la Clepsydre, puis reparler au Comte afin de déclencher la scène Djaul/Jiva. Exécuter les dialogues de quête affichés jusqu'à ce que Le givre des révélations soit réellement terminé."},
+          {"area":"salle finale du Comte Harebourg","do":"Toujours avant de quitter la salle, parler à Djaul pour l'étape post-Comte de S'armer contre le destin. Parler ensuite à Jiva pour prendre/avancer Mille et un jours, un destin puis Le Dofus des Glaces dès qu'ils sont proposés. Ne jamais quitter cette salle avec un de ces dialogues encore disponible."},
+          {"area":"Nileza / Jiva","do":"Apporter le Liquide de la Clepsydre à Nileza pour fermer Mille et un jours, un destin, puis terminer Le Dofus des Glaces uniquement si tous les prérequis de Oeuf à la neige sont réellement validés. Si une dette externe subsiste, la conserver explicitement : le jeu permet de revenir dans la salle finale sans refaire le Comte une fois les quêtes manquantes terminées."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Comte Harebourg fait une seule fois pour DDG + Totem Surprise + S'armer.",
+          "Montre rendue/reprise, Liquide de la Clepsydre prélevé et scène Comte/Djaul/Jiva effectuée avant sortie.",
+          "Dialogue Djaul de S'armer contre le destin réellement effectué après le Comte.",
+          "Mille et un jours, un destin et Le Dofus des Glaces pris/avancés auprès de Jiva avant de quitter la salle finale lorsqu'ils sont disponibles.",
+          "Aucun second Comte créé par un dialogue post-boss oublié."
+        ]
+      }
+    },
+    "L200-NEB5": {
+      "replace": {
+        "route": [
+          {"area":"Xélorium","do":"Enchaîner Juste une illusion → Maboul de cristal → L'armée des 12 dingues puis avancer La vérité est au fond du puits. Ouvrir Les sables du temps dès son vrai prérequis afin que les DEUX quêtes demandent Vortex avant l'entrée."},
+          {"area":"Œil de Vortex — salle finale","do":"Faire UN Vortex pour La vérité est au fond du puits + Les sables du temps + succès compatibles. Avec le Troisième Œil déjà obtenu, récupérer aussi le second éclat de destin brisé de S'armer contre le destin. AVANT de quitter la salle finale, parler obligatoirement au Vortex pour L'interroger sur ses liens avec le Docteur William Blême : ce dialogue téléporte ensuite vers le puits des âmes et ne doit jamais être sacrifié en sortant trop tôt."},
+          {"area":"Puits des âmes → portail Xélorium","do":"Suivre immédiatement la téléportation de La vérité est au fond du puits, parler au dieu Xélor puis revenir à l'avant-poste auprès du Doc Emiette Borgne pour fermer cette quête."},
+          {"area":"devant l'Œil de Vortex [7,-7]","do":"Revenir devant le donjon SANS refaire Vortex et parler à Tessie Oude pour Poursuivre les traqueurs Égarés. Continuer la salle des Égarés puis le combat contre Elvis Irr et toute la suite de Les sables du temps selon le walkthrough courant."},
+          {"area":"Xélorium passé/présent/futur","do":"Fermer ensuite Moments d'égarement : Déchirures temporelles → Futur antérieur → Guerre temporelle → L'étendue Gödelique → Les visiteurs du futur → Demain ne meurt jamais, en groupant les mêmes bascules temporelles et combats."},
+          {"area":"Dieu Xélor","do":"Quand Les temps qui courent + Carpe Diem + Les puits du fou + Moments d'égarement sont tous réellement validés, parler au Héraut puis au Dieu Xélor. Aucun succès JSON partiel ne remplace la fermeture réelle des quêtes."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Dialogue Vortex de La vérité est au fond du puits effectué dans la salle finale AVANT toute sortie.",
+          "Tessie Oude interrogée ensuite devant le donjon sans second Vortex.",
+          "Second éclat de destin brisé obtenu avec le Troisième Œil pendant ce même Vortex.",
+          "Un seul Œil de Vortex pour La vérité + Les sables + S'armer.",
+          "Aucun rerun Vortex créé par inversion des dialogues de sortie."
+        ]
+      }
+    },
+    "L200-15E1": {
+      "prepend": {
+        "quests": [
+          "L'arme fatale",
+          "Les coeurs livides",
+          "Craquements de coeur",
+          "La guerre des Marches",
+          "La quête sous l'eau",
+          "Le jour des assassins",
+          "Le piège se referme"
+        ],
+        "successes": ["L'armée des morts", "La Fratrie des Oubliés"],
+        "preparation": [
+          {"name":"Écume de mer","quantity":5,"for":"L'arme fatale"},
+          {"name":"Salikrone","quantity":5,"for":"L'arme fatale"},
+          {"name":"Patelle","quantity":5,"for":"L'arme fatale"},
+          {"name":"Bois d'Aquajou","quantity":5,"for":"L'arme fatale"},
+          {"name":"Quisnoa","quantity":5,"for":"L'arme fatale"},
+          {"name":"Pierre Angulaire","quantity":3,"for":"L'arme fatale"},
+          {"name":"Sel de Baleine","quantity":3,"for":"L'arme fatale"},
+          {"name":"Étoffe de la Cour Sombre","quantity":2,"for":"L'arme fatale"},
+          {"name":"Corde d'escalade","quantity":1,"for":"La guerre des Marches"},
+          {"requirement":"Sombres desseins réellement terminée depuis le palier Saharach","for":"Le jour des assassins","blocking":true},
+          {"note":"L'arme fatale demande aussi quatre Sacrifices à obtenir sur Maudits, Goules, Armutins et Brûlâmes. Les récupérer pendant les boucles de zones niveau200 correspondantes avant de revenir au Domaine des dieux; ne pas charger tout le stock Trépamorts en permanence si les pods sont serrés."}
+        ],
+        "take": [
+          "La colère des dieux est déjà réellement terminée depuis P200-10 et l'accès au Domaine des dieux est conservé. Ne jamais reprendre ni simuler cette quête ici; utiliser directement la statue de classe si le trajet le demande.",
+          "Dans le Domaine des dieux, prendre L'arme fatale auprès de Gobanos et Les coeurs livides auprès de La Voix des Douze avant de disperser les déplacements Trépamorts.",
+          "Dès Les coeurs livides active, prendre ses trois branches auprès des prêtres : Craquements de coeur, La guerre des Marches et La quête sous l'eau."
+        ],
+        "route": [
+          {"area":"Domaine des dieux → Trépamorts","do":"Réutiliser l'accès ouvert plus tôt par La colère des dieux, puis faire L'arme fatale en premier : récupérer le nécronyx demandé, remettre les huit lots préparés, obtenir les quatre Sacrifices sur les zones prévues, les utiliser sur la poupée puis terminer le rituel auprès de la Prêtresse de Sadida. Vérifier l'obtention du sort permanent Nécronyx avant toute quête qui pétrifie des Trépamorts."},
+          {"area":"Craqueleurs / Marches Magmatiques / Épaves Silencieuses","do":"Fermer Craquements de coeur + La guerre des Marches + La quête sous l'eau en regroupant leurs déplacements avec les zones déjà ouvertes lors de La colère des dieux. La guerre des Marches part avec la Corde d'escalade déjà préparée; La quête sous l'eau utilise les combats Submergés pour ses10 Éclats d'océan."},
+          {"area":"Domaine des dieux","do":"Après les trois branches, reparler à La Voix des Douze : Les coeurs livides doit maintenant demander explicitement Bethel + Solar. Ne consommer aucun de ces boss avant cet état."},
+          {"area":"Temple Ouginak [8,-67] → Domaine des dieux / Srambad","do":"Sombres desseins étant déjà terminée et Nécronyx permanent acquis, faire Le jour des assassins puis Le piège se referme dans la même campagne Fratrie. Fermer réellement le succès La Fratrie des Oubliés avant le passage Bethel; aucun donjon supplémentaire n'est créé par ces deux quêtes."},
+          {"area":"Tour de Bethel — règle de sortie","do":"Le passage Bethel de cette fiche doit servir simultanément À la recherche de Crocoburio + Les coeurs livides. AVANT de quitter la salle post-boss, monter les escaliers, cliquer le coeur livide puis parler à Raval le Terrible. Ne jamais sortir avec cet objectif encore ouvert."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "La colère des dieux était déjà terminée dans P200-10; aucun doublon de quête ou d'accès n'est créé ici.",
+          "L'arme fatale terminée et Nécronyx permanent réellement disponible.",
+          "Craquements de coeur + La guerre des Marches + La quête sous l'eau terminées avant Bethel.",
+          "Le jour des assassins + Le piège se referme terminés; La Fratrie des Oubliés réellement fermée.",
+          "Coeur livide de Bethel traité + dialogue Raval effectué avant sortie; Les coeurs livides attend uniquement Solar."
+        ]
+      }
+    },
+    "L200-15E4": {
+      "replace": {
+        "route": [
+          {"area":"Royaume des Martegel / Brasserie du roi Dazak [-62,-70]","do":"N'entrer que si De Brikke et de Brokke est terminé ou exactement à l'étape qui permet de rencontrer Dazak. Les totems de Maïmane doit aussi être active : faire UN Dazak avec tous les fils/succès compatibles et vérifier l'obtention automatique du Totem de la colère sur ce boss avant de traiter les dialogues Ébène."},
+          {"area":"salle de sortie de la Brasserie du roi Dazak","do":"NE PAS SORTIR après le boss. Vérifier d'abord que le Totem de la colère est réellement acquis, puis parler à Dazak Martegel pour évoquer le portail magique caché dans les marécages et obtenir de lui la très vieille peau de crocodaille nécessaire au cadeau pour Tressa. Vérifier ces trois avancées avant de quitter la salle."},
+          {"area":"Royaume des Martegel [-65,-72] → Ruche des Gloursons [-63,-75]","do":"Avec les20 Perce-Neige préparés, récupérer les deux Soupes au caillou de Graillevent. Réunir aussi10 Saucisses Fumées +5 Barbarbes, puis tout remettre à Ludrune l'Aveugle pour obtenir la Barbarbe de Ludrune. Faire cette branche avant Klime pour sortir de Frigost avec tous les composants Nimbos prêts."},
+          {"area":"Salons privés de Klime [-63,-93]","do":"Faire UN Klime avec tous les fils Frigost/Ébène compatibles. La très vieille peau de crocodaille de Dazak doit déjà être en inventaire de quête avant ce passage."},
+          {"area":"salle de sortie des Salons privés de Klime","do":"NE PAS SORTIR après le boss. Parler à Klime, lui dire que vous avez un travail à lui confier puis insister/menacer selon le dialogue de quête jusqu'à ce qu'il accepte de travailler la peau et fabrique le Sac en peau de crocodaille. Ne quitter la salle qu'une fois le sac réellement obtenu."},
+          {"area":"marécages / portail Nimbos → fort Vert-de-gris → Tikoltenak","do":"Utiliser la Barbarbe de Ludrune au vrai point de quête pour révéler le portail, offrir le Sac en peau de crocodaille à Tressa, suivre le Guide Vert-de-gris, récupérer la Larve avide de sang pendant la traversée puis atteindre Grougalorasalar. Fermer Le dragon noir et continuer immédiatement le dialogue qui ouvre La vengeance du dernier empereur."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Totem Colère réellement obtenu sur Dazak après ouverture de Les totems de Maïmane.",
+          "Dialogue Dazak post-boss effectué et très vieille peau de crocodaille obtenue AVANT sortie.",
+          "Barbarbe de Ludrune obtenue avant le départ vers le portail Nimbos.",
+          "Dialogue Klime post-boss effectué et Sac en peau de crocodaille obtenu AVANT sortie.",
+          "Un seul Dazak et un seul Klime pour Le dragon noir; aucun rerun créé par une sortie prématurée.",
+          "Le dragon noir terminé et La vengeance du dernier empereur disponible."
+        ]
+      }
+    },
+    "L200-15E6": {
+      "prepend": {
+        "quests": ["Les coeurs livides"],
+        "successes": ["L'armée des morts"]
+      },
+      "replace": {
+        "route": [
+          {"area":"Marches Magmatiques","do":"Avant le donjon, récupérer exactement20 Âmes de Calciné sur les monstres de la zone puis les utiliser. Le drop ne fonctionne pas dans la Tour de Solar : ne jamais entrer avec un compteur incomplet."},
+          {"area":"Domaine des dieux / avant Tour de Solar","do":"Vérifier que le sort Nécronyx permanent de L'arme fatale est disponible; le renouveler par le chemin de quête si nécessaire avant l'entrée. Les coeurs livides doit encore attendre Solar depuis le Bethel partagé de L200-15E1."},
+          {"area":"Tour de Solar [-31,15]","do":"Faire UN Solar pour Un nouvel héritier + Les coeurs livides + succès/fils compatibles. Pendant le combat, appliquer Nécronyx avant la mort des ennemis concernés et impérativement sur Solar avant le coup fatal : tuer Solar sans l'état Nécronyx fait perdre le combat. Ne valider le boss qu'après sa vraie mort dans l'état requis."},
+          {"area":"salle post-boss de la Tour de Solar","do":"NE PAS SORTIR tant que Les coeurs livides est actif : monter les escaliers, cliquer le coeur livide puis parler au Dieu Sram. Vérifier que l'objectif Solar de Les coeurs livides est réellement validé avant de quitter la salle."},
+          {"area":"Domaine des dieux","do":"Retourner à La Voix des Douze et terminer Les coeurs livides. Vérifier La colère des dieux + L'arme fatale + les trois branches + Bethel + Solar réellement fermés; L'armée des morts doit se clore sans aucun troisième passage Bethel/Solar."},
+          {"area":"Volkaragnar → Incarnam","do":"Retourner auprès de Volkaragnar après Solar, puis aller à Incarnam. Aux Vestiges d'Osamodas, gagner le combat solo contre Crocobur, déposer ensuite l'oeuf dans les roseaux et défendre la réincarnation contre les Gloots. Parler au petit Crocoburio et lui faire signe de suivre."},
+          {"area":"Volkaragnar → temple de Grougalorasalar","do":"Rendre Crocobur à Volkaragnar comme promis, puis conduire Crocoburio devant Grougalorasalar via le portail déjà ouvert. Lancer et gagner le combat tactique final seulement lorsque Crocoburio est réellement présent."},
+          {"area":"socle Ébène","do":"Après le combat tactique, reparler à Grougalorasalar pour lui demander s'il compte tenir parole, puis cliquer le Dofus Ébène sur son socle. Ne valider Un nouvel héritier / Noir d'Ébène que lorsque la quête et l'obtention réelle du Dofus sont confirmées par le runtime."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "20 Âmes de Calciné obtenues et utilisées HORS donjon avant Solar.",
+          "Solar vaincu avec Nécronyx appliqué avant sa mort.",
+          "Coeur livide de Solar traité + dialogue Dieu Sram effectué avant sortie.",
+          "Les coeurs livides et L'armée des morts fermés sans Bethel/Solar supplémentaire.",
+          "Un nouvel héritier terminé et Dofus Ébène obtenu uniquement si runtime confirme."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

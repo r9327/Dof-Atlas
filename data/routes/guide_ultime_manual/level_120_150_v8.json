@@ -1,0 +1,183 @@
+{
+  "schema_version": 8,
+  "route_id": "guide_ultime_manual_level_120_150_v8",
+  "title": "Guide Ultime — Niveau 120 à 150 + succès villages Pandala fusionnés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v7.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v7",
+  "stage_count": 37,
+  "optimization_note": "Ferme les deux succès villages Pandala qui restaient hors route: Des larmes de pierre et Sous des nuages de cendre. Les kills Kwapa sont amorcés dans les salles de Nagate, les Poudres de foux d'artifice sont farmées dans les salles Founoroshi déjà nécessaires, et les kills Kozaru de Halte aux singeries profitent du Dojo du Vent déjà requis avant de compléter seulement le reliquat extérieur.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/des-larmes-de-pierre.html",
+    "https://www.dofuspourlesnoobs.com/cent-kamas-pour-un-kwapa.html",
+    "https://www.dofuspourlesnoobs.com/les-habitudes-ont-l-eau-de-vie-dure.html",
+    "https://www.dofuspourlesnoobs.com/les-metamorphoses-d-un-tanuki.html",
+    "https://www.dofuspourlesnoobs.com/l-egalite-des-sexes.html",
+    "https://www.dofuspourlesnoobs.com/sous-des-nuages-de-cendre.html",
+    "https://www.dofuspourlesnoobs.com/des-lueurs-de-desespoir.html",
+    "https://www.dofuspourlesnoobs.com/le-foux-fou-fifoux.html",
+    "https://www.dofuspourlesnoobs.com/questions-existentielles.html",
+    "https://www.dofuspourlesnoobs.com/halte-aux-singeries.html",
+    "https://www.dofuspourlesnoobs.com/vallee-de-la-dame-des-eaux.html",
+    "https://www.dofuspourlesnoobs.com/fabrique-de-foux-d-artifice.html",
+    "https://www.dofuspourlesnoobs.com/dojo-du-vent.html"
+  ],
+  "stage_patches": {
+    "L120-11W": {
+      "prepend": {
+        "quests": ["Cent kamas pour un Kwapa"],
+        "route": [
+          {"pos":"[21,-21] Akwadala — AVANT Vallée de la Dame des eaux","do":"Lire l'affiche et prendre Cent kamas pour un Kwapa avant d'entrer chez Nagate. Les objectifs sont 25 Sarkapwane + 25 Kokom + 25 Akakwa + 25 Betto: ne commencer aucun farm extérieur avant d'avoir utilisé le passage donjon déjà obligatoire."},
+          {"pos":"Vallée de la Dame des eaux — salles 1 à 4","do":"Tous les Sarkapwane/Kokom/Akakwa/Betto tués pendant la traversée doivent servir au compteur Cent kamas. Vérifier après la première salle que les compteurs progressent au runtime; si oui, continuer normalement jusqu'au boss. Ne pas reset le donjon uniquement pour compléter 25/25: le reliquat sera fini dehors après Nagate."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Cent kamas pour un Kwapa active avant le passage Nagate et tous les kills de salles compatibles absorbés.",
+          "Aucun farm extérieur Kwapa effectué avant d'avoir consommé les kills gratuits du donjon."
+        ]
+      }
+    },
+    "L120-13": {
+      "append": {
+        "quests": ["Des lueurs de désespoir"],
+        "route": [
+          {"pos":"Fabrique de foux d'artifice — salles AVANT Founoroshi","do":"Des lueurs de désespoir est déjà au verrou 4 Poudres. Les Firefoux du donjon peuvent fournir la Poudre de foux d'artifice: farmer ici pendant la traversée déjà obligatoire. Si 4/4 tombe avant le boss, continuer quand même jusqu'à Founoroshi car Le festival de la lanterne l'exige déjà; ne sortir avant boss que si un autre état de quête impose réellement un retour PNJ avant le boss."},
+          {"pos":"Feudala — APRÈS Founoroshi","do":"Si les 4 Poudres sont complètes, retour unique [18,-30], allumer l'encens [18,-31], déposer aux quatre arbres-lanternes puis rendre. S'il manque des poudres, compléter seulement le reliquat sur Firefoux de Feudala; ne refaire ni boss ni salles déjà inutiles."}
+        ],
+        "hard_exit": ["Des lueurs de désespoir terminée sans session de farm poudre séparée avant Founoroshi."]
+      }
+    },
+    "L120-13V": {
+      "append": {
+        "quests": ["Halte aux singeries"],
+        "route": [
+          {"pos":"Dojo du Vent — toutes les salles","do":"Halte aux singeries est active avant l'entrée. Chaque Lichangoro/Fangshu/Kurookin/Ino-Naru tué pendant le Dojo compte d'abord pour ses compteurs. Faire normalement L'équilibre + Hanshi Ocre + succès; aucun reset de salle uniquement pour Halte."},
+          {"pos":"Aerdala — après le Dojo","do":"Vérifier les quatre compteurs Halte. Finir dehors uniquement les espèces encore sous 10/10, puis revenir [23,-35] une seule fois. Si les quatre sont déjà terminés grâce aux combats précédents + Dojo, rendre immédiatement."}
+        ],
+        "hard_exit": [
+          "Halte aux singeries terminée.",
+          "Sous des nuages de cendre terminé avec Des lueurs + Le foux fou Fifoux + Questions existentielles + Halte.",
+          "Aucun farm Kozaru séparé réalisé avant d'avoir consommé les kills gratuits du Dojo."
+        ]
+      }
+    }
+  },
+  "insertions": [
+    {
+      "after": "L120-11W",
+      "stage": {
+        "id": "L120-11S",
+        "title": "Akwadala/Terrdala — Des larmes de pierre pendant l'heure de fermentation",
+        "level": "130+ / Le réveil terminé / La jetée terminée",
+        "duration_min": 150,
+        "quests": [
+          "Cent kamas pour un Kwapa",
+          "Les habitudes ont l'eau-de-vie dure",
+          "Les métamorphoses d'un Tanuki",
+          "L'égalité des sexes"
+        ],
+        "successes": ["Des larmes de pierre"],
+        "entry": "Le réveil de Pandala terminé. Pour la partie Daimya de Les habitudes ont l'eau-de-vie dure, À la croisée des mondes doit avoir atteint la rencontre avec la Daimya; cette condition est déjà satisfaite par la route Domakuro.",
+        "preparation": [
+          {"name":"Riz","quantity":50,"for":"Les habitudes ont l'eau-de-vie dure"},
+          {"kamas":50000,"for":"Les métamorphoses d'un Tanuki — alternative au combat de taverne","policy":"Ne payer que si le temps économisé vaut réellement 50 000 kamas; le combat de groupe reste l'option gratuite."},
+          {"requirement":"Sort Capture d'âmes connu pour Les métamorphoses d'un Tanuki. Il doit déjà être acquis via le Nid du Kwakwa de la route niveau40; ne pas découvrir ce prérequis à Terrdala.","blocking":true},
+          {"requirement":"Au moins 750 pods libres pour transporter les cinq cailloux de L'égalité des sexes.","blocking":true}
+        ],
+        "take": [
+          "[21,-26] Akwadala: prendre Les habitudes ont l'eau-de-vie dure en premier et avancer jusqu'au début de la fermentation d'une heure.",
+          "Cent kamas pour un Kwapa est déjà active depuis avant Nagate; relever les quatre compteurs après le donjon."
+        ],
+        "route": [
+          {"area":"Akwadala — pendant la fermentation","do":"Compléter seulement le reliquat des 25 Sarkapwane/Kokom/Akakwa/Betto laissé par les salles de Nagate. Dès 25/25 partout, Cent kamas se ferme automatiquement; aucun retour PNJ."},
+          {"pos":"[23,-24] Terrdala","do":"Pendant la même heure, prendre Les métamorphoses d'un Tanuki. Utiliser le sort Capture d'âmes déjà appris et la pierre spéciale donnée par la quête; faire la boucle œuvres/taverne/chaman sans retourner au Kwakwa."},
+          {"pos":"[22,-25] Terrdala","do":"Prendre L'égalité des sexes. Faire les drops mâle/femelle et la boucle des deux Tanuki; conserver au moins 750 pods libres avant de ramasser les cinq cailloux de 150 pods."},
+          {"area":"Terrdala / Présence d'esprits","do":"Si le Dikoyokai a de la capacité, profiter du passage Terrdala pour les esprits déjà débloqués. L'Esprit saint exige Mineur10 personnel + cinq autres personnages sur les dalles: le faire ici uniquement si le groupe est disponible, sinon garder ce gate social pour une prochaine fenêtre Pandala sans immobiliser la route."},
+          {"pos":"[20,-25] Akwadala","do":"Quand l'heure de fermentation est réellement écoulée, reprendre Les habitudes, faire sa seconde partie Daimya/attaque de bar puis la rendre. Ne pas attendre sur place si les trois autres quêtes ne remplissent pas toute l'heure: continuer la route et reprendre au prochain passage Pandala."}
+        ],
+        "before_leaving": [
+          "Cent kamas pour un Kwapa terminée.",
+          "Les métamorphoses d'un Tanuki terminée.",
+          "L'égalité des sexes terminée.",
+          "Les habitudes ont l'eau-de-vie dure terminée ou timer de fermentation enregistré sans attente immobile."
+        ],
+        "hard_exit": [
+          "Des larmes de pierre terminé dès que la fermentation a été reprise.",
+          "Le futur achat de Shaké à haute fermentation pour Le chant du Pandamonium est débloqué par Les habitudes ont l'eau-de-vie dure."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — succès villages Akwadala/Terrdala fermé ou seul timer fermentation restant"],
+        "next": "continuer la route; ne revenir à Akwadala que lorsque la fermentation est prête si nécessaire"
+      }
+    },
+    {
+      "after": "L120-12",
+      "stage": {
+        "id": "L120-12F",
+        "title": "Feudala — ouvrir Sous des nuages avant Founoroshi",
+        "level": "140+ / Le réveil terminé",
+        "duration_min": 90,
+        "quests": [
+          "Des lueurs de désespoir",
+          "Le foux fou Fifoux"
+        ],
+        "successes": ["Sous des nuages de cendre"],
+        "take": [
+          "[18,-30] Prendre Des lueurs de désespoir et faire d'abord les trois combats de parasites; l'avancer jusqu'au verrou des 4 Poudres de foux d'artifice AVANT d'entrer à Founoroshi.",
+          "[15,-34] Prendre Le foux fou Fifoux pendant la même boucle Feudala."
+        ],
+        "route": [
+          {"area":"Feudala","do":"Faire toute la partie objets/exorcisme de Le foux fou Fifoux pendant les déplacements parasites/caverne. Fermer cette quête avant de quitter la zone: elle débloque l'Esprit torturé de Présence d'esprits et intervient plus tard dans Sombre mystère."},
+          {"area":"Présence d'esprits","do":"Si le Dikoyokai a une transcription disponible après Le foux fou Fifoux, lancer la Brûlure cuisante de l'Esprit torturé dès que possible puis continuer la route pendant ses 3 heures. Ne jamais attendre à Feudala. L'Esprit de vengeance peut aussi être pris pendant les combats de zone s'il apparaît naturellement."},
+          {"area":"Des lueurs de désespoir","do":"STOP au moment où Kinshi réclame 4 Poudres. Ne pas les farmer dehors maintenant: la Fabrique de foux d'artifice est la prochaine cible obligatoire et ses Firefoux peuvent fournir ce drop."}
+        ],
+        "before_leaving": [
+          "Le foux fou Fifoux terminée.",
+          "Des lueurs de désespoir au verrou exact 4 Poudres.",
+          "Présence d'esprits a absorbé les opportunités Feudala sans dépasser le quota Dikoyokai."
+        ],
+        "hard_exit": ["Aucun farm Poudre de foux d'artifice avant les salles Founoroshi."],
+        "pause": ["POINT DE PAUSE SÛR — Poudres attendent Founoroshi"],
+        "next": "L120-13 — Founoroshi: Festival + Ocre + Poudres Des lueurs"
+      }
+    },
+    {
+      "after": "L120-13",
+      "stage": {
+        "id": "L120-13A",
+        "title": "Aerdala — Questions existentielles + Halte avant le Dojo",
+        "level": "140+ / Le réveil terminé",
+        "duration_min": 120,
+        "quests": [
+          "Questions existentielles",
+          "Halte aux singeries"
+        ],
+        "successes": ["Sous des nuages de cendre"],
+        "preparation": [
+          {"name":"Osier Sombre","quantity":10,"for":"Questions existentielles"},
+          {"name":"Fibre criminelle","quantity":10,"for":"Questions existentielles"},
+          {"name":"Bois de Bambou","quantity":2,"for":"Questions existentielles"},
+          {"name":"Ruban d'Uchiwang","quantity":5,"for":"Questions existentielles"},
+          {"requirement":"Tailleur niveau20 personnel pour fabriquer le Grand Éventail de Questions existentielles; craft coopératif impossible.","blocking":true}
+        ],
+        "take": [
+          "[20,-36] Prendre Questions existentielles.",
+          "[23,-35] Prendre Halte aux singeries AVANT toute session de farm Kozaru et avant le Dojo du Vent."
+        ],
+        "route": [
+          {"area":"Aerdala","do":"Faire la boucle de méditation de Questions existentielles, ses six combats, puis fabriquer le Grand Éventail avec Tailleur20 et activer les trois arbres-flûtes. Fermer la quête dans cette même boucle."},
+          {"area":"Aerdala — en chemin","do":"Pour Halte, tuer en priorité les groupes contenant Lichangoro/Fangshu/Kurookin/Ino-Naru rencontrés naturellement pendant Questions/L'équilibre. Ne pas compléter les quatre compteurs dehors avant le Dojo: garder le reliquat pour les salles déjà obligatoires."},
+          {"pos":"[20,-37] Dojo du Vent","do":"Arriver avec Halte aux singeries encore active et les compteurs visibles. Entrer ensuite seulement quand L'équilibre des forces est elle aussi au boss, afin que les kills de salles + Hanshi/Shihan servent simultanément Domakuro/Ocre/succès/Halte."}
+        ],
+        "before_leaving": [
+          "Questions existentielles terminée.",
+          "Halte aux singeries active avant le Dojo avec compteurs relevés.",
+          "L'équilibre des forces prête pour Hanshi/Shihan."
+        ],
+        "hard_exit": ["Aucun farm extérieur Kozaru au-delà de ce qui est utile avant d'avoir consommé les salles du Dojo."],
+        "pause": ["POINT DE PAUSE SÛR — Halte + L'équilibre convergent au Dojo"],
+        "next": "L120-13V — Dojo du Vent fusionné"
+      }
+    }
+  ]
+}

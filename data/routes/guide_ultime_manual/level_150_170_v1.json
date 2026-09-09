@@ -1,0 +1,313 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_level_150_170_v1",
+  "title": "Guide Ultime — Niveau 150 à 170 manuel optimisé",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "depends_on": ["level_120_150_v4.json", "bonta_1_70_v6.json", "temporal_registry_v7.json"],
+  "stage_count": 18,
+  "micro_walkthrough_source": "QuestProvider + source_solution_steps enrichis",
+  "core_strategy": "Fermer Thomahon sans rerun évitable, utiliser les passages Frigost causaux pour ouvrir Tengu/Korriandre, synchroniser Ocre d'Ambre avec le Dorigami dans une seule Demeure, puis préparer Saharach170, Xélorium170 et le premier segment Ébène sans prétendre finir les contenus 180-200.",
+  "rules": [
+    "Bonta reste au rang70 dans cette tranche: le rang71 n'est injecté que lorsque son startCriterion local devient réellement vrai; la documentation actuelle le situe au palier171.",
+    "Ben PASS2 est causal: Piwates des sept mers et demies et Porte, Ben le Ripate, trésor n'existent qu'après le premier Ben. Ce PASS2 sert également l'altération Thomahon Marine.",
+    "Kimbo est fait une seule fois avec Tour de main + altération Thomahon Arboricole + capture Ocre + succès compatibles.",
+    "Obsidiantre PASS1 sert Lavomatique + altération Thomahon d'Obsidienne. Porte Obsidiantre et Pour qui sonne le glagla ne sont disponibles qu'après Lavomatique et imposent donc un PASS2 causal.",
+    "Tengu PASS1 sert C'est frais, mais c'est pas grave. Guerriers foux et Porte Tengu sont ensuite ouverts et imposent un PASS2 causal; aucun faux regroupement avant leur déblocage.",
+    "Korriandre est volontairement différé après ouverture de Les derniers d'entre nous: au palier180 il pourra être mutualisé avec les fils supplémentaires réellement débloqués, dont Foluk/Sans ma barbe selon critères.",
+    "Le Tertre du long sommeil n'est fait qu'avec Arrête-la si tu peux + Pas de fumée sans feu simultanément prêts. Ce passage ouvre Quand les esprits s'échauffent.",
+    "La Demeure des Esprits n'est faite qu'une fois lorsque Requiem pour un Yokai + Quand les esprits s'échauffent sont tous deux au bon objectif.",
+    "Jusqu'à leur dernier soupir ne démarre qu'après le dialogue Koumiho de Requiem en sortie de Demeure. L'Élixir des Trépasseurs est consommé seulement lorsque cette quête ET Sécurité routière peuvent en profiter ensemble.",
+    "Les Pierres de Sélénite et Yokaiku suivent temporal_registry_v7: aucun repop n'est attendu immobile.",
+    "Père Ver, Fraktale et XLII ne sont pas capturables: aucune pierre d'âme ni progression Ocre ne doit être affichée pour eux.",
+    "Le forgeur de légende provoque un retour Crocabulia causal parce que cette quête n'existe qu'après L'épée du rocher; ce retour n'est pas présenté comme une optimisation évitable.",
+    "Jusqu'au bout du rêve est un fil onirique aléatoire/long: le Guide Ultime le lance au plus tôt mais ne bloque pas la route principale et ne simule jamais les 12 rencontres."
+  ],
+  "global_preparation": [
+    {"name":"Idole de Thomahon Marine","quantity":1,"for":"Ben le Ripate PASS2"},
+    {"name":"Idole de Thomahon Arboricole","quantity":1,"for":"Kimbo"},
+    {"name":"Idole de Thomahon d'Obsidienne","quantity":1,"for":"Obsidiantre PASS1"},
+    {"name":"Pierre d'âme","minimum_power":190,"quantity":1,"for":"Kimbo Ocre"},
+    {"name":"Élixir des Trépasseurs","quantity":1,"for":"Jusqu'à leur dernier soupir + Sécurité routière","policy":"Ne fabriquer/consommer qu'une fois les deux fils synchronisés; Alchimiste140 minimum ou artisan."},
+    {"name":"Délice des Kitsous","quantity":12,"for":"Quand les esprits s'échauffent","craft":"12 Épices + 12 Viandes Saignantes + 12 Riz","profession":"Chasseur120+ ou achat"},
+    {"name":"Étoffe de Samouraï fantôme","quantity":4,"for":"Lanterne des Spiritueurs si sort non appris"},
+    {"requirement":"300 Sagesse temporaire","for":"Où est mon samouraï ?"},
+    {"name":"Clef du Mégalithe de Fraktale","quantity":1,"note":"Trousseau et téléportation de donjon non utilisables."},
+    {"name":"Poudre de superlinpainpain","quantity":3,"for":"L'épée du rocher","craft":"18 Mesures de sel + 36 Poudres de Perlinpainpain + 18 Seigles"},
+    {"requirement":"Le fléau de Burin avancé jusqu'à Volkaragnar","for":"Le forgeur de légende","blocking":true}
+  ],
+  "temporal_hooks": [
+    {"registry_id":"frigost_hunter_blessure_to_chasse","action":"Après Blessure de chasse, continuer ailleurs pendant les 13 h."},
+    {"registry_id":"frigost_hunter_chasse_to_brocouille","action":"Après Chasse dangereuse, continuer ailleurs pendant les 13 h suivantes."},
+    {"registry_id":"frigost_bonmonstres_attempt_window","action":"Ne lancer la fenêtre 5 min que lorsque les cinq positions sont prêtes; échec = détour différé après 1 h."},
+    {"registry_id":"pandala_selenite_fight_respawn","action":"Si les quatre pierres ne tombent pas, HDV ou retour ~1 h plus tard; aucune attente sur place."},
+    {"registry_id":"pandala_yokaiku_itinerant_respawn","action":"Haïkus opportunistes; recontrôle ~2 h plus tard, jamais de boucle d'attente."},
+    {"registry_id":"pandala_presence_esprits_transcription_cap","action":"Continuer les fenêtres Dikoyokai 24 h en parallèle jusqu'aux 21 esprits."},
+    {"registry_id":"pandawushu_grade_chain","action":"Réinjecter le prochain grade dès disponibilité réelle sans perdre un cycle de 24 h."}
+  ],
+  "stages": [
+    {
+      "id":"L150-00",
+      "title":"Forêt Maléfique 150 — Mortelle randonnée + Ocre d'Ambre, un seul Tertre",
+      "level":"150+ / critères locaux",
+      "duration_min":170,
+      "quests":["Pas de fumée sans feu","Un pendule pour guider ses pas","Arrête-la si tu peux","Le mal qui fait bien","La campagne hallucinée","Quand les esprits s'échauffent"],
+      "successes":["Mortelle randonnée"],
+      "route":[
+        {"pos":"Forêt Maléfique","do":"Reprendre Pas de fumée sans feu depuis le blocker enregistré au chapitre précédent. Faire Un pendule pour guider ses pas et les autres quêtes Mortelle randonnée selon leurs dépendances locales, en profitant des mêmes boucles de forêt pour les drops/combats."},
+        {"pos":"Dédale du Dark Vlad [-4,15]","do":"Quand Pas de fumée sans feu atteint Déjouer la surveillance de la gardienne du tumulus, prendre Arrête-la si tu peux auprès de Hell Mina. Préparer 1 Filet de capture universel et obtenir au moins 1 Enchanterelle avant l'entrée si le walkthrough la rend disponible."},
+        {"pos":"[-3,19] Tertre du long sommeil","do":"Entrer uniquement avec Arrête-la si tu peux + Pas de fumée sans feu au bon objectif. Faire un seul Tertre, les succès compatibles et tous les dialogues Karnhell/Hell Mina/ambre avant sortie."},
+        {"pos":"Forêt Maléfique","do":"Finir Pas de fumée sans feu et Mortelle randonnée. Prendre immédiatement Quand les esprits s'échauffent puis l'avancer jusqu'à ce que Koumiho/Demeure des Esprits soit explicitement demandée; NE PAS faire la Demeure avant Requiem pour un Yokai."}
+      ],
+      "hard_exit":["Mortelle randonnée terminée","Pas de fumée sans feu terminée","Quand les esprits s'échauffent active et réservée à la Demeure partagée","Tertre fait une seule fois"],
+      "pause":["Ocre d'Ambre attend Demeure","Grobe/Dorigami peut être préparé"]
+    },
+    {
+      "id":"L150-01",
+      "title":"Ben PASS2 — Porte + Piwates + Thomahon en un rerun causal",
+      "level":"150+",
+      "duration_min":60,
+      "quests":["Porte, Ben le Ripate, trésor","Piwates des sept mers et demies","La bénédiction de Thomahon"],
+      "route":[
+        {"pos":"[-76,-46] Bourgade","do":"Vérifier Monarchie parlementaire + Fais dodo terminées, puis prendre Piwates des sept mers et demies. Vérifier Porte, Ben le Ripate, trésor active depuis le premier passage."},
+        {"pos":"[-60,-84] Épave du Grolandais violent","do":"Entrer avec les trois fils. Dans la salle finale utiliser l'Idole de Thomahon Marine AVANT le combat, vaincre Ben, faire la capture demandée par Piwates et les succès encore manquants. Aucun objectif Ocre sur Ben."},
+        {"pos":"Bourgade/Larmes","do":"Rendre Piwates et le fil Porte. L'altération Thomahon Marine doit être validée avant de considérer ce rerun fermé."}
+      ],
+      "hard_exit":["Ben PASS2 justifié causalement","Piwates terminée","Porte Ben terminée","Thomahon Marine validée","Pour qui sonne le glagla disponible après Lavomatique"],
+      "pause":["Ben définitivement fermé pour les fils actuels"]
+    },
+    {
+      "id":"L150-02",
+      "title":"Kimbo unique — Tour de main + Thomahon + Ocre",
+      "level":"150+ / Tour de rein terminée",
+      "duration_min":70,
+      "quests":["Tour de main","La bénédiction de Thomahon"],
+      "route":[
+        {"pos":"[16,27] Sufokia","do":"Prendre Tour de main auprès de Lorie Culère."},
+        {"pos":"[-54,16] Canopée du Kimbo","do":"Entrer avec Tour de main + Thomahon. En salle finale utiliser l'Idole de Thomahon Arboricole, faire les succès compatibles, vaincre Kimbo et le capturer avec une pierre puissance190 minimum pour l'Ocre."},
+        {"pos":"[16,27]","do":"Rendre Tour de main et prendre Tour de force. Ougah est un fil futur; ne pas le forcer dans cette tranche."}
+      ],
+      "hard_exit":["Kimbo fait une seule fois","Tour de main terminée","Thomahon Arboricole validée","Kimbo capturé Ocre","Tour de force active et différée"],
+      "pause":["Kimbo fermé","Thomahon attend Obsidiantre"]
+    },
+    {
+      "id":"L150-03",
+      "title":"Obsidiantre PASS1 — Lavomatique + Thomahon, ouvrir Crevasse",
+      "level":"160+ / Fais dodo terminée",
+      "duration_min":75,
+      "quests":["Lavomatique","La bénédiction de Thomahon"],
+      "route":[
+        {"pos":"Larmes d'Ouronigride","do":"Avant l'Hypogée, prendre/avancer les quêtes de zone actuellement disponibles qui utilisent les mêmes salles, notamment À la recherche de Dan Lavy si son prérequis Chauffage à moindre frais est déjà terminé. Ne pas retarder le boss pour un fil non débloqué."},
+        {"pos":"[-71,-83] Hypogée de l'Obsidiantre","do":"PASS1: entrer avec Lavomatique + Thomahon. En salle finale activer l'Idole de Thomahon d'Obsidienne, vaincre Obsidiantre et faire les succès compatibles. Obsidiantre n'est pas une capture Ocre actuelle."},
+        {"pos":"sortie Hypogée","do":"Rendre Lavomatique et débloquer la Crevasse Perge. Prendre immédiatement Porte, Obsidiantre, trésor. Comme Piwates est déjà terminée, prendre Pour qui sonne le glagla avant tout futur retour."}
+      ],
+      "hard_exit":["Lavomatique terminée","Thomahon d'Obsidienne validée","Crevasse accessible","Porte Obsidiantre active","Pour qui sonne le glagla active","Obsidiantre PASS2 désormais causal"],
+      "pause":["Les quatre boss Thomahon sont maintenant validables","Finir Thomahon avant PASS2"]
+    },
+    {
+      "id":"L150-04",
+      "title":"Turquoise — fermer Thomahon + Autel du Nord, stopper avant l'Ouest",
+      "level":"160+",
+      "duration_min":55,
+      "quests":["La bénédiction de Thomahon","Autel du Nord","Il était une foi dans l'Ouest"],
+      "route":[
+        {"pos":"[-69,-88] Larmes d'Ouronigride","do":"Avec Sphincter + Ben + Kimbo + Obsidiantre validés sous leurs altérations, rendre La bénédiction de Thomahon au Disciple."},
+        {"pos":"Autel du Nord / [-13,-62]","do":"Terminer Autel du Nord: obtenir la bénédiction, équiper la pelle lorsque le walkthrough le demande, déterrer le Totem du Nord puis revenir à Mériana."},
+        {"pos":"[-6,-3] Mériana","do":"Prendre Il était une foi dans l'Ouest seulement si le startCriterion local est réellement satisfait. Cette quête mène à Foluk et au palier ~180; dans cette tranche elle devient un fil suspendu, pas une raison de refaire Kanigroula immédiatement."}
+      ],
+      "hard_exit":["Thomahon terminée","Autel du Nord terminée","Turquoise arrêté proprement au vrai gate Ouest/Foluk","Aucun Kanigroula/Phossile/Korriandre refait prématurément"],
+      "pause":["Turquoise attend palier Ouest","Retour Frigost pour PASS2 Obsidiantre"]
+    },
+    {
+      "id":"L150-05",
+      "title":"Obsidiantre PASS2 — Porte + Glagla en rerun causal",
+      "level":"160+",
+      "duration_min":55,
+      "quests":["Porte, Obsidiantre, trésor","Pour qui sonne le glagla"],
+      "route":[
+        {"pos":"[-71,-83] Hypogée de l'Obsidiantre","do":"PASS2 causal: entrer avec Porte Obsidiantre + Pour qui sonne le glagla. Vaincre/capturer le boss selon la mécanique de Glagla; ne pas utiliser de pierre Ocre ni refaire l'altération Thomahon déjà validée."},
+        {"pos":"[-76,-46] Bourgade","do":"Rendre Glagla. La prochaine quête Guerriers foux restera bloquée jusqu'à C'est frais, mais c'est pas grave au premier Tengu."}
+      ],
+      "hard_exit":["Porte Obsidiantre terminée","Pour qui sonne le glagla terminée","Guerriers foux pré-débloquée mais attend premier Tengu"],
+      "pause":["Obsidiantre fermé pour les fils actuels","Crevasse/Tengu disponibles"]
+    },
+    {
+      "id":"L150-06",
+      "title":"Crevasse Perge — fils Frigost et timers chasseurs sans attente",
+      "level":"150-170 / gates locales",
+      "duration_min":120,
+      "quests":["Blessure de chasse","Chasse dangereuse","Rentrer brocouille","Bonmonstres de neige"],
+      "route":[
+        {"pos":"Frigost / position du jour","do":"Si Blessure de chasse est disponible, la faire pendant la boucle de zones puis enregistrer l'heure exacte de fin. Ne pas attendre Chasse dangereuse: son timer est +13 h."},
+        {"pos":"runtime +13 h / position du jour","do":"Quand Chasse dangereuse devient disponible, l'injecter au prochain passage Frigost, puis enregistrer sa fin. Rentrer brocouille attend encore +13 h; continuer ailleurs."},
+        {"pos":"runtime +13 h / position du jour","do":"Faire Rentrer brocouille dès le prochain passage rentable après expiration. Les positions de lancement des trois quêtes sont résolues par jour via temporal_registry_v7."},
+        {"pos":"Crevasse Perge","do":"Pour Bonmonstres de neige, ne démarrer la tentative que lorsque l'itinéraire des cinq inspections est prêt. Finir en moins de 5 minutes. En cas d'échec, enregistrer +1 h et quitter la zone; aucun retry immédiat."}
+      ],
+      "hard_exit":["Chaque timer chasseur a un timestamp réel ou la chaîne est terminée","Bonmonstres réussi ou prochain essai daté","Aucune attente morte de 13 h/1 h"],
+      "pause":["Timers Frigost visibles indépendamment de la route"]
+    },
+    {
+      "id":"L150-07",
+      "title":"Tengu PASS1 — ouvrir Forêt pétrifiée sans faux regroupement",
+      "level":"170+ / Lavomatique terminée",
+      "duration_min":70,
+      "quests":["C'est frais, mais c'est pas grave"],
+      "route":[
+        {"pos":"[-80,-75] Tanière Givrefoux","do":"Entrer pour C'est frais, mais c'est pas grave, faire les succès compatibles et vaincre Tengu. Ni Guerriers foux ni Porte Tengu ne peuvent être exigés avant cette victoire."},
+        {"pos":"sortie Tanière","do":"Utiliser la sortie/grotte prescrite pour découvrir la Forêt pétrifiée et mémoriser le zaap du Village enseveli dès le premier passage."},
+        {"pos":"[-76,-75] / [-76,-46]","do":"Après validation de C'est frais, prendre Porte, Tengu Givrefoux, trésor et Guerriers foux dès que leurs critères sont vrais."}
+      ],
+      "hard_exit":["C'est frais terminée","Forêt pétrifiée accessible","Porte Tengu active","Guerriers foux active","PASS2 Tengu causalement justifié"],
+      "pause":["Tengu pass1 fermé","Deux fils prêts pass2"]
+    },
+    {
+      "id":"L150-08",
+      "title":"Tengu PASS2 + ouverture Silvosse Korriandre",
+      "level":"170+",
+      "duration_min":75,
+      "quests":["Porte, Tengu Givrefoux, trésor","Guerriers foux","Les derniers d'entre nous"],
+      "route":[
+        {"pos":"[-80,-75] Tanière Givrefoux","do":"PASS2 causal avec Porte + Guerriers foux. Vaincre/capturer Tengu selon la quête d'alignement Frigost. Aucun troisième passage pour ces fils."},
+        {"pos":"Bourgade","do":"Rendre Guerriers foux. Donjon sans dragon devient un fil futur Korriandre."},
+        {"pos":"[-11,-13] Forêt Sombre","do":"Comme L'art de la langue de bois + Rester planté là + C'est frais sont terminées, lancer Les derniers d'entre nous et avancer tous ses objectifs hors Korriandre jusqu'à l'entrée de l'Antre."},
+        {"pos":"[-73,-69] Korriandre","do":"STOP avant entrée. Le Korriandre est volontairement différé au chapitre suivant pour le fusionner avec les autres fils qui se débloquent au palier180, notamment Turquoise Foluk/Sans ma barbe selon progression. Conserver l'état exact de Les derniers d'entre nous."}
+      ],
+      "hard_exit":["Tengu PASS2 terminé","Guerriers foux terminée","Porte Tengu terminée","Les derniers d'entre nous au verrou Korriandre","Aucun Korriandre prématuré"],
+      "pause":["Korriandre réservé au bloc180 multi-fils"]
+    },
+    {
+      "id":"L150-09",
+      "title":"Grobe 160 — Spiritueurs + Maudite disparition avant Tombe",
+      "level":"160+ / Domakuro obtenu",
+      "duration_min":100,
+      "quests":["Maudite disparition","Où est mon samouraï ?","Sombre mystère"],
+      "route":[
+        {"pos":"[27,-27] -> Grobe","do":"Prendre le bateau, ouvrir les zaaps/points de reprise utiles et commencer Maudite disparition. Lors du premier dialogue Danaba, prendre aussi Où est mon samouraï ? et apprendre Lanterne des Spiritueurs avec 4 Étoffes de Samouraï fantôme si le sort manque."},
+        {"pos":"Grobe/Pandala","do":"Faire Où est mon samouraï ? dans la même boucle diplomatique, avec 300 Sagesse au dialogue marchand. Avancer Sombre mystère lorsque son startCriterion local est disponible; ne pas créer un détour séparé vers Danaba."},
+        {"pos":"Cimetière de Grobe","do":"Avancer Maudite disparition jusqu'à l'étape qui exige la Tombe du Shogun. Récupérer les ectoplasmes AVANT d'entrer au donjon lorsque le walkthrough le demande, car avancer au-delà de la salle1 trop tôt peut empêcher la mise à jour."}
+      ],
+      "hard_exit":["Lanterne des Spiritueurs disponible","Où est mon samouraï terminée","Maudite disparition prête Tombe","Sombre mystère avancée au maximum sans détour"],
+      "pause":["Tombe du Shogun = prochaine étape"]
+    },
+    {
+      "id":"L150-10",
+      "title":"Tombe du Shogun — Maudite disparition et succès en un passage",
+      "level":"160+",
+      "duration_min":75,
+      "quests":["Maudite disparition"],
+      "route":[
+        {"pos":"[36,-44] Tombe du Shogun Tofugawa","do":"Entrer avec Maudite disparition au bon objectif et Lanterne des Spiritueurs. Faire tous les objectifs de salles dans leur ordre exact, les succès compatibles et le boss. Ne pas inventer une autre quête liée: la Tombe n'en liste qu'une dans le guide actuel."},
+        {"pos":"Grobe","do":"Finir Maudite disparition auprès du Shogun et prendre immédiatement Requiem pour un Yokai. Avancer Requiem jusqu'à l'objectif Demeure, mais attendre Quand les esprits s'échauffent déjà préparée en L150-00."}
+      ],
+      "hard_exit":["Maudite disparition terminée","Requiem pour un Yokai active","Demeure réservée au double fil Requiem + Quand les esprits s'échauffent"],
+      "pause":["Demeure double-fil prête après objectifs hors donjon"]
+    },
+    {
+      "id":"L150-11",
+      "title":"Demeure des Esprits unique — Dorigami + Ocre d'Ambre",
+      "level":"170+ / deux fils prêts",
+      "duration_min":90,
+      "quests":["Requiem pour un Yokai","Quand les esprits s'échauffent"],
+      "route":[
+        {"pos":"Grobe/Pandala/Forêt pétrifiée","do":"Avant entrée, amener Requiem et Quand les esprits s'échauffent tous deux à leur objectif Koumiho/Demeure. Pour Quand les esprits, préparer 12 Délices des Kitsous ou leurs composants; ne pas perdre le suiveur Volonté d'Inali lors des déplacements concernés."},
+        {"pos":"[39,-44] Demeure des Esprits","do":"Faire UNE Demeure pour les deux quêtes et tous les succès compatibles. Après le boss, parler à Koumiho pour les deux fils AVANT sortie."},
+        {"pos":"sortie Demeure","do":"Le dialogue Requiem déclenche maintenant Jusqu'à leur dernier soupir. Ne pas continuer Requiem comme si cette quête n'existait pas: elle devient un blocker obligatoire."}
+      ],
+      "hard_exit":["Demeure faite une seule fois","Quand les esprits s'échauffent avancée post-Demeure","Jusqu'à leur dernier soupir active","Requiem suspendue sur son vrai blocker"],
+      "pause":["Préparer un seul Élixir des Trépasseurs pour deux quêtes"]
+    },
+    {
+      "id":"L150-12",
+      "title":"Élixir des Trépasseurs — Jusqu'au dernier soupir + Sécurité routière ensemble",
+      "level":"170+",
+      "duration_min":180,
+      "quests":["Jusqu'à leur dernier soupir","Sécurité routière","Requiem pour un Yokai"],
+      "route":[
+        {"pos":"Pandala","do":"Récupérer 5 Pluies de Pandala et les 4 Pierres de Sélénite. Si un combat Sélénite est épuisé sans drop, utiliser HDV ou timer ~1 h; ne pas attendre. Fabriquer UN Élixir des Trépasseurs avec Alchimiste140+."},
+        {"pos":"Grobe — AVANT consommation","do":"Attendre que Jusqu'à leur dernier soupir soit exactement à l'étape qui demande de suivre la route des morts. À ce moment seulement consommer l'Élixir; démarrer Sécurité routière avec le même buff, conformément à sa propre recommandation afin d'éviter un second Élixir."},
+        {"pos":"Mont des Tombeaux / route des morts","do":"Pendant les 44 combats du buff, progresser la grande traversée de Jusqu'à leur dernier soupir ET tuer les 16 Bakazako + 16 Kaonashi + 16 Madura + 16 Tsume-bozu de Sécurité routière. Profiter des mêmes combats pour les autres drops de Grobe réellement actifs."},
+        {"pos":"Grobe/Aerdala","do":"Finir la quête Jusqu'à leur dernier soupir: retrouver les secrets des vents, rendre le Hoshinotama à Koumiho et obtenir sa flamme. Sécurité routière doit se fermer automatiquement une fois ses 64 monstres validés."},
+        {"pos":"[36,-44] -> progression Requiem","do":"Reprendre Requiem maintenant que son blocker est fermé, utiliser la flamme comme prévu et terminer la récupération du Dorigami via le walkthrough local."}
+      ],
+      "hard_exit":["Un seul Élixir consommé pour Jusqu'à leur dernier soupir + Sécurité routière","Sécurité routière terminée","Jusqu'à leur dernier soupir terminée","Requiem terminée","Dorigami obtenu"],
+      "pause":["Dorigami fermé","Ocre d'Ambre peut finir sa partie 170 puis attendre Serment180"]
+    },
+    {
+      "id":"L150-13",
+      "title":"Grobe full succès — À tombeaux ouverts + Shodanwa conditionnel",
+      "level":"170+ / Requiem terminée",
+      "duration_min":180,
+      "quests":["Si loin, si proches","Où est mon samouraï ?","Sombre mystère","Sécurité routière","Gobstination d'un Grobelin","conditional:Shodanwa : Perfection martiale"],
+      "successes":["À tombeaux ouverts","Le gardien de l'immaculé"],
+      "route":[
+        {"pos":"Pandala/Grobe","do":"Avec Requiem terminée, prendre Si loin, si proches et terminer les reliquats À tombeaux ouverts en les regroupant par zones. Où est mon samouraï et Sécurité routière doivent déjà être terminées; ne pas les refaire."},
+        {"pos":"Grobe","do":"Faire Sombre mystère + Gobstination d'un Grobelin selon leurs dépendances locales, en mutualisant combats et ressources du Mont/Cimetière quand possible."},
+        {"pos":"[20,-31] Dojo","do":"Shodanwa : Perfection martiale n'est injectée que si le personnage a réellement terminé Ikwa : Voie du guerrier ivre grâce au fil Pandawushu temporel. Où est mon samouraï étant déjà terminée, son blocker est levé. Si Ikwa n'est pas atteinte, garder Shodanwa dans le fil dojo et ne jamais bloquer Grobe."},
+        {"pos":"validation succès","do":"Vérifier Le gardien de l'immaculé et À tombeaux ouverts. Ocre d'Ambre: Quand les esprits s'échauffent doit être terminée; Le serment de l'ambre reste volontairement au palier180."}
+      ],
+      "hard_exit":["Dorigami obtenu","Le gardien de l'immaculé terminé","À tombeaux ouverts terminé ou reliquat exact documenté","Shodanwa terminée seulement si son grade réel le permet","Le serment de l'ambre non forcé avant son gate"],
+      "pause":["Grobe170 fermé","Pandawushu continue en asynchrone si nécessaire"]
+    },
+    {
+      "id":"L150-14",
+      "title":"Saharach 170 — Corporation + Père Ver unique",
+      "level":"170+ / Le monde entier est un cactus terminé",
+      "duration_min":110,
+      "quests":["Un ver, ça va, trop de vers, bonjour les dégâts","Le mystère des vers"],
+      "successes":["Que cherche la Corporation ? — première moitié"],
+      "route":[
+        {"pos":"[14,-55] -> Gorge des Vents Hurlants","do":"Faire Un ver, ça va, trop de vers, bonjour les dégâts dans la nouvelle zone. Comme Le monde entier est un cactus a été fermé au palier130, aucun backfill El Piko n'est nécessaire."},
+        {"pos":"[11,-66] -> Gorge","do":"Prendre Le mystère des vers, faire le combat, les quatre prélèvements et tous les objectifs hors donjon jusqu'à la demande du Père Ver."},
+        {"pos":"[7,-70] Boyau du Père Ver","do":"Faire un seul Boyau, les succès compatibles et récupérer le Suc digestif. Ce boss ne peut pas être capturé: aucune pierre d'âme/Ocre."},
+        {"pos":"Gorge/Port","do":"Finir Le mystère des vers. Momies en folie s'ouvre ensuite mais conduit vers la suite niveau200/Tal Kasha; la conserver explicitement pour le chapitre adapté."}
+      ],
+      "hard_exit":["Un ver terminé","Le mystère des vers terminé","Père Ver fait une seule fois","Aucune fausse capture Père Ver","Momies en folie enregistrée comme fil futur"] ,
+      "pause":["Saharach170 fermé","Corporation reprendra au palier200"]
+    },
+    {
+      "id":"L150-15",
+      "title":"Xélorium + Fraktale — Prisonniers du temps + Ébène en un passage",
+      "level":"160-170 / critères locaux Ébène",
+      "duration_min":160,
+      "quests":["Prisonniers du temps","L'épée du rocher"],
+      "route":[
+        {"pos":"[-6,-3] Mériana -> Xélorium","do":"Lancer L'épée du rocher dès ses critères réels satisfaits. Obtenir la Poudre scintillante au Skeunk depuis le passage déjà fait si l'objet a été sécurisé; sinon le rattrapage Skeunk doit être explicite, jamais silencieux. Faire les étapes hors dimension puis entrer dans Xélorium par le portail réel: une Ankre directe ne valide pas l'objectif Temps fracassé."},
+        {"pos":"Xélorium","do":"Avant Fraktale, avancer Les temps qui courent jusqu'à Prisonniers du temps et préparer son Détecteur portable. Amener L'épée du rocher au même verrou Fraktale."},
+        {"pos":"[7,3] Mégalithe de Fraktale","do":"Entrer avec Prisonniers du temps + L'épée du rocher. Le trousseau et la téléportation de donjon ne fonctionnent pas ici. Vaincre Fraktale, récupérer Temps fracassé et, AVANT de sortir, utiliser le Détecteur portable pour Prisonniers du temps."},
+        {"pos":"Xélorium/Mériana","do":"Fermer Prisonniers du temps et les objectifs restants de L'épée du rocher jusqu'à obtenir Crocobur. Fraktale n'est pas capturable; aucune Ocre."}
+      ],
+      "hard_exit":["Fraktale faite une seule fois pour Prisonniers du temps + L'épée du rocher","Détecteur utilisé avant sortie","L'épée du rocher terminée","Fraktale jamais marquée Ocre"],
+      "pause":["Ébène ouvre Le forgeur de légende","Carpe Diem disponible"]
+    },
+    {
+      "id":"L150-16",
+      "title":"Ébène — Forgeur de légende + retour Crocabulia causal + Songes asynchrones",
+      "level":"160-170 / L'épée du rocher terminée",
+      "duration_min":130,
+      "quests":["Le forgeur de légende","Jusqu'au bout du rêve"],
+      "route":[
+        {"pos":"[-6,-3] -> Forge du Volcan","do":"Prendre Le forgeur de légende. Vérifier Le fléau de Burin avancé jusqu'à la rencontre de Volkaragnar AVANT de partir. Faire les objectifs/crafts hors donjon en une seule boucle."},
+        {"pos":"[-2,25] Sanctuaire des Dragoeufs","do":"Retour Crocabulia causal: cette quête n'existait pas lors du premier passage Tour du Monde. Vaincre Crocabulia, puis surtout faire l'action/dialogue post-boss du forgeur avant sortie. Ne pas refaire l'Ocre si l'âme a déjà été validée."},
+        {"pos":"Forge du Volcan / Mériana","do":"Finir Le forgeur de légende et prendre Jusqu'au bout du rêve immédiatement."},
+        {"pos":"Songes Infinis","do":"Lancer le fil Songes, viser Rêve III ou plus mais ne jamais bloquer la route. Les 12 Songes de Crocobur apparaissent aléatoirement et selon paliers; enregistrer chaque rencontre réellement validée. Le Guide Ultime revient à cette quête opportunistement pendant les futurs chapitres."}
+      ],
+      "hard_exit":["Le forgeur de légende terminé","Crocabulia rerun documenté causal","Jusqu'au bout du rêve active","Aucune validation fictive des 12 rencontres Songes"],
+      "pause":["Ébène en fil asynchrone Songes","Suite narrative attend fin réelle de Jusqu'au bout du rêve"]
+    },
+    {
+      "id":"L150-17",
+      "title":"Xélorium 170 — Carpe Diem complet + XLII unique",
+      "level":"170+",
+      "duration_min":260,
+      "quests":["Les voleurs de couleurs","Terminutor : le jugement de la machine","Les démons de midi","Aux origines du mal","De fil en aiguille","La Vie, l'Hormonde et le Reste","Failles spatio-temporelles","C'est quoi ton 06 ?","Aujourd'hui à jamais","Tout ce qu'il te faut, c'est tuer","conditional:Le disparu de Sufokia"],
+      "successes":["Carpe Diem"],
+      "route":[
+        {"pos":"Xélorium","do":"Faire les dix quêtes Carpe Diem comme une seule campagne dimensionnelle, en suivant les dépendances locales plutôt que dix étapes joueur. Grouper les combats de zone, changements temporels et trajets entre Chemins d'hier/Jour présent/Lendemains incertains."},
+        {"pos":"progression","do":"Amener De fil en aiguille jusqu'à sa fin puis prendre La Vie, l'Hormonde et le Reste. Avant XLII, vérifier si Le disparu de Sufokia est réellement disponible; si oui l'activer pour le même passage, sinon ne pas inventer son déblocage."},
+        {"pos":"[7,-2] Horologium de XLII","do":"Faire un seul Horologium pour La Vie, l'Hormonde et le Reste + Le disparu de Sufokia si actif, et les succès compatibles. XLII ne peut pas être capturé."},
+        {"pos":"Xélorium","do":"Terminer La Vie et les autres reliquats Carpe Diem. Pour Failles spatio-temporelles, résoudre la position temporelle actuelle du PNJ via le walkthrough plutôt que stocker une coordonnée unique permanente."}
+      ],
+      "hard_exit":["Carpe Diem terminé ou reliquat exact documenté","XLII fait une seule fois","XLII jamais marqué capturable/Ocre","Bonta toujours rang70 tant que rang71 local non débloqué","Jusqu'au bout du rêve reste asynchrone si incomplet"],
+      "pause":["Fin tranche 150-170","Prochaine tranche: 171-180 Bonta71-80 + Ordre80 + Korriandre/Foluk + suite Frigost/Ébène"]
+    }
+  ]
+}

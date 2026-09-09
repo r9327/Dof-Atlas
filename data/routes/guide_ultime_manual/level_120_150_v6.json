@@ -1,0 +1,70 @@
+{
+  "schema_version": 6,
+  "route_id": "guide_ultime_manual_level_120_150_v6",
+  "title": "Guide Ultime — Niveau 120 à 150 + carrières de glace et prologue DDG",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v5.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v5",
+  "stage_count": 33,
+  "optimization_note": "Ajoute La destinée dès le premier vrai passage Frigost Bontarien, puis restaure Hôtel de glace → La fonte des glaces autour du bloc Lac Gelé déjà nécessaire. Les objets d'Hôtel sont achetés en HDV par défaut afin de ne pas forcer quatre métiers niveau100. Après le premier Mansot et la fermeture de L'essentiel, Malédiction ! est faite immédiatement pour que Mission Solution puisse être préparée avant Glourséleste.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/la-destinee.html",
+    "https://www.dofuspourlesnoobs.com/hocirctel-de-glace.html",
+    "https://www.dofuspourlesnoobs.com/la-fonte-des-glaces.html",
+    "https://www.dofuspourlesnoobs.com/maleacutediction.html"
+  ],
+  "stage_patches": {
+    "L120-00": {
+      "append": {
+        "quests": ["La destinée"],
+        "route": [
+          {"pos":"Bonta → Frigost → Bonta","do":"Au premier passage où La terre banquise est disponible/terminable, prendre La destinée auprès d'Amayiro. Profiter du déplacement Frigost déjà planifié pour interroger les PNJ/archives demandés, puis rendre à Amayiro. Cette quête n'est pas une quête d'alignement numérotée et ne modifie pas le rang Bonta."}
+        ],
+        "hard_exit": ["La destinée terminée avant le futur Malédiction !"]
+      }
+    },
+    "L120-20F": {
+      "replace": {
+        "title": "Lac Gelé — Bricole Girl + Hôtel/Fontes + L'essentiel avant Mansot",
+        "duration_min": 300
+      },
+      "append": {
+        "quests": ["Hôtel de glace","La fonte des glaces"],
+        "preparation": [
+          {"for":"Hôtel de glace","policy":"Acheter en HDV les 5 Scies à glace + 5 Plaques d'acier + 5 Masques de protection + 5 Gants de protection si disponibles. Ne monter Mineur/Tailleur/Bijoutier/Bricoleur100 que si le personnage veut réellement ces métiers ou si le marché rend le craft plus rentable."},
+          {"for":"La fonte des glaces","policy":"Préparer les quatre prototypes d'élevage via HDV quand ils sont échangeables; sinon faire appel aux artisans requis. Ne jamais transformer ces crafts en obligation de monter quatre métiers personnels."},
+          {"name":"Bois de Bambou","quantity":80,"for":"La fonte des glaces si craft nécessaire"},
+          {"note":"Cette session est lourde en ressources: vider les pods avant départ et garder en banque les excédents Frigost utilisés plus tard par Convoi humanitaire/Chaud du S.L.I.P./DDG."}
+        ],
+        "route": [
+          {"pos":"Lac gelé","do":"Après Bricole Girl, faire Hôtel de glace en remettant les quatre lots de cinq équipements de protection. Priorité HDV/artisan coopératif plutôt qu'un grind métier personnel non requis par la quête."},
+          {"pos":"Lac gelé → Bourgade","do":"Prendre immédiatement La fonte des glaces. Comme Bricole Girl + Monologues sont déjà terminés, toutes ses étapes peuvent avancer. Regrouper recrutement/escortes avec les boucles Bourgade et fournir les prototypes préparés."},
+          {"pos":"Albert Paisse → Lac gelé","do":"Récupérer les 30 doses de vaccin grâce au fil médecin déjà ouvert, les remettre à Mac Givré et terminer La fonte des glaces avant de quitter le bloc Lac."}
+        ],
+        "hard_exit": ["Hôtel de glace terminé","La fonte des glaces terminée","Convoi humanitaire prérequis économique résolu avant niveau170"]
+      }
+    }
+  },
+  "insertions": [
+    {
+      "after": "L120-21",
+      "stage": {
+        "id": "L120-21M",
+        "title": "Bonta/Frigost — Malédiction ! dès que L'essentiel est fermé",
+        "level": "140-150 / Bontarien",
+        "duration_min": 120,
+        "entry": "La destinée + L'essentiel est dans Lac Gelé terminés.",
+        "quests": ["Malédiction !"],
+        "take": ["Prendre Malédiction ! auprès du donneur Bontarien uniquement après confirmation des deux prérequis."],
+        "route": [
+          {"area":"Bonta / Frigost","do":"Faire l'enquête de Malédiction ! en une boucle ordres/Frigost, grouper les combats de zone avec les autres besoins actifs et terminer les combats solo/groupe sans créer de donjon supplémentaire."}
+        ],
+        "progress_also": ["Garder l'état Malédiction fermé: Mission Solution attendra ensuite Chaud du S.L.I.P. + Chauffage à moindre frais, déjà planifiés plus tard."],
+        "before_leaving": ["Malédiction ! terminée"],
+        "hard_exit": ["L'âme de glace préparée jusqu'au gate Mission Solution"],
+        "pause": ["POINT DE PAUSE SÛR — Malédiction fermée"],
+        "next": "suite du chapitre; Mission Solution sera ouverte après Chaud du S.L.I.P."
+      }
+    }
+  ]
+}

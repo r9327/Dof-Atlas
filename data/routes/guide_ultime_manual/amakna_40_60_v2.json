@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "route_id": "guide_ultime_manual_amakna_40_60_v2",
+  "title": "Guide Ultime — Amakna 40-60 + intégration Bonta",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "amakna_40_60_v1.json",
+  "supersedes": "guide_ultime_manual_amakna_40_60_v1",
+  "stage_count": 9,
+  "transversal_dependencies": [
+    {
+      "route":"bonta_1_20_v1.json",
+      "required_before":"AMK-05",
+      "state":"BNT-00, BNT-01, BNT-02 terminés; rang 11 Du repos mais pas trop... actif et préparé"
+    }
+  ],
+  "stage_patches": {
+    "AMK-02": {
+      "append": {
+        "route": [
+          {"pos":"Bonta / transversal BNT-00→BNT-02","do":"Après le premier recrutement Bonta, exécuter les macro-étapes BNT-00, BNT-01 et BNT-02 de bonta_1_20_v1.json avant AMK-05. Objectif de sortie obligatoire: alignement 10 terminé et Du repos mais pas trop... actif avec ses 10 Bâtons de Boisaille + Bakélélite préparés."}
+        ],
+        "pause": [
+          "Sous-route Bonta 1-10 doit être terminée avant le Donjon des Bworks",
+          "Du repos mais pas trop... doit être active avant AMK-05"
+        ]
+      }
+    },
+    "AMK-04": {
+      "append": {
+        "route": [
+          {"pos":"[13,21] Donjon des Forgerons","do":"Ceci est le PREMIER passage Forgerons: il sert Les sbires du maître + C'est du costaud. Le rang Bonta 12 n'existe pas encore, car il n'est débloqué qu'après la Bworkette du rang 11. Ne pas essayer de retarder ce donjon: cela forcerait ensuite un second Bworkette pour Les sbires du maître."}
+        ]
+      }
+    },
+    "AMK-05": {
+      "append": {
+        "quests": ["Du repos mais pas trop..."],
+        "route": [
+          {"pos":"[-5,10] Donjon des Bworks","do":"ENTRER avec Les sbires du maître ET Du repos mais pas trop... actifs. Vaincre Bworkette une seule fois pour les deux fils. Avant de sortir, parler à Magobwork et récupérer la Bière de Bworkette du rang 11."},
+          {"pos":"Bonta / transversal BNT-03→BNT-04","do":"Après le donjon, terminer le rang 11 puis exécuter BNT-04: rang 12 impose un SECOND Donjon des Forgerons pour le Liquide, puis rangs 13 et 14. Ce second Forgerons est causalement inévitable et remplace l'alternative plus coûteuse qui ferait refaire Bworkette."}
+        ],
+        "pause": [
+          "Bworkette ne doit avoir été faite qu'une seule fois pour Les sbires du maître + rang Bonta 11",
+          "Bonta 14 terminé après le retour causal Forgerons du rang 12",
+          "BNT-05 / rang 15 est différé à la prochaine vraie boucle Pics de Cania"
+        ]
+      }
+    },
+    "AMK-08": {
+      "append": {
+        "carry_forward": [
+          "Bonta: BNT-05 rang 15 à fusionner avec la prochaine boucle Pics de Cania; rang 16 reste bloqué par Intrusion chez les wabbits",
+          "Après Intrusion chez les wabbits, reprendre BNT-06 et grouper rangs 16-20 avec Wabbit, Cimetière, Foire, Clos des Blops et Sufokia"
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

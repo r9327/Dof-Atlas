@@ -1,0 +1,102 @@
+{
+  "schema_version": 16,
+  "route_id": "guide_ultime_manual_bonta_1_100_v16",
+  "title": "Guide Ultime — Alignement Bonta 1 à 100 — actions 81-90 consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_100_v15.json",
+  "supersedes": "guide_ultime_manual_bonta_1_100_v15",
+  "quest_range": [1, 100],
+  "macro_stage_count": 49,
+  "optimization_note": "Nettoie les actions joueur Bonta 81-90, explique le troisième Korriandre par l'ouverture tardive du rang85, garde la chasse Qu'Tan sans coordonnée fixe et fusionne Grolloum90 avec les autres fils Sakaï sans exposer BNT, runtime, startCriterion, merge hook ou autres termes internes.",
+  "stage_patches": {
+    "BNT-37": {
+      "replace": {
+        "title":"Bonta 81-82 — crise d'Amakna puis Petites faveurs sans faux délai",
+        "entry":"Bonta 80 terminé et niveau 181 atteint.",
+        "take":["Prendre Ingérence en Amakna au niveau 181. Après sa validation, prendre Petites faveurs entre amis auprès du donneur correspondant au choix historique du personnage."],
+        "route":[
+          {"area":"Amakna — village / mines / château","do":"Rang 81 : faire la boucle Commandant Imagiro, habitants, trois mines, Sergent Gracia et San Lavalss, puis rendre la quête selon la branche historique déjà choisie."},
+          {"area":"Bonta → Astrub → Forêt pétrifiée → Amakna","do":"Rang 82 : interroger les notables de Bonta, faire la tournée demandée à Astrub, récupérer un Cœur de Dramanite lors d'un passage naturel en Forêt pétrifiée, l'échanger contre le bon Bus Nain 2000 puis remettre immédiatement ce bon à Larry Poller. Le délai de fabrication annoncé n'est pas nécessaire pour terminer la quête."},
+          {"area":"Amakna","do":"Terminer San Lavalss → Farle → Agride, gagner le combat solo du Bûcheron puis rendre au donneur correspondant à la branche historique."}
+        ],
+        "progress_also":["Si le Cœur de Dramanite est déjà obtenu, ne refaire aucun détour Forêt pétrifiée. Profiter d'Astrub pour vérifier les objets historiques nécessaires au futur rang 88."],
+        "before_leaving":["Bonta 82 terminé.","Aucun délai Bus Nain en attente.","Les gardiens de la galerie disponible au niveau 183."],
+        "hard_exit":["Bonta 82 terminé."]
+      }
+    },
+    "BNT-38": {
+      "replace": {
+        "title":"Bonta 83-84 — Pierres d'Araknas, caveau puis Srambad",
+        "entry":"Bonta 82 terminé et niveau 183 atteint.",
+        "route":[
+          {"area":"Amakna / Sufokia / marécages","do":"Rang 83 : préparer les appâts et le piège avant le trajet, capturer Crosodaille, l'échanger auprès de Tati contre la première pierre puis libérer Lars Tord dans le repaire des Cybworks avec le groupe déjà organisé."},
+          {"area":"Bonta → Sufokia → Srambad → caveau","do":"Rang 84 : retrouver Lao, acheter la recette puis faire fabriquer la Clef du caveau du Roi Léorictus par un Bricoleur niveau 184 minimum avant de repartir à Srambad. Terminer le combat du caveau et récupérer Urne + Élixir."},
+          {"area":"Srambad → Leng","do":"Retourner à Srambad avec tout déjà préparé, échanger l'urne contre le diamant puis effectuer les combats de Leng sous Élixir d'Arakne. Ne refaire l'Élixir qu'en cas d'échec réel."},
+          {"area":"Bonta","do":"Rendre la pierre et terminer le rang 84. Préparer tout le Dissolvant Phosphorescent du rang 85 sauf la Fleur de Korriandre."}
+        ],
+        "progress_also":["Pendant Amakna et Sufokia, avancer uniquement les objectifs déjà actifs; aucun donjon supplémentaire n'est nécessaire pour ces deux rangs."],
+        "before_leaving":["Bonta 84 terminé.","Composants du Dissolvant prêts hors Fleur de Korriandre."],
+        "hard_exit":["Le plateau de Leng terminé.","Gelé à pierre fendre disponible au niveau 185."]
+      }
+    },
+    "BNT-39": {
+      "replace": {
+        "title":"Bonta 85 — nouveau Korriandre imposé par Gelé à pierre fendre",
+        "entry":"Bonta 84 terminé, niveau 185 atteint et Gelé à pierre fendre active.",
+        "route":[
+          {"area":"Frigost / Forêt pétrifiée","do":"Faire la bibliothèque, l'alchimiste, la taverne puis le combat solo devant l'Antre. N'entrer que lorsque Gelé à pierre fendre demande réellement Korriandre."},
+          {"area":"Antre du Korriandre","do":"Vaincre Korriandre et récupérer 1 Fleur de Korriandre. Ce nouveau passage est nécessaire parce que Gelé à pierre fendre n'existait pas lors des deux Korriandre du niveau 180. Ne pas refaire la capture Ocre si elle est déjà validée."},
+          {"area":"sortie Antre → craft → fond de l'Antre","do":"Fabriquer le Dissolvant Phosphorescent avec un Alchimiste niveau 185 minimum, revenir par le raccourci, dissoudre la toile puis vaincre Rammola et récupérer la dernière pierre."}
+        ],
+        "progress_also":["Pendant ce Korriandre, profiter seulement des succès ou drops encore réellement ouverts; ne pas ajouter un autre objectif boss qui n'est pas encore disponible."],
+        "before_leaving":["Dernière pierre Araknas récupérée.","Bonta 85 terminé.","Aucune capture Ocre Korriandre dupliquée."],
+        "hard_exit":["Le troisième Korriandre global est justifié par le rang 85; aucun quatrième Korriandre prévu dans cette tranche."]
+      }
+    },
+    "BNT-40": {
+      "replace": {
+        "title":"Bonta 86 — chasse légendaire Araknas puis Qu'Tan",
+        "entry":"Bonta 85 terminé, niveau 186 atteint et groupe final organisé avant de partir.",
+        "route":[
+          {"area":"Malle aux Trésors","do":"Prendre la Carte d'Araknas et lancer la chasse légendaire. Les indices dépendent du personnage : suivre la chasse affichée en jeu et ne jamais utiliser une ancienne coordonnée enregistrée."},
+          {"area":"combat final de chasse","do":"Faire l'Œuf d'Arakne Géante avec le groupe préparé, ouvrir le coffre puis utiliser le Mode d'emploi."},
+          {"area":"Temple maudit","do":"Entrer avec les aides correctement munies de clef lorsque leur état de quête ne donne pas l'accès. Faire les deux salles puis vaincre Qu'Tan; ce boss n'est pas une capture Ocre."},
+          {"area":"après Qu'Tan","do":"Récupérer le Pacte de non-agression avant de sortir puis le rendre à Amayiro."}
+        ],
+        "progress_also":["Le groupe est organisé avant la chasse afin de ne pas rester bloqué devant le temple une fois les indices terminés."],
+        "before_leaving":["Pacte récupéré.","Bonta 86 terminé.","Qu'Tan jamais ajouté à l'Ocre."],
+        "hard_exit":["Bonta 86 terminé."]
+      }
+    },
+    "BNT-41": {
+      "replace": {
+        "title":"Bonta 87-89 — faux pacte, Amakna puis Gisgoul",
+        "entry":"Bonta 86 terminé.",
+        "route":[
+          {"area":"Frigost ↔ Bonta","do":"Rang 87 : vérifier le faux pacte via les recherches demandées et terminer la quête sans détour de donjon."},
+          {"area":"Amakna ↔ Astrub ↔ Bonta","do":"Rang 88 : traiter les plaintes d'Amakna et la réconciliation, utiliser le livre L'Invasion d'Uk'Not'Allag' déjà obtenu dans les anciennes quêtes Astrub puis parler à Fallanster. Si cet objet manque alors que sa quête source est terminée, corriger l'état avant de continuer plutôt que refaire toute une chaîne."},
+          {"area":"Bonta → Srambad optionnel → Sufokia → Gisgoul","do":"Rang 89 : utiliser Venin d'Éperfide + Pince de Lucrane si ces ressources sont déjà disponibles à coût raisonnable, sinon payer l'alternative de 150 000 kamas si elle est plus rentable. Réparer le mysténergiomètre puis faire les relevés de Gisgoul et le combat de groupe."}
+        ],
+        "progress_also":["Préparer le Rossignol du rang 90 avant de revenir à Bonta. Ne faire aucun Grolloum avant que la quête Frigost Au fion du trou soit elle aussi prête au niveau 190."],
+        "before_leaving":["Bonta 89 terminé.","Rossignol prêt.","Grolloum réservé à la fiche commune du niveau 190."],
+        "hard_exit":["Bonta 89 terminé.","Ça fait froid dans le dos disponible au niveau 190."]
+      }
+    },
+    "BNT-42": {
+      "replace": {
+        "title":"Bonta 90 — Panterreur puis Grolloum partagé avec Au fion du trou",
+        "entry":"Bonta 89 terminé, niveau 190 atteint, Rossignol prêt et Au fion du trou préparée avant l'entrée Grolloum.",
+        "route":[
+          {"area":"Hel Munster → Temple Huppermage → Estitch → Bonta","do":"Faire l'enquête sur les entraves, acheter le passe Estitch si nécessaire puis localiser la planque d'Ereziah."},
+          {"area":"planque d'Ereziah → dimension obscure","do":"Ouvrir avec le Rossignol, gagner le combat solo puis vaincre Panterreur. Son âme est fournie par la quête : ne pas utiliser de pierre d'âme et ne pas compter Panterreur dans l'Ocre."},
+          {"area":"Mine abandonnée de Sakaï","do":"Entrer seulement lorsque Ça fait froid dans le dos et Au fion du trou demandent toutes les deux Grolloum. Faire les succès compatibles et vaincre Grolloum une seule fois pour ces deux quêtes."},
+          {"area":"après boss","do":"Avant de sortir, parler à Gobiling pour traduire Grolloum, puis terminer la chaîne Roi Beldarion → Ereziah → Amayiro."}
+        ],
+        "progress_also":["La machine à démonter le temps est une quête de niveau 200 ouverte plus tard : elle pourra imposer un nouveau Grolloum, mais ne doit pas bloquer Bonta 90 maintenant."],
+        "before_leaving":["Gobiling interrogé avant sortie.","Bonta 90 terminé.","Panterreur jamais capturé avec une pierre.","Bonta 91 attend le niveau 191."],
+        "hard_exit":["Bonta 90 terminé et Grolloum partagé avec Au fion du trou."]
+      }
+    }
+  },
+  "insertions": []
+}

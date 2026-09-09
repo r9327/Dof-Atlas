@@ -1,0 +1,45 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_level_70_100_v4",
+  "title": "Guide Ultime — Niveau 70 à 100 + Turquoise anticipé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_70_100_v3.json",
+  "supersedes": "guide_ultime_manual_level_70_100_v3",
+  "stage_count": 17,
+  "optimization_note": "Plongeon et dragon est lancé dès La magicienne des marécages afin que le Dragon Cochon déjà obligatoire pour Un juge hystérique fournisse aussi la Clef Dentée du Turquoise. Le Dragon Cochon est différé si nécessaire jusqu'au vrai startCriterion local de Plongeon plutôt que d'accepter un rerun évitable.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/plongeon-et-dragon.html"
+  ],
+  "stage_patches": {
+    "L70-00E": {
+      "append": {
+        "quests": ["Plongeon et dragon"],
+        "route": [
+          {"pos":"[-6,-3] Mériana","do":"IMMÉDIATEMENT après La magicienne des marécages, demander le Dofus Turquoise et prendre Plongeon et dragon si le startCriterion local le permet. Si le critère local n'est pas encore satisfait, créer un gate visible et reprendre cette prise au premier niveau éligible AVANT le Dragon Cochon; ne pas entrer au Dragon Cochon sans ce fil sauf impossibilité locale démontrée."}
+        ],
+        "hard_exit": [
+          "Plongeon et dragon active avant le premier Dragon Cochon, ou gate local exact enregistré.",
+          "Le Turquoise n'est plus laissé en sommeil après La magicienne des marécages."
+        ]
+      }
+    },
+    "L70-07": {
+      "append": {
+        "quests": ["Plongeon et dragon"],
+        "preparation": [
+          {"requirement":"Plongeon et dragon réellement active avant l'Antre du Dragon Cochon","blocking":true}
+        ],
+        "route": [
+          {"pos":"[-1,33] Antre du Dragon Cochon — AVANT entrée","do":"Vérifier Plongeon et dragon active en plus de Un juge hystérique. Si Plongeon est encore bloquée par un critère local, différer ce Dragon Cochon plutôt que créer volontairement un second passage plus tard."},
+          {"pos":"salle de sortie Dragon Cochon","do":"APRÈS le boss et APRÈS la capture Ocre déjà prévue, récupérer impérativement la Clef Dentée à gauche du trône pour Plongeon et dragon AVANT de sortir. Cette clef exige le donjon réel et ne peut pas être obtenue via une PDA."}
+        ],
+        "hard_exit": [
+          "Dragon Cochon sert Un juge hystérique + Ocre + Plongeon et dragon dans le même passage.",
+          "Clef Dentée Turquoise obtenue avant sortie.",
+          "Aucun futur Dragon Cochon requis pour Plongeon et dragon."
+        ]
+      }
+    }
+  },
+  "insertions": []
+}

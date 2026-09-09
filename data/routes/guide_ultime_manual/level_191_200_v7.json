@@ -1,0 +1,289 @@
+{
+  "schema_version": 7,
+  "route_id": "guide_ultime_manual_level_191_200_v7",
+  "title": "Guide Ultime — 191-200, Totems pré-boss + Comte/Vortex fusionnés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v6.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v6",
+  "stage_count": 53,
+  "optimization_note": "Répare la causalité globale du palier200. Après activation du Parangon, les arcs Eliocalypse nécessaires aux Totems sont avancés avant la campagne de gardiens200. Toute possession dépossède est exécutée avant La fin... ou le commencement, donc Au détour d'un rêve perdu n'est pas encore un prérequis; Au détour reste différé après Six sur six. Les Totems sont ouverts puis absorbés dans Klime, Sylargh, Koutoulou, Missiz Frizz, Nileza et Comte Harebourg sans six reruns dédiés. Après Ivoire+Ébène, Ocre/Quatre sur six ouvrent S'armer contre le destin et le Troisième Œil avant le Comte final DDG; le même Comte fournit le Totem Surprise et l'éclat de destin, puis le Vortex Nébuleux fournit le second éclat pour La vérité est au fond du puits + Les sables du temps + S'armer contre le destin en un seul passage.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/toute-possession-depossede.html",
+    "https://www.dofuspourlesnoobs.com/la-danse-de-la-dissonance.html",
+    "https://www.dofuspourlesnoobs.com/descendre-aux-cendres.html",
+    "https://www.dofuspourlesnoobs.com/un-heritage-tourmente.html",
+    "https://www.dofuspourlesnoobs.com/les-totems-de-maimane.html",
+    "https://www.dofuspourlesnoobs.com/s-armer-contre-le-destin.html"
+  ],
+  "stage_removals": [
+    "L200-DDG3",
+    "L200-NEB5",
+    "L200-NEB6"
+  ],
+  "stage_patches": {
+    "L200-VUL1": {
+      "append": {
+        "progress_also": [
+          "Totem Tristesse: ne pas le consommer sur Torkélonia. La route réserve volontairement cette émotion à Sylargh, déjà obligatoire quelques fiches plus loin."
+        ]
+      }
+    },
+    "L200-DDG1": {
+      "append": {
+        "route": [
+          {"area":"Transporteur de Sylargh","do":"Avec les six Totems déjà actifs, récupérer ici le Totem de la tristesse. Ne pas choisir Torkélonia/Meno/Vortex pour cette émotion: Sylargh est déjà obligatoire sur cette route."},
+          {"area":"Salons privés de Klime","do":"Récupérer ici le Totem de la joie. Ce Klime obligatoire remplace tout passage dédié Merkator/Nidas/Servitude pour la joie."}
+        ],
+        "hard_exit": [
+          "Totem Tristesse obtenu sur Sylargh",
+          "Totem Joie obtenu sur Klime"
+        ]
+      }
+    },
+    "L197-02": {
+      "append": {
+        "route": [
+          {"area":"Forgefroide de Missiz Frizz","do":"Récupérer le Totem de la colère pendant ce même Missiz déjà fusionné Bonta97 + DDG. Aucun Dazak/Guerre/Solar/Tal Kasha dédié au Totem."}
+        ],
+        "hard_exit": ["Totem Colère obtenu sur Missiz Frizz"]
+      }
+    },
+    "L200-13": {
+      "append": {
+        "route": [
+          {"area":"Laboratoire de Nileza","do":"Récupérer le Totem du dégoût pendant le Nileza déjà imposé par Une voix de crystal + les maîtres Frigost III. Aucun Bethel/Corruption/Dantinéa/Protozorreur dédié au Totem."}
+        ],
+        "hard_exit": ["Totem Dégoût obtenu sur Nileza"]
+      }
+    },
+    "L200-15E2": {
+      "append": {
+        "route": [
+          {"area":"Temple de Koutoulou","do":"Récupérer le Totem de la peur pendant le Koutoulou causal du Creuset. Aucun Anerice/Ilyzaelle/Misère dédié au Totem."}
+        ],
+        "hard_exit": ["Totem Peur obtenu sur Larve de Koutoulou"]
+      }
+    }
+  },
+  "stage_imports": [
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-09",
+      "after": "L200-VUL0"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-10",
+      "after": "P200-09"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-11",
+      "after": "P200-10"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-12",
+      "after": "P200-11"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-13",
+      "after": "P200-12",
+      "replace": {
+        "title": "Ravagés + Pandamonium AVANT Six sur six — ouvrir Réminiscence sans Au détour",
+        "level": "200 / Quand l'éveil n'est qu'un songe terminé / La fin... ou le commencement PAS encore terminée",
+        "quests": ["Toute possession dépossède","Le chant du Pandamonium","Le début de la fin"],
+        "successes": ["Ravagés"],
+        "route": [
+          {"area":"Réceptacle / Pandamonium","do":"Prendre Toute possession dépossède maintenant, avant de terminer La fin... ou le commencement. Dans cet état précis, Au détour d'un rêve perdu n'est pas encore un prérequis; ne pas attendre Six sur six."},
+          {"area":"Ravageurs/Pandamonium","do":"Enchaîner Toute possession dépossède → Le chant du Pandamonium → Le début de la fin. Faire le Rituel de Kabahal une seule fois lorsque Le chant le demande, avec toutes les ressources déjà préparées."}
+        ],
+        "before_leaving": ["Ravagés terminé","Le début de la fin terminé","La danse de la dissonance disponible","Au détour d'un rêve perdu volontairement différé après La fin... ou le commencement"],
+        "hard_exit": ["Aucun second Kabahal pour ce succès","Ne pas imposer Au détour avant Six sur six"],
+        "pause": ["POINT DE PAUSE SÛR — Pandamonium fermé, Réminiscence ouverte avant les gardiens200"]
+      }
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-14",
+      "after": "P200-13"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-15",
+      "after": "P200-14",
+      "replace": {
+        "title": "Réminiscence — ouvrir les six Totems AVANT la campagne boss200",
+        "duration_min": 220,
+        "quests": [],
+        "take": [
+          "Prendre Un héritage tourmenté après Descendre aux cendres, Prise de conscience et Mort et renouveau.",
+          "Avancer Un héritage tourmenté jusqu'au point qui permet de prendre Les totems de Maïmane, puis prendre la quête des six Totems."
+        ],
+        "totem_policy": {
+          "dynamic_choice": false,
+          "planned_merges": {
+            "joy": "Klime",
+            "sadness": "Sylargh",
+            "fear": "Larve de Koutoulou",
+            "anger": "Missiz Frizz",
+            "disgust": "Nileza",
+            "surprise": "Comte Harebourg"
+          },
+          "selection": "Ces six boss sont déjà obligatoires plus loin dans la route. Ne faire aucun donjon dédié aux Totems et ne remplacer une cible que si le runtime prouve que son passage obligatoire a déjà été consommé avec le Totem manquant."
+        },
+        "route": [
+          {"area":"Un héritage tourmenté / Cauchemar des Ravageurs","do":"Ouvrir la quête des six Totems puis STOP. Ne lancer aucun des six donjons maintenant: la route va les absorber naturellement dans Sylargh, Klime, Missiz, Nileza, Koutoulou et le Comte."}
+        ],
+        "before_leaving": ["Les six Totems sont actifs avant le premier gardien200 ciblé","Un héritage tourmenté reste volontairement en attente du Totem de l'équilibre"],
+        "hard_exit": ["Aucun rerun boss créé pour ouvrir les Totems","Totems_pending=6 avant campagne"],
+        "pause": ["POINT DE PAUSE SÛR — Totems ouverts, campagne boss200 peut commencer"]
+      }
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-00",
+      "after": "L200-15E6",
+      "replace": {
+        "take": ["Fermer maintenant uniquement les captures Ocre réellement manquantes avant d'ouvrir Quatre sur six."],
+        "route": [
+          {"area":"registre Ocre","do":"Remettre les boss puis les archimonstres réellement obtenus. Traiter uniquement les reliquats runtime; aucune capture de monstre classique depuis DOFUS 3.5."},
+          {"area":"Antre du Kralamoure Géant","do":"Quand l'étape19 est réellement ouverte et qu'une ouverture communautaire existe, fusionner la pierre spéciale Ocre avec Le tour est joué dans ce même Kralamoure. Sinon continuer les autres objectifs et revenir à une ouverture disponible."}
+        ]
+      }
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-01",
+      "after": "P200-00"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-02",
+      "after": "P200-01"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-03",
+      "after": "P200-02"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-04",
+      "after": "P200-03"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-05",
+      "after": "P200-04"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-06",
+      "after": "P200-05"
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-07",
+      "new_id": "P200-07-PREP",
+      "after": "P200-06",
+      "replace": {
+        "title": "S'armer contre le destin — préparer le Troisième Œil AVANT Comte/Vortex",
+        "duration_min": 180,
+        "quests": [],
+        "dungeon": null,
+        "take": ["Prendre S'armer contre le destin après Dans la gueule du dragon."],
+        "route": [
+          {"area":"Temple Huppermage / fils du destin","do":"Faire toute la préparation de S'armer contre le destin jusqu'à posséder le Troisième Œil et atteindre la demande des deux éclats de destin brisé. Préparer aussi les Ciseaux du Destin et les600 Reflets oniriques sans entrer dans un boss."},
+          {"area":"avant donjons","do":"STOP avec le Troisième Œil obtenu. Les éclats ne tombent sur le Comte et le Vortex qu'après cette préparation; le Comte DDG est la prochaine cible et doit être fait avant le Vortex."}
+        ],
+        "before_leaving": ["S'armer contre le destin active","Troisième Œil obtenu","Comte + Vortex demandés pour les éclats"],
+        "hard_exit": ["Aucun Comte ni Vortex avant Troisième Œil"],
+        "pause": ["POINT DE PAUSE SÛR — Troisième Œil prêt, Comte triple-fil suivant"]
+      }
+    },
+    {
+      "file": "level_191_200_v6.json",
+      "stage_id": "L200-DDG3",
+      "after": "P200-07-PREP",
+      "replace": {
+        "title": "Comte unique — DDG final + Totem Surprise + éclat de S'armer",
+        "dungeon": {"name":"Donjon du Comte Harebourg","pass":"ddg_totem_sarmer_single_pass"}
+      },
+      "append": {
+        "route": [
+          {"area":"Donjon du Comte Harebourg","do":"Entrer avec le Troisième Œil et les six Totems actifs. Ce MÊME Comte donne l'éclat de destin brisé de S'armer contre le destin et le Totem de la surprise, en plus de fermer les fils DDG déjà préparés."}
+        ],
+        "hard_exit": [
+          "Totem Surprise obtenu sur Comte Harebourg",
+          "Éclat de destin brisé du Comte obtenu avec Troisième Œil",
+          "Aucun second Comte pour Totems ou S'armer"
+        ]
+      }
+    },
+    {
+      "file": "level_191_200_v6.json",
+      "stage_id": "L200-NEB5",
+      "after": "P200-15-CLOSE",
+      "replace": {
+        "title": "Vortex unique — La vérité + Les sables + second éclat de S'armer",
+        "dungeon": {"name":"Œil de Vortex","pass":"nebuleux_two_quests_plus_sarmer_single_pass"}
+      },
+      "append": {
+        "route": [
+          {"area":"Œil de Vortex","do":"Avec le Troisième Œil toujours en inventaire, ce même Vortex déjà préparé pour La vérité est au fond du puits + Les sables du temps fournit le second éclat de destin brisé de S'armer contre le destin."}
+        ],
+        "hard_exit": [
+          "Un seul Vortex pour les deux quêtes Nébuleux + S'armer contre le destin",
+          "Éclat de destin brisé du Vortex obtenu"
+        ]
+      }
+    },
+    {
+      "file": "level_200_plus_v4.json",
+      "stage_id": "P200-07",
+      "new_id": "P200-07-CLOSE",
+      "after": "L200-NEB5",
+      "replace": {
+        "title": "S'armer contre le destin — fermer après Comte + Vortex fusionnés",
+        "duration_min": 45,
+        "quests": ["S'armer contre le destin"],
+        "preparation": [],
+        "dungeon": null,
+        "take": [],
+        "route": [
+          {"area":"Temple Huppermage","do":"Avec les deux éclats de destin brisé déjà obtenus, faire enchanter les Ciseaux du Destin puis retourner auprès de Rimanda. Fermer S'armer contre le destin sans aucun nouveau donjon."}
+        ],
+        "before_leaving": ["S'armer contre le destin terminée","La fin... ou le commencement disponible"],
+        "hard_exit": ["Comte_total_for_sarmer=0_extra","Vortex_total_for_sarmer=0_extra"],
+        "pause": ["POINT DE PAUSE SÛR — S'armer fermé, finale Six sur six prête"]
+      }
+    },
+    {
+      "file": "level_191_200_v6.json",
+      "stage_id": "L200-NEB6",
+      "after": "P200-07-CLOSE"
+    }
+  ],
+  "insertions": [
+    {
+      "after": "L200-DDG3",
+      "stage": {
+        "id": "P200-15-CLOSE",
+        "title": "Totems — rendre les six émotions et terminer Un héritage tourmenté",
+        "level": "200 / six Totems réellement obtenus",
+        "duration_min": 90,
+        "quests": ["Les totems de Maïmane","Un héritage tourmenté"],
+        "successes": ["Eliocalypse : Réminiscence"],
+        "route": [
+          {"area":"Cauchemar des Ravageurs","do":"Vérifier les six Totems réels: Joie Klime, Tristesse Sylargh, Peur Koutoulou, Colère Missiz, Dégoût Nileza, Surprise Comte. Les remettre à Maïmane pour obtenir le Totem de l'équilibre."},
+          {"area":"Un héritage tourmenté","do":"Reprendre la fabrication de la Rune d'Harmonie et fermer Un héritage tourmenté selon le walkthrough local. Aucun donjon supplémentaire n'est requis par cette fermeture."}
+        ],
+        "before_leaving": ["Les totems de Maïmane terminée","Un héritage tourmenté terminée","Eliocalypse : Réminiscence terminée"],
+        "hard_exit": ["Six Totems réels, zéro rerun dédié","Dofus du Cauchemar uniquement si runtime confirme"],
+        "pause": ["POINT DE PAUSE SÛR — Réminiscence fermée sans rerun Totem"]
+      }
+    }
+  ]
+}

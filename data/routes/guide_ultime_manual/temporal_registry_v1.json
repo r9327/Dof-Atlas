@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "registry_id": "guide_ultime_temporal_registry_v1",
+  "status": "RESEARCH_IN_PROGRESS",
+  "policy": {
+    "start_as_soon_as_profitable": true,
+    "never_block_main_route_while_waiting": true,
+    "reinject_before_losing_next_cycle": true,
+    "calendar_content_never_hidden_in_permanent_route": true,
+    "require_source_before_activation": true
+  },
+  "entries": [
+    {
+      "id": "pandawushu_grade_chain",
+      "type": "fixed_delay_chain",
+      "area": "Pandala",
+      "trigger_location": "[20,-31]",
+      "delay_hours_between_grades": 24,
+      "priority": "critical",
+      "reason": "Chaque grade suivant est bloqué 24 h après la fin du précédent. Retarder le premier grade retarde mécaniquement toute la chaîne.",
+      "known_sequence": [
+        "Les voies du Pandawushu",
+        "Rokwa : Voie du poing",
+        "Gokwa : Voie du bâton",
+        "Yonkwa : Voie du sabre",
+        "Sankwa : Voie du bouclier",
+        "Nikwa : Voie des cinq griffes",
+        "Ikwa : Voie du guerrier ivre",
+        "Shodanwa : Perfection martiale",
+        "Nidanwa : Harmonie intérieure",
+        "Sandanwa : Pluralité martiale",
+        "Yondanwa : Maîtrise absolue",
+        "Godanwa : Transcendance"
+      ],
+      "runtime_rule": "Dès qu'un grade est disponible et que son prérequis de niveau/contenu est satisfait, le faire suffisamment tôt pour relancer immédiatement le timer de 24 h. Le retour au dojo est prioritaire si attendre ferait perdre un cycle complet.",
+      "tracking_item": "Passage de grade",
+      "sources": [
+        "https://www.dofuspourlesnoobs.com/suivre-la-voie.html",
+        "https://www.dofuspourlesnoobs.com/rokwa-voie-du-poing.html",
+        "https://www.dofuspourlesnoobs.com/gokwa-voie-du-baton.html",
+        "https://www.dofuspourlesnoobs.com/yonkwa-voie-du-sabre.html",
+        "https://www.dofuspourlesnoobs.com/sankwa-voie-du-bouclier.html",
+        "https://www.dofuspourlesnoobs.com/nikwa-voie-des-cinq-griffes.html",
+        "https://www.dofuspourlesnoobs.com/ikwa-voie-du-guerrier-ivre.html",
+        "https://www.dofuspourlesnoobs.com/nidanwa-harmonie-interieure.html",
+        "https://www.dofuspourlesnoobs.com/sandanwa-pluralite-martiale.html",
+        "https://www.dofuspourlesnoobs.com/yondanwa-maitrise-absolue.html",
+        "https://www.dofuspourlesnoobs.com/godanwa-transcendance.html"
+      ]
+    },
+    {
+      "id": "pandala_presence_esprits_initiative",
+      "type": "weekly_calendar_window",
+      "area": "Pandala",
+      "quest": "Présence d'esprits",
+      "objective": "Esprit d'initiative",
+      "prerequisite": "Rokwa : Voie du poing",
+      "weekday": "Saturday",
+      "window_hours": 24,
+      "location": "Dojo [20,-31]",
+      "priority": "high",
+      "runtime_rule": "Dès Rokwa terminé, surveiller le prochain samedi et intégrer le dojo avant la fin de la fenêtre. Si 42 Almatons sont disponibles, l'objet Semaine des sept samedis peut forcer l'apparition sans attendre le samedi; ne pas imposer cet achat si les Almatons ont une meilleure utilisation.",
+      "source": "https://www.dofuspourlesnoobs.com/presence-d-esprits.html"
+    },
+    {
+      "id": "frigost_vaccine_duration",
+      "type": "temporary_buff_duration",
+      "area": "Frigost",
+      "quest": "Les monologues du vaccin",
+      "duration_days": 7,
+      "effect": "Vaccin contre le rube",
+      "priority": "high",
+      "runtime_rule": "Programmer les contenus de Frigost dépendant du vaccin dans la fenêtre de 7 jours ou renouveler le vaccin avant expiration. L'étape Frigost devra calculer ce regroupement avant validation.",
+      "source": "https://www.dofuspourlesnoobs.com/les-monologues-du-vaccin.html"
+    },
+    {
+      "id": "nowel_atelier_seven_days",
+      "type": "daily_repetition_chain",
+      "area": "Île de Nowel",
+      "quest": "L'Étoile de l'Atelier",
+      "repeat_quest": "Distribution de marrons",
+      "required_completions": 7,
+      "cadence": "daily",
+      "event_only": true,
+      "priority": "seasonal",
+      "runtime_rule": "Pendant l'événement de Nowel, lancer cette chaîne le premier jour possible et effectuer Distribution de marrons chaque jour jusqu'à 7 bons points. Elle reste hors route permanente lorsque Nowel est indisponible.",
+      "source": "https://www.dofuspourlesnoobs.com/lrsquoeacutetoile-de-lrsquoatelier.html"
+    }
+  ],
+  "research_backlog": [
+    "Auditer toutes les quêtes répétables quotidiennes/hebdomadaires de Pandala.",
+    "Auditer les autres fenêtres hebdomadaires de Présence d'esprits.",
+    "Auditer Frigost pour toutes les dépendances au vaccin de 7 jours.",
+    "Auditer Almanax et événements saisonniers séparément de la route permanente.",
+    "Auditer toutes les quêtes nécessitant plusieurs jours réels avant leur chapitre de première disponibilité."
+  ]
+}

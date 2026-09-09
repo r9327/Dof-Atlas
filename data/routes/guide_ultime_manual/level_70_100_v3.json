@@ -1,0 +1,107 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_level_70_100_v3",
+  "title": "Guide Ultime — Niveau 70 à 100 + Dofus Émeraude anticipé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_70_100_v2.json",
+  "supersedes": "guide_ultime_manual_level_70_100_v2",
+  "stage_count": 17,
+  "optimization_note": "La chaîne Mais où sont les Dofus ? est fermée avant le premier Village Kanniboul. Le Dofus Émeraude est alors poussé jusqu'à Le voleur d'âmes avant Moon, ce qui permet de capturer Kanniboul Ebil, Draegnerys, Nelween et Wa Wobot pendant leurs passages déjà nécessaires. Boostache, rencontré avant Capture d'âmes, est acheté en PDA si c'est plus rentable qu'un rerun.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/un-sage-parmi-les-sages.html",
+    "https://www.dofuspourlesnoobs.com/protection-divine.html",
+    "https://www.dofuspourlesnoobs.com/voir-le-dark-vlad-et-mourir-ou-pas.html",
+    "https://www.dofuspourlesnoobs.com/la-magicienne-des-mareacutecages.html",
+    "https://www.dofuspourlesnoobs.com/retourner-voir-le-dark-vlad-toujours-sans-mourir.html",
+    "https://www.dofuspourlesnoobs.com/qui-botte-le-cul-des-culs-botteacutes.html",
+    "https://www.dofuspourlesnoobs.com/le-voleur-dacircmes.html"
+  ],
+  "insertions": [
+    {
+      "after":"L70-00",
+      "stage": {
+        "id":"L70-00E",
+        "title":"Dofus primordiaux + Émeraude — ouvrir Le voleur d'âmes AVANT Moon",
+        "level":"70+ / métier 50 requis pour la partie Bowisse",
+        "duration_min":130,
+        "quests":[
+          "Un sage parmi les sages",
+          "Protection divine",
+          "Voir le Dark Vlad et mourir... ou pas",
+          "La magicienne des marécages",
+          "Retourner voir le Dark Vlad, toujours sans mourir",
+          "Qui botte le cul des Culs Bottés ?",
+          "Le voleur d'âmes"
+        ],
+        "preparation":[
+          {"requirement":"Au moins un métier niveau 50 avant Qui botte le cul des Culs Bottés ?","blocking":true,"policy":"Si aucun métier n'est encore 50, monter le métier le plus proche pendant les récoltes/crafts déjà utiles; ne pas attendre devant Bowisse."},
+          {"name":"Graine de la Discorde","quantity":8},
+          {"name":"Résine","quantity":4},
+          {"name":"Plume du Kwak de Vent","quantity":10},
+          {"name":"Aile de Scarafeuille Blanc","quantity":6},
+          {"name":"Pierre d'Émeraude","quantity":2},
+          {"name":"Champignon Ligneux","quantity":10,"policy":"collecte Clairière de Brouce Boulgoure pendant la quête; si repop incomplet, faire les autres objectifs puis revenir plutôt qu'attendre immobile"}
+        ],
+        "route":[
+          {"pos":"Île des Wabbits [23,-4]","do":"Reprendre Un sage parmi les sages là où pandala_access l'avait volontairement suspendue. Grâce à Intrusion chez les wabbits déjà terminée, retrouver Ronald dans les souterrains, le ramener à Wanald et fermer la quête."},
+          {"pos":"[23,-4] -> temple de classe -> [4,1] -> [-5,13]","do":"Enchaîner Protection divine: maître du temple, Dopeul Maléfique, prière, Wally Elconom, lecture du livre, puis orée de la Forêt Maléfique. Garder tout cela dans une seule session logique."},
+          {"pos":"Dédale Forêt Maléfique -> [10,-5]","do":"Faire Voir le Dark Vlad et mourir... ou pas avec le walkthrough local. À la fin, parler à Ronald au Port de Madrestam et prendre immédiatement La magicienne des marécages."},
+          {"pos":"[-6,-3]","do":"Terminer La magicienne des marécages auprès de Mériana. Ce dialogue ouvre les cinq premiers fils primordiaux: Émeraude, Pourpre, Turquoise, Ivoire et Ébène. Ne pas démarrer les quatre autres au hasard ici: ils seront inscrits dans leur registre de fil Dofus et pris à leur première fusion rentable."},
+          {"pos":"[-6,-3] -> Forêt Maléfique -> [5,1]","do":"Faire Retourner voir le Dark Vlad, toujours sans mourir: boucle de ressources marécages, Hell Mina, lettre, retour Mériana, puis suivre la boussole jusqu'à Bowisse."},
+          {"pos":"[5,1] + Brouce Boulgoure + [14,17] -> [27,-28]","do":"Avec un métier 50+, faire Qui botte le cul des Culs Bottés ?: 10 Champignons Ligneux, Cordonnier Sombre, ingrédients des Semelles de Vent, atelier Bowisse, puis suivre la boussole jusqu'à Toungousa."},
+          {"pos":"[27,-28] Terrdala","do":"Le sort Capture d'âmes a déjà été appris au Kwakwa. Prendre immédiatement Le voleur d'âmes AVANT de partir vers Moon. Les cinq cibles sont Draegnerys, Boostache, Kanniboul Ebil, Nelween et Wa Wobot."}
+        ],
+        "hard_exit":[
+          "Succès Mais où sont les Dofus ? fermé: Réceptacle + Un sage + Protection divine + Voir le Dark Vlad + La magicienne terminés.",
+          "Le voleur d'âmes ACTIVE avant L70-01 Village Kanniboul.",
+          "Capture d'âmes connue.",
+          "Métier 50 réel vérifié, pas supposé.",
+          "Boostache est marqué backfill/HDV; les quatre autres âmes seront obtenues sur des passages déjà prévus."
+        ],
+        "pause":["Le voleur d'âmes actif","Kanniboul Ebil = prochaine âme Émeraude naturelle","Moon peut commencer sans futur rerun Kanniboul"]
+      }
+    }
+  ],
+  "stage_patches": {
+    "L70-01": {
+      "append": {
+        "quests":["Le voleur d'âmes"],
+        "preparation":[{"name":"Pierre d'âme adaptée","minimum_power":100,"quantity":1,"for":"Kanniboul Ebil — Émeraude"}],
+        "route":[{"pos":"[29,9] Village Kanniboul — boss","do":"Pendant l'unique combat Kanniboul Ebil déjà prévu, utiliser Capture d'âmes avec une pierre adaptée et conserver la PDA pour Le voleur d'âmes. Cette capture est Émeraude, pas Ocre."}],
+        "hard_exit":["Âme Kanniboul Ebil obtenue pour Le voleur d'âmes ou échec explicitement enregistré; aucun rerun automatique."]
+      }
+    },
+    "L70-05": {
+      "append": {
+        "quests":["Le voleur d'âmes"],
+        "preparation":[{"name":"Pierre d'âme adaptée","minimum_power":100,"quantity":1,"for":"Draegnerys — Émeraude"}],
+        "route":[{"pos":"[-4,29] Épreuve de Draegnerys — boss","do":"Capturer Draegnerys pour Le voleur d'âmes pendant ce premier et unique passage. Ne pas confondre cette PDA Émeraude avec le registre Ocre."}],
+        "hard_exit":["Âme Draegnerys obtenue pour Émeraude ou rattrapage explicite."]
+      }
+    },
+    "L70-06": {
+      "append": {
+        "quests":["Le voleur d'âmes"],
+        "preparation":[{"name":"Pierre d'âme adaptée","minimum_power":100,"quantity":1,"for":"Nelween — Émeraude"}],
+        "route":[{"pos":"Laboratoire de Brumen — combat Nelween","do":"Capturer Nelween pendant le même Laboratoire déjà mutualisé Bonta29 + Histoire de chiens + 7e compagnie. Le venin Bonta reste à récupérer AVANT sortie."}],
+        "hard_exit":["Âme Nelween obtenue pour Émeraude sans second Laboratoire."]
+      }
+    },
+    "L70-09": {
+      "append": {
+        "quests":["Le voleur d'âmes","L'amour perdu de Nabur"],
+        "preparation":[{"name":"Pierre d'âme adaptée","minimum_power":100,"quantity":1,"for":"Wa Wobot — Émeraude"}],
+        "route":[
+          {"pos":"[28,-12] Terrier du Wa Wabbit — boss","do":"Capturer Wa Wobot pour Le voleur d'âmes pendant le passage Cawotte + Thelma déjà obligatoire."},
+          {"pos":"HDV des âmes","do":"Après Wa Wobot, vérifier les cinq PDA. Si Boostache manque toujours, acheter son âme si le prix est raisonnable plutôt que refaire Maison Fantôme sans autre objectif. Un rerun n'est autorisé que s'il sert aussi un fil encore réellement incomplet."},
+          {"pos":"[27,-28] Terrdala","do":"Remettre les cinq âmes à Toungousa, faire le rituel/combat Tonam Etanwa, suivre la boussole jusqu'au Cimetière des Héros et terminer Le voleur d'âmes. Prendre immédiatement L'amour perdu de Nabur auprès de Sellia Renuf."}
+        ],
+        "hard_exit":[
+          "Le voleur d'âmes terminé.",
+          "L'amour perdu de Nabur active.",
+          "Aucun rerun Kanniboul/Draegnerys/Nelween/Wa Wobot requis pour l'Émeraude."
+        ]
+      }
+    }
+  }
+}

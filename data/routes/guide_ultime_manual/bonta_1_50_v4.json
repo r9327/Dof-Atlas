@@ -1,0 +1,121 @@
+{
+  "schema_version": 4,
+  "route_id": "guide_ultime_manual_bonta_1_50_v4",
+  "title": "Guide Ultime — Alignement Bonta 1 à 50 optimisé",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "bonta_1_40_v3.json",
+  "supersedes": "guide_ultime_manual_bonta_1_40_v3",
+  "quest_range": [1, 50],
+  "macro_stage_count": 21,
+  "level_gate_policy": "Le QuestProvider local reste l'autorité de disponibilité. Les niveaux recommandés DPLN ne sont jamais transformés en prérequis durs si les critères de jeu disent autre chose.",
+  "routing_policy_41_50": [
+    "Ne jamais faire le Rat Blanc avant que Vin diou + Un juge hystérique + La Geste de Ratagnan soient actives; préparer aussi Cuisine raffinée et Le pacte des profondeurs si leurs critères locaux sont satisfaits.",
+    "Les rangs 42 à 46 sont une seule campagne Bonta/Cania/repaire Ecaflip avec retours à la milice gardés dans la même macro-étape.",
+    "Le rang 47 possède un vrai verrou social: aide d'un Sram ou d'un membre de l'Ordre de l'Oeil Attentif niveau 2+; ne jamais masquer ce blocage.",
+    "Le rang 48 possède un verrou métier/social: Bricoleur niveau 100, le personnage lui-même ou un allié.",
+    "Les rangs 49 et 50 ferment l'enquête Xephirès dans un seul bloc Brâkmar/Bonta, sans sortie annexe.",
+    "Le rang 50 ne déclenche aucun changement d'Ordre; prochain palier d'Ordre uniquement au rang 60."
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/vin-diou.html",
+    "https://www.dofuspourlesnoobs.com/les-ecas-ne-flippent-pas.html",
+    "https://www.dofuspourlesnoobs.com/plaine-de-chats.html",
+    "https://www.dofuspourlesnoobs.com/agrave-lendroit-agrave-lenvers.html",
+    "https://www.dofuspourlesnoobs.com/dans-la-gueule-du-chacha.html",
+    "https://www.dofuspourlesnoobs.com/alimentaire-mon-cher.html",
+    "https://www.dofuspourlesnoobs.com/bouc-a-misere.html",
+    "https://www.dofuspourlesnoobs.com/flagrant-delire.html",
+    "https://www.dofuspourlesnoobs.com/quand-y-en-a-marre-de-brakmar.html",
+    "https://www.dofuspourlesnoobs.com/la-capture.html",
+    "https://www.dofuspourlesnoobs.com/garde-manger-du-rat-blanc.html",
+    "https://www.dofuspourlesnoobs.com/la-geste-de-ratagnan.html"
+  ],
+  "preparation_41_50": [
+    {"name":"Cuir de Porsalu","quantity":1,"for_rank":42},
+    {"name":"Corde d'escalade","quantity":1,"for_ranks":[43,45],"policy":"Conserver après usage: utile à plusieurs quêtes; ne pas jeter."},
+    {"name":"Planche à Pâtisserie","quantity":5,"for_rank":45},
+    {"name":"Pemmican aux Haricots","quantity":9,"for_rank":46,"profession":"Chasseur 110 si craft; HDV autorisé"},
+    {"name":"Ceinture de Sécurité","quantity":1,"for_rank":46},
+    {"name":"Saphir","quantity":1,"for_rank":47},
+    {"requirement":"Sram OU personnage de l'Ordre de l'Oeil Attentif niveau 2+","for_rank":47,"blocking":true},
+    {"requirement":"Bricoleur niveau 100, soi-même ou allié","for_rank":48,"blocking":true},
+    {"name":"Kamas disponibles","quantity":16000,"for_rank":49,"policy":"6000 peuvent être économisés via combat; 10000 restent obligatoires selon le walkthrough"},
+    {"name":"Pierre d'âme boss","minimum_power":150,"for":"Rat Blanc","why":"Ocre 3.5+"}
+  ],
+  "insertions": [
+    {
+      "after": "BNT-18",
+      "stage": {
+        "id":"BNT-19",
+        "title":"Rat Blanc unique — Bonta41 + Un juge + Frères ennemis + Ocre",
+        "level_gate":"Vin diou réellement disponible ET Un juge hystérique pointe Rat Blanc",
+        "duration_min":70,
+        "ranks":[41],
+        "quests":["Vin diou","Un juge hystérique","La Geste de Ratagnan","Cuisine raffinée","Le pacte des profondeurs"],
+        "preparation":[
+          {"requirement":"Avancer La Geste de Ratagnan jusqu'à devoir vaincre le Rat Blanc."},
+          {"requirement":"Avancer Cuisine raffinée et Le pacte des profondeurs autant que possible avant l'entrée des égouts; suivre leurs objectifs locaux, sans inventer de donjon s'ils n'en demandent pas à cet état."},
+          {"name":"Pierre d'âme boss","minimum_power":150,"quantity":1}
+        ],
+        "route":[
+          {"pos":"[-32,-57] Bonta","do":"Prendre Vin diou auprès d'Amayiro et faire son enquête préalable jusqu'à l'objectif Rat Blanc."},
+          {"pos":"Canaux méphitiques","do":"Faire les objectifs de La Geste de Ratagnan et les fils Frères ennemis compatibles dans les égouts avant le donjon. Si la Gardienne des égouts est rencontrée naturellement, faire un challenge pour le succès monstre; ne jamais attendre son repop."},
+          {"pos":"[-34,-59] Garde-manger du Rat Blanc","do":"Entrer uniquement avec Vin diou + Un juge hystérique + La Geste de Ratagnan au bon objectif. Faire les succès raisonnables du boss, capturer le Rat Blanc avec une pierre puissance 150 minimum pour l'Ocre, et effectuer les dialogues post-boss de La Geste avant de sortir."},
+          {"pos":"Bonta","do":"Fermer Vin diou et La Geste de Ratagnan selon les walkthroughs locaux; remettre à jour Un juge hystérique chez Chris de Naire pour obtenir le prochain boss."}
+        ],
+        "hard_exit":[
+          "Un seul Garde-manger du Rat Blanc pour Bonta41 + Un juge + La Geste.",
+          "Rat Blanc capturé Ocre ou rattrapage explicite.",
+          "Bonta41 terminé.",
+          "Les Ecas ne flippent pas disponible selon critères locaux."
+        ],
+        "pause":["Bonta41 terminé","Rat Blanc Ocre traité","Frères ennemis avancé","Un juge hystérique mis à jour"]
+      }
+    },
+    {
+      "after":"BNT-19",
+      "stage": {
+        "id":"BNT-20",
+        "title":"Bonta 42-46 — enquête Ecaflip, convois et repaire en une campagne",
+        "level_gate":"rangs successifs réellement disponibles dans QuestProvider",
+        "duration_min":150,
+        "ranks":[42,43,44,45,46],
+        "quests":["Les Ecas ne flippent pas","Plaine de chats","À l'endroit, à l'envers","Dans la gueule du chacha","Alimentaire mon cher"],
+        "route":[
+          {"pos":"Bonta tavernes -> sud -> Cania","do":"Rang42: suivre la piste des Ecaflips dans les tavernes et la zone indiquée; fournir le Cuir de Porsalu et absorber les combats de zone dans les succès Cania déjà actifs."},
+          {"pos":"[-17,-41] -> [-12,-44]","do":"Rang43: gérer les Bandits des plaines, conserver la Corde d'escalade puis reconnaître le repaire sans trajet séparé."},
+          {"pos":"[-29,-46] -> route Cania -> Astrub -> Bonta","do":"Rang44: faire reconnaissance puis escorte du convoi dans la même session; choisir l'option économique du bijou selon la trésorerie, sans changer la logique de route."},
+          {"pos":"Bonta -> [-12,-44]","do":"Rang45: enquêter sur Grimpill, récupérer la clef, préparer seulement les doubles nécessaires, retourner au repaire avec la Corde déjà conservée, vaincre les bandits et prendre les documents AVANT de sortir."},
+          {"pos":"Bonta milice/tour des ordres","do":"Rang46: livrer les 9 Pemmicans, utiliser la Ceinture de Sécurité, faire la séquence du rapport suspicieux avec l'aide d'une personne puis fermer la quête chez Amayiro."}
+        ],
+        "hard_exit":["Bonta46 terminé","Corde d'escalade conservée","Aucun retour au repaire Ecaflip prévu pour un objectif déjà accessible"],
+        "pause":["Bonta46 terminé","Bouc à misère disponible","Préparer le verrou social du rang47"]
+      }
+    },
+    {
+      "after":"BNT-20",
+      "stage": {
+        "id":"BNT-21",
+        "title":"Bonta 47-50 — poison Brâkmar, Xarthan et capture de Xephirès",
+        "level_gate":"rangs successifs réellement disponibles; rang50 autour du niveau local requis",
+        "duration_min":110,
+        "ranks":[47,48,49,50],
+        "quests":["Bouc à misère","Flagrant délire","Quand y'en a marre de Brâkmar","La capture"],
+        "route":[
+          {"pos":"Temple Sram -> Brâkmar -> Temple Sram -> Bonta","do":"Rang47: apporter le Saphir, faire la cache de poison avec un Sram ou Oeil Attentif rang2+, voler le registre puis revenir avec le nom Xarthan. Ce verrou social est réel et doit être annoncé avant départ."},
+          {"pos":"[-33,-53] -> Tour des ordres","do":"Rang48: entrer chez Xarthan avec un Bricoleur 100+ (soi-même possible), récupérer le document puis faire l'enquête à la Tour sans détour extérieur."},
+          {"pos":"Brâkmar [-28,32] -> [-27,34] -> [-29,34] -> Bonta","do":"Rang49: interroger Bishom Pot puis les voleurs; préférer le combat aux 6000 kamas si rapide, payer les 10000 kamas obligatoires au bijoutier, puis rendre immédiatement à Amayiro."},
+          {"pos":"Bonta milice -> Tour des ordres [-34,-58] -> milice","do":"Rang50: repositionner les quatre miliciens pendant une seule boucle de ville, monter au grenier de la Tour, vaincre Xephirès et le conduire à Amayiro."}
+        ],
+        "hard_exit":[
+          "Bonta 1-50 couvert sans trou.",
+          "Xephirès capturé comme prisonnier de quête, pas comme pierre d'âme.",
+          "Aucun changement d'Ordre au rang50.",
+          "Prochain alignement: Le port salue (51)."
+        ],
+        "pause":["Bonta50 terminé","Aspirateur validable","Ordre inchangé","Bonta51 prêt pour chapitre suivant"]
+      }
+    }
+  ],
+  "stage_patches": {}
+}

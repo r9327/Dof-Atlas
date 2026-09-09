@@ -1,0 +1,138 @@
+{
+  "schema_version": 19,
+  "route_id": "guide_ultime_manual_level_191_200_v19",
+  "title": "Guide Ultime — Niveau 191 à 200, route joueur consolidée",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v18.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v18",
+  "stage_count": 62,
+  "depends_on": [
+    "level_181_190_v14.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Raccorde la tranche à 181-190 v14/Bonta v17/temporal v15 et nettoie les champs joueur les plus tardifs: Bonta91-100 est injecté depuis sa source propre, Ordre100 reste le même choix persistant, Nidas reste partagé entre Ivoire et Le roi et moi, et les retours Wukin/Wukang de Tant de mots restent nécessaires car cette quête ne s'ouvre qu'après Deux souffles.",
+  "stage_patches": {
+    "L191-00": {
+      "replace": {
+        "title":"Bonta 91-94 — cambriolage, Salbatroces puis morts-vivants",
+        "route":[],
+        "progress_also":["Retirer à l'avance les ressources Krobes, Perce-Neige, Écume de mer et Sel de Baleine. Pendant les combats de zone, faire seulement les succès encore ouverts."],
+        "hard_exit":["Bonta 94 terminé.","Un chemin tout tracé disponible."]
+      }
+    },
+    "L195-01": {
+      "replace": {
+        "title":"Bonta 95-96 — Quadraforce + Enigma, groupe cinq préparé",
+        "route":[],
+        "progress_also":["Arriver au mécanisme Maimane avec cinq personnages et les quatre Artefacts Pandawushu déjà en inventaire; ne pas recruter ou retourner en banque une fois sur place."],
+        "hard_exit":["Bonta 96 terminé.","À glacer le sang disponible."]
+      }
+    },
+    "L197-02": {
+      "replace": {
+        "title":"Bonta 97 — Missiz Frizz partagée avec les fils actifs",
+        "route":[],
+        "progress_also":["Avant la Forgefroide, activer les quêtes Frigost/Ivoire et succès Missiz déjà disponibles qui demandent réellement ce boss."],
+        "hard_exit":["Bonta 97 terminé.","Missiz Frizz n'a pas été faite isolément si un autre fil compatible était déjà disponible."]
+      }
+    },
+    "L198-03": {
+      "replace": {
+        "title":"Bonta 98 — Srambad sans donjon",
+        "route":[],
+        "progress_also":["Profiter du passage Srambad pour les objectifs Nébuleux déjà actifs uniquement lorsqu'ils utilisent les mêmes cartes ou combats."],
+        "hard_exit":["Bonta 98 terminé.","Fée d'hiver disponible."]
+      }
+    },
+    "L199-04": {
+      "replace": {
+        "title":"Bonta 99-100 — Ilyzaelle puis exorcisme d'Erazal",
+        "route":[],
+        "progress_also":["Avant Ilyzaelle, activer les fils Ivoire/Fratrie et succès déjà disponibles qui demandent le Belvédère. Après L'exorciste, terminer immédiatement la cinquième quête du même Ordre choisi depuis le rang 20."],
+        "hard_exit":["Bonta 100 terminé.","Même Ordre conservé depuis le rang 20.","Cinquième quête de cet Ordre disponible."]
+      }
+    },
+    "L200-05": {
+      "replace": {
+        "title":"Ordre 100 — cinquième quête du même Ordre, Merkator seulement parce qu'elle s'ouvre maintenant",
+        "preparation":[{"requirement":"Réunir les trois personnages/Ordres réellement demandés par la branche choisie avant les mécanismes de puits.","blocking":true},{"name":"Accélérateur de propulsion","quantity":1,"policy":"Réutiliser celui déjà acquis pour l'Abyssal si possible."}],
+        "route":[{"area":"Tour des Ordres → Merkator → puits de pouvoir","do":"Suivre uniquement la cinquième quête de l'Ordre déjà choisi. Si cette branche demande Merkator, ce nouveau passage est nécessaire parce que la quête d'Ordre 100 n'existait pas lors du Merkator précédent. Après le boss, effectuer les combats, leviers et interactions des puits demandés par cette branche."}],
+        "progress_also":["Ne jamais proposer les deux autres Ordres. Réutiliser les accès et équipements Abyssal déjà possédés afin d'éviter un nouveau bloc de préparation."],
+        "hard_exit":["Cinquième quête du même Ordre terminée.","Ordre au rang maximal réellement atteint.","Examen de passage peut ensuite utiliser ce prérequis."]
+      }
+    },
+    "L200-06": {
+      "replace": {
+        "title":"Ivoire — Le dragon blanc et Chaloeil en un passage",
+        "route":[{"area":"Mériana → Ecaflipus","do":"Avancer Le dragon blanc jusqu'au Chaloeil. Avant l'entrée, activer les quêtes et succès Ecaflipus déjà disponibles qui demandent réellement ce boss. Vaincre Chaloeil puis entrer dans la salle secrète et parler à Dardondakal avant de sortir."}],
+        "progress_also":["Ne pas répéter Chaloeil pour un fil qui pouvait déjà être activé avant ce passage."],
+        "hard_exit":["Le dragon blanc terminé.","Examen de passage actif.","Dardondakal rencontré dans la salle secrète."]
+      }
+    },
+    "P200-09": {
+      "replace": {
+        "title":"Ivoire + Le roi et moi — un seul Nidas pour les trois quêtes",
+        "level":"200 / Casse active / Un morceau de roi + Coiffeur de génie au boss",
+        "duration_min":300,
+        "quests":["Casse en Enutrosor","Un morceau de roi","Coiffeur de génie"],
+        "successes":["Le roi et moi"],
+        "entry":"Espionnage industriel terminé, Koffrérie accessible et les trois quêtes demandent réellement le Roi Nidas.",
+        "route":[
+          {"area":"Enutrosor / Koffrérie","do":"Avancer Casse en Enutrosor jusqu'à sa demande du Roi Nidas. Si Espionnage industriel n'est pas terminé, retourner finir cette quête au lieu de partir au boss."},
+          {"area":"Palais du roi Nidas","do":"Faire un seul Nidas pour Casse en Enutrosor + Un morceau de roi + Coiffeur de génie et les succès encore compatibles. Récupérer le Poil de Nez, faire le dialogue de Coiffeur et traiter le Coffret précieux de Casse avant de sortir. Nidas ne se capture pas pour l'Ocre."},
+          {"area":"Externam / Ecaflipus","do":"Terminer Casse en Enutrosor puis retourner auprès de Dardondakal. Nordalie s'ouvre; les deux quêtes de Le roi et moi seront rendues dans la fiche suivante sans nouveau Nidas."}
+        ],
+        "hard_exit":["Casse en Enutrosor terminée.","Un seul Nidas pour les trois fils.","Nordalie active.","Un morceau de roi et Coiffeur de génie prêts à rendre."]
+      }
+    },
+    "L200-ENUT-PREP": {
+      "replace": {
+        "title":"Enutrosor 200 — Raisons de retraite fermé et Le roi et moi prêt pour Nidas",
+        "take":["Prendre ensemble les quêtes Raisons de retraite disponibles dans la Retraite des Éternels plutôt que de les traiter avec un retour à la Tour entre chacune.","Prendre Espionnage industriel seulement après Malladie + Les grandes galeries réellement terminées.","En parallèle, avancer On ne prête qu'à Richard et Coiffeur de génie jusqu'à ce que Un morceau de roi et Coiffeur de génie demandent tous deux Nidas, puis s'arrêter avant le boss."],
+        "route":[
+          {"area":"Retraite des Éternels / Tour des Voyageurs","do":"Terminer Touchez pas à Grisebigle, Échantillonnage et Le silence est d'or dans une même campagne. Pour Échantillonnage, récupérer les sangs d'Enutrofor en extérieur dans la Retraite ou Fort Thune, pas dans le Palais du roi Nidas."},
+          {"area":"Koffrérie","do":"Faire Espionnage industriel puis Prise d'otages et La grève de la fin. Arriver avec 3000 points de succès, 200000 kamas disponibles et le métier 200 déjà prévu pour les autres Dofus afin de ne pas interrompre le fil."},
+          {"area":"Carrière Aurifère → Fabrique de Malléfisk","do":"Faire Malle des profondeurs et le nouveau Malléfisk qu'elle impose. Ce passage est nécessaire parce que Malle des profondeurs n'existait pas lors de Même pas malle; profiter des succès encore ouverts sans programmer un autre Malléfisk."},
+          {"area":"Retraite / Carrière / Creuset","do":"Terminer Reconnaissance de dettes et Laissé en plan dans la même grande boucle de collecte."},
+          {"area":"Raisons de retraite","do":"Vérifier que ses neuf quêtes sont réellement terminées et qu'Espionnage industriel est bien fermé avant Casse en Enutrosor."},
+          {"area":"Le roi et moi — avant Nidas","do":"Enchaîner On ne prête qu'à Richard, Pour quelques kamas de plus, Tout ce qui brille n'est pas or puis Un morceau de roi. Avancer Un morceau de roi et Coiffeur de génie jusqu'au Roi Nidas mais ne pas entrer : Casse en Enutrosor ajoutera le troisième fil au même boss."}
+        ],
+        "before_leaving":["Raisons de retraite réellement terminé.","Espionnage industriel terminé et Koffrérie accessible.","Un morceau de roi demande Nidas.","Coiffeur de génie demande Nidas.","Aucun Nidas consommé avant Casse en Enutrosor."],
+        "hard_exit":["Nidas réservé à Casse + Un morceau de roi + Coiffeur de génie."]
+      }
+    },
+    "L200-ENUT-CLOSE": {
+      "replace": {
+        "title":"Enutrosor — fermer Le roi et moi après le Nidas partagé",
+        "route":[
+          {"area":"Creuset des Fortunés","do":"Rendre immédiatement Un morceau de roi et Coiffeur de génie après le Nidas partagé. Prendre Prime de lèche-majesté dès son ouverture; cette dernière quête ne demande pas un nouveau Palais."},
+          {"area":"Enutrosor → audience privée","do":"Faire les quatre interrogatoires de Prime dans une seule boucle, utiliser l'audience privée du Roi Nidas hors donjon puis rendre au Professeur Maximilio."},
+          {"area":"Le roi et moi","do":"Vérifier On ne prête qu'à Richard, Pour quelques kamas de plus, Tout ce qui brille n'est pas or, Un morceau de roi, Prime de lèche-majesté et Coiffeur de génie réellement terminés."}
+        ],
+        "before_leaving":["Le roi et moi 6/6 terminé.","Aucun Nidas supplémentaire pour ce succès."],
+        "hard_exit":["Un seul Nidas partagé entre Casse en Enutrosor, Un morceau de roi et Coiffeur de génie."]
+      }
+    },
+    "P200-11": {
+      "replace": {
+        "title":"Pandala 200 — Pandawushu + Deux dragons + Tacheté dans l'ordre réel",
+        "route":[
+          {"area":"Pandala / dojo Pandawushu","do":"Avant la longue campagne Wukin/Wukang, terminer les grades Pandawushu encore manquants dans l'ordre Shodanwa, Nidanwa, Sandanwa, Yondanwa puis Godanwa. Utiliser les équipements préparés pour les seuils de caractéristiques et Sculpteur 30 lorsqu'un grade le demande. Ne refaire aucun grade déjà validé."},
+          {"area":"Aerdala / Taverne interdite","do":"Avancer Main dans la main jusqu'à la chope métallique puis prendre De l'encre spectaculaire, L'effet dragon, Pour que son coeur batte comme des ailes, Des aliments extraordinaires pour un chacha extraordinaire et L'épopée du moine pèlerin. Tant de mots et si peu de temps n'est pas encore disponible à ce moment."},
+          {"area":"Royaumes d'encre et de papier","do":"Terminer les cinq quêtes Deux dragons déjà disponibles en regroupant leurs drops, cartes et combats. De l'encre spectaculaire exige Bricoleur 30 personnel : préparer ce métier avant le déplacement."},
+          {"area":"Main dans la main → Deux souffles","do":"Avancer Main dans la main jusqu'à l'ouverture de Deux souffles, une inspiration. Faire les deux branches, le craft Paysan 20 et les passages Mémoire d'Orukam + Souvenir d'Imagiro, puis terminer Deux souffles avant de poursuivre."},
+          {"area":"avant Tant de mots","do":"Vérifier Deux souffles, La voix de la soif, Maudite disparition, Où est mon samouraï ? et Jusqu'à leur dernier soupir terminés. Préparer Kirim et la transformation en Léopardo; si un prérequis manque, finir uniquement ce dernier avant d'entrer dans les Royaumes."},
+          {"area":"Mémoire d'Orukam + Souvenir d'Imagiro","do":"Tant de mots ne s'ouvre qu'après Deux souffles, alors que Deux souffles demandait déjà ces deux donjons. Revenir uniquement pour les drops de Tant de mots devenus accessibles après coup et profiter des succès ou drops encore ouverts."},
+          {"area":"Royaumes Wukin/Wukang","do":"Terminer Tant de mots avec les Haïkus et drops actuels sans attente immobile. Le métier 200 est une option de récolte, jamais une obligation de monter un nouveau métier uniquement pour cette quête."},
+          {"area":"réunion des dragons","do":"Terminer Main dans la main puis En ce jardin qui nous unit avec Dorigami + Domakuro. Enregistrer le Dofus Tacheté uniquement lorsque le succès Un rêve en clair-obscur et la remise du Dofus sont réellement confirmés en jeu."}
+        ],
+        "before_leaving":["Les secrets du Pandawushu 5/5 réellement terminé.","Deux dragons entrent dans un bar 6/6 réellement terminé.","Main dans la main + Deux souffles + En ce jardin terminés.","Dofus Tacheté réellement obtenu.","Les nouveaux passages Wukin/Wukang de Tant de mots sont expliqués par son ouverture après Deux souffles."],
+        "hard_exit":["Tant de mots jamais lancée avant Deux souffles terminé.","Aucun métier 200 supplémentaire imposé pour Tant de mots.","Aucun grade Pandawushu validé artificiellement.","Aucun faux Dofus Tacheté."]
+      }
+    }
+  },
+  "insertions": []
+}

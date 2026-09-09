@@ -1,0 +1,132 @@
+{
+  "schema_version": 17,
+  "route_id": "guide_ultime_manual_level_191_200_v17",
+  "title": "Guide Ultime — 191-200 + Enutrosor complet avant Casse Ivoire",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v16.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v16",
+  "stage_count": 62,
+  "depends_on": [
+    "level_181_190_v10.json",
+    "bonta_1_100_v11.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Répare la dette Ivoire/Skyzio Enutrosor. Après les phorreurs est déjà fermé au palier180, donc Malladie + Les grandes galeries sont disponibles pour Espionnage industriel. À200, Raisons de retraite est fermé avant Casse en Enutrosor. Le roi et moi est avancé jusqu'à Un morceau de roi + Coiffeur de génie au verrou Nidas; ces deux quêtes partagent ensuite le même Roi Nidas que Casse en Enutrosor. Prime de lèche-majesté ferme le succès en sortie, ce qui évite les deux Nidas supplémentaires qu'une exécution naïve des fils créerait.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/enutrosor.html",
+    "https://www.dofuspourlesnoobs.com/raisons-de-retraite.html",
+    "https://www.dofuspourlesnoobs.com/espionnage-industriel.html",
+    "https://www.dofuspourlesnoobs.com/casse-en-enutrosor.html",
+    "https://www.dofuspourlesnoobs.com/le-roi-et-moi.html",
+    "https://www.dofuspourlesnoobs.com/un-morceau-de-roi.html",
+    "https://www.dofuspourlesnoobs.com/coiffeur-de-genie.html",
+    "https://www.dofuspourlesnoobs.com/palais-du-roi-nidas.html"
+  ],
+  "insertions": [
+    {
+      "before": "L200-06",
+      "stage": {
+        "id": "L200-ENUT-PREP",
+        "title": "Enutrosor200 — Raisons de retraite fermé + Le roi et moi prêt Nidas",
+        "level": "200 / Après les phorreurs + Même pas malle terminés",
+        "duration_min": 900,
+        "quests": [
+          "Touchez pas à Grisebigle",
+          "Échantillonnage",
+          "Le silence est d'or",
+          "Espionnage industriel",
+          "Prise d'otages",
+          "La grève de la fin",
+          "Malle des profondeurs",
+          "Reconnaissance de dettes",
+          "Laissé en plan",
+          "On ne prête qu'à Richard",
+          "Pour quelques kamas de plus",
+          "Tout ce qui brille n'est pas or",
+          "Un morceau de roi",
+          "Coiffeur de génie"
+        ],
+        "successes": ["Raisons de retraite", "Le roi et moi"],
+        "preparation": [
+          {"requirement":"Malladie terminée","for":"Espionnage industriel","blocking":true},
+          {"requirement":"Les grandes galeries terminée","for":"Espionnage industriel","blocking":true},
+          {"requirement":"3000 points de succès minimum","for":"La grève de la fin","blocking":true},
+          {"kamas":200000,"for":"La grève de la fin","policy":"Les avoir sur soi au dialogue; ils ne sont pas consommés."},
+          {"requirement":"Un métier niveau200 / succès Compagnon","for":"La grève de la fin","blocking":true,"policy":"Réutiliser le métier200 déjà prévu Vulbis/Six sur six; ne jamais monter un second métier uniquement pour Enutrosor."},
+          {"name":"Clef de la Fabrique de Malléfisk","quantity":1,"for":"Malle des profondeurs","policy":"C'est le second passage Malléfisk global: le premier a servi Même pas malle."},
+          {"requirement":"Une caractéristique valide pour Maudite générosité déjà satisfaite au palier180: >600 Agi/Chance/Force/Int ou >700 Vita, ou succès alternatif documenté","blocking":true},
+          {"name":"Corne de Kamasterik","quantity":1,"for":"Coiffeur de génie"},
+          {"name":"Sourcil de Barbétoal","quantity":1,"for":"Coiffeur de génie"},
+          {"name":"Dent de Lévitrof","quantity":1,"for":"Coiffeur de génie"},
+          {"name":"Morceau de clef de Paspartou","quantity":1,"for":"Coiffeur de génie"},
+          {"note":"Avant la campagne Retraite des Éternels, vider les pods et préparer tous les objets fixes. Les combats Échantillonnage/Raisons utilisent les monstres de la zone200; les grouper au maximum avant le Malléfisk."}
+        ],
+        "take": [
+          "À l'arrivée Enutrosor200, prendre les quêtes Raisons de retraite actuellement disponibles plutôt que les faire une par une avec retour à la Tour.",
+          "Espionnage industriel n'est pris que lorsque Malladie + Les grandes galeries sont réellement terminées; ce gate est obligatoire pour l'accès Koffrérie de Casse en Enutrosor.",
+          "En parallèle, ouvrir On ne prête qu'à Richard et Coiffeur de génie. Avancer Le roi et moi jusqu'à ce que Un morceau de roi ET Coiffeur de génie demandent tous deux le Roi Nidas, puis STOP avant le boss."
+        ],
+        "route": [
+          {"area":"Retraite des Éternels / Tour des Voyageurs","do":"Fermer Touchez pas à Grisebigle + Échantillonnage + Le silence est d'or en une campagne. Pour Échantillonnage, les10 sangs d'Enutrofor doivent être pris en extérieur Retraite/Fort Thune: DPLN précise qu'ils ne tombent pas dans le Palais Nidas."},
+          {"area":"Koffrérie","do":"Faire Espionnage industriel. Dès sa fermeture, enchaîner Prise d'otages puis La grève de la fin. Arriver à La grève avec3000 succès +200000 kamas + métier200 déjà prêts afin de ne pas interrompre le fil."},
+          {"area":"Carrière Aurifère → Fabrique de Malléfisk","do":"Faire Malle des profondeurs et son unique second Malléfisk global. Profiter de ce passage pour tous succès Malléfisk encore ouverts; aucun troisième Malléfisk n'est créé par cette chaîne."},
+          {"area":"Retraite/Carrière/Creuset","do":"Fermer Reconnaissance de dettes et Laissé en plan dans la même grande boucle de collecte. Laissé en plan est disponible après Malle des profondeurs; les gemmes/morceaux sont ramassés par trajet sans farm aléatoire ajouté."},
+          {"area":"audit Raisons de retraite","do":"Vérifier les9 quêtes réellement terminées. Espionnage industriel doit être confirmé terminé avant de considérer le futur Casse Ivoire débloqué."},
+          {"area":"Le roi et moi — pré-Nidas","do":"Enchaîner On ne prête qu'à Richard → Pour quelques kamas de plus → Tout ce qui brille n'est pas or → Un morceau de roi. Coiffeur de génie étant déjà active et préparée, avancer LES DEUX quêtes jusqu'à l'objectif Roi Nidas. Ne pas entrer au Palais maintenant: le futur Casse en Enutrosor fournira un troisième fil boss."}
+        ],
+        "before_leaving": [
+          "Raisons de retraite9/9 réellement terminé.",
+          "Espionnage industriel terminé et Koffrérie accessible.",
+          "Un morceau de roi au verrou Nidas.",
+          "Coiffeur de génie au verrou Nidas.",
+          "Aucun Nidas consommé dans cette fiche."
+        ],
+        "hard_exit": [
+          "Raisons de retraite fermé avant Casse en Enutrosor.",
+          "Malle des profondeurs = un seul Malléfisk supplémentaire.",
+          "Nidas réservé au triple-fil Casse + Un morceau + Coiffeur."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — Enutrosor complet hors Nidas du succès Le roi et moi, réservé à l'Ivoire"]
+      }
+    },
+    {
+      "after": "P200-09",
+      "stage": {
+        "id": "L200-ENUT-CLOSE",
+        "title": "Enutrosor — fermer Le roi et moi après le Nidas Ivoire partagé",
+        "level": "200 / Casse en Enutrosor Nidas terminé",
+        "duration_min": 100,
+        "quests": ["Un morceau de roi", "Coiffeur de génie", "Prime de lèche-majesté"],
+        "successes": ["Le roi et moi"],
+        "route": [
+          {"area":"Creuset des Fortunés / Richard-Léonard","do":"Rendre immédiatement Un morceau de roi et Coiffeur de génie après le Nidas partagé. Prendre Prime de lèche-majesté dès son déblocage; ne pas programmer un nouveau Palais Nidas, cette dernière quête n'en demande pas."},
+          {"area":"Enutrosor — quatre zones de contrôle → audience Nidas hors donjon","do":"Faire les quatre interrogatoires de Prime dans une seule boucle de la dimension, puis utiliser l'audience privée du Roi Nidas hors donjon, rendre au Professeur Maximilio et fermer la quête."},
+          {"area":"audit Le roi et moi","do":"Vérifier On ne prête + Pour quelques + Tout ce qui brille + Un morceau + Prime + Coiffeur réellement terminés. Le succès doit être fermé sans second Nidas après l'Ivoire."}
+        ],
+        "before_leaving": ["Le roi et moi6/6 terminé.","Aucun Nidas supplémentaire pour ce succès."],
+        "hard_exit": ["Un seul Nidas partagé entre Casse en Enutrosor + Un morceau de roi + Coiffeur de génie."]
+      }
+    }
+  ],
+  "stage_patches": {
+    "P200-09": {
+      "replace": {
+        "title":"Ivoire4 + Le roi et moi — Nidas triple-fil unique",
+        "level":"200 / Casse active / Un morceau + Coiffeur au boss",
+        "duration_min":300,
+        "quests":["Casse en Enutrosor","Un morceau de roi","Coiffeur de génie"],
+        "successes":["Le roi et moi"],
+        "dungeon":{"name":"Palais du roi Nidas","pass":"single_shared_ivoire_le_roi_et_moi","capture_allowed":false},
+        "entry":"Espionnage industriel terminé; Koffrérie accessible; Casse avancée jusqu'au Coffret précieux/Nidas; Un morceau et Coiffeur demandent tous deux Nidas.",
+        "route":[
+          {"area":"Enutrosor / Koffrérie","do":"Avancer Casse en Enutrosor dans la Koffrérie jusqu'à ce que le Roi Nidas soit explicitement demandé. Si Espionnage industriel n'est pas réellement terminé, STOP: c'est une dette du stage Enutrosor précédent, pas un boss à forcer."},
+          {"area":"Palais du roi Nidas","do":"UN SEUL Nidas pour Casse en Enutrosor + Un morceau de roi + Coiffeur de génie + tous succès Nidas encore compatibles. Récupérer le Poil de Nez pour Un morceau, effectuer le dialogue demandé par Coiffeur et faire le Coffret précieux de Casse avant sortie. Nidas n'est pas capturable."},
+          {"area":"Externam/Ecaflipus","do":"Fermer la relique/audience de Casse puis retourner à Dardondakal. Nordalie s'ouvre. Les deux quêtes Le roi et moi sont rendues dans la fiche suivante sans refaire Nidas."}
+        ],
+        "hard_exit":["Casse en Enutrosor terminée","Nidas global unique pour les trois fils","Nordalie active","Un morceau + Coiffeur à rendre, aucun boss supplémentaire"]
+      }
+    }
+  }
+}

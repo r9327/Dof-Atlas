@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_astrub_class_branches_v1",
+  "status": "MANUAL_ROUTE_WORKING_SET",
+  "trigger": {
+    "quest": "Conseil de classe",
+    "start": [4, -19],
+    "recommended_level": 20,
+    "selector": "actual_character_class",
+    "manual_selection_forbidden": true,
+    "end_unlock": "Ça sent le gaz"
+  },
+  "source": "Dofus Pour Les Noobs — Conseil de classe + pages de chaque quête de classe, vérifiées sur la version courante disponible en août 2026.",
+  "global_rule": "Conseil de classe conduit au responsable de la classe; la sous-route correspondante est exécutée intégralement puis le guide reprend le tronc commun avec Ça sent le gaz. Les positions listées ici sont des points de passage macro; les interactions exactes restent servies par la fiche quête locale enrichie.",
+  "branches": {
+    "cra": {
+      "quest": "C'est pour ta pomme",
+      "chief": [2, -16],
+      "route_points": [[2,-16],[5,-19],[1,-16],[5,-19],[3,-19],[2,-17],[1,-16],[7,-10],[5,-19],[2,-16]],
+      "preparation": [],
+      "notes": ["Inclut un passage Milice et un combat contre les voleurs; profiter des passages [5,-19] pour les quêtes de ville déjà actives."]
+    },
+    "ecaflip": {
+      "quest": "Au petit malheur la chance",
+      "chief": [6, -18],
+      "route_points": [[6,-18],[5,-17],[7,-19],[7,-20],[6,-21],[5,-21],[6,-18]],
+      "preparation": [{"name":"Kamas","quantity":50,"conditional":true}],
+      "notes": ["Boucle entièrement urbaine; à exécuter pendant AST-02 avant toute sortie d'Astrub."]
+    },
+    "eliotrope": {
+      "quest": "Un rayon de soleil",
+      "chief": [7, -19],
+      "route_points": [[7,-19],[1,-17],[4,-20],[4,-19],[2,-16],[4,-20],[10,-19],[7,-19]],
+      "preparation": [],
+      "notes": ["La visite Mine [10,-19] est obligatoire pour cette classe; elle ne remplace pas la future boucle Crise sanitaire car les états de quête ne sont pas encore disponibles."]
+    },
+    "eniripsa": {
+      "quest": "Piques de solution",
+      "chief": [3, -21],
+      "route_points": [[3,-21],[6,-20],[1,-19],[5,-17],[6,-16],[3,-21]],
+      "preparation": [{"name":"Dofawa","quantity":1,"conditional":true}],
+      "notes": ["Prévoir les combats de groupe indiqués par la fiche quête; ne pas remplacer le Dofawa par une hypothèse de récompense antérieure."]
+    },
+    "enutrof": {
+      "quest": "La fête de la chocopépite",
+      "chief": [1, -17],
+      "route_points": [[1,-17],[2,-18],[3,-19],[0,-13],[0,-15],[3,-15],[7,-19],[1,-17],[2,-18],[3,-18],[3,-17],[5,-17],[1,-17]],
+      "preparation": [],
+      "notes": ["La branche traverse le Cimetière très tôt mais uniquement pour cette quête; ne pas ouvrir les quêtes niveau 40 avant leurs prérequis."]
+    },
+    "feca": {
+      "quest": "Tournée d'inspection",
+      "chief": [4, -15],
+      "route_points": [[4,-15],[7,-15],[1,-16],[1,-21],[7,-21],[3,-18],[4,-15]],
+      "preparation": [],
+      "notes": ["Boucle d'inspection urbaine compacte; deux combats solo sont gérés par la fiche quête."]
+    },
+    "forgelance": {
+      "quest": "La routine anodine du chevalier citadin",
+      "chief": [4, -19],
+      "chief_context": "étage de la tour du Conseil",
+      "route_points": [[4,-19],[5,-16],[7,-19],[6,-15],[1,-16],[3,-16],[4,-19]],
+      "preparation": [],
+      "notes": ["Un combat de groupe est prévu par la quête; le point [4,-19] est une entrée intérieure depuis la tour du Conseil."]
+    },
+    "huppermage": {
+      "quest": "Les paroles s'envolent, les aigris restent",
+      "chief": [6, -17],
+      "route_points": [[6,-17],[7,-16],[6,-17],[4,-19],[2,-15],[6,-17],[7,-24],[6,-26],[6,-30],[4,-30],[6,-17]],
+      "preparation": [],
+      "notes": ["Cette branche descend jusqu'aux Champs; ne pas considérer ce passage comme la boucle Champs principale car les quêtes de celle-ci peuvent ne pas être encore débloquées."]
+    },
+    "iop": {
+      "quest": "Iop et hop",
+      "chief": [5, -19],
+      "route_points": [[5,-19],[6,-17],[5,-19],[3,-21],[7,-15],[11,-11],[5,-19],[7,-19],[5,-19],[11,-11],[5,-19]],
+      "preparation": [{"name":"Kamas","quantity":10,"conditional":true}],
+      "notes": ["Deux passages [11,-11] sont imposés par la chaîne; les retours Milice/Bibliothèque sont conservés car causaux."]
+    },
+    "ouginak": {
+      "quest": "Une vie de milichien",
+      "chief": [4, -15],
+      "route_points": [[4,-15],[0,-18],[8,-18],[4,-21],[7,-24],[4,-15]],
+      "preparation": [
+        {"name":"Ortie","quantity":15,"conditional":true},
+        {"name":"Fleur de Pissenlit Diabolique","quantity":1,"conditional":true}
+      ],
+      "notes": ["Préparer les ressources avant AST-02 évite un aller-retour de récolte dédié."]
+    },
+    "osamodas": {
+      "quest": "Série animalière",
+      "chief": [2, -15],
+      "route_points": [[2,-15],[1,-17],[2,-15],[1,-17],[1,-16],[2,-15],[1,-17],[2,-15]],
+      "preparation": [],
+      "notes": ["Plusieurs combats de sous-sol sont intrinsèques à la quête; la répétition [1,-17] est causale et ne doit pas être fusionnée artificiellement."]
+    },
+    "pandawa": {
+      "quest": "Trempette dans un verre d'eau",
+      "chief": [6, -18],
+      "route_points": [[6,-18],[7,-19],[4,-19],[2,-19],[3,-16],[6,-18],[2,-14],[6,-18],[3,-20],[6,-18]],
+      "preparation": [],
+      "notes": ["Le passage Cimetière [2,-14] fait partie de la quête de classe et ne signifie pas que les quêtes Cimetière niveau 40 sont ouvertes."]
+    },
+    "roublard": {
+      "quest": "Braquage à la Roublard",
+      "chief": [5, -15],
+      "route_points": [[5,-15],[3,-21],[1,-17],[3,-21],[4,-18],[5,-15]],
+      "preparation": [{"name":"Kamas","quantity":50,"conditional":true}],
+      "notes": ["Boucle ville/banque compacte; le combat de banque reste dans cette branche."]
+    },
+    "sacrieur": {
+      "quest": "Souffre-douleur",
+      "chief": [5, -20],
+      "route_points": [[5,-20],[3,-13],[5,-20],[3,-20],[3,-21],[5,-20]],
+      "preparation": [],
+      "notes": ["Plusieurs combats solo; garder la sous-route séparée du tronc commun pour ne pas imposer ces détours aux autres classes."]
+    },
+    "sadida": {
+      "quest": "C'est pourtant naturel",
+      "chief": [1, -16],
+      "route_points": [[1,-16],[-1,-15],[-2,-25],[1,-16],[3,-21],[1,-17],[3,-21],[2,-19],[3,-17],[3,-21],[1,-16],[-2,-15],[1,-16],[0,-19],[-2,-15],[1,-16]],
+      "preparation": [
+        {"name":"Eau potable","quantity":5,"conditional":true},
+        {"name":"Kamas","quantity":100,"conditional":true}
+      ],
+      "notes": ["Branche longue avec Forêt/Égouts; les répétitions sont conservées car elles correspondent à des retours de quête obligatoires."]
+    },
+    "sram": {
+      "quest": "Crime et châtiment",
+      "chief": [3, -16],
+      "route_points": [[3,-16],[6,-15],[2,-19],[5,-21],[3,-16],[6,-15],[0,-18],[3,-16]],
+      "preparation": [],
+      "notes": ["Vol/pickpocket et deux combats gérés par la fiche locale."]
+    },
+    "steamer": {
+      "quest": "L'étrange créature de l'étang bleu",
+      "chief": [1, -21],
+      "route_points": [[1,-21],[1,-20],[2,-20],[2,-21],[4,-20],[4,-16],[2,-21],[2,-20],[1,-21]],
+      "preparation": [],
+      "notes": ["Boucle essentiellement urbaine; un combat est prévu vers [2,-20]."]
+    },
+    "xelor": {
+      "quest": "Tarot, t'es très fort",
+      "chief": [4, -19],
+      "route_points": [[4,-19],[6,-18],[7,-18],[7,-24],[3,-29],[7,-24],[3,-21],[4,-19]],
+      "preparation": [],
+      "notes": ["La branche utilise un passage Champs et Nibé; la téléportation/retour exact reste géré par le walkthrough local."]
+    },
+    "zobal": {
+      "quest": "Zobal Hibaba et les 40 Roublards",
+      "chief": [7, -15],
+      "route_points": [[7,-15],[4,-18],[7,-15],[1,-16],[3,-21],[7,-15],[5,-19],[1,-19],[7,-15]],
+      "preparation": [],
+      "notes": ["Passage banque, Mage/Nibé, Milice et sous-sol; combat final dans la maison [1,-19]."]
+    }
+  },
+  "hard_checks": {
+    "expected_branch_count": 19,
+    "one_branch_per_character": true,
+    "all_branches_resume_common_route": "Ça sent le gaz",
+    "conditional_resources_must_not_be_required_for_other_classes": true
+  }
+}

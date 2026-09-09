@@ -1,0 +1,99 @@
+{
+  "local_scan": {
+    "roots": [
+      ".",
+      "data",
+      "assets",
+      "cartography",
+      "cache",
+      "maps",
+      "dofus_maps",
+      "map_assets",
+      "backup",
+      "old",
+      "legacy",
+      "previous",
+      "archive",
+      "export",
+      "exports",
+      "cartography_old",
+      "maps_old",
+      "d2data"
+    ],
+    "ignore_path_parts": [
+      "__pycache__",
+      ".git",
+      "data/images/items",
+      "data/images/resources",
+      "data/images/classes",
+      "data/images/misc",
+      "data/routes",
+      "data/cartography/assets/_rejected",
+      "logs"
+    ],
+    "preferred_keywords": [
+      "world",
+      "map",
+      "amakna",
+      "enutrosor",
+      "enurado",
+      "cartography",
+      "background",
+      "atlas"
+    ]
+  },
+  "sources": {
+    "doduda": {
+      "enabled": true,
+      "type": "cli",
+      "repo": "https://github.com/dofusdude/doduda",
+      "command_args": [
+        [],
+        ["map"]
+      ],
+      "local_executable": "tools/doduda/doduda.exe",
+      "safe_worldmaps_command": "tools/doduda/doduda.exe --output data/cache/dofus_maps/raw/doduda_cli -i 'images-(?!worldmaps).*'",
+      "safe_map_command": "tools/doduda/doduda.exe map --output data/cache/dofus_maps/raw/doduda_cli",
+      "run_cli_if_available": true,
+      "allow_auto_cli_run": false,
+      "release_api": "https://api.github.com/repos/dofusdude/dofus3-main/releases/latest",
+      "worldmap_archive_name": "worldmap_images.tar.gz",
+      "max_auto_download_bytes": 250000000,
+      "note": "The release archive is large. Download only with --allow-large-downloads."
+    },
+    "dofus_discovery": {
+      "enabled": true,
+      "type": "github_reference",
+      "repo": "https://github.com/crimson-med/Dofus-Discovery",
+      "allow_as_final_source": false,
+      "requires_human_visual_validation": true,
+      "note": "Technical reference only. Rejected as automatic final source for world_amakna.",
+      "rejected_as_final_for": {
+        "world_amakna": "REJECTED: wrong map / not valid Dofus 3 Unity world map."
+      },
+      "assets": {
+        "world_amakna": [
+          {
+            "url": "https://raw.githubusercontent.com/crimson-med/Dofus-Discovery/master/images/rendered.jpg",
+            "filename": "dofus_discovery_rendered.jpg",
+            "crop_box": [14, 137, 1595, 1210],
+            "note": "Rendered Amakna overview from Dofus-Discovery README assets."
+          }
+        ]
+      }
+    },
+    "dofus_map": {
+      "enabled": false,
+      "type": "public_visual_fallback",
+      "base_url": "https://dofus-map.com/",
+      "note": "Fallback only, no aggressive scraping, no bypass."
+    }
+  },
+  "aliases": {
+    "dimension_enutrosor": [
+      "Enutrosor",
+      "Enurado",
+      "dimension_enutrosor"
+    ]
+  }
+}

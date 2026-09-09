@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "dokille",
+  "title": "Dokille",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dokille.",
+  "recommended_level_min": 1,
+  "recommended_level_max": 150,
+  "reward_item_id": 10907,
+  "illustration_item_id": 10907,
+  "image": null,
+  "linked_achievement_ids": [
+    980
+  ],
+  "completeness_status": "partial",
+  "verified_steps": 6,
+  "total_steps": 6,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "Parcours partiel : peu de quêtes reliées directement au succès Doduda.",
+    "Profil DPLN: parcours obligatoire résolu dans le catalogue local.",
+    "V4: complétude non démontrée par un profil attendu ou une source explicite.",
+    "V4: références de succès invalides: [979]"
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [
+    "https://www.dofuspourlesnoobs.com/le-safari-des-acircmes.html"
+  ],
+  "sections": [
+    {
+      "id": "dokille_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        980
+      ],
+      "steps": [
+        {
+          "id": "dokille_quest_724",
+          "type": "quest",
+          "entity_id": 724,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dokille_quest_742",
+          "type": "quest",
+          "entity_id": 742,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 724
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dokille_quest_739",
+          "type": "quest",
+          "entity_id": 739,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 742
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dokille_quest_738",
+          "type": "quest",
+          "entity_id": 738,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 742
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dokille_quest_737",
+          "type": "quest",
+          "entity_id": 737,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 742
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dokille_quest_740",
+          "type": "quest",
+          "entity_id": 740,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 742
+            }
+          ],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "route_id": "guide_ultime_manual_bonta_order_rank60_v1",
+  "title": "Guide Ultime — Ordre Bonta palier alignement 60",
+  "status": "MANUAL_CONDITIONAL_ROUTE_WORKING_SET",
+  "selection_policy": {
+    "selector": "persisted_bonta_order",
+    "exactly_one": true,
+    "order_change_forbidden": true,
+    "same_choice_required_from": ["bonta_order_rank20_v1.json", "bonta_order_rank40_v1.json"],
+    "unselected_routes_hidden": true
+  },
+  "trigger": {"alignment":"Bonta","minimum_rank":60,"after_quest":"Attaque à retardement"},
+  "options": {
+    "coeur vaillant": {
+      "quest": "Apprentissage : Chevalier de l'Espoir",
+      "preparation": [
+        {"name":"Bauxite","quantity":50},
+        {"requirement":"Combat en groupe possible au Campement des Bworks."}
+      ],
+      "route": [
+        {"pos":"[-34,-58] Tour des ordres","do":"Parler à Jerhyn Gholein et devenir Chevalier de l'Espoir."},
+        {"pos":"[-1,-4] Temple Enutrof","do":"Donner 50 Bauxites à Setag et récupérer l'information sur Terra Cogita."},
+        {"pos":"[-7,7] Campement des Bworks","do":"Libérer Terra Cogita en éliminant ses gardes puis lui reparler pour commencer l'escorte."},
+        {"pos":"[-1,-4] Temple Enutrof","do":"Ramener Terra Cogita au temple Enutrof. Après son dialogue, partir rechercher la tombe de Terra Tibya."},
+        {"pos":"[3,-2]","do":"Cliquer sur la dalle au coin inférieur droit du pont pour trouver la tombe de Terra Tibya, gagner le combat solo puis repartir avec Terra Cogita."},
+        {"pos":"[-34,-58]","do":"Ramener Terra Cogita à Jerhyn et terminer le rang d'Ordre."}
+      ],
+      "next_order_gate": {"alignment_rank":80,"quest":"Apprentissage : Champion Merveilleux"}
+    },
+    "oeil attentif": {
+      "quest": "Apprentissage : Chasseur de Renégats",
+      "preparation": [
+        {"name":"Viande Macérée","quantity":2},
+        {"name":"Pomme de Terre","quantity":16},
+        {"name":"Haricot","quantity":2}
+      ],
+      "route": [
+        {"pos":"[-34,-58] sous-sol Tour des ordres","do":"Prendre Apprentissage : Chasseur de Renégats auprès d'Ebru of El."},
+        {"pos":"Palais de Bonta + cuisines milice","do":"Interroger le garde, Rei Rosert, Danathor, le Roi Beldarion puis Rei Nisuc dans une seule boucle Bonta."},
+        {"pos":"[-2,-1]","do":"Donner 2 Viandes Macérées + 16 Pommes de Terre + 2 Haricots à Bol Pokuz et obtenir le panier ainsi que l'indication du passage secret."},
+        {"pos":"[-3,-4] passage secret","do":"Traverser le labyrinthe, affronter Roidébur Ghonde et son groupe puis récupérer la Cuillère Magique dans le coffre AVANT de repartir."},
+        {"pos":"[-34,-58]","do":"Rendre la Cuillère à Ebru of El et terminer le rang d'Ordre."}
+      ],
+      "next_order_gate": {"alignment_rank":80,"quest":"Apprentissage : Assassin Suprême"}
+    },
+    "esprit salvateur": {
+      "quest": "Apprentissage : Adepte des Écrits",
+      "preparation": [
+        {"requirement":"L'art de la langue de bois doit être au Chêne Mou avant l'entrée afin de partager le même passage."},
+        {"requirement":"Pierre d'âme puissance150 minimum si le Chêne Mou doit encore être capturé pour l'Ocre."}
+      ],
+      "route": [
+        {"pos":"[-34,-58] deuxième étage Tour des ordres","do":"Prendre Apprentissage : Adepte des Écrits auprès d'Elviana Tirips, interroger les renégats à la prison [-32,-57], puis revenir voir Elviana."},
+        {"pos":"[4,-21]","do":"Convaincre Eni Hoube de venir à Bonta en répondant correctement à ses questions."},
+        {"pos":"[-34,-58] Tour des ordres","do":"Retourner voir Elviana. Elle t'apprend qu'Eni Hoube a fait un détour par la Forêt Sombre pour chercher le Chêne Mou."},
+        {"pos":"[-14,-13] Clairière du Chêne Mou","do":"Entrer lorsque les autres quêtes Chêne Mou compatibles sont également prêtes. Retrouver Eni Hoube dans la salle 4 et lui reparler pour qu'il te suive, puis terminer le donjon et vaincre le Chêne Mou. En cas de défaite dans une salle, reparler à Eni Hoube après le retour avant de poursuivre."},
+        {"pos":"[7,1] Temple Eniripsa","do":"Présenter Eni Hoube à Elya Wood."},
+        {"pos":"[-32,-57] prison de Bonta","do":"Conduire Eni Hoube auprès des renégats puis reparler à l'un d'eux pour obtenir leurs informations."},
+        {"pos":"[-34,-58] Tour des ordres","do":"Rapporter les informations à Elviana et terminer Adepte des Écrits."}
+      ],
+      "next_order_gate": {"alignment_rank":80,"quest":"Apprentissage : Maître des Parchemins"}
+    }
+  },
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/apprentissage-chevalier-de-l-espoir.html",
+    "https://www.dofuspourlesnoobs.com/apprentissage-chasseur-de-renegats.html",
+    "https://www.dofuspourlesnoobs.com/apprentissage-adepte-des-ecrits.html",
+    "https://www.dofuspourlesnoobs.com/clairiegravere-du-checircne-mou.html"
+  ]
+}

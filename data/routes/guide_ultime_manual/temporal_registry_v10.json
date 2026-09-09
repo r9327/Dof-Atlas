@@ -1,0 +1,25 @@
+{
+  "schema_version": 10,
+  "registry_id": "guide_ultime_temporal_registry_v10",
+  "title": "Guide Ultime — contraintes temporelles jusqu'au palier 190",
+  "status": "MANUAL_TEMPORAL_WORKING_SET",
+  "base_file": "temporal_registry_v9.json",
+  "supersedes": "guide_ultime_temporal_registry_v9",
+  "entry_patches": {},
+  "entry_insertions": [
+    {
+      "id": "kralamoure_server_opening",
+      "type": "runtime_server_event_window",
+      "quest_threads": ["Le tour est joué", "L'éternelle moisson"],
+      "zone": "Tourbière nauséabonde",
+      "dungeon": "Antre du Kralamoure Géant",
+      "minimum_people_to_open": 49,
+      "open_duration_minutes": 40,
+      "hard_wait_forbidden": true,
+      "preferred_merge_condition": "Le tour est joué actif ET L'éternelle moisson étape19 active avec pierre spéciale Ocre disponible",
+      "capture_policy": "La capture Ocre du Kralamoure utilise uniquement la pierre spéciale de l'étape19; aucune pierre d'âme standard et aucun sort Capture d'âmes à lancer.",
+      "route_policy": "Ne jamais organiser ou attendre une ouverture uniquement pour fermer Le tour est joué si l'étape19 Ocre n'est pas prête. Conserver la quête active. Quand les deux fils sont prêts, profiter d'une ouverture serveur naturelle ou organiser une seule ouverture; entrer pendant la fenêtre et fermer Tour + Ocre ensemble.",
+      "source": "Dofus Pour Les Noobs — Antre du Kralamoure Géant / L'éternelle moisson / Le tour est joué"
+    }
+  ]
+}

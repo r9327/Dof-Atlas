@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "purpose": "network_protocol_future_implementation_backlog",
+  "runtime_source_of_truth": false,
+  "items": [
+    {
+      "priority": 1,
+      "feature": "character_identity",
+      "status": "decoder_implemented_mapping_pending_local_build",
+      "current_evidence": ["kvi roster", "kva selected id"],
+      "remaining_before_runtime": [
+        "install exact local build mapping",
+        "verify Windows capture on real client"
+      ]
+    },
+    {
+      "priority": 2,
+      "feature": "quest_completion",
+      "status": "opcode_not_yet_authoritative",
+      "remaining_before_runtime": [
+        "identify exact 3.6.10.10 server opcode for QuestValidatedEvent or an equally authoritative completed-quest snapshot",
+        "verify quest_id field path against current obfuscated proto",
+        "correlate with at least two real quest completions on same build",
+        "add exact-build mapping rule"
+      ]
+    },
+    {
+      "priority": 3,
+      "feature": "quest_objective_completion",
+      "status": "semantic_known_opcode_unknown",
+      "historical_semantics": "QuestObjectiveValidatedEvent: quest_id field 1, objective_id field 2",
+      "remaining_before_runtime": [
+        "identify current opcode",
+        "verify unchanged field structure in 3.6.10.10",
+        "add exact-build mapping rule"
+      ]
+    },
+    {
+      "priority": 4,
+      "feature": "quest_started",
+      "status": "semantic_known_opcode_unknown",
+      "historical_semantics": "QuestStartedEvent: quest_id field 1",
+      "remaining_before_runtime": [
+        "identify current opcode",
+        "verify current field structure",
+        "add exact-build mapping rule"
+      ]
+    },
+    {
+      "priority": 5,
+      "feature": "finished_and_active_quest_snapshot",
+      "status": "research",
+      "historical_semantics": "QuestsEvent contains finished quests, active quests and reinitialized done quest ids",
+      "benefit": "can reconcile missed events after reconnect without guessing from packet timing",
+      "remaining_before_runtime": [
+        "identify current QuestsEvent opcode",
+        "verify repeated finished quest shape",
+        "define safe reconciliation rules against existing QuestProgressService"
+      ]
+    },
+    {
+      "priority": 6,
+      "feature": "achievement_completion_and_progress",
+      "status": "semantic_catalog_only",
+      "remaining_before_runtime": [
+        "identify current achievement state/completion server events",
+        "verify id/objective field paths",
+        "route only through existing AchievementProgressService"
+      ]
+    },
+    {
+      "priority": 7,
+      "feature": "character_level_and_class",
+      "status": "partial_current_wire_evidence",
+      "current_evidence": [
+        "kvi roster contains character name and level",
+        "public measured roster documentation also reports breed/class information"
+      ],
+      "remaining_before_runtime": [
+        "verify exact breed/class field path in current proto",
+        "preserve network metadata when Organizer rewrites client_index.json",
+        "reuse existing class_key convention; do not create a second character metadata store"
+      ]
+    },
+    {
+      "priority": 8,
+      "feature": "map_context",
+      "status": "current_opcode_and_map_id_path_known",
+      "current_evidence": "jru server_to_client, map id field 2",
+      "future_use": [
+        "Guide Ultime context",
+        "map/travel diagnostics",
+        "quest event correlation"
+      ],
+      "restriction": "map presence must never itself complete a quest"
+    },
+    {
+      "priority": 9,
+      "feature": "profession_levels",
+      "status": "current_opcode_known_shape_partial",
+      "current_evidence": "irq server_to_client contains repeated job id/level/experience entries",
+      "future_use": "Guide Ultime profession prerequisites and proactive leveling reminders",
+      "remaining_before_runtime": [
+        "verify exact id/level fields",
+        "choose existing character metadata destination without duplicating progression truth"
+      ]
+    },
+    {
+      "priority": 10,
+      "feature": "alignment_and_bonta_order",
+      "status": "semantic_type_known_opcode_unknown",
+      "current_evidence": "AlignmentInformation is present in 3.6.10.10 semantic catalogue",
+      "remaining_before_runtime": [
+        "identify containing current message/opcode and fields",
+        "reuse AchievementProgressService alignment_order_choice storage",
+        "never create a separate alignment store"
+      ]
+    },
+    {
+      "priority": 11,
+      "feature": "inventory_resources_and_pods",
+      "status": "research",
+      "future_use": [
+        "Guide Ultime resource preparation",
+        "pods warnings",
+        "Ocre capture-stone preparation context"
+      ],
+      "restriction": "inventory observation is context only unless an existing user-data contract explicitly adopts it"
+    },
+    {
+      "priority": 12,
+      "feature": "map_actors_monsters_npcs",
+      "status": "current_wire_shape_partial",
+      "current_evidence": "jss carries map id, subarea and repeated actor data",
+      "future_use": [
+        "Bestiary context",
+        "route diagnostics",
+        "NPC/map verification"
+      ],
+      "restriction": "actor presence never proves combat/quest completion"
+    }
+  ]
+}

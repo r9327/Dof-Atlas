@@ -1,0 +1,19 @@
+{
+  "schema_version": 13,
+  "route_id": "guide_ultime_manual_level_171_180_v13",
+  "title": "Guide Ultime — Niveau 171 à 180, dépendances canoniques finales",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v12.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v12",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v21.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Raccord de dépendances uniquement : les 30 fiches v12 et leurs retours causaux restent identiques, avec Bonta v17 et temporal v15 comme supports actuels uniques.",
+  "stage_patches": {},
+  "insertions": []
+}

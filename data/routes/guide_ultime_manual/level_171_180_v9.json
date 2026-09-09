@@ -1,0 +1,19 @@
+{
+  "schema_version": 9,
+  "route_id": "guide_ultime_manual_level_171_180_v9",
+  "title": "Guide Ultime — Niveau 171 à 180, dépendances canoniques consolidées",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_171_180_v8.json",
+  "supersedes": "guide_ultime_manual_level_171_180_v8",
+  "stage_count": 30,
+  "depends_on": [
+    "level_150_170_v16.json",
+    "bonta_1_80_v9.json",
+    "bonta_order_rank80_v1.json",
+    "temporal_registry_v13.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Consolide les dépendances du palier180 après les corrections Frigost et conserve exactement les optimisations Tour du Monde, Agriculture, Objets trouvés, Baka et Dépôt/S.L.I.P. déjà composées.",
+  "stage_patches": {},
+  "insertions": []
+}

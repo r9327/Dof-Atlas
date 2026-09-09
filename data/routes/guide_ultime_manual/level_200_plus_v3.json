@@ -1,0 +1,136 @@
+{
+  "schema_version": 3,
+  "route_id": "guide_ultime_manual_level_200_plus_v3",
+  "title": "Guide Ultime — Post-200 + Valonia et Dom de Pin",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_200_plus_v2.json",
+  "supersedes": "guide_ultime_manual_level_200_plus_v2",
+  "stage_count": 22,
+  "optimization_note": "Ajoute les 16 quêtes de L'héritage de l'île brisée, ferme les donjons Valonia uniquement avec leurs fils actifs, puis récupère Dom de Pin via le rerun causal Akadémie des Gobs. Corrige également le choix dynamique des Totems de Maïmane: éviter Ilyzaelle, Solar et Nidas quand une alternative de même émotion existe car ces boss sont connus comme futurs passages Valonia/Sylvestre; un totem ne doit pas créer un rerun supplémentaire prévisible.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/quetes-de-l-archipel-de-valonia.html",
+    "https://www.dofuspourlesnoobs.com/dom-de-pin.html",
+    "https://www.dofuspourlesnoobs.com/association-de-fureteurs.html",
+    "https://www.dofuspourlesnoobs.com/l-ile-maudite.html",
+    "https://www.dofuspourlesnoobs.com/une-derniere-volonte.html",
+    "https://www.dofuspourlesnoobs.com/les-risques-du-metier.html",
+    "https://www.dofuspourlesnoobs.com/pour-que-la-flamme-vacille.html"
+  ],
+  "stage_patches": {
+    "P200-15": {
+      "append": {
+        "progress_also": [
+          "OPTIMISATION FUTURE: pour Totem joie éviter Roi Nidas si une autre option rentable est disponible; Nidas sera requis plus tard par le fil Sylvestre.",
+          "OPTIMISATION FUTURE: pour Totem peur éviter Ilyzaelle; Une dernière volonté Valonia imposera un futur Belvédère après ouverture de la quête.",
+          "OPTIMISATION FUTURE: pour Totem colère éviter Solar; le fil Sylvestre post-Dom de Pin utilisera Solar. Choisir un autre boss autorisé si le coût est comparable ou inférieur."
+        ]
+      }
+    }
+  },
+  "insertions": [
+    {
+      "after":"P200-16",
+      "stage": {
+        "id":"P200-17",
+        "title":"Valonia — L'enfant regardait tomber la neige, Refuge Sylvestre unique",
+        "level":"200+ / Prologue fermé",
+        "duration_min":420,
+        "quests":["Dis, scierie ?","Colonie de vaillance","Dans la gueule du Trankilou","Association de fureteurs","La complote des P.O.M.S."],
+        "successes":["L'enfant regardait tomber la neige","Les nouveaux Valoniens","Nos voisins les Douziens"],
+        "dungeon":{"name":"Refuge Sylvestre","pass":"unique_for_valonia_quest_block"},
+        "route":[
+          {"area":"Nouvelle Albuera/Futaie enneigée","do":"Enchaîner les cinq quêtes dans leur ordre causal. Prendre chaque quête suivante avant de repartir vers la futaie afin que combats, pièges et monstres alimentent tous les objectifs disponibles."},
+          {"area":"Refuge Sylvestre","do":"Association de fureteurs impose Rakoopeur: faire un seul Refuge avec tous les succès compatibles et les objectifs monstres Valonia encore ouverts. Ne pas revenir pour un succès oublié qui pouvait être activé avant l'entrée."},
+          {"area":"Valonia","do":"Fermer La complote des P.O.M.S. et valider L'enfant regardait tomber la neige uniquement lorsque ses cinq quêtes sont réellement terminées."}
+        ],
+        "progress_also":["Mémoriser le zaap Valonia dès le premier passage et utiliser les transports locaux déjà découverts; les anciennes coordonnées du guide web restent des indications de walkthrough, pas des commandes de voyage persistées."],
+        "before_leaving":["5/5 quêtes du succès terminées","Rakoopeur et succès compatibles traités","Un événement inattendu disponible"],
+        "hard_exit":["Un seul Refuge Sylvestre pour ce bloc"],
+        "pause":["POINT DE PAUSE SÛR — Nouvelle Albuera fermée"]
+      }
+    },
+    {
+      "after":"P200-17",
+      "stage": {
+        "id":"P200-18",
+        "title":"Valonia — Un clan hétéroclite, Ereboria + Barbéryl",
+        "level":"200+",
+        "duration_min":520,
+        "quests":["Un événement inattendu","L'île maudite","Chercher un Marteau-Aigri dans une galerie d'Ereboria","La fin des maningances"],
+        "successes":["Un clan hétéroclite","Nimpôts sur la fortune"],
+        "dungeon":{"name":"Bastion des Marteaux-Aigris","pass":"unique_for_valonia_quest_block"},
+        "preparation":[{"name":"Bière aigrisante","quantity":10,"alternative":"5000 kamas"}],
+        "route":[
+          {"area":"Nouvelle Albuera → Ereboria","do":"Lancer Un événement inattendu puis L'île maudite. Préparer la session Ereboria avant le bateau: ressources, combats et objectifs succès des Marteaux-Aigris actifs."},
+          {"area":"Bastion des Marteaux-Aigris","do":"Faire Barbéryl Clochecuivre une seule fois pour L'île maudite et tous les succès compatibles. Continuer ensuite Chercher un Marteau-Aigri puis La fin des maningances sans quitter l'île inutilement."}
+        ],
+        "before_leaving":["Un clan hétéroclite 4/4 terminé","Barbéryl succès compatibles traités","La graine de la révolte disponible"],
+        "hard_exit":["Un seul Bastion pour le bloc"],
+        "pause":["POINT DE PAUSE SÛR — Ereboria clan fermé"]
+      }
+    },
+    {
+      "after":"P200-18",
+      "stage": {
+        "id":"P200-19",
+        "title":"Valonia — Conseiller en patrimoine + Belvédère Ilyzaelle causal",
+        "level":"200+ / Un clan hétéroclite fermé",
+        "duration_min":600,
+        "quests":["La graine de la révolte","Par l'héritage qui vous lie","Une dernière volonté"],
+        "successes":["Conseiller en patrimoine"],
+        "dungeon":{"name":"Belvédère d'Ilyzaelle","pass":"valonia_causal_after_quest_unlock"},
+        "preparation":[{"name":"Cristal liquide","quantity":10},{"name":"Cristal pliable","quantity":10}],
+        "route":[
+          {"area":"Valonia/Ancienne Albuera","do":"Enchaîner La graine de la révolte puis Par l'héritage qui vous lie. Ne pas partir Ilyzaelle avant qu'Une dernière volonté la demande réellement."},
+          {"area":"Belvédère d'Ilyzaelle","do":"RERUN CAUSAL: Une dernière volonté demande Ilyzaelle après les anciens passages Bonta99/L'avis de la Mort. Faire les succès Ilyzaelle encore ouverts et les objectifs Valonia dans le même passage."},
+          {"area":"Ancienne Albuera","do":"Finir la recherche des Forgelances et le combat tactique de Une dernière volonté."}
+        ],
+        "progress_also":["Le validateur Totems doit décourager Ilyzaelle pour le Totem peur afin de ne pas ajouter un troisième passage prévisible."],
+        "before_leaving":["Conseiller en patrimoine 3/3 terminé","Une dernière volonté terminée"],
+        "hard_exit":["Ilyzaelle Valonia rerun causal explicitement nommé"],
+        "pause":["POINT DE PAUSE SÛR — patrimoine fermé"]
+      }
+    },
+    {
+      "after":"P200-19",
+      "stage": {
+        "id":"P200-20",
+        "title":"Valonia — Le bouquet final, Belladone puis Cire Momore",
+        "level":"200+",
+        "duration_min":620,
+        "quests":["Les risques du métier","La sorcière exilée","Pour que la flamme vacille","L'heure des adieux"],
+        "successes":["Le bouquet final","Les fleurs ont mal","L'héritage de l'île brisée"],
+        "preparation":[{"name":"Belladone","quantity":7},{"name":"Cendrepierre","quantity":7},{"name":"Casque de Statulipe","quantity":1},{"name":"Mousse de Caméliache","quantity":1},{"name":"Fleur des protecteurs","quantity":1},{"name":"Poing de Coquelicogne","quantity":1},{"name":"Liane de Soldalia","quantity":1},{"name":"Épine d'Armuguet","quantity":1}],
+        "route":[
+          {"area":"Ephedrya","do":"Faire Les risques du métier puis La sorcière exilée en regroupant tous les drops de zone et en ouvrant les objectifs Belladone avant Chambre des maléfices."},
+          {"area":"Chambre des maléfices","do":"Faire Belladone une seule fois pour les fils du Bouquet + succès compatibles. Ne pas quitter Ephedrya sans les dialogues post-boss requis."},
+          {"area":"Ereboria/Cire Momore","do":"Prendre Pour que la flamme vacille avec toutes les ressources préparées, puis faire la Caverne de Cire Momore une seule fois lorsque le combat est réellement demandé. Enchaîner L'heure des adieux."},
+          {"area":"méta Valonia","do":"Valider Le bouquet final puis L'héritage de l'île brisée. Profiter du dernier tour d'archipel pour fermer Les nouveaux Valoniens et Morceaux d'histoire si des objectifs restent à portée; ne pas inventer une validation sans runtime."}
+        ],
+        "before_leaving":["16/16 quêtes Valonia terminées","L'héritage de l'île brisée terminé","Belladone/Cire Momore sans rerun évitable"],
+        "hard_exit":["Valonia quest meta réel requis avant Dom de Pin"],
+        "pause":["POINT DE PAUSE SÛR — Valonia fermé, Dom de Pin débloqué"]
+      }
+    },
+    {
+      "after":"P200-20",
+      "stage": {
+        "id":"P200-21",
+        "title":"Dom de Pin — Grunob causal + Gobalden avant sortie + Gobdepin",
+        "level":"200+ / Six sur six + Prologue + L'héritage de l'île brisée",
+        "duration_min":100,
+        "quests":[],
+        "dungeon":{"name":"Akadémie des Gobs","boss":"Grunob","pass":"dom_de_pin_causal"},
+        "entry":"Six sur six, Le secret des Dofus : Prologue et L'héritage de l'île brisée réellement terminés; six Dofus Primordiaux dans l'inventaire.",
+        "route":[
+          {"area":"Akadémie des Gobs","do":"RERUN CAUSAL: vaincre Grunob maintenant que les prérequis Dom de Pin sont tous vrais. Les anciens passages Akadémie ne pouvaient pas déclencher ce dialogue."},
+          {"area":"salle de sortie","do":"AVANT DE SORTIR, parler impérativement à Gobalden et lui révéler la possession des six Dofus. Ne jamais valider ce stage si le dialogue n'a pas été fait."},
+          {"area":"Valonia","do":"Aller voir Gobdepin avec les six Dofus Primordiaux et accepter de garder son Dofus. Enregistrer Dom de Pin uniquement lorsque l'objet est réellement reçu."}
+        ],
+        "before_leaving":["Dialogue Gobalden post-Grunob effectué","Dom de Pin réellement obtenu"],
+        "hard_exit":["Aucun faux Dom de Pin","Grunob rerun causal"],
+        "pause":["POINT DE PAUSE SÛR — Dom de Pin obtenu; Flovoraison/Sylvestre débloquables"]
+      }
+    }
+  ]
+}

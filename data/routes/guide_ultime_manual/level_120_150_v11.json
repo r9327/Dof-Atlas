@@ -1,0 +1,72 @@
+{
+  "schema_version": 11,
+  "route_id": "guide_ultime_manual_level_120_150_v11",
+  "title": "Guide Ultime — Niveau 120 à 150 + Objets trouvés Frigost I absorbés",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_120_150_v10.json",
+  "supersedes": "guide_ultime_manual_level_120_150_v10",
+  "stage_count": 37,
+  "depends_on": [
+    "level_100_120_v7.json",
+    "bonta_1_70_v6.json",
+    "bonta_order_rank60_v1.json",
+    "temporal_registry_v12.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Ajoute les quatre premières quêtes Objets trouvés sans créer de farm avant les objectifs déjà nécessaires. Souvenir profite des40 Boufmouth En semant/Gène, Bricoleur de génie des Pins Pomdeupin/Semer, Un gros cube du Lac + deux passages Mansot et Bijoux de famille du Berceau + Ben. Le cleanup1% n'arrive qu'après consommation de tous les combats utiles de la zone.",
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/objets-trouveacutes.html",
+    "https://www.dofuspourlesnoobs.com/souvenir-souvenir.html",
+    "https://www.dofuspourlesnoobs.com/bricoleur-de-geacutenie.html",
+    "https://www.dofuspourlesnoobs.com/un-gros-cube-un-pti-cube.html",
+    "https://www.dofuspourlesnoobs.com/bijoux-de-famille.html"
+  ],
+  "stage_patches": {
+    "L120-00": {
+      "append": {
+        "quests": ["Souvenir, souvenir"],
+        "progress_also": [
+          "OBJET TROUVÉ — Champs de glace: pendant Gène et tique + En semant, se ment et tout combat Boufmouth déjà nécessaire, surveiller la Vieille peluche Féca (drop rare). Dès qu'elle tombe, double-cliquer puis rendre Souvenir, souvenir au prochain passage Bourgade. Ne farmer spécifiquement la peluche qu'après avoir consommé tous les combats Champs déjà requis."
+        ],
+        "hard_exit": ["Souvenir, souvenir terminée ou peluche encore manquante après tous les combats naturels, alors seulement cleanup Champs ciblé autorisé."]
+      }
+    },
+    "L120-20F": {
+      "append": {
+        "quests": ["Bricoleur de génie"],
+        "progress_also": [
+          "OBJET TROUVÉ — Forêt des Pins: pendant Pomdeupin + Semer + Promenons + drops Star ski, surveiller la Gomme à mâcher (drop rare). Dès qu'elle tombe, double-cliquer et la donner à Mac Givré lors du bloc Lac. Une seule validation journalière suffit au succès; ne jamais la répéter automatiquement."
+        ],
+        "hard_exit": ["Bricoleur de génie terminée ou Gomme encore manquante après tous les combats Pins utiles, alors seulement cleanup minimal autorisé."]
+      }
+    },
+    "L120-21": {
+      "append": {
+        "quests": ["Un gros cube, un p'ti cube"],
+        "progress_also": [
+          "OBJET TROUVÉ — Lac/Mansot: Pêche en eaux gelées étant active, surveiller la Plume Vibrante de mansot sur chaque Mansot du Lac et dans l'Excavation; le taux est meilleur sur Mansot Royal. Si elle tombe, double-cliquer puis l'échanger à l'entrée du donjon. Profiter aussi des Apéwicubes cliquables des salles quand présents, sans attendre leur repop."
+        ],
+        "hard_exit": ["Un gros cube, un p'ti cube terminée si la Plume est tombée; sinon garder le fil de drop actif jusqu'au Mansot PASS2 avant tout farm extérieur dédié."]
+      }
+    },
+    "L120-20M": {
+      "append": {
+        "quests": ["Un gros cube, un p'ti cube"],
+        "route": [
+          {"area":"Excavation Mansot PASS2 — Objets trouvés","do":"Deuxième tentative naturelle pour la Plume Vibrante pendant le Mansot déjà causal. Si la quête reste absente après ce passage, finir uniquement le drop manquant sur les Mansots du Lac pendant les autres objectifs de zone; un farm dédié n'est autorisé qu'en dernier recours."}
+        ],
+        "hard_exit": ["Un gros cube, un p'ti cube terminé ou cleanup exact Plume explicitement conservé."]
+      }
+    },
+    "L120-20B": {
+      "append": {
+        "quests": ["Bijoux de famille"],
+        "progress_also": [
+          "OBJET TROUVÉ — Berceau d'Alma: pendant La méchante sorcière + Mettre son grain de sel + le premier Ben, surveiller le Coffre familial (drop rare). Dès qu'il tombe, double-cliquer puis le remettre au Chef Rhonté au prochain passage Port/Bourgade. Ne farm le Coffre qu'après les40 Grains de Sel et tous les kills Sorcière/Ben déjà nécessaires."
+        ],
+        "hard_exit": ["Bijoux de famille terminée ou Coffre familial encore manquant après tous les combats Berceau/Ben utiles, alors seulement cleanup ciblé autorisé."]
+      }
+    }
+  },
+  "insertions": []
+}

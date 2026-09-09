@@ -1,0 +1,60 @@
+{
+  "schema_version": 10,
+  "route_id": "guide_ultime_manual_level_191_200_v10",
+  "title": "Guide Ultime — 191-200, Totems causaux + Ocre final explicite",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v9.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v9",
+  "stage_count": 56,
+  "optimization_note": "Ne change pas la causalité V8/V9. La fiche P200-00 reprend désormais explicitement la route canonique ocre_completion_route_v1: audit boss1-3, remises opportunistes d'archimonstres, cleanup ciblé4-18 puis Kralamoure étape19 partagé avec Le tour est joué. La référence ocre_final_route du manifeste n'est plus une documentation parallèle invisible au joueur.",
+  "stage_patches": {
+    "P200-00": {
+      "replace": {
+        "title": "Ocre final 3.5+ — boss → archimonstres → Kralamoure partagé",
+        "level": "200 ou dès que les étapes Ocre courantes le permettent",
+        "duration_min": "variable / asynchrone",
+        "quests": ["L'éternelle moisson","Le tour est joué"],
+        "preparation": [
+          {"requirement":"Capture d'âmes connue depuis le Nid du Kwakwa","blocking":true},
+          {"policy":"Conserver en banque toute âme Ocre capturée trop tôt jusqu'à l'étape qui l'accepte; ne jamais vendre une cible encore non remise."},
+          {"policy":"Avant le cleanup archimonstres, recalculer depuis la progression réelle la liste exacte des étapes4-18 encore manquantes; ne jamais farmer une liste statique déjà validée."},
+          {"name":"Fée à tête chercheuse d'archimonstres","policy":"Acheter/crafter seulement pour les zones réellement manquantes lorsque cela économise plus de temps qu'une recherche naturelle."},
+          {"name":"Bouataklône","policy":"Utiliser sur un archimonstre réellement manquant lorsque cette voie est plus rapide; préparer la pierre adaptée avant le combat solo."},
+          {"requirement":"Étape18 réellement terminée avant Kralamoure","blocking":true},
+          {"requirement":"Pierre d'âme spéciale Kralamoure fournie par L'éternelle moisson étape19","blocking":true},
+          {"requirement":"Antre du Kralamoure réellement ouverte ou ouverture communautaire organisée","blocking":true}
+        ],
+        "take": [
+          "À l'Assistante d'Otomaï, remettre d'abord toutes les âmes de boss déjà capturées pour fermer réellement les étapes1 à3.",
+          "Remettre ensuite tous les archimonstres déjà capturés opportunistement pendant l'aventure, étape par étape, avant d'acheter ou chercher quoi que ce soit.",
+          "Ne commencer le cleanup ciblé qu'après recalcul du reliquat exact des étapes4 à18."
+        ],
+        "route": [
+          {"area":"Assistante d'Otomaï — boss étapes1-3","do":"Vider les captures boss déjà sécurisées pendant le Guide. Pour chaque boss réellement manquant, comparer âme HDV et rerun: refaire le donjon seulement s'il sert aussi un succès, une quête, un drop ou si l'achat est moins rentable. Les boss rencontrés avant Capture d'âmes restent des backfills explicites."},
+          {"area":"Assistante d'Otomaï — archimonstres étapes4-18","do":"Remettre tous les archimonstres déjà capturés dans l'ordre accepté. Après chaque étape fermée, recalculer la liste manquante afin d'éviter un achat, une Bouataklône ou un déplacement devenu inutile."},
+          {"area":"zones des archimonstres manquants","do":"Trier le reliquat par zone et par autres succès Monstres/Quêtes encore ouverts. Utiliser les outils actuels de localisation, Fées/Bouataklônes/HDV lorsque rentables et capturer toute cible manquante rencontrée. Aucun repop d'archimonstre ne bloque la route principale."},
+          {"area":"Antre du Kralamoure Géant — seulement étape19","do":"N'y aller que lorsque étape18 est réellement terminée, Le tour est joué est actif, la pierre spéciale est en inventaire et l'antre ouverte/une ouverture organisée. Faire les succès Kralamoure encore manquants, vaincre et capturer avec la mécanique spéciale; aucune pierre standard."},
+          {"area":"sortie Kralamoure → Assistante/Otomaï","do":"Fermer Le tour est joué et remettre l'âme spéciale. Ne déclarer le Dofus Ocre obtenu qu'après la remise finale et la récompense confirmée par la progression réelle."}
+        ],
+        "progress_also": [
+          "Depuis DOFUS3.5, aucun monstre classique n'est une cible Ocre: boss1-3, archimonstres4-18, Kralamoure19 uniquement.",
+          "Les captures d'Émeraude, de Bonta ou d'autres quêtes ne sont jamais assimilées automatiquement à une remise Ocre."
+        ],
+        "before_leaving": [
+          "Étapes boss1-3 réellement terminées.",
+          "Étapes archimonstres4-18 réellement terminées ou reliquat exact visible pendant le cleanup.",
+          "Kralamoure partagé avec Le tour est joué uniquement à l'étape19.",
+          "Dofus Ocre obtenu réellement avant d'ouvrir les dépendances qui l'exigent."
+        ],
+        "hard_exit": [
+          "Aucun boss/archimonstre considéré remis sur simple présence en banque.",
+          "Aucun farm de monstres classiques Ocre.",
+          "Aucun Kralamoure isolé avant l'étape19.",
+          "Ocre final validé uniquement par la progression runtime."
+        ],
+        "pause": ["POINT DE PAUSE SÛR — toute phase Ocre peut être suspendue sur son reliquat exact sans perdre la route principale"]
+      }
+    }
+  },
+  "insertions": []
+}

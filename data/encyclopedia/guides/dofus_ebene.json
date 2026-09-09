@@ -1,0 +1,836 @@
+{
+  "schema_version": 1,
+  "id": "dofus_ebene",
+  "title": "Dofus Ébène",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofus Ébène.",
+  "recommended_level_min": 12,
+  "recommended_level_max": 200,
+  "reward_item_id": 7114,
+  "illustration_item_id": 7114,
+  "image": null,
+  "linked_achievement_ids": [
+    1704
+  ],
+  "completeness_status": "complete",
+  "verified_steps": 53,
+  "total_steps": 53,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "Profil DPLN: parcours obligatoire résolu dans le catalogue local."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [
+    "https://www.dofuspourlesnoobs.com/quetes-du-dofus-ebene.html"
+  ],
+  "sections": [
+    {
+      "id": "dofus_ebene_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        1704
+      ],
+      "steps": [
+        {
+          "id": "dofus_ebene_quest_1958",
+          "type": "quest",
+          "entity_id": 1958,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:2",
+            "quest:1960:or:3",
+            "quest:1960:or:5",
+            "quest:1960:or:6"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1959",
+          "type": "quest",
+          "entity_id": 1959,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1958
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:2",
+            "quest:1960:or:3",
+            "quest:1960:or:5",
+            "quest:1960:or:6"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_2009",
+          "type": "quest",
+          "entity_id": 2009,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1959
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:1",
+            "quest:1960:or:10",
+            "quest:1960:or:11",
+            "quest:1960:or:12",
+            "quest:1960:or:13",
+            "quest:1960:or:14",
+            "quest:1960:or:15",
+            "quest:1960:or:16",
+            "quest:1960:or:17",
+            "quest:1960:or:18",
+            "quest:1960:or:19",
+            "quest:1960:or:2",
+            "quest:1960:or:3",
+            "quest:1960:or:4",
+            "quest:1960:or:5",
+            "quest:1960:or:6",
+            "quest:1960:or:7",
+            "quest:1960:or:8",
+            "quest:1960:or:9"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1677",
+          "type": "quest",
+          "entity_id": 1677,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:2"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1968",
+          "type": "quest",
+          "entity_id": 1968,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:13"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_704",
+          "type": "quest",
+          "entity_id": 704,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:6"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1971",
+          "type": "quest",
+          "entity_id": 1971,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:10"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1972",
+          "type": "quest",
+          "entity_id": 1972,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:9"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1966",
+          "type": "quest",
+          "entity_id": 1966,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:15"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1970",
+          "type": "quest",
+          "entity_id": 1970,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:11"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_938",
+          "type": "quest",
+          "entity_id": 938,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:4"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1965",
+          "type": "quest",
+          "entity_id": 1965,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:16"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_2470",
+          "type": "quest",
+          "entity_id": 2470,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:19"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_894",
+          "type": "quest",
+          "entity_id": 894,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1969",
+          "type": "quest",
+          "entity_id": 1969,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:12"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1964",
+          "type": "quest",
+          "entity_id": 1964,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:17"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1973",
+          "type": "quest",
+          "entity_id": 1973,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:8"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1967",
+          "type": "quest",
+          "entity_id": 1967,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:14"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1963",
+          "type": "quest",
+          "entity_id": 1963,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:18"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1974",
+          "type": "quest",
+          "entity_id": 1974,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:7"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1615",
+          "type": "quest",
+          "entity_id": 1615,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:3"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1841",
+          "type": "quest",
+          "entity_id": 1841,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:1"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_716",
+          "type": "quest",
+          "entity_id": 716,
+          "optional": true,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2009
+            }
+          ],
+          "relation": "alternative",
+          "alternative_groups": [
+            "quest:1960:or:5"
+          ]
+        },
+        {
+          "id": "dofus_ebene_quest_1960",
+          "type": "quest",
+          "entity_id": 1960,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1962",
+          "type": "quest",
+          "entity_id": 1962,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1960
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2192",
+          "type": "quest",
+          "entity_id": 2192,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1962
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1607",
+          "type": "quest",
+          "entity_id": 1607,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1845",
+          "type": "quest",
+          "entity_id": 1845,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1607
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1853",
+          "type": "quest",
+          "entity_id": 1853,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1845
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1867",
+          "type": "quest",
+          "entity_id": 1867,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1853
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1868",
+          "type": "quest",
+          "entity_id": 1868,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1867
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1869",
+          "type": "quest",
+          "entity_id": 1869,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1868
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2450",
+          "type": "quest",
+          "entity_id": 2450,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2193",
+          "type": "quest",
+          "entity_id": 2193,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2192
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2194",
+          "type": "quest",
+          "entity_id": 2194,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2193
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2195",
+          "type": "quest",
+          "entity_id": 2195,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2194
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1462",
+          "type": "quest",
+          "entity_id": 1462,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2195
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_589",
+          "type": "quest",
+          "entity_id": 589,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2035",
+          "type": "quest",
+          "entity_id": 2035,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 1462
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2036",
+          "type": "quest",
+          "entity_id": 2036,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2035
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_590",
+          "type": "quest",
+          "entity_id": 590,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 589
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2037",
+          "type": "quest",
+          "entity_id": 2037,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2036
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_624",
+          "type": "quest",
+          "entity_id": 624,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2038",
+          "type": "quest",
+          "entity_id": 2038,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2037
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2010",
+          "type": "quest",
+          "entity_id": 2010,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 624
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2011",
+          "type": "quest",
+          "entity_id": 2011,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2010
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_1938",
+          "type": "quest",
+          "entity_id": 1938,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2039",
+          "type": "quest",
+          "entity_id": 2039,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2038
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2040",
+          "type": "quest",
+          "entity_id": 2040,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2039
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2041",
+          "type": "quest",
+          "entity_id": 2041,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2040
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2042",
+          "type": "quest",
+          "entity_id": 2042,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2041
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2043",
+          "type": "quest",
+          "entity_id": 2043,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2042
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "dofus_ebene_quest_2044",
+          "type": "quest",
+          "entity_id": 2044,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2043
+            }
+          ],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

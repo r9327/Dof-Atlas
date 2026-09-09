@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "id": "domakuro",
+  "title": "Domakuro",
+  "category": "dofus",
+  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Domakuro.",
+  "recommended_level_min": 30,
+  "recommended_level_max": 140,
+  "reward_item_id": 23237,
+  "illustration_item_id": 23237,
+  "image": null,
+  "linked_achievement_ids": [
+    3034
+  ],
+  "completeness_status": "complete",
+  "verified_steps": 8,
+  "total_steps": 8,
+  "validation_warnings": [
+    "Parcours partiel : la complétude externe n'est pas démontrée.",
+    "Profil DPLN: parcours obligatoire résolu dans le catalogue local."
+  ],
+  "generation_source": "doduda+dpln_profile+v4_graph",
+  "source_urls": [],
+  "sections": [
+    {
+      "id": "domakuro_v4_route",
+      "title": "Parcours de quêtes",
+      "description": "Ordre topologique issu des critères locaux Qf/Qa/Sc, sans dépendance d'affichage inventée.",
+      "linked_achievement_ids": [
+        3034
+      ],
+      "steps": [
+        {
+          "id": "domakuro_quest_2149",
+          "type": "quest",
+          "entity_id": 2149,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [],
+          "relation": "mandatory"
+        },
+        {
+          "id": "domakuro_quest_2150",
+          "type": "quest",
+          "entity_id": 2150,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2149
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "domakuro_quest_2151",
+          "type": "quest",
+          "entity_id": 2151,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2150
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "domakuro_quest_2152",
+          "type": "quest",
+          "entity_id": 2152,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2151
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "domakuro_quest_2153",
+          "type": "quest",
+          "entity_id": 2153,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2152
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "domakuro_quest_2154",
+          "type": "quest",
+          "entity_id": 2154,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2153
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "domakuro_quest_2155",
+          "type": "quest",
+          "entity_id": 2155,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2154
+            }
+          ],
+          "relation": "mandatory"
+        },
+        {
+          "id": "domakuro_quest_2197",
+          "type": "quest",
+          "entity_id": 2197,
+          "optional": false,
+          "notes": "",
+          "prerequisites": [
+            {
+              "type": "quest",
+              "entity_id": 2155
+            }
+          ],
+          "relation": "mandatory"
+        }
+      ]
+    }
+  ],
+  "graph_semantics": {
+    "Qf": "prerequisite_completed",
+    "Qa": "ordering_context_only",
+    "Sc": "achievement_quest_expansion",
+    "OR": "optional_alternatives"
+  }
+}

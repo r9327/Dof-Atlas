@@ -1,0 +1,25 @@
+{
+  "schema_version": 21,
+  "route_id": "guide_ultime_manual_level_191_200_v21",
+  "title": "Guide Ultime — Niveau 191 à 200, Totems replacés avant leurs boss donneurs",
+  "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
+  "base_file": "level_191_200_v20.json",
+  "supersedes": "guide_ultime_manual_level_191_200_v20",
+  "stage_count": 62,
+  "depends_on": [
+    "level_181_190_v15.json",
+    "bonta_1_100_v17.json",
+    "bonta_order_rank100_v1.json",
+    "temporal_registry_v15.json",
+    "ocre_capture_registry_v1.json"
+  ],
+  "optimization_note": "Conserve intégralement les 62 fiches v20 mais replace le bloc causal P200-13 → P200-14 → P200-15 avant L200-VUL1. Les totems de Maïmane sont ainsi réellement ouverts avant chaque boss sélectionné pour Joie, Tristesse, Peur, Colère, Dégoût et Surprise, sans dupliquer ni réécrire les fiches métier.",
+  "stage_removals": ["P200-13", "P200-14", "P200-15"],
+  "stage_imports": [
+    {"file":"level_191_200_v20.json","stage_id":"P200-13","before":"L200-VUL1"},
+    {"file":"level_191_200_v20.json","stage_id":"P200-14","after":"P200-13"},
+    {"file":"level_191_200_v20.json","stage_id":"P200-15","after":"P200-14"}
+  ],
+  "stage_patches": {},
+  "insertions": []
+}

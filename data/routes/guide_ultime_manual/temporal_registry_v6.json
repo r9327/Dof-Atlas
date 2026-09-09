@@ -1,0 +1,88 @@
+{
+  "schema_version": 6,
+  "registry_id": "guide_ultime_temporal_registry_v6",
+  "status": "RESEARCH_IN_PROGRESS",
+  "base_file": "temporal_registry_v5.json",
+  "supersedes": "temporal_registry_v5.json",
+  "entry_insertions": [
+    {
+      "id": "frigost_hunter_blessure_to_chasse",
+      "type": "fixed_delay_chain",
+      "area": "Frigost",
+      "quest": "Blessure de chasse",
+      "next_quest": "Chasse dangereuse",
+      "delay_hours": 13,
+      "starts_after": "completion",
+      "position_policy": "weekday_variable",
+      "clock_restriction_removed": true,
+      "priority": "high_async",
+      "runtime_rule": "Terminer Blessure de chasse au premier passage rentable, enregistrer l'heure exacte de fin, puis continuer le Guide Ultime ailleurs. Chasse dangereuse ne peut être proposée qu'au moins 13 h plus tard. Sa position de lancement dépend du jour de la semaine et doit être résolue au moment de l'exécution; ne jamais stocker une position unique comme vérité permanente.",
+      "weekday_start_positions": {
+        "monday": [-65, -63],
+        "tuesday": [-61, -62],
+        "wednesday": [-64, -58],
+        "thursday": [-69, -60],
+        "friday": [-71, -53],
+        "saturday": [-70, -57],
+        "sunday": [-74, -54]
+      },
+      "source": "https://www.dofuspourlesnoobs.com/chasse-dangereuse.html"
+    },
+    {
+      "id": "frigost_hunter_chasse_to_brocouille",
+      "type": "fixed_delay_chain",
+      "area": "Frigost",
+      "quest": "Chasse dangereuse",
+      "next_quest": "Rentrer brocouille",
+      "delay_hours": 13,
+      "starts_after": "completion",
+      "position_policy": "weekday_variable",
+      "clock_restriction_removed": true,
+      "priority": "high_async",
+      "runtime_rule": "Terminer Chasse dangereuse, enregistrer l'heure exacte de fin et repartir immédiatement sur la route principale. Rentrer brocouille est réinjectée au premier passage Frigost au moins 13 h plus tard. Sa position dépend du jour de la semaine; la résoudre dynamiquement au lancement.",
+      "weekday_start_positions": {
+        "monday": [-56, -66],
+        "tuesday": [-53, -63],
+        "wednesday": [-57, -69],
+        "thursday": [-60, -65],
+        "friday": [-53, -67],
+        "saturday": [-58, -60],
+        "sunday": [-54, -60]
+      },
+      "source": "https://www.dofuspourlesnoobs.com/rentrer-brocouille.html"
+    },
+    {
+      "id": "frigost_bonmonstres_attempt_window",
+      "type": "timed_attempt_with_failure_cooldown",
+      "area": "Frigost — Crevasse Perge",
+      "quest": "Bonmonstres de neige",
+      "prerequisites": ["niveau > 149", "Fais dodo, t'auras du gâteau"],
+      "attempt_window_minutes": 5,
+      "failure_cooldown_hours": 1,
+      "priority": "execute_when_route_ready",
+      "runtime_rule": "Ne lancer Bonmonstres de neige que lorsque les cinq positions sont déjà chargées dans l'étape et que le personnage est prêt à enchaîner immédiatement. Si la fenêtre de 5 minutes est ratée, enregistrer l'heure d'échec et continuer ailleurs pendant 1 h; ne jamais attendre sur place.",
+      "inspection_route": [
+        [-75, -83],
+        [-79, -82],
+        [-77, -77],
+        [-79, -78],
+        [-81, -78]
+      ],
+      "source": "https://www.dofuspourlesnoobs.com/bonmonstres-de-neige.html"
+    }
+  ],
+  "entry_patches": {},
+  "research_notes": [
+    "Depuis la mise à jour 3.3, Blessure de chasse, Chasse dangereuse, Rentrer brocouille et Bonmonstres de neige ne sont plus limités à une heure précise; seules les positions variables par jour des trois quêtes du chasseur restent pertinentes.",
+    "Blessure de chasse -> Chasse dangereuse: 13 h minimum.",
+    "Chasse dangereuse -> Rentrer brocouille: 13 h minimum supplémentaires.",
+    "Bonmonstres de neige: cinq inspections en moins de 5 minutes; échec = 1 h avant nouvel essai."
+  ],
+  "sources": [
+    "https://www.dofuspourlesnoobs.com/blessure-de-chasse.html",
+    "https://www.dofuspourlesnoobs.com/chasse-dangereuse.html",
+    "https://www.dofuspourlesnoobs.com/rentrer-brocouille.html",
+    "https://www.dofuspourlesnoobs.com/bonmonstres-de-neige.html",
+    "https://www.dofuspourlesnoobs.com/mise-a-jour-303.html"
+  ]
+}
