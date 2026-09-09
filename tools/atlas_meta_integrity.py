@@ -422,8 +422,20 @@ def check_ci_contracts(root: Path) -> list[str]:
     runner = runner_path.read_text(encoding="utf-8-sig")
     issues.extend(check_full_discovery_source(app))
 
-    if "pull_request:" not in app or re.search(r"^\s*push:\s*$", app, re.MULTILINE) is None:
-        issues.append("application CI automatic push/pull-request triggers missing")
+    public_pr_path = root / ".github/workflows/public-pr-ci.yml"
+    if not public_pr_path.is_file():
+        issues.append("CI owner missing: .github/workflows/public-pr-ci.yml")
+        return issues
+    public_pr = public_pr_path.read_text(encoding="utf-8-sig")
+
+    if re.search(r"^\s*push:\s*$", app, re.MULTILINE) is None:
+        issues.append("application CI automatic push trigger missing")
+    if "pull_request:" in app:
+        issues.append("self-hosted application CI must not run on pull_request")
+    if "pull_request:" not in public_pr:
+        issues.append("public PR CI pull_request trigger missing")
+    if "runs-on: windows-latest" not in public_pr or "self-hosted" in public_pr:
+        issues.append("public PR CI must stay on GitHub-hosted windows-latest")
     for required_path in ('"tools/**"', '"tests/**"', '".github/workflows/**"'):
         if required_path not in app:
             issues.append(f"app CI trigger scope missing {required_path}")

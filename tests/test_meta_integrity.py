@@ -65,6 +65,7 @@ class AtlasMetaIntegrityTests(unittest.TestCase):
         tools.mkdir(parents=True)
         for relative in (
             ".github/workflows/app-ci.yml",
+            ".github/workflows/public-pr-ci.yml",
             ".github/workflows/guide-ultime-v5-ui.yml",
             "tools/atlas_integrity.py",
             "tools/atlas_integrity_policy.json",
