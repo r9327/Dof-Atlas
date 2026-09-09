@@ -3,12 +3,17 @@
 .github/workflows/** @r9327
 .github/CODEOWNERS @r9327
 .github/rulesets/** @r9327
+.githooks/** @r9327
 tools/atlas_integrity* @r9327
 tools/atlas_meta_integrity.py @r9327
+tools/check_generated_files.py @r9327
 tools/run_guide_ultime_ci.ps1 @r9327
 tests/critical_regression_inventory.json @r9327
 tests/test_*guardrails.py @r9327
 tests/test_meta_integrity.py @r9327
+tests/test_atlas_integrity.py @r9327
+tests/test_generated_files_guard.py @r9327
+tests/test_repository_git_hooks.py @r9327
 app/core/character_identity.py @r9327
 app/core/json_store.py @r9327
 app/modules/encyclopedia/services/*progress* @r9327
