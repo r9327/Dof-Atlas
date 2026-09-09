@@ -56,6 +56,45 @@ TEXT_SUFFIXES = {
 WINDOWS_USER_PATH = re.compile(r"(?i)[a-z]:[\\/]{1,2}users[\\/]{1,2}([^\\/\s\"']+)")
 PRIVATE_KEY_HEADER = re.compile(r"-----BEGIN (?:EC |OPENSSH |RSA )?PRIVATE KEY-----")
 SYNTHETIC_WINDOWS_USERS = {"default", "public", "testuser"}
+PLACEHOLDER_MARKERS = (
+    "<your",
+    "<token",
+    "<secret",
+    "example",
+    "placeholder",
+    "changeme",
+    "replace_me",
+    "replace-me",
+    "dummy",
+    "fake",
+    "redacted",
+    "not-a-real",
+    "not_real",
+    "test-token",
+    "test_token",
+)
+JWT_VALUE = r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"
+SENSITIVE_TOKEN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("GitHub personal access token", re.compile(r"\bghp_[A-Za-z0-9]{36}\b")),
+    ("GitHub fine-grained personal access token", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{40,}\b")),
+    ("OpenAI API key", re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b")),
+    ("AWS access key id", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("Supabase secret key", re.compile(r"\bsb_secret_[A-Za-z0-9_-]{20,}\b", re.IGNORECASE)),
+    (
+        "Supabase service-role JWT",
+        re.compile(
+            rf"(?i)\b(?:SUPABASE_SERVICE_ROLE_KEY|service[_-]?role(?:[_-]?key)?)\b"
+            rf"\s*[\"']?\s*[:=]\s*[\"']?({JWT_VALUE})"
+        ),
+    ),
+    (
+        "JWT assigned to a secret/token field",
+        re.compile(
+            rf"(?i)\b(?:jwt|access[_-]?token|auth[_-]?token|api[_-]?key|secret)\b"
+            rf"\s*[\"']?\s*[:=]\s*[\"']?({JWT_VALUE})"
+        ),
+    ),
+)
 
 
 def normalize_paths(paths: Iterable[str]) -> list[str]:
@@ -99,28 +138,73 @@ def find_forbidden(paths: Iterable[str]) -> list[dict[str, str]]:
     return findings
 
 
-def find_sensitive_content(root: Path, paths: Iterable[str]) -> list[dict[str, str]]:
+def _looks_like_placeholder(line: str) -> bool:
+    lowered = line.casefold()
+    return any(marker in lowered for marker in PLACEHOLDER_MARKERS)
+
+
+def _read_text_content(root: Path, relative_path: str, *, staged: bool) -> str | None:
+    if staged:
+        completed = subprocess.run(
+            ["git", "show", f":{relative_path}"],
+            cwd=root,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+        )
+        if completed.returncode != 0:
+            return None
+        return completed.stdout
+
+    path = root / relative_path
+    if not path.is_file():
+        return None
+    return path.read_text(encoding="utf-8", errors="ignore")
+
+
+def find_sensitive_content(
+    root: Path,
+    paths: Iterable[str],
+    *,
+    staged: bool = False,
+) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     for relative_path in normalize_paths(paths):
-        path = root / relative_path
-        if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
+        if Path(relative_path).suffix.lower() not in TEXT_SUFFIXES:
             continue
-        with path.open("r", encoding="utf-8", errors="ignore") as handle:
-            for line_number, line in enumerate(handle, start=1):
-                match = WINDOWS_USER_PATH.search(line)
-                if match and match.group(1).casefold() not in SYNTHETIC_WINDOWS_USERS:
-                    findings.append(
-                        {
-                            "path": relative_path,
-                            "reason": f"developer-specific Windows user path at line {line_number}",
-                        }
-                    )
-                    break
-                if PRIVATE_KEY_HEADER.search(line):
-                    findings.append(
-                        {"path": relative_path, "reason": f"private key header at line {line_number}"}
-                    )
-                    break
+        content = _read_text_content(root, relative_path, staged=staged)
+        if content is None:
+            continue
+        for line_number, line in enumerate(content.splitlines(), start=1):
+            match = WINDOWS_USER_PATH.search(line)
+            if match and match.group(1).casefold() not in SYNTHETIC_WINDOWS_USERS:
+                findings.append(
+                    {
+                        "path": relative_path,
+                        "reason": f"developer-specific Windows user path at line {line_number}",
+                    }
+                )
+                break
+            if PRIVATE_KEY_HEADER.search(line):
+                findings.append(
+                    {"path": relative_path, "reason": f"private key header at line {line_number}"}
+                )
+                break
+            if _looks_like_placeholder(line):
+                continue
+            token_reason = next(
+                (reason for reason, pattern in SENSITIVE_TOKEN_PATTERNS if pattern.search(line)),
+                None,
+            )
+            if token_reason:
+                findings.append(
+                    {
+                        "path": relative_path,
+                        "reason": f"probable {token_reason} at line {line_number}",
+                    }
+                )
+                break
     return findings
 
 
@@ -144,7 +228,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = args.root.resolve()
     paths = git_paths(root, staged=args.staged)
-    findings = find_forbidden(paths) + find_sensitive_content(root, paths)
+    findings = find_forbidden(paths) + find_sensitive_content(root, paths, staged=args.staged)
     report = {"status": "BLOCKED" if findings else "PASS", "findings": findings}
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))

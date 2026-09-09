@@ -46,4 +46,5 @@ jobs:
             tests.test_character_identity_invariants `
             tests.test_character_data_service `
             tests.test_project_guardrails `
+            tests.test_generated_file_guardrails `
             tests.test_performance_guardrails

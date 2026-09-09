@@ -1,0 +1,64 @@
+name: Commit Signature Visibility
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signature-report:
+    name: Signature / Informational
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Report commit signature without blocking CI
+        continue-on-error: true
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const sha = context.payload.pull_request?.head?.sha ?? context.sha;
+            let status = "❓ CHECK UNAVAILABLE";
+            let reason = "GitHub could not determine signature status.";
+
+            try {
+              const { data } = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: sha,
+              });
+              const verification = data.commit?.verification;
+              if (verification?.verified) {
+                status = "✅ VERIFIED";
+                reason = verification.reason ?? "valid";
+              } else if (verification?.signature) {
+                status = "⚠️ UNVERIFIED";
+                reason = verification.reason ?? "unknown";
+              } else {
+                status = "➖ UNSIGNED";
+                reason = verification?.reason ?? "unsigned";
+              }
+            } catch (error) {
+              reason = `lookup failed: ${error.message}`;
+              core.warning(reason);
+            }
+
+            await core.summary
+              .addHeading("Commit signature (informational)")
+              .addRaw(`${status}\n\n`)
+              .addTable([
+                [{ data: "Commit", header: true }, sha],
+                [{ data: "Status", header: true }, status],
+                [{ data: "Reason", header: true }, reason],
+              ])
+              .addRaw("\nThis check is informational only and never blocks CI, merge, or publication.\n")
+              .write();
+
+            core.notice(`${status} — ${sha} — ${reason}`);
