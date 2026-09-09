@@ -1,2 +1,10 @@
 #!/bin/sh
-exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/pre_push.ps1
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/pre_push.ps1
+status=$?
+
+if [ "$status" -ne 0 ]; then
+    exit "$status"
+fi
+
+exec git lfs pre-push "$@"

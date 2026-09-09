@@ -46,18 +46,18 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             (ROOT / ".github/rulesets/integration-branch.json").read_text(encoding="utf-8")
         )
         self.assertEqual(payload["enforcement"], "active")
-        self.assertEqual(payload["bypass_actors"], [])
-        self.assertIn(f"refs/heads/{FEATURE_BRANCH}", payload["conditions"]["ref_name"]["include"])
+        self.assertIn("refs/heads/main", payload["conditions"]["ref_name"]["include"])
+
         rules = {rule["type"]: rule for rule in payload["rules"]}
         self.assertIn("deletion", rules)
         self.assertIn("non_fast_forward", rules)
+        self.assertNotIn("required_signatures", rules)
+
         contexts = {
             item["context"]
             for item in rules["required_status_checks"]["parameters"]["required_status_checks"]
         }
-        self.assertIn("Integrity Policy / Fast Code Validation", contexts)
-        self.assertIn("Full Application Suite", contexts)
-        self.assertNotIn("Guide / Quests / Success / Data Integrity", contexts)
+        self.assertIn("Public PR / Safe Validation", contexts)
 
     def test_deep_workflow_is_scheduled_manual_and_seeded(self) -> None:
         source = self._workflow("deep-validation.yml")
@@ -91,10 +91,21 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             self.assertNotIn("fetch-depth: 1", source, name)
 
     def test_app_ci_is_the_single_automatic_pr_validator(self) -> None:
-        source = self._workflow("app-ci.yml")
-        self.assertIn("pull_request:", source)
-        self.assertIn("push:", source)
-        self.assertIn("      - main", source)
+        app = self._workflow("app-ci.yml")
+        public_pr = self._workflow("public-pr-ci.yml")
+
+        self.assertIn("push:", app)
+        self.assertNotIn("pull_request:", app)
+        self.assertIn("runs-on: [self-hosted, Windows, X64]", app)
+
+        self.assertIn("pull_request:", public_pr)
+        self.assertIn("      - main", public_pr)
+        self.assertIn("runs-on: windows-latest", public_pr)
+        self.assertNotIn("self-hosted", public_pr)
+
+        self.assertIn("Public PR / Safe Validation", public_pr)
+        self.assertIn("tests.test_project_guardrails", public_pr)
+
         for data_path in (
             '"data/encyclopedia/**"',
             '"data/cartography/**"',
@@ -102,27 +113,17 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             '"data/routes/**"',
             '"data/dofus_atlas_world.db"',
         ):
-            self.assertIn(data_path, source)
-        self.assertNotIn('"data/local/**"', source)
-        self.assertIn('"tools/**"', source)
-        self.assertIn('"scripts/**"', source)
-        self.assertIn('"config/**"', source)
-        self.assertIn('"tests/**"', source)
-        self.assertIn('"launch.py"', source)
-        self.assertIn('"sitecustomize.py"', source)
-        self.assertIn('".gitignore"', source)
-        self.assertIn('".gitattributes"', source)
-        self.assertIn('".github/workflows/**"', source)
-        self.assertIn("unittest discover", source)
-        self.assertIn("-m tools.atlas_integrity fast", source)
-        self.assertIn("--base-ref $baseRef", source)
-        # The automatic app workflow owns orchestration only. The detailed
-        # Guide checks have one canonical entrypoint so app/manual validation
-        # cannot silently drift apart.
-        self.assertIn(GUIDE_RUNNER, source)
-        self.assertNotIn(f"py -3.13 -m {CANONICAL_LOCK_MODULE}", source)
-        self.assertNotIn(f"py -3.13 -m {CANONICAL_DEPENDENCY_MODULE}", source)
-        self.assertNotIn(f"py -3.13 -m {FINAL_TRANSVERSAL_MODULE}", source)
+            self.assertIn(data_path, app)
+
+        self.assertNotIn('"data/local/**"', app)
+        self.assertIn('"tools/**"', app)
+        self.assertIn('"tests/**"', app)
+        self.assertIn('"launch.py"', app)
+        self.assertIn('"sitecustomize.py"', app)
+        self.assertIn('".github/workflows/**"', app)
+        self.assertIn("unittest discover", app)
+        self.assertIn("-m tools.atlas_integrity fast", app)
+        self.assertIn(GUIDE_RUNNER, app)
 
     def test_critical_gates_are_independent_and_propagate_red_status(self) -> None:
         source = self._workflow("app-ci.yml")

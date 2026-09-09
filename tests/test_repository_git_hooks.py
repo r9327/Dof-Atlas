@@ -39,6 +39,8 @@ class RepositoryGitHooksTests(unittest.TestCase):
         python_source = (ROOT / "tools/git_hook.py").read_text(encoding="utf-8")
         self.assertIn("tools.git_hook pre-push", source)
         self.assertIn('"tools.atlas_integrity", "fast"', python_source)
+        shell_hook = (ROOT / ".githooks/pre-push").read_text(encoding="utf-8")
+        self.assertIn('git lfs pre-push "$@"', shell_hook)
 
 
 if __name__ == "__main__":
