@@ -2,8 +2,6 @@ name: Dofus Atlas Deep Validation
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 2 * * *"
 
 permissions:
   contents: read
@@ -21,7 +19,7 @@ env:
 
 jobs:
   deep-validation:
-    name: Deep / Nightly
+    name: Deep / Internal
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 180
     steps:
@@ -29,16 +27,19 @@ jobs:
         with:
           lfs: false
           fetch-depth: 0
+
       - name: Verify Python and install application dependencies
         run: |
           & py -3.13 --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & py -3.13 -m pip install -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Materialize deep-validation LFS fixtures
         run: |
           & git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Materialize local Dofus catalog
         run: |
           $catalog = "data/cache/dofus_maps/raw/doduda_cli"
@@ -55,10 +56,12 @@ jobs:
               raise SystemExit(f"Quest catalog incomplete: {count}")
           '@ | & py -3.13 -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Run reproducible deep integrity gate
         run: |
           & py -3.13 -X faulthandler -m tools.atlas_integrity deep --base-ref HEAD^ --json | Tee-Object -FilePath deep-integrity.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload deep machine report
         if: always()
         uses: actions/upload-artifact@v4

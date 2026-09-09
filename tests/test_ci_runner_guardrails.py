@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import re
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -32,14 +32,28 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             for match in re.findall(r"\btools[\\/][A-Za-z0-9_.-]+\.py\b", source)
         }
 
-    def test_ci_uses_registered_windows_self_hosted_runner(self) -> None:
-        for name in ("app-ci.yml", "guide-ultime-v5-ui.yml"):
+    def test_public_automatic_workflows_use_github_hosted_windows(self) -> None:
+        app = self._workflow("app-ci.yml")
+        public_pr = self._workflow("public-pr-ci.yml")
+
+        for label, source in (("app-ci.yml", app), ("public-pr-ci.yml", public_pr)):
+            self.assertIn("runs-on: windows-latest", source, label)
+            self.assertNotIn("runs-on: [self-hosted, Windows, X64]", source, label)
+            self.assertNotIn(FEATURE_BRANCH, source, label)
+
+        self.assertIn("push:", app)
+        self.assertNotIn("pull_request:", app)
+        self.assertIn("pull_request:", public_pr)
+        self.assertNotIn("pull_request_target:", public_pr)
+
+    def test_internal_self_hosted_workflows_are_manual_only(self) -> None:
+        for name in ("guide-ultime-v5-ui.yml", "deep-validation.yml"):
             source = self._workflow(name)
+            self.assertIn("workflow_dispatch:", source, name)
             self.assertIn("runs-on: [self-hosted, Windows, X64]", source, name)
-            self.assertNotIn("ubuntu-latest", source, name)
-            self.assertNotIn("windows-latest", source, name)
-            self.assertNotIn("macos-latest", source, name)
-            self.assertNotIn(FEATURE_BRANCH, source, name)
+            self.assertNotIn("pull_request:", source, name)
+            self.assertNotIn("push:", source, name)
+            self.assertNotIn("schedule:", source, name)
 
     def test_ruleset_template_uses_real_blocking_job_names(self) -> None:
         payload = json.loads(
@@ -59,100 +73,81 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         }
         self.assertIn("Public PR / Safe Validation", contexts)
 
-    def test_deep_workflow_is_scheduled_manual_and_seeded(self) -> None:
+    def test_deep_workflow_is_manual_seeded_and_full_strength(self) -> None:
         source = self._workflow("deep-validation.yml")
         self.assertIn("workflow_dispatch:", source)
-        self.assertIn("schedule:", source)
+        self.assertNotIn("schedule:", source)
+        self.assertIn("runs-on: [self-hosted, Windows, X64]", source)
         self.assertIn("tools.atlas_integrity deep", source)
         self.assertIn("--base-ref HEAD^", source)
         self.assertIn("pip install -r requirements-pyside.txt", source)
         self.assertIn("git lfs pull --include=", source)
         self.assertIn("doduda.exe", source)
         self.assertIn("QuestCatalog.load()", source)
-        self.assertNotIn("pull_request:", source)
 
-    def test_python_313_is_verified_before_fixture_materialization(self) -> None:
-        for name in ("app-ci.yml", "guide-ultime-v5-ui.yml"):
+    def test_python_313_setup_matches_runner_type(self) -> None:
+        app = self._workflow("app-ci.yml")
+        self.assertIn("uses: actions/setup-python@v5", app)
+        self.assertIn('python-version: "3.13"', app)
+        self.assertIn("python --version", app)
+        self.assertNotIn("& py -3.13 --version", app)
+
+        for name in ("guide-ultime-v5-ui.yml", "deep-validation.yml"):
             source = self._workflow(name)
-            verify_index = source.index("- name: Verify local Python 3.13")
-            fixture_index = source.index("git lfs pull --include=")
-            inline_python_index = source.index("@'", fixture_index)
-            self.assertLess(verify_index, fixture_index, name)
-            self.assertLess(verify_index, inline_python_index, name)
             self.assertIn("& py -3.13 --version", source, name)
-            self.assertIn("& py -3.13 -m pip --version", source, name)
-            self.assertIn("'@ | & py -3.13 -", source, name)
             self.assertNotIn("actions/setup-python", source, name)
 
     def test_canonical_lock_ci_keeps_full_git_history(self) -> None:
-        for name in ("app-ci.yml", "guide-ultime-v5-ui.yml"):
+        for name in (
+            "app-ci.yml",
+            "public-pr-ci.yml",
+            "guide-ultime-v5-ui.yml",
+            "deep-validation.yml",
+        ):
             source = self._workflow(name)
             self.assertIn("fetch-depth: 0", source, name)
             self.assertNotIn("fetch-depth: 1", source, name)
 
-    def test_app_ci_is_the_single_automatic_pr_validator(self) -> None:
-        app = self._workflow("app-ci.yml")
-        public_pr = self._workflow("public-pr-ci.yml")
-
-        self.assertIn("push:", app)
-        self.assertNotIn("pull_request:", app)
-        self.assertIn("runs-on: [self-hosted, Windows, X64]", app)
-
-        self.assertIn("pull_request:", public_pr)
-        self.assertIn("      - main", public_pr)
-        self.assertIn("runs-on: windows-latest", public_pr)
-        self.assertNotIn("self-hosted", public_pr)
-
-        self.assertIn("Public PR / Safe Validation", public_pr)
-        self.assertIn("tests.test_project_guardrails", public_pr)
-
-        for data_path in (
-            '"data/encyclopedia/**"',
-            '"data/cartography/**"',
-            '"data/images/**"',
-            '"data/routes/**"',
-            '"data/dofus_atlas_world.db"',
-        ):
-            self.assertIn(data_path, app)
-
-        self.assertNotIn('"data/local/**"', app)
-        self.assertIn('"tools/**"', app)
-        self.assertIn('"tests/**"', app)
-        self.assertIn('"launch.py"', app)
-        self.assertIn('"sitecustomize.py"', app)
-        self.assertIn('".github/workflows/**"', app)
-        self.assertIn("unittest discover", app)
-        self.assertIn("-m tools.atlas_integrity fast", app)
-        self.assertIn(GUIDE_RUNNER, app)
-
-    def test_critical_gates_are_independent_and_propagate_red_status(self) -> None:
+    def test_app_ci_keeps_public_safe_fast_gate_separate_from_catalog_tests(self) -> None:
         source = self._workflow("app-ci.yml")
-        for job_name in (
-            "Architecture",
-            "Identity / Persistence",
-            "Startup / Lazy",
-            "Qt Lifecycle / Async",
-            "Resource Budgets",
-            "Golden Flows",
-            "Monolithic Lifecycle",
-            "Guide / Quests / Success / Data Integrity",
-            "Full Application Suite",
-        ):
-            self.assertIn(f"name: {job_name}", source)
-        for step_name in (
-            "Run architecture guardrails",
-            "Run canonical identity and persistence contracts",
-            "Run startup and lazy-loading contracts",
-            "Run Qt lifecycle and non-accumulation contracts",
-            "Enforce deterministic resource budgets",
-            "Run Guide Quests Success Home golden flows",
-            "Run representative lifecycle modules in one process",
-            "Run canonical Guide and data integrity runner",
-        ):
-            block = source[source.index(f"- name: {step_name}") :]
-            block = block.split("\n      - name:", 1)[0]
-            self.assertNotIn("continue-on-error: true", block, step_name)
-            self.assertIn("exit $LASTEXITCODE", block, step_name)
+        self.assertIn("name: Integrity Policy / Fast Code Validation", source)
+        self.assertIn("name: Full Application Suite", source)
+        self.assertIn("needs: code-validation", source)
+        self.assertIn("Run public-safe integrity checks", source)
+        self.assertIn("Run catalog-independent regression suite", source)
+        self.assertIn("tools.atlas_meta_integrity", source)
+        self.assertIn("tools.check_generated_files", source)
+        self.assertIn("tests.test_ci_runner_guardrails", source)
+        self.assertIn("tests.test_qt_async_non_accumulation", source)
+
+        fast_block = source[
+            source.index("code-validation:") : source.index("  full-validation:")
+        ]
+        self.assertNotIn("tests.test_quest_visuals_lot6", fast_block)
+        self.assertNotIn("tools.atlas_integrity fast", fast_block)
+        self.assertNotIn("git lfs pull", fast_block)
+        self.assertNotIn("doduda.exe", fast_block)
+
+    def test_app_ci_full_gate_materializes_catalog_before_full_discovery(self) -> None:
+        source = self._workflow("app-ci.yml")
+        full = source[source.index("  full-validation:") :]
+
+        self.assertIn("runs-on: windows-latest", full)
+        self.assertIn("git lfs pull --include=", full)
+        self.assertIn("tools/doduda/doduda.exe", full)
+        self.assertIn("Materialize local Dofus catalog", full)
+        self.assertIn("QuestCatalog.load()", full)
+        self.assertIn("count < 1900", full)
+        self.assertIn('unittest discover -v -s tests -p "test_*.py"', full)
+        self.assertIn(GUIDE_RUNNER, full)
+
+        lfs_index = full.index("git lfs pull --include=")
+        catalog_index = full.index("Materialize local Dofus catalog")
+        discovery_index = full.index('unittest discover -v -s tests -p "test_*.py"')
+        guide_index = full.index(GUIDE_RUNNER)
+        self.assertLess(lfs_index, catalog_index)
+        self.assertLess(catalog_index, discovery_index)
+        self.assertLess(catalog_index, guide_index)
 
     def test_app_ci_materializes_only_required_visual_lfs_fixtures(self) -> None:
         source = self._workflow("app-ci.yml")
@@ -167,6 +162,47 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
                 source,
                 str(quest_id),
             )
+
+    def test_app_ci_full_verdict_propagates_every_heavy_failure(self) -> None:
+        source = self._workflow("app-ci.yml")
+        final = source[source.index("- name: Fail full validation when a full check failed") :]
+        for token in (
+            "steps.lfs.outcome",
+            "steps.catalog.outcome",
+            "steps.full_tests.outcome",
+            "steps.guide_data.outcome",
+        ):
+            self.assertIn(token, final)
+        self.assertIn("throw", final)
+
+    def test_app_ci_trigger_scope_covers_public_sources_without_local_state(self) -> None:
+        source = self._workflow("app-ci.yml")
+        for data_path in (
+            '"data/encyclopedia/**"',
+            '"data/cartography/**"',
+            '"data/images/**"',
+            '"data/routes/**"',
+            '"data/dofus_atlas_world.db"',
+        ):
+            self.assertIn(data_path, source)
+
+        self.assertNotIn('"data/local/**"', source)
+        self.assertIn('"tools/**"', source)
+        self.assertIn('"tests/**"', source)
+        self.assertIn('"launch.py"', source)
+        self.assertIn('"sitecustomize.py"', source)
+        self.assertIn('".github/workflows/**"', source)
+
+    def test_public_pr_workflow_stays_read_only_and_public_safe(self) -> None:
+        source = self._workflow("public-pr-ci.yml")
+        self.assertIn("pull_request:", source)
+        self.assertIn("      - main", source)
+        self.assertIn("runs-on: windows-latest", source)
+        self.assertNotIn("self-hosted", source)
+        self.assertIn("contents: read", source)
+        self.assertIn("Public PR / Safe Validation", source)
+        self.assertIn("tests.test_project_guardrails", source)
+        self.assertIn("tests.test_ci_runner_guardrails", source)
 
     def test_detailed_guide_ci_materializes_only_its_visual_fixture(self) -> None:
         source = self._workflow("guide-ultime-v5-ui.yml")
@@ -219,7 +255,10 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("tools.audit_guide_ultime_manual_route_hooks", local_source)
         self.assertIn(test_module, local_source)
         self.assertIn(GUIDE_RUNNER, guide_source)
-        for label, source in (("app-ci.yml", app_source), ("run_guide_ultime_ci.ps1", local_source)):
+        for label, source in (
+            ("app-ci.yml", app_source),
+            ("run_guide_ultime_ci.ps1", local_source),
+        ):
             self.assertNotIn(old_audit_name, source, label)
             self.assertNotIn(old_test_module, source, label)
 
@@ -248,11 +287,12 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             self.assertIn("sys.path.insert(0, str(ROOT))", source, relative)
 
     def test_shell_route_path_contract_is_platform_neutral(self) -> None:
-        # The public test module now subclasses the large compatibility base.
-        # The path assertion remains owned by that base suite.
         source = (ROOT / "tests" / "_pyside_shell_base.py").read_text(encoding="utf-8-sig")
-        self.assertIn('path.as_posix().endswith("data/routes/mineur/cristal_liquide_2.png")', source)
-        self.assertNotIn(r'data\routes\mineur\cristal_liquide_2.png', source)
+        self.assertIn(
+            'path.as_posix().endswith("data/routes/mineur/cristal_liquide_2.png")',
+            source,
+        )
+        self.assertNotIn(r"data\routes\mineur\cristal_liquide_2.png", source)
 
     def test_local_guide_runner_covers_current_source_progress_and_ui_contracts(self) -> None:
         critical_modules = {
@@ -264,8 +304,14 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         }
         local_source = self._local_runner()
         self.assertTrue(critical_modules.issubset(self._test_modules(local_source)))
-        self.assertIn('"-m", "tools.validate_guide_ultime_manual_transversals_v16"', local_source)
-        self.assertNotIn('"-m", "tools.validate_guide_ultime_manual_transversals_v15"', local_source)
+        self.assertIn(
+            '"-m", "tools.validate_guide_ultime_manual_transversals_v16"',
+            local_source,
+        )
+        self.assertNotIn(
+            '"-m", "tools.validate_guide_ultime_manual_transversals_v15"',
+            local_source,
+        )
 
     def test_manual_workflow_and_local_runner_share_one_guide_entrypoint(self) -> None:
         guide_source = self._workflow("guide-ultime-v5-ui.yml")
@@ -289,6 +335,7 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         sources = {
             "app-ci.yml": self._workflow("app-ci.yml"),
             "guide-ultime-v5-ui.yml": self._workflow("guide-ultime-v5-ui.yml"),
+            "deep-validation.yml": self._workflow("deep-validation.yml"),
             "run_guide_ultime_ci.ps1": self._local_runner(),
         }
         for label, source in sources.items():
