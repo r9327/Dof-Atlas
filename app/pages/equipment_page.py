@@ -44,22 +44,34 @@ def restricted_equipment_page_class():
             self.allowed_host = QUrl(HUZOUNET_URL).host().casefold()
 
         def acceptNavigationRequest(self, url, navigation_type, is_main_frame):
-            if not is_main_frame:
-                return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
-
             scheme = str(url.scheme() or "").casefold()
             host = str(url.host() or "").casefold()
-            if scheme in {"about", "data", "blob"}:
+
+            # Subframes may use normal HTTPS web resources and in-document
+            # about/data/blob resources, but never local files or custom schemes.
+            if not is_main_frame:
+                if scheme in {"https", "about", "data", "blob"}:
+                    return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
+                return False
+
+            # The embedded top-level page remains HTTPS-only and host-bound.
+            if scheme == "about" and str(url.toString() or "").casefold() == "about:blank":
                 return True
-            if scheme in {"http", "https"} and (
+            if scheme == "https" and (
                 host == self.allowed_host
                 or (self.allowed_host and host.endswith("." + self.allowed_host))
             ):
                 return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
 
-            if navigation_type == QWebEnginePage.NavigationTypeLinkClicked:
+            # A user-clicked external HTTPS link leaves the embedded browser.
+            # file:, javascript:, data: and custom protocol handlers stay blocked.
+            if navigation_type == QWebEnginePage.NavigationTypeLinkClicked and scheme == "https":
                 QDesktopServices.openUrl(url)
             return False
+
+        def createWindow(self, _window_type):
+            # Never create an unrestricted secondary WebEngine window.
+            return None
 
     _RESTRICTED_PAGE_CLASS = RestrictedEquipmentPage
     return _RESTRICTED_PAGE_CLASS
