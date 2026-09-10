@@ -76,9 +76,17 @@ PLACEHOLDER_MARKERS = (
 JWT_VALUE = r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"
 SENSITIVE_TOKEN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("GitHub personal access token", re.compile(r"\bghp_[A-Za-z0-9]{36}\b")),
+    ("GitHub OAuth token", re.compile(r"\bgho_[A-Za-z0-9]{36}\b")),
+    ("GitHub user token", re.compile(r"\bghu_[A-Za-z0-9]{36}\b")),
+    ("GitHub server token", re.compile(r"\bghs_[A-Za-z0-9]{36}\b")),
+    ("GitHub refresh token", re.compile(r"\bghr_[A-Za-z0-9]{36}\b")),
     ("GitHub fine-grained personal access token", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{40,}\b")),
     ("OpenAI API key", re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b")),
     ("AWS access key id", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("Google API key", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
+    ("npm access token", re.compile(r"\bnpm_[A-Za-z0-9]{30,}\b")),
+    ("Slack token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b")),
+    ("Stripe live secret key", re.compile(r"\bsk_live_[A-Za-z0-9]{20,}\b")),
     ("Supabase secret key", re.compile(r"\bsb_secret_[A-Za-z0-9_-]{20,}\b", re.IGNORECASE)),
     (
         "Supabase service-role JWT",
@@ -90,7 +98,7 @@ SENSITIVE_TOKEN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "JWT assigned to a secret/token field",
         re.compile(
-            rf"(?i)\b(?:jwt|access[_-]?token|auth[_-]?token|api[_-]?key|secret)\b"
+            rf"(?i)\b(?:jwt|access[_-]?token|auth[_-]?token|api[_-]?key|secret|client[_-]?secret|private[_-]?token)\b"
             rf"\s*[\"']?\s*[:=]\s*[\"']?({JWT_VALUE})"
         ),
     ),

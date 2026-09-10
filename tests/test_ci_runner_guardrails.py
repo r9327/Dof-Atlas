@@ -47,10 +47,12 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertNotIn("pull_request_target:", public_pr)
 
     def test_internal_self_hosted_workflows_are_manual_only(self) -> None:
+        owner_main_guard = "github.actor == github.repository_owner && github.ref == 'refs/heads/main'"
         for name in ("guide-ultime-v5-ui.yml", "deep-validation.yml"):
             source = self._workflow(name)
             self.assertIn("workflow_dispatch:", source, name)
             self.assertIn("runs-on: [self-hosted, Windows, X64]", source, name)
+            self.assertIn(owner_main_guard, source, name)
             self.assertNotIn("pull_request:", source, name)
             self.assertNotIn("push:", source, name)
             self.assertNotIn("schedule:", source, name)
@@ -80,14 +82,14 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("runs-on: [self-hosted, Windows, X64]", source)
         self.assertIn("tools.atlas_integrity deep", source)
         self.assertIn("--base-ref HEAD^", source)
-        self.assertIn("pip install -r requirements-pyside.txt", source)
+        self.assertIn("pip install --require-hashes --no-deps -r requirements-pyside.txt", source)
         self.assertIn("git lfs pull --include=", source)
         self.assertIn("doduda.exe", source)
         self.assertIn("QuestCatalog.load()", source)
 
     def test_python_313_setup_matches_runner_type(self) -> None:
         app = self._workflow("app-ci.yml")
-        self.assertIn("uses: actions/setup-python@v5", app)
+        self.assertRegex(app, r"uses: actions/setup-python@[0-9a-f]{40}")
         self.assertIn('python-version: "3.13"', app)
         self.assertIn("python --version", app)
         self.assertNotIn("& py -3.13 --version", app)
@@ -119,6 +121,7 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("tools.check_generated_files", source)
         self.assertIn("tests.test_ci_runner_guardrails", source)
         self.assertIn("tests.test_qt_async_non_accumulation", source)
+        self.assertIn("tests.test_security_hardening_guardrails", source)
 
         fast_block = source[
             source.index("code-validation:") : source.index("  full-validation:")
@@ -192,6 +195,7 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn('"launch.py"', source)
         self.assertIn('"sitecustomize.py"', source)
         self.assertIn('".github/workflows/**"', source)
+        self.assertIn('".github/dependabot.yml"', source)
 
     def test_public_pr_workflow_stays_read_only_and_public_safe(self) -> None:
         source = self._workflow("public-pr-ci.yml")
@@ -201,8 +205,10 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertNotIn("self-hosted", source)
         self.assertIn("contents: read", source)
         self.assertIn("Public PR / Safe Validation", source)
+        self.assertIn("actions/dependency-review-action@", source)
         self.assertIn("tests.test_project_guardrails", source)
         self.assertIn("tests.test_ci_runner_guardrails", source)
+        self.assertIn("tests.test_security_hardening_guardrails", source)
 
     def test_detailed_guide_ci_materializes_only_its_visual_fixture(self) -> None:
         source = self._workflow("guide-ultime-v5-ui.yml")

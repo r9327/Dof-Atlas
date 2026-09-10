@@ -13,8 +13,9 @@ $RequirementsFile = Join-Path $Root "requirements-pyside.txt"
 $AppScript = Join-Path $Root "main.py"
 
 $PythonPackageId = "Python.Python.3.13"
-$PythonInstallerUrl = "https://www.python.org/ftp/python/3.13.13/python-3.13.13-amd64.exe"
-$PythonInstallerSha256 = "3c9c81d80f91c002ced86d645422d81432c68c7d9b6b0e974768ca2e449a4d00"
+$PythonPackageVersion = "3.13.15"
+$PythonInstallerUrl = "https://www.python.org/ftp/python/3.13.15/python-3.13.15-amd64.exe"
+$PythonInstallerSha256 = "edec09c4853aeae9ac36efb8c9f95b6b8e2fee65eee56d9767a8b7c69c574403"
 
 New-Item -ItemType Directory -Force -Path $LogDir, $DataDir | Out-Null
 
@@ -138,6 +139,7 @@ function Invoke-HiddenProcess {
 function Install-WingetPackage {
     param(
         [string]$PackageId,
+        [string]$Version,
         [string]$Label
     )
     $winget = Get-Command "winget.exe" -ErrorAction SilentlyContinue
@@ -148,6 +150,7 @@ function Install-WingetPackage {
     $args = @(
         "install",
         "--id", $PackageId,
+        "--version", $Version,
         "--exact",
         "--source", "winget",
         "--silent",
@@ -159,7 +162,7 @@ function Install-WingetPackage {
 }
 
 function Install-PythonFallback {
-    Set-AtlasStatus "Prechargement: telechargement Python 3.13..."
+    Set-AtlasStatus "Prechargement: telechargement Python $PythonPackageVersion..."
     $installer = Join-Path $env:TEMP "dofus-atlas-python-3.13.exe"
     try {
         Invoke-WebRequest -Uri $PythonInstallerUrl -OutFile $installer -UseBasicParsing
@@ -169,7 +172,7 @@ function Install-PythonFallback {
             throw "empreinte SHA-256 Python invalide (attendu=$expectedHash obtenu=$actualHash)"
         }
         Write-AtlasLog "Installeur Python SHA-256 valide: $actualHash"
-        Set-AtlasStatus "Prechargement: installation silencieuse Python 3.13..."
+        Set-AtlasStatus "Prechargement: installation silencieuse Python $PythonPackageVersion..."
         Invoke-HiddenProcess -FilePath $installer -ArgumentList @("/quiet", "InstallAllUsers=0", "PrependPath=1", "Include_launcher=1", "Include_pip=1", "Include_test=0") -TimeoutSeconds 1200
     } finally {
         if (Test-Path $installer) {
@@ -186,7 +189,7 @@ function Ensure-Python {
     }
 
     try {
-        Install-WingetPackage -PackageId $PythonPackageId -Label "Python 3.13"
+        Install-WingetPackage -PackageId $PythonPackageId -Version $PythonPackageVersion -Label "Python $PythonPackageVersion"
     } catch {
         Write-AtlasLog "Installation Python via winget impossible: $($_.Exception.Message)"
         Install-PythonFallback
@@ -204,7 +207,7 @@ function Ensure-Python {
 function Test-PythonModules {
     param([object]$Runtime)
     try {
-        & $Runtime.PythonExe -c "import PySide6.QtWidgets; import PySide6.QtWebEngineWidgets; import win32gui" 2>$null
+        & $Runtime.PythonExe -c "import PIL.Image; import PySide6.QtWidgets; import PySide6.QtWebEngineWidgets; import pyautogui; import win32gui" 2>$null
         return $LASTEXITCODE -eq 0
     } catch {
         return $false
@@ -226,7 +229,7 @@ function Ensure-Pip {
 function Ensure-PythonModules {
     param([object]$Runtime)
     if (Test-PythonModules -Runtime $Runtime) {
-        Write-AtlasLog "Modules Python OK: PySide6, QtWebEngine, pywin32"
+        Write-AtlasLog "Modules Python OK: PySide6, QtWebEngine, Pillow, pyautogui, pywin32"
         return
     }
     if (-not (Test-Path $RequirementsFile)) {
@@ -234,7 +237,7 @@ function Ensure-PythonModules {
     }
     Set-AtlasStatus "Prechargement: installation silencieuse des modules Python..."
     Ensure-Pip -Runtime $Runtime
-    & $Runtime.PythonExe -m pip install --disable-pip-version-check --quiet -r $RequirementsFile 2>&1 | Add-Content -Path $LogFile -Encoding UTF8
+    & $Runtime.PythonExe -m pip install --disable-pip-version-check --quiet --require-hashes --no-deps -r $RequirementsFile 2>&1 | Add-Content -Path $LogFile -Encoding UTF8
     if ($LASTEXITCODE -ne 0) {
         throw "installation requirements-pyside.txt echouee"
     }

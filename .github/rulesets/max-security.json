@@ -1,5 +1,5 @@
 {
-  "name": "Protect Dof'Atlas main",
+  "name": "Dof'Atlas maximum main protection",
   "target": "branch",
   "enforcement": "active",
   "bypass_actors": [],
@@ -19,15 +19,18 @@
       "type": "non_fast_forward"
     },
     {
+      "type": "required_signatures"
+    },
+    {
       "type": "required_linear_history"
     },
     {
       "type": "pull_request",
       "parameters": {
         "dismiss_stale_reviews_on_push": true,
-        "require_code_owner_review": false,
-        "require_last_push_approval": false,
-        "required_approving_review_count": 0,
+        "require_code_owner_review": true,
+        "require_last_push_approval": true,
+        "required_approving_review_count": 1,
         "required_review_thread_resolution": true,
         "automatic_copilot_code_review_enabled": false,
         "allowed_merge_methods": [

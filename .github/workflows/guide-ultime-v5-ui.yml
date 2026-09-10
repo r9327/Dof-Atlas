@@ -19,15 +19,17 @@ defaults:
 jobs:
   tests:
     # Detailed Guide-only diagnostic on the registered Windows x64 runner.
-    # The PowerShell CI script is the same entry point used for local validation.
+    # Only the repository owner may run trusted main-branch code on that machine.
+    if: ${{ github.actor == github.repository_owner && github.ref == 'refs/heads/main' }}
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 90
     steps:
       - name: Checkout repository without bulk LFS payloads
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           lfs: false
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Verify local Python 3.13
         run: |
@@ -66,7 +68,7 @@ jobs:
 
       - name: Upload Guide Ultime audit outputs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: guide-ultime-ci-outputs-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/ci_guide_ultime_logs/**
