@@ -78,6 +78,7 @@ class GeneratedFileGuardrailsTests(unittest.TestCase):
         self.assertIn('"type": "required_linear_history"', ruleset)
         self.assertIn('"bypass_actors": []', ruleset)
         self.assertIn('"require_last_push_approval": true', ruleset)
+        self.assertIn('"do_not_enforce_on_create": false', ruleset)
         self.assertIn('"squash"', ruleset)
 
     def test_signature_reporting_is_explicitly_informational(self) -> None:
