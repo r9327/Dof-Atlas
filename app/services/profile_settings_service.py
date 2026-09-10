@@ -65,6 +65,11 @@ class ProfileSettingsService:
         default: Mapping[str, Any] | None = None,
     ) -> tuple[dict[str, Any], bool]:
         updates = dict(values or {})
+        if KEY_SELECTED_CHARACTER in updates:
+            selected = updates[KEY_SELECTED_CHARACTER]
+            updates[KEY_SELECTED_CHARACTER] = (
+                "" if selected == "" else require_character_key(selected)
+            )
         removals = tuple(str(key) for key in remove_keys)
 
         def apply(payload: dict[str, Any]) -> None:
