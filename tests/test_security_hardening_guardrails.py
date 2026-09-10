@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import unittest
 from pathlib import Path
@@ -158,6 +159,31 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
         ):
             with self.subTest(path=path):
                 self.assertIn(f"{path} @r9327", source)
+
+    def test_main_ruleset_template_has_no_bypass_and_forces_checked_squash_prs(self) -> None:
+        payload = json.loads(
+            (ROOT / ".github" / "rulesets" / "integration-branch.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(payload["enforcement"], "active")
+        self.assertEqual(payload.get("bypass_actors"), [])
+        self.assertIn("refs/heads/main", payload["conditions"]["ref_name"]["include"])
+
+        rules = {rule["type"]: rule for rule in payload["rules"]}
+        self.assertIn("deletion", rules)
+        self.assertIn("non_fast_forward", rules)
+        self.assertIn("required_linear_history", rules)
+
+        pull_request = rules["pull_request"]["parameters"]
+        self.assertEqual(pull_request["required_approving_review_count"], 0)
+        self.assertFalse(pull_request["require_code_owner_review"])
+        self.assertTrue(pull_request["required_review_thread_resolution"])
+        self.assertEqual(pull_request["allowed_merge_methods"], ["squash"])
+
+        status = rules["required_status_checks"]["parameters"]
+        self.assertTrue(status["strict_required_status_checks_policy"])
+        self.assertFalse(status["do_not_enforce_on_create"])
+        contexts = {item["context"] for item in status["required_status_checks"]}
+        self.assertEqual(contexts, {"Public PR / Safe Validation"})
 
 
 if __name__ == "__main__":
