@@ -35,12 +35,24 @@ class AchievementLot7ProviderTests(unittest.TestCase):
         cls.achievements = cls.provider.load_all()
 
     def test_only_validated_categories_are_retained_in_game_order(self):
+        expected_category_ids = [8, 3, 25, 9]
         categories = self.provider.get_retained_categories()
-        self.assertEqual([category.id for category in categories], [8, 3, 25, 9])
+        self.assertEqual([category.id for category in categories], expected_category_ids)
         self.assertEqual([category.name for category in categories], ["Quêtes", "Donjons", "Monstres", "Événements"])
-        # The canonical local snapshot contains exactly the four audited
-        # categories below: 292 + 743 + 228 + 149 achievements.
-        self.assertEqual(len(self.provider.load_retained()), 1412)
+
+        # Doduda follows the current game data, so achievement totals can grow.
+        # Lot 7's stable contract is the four audited top-level categories.
+        retained = self.provider.load_retained()
+        self.assertTrue(retained)
+        self.assertEqual({achievement.category_id for achievement in retained}, set(expected_category_ids))
+        self.assertEqual(
+            [achievement.id for achievement in retained],
+            [
+                achievement.id
+                for achievement in self.achievements
+                if achievement.category_id in set(expected_category_ids)
+            ],
+        )
 
     def test_achievement_order_uses_category_membership_sequence(self):
         for category in self.provider.get_categories():
