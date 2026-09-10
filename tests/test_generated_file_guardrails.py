@@ -23,12 +23,22 @@ class GeneratedFileGuardrailsTests(unittest.TestCase):
         jwt = ".".join(("eyJ" + "A" * 24, "eyJ" + "B" * 24, "C" * 32))
         cases = {
             "github classic": "TOKEN=" + "ghp_" + "A" * 36,
+            "github oauth": "TOKEN=" + "gho_" + "A" * 36,
+            "github user": "TOKEN=" + "ghu_" + "A" * 36,
+            "github server": "TOKEN=" + "ghs_" + "A" * 36,
+            "github refresh": "TOKEN=" + "ghr_" + "A" * 36,
             "github fine-grained": "TOKEN=" + "github_pat_" + "A" * 82,
             "openai": "OPENAI_API_KEY=" + "sk-" + "A" * 48,
             "aws": "AWS_ACCESS_KEY_ID=" + "AKIA" + "A" * 16,
+            "google": "GOOGLE_API_KEY=" + "AIza" + "A" * 35,
+            "npm": "NPM_TOKEN=" + "npm_" + "A" * 40,
+            "slack": "SLACK_TOKEN=" + "xoxb-" + "A" * 32,
+            "stripe": "STRIPE_SECRET=" + "sk_live_" + "A" * 32,
             "supabase secret": "SUPABASE_KEY=" + "sb_secret_" + "A" * 32,
             "supabase service role": "SUPABASE_SERVICE_ROLE_KEY=" + jwt,
             "secret jwt": "auth_token=" + jwt,
+            "client secret jwt": "client_secret=" + jwt,
+            "private token jwt": "private_token=" + jwt,
         }
         for label, text in cases.items():
             with self.subTest(label=label):
