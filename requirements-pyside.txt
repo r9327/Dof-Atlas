@@ -3,8 +3,12 @@
 # authenticated with the SHA-256 of the exact PyPI artifact used on Windows.
 # Install with: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
 
-PySide6==6.11.1 \
-    --hash=sha256:0968877ab1fb4ef3587a284da6fe05e8647ada56a6a3750b6395188e01f4aba6
+PySide6==6.11.2 \
+    --hash=sha256:0444ac71d0791a19bded35f6d9a94515941f23a6eb7098ca45a1b64a338be697 \
+    --hash=sha256:13a3c79816879d9743672a669f1988f74459a78f89a97a2624fae4fe059ffa3a \
+    --hash=sha256:3201d67e3c10be2eaedd3910ff0f02351eca7e88c95a291cde5e7f2f55ef207f \
+    --hash=sha256:57fe867a6c93821a085d74e8a26f863fc2363516848181c466032595b33b1729 \
+    --hash=sha256:dc6d03990489a5085842770718392ef5de36352d8f608d9a9fe03e60af4d7b66
 PySide6_Addons==6.11.1 \
     --hash=sha256:0d13c4dfd671b050a48e4f8d8ddc724b7248f9c0437e7fc47fdf316278572923
 PySide6_Essentials==6.11.1 \
