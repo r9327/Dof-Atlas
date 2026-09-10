@@ -72,9 +72,10 @@ class GeneratedFileGuardrailsTests(unittest.TestCase):
             self.assertTrue(findings)
             self.assertIn("GitHub personal access token", findings[0]["reason"])
 
-    def test_repository_does_not_require_signed_commits(self) -> None:
+    def test_reference_ruleset_requires_signed_commits(self) -> None:
         ruleset = (ROOT / ".github/rulesets/integration-branch.json").read_text(encoding="utf-8")
-        self.assertNotIn('"type": "required_signatures"', ruleset)
+        self.assertIn('"type": "required_signatures"', ruleset)
+        self.assertIn('"type": "required_linear_history"', ruleset)
 
     def test_signature_reporting_is_explicitly_informational(self) -> None:
         workflow = (ROOT / ".github/workflows/signature-report.yml").read_text(encoding="utf-8")
