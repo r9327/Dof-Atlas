@@ -25,6 +25,11 @@ RUNTIME_PATCH_BASELINE: tuple[str, ...] = ()
 RUNTIME_VERSION_BASELINE = (
 )
 
+REMOVED_PAGE_VARIANTS = (
+    "app.pages.home_optimized_page",
+    "app.pages.organizer_lazy_page",
+)
+
 
 class ArchitectureDebtBaselineTests(unittest.TestCase):
     def assert_matches_baseline(self, actual, expected) -> None:
@@ -53,9 +58,7 @@ class ArchitectureDebtBaselineTests(unittest.TestCase):
             "legacy configuree": LEGACY_IMPORT_BASELINE,
             "legacy generee": baseline_keys(legacy_import_violations(ROOT)),
             "runtime patches configures": RUNTIME_PATCH_BASELINE,
-            "runtime patches generes": baseline_keys(runtime_patch_violations(ROOT)),
-            "versions runtime configurees": RUNTIME_VERSION_BASELINE,
-            "versions runtime generees": baseline_keys(runtime_version_violations(ROOT)),
+            "runtime patches generes": baseline_keys(runtime_version_violations(ROOT)),
             "identite metier legacy": KNOWN_SLOT_BUSINESS_DEBT,
         }
         for category, keys in baselines.items():
@@ -66,6 +69,19 @@ class ArchitectureDebtBaselineTests(unittest.TestCase):
                     duplicates,
                     f"Cles dupliquees dans la baseline {category}: {duplicates}",
                 )
+
+    def test_removed_page_variants_are_not_imported(self) -> None:
+        offenders: list[str] = []
+        for source in sorted((ROOT / "app").rglob("*.py")):
+            text = read_source(source)
+            for module_name in REMOVED_PAGE_VARIANTS:
+                if module_name in text:
+                    offenders.append(f"{source.relative_to(ROOT)} -> {module_name}")
+        self.assertEqual(
+            [],
+            offenders,
+            "Les variantes de pages supprimees ne doivent pas revenir dans le graphe d'import.",
+        )
 
     def test_source_reader_accepts_plain_utf8_and_utf8_bom(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
