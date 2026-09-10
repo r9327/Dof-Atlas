@@ -55,7 +55,14 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         for token in required:
             with self.subTest(token=token):
                 self.assertIn(token, self.source)
-        self.assertNotIn("continue-on-error: true", self.source)
+
+    def test_dependency_review_failure_is_deferred_but_never_swallowed(self) -> None:
+        self.assertEqual(self.source.count("continue-on-error: true"), 1)
+        self.assertIn("id: dependency_review", self.source)
+        self.assertIn("name: Enforce dependency review verdict", self.source)
+        self.assertIn("if: ${{ always() }}", self.source)
+        self.assertIn("steps.dependency_review.outcome", self.source)
+        self.assertIn("throw \"Dependency Review must succeed", self.source)
 
     def test_public_pr_checkout_preserves_history_without_lfs_or_credentials(self) -> None:
         self.assertRegex(
