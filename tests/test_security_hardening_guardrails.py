@@ -120,6 +120,11 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
 
     def test_bootstrap_installs_and_validates_the_authenticated_runtime(self) -> None:
         source = (ROOT / "bootstrap_dofus_atlas.ps1").read_text(encoding="utf-8-sig")
+        self.assertIn('$PythonPackageVersion = "3.13.15"', source)
+        self.assertIn('python-3.13.15-amd64.exe', source)
+        self.assertIn('edec09c4853aeae9ac36efb8c9f95b6b8e2fee65eee56d9767a8b7c69c574403', source)
+        self.assertIn('"--version", $Version', source)
+        self.assertIn("-Version $PythonPackageVersion", source)
         self.assertIn("--require-hashes --no-deps -r $RequirementsFile", source)
         self.assertIn("import PIL.Image", source)
         self.assertIn("import pyautogui", source)
