@@ -32,7 +32,6 @@ REMOVED_PAGE_VARIANTS = (
     "app.pages.home_optimized_page",
     "app.pages.lazy_network_bridge",
     "app.pages.lazy_zaap_widget",
-    "app.pages.organizer_icon_cache",
     "app.pages.organizer_lazy_page",
     "app.pages.profile_write_cache",
 )
