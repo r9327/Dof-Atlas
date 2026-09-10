@@ -26,6 +26,8 @@ jobs:
           persist-credentials: false
 
       - name: Reject vulnerable dependency changes
+        id: dependency_review
+        continue-on-error: true
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: moderate
@@ -91,3 +93,12 @@ jobs:
             tests.test_performance_guardrails `
             tests.test_public_pr_ci_guardrails `
             tests.test_security_hardening_guardrails
+
+      - name: Enforce dependency review verdict
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          if ("${{ steps.dependency_review.outcome }}" -ne "success") {
+            throw "Dependency Review must succeed; enable Dependency Graph and resolve any reported vulnerable dependency before merge."
+          }
+          Write-Host "Dependency Review verdict: success"
