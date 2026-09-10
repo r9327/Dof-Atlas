@@ -35,7 +35,6 @@ REMOVED_PAGE_VARIANTS = (
     "app.pages.organizer_icon_cache",
     "app.pages.organizer_lazy_page",
     "app.pages.profile_write_cache",
-    "app.pages.quest_character_cache",
 )
 
 
