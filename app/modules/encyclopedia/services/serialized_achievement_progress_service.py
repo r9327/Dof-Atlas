@@ -117,9 +117,50 @@ class AchievementProgressService(LegacyAchievementProgressService):
         self._ensure_fresh()
         return super().is_objective_completed(character_key, achievement_id, objective_id)
 
+    @staticmethod
+    def _alignment_orders(side: str) -> dict[str, tuple[int, ...]]:
+        from app.modules.encyclopedia.services.guide_path_profiles import ORDER_QUEST_IDS
+
+        rows = ORDER_QUEST_IDS.get(str(side), {})
+        return rows if isinstance(rows, dict) else {}
+
     def alignment_order_choice(self, character_key: str) -> tuple[str, str] | None:
+        key = str(character_key or "").strip()
+        if not key:
+            return None
         self._ensure_fresh()
-        return super().alignment_order_choice(character_key)
+        characters = self.progress.get("characters", {})
+        character = characters.get(key, {}) if isinstance(characters, dict) else {}
+        value = character.get("alignment_order") if isinstance(character, dict) else None
+        if not isinstance(value, dict):
+            return None
+        side = str(value.get("side") or "").strip().casefold()
+        if side not in {"bonta", "brakmar"}:
+            return None
+        orders = self._alignment_orders(side)
+
+        order_id = self._safe_int(value.get("order_id"))
+        if order_id is not None:
+            for order_name, quest_ids in orders.items():
+                if quest_ids and int(quest_ids[0]) == order_id:
+                    return side, order_name
+            return None
+
+        # Compatibility read for profiles created before stable order IDs.
+        legacy_order = str(value.get("order") or "").strip()
+        if legacy_order in orders:
+            return side, legacy_order
+        return None
+
+    @staticmethod
+    def _alignment_order_signature(character: dict[str, Any]) -> tuple[str, str]:
+        value = character.get("alignment_order")
+        if not isinstance(value, dict):
+            return ("", "")
+        side = str(value.get("side") or "").strip().casefold()
+        if value.get("order_id") is not None:
+            return side, f"id:{value.get('order_id')}"
+        return side, f"legacy:{str(value.get('order') or '').strip()}"
 
     def save(self) -> None:
         """Persist a compatibility snapshot only when no peer changed the file."""
@@ -164,12 +205,25 @@ class AchievementProgressService(LegacyAchievementProgressService):
 
     def set_alignment_order_choice(self, character_key: str, side: str, order_name: str) -> None:
         key = require_character_key(character_key)
+        normalized_side = str(side or "").strip().casefold()
+        normalized_order = str(order_name or "").strip()
+        if normalized_side not in {"bonta", "brakmar"}:
+            raise ValueError(f"Cité d'alignement inconnue : {side!r}")
+        quest_ids = self._alignment_orders(normalized_side).get(normalized_order)
+        if not quest_ids:
+            raise ValueError(f"Ordre d'alignement inconnu : {order_name!r}")
+        order_id = int(quest_ids[0])
         with self._coordinator.lock:
             self.progress = self._load()
             self._seen_generation = self._coordinator.generation
             self._disk_signature = self._current_disk_signature()
             self._invalidate_runtime_caches()
-            super().set_alignment_order_choice(key, side, order_name)
+            character = self._character(key)
+            character["alignment_order"] = {
+                "side": normalized_side,
+                "order_id": order_id,
+            }
+            self.save()
 
     def clear_alignment_order_choice(self, character_key: str) -> None:
         key = require_character_key(character_key)
