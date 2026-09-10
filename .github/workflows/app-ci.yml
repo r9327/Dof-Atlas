@@ -30,6 +30,7 @@ on:
       - "DEVELOPMENT_GUARDRAILS.md"
       - "PERFORMANCE_GUARDRAILS.md"
       - ".github/workflows/**"
+      - ".github/dependabot.yml"
 
 concurrency:
   group: dofus-atlas-public-app-ci-${{ github.ref }}
@@ -56,13 +57,14 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout repository without LFS payloads
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           lfs: false
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pip
@@ -73,7 +75,7 @@ jobs:
 
       - name: Install application dependencies
         run: |
-          python -m pip install -r requirements-pyside.txt 2>&1 | Tee-Object -FilePath "artifacts/ci_app_fast_logs/00_dependencies.log"
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt 2>&1 | Tee-Object -FilePath "artifacts/ci_app_fast_logs/00_dependencies.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Verify Python 3.13
@@ -119,6 +121,7 @@ jobs:
             tests.test_ci_runner_guardrails `
             tests.test_performance_guardrails `
             tests.test_public_pr_ci_guardrails `
+            tests.test_security_hardening_guardrails `
             tests.test_launcher_fast_path `
             tests.test_main_import_startup_boundary `
             tests.test_main_startup_fast_path `
@@ -143,7 +146,7 @@ jobs:
 
       - name: Upload fast code validation logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-fast-ci-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/ci_app_fast_logs/**
@@ -157,13 +160,14 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout repository without bulk LFS payloads
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           lfs: false
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pip
@@ -176,7 +180,7 @@ jobs:
 
       - name: Install application dependencies
         run: |
-          python -m pip install -r requirements-pyside.txt 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/00_dependencies.log"
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/00_dependencies.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Record environment
@@ -342,7 +346,7 @@ jobs:
 
       - name: Upload full validation logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-full-ci-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
