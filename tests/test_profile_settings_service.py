@@ -38,6 +38,46 @@ class ProfileSettingsServiceTests(unittest.TestCase):
             self.assertTrue(final["__switch_click__"])
             self.assertFalse(final["__topmost__"])
 
+    def test_selected_character_accepts_only_canonical_key_or_explicit_empty_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            profile_path = Path(temp_dir) / "profiles.json"
+            service = ProfileSettingsService(profile_path)
+
+            service.set_selected_character("character:42")
+            self.assertEqual(service.load()[KEY_SELECTED_CHARACTER], "character:42")
+
+            invalid_values = (
+                "slot:1",
+                "Alice",
+                "pid:4242",
+                "1",
+                "index:1",
+                "position:1",
+                "legacy:1",
+                "arbitrary",
+            )
+            for value in invalid_values:
+                with self.subTest(value=value), self.assertRaises(ValueError):
+                    service.set_selected_character(value)
+                self.assertEqual(service.load()[KEY_SELECTED_CHARACTER], "character:42")
+
+            service.set_selected_character("")
+            self.assertEqual(service.load()[KEY_SELECTED_CHARACTER], "")
+
+    def test_generic_update_cannot_bypass_selected_character_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            profile_path = Path(temp_dir) / "profiles.json"
+            service = ProfileSettingsService(profile_path)
+            service.set_selected_character("character:42")
+
+            with self.assertRaises(ValueError):
+                service.update_values({KEY_SELECTED_CHARACTER: "slot:2", "other": True})
+
+            self.assertEqual(
+                service.load(),
+                {KEY_SELECTED_CHARACTER: "character:42"},
+            )
+
     def test_concurrent_targeted_mutations_do_not_lose_independent_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             profile_path = Path(temp_dir) / "profiles.json"
