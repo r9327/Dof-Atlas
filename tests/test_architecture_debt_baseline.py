@@ -28,7 +28,9 @@ RUNTIME_VERSION_BASELINE = (
 REMOVED_PAGE_VARIANTS = (
     "app.pages.characters_page",
     "app.pages.home_optimized_page",
+    "app.pages.lazy_zaap_widget",
     "app.pages.organizer_lazy_page",
+    "app.pages.profile_write_cache",
 )
 
 
