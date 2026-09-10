@@ -1,9 +1,14 @@
 # Sensitive Zero-Trust surfaces. CODEOWNERS documents ownership; enforcement
 # still requires a GitHub ruleset with required code-owner review enabled.
 .github/workflows/** @r9327
+.github/dependabot.yml @r9327
 .github/CODEOWNERS @r9327
 .github/rulesets/** @r9327
 .githooks/** @r9327
+requirements-pyside.txt @r9327
+bootstrap_dofus_atlas.ps1 @r9327
+Install_Dofus_Atlas.bat @r9327
+Dofus_Atlas.bat @r9327
 tools/atlas_integrity* @r9327
 tools/atlas_meta_integrity.py @r9327
 tools/check_generated_files.py @r9327
@@ -16,4 +21,8 @@ tests/test_generated_files_guard.py @r9327
 tests/test_repository_git_hooks.py @r9327
 app/core/character_identity.py @r9327
 app/core/json_store.py @r9327
+app/pages/equipment_page.py @r9327
+app/services/maps/cartography_asset_recovery.py @r9327
 app/modules/encyclopedia/services/*progress* @r9327
+local_dofus_data/data_store.py @r9327
+local_dofus_data/migrations.py @r9327
