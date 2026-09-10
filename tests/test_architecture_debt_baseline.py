@@ -58,7 +58,9 @@ class ArchitectureDebtBaselineTests(unittest.TestCase):
             "legacy configuree": LEGACY_IMPORT_BASELINE,
             "legacy generee": baseline_keys(legacy_import_violations(ROOT)),
             "runtime patches configures": RUNTIME_PATCH_BASELINE,
-            "runtime patches generes": baseline_keys(runtime_version_violations(ROOT)),
+            "runtime patches generes": baseline_keys(runtime_patch_violations(ROOT)),
+            "versions runtime configurees": RUNTIME_VERSION_BASELINE,
+            "versions runtime generees": baseline_keys(runtime_version_violations(ROOT)),
             "identite metier legacy": KNOWN_SLOT_BUSINESS_DEBT,
         }
         for category, keys in baselines.items():
