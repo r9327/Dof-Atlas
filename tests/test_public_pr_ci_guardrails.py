@@ -30,6 +30,9 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             "git diff --check",
             "tools.check_generated_files --root . --tracked",
             "tools.atlas_meta_integrity --root . --base-ref",
+            "actions/dependency-review-action@",
+            "fail-on-severity: moderate",
+            "pip install --require-hashes --no-deps -r requirements-pyside.txt",
             "tests.test_architecture_debt_baseline",
             "tests.test_clean_foundation_guardrails",
             "tests.test_character_identity_contract",
@@ -47,16 +50,21 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             "tests.test_ci_runner_guardrails",
             "tests.test_performance_guardrails",
             "tests.test_public_pr_ci_guardrails",
+            "tests.test_security_hardening_guardrails",
         )
         for token in required:
             with self.subTest(token=token):
                 self.assertIn(token, self.source)
         self.assertNotIn("continue-on-error: true", self.source)
 
-    def test_public_pr_checkout_preserves_history_without_lfs_payloads(self) -> None:
-        self.assertIn("uses: actions/checkout@v4", self.source)
+    def test_public_pr_checkout_preserves_history_without_lfs_or_credentials(self) -> None:
+        self.assertRegex(
+            self.source,
+            r"uses: actions/checkout@[0-9a-f]{40}",
+        )
         self.assertIn("lfs: false", self.source)
         self.assertIn("fetch-depth: 0", self.source)
+        self.assertIn("persist-credentials: false", self.source)
 
     def test_required_status_context_name_is_stable(self) -> None:
         self.assertIn("name: Public PR / Safe Validation", self.source)
