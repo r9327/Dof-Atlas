@@ -204,7 +204,7 @@ function Ensure-Python {
 function Test-PythonModules {
     param([object]$Runtime)
     try {
-        & $Runtime.PythonExe -c "import PySide6.QtWidgets; import PySide6.QtWebEngineWidgets; import win32gui" 2>$null
+        & $Runtime.PythonExe -c "import PIL.Image; import PySide6.QtWidgets; import PySide6.QtWebEngineWidgets; import pyautogui; import win32gui" 2>$null
         return $LASTEXITCODE -eq 0
     } catch {
         return $false
@@ -226,7 +226,7 @@ function Ensure-Pip {
 function Ensure-PythonModules {
     param([object]$Runtime)
     if (Test-PythonModules -Runtime $Runtime) {
-        Write-AtlasLog "Modules Python OK: PySide6, QtWebEngine, pywin32"
+        Write-AtlasLog "Modules Python OK: PySide6, QtWebEngine, Pillow, pyautogui, pywin32"
         return
     }
     if (-not (Test-Path $RequirementsFile)) {
@@ -234,7 +234,7 @@ function Ensure-PythonModules {
     }
     Set-AtlasStatus "Prechargement: installation silencieuse des modules Python..."
     Ensure-Pip -Runtime $Runtime
-    & $Runtime.PythonExe -m pip install --disable-pip-version-check --quiet -r $RequirementsFile 2>&1 | Add-Content -Path $LogFile -Encoding UTF8
+    & $Runtime.PythonExe -m pip install --disable-pip-version-check --quiet --require-hashes --no-deps -r $RequirementsFile 2>&1 | Add-Content -Path $LogFile -Encoding UTF8
     if ($LASTEXITCODE -ne 0) {
         throw "installation requirements-pyside.txt echouee"
     }
