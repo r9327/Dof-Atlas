@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
 from app.constants import KEY_SELECTED_CHARACTER, KEY_TOPMOST, PROFILE_FILE
+from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.progress_coordinator import coordinator_for
 
@@ -82,7 +83,12 @@ class ProfileSettingsService:
         return changed
 
     def set_selected_character(self, character_key: str) -> bool:
-        return self.set_value(KEY_SELECTED_CHARACTER, str(character_key or ""))
+        if character_key == "":
+            return self.set_value(KEY_SELECTED_CHARACTER, "")
+        return self.set_value(
+            KEY_SELECTED_CHARACTER,
+            require_character_key(character_key),
+        )
 
     def clear_selected_character_if(self, character_key: str) -> bool:
         expected = str(character_key or "")
