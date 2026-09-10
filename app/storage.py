@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import difflib
 import inspect
 import os
 import re
 import subprocess
 from pathlib import Path
+from threading import local
 from typing import Any, Callable
 
 from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, QUrl
@@ -64,6 +66,7 @@ from app.constants import (
 )
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.text import clean_auto_group_name, normalize_key, strip_accents
+from app.services.profile_settings_service import ProfileSettingsService
 from app.ui.components import AtlasButton
 from app.windows.unity_windows import enable_dpi_awareness
 
@@ -71,6 +74,9 @@ try:
     from app import local_data_cache
 except Exception:
     local_data_cache = None
+
+
+_PROFILE_READ_STATE = local()
 
 
 def strip_zaap_coordinate_suffix(value: Any) -> str:
@@ -441,12 +447,48 @@ def zaap_search_min_score(query: str) -> int:
     return 1
 
 
+def _profile_path(path: Path) -> bool:
+    return Path(path) == Path(PROFILE_FILE)
+
+
 def read_json(path: Path, default: Any) -> Any:
-    return read_json_resilient(Path(path), default, logger=LOGGER)
+    target = Path(path)
+    payload = read_json_resilient(target, default, logger=LOGGER)
+    if _profile_path(target) and isinstance(payload, dict):
+        merged = deepcopy(default) if isinstance(default, dict) else {}
+        merged.update(payload)
+        _PROFILE_READ_STATE.path = target
+        _PROFILE_READ_STATE.baseline = deepcopy(merged)
+        return merged
+    return payload
 
 
 def write_json(path: Path, payload: Any) -> None:
-    write_json_atomic(Path(path), payload)
+    target = Path(path)
+    baseline = getattr(_PROFILE_READ_STATE, "baseline", None)
+    baseline_path = getattr(_PROFILE_READ_STATE, "path", None)
+    if (
+        _profile_path(target)
+        and isinstance(payload, dict)
+        and isinstance(baseline, dict)
+        and baseline_path == target
+    ):
+        updates = {
+            str(key): deepcopy(value)
+            for key, value in payload.items()
+            if key not in baseline or baseline.get(key) != value
+        }
+        removals = tuple(str(key) for key in baseline if key not in payload)
+        try:
+            ProfileSettingsService(target).update_values(
+                updates,
+                remove_keys=removals,
+            )
+        finally:
+            _PROFILE_READ_STATE.path = None
+            _PROFILE_READ_STATE.baseline = None
+        return
+    write_json_atomic(target, payload)
 
 
 def invoke_compatible_callback(callback, *args):
@@ -650,7 +692,7 @@ def read_profile_payload() -> dict[str, Any]:
     payload = read_json(PROFILE_FILE, default_profiles())
     if not isinstance(payload, dict):
         payload = default_profiles()
-    legacy_debug_key = "".join(["__mode_debug_", "a", "h", "k__"])
+    legacy_debug_key = "".join(["__mode_debug_", "a", "h", "k", "__"])
     if legacy_debug_key in payload and KEY_DEBUG_MODE not in payload:
         payload[KEY_DEBUG_MODE] = payload.get(legacy_debug_key)
     payload.pop(legacy_debug_key, None)

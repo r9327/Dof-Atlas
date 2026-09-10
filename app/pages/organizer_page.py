@@ -57,6 +57,7 @@ from app.storage import (
 )
 from app.quest_catalog import is_generic_dofus_client_name
 from app.services.character_order_service import CharacterOrderService
+from app.services.profile_settings_service import ProfileSettingsService
 from app.ui.components import AtlasButton
 from app.windows_embed import EVENT_SYSTEM_FOREGROUND, UnityWindowEventWatcher, scan_unity_sessions
 
@@ -577,6 +578,7 @@ class OrganizerPage(QWidget):
         merged.update(payload)
         cleaned = self.sanitize_profiles(merged)
         cleaned[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        self._profiles_baseline = dict(cleaned)
         return cleaned
 
     def sanitize_profiles(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -611,8 +613,22 @@ class OrganizerPage(QWidget):
     def save_profiles(self, payload: dict[str, Any]) -> None:
         snapshot = dict(payload)
         snapshot[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
-        self.profiles = snapshot
-        write_json(PROFILE_FILE, snapshot)
+        baseline = dict(getattr(self, "_profiles_baseline", {}))
+        updates = {
+            key: value
+            for key, value in snapshot.items()
+            if key not in baseline or baseline.get(key) != value
+        }
+        removals = tuple(key for key in baseline if key not in snapshot)
+        persisted, _changed = ProfileSettingsService(PROFILE_FILE).update_values(
+            updates,
+            remove_keys=removals,
+            default=default_profiles(),
+        )
+        current = self.sanitize_profiles(persisted)
+        current[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        self.profiles = current
+        self._profiles_baseline = dict(current)
 
     def set_runtime_active(self, connected: bool) -> None:
         if not hasattr(self, "runtime_status_dot"):
