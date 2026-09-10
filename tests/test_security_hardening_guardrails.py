@@ -45,11 +45,15 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
                 if "permissions:" in source:
                     self.assertIn("contents: read", source)
 
-    def test_public_pr_blocks_vulnerable_dependency_changes(self) -> None:
+    def test_public_pr_blocks_vulnerable_dependency_changes_fail_closed(self) -> None:
         source = self._workflow("public-pr-ci.yml")
         self.assertIn("actions/dependency-review-action@", source)
         self.assertIn("fail-on-severity: moderate", source)
         self.assertIn("fail-on-scopes: development, runtime, unknown", source)
+        self.assertIn("id: dependency_review", source)
+        self.assertEqual(source.count("continue-on-error: true"), 1)
+        self.assertIn("steps.dependency_review.outcome", source)
+        self.assertIn("throw \"Dependency Review must succeed", source)
         self.assertIn("tests.test_security_hardening_guardrails", source)
 
     def test_self_hosted_workflows_only_execute_owner_main(self) -> None:
@@ -112,6 +116,14 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
             source = self._workflow(name)
             with self.subTest(name=name):
                 self.assertIn(command, source)
+
+    def test_bootstrap_installs_and_validates_the_authenticated_runtime(self) -> None:
+        source = (ROOT / "bootstrap_dofus_atlas.ps1").read_text(encoding="utf-8-sig")
+        self.assertIn("--require-hashes --no-deps -r $RequirementsFile", source)
+        self.assertIn("import PIL.Image", source)
+        self.assertIn("import pyautogui", source)
+        self.assertIn("Get-FileHash -Path $installer -Algorithm SHA256", source)
+        self.assertIn("$PythonInstallerSha256", source)
 
     def test_equipment_webview_blocks_local_custom_and_popup_navigation(self) -> None:
         source = (ROOT / "app" / "pages" / "equipment_page.py").read_text(encoding="utf-8")
