@@ -48,5 +48,9 @@ class DirectionMacro:
         for key_name in ("HOME", "DELETE", "END", "PAGEDOWN"):
             try:
                 key_up(_vk(key_name))
-            except Exception:
-                pass
+            except Exception as exc:
+                self.runtime.logger.warning(
+                    "Relachement touche virtuelle impossible: key=%s error=%s",
+                    key_name,
+                    exc,
+                )
