@@ -48,7 +48,7 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
     def test_public_pr_blocks_vulnerable_dependency_changes_fail_closed(self) -> None:
         source = self._workflow("public-pr-ci.yml")
         self.assertIn("actions/dependency-review-action@", source)
-        self.assertIn("fail-on-severity: moderate", source)
+        self.assertIn("fail-on-severity: low", source)
         self.assertIn("fail-on-scopes: development, runtime, unknown", source)
         self.assertIn("id: dependency_review", source)
         self.assertEqual(source.count("continue-on-error: true"), 1)
@@ -133,11 +133,22 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
         self.assertIn("def createWindow(self, _window_type):", source)
         self.assertNotIn('scheme in {"http", "https"}', source)
 
+    def test_runtime_does_not_disable_qtwebengine_sandbox(self) -> None:
+        candidates = [ROOT / "main.py", ROOT / "launch.py", ROOT / "Dofus_Atlas.bat", ROOT / "bootstrap_dofus_atlas.ps1"]
+        for path in candidates:
+            if not path.is_file():
+                continue
+            source = path.read_text(encoding="utf-8-sig", errors="ignore")
+            with self.subTest(path=path.name):
+                self.assertNotIn("QTWEBENGINE_DISABLE_SANDBOX", source)
+                self.assertNotIn("--no-sandbox", source)
+
     def test_security_sensitive_surfaces_are_code_owned(self) -> None:
         source = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
         for path in (
             ".github/workflows/**",
             ".github/dependabot.yml",
+            ".github/rulesets/**",
             "requirements-pyside.txt",
             "bootstrap_dofus_atlas.ps1",
             "app/pages/equipment_page.py",
