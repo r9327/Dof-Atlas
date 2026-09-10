@@ -149,6 +149,7 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
         for path in (
             ".github/workflows/**",
             ".github/dependabot.yml",
+            ".github/SECURITY.md",
             ".github/rulesets/**",
             "requirements-pyside.txt",
             "bootstrap_dofus_atlas.ps1",
@@ -159,6 +160,12 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
         ):
             with self.subTest(path=path):
                 self.assertIn(f"{path} @r9327", source)
+
+    def test_security_policy_requires_private_sensitive_disclosure(self) -> None:
+        source = (ROOT / ".github" / "SECURITY.md").read_text(encoding="utf-8")
+        self.assertIn("Report a vulnerability", source)
+        self.assertIn("Do **not** publish exploit details", source)
+        self.assertIn("must not be skipped, swallowed, downgraded", source)
 
     def test_main_ruleset_template_has_no_bypass_and_forces_checked_squash_prs(self) -> None:
         payload = json.loads(
