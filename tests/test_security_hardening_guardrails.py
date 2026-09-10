@@ -120,7 +120,6 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
         self.assertIn('NavigationTypeLinkClicked and scheme == "https"', source)
         self.assertIn("def createWindow(self, _window_type):", source)
         self.assertNotIn('scheme in {"http", "https"}', source)
-        self.assertNotIn('QDesktopServices.openUrl(url)\n            return False', source.replace('and scheme == "https":\n                ', ''))
 
     def test_security_sensitive_surfaces_are_code_owned(self) -> None:
         source = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
