@@ -16,7 +16,14 @@ from collections.abc import Mapping
 from pathlib import Path
 from threading import RLock
 
+from app.constants import LOGGER
+
 _SPACE = re.compile(r'\s*')
+_OPTIONAL_SOURCE_FIELDS = frozenset({("quests_enriched.json", "quests")})
+
+
+class QuestSourceError(RuntimeError):
+    """Raised when a required quest business source cannot be read safely."""
 
 
 def build_image_index(images_root: Path) -> dict[str, str]:
@@ -46,19 +53,33 @@ def build_image_index(images_root: Path) -> dict[str, str]:
 
 
 class JsonSourceMapping(Mapping):
-    def __init__(self, path: Path, cache_root: Path, field: str, *, doduda=False):
-        self.path, self.doduda = path, doduda
+    def __init__(self, path: Path, cache_root: Path, field: str, *, doduda=False, required=True):
+        self.path, self.doduda, self.required = path, doduda, bool(required)
         self._lock = RLock()
         self._cache = OrderedDict()
         self._offsets = None
         self._cache_root, self._field = cache_root, field
         self._stream = None
 
+    def _source_failure(self, message: str, exc: BaseException | None = None):
+        detail = f"{message}: {self.path}"
+        if self.required:
+            error = QuestSourceError(detail)
+            if exc is not None:
+                raise error from exc
+            raise error
+        LOGGER.warning("Source JSON Quêtes optionnelle ignorée: %s", detail)
+        self._offsets = {}
+
     def _ensure(self):
         if self._offsets is not None:
             return
         path, cache_root, field = self.path, self._cache_root, self._field
-        stat = path.stat()
+        try:
+            stat = path.stat()
+        except OSError as exc:
+            self._source_failure("fichier indisponible", exc)
+            return
         self._stamp = (stat.st_mtime_ns, stat.st_size)
         signature = [str(path.resolve()), *self._stamp, field, self.doduda, 1]
         digest = hashlib.sha256(json.dumps(signature).encode()).hexdigest()
@@ -68,17 +89,28 @@ class JsonSourceMapping(Mapping):
             try:
                 with gzip.open(cache, 'rt', encoding='utf-8') as stream:
                     offsets = json.load(stream)
-                if not isinstance(offsets, dict) or any(
-                    not isinstance(span, list) or len(span) != 2
-                    or not all(isinstance(value, int) for value in span)
-                    or not 0 <= span[0] < span[1] <= stat.st_size
+                valid_cache = isinstance(offsets, dict) and all(
+                    isinstance(span, list) and len(span) == 2
+                    and all(isinstance(value, int) for value in span)
+                    and 0 <= span[0] < span[1] <= stat.st_size
                     for span in offsets.values()
-                ):
+                )
+                if not valid_cache:
+                    LOGGER.warning("Cache d'index Quêtes invalide, reconstruction: %s", cache)
                     offsets = None
-            except (ValueError, OSError):
-                pass
+            except (ValueError, OSError) as exc:
+                LOGGER.warning(
+                    "Cache d'index Quêtes illisible, reconstruction: %s (%s)",
+                    cache,
+                    exc,
+                )
+                offsets = None
         if offsets is None:
-            offsets = self._build_offsets(field)
+            try:
+                offsets = self._build_offsets(field)
+            except (OSError, UnicodeError, ValueError, TypeError, KeyError) as exc:
+                self._source_failure("lecture/parsing impossible", exc)
+                return
             cache_root.mkdir(parents=True, exist_ok=True)
             with tempfile.NamedTemporaryFile(dir=cache_root, suffix='.tmp', delete=False) as temp:
                 temp_path = Path(temp.name)
@@ -97,6 +129,7 @@ class JsonSourceMapping(Mapping):
         data = self.path.read_bytes().decode('utf-8')
         marker = re.search(r'"' + re.escape(field) + r'"\s*:\s*([\[{])', data)
         if marker is None:
+            self._source_failure(f"champ requis absent ({field})")
             return {}
         decoder = json.JSONDecoder()
         cursor = marker.end()
@@ -173,16 +206,23 @@ class QuestSources:
         self._image_index = None
         self.context = {}
 
-    def mapping(self, path, field, *, doduda=False):
-        key = (path, field, doduda)
+    def mapping(self, path, field, *, doduda=False, required=None):
+        path = Path(path)
+        if required is None:
+            required = (path.name, str(field)) not in _OPTIONAL_SOURCE_FIELDS
+        key = (path, field, doduda, bool(required))
         if key not in self._mappings:
-            self._mappings[key] = JsonSourceMapping(path, self.cache_root, field, doduda=doduda)
+            self._mappings[key] = JsonSourceMapping(
+                path,
+                self.cache_root,
+                field,
+                doduda=doduda,
+                required=required,
+            )
         return self._mappings[key]
 
     def rows(self, path):
-        if not path.exists():
-            return {}
-        return self.mapping(path, 'RefIds', doduda=True)
+        return self.mapping(path, 'RefIds', doduda=True, required=True)
 
     def objectives_for_steps(self, path, step_ids):
         rows = self.rows(path)
