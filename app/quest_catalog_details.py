@@ -184,67 +184,67 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
 def _source_index(data_dir):
     """Build only the fields needed by the Quests list and hierarchy."""
 
-    language = qc.read_json_file(data_dir / "languages/fr.json", {})
-    entries = language.get("entries", {}) if isinstance(language, dict) else {}
-    if not isinstance(entries, dict):
-        entries = {}
+    sources = QuestSources(_CACHE_ROOT / "source_offsets")
+    try:
+        entries = sources.mapping(data_dir / "languages/fr.json", "entries")
+        quests = sources.rows(data_dir / "quests.json")
+        categories = sources.rows(data_dir / "quest_categories.json")
+        achievements = sources.rows(data_dir / "achievements.json")
+        achievement_objectives = sources.rows(data_dir / "achievement_objectives.json")
+        achievement_categories = sources.rows(data_dir / "achievement_categories.json")
 
-    quests = qc.doduda_rows(data_dir / "quests.json")
-    categories = qc.doduda_rows(data_dir / "quest_categories.json")
-    achievements = qc.doduda_rows(data_dir / "achievements.json")
-    achievement_objectives = qc.doduda_rows(data_dir / "achievement_objectives.json")
-    achievement_categories = qc.doduda_rows(data_dir / "achievement_categories.json")
-
-    category_names = {
-        ident: qc.localized_name(row, entries, f"Categorie {ident}")
-        for ident, row in categories.items()
-    }
-    achievement_names = {
-        ident: qc.localized_name(row, entries, f"Succes {ident}")
-        for ident, row in achievements.items()
-    }
-    quest_names = {
-        ident: qc.localized_name(row, entries, f"Quete {ident}")
-        for ident, row in quests.items()
-    }
-    linked_achievements = qc.achievements_by_quest(
-        achievement_objectives,
-        achievement_names,
-    )
-
-    records = []
-    for quest_id, row in quests.items():
-        criterion = str(row.get("startCriterion") or "")
-        records.append(
-            qc.QuestRecord(
-                id=int(quest_id),
-                name=quest_names.get(int(quest_id), f"Quete {quest_id}"),
-                category=category_names.get(
-                    qc.safe_int(row.get("categoryId")) or -1,
-                    "",
-                ),
-                level_min=int(row.get("levelMin") or 0),
-                level_max=int(row.get("levelMax") or 0),
-                start_criterion=criterion,
-                # Documentary fields are loaded by QuestDetails.get() only
-                # after an explicit quest selection or search.
-                zones=[],
-                achievements=linked_achievements.get(int(quest_id), []),
-                prerequisites=qc.criteria_to_lines(
-                    criterion,
-                    quest_names,
-                    achievement_names,
-                ),
-                info=qc.quest_info(row, 0),
-            )
+        category_names = {
+            ident: qc.localized_name(row, entries, f"Categorie {ident}")
+            for ident, row in categories.items()
+        }
+        achievement_names = {
+            ident: qc.localized_name(row, entries, f"Succes {ident}")
+            for ident, row in achievements.items()
+        }
+        quest_names = {
+            ident: qc.localized_name(row, entries, f"Quete {ident}")
+            for ident, row in quests.items()
+        }
+        linked_achievements = qc.achievements_by_quest(
+            achievement_objectives,
+            achievement_names,
         )
 
-    records.sort(key=lambda quest: qc.normalize_text(quest.name))
-    series = qc.achievement_quest_series(
-        achievements,
-        achievement_objectives,
-        achievement_categories,
-        achievement_names,
-        entries,
-    )
-    return records, series
+        records = []
+        for quest_id, row in quests.items():
+            criterion = str(row.get("startCriterion") or "")
+            records.append(
+                qc.QuestRecord(
+                    id=int(quest_id),
+                    name=quest_names.get(int(quest_id), f"Quete {quest_id}"),
+                    category=category_names.get(
+                        qc.safe_int(row.get("categoryId")) or -1,
+                        "",
+                    ),
+                    level_min=int(row.get("levelMin") or 0),
+                    level_max=int(row.get("levelMax") or 0),
+                    start_criterion=criterion,
+                    # Documentary fields are loaded by QuestDetails.get() only
+                    # after an explicit quest selection or search.
+                    zones=[],
+                    achievements=linked_achievements.get(int(quest_id), []),
+                    prerequisites=qc.criteria_to_lines(
+                        criterion,
+                        quest_names,
+                        achievement_names,
+                    ),
+                    info=qc.quest_info(row, 0),
+                )
+            )
+
+        records.sort(key=lambda quest: qc.normalize_text(quest.name))
+        series = qc.achievement_quest_series(
+            achievements,
+            achievement_objectives,
+            achievement_categories,
+            achievement_names,
+            entries,
+        )
+        return records, series
+    finally:
+        sources.close()
