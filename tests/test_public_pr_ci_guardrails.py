@@ -31,7 +31,7 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             "tools.check_generated_files --root . --tracked",
             "tools.atlas_meta_integrity --root . --base-ref",
             "actions/dependency-review-action@",
-            "fail-on-severity: moderate",
+            "fail-on-severity: low",
             "pip install --require-hashes --no-deps -r requirements-pyside.txt",
             "tests.test_architecture_debt_baseline",
             "tests.test_clean_foundation_guardrails",
