@@ -20,7 +20,6 @@ _PAGE_EXPORTS: dict[str, tuple[str, str]] = {
     "LootPage": ("app.pages.loot_page", "LootPage"),
     "BestiaryPage": ("app.pages.bestiary_page", "BestiaryPage"),
     "ItemSetsPage": ("app.pages.item_sets_page", "ItemSetsPage"),
-    "CharactersPage": ("app.pages.characters_page", "CharactersPage"),
     "QuestsPage": ("app.pages.quests_page", "QuestsPage"),
 }
 
