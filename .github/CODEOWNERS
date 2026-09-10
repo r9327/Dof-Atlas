@@ -1,7 +1,8 @@
-# Sensitive Zero-Trust surfaces. CODEOWNERS documents ownership; enforcement
-# still requires a GitHub ruleset with required code-owner review enabled.
+# Sensitive Zero-Trust surfaces. CODEOWNERS documents ownership. Blocking
+# CODEOWNER approval is enforced only when the live ruleset enables it.
 .github/workflows/** @r9327
 .github/dependabot.yml @r9327
+.github/SECURITY.md @r9327
 .github/CODEOWNERS @r9327
 .github/rulesets/** @r9327
 .githooks/** @r9327
