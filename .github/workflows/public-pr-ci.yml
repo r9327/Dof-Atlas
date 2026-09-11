@@ -106,6 +106,14 @@ jobs:
             tests.test_quest_source_boundaries
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Run Phase 2 closure regression targets
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v `
+            tests.test_character_page_modern `
+            tests.test_lazy_quests_page_performance
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Report PR validation boundary
         if: ${{ always() }}
         shell: pwsh
