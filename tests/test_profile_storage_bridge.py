@@ -50,6 +50,24 @@ class ProfileStorageBridgeTests(unittest.TestCase):
             final = ProfileSettingsService(profile_path).load()
             self.assertEqual(final[KEY_SELECTED_CHARACTER], "character:101")
 
+    def test_profile_write_without_bridge_baseline_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            profile_path = Path(temp_dir) / "client_profiles.json"
+            initial = storage.default_profiles()
+            initial[KEY_SELECTED_CHARACTER] = "character:101"
+            profile_path.write_text(json.dumps(initial), encoding="utf-8")
+
+            payload = dict(initial)
+            payload[KEY_SELECTED_CHARACTER] = "character:202"
+            with patch.object(storage, "PROFILE_FILE", profile_path):
+                storage._PROFILE_READ_STATE.path = None
+                storage._PROFILE_READ_STATE.baseline = None
+                with self.assertRaisesRegex(RuntimeError, "ProfileSettingsService"):
+                    storage.write_json(profile_path, payload)
+
+            final = ProfileSettingsService(profile_path).load()
+            self.assertEqual(final[KEY_SELECTED_CHARACTER], "character:101")
+
     def test_organizer_routes_profile_snapshot_through_targeted_service_delta(self) -> None:
         tree = ast.parse(
             (ROOT / "app" / "pages" / "organizer_page.py").read_text(encoding="utf-8")
