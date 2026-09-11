@@ -166,6 +166,23 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         _, fake = self._run("fast", ["docs/validation.md"])
         self.assertFalse(any("discover" in command for command in fake.commands))
 
+    def test_deleted_changed_tests_are_not_executed_as_diff_targets(self) -> None:
+        with self._temporary_root() as directory:
+            root = Path(directory)
+            kept = root / "tests/test_kept.py"
+            kept.write_text("import unittest\n", encoding="utf-8")
+            command = atlas_integrity._command_for_group(
+                "DIFF_TARGETS",
+                self.policy["groups"]["DIFF_TARGETS"],
+                root=root,
+                base_ref="base",
+                changed=["tests/test_kept.py", "tests/test_deleted.py"],
+            )
+        self.assertIsNotNone(command)
+        assert command is not None
+        self.assertIn("tests.test_kept", command)
+        self.assertNotIn("tests.test_deleted", command)
+
     def test_full_executes_canonical_full_discovery(self) -> None:
         _, fake = self._run("full", ["docs/validation.md"])
         discoveries = [command for command in fake.commands if "discover" in command]
