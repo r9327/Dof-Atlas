@@ -24,17 +24,9 @@
       "CI_INTEGRITY",
       "GOLDEN_FLOWS",
       "DIFF_TARGETS",
-      "FULL_SUITE"
-    ],
-    "separate_domain_certifications": {
-      "GUIDE_DATA": {
-        "required_groups": [
-          "DATA_INTEGRITY"
-        ],
-        "mode": "DEEP",
-        "required_for": "Guide/data certification phases"
-      }
-    }
+      "FULL_SUITE",
+      "DATA_INTEGRITY"
+    ]
   },
   "groups": {
     "META_INTEGRITY": {
@@ -275,7 +267,8 @@
       "CI_INTEGRITY",
       "GOLDEN_FLOWS",
       "DIFF_TARGETS",
-      "FULL_SUITE"
+      "FULL_SUITE",
+      "DATA_INTEGRITY"
     ],
     "DEEP": [
       "META_INTEGRITY",
