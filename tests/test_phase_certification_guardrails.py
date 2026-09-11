@@ -55,18 +55,29 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             <= required_groups
         )
         self.assertTrue(required_groups <= set(self.policy["modes"]["FULL"]))
-        self.assertIn("tests.test_phase_certification_guardrails", self.policy["groups"]["CI_INTEGRITY"]["modules"])
+        self.assertIn(
+            "tests.test_phase_certification_guardrails",
+            self.policy["groups"]["CI_INTEGRITY"]["modules"],
+        )
 
     def test_public_pr_is_explicitly_not_phase_certification(self) -> None:
         self.assertIn("PR SAFE VALIDATION ONLY", self.public_pr)
         self.assertIn("NOT PHASE CERTIFICATION", self.public_pr)
         self.assertIn("tests.test_phase_certification_guardrails", self.public_pr)
 
-    def test_phase_certification_is_manual_exact_head_full_gate(self) -> None:
+    def test_phase_certification_is_exact_head_full_gate_for_phase_prs(self) -> None:
         source = self.certification_workflow
         self.assertIn("workflow_dispatch:", source)
-        self.assertNotIn("pull_request:", source)
-        self.assertNotIn("push:", source)
+        self.assertIn("pull_request:", source)
+        self.assertNotIn("push:\n", source)
+        self.assertIn("synchronize", source)
+        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", source)
+        self.assertIn(
+            "github.event.pull_request.head.repo.full_name == github.repository",
+            source,
+        )
+        self.assertIn("github.event.pull_request.head.sha", source)
+        self.assertIn("github.event.pull_request.base.sha", source)
         self.assertIn("name: Phase Certification / Full Validation", source)
         self.assertIn("runs-on: windows-latest", source)
         self.assertIn("persist-credentials: false", source)
