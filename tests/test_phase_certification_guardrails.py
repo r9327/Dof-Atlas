@@ -19,9 +19,6 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         cls.certification_workflow = (
             ROOT / ".github" / "workflows" / "phase-certification.yml"
         ).read_text(encoding="utf-8")
-        cls.guide_workflow = (
-            ROOT / ".github" / "workflows" / "guide-ultime-v5-ui.yml"
-        ).read_text(encoding="utf-8")
         cls.policy = json.loads(
             (ROOT / "tools" / "atlas_integrity_policy.json").read_text(encoding="utf-8")
         )
@@ -36,7 +33,6 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             "DATA_INTEGRITY",
             "NOT RUN",
             "BLOCKED",
-            "MEASURED_ONLY_FAILED",
         ):
             with self.subTest(token=token):
                 self.assertIn(token, self.contract)
@@ -46,7 +42,7 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("CERTIFIED", self.agents)
         self.assertIn("phase terminée", self.agents)
 
-    def test_policy_declares_machine_readable_application_certification_contract(self) -> None:
+    def test_policy_declares_machine_readable_certification_contract(self) -> None:
         certification = self.policy["certification"]
         self.assertEqual(certification["scope"], "APPLICATION")
         self.assertEqual(certification["minimum_mode"], "FULL")
@@ -57,31 +53,15 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         )
         required_groups = set(certification["required_groups"])
         self.assertTrue(
-            {"GOLDEN_FLOWS", "DIFF_TARGETS", "FULL_SUITE"}
+            {"GOLDEN_FLOWS", "DIFF_TARGETS", "FULL_SUITE", "DATA_INTEGRITY"}
             <= required_groups
         )
-        self.assertNotIn("DATA_INTEGRITY", required_groups)
         self.assertTrue(required_groups <= set(self.policy["modes"]["FULL"]))
         self.assertIn("DATA_INTEGRITY", self.policy["modes"]["FULL"])
-        self.assertFalse(self.policy["groups"]["DATA_INTEGRITY"]["blocking"])
-        self.assertEqual(
-            self.policy["groups"]["DATA_INTEGRITY"]["failure_semantics"],
-            "DIAGNOSTIC_FOR_APPLICATION_STRICT_IN_GUIDE_WORKFLOW",
-        )
         self.assertIn(
             "tests.test_phase_certification_guardrails",
             self.policy["groups"]["CI_INTEGRITY"]["modules"],
         )
-
-    def test_guide_validation_remains_strict_and_separate(self) -> None:
-        self.assertIn("APPLICATION CERTIFIED", self.contract)
-        self.assertIn("GUIDE CERTIFIED", self.contract)
-        self.assertIn("tools/run_guide_ultime_ci.ps1", self.contract)
-        self.assertIn("GUIDE_PREREQUISITE_DATA", self.contract)
-        self.assertIn("GUIDE_FINAL_COVERAGE", self.contract)
-        source = self.guide_workflow
-        self.assertIn(".\\tools\\run_guide_ultime_ci.ps1", source)
-        self.assertIn("if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }", source)
 
     def test_public_pr_is_explicitly_not_phase_certification(self) -> None:
         self.assertIn("PR SAFE VALIDATION ONLY", self.public_pr)

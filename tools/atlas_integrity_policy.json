@@ -24,7 +24,8 @@
       "CI_INTEGRITY",
       "GOLDEN_FLOWS",
       "DIFF_TARGETS",
-      "FULL_SUITE"
+      "FULL_SUITE",
+      "DATA_INTEGRITY"
     ]
   },
   "groups": {
@@ -208,10 +209,9 @@
     },
     "DATA_INTEGRITY": {
       "critical": true,
-      "blocking": false,
       "owner": "tools/run_guide_ultime_ci.ps1",
       "runner": "guide_ci",
-      "failure_semantics": "DIAGNOSTIC_FOR_APPLICATION_STRICT_IN_GUIDE_WORKFLOW",
+      "failure_semantics": "BLOCKING",
       "known_blockers": [
         "GUIDE_PREREQUISITE_DATA",
         "GUIDE_FINAL_COVERAGE"

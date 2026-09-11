@@ -19,7 +19,8 @@ from app.modules.encyclopedia.views.guides_view import QuestLine
 from app.quest_catalog import load_quest_progress, set_quest_done
 
 ROOT = Path(__file__).resolve().parents[1]
-AUDIT_PATH = ROOT / "artifacts" / "duffus_guides_full_audit.json"
+GUIDES_DIR = ROOT / "data" / "encyclopedia" / "guides"
+CATALOG_PATH = GUIDES_DIR / "catalog.json"
 
 
 class EncyclopediaFinalMissionTests(unittest.TestCase):
@@ -54,13 +55,25 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
             owned_items_path=owned,
         )
 
-    def test_audit_reports_are_local_and_cover_duffus_routes(self):
-        payload = json.loads(AUDIT_PATH.read_text(encoding="utf-8"))
-        urls = {row["source_url"] for row in payload["guides"]}
-        self.assertGreaterEqual(len(payload["guides"]), 20)
-        self.assertIn("https://duffus.fr/guide-complet", urls)
-        self.assertIn("https://duffus.fr/guide/dofus-turquoise", urls)
-        self.assertFalse(payload["runtime_dependency"])
+    def test_guide_catalog_is_local_and_covers_required_routes(self):
+        catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+        rows = [row for row in catalog.get("guides", []) if row.get("enabled", True)]
+        by_id = {str(row.get("id") or ""): row for row in rows}
+        self.assertGreaterEqual(len(rows), 20)
+        self.assertIn("guide_complet", by_id)
+        self.assertIn("dofus_turquoise", by_id)
+
+        for row in rows:
+            filename = str(row.get("file") or "").strip()
+            self.assertTrue(filename, row)
+            path = GUIDES_DIR / filename
+            self.assertTrue(path.is_file(), row)
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(str(payload.get("id") or ""), str(row.get("id") or ""), row)
+
+        turquoise = json.loads((GUIDES_DIR / by_id["dofus_turquoise"]["file"]).read_text(encoding="utf-8"))
+        self.assertIn("doduda", str(turquoise.get("generation_source") or ""))
+        self.assertFalse(turquoise.get("source_urls") or [])
 
     def test_guides_and_quests_dashboards_have_fixed_columns(self):
         with tempfile.TemporaryDirectory() as tmp:
