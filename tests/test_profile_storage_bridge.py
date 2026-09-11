@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from app import storage
+import app.constants as constants
 from app.constants import KEY_SELECTED_CHARACTER, KEY_TOPMOST
 from app.services.profile_settings_service import ProfileSettingsService
 
@@ -59,7 +60,10 @@ class ProfileStorageBridgeTests(unittest.TestCase):
 
             payload = dict(initial)
             payload[KEY_SELECTED_CHARACTER] = "character:202"
-            with patch.object(storage, "PROFILE_FILE", profile_path):
+            with (
+                patch.object(storage, "PROFILE_FILE", profile_path),
+                patch.object(constants, "PROFILE_FILE", profile_path),
+            ):
                 storage._PROFILE_READ_STATE.path = None
                 storage._PROFILE_READ_STATE.baseline = None
                 with self.assertRaisesRegex(RuntimeError, "ProfileSettingsService"):
