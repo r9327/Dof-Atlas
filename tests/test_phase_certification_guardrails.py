@@ -22,6 +22,12 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         cls.policy = json.loads(
             (ROOT / "tools" / "atlas_integrity_policy.json").read_text(encoding="utf-8")
         )
+        cls.phase2_baseline = json.loads(
+            (ROOT / "tools" / "guide_phase2_baseline.json").read_text(encoding="utf-8")
+        )
+        cls.phase_verdict = (
+            ROOT / "tools" / "phase_certification_verdict.py"
+        ).read_text(encoding="utf-8")
 
     def test_contract_separates_code_validation_and_certification(self) -> None:
         for token in (
@@ -31,8 +37,11 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             "Public PR / Safe Validation",
             "PHASE CERTIFICATION: PASS",
             "DATA_INTEGRITY",
+            "FULL_SUITE",
             "NOT RUN",
             "BLOCKED",
+            "PASS_BASELINE_NON_REGRESSION",
+            "GUIDE CERTIFIED",
         ):
             with self.subTest(token=token):
                 self.assertIn(token, self.contract)
@@ -63,6 +72,39 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             self.policy["groups"]["CI_INTEGRITY"]["modules"],
         )
 
+    def test_phase2_guide_baseline_is_exact_and_non_generic(self) -> None:
+        baseline = self.phase2_baseline
+        self.assertEqual(baseline["schema_version"], 1)
+        self.assertEqual(
+            baseline["base_commit"],
+            "618b66e679d478ee0885e9234dc3a17f0e90b74d",
+        )
+        self.assertEqual(baseline["required_manifest_status"], "BUILDING")
+        self.assertEqual(
+            set(baseline["allowed_blockers"]),
+            {"GUIDE_PREREQUISITE_DATA", "GUIDE_FINAL_COVERAGE"},
+        )
+        self.assertEqual(baseline["prerequisite"]["hard_error_count"], 10)
+        self.assertEqual(baseline["final_coverage"]["partial_count"], 86)
+        self.assertEqual(baseline["final_coverage"]["uncovered_count"], 548)
+        self.assertIn("data/routes/guide_ultime_manual/**", baseline["protected_globs"])
+        self.assertIn("app/modules/encyclopedia/providers/**", baseline["protected_globs"])
+        self.assertNotIn(
+            "data/routes/guide_ultime_manual/manifest_v1.json",
+            baseline["allowed_changed_paths"],
+        )
+
+    def test_phase_verdict_never_waives_full_suite_or_unknown_blockers(self) -> None:
+        source = self.phase_verdict
+        self.assertIn('name == "DATA_INTEGRITY"', source)
+        self.assertIn('groups.get("FULL_SUITE")', source)
+        self.assertIn("FULL_SUITE is not absolute PASS", source)
+        self.assertIn("unexpected integrity blockers", source)
+        self.assertIn("Guide baseline owners changed", source)
+        self.assertIn("prerequisite baseline fingerprint drift", source)
+        self.assertIn("final coverage baseline fingerprint drift", source)
+        self.assertIn("PASS_BASELINE_NON_REGRESSION", source)
+
     def test_public_pr_is_explicitly_not_phase_certification(self) -> None:
         self.assertIn("PR SAFE VALIDATION ONLY", self.public_pr)
         self.assertIn("NOT PHASE CERTIFICATION", self.public_pr)
@@ -91,12 +133,16 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("persist-credentials: false", source)
         self.assertIn("fetch-depth: 0", source)
         self.assertIn("tools.atlas_integrity full", source)
+        self.assertIn("--json", source)
+        self.assertIn("tools.phase_certification_verdict", source)
+        self.assertIn("03_atlas_integrity_full.json", source)
+        self.assertIn("04_phase_verdict.json", source)
         self.assertIn("$env:CANDIDATE_SHA", source)
         self.assertIn("PHASE CERTIFICATION: NOT CERTIFIED", source)
         self.assertIn("PHASE CERTIFICATION: PASS", source)
+        self.assertIn("PASS_BASELINE_NON_REGRESSION", source)
         self.assertIn("steps.lfs.outcome", source)
         self.assertIn("steps.catalog.outcome", source)
-        self.assertIn("steps.certification.outcome", source)
 
 
 if __name__ == "__main__":

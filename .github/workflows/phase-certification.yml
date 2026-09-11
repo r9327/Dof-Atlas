@@ -134,12 +134,16 @@ jobs:
         id: certification
         continue-on-error: true
         run: |
-          $log = "artifacts/phase_certification/03_atlas_integrity_full.log"
+          $report = "artifacts/phase_certification/03_atlas_integrity_full.json"
           Write-Host "Certification candidate SHA: $env:CANDIDATE_SHA"
           Write-Host "Certification base ref: $env:CERT_BASE_REF"
-          & python -X faulthandler -m tools.atlas_integrity full --base-ref "$env:CERT_BASE_REF" 2>&1 | Tee-Object -FilePath $log
+          & python -X faulthandler -m tools.atlas_integrity full --base-ref "$env:CERT_BASE_REF" --json 1> $report
           $code = $LASTEXITCODE
           if ($null -eq $code) { $code = 0 }
+          if (-not (Test-Path -LiteralPath $report)) {
+            throw "Atlas integrity report was not created."
+          }
+          Get-Content -LiteralPath $report | Write-Host
           if ($code -ne 0) { exit $code }
 
       - name: Upload certification logs
@@ -159,27 +163,46 @@ jobs:
           $failures = @()
           if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
           if ("${{ steps.catalog.outcome }}" -ne "success") { $failures += "Dofus catalog" }
-          if ("${{ steps.certification.outcome }}" -ne "success") { $failures += "Atlas integrity FULL" }
 
           if ($failures.Count -gt 0) {
             $message = "PHASE CERTIFICATION: NOT CERTIFIED - " + ($failures -join ", ")
+            Write-Host $message
+            throw $message
+          }
+
+          $report = "artifacts/phase_certification/03_atlas_integrity_full.json"
+          $phaseReport = "artifacts/phase_certification/04_phase_verdict.json"
+          & python -m tools.phase_certification_verdict `
+            --integrity-report $report `
+            --base-ref "$env:CERT_BASE_REF" `
+            --candidate-sha "$env:CANDIDATE_SHA" `
+            --output $phaseReport
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            $message = "PHASE CERTIFICATION: NOT CERTIFIED - phase verdict rejected the FULL evidence"
             Write-Host $message
             if ($env:GITHUB_STEP_SUMMARY) {
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: NOT CERTIFIED"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:CANDIDATE_SHA``"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:CERT_BASE_REF``"
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Blockers: $($failures -join ', ')"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Full evidence or frozen baseline non-regression contract failed."
             }
             throw $message
           }
 
+          $phase = Get-Content -LiteralPath $phaseReport -Raw | ConvertFrom-Json
           Write-Host "PHASE CERTIFICATION: PASS"
           Write-Host "Certified SHA: $env:CANDIDATE_SHA"
+          Write-Host "Phase verdict: $($phase.status)"
           if ($env:GITHUB_STEP_SUMMARY) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: PASS"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Certified SHA: ``$env:CANDIDATE_SHA``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:CERT_BASE_REF``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Integrity mode: ``FULL``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Phase verdict: ``$($phase.status)``"
+            if ($phase.status -eq "PASS_BASELINE_NON_REGRESSION") {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide status: existing ``BUILDING`` debt carried byte-for-byte unchanged from the Phase 1 base; this is not GUIDE CERTIFIED."
+            }
           }
