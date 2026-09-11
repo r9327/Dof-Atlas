@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -24,9 +24,9 @@ from app.pages._character_page_impl import (
     EQUIPMENT_SLOTS,
     CharacterPage as _CharacterPage,
 )
+from app.ui.theme import THEME_TOKENS
 
 
-_SUCCESS_GOLD = "#E4B84A"
 _EQUIPMENT_SLOT_SIZE = 64
 _EQUIPMENT_ICON_SIZE = 54
 
@@ -81,10 +81,15 @@ class CharacterPage(_CharacterPage):
 
     @staticmethod
     def _apply_success_style(label: QLabel, *, compact: bool = False) -> None:
-        size = 18 if compact else 23
-        label.setStyleSheet(
-            f"color: {_SUCCESS_GOLD}; font-size: {size}px; font-weight: 700;"
-        )
+        """Apply the semantic Atlas success accent without local QSS."""
+
+        palette = label.palette()
+        palette.setColor(label.foregroundRole(), QColor(THEME_TOKENS["YELLOW"]))
+        label.setPalette(palette)
+        font = label.font()
+        font.setPixelSize(18 if compact else 23)
+        font.setBold(True)
+        label.setFont(font)
 
     def _build_identity_panel(self, layout: QVBoxLayout) -> None:
         # Created here because the base class expects them during refresh. The
