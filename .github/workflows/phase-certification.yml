@@ -6,14 +6,22 @@ on:
       base_ref:
         description: Base ref used to classify and validate the candidate diff
         required: true
-        default: main
+        default: origin/main
         type: string
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
 
 permissions:
   contents: read
 
 concurrency:
-  group: dof-atlas-phase-certification-${{ github.ref }}
+  group: dof-atlas-phase-certification-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -29,6 +37,11 @@ defaults:
 
 jobs:
   certify:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       startsWith(github.event.pull_request.title, 'Phase ') &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     name: Phase Certification / Full Validation
     runs-on: windows-latest
     timeout-minutes: 120
@@ -36,6 +49,7 @@ jobs:
       - name: Checkout exact certification candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           lfs: false
           fetch-depth: 0
           persist-credentials: false
@@ -109,7 +123,7 @@ jobs:
         id: certification
         continue-on-error: true
         env:
-          BASE_REF: ${{ inputs.base_ref }}
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.base_ref }}
         run: |
           $log = "artifacts/phase_certification/03_atlas_integrity_full.log"
           Write-Host "Certification candidate SHA: $env:GITHUB_SHA"
@@ -130,6 +144,8 @@ jobs:
 
       - name: Enforce phase certification verdict
         if: always()
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.base_ref }}
         run: |
           $failures = @()
           if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
@@ -143,7 +159,7 @@ jobs:
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: NOT CERTIFIED"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:GITHUB_SHA``"
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``${{ inputs.base_ref }}``"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:BASE_REF``"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Blockers: $($failures -join ', ')"
             }
             throw $message
@@ -155,6 +171,6 @@ jobs:
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: PASS"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Certified SHA: ``$env:GITHUB_SHA``"
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``${{ inputs.base_ref }}``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:BASE_REF``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Integrity mode: ``FULL``"
           }
