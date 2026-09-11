@@ -18,9 +18,10 @@ from app.quest_catalog import QuestRecord, normalize_text
 
 
 class LazyQuestsPage(QuestsPage):
-    """Quests page that materializes and rerenders only what actually changed."""
+    """Materialize the quest hierarchy only as each visible level is requested."""
 
     def __init__(self, *args, **kwargs) -> None:
+        self._loaded_category_names: set[str] = set()
         self._loaded_series_ids: set[str] = set()
         self._completed_hierarchy_quest_ids: set[int] = set()
         self._quest_search_text_cache: dict[int, str] = {}
@@ -43,6 +44,18 @@ class LazyQuestsPage(QuestsPage):
         self._search_index_timer.setInterval(30)
         self._search_index_timer.timeout.connect(self._collect_search_index)
         self.hierarchy_tree.itemExpanded.connect(self.on_hierarchy_item_expanded)
+
+        # Keep the embedded search visually inside the tab body. The base page
+        # is intentionally marginless, which otherwise makes the row touch tabs.
+        root = self.layout()
+        if root is not None:
+            margins = root.contentsMargins()
+            root.setContentsMargins(
+                margins.left(),
+                max(8, margins.top()),
+                margins.right(),
+                margins.bottom(),
+            )
 
     @staticmethod
     def _file_stamp(path: Path) -> tuple[int, int, int]:
@@ -80,6 +93,22 @@ class LazyQuestsPage(QuestsPage):
         self._character_sources_signature = self._current_character_sources_signature()
 
     def update_related_context(self, *args, **kwargs) -> None:
+        # Guide and Success stages can converge on the exact same shared graph.
+        # Avoid rebuilding Category -> Suite when the page already owns all of
+        # the objects supplied by the completion callback.
+        if not args:
+            guide_provider = kwargs.get("guide_provider")
+            achievement_provider = kwargs.get("achievement_provider")
+            graph = kwargs.get("graph")
+            if (
+                (guide_provider is None or guide_provider is self.guide_provider)
+                and (
+                    achievement_provider is None
+                    or achievement_provider is self.achievement_provider
+                )
+                and (graph is None or graph is self.graph)
+            ):
+                return
         self._quest_search_text_cache.clear()
         self._quest_state_cache.clear()
         self._last_quest_detail_signature = None
@@ -175,6 +204,20 @@ class LazyQuestsPage(QuestsPage):
             for item in tuple(items):
                 item.setText(0, label)
 
+    def _category_model(self, category_name: str):
+        target = str(category_name or "")
+        return next(
+            (category for category in self.hierarchy.categories if category.name == target),
+            None,
+        )
+
+    def _category_for_series(self, series_id: str):
+        target = str(series_id or "")
+        for category in self.hierarchy.categories:
+            if any(series.id == target for series in category.series):
+                return category
+        return None
+
     def rebuild_hierarchy(self) -> None:
         selected_id = self.selected_quest_id
         preferred_series = self.active_series_id
@@ -191,14 +234,13 @@ class LazyQuestsPage(QuestsPage):
             hierarchy_token == self._rendered_hierarchy_token
             and self.hierarchy_tree.topLevelItemCount() > 0
         ):
-            # Progress/character changes do not alter Category -> Suite. Keep all
-            # existing Qt items and touch only quest rows the user already opened.
             self._refresh_loaded_hierarchy_labels()
             if selected_id is not None:
                 self.sync_hierarchy_selection(selected_id, preferred_series)
             self.render_breadcrumb()
             return
 
+        self._loaded_category_names.clear()
         self._loaded_series_ids.clear()
         previous_blocked = self.hierarchy_tree.blockSignals(True)
         previous_updates = self.hierarchy_tree.updatesEnabled()
@@ -213,19 +255,12 @@ class LazyQuestsPage(QuestsPage):
                 category_item.setData(0, HIERARCHY_KIND_ROLE, "category")
                 category_item.setData(0, HIERARCHY_ID_ROLE, category.name)
                 category_item.setToolTip(0, f"{len(category.series)} suites")
+                if category.series:
+                    placeholder = QTreeWidgetItem([""])
+                    placeholder.setData(0, HIERARCHY_KIND_ROLE, "placeholder")
+                    category_item.addChild(placeholder)
                 self.hierarchy_tree.addTopLevelItem(category_item)
                 self.category_items[category.name] = category_item
-                for series in category.series:
-                    series_item = QTreeWidgetItem([series.name])
-                    series_item.setData(0, HIERARCHY_KIND_ROLE, "series")
-                    series_item.setData(0, HIERARCHY_ID_ROLE, series.id)
-                    series_item.setToolTip(0, f"{len(series.quest_ids)} quêtes")
-                    category_item.addChild(series_item)
-                    self.series_items[series.id] = series_item
-                    if series.quest_ids:
-                        placeholder = QTreeWidgetItem([""])
-                        placeholder.setData(0, HIERARCHY_KIND_ROLE, "placeholder")
-                        series_item.addChild(placeholder)
             self._rendered_hierarchy_token = hierarchy_token
         finally:
             self.hierarchy_tree.setUpdatesEnabled(previous_updates)
@@ -235,15 +270,52 @@ class LazyQuestsPage(QuestsPage):
             self.sync_hierarchy_selection(selected_id, preferred_series)
         self.render_breadcrumb()
 
+    def ensure_category_series_loaded(self, category_name: str) -> QTreeWidgetItem | None:
+        category_name = str(category_name or "")
+        category_item = self.category_items.get(category_name)
+        if category_item is None or category_name in self._loaded_category_names:
+            return category_item
+        category = self._category_model(category_name)
+        if category is None:
+            return category_item
+
+        previous_blocked = self.hierarchy_tree.blockSignals(True)
+        previous_updates = self.hierarchy_tree.updatesEnabled()
+        self.hierarchy_tree.setUpdatesEnabled(False)
+        try:
+            while category_item.childCount():
+                category_item.takeChild(0)
+            for series in category.series:
+                series_item = QTreeWidgetItem([series.name])
+                series_item.setData(0, HIERARCHY_KIND_ROLE, "series")
+                series_item.setData(0, HIERARCHY_ID_ROLE, series.id)
+                series_item.setToolTip(0, f"{len(series.quest_ids)} quêtes")
+                if series.quest_ids:
+                    placeholder = QTreeWidgetItem([""])
+                    placeholder.setData(0, HIERARCHY_KIND_ROLE, "placeholder")
+                    series_item.addChild(placeholder)
+                category_item.addChild(series_item)
+                self.series_items[series.id] = series_item
+            self._loaded_category_names.add(category_name)
+        finally:
+            self.hierarchy_tree.setUpdatesEnabled(previous_updates)
+            self.hierarchy_tree.blockSignals(previous_blocked)
+        return category_item
+
     def on_hierarchy_item_expanded(self, item: QTreeWidgetItem) -> None:
-        if item.data(0, HIERARCHY_KIND_ROLE) != "series":
+        kind = item.data(0, HIERARCHY_KIND_ROLE)
+        if kind == "category":
+            self.ensure_category_series_loaded(str(item.data(0, HIERARCHY_ID_ROLE) or ""))
             return
-        series_id = str(item.data(0, HIERARCHY_ID_ROLE) or "")
-        if series_id:
-            self.ensure_series_quests_loaded(series_id)
+        if kind == "series":
+            self.ensure_series_quests_loaded(str(item.data(0, HIERARCHY_ID_ROLE) or ""))
 
     def ensure_series_quests_loaded(self, series_id: str) -> QTreeWidgetItem | None:
         series_id = str(series_id or "")
+        if series_id not in self.series_items:
+            category = self._category_for_series(series_id)
+            if category is not None:
+                self.ensure_category_series_loaded(category.name)
         series_item = self.series_items.get(series_id)
         if series_item is None or series_id in self._loaded_series_ids:
             return series_item
@@ -280,6 +352,7 @@ class LazyQuestsPage(QuestsPage):
         if path is None:
             self.active_series_id = ""
             return None
+        self.ensure_category_series_loaded(path.category.name)
         self.active_series_id = path.series.id
         series_item = self.series_items.get(path.series.id)
         if series_item is None:
@@ -306,6 +379,14 @@ class LazyQuestsPage(QuestsPage):
             finally:
                 self.hierarchy_tree.blockSignals(previous_blocked)
         return path
+
+    def focus_hierarchy_series(self, series_id: str) -> None:
+        series_id = str(series_id or "")
+        if series_id not in self.series_items:
+            category = self._category_for_series(series_id)
+            if category is not None:
+                self.ensure_category_series_loaded(category.name)
+        super().focus_hierarchy_series(series_id)
 
     def refresh_hierarchy_quest_state(self, quest_id: int) -> None:
         quest_id = int(quest_id)
@@ -363,9 +444,11 @@ class LazyQuestsPage(QuestsPage):
         return text
 
     def matching_quests(self):
-        if (getattr(self.catalog, "deferred_details", False)
-                and len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS
-                and not getattr(self.catalog, "_prebuilt_quest_search_text", None)):
+        if (
+            getattr(self.catalog, "deferred_details", False)
+            and len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS
+            and not getattr(self.catalog, "_prebuilt_quest_search_text", None)
+        ):
             if self._search_worker is None:
                 catalog, results = self.catalog, self._search_results
 
@@ -405,3 +488,6 @@ class LazyQuestsPage(QuestsPage):
         self.catalog._prebuilt_quest_search_text = documents
         self._quest_search_text_cache.clear()
         self.refresh_quests()
+
+
+__all__ = ["LazyQuestsPage"]
