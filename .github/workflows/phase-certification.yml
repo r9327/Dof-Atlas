@@ -1,0 +1,160 @@
+name: Phase Certification
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Base ref used to classify and validate the candidate diff
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dof-atlas-phase-certification-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  certify:
+    name: Phase Certification / Full Validation
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout exact certification candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: false
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Prepare certification logs
+        run: New-Item -ItemType Directory -Force -Path "artifacts/phase_certification" | Out-Null
+
+      - name: Materialize certification LFS fixtures
+        id: lfs
+        continue-on-error: true
+        run: |
+          $log = "artifacts/phase_certification/01_lfs.log"
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude="" 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          @'
+          from pathlib import Path
+
+          required = [
+              Path("data/images/misc/dofus_atlas_logo.png"),
+              Path("tools/doduda/doduda.exe"),
+          ]
+          pointer = b"version https://git-lfs.github.com/spec/v1"
+          errors = []
+          for path in required:
+              if not path.is_file():
+                  errors.append(f"missing certification fixture: {path}")
+              elif path.read_bytes()[: len(pointer)] == pointer:
+                  errors.append(f"unmaterialized LFS pointer: {path}")
+          if errors:
+              raise SystemExit("\n".join(errors))
+          print("Certification LFS fixtures materialized")
+          '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize local Dofus catalog
+        id: catalog
+        continue-on-error: true
+        run: |
+          $log = "artifacts/phase_certification/02_catalog.log"
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*" 2>&1 | Tee-Object -FilePath $log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) { exit $code }
+
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
+          '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run full Atlas phase certification gate
+        id: certification
+        continue-on-error: true
+        env:
+          BASE_REF: ${{ inputs.base_ref }}
+        run: |
+          $log = "artifacts/phase_certification/03_atlas_integrity_full.log"
+          Write-Host "Certification candidate SHA: $env:GITHUB_SHA"
+          Write-Host "Certification base ref: $env:BASE_REF"
+          & python -X faulthandler -m tools.atlas_integrity full --base-ref "$env:BASE_REF" 2>&1 | Tee-Object -FilePath $log
+          $code = $LASTEXITCODE
+          if ($null -eq $code) { $code = 0 }
+          if ($code -ne 0) { exit $code }
+
+      - name: Upload certification logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: phase-certification-${{ github.sha }}-${{ github.run_attempt }}
+          path: artifacts/phase_certification/**
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce phase certification verdict
+        if: always()
+        run: |
+          $failures = @()
+          if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
+          if ("${{ steps.catalog.outcome }}" -ne "success") { $failures += "Dofus catalog" }
+          if ("${{ steps.certification.outcome }}" -ne "success") { $failures += "Atlas integrity FULL" }
+
+          if ($failures.Count -gt 0) {
+            $message = "PHASE CERTIFICATION: NOT CERTIFIED - " + ($failures -join ", ")
+            Write-Host $message
+            if ($env:GITHUB_STEP_SUMMARY) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: NOT CERTIFIED"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:GITHUB_SHA``"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``${{ inputs.base_ref }}``"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Blockers: $($failures -join ', ')"
+            }
+            throw $message
+          }
+
+          Write-Host "PHASE CERTIFICATION: PASS"
+          Write-Host "Certified SHA: $env:GITHUB_SHA"
+          if ($env:GITHUB_STEP_SUMMARY) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: PASS"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Certified SHA: ``$env:GITHUB_SHA``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``${{ inputs.base_ref }}``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Integrity mode: ``FULL``"
+          }
