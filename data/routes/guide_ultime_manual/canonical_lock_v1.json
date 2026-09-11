@@ -4,7 +4,7 @@
   "status": "LOCKED_CANONICAL_DATA_PRE_NETWORK",
   "manifest": "manifest_v1.json",
   "active_source_lock_mode": "resolved_closure_git_blob_at_baseline",
-  "active_source_baseline_commit": "aca835e11fe870a73287688e35faa8c7d677c5ed",
+  "active_source_baseline_commit": "618b66e679d478ee0885e9234dc3a17f0e90b74d",
   "locked_stage_count": 267,
   "policy": [
     "Ce verrou fige la route canonique après les réparations causales Fratrie/Trépamorts/Bonta95/Nimotopia-Ivoire/Nordalie, les passes de sortie Ivoire/DDG/Nébuleux/Ébène, la passe Frigost III Missiz-Klime-Grolloum, la passe Ilyzaelle Bonta99, la passe Abyssal Meno-Dantinéa-Koutoulou, la passe Eliocalypse Mérydique, la réparation temporelle des six Totems, la réparation Dazak Nimbos/Ébène, la fermeture complète Silvosse/Sylvestre et la restauration du titre canonique Faire le tas de pin, sans imposer artificiellement le total de 267 fiches comme plafond.",

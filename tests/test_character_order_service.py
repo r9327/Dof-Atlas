@@ -195,7 +195,7 @@ class CharacterOrderServiceTests(unittest.TestCase):
             profile = Path(temporary) / "profiles.json"
             profile.write_text("{}", encoding="utf-8")
             service = CharacterOrderService(profile)
-            original_writer = profile_settings_module.write_json_atomic
+            original_writer = profile_settings_module._write_json_atomic_unchecked
             calls: list[Path] = []
 
             def tracked_writer(path, payload):
@@ -204,7 +204,7 @@ class CharacterOrderServiceTests(unittest.TestCase):
 
             with patch.object(
                 profile_settings_module,
-                "write_json_atomic",
+                "_write_json_atomic_unchecked",
                 side_effect=tracked_writer,
             ):
                 self.assertTrue(service.save_labels(["Alpha", "Beta"]))

@@ -24,7 +24,6 @@ from app.quest_catalog import load_quest_progress, quest_done, set_quest_done
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "data" / "encyclopedia" / "guides" / "catalog.json"
-REPORT_PATH = ROOT / "artifacts" / "guides_build_report.json"
 
 
 class GuideCatalogFillTests(unittest.TestCase):
@@ -140,7 +139,8 @@ class GuideCatalogFillTests(unittest.TestCase):
         result = builder.build()
         self.assertEqual([category["id"] for category in result.catalog["categories"]], ["aventure", "dofus", "alignements"])
         self.assertGreaterEqual(len(result.report["guides_non_ajoutes"]), 1)
-        self.assertTrue(REPORT_PATH.exists())
+        self.assertEqual(result.report["schema_version"], 2)
+        self.assertIn("v4_summary", result.report)
 
         with tempfile.TemporaryDirectory() as tmp:
             view = self._make_guides_view(Path(tmp))

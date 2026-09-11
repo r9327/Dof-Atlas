@@ -68,26 +68,35 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             owned_items_path=root / "owned_items.json",
         )
 
-    def test_initial_tree_build_keeps_quest_rows_lazy(self):
+    def test_initial_tree_build_keeps_series_and_quest_rows_lazy(self):
         with tempfile.TemporaryDirectory() as temporary:
             page = self.build_page(Path(temporary))
 
+            self.assertEqual(page.series_items, {})
             self.assertEqual(page.quest_tree_items, {})
+            self.assertEqual(page._loaded_category_names, set())
             self.assertEqual(page._loaded_series_ids, set())
-            self.assertEqual(set(page.series_items), {"achievement:10", "achievement:20"})
-            for item in page.series_items.values():
+            self.assertGreater(page.hierarchy_tree.topLevelItemCount(), 0)
+            for item in page.category_items.values():
                 self.assertEqual(item.childCount(), 1)
                 self.assertEqual(item.child(0).data(0, HIERARCHY_KIND_ROLE), "placeholder")
 
             page.deleteLater()
             self.app.processEvents()
 
-    def test_expanding_one_series_materializes_only_that_series_once(self):
+    def test_expanding_category_then_series_materializes_only_requested_level(self):
         with tempfile.TemporaryDirectory() as temporary:
             page = self.build_page(Path(temporary))
+            category = page.category_items["Zone test"]
+
+            category.setExpanded(True)
+            self.app.processEvents()
+            self.assertEqual(page._loaded_category_names, {"Zone test"})
+            self.assertEqual(set(page.series_items), {"achievement:10", "achievement:20"})
+            self.assertEqual(page.quest_tree_items, {})
+
             first = page.series_items["achievement:10"]
             second = page.series_items["achievement:20"]
-
             first.setExpanded(True)
             self.app.processEvents()
 
@@ -111,7 +120,7 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             page.deleteLater()
             self.app.processEvents()
 
-    def test_selecting_quest_loads_target_series_and_keeps_navigation_contract(self):
+    def test_selecting_quest_loads_target_category_and_series_and_keeps_navigation_contract(self):
         with tempfile.TemporaryDirectory() as temporary:
             page = self.build_page(Path(temporary))
 
@@ -120,6 +129,7 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
 
             self.assertEqual(page.active_series_id, "achievement:20")
             self.assertEqual(page.selected_quest_id, 3)
+            self.assertEqual(page._loaded_category_names, {"Zone test"})
             self.assertIn("achievement:20", page._loaded_series_ids)
             self.assertNotIn("achievement:10", page._loaded_series_ids)
             current = page.hierarchy_tree.currentItem()
@@ -142,7 +152,7 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertEqual(len(page._quest_search_text_cache), 1)
 
-            page.update_related_context(graph=page.graph)
+            page.update_related_context(graph=object())
             self.assertEqual(page._quest_search_text_cache, {})
 
             page.deleteLater()
@@ -172,6 +182,7 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             )
 
             self.assertIsInstance(page.quest_page, LazyQuestsPage)
+            self.assertEqual(page.quest_page.series_items, {})
             self.assertEqual(page.quest_page.quest_tree_items, {})
 
             page.deleteLater()

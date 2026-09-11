@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "baseline_id": "phase2_guide_building_618b66e",
+  "base_commit": "618b66e679d478ee0885e9234dc3a17f0e90b74d",
+  "required_manifest_status": "BUILDING",
+  "allowed_blockers": [
+    "GUIDE_PREREQUISITE_DATA",
+    "GUIDE_FINAL_COVERAGE"
+  ],
+  "prerequisite": {
+    "hard_error_count": 10,
+    "hard_errors_sha256": "b51d9353e8ac768216630f984d3ca4e1098bf3337615060d80697afb7c368d18"
+  },
+  "final_coverage": {
+    "achievement_count": 1418,
+    "partial_count": 86,
+    "uncovered_count": 548,
+    "debt_sha256": "03166a50e9c57f35c1e246e10359f9e3721b9c320197bf73a2d962d60085cbad",
+    "contract_status": "CONTRACTS_COVERED",
+    "failed_contract_count": 0
+  },
+  "protected_globs": [
+    "data/routes/guide_ultime_manual/**",
+    "tools/audit_guide_ultime_manual_prerequisites.py",
+    "tools/audit_guide_ultime_manual_final_coverage.py",
+    "tools/run_guide_ultime_ci.ps1",
+    "app/modules/encyclopedia/providers/**",
+    "app/modules/encyclopedia/services/guide_ultime_manual_route.py",
+    "app/modules/encyclopedia/achievement_catalog_policy.py",
+    "app/quest_catalog.py"
+  ],
+  "allowed_changed_paths": [
+    "data/routes/guide_ultime_manual/canonical_lock_v1.json",
+    "tools/audit_guide_ultime_canonical_lock.py",
+    "tests/test_guide_ultime_canonical_lock.py"
+  ]
+}

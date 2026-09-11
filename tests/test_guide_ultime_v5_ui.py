@@ -112,9 +112,9 @@ class GuideUltimeV5UITests(unittest.TestCase):
                         "rank": rank,
                         "alignment_level": rank,
                         "options": [
-                            {"order": "Coeur Vaillant", "quest_id": 8000 + rank},
-                            {"order": "Oeil Attentif", "quest_id": 8100 + rank},
-                            {"order": "Esprit Salvateur", "quest_id": 8200 + rank},
+                            {"order": "Ordre du Cœur Vaillant", "quest_id": 8000 + rank},
+                            {"order": "Ordre de l'Œil Attentif", "quest_id": 8100 + rank},
+                            {"order": "Ordre de l'Esprit Salvateur", "quest_id": 8200 + rank},
                         ],
                     }
                     for rank in (20, 40, 60, 80, 100)
@@ -212,9 +212,10 @@ class GuideUltimeV5UITests(unittest.TestCase):
 
     # 11. choix d'Ordre persistant, uniquement Bonta
     def test_11_bonta_order_choice_persists(self):
-        self.v5.set_bonta_order("character:1", "Oeil Attentif")
+        order_name = "Ordre de l'Œil Attentif"
+        self.v5.set_bonta_order("character:1", order_name)
         reloaded = AchievementProgressService(self.achievement_path)
-        self.assertEqual(reloaded.alignment_order_choice("character:1"), ("bonta", "Oeil Attentif"))
+        self.assertEqual(reloaded.alignment_order_choice("character:1"), ("bonta", order_name))
         self.assertEqual(len(self.v5.selected_order_quest_ids("character:1")), 5)
 
     # 12. carte classe : une branche, pas 19 profils générés

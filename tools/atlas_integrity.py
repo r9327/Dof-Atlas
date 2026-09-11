@@ -271,10 +271,14 @@ def load_policy(root: Path, policy_path: Path = DEFAULT_POLICY) -> dict[str, Any
     return payload
 
 
-def _changed_test_modules(paths: Iterable[str]) -> list[str]:
+def _changed_test_modules(root: Path, paths: Iterable[str]) -> list[str]:
     modules = []
     for path in normalize_paths(paths):
-        if path.startswith("tests/test_") and path.endswith(".py"):
+        if (
+            path.startswith("tests/test_")
+            and path.endswith(".py")
+            and (root / path).is_file()
+        ):
             modules.append(path[:-3].replace("/", "."))
     return sorted(set(modules))
 
@@ -353,7 +357,7 @@ def _command_for_group(
             *_critical_inventory_modules(root),
         ]
     if runner == "changed_tests":
-        modules = _changed_test_modules(changed)
+        modules = _changed_test_modules(root, changed)
         if not modules:
             return None
         return [python, "-X", "faulthandler", "-m", "unittest", "-v", *modules]
@@ -635,6 +639,10 @@ def _print_human(report: dict[str, Any]) -> None:
             f"- {command['group']}: exit={command['exit_code']}, "
             f"duration={command['duration_seconds']:.3f}s{tests}"
         )
+        if command.get("output_tail"):
+            print("  failure output:")
+            for line in str(command["output_tail"]).splitlines():
+                print(f"    {line}")
 
 
 def _error_report(mode: str, base_ref: str | None, message: str, duration: float) -> dict[str, Any]:

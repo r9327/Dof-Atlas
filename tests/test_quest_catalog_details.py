@@ -12,7 +12,7 @@ from unittest.mock import patch
 from app import quest_catalog as qc
 from app.quest_catalog import QuestCatalog, QuestRecord, QuestStep
 from app.quest_catalog_details import load_lazy_catalog
-from app.quest_source_index import JsonSourceMapping
+from app.quest_source_index import JsonSourceMapping, QuestSources
 
 
 def record(quest_id):
@@ -119,20 +119,20 @@ class QuestDetailsTests(unittest.TestCase):
             write_rows('achievement_categories.json', [{'id': 30, 'nameId': 130}])
 
             reads = []
-            original_read_json = qc.read_json_file
-            original_doduda_rows = qc.doduda_rows
+            original_mapping = QuestSources.mapping
 
-            def track_read_json(path, default):
+            def track_mapping(source, path, field, *, doduda=False, required=None):
                 reads.append(Path(path).relative_to(root).as_posix())
-                return original_read_json(path, default)
-
-            def track_doduda_rows(path):
-                reads.append(Path(path).relative_to(root).as_posix())
-                return original_doduda_rows(path)
+                return original_mapping(
+                    source,
+                    path,
+                    field,
+                    doduda=doduda,
+                    required=required,
+                )
 
             with (
-                patch.object(qc, 'read_json_file', side_effect=track_read_json),
-                patch.object(qc, 'doduda_rows', side_effect=track_doduda_rows),
+                patch.object(QuestSources, 'mapping', new=track_mapping),
                 patch('app.quest_catalog.QuestStep', side_effect=AssertionError('detail loaded')),
                 patch('app.quest_catalog.QuestObjective', side_effect=AssertionError('objective loaded')),
             ):

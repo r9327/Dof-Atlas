@@ -9,8 +9,11 @@ Read `ZERO_TRUST_RULES.md` for the permanent short contribution contract.
 Before any non-trivial modification, read and follow:
 
 - `DEVELOPMENT_GUARDRAILS.md`
+- `PHASE_CERTIFICATION.md` when closing a phase or major lot
 
 That file contains the project-specific anti-regression rules for the Guide Ultime, persistent progression, UI, runtime Windows, databases, launcher, CI and architecture. It takes precedence over generic cleanup instincts.
+
+`PHASE_CERTIFICATION.md` defines the mandatory distinction between code completed, targeted validation and phase certification. A green PR is not phase certification.
 
 If code and the guardrails appear inconsistent, inspect the current implementation and tests before changing either one. Do not silently bypass a guardrail.
 
@@ -179,6 +182,8 @@ For UI changes, when possible:
 
 If the change introduces a problem, fix it before finishing.
 
+For a phase or major lot, do not report `CERTIFIED`, `phase terminée`, `100 % terminée` or an equivalent final state unless the `Phase Certification / Full Validation` workflow has passed on the exact candidate SHA. `Public PR / Safe Validation` alone is never sufficient.
+
 ---
 
 ## Scope
@@ -200,6 +205,7 @@ Before finishing:
 3. Run relevant validation.
 4. Confirm that the requested behavior actually works.
 5. Check relevant existing behavior for regressions.
+6. For phase closure, confirm the exact SHA has a successful phase-certification run.
 
 Keep the final report concise and mention:
 

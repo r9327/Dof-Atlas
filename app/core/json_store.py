@@ -38,10 +38,37 @@ def read_json_resilient(path: Path, default: Any, *, logger: logging.Logger | No
         return copy.deepcopy(default)
 
 
-def write_json_atomic(path: Path, payload: Any) -> None:
+def _same_path(left: Path, right: Path) -> bool:
+    try:
+        return Path(left).resolve() == Path(right).resolve()
+    except OSError:
+        return Path(left).absolute() == Path(right).absolute()
+
+
+def _is_shared_profile_path(path: Path) -> bool:
+    # Local import avoids making the low-level JSON module depend on application
+    # constants during module initialization. PROFILE_FILE is a protected shared
+    # document: only ProfileSettingsService may perform its final replacement.
+    from app.constants import PROFILE_FILE
+
+    return _same_path(Path(path), Path(PROFILE_FILE))
+
+
+def _write_json_atomic_unchecked(path: Path, payload: Any) -> None:
+    """Low-level atomic replacement reserved for coordinated persistence services."""
+
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     save_json_atomic(target, payload)
+
+
+def write_json_atomic(path: Path, payload: Any) -> None:
+    target = Path(path)
+    if _is_shared_profile_path(target):
+        raise RuntimeError(
+            "PROFILE_FILE is shared state; write through ProfileSettingsService"
+        )
+    _write_json_atomic_unchecked(target, payload)
 
 
 def backup_corrupt_json(path: Path) -> Path | None:

@@ -25,6 +25,17 @@ RUNTIME_PATCH_BASELINE: tuple[str, ...] = ()
 RUNTIME_VERSION_BASELINE = (
 )
 
+REMOVED_PAGE_VARIANTS = (
+    "app.pages.characters_page",
+    "app.pages.craft_item_prewarm",
+    "app.pages.home_banner_cache",
+    "app.pages.home_optimized_page",
+    "app.pages.lazy_network_bridge",
+    "app.pages.lazy_zaap_widget",
+    "app.pages.organizer_lazy_page",
+    "app.pages.profile_write_cache",
+)
+
 
 class ArchitectureDebtBaselineTests(unittest.TestCase):
     def assert_matches_baseline(self, actual, expected) -> None:
@@ -66,6 +77,19 @@ class ArchitectureDebtBaselineTests(unittest.TestCase):
                     duplicates,
                     f"Cles dupliquees dans la baseline {category}: {duplicates}",
                 )
+
+    def test_removed_page_variants_are_not_imported(self) -> None:
+        offenders: list[str] = []
+        for source in sorted((ROOT / "app").rglob("*.py")):
+            text = read_source(source)
+            for module_name in REMOVED_PAGE_VARIANTS:
+                if module_name in text:
+                    offenders.append(f"{source.relative_to(ROOT)} -> {module_name}")
+        self.assertEqual(
+            [],
+            offenders,
+            "Les variantes de pages supprimees ne doivent pas revenir dans le graphe d'import.",
+        )
 
     def test_source_reader_accepts_plain_utf8_and_utf8_bom(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

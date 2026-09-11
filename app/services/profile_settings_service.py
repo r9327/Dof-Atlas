@@ -6,7 +6,7 @@ from typing import Any, Callable, Iterable, Mapping
 
 from app.constants import KEY_SELECTED_CHARACTER, KEY_TOPMOST, PROFILE_FILE
 from app.core.character_identity import require_character_key
-from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.json_store import read_json_resilient, _write_json_atomic_unchecked
 from app.core.progress_coordinator import coordinator_for
 
 
@@ -53,7 +53,7 @@ class ProfileSettingsService:
             mutator(payload)
             changed = payload != before
             if changed:
-                write_json_atomic(self.profile_path, payload)
+                _write_json_atomic_unchecked(self.profile_path, payload)
                 coordinator.mark_changed()
             return deepcopy(payload), changed
 

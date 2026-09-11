@@ -92,7 +92,40 @@ jobs:
             tests.test_ci_runner_guardrails `
             tests.test_performance_guardrails `
             tests.test_public_pr_ci_guardrails `
+            tests.test_phase_certification_guardrails `
             tests.test_security_hardening_guardrails
+
+      - name: Run Phase 1 closure regression targets
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v `
+            tests.test_alignment_order_identity_boundary `
+            tests.test_direction_macro `
+            tests.test_profile_settings_service `
+            tests.test_profile_storage_bridge `
+            tests.test_quest_source_boundaries
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run Phase 2 closure regression targets
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v `
+            tests.test_character_page_modern `
+            tests.test_lazy_quests_page_performance
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Report PR validation boundary
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          Write-Host "PR SAFE VALIDATION ONLY - NOT PHASE CERTIFICATION"
+          Write-Host "A phase is CERTIFIED only by Phase Certification / Full Validation on the exact candidate SHA."
+          if ($env:GITHUB_STEP_SUMMARY) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PR SAFE VALIDATION ONLY"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "This workflow is **NOT PHASE CERTIFICATION**."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "A phase can be declared **CERTIFIED** only after `Phase Certification / Full Validation` succeeds on the exact candidate SHA."
+          }
 
       - name: Enforce dependency review verdict
         if: ${{ always() }}
