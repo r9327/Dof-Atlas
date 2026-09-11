@@ -9,13 +9,11 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 
 from app.constants import KEY_SELECTED_CHARACTER
 from app.network.character_runtime_state import CharacterRuntimeStateStore
 from app.pages.character_page import CharacterPage
-from app.ui.theme import THEME_TOKENS
 
 
 class ModernCharacterPageTests(unittest.TestCase):
@@ -92,11 +90,9 @@ class ModernCharacterPageTests(unittest.TestCase):
             self.assertTrue(page.equipment_panel.isAncestorOf(page.achievement_points))
             self.assertTrue(page.equipment_panel.isAncestorOf(page.character_selector))
             self.assertEqual(page.achievement_points.text(), "12 345")
+            self.assertEqual(page.achievement_points.objectName(), "CharacterAchievementPoints")
             self.assertEqual(page.achievement_points.styleSheet(), "")
-            self.assertEqual(
-                page.achievement_points.palette().color(page.achievement_points.foregroundRole()),
-                QColor(THEME_TOKENS["YELLOW"]),
-            )
+            self.assertTrue(page.achievement_points.font().bold())
             self.assertEqual(page.achievement_points.alignment(), Qt.AlignCenter)
 
             self.assertEqual(page.character_selector.currentText(), "Alpha")
@@ -105,6 +101,7 @@ class ModernCharacterPageTests(unittest.TestCase):
 
             self.assertEqual(page.skin_character_name.text(), "Alpha")
             self.assertEqual(page.skin_success_points.text(), "12 345")
+            self.assertIs(page.skin_success_points, page.achievement_points)
             self.assertEqual(page.skin_success_points.styleSheet(), "")
             self.assertIn("Skin du personnage", page.portrait.text())
 
