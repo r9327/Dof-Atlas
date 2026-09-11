@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QColor, QIcon, QPixmap
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -24,7 +24,6 @@ from app.pages._character_page_impl import (
     EQUIPMENT_SLOTS,
     CharacterPage as _CharacterPage,
 )
-from app.ui.theme import THEME_TOKENS
 
 
 _EQUIPMENT_SLOT_SIZE = 64
@@ -81,11 +80,8 @@ class CharacterPage(_CharacterPage):
 
     @staticmethod
     def _apply_success_style(label: QLabel, *, compact: bool = False) -> None:
-        """Apply the semantic Atlas success accent without local QSS."""
+        """Apply score typography while leaving colors to the shared theme."""
 
-        palette = label.palette()
-        palette.setColor(label.foregroundRole(), QColor(THEME_TOKENS["YELLOW"]))
-        label.setPalette(palette)
         font = label.font()
         font.setPixelSize(18 if compact else 23)
         font.setBold(True)
