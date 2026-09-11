@@ -42,7 +42,9 @@ Une validation obligatoire `BLOCKED`, `NOT_RUN`, `FAILED` ou absente interdit la
 
 `Public PR / Safe Validation` est un garde-fou de PR. Même entièrement vert, il ne constitue pas une certification de phase.
 
-La certification de phase est portée par le workflow manuel `Phase Certification` (`.github/workflows/phase-certification.yml`). Il doit être lancé sur le ref/commit réellement candidat à la clôture, avec la base correcte (normalement `main`).
+La certification est portée par `Phase Certification / Full Validation` (`.github/workflows/phase-certification.yml`). Elle peut être lancée manuellement, mais elle est aussi déclenchée automatiquement à chaque mise à jour d'une PR interne dont le titre commence par `Phase ` et dont la branche source appartient au dépôt lui-même.
+
+Pour une PR de phase, le workflow checkout explicitement le SHA de tête de la PR et utilise le SHA de base de la PR pour classifier le diff. La certification suit donc le candidat exact ; une nouvelle modification rend l'ancien résultat obsolète et déclenche une nouvelle validation.
 
 Le workflow ne délivre `PHASE CERTIFICATION: PASS` que si :
 
@@ -56,7 +58,7 @@ Le SHA certifié doit apparaître dans le résumé GitHub Actions.
 
 ## Règles de travail
 
-Pour chaque micro-lot, les tests ciblés restent obligatoires avant de passer au lot suivant. La certification de phase ne remplace pas cette validation locale/ciblée ; elle clôt seulement l'ensemble.
+Pour chaque micro-lot, les tests ciblés restent obligatoires avant de passer au lot suivant. La certification de phase ne remplace pas cette validation ciblée ; elle clôt seulement l'ensemble.
 
 Un test couvrant un comportement utile ne doit pas être supprimé uniquement parce que l'ancien module qui le portait disparaît. Le contrat doit être migré vers le nouveau chemin canonique ou explicitement démontré comme obsolète.
 
@@ -73,4 +75,4 @@ Tout rapport de clôture doit distinguer explicitement :
 
 Ne jamais transformer `NOT RUN` ou `BLOCKED` en validation implicite.
 
-Si le workflow `Phase Certification` n'est pas `PASS` sur le SHA exact, la phase reste ouverte.
+Si `Phase Certification / Full Validation` n'est pas `PASS` sur le SHA exact, la phase reste ouverte.
