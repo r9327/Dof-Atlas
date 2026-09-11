@@ -4,7 +4,7 @@ import unittest
 from types import SimpleNamespace
 from pathlib import Path
 
-from app.pages.organizer_lazy_page import OrganizerPage
+from app.pages.organizer_page import OrganizerPage
 
 
 class OrganizerShutdownGuardTests(unittest.TestCase):
