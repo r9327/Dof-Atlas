@@ -30,6 +30,8 @@ env:
   QTWEBENGINE_DISABLE_SANDBOX: "1"
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
+  CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+  CERT_BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.base_ref }}
 
 defaults:
   run:
@@ -53,6 +55,15 @@ jobs:
           lfs: false
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Verify exact certification checkout
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          Write-Host "Expected candidate SHA: $env:CANDIDATE_SHA"
+          Write-Host "Checked out SHA: $actual"
+          if ($actual -ne $env:CANDIDATE_SHA) {
+            throw "Certification checkout mismatch: expected $env:CANDIDATE_SHA, got $actual"
+          }
 
       - name: Set up Python 3.13
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -122,13 +133,11 @@ jobs:
       - name: Run full Atlas phase certification gate
         id: certification
         continue-on-error: true
-        env:
-          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.base_ref }}
         run: |
           $log = "artifacts/phase_certification/03_atlas_integrity_full.log"
-          Write-Host "Certification candidate SHA: $env:GITHUB_SHA"
-          Write-Host "Certification base ref: $env:BASE_REF"
-          & python -X faulthandler -m tools.atlas_integrity full --base-ref "$env:BASE_REF" 2>&1 | Tee-Object -FilePath $log
+          Write-Host "Certification candidate SHA: $env:CANDIDATE_SHA"
+          Write-Host "Certification base ref: $env:CERT_BASE_REF"
+          & python -X faulthandler -m tools.atlas_integrity full --base-ref "$env:CERT_BASE_REF" 2>&1 | Tee-Object -FilePath $log
           $code = $LASTEXITCODE
           if ($null -eq $code) { $code = 0 }
           if ($code -ne 0) { exit $code }
@@ -137,15 +146,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: phase-certification-${{ github.sha }}-${{ github.run_attempt }}
+          name: phase-certification-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/phase_certification/**
           if-no-files-found: warn
           retention-days: 30
 
       - name: Enforce phase certification verdict
         if: always()
-        env:
-          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.base_ref }}
         run: |
           $failures = @()
           if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
@@ -158,19 +165,19 @@ jobs:
             if ($env:GITHUB_STEP_SUMMARY) {
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: NOT CERTIFIED"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:GITHUB_SHA``"
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:BASE_REF``"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:CANDIDATE_SHA``"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:CERT_BASE_REF``"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Blockers: $($failures -join ', ')"
             }
             throw $message
           }
 
           Write-Host "PHASE CERTIFICATION: PASS"
-          Write-Host "Certified SHA: $env:GITHUB_SHA"
+          Write-Host "Certified SHA: $env:CANDIDATE_SHA"
           if ($env:GITHUB_STEP_SUMMARY) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: PASS"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Certified SHA: ``$env:GITHUB_SHA``"
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:BASE_REF``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Certified SHA: ``$env:CANDIDATE_SHA``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:CERT_BASE_REF``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Integrity mode: ``FULL``"
           }
