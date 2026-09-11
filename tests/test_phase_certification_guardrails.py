@@ -30,6 +30,7 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             "CERTIFIED",
             "Public PR / Safe Validation",
             "PHASE CERTIFICATION: PASS",
+            "DATA_INTEGRITY",
             "NOT RUN",
             "BLOCKED",
         ):
@@ -43,6 +44,7 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
 
     def test_policy_declares_machine_readable_certification_contract(self) -> None:
         certification = self.policy["certification"]
+        self.assertEqual(certification["scope"], "APPLICATION")
         self.assertEqual(certification["minimum_mode"], "FULL")
         self.assertEqual(certification["required_status"], "PASS")
         self.assertEqual(
@@ -51,10 +53,15 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         )
         required_groups = set(certification["required_groups"])
         self.assertTrue(
-            {"GOLDEN_FLOWS", "DIFF_TARGETS", "FULL_SUITE", "DATA_INTEGRITY"}
-            <= required_groups
+            {"GOLDEN_FLOWS", "DIFF_TARGETS", "FULL_SUITE"} <= required_groups
         )
+        self.assertNotIn("DATA_INTEGRITY", required_groups)
         self.assertTrue(required_groups <= set(self.policy["modes"]["FULL"]))
+        self.assertNotIn("DATA_INTEGRITY", self.policy["modes"]["FULL"])
+        self.assertIn("DATA_INTEGRITY", self.policy["modes"]["DEEP"])
+        guide_data = certification["separate_domain_certifications"]["GUIDE_DATA"]
+        self.assertEqual(guide_data["required_groups"], ["DATA_INTEGRITY"])
+        self.assertEqual(guide_data["mode"], "DEEP")
         self.assertIn(
             "tests.test_phase_certification_guardrails",
             self.policy["groups"]["CI_INTEGRITY"]["modules"],

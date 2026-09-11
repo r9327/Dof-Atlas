@@ -127,7 +127,7 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         self.assertIn("SYNTAX_FAILED", report["blockers"])
 
     def test_known_guide_blockers_have_nonzero_exit(self) -> None:
-        report, _ = self._run("full", ["docs/validation.md"], executor=FakeExecutor(guide_blockers=True))
+        report, _ = self._run("deep", ["docs/validation.md"], executor=FakeExecutor(guide_blockers=True))
         self.assertEqual(atlas_integrity.exit_code_for_report(report), 1)
         self.assertEqual(
             report["blockers"], ["GUIDE_FINAL_COVERAGE", "GUIDE_PREREQUISITE_DATA"]
@@ -184,14 +184,22 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         self.assertNotIn("tests.test_deleted", command)
 
     def test_full_executes_canonical_full_discovery(self) -> None:
-        _, fake = self._run("full", ["docs/validation.md"])
+        report, fake = self._run("full", ["docs/validation.md"])
         discoveries = [command for command in fake.commands if "discover" in command]
         self.assertEqual(len(discoveries), 1)
         self.assertIn("tests", discoveries[0])
         self.assertIn("test_*.py", discoveries[0])
+        self.assertNotIn("DATA_INTEGRITY", report["validations_required"])
 
-    def test_full_calls_canonical_guide_runner(self) -> None:
+    def test_full_does_not_run_guide_data_certification(self) -> None:
         _, fake = self._run("full", ["docs/validation.md"])
+        self.assertFalse(
+            any("tools/run_guide_ultime_ci.ps1" in command for command in fake.commands)
+        )
+
+    def test_deep_calls_canonical_guide_runner(self) -> None:
+        report, fake = self._run("deep", ["docs/validation.md"])
+        self.assertIn("DATA_INTEGRITY", report["validations_required"])
         self.assertTrue(
             any("tools/run_guide_ultime_ci.ps1" in command for command in fake.commands)
         )
