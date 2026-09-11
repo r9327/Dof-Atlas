@@ -53,15 +53,11 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         )
         required_groups = set(certification["required_groups"])
         self.assertTrue(
-            {"GOLDEN_FLOWS", "DIFF_TARGETS", "FULL_SUITE"} <= required_groups
+            {"GOLDEN_FLOWS", "DIFF_TARGETS", "FULL_SUITE", "DATA_INTEGRITY"}
+            <= required_groups
         )
-        self.assertNotIn("DATA_INTEGRITY", required_groups)
         self.assertTrue(required_groups <= set(self.policy["modes"]["FULL"]))
-        self.assertNotIn("DATA_INTEGRITY", self.policy["modes"]["FULL"])
-        self.assertIn("DATA_INTEGRITY", self.policy["modes"]["DEEP"])
-        guide_data = certification["separate_domain_certifications"]["GUIDE_DATA"]
-        self.assertEqual(guide_data["required_groups"], ["DATA_INTEGRITY"])
-        self.assertEqual(guide_data["mode"], "DEEP")
+        self.assertIn("DATA_INTEGRITY", self.policy["modes"]["FULL"])
         self.assertIn(
             "tests.test_phase_certification_guardrails",
             self.policy["groups"]["CI_INTEGRITY"]["modules"],
