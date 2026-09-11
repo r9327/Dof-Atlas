@@ -105,10 +105,11 @@ class ProgressMultiInstanceTests(unittest.TestCase):
             second.set_objective_completed("character:1", 22, 2201, True)
             self.assertTrue(first.is_objective_completed("character:1", 22, 2201))
 
-            first.set_alignment_order_choice("character:1", "bonta", "Cœur Vaillant")
+            order_name = "Ordre du Cœur Vaillant"
+            first.set_alignment_order_choice("character:1", "bonta", order_name)
             self.assertEqual(
                 second.alignment_order_choice("character:1"),
-                ("bonta", "Cœur Vaillant"),
+                ("bonta", order_name),
             )
             self.assertFalse(second.is_achievement_completed("character:2", 11))
 
