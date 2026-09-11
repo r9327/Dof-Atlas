@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.constants import KEY_SELECTED_CHARACTER, KEY_SESSION_ORDER
 from app.network.character_runtime_state import CharacterRuntimeStateStore
-from app.pages.character_page import CharacterPage, EQUIPMENT_SLOTS
+from app.pages._character_page_impl import CharacterPage, EQUIPMENT_SLOTS
 
 
 class CharacterPageTests(unittest.TestCase):
