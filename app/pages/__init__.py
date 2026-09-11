@@ -13,13 +13,6 @@ from importlib import import_module
 
 _PAGE_EXPORTS: dict[str, tuple[str, str]] = {
     "HomePage": ("app.pages.home_page", "HomePage"),
-    "TreasureHuntPage": ("app.pages.treasure_hunt_page", "TreasureHuntPage"),
-    "ResourcesPage": ("app.pages.resources_page", "ResourcesPage"),
-    "SettingsPage": ("app.pages.settings_page", "SettingsPage"),
-    "AdvancedSettingsPage": ("app.pages.advanced_settings_page", "AdvancedSettingsPage"),
-    "LootPage": ("app.pages.loot_page", "LootPage"),
-    "BestiaryPage": ("app.pages.bestiary_page", "BestiaryPage"),
-    "ItemSetsPage": ("app.pages.item_sets_page", "ItemSetsPage"),
     "QuestsPage": ("app.pages.quests_page", "QuestsPage"),
 }
 
