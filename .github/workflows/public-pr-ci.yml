@@ -92,7 +92,21 @@ jobs:
             tests.test_ci_runner_guardrails `
             tests.test_performance_guardrails `
             tests.test_public_pr_ci_guardrails `
+            tests.test_phase_certification_guardrails `
             tests.test_security_hardening_guardrails
+
+      - name: Report PR validation boundary
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          Write-Host "PR SAFE VALIDATION ONLY - NOT PHASE CERTIFICATION"
+          Write-Host "A phase is CERTIFIED only by Phase Certification / Full Validation on the exact candidate SHA."
+          if ($env:GITHUB_STEP_SUMMARY) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PR SAFE VALIDATION ONLY"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "This workflow is **NOT PHASE CERTIFICATION**."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "A phase can be declared **CERTIFIED** only after `Phase Certification / Full Validation` succeeds on the exact candidate SHA."
+          }
 
       - name: Enforce dependency review verdict
         if: ${{ always() }}
