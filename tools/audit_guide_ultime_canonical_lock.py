@@ -16,7 +16,7 @@ LOCK = BASE / "canonical_lock_v1.json"
 MANIFEST_SUPPORT_KEYS = ("temporal_registry", "ocre_capture_registry", "ocre_final_route", "success_contracts")
 EXPECTED_LOCK_SCHEMA_VERSION = 4
 EXPECTED_LOCK_ID = "guide_ultime_manual_pre_network_v1"
-EXPECTED_ACTIVE_SOURCE_BASELINE_COMMIT = "aca835e11fe870a73287688e35faa8c7d677c5ed"
+EXPECTED_ACTIVE_SOURCE_BASELINE_COMMIT = "618b66e679d478ee0885e9234dc3a17f0e90b74d"
 
 
 def _load(path: Path) -> dict[str, Any]:
