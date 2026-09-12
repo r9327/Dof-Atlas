@@ -251,8 +251,8 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
     def test_breadcrumb_matches_quests_page_construction_and_uses_theme_tokens(self):
         source = inspect.getsource(GuideUltimeManualView._build_ui)
         render = inspect.getsource(GuideUltimeManualView._render_breadcrumb)
-        apply_style = inspect.getsource(GuideUltimeManualView._apply_manual_style)
-        style_source = (ROOT / "app" / "ui" / "styles" / "guide_manual.py").read_text(encoding="utf-8")
+        view_source = inspect.getsource(GuideUltimeManualView)
+        style_source = (ROOT / "app" / "ui" / "theme.py").read_text(encoding="utf-8")
 
         self.assertIn('setObjectName("GuideBreadcrumb")', source)
         self.assertIn("setContentsMargins(8, 5, 8, 5)", source)
@@ -263,11 +263,11 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
             inspect.getsource(GuideUltimeManualView._add_breadcrumb_separator),
         )
         self.assertIn('setObjectName("GuideBreadcrumbCurrent")', render)
-        self.assertIn("guide_manual_stylesheet()", apply_style)
-        self.assertNotIn("#10141d", apply_style.casefold())
-        self.assertNotIn("#262d3a", apply_style.casefold())
+        self.assertNotIn("setStyleSheet(", view_source)
+        self.assertNotIn("_apply_manual_style", view_source)
 
-        self.assertIn("render_theme_template", style_source)
+        self.assertIn("QFrame#GuideBreadcrumb", style_source)
+        self.assertIn("QPushButton#GuideBreadcrumbButton", style_source)
         self.assertIn("background: @PANEL;", style_source)
         self.assertIn("border: 1px solid @BORDER;", style_source)
         self.assertIn("background: transparent;", style_source)

@@ -63,14 +63,15 @@ class CleanFoundationGuardrailsTests(unittest.TestCase):
         self.assertIn("read_json_resilient", achievement)
         self.assertIn("write_json_atomic", achievement)
 
-    def test_shared_quest_item_row_style_lives_in_ui_styles(self) -> None:
+    def test_shared_quest_item_row_style_lives_in_global_theme(self) -> None:
         widget = self._text("app/modules/encyclopedia/widgets/quest_item_row.py")
-        style = self._text("app/ui/styles/quests.py")
-        self.assertIn("quest_item_row_stylesheet", widget)
+        theme = self._text("app/ui/theme.py")
+        self.assertNotIn("quest_item_row_stylesheet", widget)
+        self.assertNotIn("setStyleSheet(", widget)
         self.assertNotIn("_ITEM_ROW_STYLE", widget)
-        self.assertIn("_QUEST_ITEM_ROW_STYLE", style)
-        self.assertIn("@PANEL_ACTIVE", style)
-        self.assertIn("@GREEN_BORDER", style)
+        self.assertIn('QFrame#GuideItemRow[state="done"]', theme)
+        self.assertIn("@PANEL_ACTIVE", theme)
+        self.assertIn("@GREEN_BORDER", theme)
 
     def test_manual_ocre_registry_is_a_runtime_consumer_not_dead_manifest_data(self) -> None:
         conditions = self._text("app/modules/encyclopedia/services/guide_ultime_manual_conditions.py")

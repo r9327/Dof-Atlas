@@ -41,7 +41,6 @@ from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView, 
 from app.quest_catalog import normalize_text
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
-from app.ui.theme import render_theme_template
 
 
 CATEGORY_ROLE = Qt.UserRole
@@ -206,7 +205,6 @@ class AchievementsView(QWidget):
         self.splitter.setStretchFactor(2, 1)
         self.splitter.setSizes([245, 315, 640])
 
-        self.apply_local_style()
         self.populate_categories()
         self.refresh()
 
@@ -222,205 +220,6 @@ class AchievementsView(QWidget):
         layout.addWidget(label)
         return panel
 
-    def apply_local_style(self) -> None:
-        self.setStyleSheet(
-            render_theme_template(
-                """
-                QWidget#AchievementsView {
-                    background: @BG;
-                }
-
-                QWidget#AchievementsView QLineEdit#EncyclopediaSearch {
-                    background: @PANEL;
-                    border: 1px solid @BORDER;
-                    border-radius: @RADIUS_MD;
-                    color: @TEXT;
-                    min-height: 32px;
-                    max-height: 32px;
-                    padding: 0px 10px;
-                    selection-background-color: @GREEN_DARK;
-                }
-
-                QWidget#AchievementsView QLineEdit#EncyclopediaSearch:focus {
-                    border-color: @GREEN;
-                }
-
-                QWidget#AchievementsView QFrame#GuideLeftPanel,
-                QWidget#AchievementsView QFrame#GuideCenterPanel,
-                QWidget#AchievementsView QStackedWidget#AchievementDetailStack {
-                    background: @PANEL;
-                    border: 1px solid @BORDER;
-                    border-radius: @RADIUS_MD;
-                }
-
-                QWidget#AchievementsView QLabel#GuideSectionTitle {
-                    color: @YELLOW;
-                    font-size: 12px;
-                    font-weight: 800;
-                    padding: 1px 2px 6px 2px;
-                }
-
-                QWidget#AchievementsView QTreeWidget#AchievementCategoryTree,
-                QWidget#AchievementsView QListWidget#QuestResultList {
-                    background: transparent;
-                    border: none;
-                    color: @TEXT_SOFT;
-                    outline: none;
-                    show-decoration-selected: 0;
-                }
-
-                QWidget#AchievementsView QTreeWidget#AchievementCategoryTree::item {
-                    min-height: 30px;
-                    margin: 1px 0px;
-                    padding: 3px 7px;
-                    border: 1px solid transparent;
-                    border-radius: @RADIUS_SM;
-                }
-
-                QWidget#AchievementsView QTreeWidget#AchievementCategoryTree::item:hover {
-                    background: @PANEL_HOVER;
-                    border-color: @BORDER_SOFT;
-                }
-
-                QWidget#AchievementsView QTreeWidget#AchievementCategoryTree::item:selected {
-                    background: @PANEL_ACTIVE;
-                    border: 1px solid @GREEN_BORDER;
-                    border-left: 3px solid @GREEN;
-                    color: @TEXT;
-                }
-
-                QWidget#AchievementsView QListWidget#QuestResultList::item {
-                    background: @PANEL_2;
-                    border: 1px solid @BORDER_SOFT;
-                    border-radius: @RADIUS_SM;
-                    color: @TEXT_SOFT;
-                    min-height: 48px;
-                    margin: 2px 0px;
-                    padding: 6px 10px;
-                }
-
-                QWidget#AchievementsView QListWidget#QuestResultList::item:hover {
-                    background: @PANEL_HOVER;
-                    border-color: @BORDER_STRONG;
-                }
-
-                QWidget#AchievementsView QListWidget#QuestResultList::item:selected {
-                    background: @PANEL_ACTIVE;
-                    border: 1px solid @GREEN_BORDER;
-                    border-left: 3px solid @GREEN;
-                }
-
-                QWidget#AchievementsView QStackedWidget#AchievementDetailStack,
-                QWidget#AchievementsView QScrollArea#GuideRightPanelScroll,
-                QWidget#AchievementsView QWidget#AchievementDetailContent {
-                    background: @PANEL;
-                }
-
-                QWidget#AchievementsView QScrollArea#GuideRightPanelScroll {
-                    border: none;
-                    border-radius: @RADIUS_MD;
-                }
-
-                QWidget#AchievementsView QFrame#AchievementDetailBody {
-                    background: transparent;
-                    border: none;
-                }
-
-                QWidget#AchievementsView QFrame#AchievementAlignmentPanel {
-                    background: @PANEL_2;
-                    border: 1px solid @BORDER_SOFT;
-                    border-radius: @RADIUS_SM;
-                }
-
-                QWidget#AchievementsView QLabel#AchievementDetailTitle {
-                    color: @TEXT;
-                    font-size: 18px;
-                    font-weight: 800;
-                    padding: 0px 0px 2px 0px;
-                }
-
-                QWidget#AchievementsView QLabel#AchievementDescription {
-                    color: @TEXT_SOFT;
-                    font-size: 12px;
-                    padding: 0px 0px 2px 0px;
-                }
-
-                QWidget#AchievementsView QLabel#AchievementProgressText {
-                    color: @TEXT_MUTED;
-                    font-size: 11px;
-                    font-weight: 700;
-                }
-
-                QWidget#AchievementsView QLabel#AchievementSectionTitle {
-                    color: @YELLOW;
-                    font-size: 11px;
-                    font-weight: 800;
-                    padding: 5px 1px 1px 1px;
-                }
-
-                QWidget#AchievementsView QCheckBox#AchievementDoneCheck {
-                    color: @TEXT_SOFT;
-                    font-weight: 700;
-                    spacing: 7px;
-                }
-
-                QWidget#AchievementsView QCheckBox#AchievementDoneCheck:checked {
-                    color: @GREEN;
-                }
-
-                QWidget#AchievementsView QFrame#EntityLinksPanel {
-                    background: transparent;
-                    border: none;
-                    border-radius: 0px;
-                }
-
-                QWidget#AchievementsView QFrame#AchievementEntityRow,
-                QWidget#AchievementsView QFrame#ObjectiveRow {
-                    background: @PANEL_2;
-                    border: 1px solid @BORDER_SOFT;
-                    border-radius: @RADIUS_SM;
-                }
-
-                QWidget#AchievementsView QFrame#AchievementEntityRow:hover,
-                QWidget#AchievementsView QFrame#ObjectiveRow:hover {
-                    background: @PANEL_HOVER;
-                    border-color: @GREEN_BORDER;
-                }
-
-                QWidget#AchievementsView QLabel#AchievementEntityRowText {
-                    color: @TEXT_SOFT;
-                }
-
-                QWidget#AchievementsView QLabel#AchievementEntityChevron {
-                    color: @TEXT_MUTED;
-                    font-size: 18px;
-                    font-weight: 700;
-                }
-
-                QWidget#AchievementsView QFrame#AchievementEntityRow:hover QLabel#AchievementEntityChevron {
-                    color: @GREEN;
-                }
-
-                QWidget#AchievementsView QProgressBar#EncyclopediaProgressBar {
-                    background: @BG;
-                    border: 1px solid @BORDER_SOFT;
-                    border-radius: 4px;
-                    min-height: 8px;
-                    max-height: 8px;
-                }
-
-                QWidget#AchievementsView QProgressBar#EncyclopediaProgressBar::chunk {
-                    background: @GREEN;
-                    border-radius: 3px;
-                }
-
-                QWidget#AchievementsView QSplitter#AchievementCatalogSplitter::handle {
-                    background: transparent;
-                    width: 6px;
-                }
-                """
-            )
-        )
 
     def populate_categories(self) -> None:
         self.category_tree.blockSignals(True)
@@ -472,6 +271,7 @@ class AchievementsView(QWidget):
             self.quest_detail_view.refresh()
         elif self._detail_open and self.current_achievement_id is not None:
             self.show_achievement(self.current_achievement_id)
+
 
 
     def on_embedded_quest_progress_changed(self, _quest_id: int) -> None:

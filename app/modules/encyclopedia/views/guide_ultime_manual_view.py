@@ -21,7 +21,6 @@ from PySide6.QtWidgets import (
 from app.modules.encyclopedia.services.guide_auto_validation_contract import route_progress_counts
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
 from app.ui.components import AtlasButton
-from app.ui.styles import guide_manual_stylesheet
 from app.ui.theme import PALETTE
 
 
@@ -445,7 +444,6 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.position_label = QLabel()
         self.position_label.setVisible(False)
 
-        self._apply_manual_style()
 
     def _sync_order_combo(self) -> None:
         return
@@ -616,6 +614,3 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
     @staticmethod
     def _chapter_label(chapter_id: str) -> str:
         return chapter_id.replace("_", " ").title() or "Parcours"
-
-    def _apply_manual_style(self) -> None:
-        self.setStyleSheet(guide_manual_stylesheet())

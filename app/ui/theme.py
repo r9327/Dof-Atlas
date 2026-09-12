@@ -73,6 +73,8 @@ THEME_TOKENS = {**PALETTE, **TYPOGRAPHY, **SPACING, **SIZES}
 # while their rendered colors already follow the home-page palette. New QSS
 # should use semantic @TOKENS directly; aliases can then shrink over time.
 LEGACY_COLOR_ROLES = {
+    "#5D512D": "BORDER_STRONG",
+    "#1C1A12": "PANEL_2",
     "#101E2F": "PANEL_HOVER",
     "#D7E0EE": "TEXT_SOFT",
     "#16263A": "PANEL_HOVER",
@@ -1707,6 +1709,1222 @@ QMenu::separator {
 #PlaceholderPage {
     background: @BG;
 }
+
+
+/* Phase 2 views: application-level visual rules live here. */
+
+                QWidget#AchievementsView {
+                    background: @BG;
+                }
+
+                QWidget#AchievementsView QLineEdit#EncyclopediaSearch {
+                    background: @PANEL;
+                    border: 1px solid @BORDER;
+                    border-radius: @RADIUS_MD;
+                    color: @TEXT;
+                    min-height: 32px;
+                    max-height: 32px;
+                    padding: 0px 10px;
+                    selection-background-color: @GREEN_DARK;
+                }
+
+                QWidget#AchievementsView QLineEdit#EncyclopediaSearch:focus {
+                    border-color: @GREEN;
+                }
+
+                QWidget#AchievementsView QFrame#GuideLeftPanel,
+                QWidget#AchievementsView QFrame#GuideCenterPanel,
+                QWidget#AchievementsView QStackedWidget#AchievementDetailStack {
+                    background: @PANEL;
+                    border: 1px solid @BORDER;
+                    border-radius: @RADIUS_MD;
+                }
+
+                QWidget#AchievementsView QLabel#GuideSectionTitle {
+                    color: @YELLOW;
+                    font-size: 12px;
+                    font-weight: 800;
+                    padding: 1px 2px 6px 2px;
+                }
+
+                QWidget#AchievementsView QTreeWidget#AchievementCategoryTree,
+                QWidget#AchievementsView QListWidget#QuestResultList {
+                    background: transparent;
+                    border: none;
+                    color: @TEXT_SOFT;
+                    outline: none;
+                    show-decoration-selected: 0;
+                }
+
+                QWidget#AchievementsView QTreeWidget#AchievementCategoryTree::item {
+                    min-height: 30px;
+                    margin: 1px 0px;
+                    padding: 3px 7px;
+                    border: 1px solid transparent;
+                    border-radius: @RADIUS_SM;
+                }
+
+                QWidget#AchievementsView QTreeWidget#AchievementCategoryTree::item:hover {
+                    background: @PANEL_HOVER;
+                    border-color: @BORDER_SOFT;
+                }
+
+                QWidget#AchievementsView QTreeWidget#AchievementCategoryTree::item:selected {
+                    background: @PANEL_ACTIVE;
+                    border: 1px solid @GREEN_BORDER;
+                    border-left: 3px solid @GREEN;
+                    color: @TEXT;
+                }
+
+                QWidget#AchievementsView QListWidget#QuestResultList::item {
+                    background: @PANEL_2;
+                    border: 1px solid @BORDER_SOFT;
+                    border-radius: @RADIUS_SM;
+                    color: @TEXT_SOFT;
+                    min-height: 48px;
+                    margin: 2px 0px;
+                    padding: 6px 10px;
+                }
+
+                QWidget#AchievementsView QListWidget#QuestResultList::item:hover {
+                    background: @PANEL_HOVER;
+                    border-color: @BORDER_STRONG;
+                }
+
+                QWidget#AchievementsView QListWidget#QuestResultList::item:selected {
+                    background: @PANEL_ACTIVE;
+                    border: 1px solid @GREEN_BORDER;
+                    border-left: 3px solid @GREEN;
+                }
+
+                QWidget#AchievementsView QStackedWidget#AchievementDetailStack,
+                QWidget#AchievementsView QScrollArea#GuideRightPanelScroll,
+                QWidget#AchievementsView QWidget#AchievementDetailContent {
+                    background: @PANEL;
+                }
+
+                QWidget#AchievementsView QScrollArea#GuideRightPanelScroll {
+                    border: none;
+                    border-radius: @RADIUS_MD;
+                }
+
+                QWidget#AchievementsView QFrame#AchievementDetailBody {
+                    background: transparent;
+                    border: none;
+                }
+
+                QWidget#AchievementsView QFrame#AchievementAlignmentPanel {
+                    background: @PANEL_2;
+                    border: 1px solid @BORDER_SOFT;
+                    border-radius: @RADIUS_SM;
+                }
+
+                QWidget#AchievementsView QLabel#AchievementDetailTitle {
+                    color: @TEXT;
+                    font-size: 18px;
+                    font-weight: 800;
+                    padding: 0px 0px 2px 0px;
+                }
+
+                QWidget#AchievementsView QLabel#AchievementDescription {
+                    color: @TEXT_SOFT;
+                    font-size: 12px;
+                    padding: 0px 0px 2px 0px;
+                }
+
+                QWidget#AchievementsView QLabel#AchievementProgressText {
+                    color: @TEXT_MUTED;
+                    font-size: 11px;
+                    font-weight: 700;
+                }
+
+                QWidget#AchievementsView QLabel#AchievementSectionTitle {
+                    color: @YELLOW;
+                    font-size: 11px;
+                    font-weight: 800;
+                    padding: 5px 1px 1px 1px;
+                }
+
+                QWidget#AchievementsView QCheckBox#AchievementDoneCheck {
+                    color: @TEXT_SOFT;
+                    font-weight: 700;
+                    spacing: 7px;
+                }
+
+                QWidget#AchievementsView QCheckBox#AchievementDoneCheck:checked {
+                    color: @GREEN;
+                }
+
+                QWidget#AchievementsView QFrame#EntityLinksPanel {
+                    background: transparent;
+                    border: none;
+                    border-radius: 0px;
+                }
+
+                QWidget#AchievementsView QFrame#AchievementEntityRow,
+                QWidget#AchievementsView QFrame#ObjectiveRow {
+                    background: @PANEL_2;
+                    border: 1px solid @BORDER_SOFT;
+                    border-radius: @RADIUS_SM;
+                }
+
+                QWidget#AchievementsView QFrame#AchievementEntityRow:hover,
+                QWidget#AchievementsView QFrame#ObjectiveRow:hover {
+                    background: @PANEL_HOVER;
+                    border-color: @GREEN_BORDER;
+                }
+
+                QWidget#AchievementsView QLabel#AchievementEntityRowText {
+                    color: @TEXT_SOFT;
+                }
+
+                QWidget#AchievementsView QLabel#AchievementEntityChevron {
+                    color: @TEXT_MUTED;
+                    font-size: 18px;
+                    font-weight: 700;
+                }
+
+                QWidget#AchievementsView QFrame#AchievementEntityRow:hover QLabel#AchievementEntityChevron {
+                    color: @GREEN;
+                }
+
+                QWidget#AchievementsView QProgressBar#EncyclopediaProgressBar {
+                    background: @BG;
+                    border: 1px solid @BORDER_SOFT;
+                    border-radius: 4px;
+                    min-height: 8px;
+                    max-height: 8px;
+                }
+
+                QWidget#AchievementsView QProgressBar#EncyclopediaProgressBar::chunk {
+                    background: @GREEN;
+                    border-radius: 3px;
+                }
+
+                QWidget#AchievementsView QSplitter#AchievementCatalogSplitter::handle {
+                    background: transparent;
+                    width: 6px;
+                }
+
+
+/* Guides catalogue and shared quest-detail primitives. */
+
+            QWidget#GuidesHomePage,
+            QWidget#GuidesHomeContent,
+            QWidget#GuidesDetailPage,
+            QWidget#GuideLeftPanelContent,
+            QWidget#GuideCenterPanelContent,
+            QWidget#GuideRightPanelContent,
+            QFrame#GuidesHomeSubCategory {
+                background: #080b12;
+            }
+
+            QFrame#GuideHeader,
+            QFrame#GuideBreadcrumb,
+            QFrame#GuidesHomeCategory,
+            QFrame#GuidesHomeProgressionColumn,
+            QFrame#GuideLeftPanel,
+            QFrame#GuideCenterPanel,
+            QFrame#GuideRightPanel {
+                background: #10141d;
+                border: 1px solid #262d3a;
+                border-radius: 7px;
+            }
+
+            QFrame#GuidesHomeSubCategory {
+                border: none;
+            }
+
+            QFrame#GuidesHomeSeparator {
+                background: #262d3a;
+                border: none;
+            }
+
+            QFrame#GuideAdventureCard,
+            QFrame#GuideAlignmentCard,
+            QFrame#GuideDofusCard,
+            QFrame#GuideQuestLine,
+            QFrame#GuideQuestLineActive,
+            QFrame#GuideQuestLineUnavailable,
+            QFrame#GuideTreeRow,
+            QFrame#GuideTreeRowActive,
+            QFrame#GuideSeriesSummaryRow {
+                background: #141821;
+                border: 1px solid #242b37;
+                border-radius: 6px;
+            }
+
+            QFrame#GuideAdventureCard:hover,
+            QFrame#GuideAlignmentCard:hover,
+            QFrame#GuideDofusCard:hover,
+            QFrame#GuideQuestLine:hover,
+            QFrame#GuideTreeRow:hover,
+            QFrame#GuideSeriesSummaryRow:hover {
+                background: #1a202b;
+                border-color: #5e3d93;
+            }
+
+            QFrame#GuideDofusCard[state="done"] {
+                border-color: #2e7445;
+            }
+
+            QFrame#GuideQuestLineActive,
+            QFrame#GuideTreeRowActive {
+                background: #24183d;
+                border-color: #6f4bb6;
+            }
+
+            QFrame#GuideQuestLineUnavailable {
+                background: #10141d;
+                border-color: #202733;
+            }
+
+            QFrame#GuideQuestLine[state="done"],
+            QFrame#GuideQuestLineActive[state="done"],
+            QFrame#GuideTreeRow[state="done"],
+            QFrame#GuideTreeRowActive[state="done"] {
+                background: #0d1118;
+                border-color: #202733;
+            }
+
+            QLabel#GuideQuestLineTitle[state="done"],
+            QLabel#GuideTreePartText[state="done"],
+            QLabel#GuideTreeChildText[state="done"] {
+                color: #68717e;
+            }
+
+            QToolButton#GuideTreeStateButton {
+                background: transparent;
+                border: 1px solid #303847;
+                border-radius: 5px;
+                color: #8c95a3;
+                font-size: 12px;
+                font-weight: 800;
+                padding: 0px;
+            }
+
+            QToolButton#GuideTreeStateButton:hover {
+                background: #1a202b;
+                border-color: #6f4bb6;
+                color: #f1f4fb;
+            }
+
+            QToolButton#GuideTreeStateButton[state="done"] {
+                color: #68717e;
+                border-color: #343b46;
+            }
+
+            QLabel#GuidesHomeCategoryTitle,
+            QLabel#GuideHeaderTitle,
+            QLabel#GuideSeriesHeaderTitle {
+                color: #f5f0ff;
+                font-weight: 800;
+            }
+
+            QLabel#GuidesHomeCategoryTitle {
+                color: #e7bf63;
+                font-size: 12px;
+                letter-spacing: 0px;
+            }
+
+            QLabel#GuideHeaderTitle {
+                font-size: 19px;
+            }
+
+            QLabel#GuideHeaderMeta {
+                color: #c9d0dc;
+                font-size: 12px;
+            }
+
+            QLabel#GuideHeaderProgress {
+                color: #e7bf63;
+                font-size: 15px;
+                font-weight: 800;
+                padding: 4px 8px;
+                border: 1px solid #5d512d;
+                border-radius: 6px;
+                background: #1c1a12;
+            }
+
+            QLabel#GuideInfoSectionTitle {
+                color: #e8edf7;
+                font-size: 11px;
+                font-weight: 800;
+            }
+
+            QLabel#GuideHomeCardTitle,
+            QLabel#GuideDofusCardTitle,
+            QLabel#GuideTreePartText,
+            QLabel#GuideSeriesHeaderTitle,
+            QLabel#QuestSolutionStepTitle {
+                color: #f1f4fb;
+                font-size: 13px;
+                font-weight: 750;
+            }
+
+            QLabel#GuideDofusCardTitle {
+                font-size: 12px;
+            }
+
+            QLabel#GuideTreeChildText,
+            QLabel#GuideQuestLineTitle,
+            QLabel#GuideInfoLine,
+            QLabel#QuestSolutionDescription,
+            QLabel#GuideActivityText {
+                color: #d9dfeb;
+                font-size: 12px;
+            }
+
+            QLabel#GuideHomeCardMeta,
+            QLabel#GuideHomeProgress,
+            QLabel#GuideQuestLevel,
+            QLabel#GuideDofusProgress,
+            QLabel#GuideSeriesHeaderProgress,
+            QLabel#GuideSeriesSummaryTitle,
+            QLabel#GuideSeriesSummaryProgress,
+            QLabel#GuideProgressText,
+            QLabel#GuideItemQuantity,
+            QLabel#GuideTreeProgress,
+            QLabel#GuideInfoKey,
+            QLabel#GuideInfoValue,
+            QLabel#GuideBreadcrumbSeparator,
+            QLabel#GuideBreadcrumbCurrent,
+            QLabel#MutedLabel,
+            QLabel#GuidesHomeEmptyText {
+                color: #9ca5b4;
+                font-size: 11px;
+            }
+
+            QLabel#GuideBreadcrumbCurrentStrong {
+                color: #dfe6f3;
+                font-size: 11px;
+                font-weight: 700;
+            }
+
+            QLabel#GuideQuestNumber {
+                color: #a78bda;
+                font-size: 12px;
+                font-weight: 800;
+            }
+
+            QLabel#GuideTreeState {
+                color: #727b88;
+                font-size: 13px;
+                font-weight: 800;
+            }
+
+            QLabel#GuideTreeState[state="done"],
+            QLabel#GuideTreeProgress[state="done"],
+            QLabel#GuideHomeProgress[state="done"],
+            QLabel#GuideDofusProgress[state="done"],
+            QLabel#GuideSeriesHeaderProgress[state="done"] {
+                color: #58c878;
+            }
+
+            QLabel#GuideTreeState[state="partial"],
+            QLabel#GuideTreeProgress[state="partial"],
+            QLabel#GuideHomeProgress[state="partial"],
+            QLabel#GuideDofusProgress[state="partial"],
+            QLabel#GuideSeriesHeaderProgress[state="partial"] {
+                color: #e0b75a;
+            }
+
+            QLabel#GuideHeaderImage,
+            QLabel#GuideAdventureImage,
+            QLabel#GuideAlignmentImage,
+            QLabel#GuideDofusImage {
+                background: #0b0f17;
+                border: 1px solid #2b3341;
+                border-radius: 6px;
+                color: #e7bf63;
+            }
+
+            QFrame#GuideSeriesHeader {
+                background: transparent;
+                border: none;
+            }
+
+            QFrame#GuideInfoRow,
+            QFrame#GuideIconRow,
+            QFrame#GuideItemRow,
+            QFrame#GuideRewardRow,
+            QFrame#GuideQuestItemRow,
+            QFrame#GuideStepsHeader,
+            QFrame#GuidePrerequisiteRow,
+            QFrame#GuideProgressSummary,
+            QFrame#GuideActivityGrid,
+            QWidget#GuideCollapsibleBody {
+                background: transparent;
+                border: none;
+            }
+
+            QFrame#GuideQuestItemRow[state="done"],
+            QFrame#GuideItemRow[state="done"],
+            QFrame#QuestItemRow[state="done"] {
+                background: rgba(52, 142, 78, 0.20);
+                border: 1px solid #2e7445;
+                border-radius: 5px;
+            }
+
+            QFrame#GuideInfoSection,
+            QFrame#QuestSolutionStep {
+                background: transparent;
+                border-top: 1px solid #252c38;
+                border-left: none;
+                border-right: none;
+                border-bottom: none;
+                border-radius: 0px;
+            }
+
+            QFrame#GuideActivityChip {
+                background: #121720;
+                border: 1px solid #28303d;
+                border-radius: 5px;
+            }
+
+            QFrame#GuideStepsCollapsedRail {
+                background: #10141d;
+                border: none;
+                border-radius: 5px;
+            }
+
+            QFrame#QuestObjectiveLine:hover,
+            QFrame#GuideCollapsibleHeader:hover {
+                background: #171d27;
+            }
+
+            QToolButton#GuideChevronButton,
+            QToolButton#GuideLineIcon,
+            QToolButton#GuideLineActivity,
+            QToolButton#GuideInfoIcon,
+            QToolButton#GuideItemIcon,
+            QLabel#GuideInfoIcon,
+            QLabel#GuideItemIcon {
+                background: transparent;
+                border: none;
+                padding: 0px;
+            }
+
+            QToolButton#GuideItemIcon[state="todo"] {
+                border: 1px solid #303847;
+                border-radius: 5px;
+            }
+
+            QToolButton#GuideItemIcon[state="done"] {
+                background: rgba(52, 142, 78, 0.28);
+                border: 1px solid #58c878;
+                border-radius: 5px;
+            }
+
+            QToolButton#GuideQuestState,
+            QToolButton#GuideStepsCollapseButton,
+            QToolButton#GuideHeaderDoneButton,
+            QToolButton#QuestGlobalDoneButton {
+                background: transparent;
+                border: 1px solid #303847;
+                border-radius: 5px;
+                color: #8c95a3;
+                font-size: 12px;
+                font-weight: 800;
+                padding: 0px 6px;
+            }
+
+            QToolButton#GuideQuestState:hover,
+            QToolButton#GuideStepsCollapseButton:hover,
+            QToolButton#GuideHeaderDoneButton:hover,
+            QToolButton#QuestGlobalDoneButton:hover {
+                background: #1a202b;
+                border-color: #6f4bb6;
+                color: #f1f4fb;
+            }
+
+            QToolButton#GuideQuestState[state="done"],
+            QToolButton#GuideHeaderDoneButton[state="done"],
+            QToolButton#QuestGlobalDoneButton[state="done"] {
+                color: #58c878;
+                border-color: #2e7445;
+            }
+
+            QToolButton#GuideHeaderDoneButton,
+            QToolButton#QuestGlobalDoneButton {
+                min-height: 26px;
+                max-height: 26px;
+            }
+
+            QPushButton#GuideBreadcrumbButton,
+            QPushButton#GuideInlineQuestButton,
+            QPushButton#GuideItemNameButton {
+                background: transparent;
+                border: 1px solid transparent;
+                border-radius: 4px;
+                color: #aeb7c6;
+                font-size: 11px;
+                font-weight: 700;
+                min-height: 22px;
+                max-height: 22px;
+                padding: 0px 8px;
+                text-align: left;
+            }
+
+            QPushButton#GuideBreadcrumbButton:hover,
+            QPushButton#GuideInlineQuestButton:hover,
+            QPushButton#GuideItemNameButton:hover {
+                background: #1a202b;
+                border-color: #5e3d93;
+                color: #f1f4fb;
+            }
+
+            QPushButton#GuideItemNameButton {
+                padding-left: 2px;
+                padding-right: 2px;
+            }
+
+            QLabel#GuideItemQuantity {
+                color: #aeb7c6;
+                font-size: 11px;
+                font-weight: 700;
+            }
+
+            QCheckBox#GuideInventoryCheck {
+                color: #9ca5b4;
+                font-size: 10px;
+                padding-left: 2px;
+            }
+
+            QScrollArea#GuideDofusGridScroll,
+            QScrollArea#GuideLeftPanelScroll,
+            QScrollArea#GuideCenterPanelScroll,
+            QScrollArea#GuideRightPanelScroll {
+                background: transparent;
+                border: none;
+            }
+
+            QWidget#GuideDofusGridContent {
+                background: transparent;
+            }
+
+            QSplitter#GuideDetailSplitter::handle {
+                background: #242b37;
+            }
+
+            QProgressBar#GuideTinyProgress {
+                background: #0b0f17;
+                border: 1px solid #29313f;
+                border-radius: 3px;
+            }
+
+            QProgressBar#GuideTinyProgress::chunk {
+                background: #58c878;
+                border-radius: 2px;
+            }
+
+            QProgressBar#GuideDofusHomeBar {
+                background: #0b0f17;
+                border: 1px solid #27303d;
+                border-radius: 2px;
+            }
+
+            QProgressBar#GuideDofusHomeBar::chunk {
+                background: #7f5bc5;
+                border-radius: 2px;
+            }
+
+            QProgressBar#GuideDofusHomeBar[state="done"]::chunk {
+                background: #58c878;
+            }
+
+            QFrame#GuidesHomeEmpty {
+                background: #10141d;
+                border: 1px dashed #2b3341;
+                border-radius: 7px;
+            }
+
+            QLabel#GuideStepsVerticalText {
+                color: #9ca5b4;
+                font-size: 10px;
+                font-weight: 800;
+            }
+
+            QScrollBar:vertical {
+                background: transparent;
+                width: 7px;
+                margin: 2px 0px 2px 0px;
+            }
+
+            QScrollBar::handle:vertical {
+                background: #2b3341;
+                border-radius: 3px;
+                min-height: 28px;
+            }
+
+            QScrollBar::handle:vertical:hover {
+                background: #465166;
+            }
+
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical,
+            QScrollBar::add-page:vertical,
+            QScrollBar::sub-page:vertical {
+                background: transparent;
+                border: none;
+                height: 0px;
+            }
+
+            QScrollBar:horizontal {
+                background: transparent;
+                height: 0px;
+                margin: 0px;
+            }
+
+            QScrollBar::handle:horizontal,
+            QScrollBar::add-line:horizontal,
+            QScrollBar::sub-line:horizontal,
+            QScrollBar::add-page:horizontal,
+            QScrollBar::sub-page:horizontal {
+                background: transparent;
+                border: none;
+                width: 0px;
+            }
+
+
+/* Quest hierarchy and reusable guide/quest item states. */
+
+QTreeWidget#QuestHierarchyTree {
+    background: @BG;
+    border: none;
+    color: @TEXT_MUTED;
+    outline: none;
+}
+QTreeWidget#QuestHierarchyTree::item {
+    min-height: 24px;
+    padding: 1px 3px;
+}
+QTreeWidget#QuestHierarchyTree::item:hover {
+    background: @PANEL_HOVER;
+}
+QTreeWidget#QuestHierarchyTree::item:selected {
+    background: @PANEL_ACTIVE;
+    color: @TEXT;
+}
+
+
+QFrame#GuideItemRow[state="done"],
+QFrame#GuideQuestItemRow[state="done"],
+QFrame#QuestItemRow[state="done"] {
+    background: @PANEL_ACTIVE;
+    border: 1px solid @GREEN_BORDER;
+    border-radius: @RADIUS_XS;
+}
+QToolButton#GuideItemIcon[state="todo"] {
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+}
+QToolButton#GuideItemIcon[state="done"] {
+    background: @PANEL_ACTIVE;
+    border: 1px solid @GREEN;
+    border-radius: @RADIUS_XS;
+}
+
+
+/* Guide Ultime variants. */
+
+QFrame#GuideBreadcrumb {
+    background: @PANEL;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SM;
+}
+
+QPushButton#GuideBreadcrumbButton {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_XS;
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+    min-height: 22px;
+    max-height: 22px;
+    padding: 0px @SPACE_MD;
+    text-align: left;
+}
+
+QPushButton#GuideBreadcrumbButton:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+QLabel#GuideBreadcrumbSeparator,
+QLabel#GuideBreadcrumbCurrent {
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+}
+
+#GuideManualProgressFrame,
+#GuideManualNav {
+    background: transparent;
+    border: none;
+}
+
+#GuideManualProgress {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 3px;
+}
+
+#GuideManualProgress::chunk {
+    background: @GREEN;
+    border-radius: 2px;
+}
+
+#GuideManualPercent {
+    color: @TEXT_SOFT;
+    font-size: @FONT_BODY;
+    font-weight: 700;
+}
+
+#GuideManualOrderChoice {
+    background: @PANEL;
+    border: 1px solid @GREEN_BORDER;
+    border-radius: @RADIUS_XS;
+}
+
+#GuideManualOrderTitle {
+    color: @TEXT;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+#GuideManualOrderDetail {
+    color: @TEXT_MUTED;
+    font-size: @FONT_BODY;
+}
+
+#GuideManualOrderButton {
+    background: @PANEL_HOVER;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+    padding: 7px 10px;
+    font-weight: 700;
+}
+
+#GuideManualOrderButton:hover {
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+#GuideManualSheet {
+    background: @PANEL;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+#GuideManualStageTitle {
+    color: @TEXT;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+#GuideManualLocation {
+    color: @TEXT;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+#GuideManualLine {
+    color: @TEXT_SOFT;
+    font-size: 14px;
+    padding: 3px 0;
+}
+
+#GuideManualWarning {
+    color: @DANGER_TEXT;
+    background: @DANGER_PANEL;
+    border: 1px solid @RED_DARK;
+    border-radius: @RADIUS_XS;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 8px 10px;
+}
+
+#GuideManualCombat {
+    color: @TEXT;
+    background: @PANEL_2;
+    border: 1px solid @RED_DARK;
+    border-radius: @RADIUS_XS;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 8px 10px;
+}
+
+#GuideManualSpecial {
+    color: @TEXT;
+    background: @PANEL_HOVER;
+    border: 1px solid @GREEN_BORDER;
+    border-radius: @RADIUS_XS;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 8px 10px;
+}
+
+#GuideManualSuccessBlock {
+    background: @PANEL_2;
+    border: 1px solid @GREEN_BORDER;
+    border-radius: @RADIUS_XS;
+}
+
+#GuideManualSuccessTitle {
+    color: @TEXT;
+    font-size: @FONT_BODY;
+    font-weight: 800;
+}
+
+#GuideManualSuccessCheck {
+    color: @TEXT_SOFT;
+    background: transparent;
+    spacing: 8px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#GuideManualSuccessCheck[state="done"] {
+    color: @GREEN;
+}
+
+#GuideManualSuccessCheck::indicator {
+    width: 16px;
+    height: 16px;
+}
+
+#GuideManualSuccessOpen {
+    background: transparent;
+    color: @TEXT_MUTED;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+    padding: 4px 8px;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+}
+
+#GuideManualSuccessOpen:hover {
+    color: @TEXT;
+    border-color: @GREEN_BORDER;
+    background: @PANEL_HOVER;
+}
+
+#GuideManualSuccessOpen:disabled {
+    color: @TEXT_DISABLED;
+    border-color: @BORDER_SOFT;
+}
+
+#GuideManualNext {
+    color: @GREEN;
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 7px;
+}
+
+#GuideManualPageCheck {
+    color: @TEXT_MUTED;
+    background: transparent;
+    border-top: 1px solid @BORDER_SOFT;
+    padding: 10px 2px 2px 2px;
+    spacing: 9px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#GuideManualPageCheck:disabled {
+    color: @GREEN;
+}
+
+#GuideManualPageCheck::indicator {
+    width: 16px;
+    height: 16px;
+}
+
+#GuideManualPrev,
+#GuideManualNextButton {
+    background: @PANEL_HOVER;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+    padding: 5px 12px;
+    font-weight: 700;
+}
+
+#GuideManualPrev:hover,
+#GuideManualNextButton:hover {
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+QLabel[travelCopyEnabled="true"] {
+    color: @GREEN;
+}
+
+
+#GuideUltimeGeneratedView {
+    background: @BG;
+}
+
+#GuideRouteHeader,
+#GuideUltimeRouteSheet {
+    background: @PANEL;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+#GuideUltimeRouteSheet[state="active"] {
+    background: @PANEL;
+    border-color: @GREEN_BORDER;
+}
+
+#GuideRouteTitle {
+    color: @TEXT;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+#GuideRoutePercent {
+    color: @GREEN;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+#GuideRouteProgress {
+    background: @PANEL_2;
+    border: none;
+    border-radius: 3px;
+}
+
+#GuideRouteProgress::chunk {
+    background: @GREEN;
+    border-radius: 3px;
+}
+
+#GuideRouteInlineOrder {
+    background: @PANEL;
+    border: 1px solid @GREEN_BORDER;
+    border-radius: @RADIUS_XS;
+    color: @TEXT_SOFT;
+}
+
+#GuideRouteNav {
+    background: transparent;
+    border: none;
+}
+
+#GuideRouteLocation {
+    color: @TEXT;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+#GuideUltimeSectionTitle {
+    color: @GREEN;
+    font-size: 14px;
+    font-weight: 800;
+    margin-top: 6px;
+}
+
+#GuideRouteAction,
+#GuideRouteNext,
+#GuideRouteImportant {
+    color: @TEXT_SOFT;
+    font-size: 14px;
+}
+
+#GuideRouteImportant {
+    color: @TEXT;
+    font-weight: 700;
+}
+
+#GuideRouteAction[state="done"] {
+    color: @TEXT_DISABLED;
+}
+
+#GuideRouteNext {
+    color: @TEXT;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+#GuideRoutePageCheck {
+    color: @TEXT;
+    background: @PANEL_2;
+    border: 1px solid @GREEN_BORDER;
+    border-radius: @RADIUS_XS;
+    padding: 10px 14px;
+    spacing: 10px;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+#GuideRoutePageCheck:disabled {
+    color: @GREEN;
+}
+
+#GuideRoutePageCheck::indicator {
+    width: 19px;
+    height: 19px;
+}
+
+#GuideUltimeGeneratedView QPushButton,
+#GuideUltimeGeneratedView QComboBox {
+    background: @PANEL_HOVER;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+    padding: 6px 10px;
+}
+
+#GuideUltimeGeneratedView QPushButton:hover,
+#GuideUltimeGeneratedView QComboBox:hover {
+    border-color: @GREEN_BORDER;
+}
+
+#GuideRouteCurrent {
+    color: @GREEN;
+    font-weight: 750;
+}
+
+QLabel[travelCopyEnabled="true"] {
+    color: @GREEN;
+}
+
+QLabel[travelCopyEnabled="true"]:hover {
+    text-decoration: underline;
+}
+
+
+#GuideUltimeGeneratedView {
+    background: @BG;
+}
+
+#GuideUltimeProgressHeader {
+    background: @PANEL;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SM;
+}
+
+#GuideUltimeTitle {
+    color: @TEXT;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+#GuideUltimeProgressText {
+    color: @GREEN;
+    font-weight: 800;
+    font-size: 14px;
+}
+
+#GuideUltimeProgressDetails,
+#GuideUltimeBranchStatus,
+#GuideUltimePosition {
+    color: @TEXT_MUTED;
+}
+
+#GuideUltimeProgressBar {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+#GuideUltimeProgressBar::chunk {
+    background: @GREEN;
+    border-radius: 3px;
+}
+
+#GuideUltimeNav {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+#GuideUltimeCard {
+    background: @PANEL;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_SM;
+}
+
+#GuideUltimeCard[state="active"] {
+    border: 1px solid @GREEN_BORDER;
+    background: @PANEL_ACTIVE;
+}
+
+#GuideUltimeCard[state="done"] {
+    background: @PANEL_2;
+    border-color: @BORDER_SOFT;
+}
+
+#GuideUltimeCardLevel {
+    color: @TEXT;
+    font-weight: 800;
+}
+
+#GuideUltimeCardLocation,
+#GuideUltimeCompactSummary {
+    color: @TEXT_MUTED;
+}
+
+#GuideUltimeSectionTitle {
+    color: @GREEN;
+    font-weight: 800;
+    margin-top: 4px;
+}
+
+#GuideUltimeDoneBadge {
+    color: @TEXT_DISABLED;
+    font-weight: 700;
+}
+
+#GuideUltimeActiveBadge {
+    color: @GREEN;
+    font-weight: 800;
+}
+
+#GuideUltimeInfoLine,
+#GuideUltimeNextLine {
+    color: @TEXT_SOFT;
+}
+
+#GuideUltimeInfoLine[state="done"] {
+    color: @TEXT_DISABLED;
+}
+
+#GuideUltimeGeneratedView QCheckBox {
+    color: @TEXT_SOFT;
+    spacing: 8px;
+}
+
+#GuideUltimeGeneratedView QCheckBox[state="done"] {
+    color: @TEXT_DISABLED;
+}
+
+#GuideUltimeGeneratedView QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+}
+
+#GuideUltimeGeneratedView QComboBox,
+#GuideUltimeGeneratedView QPushButton,
+#GuideUltimeGeneratedView QToolButton {
+    background: @PANEL_HOVER;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+    padding: 4px 8px;
+}
+
+#GuideUltimeGeneratedView QComboBox:hover,
+#GuideUltimeGeneratedView QPushButton:hover,
+#GuideUltimeGeneratedView QToolButton:hover {
+    border-color: @GREEN_BORDER;
+}
+
+
 
 """
 
