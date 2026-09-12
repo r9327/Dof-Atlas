@@ -72,12 +72,15 @@ class PerformanceGuardrailTests(unittest.TestCase):
         constructor = _method_node(relative_path, "QuestDetailView", "__init__")
         clear = _method_node(relative_path, "QuestDetailView", "clear")
         show_quest = _method_node(relative_path, "QuestDetailView", "show_quest")
-        ensure = _method_node(relative_path, "QuestDetailView", "_ensure_guide_ui_initialized")
+        render_header = _method_node(relative_path, "QuestDetailView", "_render_header")
 
         self.assertNotIn("_guide_ui", _called_attributes(constructor))
         self.assertNotIn("_guide_ui", _called_attributes(clear))
-        self.assertIn("_ensure_guide_ui_initialized", _called_attributes(show_quest))
-        self.assertIn("_guide_ui", _called_attributes(ensure))
+        self.assertIn("_render_header", _called_attributes(show_quest))
+        self.assertIn("_guide_ui", _called_attributes(render_header))
+        source = _source(relative_path)
+        self.assertNotIn("_guide_ui_initialized", source)
+        self.assertNotIn("apply_local_style", source)
 
     def test_large_quest_search_is_debounced_and_cached(self) -> None:
         source = _source("app/pages/quests_page.py")
