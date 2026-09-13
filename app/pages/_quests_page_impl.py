@@ -60,7 +60,6 @@ from app.quest_catalog import (
 )
 from app.storage import IconCache, read_json, write_json
 from app.ui.components import AtlasButton
-from app.ui.styles.quests import quest_hierarchy_stylesheet
 from app.ui.theme import PALETTE, render_theme_template
 
 
@@ -207,8 +206,6 @@ class QuestsPage(QWidget):
         self._build_search_ui(root)
         self._build_detail_view()
         self._build_hierarchy_ui(root)
-
-        self.setStyleSheet(quest_hierarchy_stylesheet(self.quest_detail_view.styleSheet()))
 
         self.refresh_characters()
         self._sync_achievement_progress()

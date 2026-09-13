@@ -21,7 +21,6 @@ from PySide6.QtWidgets import (
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
 )
-from app.ui.styles import guide_v5_stylesheet
 
 
 QuestToggle = Callable[[int, bool], None]
@@ -401,7 +400,6 @@ class GuideUltimeGeneratedView(QWidget):
         self.scroll.setWidget(self.content)
         root.addWidget(self.scroll, 1)
 
-        self._apply_style()
 
     def set_character_key(self, character_key: str) -> None:
         self.character_key = character_key or ""
@@ -595,8 +593,6 @@ class GuideUltimeGeneratedView(QWidget):
             if widget is not None:
                 widget.deleteLater()
 
-    def _apply_style(self) -> None:
-        self.setStyleSheet(guide_v5_stylesheet())
 
 
 class _NullAchievementProvider:

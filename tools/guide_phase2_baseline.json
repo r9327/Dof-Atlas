@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "baseline_id": "phase2_guide_building_618b66e",
-  "base_commit": "618b66e679d478ee0885e9234dc3a17f0e90b74d",
+  "baseline_id": "phase2_guide_building_a7242f6",
+  "base_commit": "a7242f6da5f0a393c2e6a921a2cadf02a36d6b16",
   "required_manifest_status": "BUILDING",
   "allowed_blockers": [
     "GUIDE_PREREQUISITE_DATA",

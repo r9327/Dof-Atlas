@@ -98,8 +98,6 @@ class QuestDetailView(QWidget):
         self.current_quest_id: int | None = None
         self.context = QuestViewContext()
         self.prerequisite_expanded: dict[tuple[str, int], bool] = {}
-        self._guide_ui_initialized = False
-
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(6)
@@ -189,12 +187,6 @@ class QuestDetailView(QWidget):
         label.setWordWrap(True)
         return label
 
-    def _ensure_guide_ui_initialized(self) -> None:
-        if self._guide_ui_initialized:
-            return
-        _guide_ui().GuidesView.apply_local_style(self)
-        self._guide_ui_initialized = True
-
     def set_character_key(self, character_key: str) -> None:
         character_key = character_key or ""
         if character_key == self.character_key:
@@ -226,7 +218,6 @@ class QuestDetailView(QWidget):
         if quest is None:
             self.clear("Quête introuvable.")
             return False
-        self._ensure_guide_ui_initialized()
         self.current_quest_id = int(quest.id)
         if context is not None:
             self.context = context

@@ -25,7 +25,6 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     QuestWalkthroughIndex,
 )
 from app.ui.components import AtlasButton
-from app.ui.styles import guide_universal_stylesheet
 
 
 SENTINEL_COORD = -2147483648
@@ -438,7 +437,6 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         self.position_label = QLabel()
         self.position_label.setVisible(False)
 
-        self._apply_route_style()
 
     def _return_to_guides_catalog(self) -> None:
         self.backToGuidesRequested.emit()
@@ -635,8 +633,6 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
                 return True
         return super().eventFilter(watched, event)
 
-    def _apply_route_style(self) -> None:
-        self.setStyleSheet(guide_universal_stylesheet())
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:

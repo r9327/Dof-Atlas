@@ -9,7 +9,6 @@ from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QToolBu
 
 from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem, format_number
 from app.ui.components import AtlasButton
-from app.ui.styles.quests import quest_item_row_stylesheet
 from app.ui.theme import PALETTE
 
 
@@ -52,7 +51,6 @@ def item_row(
 
     row = QFrame()
     row.setObjectName("GuideItemRow")
-    row.setStyleSheet(quest_item_row_stylesheet())
     layout = QHBoxLayout(row)
     layout.setContentsMargins(
         3 if checked is not None else 0,

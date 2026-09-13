@@ -75,9 +75,10 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
     def test_phase2_guide_baseline_is_exact_and_non_generic(self) -> None:
         baseline = self.phase2_baseline
         self.assertEqual(baseline["schema_version"], 1)
+        self.assertEqual(baseline["baseline_id"], "phase2_guide_building_a7242f6")
         self.assertEqual(
             baseline["base_commit"],
-            "618b66e679d478ee0885e9234dc3a17f0e90b74d",
+            "a7242f6da5f0a393c2e6a921a2cadf02a36d6b16",
         )
         self.assertEqual(baseline["required_manifest_status"], "BUILDING")
         self.assertEqual(

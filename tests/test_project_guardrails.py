@@ -71,28 +71,31 @@ class ProjectGuardrailsTests(unittest.TestCase):
             "guide_complet ne doit rester qu'un alias de navigation.",
         )
 
-    def test_guide_ultime_styles_live_outside_views(self) -> None:
-        manual_view = self._text("app/modules/encyclopedia/views/guide_ultime_manual_view.py")
-        universal_view = self._text("app/modules/encyclopedia/views/guide_ultime_universal_view.py")
-        generated_view = self._text("app/modules/encyclopedia/views/guide_ultime_generated_view.py")
-        self.assertIn("guide_manual_stylesheet", manual_view)
-        self.assertIn("guide_universal_stylesheet", universal_view)
-        self.assertIn("guide_v5_stylesheet", generated_view)
-        self.assertNotIn("background: #", manual_view)
-        self.assertNotIn('NPC_COLOR = "#', manual_view)
-        self.assertNotIn('RESOURCE_COLOR = "#', manual_view)
-        self.assertNotIn("PALETTE", universal_view)
-        self.assertNotIn("PALETTE", generated_view)
-        self.assertNotIn("setStyleSheet(\n            f\"\"\"", universal_view)
-        self.assertNotIn("setStyleSheet(\n            f\"\"\"", generated_view)
+    def test_guide_ultime_styles_live_in_global_theme(self) -> None:
+        theme = self._text("app/ui/theme.py")
+        views = (
+            self._text("app/modules/encyclopedia/views/guide_ultime_manual_view.py"),
+            self._text("app/modules/encyclopedia/views/guide_ultime_universal_view.py"),
+            self._text("app/modules/encyclopedia/views/guide_ultime_generated_view.py"),
+        )
+        for view in views:
+            self.assertNotIn("setStyleSheet(", view)
+            self.assertNotIn("_stylesheet", view)
+        self.assertIn("#GuideManualProgress", theme)
+        self.assertIn("#GuideRouteProgress", theme)
+        self.assertIn("#GuideUltimeProgressHeader", theme)
+        self.assertNotIn("background: #", views[0])
+        self.assertNotIn('NPC_COLOR = "#', views[0])
+        self.assertNotIn('RESOURCE_COLOR = "#', views[0])
 
     def test_quests_hierarchy_style_is_centralized(self) -> None:
         quests = self._text("app/pages/_quests_page_impl.py")
-        style = self._text("app/ui/styles/quests.py")
-        self.assertIn("quest_hierarchy_stylesheet", quests)
-        self.assertNotIn("QTreeWidget#QuestHierarchyTree {\n                    background: #", quests)
-        self.assertIn("@PANEL_HOVER", style)
-        self.assertIn("@PANEL_ACTIVE", style)
+        theme = self._text("app/ui/theme.py")
+        self.assertNotIn("quest_hierarchy_stylesheet", quests)
+        self.assertNotIn("setStyleSheet(", quests)
+        self.assertIn("QTreeWidget#QuestHierarchyTree", theme)
+        self.assertIn("@PANEL_HOVER", theme)
+        self.assertIn("@PANEL_ACTIVE", theme)
 
     def test_shared_quest_item_row_is_not_imported_from_legacy_guide(self) -> None:
         quests = self._text("app/pages/_quests_page_impl.py")
