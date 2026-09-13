@@ -179,14 +179,24 @@ class AchievementProgressService(LegacyAchievementProgressService):
             self._disk_signature = self._current_disk_signature()
             self._invalidate_runtime_caches()
 
-    def set_achievement_completed(self, character_key: str, achievement_id: int, completed: bool) -> None:
+    def set_achievement_completed(self, character_key: str, achievement_id: int, completed: bool) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
             self.progress = self._load()
             self._seen_generation = self._coordinator.generation
             self._disk_signature = self._current_disk_signature()
             self._invalidate_runtime_caches()
+            character = self._character(key)
+            values = {
+                int(value)
+                for value in character.get("completed_achievements", [])
+                if self._safe_int(value) is not None
+            }
+            achievement_id = int(achievement_id)
+            if (achievement_id in values) == bool(completed):
+                return False
             super().set_achievement_completed(key, achievement_id, completed)
+            return True
 
     def set_objective_completed(
         self,
@@ -194,16 +204,28 @@ class AchievementProgressService(LegacyAchievementProgressService):
         achievement_id: int,
         objective_id: int,
         completed: bool,
-    ) -> None:
+    ) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
             self.progress = self._load()
             self._seen_generation = self._coordinator.generation
             self._disk_signature = self._current_disk_signature()
             self._invalidate_runtime_caches()
+            character = self._character(key)
+            rows = character.get("completed_objectives", {})
+            values = rows.get(str(int(achievement_id)), []) if isinstance(rows, dict) else []
+            completed_ids = {
+                int(value)
+                for value in values
+                if isinstance(values, list) and self._safe_int(value) is not None
+            }
+            objective_id = int(objective_id)
+            if (objective_id in completed_ids) == bool(completed):
+                return False
             super().set_objective_completed(key, achievement_id, objective_id, completed)
+            return True
 
-    def set_alignment_order_choice(self, character_key: str, side: str, order_name: str) -> None:
+    def set_alignment_order_choice(self, character_key: str, side: str, order_name: str) -> bool:
         key = require_character_key(character_key)
         normalized_side = str(side or "").strip().casefold()
         normalized_order = str(order_name or "").strip()
@@ -219,20 +241,27 @@ class AchievementProgressService(LegacyAchievementProgressService):
             self._disk_signature = self._current_disk_signature()
             self._invalidate_runtime_caches()
             character = self._character(key)
+            if self._alignment_order_signature(character) == (normalized_side, f"id:{order_id}"):
+                return False
             character["alignment_order"] = {
                 "side": normalized_side,
                 "order_id": order_id,
             }
             self.save()
+            return True
 
-    def clear_alignment_order_choice(self, character_key: str) -> None:
+    def clear_alignment_order_choice(self, character_key: str) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
             self.progress = self._load()
             self._seen_generation = self._coordinator.generation
             self._disk_signature = self._current_disk_signature()
             self._invalidate_runtime_caches()
+            character = self._character(key)
+            if "alignment_order" not in character:
+                return False
             super().clear_alignment_order_choice(key)
+            return True
 
     def sync_from_quest_progress(
         self,
