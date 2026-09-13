@@ -430,7 +430,7 @@ class EncyclopediaPage(QWidget):
         if entity_type == "guide":
             return self.navigate_to_guide(str(entity_id))
         if entity_type == "achievement":
-            if source in {"relation", "quests", "achievement"}:
+            if source in {"guide", "relation", "quests", "achievement"}:
                 return self.navigate_to_achievement_tab(int(entity_id))
             return self.navigate_to_achievement_context(int(entity_id))
         if entity_type != "quest":
