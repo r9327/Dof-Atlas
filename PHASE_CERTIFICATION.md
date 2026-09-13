@@ -38,21 +38,22 @@ La certification de phase utilise au minimum le mode `FULL`, qui doit notamment 
 
 ## Dette préexistante et non-régression
 
-Une phase ne doit pas être forcée à terminer une feature explicitement encore en construction si cette dette existait déjà, à l'identique, sur son SHA de base et si la phase ne touche pas les sources responsables de cette dette.
+Une phase ne doit pas être forcée à terminer une feature explicitement encore en construction si cette dette existait déjà, à l'identique, sur une ancre de référence antérieure et si ni les phases intermédiaires ni la phase courante ne touchent les sources responsables de cette dette.
 
-Cette exception est volontairement très étroite. Pour Phase 2, le Guide Ultime est encore déclaré `BUILDING` et deux audits Guide stricts étaient déjà rouges sur le `main` de Phase 1. Leur état de référence est figé dans `tools/guide_phase2_baseline.json`.
+Cette exception est volontairement très étroite. Pour Phase 2, le Guide Ultime est encore déclaré `BUILDING` et deux audits Guide stricts étaient déjà rouges sur le `main` de Phase 1. Leur état de référence est figé dans `tools/guide_phase2_baseline.json`. Ce SHA reste une ancre immuable : les phases suivantes ne le remplacent pas par leur propre base uniquement pour rendre la CI verte.
 
 Le verdict `PASS_BASELINE_NON_REGRESSION` n'est accepté que si toutes les conditions suivantes sont vraies :
 
-1. le SHA de base résolu est exactement celui enregistré dans le baseline Phase 2 ;
-2. tous les groupes `FULL` autres que `DATA_INTEGRITY`, notamment `FULL_SUITE`, sont `PASS` ;
-3. les seuls blockers restants sont exactement des blockers Guide explicitement autorisés par le baseline ;
-4. le manifeste Guide est toujours `BUILDING` ;
-5. les empreintes des erreurs de prérequis et de couverture finale sont inchangées ;
-6. aucun fichier propriétaire de ces audits (routes actives, providers, résolution de route, politique Succès, catalogue Quêtes ou audits concernés) n'a changé ;
-7. les rares fichiers autorisés à changer sont explicitement listés dans le baseline et ne portent pas les dettes concernées.
+1. le SHA enregistré dans le baseline Phase 2 est un ancêtre du SHA de base résolu de la phase courante ;
+2. aucun fichier propriétaire de la dette Guide n'a changé entre cette ancre figée et la base de la phase courante, hors exceptions explicitement autorisées ;
+3. tous les groupes `FULL` autres que `DATA_INTEGRITY`, notamment `FULL_SUITE`, sont `PASS` ;
+4. les seuls blockers restants sont exactement des blockers Guide explicitement autorisés par le baseline ;
+5. le manifeste Guide est toujours `BUILDING` ;
+6. les empreintes des erreurs de prérequis et de couverture finale sont inchangées ;
+7. aucun fichier propriétaire de ces audits n'a changé dans le diff de la phase courante ;
+8. les rares fichiers autorisés à changer sont explicitement listés dans le baseline et ne portent pas les dettes concernées.
 
-Toute dérive de contenu, nouveau blocker, changement d'un fichier protégé, changement du SHA de base ou modification du périmètre de couverture fait repasser la certification à `NOT CERTIFIED`.
+Toute dérive de contenu, nouveau blocker, base qui ne descend plus de l'ancre figée, changement d'un fichier protégé dans l'historique hérité ou dans le diff courant, ou modification du périmètre de couverture fait repasser la certification à `NOT CERTIFIED`.
 
 `PASS_BASELINE_NON_REGRESSION` certifie donc la phase contre toute régression de cette dette ; il ne transforme jamais la dette Guide en `PASS` global et ne signifie jamais `GUIDE CERTIFIED`. La future phase Guide devra supprimer ce baseline de transition en fermant réellement les audits Guide.
 
@@ -62,7 +63,7 @@ Toute dérive de contenu, nouveau blocker, changement d'un fichier protégé, ch
 
 La certification est portée par `Phase Certification / Full Validation` (`.github/workflows/phase-certification.yml`). Elle peut être lancée manuellement, mais elle est aussi déclenchée automatiquement à chaque mise à jour d'une PR interne dont le titre commence par `Phase ` et dont la branche source appartient au dépôt lui-même.
 
-Pour une PR de phase, le workflow checkout explicitement le SHA de tête de la PR et utilise le SHA de base de la PR pour classifier le diff. La certification suit donc le candidat exact ; une nouvelle modification rend l'ancien résultat obsolète et déclenche une nouvelle validation.
+Pour une PR de phase, le workflow checkout explicitement le SHA de tête de la PR et utilise le SHA de base de la PR pour classifier le diff courant. Lorsqu'une dette figée est transportée par non-régression, le validateur contrôle en plus la descendance depuis l'ancre du baseline et les changements de fichiers protégés entre cette ancre et la base courante. La certification suit donc le candidat exact ; une nouvelle modification rend l'ancien résultat obsolète et déclenche une nouvelle validation.
 
 Le workflow ne délivre `PHASE CERTIFICATION: PASS` que si :
 

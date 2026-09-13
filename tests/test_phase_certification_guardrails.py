@@ -4,6 +4,8 @@ import json
 import unittest
 from pathlib import Path
 
+from tools.phase_certification_verdict import _digest, evaluate_phase
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,6 +97,119 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             baseline["allowed_changed_paths"],
         )
 
+    @staticmethod
+    def _baseline_non_regression_case() -> dict[str, object]:
+        blockers = ["GUIDE_FINAL_COVERAGE", "GUIDE_PREREQUISITE_DATA"]
+        hard_errors = [{"quest_id": 1, "reason": "missing prerequisite"}]
+        debt_row = {
+            "id": 42,
+            "state": "uncovered",
+            "missing": ["quest:1"],
+        }
+        baseline = {
+            "schema_version": 1,
+            "baseline_id": "test-frozen-baseline",
+            "base_commit": "frozen-base",
+            "required_manifest_status": "BUILDING",
+            "allowed_blockers": blockers,
+            "protected_globs": ["app/modules/encyclopedia/providers/**"],
+            "allowed_changed_paths": [],
+            "prerequisite": {
+                "hard_error_count": 1,
+                "hard_errors_sha256": _digest(hard_errors),
+            },
+            "final_coverage": {
+                "achievement_count": 1,
+                "partial_count": 0,
+                "uncovered_count": 1,
+                "debt_sha256": _digest([debt_row]),
+                "contract_status": "CONTRACTS_COVERED",
+                "failed_contract_count": 0,
+            },
+        }
+        integrity = {
+            "verdict": "BLOCKED",
+            "head": "candidate",
+            "blockers": blockers,
+            "validations_required": ["DATA_INTEGRITY", "FULL_SUITE"],
+            "groups": {
+                "DATA_INTEGRITY": {
+                    "status": "BLOCKED",
+                    "blockers": blockers,
+                },
+                "FULL_SUITE": {
+                    "status": "PASS",
+                },
+            },
+        }
+        prerequisite = {
+            "hard_error_count": 1,
+            "hard_errors": hard_errors,
+        }
+        coverage = {
+            "achievement_count": 1,
+            "state_counts": {
+                "partial": 0,
+                "uncovered": 1,
+            },
+            "verified_success_contracts": {
+                "status": "CONTRACTS_COVERED",
+                "failed_contract_count": 0,
+            },
+            "partial_achievements": [],
+            "uncovered_achievements": [debt_row],
+        }
+        return {
+            "integrity": integrity,
+            "baseline": baseline,
+            "prerequisite": prerequisite,
+            "coverage": coverage,
+            "manifest": {"status": "BUILDING"},
+            "base_ref": "phase-base",
+            "resolved_base": "descendant-base",
+            "candidate_sha": "candidate",
+            "changed": [],
+        }
+
+    def test_phase_verdict_carries_frozen_baseline_to_clean_descendant_base(self) -> None:
+        report = evaluate_phase(
+            **self._baseline_non_regression_case(),
+            baseline_is_ancestor=True,
+            baseline_changed=[],
+        )
+
+        self.assertEqual(report["status"], "PASS_BASELINE_NON_REGRESSION")
+        self.assertEqual(report["baseline_protected_changes"], [])
+        self.assertEqual(report["protected_changes"], [])
+
+    def test_phase_verdict_rejects_invalid_ancestry_or_inherited_protected_change(self) -> None:
+        case = self._baseline_non_regression_case()
+        unrelated = evaluate_phase(
+            **case,
+            baseline_is_ancestor=False,
+            baseline_changed=[],
+        )
+        self.assertEqual(unrelated["status"], "FAIL")
+        self.assertTrue(
+            any("not descended from frozen Guide baseline" in error for error in unrelated["errors"])
+        )
+
+        drifted = evaluate_phase(
+            **case,
+            baseline_is_ancestor=True,
+            baseline_changed=[
+                "app/modules/encyclopedia/providers/guide_provider.py",
+            ],
+        )
+        self.assertEqual(drifted["status"], "FAIL")
+        self.assertEqual(
+            drifted["baseline_protected_changes"],
+            ["app/modules/encyclopedia/providers/guide_provider.py"],
+        )
+        self.assertTrue(
+            any("changed since frozen baseline" in error for error in drifted["errors"])
+        )
+
     def test_phase_verdict_never_waives_full_suite_or_unknown_blockers(self) -> None:
         source = self.phase_verdict
         self.assertIn('name == "DATA_INTEGRITY"', source)
@@ -102,6 +217,8 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("FULL_SUITE is not absolute PASS", source)
         self.assertIn("unexpected integrity blockers", source)
         self.assertIn("Guide baseline owners changed", source)
+        self.assertIn("changed since frozen baseline", source)
+        self.assertIn("merge-base", source)
         self.assertIn("prerequisite baseline fingerprint drift", source)
         self.assertIn("final coverage baseline fingerprint drift", source)
         self.assertIn("PASS_BASELINE_NON_REGRESSION", source)

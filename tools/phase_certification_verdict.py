@@ -48,8 +48,28 @@ def _run_git(arguments: list[str]) -> str:
     return completed.stdout.strip()
 
 
-def _changed_paths(base_ref: str) -> list[str]:
-    output = _run_git(["diff", "--name-only", f"{base_ref}...HEAD"])
+def _is_ancestor(ancestor_ref: str, descendant_ref: str) -> bool:
+    completed = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor_ref, descendant_ref],
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        return True
+    if completed.returncode == 1:
+        return False
+    raise RuntimeError(
+        f"git merge-base --is-ancestor {ancestor_ref} {descendant_ref} failed: "
+        f"{completed.stderr.strip() or completed.stdout.strip()}"
+    )
+
+
+def _changed_paths(base_ref: str, head_ref: str = "HEAD") -> list[str]:
+    output = _run_git(["diff", "--name-only", f"{base_ref}...{head_ref}"])
     return sorted(
         {
             line.strip().replace("\\", "/")
@@ -84,6 +104,8 @@ def evaluate_phase(
     resolved_base: str,
     candidate_sha: str,
     changed: list[str],
+    baseline_is_ancestor: bool,
+    baseline_changed: list[str],
 ) -> dict[str, Any]:
     errors: list[str] = []
     raw_verdict = str(integrity.get("verdict") or "")
@@ -103,8 +125,11 @@ def evaluate_phase(
         }
 
     expected_base = str(baseline.get("base_commit") or "")
-    if resolved_base != expected_base:
-        errors.append(f"baseline ref mismatch: expected {expected_base}, got {resolved_base}")
+    if not baseline_is_ancestor:
+        errors.append(
+            "phase base is not descended from frozen Guide baseline: "
+            f"baseline={expected_base}, base={resolved_base}"
+        )
 
     blockers = {str(value) for value in integrity.get("blockers", [])}
     allowed_blockers = {str(value) for value in baseline.get("allowed_blockers", [])}
@@ -144,10 +169,25 @@ def evaluate_phase(
             f"manifest status changed: expected {expected_status}, got {actual_status}"
         )
 
+    protected_globs = [str(value) for value in baseline.get("protected_globs", [])]
+    allowed_changed_paths = {
+        str(value) for value in baseline.get("allowed_changed_paths", [])
+    }
+    baseline_protected = _protected_changes(
+        baseline_changed,
+        protected_globs,
+        allowed_changed_paths,
+    )
+    if baseline_protected:
+        errors.append(
+            "Guide baseline owners changed since frozen baseline: "
+            + ", ".join(baseline_protected)
+        )
+
     protected = _protected_changes(
         changed,
-        [str(value) for value in baseline.get("protected_globs", [])],
-        {str(value) for value in baseline.get("allowed_changed_paths", [])},
+        protected_globs,
+        allowed_changed_paths,
     )
     if protected:
         errors.append("Guide baseline owners changed: " + ", ".join(protected))
@@ -216,6 +256,7 @@ def evaluate_phase(
         "resolved_base": resolved_base,
         "baseline_id": baseline.get("baseline_id"),
         "baseline_debt": sorted(blockers),
+        "baseline_protected_changes": baseline_protected,
         "protected_changes": protected,
         "prerequisite_fingerprint": pre_digest,
         "coverage_fingerprint": coverage_digest,
@@ -226,8 +267,8 @@ def evaluate_phase(
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Enforce Phase 2 certification while carrying only the exact, frozen "
-            "Guide BUILDING debt already present on the Phase 1 base."
+            "Enforce phase certification while carrying only the exact, frozen "
+            "Guide BUILDING debt recorded by the Phase 2 baseline."
         )
     )
     parser.add_argument("--integrity-report", type=Path, required=True)
@@ -253,7 +294,16 @@ def main() -> int:
     coverage = _load_json(args.coverage_report)
     manifest = _load_json(MANIFEST)
     resolved_base = _run_git(["rev-parse", "--verify", f"{args.base_ref}^{{commit}}"])
-    changed = _changed_paths(args.base_ref)
+    changed = _changed_paths(resolved_base)
+
+    expected_base = str(baseline.get("base_commit") or "")
+    frozen_base = _run_git(["rev-parse", "--verify", f"{expected_base}^{{commit}}"])
+    baseline_is_ancestor = _is_ancestor(frozen_base, resolved_base)
+    baseline_changed = (
+        _changed_paths(frozen_base, resolved_base)
+        if baseline_is_ancestor and frozen_base != resolved_base
+        else []
+    )
 
     report = evaluate_phase(
         integrity=integrity,
@@ -265,6 +315,8 @@ def main() -> int:
         resolved_base=resolved_base,
         candidate_sha=args.candidate_sha,
         changed=changed,
+        baseline_is_ancestor=baseline_is_ancestor,
+        baseline_changed=baseline_changed,
     )
     rendered = json.dumps(report, ensure_ascii=False, indent=2)
     print(rendered)
