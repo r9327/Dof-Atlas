@@ -835,9 +835,12 @@ class AchievementsView(QWidget):
         )
 
     def refresh_external_progress(self) -> None:
-        if not self.quest_progress_service.refresh_if_changed():
+        quest_changed = self.quest_progress_service.refresh_if_changed()
+        achievement_changed = self.progress_service.refresh_if_changed()
+        if not quest_changed and not achievement_changed:
             return
-        self.sync_automatic_progress()
+        if quest_changed:
+            self.sync_automatic_progress()
         self.refresh_completion_styles()
         if self.detail_stack.currentWidget() is self.quest_detail_page:
             self.quest_detail_view.refresh()

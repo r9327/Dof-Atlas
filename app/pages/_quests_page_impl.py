@@ -582,15 +582,19 @@ class QuestsPage(QWidget):
         self.refresh_quests()
 
     def refresh_external_progress(self) -> None:
-        if not self.quest_progress_service.refresh_if_changed():
+        quest_changed = self.quest_progress_service.refresh_if_changed()
+        achievement_changed = self.achievement_progress_service.refresh_if_changed()
+        if not quest_changed and not achievement_changed:
             return
-        self.progress = self.quest_progress_service.progress
-        self._sync_achievement_progress()
-        self.rebuild_hierarchy()
-        self.refresh_quests()
+
+        if quest_changed:
+            self.progress = self.quest_progress_service.progress
+            self._sync_achievement_progress()
+            self.rebuild_hierarchy()
+            self.refresh_quests()
         if self.selected_quest_id is not None:
             self.show_quest_detail(self.selected_quest_id)
-        else:
+        elif quest_changed:
             self.restore_last_quest()
 
     def is_quest_done(self, quest_id: int) -> bool:
