@@ -5,6 +5,8 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -12,7 +14,12 @@ from PySide6.QtWidgets import QApplication
 
 from app.modules.encyclopedia.providers import QuestProvider
 from app.modules.encyclopedia.views import EncyclopediaPage
-from app.modules.encyclopedia.constants import QUESTS_TAB
+from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as EncyclopediaPageImpl
+from app.modules.encyclopedia.constants import (
+    ACHIEVEMENTS_TAB,
+    ENCYCLOPEDIA_TABS,
+    QUESTS_TAB,
+)
 from app.pages.lazy_quests_page import LazyQuestsPage
 from app.pages.quests_page import HIERARCHY_ID_ROLE, HIERARCHY_KIND_ROLE
 from app.quest_catalog import QuestAchievementSeries, QuestCatalog, QuestRecord
@@ -187,6 +194,205 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
 
             page.deleteLater()
             self.app.processEvents()
+
+    def test_guide_achievement_link_targets_success_tab(self):
+        page = SimpleNamespace(
+            navigate_to_guide=Mock(return_value=True),
+            navigate_to_achievement_tab=Mock(return_value=True),
+            navigate_to_achievement_context=Mock(return_value=True),
+        )
+
+        self.assertTrue(
+            EncyclopediaPageImpl.navigate_to_entity(
+                page,
+                "achievement",
+                1385,
+                source="guide",
+                guide_id="dofus_turquoise",
+            )
+        )
+
+        page.navigate_to_achievement_tab.assert_called_once_with(1385)
+        page.navigate_to_achievement_context.assert_not_called()
+
+    def test_guide_quest_link_keeps_guide_context(self):
+        guide_view = SimpleNamespace(
+            current_guide_id="dofus_turquoise",
+            select_guide=Mock(return_value=True),
+            show_quest_detail=Mock(return_value=True),
+        )
+        page = SimpleNamespace(
+            navigate_to_guide=Mock(return_value=True),
+            navigate_to_achievement_tab=Mock(return_value=True),
+            navigate_to_achievement_context=Mock(return_value=True),
+            quest_provider=SimpleNamespace(get_quest=Mock(return_value=object())),
+            ensure_guides_view=Mock(return_value=guide_view),
+        )
+
+        self.assertTrue(
+            EncyclopediaPageImpl.navigate_to_entity(
+                page,
+                "quest",
+                1653,
+                source="guide",
+                guide_id="dofus_turquoise",
+            )
+        )
+
+        guide_view.select_guide.assert_not_called()
+        guide_view.show_quest_detail.assert_called_once_with(1653)
+
+    def test_achievement_quest_link_targets_quests_tab(self):
+        global_search = Mock()
+        global_search.text.return_value = "ancienne recherche globale"
+        quest_search = Mock()
+        quest_search.text.return_value = "ancienne recherche"
+        quest_page = SimpleNamespace(
+            search=quest_search,
+            selected_quest_id=None,
+        )
+        quest_page.select_quest = Mock(
+            side_effect=lambda quest_id: setattr(quest_page, "selected_quest_id", int(quest_id))
+        )
+        tabs = Mock()
+        page = SimpleNamespace(
+            navigate_to_guide=Mock(return_value=True),
+            navigate_to_achievement_tab=Mock(return_value=True),
+            navigate_to_achievement_context=Mock(return_value=True),
+            quest_provider=SimpleNamespace(get_quest=Mock(return_value=object())),
+            quest_page=quest_page,
+            search=global_search,
+            tabs=tabs,
+            ensure_tab_loaded=Mock(),
+        )
+
+        self.assertTrue(
+            EncyclopediaPageImpl.navigate_to_entity(
+                page,
+                "quest",
+                1653,
+                source="achievement_link",
+                achievement_id=1385,
+            )
+        )
+
+        tabs.setCurrentIndex.assert_called_once_with(ENCYCLOPEDIA_TABS.index(QUESTS_TAB))
+        quest_page.select_quest.assert_called_once_with(1653)
+        self.assertEqual(quest_page.selected_quest_id, 1653)
+        global_search.clear.assert_called_once_with()
+        quest_search.clear.assert_called_once_with()
+        page.ensure_tab_loaded.assert_not_called()
+
+    def test_quests_links_keep_guide_and_success_destinations(self):
+        page = SimpleNamespace(
+            navigate_to_guide=Mock(return_value=True),
+            navigate_to_achievement_tab=Mock(return_value=True),
+            navigate_to_achievement_context=Mock(return_value=True),
+        )
+
+        self.assertTrue(
+            EncyclopediaPageImpl.navigate_to_entity(
+                page,
+                "guide",
+                "dofus_turquoise",
+                source="quests",
+            )
+        )
+        self.assertTrue(
+            EncyclopediaPageImpl.navigate_to_entity(
+                page,
+                "achievement",
+                1385,
+                source="quests",
+            )
+        )
+
+        page.navigate_to_guide.assert_called_once_with("dofus_turquoise")
+        page.navigate_to_achievement_tab.assert_called_once_with(1385)
+        page.navigate_to_achievement_context.assert_not_called()
+
+    def test_success_guide_link_targets_guide(self):
+        page = SimpleNamespace(
+            navigate_to_guide=Mock(return_value=True),
+            navigate_to_achievement_tab=Mock(return_value=True),
+            navigate_to_achievement_context=Mock(return_value=True),
+        )
+
+        self.assertTrue(
+            EncyclopediaPageImpl.navigate_to_entity(
+                page,
+                "guide",
+                "dofus_turquoise",
+                source="achievement_link",
+                achievement_id=1385,
+            )
+        )
+
+        page.navigate_to_guide.assert_called_once_with("dofus_turquoise")
+        page.navigate_to_achievement_tab.assert_not_called()
+        page.navigate_to_achievement_context.assert_not_called()
+
+    def test_success_target_pending_contract_cold_and_ready(self):
+        for ready in (False, True):
+            with self.subTest(ready=ready):
+                tabs = Mock()
+                open_pending = Mock()
+                start_runtime = Mock()
+                page = SimpleNamespace(
+                    _pending_achievement_id=None,
+                    _pending_lazy_tab="",
+                    _achievement_ready=ready,
+                    tabs=tabs,
+                    tab_labels=lambda: list(ENCYCLOPEDIA_TABS),
+                    open_pending_lazy_tab=open_pending,
+                    _start_full_achievement_runtime=start_runtime,
+                )
+
+                self.assertTrue(EncyclopediaPageImpl.navigate_to_achievement_tab(page, 1385))
+
+                self.assertEqual(page._pending_achievement_id, 1385)
+                self.assertEqual(page._pending_lazy_tab, ACHIEVEMENTS_TAB)
+                tabs.setCurrentIndex.assert_called_once_with(
+                    ENCYCLOPEDIA_TABS.index(ACHIEVEMENTS_TAB)
+                )
+                if ready:
+                    open_pending.assert_called_once_with()
+                    start_runtime.assert_not_called()
+                else:
+                    start_runtime.assert_called_once_with()
+                    open_pending.assert_not_called()
+
+    def test_pending_success_target_is_consumed_once(self):
+        success_index = ENCYCLOPEDIA_TABS.index(ACHIEVEMENTS_TAB)
+        tabs = Mock()
+        tabs.currentIndex.return_value = success_index
+        success_view = SimpleNamespace(show_achievement=Mock())
+        page = SimpleNamespace(
+            _pending_lazy_tab=ACHIEVEMENTS_TAB,
+            _guide_runtime_ready=True,
+            _achievement_ready=True,
+            quest_page=None,
+            _pending_guide_id="",
+            _pending_achievement_context_id=None,
+            _pending_achievement_id=1385,
+            tabs=tabs,
+            tab_labels=lambda: list(ENCYCLOPEDIA_TABS),
+            ensure_achievements_view=Mock(return_value=success_view),
+            ensure_guides_view=Mock(),
+            ensure_tab_loaded=Mock(),
+            sync_tab_accent=Mock(),
+            sync_search_visibility=Mock(),
+            sync_character_to_children=Mock(),
+            status_callback=Mock(),
+        )
+
+        EncyclopediaPageImpl.open_pending_lazy_tab(page)
+        EncyclopediaPageImpl.open_pending_lazy_tab(page)
+
+        self.assertEqual(page._pending_lazy_tab, "")
+        self.assertIsNone(page._pending_achievement_id)
+        tabs.setCurrentIndex.assert_called_once_with(success_index)
+        success_view.show_achievement.assert_called_once_with(1385)
 
 
 if __name__ == "__main__":
