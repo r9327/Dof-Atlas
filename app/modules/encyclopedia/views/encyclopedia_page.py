@@ -524,7 +524,9 @@ class EncyclopediaPage(QWidget):
         self._catalog_context_published = False
         self._character_sources_signature: tuple[object, ...] | None = None
         self._initialize_encyclopedia_shell(*args, **kwargs)
-        self._related_preload_gate = RelatedPreloadGate(ready=self._related_ready)
+        # Loaded providers are not equivalent to a hydrated Guide widget.
+        # Keep the gate idle until the actual Guide view is ready.
+        self._related_preload_gate = RelatedPreloadGate()
         self.guideRuntimeFinished.connect(self.collect_related_preload)
         self.achievementRuntimeFinished.connect(self._collect_achievement_runtime)
 
@@ -540,10 +542,12 @@ class EncyclopediaPage(QWidget):
         if self.current_tab_label() == GUIDES_TAB and self.guides_view is None:
             self.ensure_guides_view()
         self._guide_runtime_ready = bool(
-            self._related_ready
-            and self.guides_view is not None
+            self.guides_view is not None
             and getattr(self.guides_view, "_runtime_ready", False)
         )
+        self._related_ready = self._guide_runtime_ready
+        if self._guide_runtime_ready:
+            self._related_preload_gate.mark_ready()
         self._stabilize_header_geometry()
 
     @property
