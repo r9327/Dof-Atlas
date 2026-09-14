@@ -206,6 +206,14 @@ class EncyclopediaPage(QWidget):
                 initial_progress_character_key=self._guide_progress_character_key,
             )
             self.replace_tab_widget(GUIDES_TAB, self.guides_view)
+            self._quest_graph = self.guides_view.graph
+            self._guide_provider_supplied = True
+            self._guide_runtime_ready = True
+            if self.quest_page is not None:
+                self.quest_page.update_related_context(
+                    guide_provider=self.service.guide_provider,
+                    graph=self._quest_graph,
+                )
         return self.guides_view
 
 
@@ -510,7 +518,7 @@ class EncyclopediaPage(QWidget):
         )
 
         if self.current_tab_label() == GUIDES_TAB and self.guides_view is None:
-            self._show_warmup(GUIDES_TAB)
+            self.ensure_guides_view()
         self._guide_runtime_ready = bool(self._related_ready or self.guides_view is not None)
         self._stabilize_header_geometry()
 
@@ -751,16 +759,7 @@ class EncyclopediaPage(QWidget):
         return view
 
     def _on_guide_requested(self, guide_id: str) -> None:
-        guide_id = str(guide_id or "").strip()
-        if not guide_id:
-            return
-        self._pending_guide_id = guide_id
-        if self._guide_index_view is not None:
-            self._guide_index_view.set_loading(guide_id)
-        if self._related_ready:
-            self._finish_pending_guide_request()
-            return
-        self.request_related_preload(GUIDES_TAB)
+        self.navigate_to_guide(guide_id)
 
     def _finish_pending_guide_request(self) -> bool:
         guide_id = str(self._pending_guide_id or "")
@@ -919,17 +918,10 @@ class EncyclopediaPage(QWidget):
         self._sync_search_visibility_indexed()
 
     def _start_full_guide_runtime(self) -> None:
-        """Keep Guide interactive while its rich provider finishes in background."""
+        """Create the canonical Guide UI immediately; only Success data stays lazy."""
 
-        self._full_guide_tab_requested = True
-        self._pending_lazy_tab = GUIDES_TAB
-        self._show_guide_index()
-        index = self.tab_labels().index(GUIDES_TAB)
-        self._last_ready_tab_index = index
-        self.sync_tab_accent(GUIDES_TAB)
-        self.sync_search_visibility()
-        self.status_callback("Guide disponible · enrichissement en arrière-plan...")
-        self.request_related_preload(GUIDES_TAB)
+        self.ensure_guides_view()
+        self._activate_loaded_tab(GUIDES_TAB)
 
     def _start_full_achievement_runtime(self) -> None:
         """Show the lightweight Success index instead of a blocking-looking spinner."""
@@ -1272,14 +1264,8 @@ class EncyclopediaPage(QWidget):
             self._on_tab_changed_indexed_runtime(index)
             return
         if label == GUIDES_TAB:
-            if self.guides_view is not None:
-                self._activate_loaded_tab(GUIDES_TAB)
-                return
-            if self._guide_runtime_ready:
-                self._pending_lazy_tab = GUIDES_TAB
-                self.open_pending_lazy_tab()
-                return
-            self._start_full_guide_runtime()
+            self.ensure_guides_view()
+            self._activate_loaded_tab(GUIDES_TAB)
             return
         if label == ACHIEVEMENTS_TAB:
             if self._achievement_ready:
@@ -1294,14 +1280,11 @@ class EncyclopediaPage(QWidget):
         guide_id = str(guide_id or "").strip()
         if not guide_id:
             return False
-        self._pending_guide_id = guide_id
-        self._pending_lazy_tab = GUIDES_TAB
+        view = self.ensure_guides_view()
+        self._pending_guide_id = ""
+        self._pending_lazy_tab = ""
         self.tabs.setCurrentIndex(self.tab_labels().index(GUIDES_TAB))
-        if self._guide_runtime_ready:
-            self.open_pending_lazy_tab()
-        else:
-            self._start_full_guide_runtime()
-        return True
+        return bool(view.select_guide(guide_id))
 
     def navigate_to_achievement_tab(self, achievement_id: int) -> bool:
         self._pending_achievement_id = int(achievement_id)
