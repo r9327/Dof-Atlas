@@ -85,8 +85,7 @@ MUTANTS: tuple[dict[str, Any], ...] = (
     {
         "id": "persistence_share_default_state",
         "module": "app/core/json_store.py",
-        "old": "if not target.exists():\n        return copy.deepcopy(default)",
-        "new": "if not target.exists():\n        return default",
+        "old": (\n            "and logged before falling back.\n"\n            "    \"\"\"\n"\n            "    target = Path(path)\n"\n            "    if not target.exists():\n"\n            "        return copy.deepcopy(default)"\n        ),\n        "new": (\n            "and logged before falling back.\n"\n            "    \"\"\"\n"\n            "    target = Path(path)\n"\n            "    if not target.exists():\n"\n            "        return default"\n        ),
         "probe": _json_missing_copy,
     },
 )

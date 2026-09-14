@@ -12,6 +12,12 @@ from app.core.progress_coordinator import coordinator_for
 GUIDE_PROGRESS_FILE = DATA_DIR / "encyclopedia" / "progress" / "guide_progress.json"
 
 
+def read_json_resilient(path: Path, default: Any) -> Any:
+    """Compatibility seam backed by strict Guide progress validation."""
+
+    return read_json_validated(path, default, _guide_progress_schema_error)
+
+
 def _empty_progress() -> dict[str, Any]:
     return {"version": 1, "characters": {}}
 
@@ -158,7 +164,7 @@ class GuideProgressService:
         write_json_atomic(self.path, self.progress)
 
     def _load(self) -> dict[str, Any]:
-        payload = read_json_validated(self.path, _empty_progress(), _guide_progress_schema_error)
+        payload = read_json_resilient(self.path, _empty_progress())
         payload.setdefault("version", 1)
         payload.setdefault("characters", {})
         return payload
