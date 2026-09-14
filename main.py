@@ -2039,66 +2039,62 @@ class AtlasWindow(QMainWindow):
         event.accept()
 
 
-def _run_application() -> int:
-    sys.excepthook = log_uncaught_exception
-    LOGGER.info("[main] start argv=%s cwd=%s", sys.argv, Path.cwd())
-    # DPI awareness must be established explicitly before QApplication is
-    # created. Runtime modules must not be relied on for import-time OS effects.
-    enable_dpi_awareness()
-    configure_windows_app_id()
-    app = QApplication(sys.argv)
-    app.setApplicationName(APP_NAME)
-    app.setWindowIcon(atlas_application_icon())
-    splash = None
-    splash_started_at = None
-    if LOGO_PATH.exists():
-        pixmap = splash_logo_pixmap()
-        splash = QSplashScreen(pixmap, Qt.Window | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus)
-        splash.setAttribute(Qt.WA_TranslucentBackground, True)
-        splash.setStyleSheet("background: transparent;")
-        splash.setMask(pixmap.mask())
-        splash.show()
-        splash.raise_()
-        splash.repaint()
-        app.processEvents()
-        splash_started_at = monotonic()
-        LOGGER.info("[main] splash shown size=%sx%s", pixmap.width(), pixmap.height())
-    if splash is not None:
-        splash.showMessage(
-            "Ouverture de l'interface...",
-            Qt.AlignBottom | Qt.AlignCenter,
-            QColor("#dbe5f2"),
-        )
-        app.processEvents()
-    # Apply the global theme while the splash is already visible. Child widgets
-    # created afterwards inherit it immediately, avoiding a full-tree repolish
-    # at the end of AtlasWindow construction.
-    app.setStyleSheet(atlas_stylesheet())
-    # The shell already owns a terminal async preload path. Do not block the
-    # first visible window waiting for the quest catalogue; AtlasWindow starts
-    # that worker shortly after the UI has painted, or immediately on demand.
-    initial_preload: dict[str, Any] = {}
-    LOGGER.info("[preload] initial quest load deferred until window is visible")
-    LOGGER.info("[main] creating AtlasWindow")
-    window = AtlasWindow(initial_preload=initial_preload)
-    LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
-    window.show()
-    LOGGER.info("[main] AtlasWindow shown visible=%s title=%r", window.isVisible(), window.windowTitle())
-    if splash is not None and splash_started_at is not None:
-        keep_splash_visible(app, splash_started_at)
-        splash.finish(window)
-    result = app.exec()
-    LOGGER.info("[main] app.exec finished result=%s", result)
-    return result
-
-
 def main() -> int:
     guard = SingleInstanceGuard()
     if not guard.acquire():
         LOGGER.warning("[main] another Dofus Atlas instance is already running")
         return 0
     try:
-        return _run_application()
+        sys.excepthook = log_uncaught_exception
+        LOGGER.info("[main] start argv=%s cwd=%s", sys.argv, Path.cwd())
+        # DPI awareness must be established explicitly before QApplication is
+        # created. Runtime modules must not be relied on for import-time OS effects.
+        enable_dpi_awareness()
+        configure_windows_app_id()
+        app = QApplication(sys.argv)
+        app.setApplicationName(APP_NAME)
+        app.setWindowIcon(atlas_application_icon())
+        splash = None
+        splash_started_at = None
+        if LOGO_PATH.exists():
+            pixmap = splash_logo_pixmap()
+            splash = QSplashScreen(pixmap, Qt.Window | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus)
+            splash.setAttribute(Qt.WA_TranslucentBackground, True)
+            splash.setStyleSheet("background: transparent;")
+            splash.setMask(pixmap.mask())
+            splash.show()
+            splash.raise_()
+            splash.repaint()
+            app.processEvents()
+            splash_started_at = monotonic()
+            LOGGER.info("[main] splash shown size=%sx%s", pixmap.width(), pixmap.height())
+        if splash is not None:
+            splash.showMessage(
+                "Ouverture de l'interface...",
+                Qt.AlignBottom | Qt.AlignCenter,
+                QColor("#dbe5f2"),
+            )
+            app.processEvents()
+        # Apply the global theme while the splash is already visible. Child widgets
+        # created afterwards inherit it immediately, avoiding a full-tree repolish
+        # at the end of AtlasWindow construction.
+        app.setStyleSheet(atlas_stylesheet())
+        # The shell already owns a terminal async preload path. Do not block the
+        # first visible window waiting for the quest catalogue; AtlasWindow starts
+        # that worker shortly after the UI has painted, or immediately on demand.
+        initial_preload: dict[str, Any] = {}
+        LOGGER.info("[preload] initial quest load deferred until window is visible")
+        LOGGER.info("[main] creating AtlasWindow")
+        window = AtlasWindow(initial_preload=initial_preload)
+        LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
+        window.show()
+        LOGGER.info("[main] AtlasWindow shown visible=%s title=%r", window.isVisible(), window.windowTitle())
+        if splash is not None and splash_started_at is not None:
+            keep_splash_visible(app, splash_started_at)
+            splash.finish(window)
+        result = app.exec()
+        LOGGER.info("[main] app.exec finished result=%s", result)
+        return result
     finally:
         guard.release()
 

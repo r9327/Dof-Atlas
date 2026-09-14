@@ -56,7 +56,7 @@ class SingleInstanceTests(unittest.TestCase):
         )
         segment = ast.get_source_segment(source, main_function) or ""
 
-        self.assertLess(segment.index("guard.acquire()"), segment.index("_run_application()"))
+        self.assertLess(segment.index("guard.acquire()"), segment.index("QApplication(sys.argv)"))
         self.assertIn("finally:", segment)
         self.assertIn("guard.release()", segment)
 

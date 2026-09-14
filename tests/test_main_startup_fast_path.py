@@ -28,12 +28,12 @@ class MainStartupFastPathTests(unittest.TestCase):
         self.assertNotIn("while queue", segment)
 
     def test_global_theme_is_ready_before_main_window_construction(self) -> None:
-        run_function = next(
+        main_function = next(
             node
             for node in self.tree.body
-            if isinstance(node, ast.FunctionDef) and node.name == "_run_application"
+            if isinstance(node, ast.FunctionDef) and node.name == "main"
         )
-        segment = ast.get_source_segment(self.source, run_function) or ""
+        segment = ast.get_source_segment(self.source, main_function) or ""
         theme_index = segment.index("app.setStyleSheet(atlas_stylesheet())")
         window_index = segment.index("window = AtlasWindow(")
         self.assertLess(theme_index, window_index)
