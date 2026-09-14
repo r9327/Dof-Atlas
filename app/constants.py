@@ -39,33 +39,9 @@ DEFAULT_WINDOW_HEIGHT = 720
 MIN_WINDOW_WIDTH = 900
 MIN_WINDOW_HEIGHT = 600
 
-LOG_DIR.mkdir(parents=True, exist_ok=True)
 PYSIDE_LOG_FILE = LOG_DIR / "session_manager_pyside.log"
 START_LOG_FILE = LOG_DIR / "start_log.txt"
-if PYSIDE_LOG_FILE.exists() and PYSIDE_LOG_FILE.stat().st_size > 512 * 1024:
-    os_replace_target = LOG_DIR / "session_manager_pyside.log.old"
-    try:
-        PYSIDE_LOG_FILE.replace(os_replace_target)
-    except OSError:
-        pass
 LOGGER = logging.getLogger("dofus_atlas_pyside")
-
-
-def add_log_file(path: Path) -> None:
-    resolved = path.resolve()
-    for existing in LOGGER.handlers:
-        if isinstance(existing, logging.FileHandler) and Path(existing.baseFilename).resolve() == resolved:
-            return
-    try:
-        handler = logging.FileHandler(path, encoding="utf-8")
-    except OSError:
-        return
-    handler.setFormatter(logging.Formatter("[PYSIDE] %(asctime)s - %(levelname)s - %(message)s"))
-    LOGGER.addHandler(handler)
-
-
-add_log_file(PYSIDE_LOG_FILE)
-LOGGER.setLevel(logging.INFO)
 
 
 def log_uncaught_exception(exc_type, exc_value, exc_tb) -> None:

@@ -52,6 +52,7 @@ from app.constants import (
     QUEST_PROGRESS_FILE,
 )
 from app.core.runtime_state import AtlasRuntime
+from app.logging_setup import configure_logging
 from app.network.character_runtime_state import character_runtime_state
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
@@ -2045,6 +2046,7 @@ def main() -> int:
         LOGGER.warning("[main] another Dofus Atlas instance is already running")
         return 0
     try:
+        configure_logging()
         sys.excepthook = log_uncaught_exception
         LOGGER.info("[main] start argv=%s cwd=%s", sys.argv, Path.cwd())
         # DPI awareness must be established explicitly before QApplication is
