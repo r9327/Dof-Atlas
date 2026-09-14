@@ -70,6 +70,7 @@ class _AchievementStagePayload:
 
 class EncyclopediaPage(QWidget):
     guideRuntimeFinished = Signal(object)
+    achievementRuntimeFinished = Signal(object)
 
     def _initialize_encyclopedia_shell(
         self,
@@ -490,7 +491,6 @@ class EncyclopediaPage(QWidget):
 
         self._quest_load_queue: Queue[object] = Queue(maxsize=1)
         self._quest_load_started = False
-        self._achievement_load_queue: Queue[object] = Queue(maxsize=1)
         self._achievement_load_started = False
         self._achievement_ready = False
         self._catalog_context_published = False
@@ -498,14 +498,11 @@ class EncyclopediaPage(QWidget):
         self._initialize_encyclopedia_shell(*args, **kwargs)
         self._related_preload_gate = RelatedPreloadGate(ready=self._related_ready)
         self.guideRuntimeFinished.connect(self.collect_related_preload)
+        self.achievementRuntimeFinished.connect(self._collect_achievement_runtime)
 
         self._quest_load_timer = QTimer(self)
         self._quest_load_timer.setInterval(30)
         self._quest_load_timer.timeout.connect(self._collect_quest_runtime)
-        self._achievement_load_timer = QTimer(self)
-        self._achievement_load_timer.setInterval(30)
-        self._achievement_load_timer.timeout.connect(self._collect_achievement_runtime)
-
         self._achievement_ready = bool(
             self._achievement_provider_supplied
             and getattr(self.service.achievement_provider, "_loaded", False)
@@ -1096,7 +1093,6 @@ class EncyclopediaPage(QWidget):
         self._achievement_load_started = True
         quest_provider = self.quest_provider
         achievement_provider = self.service.achievement_provider
-        results = self._achievement_load_queue
         existing_graph = self._quest_graph
 
         def worker() -> None:
@@ -1113,8 +1109,12 @@ class EncyclopediaPage(QWidget):
                         graph,
                     )
                 except Exception as exc:
+                    LOGGER.exception("Chargement du runtime Succès impossible")
                     result = exc
-                results.put(result)
+                try:
+                    self.achievementRuntimeFinished.emit(result)
+                except RuntimeError:
+                    pass
 
         try:
             Thread(target=worker, name="DofusAtlasAchievementStage", daemon=True).start()
@@ -1122,14 +1122,8 @@ class EncyclopediaPage(QWidget):
             self._achievement_load_started = False
             self.status_callback(f"Chargement Succès impossible : {exc}")
             return
-        self._achievement_load_timer.start()
 
-    def _collect_achievement_runtime(self) -> None:
-        try:
-            result = self._achievement_load_queue.get_nowait()
-        except Empty:
-            return
-        self._achievement_load_timer.stop()
+    def _collect_achievement_runtime(self, result: object) -> None:
         self._achievement_load_started = False
 
         if isinstance(result, Exception):
