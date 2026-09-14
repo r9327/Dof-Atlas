@@ -103,7 +103,7 @@ class GuideProgressService:
         guide_id: str,
         step_id: str,
         completed: bool,
-    ) -> None:
+    ) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
             # Always mutate the latest on-disk payload. The generation bump makes
@@ -116,10 +116,16 @@ class GuideProgressService:
                 str(value)
                 for value in raw_values if isinstance(raw_values, list) and str(value)
             }
+            previous = set(values)
             if completed:
                 values.add(str(step_id))
             else:
                 values.discard(str(step_id))
+            if values == previous:
+                self._seen_generation = self._coordinator.generation
+                self._disk_signature = self._current_disk_signature()
+                self._clear_manual_steps_cache()
+                return False
             if values:
                 guide_steps[str(guide_id)] = sorted(values)
             else:
@@ -128,6 +134,7 @@ class GuideProgressService:
             self._seen_generation = self._coordinator.mark_changed()
             self._disk_signature = self._current_disk_signature()
             self._clear_manual_steps_cache()
+            return True
 
     def save(self) -> None:
         """Persist a deliberate compatibility snapshot only when it is current."""

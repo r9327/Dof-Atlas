@@ -393,9 +393,11 @@ class NetworkProgressBridge:
         if quest_id is None or quest_id not in self.quest_catalog.by_id:
             return EventApplicationResult(False, False, "unknown_quest", character_key)
 
-        quest_changed = not self.quest_progress_service.is_quest_completed(character_key, quest_id)
-        if quest_changed:
-            self.quest_progress_service.set_quest_completed(character_key, quest_id, True)
+        quest_changed = self.quest_progress_service.set_quest_completed(
+            character_key,
+            quest_id,
+            True,
+        )
 
         # Always run the existing derivation even for a duplicate quest state.
         # This repairs a previous interrupted achievement sync without rewriting
@@ -437,15 +439,18 @@ class NetworkProgressBridge:
         if objective_id is None or objective_id not in known_objectives:
             return EventApplicationResult(False, False, "unknown_quest_objective", character_key)
 
-        if self.quest_progress_service.is_objective_completed(character_key, quest_id, objective_id):
-            return EventApplicationResult(True, False, "quest_objective_already_completed", character_key)
-        self.quest_progress_service.set_objective_completed(
+        changed = self.quest_progress_service.set_objective_completed(
             character_key,
             quest_id,
             objective_id,
             True,
         )
-        return EventApplicationResult(True, True, "quest_objective_completed", character_key)
+        return EventApplicationResult(
+            True,
+            changed,
+            "quest_objective_completed" if changed else "quest_objective_already_completed",
+            character_key,
+        )
 
     def _observe_quest_started(
         self,
@@ -473,14 +478,17 @@ class NetworkProgressBridge:
         achievement_id = self._positive_int(event.achievement_id)
         if achievement_id is None or self.achievement_provider.get_by_id(achievement_id) is None:
             return EventApplicationResult(False, False, "unknown_achievement", character_key)
-        if self.achievement_progress_service.is_achievement_completed(character_key, achievement_id):
-            return EventApplicationResult(True, False, "achievement_already_completed", character_key)
-        self.achievement_progress_service.set_achievement_completed(
+        changed = self.achievement_progress_service.set_achievement_completed(
             character_key,
             achievement_id,
             True,
         )
-        return EventApplicationResult(True, True, "achievement_completed", character_key)
+        return EventApplicationResult(
+            True,
+            changed,
+            "achievement_completed" if changed else "achievement_already_completed",
+            character_key,
+        )
 
     def _complete_achievement_objective(
         self,
@@ -502,19 +510,22 @@ class NetworkProgressBridge:
         }
         if objective_id is None or objective_id not in known_objectives:
             return EventApplicationResult(False, False, "unknown_achievement_objective", character_key)
-        if self.achievement_progress_service.is_objective_completed(
-            character_key,
-            achievement_id,
-            objective_id,
-        ):
-            return EventApplicationResult(True, False, "achievement_objective_already_completed", character_key)
-        self.achievement_progress_service.set_objective_completed(
+        changed = self.achievement_progress_service.set_objective_completed(
             character_key,
             achievement_id,
             objective_id,
             True,
         )
-        return EventApplicationResult(True, True, "achievement_objective_completed", character_key)
+        return EventApplicationResult(
+            True,
+            changed,
+            (
+                "achievement_objective_completed"
+                if changed
+                else "achievement_objective_already_completed"
+            ),
+            character_key,
+        )
 
     def _character_key_or_empty(self, session_id: str) -> str:
         return self._session_characters.get(session_id, "")

@@ -111,7 +111,7 @@ class QuestProgressService:
     def completed_quest_ids(self, character_key: str) -> set[int]:
         return set(self._completed_quest_ids_snapshot(character_key))
 
-    def set_quest_completed(self, character_key: str, quest_id: int, completed: bool) -> None:
+    def set_quest_completed(self, character_key: str, quest_id: int, completed: bool) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
             self.progress = load_quest_progress(self.path)
@@ -122,10 +122,17 @@ class QuestProgressService:
                 character["done"] = done
             key = str(int(quest_id))
             if completed:
+                if done.get(key) is True:
+                    self._accept_loaded_snapshot_locked()
+                    return False
                 done[key] = True
             else:
+                if key not in done:
+                    self._accept_loaded_snapshot_locked()
+                    return False
                 done.pop(key, None)
             self._write_locked()
+            return True
 
     def set_quests_completed(
         self,
@@ -179,9 +186,7 @@ class QuestProgressService:
             if not changed:
                 # Keep this instance synchronized with the latest peer-written
                 # snapshot without publishing a redundant generation.
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._clear_read_caches()
+                self._accept_loaded_snapshot_locked()
                 return False
             self._write_locked()
             return True
@@ -231,7 +236,7 @@ class QuestProgressService:
         quest_id: int,
         objective_id: int,
         completed: bool,
-    ) -> None:
+    ) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
             self.progress = load_quest_progress(self.path)
@@ -246,15 +251,20 @@ class QuestProgressService:
                 for value in rows.get(key, [])
                 if self._safe_int(value) is not None
             }
+            previous = set(values)
             if completed:
                 values.add(int(objective_id))
             else:
                 values.discard(int(objective_id))
+            if values == previous:
+                self._accept_loaded_snapshot_locked()
+                return False
             if values:
                 rows[key] = sorted(values)
             else:
                 rows.pop(key, None)
             self._write_locked()
+            return True
 
     def _completed_item_ids_snapshot(
         self,
@@ -299,7 +309,7 @@ class QuestProgressService:
         quest_id: int,
         item_id: int,
         completed: bool,
-    ) -> None:
+    ) -> bool:
         """Mutate one quest-item checkbox under the shared file coordinator."""
 
         key = require_character_key(character_key)
@@ -317,12 +327,21 @@ class QuestProgressService:
                 items[quest_key] = quest_items
             item_key = str(int(item_id))
             if completed:
+                if quest_items.get(item_key) is True:
+                    self._accept_loaded_snapshot_locked()
+                    return False
                 quest_items[item_key] = True
             else:
+                if item_key not in quest_items:
+                    if not quest_items:
+                        items.pop(quest_key, None)
+                    self._accept_loaded_snapshot_locked()
+                    return False
                 quest_items.pop(item_key, None)
                 if not quest_items:
                     items.pop(quest_key, None)
             self._write_locked()
+            return True
 
     def save(self) -> None:
         """Compatibility save for deliberate direct edits of ``progress``.
@@ -351,6 +370,13 @@ class QuestProgressService:
         self._validate_write_snapshot()
         save_quest_progress(self.progress, self.path)
         self._seen_generation = self._coordinator.mark_changed()
+        self._disk_signature = self._current_disk_signature()
+        self._clear_read_caches()
+
+    def _accept_loaded_snapshot_locked(self) -> None:
+        """Mark a no-op reload current without publishing a false change."""
+
+        self._seen_generation = self._coordinator.generation
         self._disk_signature = self._current_disk_signature()
         self._clear_read_caches()
 
