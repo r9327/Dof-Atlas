@@ -82,6 +82,7 @@
         "tests.test_achievement_progress_json_store",
         "tests.test_guide_progress_persistence",
         "tests.test_progress_concurrent_instances",
+        "tests.test_progress_interprocess_locking",
         "tests.test_progress_cross_surface_reload",
         "tests.test_quest_progress_batch_contract"
       ]
