@@ -56,11 +56,11 @@ class CleanFoundationGuardrailsTests(unittest.TestCase):
         guide = self._text("app/modules/encyclopedia/services/guide_progress_service.py")
         achievement = self._text("app/modules/encyclopedia/services/serialized_achievement_progress_service.py")
 
-        self.assertIn("read_json_resilient", quest_catalog)
+        self.assertIn("read_json_validated", quest_catalog)
         self.assertIn("write_json_atomic", quest_catalog)
-        self.assertIn("read_json_resilient", guide)
+        self.assertIn("read_json_validated", guide)
         self.assertIn("write_json_atomic", guide)
-        self.assertIn("read_json_resilient", achievement)
+        self.assertIn("read_json_validated", achievement)
         self.assertIn("write_json_atomic", achievement)
 
     def test_shared_quest_item_row_style_lives_in_global_theme(self) -> None:
