@@ -53,6 +53,30 @@ from app.storage import (
 from app.ui.components import AtlasButton
 
 
+_RESULT_BATCH_SIZE = 8
+
+
+def craft_category_for_item(item: dict[str, Any]) -> str:
+    text = normalize_key(
+        " ".join(str(item.get(key, "")) for key in ("name", "type", "family", "category"))
+    )
+    if any(token in text for token in ("trophee", "prysma", "prysmaradite")):
+        return "trophy_prysma"
+    equipment = (
+        "arme",
+        "coiffe",
+        "cape",
+        "ceinture",
+        "anneau",
+        "collier",
+        "amulette",
+        "botte",
+        "bouclier",
+        "dofus",
+    )
+    return "equipment" if any(token in text for token in equipment) else "resource"
+
+
 def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
     spinbox = QSpinBox()
     spinbox.setObjectName("QuantitySpinBox")
@@ -387,7 +411,14 @@ class RouteDialog(QDialog):
 
 
 class CraftPage(QWidget):
-    def __init__(self, status_callback, parent: QWidget | None = None, preload: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        status_callback,
+        parent: QWidget | None = None,
+        preload: dict[str, Any] | None = None,
+        *,
+        defer_runtime: bool = False,
+    ):
         super().__init__(parent)
         self.status_callback = status_callback
         self.preload = preload if isinstance(preload, dict) else {}
@@ -400,9 +431,17 @@ class CraftPage(QWidget):
         self.jobs: list[dict[str, Any]] = []
         self.selected_job = ""
         self.category = "equipment"
+        self._runtime_ready = False
+        self._pending_result_items: list[dict[str, Any]] = []
+        self._result_generation = 0
+        self._job_layout_signature: tuple[object, ...] | None = None
         self.search_timer = QTimer(self)
         self.search_timer.setSingleShot(True)
         self.search_timer.timeout.connect(self.refresh_results)
+        self.result_batch_timer = QTimer(self)
+        self.result_batch_timer.setSingleShot(True)
+        self.result_batch_timer.setInterval(0)
+        self.result_batch_timer.timeout.connect(self._render_next_result_batch)
         self.jobs_resize_timer = QTimer(self)
         self.jobs_resize_timer.setSingleShot(True)
         self.jobs_resize_timer.timeout.connect(self.refresh_jobs)
@@ -515,15 +554,55 @@ class CraftPage(QWidget):
         jobs_root.addWidget(self.job_content, 1)
         main_split.addWidget(self.jobs_panel, 1)
 
+        self.update_category_buttons()
+        if defer_runtime:
+            self.show_runtime_loading()
+        else:
+            self.hydrate_runtime(self.preload)
+        QTimer.singleShot(0, self.apply_craft_body_layout)
+
+    def is_navigation_ready(self) -> bool:
+        return True
+
+    def show_runtime_loading(self) -> None:
+        self.search.setEnabled(False)
+        for button in self.category_buttons.values():
+            button.setEnabled(False)
+        self.results.clear()
+        loading = QListWidgetItem("Chargement des données Craft et Métiers…")
+        loading.setFlags(Qt.NoItemFlags)
+        self.results.addItem(loading)
+        self.status_callback("Craft disponible · données en arrière-plan...")
+
+    def show_runtime_error(self, message: str) -> None:
+        self.results.clear()
+        item = QListWidgetItem(str(message or "Chargement Craft impossible."))
+        item.setFlags(Qt.NoItemFlags)
+        self.results.addItem(item)
+        self.status_callback(f"Chargement Craft impossible : {message}")
+
+    def hydrate_runtime(self, preload: dict[str, Any]) -> bool:
+        if self._runtime_ready:
+            return True
+        if not isinstance(preload, dict) or not isinstance(preload.get("items"), list):
+            return False
+        self.preload = preload
         self.load_items()
         self.load_leveling_guides()
         self.load_jobs()
         self.load_selection()
-        self.update_category_buttons()
+        self._runtime_ready = True
+        self.search.setEnabled(True)
+        for button in self.category_buttons.values():
+            button.setEnabled(True)
+        self._job_layout_signature = None
         self.refresh_results()
         self.refresh_selection()
         self.refresh_jobs()
-        QTimer.singleShot(0, self.apply_craft_body_layout)
+        self.status_callback(
+            f"Craft prêt · {len(self.items)} objets, {len(self.jobs)} métiers."
+        )
+        return True
 
     def restyle_button(self, button: QPushButton) -> None:
         button.style().unpolish(button)
@@ -598,18 +677,15 @@ class CraftPage(QWidget):
             self.restyle_button(button)
 
     def category_for_item(self, item: dict[str, Any]) -> str:
-        text = normalize_key(" ".join(str(item.get(key, "")) for key in ("name", "type", "family", "category")))
-        if any(token in text for token in ("trophee", "prysma", "prysmaradite")):
-            return "trophy_prysma"
-        equipment = ("arme", "coiffe", "cape", "ceinture", "anneau", "collier", "amulette", "botte", "bouclier", "dofus")
-        if any(token in text for token in equipment):
-            return "equipment"
-        return "resource"
+        return craft_category_for_item(item)
 
     def load_items(self) -> None:
         preloaded_items = self.preload.get("items")
         if isinstance(preloaded_items, list):
-            self.items = [dict(item) for item in preloaded_items if isinstance(item, dict)]
+            if bool(self.preload.get("_prepared")):
+                self.items = [item for item in preloaded_items if isinstance(item, dict)]
+            else:
+                self.items = [dict(item) for item in preloaded_items if isinstance(item, dict)]
         elif local_data_cache is None:
             self.items = []
             self.status_callback("Module local_data_cache indisponible.")
@@ -620,14 +696,19 @@ class CraftPage(QWidget):
             except Exception as exc:
                 self.items = []
                 self.status_callback(f"Chargement craft impossible: {exc}")
-        for item in self.items:
-            item["_search_name"] = normalize_key(item.get("name"))
-            item["_craft_category"] = self.category_for_item(item)
-        self.items_by_name = {
-            normalize_key(item.get("name")): item
-            for item in self.items
-            if item.get("name")
-        }
+        if not bool(self.preload.get("_prepared")):
+            for item in self.items:
+                item["_search_name"] = normalize_key(item.get("name"))
+                item["_craft_category"] = self.category_for_item(item)
+        preloaded_by_name = self.preload.get("items_by_name")
+        if isinstance(preloaded_by_name, dict):
+            self.items_by_name = dict(preloaded_by_name)
+        else:
+            self.items_by_name = {
+                normalize_key(item.get("name")): item
+                for item in self.items
+                if item.get("name")
+            }
         lookup_items = self.preload.get("lookup_items", [])
         if not isinstance(lookup_items, list):
             lookup_items = []
@@ -640,22 +721,41 @@ class CraftPage(QWidget):
                 self.item_lookup_cache[key] = item
 
     def refresh_results(self) -> None:
+        self._result_generation += 1
+        self.result_batch_timer.stop()
         query = normalize_key(self.search.text())
         self.results.clear()
-        if len(query) < 2:
+        self._pending_result_items = []
+        if not self._runtime_ready or len(query) < 2:
             return
-        count = 0
         for item in self.items:
             if item.get("_craft_category") != self.category:
                 continue
-            if query and query not in item.get("_search_name", ""):
+            if query not in item.get("_search_name", ""):
                 continue
-            entry = QListWidgetItem(self.icon_cache.icon_for_item(item), f"{item.get('name', 'Objet')} | Lvl {item.get('level', '?')} | {item.get('type', '')}")
+            self._pending_result_items.append(item)
+            if len(self._pending_result_items) >= 80:
+                break
+        if self._pending_result_items:
+            self.result_batch_timer.start()
+
+    def _render_next_result_batch(self) -> None:
+        if not self._pending_result_items:
+            return
+        generation = self._result_generation
+        batch = self._pending_result_items[:_RESULT_BATCH_SIZE]
+        del self._pending_result_items[:_RESULT_BATCH_SIZE]
+        for item in batch:
+            if generation != self._result_generation:
+                return
+            entry = QListWidgetItem(
+                self.icon_cache.icon_for_item(item),
+                f"{item.get('name', 'Objet')} | Lvl {item.get('level', '?')} | {item.get('type', '')}",
+            )
             entry.setData(Qt.UserRole, item)
             self.results.addItem(entry)
-            count += 1
-            if count >= 80:
-                break
+        if self._pending_result_items and generation == self._result_generation:
+            self.result_batch_timer.start()
 
     def open_result_menu(self, position: QPoint) -> None:
         entry = self.results.itemAt(position)
@@ -960,6 +1060,15 @@ class CraftPage(QWidget):
         return job
 
     def refresh_jobs(self) -> None:
+        signature = (
+            normalize_key(self.selected_job),
+            self.job_button_column_count(),
+            self.resource_column_count(),
+            tuple(normalize_key(job.get("name")) for job in self.jobs),
+        )
+        if signature == self._job_layout_signature:
+            return
+        self._job_layout_signature = signature
         self.clear_layout(self.job_buttons_layout)
         self.clear_layout(self.job_actions_layout)
         self.clear_layout(self.job_grid)
