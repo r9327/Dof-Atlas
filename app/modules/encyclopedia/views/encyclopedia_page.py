@@ -270,12 +270,38 @@ class EncyclopediaPage(QWidget):
                 graph=quest_graph,
             )
         if achievement_provider is not None and guide_provider is not None and quest_graph is not None:
-            self._related_ready = True
-            self._guide_runtime_ready = True
             self._achievement_ready = bool(getattr(achievement_provider, "_loaded", False))
+            view = self.guides_view
+            if view is not None:
+                view.provider = guide_provider
+                view.achievement_provider = achievement_provider
+                view.graph = quest_graph
+                if (
+                    not getattr(view, "_runtime_ready", False)
+                    and bool(getattr(guide_provider, "_loaded", False))
+                ):
+                    try:
+                        view.hydrate_runtime(
+                            graph=quest_graph,
+                            initial_progress_by_guide=self._guide_progress_by_guide,
+                            initial_progress_character_key=self._guide_progress_character_key,
+                        )
+                    except Exception as exc:
+                        LOGGER.exception("Hydratation du Guide préchargé impossible")
+                        view.show_runtime_error(str(exc))
+                        self.status_callback(f"Chargement Guide impossible : {exc}")
+            # Provider availability is not UI readiness. A cold Guide widget must
+            # still run its hydration path when the player opens the tab.
+            self._guide_runtime_ready = bool(
+                view is not None and getattr(view, "_runtime_ready", False)
+            )
+            self._related_ready = self._guide_runtime_ready
+            if self._guide_runtime_ready:
+                self._related_preload_gate.mark_ready()
             if callable(self._related_data_ready_callback):
                 self._related_data_ready_callback(achievement_provider, guide_provider)
-            self.open_pending_lazy_tab()
+            if self._guide_runtime_ready:
+                self.open_pending_lazy_tab()
 
     def _refresh_characters_base(self) -> None:
         previous_key = self.current_character_key
@@ -498,7 +524,9 @@ class EncyclopediaPage(QWidget):
         self._catalog_context_published = False
         self._character_sources_signature: tuple[object, ...] | None = None
         self._initialize_encyclopedia_shell(*args, **kwargs)
-        self._related_preload_gate = RelatedPreloadGate(ready=self._related_ready)
+        # Loaded providers are not equivalent to a hydrated Guide widget.
+        # Keep the gate idle until the actual Guide view is ready.
+        self._related_preload_gate = RelatedPreloadGate()
         self.guideRuntimeFinished.connect(self.collect_related_preload)
         self.achievementRuntimeFinished.connect(self._collect_achievement_runtime)
 
@@ -514,10 +542,12 @@ class EncyclopediaPage(QWidget):
         if self.current_tab_label() == GUIDES_TAB and self.guides_view is None:
             self.ensure_guides_view()
         self._guide_runtime_ready = bool(
-            self._related_ready
-            and self.guides_view is not None
+            self.guides_view is not None
             and getattr(self.guides_view, "_runtime_ready", False)
         )
+        self._related_ready = self._guide_runtime_ready
+        if self._guide_runtime_ready:
+            self._related_preload_gate.mark_ready()
         self._stabilize_header_geometry()
 
     @property
@@ -1318,15 +1348,18 @@ class EncyclopediaPage(QWidget):
             self._on_tab_changed_indexed_runtime(index)
             return
         if label == GUIDES_TAB:
-            self.ensure_guides_view()
-            self._activate_loaded_tab(GUIDES_TAB)
-            if not self._guide_runtime_ready:
+            view = self.ensure_guides_view()
+            if getattr(view, "_runtime_ready", False):
+                self._guide_runtime_ready = True
+                self._activate_loaded_tab(GUIDES_TAB)
+            else:
+                self._guide_runtime_ready = False
                 self._start_full_guide_runtime()
             return
         if label == ACHIEVEMENTS_TAB:
             self.ensure_achievements_view()
-            self._activate_loaded_tab(ACHIEVEMENTS_TAB)
             if self._achievement_ready:
+                self._activate_loaded_tab(ACHIEVEMENTS_TAB)
                 self._pending_lazy_tab = ACHIEVEMENTS_TAB
                 self.open_pending_lazy_tab()
             else:

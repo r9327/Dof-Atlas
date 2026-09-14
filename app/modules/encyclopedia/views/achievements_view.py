@@ -47,7 +47,7 @@ CATEGORY_ROLE = Qt.UserRole
 TOP_CATEGORY_ROLE = Qt.UserRole + 1
 COMPLETED_ROLE = Qt.UserRole + 2
 _SEARCH_DEBOUNCE_MS = 90
-_RESULT_BATCH_SIZE = 60
+_RESULT_BATCH_SIZE = 16
 
 
 class AchievementListDelegate(QStyledItemDelegate):
