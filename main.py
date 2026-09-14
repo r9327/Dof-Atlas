@@ -67,7 +67,7 @@ from app.modules.encyclopedia.services import (
 )
 from app.modules.encyclopedia.views import EncyclopediaPage
 from app.pages.character_page_modern import CharacterPage
-from app.pages.craft_page import CraftPage
+from app.pages.craft_page import CraftPage, craft_category_for_item
 from app.pages.equipment_page import EquipmentPage
 from app.pages.home_page import HomePage
 from app.pages.organizer_page import OrganizerPage, class_icon_path_for_window_name
@@ -149,6 +149,7 @@ def find_lookup_item(name: str, index: dict[str, dict[str, Any]]) -> dict[str, A
 def build_craft_preload() -> dict[str, Any]:
     payload: dict[str, Any] = {
         "items": [],
+        "items_by_name": {},
         "jobs": [],
         "guides": read_json(LEVELING_FILE, {"source": "gamosaurus", "offline_runtime": True, "guides": {}}),
         "selection": {},
@@ -160,7 +161,20 @@ def build_craft_preload() -> dict[str, Any]:
 
         adapter = LocalCompatibilityAdapter()
         try:
-            payload["items"] = adapter.list_craft_items()
+            payload["items"] = [
+                dict(item)
+                for item in adapter.list_craft_items()
+                if isinstance(item, dict)
+            ]
+            for item in payload["items"]:
+                item["_search_name"] = normalize_key(item.get("name"))
+                item["_craft_category"] = craft_category_for_item(item)
+            payload["items_by_name"] = {
+                normalize_key(item.get("name")): item
+                for item in payload["items"]
+                if item.get("name")
+            }
+            payload["_prepared"] = True
             payload["jobs"] = adapter.list_jobs()
             resource_items = adapter.list_resources() if hasattr(adapter, "list_resources") else []
             lookup_index = build_lookup_index([*payload["items"], *resource_items])
@@ -1600,14 +1614,18 @@ class AtlasWindow(QMainWindow):
 
         return WorldScanPanel(self.set_status)
 
-    def create_craft_page(self) -> CraftPage | None:
+    def create_craft_page(self) -> CraftPage:
         preload = self.preload_results.get("craft")
-        if not isinstance(preload, dict) or not isinstance(preload.get("items"), list):
+        ready = isinstance(preload, dict) and isinstance(preload.get("items"), list)
+        if ready:
+            self.preload_results.pop("craft", None)
+        else:
             self.start_preload(prefer_quests=False)
-            self.set_status("Prechargement Items en cours...")
-            return None
-        self.preload_results.pop("craft", None)
-        return CraftPage(self.set_status, preload=preload)
+        return CraftPage(
+            self.set_status,
+            preload=preload if ready else None,
+            defer_runtime=not ready,
+        )
 
     def create_equipment_page(self) -> EquipmentPage:
         return EquipmentPage(self.set_status)
@@ -1745,6 +1763,7 @@ class AtlasWindow(QMainWindow):
             quests = result.get("quests") if isinstance(result, dict) else {}
             if isinstance(craft, dict):
                 errors.extend(craft.get("errors") or [])
+                self.apply_craft_preload_update(craft)
             if isinstance(quests, dict):
                 errors.extend(quests.get("errors") or [])
             latest_result = result
@@ -1791,6 +1810,17 @@ class AtlasWindow(QMainWindow):
                 current.update(value)
             else:
                 self.preload_results[key] = value
+
+    def apply_craft_preload_update(self, craft: dict[str, Any]) -> None:
+        page = self.page_widgets.get("Craft")
+        if not isinstance(page, CraftPage):
+            return
+        if page.hydrate_runtime(craft):
+            self.preload_results.pop("craft", None)
+            return
+        errors = craft.get("errors") if isinstance(craft, dict) else None
+        message = str(errors[0]) if isinstance(errors, list) and errors else "données absentes"
+        page.show_runtime_error(message)
 
     def apply_home_preload_update(self, quests: dict[str, Any]) -> None:
         self.home_page.apply_encyclopedia_context(
