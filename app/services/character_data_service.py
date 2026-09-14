@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from threading import RLock
+from typing import Callable
 
 from app.constants import (
     NETWORK_CHARACTER_BINDINGS_FILE,
@@ -9,12 +10,26 @@ from app.constants import (
     QUEST_PROGRESS_FILE,
 )
 from app.core.character_identity import character_id_from_key
-from app.core.json_store import read_json_resilient, write_json_atomic
-from app.modules.encyclopedia.services.guide_progress_service import GUIDE_PROGRESS_FILE
+from app.core.json_store import (
+    InvalidPersistentJsonError,
+    read_json_validated,
+    write_json_atomic,
+)
+from app.modules.encyclopedia.services.guide_progress_service import (
+    GUIDE_PROGRESS_FILE,
+    _guide_progress_schema_error,
+)
 from app.modules.encyclopedia.services.progress_coordinator import coordinator_for
 from app.modules.encyclopedia.services.progress_service import ACHIEVEMENT_PROGRESS_FILE
-from app.network.character_resolver import _BINDING_LOCK as _NETWORK_BINDING_LOCK
+from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
+    _achievement_progress_schema_error,
+)
+from app.network.character_resolver import (
+    _BINDING_LOCK as _NETWORK_BINDING_LOCK,
+    read_binding_payload,
+)
 from app.network.character_runtime_state import character_runtime_state
+from app.quest_catalog import _quest_progress_schema_error
 from app.services.character_order_service import CharacterOrderService
 from app.services.profile_settings_service import ProfileSettingsService
 
@@ -48,6 +63,11 @@ class CharacterDataService:
             Path(achievement_progress_path),
             Path(guide_progress_path),
         )
+        self.progress_documents = (
+            (self.progress_paths[0], _quest_progress_schema_error),
+            (self.progress_paths[1], _achievement_progress_schema_error),
+            (self.progress_paths[2], _guide_progress_schema_error),
+        )
 
     @staticmethod
     def _character_id(character_key: str) -> int | None:
@@ -62,8 +82,8 @@ class CharacterDataService:
         changed = False
         with _DELETE_LOCK:
             order_label = self._binding_name(character_id)
-            for path in self.progress_paths:
-                changed = self._remove_progress_character(path, key) or changed
+            for path, validator in self.progress_documents:
+                changed = self._remove_progress_character(path, key, validator) or changed
             changed = self._remove_binding(character_id) or changed
             if order_label:
                 changed = (
@@ -75,12 +95,18 @@ class CharacterDataService:
         return changed
 
     @staticmethod
-    def _remove_progress_character(path: Path, character_key: str) -> bool:
+    def _remove_progress_character(
+        path: Path,
+        character_key: str,
+        validator: Callable[[object], str | None],
+    ) -> bool:
         coordinator = coordinator_for(path)
         with coordinator.lock:
-            payload = read_json_resilient(path, {"version": 1, "characters": {}})
-            if not isinstance(payload, dict):
-                payload = {"version": 1, "characters": {}}
+            payload = read_json_validated(
+                path,
+                {"version": 1, "characters": {}},
+                validator,
+            )
             characters = payload.get("characters")
             if not isinstance(characters, dict) or character_key not in characters:
                 return False
@@ -93,8 +119,9 @@ class CharacterDataService:
         """Resolve the saved name for a verified identity before deleting it."""
 
         with _NETWORK_BINDING_LOCK:
-            payload = read_json_resilient(self.binding_path, {})
-            if not isinstance(payload, dict):
+            try:
+                payload = read_binding_payload(self.binding_path)
+            except InvalidPersistentJsonError:
                 return ""
 
             characters = payload.get("characters")
@@ -126,9 +153,10 @@ class CharacterDataService:
         # Holding it across reload -> mutation -> atomic replace prevents either
         # writer from publishing an older snapshot over an independent update.
         with _NETWORK_BINDING_LOCK:
-            payload = read_json_resilient(self.binding_path, {})
-            if not isinstance(payload, dict):
-                payload = {}
+            try:
+                payload = read_binding_payload(self.binding_path)
+            except InvalidPersistentJsonError:
+                return False
             changed = False
             characters = payload.get("characters")
             if isinstance(characters, dict) and str(character_id) in characters:

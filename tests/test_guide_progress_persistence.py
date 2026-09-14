@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from app.core.json_store import InvalidPersistentJsonError
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 
 
@@ -29,15 +30,17 @@ class GuideProgressPersistenceTests(unittest.TestCase):
             fresh.manual_steps("character:1", "guide_a"),
         )
 
-    def test_corrupt_json_is_preserved_before_fallback(self) -> None:
-        self.path.write_text('{"version": 1, "characters": ', encoding="utf-8")
+    def test_corrupt_json_is_preserved_and_refused(self) -> None:
+        original = b'{"version": 1, "characters": '
+        self.path.write_bytes(original)
 
-        service = GuideProgressService(self.path)
+        with self.assertRaises(InvalidPersistentJsonError):
+            GuideProgressService(self.path)
 
-        self.assertEqual(set(), service.manual_steps("character:1", "guide_a"))
         backups = list(self.path.parent.glob("guide_progress.json.corrupt.*.bak"))
         self.assertEqual(1, len(backups))
-        self.assertIn('"characters": ', backups[0].read_text(encoding="utf-8"))
+        self.assertEqual(original, backups[0].read_bytes())
+        self.assertEqual(original, self.path.read_bytes())
 
     def test_live_reader_observes_coordinated_peer_mutation(self) -> None:
         reader = GuideProgressService(self.path)
