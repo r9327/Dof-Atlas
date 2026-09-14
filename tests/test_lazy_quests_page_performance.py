@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -17,6 +17,10 @@ from app.modules.encyclopedia.views import EncyclopediaPage
 from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as EncyclopediaPageImpl
 from app.modules.encyclopedia.views.deferred_achievement_guides_view import DeferredAchievementGuidesView
 from app.modules.encyclopedia.views.achievements_view import AchievementsView
+from app.modules.encyclopedia.views.related_preload_state import (
+    RelatedPreloadGate,
+    RelatedPreloadState,
+)
 from app.modules.encyclopedia.constants import (
     ACHIEVEMENTS_TAB,
     ENCYCLOPEDIA_TABS,
@@ -536,6 +540,53 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             "Chargement Guide impossible : catalogue cassé"
         )
         page.sync_search_visibility.assert_called_once_with()
+
+
+    def test_failed_guide_runtime_retries_and_reloads_provider(self):
+        gate = RelatedPreloadGate()
+        self.assertTrue(gate.begin())
+        gate.mark_failed()
+
+        guide_provider = Mock()
+        guide_provider.reload.return_value = [object()]
+        page = SimpleNamespace(
+            _pending_lazy_tab="",
+            _guide_runtime_ready=False,
+            _related_preload_started=False,
+            _achievement_load_started=False,
+            _achievement_ready=False,
+            _related_preload_gate=gate,
+            quest_provider=SimpleNamespace(get_catalog=Mock(return_value=object())),
+            service=SimpleNamespace(
+                guide_provider=guide_provider,
+                achievement_provider=Mock(),
+            ),
+            current_character_key="",
+            quest_progress_path=Path("quest_progress.json"),
+            guide_progress_service=SimpleNamespace(path=Path("guide_progress.json")),
+            achievement_progress_service=SimpleNamespace(
+                path=Path("achievement_progress.json")
+            ),
+            _build_guide_progress_snapshot=Mock(return_value={}),
+            guideRuntimeFinished=SimpleNamespace(emit=Mock()),
+            open_pending_lazy_tab=Mock(),
+            status_callback=Mock(),
+        )
+
+        def run_thread(*, target, **_kwargs):
+            return SimpleNamespace(start=target)
+
+        with patch(
+            "app.modules.encyclopedia.views.encyclopedia_page.Thread",
+            side_effect=run_thread,
+        ):
+            EncyclopediaPageImpl.request_related_preload(page, GUIDES_TAB)
+
+        self.assertEqual(gate.state, RelatedPreloadState.LOADING)
+        guide_provider.reload.assert_called_once_with()
+        guide_provider.load_all.assert_not_called()
+        page.guideRuntimeFinished.emit.assert_called_once()
+
 
 
 if __name__ == "__main__":
