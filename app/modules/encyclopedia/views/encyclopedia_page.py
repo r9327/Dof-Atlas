@@ -1044,7 +1044,7 @@ class EncyclopediaPage(QWidget):
                         )
                     graph = QuestGraphService(
                         quest_provider,
-                        active_guide_provider=active_guide_provider,
+                        guide_provider=active_guide_provider,
                         achievement_provider=achievement_provider,
                     )
                     try:
