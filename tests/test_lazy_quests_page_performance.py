@@ -741,6 +741,85 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
 
         self.assertLessEqual(achievements_view._RESULT_BATCH_SIZE, 16)
 
+    def test_success_categories_are_all_collapsed_after_hydration(self):
+        provider = Mock()
+        provider.quest_provider = Mock()
+        provider.get_retained_categories.return_value = [
+            SimpleNamespace(id=1, name="Quêtes"),
+            SimpleNamespace(id=2, name="Donjons"),
+        ]
+        provider.get_subcategories.return_value = []
+        provider.get_by_category.return_value = []
+        view = AchievementsView(
+            lambda _text: None,
+            provider=provider,
+            progress_service=Mock(),
+            quest_provider=provider.quest_provider,
+            quest_graph=Mock(),
+            quest_progress_service=Mock(),
+            defer_runtime=True,
+        )
+
+        view.populate_categories()
+
+        self.assertEqual(view.category_tree.topLevelItemCount(), 2)
+        self.assertFalse(view.category_tree.topLevelItem(0).isExpanded())
+        self.assertFalse(view.category_tree.topLevelItem(1).isExpanded())
+        view.deleteLater()
+        self.app.processEvents()
+
+    def test_empty_guide_provider_recovers_from_fresh_canonical_provider(self):
+        gate = RelatedPreloadGate()
+        empty_provider = Mock()
+        empty_provider.load_all.return_value = []
+        empty_provider.guides_dir = Path("broken-guides")
+        empty_provider.dofus_item_provider = Mock()
+        empty_provider.include_drafts = False
+        recovered_provider = Mock()
+        recovered_provider.reload.return_value = [SimpleNamespace(id="dofus_cawotte")]
+        page = SimpleNamespace(
+            _pending_lazy_tab="",
+            _guide_runtime_ready=False,
+            _related_preload_started=False,
+            _achievement_load_started=False,
+            _achievement_ready=False,
+            _related_preload_gate=gate,
+            quest_provider=SimpleNamespace(get_catalog=Mock(return_value=object())),
+            service=SimpleNamespace(
+                guide_provider=empty_provider,
+                achievement_provider=Mock(),
+            ),
+            current_character_key="",
+            quest_progress_path=Path("quest_progress.json"),
+            guide_progress_service=SimpleNamespace(path=Path("guide_progress.json")),
+            achievement_progress_service=SimpleNamespace(
+                path=Path("achievement_progress.json")
+            ),
+            _build_guide_progress_snapshot=Mock(return_value={}),
+            guideRuntimeFinished=SimpleNamespace(emit=Mock()),
+            open_pending_lazy_tab=Mock(),
+            status_callback=Mock(),
+        )
+
+        def run_thread(*, target, **_kwargs):
+            return SimpleNamespace(start=target)
+
+        with (
+            patch(
+                "app.modules.encyclopedia.views.encyclopedia_page.Thread",
+                side_effect=run_thread,
+            ),
+            patch(
+                "app.modules.encyclopedia.views.encyclopedia_page.GuideProvider",
+                return_value=recovered_provider,
+            ),
+        ):
+            EncyclopediaPageImpl.request_related_preload(page, GUIDES_TAB)
+
+        recovered_provider.reload.assert_called_once_with()
+        payload = page.guideRuntimeFinished.emit.call_args.args[0]
+        self.assertIs(payload.guide_provider, recovered_provider)
+
 
 if __name__ == "__main__":
     unittest.main()
