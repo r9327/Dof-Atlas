@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication
 from app.modules.encyclopedia.providers import QuestProvider
 from app.modules.encyclopedia.views import EncyclopediaPage
 from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as EncyclopediaPageImpl
+from app.modules.encyclopedia.views.deferred_achievement_guides_view import DeferredAchievementGuidesView
 from app.modules.encyclopedia.constants import (
     ACHIEVEMENTS_TAB,
     ENCYCLOPEDIA_TABS,
@@ -396,14 +397,40 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         success_view.show_achievement.assert_called_once_with(1385)
 
 
+    def test_stable_guide_view_constructor_does_not_load_catalogues(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            provider = Mock()
+            quest_provider = Mock()
+            achievement_provider = Mock()
+            view = DeferredAchievementGuidesView(
+                lambda _text: None,
+                provider=provider,
+                quest_provider=quest_provider,
+                achievement_provider=achievement_provider,
+                achievement_progress_service=Mock(),
+                guide_progress_service=Mock(),
+                quest_progress_path=Path(temporary) / "quest_progress.json",
+                defer_runtime=True,
+            )
+
+            provider.load_all.assert_not_called()
+            quest_provider.get_catalog.assert_not_called()
+            self.assertFalse(view._runtime_ready)
+            self.assertEqual(view.stack.count(), 1)
+
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_guide_tab_starts_nonblocking_runtime_without_building_rich_view(self):
         tabs = Mock()
         tabs.tabText.return_value = GUIDES_TAB
+        stable_view = object()
         page = SimpleNamespace(
             _initializing=False,
             tabs=tabs,
             guides_view=None,
             _guide_runtime_ready=False,
+            ensure_guides_view=Mock(return_value=stable_view),
             _start_full_guide_runtime=Mock(),
             _activate_loaded_tab=Mock(),
             open_pending_lazy_tab=Mock(),
@@ -412,8 +439,9 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
 
         EncyclopediaPageImpl.on_tab_changed(page, ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
 
+        page.ensure_guides_view.assert_called_once_with()
+        page._activate_loaded_tab.assert_called_once_with(GUIDES_TAB)
         page._start_full_guide_runtime.assert_called_once_with()
-        page._activate_loaded_tab.assert_not_called()
         page.open_pending_lazy_tab.assert_not_called()
 
     def test_guide_ultime_navigation_is_preserved_until_runtime_finishes(self):
@@ -450,11 +478,12 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
     def test_guide_worker_failure_reaches_a_terminal_visible_state(self):
         error = RuntimeError("catalogue cassé")
         gate = SimpleNamespace(mark_failed=Mock())
+        stable_view = SimpleNamespace(show_runtime_error=Mock())
         page = SimpleNamespace(
             _related_preload_started=True,
             _related_preload_gate=gate,
             status_callback=Mock(),
-            _show_guide_index=Mock(),
+            ensure_guides_view=Mock(return_value=stable_view),
             sync_search_visibility=Mock(),
         )
 
@@ -462,10 +491,11 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
 
         self.assertFalse(page._related_preload_started)
         gate.mark_failed.assert_called_once_with()
+        page.ensure_guides_view.assert_called_once_with()
+        stable_view.show_runtime_error.assert_called_once_with("catalogue cassé")
         page.status_callback.assert_called_once_with(
             "Chargement Guide impossible : catalogue cassé"
         )
-        page._show_guide_index.assert_called_once_with()
         page.sync_search_visibility.assert_called_once_with()
 
 
