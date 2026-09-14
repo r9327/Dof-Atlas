@@ -17,6 +17,12 @@ def _empty_progress() -> dict[str, Any]:
     return {"version": 1, "characters": {}}
 
 
+def read_json_resilient(path: Path, default: Any) -> Any:
+    """Compatibility seam backed by strict achievement validation."""
+
+    return read_json_validated(path, default, _achievement_progress_schema_error)
+
+
 class AchievementProgressService(LegacyAchievementProgressService):
     """Concurrency-safe facade over the existing achievement progress engine.
 
@@ -56,11 +62,7 @@ class AchievementProgressService(LegacyAchievementProgressService):
         return int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size)
 
     def _load(self) -> dict[str, Any]:
-        payload = read_json_validated(
-            self.path,
-            _empty_progress(),
-            _achievement_progress_schema_error,
-        )
+        payload = read_json_resilient(self.path, _empty_progress())
         payload.setdefault("version", 1)
         payload.setdefault("characters", {})
         return payload
