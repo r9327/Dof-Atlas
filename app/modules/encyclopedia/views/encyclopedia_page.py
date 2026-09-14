@@ -206,6 +206,7 @@ class EncyclopediaPage(QWidget):
                 graph=self._quest_graph,
                 initial_progress_by_guide=self._guide_progress_by_guide,
                 initial_progress_character_key=self._guide_progress_character_key,
+                defer_runtime=True,
             )
             self.replace_tab_widget(GUIDES_TAB, self.guides_view)
         return self.guides_view
@@ -513,8 +514,12 @@ class EncyclopediaPage(QWidget):
         )
 
         if self.current_tab_label() == GUIDES_TAB and self.guides_view is None:
-            self._show_guide_index()
-        self._guide_runtime_ready = bool(self._related_ready or self.guides_view is not None)
+            self.ensure_guides_view()
+        self._guide_runtime_ready = bool(
+            self._related_ready
+            and self.guides_view is not None
+            and getattr(self.guides_view, "_runtime_ready", False)
+        )
         self._stabilize_header_geometry()
 
     @property
@@ -922,15 +927,12 @@ class EncyclopediaPage(QWidget):
         self._sync_search_visibility_indexed()
 
     def _start_full_guide_runtime(self) -> None:
-        """Keep the lightweight Guide index responsive while data loads."""
+        """Keep one stable Guide widget while its data loads off the UI thread."""
 
         self._full_guide_tab_requested = True
         self._pending_lazy_tab = GUIDES_TAB
-        self._show_guide_index()
-        index = self.tab_labels().index(GUIDES_TAB)
-        self._last_ready_tab_index = index
-        self.sync_tab_accent(GUIDES_TAB)
-        self.sync_search_visibility()
+        self.ensure_guides_view()
+        self._activate_loaded_tab(GUIDES_TAB)
         self.status_callback("Guide disponible · données en arrière-plan...")
         self.request_related_preload(GUIDES_TAB)
 
@@ -976,7 +978,9 @@ class EncyclopediaPage(QWidget):
                     catalog = quest_provider.get_catalog()
                     # IndexedGuideProvider resolves achievement link labels without
                     # forcing the rich AchievementProvider to materialize here.
-                    guide_provider.load_all()
+                    guides = guide_provider.load_all()
+                    if not guides:
+                        raise RuntimeError("Aucun guide chargé depuis catalog.json")
                     graph = QuestGraphService(
                         quest_provider,
                         guide_provider=guide_provider,
@@ -1033,6 +1037,20 @@ class EncyclopediaPage(QWidget):
         self._quest_graph = result.graph
         self._guide_progress_by_guide = dict(result.progress_by_guide)
         self._guide_progress_character_key = result.character_key
+
+        view = self.ensure_guides_view()
+        try:
+            view.hydrate_runtime(
+                graph=result.graph,
+                initial_progress_by_guide=result.progress_by_guide,
+                initial_progress_character_key=result.character_key,
+            )
+        except Exception as exc:
+            LOGGER.exception("Hydratation de la vue Guide impossible")
+            self._related_preload_gate.mark_failed()
+            view.show_runtime_error(str(exc))
+            self.status_callback(f"Chargement Guide impossible : {exc}")
+            return
         self._guide_runtime_ready = True
 
         # AtlasWindow historically uses _related_ready as the Guide navigation
@@ -1272,14 +1290,10 @@ class EncyclopediaPage(QWidget):
             self._on_tab_changed_indexed_runtime(index)
             return
         if label == GUIDES_TAB:
-            if self.guides_view is not None:
-                self._activate_loaded_tab(GUIDES_TAB)
-                return
-            if self._guide_runtime_ready:
-                self._pending_lazy_tab = GUIDES_TAB
-                self.open_pending_lazy_tab()
-                return
-            self._start_full_guide_runtime()
+            self.ensure_guides_view()
+            self._activate_loaded_tab(GUIDES_TAB)
+            if not self._guide_runtime_ready:
+                self._start_full_guide_runtime()
             return
         if label == ACHIEVEMENTS_TAB:
             if self._achievement_ready:
