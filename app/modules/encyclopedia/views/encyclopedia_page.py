@@ -1013,7 +1013,34 @@ class EncyclopediaPage(QWidget):
                         else guide_provider.load_all()
                     )
                     if not guides:
-                        raise RuntimeError("Aucun guide chargé depuis catalog.json")
+                        # A provider created while local data was absent may remain
+                        # poisoned even after Git restores the catalogue. Retry from
+                        # the canonical directory with a completely fresh instance.
+                        recovered_provider = GuideProvider(
+                            quest_provider=quest_provider,
+                            achievement_provider=achievement_provider,
+                            dofus_item_provider=getattr(
+                                guide_provider,
+                                "dofus_item_provider",
+                                None,
+                            ),
+                            include_drafts=bool(
+                                getattr(guide_provider, "include_drafts", False)
+                            ),
+                        )
+                        recovered_guides = recovered_provider.reload()
+                        if recovered_guides:
+                            guide_provider = recovered_provider
+                            guides = recovered_guides
+                    if not guides:
+                        catalog_path = Path(guide_provider.guides_dir) / "catalog.json"
+                        errors = list(
+                            getattr(guide_provider, "validation_errors", ()) or ()
+                        )
+                        detail = f" · {'; '.join(errors[:3])}" if errors else ""
+                        raise RuntimeError(
+                            f"Aucun guide chargé depuis {catalog_path}{detail}"
+                        )
                     graph = QuestGraphService(
                         quest_provider,
                         guide_provider=guide_provider,
