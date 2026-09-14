@@ -87,15 +87,10 @@ class DeferredAchievementGuidesView(_OptimizedGuidesView):
         if not guide_id:
             return False
 
-        # Guide Ultime builds a rich auto-validation contract that genuinely uses
-        # Success data. Keep that one action deferred instead of doing the read on
-        # the UI thread. Ordinary guides can paint immediately from the Guide index.
-        if guide_id == GUIDE_ULTIME_LEGACY_ID and not self._achievement_runtime_ready():
-            self._deferred_guide_id = guide_id
-            self.status_callback("Préparation du Guide Ultime en arrière-plan...")
-            self.achievementRuntimeRequested.emit()
-            return True
-
+        # Guide Ultime can build its manual route and lightweight Success-name
+        # contract without materializing the rich Success runtime. Paint the
+        # requested guide immediately, then enrich shared Success data in the
+        # background like every other guide.
         selected = bool(super().select_guide(guide_id))
         if selected and not self._achievement_runtime_ready():
             self.status_callback("Guide affiché · enrichissement Succès en arrière-plan...")
