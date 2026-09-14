@@ -813,6 +813,10 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
                 "app.modules.encyclopedia.views.encyclopedia_page.GuideProvider",
                 return_value=recovered_provider,
             ),
+            patch(
+                "app.modules.encyclopedia.views.encyclopedia_page.QuestGraphService",
+                return_value=Mock(),
+            ),
         ):
             EncyclopediaPageImpl.request_related_preload(page, GUIDES_TAB)
 
