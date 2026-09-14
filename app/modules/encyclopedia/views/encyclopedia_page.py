@@ -67,7 +67,7 @@ class _GuideStagePayload:
 class _AchievementStagePayload:
     achievement_provider: object
     graph: QuestGraphService
-    progress_synchronized: bool
+    progress_synchronized: bool = False
 
 
 class EncyclopediaPage(QWidget):
