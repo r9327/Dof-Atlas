@@ -1058,6 +1058,7 @@ class GuidesView(QWidget):
         graph: QuestGraphService | None = None,
         initial_progress_by_guide: dict[str, tuple[int, int, str]] | None = None,
         initial_progress_character_key: str = "",
+        defer_runtime: bool = False,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("GuidesView")
@@ -1084,19 +1085,14 @@ class GuidesView(QWidget):
         self.launch_travel_callback = launch_travel_callback
         self.current_character_key = character_key or ""
         self.quest_progress = self.quest_progress_service.progress
-        self.quest_catalog = self.quest_provider.get_catalog()
-        self.progress_calculator = GuideProgressCalculator(
-            self.quest_progress_service,
-            self.guide_progress_service,
-            self.achievement_progress_service,
-            self.quest_catalog.by_id,
-        )
-        self.graph = graph or QuestGraphService(self.quest_provider, self.provider, self.achievement_provider)
+        self.quest_catalog = None
+        self.progress_calculator = None
+        self.graph = graph
+        self._runtime_ready = False
 
         self.search_text = ""
-        self.guides: list[Guide] = self.provider.load_all()
-        self._sync_achievement_progress()
-        self.visible_guides: list[Guide] = list(self.guides)
+        self.guides: list[Guide] = []
+        self.visible_guides: list[Guide] = []
         self.result_model = GuideListModel(self)
         self.current_guide_id: str | None = None
         self.current_quest_id: int | None = None
@@ -1119,14 +1115,70 @@ class GuidesView(QWidget):
         root.addWidget(self.stack, 1)
 
         self.home_page = self.build_home_page()
-        self.detail_page = self.build_detail_page()
+        self.detail_page = None
         self.stack.addWidget(self.home_page)
-        self.stack.addWidget(self.detail_page)
         self.stack.setCurrentWidget(self.home_page)
 
+        if defer_runtime:
+            self._show_runtime_loading()
+            self.status_callback("Guides : chargement des données en arrière-plan...")
+        else:
+            self.hydrate_runtime(
+                graph=graph,
+                initial_progress_by_guide=initial_progress_by_guide,
+                initial_progress_character_key=initial_progress_character_key,
+            )
+
+    def _show_runtime_loading(self) -> None:
+        clear_layout(self.home_layout)
+        loading = QLabel("Chargement des guides…")
+        loading.setObjectName("GuidesHomeEmptyText")
+        loading.setAlignment(Qt.AlignCenter)
+        self.home_layout.addStretch(1)
+        self.home_layout.addWidget(loading)
+        self.home_layout.addStretch(1)
+
+    def hydrate_runtime(
+        self,
+        *,
+        graph: QuestGraphService | None = None,
+        initial_progress_by_guide: dict[str, tuple[int, int, str]] | None = None,
+        initial_progress_character_key: str = "",
+    ) -> bool:
+        """Attach preloaded Guide data to this existing widget exactly once."""
+
+        if self._runtime_ready:
+            return True
+        catalog = self.quest_provider.get_catalog()
+        guides = self.provider.load_all()
+        if not guides:
+            raise RuntimeError("Aucun guide chargé depuis catalog.json")
+        self.quest_catalog = catalog
+        self.progress_calculator = GuideProgressCalculator(
+            self.quest_progress_service,
+            self.guide_progress_service,
+            self.achievement_progress_service,
+            catalog.by_id,
+        )
+        self.graph = graph or QuestGraphService(
+            self.quest_provider,
+            self.provider,
+            self.achievement_provider,
+        )
+        self.guides = list(guides)
+        self.visible_guides = list(guides)
+        if initial_progress_by_guide is not None:
+            self._initial_progress_by_guide = dict(initial_progress_by_guide)
+        if initial_progress_character_key:
+            self._initial_progress_character_key = str(initial_progress_character_key)
+        self._sync_achievement_progress()
+        self.detail_page = self.build_detail_page()
+        self.stack.addWidget(self.detail_page)
+        self._runtime_ready = True
         self.refresh_home()
         self._external_progress_signature = self._current_external_progress_signature()
         self.status_callback(f"{len(self.guides)} guide(s) chargés.")
+        return True
 
     def build_home_page(self) -> QWidget:
         page = QWidget()
@@ -1282,6 +1334,8 @@ class GuidesView(QWidget):
         if text == self.search_text:
             return
         self.search_text = text
+        if not self._runtime_ready:
+            return
         self.refresh_home()
         if self.state != self.CATALOG:
             self.show_home()
@@ -1301,6 +1355,8 @@ class GuidesView(QWidget):
         if character_key == self.current_character_key:
             return
         self.current_character_key = character_key
+        if not self._runtime_ready:
+            return
         self.quest_progress = self.quest_progress_service.reload()
         self._sync_achievement_progress()
         self.refresh_home()
@@ -1310,6 +1366,8 @@ class GuidesView(QWidget):
             self.show_guide_overview(self.current_guide_id, preserve_scroll=True)
 
     def _refresh_external_progress_standard(self) -> None:
+        if not self._runtime_ready:
+            return
         self.quest_progress = self.quest_progress_service.reload()
         self.guides = self.provider.load_all()
         self._sync_achievement_progress()
