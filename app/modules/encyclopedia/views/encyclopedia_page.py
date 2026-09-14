@@ -1024,9 +1024,8 @@ class EncyclopediaPage(QWidget):
 
         if isinstance(result, Exception):
             self._related_preload_gate.mark_failed()
+            self.ensure_guides_view().show_runtime_error(str(result))
             self.status_callback(f"Chargement Guide impossible : {result}")
-            # Keep a useful lightweight catalogue instead of a permanent spinner.
-            self._show_guide_index()
             self.sync_search_visibility()
             return
         if not isinstance(result, _GuideStagePayload):
