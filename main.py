@@ -85,6 +85,7 @@ from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, Atlas
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
 from app.windows.unity_windows import enable_dpi_awareness
+from app.windows.single_instance import SingleInstanceGuard
 
 SPLASH_MIN_VISIBLE_SECONDS = 0.25
 STARTUP_PRELOAD_DELAY_MS = 500
@@ -2038,7 +2039,7 @@ class AtlasWindow(QMainWindow):
         event.accept()
 
 
-def main() -> int:
+def _run_application() -> int:
     sys.excepthook = log_uncaught_exception
     LOGGER.info("[main] start argv=%s cwd=%s", sys.argv, Path.cwd())
     # DPI awareness must be established explicitly before QApplication is
@@ -2089,6 +2090,17 @@ def main() -> int:
     result = app.exec()
     LOGGER.info("[main] app.exec finished result=%s", result)
     return result
+
+
+def main() -> int:
+    guard = SingleInstanceGuard()
+    if not guard.acquire():
+        LOGGER.warning("[main] another Dofus Atlas instance is already running")
+        return 0
+    try:
+        return _run_application()
+    finally:
+        guard.release()
 
 
 if __name__ == "__main__":

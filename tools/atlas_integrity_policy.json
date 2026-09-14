@@ -96,6 +96,7 @@
         "tests.test_main_import_startup_boundary",
         "tests.test_main_startup_fast_path",
         "tests.test_main_startup_import_boundaries",
+        "tests.test_single_instance",
         "tests.test_startup_preflight",
         "tests.test_startup_preloader"
       ]
