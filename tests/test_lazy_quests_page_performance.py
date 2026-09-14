@@ -483,7 +483,7 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         EncyclopediaPageImpl.on_tab_changed(page, ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
 
         page.ensure_guides_view.assert_called_once_with()
-        page._activate_loaded_tab.assert_called_once_with(GUIDES_TAB)
+        page._activate_loaded_tab.assert_not_called()
         page._start_full_guide_runtime.assert_called_once_with()
         page.open_pending_lazy_tab.assert_not_called()
 
@@ -698,6 +698,48 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             requested.assert_not_called()
             view.deleteLater()
             self.app.processEvents()
+
+    def test_preloaded_providers_do_not_mark_a_cold_guide_widget_ready(self):
+        achievement_provider = SimpleNamespace(_loaded=True)
+        guide_provider = SimpleNamespace(_loaded=True)
+        gate = RelatedPreloadGate()
+        page = SimpleNamespace(
+            service=SimpleNamespace(
+                achievement_provider=None,
+                guide_provider=None,
+            ),
+            _achievement_provider_supplied=False,
+            _guide_provider_supplied=False,
+            _quest_graph=None,
+            _guide_progress_by_guide={},
+            _guide_progress_character_key="",
+            quest_page=None,
+            guides_view=None,
+            _achievement_ready=False,
+            _guide_runtime_ready=False,
+            _related_ready=False,
+            _related_preload_gate=gate,
+            _related_data_ready_callback=None,
+            open_pending_lazy_tab=Mock(),
+        )
+
+        EncyclopediaPageImpl.apply_preloaded_related_data(
+            page,
+            achievement_provider=achievement_provider,
+            guide_provider=guide_provider,
+            quest_graph=Mock(),
+        )
+
+        self.assertTrue(page._achievement_ready)
+        self.assertFalse(page._guide_runtime_ready)
+        self.assertFalse(page._related_ready)
+        self.assertEqual(gate.state, RelatedPreloadState.IDLE)
+        page.open_pending_lazy_tab.assert_not_called()
+
+    def test_success_render_batches_stay_within_small_qt_budget(self):
+        from app.modules.encyclopedia.views import achievements_view
+
+        self.assertLessEqual(achievements_view._RESULT_BATCH_SIZE, 16)
 
 
 if __name__ == "__main__":
