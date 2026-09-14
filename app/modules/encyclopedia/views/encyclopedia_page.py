@@ -206,14 +206,6 @@ class EncyclopediaPage(QWidget):
                 initial_progress_character_key=self._guide_progress_character_key,
             )
             self.replace_tab_widget(GUIDES_TAB, self.guides_view)
-            self._quest_graph = self.guides_view.graph
-            self._guide_provider_supplied = True
-            self._guide_runtime_ready = True
-            if self.quest_page is not None:
-                self.quest_page.update_related_context(
-                    guide_provider=self.service.guide_provider,
-                    graph=self._quest_graph,
-                )
         return self.guides_view
 
 
@@ -1212,6 +1204,14 @@ class EncyclopediaPage(QWidget):
                 self.request_achievement_warmup
             )
             self.replace_tab_widget(GUIDES_TAB, self.guides_view)
+            self._quest_graph = self.guides_view.graph
+            self._guide_provider_supplied = True
+            self._guide_runtime_ready = True
+            if self.quest_page is not None:
+                self.quest_page.update_related_context(
+                    guide_provider=self.service.guide_provider,
+                    graph=self._quest_graph,
+                )
         return self.guides_view
 
     def open_pending_lazy_tab(self) -> None:
