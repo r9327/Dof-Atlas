@@ -890,6 +890,11 @@ class AchievementsView(QWidget):
         )
 
     def refresh_external_progress(self) -> None:
+        # Tab activation happens before the background Success stage completes.
+        # Never let the generic activation refresh wake the cold provider on the
+        # Qt thread; the worker already synchronizes progress before hydration.
+        if not self._runtime_ready:
+            return
         quest_changed = self.quest_progress_service.refresh_if_changed()
         achievement_changed = self.progress_service.refresh_if_changed()
         if not quest_changed and not achievement_changed:

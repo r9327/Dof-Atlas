@@ -83,19 +83,10 @@ class DeferredAchievementGuidesView(_OptimizedGuidesView):
             self.achievement_provider = provider
 
     def select_guide(self, guide_id: str) -> bool:
-        guide_id = str(guide_id or "")
-        if not guide_id:
-            return False
-
-        # Guide Ultime can build its manual route and lightweight Success-name
-        # contract without materializing the rich Success runtime. Paint the
-        # requested guide immediately, then enrich shared Success data in the
-        # background like every other guide.
-        selected = bool(super().select_guide(guide_id))
-        if selected and not self._achievement_runtime_ready():
-            self.status_callback("Guide affiché · enrichissement Succès en arrière-plan...")
-            self.achievementRuntimeRequested.emit()
-        return selected
+        # A Guide overview is complete without the rich Success catalogue.
+        # Loading it here used to freeze the first Guide click even though the
+        # player had not opened a Success page.
+        return bool(super().select_guide(str(guide_id or "")))
 
     def show_quest_detail(self, quest_id: int, preserve_scroll: bool = False) -> bool:
         if not self._achievement_runtime_ready():
