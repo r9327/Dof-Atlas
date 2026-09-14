@@ -206,7 +206,6 @@ class EncyclopediaPage(QWidget):
                 graph=self._quest_graph,
                 initial_progress_by_guide=self._guide_progress_by_guide,
                 initial_progress_character_key=self._guide_progress_character_key,
-                defer_runtime=True,
             )
             self.replace_tab_widget(GUIDES_TAB, self.guides_view)
         return self.guides_view
@@ -1232,6 +1231,7 @@ class EncyclopediaPage(QWidget):
                 graph=self._quest_graph,
                 initial_progress_by_guide=self._guide_progress_by_guide,
                 initial_progress_character_key=self._guide_progress_character_key,
+                defer_runtime=True,
             )
             self.guides_view.achievementRuntimeRequested.connect(
                 self.request_achievement_warmup
