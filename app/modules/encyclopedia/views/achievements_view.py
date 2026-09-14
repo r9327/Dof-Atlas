@@ -96,6 +96,7 @@ class AchievementsView(QWidget):
         quest_graph: QuestGraphService | None = None,
         quest_progress_service: QuestProgressService | None = None,
         parent: QWidget | None = None,
+        defer_runtime: bool = False,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("AchievementsView")
@@ -108,8 +109,10 @@ class AchievementsView(QWidget):
         self.guide_provider = guide_provider
         self.quest_graph = quest_graph or QuestGraphService(self.quest_provider, guide_provider, provider)
         self.quest_progress_service = quest_progress_service or QuestProgressService()
-        self.achievements = provider.load_retained()
-        self.sync_automatic_progress()
+        self._runtime_ready = False
+        self.achievements = [] if defer_runtime else provider.load_retained()
+        if not defer_runtime:
+            self.sync_automatic_progress()
         self.filtered: list[Achievement] = []
         self.current_achievement_id: int | None = None
         self.selected_category_id: int | None = None
@@ -205,8 +208,49 @@ class AchievementsView(QWidget):
         self.splitter.setStretchFactor(2, 1)
         self.splitter.setSizes([245, 315, 640])
 
+        if defer_runtime:
+            self.show_runtime_loading()
+        else:
+            self._runtime_ready = True
+            self.populate_categories()
+            self.refresh()
+
+    def show_runtime_loading(self) -> None:
+        self.category_tree.clear()
+        self.list_widget.clear()
+        item = QListWidgetItem("Chargement des succès…")
+        item.setFlags(Qt.NoItemFlags)
+        self.list_widget.addItem(item)
+        self.show_empty()
+
+    def show_runtime_error(self, message: str) -> None:
+        self.category_tree.clear()
+        self.list_widget.clear()
+        item = QListWidgetItem(str(message or "Chargement des succès impossible."))
+        item.setFlags(Qt.NoItemFlags)
+        self.list_widget.addItem(item)
+        self.show_empty()
+
+    def hydrate_runtime(self, quest_graph: QuestGraphService | None = None) -> bool:
+        if self._runtime_ready:
+            return True
+        achievements = self.provider.load_retained()
+        if not achievements:
+            raise RuntimeError("Aucun succès conservé chargé")
+        self.achievements = list(achievements)
+        if quest_graph is not None:
+            self.quest_graph = quest_graph
+            self.quest_detail_view.update_related_context(
+                achievement_provider=self.provider,
+                guide_provider=self.guide_provider,
+                graph=quest_graph,
+            )
+        self.sync_automatic_progress()
+        self._runtime_ready = True
         self.populate_categories()
         self.refresh()
+        self._catalog_refresh_signature = self._current_catalog_signature()
+        return True
 
     @staticmethod
     def _panel(object_name: str, title: str) -> QFrame:
@@ -263,6 +307,9 @@ class AchievementsView(QWidget):
 
     def set_character_key(self, character_key: str) -> None:
         self.character_key = character_key or ""
+        if not self._runtime_ready:
+            self.quest_detail_view.set_character_key(self.character_key)
+            return
         self.quest_progress_service.reload()
         self.sync_automatic_progress()
         self.quest_detail_view.set_character_key(self.character_key)
@@ -699,6 +746,8 @@ class AchievementsView(QWidget):
         return text
 
     def refresh(self) -> None:
+        if not self._runtime_ready:
+            return
         signature = self._current_catalog_signature()
         if (
             not self._achievement_initializing

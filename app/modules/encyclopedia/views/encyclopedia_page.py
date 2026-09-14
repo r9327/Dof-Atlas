@@ -70,6 +70,7 @@ class _AchievementStagePayload:
 
 class EncyclopediaPage(QWidget):
     guideRuntimeFinished = Signal(object)
+    achievementRuntimeFinished = Signal(object)
 
     def _initialize_encyclopedia_shell(
         self,
@@ -490,7 +491,6 @@ class EncyclopediaPage(QWidget):
 
         self._quest_load_queue: Queue[object] = Queue(maxsize=1)
         self._quest_load_started = False
-        self._achievement_load_queue: Queue[object] = Queue(maxsize=1)
         self._achievement_load_started = False
         self._achievement_ready = False
         self._catalog_context_published = False
@@ -498,14 +498,11 @@ class EncyclopediaPage(QWidget):
         self._initialize_encyclopedia_shell(*args, **kwargs)
         self._related_preload_gate = RelatedPreloadGate(ready=self._related_ready)
         self.guideRuntimeFinished.connect(self.collect_related_preload)
+        self.achievementRuntimeFinished.connect(self._collect_achievement_runtime)
 
         self._quest_load_timer = QTimer(self)
         self._quest_load_timer.setInterval(30)
         self._quest_load_timer.timeout.connect(self._collect_quest_runtime)
-        self._achievement_load_timer = QTimer(self)
-        self._achievement_load_timer.setInterval(30)
-        self._achievement_load_timer.timeout.connect(self._collect_achievement_runtime)
-
         self._achievement_ready = bool(
             self._achievement_provider_supplied
             and getattr(self.service.achievement_provider, "_loaded", False)
@@ -753,6 +750,7 @@ class EncyclopediaPage(QWidget):
             guide_provider=guide_provider,
             quest_graph=self._quest_graph,
             quest_progress_service=QuestProgressService(self.quest_progress_path),
+            defer_runtime=not self._achievement_ready,
         )
         self.replace_tab_widget(ACHIEVEMENTS_TAB, view)
         return view
@@ -787,8 +785,10 @@ class EncyclopediaPage(QWidget):
             widget = self.quest_page
         elif label == GUIDES_TAB and self.guides_view is not None:
             widget = self.guides_view
-        elif label == ACHIEVEMENTS_TAB and self._achievement_ready:
-            widget = self.ensure_achievements_view()
+        elif label == ACHIEVEMENTS_TAB:
+            achievements_view = self.get_achievements_view()
+            if achievements_view is not None:
+                widget = achievements_view
         self._last_ready_tab_index = self.tab_labels().index(label)
         self.sync_tab_accent(label)
         self.sync_search_visibility()
@@ -936,15 +936,12 @@ class EncyclopediaPage(QWidget):
         self.request_related_preload(GUIDES_TAB)
 
     def _start_full_achievement_runtime(self) -> None:
-        """Show the lightweight Success index instead of a blocking-looking spinner."""
+        """Keep one stable Successes widget while data loads off the UI thread."""
 
         self._pending_lazy_tab = ACHIEVEMENTS_TAB
-        self._show_achievement_index()
-        index = self.tab_labels().index(ACHIEVEMENTS_TAB)
-        self._last_ready_tab_index = index
-        self.sync_tab_accent(ACHIEVEMENTS_TAB)
-        self.sync_search_visibility()
-        self.status_callback("Succès disponibles · détails en arrière-plan...")
+        self.ensure_achievements_view()
+        self._activate_loaded_tab(ACHIEVEMENTS_TAB)
+        self.status_callback("Succès disponibles · données en arrière-plan...")
         self.request_achievement_runtime()
 
     def request_related_preload(self, target_tab: str = "") -> None:
@@ -1096,7 +1093,6 @@ class EncyclopediaPage(QWidget):
         self._achievement_load_started = True
         quest_provider = self.quest_provider
         achievement_provider = self.service.achievement_provider
-        results = self._achievement_load_queue
         existing_graph = self._quest_graph
 
         def worker() -> None:
@@ -1113,8 +1109,12 @@ class EncyclopediaPage(QWidget):
                         graph,
                     )
                 except Exception as exc:
+                    LOGGER.exception("Chargement du runtime Succès impossible")
                     result = exc
-                results.put(result)
+                try:
+                    self.achievementRuntimeFinished.emit(result)
+                except RuntimeError:
+                    pass
 
         try:
             Thread(target=worker, name="DofusAtlasAchievementStage", daemon=True).start()
@@ -1122,22 +1122,16 @@ class EncyclopediaPage(QWidget):
             self._achievement_load_started = False
             self.status_callback(f"Chargement Succès impossible : {exc}")
             return
-        self._achievement_load_timer.start()
 
-    def _collect_achievement_runtime(self) -> None:
-        try:
-            result = self._achievement_load_queue.get_nowait()
-        except Empty:
-            return
-        self._achievement_load_timer.stop()
+    def _collect_achievement_runtime(self, result: object) -> None:
         self._achievement_load_started = False
 
         if isinstance(result, Exception):
             requested = self._success_runtime_requested
             self._success_runtime_requested = False
             if requested:
+                self.ensure_achievements_view().show_runtime_error(str(result))
                 self.status_callback(f"Chargement Succès impossible : {result}")
-                self._show_achievement_index()
                 self.sync_search_visibility()
             if self._full_guide_tab_requested and not self._guide_runtime_ready:
                 self.request_related_preload("")
@@ -1147,8 +1141,17 @@ class EncyclopediaPage(QWidget):
 
         self.service.achievement_provider = result.achievement_provider
         self._achievement_provider_supplied = True
-        self._achievement_ready = True
         self._quest_graph = result.graph
+        view = self.ensure_achievements_view()
+        try:
+            view.hydrate_runtime(result.graph)
+        except Exception as exc:
+            LOGGER.exception("Hydratation de la vue Succès impossible")
+            view.show_runtime_error(str(exc))
+            self.status_callback(f"Chargement Succès impossible : {exc}")
+            self._success_runtime_requested = False
+            return
+        self._achievement_ready = True
         # A quest-only graph may have been reused; promote the now-hot provider.
         self._quest_graph.achievement_provider = result.achievement_provider
 
@@ -1295,11 +1298,13 @@ class EncyclopediaPage(QWidget):
                 self._start_full_guide_runtime()
             return
         if label == ACHIEVEMENTS_TAB:
+            self.ensure_achievements_view()
+            self._activate_loaded_tab(ACHIEVEMENTS_TAB)
             if self._achievement_ready:
                 self._pending_lazy_tab = ACHIEVEMENTS_TAB
                 self.open_pending_lazy_tab()
-                return
-            self._start_full_achievement_runtime()
+            else:
+                self._start_full_achievement_runtime()
             return
         self._on_tab_changed_indexed_runtime(index)
 
