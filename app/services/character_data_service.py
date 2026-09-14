@@ -29,7 +29,9 @@ from app.network.character_resolver import (
     read_binding_payload,
 )
 from app.network.character_runtime_state import character_runtime_state
-from app.quest_catalog import _quest_progress_schema_error
+from app.modules.encyclopedia.services.quest_progress_service import (
+    _quest_progress_schema_error,
+)
 from app.services.character_order_service import CharacterOrderService
 from app.services.profile_settings_service import ProfileSettingsService
 

@@ -5,8 +5,45 @@ from typing import Any, Iterable
 
 from app.constants import QUEST_PROGRESS_FILE
 from app.core.character_identity import require_character_key
+from app.core.json_store import read_json_validated
 from app.core.progress_coordinator import coordinator_for
-from app.quest_catalog import load_quest_progress, save_quest_progress
+from app.quest_catalog import save_quest_progress
+
+
+def _empty_progress() -> dict[str, Any]:
+    return {"version": 1, "characters": {}}
+
+
+def _quest_progress_schema_error(payload: Any) -> str | None:
+    if not isinstance(payload, dict):
+        return "la racine doit être un objet"
+    if payload.get("version", 1) != 1:
+        return f"version inconnue: {payload.get('version')!r}"
+    characters = payload.get("characters", {})
+    if not isinstance(characters, dict):
+        return "characters doit être un objet"
+    for character_key, character in characters.items():
+        if not isinstance(character, dict):
+            return f"characters[{character_key!r}] doit être un objet"
+        for field in ("done", "completed_quest_objectives", "quest_items"):
+            if field in character and not isinstance(character[field], dict):
+                return f"characters[{character_key!r}].{field} doit être un objet"
+        objectives = character.get("completed_quest_objectives", {})
+        for quest_id, values in objectives.items():
+            if not isinstance(values, list):
+                return f"completed_quest_objectives[{quest_id!r}] doit être une liste"
+        items = character.get("quest_items", {})
+        for quest_id, values in items.items():
+            if not isinstance(values, dict):
+                return f"quest_items[{quest_id!r}] doit être un objet"
+    return None
+
+
+def _load_quest_progress(path: Path) -> dict[str, Any]:
+    payload = read_json_validated(path, _empty_progress(), _quest_progress_schema_error)
+    payload.setdefault("version", 1)
+    payload.setdefault("characters", {})
+    return payload
 
 
 class QuestProgressService:
@@ -25,7 +62,7 @@ class QuestProgressService:
         self._completed_objective_ids_cache: dict[tuple[str, int], frozenset[int]] = {}
         self._completed_item_ids_cache: dict[tuple[str, int], frozenset[int]] = {}
         with self._coordinator.lock:
-            self.progress = load_quest_progress(self.path)
+            self.progress = _load_quest_progress(self.path)
             self._seen_generation = self._coordinator.generation
             self._disk_signature = self._current_disk_signature()
 
@@ -46,7 +83,7 @@ class QuestProgressService:
             return
         with self._coordinator.lock:
             if self._seen_generation != self._coordinator.generation:
-                self.progress = load_quest_progress(self.path)
+                self.progress = _load_quest_progress(self.path)
                 self._seen_generation = self._coordinator.generation
                 self._disk_signature = self._current_disk_signature()
                 self._clear_read_caches()
@@ -64,7 +101,7 @@ class QuestProgressService:
             disk_signature = self._current_disk_signature()
             if generation == self._seen_generation and disk_signature == self._disk_signature:
                 return False
-            self.progress = load_quest_progress(self.path)
+            self.progress = _load_quest_progress(self.path)
             self._seen_generation = generation
             self._disk_signature = self._current_disk_signature()
             self._clear_read_caches()
@@ -78,7 +115,7 @@ class QuestProgressService:
             disk_signature = self._current_disk_signature()
             if generation == self._seen_generation and disk_signature == self._disk_signature:
                 return self.progress
-            self.progress = load_quest_progress(self.path)
+            self.progress = _load_quest_progress(self.path)
             self._seen_generation = generation
             self._disk_signature = self._current_disk_signature()
             self._clear_read_caches()
@@ -114,7 +151,7 @@ class QuestProgressService:
     def set_quest_completed(self, character_key: str, quest_id: int, completed: bool) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
-            self.progress = load_quest_progress(self.path)
+            self.progress = _load_quest_progress(self.path)
             character = self._mutable_character(key)
             done = character.get("done")
             if not isinstance(done, dict):
@@ -164,7 +201,7 @@ class QuestProgressService:
             return False
 
         with self._coordinator.lock:
-            self.progress = load_quest_progress(self.path)
+            self.progress = _load_quest_progress(self.path)
             character = self._mutable_character(key)
             done = character.get("done")
             if not isinstance(done, dict):
@@ -239,7 +276,7 @@ class QuestProgressService:
     ) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
-            self.progress = load_quest_progress(self.path)
+            self.progress = _load_quest_progress(self.path)
             character = self._mutable_character(key)
             rows = character.setdefault("completed_quest_objectives", {})
             if not isinstance(rows, dict):
@@ -314,7 +351,7 @@ class QuestProgressService:
 
         key = require_character_key(character_key)
         with self._coordinator.lock:
-            self.progress = load_quest_progress(self.path)
+            self.progress = _load_quest_progress(self.path)
             character = self._mutable_character(key)
             items = character.setdefault("quest_items", {})
             if not isinstance(items, dict):
@@ -353,7 +390,7 @@ class QuestProgressService:
         """
         with self._coordinator.lock:
             if self._seen_generation != self._coordinator.generation:
-                self.progress = load_quest_progress(self.path)
+                self.progress = _load_quest_progress(self.path)
                 self._seen_generation = self._coordinator.generation
                 self._disk_signature = self._current_disk_signature()
                 self._clear_read_caches()

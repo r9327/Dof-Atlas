@@ -53,10 +53,12 @@ class CleanFoundationGuardrailsTests(unittest.TestCase):
 
     def test_mutable_progress_persistence_uses_common_json_store(self) -> None:
         quest_catalog = self._text("app/quest_catalog.py")
+        quest = self._text("app/modules/encyclopedia/services/quest_progress_service.py")
         guide = self._text("app/modules/encyclopedia/services/guide_progress_service.py")
         achievement = self._text("app/modules/encyclopedia/services/serialized_achievement_progress_service.py")
 
-        self.assertIn("read_json_validated", quest_catalog)
+        self.assertIn("read_json_validated", quest)
+        self.assertIn("save_quest_progress", quest)
         self.assertIn("write_json_atomic", quest_catalog)
         self.assertIn("read_json_validated", guide)
         self.assertIn("write_json_atomic", guide)

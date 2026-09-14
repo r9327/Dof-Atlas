@@ -21,7 +21,7 @@ from app.constants import (
     RAW_QUEST_DATA_DIR,
     ROOT_DIR,
 )
-from app.core.json_store import read_json_resilient, read_json_validated, write_json_atomic
+from app.core.json_store import read_json_resilient, write_json_atomic
 from app.quest_source_index import build_image_index
 
 
@@ -1217,39 +1217,13 @@ def resolve_local_asset_path(value: Any) -> str:
 
 
 def load_quest_progress(path: Path = QUEST_PROGRESS_FILE) -> dict[str, Any]:
-    payload = read_json_validated(
-        path,
-        {"version": 1, "characters": {}},
-        _quest_progress_schema_error,
-    )
-    payload.setdefault("version", 1)
-    payload.setdefault("characters", {})
-    return payload
-
-
-def _quest_progress_schema_error(payload: Any) -> str | None:
+    payload = read_json_resilient(path, {"version": 1, "characters": {}})
     if not isinstance(payload, dict):
-        return "la racine doit être un objet"
-    if payload.get("version", 1) != 1:
-        return f"version inconnue: {payload.get('version')!r}"
-    characters = payload.get("characters", {})
-    if not isinstance(characters, dict):
-        return "characters doit être un objet"
-    for character_key, character in characters.items():
-        if not isinstance(character, dict):
-            return f"characters[{character_key!r}] doit être un objet"
-        for field in ("done", "completed_quest_objectives", "quest_items"):
-            if field in character and not isinstance(character[field], dict):
-                return f"characters[{character_key!r}].{field} doit être un objet"
-        objectives = character.get("completed_quest_objectives", {})
-        for quest_id, values in objectives.items():
-            if not isinstance(values, list):
-                return f"completed_quest_objectives[{quest_id!r}] doit être une liste"
-        items = character.get("quest_items", {})
-        for quest_id, values in items.items():
-            if not isinstance(values, dict):
-                return f"quest_items[{quest_id!r}] doit être un objet"
-    return None
+        return {"version": 1, "characters": {}}
+    payload.setdefault("version", 1)
+    if not isinstance(payload.get("characters"), dict):
+        payload["characters"] = {}
+    return payload
 
 
 def save_quest_progress(progress: dict[str, Any], path: Path = QUEST_PROGRESS_FILE) -> None:
