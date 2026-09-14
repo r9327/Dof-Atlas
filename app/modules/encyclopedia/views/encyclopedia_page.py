@@ -956,6 +956,7 @@ class EncyclopediaPage(QWidget):
         # that single reader finish first rather than competing on the same JSONs.
         if self._achievement_load_started and not self._achievement_ready:
             return
+        retrying_after_failure = self._related_preload_gate.allow_retry()
         if not self._related_preload_gate.begin():
             return
 
@@ -974,7 +975,11 @@ class EncyclopediaPage(QWidget):
                     catalog = quest_provider.get_catalog()
                     # IndexedGuideProvider resolves achievement link labels without
                     # forcing the rich AchievementProvider to materialize here.
-                    guides = guide_provider.load_all()
+                    guides = (
+                        guide_provider.reload()
+                        if retrying_after_failure
+                        else guide_provider.load_all()
+                    )
                     if not guides:
                         raise RuntimeError("Aucun guide chargé depuis catalog.json")
                     graph = QuestGraphService(
