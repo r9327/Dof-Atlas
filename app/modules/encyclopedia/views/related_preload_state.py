@@ -37,3 +37,11 @@ class RelatedPreloadGate:
 
     def mark_failed(self) -> None:
         self._state = RelatedPreloadState.FAILED
+
+    def allow_retry(self) -> bool:
+        """Return a failed preload to idle so a repaired data source can reload."""
+
+        if self._state is not RelatedPreloadState.FAILED:
+            return False
+        self._state = RelatedPreloadState.IDLE
+        return True
