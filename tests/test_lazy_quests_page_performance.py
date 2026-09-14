@@ -647,6 +647,58 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         self.app.processEvents()
 
 
+    def test_cold_success_refresh_never_wakes_provider_on_qt_thread(self):
+        provider = Mock()
+        provider.quest_provider = Mock()
+        quest_progress_service = Mock()
+        view = AchievementsView(
+            lambda _text: None,
+            provider=provider,
+            progress_service=Mock(),
+            quest_provider=provider.quest_provider,
+            quest_graph=Mock(),
+            quest_progress_service=quest_progress_service,
+            defer_runtime=True,
+        )
+        view.sync_automatic_progress = Mock()
+
+        view.refresh_external_progress()
+
+        quest_progress_service.refresh_if_changed.assert_not_called()
+        view.sync_automatic_progress.assert_not_called()
+        provider.load_retained.assert_not_called()
+        view.deleteLater()
+        self.app.processEvents()
+
+    def test_guide_overview_does_not_request_rich_success_runtime(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            provider = Mock()
+            quest_provider = Mock()
+            achievement_provider = Mock()
+            achievement_provider._loaded = False
+            view = DeferredAchievementGuidesView(
+                lambda _text: None,
+                provider=provider,
+                quest_provider=quest_provider,
+                achievement_provider=achievement_provider,
+                achievement_progress_service=Mock(),
+                guide_progress_service=Mock(),
+                quest_progress_path=Path(temporary) / "quest_progress.json",
+                defer_runtime=True,
+            )
+            requested = Mock()
+            view.achievementRuntimeRequested.connect(requested)
+
+            with patch(
+                "app.modules.encyclopedia.views.guides_view.GuidesView.select_guide",
+                return_value=True,
+            ):
+                self.assertTrue(view.select_guide("dofus_cawotte"))
+
+            requested.assert_not_called()
+            view.deleteLater()
+            self.app.processEvents()
+
 
 if __name__ == "__main__":
     unittest.main()
