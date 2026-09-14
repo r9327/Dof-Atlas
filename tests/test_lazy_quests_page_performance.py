@@ -18,6 +18,7 @@ from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as
 from app.modules.encyclopedia.constants import (
     ACHIEVEMENTS_TAB,
     ENCYCLOPEDIA_TABS,
+    GUIDES_TAB,
     QUESTS_TAB,
 )
 from app.pages.lazy_quests_page import LazyQuestsPage
@@ -393,6 +394,57 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         self.assertIsNone(page._pending_achievement_id)
         tabs.setCurrentIndex.assert_called_once_with(success_index)
         success_view.show_achievement.assert_called_once_with(1385)
+
+
+    def test_guide_tab_builds_one_canonical_view_immediately(self):
+        tabs = Mock()
+        tabs.tabText.return_value = GUIDES_TAB
+        guide_view = SimpleNamespace(refresh_external_progress=Mock())
+        page = SimpleNamespace(
+            _initializing=False,
+            tabs=tabs,
+            guides_view=None,
+            ensure_guides_view=Mock(return_value=guide_view),
+            _activate_loaded_tab=Mock(),
+            _on_tab_changed_indexed_runtime=Mock(),
+        )
+
+        EncyclopediaPageImpl.on_tab_changed(page, ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
+
+        page.ensure_guides_view.assert_called_once_with()
+        page._activate_loaded_tab.assert_called_once_with(GUIDES_TAB)
+        page._on_tab_changed_indexed_runtime.assert_not_called()
+
+    def test_guide_ultime_navigation_selects_immediately_without_pending_runtime(self):
+        guide_view = SimpleNamespace(select_guide=Mock(return_value=True))
+        tabs = Mock()
+        page = SimpleNamespace(
+            _pending_guide_id="stale-guide",
+            _pending_lazy_tab=GUIDES_TAB,
+            tabs=tabs,
+            tab_labels=lambda: list(ENCYCLOPEDIA_TABS),
+            ensure_guides_view=Mock(return_value=guide_view),
+        )
+
+        self.assertTrue(EncyclopediaPageImpl.navigate_to_guide(page, "guide_complet"))
+
+        page.ensure_guides_view.assert_called_once_with()
+        guide_view.select_guide.assert_called_once_with("guide_complet")
+        tabs.setCurrentIndex.assert_called_once_with(ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
+        self.assertEqual(page._pending_guide_id, "")
+        self.assertEqual(page._pending_lazy_tab, "")
+
+    def test_guide_navigation_reports_real_selection_failure(self):
+        guide_view = SimpleNamespace(select_guide=Mock(return_value=False))
+        page = SimpleNamespace(
+            _pending_guide_id="",
+            _pending_lazy_tab="",
+            tabs=Mock(),
+            tab_labels=lambda: list(ENCYCLOPEDIA_TABS),
+            ensure_guides_view=Mock(return_value=guide_view),
+        )
+
+        self.assertFalse(EncyclopediaPageImpl.navigate_to_guide(page, "guide-inconnu"))
 
 
 if __name__ == "__main__":
