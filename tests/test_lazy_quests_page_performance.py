@@ -16,6 +16,7 @@ from app.modules.encyclopedia.providers import QuestProvider
 from app.modules.encyclopedia.views import EncyclopediaPage
 from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as EncyclopediaPageImpl
 from app.modules.encyclopedia.views.deferred_achievement_guides_view import DeferredAchievementGuidesView
+from app.modules.encyclopedia.views.achievements_view import AchievementsView
 from app.modules.encyclopedia.constants import (
     ACHIEVEMENTS_TAB,
     ENCYCLOPEDIA_TABS,
@@ -333,6 +334,44 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         page.navigate_to_guide.assert_called_once_with("dofus_turquoise")
         page.navigate_to_achievement_tab.assert_not_called()
         page.navigate_to_achievement_context.assert_not_called()
+
+    def test_stable_successes_constructor_does_not_load_provider(self):
+        provider = Mock()
+        provider.quest_provider = Mock()
+        view = AchievementsView(
+            lambda _text: None,
+            provider=provider,
+            progress_service=Mock(),
+            quest_provider=provider.quest_provider,
+            quest_graph=Mock(),
+            quest_progress_service=Mock(),
+            defer_runtime=True,
+        )
+
+        provider.load_retained.assert_not_called()
+        self.assertFalse(view._runtime_ready)
+        self.assertEqual(view.list_widget.count(), 1)
+
+        view.deleteLater()
+        self.app.processEvents()
+
+    def test_successes_runtime_uses_existing_widget_without_index_swap(self):
+        stable_view = object()
+        page = SimpleNamespace(
+            _pending_lazy_tab="",
+            ensure_achievements_view=Mock(return_value=stable_view),
+            _activate_loaded_tab=Mock(),
+            status_callback=Mock(),
+            request_achievement_runtime=Mock(),
+            _show_achievement_index=Mock(),
+        )
+
+        EncyclopediaPageImpl._start_full_achievement_runtime(page)
+
+        page.ensure_achievements_view.assert_called_once_with()
+        page._activate_loaded_tab.assert_called_once_with(ACHIEVEMENTS_TAB)
+        page.request_achievement_runtime.assert_called_once_with()
+        page._show_achievement_index.assert_not_called()
 
     def test_success_target_pending_contract_cold_and_ready(self):
         for ready in (False, True):
