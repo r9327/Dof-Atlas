@@ -11,6 +11,7 @@ from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QLineEdit, QTabWidget, QVBoxLayout, QWidget
 
 from app.background_work import background_io_priority
+from app.core.character_identity import is_character_key
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, DEFAULT_TAB, ENCYCLOPEDIA_TABS, GUIDES_TAB, QUESTS_TAB
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
@@ -66,6 +67,7 @@ class _GuideStagePayload:
 class _AchievementStagePayload:
     achievement_provider: object
     graph: QuestGraphService
+    progress_synchronized: bool
 
 
 class EncyclopediaPage(QWidget):
@@ -1099,12 +1101,27 @@ class EncyclopediaPage(QWidget):
         quest_provider = self.quest_provider
         achievement_provider = self.service.achievement_provider
         existing_graph = self._quest_graph
+        character_key = str(self.current_character_key or "")
+        achievement_progress_service = self.achievement_progress_service
+        quest_progress_path = self.quest_progress_path
+        guide_provider = (
+            self.service.guide_provider if self._guide_runtime_ready else None
+        )
 
         def worker() -> None:
             with background_io_priority():
                 try:
                     quest_provider.get_catalog()
                     achievement_provider.load_all()
+                    progress_synchronized = False
+                    if is_character_key(character_key):
+                        achievement_progress_service.sync_from_quest_progress(
+                            character_key,
+                            achievement_provider,
+                            QuestProgressService(quest_progress_path),
+                            guide_provider,
+                        )
+                        progress_synchronized = True
                     graph = existing_graph or QuestGraphService(
                         quest_provider,
                         achievement_provider=achievement_provider,
@@ -1112,6 +1129,7 @@ class EncyclopediaPage(QWidget):
                     result: object = _AchievementStagePayload(
                         achievement_provider,
                         graph,
+                        progress_synchronized,
                     )
                 except Exception as exc:
                     LOGGER.exception("Chargement du runtime Succès impossible")
@@ -1149,7 +1167,10 @@ class EncyclopediaPage(QWidget):
         self._quest_graph = result.graph
         view = self.ensure_achievements_view()
         try:
-            view.hydrate_runtime(result.graph)
+            view.hydrate_runtime(
+                result.graph,
+                progress_synchronized=result.progress_synchronized,
+            )
         except Exception as exc:
             LOGGER.exception("Hydratation de la vue Succès impossible")
             view.show_runtime_error(str(exc))
