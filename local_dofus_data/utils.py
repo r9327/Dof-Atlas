@@ -45,10 +45,35 @@ def save_json_atomic(path: str | Path, payload: Any) -> None:
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
             handle.write(content)
             handle.write("\n")
+            _flush_and_sync(handle)
         os.replace(tmp_name, path)
+        _sync_parent_directory(path.parent)
     finally:
         if os.path.exists(tmp_name):
             os.unlink(tmp_name)
+
+
+def _flush_and_sync(handle: Any) -> None:
+    """Make temporary-file contents durable before the atomic replacement."""
+
+    handle.flush()
+    os.fsync(handle.fileno())
+
+
+def _sync_parent_directory(directory: Path) -> None:
+    """Persist the replacement metadata where directory fsync is supported."""
+
+    if os.name == "nt":
+        # Python cannot open directory handles with os.open on Windows. The
+        # flushed temporary file and atomic os.replace still provide the
+        # strongest portable contract available through the standard library.
+        return
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+    directory_fd = os.open(directory, flags)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
 
 
 def normalize_text(value: Any) -> str:
