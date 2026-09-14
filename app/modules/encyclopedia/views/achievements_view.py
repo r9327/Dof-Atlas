@@ -295,7 +295,7 @@ class AchievementsView(QWidget):
                 child.setData(0, TOP_CATEGORY_ROLE, category.id)
                 top_item.addChild(child)
                 self._tree_items[subcategory.id] = child
-            top_item.setExpanded(top_item is first_item)
+            top_item.setExpanded(False)
         if first_item is not None:
             self.selected_category_id = int(first_item.data(0, CATEGORY_ROLE))
             self.category_tree.setCurrentItem(first_item)

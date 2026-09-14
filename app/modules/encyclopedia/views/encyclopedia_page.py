@@ -1005,24 +1005,52 @@ class EncyclopediaPage(QWidget):
             with background_io_priority():
                 try:
                     catalog = quest_provider.get_catalog()
+                    active_guide_provider = guide_provider
                     # IndexedGuideProvider resolves achievement link labels without
                     # forcing the rich AchievementProvider to materialize here.
                     guides = (
-                        guide_provider.reload()
+                        active_guide_provider.reload()
                         if retrying_after_failure
-                        else guide_provider.load_all()
+                        else active_guide_provider.load_all()
                     )
                     if not guides:
-                        raise RuntimeError("Aucun guide chargé depuis catalog.json")
+                        # A provider created while local data was absent may remain
+                        # poisoned even after Git restores the catalogue. Retry from
+                        # the canonical directory with a completely fresh instance.
+                        recovered_provider = GuideProvider(
+                            quest_provider=quest_provider,
+                            achievement_provider=achievement_provider,
+                            dofus_item_provider=getattr(
+                                active_guide_provider,
+                                "dofus_item_provider",
+                                None,
+                            ),
+                            include_drafts=bool(
+                                getattr(active_guide_provider, "include_drafts", False)
+                            ),
+                        )
+                        recovered_guides = recovered_provider.reload()
+                        if recovered_guides:
+                            active_guide_provider = recovered_provider
+                            guides = recovered_guides
+                    if not guides:
+                        catalog_path = Path(active_guide_provider.guides_dir) / "catalog.json"
+                        errors = list(
+                            getattr(active_guide_provider, "validation_errors", ()) or ()
+                        )
+                        detail = f" · {'; '.join(errors[:3])}" if errors else ""
+                        raise RuntimeError(
+                            f"Aucun guide chargé depuis {catalog_path}{detail}"
+                        )
                     graph = QuestGraphService(
                         quest_provider,
-                        guide_provider=guide_provider,
+                        guide_provider=active_guide_provider,
                         achievement_provider=achievement_provider,
                     )
                     try:
                         progress = self._build_guide_progress_snapshot(
                             catalog,
-                            guide_provider,
+                            active_guide_provider,
                             character_key,
                             quest_progress_path,
                             guide_progress_path,
@@ -1031,7 +1059,7 @@ class EncyclopediaPage(QWidget):
                     except Exception:
                         progress = {}
                     result: object = _GuideStagePayload(
-                        guide_provider,
+                        active_guide_provider,
                         graph,
                         progress,
                         character_key,
