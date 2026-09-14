@@ -682,7 +682,10 @@ class CraftPage(QWidget):
     def load_items(self) -> None:
         preloaded_items = self.preload.get("items")
         if isinstance(preloaded_items, list):
-            self.items = [dict(item) for item in preloaded_items if isinstance(item, dict)]
+            if bool(self.preload.get("_prepared")):
+                self.items = [item for item in preloaded_items if isinstance(item, dict)]
+            else:
+                self.items = [dict(item) for item in preloaded_items if isinstance(item, dict)]
         elif local_data_cache is None:
             self.items = []
             self.status_callback("Module local_data_cache indisponible.")
@@ -693,14 +696,19 @@ class CraftPage(QWidget):
             except Exception as exc:
                 self.items = []
                 self.status_callback(f"Chargement craft impossible: {exc}")
-        for item in self.items:
-            item["_search_name"] = normalize_key(item.get("name"))
-            item["_craft_category"] = self.category_for_item(item)
-        self.items_by_name = {
-            normalize_key(item.get("name")): item
-            for item in self.items
-            if item.get("name")
-        }
+        if not bool(self.preload.get("_prepared")):
+            for item in self.items:
+                item["_search_name"] = normalize_key(item.get("name"))
+                item["_craft_category"] = self.category_for_item(item)
+        preloaded_by_name = self.preload.get("items_by_name")
+        if isinstance(preloaded_by_name, dict):
+            self.items_by_name = dict(preloaded_by_name)
+        else:
+            self.items_by_name = {
+                normalize_key(item.get("name")): item
+                for item in self.items
+                if item.get("name")
+            }
         lookup_items = self.preload.get("lookup_items", [])
         if not isinstance(lookup_items, list):
             lookup_items = []
