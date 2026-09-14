@@ -396,55 +396,77 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         success_view.show_achievement.assert_called_once_with(1385)
 
 
-    def test_guide_tab_builds_one_canonical_view_immediately(self):
+    def test_guide_tab_starts_nonblocking_runtime_without_building_rich_view(self):
         tabs = Mock()
         tabs.tabText.return_value = GUIDES_TAB
-        guide_view = SimpleNamespace(refresh_external_progress=Mock())
         page = SimpleNamespace(
             _initializing=False,
             tabs=tabs,
             guides_view=None,
-            ensure_guides_view=Mock(return_value=guide_view),
+            _guide_runtime_ready=False,
+            _start_full_guide_runtime=Mock(),
             _activate_loaded_tab=Mock(),
+            open_pending_lazy_tab=Mock(),
             _on_tab_changed_indexed_runtime=Mock(),
         )
 
         EncyclopediaPageImpl.on_tab_changed(page, ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
 
-        page.ensure_guides_view.assert_called_once_with()
-        page._activate_loaded_tab.assert_called_once_with(GUIDES_TAB)
-        page._on_tab_changed_indexed_runtime.assert_not_called()
+        page._start_full_guide_runtime.assert_called_once_with()
+        page._activate_loaded_tab.assert_not_called()
+        page.open_pending_lazy_tab.assert_not_called()
 
-    def test_guide_ultime_navigation_selects_immediately_without_pending_runtime(self):
-        guide_view = SimpleNamespace(select_guide=Mock(return_value=True))
+    def test_guide_ultime_navigation_is_preserved_until_runtime_finishes(self):
         tabs = Mock()
         page = SimpleNamespace(
-            _pending_guide_id="stale-guide",
-            _pending_lazy_tab=GUIDES_TAB,
+            _pending_guide_id="",
+            _pending_lazy_tab="",
+            _guide_runtime_ready=False,
             tabs=tabs,
             tab_labels=lambda: list(ENCYCLOPEDIA_TABS),
-            ensure_guides_view=Mock(return_value=guide_view),
+            open_pending_lazy_tab=Mock(),
+            _start_full_guide_runtime=Mock(),
         )
 
         self.assertTrue(EncyclopediaPageImpl.navigate_to_guide(page, "guide_complet"))
 
-        page.ensure_guides_view.assert_called_once_with()
-        guide_view.select_guide.assert_called_once_with("guide_complet")
+        self.assertEqual(page._pending_guide_id, "guide_complet")
+        self.assertEqual(page._pending_lazy_tab, GUIDES_TAB)
         tabs.setCurrentIndex.assert_called_once_with(ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
-        self.assertEqual(page._pending_guide_id, "")
-        self.assertEqual(page._pending_lazy_tab, "")
+        page._start_full_guide_runtime.assert_called_once_with()
+        page.open_pending_lazy_tab.assert_not_called()
 
-    def test_guide_navigation_reports_real_selection_failure(self):
-        guide_view = SimpleNamespace(select_guide=Mock(return_value=False))
+    def test_empty_guide_navigation_is_rejected_without_starting_runtime(self):
         page = SimpleNamespace(
-            _pending_guide_id="",
-            _pending_lazy_tab="",
-            tabs=Mock(),
-            tab_labels=lambda: list(ENCYCLOPEDIA_TABS),
-            ensure_guides_view=Mock(return_value=guide_view),
+            _start_full_guide_runtime=Mock(),
+            open_pending_lazy_tab=Mock(),
         )
 
-        self.assertFalse(EncyclopediaPageImpl.navigate_to_guide(page, "guide-inconnu"))
+        self.assertFalse(EncyclopediaPageImpl.navigate_to_guide(page, ""))
+
+        page._start_full_guide_runtime.assert_not_called()
+        page.open_pending_lazy_tab.assert_not_called()
+
+    def test_guide_worker_failure_reaches_a_terminal_visible_state(self):
+        error = RuntimeError("catalogue cassé")
+        gate = SimpleNamespace(mark_failed=Mock())
+        page = SimpleNamespace(
+            _related_preload_started=True,
+            _related_preload_gate=gate,
+            status_callback=Mock(),
+            _show_guide_index=Mock(),
+            sync_search_visibility=Mock(),
+        )
+
+        EncyclopediaPageImpl.collect_related_preload(page, error)
+
+        self.assertFalse(page._related_preload_started)
+        gate.mark_failed.assert_called_once_with()
+        page.status_callback.assert_called_once_with(
+            "Chargement Guide impossible : catalogue cassé"
+        )
+        page._show_guide_index.assert_called_once_with()
+        page.sync_search_visibility.assert_called_once_with()
 
 
 if __name__ == "__main__":
