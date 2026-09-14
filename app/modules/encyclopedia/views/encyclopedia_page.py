@@ -766,7 +766,7 @@ class EncyclopediaPage(QWidget):
         guide_id = str(self._pending_guide_id or "")
         if not guide_id or not self._related_ready:
             return False
-        view = self._ensure_guides_view_progressive()
+        view = self.ensure_guides_view()
         self._guide_index_view = None
         self._pending_guide_id = ""
         if GUIDES_TAB in self.tab_labels():
