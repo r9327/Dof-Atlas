@@ -231,7 +231,12 @@ class AchievementsView(QWidget):
         self.list_widget.addItem(item)
         self.show_empty()
 
-    def hydrate_runtime(self, quest_graph: QuestGraphService | None = None) -> bool:
+    def hydrate_runtime(
+        self,
+        quest_graph: QuestGraphService | None = None,
+        *,
+        progress_synchronized: bool = False,
+    ) -> bool:
         if self._runtime_ready:
             return True
         achievements = self.provider.load_retained()
@@ -245,7 +250,8 @@ class AchievementsView(QWidget):
                 guide_provider=self.guide_provider,
                 graph=quest_graph,
             )
-        self.sync_automatic_progress()
+        if not progress_synchronized:
+            self.sync_automatic_progress()
         self._runtime_ready = True
         self.populate_categories()
         self.refresh()

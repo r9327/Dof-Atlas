@@ -589,5 +589,64 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
 
 
 
+    def test_guide_hydration_keeps_rich_detail_unbuilt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            provider = Mock()
+            provider.load_all.return_value = [SimpleNamespace(id="guide-test")]
+            quest_provider = Mock()
+            quest_provider.get_catalog.return_value = SimpleNamespace(by_id={})
+            achievement_provider = Mock()
+            achievement_provider._loaded = False
+            achievement_progress_service = Mock()
+            achievement_progress_service.path = Path(temporary) / "achievement_progress.json"
+            guide_progress_service = Mock()
+            guide_progress_service.path = Path(temporary) / "guide_progress.json"
+            view = DeferredAchievementGuidesView(
+                lambda _text: None,
+                provider=provider,
+                quest_provider=quest_provider,
+                achievement_provider=achievement_provider,
+                achievement_progress_service=achievement_progress_service,
+                guide_progress_service=guide_progress_service,
+                quest_progress_path=Path(temporary) / "quest_progress.json",
+                defer_runtime=True,
+            )
+            view.refresh_home = Mock()
+
+            self.assertTrue(view.hydrate_runtime(graph=Mock()))
+
+            self.assertTrue(view._runtime_ready)
+            self.assertIsNone(view.detail_page)
+            view.refresh_home.assert_called_once_with()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_success_hydration_skips_progress_already_computed_by_worker(self):
+        provider = Mock()
+        provider.quest_provider = Mock()
+        provider.load_retained.return_value = [SimpleNamespace(id=1)]
+        view = AchievementsView(
+            lambda _text: None,
+            provider=provider,
+            progress_service=Mock(),
+            quest_provider=provider.quest_provider,
+            quest_graph=Mock(),
+            quest_progress_service=Mock(),
+            defer_runtime=True,
+        )
+        view.sync_automatic_progress = Mock()
+        view.populate_categories = Mock()
+        view.refresh = Mock()
+
+        self.assertTrue(view.hydrate_runtime(progress_synchronized=True))
+
+        view.sync_automatic_progress.assert_not_called()
+        view.populate_categories.assert_called_once_with()
+        view.refresh.assert_called_once_with()
+        view.deleteLater()
+        self.app.processEvents()
+
+
+
 if __name__ == "__main__":
     unittest.main()

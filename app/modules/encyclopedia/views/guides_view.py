@@ -1182,13 +1182,19 @@ class GuidesView(QWidget):
         if initial_progress_character_key:
             self._initial_progress_character_key = str(initial_progress_character_key)
         self._sync_achievement_progress()
-        self.detail_page = self.build_detail_page()
-        self.stack.addWidget(self.detail_page)
         self._runtime_ready = True
         self.refresh_home()
         self._external_progress_signature = self._current_external_progress_signature()
         self.status_callback(f"{len(self.guides)} guide(s) chargés.")
         return True
+
+    def _ensure_detail_page(self) -> QWidget:
+        """Build the rich three-column Guide detail only on first navigation."""
+
+        if self.detail_page is None:
+            self.detail_page = self.build_detail_page()
+            self.stack.addWidget(self.detail_page)
+        return self.detail_page
 
     def build_home_page(self) -> QWidget:
         page = QWidget()
@@ -1583,6 +1589,7 @@ class GuidesView(QWidget):
         guide = self.provider.get_by_id(str(guide_id))
         if guide is None:
             return
+        self._ensure_detail_page()
         previous_position = self.guide_scroll_positions.get(guide.id, 0) if preserve_scroll else 0
         self.current_guide_id = guide.id
         self.current_quest_id = None
