@@ -597,13 +597,17 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             quest_provider.get_catalog.return_value = SimpleNamespace(by_id={})
             achievement_provider = Mock()
             achievement_provider._loaded = False
+            achievement_progress_service = Mock()
+            achievement_progress_service.path = Path(temporary) / "achievement_progress.json"
+            guide_progress_service = Mock()
+            guide_progress_service.path = Path(temporary) / "guide_progress.json"
             view = DeferredAchievementGuidesView(
                 lambda _text: None,
                 provider=provider,
                 quest_provider=quest_provider,
                 achievement_provider=achievement_provider,
-                achievement_progress_service=Mock(),
-                guide_progress_service=Mock(),
+                achievement_progress_service=achievement_progress_service,
+                guide_progress_service=guide_progress_service,
                 quest_progress_path=Path(temporary) / "quest_progress.json",
                 defer_runtime=True,
             )
