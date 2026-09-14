@@ -399,11 +399,13 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
     def test_guide_tab_starts_nonblocking_runtime_without_building_rich_view(self):
         tabs = Mock()
         tabs.tabText.return_value = GUIDES_TAB
+        stable_view = object()
         page = SimpleNamespace(
             _initializing=False,
             tabs=tabs,
             guides_view=None,
             _guide_runtime_ready=False,
+            ensure_guides_view=Mock(return_value=stable_view),
             _start_full_guide_runtime=Mock(),
             _activate_loaded_tab=Mock(),
             open_pending_lazy_tab=Mock(),
@@ -412,8 +414,9 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
 
         EncyclopediaPageImpl.on_tab_changed(page, ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
 
+        page.ensure_guides_view.assert_called_once_with()
+        page._activate_loaded_tab.assert_called_once_with(GUIDES_TAB)
         page._start_full_guide_runtime.assert_called_once_with()
-        page._activate_loaded_tab.assert_not_called()
         page.open_pending_lazy_tab.assert_not_called()
 
     def test_guide_ultime_navigation_is_preserved_until_runtime_finishes(self):
@@ -450,11 +453,12 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
     def test_guide_worker_failure_reaches_a_terminal_visible_state(self):
         error = RuntimeError("catalogue cassé")
         gate = SimpleNamespace(mark_failed=Mock())
+        stable_view = SimpleNamespace(show_runtime_error=Mock())
         page = SimpleNamespace(
             _related_preload_started=True,
             _related_preload_gate=gate,
             status_callback=Mock(),
-            _show_guide_index=Mock(),
+            ensure_guides_view=Mock(return_value=stable_view),
             sync_search_visibility=Mock(),
         )
 
@@ -462,10 +466,11 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
 
         self.assertFalse(page._related_preload_started)
         gate.mark_failed.assert_called_once_with()
+        page.ensure_guides_view.assert_called_once_with()
+        stable_view.show_runtime_error.assert_called_once_with("catalogue cassé")
         page.status_callback.assert_called_once_with(
             "Chargement Guide impossible : catalogue cassé"
         )
-        page._show_guide_index.assert_called_once_with()
         page.sync_search_visibility.assert_called_once_with()
 
 
