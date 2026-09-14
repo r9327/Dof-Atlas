@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication
 from app.modules.encyclopedia.providers import QuestProvider
 from app.modules.encyclopedia.views import EncyclopediaPage
 from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as EncyclopediaPageImpl
+from app.modules.encyclopedia.views.deferred_achievement_guides_view import DeferredAchievementGuidesView
 from app.modules.encyclopedia.constants import (
     ACHIEVEMENTS_TAB,
     ENCYCLOPEDIA_TABS,
@@ -395,6 +396,30 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         tabs.setCurrentIndex.assert_called_once_with(success_index)
         success_view.show_achievement.assert_called_once_with(1385)
 
+
+    def test_stable_guide_view_constructor_does_not_load_catalogues(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            provider = Mock()
+            quest_provider = Mock()
+            achievement_provider = Mock()
+            view = DeferredAchievementGuidesView(
+                lambda _text: None,
+                provider=provider,
+                quest_provider=quest_provider,
+                achievement_provider=achievement_provider,
+                achievement_progress_service=Mock(),
+                guide_progress_service=Mock(),
+                quest_progress_path=Path(temporary) / "quest_progress.json",
+                defer_runtime=True,
+            )
+
+            provider.load_all.assert_not_called()
+            quest_provider.get_catalog.assert_not_called()
+            self.assertFalse(view._runtime_ready)
+            self.assertEqual(view.stack.count(), 1)
+
+            view.deleteLater()
+            self.app.processEvents()
 
     def test_guide_tab_starts_nonblocking_runtime_without_building_rich_view(self):
         tabs = Mock()
