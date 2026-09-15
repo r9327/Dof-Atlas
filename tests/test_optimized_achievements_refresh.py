@@ -26,6 +26,7 @@ class OptimizedAchievementsRefreshTests(unittest.TestCase):
         achievement_progress = _ProgressProbe()
 
         class DummyView:
+            _runtime_ready = True
             quest_progress_service = quest_progress
             progress_service = achievement_progress
             sync_automatic_progress = _FailIfCalled()
@@ -44,6 +45,7 @@ class OptimizedAchievementsRefreshTests(unittest.TestCase):
                 return None
 
         class DummyView:
+            _runtime_ready = True
             quest_progress_service = _ProgressProbe()
             progress_service = _ProgressProbe(changed=True)
             detail_stack = _Stack()
