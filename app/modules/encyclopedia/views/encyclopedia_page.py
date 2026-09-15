@@ -539,8 +539,6 @@ class EncyclopediaPage(QWidget):
             and self._quest_graph is not None
         )
 
-        if self.current_tab_label() == GUIDES_TAB and self.guides_view is None:
-            self.ensure_guides_view()
         self._guide_runtime_ready = bool(
             self.guides_view is not None
             and getattr(self.guides_view, "_runtime_ready", False)
@@ -1369,31 +1367,7 @@ class EncyclopediaPage(QWidget):
         self.status_callback(f"Encyclopédie : {label}")
 
     def on_tab_changed(self, index: int) -> None:
-        if index < 0:
-            return
-        label = self.tabs.tabText(index)
-        if self._initializing:
-            self._on_tab_changed_indexed_runtime(index)
-            return
-        if label == GUIDES_TAB:
-            view = self.ensure_guides_view()
-            if getattr(view, "_runtime_ready", False):
-                self._guide_runtime_ready = True
-                self._activate_loaded_tab(GUIDES_TAB)
-            else:
-                self._guide_runtime_ready = False
-                self._start_full_guide_runtime()
-            return
-        if label == ACHIEVEMENTS_TAB:
-            self.ensure_achievements_view()
-            if self._achievement_ready:
-                self._activate_loaded_tab(ACHIEVEMENTS_TAB)
-                self._pending_lazy_tab = ACHIEVEMENTS_TAB
-                self.open_pending_lazy_tab()
-            else:
-                self._start_full_achievement_runtime()
-            return
-        self._on_tab_changed_indexed_runtime(index)
+        self._on_tab_changed_indexed(index)
 
     def navigate_to_guide(self, guide_id: str) -> bool:
         guide_id = str(guide_id or "").strip()
