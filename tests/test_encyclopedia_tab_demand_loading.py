@@ -112,6 +112,16 @@ class EncyclopediaDemandLoadingTests(unittest.TestCase):
         self.assertIn("achievement-index", page.calls)
         self.assertNotIn("achievement-runtime", page.calls)
 
+    def test_success_tab_stays_light_when_only_guide_runtime_is_ready(self) -> None:
+        page = _PageProbe(ACHIEVEMENTS_TAB)
+        page._related_ready = True
+
+        page.on_tab_changed(0)
+
+        self.assertIn("achievement-index", page.calls)
+        self.assertNotIn("open-pending", page.calls)
+        self.assertNotIn(("activate", ACHIEVEMENTS_TAB), page.calls)
+
     def test_selecting_guide_from_index_starts_guide_runtime(self) -> None:
         page = _PageProbe(GUIDES_TAB)
         page._guide_index_view = _IndexProbe()
@@ -122,8 +132,9 @@ class EncyclopediaDemandLoadingTests(unittest.TestCase):
         self.assertEqual(page._guide_index_view.loading, ["aventure_1_20"])
         self.assertIn(("guide-runtime", GUIDES_TAB), page.calls)
 
-    def test_selecting_success_from_index_starts_success_runtime(self) -> None:
+    def test_selecting_success_from_index_starts_success_runtime_even_if_guide_is_ready(self) -> None:
         page = _PageProbe(ACHIEVEMENTS_TAB)
+        page._related_ready = True
         page._achievement_index_view = _IndexProbe()
 
         page._on_achievement_requested(123)
@@ -132,6 +143,7 @@ class EncyclopediaDemandLoadingTests(unittest.TestCase):
         self.assertEqual(page._pending_lazy_tab, ACHIEVEMENTS_TAB)
         self.assertEqual(page._achievement_index_view.loading, [123])
         self.assertIn("achievement-runtime", page.calls)
+        self.assertNotIn("open-pending", page.calls)
 
 
 if __name__ == "__main__":
