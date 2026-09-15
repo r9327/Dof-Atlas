@@ -28,6 +28,9 @@ from app.quest_catalog import doduda_rows, normalize_text, read_json_file, text_
 
 _GUIDE_ID_ROLE = Qt.UserRole + 701
 _ACHIEVEMENT_ID_ROLE = Qt.UserRole + 702
+_ACHIEVEMENT_NODE_KIND_ROLE = Qt.UserRole + 703
+_ACHIEVEMENT_TOP_NAME_ROLE = Qt.UserRole + 704
+_ACHIEVEMENT_SUB_NAME_ROLE = Qt.UserRole + 705
 _JSON_STRING_RE = re.compile(r'"title"\s*:\s*("(?:\\.|[^"\\])*")')
 
 
@@ -174,12 +177,13 @@ class GuideIndexView(QWidget):
 
 
 class AchievementIndexView(QWidget):
-    """Responsive Successes catalogue that never loads rich achievement payloads.
+    """Light Successes index with progressive Qt item materialisation.
 
     Only achievements.json, achievement_categories.json and the French language
-    table are read, on a low-priority background thread. Objectives, rewards,
-    monsters, dungeons, items, spells and other documentary sources stay cold
-    until the player explicitly selects one success.
+    table are read, on a low-priority background thread. With no active search,
+    the Qt tree creates only top-level categories; subcategories and achievements
+    are materialised when the player expands their parent. Rich objectives,
+    rewards and linked entities remain cold until a success is selected.
     """
 
     achievementRequested = Signal(int)
@@ -209,6 +213,7 @@ class AchievementIndexView(QWidget):
         self.tree.setUniformRowHeights(True)
         self.tree.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.tree.itemClicked.connect(self._on_item_clicked)
+        self.tree.itemExpanded.connect(self._on_item_expanded)
         root.addWidget(self.tree, 1)
 
         self.status = QLabel("Chargement de la liste des succès…")
@@ -324,43 +329,129 @@ class AchievementIndexView(QWidget):
         self.status.setVisible(not bool(self._rows))
         self._render()
 
+    @staticmethod
+    def _placeholder() -> QTreeWidgetItem:
+        item = QTreeWidgetItem([""])
+        item.setData(0, _ACHIEVEMENT_NODE_KIND_ROLE, "placeholder")
+        item.setFlags(Qt.NoItemFlags)
+        return item
+
+    @staticmethod
+    def _has_placeholder(item: QTreeWidgetItem) -> bool:
+        return bool(
+            item.childCount() == 1
+            and item.child(0).data(0, _ACHIEVEMENT_NODE_KIND_ROLE) == "placeholder"
+        )
+
+    @staticmethod
+    def _achievement_label(name: str, level: int, points: int) -> str:
+        meta: list[str] = []
+        if level > 0:
+            meta.append(f"Niv. {level}")
+        if points > 0:
+            meta.append(f"{points} pts")
+        return name if not meta else f"{name}  ·  {' · '.join(meta)}"
+
+    def _add_achievement_item(
+        self,
+        parent: QTreeWidgetItem,
+        row: tuple[int, str, str, str, int, int, int],
+    ) -> None:
+        achievement_id, name, _top_name, _sub_name, level, points, _order = row
+        child = QTreeWidgetItem([self._achievement_label(name, level, points)])
+        child.setData(0, _ACHIEVEMENT_ID_ROLE, int(achievement_id))
+        child.setData(0, _ACHIEVEMENT_NODE_KIND_ROLE, "achievement")
+        child.setToolTip(0, name)
+        parent.addChild(child)
+
+    def _render_collapsed_roots(self) -> None:
+        seen: set[str] = set()
+        for _achievement_id, _name, top_name, _sub_name, _level, _points, _order in self._rows:
+            if top_name in seen:
+                continue
+            seen.add(top_name)
+            top = QTreeWidgetItem([top_name])
+            top.setData(0, _ACHIEVEMENT_ID_ROLE, None)
+            top.setData(0, _ACHIEVEMENT_NODE_KIND_ROLE, "top")
+            top.setData(0, _ACHIEVEMENT_TOP_NAME_ROLE, top_name)
+            top.addChild(self._placeholder())
+            self.tree.addTopLevelItem(top)
+            top.setExpanded(False)
+
+    def _render_search_results(self, tokens: list[str]) -> None:
+        top_items: dict[str, QTreeWidgetItem] = {}
+        sub_items: dict[tuple[str, str], QTreeWidgetItem] = {}
+        for row in self._rows:
+            achievement_id, name, top_name, sub_name, _level, _points, _order = row
+            haystack = normalize_text(f"{name} {top_name} {sub_name} {achievement_id}")
+            if not all(token in haystack for token in tokens):
+                continue
+            top = top_items.get(top_name)
+            if top is None:
+                top = QTreeWidgetItem([top_name])
+                top.setData(0, _ACHIEVEMENT_ID_ROLE, None)
+                top.setData(0, _ACHIEVEMENT_NODE_KIND_ROLE, "search-top")
+                self.tree.addTopLevelItem(top)
+                top_items[top_name] = top
+            key = (top_name, sub_name)
+            parent = sub_items.get(key)
+            if parent is None:
+                parent = QTreeWidgetItem([sub_name])
+                parent.setData(0, _ACHIEVEMENT_ID_ROLE, None)
+                parent.setData(0, _ACHIEVEMENT_NODE_KIND_ROLE, "search-sub")
+                top.addChild(parent)
+                sub_items[key] = parent
+            self._add_achievement_item(parent, row)
+        for top in top_items.values():
+            top.setExpanded(True)
+            for index in range(top.childCount()):
+                top.child(index).setExpanded(True)
+
+    def _populate_top(self, item: QTreeWidgetItem) -> None:
+        if not self._has_placeholder(item):
+            return
+        top_name = str(item.data(0, _ACHIEVEMENT_TOP_NAME_ROLE) or "")
+        item.takeChild(0)
+        seen: set[str] = set()
+        for _achievement_id, _name, row_top, sub_name, _level, _points, _order in self._rows:
+            if row_top != top_name or sub_name in seen:
+                continue
+            seen.add(sub_name)
+            sub = QTreeWidgetItem([sub_name])
+            sub.setData(0, _ACHIEVEMENT_ID_ROLE, None)
+            sub.setData(0, _ACHIEVEMENT_NODE_KIND_ROLE, "sub")
+            sub.setData(0, _ACHIEVEMENT_TOP_NAME_ROLE, top_name)
+            sub.setData(0, _ACHIEVEMENT_SUB_NAME_ROLE, sub_name)
+            sub.addChild(self._placeholder())
+            item.addChild(sub)
+
+    def _populate_sub(self, item: QTreeWidgetItem) -> None:
+        if not self._has_placeholder(item):
+            return
+        top_name = str(item.data(0, _ACHIEVEMENT_TOP_NAME_ROLE) or "")
+        sub_name = str(item.data(0, _ACHIEVEMENT_SUB_NAME_ROLE) or "")
+        item.takeChild(0)
+        for row in self._rows:
+            if row[2] == top_name and row[3] == sub_name:
+                self._add_achievement_item(item, row)
+
+    def _on_item_expanded(self, item: QTreeWidgetItem) -> None:
+        kind = str(item.data(0, _ACHIEVEMENT_NODE_KIND_ROLE) or "")
+        if kind == "top":
+            self._populate_top(item)
+        elif kind == "sub":
+            self._populate_sub(item)
+
     def _render(self) -> None:
         query = normalize_text(self.search.text())
         tokens = [token for token in query.split("_") if token]
         self.tree.blockSignals(True)
         try:
             self.tree.clear()
-            top_items: dict[str, QTreeWidgetItem] = {}
-            sub_items: dict[tuple[str, str], QTreeWidgetItem] = {}
-            for achievement_id, name, top_name, sub_name, level, points, _order in self._rows:
-                haystack = normalize_text(f"{name} {top_name} {sub_name} {achievement_id}")
-                if tokens and not all(token in haystack for token in tokens):
-                    continue
-                top = top_items.get(top_name)
-                if top is None:
-                    top = QTreeWidgetItem([top_name])
-                    top.setData(0, _ACHIEVEMENT_ID_ROLE, None)
-                    self.tree.addTopLevelItem(top)
-                    top_items[top_name] = top
-                key = (top_name, sub_name)
-                parent = sub_items.get(key)
-                if parent is None:
-                    parent = QTreeWidgetItem([sub_name])
-                    parent.setData(0, _ACHIEVEMENT_ID_ROLE, None)
-                    top.addChild(parent)
-                    sub_items[key] = parent
-                meta: list[str] = []
-                if level > 0:
-                    meta.append(f"Niv. {level}")
-                if points > 0:
-                    meta.append(f"{points} pts")
-                label = name if not meta else f"{name}  ·  {' · '.join(meta)}"
-                child = QTreeWidgetItem([label])
-                child.setData(0, _ACHIEVEMENT_ID_ROLE, int(achievement_id))
-                child.setToolTip(0, name)
-                parent.addChild(child)
-            for top in top_items.values():
-                top.setExpanded(True)
+            if tokens:
+                self._render_search_results(tokens)
+            else:
+                self._render_collapsed_roots()
         finally:
             self.tree.blockSignals(False)
 
