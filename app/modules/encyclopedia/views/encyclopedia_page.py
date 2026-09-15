@@ -694,7 +694,7 @@ class EncyclopediaPage(QWidget):
         self._pending_lazy_tab = ACHIEVEMENTS_TAB
         if self._achievement_index_view is not None:
             self._achievement_index_view.set_loading(int(achievement_id))
-        if self._achievement_ready or self._related_ready:
+        if self._achievement_ready:
             self.open_pending_lazy_tab()
             return
         self.request_achievement_runtime()
@@ -839,11 +839,7 @@ class EncyclopediaPage(QWidget):
             self.sync_search_visibility()
             return
 
-        if (
-            label == ACHIEVEMENTS_TAB
-            and not self._achievement_ready
-            and not self._related_ready
-        ):
+        if label == ACHIEVEMENTS_TAB and not self._achievement_ready:
             self._show_achievement_index()
             self._last_ready_tab_index = self.tab_labels().index(ACHIEVEMENTS_TAB)
             self.sync_tab_accent(ACHIEVEMENTS_TAB)
@@ -869,7 +865,7 @@ class EncyclopediaPage(QWidget):
             if isinstance(self.tabs.widget(index), AchievementsView):
                 self._activate_loaded_tab(ACHIEVEMENTS_TAB)
                 return
-            if self._achievement_ready or self._related_ready:
+            if self._achievement_ready:
                 self.open_pending_lazy_tab()
                 self._activate_loaded_tab(ACHIEVEMENTS_TAB)
                 return
@@ -924,7 +920,7 @@ class EncyclopediaPage(QWidget):
             self._start_full_guide_runtime()
             return
         if label == ACHIEVEMENTS_TAB:
-            if self._achievement_ready or self._related_ready:
+            if self._achievement_ready:
                 self._pending_lazy_tab = ACHIEVEMENTS_TAB
                 self.open_pending_lazy_tab()
                 return
