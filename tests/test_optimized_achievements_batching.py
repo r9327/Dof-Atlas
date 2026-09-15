@@ -38,6 +38,7 @@ class _FakeProgressService:
 class _LightAchievementsView(AchievementsView):
     def __init__(self, achievements) -> None:
         QWidget.__init__(self)
+        self._runtime_ready = True
         self.achievements = list(achievements)
         self.provider = _FakeProvider(self.achievements)
         self.progress_service = _FakeProgressService({2, 65})

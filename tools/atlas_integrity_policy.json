@@ -68,6 +68,7 @@
       "runner": "unittest_modules",
       "modules": [
         "tests.test_character_identity_contract",
+        "tests.test_character_binding_recovery",
         "tests.test_character_identity_guardrails",
         "tests.test_character_identity_invariants",
         "tests.test_character_write_boundaries"
@@ -80,6 +81,8 @@
       "modules": [
         "tests.test_achievement_progress_concurrent_instances",
         "tests.test_achievement_progress_json_store",
+        "tests.test_character_data_service",
+        "tests.test_critical_json_schema",
         "tests.test_guide_progress_persistence",
         "tests.test_progress_concurrent_instances",
         "tests.test_progress_interprocess_locking",

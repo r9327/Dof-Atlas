@@ -20,9 +20,9 @@ from app.modules.encyclopedia.providers import (
 )
 from app.modules.encyclopedia.services import QuestGraphService
 from app.modules.encyclopedia.views import EncyclopediaPage
-from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import (
-    AchievementIndexView,
-    GuideIndexView,
+from app.modules.encyclopedia.views.achievements_view import AchievementsView
+from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
+    DeferredAchievementGuidesView,
 )
 from app.quest_catalog import QuestCatalog, QuestRecord
 
@@ -34,7 +34,7 @@ class _NoLoadQuestProvider(QuestProvider):
 
     def get_catalog(self):
         self.calls += 1
-        raise AssertionError("Guide index must not request the quest catalog")
+        raise AssertionError("Guide view must not request the quest catalog before its worker")
 
 
 class _DeferredThread:
@@ -86,7 +86,7 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
             ]
         )
 
-    def test_guide_index_defers_quest_catalog_to_worker(self) -> None:
+    def test_guide_view_defers_quest_catalog_to_worker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             paths = self._paths(Path(temporary))
             provider = _NoLoadQuestProvider()
@@ -109,13 +109,15 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
                 self.app.processEvents()
 
             self.assertEqual(provider.calls, 0)
-            self.assertIsInstance(page.tabs.currentWidget(), GuideIndexView)
+            view = page.tabs.currentWidget()
+            self.assertIsInstance(view, DeferredAchievementGuidesView)
+            self.assertFalse(view._runtime_ready)
             self.assertEqual(len(_DeferredThread.created), 1)
             self.assertTrue(_DeferredThread.created[0].started)
             page.deleteLater()
             self.app.processEvents()
 
-    def test_success_index_defers_heavy_load_then_applies_it_once(self) -> None:
+    def test_success_view_defers_heavy_load_to_worker_without_swapping_view(self) -> None:
         provider = QuestProvider(catalog=self._catalog())
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -145,17 +147,18 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
             ):
                 page.tabs.setCurrentIndex(page.tab_labels().index(ACHIEVEMENTS_TAB))
 
-            self.assertIsInstance(page.tabs.currentWidget(), AchievementIndexView)
+            view = page.tabs.currentWidget()
+            self.assertIsInstance(view, AchievementsView)
+            self.assertFalse(view._runtime_ready)
             self.assertEqual(load_all.call_count, 0)
             self.assertEqual(len(_DeferredThread.created), 1)
             self.assertTrue(_DeferredThread.created[0].started)
 
             _DeferredThread.created[0].target()
-            page._achievement_load_timer.timeout.emit()
+            self.app.processEvents()
 
             self.assertEqual(page.current_tab_label(), ACHIEVEMENTS_TAB)
-            self.assertEqual(load_all.call_count, 1)
-            page._achievement_load_timer.timeout.emit()
+            self.assertIs(page.tabs.currentWidget(), view)
             self.assertEqual(load_all.call_count, 1)
             page.deleteLater()
             self.app.processEvents()
