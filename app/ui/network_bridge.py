@@ -5,6 +5,9 @@ from typing import Any, Iterable, TYPE_CHECKING
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QApplication
 
+_PROGRESS_REFRESH_DEBOUNCE_MS = 120
+
+
 if TYPE_CHECKING:
     from app.network.application_coordinator import NetworkApplicationStatus
     from app.quest_catalog import QuestCatalog
@@ -34,6 +37,11 @@ class NetworkUiBridge(QObject):
         self._context_signature: tuple[int, int, int] | None = None
         self._last_status = self.coordinator.latest_status()
         self._stopped = False
+        self._pending_progress_characters: set[str] = set()
+        self._progress_timer = QTimer(self)
+        self._progress_timer.setSingleShot(True)
+        self._progress_timer.setInterval(_PROGRESS_REFRESH_DEBOUNCE_MS)
+        self._progress_timer.timeout.connect(self._emit_pending_progress)
         self._timer = QTimer(self)
         self._timer.setInterval(180)
         self._timer.timeout.connect(self._poll)
@@ -87,6 +95,8 @@ class NetworkUiBridge(QObject):
             return True
         self._stopped = True
         self._timer.stop()
+        self._progress_timer.stop()
+        self._pending_progress_characters.clear()
         return bool(self.coordinator.stop())
 
     def _poll(self) -> None:
@@ -110,7 +120,18 @@ class NetworkUiBridge(QObject):
                 changed_characters.add(str(result.character_key))
         if active_character:
             self.characterActivated.emit(active_character)
-        for character_key in sorted(changed_characters):
+        if changed_characters:
+            self._pending_progress_characters.update(changed_characters)
+            if not self._progress_timer.isActive():
+                self._progress_timer.start()
+
+    def _emit_pending_progress(self) -> None:
+        if self._stopped:
+            self._pending_progress_characters.clear()
+            return
+        pending = tuple(sorted(self._pending_progress_characters))
+        self._pending_progress_characters.clear()
+        for character_key in pending:
             self.progressChanged.emit(character_key)
 
     @staticmethod

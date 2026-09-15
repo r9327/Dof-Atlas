@@ -175,7 +175,6 @@ class LazyQuestsPage(QuestsPage):
             quest_id, error = self._detail_results.get_nowait()
         except Empty:
             return
-        self._detail_worker.join()
         self._detail_worker = None
         self._detail_timer.stop()
         target = self._requested_detail_id
@@ -479,7 +478,6 @@ class LazyQuestsPage(QuestsPage):
             documents, error = self._search_results.get_nowait()
         except Empty:
             return
-        self._search_worker.join()
         self._search_worker = None
         self._search_index_timer.stop()
         if error is not None:

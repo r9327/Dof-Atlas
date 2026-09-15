@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -15,9 +15,16 @@ from PySide6.QtWidgets import QApplication
 from app.modules.encyclopedia.providers import QuestProvider
 from app.modules.encyclopedia.views import EncyclopediaPage
 from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as EncyclopediaPageImpl
+from app.modules.encyclopedia.views.deferred_achievement_guides_view import DeferredAchievementGuidesView
+from app.modules.encyclopedia.views.achievements_view import AchievementsView
+from app.modules.encyclopedia.views.related_preload_state import (
+    RelatedPreloadGate,
+    RelatedPreloadState,
+)
 from app.modules.encyclopedia.constants import (
     ACHIEVEMENTS_TAB,
     ENCYCLOPEDIA_TABS,
+    GUIDES_TAB,
     QUESTS_TAB,
 )
 from app.pages.lazy_quests_page import LazyQuestsPage
@@ -332,6 +339,44 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         page.navigate_to_achievement_tab.assert_not_called()
         page.navigate_to_achievement_context.assert_not_called()
 
+    def test_stable_successes_constructor_does_not_load_provider(self):
+        provider = Mock()
+        provider.quest_provider = Mock()
+        view = AchievementsView(
+            lambda _text: None,
+            provider=provider,
+            progress_service=Mock(),
+            quest_provider=provider.quest_provider,
+            quest_graph=Mock(),
+            quest_progress_service=Mock(),
+            defer_runtime=True,
+        )
+
+        provider.load_retained.assert_not_called()
+        self.assertFalse(view._runtime_ready)
+        self.assertEqual(view.list_widget.count(), 1)
+
+        view.deleteLater()
+        self.app.processEvents()
+
+    def test_successes_runtime_uses_existing_widget_without_index_swap(self):
+        stable_view = object()
+        page = SimpleNamespace(
+            _pending_lazy_tab="",
+            ensure_achievements_view=Mock(return_value=stable_view),
+            _activate_loaded_tab=Mock(),
+            status_callback=Mock(),
+            request_achievement_runtime=Mock(),
+            _show_achievement_index=Mock(),
+        )
+
+        EncyclopediaPageImpl._start_full_achievement_runtime(page)
+
+        page.ensure_achievements_view.assert_called_once_with()
+        page._activate_loaded_tab.assert_called_once_with(ACHIEVEMENTS_TAB)
+        page.request_achievement_runtime.assert_called_once_with()
+        page._show_achievement_index.assert_not_called()
+
     def test_success_target_pending_contract_cold_and_ready(self):
         for ready in (False, True):
             with self.subTest(ready=ready):
@@ -393,6 +438,391 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         self.assertIsNone(page._pending_achievement_id)
         tabs.setCurrentIndex.assert_called_once_with(success_index)
         success_view.show_achievement.assert_called_once_with(1385)
+
+
+    def test_stable_guide_view_constructor_does_not_load_catalogues(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            provider = Mock()
+            quest_provider = Mock()
+            achievement_provider = Mock()
+            view = DeferredAchievementGuidesView(
+                lambda _text: None,
+                provider=provider,
+                quest_provider=quest_provider,
+                achievement_provider=achievement_provider,
+                achievement_progress_service=Mock(),
+                guide_progress_service=Mock(),
+                quest_progress_path=Path(temporary) / "quest_progress.json",
+                defer_runtime=True,
+            )
+
+            provider.load_all.assert_not_called()
+            quest_provider.get_catalog.assert_not_called()
+            self.assertFalse(view._runtime_ready)
+            self.assertEqual(view.stack.count(), 1)
+
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_guide_tab_starts_nonblocking_runtime_without_building_rich_view(self):
+        tabs = Mock()
+        tabs.tabText.return_value = GUIDES_TAB
+        stable_view = object()
+        page = SimpleNamespace(
+            _initializing=False,
+            tabs=tabs,
+            guides_view=None,
+            _guide_runtime_ready=False,
+            ensure_guides_view=Mock(return_value=stable_view),
+            _start_full_guide_runtime=Mock(),
+            _activate_loaded_tab=Mock(),
+            open_pending_lazy_tab=Mock(),
+            _on_tab_changed_indexed_runtime=Mock(),
+        )
+
+        EncyclopediaPageImpl.on_tab_changed(page, ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
+
+        page.ensure_guides_view.assert_called_once_with()
+        page._activate_loaded_tab.assert_not_called()
+        page._start_full_guide_runtime.assert_called_once_with()
+        page.open_pending_lazy_tab.assert_not_called()
+
+    def test_guide_ultime_navigation_is_preserved_until_runtime_finishes(self):
+        tabs = Mock()
+        page = SimpleNamespace(
+            _pending_guide_id="",
+            _pending_lazy_tab="",
+            _guide_runtime_ready=False,
+            tabs=tabs,
+            tab_labels=lambda: list(ENCYCLOPEDIA_TABS),
+            open_pending_lazy_tab=Mock(),
+            _start_full_guide_runtime=Mock(),
+        )
+
+        self.assertTrue(EncyclopediaPageImpl.navigate_to_guide(page, "guide_complet"))
+
+        self.assertEqual(page._pending_guide_id, "guide_complet")
+        self.assertEqual(page._pending_lazy_tab, GUIDES_TAB)
+        tabs.setCurrentIndex.assert_called_once_with(ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
+        page._start_full_guide_runtime.assert_called_once_with()
+        page.open_pending_lazy_tab.assert_not_called()
+
+    def test_empty_guide_navigation_is_rejected_without_starting_runtime(self):
+        page = SimpleNamespace(
+            _start_full_guide_runtime=Mock(),
+            open_pending_lazy_tab=Mock(),
+        )
+
+        self.assertFalse(EncyclopediaPageImpl.navigate_to_guide(page, ""))
+
+        page._start_full_guide_runtime.assert_not_called()
+        page.open_pending_lazy_tab.assert_not_called()
+
+    def test_guide_worker_failure_reaches_a_terminal_visible_state(self):
+        error = RuntimeError("catalogue cassé")
+        gate = SimpleNamespace(mark_failed=Mock())
+        stable_view = SimpleNamespace(show_runtime_error=Mock())
+        page = SimpleNamespace(
+            _related_preload_started=True,
+            _related_preload_gate=gate,
+            status_callback=Mock(),
+            ensure_guides_view=Mock(return_value=stable_view),
+            sync_search_visibility=Mock(),
+        )
+
+        EncyclopediaPageImpl.collect_related_preload(page, error)
+
+        self.assertFalse(page._related_preload_started)
+        gate.mark_failed.assert_called_once_with()
+        page.ensure_guides_view.assert_called_once_with()
+        stable_view.show_runtime_error.assert_called_once_with("catalogue cassé")
+        page.status_callback.assert_called_once_with(
+            "Chargement Guide impossible : catalogue cassé"
+        )
+        page.sync_search_visibility.assert_called_once_with()
+
+
+    def test_failed_guide_runtime_retries_and_reloads_provider(self):
+        gate = RelatedPreloadGate()
+        self.assertTrue(gate.begin())
+        gate.mark_failed()
+
+        guide_provider = Mock()
+        guide_provider.reload.return_value = [object()]
+        page = SimpleNamespace(
+            _pending_lazy_tab="",
+            _guide_runtime_ready=False,
+            _related_preload_started=False,
+            _achievement_load_started=False,
+            _achievement_ready=False,
+            _related_preload_gate=gate,
+            quest_provider=SimpleNamespace(get_catalog=Mock(return_value=object())),
+            service=SimpleNamespace(
+                guide_provider=guide_provider,
+                achievement_provider=Mock(),
+            ),
+            current_character_key="",
+            quest_progress_path=Path("quest_progress.json"),
+            guide_progress_service=SimpleNamespace(path=Path("guide_progress.json")),
+            achievement_progress_service=SimpleNamespace(
+                path=Path("achievement_progress.json")
+            ),
+            _build_guide_progress_snapshot=Mock(return_value={}),
+            guideRuntimeFinished=SimpleNamespace(emit=Mock()),
+            open_pending_lazy_tab=Mock(),
+            status_callback=Mock(),
+        )
+
+        def run_thread(*, target, **_kwargs):
+            return SimpleNamespace(start=target)
+
+        with patch(
+            "app.modules.encyclopedia.views.encyclopedia_page.Thread",
+            side_effect=run_thread,
+        ):
+            EncyclopediaPageImpl.request_related_preload(page, GUIDES_TAB)
+
+        self.assertEqual(gate.state, RelatedPreloadState.LOADING)
+        guide_provider.reload.assert_called_once_with()
+        guide_provider.load_all.assert_not_called()
+        page.guideRuntimeFinished.emit.assert_called_once()
+
+
+
+    def test_guide_hydration_keeps_rich_detail_unbuilt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            provider = Mock()
+            provider.load_all.return_value = [SimpleNamespace(id="guide-test")]
+            quest_provider = Mock()
+            quest_provider.get_catalog.return_value = SimpleNamespace(by_id={})
+            achievement_provider = Mock()
+            achievement_provider._loaded = False
+            achievement_progress_service = Mock()
+            achievement_progress_service.path = Path(temporary) / "achievement_progress.json"
+            guide_progress_service = Mock()
+            guide_progress_service.path = Path(temporary) / "guide_progress.json"
+            view = DeferredAchievementGuidesView(
+                lambda _text: None,
+                provider=provider,
+                quest_provider=quest_provider,
+                achievement_provider=achievement_provider,
+                achievement_progress_service=achievement_progress_service,
+                guide_progress_service=guide_progress_service,
+                quest_progress_path=Path(temporary) / "quest_progress.json",
+                defer_runtime=True,
+            )
+            view.refresh_home = Mock()
+
+            self.assertTrue(view.hydrate_runtime(graph=Mock()))
+
+            self.assertTrue(view._runtime_ready)
+            self.assertIsNone(view.detail_page)
+            view.refresh_home.assert_called_once_with()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_success_hydration_skips_progress_already_computed_by_worker(self):
+        provider = Mock()
+        provider.quest_provider = Mock()
+        provider.load_retained.return_value = [SimpleNamespace(id=1)]
+        view = AchievementsView(
+            lambda _text: None,
+            provider=provider,
+            progress_service=Mock(),
+            quest_provider=provider.quest_provider,
+            quest_graph=Mock(),
+            quest_progress_service=Mock(),
+            defer_runtime=True,
+        )
+        view.sync_automatic_progress = Mock()
+        view.populate_categories = Mock()
+        view.refresh = Mock()
+
+        self.assertTrue(view.hydrate_runtime(progress_synchronized=True))
+
+        view.sync_automatic_progress.assert_not_called()
+        view.populate_categories.assert_called_once_with()
+        view.refresh.assert_called_once_with()
+        view.deleteLater()
+        self.app.processEvents()
+
+
+    def test_cold_success_refresh_never_wakes_provider_on_qt_thread(self):
+        provider = Mock()
+        provider.quest_provider = Mock()
+        quest_progress_service = Mock()
+        view = AchievementsView(
+            lambda _text: None,
+            provider=provider,
+            progress_service=Mock(),
+            quest_provider=provider.quest_provider,
+            quest_graph=Mock(),
+            quest_progress_service=quest_progress_service,
+            defer_runtime=True,
+        )
+        view.sync_automatic_progress = Mock()
+
+        view.refresh_external_progress()
+
+        quest_progress_service.refresh_if_changed.assert_not_called()
+        view.sync_automatic_progress.assert_not_called()
+        provider.load_retained.assert_not_called()
+        view.deleteLater()
+        self.app.processEvents()
+
+    def test_guide_overview_does_not_request_rich_success_runtime(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            provider = Mock()
+            quest_provider = Mock()
+            achievement_provider = Mock()
+            achievement_provider._loaded = False
+            view = DeferredAchievementGuidesView(
+                lambda _text: None,
+                provider=provider,
+                quest_provider=quest_provider,
+                achievement_provider=achievement_provider,
+                achievement_progress_service=Mock(),
+                guide_progress_service=Mock(),
+                quest_progress_path=Path(temporary) / "quest_progress.json",
+                defer_runtime=True,
+            )
+            requested = Mock()
+            view.achievementRuntimeRequested.connect(requested)
+
+            with patch(
+                "app.modules.encyclopedia.views.guides_view.GuidesView.select_guide",
+                return_value=True,
+            ):
+                self.assertTrue(view.select_guide("dofus_cawotte"))
+
+            requested.assert_not_called()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_preloaded_providers_do_not_mark_a_cold_guide_widget_ready(self):
+        achievement_provider = SimpleNamespace(_loaded=True)
+        guide_provider = SimpleNamespace(_loaded=True)
+        gate = RelatedPreloadGate()
+        page = SimpleNamespace(
+            service=SimpleNamespace(
+                achievement_provider=None,
+                guide_provider=None,
+            ),
+            _achievement_provider_supplied=False,
+            _guide_provider_supplied=False,
+            _quest_graph=None,
+            _guide_progress_by_guide={},
+            _guide_progress_character_key="",
+            quest_page=None,
+            guides_view=None,
+            _achievement_ready=False,
+            _guide_runtime_ready=False,
+            _related_ready=False,
+            _related_preload_gate=gate,
+            _related_data_ready_callback=None,
+            open_pending_lazy_tab=Mock(),
+        )
+
+        EncyclopediaPageImpl.apply_preloaded_related_data(
+            page,
+            achievement_provider=achievement_provider,
+            guide_provider=guide_provider,
+            quest_graph=Mock(),
+        )
+
+        self.assertTrue(page._achievement_ready)
+        self.assertFalse(page._guide_runtime_ready)
+        self.assertFalse(page._related_ready)
+        self.assertEqual(gate.state, RelatedPreloadState.IDLE)
+        page.open_pending_lazy_tab.assert_not_called()
+
+    def test_success_render_batches_stay_within_small_qt_budget(self):
+        from app.modules.encyclopedia.views import achievements_view
+
+        self.assertLessEqual(achievements_view._RESULT_BATCH_SIZE, 16)
+
+    def test_success_categories_are_all_collapsed_after_hydration(self):
+        provider = Mock()
+        provider.quest_provider = Mock()
+        provider.get_retained_categories.return_value = [
+            SimpleNamespace(id=1, name="Quêtes"),
+            SimpleNamespace(id=2, name="Donjons"),
+        ]
+        provider.get_subcategories.return_value = []
+        provider.get_by_category.return_value = []
+        view = AchievementsView(
+            lambda _text: None,
+            provider=provider,
+            progress_service=Mock(),
+            quest_provider=provider.quest_provider,
+            quest_graph=Mock(),
+            quest_progress_service=Mock(),
+            defer_runtime=True,
+        )
+
+        view.populate_categories()
+
+        self.assertEqual(view.category_tree.topLevelItemCount(), 2)
+        self.assertFalse(view.category_tree.topLevelItem(0).isExpanded())
+        self.assertFalse(view.category_tree.topLevelItem(1).isExpanded())
+        view.deleteLater()
+        self.app.processEvents()
+
+    def test_empty_guide_provider_recovers_from_fresh_canonical_provider(self):
+        gate = RelatedPreloadGate()
+        empty_provider = Mock()
+        empty_provider.load_all.return_value = []
+        empty_provider.guides_dir = Path("broken-guides")
+        empty_provider.dofus_item_provider = Mock()
+        empty_provider.include_drafts = False
+        recovered_provider = Mock()
+        recovered_provider.reload.return_value = [SimpleNamespace(id="dofus_cawotte")]
+        page = SimpleNamespace(
+            _pending_lazy_tab="",
+            _guide_runtime_ready=False,
+            _related_preload_started=False,
+            _achievement_load_started=False,
+            _achievement_ready=False,
+            _related_preload_gate=gate,
+            quest_provider=SimpleNamespace(get_catalog=Mock(return_value=object())),
+            service=SimpleNamespace(
+                guide_provider=empty_provider,
+                achievement_provider=Mock(),
+            ),
+            current_character_key="",
+            quest_progress_path=Path("quest_progress.json"),
+            guide_progress_service=SimpleNamespace(path=Path("guide_progress.json")),
+            achievement_progress_service=SimpleNamespace(
+                path=Path("achievement_progress.json")
+            ),
+            _build_guide_progress_snapshot=Mock(return_value={}),
+            guideRuntimeFinished=SimpleNamespace(emit=Mock()),
+            open_pending_lazy_tab=Mock(),
+            status_callback=Mock(),
+        )
+
+        def run_thread(*, target, **_kwargs):
+            return SimpleNamespace(start=target)
+
+        with (
+            patch(
+                "app.modules.encyclopedia.views.encyclopedia_page.Thread",
+                side_effect=run_thread,
+            ),
+            patch(
+                "app.modules.encyclopedia.views.encyclopedia_page.GuideProvider",
+                return_value=recovered_provider,
+            ),
+            patch(
+                "app.modules.encyclopedia.views.encyclopedia_page.QuestGraphService",
+                return_value=Mock(),
+            ),
+        ):
+            EncyclopediaPageImpl.request_related_preload(page, GUIDES_TAB)
+
+        recovered_provider.reload.assert_called_once_with()
+        payload = page.guideRuntimeFinished.emit.call_args.args[0]
+        self.assertIs(payload.guide_provider, recovered_provider)
 
 
 if __name__ == "__main__":
