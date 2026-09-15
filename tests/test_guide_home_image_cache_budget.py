@@ -1,16 +1,24 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
 
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QApplication
 
 from app.modules.encyclopedia.views import guide_home_image_cache as image_cache
 
 
 class GuideHomeImageCacheTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._app = QApplication.instance() or QApplication([])
+
     def setUp(self) -> None:
         self._old_max_bytes = image_cache._MAX_CACHE_BYTES
         self._old_max_items = image_cache._MAX_ITEMS

@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import os
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtWidgets import QApplication
 
 from app.modules.encyclopedia.views import encyclopedia_bootstrap_views as bootstrap
 
@@ -16,6 +21,10 @@ _ROWS = [
 
 
 class AchievementIndexVirtualizationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._app = QApplication.instance() or QApplication([])
+
     def _view(self) -> bootstrap.AchievementIndexView:
         # The test injects rows directly: no background catalogue read is needed.
         with patch.object(bootstrap, "Thread") as thread_cls:
