@@ -22,6 +22,15 @@ class DeferredAchievementGuidesView(_OptimizedGuidesView):
         self._deferred_achievement_context_id: int | None = None
         self._deferred_quest_id: int | None = None
         self._deferred_quest_preserve_scroll = False
+        # A provider that is already fully loaded has no catalogue I/O left to
+        # defer. Hydrate the stable Guide widget immediately when its graph is
+        # already available so callers never observe a half-ready runtime.
+        if (
+            kwargs.get("defer_runtime") is True
+            and getattr(kwargs.get("provider"), "_loaded", False) is True
+            and kwargs.get("graph") is not None
+        ):
+            kwargs["defer_runtime"] = False
         super().__init__(*args, **kwargs)
 
     def _achievement_runtime_ready(self) -> bool:
