@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication
 from app.constants import ROOT_DIR
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
-from app.modules.encyclopedia.services.guide_progress_service import GuideProgressCalculator
+from app.modules.encyclopedia.services import GuideProgressCalculator
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE, ImageService
 from app.modules.encyclopedia.tools import benchmark_guides_performance as bench
 from app.modules.encyclopedia.views import EncyclopediaPage
