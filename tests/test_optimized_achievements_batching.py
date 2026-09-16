@@ -180,8 +180,13 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             self.assertTrue(bool(view.list_widget.item(0).data(COMPLETED_ROLE)))
             self.assertFalse(bool(view.list_widget.item(1).data(COMPLETED_ROLE)))
 
-            view._render_next_achievement_batch()
-            view._achievement_batch_timer.stop()
+            while view._achievement_pending_rows and not any(
+                int(view.list_widget.item(row).data(Qt.UserRole)) == 61
+                for row in range(view.list_widget.count())
+            ):
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+
             item_61 = next(
                 view.list_widget.item(row)
                 for row in range(view.list_widget.count())
