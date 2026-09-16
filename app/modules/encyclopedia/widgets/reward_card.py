@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QToolButton
 
 from app.constants import LOGO_PATH
 from app.modules.encyclopedia.models.reward import Reward
-from app.modules.encyclopedia.views.guide_home_image_cache import ENCYCLOPEDIA_IMAGE_SERVICE
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 
 
 class RewardCard(QFrame):
