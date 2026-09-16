@@ -21,9 +21,10 @@ class _DeferredQuest:
 
 
 class GuideProgressDeferredDetailsTests(unittest.TestCase):
-    def test_guide_summary_progress_does_not_load_uncached_quest_details(self):
+    def test_guide_summary_progress_does_not_load_detail_without_objective_progress(self):
         quest_progress = Mock()
         quest_progress.completed_quest_ids.return_value = set()
+        quest_progress.completed_objectives.return_value = set()
         calculator = GuideProgressCalculator(
             quest_progress,
             Mock(),
@@ -41,7 +42,10 @@ class GuideProgressDeferredDetailsTests(unittest.TestCase):
 
         self.assertEqual((progress.completed, progress.total), (0, 1))
         quest_progress.completed_quest_ids.assert_called_once_with("character:1")
-        quest_progress.completed_objectives.assert_not_called()
+        quest_progress.completed_objectives.assert_called_once_with(
+            "character:1",
+            1653,
+        )
 
 
 if __name__ == "__main__":
