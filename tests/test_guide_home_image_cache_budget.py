@@ -20,22 +20,25 @@ class GuideHomeImageCacheTests(unittest.TestCase):
         cls._app = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
-        self._old_max_bytes = image_cache._MAX_CACHE_BYTES
-        self._old_max_items = image_cache._MAX_ITEMS
-        image_cache.clear_guide_home_image_cache()
+        service = image_cache.ENCYCLOPEDIA_IMAGE_SERVICE
+        self._old_max_bytes = service.max_bytes
+        self._old_max_items = service.max_items
+        service.clear()
 
     def tearDown(self) -> None:
-        image_cache._MAX_CACHE_BYTES = self._old_max_bytes
-        image_cache._MAX_ITEMS = self._old_max_items
-        image_cache.clear_guide_home_image_cache()
+        service = image_cache.ENCYCLOPEDIA_IMAGE_SERVICE
+        service.max_bytes = self._old_max_bytes
+        service.max_items = self._old_max_items
+        service.clear()
 
     @staticmethod
     def _pixmap(size: int = 10) -> QPixmap:
         return QPixmap(size, size)
 
     def test_cache_is_byte_bounded_and_true_lru(self) -> None:
-        image_cache._MAX_CACHE_BYTES = 800
-        image_cache._MAX_ITEMS = 96
+        service = image_cache.ENCYCLOPEDIA_IMAGE_SERVICE
+        service.max_bytes = 800
+        service.max_items = 96
         size = QSize(10, 10)
 
         with tempfile.TemporaryDirectory() as directory:
@@ -60,8 +63,9 @@ class GuideHomeImageCacheTests(unittest.TestCase):
             self.assertLessEqual(info["bytes"], info["max_bytes"])
 
     def test_oversized_pixmap_is_returned_but_not_cached(self) -> None:
-        image_cache._MAX_CACHE_BYTES = 100
-        image_cache._MAX_ITEMS = 96
+        service = image_cache.ENCYCLOPEDIA_IMAGE_SERVICE
+        service.max_bytes = 100
+        service.max_items = 96
         size = QSize(10, 10)
 
         with tempfile.TemporaryDirectory() as directory:
@@ -75,6 +79,19 @@ class GuideHomeImageCacheTests(unittest.TestCase):
             self.assertTrue(image_cache.get_cached_scaled_pixmap(path, size).isNull())
             self.assertEqual(image_cache.guide_home_image_cache_info()["items"], 0)
             self.assertEqual(image_cache.guide_home_image_cache_info()["bytes"], 0)
+
+    def test_compatibility_wrappers_use_canonical_service(self) -> None:
+        service = image_cache.ENCYCLOPEDIA_IMAGE_SERVICE
+        size = QSize(10, 10)
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "shared.png"
+            path.write_bytes(b"cache-key")
+            stored = image_cache.store_scaled_pixmap(path, size, self._pixmap())
+
+            self.assertFalse(stored.isNull())
+            self.assertFalse(service.get_scaled(path, size).isNull())
+            self.assertEqual(service.info(), image_cache.guide_home_image_cache_info())
 
 
 if __name__ == "__main__":
