@@ -118,6 +118,25 @@ class GuideProgressCalculator:
             self._trackable_objective_ids[quest_id] = objective_ids
         return objective_ids
 
+    @staticmethod
+    def _objective_details_available(quest: QuestRecord) -> bool:
+        """Avoid turning Guide summary progress into a synchronous detail load.
+
+        Lazy quest records expose their bounded detail store through ``_details``.
+        Guide/Home progress is summary work, so objective-level completion may be
+        inspected only when that quest detail is already resident. Eager records
+        have no such store and keep the historical objective-completion behavior.
+        """
+
+        details = getattr(quest, "_details", None)
+        cached = getattr(details, "cached", None)
+        if not callable(cached):
+            return True
+        try:
+            return bool(cached(int(quest.id)))
+        except Exception:
+            return False
+
     def step_completed(
         self,
         guide: Guide,
@@ -136,6 +155,8 @@ class GuideProgressCalculator:
             if quest_completed:
                 return True
             if quest is None:
+                return False
+            if not self._objective_details_available(quest):
                 return False
             return self.quest_progress(
                 quest,
