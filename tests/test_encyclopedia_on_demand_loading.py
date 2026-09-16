@@ -20,9 +20,9 @@ from app.modules.encyclopedia.providers import (
 )
 from app.modules.encyclopedia.services import QuestGraphService
 from app.modules.encyclopedia.views import EncyclopediaPage
-from app.modules.encyclopedia.views.achievements_view import AchievementsView
-from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
-    DeferredAchievementGuidesView,
+from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import (
+    AchievementIndexView,
+    GuideIndexView,
 )
 from app.quest_catalog import QuestCatalog, QuestRecord
 
@@ -34,21 +34,7 @@ class _NoLoadQuestProvider(QuestProvider):
 
     def get_catalog(self):
         self.calls += 1
-        raise AssertionError("Guide view must not request the quest catalog before its worker")
-
-
-class _DeferredThread:
-    created: list["_DeferredThread"] = []
-
-    def __init__(self, *, target, name: str, daemon: bool) -> None:
-        self.target = target
-        self.name = name
-        self.daemon = daemon
-        self.started = False
-        self.__class__.created.append(self)
-
-    def start(self) -> None:
-        self.started = True
+        raise AssertionError("Guide index must not request the quest catalog")
 
 
 class EncyclopediaOnDemandTests(unittest.TestCase):
@@ -86,7 +72,7 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
             ]
         )
 
-    def test_guide_view_defers_quest_catalog_to_worker(self) -> None:
+    def test_guide_tab_keeps_quest_catalog_cold_until_a_guide_is_requested(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             paths = self._paths(Path(temporary))
             provider = _NoLoadQuestProvider()
@@ -101,23 +87,16 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
                 owned_items_path=paths["owned"],
                 initial_tab=GUIDES_TAB,
             )
-            _DeferredThread.created.clear()
-            with patch.dict(
-                page.request_related_preload.__globals__,
-                {"Thread": _DeferredThread},
-            ):
-                self.app.processEvents()
+            self.app.processEvents()
 
             self.assertEqual(provider.calls, 0)
-            view = page.tabs.currentWidget()
-            self.assertIsInstance(view, DeferredAchievementGuidesView)
-            self.assertFalse(view._runtime_ready)
-            self.assertEqual(len(_DeferredThread.created), 1)
-            self.assertTrue(_DeferredThread.created[0].started)
+            self.assertIsInstance(page.tabs.currentWidget(), GuideIndexView)
+            self.assertIsNone(page.guides_view)
+            self.assertFalse(page._related_preload_started)
             page.deleteLater()
             self.app.processEvents()
 
-    def test_success_view_defers_heavy_load_to_worker_without_swapping_view(self) -> None:
+    def test_success_tab_keeps_rich_provider_cold_until_a_success_is_requested(self) -> None:
         provider = QuestProvider(catalog=self._catalog())
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -140,26 +119,14 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
                 owned_items_path=paths["owned"],
                 initial_tab=GUIDES_TAB,
             )
-            _DeferredThread.created.clear()
-            with patch.dict(
-                page._start_achievement_stage.__globals__,
-                {"Thread": _DeferredThread},
-            ):
-                page.tabs.setCurrentIndex(page.tab_labels().index(ACHIEVEMENTS_TAB))
 
-            view = page.tabs.currentWidget()
-            self.assertIsInstance(view, AchievementsView)
-            self.assertFalse(view._runtime_ready)
-            self.assertEqual(load_all.call_count, 0)
-            self.assertEqual(len(_DeferredThread.created), 1)
-            self.assertTrue(_DeferredThread.created[0].started)
-
-            _DeferredThread.created[0].target()
+            page.tabs.setCurrentIndex(page.tab_labels().index(ACHIEVEMENTS_TAB))
             self.app.processEvents()
 
-            self.assertEqual(page.current_tab_label(), ACHIEVEMENTS_TAB)
-            self.assertIs(page.tabs.currentWidget(), view)
-            self.assertEqual(load_all.call_count, 1)
+            self.assertIsInstance(page.tabs.currentWidget(), AchievementIndexView)
+            self.assertIsNone(page.get_achievements_view())
+            self.assertEqual(load_all.call_count, 0)
+            self.assertFalse(page._achievement_load_started)
             page.deleteLater()
             self.app.processEvents()
 
