@@ -41,14 +41,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Verify diagnostic parent
+      - name: Verify diagnostic reference
         run: |
           $actual = (git rev-parse HEAD).Trim()
-          $parent = (git rev-parse HEAD^).Trim()
+          $reference = "a278dc7ae462d0a05ddad8a22ba664b179b5ccca"
           Write-Host "Diagnostic SHA: $actual"
-          Write-Host "Parent SHA: $parent"
-          if ($parent -ne "a278dc7ae462d0a05ddad8a22ba664b179b5ccca") {
-            throw "Diagnostic branch is not based directly on the certified reference SHA"
+          Write-Host "Reference SHA: $reference"
+          git merge-base --is-ancestor $reference HEAD
+          if ($LASTEXITCODE -ne 0) {
+            throw "Diagnostic branch is not based on the exact Phase 7B reference SHA"
+          }
+          $mergeBase = (git merge-base $reference HEAD).Trim()
+          if ($mergeBase -ne $reference) {
+            throw "Unexpected diagnostic merge-base: $mergeBase"
           }
 
       - name: Set up Python 3.13
@@ -77,12 +82,12 @@ jobs:
           & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Run deep Phase 7B diagnostic
+      - name: Run lifecycle retention diagnostic
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts/phase7b_diagnostic" | Out-Null
-          & python -X faulthandler -m app.modules.encyclopedia.tools.diagnose_phase7b_performance 2>&1 | Tee-Object -FilePath "artifacts/phase7b_diagnostic/diagnostic.log"
+          & python -X faulthandler -m app.modules.encyclopedia.tools.diagnose_phase7b_lifecycle_retention 2>&1 | Tee-Object -FilePath "artifacts/phase7b_diagnostic/lifecycle_retention.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Copy-Item -LiteralPath "artifacts/phase7b_deep_diagnostic.json" -Destination "artifacts/phase7b_diagnostic/diagnostic.json" -Force
+          Copy-Item -LiteralPath "artifacts/phase7b_lifecycle_retention.json" -Destination "artifacts/phase7b_diagnostic/lifecycle_retention.json" -Force
 
       - name: Upload diagnostic artifact
         if: always()
