@@ -66,8 +66,14 @@ class AchievementIndexVirtualizationTests(unittest.TestCase):
 
             sub = top.child(0)
             view._on_item_expanded(sub)
-            self.assertEqual(sub.childCount(), 1)
-            self.assertIsNotNone(sub.child(0).data(0, bootstrap._ACHIEVEMENT_ID_ROLE))
+            self.assertEqual(sub.childCount(), 2)
+            self.assertEqual(
+                {
+                    int(sub.child(index).data(0, bootstrap._ACHIEVEMENT_ID_ROLE))
+                    for index in range(sub.childCount())
+                },
+                {1, 2},
+            )
 
             untouched_sub = top.child(1)
             self.assertEqual(untouched_sub.childCount(), 1)
