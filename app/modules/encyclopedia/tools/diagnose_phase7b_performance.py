@@ -239,7 +239,8 @@ def wait_quest_detail(app: QApplication, page: EncyclopediaPage, quest_id: int) 
     quest_page = page.quest_page
     if quest_page is None:
         return
-    quest_page.show_quest_detail(int(quest_id))
+    if not page.navigate_to_entity("quest", int(quest_id), source="diagnostic"):
+        raise RuntimeError(f"Quest navigation failed for {quest_id}")
     bench.wait_until(
         app,
         lambda: not bool(getattr(quest_page, "_detail_pending", False))
