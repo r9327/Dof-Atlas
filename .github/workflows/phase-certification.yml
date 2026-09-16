@@ -135,8 +135,8 @@ jobs:
         if: github.event_name == 'pull_request' && startsWith(github.event.pull_request.title, 'Phase 7B')
         continue-on-error: true
         run: |
-          $log = "artifacts/phase_certification/03_timing_performance.log"
-          $report = "artifacts/phase_certification/03_timing_performance.json"
+          $log = "artifacts/phase_certification/06_timing_performance.log"
+          $report = "artifacts/phase_certification/06_timing_performance.json"
           & python -X faulthandler -m app.modules.encyclopedia.tools.benchmark_guides_performance 2>&1 | Tee-Object -FilePath $log
           $code = $LASTEXITCODE
           if ($null -eq $code) { $code = 0 }
@@ -148,7 +148,7 @@ jobs:
           import os
           from pathlib import Path
 
-          report = Path("artifacts/phase_certification/03_timing_performance.json")
+          report = Path("artifacts/phase_certification/06_timing_performance.json")
           payload = json.loads(report.read_text(encoding="utf-8"))
           expected_head = os.environ.get("CANDIDATE_SHA", "")
           actual_head = str(payload.get("environment", {}).get("git_head") or "")
@@ -181,7 +181,7 @@ jobs:
         id: certification
         continue-on-error: true
         run: |
-          $report = "artifacts/phase_certification/04_atlas_integrity_full.json"
+          $report = "artifacts/phase_certification/03_atlas_integrity_full.json"
           Write-Host "Certification candidate SHA: $env:CANDIDATE_SHA"
           Write-Host "Certification base ref: $env:CERT_BASE_REF"
           & python -X faulthandler -m tools.atlas_integrity full --base-ref "$env:CERT_BASE_REF" --json 1> $report
@@ -221,8 +221,8 @@ jobs:
             throw $message
           }
 
-          $report = "artifacts/phase_certification/04_atlas_integrity_full.json"
-          $phaseReport = "artifacts/phase_certification/05_phase_verdict.json"
+          $report = "artifacts/phase_certification/03_atlas_integrity_full.json"
+          $phaseReport = "artifacts/phase_certification/04_phase_verdict.json"
           & python -m tools.phase_certification_verdict `
             --integrity-report $report `
             --base-ref "$env:CERT_BASE_REF" `
