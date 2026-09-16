@@ -1,0 +1,94 @@
+name: Phase 7B Deep Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  diagnose:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.title, 'Phase 7B Diagnostic')
+    name: Phase 7B / Deep Performance Diagnostic
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact diagnostic candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          lfs: false
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify diagnostic parent
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          $parent = (git rev-parse HEAD^).Trim()
+          Write-Host "Diagnostic SHA: $actual"
+          Write-Host "Parent SHA: $parent"
+          if ($parent -ne "a278dc7ae462d0a05ddad8a22ba664b179b5ccca") {
+            throw "Diagnostic branch is not based directly on the certified reference SHA"
+          }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize diagnostic LFS fixtures
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize local Dofus catalog
+        run: |
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run deep Phase 7B diagnostic
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/phase7b_diagnostic" | Out-Null
+          & python -X faulthandler -m app.modules.encyclopedia.tools.diagnose_phase7b_performance 2>&1 | Tee-Object -FilePath "artifacts/phase7b_diagnostic/diagnostic.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item -LiteralPath "artifacts/phase7b_deep_diagnostic.json" -Destination "artifacts/phase7b_diagnostic/diagnostic.json" -Force
+
+      - name: Upload diagnostic artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: phase7b-deep-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/phase7b_diagnostic/**
+          if-no-files-found: error
+          retention-days: 14
