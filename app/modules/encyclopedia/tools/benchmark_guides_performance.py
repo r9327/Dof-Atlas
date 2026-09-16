@@ -61,10 +61,12 @@ def current_rss_mb() -> float | None:
     """Return the current process resident set without adding a dependency."""
 
     if os.name == "nt":
+        from ctypes import wintypes
+
         class ProcessMemoryCounters(ctypes.Structure):
             _fields_ = [
-                ("cb", ctypes.c_ulong),
-                ("PageFaultCount", ctypes.c_ulong),
+                ("cb", wintypes.DWORD),
+                ("PageFaultCount", wintypes.DWORD),
                 ("PeakWorkingSetSize", ctypes.c_size_t),
                 ("WorkingSetSize", ctypes.c_size_t),
                 ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
@@ -77,9 +79,20 @@ def current_rss_mb() -> float | None:
 
         counters = ProcessMemoryCounters()
         counters.cb = ctypes.sizeof(counters)
-        handle = ctypes.windll.kernel32.GetCurrentProcess()
-        if not ctypes.windll.psapi.GetProcessMemoryInfo(
-            handle,
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        psapi = ctypes.WinDLL("psapi", use_last_error=True)
+        get_current_process = kernel32.GetCurrentProcess
+        get_current_process.argtypes = []
+        get_current_process.restype = wintypes.HANDLE
+        get_process_memory_info = psapi.GetProcessMemoryInfo
+        get_process_memory_info.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(ProcessMemoryCounters),
+            wintypes.DWORD,
+        ]
+        get_process_memory_info.restype = wintypes.BOOL
+        if not get_process_memory_info(
+            get_current_process(),
             ctypes.byref(counters),
             counters.cb,
         ):
@@ -111,6 +124,29 @@ def wait_until(app: QApplication, predicate, timeout: float, description: str) -
         if predicate():
             app.processEvents()
             return
+        time.sleep(0.005)
+    raise RuntimeError(f"Timeout while waiting for {description} ({timeout:.1f}s).")
+
+
+def wait_until_with_ui_block(
+    app: QApplication,
+    predicate,
+    timeout: float,
+    description: str,
+) -> float:
+    """Wait for async work and report the longest processEvents call."""
+
+    deadline = time.perf_counter() + timeout
+    max_block_seconds = 0.0
+    while time.perf_counter() < deadline:
+        event_started = time.perf_counter()
+        app.processEvents()
+        max_block_seconds = max(max_block_seconds, time.perf_counter() - event_started)
+        if predicate():
+            event_started = time.perf_counter()
+            app.processEvents()
+            max_block_seconds = max(max_block_seconds, time.perf_counter() - event_started)
+            return round(max_block_seconds * 1000.0, 2)
         time.sleep(0.005)
     raise RuntimeError(f"Timeout while waiting for {description} ({timeout:.1f}s).")
 
@@ -174,7 +210,7 @@ def first_achievement_detail(
     window: AtlasWindow,
     *,
     timeout: float = 60.0,
-) -> tuple[float, int]:
+) -> tuple[float, int, float]:
     page = current_encyclopedia_page(window)
     if page is None:
         raise RuntimeError("Encyclopedia page did not load before Success detail measurement.")
@@ -186,7 +222,7 @@ def first_achievement_detail(
 
     started = time.perf_counter()
     page._on_achievement_requested(achievement_id)
-    wait_until(
+    max_ui_block_ms = wait_until_with_ui_block(
         app,
         lambda: bool(getattr(page, "_achievement_ready", False))
         and getattr(page, "_pending_achievement_id", None) is None
@@ -195,7 +231,7 @@ def first_achievement_detail(
         timeout,
         f"Success detail {achievement_id}",
     )
-    return milliseconds(started), achievement_id
+    return milliseconds(started), achievement_id, max_ui_block_ms
 
 
 def first_guide_detail(
@@ -203,7 +239,7 @@ def first_guide_detail(
     window: AtlasWindow,
     *,
     timeout: float = 60.0,
-) -> tuple[float, str]:
+) -> tuple[float, str, float]:
     page = current_encyclopedia_page(window)
     if page is None:
         raise RuntimeError("Encyclopedia page did not load before Guide detail measurement.")
@@ -215,7 +251,7 @@ def first_guide_detail(
 
     started = time.perf_counter()
     page._on_guide_requested(guide_id)
-    wait_until(
+    max_ui_block_ms = wait_until_with_ui_block(
         app,
         lambda: bool(getattr(page, "_guide_runtime_ready", False))
         and not str(getattr(page, "_pending_guide_id", "") or "")
@@ -225,7 +261,7 @@ def first_guide_detail(
         timeout,
         f"Guide detail {guide_id}",
     )
-    return milliseconds(started), guide_id
+    return milliseconds(started), guide_id, max_ui_block_ms
 
 
 def open_hot_tab(
@@ -282,13 +318,13 @@ def measure() -> dict[str, object]:
     # real item from the light index. A simple tab click must not pay this cost.
     window.open_encyclopedia_tab(ACHIEVEMENTS_TAB)
     wait_until(app, lambda: tab_is_visible(window, ACHIEVEMENTS_TAB), 10.0, "Success index revisit")
-    achievement_detail_ms, achievement_id = first_achievement_detail(app, window)
+    achievement_detail_ms, achievement_id, achievement_ui_block_ms = first_achievement_detail(app, window)
     pump_events(app, 0.05)
     rss_after_first_achievement_detail_mb = current_rss_mb()
 
     window.open_encyclopedia_tab(GUIDES_TAB)
     wait_until(app, lambda: tab_is_visible(window, GUIDES_TAB), 10.0, "Guide index revisit")
-    guide_detail_ms, guide_id = first_guide_detail(app, window)
+    guide_detail_ms, guide_id, guide_ui_block_ms = first_guide_detail(app, window)
     pump_events(app, 0.05)
     rss_after_first_guide_detail_mb = current_rss_mb()
     rss_after_first_views_mb = current_rss_mb()
@@ -321,8 +357,10 @@ def measure() -> dict[str, object]:
         "achievements_index_open_ms": achievements_index_open_ms,
         "guide_index_open_ms": guide_index_open_ms,
         "first_achievement_detail_ms": achievement_detail_ms,
+        "first_achievement_detail_max_ui_block_ms": achievement_ui_block_ms,
         "first_achievement_id": achievement_id,
         "first_guide_detail_ms": guide_detail_ms,
+        "first_guide_detail_max_ui_block_ms": guide_ui_block_ms,
         "first_guide_id": guide_id,
         "quests_hot_return_ms": quests_hot_return_ms,
         "achievements_hot_return_ms": achievements_hot_return_ms,
@@ -369,7 +407,8 @@ def main() -> int:
             "notes": (
                 "Offscreen reproducible Phase 7B user-path measurement. Cold tab metrics wait for the usable light index only; "
                 "rich Guide/Success runtime is measured separately after selecting a real item. Network capture/UAC is excluded. "
-                "RAM is process working set on Windows; hot returns are measured after both rich runtimes are resident."
+                "RAM is process working set on Windows; max UI block measures the longest QApplication.processEvents call while "
+                "waiting for each first rich detail; hot returns are measured after both rich runtimes are resident."
             ),
         },
         "before": BEFORE,
