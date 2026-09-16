@@ -177,6 +177,33 @@ jobs:
           '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Diagnose Phase 7B performance lifecycle
+        id: phase7b_diagnostic
+        if: github.event_name == 'pull_request' && github.head_ref == 'phase7b-performance-diagnostic'
+        continue-on-error: true
+        run: |
+          $log = "artifacts/phase_certification/07_phase7b_performance_diagnostic.log"
+          python -m py_compile app/modules/encyclopedia/tools/diagnose_phase7b_performance.py 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & python -X faulthandler -m app.modules.encyclopedia.tools.diagnose_phase7b_performance 2>&1 | Tee-Object -FilePath $log -Append
+          $code = $LASTEXITCODE
+          if ($null -eq $code) { $code = 0 }
+          if ($code -ne 0) { exit $code }
+          if (-not (Test-Path -LiteralPath "artifacts/phase_certification/07_phase7b_performance_diagnostic.json")) {
+            throw "Phase 7B diagnostic report was not created."
+          }
+
+      - name: Upload Phase 7B diagnostic evidence
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'phase7b-performance-diagnostic'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: phase7b-performance-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/phase_certification/07_phase7b_performance_diagnostic.json
+            artifacts/phase_certification/07_phase7b_performance_diagnostic.log
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Run full Atlas phase certification gate
         id: certification
         continue-on-error: true
