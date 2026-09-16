@@ -141,7 +141,12 @@ class GuidePhase3Tests(unittest.TestCase):
 
     def make_page(self, tmp_path: Path) -> EncyclopediaPage:
         profile, client_index, quest_progress, achievement_progress, guide_progress, owned = self.temp_paths(tmp_path)
-        return EncyclopediaPage(
+        # This suite exercises the already-hydrated rich Guide/Quest integration.
+        # Phase 7B cold-tab/index behavior has dedicated tests elsewhere, so keep
+        # this fixture focused on its historical navigation/detail contracts.
+        catalog = self.quest_provider.get_catalog()
+        catalog.get_detail(1653)
+        page = EncyclopediaPage(
             lambda _text: None,
             quest_provider=self.quest_provider,
             achievement_provider=self.achievement_provider,
@@ -153,6 +158,14 @@ class GuidePhase3Tests(unittest.TestCase):
             client_index_path=client_index,
             owned_items_path=owned,
         )
+        guides_view = page.ensure_guides_view()
+        if not guides_view._runtime_ready:
+            guides_view.hydrate_runtime(graph=page._quest_graph)
+        page._guide_runtime_ready = bool(guides_view._runtime_ready)
+        page._related_ready = page._guide_runtime_ready
+        if page._guide_runtime_ready:
+            page._related_preload_gate.mark_ready()
+        return page
 
     def test_guide_provider_loads_valid_guide(self):
         guide = self.guide_provider.get_by_id(TURQUOISE_GUIDE_ID)
