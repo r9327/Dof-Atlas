@@ -120,13 +120,7 @@ class GuideProgressCalculator:
 
     @staticmethod
     def _objective_details_available(quest: QuestRecord) -> bool:
-        """Avoid turning Guide summary progress into a synchronous detail load.
-
-        Lazy quest records expose their bounded detail store through ``_details``.
-        Guide/Home progress is summary work, so objective-level completion may be
-        inspected only when that quest detail is already resident. Eager records
-        have no such store and keep the historical objective-completion behavior.
-        """
+        """Return whether objective metadata is already resident for a lazy quest."""
 
         details = getattr(quest, "_details", None)
         cached = getattr(details, "cached", None)
@@ -157,7 +151,15 @@ class GuideProgressCalculator:
             if quest is None:
                 return False
             if not self._objective_details_available(quest):
-                return False
+                # Most Guide/Home rows have no objective-level progress. Avoid
+                # synchronously loading every quest detail just to rediscover that
+                # fact. If objective progress exists, preserve the historical
+                # completion semantics and load only that specific quest detail.
+                if not self.quest_progress_service.completed_objectives(
+                    character_key,
+                    quest_id,
+                ):
+                    return False
             return self.quest_progress(
                 quest,
                 character_key,
