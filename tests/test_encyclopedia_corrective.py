@@ -194,8 +194,8 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
             self.assertIsNone(page.guides_view)
 
             view = page.ensure_guides_view()
-            if not view._runtime_ready:
-                view.hydrate_runtime(graph=graph)
+            self.assertFalse(view._runtime_ready)
+            self.assertIs(view.provider, guide_provider)
             self.assertIs(view.graph, graph)
             page.deleteLater()
             self.app.processEvents()
@@ -206,6 +206,8 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
             page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
             view = page.guides_view
             assert view is not None
+            view.select_guide(TURQUOISE_GUIDE_ID)
+            self.app.processEvents()
 
             self.assertEqual(view.splitter.count(), 3)
             self.assertFalse(hasattr(view, "filter_panel"))
