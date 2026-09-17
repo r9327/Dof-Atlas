@@ -554,7 +554,6 @@ class GuidePhase3Tests(unittest.TestCase):
             self.app.processEvents()
             before_done, total, _state = view.guide_progress_tuple(guide)
 
-            progress = load_quest_progress(view.quest_progress_path)
             line = next(
                 child
                 for child in view.findChildren(QuestLine)
