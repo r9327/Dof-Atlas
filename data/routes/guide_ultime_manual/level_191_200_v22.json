@@ -13,12 +13,18 @@
     "temporal_registry_v15.json",
     "ocre_capture_registry_v1.json"
   ],
-  "stage_removals": ["P200-10"],
+  "stage_removals": ["P200-12"],
   "stage_imports": [
-    {"file":"level_191_200_v20.json","stage_id":"P200-10","before":"P200-13"}
+    {"file":"level_191_200_v20.json","stage_id":"P200-12","before":"P200-13"}
   ],
-  "optimization_note": "Conserve l'ordre causal v21 qui ouvre Réminiscence/Totems avant leurs boss donneurs, mais replace d'abord P200-10 afin que La colère des dieux + Un pouvoir mérydique + Mort et renouveau soient réellement fermés avant Réminiscence/Totems. Répare aussi L200-15E4 : le premier Dazak sert De Brikke + lancement Bible + progression initiale du Dragon noir + Totem Colère; la Bible est fermée par retour documenté en salle de sortie sans refaire le boss; De Brikke est ensuite terminée auprès de Plénie. Le Dragon noir contrôle son état réel : aucun nouveau boss si la peau/dialogue est déjà accessible, sinon un second Dazak est explicitement un rerun causal créé par le verrou De Brikke. Klime reste un seul passage Ébène avec son dialogue de sortie. Les fusions Totem Dégoût/Nileza, Totem Peur/Koutoulou, Vortex/S'armer contre le destin et le second Grolloum causal sont aussi verrouillées explicitement. Aucune macro-fiche n'est ajoutée.",
+  "optimization_note": "Conserve les fusions Dazak/Nimbos/Totems de v22 et corrige la dette de prérequis canonique sans ajouter de macro-fiche : la chaîne Résonance perdue lors du remplacement de P200-09 est réinjectée au début de P200-10, P200-12 repasse avant P200-13, Ikwa précède Shodanwa, S'armer n'est plus redéclarée trop tôt dans L200-NEB5 et les titres QuestCatalog Enutrosor/Frigost III sont réalignés. Le premier Dazak sert De Brikke + lancement Bible + progression initiale du Dragon noir + Totem Colère; la Bible reste fermée par retour documenté en salle de sortie sans refaire le boss.",
   "sources": [
+    "https://www.dofuspourlesnoobs.com/reves-translucides.html",
+    "https://www.dofuspourlesnoobs.com/les-sentiers-de-la-guerre.html",
+    "https://www.dofuspourlesnoobs.com/ikwa-voie-du-guerrier-ivre.html",
+    "https://www.dofuspourlesnoobs.com/shodanwa-perfection-martiale.html",
+    "https://www.dofuspourlesnoobs.com/quand-leveil-nest-quun-songe.html",
+    "https://www.dofuspourlesnoobs.com/s-armer-contre-le-destin.html",
     "https://www.dofuspourlesnoobs.com/de-brikke-et-de-brokke.html",
     "https://www.dofuspourlesnoobs.com/la-bible-des-rancunes.html",
     "https://www.dofuspourlesnoobs.com/le-dragon-noir.html",
@@ -26,13 +32,128 @@
     "https://www.dofuspourlesnoobs.com/les-totems-de-maimane.html",
     "https://www.dofuspourlesnoobs.com/laboratoire-de-nileza.html",
     "https://www.dofuspourlesnoobs.com/temple-de-koutoulou.html",
-    "https://www.dofuspourlesnoobs.com/s-armer-contre-le-destin.html",
     "https://www.dofuspourlesnoobs.com/oeil-de-vortex.html",
     "https://www.dofuspourlesnoobs.com/la-colere-des-dieux.html",
     "https://www.dofuspourlesnoobs.com/un-pouvoir-merydique.html",
     "https://guidactik.com/dofus/guide-de-progression-pour-rush-xp-sur-dofus-unity/"
   ],
   "stage_patches": {
+    "P200-10": {
+      "prepend": {
+        "quests": [
+          "Cauchemars prémonitoires",
+          "Partie de chasse",
+          "Quatre contre un",
+          "Rêves translucides",
+          "Veilleur sous surveillance",
+          "La source de tous les maux"
+        ],
+        "route": [
+          {"area":"Eliocalypse — Résonance","do":"Restaurer la chaîne Résonance avant L'avenir du futur : terminer Cauchemars prémonitoires → Partie de chasse → Quatre contre un → Rêves translucides → Veilleur sous surveillance → La source de tous les maux, dans cet ordre. Rêves translucides doit être terminé avant de prendre Les sentiers de la guerre; La source de tous les maux doit être terminée avant le futur Quand l'éveil n'est qu'un songe."}
+        ]
+      },
+      "append": {
+        "hard_exit": [
+          "Rêves translucides terminé avant Les sentiers de la guerre.",
+          "La source de tous les maux terminée avant Quand l'éveil n'est qu'un songe."
+        ]
+      }
+    },
+    "P200-11": {
+      "prepend": {
+        "quests": ["Ikwa : Voie du guerrier ivre"],
+        "route": [
+          {"area":"Village de Pandala / dojo Pandawushu","do":"Terminer Ikwa : Voie du guerrier ivre avant de commencer Shodanwa : Perfection martiale. Ne lancer aucun grade Pandawushu tant que ce prérequis n'est pas réellement fermé."}
+        ]
+      },
+      "append": {
+        "hard_exit": ["Ikwa : Voie du guerrier ivre terminée avant Shodanwa : Perfection martiale."]
+      }
+    },
+    "L200-ENUT-PREP": {
+      "replace": {
+        "quests": [
+          "Touchez pas à Grisebigle",
+          "Échantillonnage",
+          "Le silence est d'or",
+          "Espionnage industriel",
+          "Prise d'otages",
+          "La grève de la fin",
+          "Malle des profondeurs",
+          "Reconnaissance de dette",
+          "Laissé en plan",
+          "On ne prête qu'à Richard",
+          "Pour quelques kamas de plus",
+          "Tout ce qui brille n'est pas or",
+          "Un morceau de roi",
+          "Coiffeur de génie"
+        ]
+      }
+    },
+    "L200-NEB1": {
+      "replace": {
+        "quests": [
+          "Touchez pas à Grisebigle",
+          "Échantillonnage",
+          "Le silence est d'or",
+          "Espionnage industriel",
+          "Prise d'otages",
+          "La grève de la fin",
+          "Malle des profondeurs",
+          "Reconnaissance de dette",
+          "Laissé en plan",
+          "On ne prête qu'à Richard",
+          "Pour quelques kamas de plus",
+          "Tout ce qui brille n'est pas or",
+          "Un morceau de roi",
+          "Prime de lèche-majesté",
+          "Coiffeur de génie"
+        ]
+      }
+    },
+    "L200-NEB5": {
+      "replace": {
+        "quests": [
+          "Juste une illusion",
+          "Maboul de cristal",
+          "L'armée des 12 dingues",
+          "La vérité est au fond du puits",
+          "Les sables du temps",
+          "Déchirures temporelles",
+          "Futur antérieur",
+          "Guerre temporelle",
+          "L'étendue Gödelique",
+          "Les visiteurs du futur",
+          "Demain ne meurt jamais"
+        ],
+        "dungeon": {
+          "name": "Œil de Vortex",
+          "pass": "nebuleux_two_quests_plus_sarmer_single_pass"
+        }
+      },
+      "append": {
+        "hard_exit": [
+          "S'armer contre le destin doit déjà être active depuis P200-07-PREP après Dans la gueule du dragon; L200-NEB5 ne la redéclare pas comme nouvelle quête.",
+          "Un seul Œil de Vortex = La vérité est au fond du puits + Les sables du temps + S'armer contre le destin lorsque ces trois fils sont réellement actifs.",
+          "Aucun nouveau passage Vortex créé par un dialogue de sortie oublié ou par S'armer contre le destin après ce passage fusionné."
+        ]
+      }
+    },
+    "L200-FRI3-ANNEX": {
+      "replace": {
+        "quests": [
+          "Blouson noir",
+          "Boîte de conserve",
+          "Le cinquième élément",
+          "Pousse mousse",
+          "Passer du Cocalane",
+          "Le jour de la serviette",
+          "Un string de caractère",
+          "Voila où ça nous mène",
+          "Y'a pas écrit la poste"
+        ]
+      }
+    },
     "L200-13": {
       "append": {
         "hard_exit": [
@@ -51,23 +172,6 @@
       "append": {
         "hard_exit": [
           "Grolloum global second passage causal uniquement après Chaud et Froid, pour la Machine à démonter le temps; aucun Grolloum supplémentaire n'est créé par cette fusion."
-        ]
-      }
-    },
-    "L200-NEB5": {
-      "replace": {
-        "dungeon": {
-          "name": "Œil de Vortex",
-          "pass": "nebuleux_two_quests_plus_sarmer_single_pass"
-        }
-      },
-      "append": {
-        "quests": [
-          "S'armer contre le destin"
-        ],
-        "hard_exit": [
-          "Un seul Œil de Vortex = La vérité est au fond du puits + Les sables du temps + S'armer contre le destin lorsque ces trois fils sont réellement actifs.",
-          "Aucun nouveau passage Vortex créé par un dialogue de sortie oublié ou par S'armer contre le destin après ce passage fusionné."
         ]
       }
     },
