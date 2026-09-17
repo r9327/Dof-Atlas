@@ -167,6 +167,48 @@ def current_encyclopedia_page(window: AtlasWindow) -> EncyclopediaPage | None:
     return page if isinstance(page, EncyclopediaPage) else None
 
 
+def achievement_provider_object_counts(window: AtlasWindow) -> dict[str, int]:
+    """Count rich Success objects retained by the canonical provider."""
+
+    page = current_encyclopedia_page(window)
+    if page is None:
+        return {"Achievement": 0, "Reward": 0, "EntityRef": 0}
+    provider = page.service.achievement_provider
+    achievements = list(getattr(provider, "_achievements", ()) or ())
+    detail = getattr(provider, "_detail_cache", None)
+    achievement_ids = {id(achievement) for achievement in achievements}
+    if detail is not None:
+        achievement_ids.add(id(detail))
+
+    reward_ids: set[int] = set()
+    entity_ref_ids: set[int] = set()
+    for achievement in (*achievements, *((detail,) if detail is not None else ())):
+        reward_ids.update(id(reward) for reward in tuple(getattr(achievement, "rewards", ()) or ()))
+        for ref in (
+            *tuple(getattr(achievement, "linked_quests", ()) or ()),
+            *tuple(getattr(achievement, "linked_monsters", ()) or ()),
+            *tuple(getattr(achievement, "linked_dungeons", ()) or ()),
+            *tuple(getattr(achievement, "linked_achievements", ()) or ()),
+            *tuple(getattr(achievement, "resolved_linked_quests", ()) or ()),
+            *tuple(getattr(achievement, "resolved_linked_monsters", ()) or ()),
+            *tuple(getattr(achievement, "resolved_linked_dungeons", ()) or ()),
+        ):
+            entity_ref_ids.add(id(ref))
+        for objective in tuple(getattr(achievement, "objectives", ()) or ()):
+            ref = getattr(objective, "entity_ref", None)
+            if ref is not None:
+                entity_ref_ids.add(id(ref))
+            entity_ref_ids.update(
+                id(ref)
+                for ref in tuple(getattr(objective, "entity_refs", ()) or ())
+            )
+    return {
+        "Achievement": len(achievement_ids),
+        "Reward": len(reward_ids),
+        "EntityRef": len(entity_ref_ids),
+    }
+
+
 def tab_is_visible(window: AtlasWindow, label: str) -> bool:
     page = current_encyclopedia_page(window)
     if page is None or window.pending_encyclopedia_tab:
@@ -308,6 +350,7 @@ def measure() -> dict[str, object]:
     achievements_index_open_ms = open_index(app, window, ACHIEVEMENTS_TAB)
     pump_events(app, 0.05)
     rss_after_achievements_index_mb = current_rss_mb()
+    achievement_objects_after_index = achievement_provider_object_counts(window)
 
     guide_index_open_ms = open_index(app, window, GUIDES_TAB)
     pump_events(app, 0.05)
@@ -321,6 +364,18 @@ def measure() -> dict[str, object]:
     achievement_detail_ms, achievement_id, achievement_ui_block_ms = first_achievement_detail(app, window)
     pump_events(app, 0.05)
     rss_after_first_achievement_detail_mb = current_rss_mb()
+    achievement_objects_after_first_detail = achievement_provider_object_counts(window)
+    page = current_encyclopedia_page(window)
+    achievement_provider = page.service.achievement_provider if page is not None else None
+    achievement_reward_detail_thread = str(
+        getattr(achievement_provider, "last_detail_thread_name", "") or ""
+    )
+    achievement_reward_detail_ms = float(
+        getattr(achievement_provider, "last_detail_ms", 0.0) or 0.0
+    )
+    achievement_detail_sources_ready = bool(
+        getattr(achievement_provider, "detail_sources_ready", False)
+    )
 
     window.open_encyclopedia_tab(GUIDES_TAB)
     wait_until(app, lambda: tab_is_visible(window, GUIDES_TAB), 10.0, "Guide index revisit")
@@ -359,6 +414,11 @@ def measure() -> dict[str, object]:
         "first_achievement_detail_ms": achievement_detail_ms,
         "first_achievement_detail_max_ui_block_ms": achievement_ui_block_ms,
         "first_achievement_id": achievement_id,
+        "first_achievement_reward_detail_ms": achievement_reward_detail_ms,
+        "first_achievement_reward_detail_thread": achievement_reward_detail_thread,
+        "achievement_detail_sources_ready": achievement_detail_sources_ready,
+        "achievement_objects_after_index": achievement_objects_after_index,
+        "achievement_objects_after_first_detail": achievement_objects_after_first_detail,
         "first_guide_detail_ms": guide_detail_ms,
         "first_guide_detail_max_ui_block_ms": guide_ui_block_ms,
         "first_guide_id": guide_id,
