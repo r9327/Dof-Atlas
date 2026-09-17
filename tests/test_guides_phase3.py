@@ -81,6 +81,7 @@ class GuidePhase3Tests(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
         cls.quest_provider = QuestProvider()
         cls.achievement_provider = AchievementProvider(quest_provider=cls.quest_provider)
+        cls.achievement_provider.load_all()
         cls.guide_provider = GuideProvider(
             quest_provider=cls.quest_provider,
             achievement_provider=cls.achievement_provider,
@@ -553,6 +554,7 @@ class GuidePhase3Tests(unittest.TestCase):
             self.app.processEvents()
             before_done, total, _state = view.guide_progress_tuple(guide)
 
+            progress = load_quest_progress(view.quest_progress_path)
             line = next(
                 child
                 for child in view.findChildren(QuestLine)
