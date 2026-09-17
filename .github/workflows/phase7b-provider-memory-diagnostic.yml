@@ -1,0 +1,76 @@
+name: Phase 7B Provider Memory Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "app/modules/encyclopedia/tools/diagnose_phase7b_provider_memory.py"
+      - ".github/workflows/phase7b-provider-memory-diagnostic.yml"
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  diagnose:
+    if: github.head_ref == 'phase7b-performance-diagnostic'
+    runs-on: windows-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout diagnostic SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          lfs: false
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install dependencies
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+
+      - name: Materialize required LFS data
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize local Dofus catalog
+        run: |
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run provider/RAM diagnostic only
+        run: |
+          python -m py_compile app/modules/encyclopedia/tools/diagnose_phase7b_provider_memory.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -X faulthandler -m app.modules.encyclopedia.tools.diagnose_phase7b_provider_memory 2>&1 | Tee-Object -FilePath artifacts/phase7b_provider_memory_diagnostic.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: phase7b-provider-memory-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/phase7b_provider_memory_diagnostic.json
+            artifacts/phase7b_provider_memory_diagnostic.log
+          if-no-files-found: warn
+          retention-days: 30
