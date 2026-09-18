@@ -5,8 +5,45 @@ from typing import Any, Iterable
 
 from app.constants import QUEST_PROGRESS_FILE
 from app.core.character_identity import require_character_key
+from app.core.json_store import read_json_validated
 from app.core.progress_coordinator import coordinator_for
-from app.quest_catalog import load_quest_progress, save_quest_progress
+from app.quest_catalog import save_quest_progress
+
+
+def _empty_progress() -> dict[str, Any]:
+    return {"version": 1, "characters": {}}
+
+
+def _quest_progress_schema_error(payload: Any) -> str | None:
+    if not isinstance(payload, dict):
+        return "la racine doit être un objet"
+    if payload.get("version", 1) != 1:
+        return f"version inconnue: {payload.get('version')!r}"
+    characters = payload.get("characters", {})
+    if not isinstance(characters, dict):
+        return "characters doit être un objet"
+    for character_key, character in characters.items():
+        if not isinstance(character, dict):
+            return f"characters[{character_key!r}] doit être un objet"
+        for field in ("done", "completed_quest_objectives", "quest_items"):
+            if field in character and not isinstance(character[field], dict):
+                return f"characters[{character_key!r}].{field} doit être un objet"
+        objectives = character.get("completed_quest_objectives", {})
+        for quest_id, values in objectives.items():
+            if not isinstance(values, list):
+                return f"completed_quest_objectives[{quest_id!r}] doit être une liste"
+        items = character.get("quest_items", {})
+        for quest_id, values in items.items():
+            if not isinstance(values, dict):
+                return f"quest_items[{quest_id!r}] doit être un objet"
+    return None
+
+
+def load_quest_progress(path: Path) -> dict[str, Any]:
+    payload = read_json_validated(path, _empty_progress(), _quest_progress_schema_error)
+    payload.setdefault("version", 1)
+    payload.setdefault("characters", {})
+    return payload
 
 
 class QuestProgressService:

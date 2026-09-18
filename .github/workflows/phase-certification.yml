@@ -130,6 +130,53 @@ jobs:
           '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Measure Phase 7B real user paths
+        id: timing
+        if: github.event_name == 'pull_request' && startsWith(github.event.pull_request.title, 'Phase 7B')
+        continue-on-error: true
+        run: |
+          $log = "artifacts/phase_certification/06_timing_performance.log"
+          $report = "artifacts/phase_certification/06_timing_performance.json"
+          & python -X faulthandler -m app.modules.encyclopedia.tools.benchmark_guides_performance 2>&1 | Tee-Object -FilePath $log
+          $code = $LASTEXITCODE
+          if ($null -eq $code) { $code = 0 }
+          if ($code -ne 0) { exit $code }
+          Copy-Item -LiteralPath "artifacts/quests_guides_performance.json" -Destination $report -Force
+
+          @'
+          import json
+          import os
+          from pathlib import Path
+
+          report = Path("artifacts/phase_certification/06_timing_performance.json")
+          payload = json.loads(report.read_text(encoding="utf-8"))
+          expected_head = os.environ.get("CANDIDATE_SHA", "")
+          actual_head = str(payload.get("environment", {}).get("git_head") or "")
+          if actual_head != expected_head:
+              raise SystemExit(f"timing benchmark SHA mismatch: expected {expected_head}, got {actual_head}")
+
+          after = payload.get("after") or {}
+          required = (
+              "startup_stabilized_ms",
+              "startup_stabilized_rss_mb",
+              "quests_index_open_ms",
+              "achievements_index_open_ms",
+              "guide_index_open_ms",
+              "first_achievement_detail_ms",
+              "first_guide_detail_ms",
+              "quests_hot_return_ms",
+              "achievements_hot_return_ms",
+              "guide_hot_return_ms",
+              "rss_after_first_views_mb",
+              "rss_after_round_trips_mb",
+          )
+          missing = [name for name in required if after.get(name) is None]
+          if missing:
+              raise SystemExit("missing Phase 7B timing metrics: " + ", ".join(missing))
+          print("Phase 7B timing evidence captured for exact candidate SHA")
+          '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Run full Atlas phase certification gate
         id: certification
         continue-on-error: true
@@ -163,6 +210,10 @@ jobs:
           $failures = @()
           if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
           if ("${{ steps.catalog.outcome }}" -ne "success") { $failures += "Dofus catalog" }
+          $timingOutcome = "${{ steps.timing.outcome }}"
+          if ($timingOutcome -and $timingOutcome -ne "success" -and $timingOutcome -ne "skipped") {
+            $failures += "Phase 7B timing performance"
+          }
 
           if ($failures.Count -gt 0) {
             $message = "PHASE CERTIFICATION: NOT CERTIFIED - " + ($failures -join ", ")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import unittest
 from pathlib import Path
@@ -8,6 +9,8 @@ from tools.phase_certification_verdict import _digest, evaluate_phase
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PROTECTED_PROVIDER = "app/modules/encyclopedia/providers/achievement_provider.py"
+FROZEN_BASELINE_PATH = "tools/guide_phase2_baseline.json"
 
 
 class PhaseCertificationGuardrailsTests(unittest.TestCase):
@@ -171,16 +174,127 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             "changed": [],
         }
 
-    def test_phase_verdict_carries_frozen_baseline_to_clean_descendant_base(self) -> None:
-        report = evaluate_phase(
-            **self._baseline_non_regression_case(),
+    @staticmethod
+    def _evaluate(case: dict[str, object]) -> dict[str, object]:
+        return evaluate_phase(
+            **case,
             baseline_is_ancestor=True,
             baseline_changed=[],
         )
 
+    def test_phase_verdict_carries_frozen_baseline_to_clean_descendant_base(self) -> None:
+        report = self._evaluate(self._baseline_non_regression_case())
+
         self.assertEqual(report["status"], "PASS_BASELINE_NON_REGRESSION")
         self.assertEqual(report["baseline_protected_changes"], [])
         self.assertEqual(report["protected_changes"], [])
+
+    def test_protected_owner_with_exact_guide_evidence_is_allowed(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER]
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "PASS_BASELINE_NON_REGRESSION", report["errors"])
+        self.assertEqual(report["protected_changes"], [PROTECTED_PROVIDER])
+        self.assertEqual(report["errors"], [])
+
+    def test_protected_owner_with_prerequisite_fingerprint_drift_fails(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER]
+        prerequisite = copy.deepcopy(case["prerequisite"])
+        prerequisite["hard_errors"][0]["reason"] = "different prerequisite debt"
+        case["prerequisite"] = prerequisite
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn("prerequisite baseline fingerprint drift", report["errors"])
+
+    def test_protected_owner_with_final_coverage_fingerprint_drift_fails(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER]
+        coverage = copy.deepcopy(case["coverage"])
+        coverage["uncovered_achievements"][0]["missing"] = ["quest:999"]
+        case["coverage"] = coverage
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn("final coverage baseline fingerprint drift", report["errors"])
+
+    def test_protected_owner_with_contract_metric_drift_fails(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER]
+        coverage = copy.deepcopy(case["coverage"])
+        coverage["achievement_count"] = 2
+        case["coverage"] = coverage
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn("achievement scope count drift", report["errors"])
+
+    def test_protected_owner_with_missing_guide_evidence_fails_closed(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER]
+        case["prerequisite"] = {}
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(
+            any("protected Guide owner evidence incomplete" in error for error in report["errors"]),
+            report["errors"],
+        )
+
+    def test_protected_owner_with_incomplete_guide_evidence_fails_closed(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER]
+        coverage = copy.deepcopy(case["coverage"])
+        del coverage["verified_success_contracts"]["failed_contract_count"]
+        case["coverage"] = coverage
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn(
+            "protected Guide owner evidence incomplete: verified_success_contracts.failed_contract_count missing",
+            report["errors"],
+        )
+
+    def test_frozen_guide_baseline_tampering_is_always_rejected(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [FROZEN_BASELINE_PATH]
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn(
+            "frozen Guide baseline modified in current phase diff: " + FROZEN_BASELINE_PATH,
+            report["errors"],
+        )
+
+    def test_real_guide_debt_change_fails_even_when_product_groups_pass(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER]
+        coverage = copy.deepcopy(case["coverage"])
+        coverage["state_counts"]["partial"] = 1
+        coverage["partial_achievements"] = [
+            {"id": 7, "state": "partial", "missing": ["quest:7"]},
+        ]
+        case["coverage"] = coverage
+
+        report = self._evaluate(case)
+
+        self.assertEqual(case["integrity"]["groups"]["FULL_SUITE"]["status"], "PASS")
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn("partial achievement count drift", report["errors"])
+        self.assertIn("final coverage baseline fingerprint drift", report["errors"])
+        self.assertFalse(
+            any("required group is not PASS" in error for error in report["errors"]),
+            report["errors"],
+        )
 
     def test_phase_verdict_rejects_invalid_ancestry_or_inherited_protected_change(self) -> None:
         case = self._baseline_non_regression_case()
@@ -210,15 +324,16 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             any("changed since frozen baseline" in error for error in drifted["errors"])
         )
 
-    def test_phase_verdict_never_waives_full_suite_or_unknown_blockers(self) -> None:
+    def test_phase_verdict_never_waives_full_suite_unknown_blockers_or_incomplete_evidence(self) -> None:
         source = self.phase_verdict
         self.assertIn('name == "DATA_INTEGRITY"', source)
         self.assertIn('groups.get("FULL_SUITE")', source)
         self.assertIn("FULL_SUITE is not absolute PASS", source)
         self.assertIn("unexpected integrity blockers", source)
-        self.assertIn("Guide baseline owners changed", source)
         self.assertIn("changed since frozen baseline", source)
         self.assertIn("merge-base", source)
+        self.assertIn("protected Guide owner evidence incomplete", source)
+        self.assertIn("frozen Guide baseline modified in current phase diff", source)
         self.assertIn("prerequisite baseline fingerprint drift", source)
         self.assertIn("final coverage baseline fingerprint drift", source)
         self.assertIn("PASS_BASELINE_NON_REGRESSION", source)

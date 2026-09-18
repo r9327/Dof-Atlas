@@ -6,11 +6,34 @@ import unittest
 from pathlib import Path
 
 from app.constants import KEY_SELECTED_CHARACTER, KEY_SESSION_ORDER
+from app.core.json_store import InvalidPersistentJsonError
 from app.network.character_runtime_state import character_runtime_state
 from app.services.character_data_service import CharacterDataService
 
 
 class CharacterDataServiceTests(unittest.TestCase):
+    def test_delete_refuses_invalid_progress_without_rewriting_it(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            quest_path = root / "quests.json"
+            original = b'{"version":1,"characters":{"character:42":{"done":[]}}}'
+            quest_path.write_bytes(original)
+            service = CharacterDataService(
+                profile_path=root / "profiles.json",
+                binding_path=root / "bindings.json",
+                quest_progress_path=quest_path,
+                achievement_progress_path=root / "achievements.json",
+                guide_progress_path=root / "guides.json",
+            )
+
+            with self.assertRaises(InvalidPersistentJsonError):
+                service.delete_character("character:42")
+
+            self.assertEqual(quest_path.read_bytes(), original)
+            backups = list(root.glob("quests.json.corrupt.*.bak"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_bytes(), original)
+
     def test_delete_character_removes_identity_and_all_progress_but_preserves_other_characters(self):
         runtime_state = character_runtime_state()
         runtime_state.reset()

@@ -103,7 +103,7 @@ class GuideUltimeManualPrerequisiteTests(unittest.TestCase):
         self.assertIn("Épis d'Emi", text)
         self.assertIn("quatre quêtes", text)
 
-    def test_frigostien_uses_exact_faire_le_tas_de_pin_title(self):
+    def test_frigostien_uses_exact_faire_le_tas_de_pins_title(self):
         chapter = load_manual_chapter(MANUAL / "level_120_150_v21.json")
         stage = next(row for row in chapter["stages"] if row.get("id") == "L120-20F")
         quests = [str(value) for value in stage.get("quests", [])]
@@ -114,12 +114,44 @@ class GuideUltimeManualPrerequisiteTests(unittest.TestCase):
             if isinstance(row, dict)
         )
 
-        self.assertIn("Faire le tas de pin", quests)
-        self.assertNotIn("Faire le tas de pins", quests)
-        self.assertIn("Faire le tas de pin terminée une fois", hard_exit)
-        self.assertNotIn("Faire le tas de pins", hard_exit)
+        self.assertIn("Faire le tas de pins", quests)
+        self.assertNotIn("Faire le tas de pin", quests)
+        self.assertIn("Faire le tas de pins terminée une fois", hard_exit)
+        self.assertNotIn("Faire le tas de pin terminée une fois.", hard_exit)
         self.assertIn("Gormor", route)
         self.assertIn("Chef Rhonté", route)
+
+    def test_current_late_game_prerequisites_are_routed_causally(self):
+        chapter = load_manual_chapter(MANUAL / "level_191_200_v22.json")
+        stages = [row for row in chapter["stages"] if isinstance(row, dict)]
+        by_id = {str(row.get("id") or ""): row for row in stages}
+        positions = {str(row.get("id") or ""): index for index, row in enumerate(stages)}
+
+        p200_10 = [str(value) for value in by_id["P200-10"].get("quests", [])]
+        self.assertIn("Rêves translucides", p200_10)
+        self.assertIn("La source de tous les maux", p200_10)
+        self.assertLess(positions["P200-10"], positions["P200-12"])
+        self.assertLess(positions["P200-12"], positions["P200-13"])
+
+        p200_11 = [str(value) for value in by_id["P200-11"].get("quests", [])]
+        self.assertLess(
+            p200_11.index("Ikwa : Voie du guerrier ivre"),
+            p200_11.index("Shodanwa : Perfection martiale"),
+        )
+
+        neb5 = [str(value) for value in by_id["L200-NEB5"].get("quests", [])]
+        self.assertNotIn("S'armer contre le destin", neb5)
+        self.assertIn("Reconnaissance de dette", by_id["L200-ENUT-PREP"].get("quests", []))
+        self.assertIn("Reconnaissance de dette", by_id["L200-NEB1"].get("quests", []))
+        self.assertIn("Y'a pas écrit la poste", by_id["L200-FRI3-ANNEX"].get("quests", []))
+
+        post200 = load_manual_chapter(MANUAL / "level_200_plus_v11.json")
+        post_stages = [row for row in post200["stages"] if isinstance(row, dict)]
+        post_by_id = {str(row.get("id") or ""): row for row in post_stages}
+        post_positions = {str(row.get("id") or ""): index for index, row in enumerate(post_stages)}
+        self.assertLess(post_positions["P200-20"], post_positions["P200-19"])
+        p200_19 = [str(value) for value in post_by_id["P200-19"].get("quests", [])]
+        self.assertLess(p200_19.index("Une dernière volonté"), p200_19.index("L'heure des adieux"))
 
     def test_missing_quest_catalog_is_reported_as_unavailable_not_route_gaps(self):
         report = catalog_unavailable_report(

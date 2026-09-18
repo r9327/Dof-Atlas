@@ -13,12 +13,75 @@
     "bonta_order_rank100_v1.json",
     "temporal_registry_v15.json"
   ],
-  "optimization_note": "Raccord de dépendances : conserve les 12 fiches post-200 de v10 et fait dépendre explicitement la finale du chapitre 191-200 v22 qui restaure La bible des rancunes/De Brikke et modélise le second Dazak uniquement lorsqu'il est causalement requis par Le dragon noir. Corrige aussi la métadonnée structurée de P200-24 : Flovoraison se lance au milieu de Qui nous protège du Protecteur ? et cette quête reste active pendant toute la régénération du réceptacle avant de reprendre pour le combat Silvosse. Le trajet, l'ordre et les donjons restent inchangés.",
+  "optimization_note": "Conserve les 12 fiches post-200 et le raccord Dazak v22. Répare l'ordre Valonia sans créer de fiche : P200-20, déjà placé avant P200-19 pour respecter La sorcière exilée → La graine de la révolte, ferme désormais Les risques du métier + La sorcière exilée + Pour que la flamme vacille sans lancer L'heure des adieux. P200-19 ferme ensuite La graine → Par l'héritage → Une dernière volonté, puis seulement L'heure des adieux et son unique Cire Momore. P200-24 conserve la métadonnée structurée de Flovoraison.",
   "sources": [
+    "https://www.dofuspourlesnoobs.com/la-sorciere-exilee.html",
+    "https://www.dofuspourlesnoobs.com/pour-que-la-flamme-vacille.html",
+    "https://www.dofuspourlesnoobs.com/une-derniere-volonte.html",
+    "https://www.dofuspourlesnoobs.com/l-heure-des-adieux.html",
     "https://www.dofuspourlesnoobs.com/flovoraison.html",
     "https://www.dofuspourlesnoobs.com/qui-nous-protege-du-protecteur-p2.html"
   ],
   "stage_patches": {
+    "P200-20": {
+      "replace": {
+        "title": "Valonia — Le bouquet final, Sorcière puis accès Cire avant la branche Patrimoine",
+        "quests": [
+          "Les risques du métier",
+          "La sorcière exilée",
+          "Pour que la flamme vacille"
+        ],
+        "route": [
+          {"area":"Ephedrya","do":"Faire Les risques du métier puis La sorcière exilée en regroupant tous les drops de zone et en ouvrant les objectifs Belladone avant Chambre des maléfices."},
+          {"area":"Chambre des maléfices","do":"Faire Belladone une seule fois pour La sorcière exilée et tous les succès compatibles. Ne pas quitter Ephedrya sans les dialogues post-boss requis."},
+          {"area":"Ereboria / Cendrepierre","do":"La sorcière exilée terminée débloque à la fois La graine de la révolte et Pour que la flamme vacille. Faire maintenant Pour que la flamme vacille avec les ressources préparées et obtenir l'accès à la Caverne de Cire Momore, mais NE PAS faire Cire Momore : L'heure des adieux attend encore Une dernière volonté, qui sera fermée dans P200-19."}
+        ],
+        "before_leaving": [
+          "Les risques du métier terminée.",
+          "La sorcière exilée terminée.",
+          "Pour que la flamme vacille terminée.",
+          "La graine de la révolte disponible.",
+          "Accès Cire Momore disponible, boss volontairement différé jusqu'à L'heure des adieux."
+        ],
+        "hard_exit": [
+          "La sorcière exilée terminée avant La graine de la révolte.",
+          "Aucun Cire Momore avant Une dernière volonté terminée et L'heure des adieux active."
+        ]
+      }
+    },
+    "P200-19": {
+      "replace": {
+        "title": "Valonia — Conseiller en patrimoine puis L'heure des adieux, Cire Momore unique",
+        "quests": [
+          "La graine de la révolte",
+          "Par l'héritage qui vous lie",
+          "Une dernière volonté",
+          "L'heure des adieux"
+        ],
+        "dungeons": [
+          {"name":"Belvédère d'Ilyzaelle","pass":"valonia_causal_after_quest_unlock"},
+          {"name":"Caverne de Cire Momore","pass":"single_after_une_derniere_volonte"}
+        ],
+        "route": [
+          {"area":"Valonia / Ancienne Albuera","do":"La sorcière exilée étant déjà terminée dans P200-20, enchaîner La graine de la révolte puis Par l'héritage qui vous lie. Ne pas partir Ilyzaelle avant qu'Une dernière volonté la demande réellement."},
+          {"area":"Belvédère d'Ilyzaelle","do":"RERUN CAUSAL : Une dernière volonté demande Ilyzaelle après les anciens passages Bonta99/L'avis de la Mort. Faire les succès Ilyzaelle encore ouverts et les objectifs Valonia dans le même passage."},
+          {"area":"Ancienne Albuera","do":"Finir la recherche des Forgelances et le combat tactique de Une dernière volonté. Une dernière volonté doit être réellement terminée AVANT de lancer L'heure des adieux."},
+          {"area":"Ereboria / Caverne de Cire Momore","do":"Avec Une dernière volonté terminée ET Pour que la flamme vacille déjà terminée, prendre L'heure des adieux. Faire alors l'unique Cire Momore de cette route, récupérer la lance demandée puis terminer L'heure des adieux et fermer Le bouquet final."}
+        ],
+        "before_leaving": [
+          "Conseiller en patrimoine 3/3 terminé.",
+          "Une dernière volonté terminée avant L'heure des adieux.",
+          "L'heure des adieux terminée.",
+          "Le bouquet final terminé.",
+          "Cire Momore fait une seule fois."
+        ],
+        "hard_exit": [
+          "Ilyzaelle Valonia rerun causal explicitement nommé.",
+          "Une dernière volonté terminée avant L'heure des adieux.",
+          "Aucun Cire Momore avant Pour que la flamme vacille + Une dernière volonté."
+        ]
+      }
+    },
     "P200-24": {
       "replace": {
         "quests": [
