@@ -13,8 +13,9 @@
     "temporal_registry_v15.json",
     "ocre_capture_registry_v1.json"
   ],
-  "stage_removals": ["P200-12"],
+  "stage_removals": ["P200-10", "P200-12"],
   "stage_imports": [
+    {"file":"level_191_200_v20.json","stage_id":"P200-10","before":"P200-12"},
     {"file":"level_191_200_v20.json","stage_id":"P200-12","before":"P200-13"}
   ],
   "optimization_note": "Conserve les fusions Dazak/Nimbos/Totems de v22 et corrige la dette de prérequis canonique sans ajouter de macro-fiche : la chaîne Résonance perdue lors du remplacement de P200-09 est réinjectée au début de P200-10, P200-12 repasse avant P200-13, Ikwa précède Shodanwa, S'armer n'est plus redéclarée trop tôt dans L200-NEB5 et les titres QuestCatalog Enutrosor/Frigost III sont réalignés. Le premier Dazak sert De Brikke + lancement Bible + progression initiale du Dragon noir + Totem Colère; la Bible reste fermée par retour documenté en salle de sortie sans refaire le boss.",
@@ -61,13 +62,13 @@
     },
     "P200-11": {
       "prepend": {
-        "quests": ["Ikwa : Voie du guerrier ivre"],
+        "quests": ["Nikwa : Voie des cinq griffes", "Ikwa : Voie du guerrier ivre"],
         "route": [
-          {"area":"Village de Pandala / dojo Pandawushu","do":"Terminer Ikwa : Voie du guerrier ivre avant de commencer Shodanwa : Perfection martiale. Ne lancer aucun grade Pandawushu tant que ce prérequis n'est pas réellement fermé."}
+          {"area":"Village de Pandala / dojo Pandawushu","do":"Terminer Nikwa : Voie des cinq griffes, puis Ikwa : Voie du guerrier ivre avant de commencer Shodanwa : Perfection martiale. Ne lancer aucun grade Pandawushu tant que ce prérequis n'est pas réellement fermé."}
         ]
       },
       "append": {
-        "hard_exit": ["Ikwa : Voie du guerrier ivre terminée avant Shodanwa : Perfection martiale."]
+        "hard_exit": ["Nikwa : Voie des cinq griffes terminée avant Ikwa : Voie du guerrier ivre.", "Ikwa : Voie du guerrier ivre terminée avant Shodanwa : Perfection martiale."]
       }
     },
     "L200-ENUT-PREP": {
