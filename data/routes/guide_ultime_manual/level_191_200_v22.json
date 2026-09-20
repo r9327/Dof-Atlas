@@ -48,6 +48,7 @@
       "before": "P200-12",
       "prepend": {
         "quests": [
+          "Yonkwa : Voie du sabre",
           "Sankwa : Voie du bouclier",
           "Nikwa : Voie des cinq griffes",
           "Ikwa : Voie du guerrier ivre"
@@ -55,12 +56,13 @@
         "route": [
           {
             "area": "Village de Pandala / dojo Pandawushu",
-            "do": "Terminer Sankwa : Voie du bouclier, puis Nikwa : Voie des cinq griffes, puis Ikwa : Voie du guerrier ivre avant de commencer Shodanwa : Perfection martiale. Ne lancer aucun grade Pandawushu tant que ce prérequis n'est pas réellement fermé."
+            "do": "Terminer Yonkwa : Voie du sabre, puis Sankwa : Voie du bouclier, puis Nikwa : Voie des cinq griffes, puis Ikwa : Voie du guerrier ivre avant de commencer Shodanwa : Perfection martiale. Ne lancer aucun grade Pandawushu tant que ce prérequis n'est pas réellement fermé."
           }
         ]
       },
       "append": {
         "hard_exit": [
+          "Yonkwa : Voie du sabre terminée avant Sankwa : Voie du bouclier.",
           "Sankwa : Voie du bouclier terminée avant Nikwa : Voie des cinq griffes.",
           "Nikwa : Voie des cinq griffes terminée avant Ikwa : Voie du guerrier ivre.",
           "Ikwa : Voie du guerrier ivre terminée avant Shodanwa : Perfection martiale."
@@ -73,7 +75,7 @@
       "before": "P200-13"
     }
   ],
-  "optimization_note": "Conserve les fusions Dazak/Nimbos/Totems de v22 et corrige la dette de prérequis canonique sans ajouter de macro-fiche : la chaîne Résonance perdue lors du remplacement de P200-09 est réinjectée au début de P200-10, P200-10 → P200-11 → P200-12 repasse avant P200-13, Sankwa précède Nikwa puis Ikwa précède Shodanwa, S'armer n'est plus redéclarée trop tôt dans L200-NEB5 et les titres QuestCatalog Enutrosor/Frigost III sont réalignés. Le premier Dazak sert De Brikke + lancement Bible + progression initiale du Dragon noir + Totem Colère; la Bible reste fermée par retour documenté en salle de sortie sans refaire le boss.",
+  "optimization_note": "Conserve les fusions Dazak/Nimbos/Totems de v22 et corrige la dette de prérequis canonique sans ajouter de macro-fiche : la chaîne Résonance perdue lors du remplacement de P200-09 est réinjectée au début de P200-10, P200-10 → P200-11 → P200-12 repasse avant P200-13, Yonkwa précède Sankwa, Sankwa précède Nikwa puis Ikwa précède Shodanwa, S'armer n'est plus redéclarée trop tôt dans L200-NEB5 et les titres QuestCatalog Enutrosor/Frigost III sont réalignés. Le premier Dazak sert De Brikke + lancement Bible + progression initiale du Dragon noir + Totem Colère; la Bible reste fermée par retour documenté en salle de sortie sans refaire le boss.",
   "sources": [
     "https://www.dofuspourlesnoobs.com/reves-translucides.html",
     "https://www.dofuspourlesnoobs.com/les-sentiers-de-la-guerre.html",

@@ -137,6 +137,10 @@ class GuideUltimeManualPrerequisiteTests(unittest.TestCase):
         p200_11 = [str(value) for value in by_id["P200-11"].get("quests", [])]
         self.assertIn("En ce jardin qui nous unit", p200_11)
         self.assertLess(
+            p200_11.index("Yonkwa : Voie du sabre"),
+            p200_11.index("Sankwa : Voie du bouclier"),
+        )
+        self.assertLess(
             p200_11.index("Sankwa : Voie du bouclier"),
             p200_11.index("Nikwa : Voie des cinq griffes"),
         )
