@@ -5,12 +5,13 @@ import json
 import tempfile
 import threading
 import unittest
+import weakref
 from pathlib import Path
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QCoreApplication, QEvent, QTimer
+from PySide6.QtCore import QCoreApplication, QEvent, QSize, QTimer
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 from shiboken6 import isValid
@@ -72,6 +73,46 @@ class QtAsyncNonAccumulationTests(unittest.TestCase):
         widget.close()
         widget.deleteLater()
         QCoreApplication.sendPostedEvents(widget, QEvent.DeferredDelete)
+
+    def test_image_decode_runs_off_ui_thread_for_guide_and_solution(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "async.png"
+            self._png(path)
+            guide = Guide(id="async", title="Async", category="dofus", image_path=str(path))
+            card = GuideHomeCard(guide, variant="dofus", progress=(0, 1, "todo"))
+            label = SolutionImageLabel(str(path))
+            main_thread = threading.get_ident()
+            decode_threads: list[tuple[str, int]] = []
+            real_decode = guides_module._decode_qimage
+
+            def tracked_decode(payload: bytes, kind: str):
+                decode_threads.append((kind, threading.get_ident()))
+                return real_decode(payload, kind)
+
+            with patch.object(guides_module, "_decode_qimage", side_effect=tracked_decode):
+                guide_future = guides_module.SOLUTION_IMAGE_EXECUTOR.submit(
+                    guides_module._decode_guide_image,
+                    weakref.ref(card),
+                    (str(path),),
+                    QSize(30, 30),
+                )
+                solution_future = guides_module.SOLUTION_IMAGE_EXECUTOR.submit(
+                    guides_module._decode_solution_image,
+                    weakref.ref(label),
+                    str(path),
+                )
+                guide_future.result(timeout=5)
+                solution_future.result(timeout=5)
+                self.app.processEvents()
+
+            self.assertEqual({kind for kind, _thread_id in decode_threads}, {"guide", "solution"})
+            self.assertTrue(decode_threads)
+            self.assertTrue(
+                all(thread_id != main_thread for _kind, thread_id in decode_threads),
+                decode_threads,
+            )
+            self._destroy(card)
+            self._destroy(label)
 
     def test_guide_navigation_x50_does_not_accumulate_pending_image_futures(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

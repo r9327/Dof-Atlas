@@ -4,7 +4,7 @@
   "status": "LOCKED_CANONICAL_DATA_PRE_NETWORK",
   "manifest": "manifest_v1.json",
   "active_source_lock_mode": "resolved_closure_git_blob_at_baseline",
-  "active_source_baseline_commit": "618b66e679d478ee0885e9234dc3a17f0e90b74d",
+  "active_source_baseline_commit": "d1e6cd79184d6d55029f776c27114a69fb6e36a9",
   "locked_stage_count": 267,
   "policy": [
     "Ce verrou fige la route canonique après les réparations causales Fratrie/Trépamorts/Bonta95/Nimotopia-Ivoire/Nordalie, les passes de sortie Ivoire/DDG/Nébuleux/Ébène, la passe Frigost III Missiz-Klime-Grolloum, la passe Ilyzaelle Bonta99, la passe Abyssal Meno-Dantinéa-Koutoulou, la passe Eliocalypse Mérydique, la réparation temporelle des six Totems, la réparation Dazak Nimbos/Ébène, la fermeture complète Silvosse/Sylvestre et la restauration du titre canonique Faire le tas de pin, sans imposer artificiellement le total de 267 fiches comme plafond.",
@@ -13,6 +13,7 @@
     "La révision 4c6a0620 réancre la fermeture active après correction de l'ordre causal Mérydique avant Réminiscence/Totems et harmonisation du contrat de sélection Bonta aux rangs 60/80/100; le total canonique reste 267 fiches et aucune nouvelle route n'est ajoutée.",
     "La révision 47cf5088 retire du texte joueur les derniers termes d'auteur identifiés dans level_70_100_v10 (walkthrough local, blocker, dette runtime) sans modifier la causalité, les coordonnées, les quêtes ni le total de 267 fiches.",
     "La révision aca835e1 nettoie le vocabulaire joueur de level_191_200_v22 (runtime, rerun, gate, checkpoint) sans modifier le contrat causal Dazak/Bible/De Brikke/Dragon noir/Klime ni les 62 fiches du chapitre.",
+    "La révision d1e6cd79 réancre la fermeture active après suppression réelle de GUIDE_PREREQUISITE_DATA et GUIDE_FINAL_COVERAGE : prérequis à 0 hard error, 1418/1418 succès couverts, 267 fiches canoniques conservées; seules les empreintes des données volontairement corrigées sont promues, sans affaiblir les audits.",
     "Les audits CI distinguent désormais explicitement un QuestProvider/AchievementProvider non matérialisé d'une dette du guide : un catalogue absent n'est ni une avalanche de faux gaps ni une preuve de couverture complète; les contrats déterministes Frigost/Pandala restent stricts et la validation finale locale doit toujours utiliser les vrais catalogues.",
     "Nordalie fait Tal Kasha pendant les trois démonstrations AVANT les quatre missions, avec Hem le Maudit traité avant sortie; L200-14 ne refait plus Tal Kasha.",
     "Une voix de crystal verrouille les dialogues Nileza puis Meno avant sortie et utilise le Pichon kloune pour rendre les partitions sans troisième Meno.",
@@ -52,12 +53,12 @@
     {"order": 4, "id": "level_51_70", "file": "level_51_70_v4.json", "stage_count": 7, "git_blob_sha": "00a334c7cc32d604dffeb81214b3307097c9bdc1"},
     {"order": 5, "id": "level_70_100", "file": "level_70_100_v10.json", "stage_count": 17, "git_blob_sha": "82b5b8b116b35024dd64263ed99743fa49237254"},
     {"order": 6, "id": "level_100_120", "file": "level_100_120_v9.json", "stage_count": 17, "git_blob_sha": "9b297ef89d45a27090e3ecb5c4494f2788d80a88"},
-    {"order": 7, "id": "level_120_150", "file": "level_120_150_v21.json", "stage_count": 37, "git_blob_sha": "d8afb934fff1636b761f5b0b3c7f4db22c3b60b7"},
+    {"order": 7, "id": "level_120_150", "file": "level_120_150_v21.json", "stage_count": 37, "git_blob_sha": "225ad1c9b091127f4f960e3d5d8aeecd2d1b0198"},
     {"order": 8, "id": "level_150_170", "file": "level_150_170_v21.json", "stage_count": 24, "git_blob_sha": "805c0ea3f39a37c2b432d260b6be6bff21b0c45a"},
     {"order": 9, "id": "level_171_180", "file": "level_171_180_v13.json", "stage_count": 30, "git_blob_sha": "de9c13d0d1b0b401d2b3e1e6ba2e76c3896a73bd"},
     {"order": 10, "id": "level_181_190", "file": "level_181_190_v15.json", "stage_count": 24, "git_blob_sha": "2a1af42eb226c030736f06f08d76f845b03bdfdd"},
-    {"order": 11, "id": "level_191_200", "file": "level_191_200_v22.json", "stage_count": 62, "git_blob_sha": "e130dafde292711efb5597f00c37fa2a1be99dd0"},
-    {"order": 12,"id":"level_200_plus","file":"level_200_plus_v11.json","stage_count":12,"git_blob_sha":"c6d7742782e64cb82cf90f0e3c1bf21111dbef23"}
+    {"order": 11, "id": "level_191_200", "file": "level_191_200_v22.json", "stage_count": 62, "git_blob_sha": "53f87e493e6f39fb9425b7b365838a1d439e270b"},
+    {"order": 12,"id":"level_200_plus","file":"level_200_plus_v11.json","stage_count":12,"git_blob_sha":"aa58c7bee599e62beaf52457432e92d1c4fa1242"}
   ],
   "supporting_routes": [
     {"id":"astrub_class_branches","manifest_section":"conditional_routes","file":"astrub_class_branches_v1.json","git_blob_sha":"fa7f05a4198a792f4461d8c19e4250eec9b7ba8f"},
@@ -71,7 +72,7 @@
     {"id":"ocre_capture_registry","manifest_key":"ocre_capture_registry","file":"ocre_capture_registry_v1.json","git_blob_sha":"55bbb7916aefad657f7327b69a3797fcb8c11c35"},
     {"id":"ocre_final_route","manifest_key":"ocre_final_route","file":"ocre_final_route_v2.json","git_blob_sha":"e2cf4c80d03cb35efd32581cc6f2aa708cc60003"},
     {"id":"ocre_completion_route","referenced_by":"ocre_final_route_v2.json#base_file","file":"ocre_completion_route_v2.json","git_blob_sha":"a96e873930ba7fe8f057a2965382ae8c9e5d0806"},
-    {"id":"success_contracts","manifest_key":"success_contracts","file":"success_contracts_v2.json","git_blob_sha":"478affae9491349128affcb988ab0facbd656938"}
+    {"id":"success_contracts","manifest_key":"success_contracts","file":"success_contracts_v2.json","git_blob_sha":"c310cb02fbb5967ebe9ec179c3fa2d95430d0d9b"}
   ],
   "noncanonical_overlays": [
     {"file":"astrub_v6.json","state":"CANDIDATE_NOT_LOCKED","reason":"Surcouche historique/candidate non promue par le manifeste; elle doit rester hors fermeture active tant qu'une validation dédiée ne la rend pas canonique."}

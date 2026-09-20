@@ -72,15 +72,33 @@ MUTANTS: tuple[dict[str, Any], ...] = (
     {
         "id": "persistence_skip_corrupt_backup",
         "module": "app/core/json_store.py",
-        "old": "backup = backup_corrupt_json(target)",
-        "new": "backup = None",
+        "old": (
+            "except (OSError, UnicodeError, json.JSONDecodeError) as exc:\n"
+            "        backup = backup_corrupt_json(target)"
+        ),
+        "new": (
+            "except (OSError, UnicodeError, json.JSONDecodeError) as exc:\n"
+            "        backup = None"
+        ),
         "probe": _json_corruption_backup,
     },
     {
         "id": "persistence_share_default_state",
         "module": "app/core/json_store.py",
-        "old": "if not target.exists():\n        return copy.deepcopy(default)",
-        "new": "if not target.exists():\n        return default",
+        "old": (
+            "and logged before falling back.\n"
+            "    \"\"\"\n"
+            "    target = Path(path)\n"
+            "    if not target.exists():\n"
+            "        return copy.deepcopy(default)"
+        ),
+        "new": (
+            "and logged before falling back.\n"
+            "    \"\"\"\n"
+            "    target = Path(path)\n"
+            "    if not target.exists():\n"
+            "        return default"
+        ),
         "probe": _json_missing_copy,
     },
 )
