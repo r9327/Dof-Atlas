@@ -186,7 +186,7 @@ def evaluate_phase(
             "frozen Guide baseline modified in current phase diff: " + BASELINE_REPO_PATH
         )
 
-    if raw_verdict == "PASS" and not protected and not baseline_tampered:
+    if raw_verdict == "PASS" and not baseline_tampered:
         return {
             "schema_version": 1,
             "status": "PASS" if not errors else "FAIL",

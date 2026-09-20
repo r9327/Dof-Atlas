@@ -199,6 +199,45 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertEqual(report["protected_changes"], [PROTECTED_PROVIDER])
         self.assertEqual(report["errors"], [])
 
+    def test_absolute_pass_allows_protected_guide_changes_without_baseline_waiver(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER]
+        integrity = copy.deepcopy(case["integrity"])
+        integrity["verdict"] = "PASS"
+        integrity["blockers"] = []
+        integrity["groups"]["DATA_INTEGRITY"] = {
+            "status": "PASS",
+            "blockers": [],
+        }
+        case["integrity"] = integrity
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "PASS", report["errors"])
+        self.assertEqual(report["raw_integrity_verdict"], "PASS")
+        self.assertEqual(report["baseline_debt"], [])
+        self.assertEqual(report["errors"], [])
+
+    def test_absolute_pass_still_rejects_frozen_baseline_tampering(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER, FROZEN_BASELINE_PATH]
+        integrity = copy.deepcopy(case["integrity"])
+        integrity["verdict"] = "PASS"
+        integrity["blockers"] = []
+        integrity["groups"]["DATA_INTEGRITY"] = {
+            "status": "PASS",
+            "blockers": [],
+        }
+        case["integrity"] = integrity
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn(
+            "frozen Guide baseline modified in current phase diff: " + FROZEN_BASELINE_PATH,
+            report["errors"],
+        )
+
     def test_protected_owner_with_prerequisite_fingerprint_drift_fails(self) -> None:
         case = self._baseline_non_regression_case()
         case["changed"] = [PROTECTED_PROVIDER]
