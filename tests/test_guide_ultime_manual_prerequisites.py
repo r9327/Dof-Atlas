@@ -130,10 +130,20 @@ class GuideUltimeManualPrerequisiteTests(unittest.TestCase):
         p200_10 = [str(value) for value in by_id["P200-10"].get("quests", [])]
         self.assertIn("Rêves translucides", p200_10)
         self.assertIn("La source de tous les maux", p200_10)
-        self.assertLess(positions["P200-10"], positions["P200-12"])
+        self.assertLess(positions["P200-10"], positions["P200-11"])
+        self.assertLess(positions["P200-11"], positions["P200-12"])
         self.assertLess(positions["P200-12"], positions["P200-13"])
 
         p200_11 = [str(value) for value in by_id["P200-11"].get("quests", [])]
+        self.assertIn("En ce jardin qui nous unit", p200_11)
+        self.assertLess(
+            p200_11.index("Sankwa : Voie du bouclier"),
+            p200_11.index("Nikwa : Voie des cinq griffes"),
+        )
+        self.assertLess(
+            p200_11.index("Nikwa : Voie des cinq griffes"),
+            p200_11.index("Ikwa : Voie du guerrier ivre"),
+        )
         self.assertLess(
             p200_11.index("Ikwa : Voie du guerrier ivre"),
             p200_11.index("Shodanwa : Perfection martiale"),

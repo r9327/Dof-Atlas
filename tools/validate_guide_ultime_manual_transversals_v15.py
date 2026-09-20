@@ -335,7 +335,7 @@ def _validate_key_causality(hard: list[dict[str, Any]], resolved: dict[str, dict
     ids200, level200 = _stage_index(resolved.get("level_191_200", {}))
     _need_quests(hard, level200, "P200-07-PREP", {"S'armer contre le destin"})
     _need_quests(hard, level200, "P200-14", {"La loi du plus faible", "Leçon d'histoire"})
-    _need_quests(hard, level200, "L200-ENUT-PREP", {"Reconnaissance de dettes"})
+    _need_quests(hard, level200, "L200-ENUT-PREP", {"Reconnaissance de dette"})
     _need_quests(hard, level200, "L200-ENUT-CLOSE", {"Le roi et moi"})
     _before(hard, ids200, "P200-06", "P200-07-PREP")
     _before(hard, ids200, "P200-13", "P200-14")
