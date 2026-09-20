@@ -5,7 +5,7 @@
   "status": "MANUAL_ROUTE_OPTIMIZED_WORKING_SET",
   "base_file": "level_200_plus_v10.json",
   "supersedes": "guide_ultime_manual_level_200_plus_v10",
-  "stage_count": 16,
+  "stage_count": 12,
   "depends_on": [
     "level_191_200_v22.json",
     "ocre_final_route_v2.json",
@@ -13,7 +13,7 @@
     "bonta_order_rank100_v1.json",
     "temporal_registry_v15.json"
   ],
-  "optimization_note": "Conserve les 12 fiches post-200 et le raccord Dazak v22. Répare l'ordre Valonia sans créer de fiche : P200-20, déjà placé avant P200-19 pour respecter La sorcière exilée → La graine de la révolte, ferme désormais Les risques du métier + La sorcière exilée + Pour que la flamme vacille sans lancer L'heure des adieux. P200-19 ferme ensuite La graine → Par l'héritage → Une dernière volonté, puis seulement L'heure des adieux et son unique Cire Momore. P200-24 conserve la métadonnée structurée de Flovoraison. Quatre annexes structurées complètent la couverture des succès retenus dans l'ordre Donjons → Monstres → Quêtes → Événements, sans supprimer ni remplacer les quêtes de la route principale et sans validation synthétique.",
+  "optimization_note": "Conserve les 12 fiches post-200 et le raccord Dazak v22. Répare l'ordre Valonia sans créer de fiche : P200-20, déjà placé avant P200-19 pour respecter La sorcière exilée → La graine de la révolte, ferme désormais Les risques du métier + La sorcière exilée + Pour que la flamme vacille sans lancer L'heure des adieux. P200-19 ferme ensuite La graine → Par l'héritage → Une dernière volonté, puis seulement L'heure des adieux et son unique Cire Momore. P200-24 conserve la métadonnée structurée de Flovoraison. La couverture complète des succès retenus est intégrée aux quatre fiches finales existantes P200-22→P200-25, dans l'ordre Donjons → Monstres → Quêtes → Événements, sans créer de macro-fiche supplémentaire, sans supprimer de quête et sans validation synthétique.",
   "sources": [
     "https://www.dofuspourlesnoobs.com/la-sorciere-exilee.html",
     "https://www.dofuspourlesnoobs.com/pour-que-la-flamme-vacille.html",
@@ -115,16 +115,148 @@
           "Qui nous protège du Protecteur ?",
           "Flovoraison"
         ]
+      },
+      "append": {
+        "successes": [
+          "Adjugé glandu",
+          "Angoraphobie",
+          "Aspirateur",
+          "Au pain mouillé et surtout à l'eau",
+          "Balle aux prisonniers",
+          "Bizutage",
+          "Caniablanca",
+          "Ce n'est qu'un début",
+          "Chef oui chef",
+          "Cherche et trouve",
+          "Cimetière marin",
+          "Collection martiale",
+          "Colonel Chachabert",
+          "Commande et ment",
+          "Commission impossible",
+          "Convoyeur de fond en comble",
+          "Corruption de Dremoan",
+          "Courage, ça avance",
+          "D'autres mœurs",
+          "D'Incarnam à Astrub",
+          "Dans l'Ordre des choses",
+          "Dernière ligne droite",
+          "Des trucs inutiles",
+          "Des trucs sans intérêt",
+          "Dimension carcérale",
+          "Diplôme de Justicier",
+          "Drôle d'assemblage",
+          "En quête d'action",
+          "En quête d'exploits",
+          "En quête d'identité",
+          "En quête de gloire",
+          "En quête de héros",
+          "En quête de perfection",
+          "En quête de preuves",
+          "En quête de reconnaissance",
+          "En quête de renom",
+          "En quête de respect",
+          "En quête de savoir",
+          "En quête de sens",
+          "En quête de soi",
+          "En quête de solutions",
+          "En quête de victoire",
+          "En quête de vérité",
+          "En quête du destin",
+          "En quête du passé",
+          "Entre le marteau et l'enclume",
+          "Errances félines",
+          "Expérimentations hasardeuses",
+          "Faire la peau",
+          "Formation pratique",
+          "Garde à vous",
+          "Haleine fraîche",
+          "Haute voltige",
+          "Jusqu'à nouvel Ordre",
+          "Justice est faite",
+          "Kling Klong",
+          "L'institut pisteur",
+          "L'osmose",
+          "La bonne attitude",
+          "La fin de l'éternité",
+          "La part du Rhoarim",
+          "La rançon de la gloire",
+          "La voyageuse imprudente",
+          "Le bon air de la mer d'Asse",
+          "Le double effet Gisgoul",
+          "Le marchand de sable est passé",
+          "Le plein d'Épice",
+          "Le plein de super-vilains",
+          "Le regard cerné de noir",
+          "Le repos du dragon",
+          "Le trésor d'Otomaï",
+          "Le vallon du château",
+          "Les contrées du hasard",
+          "Les landes mortes",
+          "Les mystères de Frigost",
+          "Les petits pédestres",
+          "Les portes du pénitencier",
+          "Les sept saloupiots",
+          "Les terrains de chasse",
+          "Lieutenant Colon",
+          "Léchage de bottes",
+          "Maintien de l'Ordre",
+          "Maison de correction",
+          "Major de promotion canapé",
+          "Marche et crève",
+          "Mettre en Ordre",
+          "Mort ou vif",
+          "Mot d'Ordre",
+          "Mots d'esprits sans jeux de mots",
+          "Noir d'ébène",
+          "Nourri, logé, blanchi",
+          "Nouvelle fournée de Justiciers",
+          "Ohé, ohé, capitaine abandonné",
+          "On a tous 5 Apéwicubes en commun",
+          "On va tout défausser",
+          "Ordre du jour",
+          "Perdu de recherche",
+          "Poil de Cawotte",
+          "Police, menottes, prison",
+          "Prime à la chasse",
+          "Que cherche la Corporation ?",
+          "Quelle assiduité",
+          "Repris de justesse",
+          "Se mettre aux vers",
+          "Service de dépannage",
+          "Sidimotivé",
+          "Sous le soleil de Saharach",
+          "Sufokons ensemble",
+          "Tomber dans le panneau",
+          "Tour par tour",
+          "Tout est en Ordre",
+          "Travail d'intérêt général",
+          "Trésor public",
+          "Tu peux toujours te gratter",
+          "Un citoyen modèle",
+          "Un peu de soleil derrière les barreaux",
+          "Un tour en cellule",
+          "Une chambre douillette",
+          "Vampyre, vous avez dit Vampyre ?",
+          "Vos désirs font désordre",
+          "Vos désirs sont des Ordres",
+          "Y'a qu'Otomaï qui m'aille",
+          "À la petite semaine",
+          "À vos Ordres !",
+          "Ça en valait la plaine",
+          "Ça va faire du vilain",
+          "Être plus royaliste que le roi",
+          "Œuf à la neige"
+        ],
+        "progress_also": [
+          "Succès Quêtes restants : conserver cette liste structurée comme couverture du parcours 100 %. La présence ici ne valide rien automatiquement; seule la progression canonique Succès fait foi."
+        ],
+        "hard_exit": [
+          "Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir la couverture Succès."
+        ]
       }
-    }
-  },
-  "insertions": [
-    {
-      "after": "P200-25",
-      "stage": {
-        "id": "P200-SUCCESS-DUNGEONS",
-        "title": "Couverture 100 % — Succès Donjons restants",
-        "level": "Annexe 100 % / suivi des succès retenus",
+    },
+    "P200-22": {
+      "append": {
         "successes": [
           "Acharnement tactique",
           "Akadémie des Gobs",
@@ -245,27 +377,16 @@
           "Vigilant",
           "Volière de la Haute Truche"
         ],
-        "route": [
-          {
-            "area": "Succès > Donjons",
-            "do": "Traiter les succès Donjons encore absents de la route structurée. Les mutualiser avec un passage de donjon déjà nécessaire quand c'est possible et ouvrir la fiche Succès canonique pour les objectifs exacts. Ne créer un rerun que si un objectif réellement manquant l'exige."
-          }
+        "progress_also": [
+          "Succès Donjons restants : conserver cette liste structurée comme couverture du parcours 100 %. La présence ici ne valide rien automatiquement; seule la progression canonique Succès fait foi."
         ],
         "hard_exit": [
-          "La présence dans cette annexe ne valide jamais automatiquement le succès : seule la progression canonique Succès fait foi.",
-          "Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir cette checklist."
-        ],
-        "pause": [
-          "ANNEXE SUCCÈS — Donjons routés; poursuivre vers Monstres."
+          "Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir la couverture Succès."
         ]
       }
     },
-    {
-      "after": "P200-SUCCESS-DUNGEONS",
-      "stage": {
-        "id": "P200-SUCCESS-MONSTERS",
-        "title": "Couverture 100 % — Succès Monstres restants",
-        "level": "Annexe 100 % / suivi des succès retenus",
+    "P200-23": {
+      "append": {
         "successes": [
           "Abraknydiens",
           "Abraknydiens Irascibles",
@@ -495,178 +616,16 @@
           "Équipage au complet",
           "Équipage du Grolandais"
         ],
-        "route": [
-          {
-            "area": "Succès > Monstres",
-            "do": "Traiter les succès Monstres encore absents au fil des zones, captures, familles et objectifs réellement manquants. Réutiliser les déplacements déjà prévus; aucune validation synthétique et aucun farm supplémentaire si le succès est déjà confirmé par la progression canonique."
-          }
+        "progress_also": [
+          "Succès Monstres restants : conserver cette liste structurée comme couverture du parcours 100 %. La présence ici ne valide rien automatiquement; seule la progression canonique Succès fait foi."
         ],
         "hard_exit": [
-          "La présence dans cette annexe ne valide jamais automatiquement le succès : seule la progression canonique Succès fait foi.",
-          "Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir cette checklist."
-        ],
-        "pause": [
-          "ANNEXE SUCCÈS — Monstres routés; poursuivre vers Quêtes."
+          "Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir la couverture Succès."
         ]
       }
     },
-    {
-      "after": "P200-SUCCESS-MONSTERS",
-      "stage": {
-        "id": "P200-SUCCESS-QUESTS",
-        "title": "Couverture 100 % — Succès Quêtes restants",
-        "level": "Annexe 100 % / suivi des succès retenus",
-        "successes": [
-          "Adjugé glandu",
-          "Angoraphobie",
-          "Aspirateur",
-          "Au pain mouillé et surtout à l'eau",
-          "Balle aux prisonniers",
-          "Bizutage",
-          "Caniablanca",
-          "Ce n'est qu'un début",
-          "Chef oui chef",
-          "Cherche et trouve",
-          "Cimetière marin",
-          "Collection martiale",
-          "Colonel Chachabert",
-          "Commande et ment",
-          "Commission impossible",
-          "Convoyeur de fond en comble",
-          "Corruption de Dremoan",
-          "Courage, ça avance",
-          "D'autres mœurs",
-          "D'Incarnam à Astrub",
-          "Dans l'Ordre des choses",
-          "Dernière ligne droite",
-          "Des trucs inutiles",
-          "Des trucs sans intérêt",
-          "Dimension carcérale",
-          "Diplôme de Justicier",
-          "Drôle d'assemblage",
-          "En quête d'action",
-          "En quête d'exploits",
-          "En quête d'identité",
-          "En quête de gloire",
-          "En quête de héros",
-          "En quête de perfection",
-          "En quête de preuves",
-          "En quête de reconnaissance",
-          "En quête de renom",
-          "En quête de respect",
-          "En quête de savoir",
-          "En quête de sens",
-          "En quête de soi",
-          "En quête de solutions",
-          "En quête de victoire",
-          "En quête de vérité",
-          "En quête du destin",
-          "En quête du passé",
-          "Entre le marteau et l'enclume",
-          "Errances félines",
-          "Expérimentations hasardeuses",
-          "Faire la peau",
-          "Formation pratique",
-          "Garde à vous",
-          "Haleine fraîche",
-          "Haute voltige",
-          "Jusqu'à nouvel Ordre",
-          "Justice est faite",
-          "Kling Klong",
-          "L'institut pisteur",
-          "L'osmose",
-          "La bonne attitude",
-          "La fin de l'éternité",
-          "La part du Rhoarim",
-          "La rançon de la gloire",
-          "La voyageuse imprudente",
-          "Le bon air de la mer d'Asse",
-          "Le double effet Gisgoul",
-          "Le marchand de sable est passé",
-          "Le plein d'Épice",
-          "Le plein de super-vilains",
-          "Le regard cerné de noir",
-          "Le repos du dragon",
-          "Le trésor d'Otomaï",
-          "Le vallon du château",
-          "Les contrées du hasard",
-          "Les landes mortes",
-          "Les mystères de Frigost",
-          "Les petits pédestres",
-          "Les portes du pénitencier",
-          "Les sept saloupiots",
-          "Les terrains de chasse",
-          "Lieutenant Colon",
-          "Léchage de bottes",
-          "Maintien de l'Ordre",
-          "Maison de correction",
-          "Major de promotion canapé",
-          "Marche et crève",
-          "Mettre en Ordre",
-          "Mort ou vif",
-          "Mot d'Ordre",
-          "Mots d'esprits sans jeux de mots",
-          "Noir d'ébène",
-          "Nourri, logé, blanchi",
-          "Nouvelle fournée de Justiciers",
-          "Ohé, ohé, capitaine abandonné",
-          "On a tous 5 Apéwicubes en commun",
-          "On va tout défausser",
-          "Ordre du jour",
-          "Perdu de recherche",
-          "Poil de Cawotte",
-          "Police, menottes, prison",
-          "Prime à la chasse",
-          "Que cherche la Corporation ?",
-          "Quelle assiduité",
-          "Repris de justesse",
-          "Se mettre aux vers",
-          "Service de dépannage",
-          "Sidimotivé",
-          "Sous le soleil de Saharach",
-          "Sufokons ensemble",
-          "Tomber dans le panneau",
-          "Tour par tour",
-          "Tout est en Ordre",
-          "Travail d'intérêt général",
-          "Trésor public",
-          "Tu peux toujours te gratter",
-          "Un citoyen modèle",
-          "Un peu de soleil derrière les barreaux",
-          "Un tour en cellule",
-          "Une chambre douillette",
-          "Vampyre, vous avez dit Vampyre ?",
-          "Vos désirs font désordre",
-          "Vos désirs sont des Ordres",
-          "Y'a qu'Otomaï qui m'aille",
-          "À la petite semaine",
-          "À vos Ordres !",
-          "Ça en valait la plaine",
-          "Ça va faire du vilain",
-          "Être plus royaliste que le roi",
-          "Œuf à la neige"
-        ],
-        "route": [
-          {
-            "area": "Succès > Quêtes",
-            "do": "Traiter les succès Quêtes encore absents comme checklist de fermeture. Les quêtes déjà présentes dans la route principale restent inchangées; ouvrir le détail Succès/Quêtes canonique pour identifier uniquement les objectifs réellement manquants et conserver la même progression partagée."
-          }
-        ],
-        "hard_exit": [
-          "La présence dans cette annexe ne valide jamais automatiquement le succès : seule la progression canonique Succès fait foi.",
-          "Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir cette checklist."
-        ],
-        "pause": [
-          "ANNEXE SUCCÈS — Quêtes routées; poursuivre vers Événements."
-        ]
-      }
-    },
-    {
-      "after": "P200-SUCCESS-QUESTS",
-      "stage": {
-        "id": "P200-SUCCESS-EVENTS",
-        "title": "Couverture 100 % — Succès Événements restants",
-        "level": "Annexe 100 % / suivi des succès retenus",
+    "P200-25": {
+      "append": {
         "successes": [
           "Activités du dimanche",
           "Activités vulkaines",
@@ -824,20 +783,14 @@
           "Épouvantises",
           "Épuisement total"
         ],
-        "route": [
-          {
-            "area": "Succès > Événements",
-            "do": "Traiter les succès saisonniers et événementiels uniquement lorsque leur contenu est réellement disponible. Leur indisponibilité ne doit pas bloquer la route permanente; lors de l'événement, utiliser la fiche Succès canonique et conserver la validation réelle comme unique source de vérité."
-          }
+        "progress_also": [
+          "Succès Événements restants : conserver cette liste structurée comme couverture du parcours 100 %. La présence ici ne valide rien automatiquement; seule la progression canonique Succès fait foi."
         ],
         "hard_exit": [
-          "La présence dans cette annexe ne valide jamais automatiquement le succès : seule la progression canonique Succès fait foi.",
-          "Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir cette checklist."
-        ],
-        "pause": [
-          "ANNEXE 100 % ROUTÉE — tous les succès retenus disposent désormais d'une entrée structurée; la réalisation des événements reste conditionnée à leur disponibilité."
+          "Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir la couverture Succès."
         ]
       }
     }
-  ]
+  },
+  "insertions": []
 }
