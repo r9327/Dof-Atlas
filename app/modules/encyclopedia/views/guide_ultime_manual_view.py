@@ -18,7 +18,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.modules.encyclopedia.services.guide_auto_validation_contract import route_progress_counts
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
@@ -544,42 +543,32 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.route_bar.setRange(0, total)
         self.route_bar.setValue(min(completed, total))
         percent = min(100, round(completed * 100 / total))
-        counts = route_progress_counts(
-            self.service,
-            self.character_key,
-            getattr(self.service, "auto_validation_contract", None),
-        )
         page = max(1, min(total, int(self.view_index) + 1))
-        page_text = f"Page {page} / {total}"
-        self.nav_page_label.setText(page_text)
-        self.route_progress_label.setText(
-            f"{page_text}  •  "
-            f"Quêtes {counts['quests_completed']}/{counts['quests_total']}  •  "
-            f"Donjons {counts['dungeons_completed']}/{counts['dungeons_total']}  •  "
-            f"{percent} %"
-        )
+        self.nav_page_label.setText(f"Page {page} / {total}")
+        self.route_progress_label.setText(f"{percent} %")
+
+    def _show_index(self, index: int) -> None:
+        if not self.service.cards:
+            return
+        self.view_index = max(0, min(len(self.service.cards) - 1, int(index)))
+        self._refresh_header()
+        self._render_window(reset_scroll=True)
 
     def _jump_from_progress(self, ratio: float) -> None:
         total = len(self.service.cards)
         if total <= 0:
             return
         index = int(round(max(0.0, min(1.0, float(ratio))) * max(0, total - 1)))
-        self.view_index = index
-        self._refresh_header()
-        self._render_window(reset_scroll=True)
+        self._show_index(index)
 
     def navigate_relative(self, delta: int) -> None:
         if not self.service.cards:
             return
-        self.view_index = max(0, min(len(self.service.cards) - 1, self.view_index + int(delta)))
-        self._refresh_header()
-        self._render_window(reset_scroll=True)
+        self._show_index(self.view_index + int(delta))
 
     def go_active(self) -> None:
         self.active_index = self.service.first_incomplete_index(self.character_key)
-        self.view_index = self.active_index
-        self._refresh_header()
-        self._render_window(reset_scroll=True)
+        self._show_index(self.active_index)
 
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._clear_cards()
@@ -633,8 +622,7 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
     def _select_manual_order(self, order_name: str) -> None:
         self.service.set_bonta_order(self.character_key, order_name)
         self.active_index = self.service.first_incomplete_index(self.character_key)
-        self._refresh_header()
-        self._render_window(reset_scroll=True)
+        self._show_index(self.active_index)
 
     def _render_breadcrumb(self, card: dict[str, Any]) -> None:
         while self.breadcrumb_layout.count():
@@ -683,12 +671,17 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
     def _go_chapter(self, chapter_id: str) -> None:
         for index, card in enumerate(self.service.cards):
             if str(card.get("manual_chapter_id") or "") == str(chapter_id):
-                self.view_index = index
-                self._refresh_header()
-                self._render_window(reset_scroll=True)
+                self._show_index(index)
                 return
 
-    def _manual_page_changed(self) -> None:
+    def refresh_external_progress(self) -> None:
+        self.service.reload_progress()
+        if not self.service.available:
+            self._render_missing_data()
+            return
+        self._follow_active_after_progress_change()
+
+    def _follow_active_after_progress_change(self) -> None:
         previous = self.active_index
         self.active_index = self.service.first_incomplete_index(self.character_key)
         moved = self.view_index == previous and self.active_index != previous
@@ -697,11 +690,12 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self._refresh_header()
         self._render_window(reset_scroll=moved)
 
+    def _manual_page_changed(self) -> None:
+        self._follow_active_after_progress_change()
+
     def _shared_achievement_progress_changed(self) -> None:
         self.service.reload_progress()
-        self.active_index = self.service.first_incomplete_index(self.character_key)
-        self._refresh_header()
-        self._render_window()
+        self._follow_active_after_progress_change()
 
     def _reset_scroll_to_top(self) -> None:
         bar = self.scroll.verticalScrollBar()

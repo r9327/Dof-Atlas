@@ -102,6 +102,7 @@ try {
         "tests.test_guide_ultime_route_sanitizer",
         "tests.test_guide_ultime_route_sheet_ui",
         "tests.test_guide_ultime_manual_preview",
+        "tests.test_guide_ultime_manual_ui_navigation",
         "tests.test_guide_ultime_manual_success_sync",
         "tests.test_guide_ultime_success_links",
         "tests.test_guide_ultime_manual_class_branch",
