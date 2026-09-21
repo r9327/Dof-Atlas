@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.json_store import read_json_validated, write_json_atomic
 from app.core.character_identity import require_character_key
 from app.core.progress_coordinator import coordinator_for
 from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
@@ -15,6 +15,12 @@ from app.modules.encyclopedia.services.progress_service import (
 
 def _empty_progress() -> dict[str, Any]:
     return {"version": 1, "characters": {}}
+
+
+def read_json_resilient(path: Path, default: Any) -> Any:
+    """Compatibility seam backed by strict achievement validation."""
+
+    return read_json_validated(path, default, _achievement_progress_schema_error)
 
 
 class AchievementProgressService(LegacyAchievementProgressService):
@@ -57,11 +63,8 @@ class AchievementProgressService(LegacyAchievementProgressService):
 
     def _load(self) -> dict[str, Any]:
         payload = read_json_resilient(self.path, _empty_progress())
-        if not isinstance(payload, dict):
-            return _empty_progress()
         payload.setdefault("version", 1)
-        if not isinstance(payload.get("characters"), dict):
-            payload["characters"] = {}
+        payload.setdefault("characters", {})
         return payload
 
     def _invalidate_runtime_caches(self) -> None:
@@ -290,6 +293,32 @@ class AchievementProgressService(LegacyAchievementProgressService):
             raise ValueError("progress characters must be a mapping")
         for character_key in characters:
             require_character_key(character_key)
+
+
+def _achievement_progress_schema_error(payload: Any) -> str | None:
+    if not isinstance(payload, dict):
+        return "la racine doit être un objet"
+    if payload.get("version", 1) != 1:
+        return f"version inconnue: {payload.get('version')!r}"
+    characters = payload.get("characters", {})
+    if not isinstance(characters, dict):
+        return "characters doit être un objet"
+    for character_key, character in characters.items():
+        if not isinstance(character, dict):
+            return f"characters[{character_key!r}] doit être un objet"
+        for field in ("completed_achievements", "auto_completed_achievements"):
+            if field in character and not isinstance(character[field], list):
+                return f"characters[{character_key!r}].{field} doit être une liste"
+        for field in ("completed_objectives", "auto_completed_objectives"):
+            rows = character.get(field, {})
+            if not isinstance(rows, dict):
+                return f"characters[{character_key!r}].{field} doit être un objet"
+            for achievement_id, values in rows.items():
+                if not isinstance(values, list):
+                    return f"{field}[{achievement_id!r}] doit être une liste"
+        if "alignment_order" in character and not isinstance(character["alignment_order"], dict):
+            return f"characters[{character_key!r}].alignment_order doit être un objet"
+    return None
 
 
 __all__ = ["ACHIEVEMENT_PROGRESS_FILE", "AchievementProgressService"]

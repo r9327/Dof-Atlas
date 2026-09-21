@@ -538,6 +538,215 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "ensuite": None,
         }
 
+    def manual_sections_for_card(
+        self,
+        character_key: str,
+        card: dict[str, Any],
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Expose the canonical walkthrough as stable UI sections.
+
+        The authored stage remains the source of truth. This method only
+        classifies the already-rendered player instructions so the UI can
+        present actions, opportunities, conservation rules, boss/captures and
+        exit warnings without reverse-engineering free text.
+        """
+
+        full_lines = self.manual_lines_for_card(character_key, card)
+        sections: dict[str, list[dict[str, Any]]] = {
+            "prepare": [],
+            "now": [],
+            "opportunity": [],
+            "keep": [],
+            "boss": [],
+            "before_leave": [],
+        }
+        if not full_lines:
+            return sections
+
+        stage = card.get("manual_stage_data")
+        if not isinstance(stage, dict):
+            target = sections["prepare"] if any(
+                str(row.get("kind") or "") == "warning" for row in full_lines
+            ) else sections["now"]
+            target.extend(copy.deepcopy(full_lines))
+            return sections
+
+        quest_names = [
+            normalize_text(value)
+            for value in card.get("manual_quest_names", []) or []
+            if normalize_text(value)
+        ]
+        source_by_fingerprint: dict[str, str] = {}
+        suppressed: set[str] = set()
+
+        def fingerprint(row: dict[str, Any]) -> str:
+            return normalize_text(
+                f"{row.get('position', '')} {row.get('text', '')}"
+            )
+
+        def remember(bucket: str, rows: list[dict[str, Any]]) -> None:
+            for row in rows:
+                key = fingerprint(row)
+                if key:
+                    source_by_fingerprint[key] = bucket
+
+        def player_value(
+            bucket: str,
+            value: Any,
+            *,
+            kind: str,
+            preparation: bool = False,
+        ) -> None:
+            rows: list[dict[str, Any]] = []
+            self._append_player_value(
+                rows,
+                value,
+                quest_names,
+                kind=kind,
+                preparation=preparation,
+            )
+            remember(bucket, rows)
+
+        def player_line(
+            bucket: str,
+            position: str,
+            value: Any,
+            *,
+            kind: str,
+        ) -> None:
+            rows: list[dict[str, Any]] = []
+            self._append_line(rows, kind, position, value, quest_names)
+            remember(bucket, rows)
+
+        for field in _PREREQUISITE_STAGE_FIELDS:
+            player_value("prepare", stage.get(field), kind="warning")
+
+        player_value(
+            "prepare",
+            card.get("manual_chapter_preparation"),
+            kind="warning",
+            preparation=True,
+        )
+        for field in _PREPARATION_STAGE_FIELDS:
+            bucket = "keep" if field in {"keep_in_bank", "bank_items"} else "prepare"
+            player_value(
+                bucket,
+                stage.get(field),
+                kind="warning",
+                preparation=True,
+            )
+
+        player_value("now", stage.get("take"), kind="action")
+
+        for waypoint in stage.get("waypoints", []) or []:
+            if not isinstance(waypoint, dict):
+                continue
+            wx = self._as_int(waypoint.get("x"))
+            wy = self._as_int(waypoint.get("y"))
+            label = str(waypoint.get("label") or "").strip()
+            position = self._location_text(wx, wy, label)
+            waypoint_quests = [
+                normalize_text(value)
+                for value in waypoint.get("quests", []) or []
+                if isinstance(value, str) and normalize_text(value)
+            ]
+            for action in waypoint.get("actions", []) or []:
+                rows: list[dict[str, Any]] = []
+                self._append_line(
+                    rows,
+                    "action",
+                    position,
+                    action,
+                    waypoint_quests or quest_names,
+                )
+                remember("now", rows)
+
+        for route_row in stage.get("route", []) or []:
+            if not isinstance(route_row, dict):
+                continue
+            position = str(
+                route_row.get("pos")
+                or route_row.get("position")
+                or route_row.get("area")
+                or route_row.get("zone")
+                or route_row.get("label")
+                or ""
+            ).strip()
+            action = (
+                route_row.get("do")
+                or route_row.get("action")
+                or route_row.get("instruction")
+                or route_row.get("note")
+            )
+            player_line("now", position, action, kind="action")
+
+        for field in ("conditional_actions", "instructions"):
+            player_value("now", stage.get(field), kind="action")
+        for field in ("opportunistic", "progress_also", "progress_alongside"):
+            player_value("opportunity", stage.get(field), kind="action")
+
+        dungeon = stage.get("dungeon")
+        if dungeon:
+            rows: list[dict[str, Any]] = []
+            text = self._structured_target_instruction(dungeon, "donjon")
+            if text:
+                self._append_line(rows, "action", "", text, quest_names)
+            remember("boss", rows)
+        dungeons = stage.get("dungeons")
+        if dungeons:
+            rows = []
+            self._append_structured_targets(rows, dungeons, "donjon", quest_names)
+            remember("boss", rows)
+        monsters = stage.get("monsters")
+        if monsters:
+            rows = []
+            self._append_structured_targets(rows, monsters, "monstre", quest_names)
+            remember("boss", rows)
+
+        for success in self._string_list(stage.get("successes")):
+            rows = []
+            self._append_line(
+                rows,
+                "action",
+                "",
+                f"Profite du passage pour faire le succès « {success} » s'il est encore ouvert.",
+                quest_names,
+            )
+            suppressed.update(fingerprint(row) for row in rows if fingerprint(row))
+
+        for field in ("capture_note", "capture_transition"):
+            player_value("boss", stage.get(field), kind="warning")
+        for field in ("carry_forward", "defer", "future_merge"):
+            player_value("keep", stage.get(field), kind="warning")
+        for field in ("choice_policy", "conditional", "branch_policy"):
+            player_value("now", stage.get(field), kind="warning")
+        player_value("prepare", stage.get("temporal_rule"), kind="warning")
+
+        for field in _BEFORE_LEAVING_STAGE_FIELDS:
+            player_value("before_leave", stage.get(field), kind="warning")
+        for field in (
+            "conditions",
+            "runtime_conditions",
+            "runtime_gate",
+            "runtime_gates",
+            "hard_runtime_gates",
+        ):
+            player_value("prepare", stage.get(field), kind="warning")
+
+        for row in full_lines:
+            key = fingerprint(row)
+            if key and key in suppressed:
+                continue
+            bucket = source_by_fingerprint.get(key)
+            if not bucket:
+                bucket = "prepare" if str(row.get("kind") or "") == "warning" else "now"
+            sections[bucket].append(copy.deepcopy(row))
+
+        return {
+            key: self._dedupe_lines(rows)
+            for key, rows in sections.items()
+        }
+
     def card_quest_ids(self, card: dict[str, Any]) -> tuple[int, ...]:
         if card.get("manual_source"):
             result: list[int] = []

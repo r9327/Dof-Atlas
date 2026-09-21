@@ -23,6 +23,14 @@ def _method_node(relative_path: str, class_name: str, method_name: str) -> ast.F
     raise AssertionError(f"{class_name}.{method_name} introuvable dans {relative_path}")
 
 
+def _function_node(relative_path: str, function_name: str) -> ast.FunctionDef:
+    tree = ast.parse(_source(relative_path), filename=relative_path)
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == function_name:
+            return node
+    raise AssertionError(f"{function_name} introuvable dans {relative_path}")
+
+
 def _called_attributes(node: ast.AST) -> set[str]:
     calls: set[str] = set()
     for child in ast.walk(node):
@@ -156,11 +164,22 @@ class PerformanceGuardrailTests(unittest.TestCase):
         self.assertIn("def qwebengine_view_class", source)
         self.assertIn("def schedule_web_start", source)
 
-    def test_guide_home_images_keep_background_file_io_and_ui_thread_decode(self) -> None:
-        source = _source("app/modules/encyclopedia/views/guides_view.py")
+    def test_guide_images_keep_file_io_and_decode_off_ui_delivery(self) -> None:
+        relative_path = "app/modules/encyclopedia/views/guides_view.py"
+        source = _source(relative_path)
+        guide_worker = _function_node(relative_path, "_decode_guide_image")
+        solution_worker = _function_node(relative_path, "_decode_solution_image")
+        guide_delivery = _method_node(relative_path, "_AsyncImageDelivery", "_deliver_guide_image")
+        solution_delivery = _method_node(relative_path, "_AsyncImageDelivery", "_deliver_solution_image")
+
         self.assertIn("_atlas_async_image_loader = True", source)
         self.assertIn("SOLUTION_IMAGE_EXECUTOR.submit", source)
-        self.assertIn("Path(path).read_bytes()", source)
+        self.assertIn("read_bytes", _called_attributes(guide_worker))
+        self.assertIn("read_bytes", _called_attributes(solution_worker))
+        self.assertIn("_decode_qimage", _called_attributes(guide_worker))
+        self.assertIn("_decode_qimage", _called_attributes(solution_worker))
+        self.assertNotIn("_decode_qimage", _called_attributes(guide_delivery))
+        self.assertNotIn("_decode_qimage", _called_attributes(solution_delivery))
         self.assertIn("QImage.fromData(payload)", source)
         self.assertNotIn("QImage(path)", source)
 
@@ -180,7 +199,7 @@ class PerformanceGuardrailTests(unittest.TestCase):
     def test_qimage_decode_emits_non_blocking_debug_measurement(self) -> None:
         source = _source("app/modules/encyclopedia/views/guides_view.py")
         self.assertIn("def _decode_qimage", source)
-        self.assertIn("QImage decode kind=%s bytes=%d width=%d height=%d ui_ms=%.3f", source)
+        self.assertIn("QImage decode kind=%s bytes=%d width=%d height=%d worker_ms=%.3f", source)
 
     def test_deterministic_resource_budget_failure_is_fatal_to_ci(self) -> None:
         source = _source(".github/workflows/app-ci.yml")

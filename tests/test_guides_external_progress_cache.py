@@ -26,6 +26,7 @@ class _ViewProbe:
 def test_unchanged_guides_external_progress_returns_before_any_work() -> None:
     calls: list[str] = []
     fake = SimpleNamespace(
+        _runtime_ready=True,
         _external_progress_changed=lambda: False,
         current_guide_id=GUIDE_ULTIME_LEGACY_ID,
         quest_progress_service=_ReloadProbe(),
@@ -50,6 +51,7 @@ def test_changed_guide_ultime_progress_refreshes_once_and_marks_signature() -> N
     guide_progress = _ReloadProbe()
     view = _ViewProbe()
     fake = SimpleNamespace(
+        _runtime_ready=True,
         _external_progress_changed=lambda: True,
         current_guide_id=GUIDE_ULTIME_LEGACY_ID,
         quest_progress_service=quest_progress,

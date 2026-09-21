@@ -83,6 +83,16 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
         owned_items_path.write_text(json.dumps({"items": []}), encoding="utf-8")
         return profile_path, client_index_path, quest_progress_path, achievement_progress_path, guide_progress_path, owned_items_path
 
+    def hydrate_guides(self, page: EncyclopediaPage):
+        view = page.ensure_guides_view()
+        if not view._runtime_ready:
+            view.hydrate_runtime(graph=page._quest_graph)
+        page._guide_runtime_ready = bool(view._runtime_ready)
+        page._related_ready = page._guide_runtime_ready
+        if page._guide_runtime_ready:
+            page._related_preload_gate.mark_ready()
+        return view
+
     def make_page(self, tmp_path: Path) -> EncyclopediaPage:
         profile, client_index, quest_progress, achievement_progress, guide_progress, owned = self.temp_paths(tmp_path)
         quest_provider = QuestProvider()
@@ -103,6 +113,9 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
         page.show()
         self.app.processEvents()
         page.set_character_key("character:1")
+        # These corrective tests exercise the historical rich Guide UI itself.
+        # Cold-tab/index behavior is covered by dedicated Phase 7B tests.
+        self.hydrate_guides(page)
         return page
 
     def test_visible_tabs_and_global_character_selector(self):
@@ -174,11 +187,16 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
             self.assertIs(page.service.achievement_provider, achievement_provider)
             self.assertIs(page.service.guide_provider, guide_provider)
             self.assertIsNone(page.guides_view)
+
+            # Merely opening the cold Guide tab now keeps the lightweight index.
             page.on_tab_changed(page.tab_labels().index(GUIDES_TAB))
             self.app.processEvents()
-            self.assertIsNotNone(page.guides_view)
-            assert page.guides_view is not None
-            self.assertIs(page.guides_view.graph, graph)
+            self.assertIsNone(page.guides_view)
+
+            view = page.ensure_guides_view()
+            self.assertFalse(view._runtime_ready)
+            self.assertIs(view.provider, guide_provider)
+            self.assertIs(view.graph, graph)
             page.deleteLater()
             self.app.processEvents()
 
@@ -188,6 +206,8 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
             page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
             view = page.guides_view
             assert view is not None
+            view.select_guide(TURQUOISE_GUIDE_ID)
+            self.app.processEvents()
 
             self.assertEqual(view.splitter.count(), 3)
             self.assertFalse(hasattr(view, "filter_panel"))
