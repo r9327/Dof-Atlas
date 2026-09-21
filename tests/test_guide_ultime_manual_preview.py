@@ -287,5 +287,70 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         self.assertNotIn('"ENSUITE"', whole)
 
 
+    def test_7d_walkthrough_sections_keep_authored_intent_separate(self):
+        service = self._bare_service()
+        stage = {
+            "id": "TEST-7D",
+            "preparation": [{"name": "Clef de test", "quantity": 1}],
+            "take": ["Prendre la quête de test auprès de Testeur."],
+            "route": [{"pos": "[1,2]", "do": "Parler à Testeur."}],
+            "progress_also": ["Profiter du passage pour tuer les monstres utiles."],
+            "keep_in_bank": [{"name": "Relique de test", "quantity": 2}],
+            "dungeon": {"name": "Donjon de test", "boss": "Boss de test"},
+            "capture_note": "Préparer la capture si elle est encore nécessaire.",
+            "before_leaving": ["Ne pas sortir avant le dialogue final."],
+            "hard_exit": ["Dialogue final réellement effectué."],
+        }
+        card = {
+            "index": 1,
+            "manual_source": True,
+            "manual_chapter_id": "test",
+            "manual_stage_id": "TEST-7D",
+            "manual_stage_data": stage,
+            "manual_chapter_preparation": [],
+            "manual_quest_ids": [],
+            "manual_quest_names": [],
+            "manual_success_names": [],
+            "manual_temporal_hooks": [],
+            "manual_lines": service._stage_lines(stage, []),
+        }
+        sections = service.manual_sections_for_card("character:1", card)
+
+        text = {
+            key: "\n".join(str(row.get("text") or "") for row in rows)
+            for key, rows in sections.items()
+        }
+        self.assertIn("Clef de test", text["prepare"])
+        self.assertIn("Prendre la quête de test", text["now"])
+        self.assertIn("Profiter du passage", text["opportunity"])
+        self.assertIn("Relique de test", text["keep"])
+        self.assertIn("Donjon de test", text["boss"])
+        self.assertIn("capture", text["boss"].casefold())
+        self.assertIn("Ne pas sortir", text["before_leave"])
+        self.assertIn("Dialogue final", text["before_leave"])
+
+    def test_7d_manual_ui_has_bottom_page_marker_and_navigation_resets_scroll(self):
+        build = inspect.getsource(GuideUltimeManualView._build_ui)
+        refresh = inspect.getsource(GuideUltimeManualView._refresh_header)
+        render = inspect.getsource(GuideUltimeManualView._render_window)
+        relative = inspect.getsource(GuideUltimeManualView.navigate_relative)
+
+        self.assertIn('setObjectName("GuideManualNavPage")', build)
+        self.assertIn('f"Page {page} / {total}"', refresh)
+        self.assertIn("reset_scroll=True", relative)
+        self.assertIn("_reset_scroll_to_top", render)
+
+    def test_7d_manual_card_uses_semantic_walkthrough_sections(self):
+        source = inspect.getsource(GuideUltimeManualCard.__init__)
+        self.assertIn("manual_sections_for_card", source)
+        self.assertIn("À FAIRE MAINTENANT", source)
+        self.assertIn("À PROFITER ICI", source)
+        self.assertIn("À CONSERVER POUR PLUS TARD", source)
+        self.assertIn("BOSS / CAPTURES", source)
+        self.assertIn("AVANT DE PARTIR", source)
+        self.assertIn("DESTINATION SUIVANTE", inspect.getsource(GuideUltimeManualCard._add_destination_section))
+
+
+
 if __name__ == "__main__":
     unittest.main()

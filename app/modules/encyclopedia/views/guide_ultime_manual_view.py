@@ -4,7 +4,7 @@ import html
 import re
 from typing import Any
 
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import QTimer, Signal, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
@@ -79,47 +79,67 @@ class GuideUltimeManualCard(QFrame):
             where.setWordWrap(True)
             root.addWidget(where)
 
-        resource_names = [
+        self._resource_names = [
             str(value).strip()
             for value in card.get("manual_resource_names", []) or []
             if str(value).strip()
         ]
         line_provider = getattr(service, "manual_lines_for_card", None)
         manual_lines = line_provider(character_key, card) if callable(line_provider) else card.get("manual_lines", []) or []
-        for row in manual_lines:
-            if not isinstance(row, dict):
-                continue
-            text = str(row.get("text") or "").strip()
-            if not text:
-                continue
-            position = str(row.get("position") or "").strip()
-            kind = str(row.get("kind") or "")
-            prefix = "⚠ " if kind == "warning" else "• "
-            rich_text = self._format_line_html(
-                prefix,
-                position,
-                text,
-                self._npc_names(text),
-                resource_names,
-            )
-            line = QLabel()
-            line.setTextFormat(Qt.RichText)
-            line.setText(rich_text)
-            line.setObjectName(self._line_object_name(kind, text))
-            line.setWordWrap(True)
-            line.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            root.addWidget(line)
+        section_provider = getattr(service, "manual_sections_for_card", None)
+        sections = (
+            section_provider(character_key, card)
+            if callable(section_provider)
+            else {"now": manual_lines}
+        )
+        if not isinstance(sections, dict) or not any(sections.values()):
+            sections = {"now": manual_lines}
+
+        self._add_line_section(
+            root,
+            "À PRÉPARER",
+            sections.get("prepare"),
+            "GuideManualResourceSection",
+        )
+        self._add_line_section(
+            root,
+            "À FAIRE MAINTENANT",
+            sections.get("now"),
+            "GuideManualActionSection",
+        )
+        self._add_line_section(
+            root,
+            "À PROFITER ICI",
+            sections.get("opportunity"),
+            "GuideManualActionSection",
+        )
+        self._add_line_section(
+            root,
+            "À CONSERVER POUR PLUS TARD",
+            sections.get("keep"),
+            "GuideManualResourceSection",
+        )
+        self._add_line_section(
+            root,
+            "BOSS / CAPTURES",
+            sections.get("boss"),
+            "GuideManualDungeonSection",
+        )
 
         self._add_success_targets(root)
+
+        self._add_line_section(
+            root,
+            "AVANT DE PARTIR",
+            sections.get("before_leave"),
+            "GuideManualWarningSection",
+        )
 
         next_card = service.cards[index + 1] if index + 1 < len(service.cards) else None
         if isinstance(next_card, dict):
             destination = str(next_card.get("destination") or "").strip()
             if destination:
-                next_line = QLabel(f"→ Prochaine destination : {destination}")
-                next_line.setObjectName("GuideManualNext")
-                next_line.setWordWrap(True)
-                root.addWidget(next_line)
+                self._add_destination_section(root, destination)
 
         automatic = service.card_auto_complete(character_key, card)
         manual = service.page_checked(character_key, card, index)
@@ -145,6 +165,69 @@ class GuideUltimeManualCard(QFrame):
             self.page_check.setToolTip("Secours temporaire tant que la validation automatique n'est pas branchée.")
             self.page_check.toggled.connect(self._page_toggled)
         root.addWidget(self.page_check)
+
+    def _add_line_section(
+        self,
+        root: QVBoxLayout,
+        title: str,
+        rows,
+        object_name: str,
+    ) -> None:
+        visible = [
+            row for row in rows or []
+            if isinstance(row, dict) and str(row.get("text") or "").strip()
+        ]
+        if not visible:
+            return
+
+        frame = QFrame()
+        frame.setObjectName(object_name)
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(6)
+
+        heading = QLabel(title)
+        heading.setObjectName("GuideManualSectionTitle")
+        layout.addWidget(heading)
+
+        for row in visible:
+            text = str(row.get("text") or "").strip()
+            position = str(row.get("position") or "").strip()
+            kind = str(row.get("kind") or "")
+            prefix = "⚠ " if kind == "warning" else "• "
+            line = QLabel()
+            line.setTextFormat(Qt.RichText)
+            line.setText(
+                self._format_line_html(
+                    prefix,
+                    position,
+                    text,
+                    self._npc_names(text),
+                    self._resource_names,
+                )
+            )
+            line.setObjectName(self._line_object_name(kind, text))
+            line.setWordWrap(True)
+            line.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            layout.addWidget(line)
+
+        root.addWidget(frame)
+
+    @staticmethod
+    def _add_destination_section(root: QVBoxLayout, destination: str) -> None:
+        frame = QFrame()
+        frame.setObjectName("GuideManualDestinationSection")
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(5)
+        title = QLabel("DESTINATION SUIVANTE")
+        title.setObjectName("GuideManualSectionTitle")
+        layout.addWidget(title)
+        next_line = QLabel(f"→ {destination}")
+        next_line.setObjectName("GuideManualNext")
+        next_line.setWordWrap(True)
+        layout.addWidget(next_line)
+        root.addWidget(frame)
 
     def _contract_row(self) -> dict[str, Any]:
         contract = getattr(self.service, "auto_validation_contract", None)
@@ -433,6 +516,9 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
         nav_layout.addWidget(self.prev_button)
         nav_layout.addStretch(1)
+        self.nav_page_label = QLabel()
+        self.nav_page_label.setObjectName("GuideManualNavPage")
+        nav_layout.addWidget(self.nav_page_label)
         self.next_button = QPushButton("Suivant →")
         self.next_button.setObjectName("GuideManualNextButton")
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
@@ -453,6 +539,7 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         if total <= 0:
             self.route_bar.setRange(0, 0)
             self.route_progress_label.setText("")
+            self.nav_page_label.setText("")
             return
         self.route_bar.setRange(0, total)
         self.route_bar.setValue(min(completed, total))
@@ -463,8 +550,10 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
             getattr(self.service, "auto_validation_contract", None),
         )
         page = max(1, min(total, int(self.view_index) + 1))
+        page_text = f"Page {page} / {total}"
+        self.nav_page_label.setText(page_text)
         self.route_progress_label.setText(
-            f"Page {page}/{total}  •  "
+            f"{page_text}  •  "
             f"Quêtes {counts['quests_completed']}/{counts['quests_total']}  •  "
             f"Donjons {counts['dungeons_completed']}/{counts['dungeons_total']}  •  "
             f"{percent} %"
@@ -477,22 +566,22 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         index = int(round(max(0.0, min(1.0, float(ratio))) * max(0, total - 1)))
         self.view_index = index
         self._refresh_header()
-        self._render_window()
+        self._render_window(reset_scroll=True)
 
     def navigate_relative(self, delta: int) -> None:
         if not self.service.cards:
             return
         self.view_index = max(0, min(len(self.service.cards) - 1, self.view_index + int(delta)))
         self._refresh_header()
-        self._render_window()
+        self._render_window(reset_scroll=True)
 
     def go_active(self) -> None:
         self.active_index = self.service.first_incomplete_index(self.character_key)
         self.view_index = self.active_index
         self._refresh_header()
-        self._render_window()
+        self._render_window(reset_scroll=True)
 
-    def _render_window(self) -> None:
+    def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._clear_cards()
         if not self.service.cards:
             return
@@ -507,6 +596,8 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.prev_button.setEnabled(index > 0)
         self.next_button.setEnabled(index < len(self.service.cards) - 1)
         self._make_positions_copyable(widget)
+        if reset_scroll:
+            self._reset_scroll_to_top()
 
     def _add_manual_order_choice(self, card: dict[str, Any]) -> None:
         required = getattr(self.service, "manual_order_choice_required", None)
@@ -543,7 +634,7 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.service.set_bonta_order(self.character_key, order_name)
         self.active_index = self.service.first_incomplete_index(self.character_key)
         self._refresh_header()
-        self._render_window()
+        self._render_window(reset_scroll=True)
 
     def _render_breadcrumb(self, card: dict[str, Any]) -> None:
         while self.breadcrumb_layout.count():
@@ -594,22 +685,33 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
             if str(card.get("manual_chapter_id") or "") == str(chapter_id):
                 self.view_index = index
                 self._refresh_header()
-                self._render_window()
+                self._render_window(reset_scroll=True)
                 return
 
     def _manual_page_changed(self) -> None:
         previous = self.active_index
         self.active_index = self.service.first_incomplete_index(self.character_key)
-        if self.view_index == previous and self.active_index != previous:
+        moved = self.view_index == previous and self.active_index != previous
+        if moved:
             self.view_index = self.active_index
         self._refresh_header()
-        self._render_window()
+        self._render_window(reset_scroll=moved)
 
     def _shared_achievement_progress_changed(self) -> None:
         self.service.reload_progress()
         self.active_index = self.service.first_incomplete_index(self.character_key)
         self._refresh_header()
         self._render_window()
+
+    def _reset_scroll_to_top(self) -> None:
+        bar = self.scroll.verticalScrollBar()
+        bar.setValue(bar.minimum())
+        QTimer.singleShot(
+            0,
+            lambda: self.scroll.verticalScrollBar().setValue(
+                self.scroll.verticalScrollBar().minimum()
+            ),
+        )
 
     @staticmethod
     def _chapter_label(chapter_id: str) -> str:
