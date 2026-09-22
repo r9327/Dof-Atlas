@@ -2,7 +2,7 @@
   "schema_version": 1,
   "guide_id": "guide_ultime_manual",
   "title": "Guide Ultime — route manuelle vérifiée",
-  "status": "BUILDING",
+  "status": "CERTIFIED",
   "route_policy": "manual_macro_stages_with_local_micro_walkthrough",
   "canonical": {
     "chapters": [

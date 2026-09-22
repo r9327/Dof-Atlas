@@ -230,14 +230,17 @@ jobs:
             --output $phaseReport
           $code = $LASTEXITCODE
           if ($code -ne 0) {
+            $phase = Get-Content -LiteralPath $phaseReport -Raw | ConvertFrom-Json
             $message = "PHASE CERTIFICATION: NOT CERTIFIED - phase verdict rejected the FULL evidence"
             Write-Host $message
+            Write-Host "Guide verdict: $($phase.guide_status)"
             if ($env:GITHUB_STEP_SUMMARY) {
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: NOT CERTIFIED"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:CANDIDATE_SHA``"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:CERT_BASE_REF``"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Full evidence or frozen baseline non-regression contract failed."
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide verdict: ``$($phase.guide_status)``"
             }
             throw $message
           }
@@ -246,6 +249,7 @@ jobs:
           Write-Host "PHASE CERTIFICATION: PASS"
           Write-Host "Certified SHA: $env:CANDIDATE_SHA"
           Write-Host "Phase verdict: $($phase.status)"
+          Write-Host "Guide verdict: $($phase.guide_status)"
           if ($env:GITHUB_STEP_SUMMARY) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: PASS"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
@@ -253,6 +257,7 @@ jobs:
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:CERT_BASE_REF``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Integrity mode: ``FULL``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Phase verdict: ``$($phase.status)``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide verdict: ``$($phase.guide_status)``"
             if ($phase.status -eq "PASS_BASELINE_NON_REGRESSION") {
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide status: existing ``BUILDING`` debt carried byte-for-byte unchanged from the Phase 1 base; this is not GUIDE CERTIFIED."
             }

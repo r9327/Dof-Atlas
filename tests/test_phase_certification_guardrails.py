@@ -166,6 +166,11 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             "integrity": integrity,
             "baseline": baseline,
             "prerequisite": prerequisite,
+            "action": {
+                "manifest_status": "BUILDING",
+                "hard_issue_count": 0,
+                "issues": [],
+            },
             "coverage": coverage,
             "manifest": {"status": "BUILDING"},
             "base_ref": "phase-base",
@@ -185,7 +190,8 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
     def test_phase_verdict_carries_frozen_baseline_to_clean_descendant_base(self) -> None:
         report = self._evaluate(self._baseline_non_regression_case())
 
-        self.assertEqual(report["status"], "PASS_BASELINE_NON_REGRESSION")
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["guide_status"], "GUIDE_NOT_CERTIFIED")
         self.assertEqual(report["baseline_protected_changes"], [])
         self.assertEqual(report["protected_changes"], [])
 
@@ -195,9 +201,9 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
 
         report = self._evaluate(case)
 
-        self.assertEqual(report["status"], "PASS_BASELINE_NON_REGRESSION", report["errors"])
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["guide_status"], "GUIDE_NOT_CERTIFIED")
         self.assertEqual(report["protected_changes"], [PROTECTED_PROVIDER])
-        self.assertEqual(report["errors"], [])
 
     def test_absolute_pass_allows_protected_guide_changes_without_baseline_waiver(self) -> None:
         case = self._baseline_non_regression_case()
@@ -210,13 +216,89 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
             "blockers": [],
         }
         case["integrity"] = integrity
+        case["manifest"] = {"status": "CERTIFIED"}
+        case["prerequisite"] = {
+            "status": "COMPLETE_BY_PROVIDER_ORDER",
+            "manifest_status": "CERTIFIED",
+            "audit_complete": True,
+            "catalog_available": True,
+            "provider_quest_count": 1976,
+            "hard_error_count": 0,
+            "hard_errors": [],
+        }
+        case["action"] = {
+            "manifest_status": "CERTIFIED",
+            "hard_issue_count": 0,
+            "issues": [],
+        }
+        case["coverage"] = {
+            "status": "COMPLETE_BY_EVIDENCE",
+            "audit_complete": True,
+            "achievement_catalog_available": True,
+            "provider_achievement_count": 2780,
+            "achievement_count": 1418,
+            "state_counts": {"partial": 0, "uncovered": 0},
+            "partial_achievements": [],
+            "uncovered_achievements": [],
+            "verified_success_contracts": {
+                "status": "CONTRACTS_COVERED",
+                "contract_count": 38,
+                "failed_contract_count": 0,
+            },
+        }
 
         report = self._evaluate(case)
 
         self.assertEqual(report["status"], "PASS", report["errors"])
+        self.assertEqual(report["guide_status"], "GUIDE_CERTIFIED")
         self.assertEqual(report["raw_integrity_verdict"], "PASS")
         self.assertEqual(report["baseline_debt"], [])
         self.assertEqual(report["errors"], [])
+
+    def test_absolute_pass_rejects_hard_guide_action_issue(self) -> None:
+        case = self._baseline_non_regression_case()
+        case["changed"] = [PROTECTED_PROVIDER]
+        integrity = copy.deepcopy(case["integrity"])
+        integrity["verdict"] = "PASS"
+        integrity["blockers"] = []
+        integrity["groups"]["DATA_INTEGRITY"] = {"status": "PASS", "blockers": []}
+        case["integrity"] = integrity
+        case["manifest"] = {"status": "CERTIFIED"}
+        case["prerequisite"] = {
+            "status": "COMPLETE_BY_PROVIDER_ORDER",
+            "manifest_status": "CERTIFIED",
+            "audit_complete": True,
+            "catalog_available": True,
+            "provider_quest_count": 1976,
+            "hard_error_count": 0,
+            "hard_errors": [],
+        }
+        case["action"] = {
+            "manifest_status": "CERTIFIED",
+            "hard_issue_count": 1,
+            "issues": [{"severity": "hard"}],
+        }
+        case["coverage"] = {
+            "status": "COMPLETE_BY_EVIDENCE",
+            "audit_complete": True,
+            "achievement_catalog_available": True,
+            "provider_achievement_count": 2780,
+            "achievement_count": 1418,
+            "state_counts": {"partial": 0, "uncovered": 0},
+            "partial_achievements": [],
+            "uncovered_achievements": [],
+            "verified_success_contracts": {
+                "status": "CONTRACTS_COVERED",
+                "contract_count": 38,
+                "failed_contract_count": 0,
+            },
+        }
+
+        report = self._evaluate(case)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["guide_status"], "GUIDE_NOT_CERTIFIED")
+        self.assertIn("Guide action audit has hard issues", report["errors"])
 
     def test_absolute_pass_still_rejects_frozen_baseline_tampering(self) -> None:
         case = self._baseline_non_regression_case()
@@ -376,6 +458,9 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("prerequisite baseline fingerprint drift", source)
         self.assertIn("final coverage baseline fingerprint drift", source)
         self.assertIn("PASS_BASELINE_NON_REGRESSION", source)
+        self.assertIn("GUIDE_CERTIFIED", source)
+        self.assertIn("GUIDE_NOT_CERTIFIED", source)
+        self.assertIn("Guide quest catalog is unavailable", source)
 
     def test_public_pr_is_explicitly_not_phase_certification(self) -> None:
         self.assertIn("PR SAFE VALIDATION ONLY", self.public_pr)

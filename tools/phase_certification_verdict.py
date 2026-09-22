@@ -151,11 +151,75 @@ def _guide_evidence_completeness_errors(
     return errors
 
 
+def _guide_certification_errors(
+    *,
+    prerequisite: dict[str, Any],
+    action: dict[str, Any],
+    coverage: dict[str, Any],
+    manifest: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+
+    if str(manifest.get("status") or "") != "CERTIFIED":
+        errors.append("Guide manifest is not CERTIFIED")
+
+    if str(prerequisite.get("status") or "") != "COMPLETE_BY_PROVIDER_ORDER":
+        errors.append("Guide prerequisite audit is not complete by provider order")
+    if str(prerequisite.get("manifest_status") or "") != "CERTIFIED":
+        errors.append("Guide prerequisite audit did not use the CERTIFIED manifest")
+    if not bool(prerequisite.get("audit_complete")):
+        errors.append("Guide prerequisite audit is incomplete")
+    if not bool(prerequisite.get("catalog_available")):
+        errors.append("Guide quest catalog is unavailable")
+    if int(prerequisite.get("provider_quest_count") or 0) <= 0:
+        errors.append("Guide quest catalog is empty")
+    hard_errors = prerequisite.get("hard_errors")
+    if int(prerequisite.get("hard_error_count") or 0) != 0 or hard_errors != []:
+        errors.append("Guide prerequisite audit has hard errors")
+
+    if str(action.get("manifest_status") or "") != "CERTIFIED":
+        errors.append("Guide action audit did not use the CERTIFIED manifest")
+    action_issues = action.get("issues") if isinstance(action.get("issues"), list) else []
+    if int(action.get("hard_issue_count") or 0) != 0 or any(
+        isinstance(row, dict) and row.get("severity") == "hard" for row in action_issues
+    ):
+        errors.append("Guide action audit has hard issues")
+
+    if str(coverage.get("status") or "") != "COMPLETE_BY_EVIDENCE":
+        errors.append("Guide final coverage is not complete by evidence")
+    if not bool(coverage.get("audit_complete")):
+        errors.append("Guide final coverage audit is incomplete")
+    if not bool(coverage.get("achievement_catalog_available")):
+        errors.append("Guide achievement catalog is unavailable")
+    if int(coverage.get("provider_achievement_count") or 0) <= 0:
+        errors.append("Guide achievement catalog is empty")
+    if int(coverage.get("achievement_count") or 0) <= 0:
+        errors.append("Guide retained achievement scope is empty")
+    states = coverage.get("state_counts") if isinstance(coverage.get("state_counts"), dict) else {}
+    partial = coverage.get("partial_achievements")
+    uncovered = coverage.get("uncovered_achievements")
+    if int(states.get("partial") or 0) != 0 or partial != []:
+        errors.append("Guide final coverage has partial achievements")
+    if int(states.get("uncovered") or 0) != 0 or uncovered != []:
+        errors.append("Guide final coverage has uncovered achievements")
+    contracts = coverage.get("verified_success_contracts")
+    contracts = contracts if isinstance(contracts, dict) else {}
+    if (
+        str(contracts.get("status") or "") != "CONTRACTS_COVERED"
+        or int(contracts.get("contract_count") or 0) <= 0
+        or int(contracts.get("failed_contract_count") or 0) != 0
+    ):
+        errors.append("Guide verified success contracts are incomplete")
+
+    return errors
+
+
 def evaluate_phase(
     *,
     integrity: dict[str, Any],
     baseline: dict[str, Any],
     prerequisite: dict[str, Any],
+    action: dict[str, Any],
     coverage: dict[str, Any],
     manifest: dict[str, Any],
     base_ref: str,
@@ -186,10 +250,23 @@ def evaluate_phase(
             "frozen Guide baseline modified in current phase diff: " + BASELINE_REPO_PATH
         )
 
-    if raw_verdict == "PASS" and not baseline_tampered:
+    guide_errors = _guide_certification_errors(
+        prerequisite=prerequisite,
+        action=action,
+        coverage=coverage,
+        manifest=manifest,
+    )
+    if raw_verdict != "PASS":
+        guide_errors.append(f"FULL integrity verdict is not PASS: {raw_verdict or 'UNKNOWN'}")
+    errors.extend(guide_errors)
+    guide_status = "GUIDE_CERTIFIED" if not guide_errors else "GUIDE_NOT_CERTIFIED"
+
+    if raw_verdict == "PASS":
         return {
             "schema_version": 1,
             "status": "PASS" if not errors else "FAIL",
+            "guide_status": guide_status,
+            "guide_certification_errors": guide_errors,
             "raw_integrity_verdict": raw_verdict,
             "candidate_sha": candidate_sha,
             "base_ref": base_ref,
@@ -320,6 +397,8 @@ def evaluate_phase(
     return {
         "schema_version": 1,
         "status": "PASS_BASELINE_NON_REGRESSION" if not errors else "FAIL",
+        "guide_status": guide_status,
+        "guide_certification_errors": guide_errors,
         "raw_integrity_verdict": raw_verdict,
         "candidate_sha": candidate_sha,
         "base_ref": base_ref,
@@ -354,6 +433,11 @@ def main() -> int:
         type=Path,
         default=ROOT / "artifacts" / "ci_guide_ultime_logs" / "final_coverage.json",
     )
+    parser.add_argument(
+        "--action-report",
+        type=Path,
+        default=ROOT / "artifacts" / "ci_guide_ultime_logs" / "action_quality.json",
+    )
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
@@ -361,6 +445,7 @@ def main() -> int:
     integrity = _load_json(args.integrity_report)
     baseline = _load_json(args.baseline)
     prerequisite = _load_json(args.prerequisite_report)
+    action = _load_json(args.action_report)
     coverage = _load_json(args.coverage_report)
     manifest = _load_json(MANIFEST)
     resolved_base = _run_git(["rev-parse", "--verify", f"{args.base_ref}^{{commit}}"])
@@ -379,6 +464,7 @@ def main() -> int:
         integrity=integrity,
         baseline=baseline,
         prerequisite=prerequisite,
+        action=action,
         coverage=coverage,
         manifest=manifest,
         base_ref=args.base_ref,
