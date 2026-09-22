@@ -184,6 +184,8 @@ If the change introduces a problem, fix it before finishing.
 
 For a phase or major lot, do not report `CERTIFIED`, `phase terminée`, `100 % terminée` or an equivalent final state unless the `Phase Certification / Full Validation` workflow has passed on the exact candidate SHA. `Public PR / Safe Validation` alone is never sufficient.
 
+After a phase has both `Public PR / Safe Validation` = PASS and `Phase Certification / Full Validation` = PASS on the same exact SHA, perform a conservative Git cleanup for that phase before moving on: remove only branches proven redundant, merged or temporary, preserve anything containing unique work, and do not change the certified product SHA as part of cleanup.
+
 ---
 
 ## Scope
