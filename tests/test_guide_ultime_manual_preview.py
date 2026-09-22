@@ -333,11 +333,11 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         build = inspect.getsource(GuideUltimeManualView._build_ui)
         refresh = inspect.getsource(GuideUltimeManualView._refresh_header)
         render = inspect.getsource(GuideUltimeManualView._render_window)
-        relative = inspect.getsource(GuideUltimeManualView.navigate_relative)
+        show_index = inspect.getsource(GuideUltimeManualView._show_index)
 
         self.assertIn('setObjectName("GuideManualNavPage")', build)
         self.assertIn('f"Page {page} / {total}"', refresh)
-        self.assertIn("reset_scroll=True", relative)
+        self.assertIn("reset_scroll=True", show_index)
         self.assertIn("_reset_scroll_to_top", render)
 
     def test_7d_manual_card_uses_semantic_walkthrough_sections(self):
