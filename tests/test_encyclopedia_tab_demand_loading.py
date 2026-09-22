@@ -25,6 +25,7 @@ class _IndexProbe:
 class _PageProbe:
     on_tab_changed = EncyclopediaPage.on_tab_changed
     _on_tab_changed_indexed = EncyclopediaPage._on_tab_changed_indexed
+    _on_tab_changed_indexed_runtime = EncyclopediaPage._on_tab_changed_indexed_runtime
     _on_guide_requested = EncyclopediaPage._on_guide_requested
     _on_achievement_requested = EncyclopediaPage._on_achievement_requested
 
@@ -76,10 +77,10 @@ class _PageProbe:
         raise AssertionError("cold Success tab must not build the rich Success view")
 
     def _start_full_guide_runtime(self) -> None:
-        raise AssertionError("cold Guide tab must not start the rich Guide runtime")
+        self.calls.append("full-guide-runtime")
 
     def _start_full_achievement_runtime(self) -> None:
-        raise AssertionError("cold Success tab must not start the rich Success runtime")
+        self.calls.append("full-achievement-runtime")
 
     def request_related_preload(self, target_tab: str = "") -> None:
         self.calls.append(("guide-runtime", target_tab))
@@ -96,31 +97,30 @@ class _PageProbe:
 
 
 class EncyclopediaDemandLoadingTests(unittest.TestCase):
-    def test_cold_guide_tab_uses_light_index_without_starting_runtime(self) -> None:
+    def test_cold_guide_tab_opens_canonical_view_and_starts_runtime(self) -> None:
         page = _PageProbe(GUIDES_TAB)
 
         page.on_tab_changed(0)
 
-        self.assertIn("guide-index", page.calls)
-        self.assertNotIn(("guide-runtime", GUIDES_TAB), page.calls)
+        self.assertIn("full-guide-runtime", page.calls)
+        self.assertNotIn("guide-index", page.calls)
 
-    def test_cold_success_tab_uses_light_index_without_starting_runtime(self) -> None:
+    def test_cold_success_tab_opens_canonical_view_and_starts_runtime(self) -> None:
         page = _PageProbe(ACHIEVEMENTS_TAB)
 
         page.on_tab_changed(0)
 
-        self.assertIn("achievement-index", page.calls)
-        self.assertNotIn("achievement-runtime", page.calls)
+        self.assertIn("full-achievement-runtime", page.calls)
+        self.assertNotIn("achievement-index", page.calls)
 
-    def test_success_tab_stays_light_when_only_guide_runtime_is_ready(self) -> None:
+    def test_success_tab_uses_canonical_view_even_if_only_guide_runtime_is_ready(self) -> None:
         page = _PageProbe(ACHIEVEMENTS_TAB)
         page._related_ready = True
 
         page.on_tab_changed(0)
 
-        self.assertIn("achievement-index", page.calls)
-        self.assertNotIn("open-pending", page.calls)
-        self.assertNotIn(("activate", ACHIEVEMENTS_TAB), page.calls)
+        self.assertIn("full-achievement-runtime", page.calls)
+        self.assertNotIn("achievement-index", page.calls)
 
     def test_selecting_guide_from_index_starts_guide_runtime(self) -> None:
         page = _PageProbe(GUIDES_TAB)

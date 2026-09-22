@@ -1363,7 +1363,7 @@ class EncyclopediaPage(QWidget):
         self.status_callback(f"Encyclopédie : {label}")
 
     def on_tab_changed(self, index: int) -> None:
-        self._on_tab_changed_indexed(index)
+        self._on_tab_changed_indexed_runtime(index)
 
     def navigate_to_guide(self, guide_id: str) -> bool:
         guide_id = str(guide_id or "").strip()

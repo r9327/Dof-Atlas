@@ -72,7 +72,7 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
             ]
         )
 
-    def test_guide_tab_keeps_quest_catalog_cold_until_a_guide_is_requested(self) -> None:
+    def test_guide_tab_shows_canonical_view_before_runtime_data_is_ready(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             paths = self._paths(Path(temporary))
             provider = _NoLoadQuestProvider()
@@ -87,16 +87,17 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
                 owned_items_path=paths["owned"],
                 initial_tab=GUIDES_TAB,
             )
-            self.app.processEvents()
+            with patch.object(page, "request_related_preload") as preload:
+                self.app.processEvents()
 
             self.assertEqual(provider.calls, 0)
-            self.assertIsInstance(page.tabs.currentWidget(), GuideIndexView)
-            self.assertIsNone(page.guides_view)
-            self.assertFalse(page._related_preload_started)
+            self.assertIsNotNone(page.guides_view)
+            self.assertIs(page.tabs.currentWidget(), page.guides_view)
+            preload.assert_called_once_with(GUIDES_TAB)
             page.deleteLater()
             self.app.processEvents()
 
-    def test_success_tab_keeps_rich_provider_cold_until_a_success_is_requested(self) -> None:
+    def test_success_tab_shows_canonical_view_without_sync_provider_load(self) -> None:
         provider = QuestProvider(catalog=self._catalog())
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -117,16 +118,17 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
                 profile_path=paths["profile"],
                 client_index_path=paths["clients"],
                 owned_items_path=paths["owned"],
-                initial_tab=GUIDES_TAB,
             )
 
-            page.tabs.setCurrentIndex(page.tab_labels().index(ACHIEVEMENTS_TAB))
-            self.app.processEvents()
+            with patch.object(page, "request_achievement_runtime") as runtime:
+                page.tabs.setCurrentIndex(page.tab_labels().index(ACHIEVEMENTS_TAB))
+                self.app.processEvents()
 
-            self.assertIsInstance(page.tabs.currentWidget(), AchievementIndexView)
-            self.assertIsNone(page.get_achievements_view())
+            achievements_view = page.get_achievements_view()
+            self.assertIsNotNone(achievements_view)
+            self.assertIs(page.tabs.currentWidget(), achievements_view)
             self.assertEqual(load_all.call_count, 0)
-            self.assertFalse(page._achievement_load_started)
+            runtime.assert_called_once_with()
             page.deleteLater()
             self.app.processEvents()
 

@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -188,15 +189,20 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
             self.assertIs(page.service.guide_provider, guide_provider)
             self.assertIsNone(page.guides_view)
 
-            # Merely opening the cold Guide tab now keeps the lightweight index.
-            page.on_tab_changed(page.tab_labels().index(GUIDES_TAB))
-            self.app.processEvents()
-            self.assertIsNone(page.guides_view)
+            # Opening the cold Guide tab must keep the canonical rich view visible;
+            # only its data hydration remains deferred to the background runtime.
+            with patch.object(page, "request_related_preload") as preload:
+                page.on_tab_changed(page.tab_labels().index(GUIDES_TAB))
+                self.app.processEvents()
 
-            view = page.ensure_guides_view()
+            view = page.guides_view
+            self.assertIsNotNone(view)
+            assert view is not None
+            self.assertIs(page.tabs.currentWidget(), view)
             self.assertFalse(view._runtime_ready)
             self.assertIs(view.provider, guide_provider)
             self.assertIs(view.graph, graph)
+            preload.assert_called_once_with(GUIDES_TAB)
             page.deleteLater()
             self.app.processEvents()
 
