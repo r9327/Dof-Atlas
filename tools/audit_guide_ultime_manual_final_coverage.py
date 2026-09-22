@@ -15,6 +15,7 @@ from app.modules.encyclopedia.achievement_catalog_policy import RETAINED_TOP_CAT
 from app.modules.encyclopedia.providers import AchievementProvider
 from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
 from app.quest_catalog import normalize_text
+from app.quest_source_index import QuestSourceError
 
 BASE = ROOT / "data" / "routes" / "guide_ultime_manual"
 MANIFEST = BASE / "manifest_v1.json"
@@ -257,6 +258,13 @@ def evaluate_success_contracts(evidence: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def load_provider_achievements() -> list[Any]:
+    try:
+        return list(AchievementProvider().load_all())
+    except (OSError, QuestSourceError):
+        return []
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Audit final de couverture du Guide Ultime manuel sur les succès retenus Lot7.")
     parser.add_argument("--strict", action="store_true", help="Échoue si un succès est partiel/absent ou si un contrat vérifié est cassé.")
@@ -270,8 +278,7 @@ def main() -> None:
 
     evidence = collect_route_evidence()
     contract_report = evaluate_success_contracts(evidence)
-    provider = AchievementProvider()
-    loaded_achievements = list(provider.load_all())
+    loaded_achievements = load_provider_achievements()
     achievement_catalog_available = bool(loaded_achievements)
     achievements = [
         achievement

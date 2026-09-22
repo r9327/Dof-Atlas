@@ -14,10 +14,18 @@ if str(ROOT) not in sys.path:
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
 from app.quest_catalog import normalize_text
+from app.quest_source_index import QuestSourceError
 
 
 MANUAL = ROOT / "data" / "routes" / "guide_ultime_manual"
 MANIFEST = MANUAL / "manifest_v1.json"
+
+
+def load_provider_quests() -> list[Any]:
+    try:
+        return list(QuestProvider().list_quests())
+    except (OSError, QuestSourceError):
+        return []
 
 
 def quest_key(value: Any) -> str:
@@ -270,8 +278,7 @@ def main() -> None:
     manifest = load_json(MANIFEST)
     timeline, positions, conditional_names = build_route(manifest)
 
-    provider = QuestProvider()
-    quests = provider.list_quests()
+    quests = load_provider_quests()
     if not quests:
         result = catalog_unavailable_report(manifest, timeline)
         if args.output:
