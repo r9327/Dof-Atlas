@@ -4,7 +4,7 @@
   "status": "LOCKED_CANONICAL_DATA_PRE_NETWORK",
   "manifest": "manifest_v1.json",
   "active_source_lock_mode": "resolved_closure_git_blob_at_baseline",
-  "active_source_baseline_commit": "d1e6cd79184d6d55029f776c27114a69fb6e36a9",
+  "active_source_baseline_commit": "44d67f79748ce3ec4e5f306bee24c88c3ad54084",
   "locked_stage_count": 267,
   "policy": [
     "Ce verrou fige la route canonique après les réparations causales Fratrie/Trépamorts/Bonta95/Nimotopia-Ivoire/Nordalie, les passes de sortie Ivoire/DDG/Nébuleux/Ébène, la passe Frigost III Missiz-Klime-Grolloum, la passe Ilyzaelle Bonta99, la passe Abyssal Meno-Dantinéa-Koutoulou, la passe Eliocalypse Mérydique, la réparation temporelle des six Totems, la réparation Dazak Nimbos/Ébène, la fermeture complète Silvosse/Sylvestre et la restauration du titre canonique Faire le tas de pin, sans imposer artificiellement le total de 267 fiches comme plafond.",
@@ -14,6 +14,7 @@
     "La révision 47cf5088 retire du texte joueur les derniers termes d'auteur identifiés dans level_70_100_v10 (walkthrough local, blocker, dette runtime) sans modifier la causalité, les coordonnées, les quêtes ni le total de 267 fiches.",
     "La révision aca835e1 nettoie le vocabulaire joueur de level_191_200_v22 (runtime, rerun, gate, checkpoint) sans modifier le contrat causal Dazak/Bible/De Brikke/Dragon noir/Klime ni les 62 fiches du chapitre.",
     "La révision d1e6cd79 réancre la fermeture active après suppression réelle de GUIDE_PREREQUISITE_DATA et GUIDE_FINAL_COVERAGE : prérequis à 0 hard error, 1418/1418 succès couverts, 267 fiches canoniques conservées; seules les empreintes des données volontairement corrigées sont promues, sans affaiblir les audits.",
+    "La révision 44d67f79 réancre la fermeture active après correction de l'état Chachyène de vie : la quête est explicitement déjà terminée avec Le subterfuge de la corne au passage Kanigroula et ne doit pas être rejouée; aucune fiche, quête ou route joueur n'est ajoutée.",
     "Les audits CI distinguent désormais explicitement un QuestProvider/AchievementProvider non matérialisé d'une dette du guide : un catalogue absent n'est ni une avalanche de faux gaps ni une preuve de couverture complète; les contrats déterministes Frigost/Pandala restent stricts et la validation finale locale doit toujours utiliser les vrais catalogues.",
     "Nordalie fait Tal Kasha pendant les trois démonstrations AVANT les quatre missions, avec Hem le Maudit traité avant sortie; L200-14 ne refait plus Tal Kasha.",
     "Une voix de crystal verrouille les dialogues Nileza puis Meno avant sortie et utilise le Pichon kloune pour rendre les partitions sans troisième Meno.",
