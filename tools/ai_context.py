@@ -124,7 +124,9 @@ def check_index(root: Path = ROOT, *, ref: str = "HEAD") -> bool:
 
 
 def classify_path(path: str) -> str:
-    normalized = path.strip().replace("\\", "/").lstrip("./")
+    normalized = path.strip().replace("\\", "/")
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
     lowered = normalized.casefold()
     name = Path(normalized).name.casefold()
 
