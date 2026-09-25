@@ -36,6 +36,40 @@ WATCHED_ROOT_FILES = (
     "requirements-pyside.txt",
     "sitecustomize.py",
 )
+DOMAIN_TEST_MODULES: dict[str, tuple[str, ...]] = {
+    "core": ("tests.test_character_identity_guardrails",),
+    "data": ("tests.test_critical_json_schema",),
+    "encyclopedia": (
+        "tests.test_encyclopedia_on_demand_loading",
+        "tests.test_encyclopedia_tab_demand_loading",
+    ),
+    "guide": (
+        "tests.test_guide_ultime_manual_prerequisites",
+        "tests.test_guide_ultime_final_coverage_catalog",
+    ),
+    "quality": (
+        "tests.test_ai_context",
+        "tests.test_repository_git_hooks",
+        "tests.test_meta_integrity",
+    ),
+    "runtime": ("tests.test_startup_resource_contracts",),
+    "ui": ("tests.test_performance_guardrails",),
+}
+DOMAIN_CANONICAL_PATHS: dict[str, tuple[str, ...]] = {
+    "guide": (
+        "data/routes/guide_ultime_manual/manifest_v1.json",
+        "GUIDE_ULTIME_STATUS.md",
+    ),
+    "quality": (
+        "ZERO_TRUST_RULES.md",
+        "PHASE_CERTIFICATION.md",
+        "tests/critical_regression_inventory.json",
+    ),
+    "ui": (
+        "app/ui/theme.py",
+        "app/ui/components.py",
+    ),
+}
 
 
 def _git(root: Path, *arguments: str, check: bool = True) -> str:
@@ -123,10 +157,15 @@ def check_index(root: Path = ROOT, *, ref: str = "HEAD") -> bool:
     return target.read_text(encoding="utf-8") == expected
 
 
-def classify_path(path: str) -> str:
+def normalize_path(path: str) -> str:
     normalized = path.strip().replace("\\", "/")
     while normalized.startswith("./"):
         normalized = normalized[2:]
+    return normalized
+
+
+def classify_path(path: str) -> str:
+    normalized = normalize_path(path)
     lowered = normalized.casefold()
     name = Path(normalized).name.casefold()
 
@@ -168,6 +207,40 @@ def recommended_context(paths: Iterable[str]) -> list[str]:
     return list(dict.fromkeys(documents))
 
 
+def _test_module_path(module: str) -> Path:
+    return Path(*module.split(".")).with_suffix(".py")
+
+
+def recommended_tests(root: Path, paths: Iterable[str]) -> list[str]:
+    normalized_paths = [normalize_path(path) for path in paths]
+    modules: list[str] = []
+
+    for path in normalized_paths:
+        path_obj = Path(path)
+        if path.startswith("tests/") and path_obj.suffix.casefold() == ".py" and path_obj.name.startswith("test_"):
+            modules.append(".".join(path_obj.with_suffix("").parts))
+            continue
+        if path_obj.suffix.casefold() == ".py":
+            exact = Path("tests") / f"test_{path_obj.stem}.py"
+            if (root / exact).is_file():
+                modules.append(".".join(exact.with_suffix("").parts))
+
+    domains = {classify_path(path) for path in normalized_paths}
+    for domain in sorted(domains):
+        modules.extend(DOMAIN_TEST_MODULES.get(domain, ()))
+
+    existing = [module for module in modules if (root / _test_module_path(module)).is_file()]
+    return list(dict.fromkeys(existing))
+
+
+def recommended_canonical_paths(root: Path, paths: Iterable[str]) -> list[str]:
+    domains = {classify_path(path) for path in paths}
+    candidates: list[str] = []
+    for domain in sorted(domains):
+        candidates.extend(DOMAIN_CANONICAL_PATHS.get(domain, ()))
+    return list(dict.fromkeys(path for path in candidates if (root / path).exists()))
+
+
 def _changed_paths(root: Path) -> list[str]:
     paths: set[str] = set()
     for arguments in (
@@ -192,6 +265,8 @@ def _status_payload(root: Path) -> dict[str, object]:
         "changed_paths": paths,
         "domains": domains,
         "recommended_context": recommended_context(paths),
+        "recommended_tests": recommended_tests(root, paths),
+        "canonical_anchors": recommended_canonical_paths(root, paths),
         "committed_index_current": check_index(root),
     }
 
@@ -207,15 +282,23 @@ def _print_status(payload: dict[str, object]) -> None:
         print("working tree: no tracked/untracked content changes")
     else:
         print("changed domains:")
-        for domain, paths in payload["domains"].items():
-            print(f"  {domain}: {len(paths)}")
-            for path in paths[:8]:
+        for domain, domain_paths in payload["domains"].items():
+            print(f"  {domain}: {len(domain_paths)}")
+            for path in domain_paths[:8]:
                 print(f"    - {path}")
-            if len(paths) > 8:
-                print(f"    - ... +{len(paths) - 8}")
+            if len(domain_paths) > 8:
+                print(f"    - ... +{len(domain_paths) - 8}")
     print("read/review:")
     for document in payload["recommended_context"]:
         print(f"  - {document}")
+    if payload["canonical_anchors"]:
+        print("canonical anchors:")
+        for path in payload["canonical_anchors"]:
+            print(f"  - {path}")
+    if payload["recommended_tests"]:
+        print("targeted tests:")
+        for module in payload["recommended_tests"]:
+            print(f"  - {module}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -225,7 +308,7 @@ def main(argv: list[str] | None = None) -> int:
     status_parser = subparsers.add_parser("status", help="Show live repository context for an agent.")
     status_parser.add_argument("--json", action="store_true")
 
-    route_parser = subparsers.add_parser("route", help="Route one or more paths to useful context documents.")
+    route_parser = subparsers.add_parser("route", help="Route one or more paths to useful context and tests.")
     route_parser.add_argument("paths", nargs="+")
     route_parser.add_argument("--json", action="store_true")
 
@@ -251,6 +334,8 @@ def main(argv: list[str] | None = None) -> int:
         payload = {
             "domains": {path: classify_path(path) for path in args.paths},
             "recommended_context": recommended_context(args.paths),
+            "canonical_anchors": recommended_canonical_paths(root, args.paths),
+            "recommended_tests": recommended_tests(root, args.paths),
         }
         if args.json:
             print(json.dumps(payload, indent=2, ensure_ascii=False))
@@ -260,6 +345,14 @@ def main(argv: list[str] | None = None) -> int:
             print("read/review:")
             for document in payload["recommended_context"]:
                 print(f"  - {document}")
+            if payload["canonical_anchors"]:
+                print("canonical anchors:")
+                for path in payload["canonical_anchors"]:
+                    print(f"  - {path}")
+            if payload["recommended_tests"]:
+                print("targeted tests:")
+                for module in payload["recommended_tests"]:
+                    print(f"  - {module}")
         return 0
 
     if command == "sync":
