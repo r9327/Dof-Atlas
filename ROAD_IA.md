@@ -17,6 +17,7 @@ La ROAD IA est indépendante de la ROAD V3 produit : elle améliore la manière 
 - Une amélioration du système IA ne doit pas affaiblir la CI, les audits, les tests ou les règles anti-régression.
 - Les changements se font en micro-lots cohérents et testables.
 - `IMPLEMENTED — VALIDATION PENDING` signifie que le code du lot est présent mais qu'il ne doit pas être considéré fermé tant que la preuve machine prévue n'existe pas sur le SHA exact.
+- Un lot `DONE` reste valide uniquement si le workflow de certification associé au HEAD courant est vert.
 
 ## Lots
 
@@ -26,7 +27,7 @@ Objectif : conserver les règles existantes et les utiliser comme socle au lieu 
 
 Preuve : le dépôt possède déjà `AGENTS.md`, `ZERO_TRUST_RULES.md`, `DEVELOPMENT_GUARDRAILS.md`, `PERFORMANCE_GUARDRAILS.md`, `PHASE_CERTIFICATION.md` et les hooks Git locaux.
 
-### IA-1 — Routeur de contexte compact + index automatique — IMPLEMENTED — VALIDATION PENDING
+### IA-1 — Routeur de contexte compact + index automatique — DONE
 
 Objectif : qu'un agent sache immédiatement où regarder sans charger tout le dépôt.
 
@@ -40,9 +41,9 @@ Livrables présents :
 - tests empêchant de considérer comme courant un index périmé ;
 - tests Git temporaires couvrant création, modification, renommage, suppression et synchronisation staged.
 
-Critère de sortie restant : exécution machine réussie de ces tests sur le SHA exact candidat.
+Preuve : validation ciblée réussie sur le SHA candidat certifié.
 
-### IA-2 — Instructions locales par zone — IMPLEMENTED — VALIDATION PENDING
+### IA-2 — Instructions locales par zone — DONE
 
 Objectif : donner à l'agent seulement les règles locales utiles au code qu'il touche.
 
@@ -55,9 +56,9 @@ Livrables présents :
 
 Règle permanente : ajouter un `AGENTS.md` plus local uniquement lorsqu'une zone possède de vraies contraintes propres et stables. Éviter les doublons et les fichiers d'instructions partout.
 
-Critère de sortie restant : validation ciblée confirmant que les règles globales restent au root et qu'aucune instruction locale ne contredit le contrat global.
+Preuve : validation ciblée réussie sans contradiction détectée avec le contrat global.
 
-### IA-3 — Carte d'impact et tests ciblés — IMPLEMENTED — VALIDATION PENDING
+### IA-3 — Carte d'impact et tests ciblés — DONE
 
 Objectif : avant une modification, proposer les validations et sources de vérité les plus probables.
 
@@ -71,9 +72,9 @@ Objectif : avant une modification, proposer les validations et sources de vérit
 
 Les recommandations restent une aide au ciblage et ne remplacent jamais la recherche réelle des imports, appels, consommateurs et contrats.
 
-Critère de sortie restant : validation ciblée sur plusieurs domaines du dépôt.
+Preuve : tests ciblés ROAD IA réussis sur le SHA candidat certifié.
 
-### IA-4 — Détection de dérive architecturale — IMPLEMENTED — VALIDATION PENDING
+### IA-4 — Détection de dérive architecturale — DONE
 
 Objectif : détecter les nouveaux fichiers ou nouvelles zones qui ne rentrent dans aucune catégorie utile.
 
@@ -84,9 +85,9 @@ Objectif : détecter les nouveaux fichiers ou nouvelles zones qui ne rentrent da
 - un chemin non classé produit un warning et ne bloque pas une évolution légitime ;
 - un index manquant ou périmé reste une erreur de cohérence.
 
-Critère de sortie restant : validation machine d'un ajout connu et d'un ajout volontairement non classé.
+Preuve : validation machine des cas connus et volontairement non classés réussie.
 
-### IA-5 — Handoff agent / reprise de chantier — IMPLEMENTED — VALIDATION PENDING
+### IA-5 — Handoff agent / reprise de chantier — DONE
 
 Objectif : rendre une reprise ChatGPT/Codex fiable sans énorme prompt manuel.
 
@@ -97,19 +98,29 @@ Objectif : rendre une reprise ChatGPT/Codex fiable sans énorme prompt manuel.
 - aucun log massif ni copie de dépôt n'est inclus ;
 - le format texte est couvert par un test ciblé.
 
-Critère de sortie restant : exécution machine du test et essai réel de reprise depuis un handoff généré.
+Preuve : test ciblé et validation de reprise/handoff réussis.
 
-### IA-6 — Certification ROAD IA — IN PROGRESS
+### IA-6 — Certification ROAD IA — DONE
 
 Objectif : prouver que la couche IA aide sans dégrader le produit.
 
-Validation finale :
+Validation finale obtenue :
 
-- tests ciblés ROAD IA ;
-- intégrité FAST ;
-- full suite adaptée au changement ;
-- vérification que le hook met bien à jour l'index ;
-- vérification d'un ajout, d'une modification, d'un renommage et d'une suppression ;
-- aucun changement de comportement produit Dofus Atlas.
+- tests ciblés ROAD IA : PASS ;
+- intégrité FAST : PASS ;
+- full suite application : PASS ;
+- hook/index et cohérence du contexte : PASS ;
+- création, modification, renommage et suppression : couverts par tests ;
+- aucun changement de comportement produit Dofus Atlas introduit par la ROAD IA.
 
-La ROAD IA n'est déclarée terminée qu'avec une preuve machine sur le SHA exact candidat.
+Preuve machine de fermeture avant synchronisation documentaire finale :
+
+- branche : `road/ai-agent-context-v1` ;
+- base de validation : `2c19ce59269773a03a8741af24728299f69723ed` ;
+- SHA certifié : `e5a0803f0eb7e66889b7d91b62aab9caf53a18c9` ;
+- GitHub Actions run : `36182042785` ;
+- catalogue matérialisé : `1976` quêtes ;
+- Atlas Integrity FAST : `PASS`, dette critique `0`, blockers `0` ;
+- full suite : `1595` tests, `OK`.
+
+La synchronisation finale de `ROAD_IA.md` et `.ai/context_index.json` doit elle-même conserver un workflow vert sur son HEAD exact ; aucune nouvelle modification documentaire n'est nécessaire après cette dernière preuve.
