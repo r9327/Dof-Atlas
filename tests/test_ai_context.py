@@ -21,6 +21,8 @@ class AiContextTests(unittest.TestCase):
             "data/local/example.json": "data",
             "tests/test_repository_git_hooks.py": "tests",
             "tools/atlas_integrity.py": "quality",
+            ".github/workflows/app-ci.yml": "quality",
+            ".githooks/pre-commit": "quality",
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
