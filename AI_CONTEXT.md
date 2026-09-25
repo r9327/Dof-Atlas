@@ -23,8 +23,9 @@ Ensuite lire le code réellement concerné, rechercher ses appels/consommateurs 
 - `app/services/` : services applicatifs partagés ; préférer les services canoniques aux écritures directes depuis l'UI.
 - `app/ui/`, `app/pages/` : shell et UI globale ; réutiliser thème et composants existants.
 - `app/modules/encyclopedia/` : Quêtes, Succès, Guides, Bestiaire et logique Encyclopédie, séparée en modèles/providers/services/views/widgets.
-- `data/` : données applicatives et métier ; distinguer source canonique, données utilisateur persistantes et runtime généré.
-- `tools/` : audits, gates, budgets, certification et maintenance du dépôt.
+- `local_dofus_data/` : accès local aux données Dofus utilisées par le runtime.
+- `data/`, `config/` : données applicatives, métier et configuration ; distinguer source canonique, données utilisateur persistantes et runtime généré.
+- `tools/`, `scripts/` : audits, gates, budgets, certification et maintenance du dépôt.
 - `tests/` : contrats de non-régression ; ne jamais les affaiblir pour rendre un lot vert.
 - `.github/workflows/`, `.githooks/` : exécution CI et contrôles locaux.
 
@@ -41,13 +42,13 @@ Ensuite lire le code réellement concerné, rechercher ses appels/consommateurs 
 
 ## Index automatique
 
-`.ai/context_index.json` contient uniquement des empreintes Git compactes des grandes zones (`app`, `data`, `tools`, `tests`, etc.) et de quelques fichiers root importants.
+`.ai/context_index.json` contient des empreintes Git compactes de **tout le niveau racine du dépôt**, fichiers et répertoires compris. Chaque sous-arbre est représenté par son SHA Git : créer, modifier, supprimer ou renommer un fichier n'importe où sous ce sous-arbre change donc automatiquement l'empreinte correspondante.
 
-Il n'est pas destiné à être lu intégralement à chaque tâche. Il sert à prouver que le contexte correspond bien au contenu committé sans maintenir une liste géante de fichiers.
+Seul `.ai/` est exclu de l'empreinte pour éviter que `context_index.json` se référence lui-même. L'index ne contient pas une liste de dizaines de milliers de fichiers.
 
-Le hook `pre-commit` le régénère automatiquement. Ne pas l'éditer manuellement.
+Le hook `pre-commit` le régénère automatiquement à partir de l'arbre réellement staged. Ne pas l'éditer manuellement.
 
-## Routage
+## Routage et impact
 
 Utiliser :
 
@@ -55,4 +56,19 @@ Utiliser :
 py -3.13 -m tools.ai_context route app/modules/encyclopedia/views/guides_view.py
 ```
 
-ou plusieurs chemins à la fois. La commande indique les domaines et documents supplémentaires utiles ; elle ne remplace pas la recherche réelle des imports, appels, tests et consommateurs.
+ou plusieurs chemins à la fois. La commande indique :
+
+- le domaine concerné ;
+- les documents de contexte utiles ;
+- les ancres canoniques existantes à relire ;
+- les tests ciblés existants les plus pertinents.
+
+Les recommandations sont une aide au ciblage. Elles ne remplacent pas la recherche réelle des imports, appels, consommateurs et contrats.
+
+Pour repérer un nouveau chemin que le routeur ne sait pas encore classer :
+
+```powershell
+py -3.13 -m tools.ai_context drift
+```
+
+Un chemin non classé produit un warning à examiner. Il ne bloque pas automatiquement une évolution légitime. Un index manquant ou périmé reste en revanche une erreur de cohérence.
