@@ -238,6 +238,11 @@ def _changed_paths(root: Path) -> list[str]:
     return sorted(paths)
 
 
+def _committed_changed_paths(root: Path, base_ref: str) -> list[str]:
+    output = _git(root, "diff", "--name-only", f"{base_ref}...HEAD")
+    return [line for line in output.splitlines() if line.strip()]
+
+
 def drift_report(root: Path, paths: Iterable[str] | None = None) -> dict[str, object]:
     inspected = list(paths) if paths is not None else _changed_paths(root)
     unclassified = [path for path in inspected if classify_path(path) == "repository"]
@@ -247,6 +252,74 @@ def drift_report(root: Path, paths: Iterable[str] | None = None) -> dict[str, ob
         "index_current": index_current,
         "unclassified_changes": unclassified,
     }
+
+
+def handoff_payload(
+    root: Path,
+    *,
+    base_ref: str,
+    objective: str = "",
+    verified: Iterable[str] = (),
+    tests_run: Iterable[str] = (),
+    blockers: Iterable[str] = (),
+    next_action: str = "",
+) -> dict[str, object]:
+    changed_files = _committed_changed_paths(root, base_ref)
+    return {
+        "branch": _git(root, "branch", "--show-current"),
+        "sha": _git(root, "rev-parse", "HEAD"),
+        "base_ref": base_ref,
+        "objective": objective.strip(),
+        "changed_files": changed_files,
+        "working_tree": _git(root, "status", "--short").splitlines(),
+        "verified": [item for item in verified if item.strip()],
+        "tests_run": [item for item in tests_run if item.strip()],
+        "blockers": [item for item in blockers if item.strip()],
+        "next_action": next_action.strip(),
+        "suggested_tests": recommended_tests(root, changed_files),
+    }
+
+
+def render_handoff(payload: dict[str, object]) -> str:
+    lines = [
+        "# Dofus Atlas — Agent Handoff",
+        "",
+        f"- Branch: `{payload['branch']}`",
+        f"- SHA: `{payload['sha']}`",
+        f"- Base: `{payload['base_ref']}`",
+        f"- Objective: {payload['objective'] or 'not specified'}",
+        "",
+        "## Changed files",
+    ]
+    changed_files = payload["changed_files"]
+    if changed_files:
+        lines.extend(f"- `{path}`" for path in changed_files)
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "## Verified"])
+    verified = payload["verified"]
+    lines.extend(f"- {item}" for item in verified) if verified else lines.append("- none recorded")
+
+    lines.extend(["", "## Tests run"])
+    tests_run = payload["tests_run"]
+    lines.extend(f"- `{item}`" for item in tests_run) if tests_run else lines.append("- none recorded")
+
+    lines.extend(["", "## Blockers"])
+    blockers = payload["blockers"]
+    lines.extend(f"- {item}" for item in blockers) if blockers else lines.append("- none")
+
+    lines.extend(["", "## Next action", payload["next_action"] or "Not specified."])
+
+    working_tree = payload["working_tree"]
+    if working_tree:
+        lines.extend(["", "## Working tree", *[f"- `{line}`" for line in working_tree]])
+
+    suggested_tests = payload["suggested_tests"]
+    if suggested_tests:
+        lines.extend(["", "## Suggested targeted tests", *[f"- `{item}`" for item in suggested_tests]])
+
+    return "\n".join(lines) + "\n"
 
 
 def _status_payload(root: Path) -> dict[str, object]:
@@ -324,6 +397,15 @@ def main(argv: list[str] | None = None) -> int:
     drift_parser.add_argument("paths", nargs="*")
     drift_parser.add_argument("--json", action="store_true")
 
+    handoff_parser = subparsers.add_parser("handoff", help="Render a compact agent-to-agent work handoff.")
+    handoff_parser.add_argument("--base-ref", default="HEAD^")
+    handoff_parser.add_argument("--objective", default="")
+    handoff_parser.add_argument("--verified", action="append", default=[])
+    handoff_parser.add_argument("--test", dest="tests_run", action="append", default=[])
+    handoff_parser.add_argument("--blocker", action="append", default=[])
+    handoff_parser.add_argument("--next", dest="next_action", default="")
+    handoff_parser.add_argument("--json", action="store_true")
+
     args = parser.parse_args(argv)
     root = ROOT.resolve()
     command = args.command or "status"
@@ -381,6 +463,22 @@ def main(argv: list[str] | None = None) -> int:
             for path in payload["unclassified_changes"]:
                 print(f"warning: no context route: {path}")
         return 1 if payload["status"] == "BLOCKED" else 0
+
+    if command == "handoff":
+        payload = handoff_payload(
+            root,
+            base_ref=args.base_ref,
+            objective=args.objective,
+            verified=args.verified,
+            tests_run=args.tests_run,
+            blockers=args.blocker,
+            next_action=args.next_action,
+        )
+        if args.json:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print(render_handoff(payload), end="")
+        return 0
 
     parser.error(f"unsupported command: {command}")
     return 2
