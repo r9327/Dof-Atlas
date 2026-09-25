@@ -71,6 +71,27 @@ class AiContextTests(unittest.TestCase):
         self.assertEqual(report["status"], "WARN")
         self.assertEqual(report["unclassified_changes"], ["future_area/new_service.py"])
 
+    def test_handoff_render_is_compact_and_explicit(self) -> None:
+        payload = {
+            "branch": "feature/example",
+            "sha": "abc123",
+            "base_ref": "main",
+            "objective": "Fix example",
+            "changed_files": ["app/example.py"],
+            "working_tree": [],
+            "verified": ["root cause confirmed"],
+            "tests_run": ["tests.test_example"],
+            "blockers": [],
+            "next_action": "Run full validation.",
+            "suggested_tests": ["tests.test_example"],
+        }
+        rendered = ai_context.render_handoff(payload)
+        self.assertIn("Branch: `feature/example`", rendered)
+        self.assertIn("SHA: `abc123`", rendered)
+        self.assertIn("root cause confirmed", rendered)
+        self.assertIn("Run full validation.", rendered)
+        self.assertNotIn("full logs", rendered.casefold())
+
     def test_agent_contract_routes_through_compact_context(self) -> None:
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
         self.assertIn("tools.ai_context status", agents)
