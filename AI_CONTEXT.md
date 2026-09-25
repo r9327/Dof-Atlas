@@ -72,3 +72,19 @@ py -3.13 -m tools.ai_context drift
 ```
 
 Un chemin non classé produit un warning à examiner. Il ne bloque pas automatiquement une évolution légitime. Un index manquant ou périmé reste en revanche une erreur de cohérence.
+
+## Handoff entre agents
+
+Pour passer un chantier à ChatGPT, Codex ou un autre agent sans énorme prompt, générer un état court depuis une base connue :
+
+```powershell
+py -3.13 -m tools.ai_context handoff `
+  --base-ref audit/phase1-7d-cumulative `
+  --objective "Objectif du lot" `
+  --verified "État réellement vérifié" `
+  --test "tests.test_exemple" `
+  --blocker "Blocage éventuel" `
+  --next "Prochaine action"
+```
+
+Le handoff contient uniquement la branche, le SHA, la base, l'objectif, les fichiers réellement modifiés depuis la base, l'état vérifié, les tests déclarés, les blocages, la prochaine action et les tests ciblés suggérés. Il ne copie pas les logs massifs.
