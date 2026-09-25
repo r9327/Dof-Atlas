@@ -7,6 +7,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from tools.ai_context import sync_index
 from tools.check_generated_files import find_forbidden, find_sensitive_content, git_paths
 
 
@@ -34,6 +35,7 @@ def check_staged_syntax(root: Path) -> int:
 
 def pre_commit(root: Path) -> int:
     checks = (
+        ("AI context index", None),
         ("git diff --cached --check", ["git", "diff", "--cached", "--check"]),
         ("staged Python syntax", None),
         ("generated/runtime files", None),
@@ -44,11 +46,18 @@ def pre_commit(root: Path) -> int:
     )
     for label, command in checks:
         print(f"[pre-commit] {label}")
-        if label == "staged Python syntax":
+        if label == "AI context index":
+            try:
+                sync_index(root, stage=True)
+                code = 0
+            except (OSError, RuntimeError, ValueError) as exc:
+                print(f"AI context sync failed: {exc}", file=sys.stderr)
+                code = 1
+        elif label == "staged Python syntax":
             code = check_staged_syntax(root)
         elif label == "generated/runtime files":
             paths = git_paths(root, staged=True)
-            findings = find_forbidden(paths) + find_sensitive_content(root, paths)
+            findings = find_forbidden(paths) + find_sensitive_content(root, paths, staged=True)
             for finding in findings:
                 print(f"forbidden: {finding['path']} ({finding['reason']})", file=sys.stderr)
             code = 1 if findings else 0
