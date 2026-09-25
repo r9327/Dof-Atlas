@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -8,6 +10,24 @@ from tools import ai_context
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _git(root: Path, *arguments: str) -> str:
+    completed = subprocess.run(
+        ["git", *arguments],
+        cwd=root,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=True,
+    )
+    return completed.stdout.strip()
+
+
+def _commit_all(root: Path, message: str) -> None:
+    _git(root, "add", "-A")
+    _git(root, "commit", "-m", message)
 
 
 class AiContextTests(unittest.TestCase):
@@ -64,6 +84,81 @@ class AiContextTests(unittest.TestCase):
         self.assertNotIn(".ai", actual["entries"])
         self.assertIn("app", actual["entries"])
         self.assertIn("local_dofus_data", actual["entries"])
+
+    def test_git_fingerprint_tracks_create_modify_rename_and_delete(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="atlas-ai-context-") as directory:
+            root = Path(directory)
+            _git(root, "init")
+            _git(root, "config", "user.email", "atlas-tests@example.invalid")
+            _git(root, "config", "user.name", "Dofus Atlas Tests")
+
+            app = root / "app"
+            app.mkdir()
+            tracked = app / "example.txt"
+            tracked.write_text("v1\n", encoding="utf-8")
+            _commit_all(root, "baseline")
+            baseline = ai_context.build_index(root, ai_context.committed_tree_sha(root))
+            baseline_sha = baseline["entries"]["app"]["sha"]
+
+            tracked.write_text("v2\n", encoding="utf-8")
+            _commit_all(root, "modify")
+            modified = ai_context.build_index(root, ai_context.committed_tree_sha(root))
+            modified_sha = modified["entries"]["app"]["sha"]
+            self.assertNotEqual(baseline_sha, modified_sha)
+
+            created = app / "created.txt"
+            created.write_text("new\n", encoding="utf-8")
+            _commit_all(root, "create")
+            created_index = ai_context.build_index(root, ai_context.committed_tree_sha(root))
+            created_sha = created_index["entries"]["app"]["sha"]
+            self.assertNotEqual(modified_sha, created_sha)
+
+            renamed = app / "renamed.txt"
+            created.rename(renamed)
+            _commit_all(root, "rename")
+            renamed_index = ai_context.build_index(root, ai_context.committed_tree_sha(root))
+            renamed_sha = renamed_index["entries"]["app"]["sha"]
+            self.assertNotEqual(created_sha, renamed_sha)
+
+            renamed.unlink()
+            _commit_all(root, "delete")
+            deleted_index = ai_context.build_index(root, ai_context.committed_tree_sha(root))
+            deleted_sha = deleted_index["entries"]["app"]["sha"]
+            self.assertNotEqual(renamed_sha, deleted_sha)
+
+    def test_ai_directory_is_excluded_from_fingerprint_and_sync_stages_index(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="atlas-ai-context-") as directory:
+            root = Path(directory)
+            _git(root, "init")
+            _git(root, "config", "user.email", "atlas-tests@example.invalid")
+            _git(root, "config", "user.name", "Dofus Atlas Tests")
+
+            app = root / "app"
+            app.mkdir()
+            tracked = app / "example.txt"
+            tracked.write_text("v1\n", encoding="utf-8")
+            _commit_all(root, "baseline")
+
+            baseline = ai_context.build_index(root, ai_context.committed_tree_sha(root))
+            self.assertNotIn(".ai", baseline["entries"])
+
+            ai_dir = root / ".ai"
+            ai_dir.mkdir()
+            (ai_dir / "note.txt").write_text("ignored fingerprint source\n", encoding="utf-8")
+            _commit_all(root, "ai-only")
+            after_ai_only = ai_context.build_index(root, ai_context.committed_tree_sha(root))
+            self.assertEqual(baseline, after_ai_only)
+
+            tracked.write_text("v2\n", encoding="utf-8")
+            _git(root, "add", "app/example.txt")
+            changed = ai_context.sync_index(root, stage=True)
+            self.assertTrue(changed)
+            staged_paths = _git(root, "diff", "--cached", "--name-only").splitlines()
+            self.assertIn("app/example.txt", staged_paths)
+            self.assertIn(".ai/context_index.json", staged_paths)
+            actual = json.loads((root / ai_context.INDEX_PATH).read_text(encoding="utf-8"))
+            expected = ai_context.build_index(root, ai_context.staged_tree_sha(root))
+            self.assertEqual(actual, expected)
 
     def test_drift_warns_without_blocking_unknown_routes(self) -> None:
         report = ai_context.drift_report(ROOT, ["future_area/new_service.py"])
