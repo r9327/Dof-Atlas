@@ -98,6 +98,7 @@ jobs:
           ref: ${{ env.CANDIDATE_SHA }}
           fetch-depth: 0
           persist-credentials: false
+          lfs: false
 
       - name: Verify exact candidate checkout
         shell: pwsh
@@ -120,6 +121,52 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize FAST LFS fixtures
+        shell: pwsh
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          @'
+          from pathlib import Path
+
+          required = [
+              Path("data/images/misc/dofus_atlas_logo.png"),
+              Path("tools/doduda/doduda.exe"),
+          ]
+          pointer = b"version https://git-lfs.github.com/spec/v1"
+          errors = []
+          for path in required:
+              if not path.is_file():
+                  errors.append(f"missing FAST fixture: {path}")
+              elif path.read_bytes()[: len(pointer)] == pointer:
+                  errors.append(f"unmaterialized LFS pointer: {path}")
+          if errors:
+              raise SystemExit("\n".join(errors))
+          print("FAST LFS fixtures materialized")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize local Dofus catalog
+        shell: pwsh
+        run: |
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          $code = $LASTEXITCODE
+          if ($code -ne 0) { exit $code }
+
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
+          '@ | python -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run Atlas Integrity FAST
