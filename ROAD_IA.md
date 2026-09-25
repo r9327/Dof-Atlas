@@ -37,9 +37,10 @@ Livrables présents :
 - `.ai/context_index.json` : empreintes compactes de toutes les entrées racine, sauf `.ai/` pour éviter l'auto-référence ;
 - mise à jour automatique de l'index au `pre-commit` à partir de l'arbre staged ;
 - `.github/workflows/ai-context-ci.yml` : validation ciblée légère ;
-- tests empêchant de considérer comme courant un index périmé.
+- tests empêchant de considérer comme courant un index périmé ;
+- tests Git temporaires couvrant création, modification, renommage, suppression et synchronisation staged.
 
-Critère de sortie restant : preuve machine sur le SHA exact qu'une création, modification, suppression ou renommage change correctement l'empreinte sans lister des milliers de fichiers.
+Critère de sortie restant : exécution machine réussie de ces tests sur le SHA exact candidat.
 
 ### IA-2 — Instructions locales par zone — IMPLEMENTED — VALIDATION PENDING
 
@@ -85,13 +86,20 @@ Objectif : détecter les nouveaux fichiers ou nouvelles zones qui ne rentrent da
 
 Critère de sortie restant : validation machine d'un ajout connu et d'un ajout volontairement non classé.
 
-### IA-5 — Handoff agent / reprise de chantier — TODO
+### IA-5 — Handoff agent / reprise de chantier — IMPLEMENTED — VALIDATION PENDING
 
 Objectif : rendre une reprise ChatGPT/Codex fiable sans énorme prompt manuel.
 
-Créer un format court de handoff contenant uniquement : branche, SHA, objectif, état vérifié, fichiers réellement modifiés, tests exécutés, blocages et prochaine action. Ne jamais y copier le dépôt ou des logs massifs.
+État implémenté :
 
-### IA-6 — Certification ROAD IA — TODO
+- `py -3.13 -m tools.ai_context handoff` produit un handoff compact ;
+- il contient branche, SHA, base, objectif, fichiers réellement modifiés, état vérifié, tests déclarés, blocages, prochaine action et tests ciblés suggérés ;
+- aucun log massif ni copie de dépôt n'est inclus ;
+- le format texte est couvert par un test ciblé.
+
+Critère de sortie restant : exécution machine du test et essai réel de reprise depuis un handoff généré.
+
+### IA-6 — Certification ROAD IA — IN PROGRESS
 
 Objectif : prouver que la couche IA aide sans dégrader le produit.
 
