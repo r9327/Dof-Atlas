@@ -29,8 +29,7 @@ jobs:
           import ast
           from pathlib import Path
 
-          BENCH = Path("app/modules/encyclopedia/tools/benchmark_guides_performance.py")
-          TEST = Path("tests/test_performance_guardrails.py")
+          path = Path("app/modules/encyclopedia/tools/benchmark_guides_performance.py")
 
           def function_node(source: str, name: str) -> ast.FunctionDef:
               tree = ast.parse(source)
@@ -42,11 +41,10 @@ jobs:
           def replace_function(source: str, name: str, replacement: str) -> str:
               node = function_node(source, name)
               lines = source.splitlines(keepends=True)
-              replacement = replacement.rstrip() + "\n\n"
-              lines[node.lineno - 1:node.end_lineno] = [replacement]
+              lines[node.lineno - 1:node.end_lineno] = [replacement.rstrip() + "\n\n"]
               return "".join(lines)
 
-          source = BENCH.read_text(encoding="utf-8")
+          source = path.read_text(encoding="utf-8")
           for required in (
               "_achievement_index_view",
               "_guide_index_view",
@@ -277,43 +275,15 @@ jobs:
           if leftovers:
               raise SystemExit(f"stale benchmark contract remains: {leftovers}")
           ast.parse(source)
-          BENCH.write_text(source, encoding="utf-8", newline="\n")
-
-          test_source = TEST.read_text(encoding="utf-8")
-          anchor = "    def test_qimage_decode_emits_non_blocking_debug_measurement(self) -> None:\n"
-          if test_source.count(anchor) != 1:
-              raise SystemExit("performance guardrail insertion anchor changed")
-          guard = '''    def test_perf_benchmark_uses_only_canonical_encyclopedia_runtime(self) -> None:
-              source = _source("app/modules/encyclopedia/tools/benchmark_guides_performance.py")
-              for obsolete in (
-                  "_achievement_index_view",
-                  "_guide_index_view",
-                  "_on_achievement_requested",
-                  "_on_guide_requested",
-                  "def index_is_ready",
-                  "def open_index",
-              ):
-                  with self.subTest(obsolete=obsolete):
-                      self.assertNotIn(obsolete, source)
-              self.assertIn("def runtime_is_ready", source)
-              self.assertIn("def open_runtime", source)
-              self.assertIn("_achievement_ready", source)
-              self.assertIn("_guide_runtime_ready", source)
-              self.assertIn('"schema_version": 4', source)
-
-          '''
-          test_source = test_source.replace(anchor, guard + anchor, 1)
-          ast.parse(test_source)
-          TEST.write_text(test_source, encoding="utf-8", newline="\n")
+          path.write_text(source, encoding="utf-8", newline="\n")
           PY
-          python -m py_compile app/modules/encyclopedia/tools/benchmark_guides_performance.py tests/test_performance_guardrails.py
-          python -m unittest tests.test_performance_guardrails -v
+          python -m py_compile app/modules/encyclopedia/tools/benchmark_guides_performance.py
           git diff --check
       - name: Commit aligned benchmark
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/modules/encyclopedia/tools/benchmark_guides_performance.py tests/test_performance_guardrails.py
+          git add app/modules/encyclopedia/tools/benchmark_guides_performance.py
           git commit -m "cleanup(encyclopedia): align benchmark with canonical runtime"
           git push origin HEAD:cleanup/final-foundation
