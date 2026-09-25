@@ -1,0 +1,319 @@
+name: Align cleanup benchmark
+
+on:
+  push:
+    branches:
+      - cleanup/final-foundation
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/final-foundation
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Align canonical Encyclopedia benchmark
+        shell: bash
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import ast
+          from pathlib import Path
+
+          BENCH = Path("app/modules/encyclopedia/tools/benchmark_guides_performance.py")
+          TEST = Path("tests/test_performance_guardrails.py")
+
+          def function_node(source: str, name: str) -> ast.FunctionDef:
+              tree = ast.parse(source)
+              for node in tree.body:
+                  if isinstance(node, ast.FunctionDef) and node.name == name:
+                      return node
+              raise RuntimeError(f"function not found: {name}")
+
+          def replace_function(source: str, name: str, replacement: str) -> str:
+              node = function_node(source, name)
+              lines = source.splitlines(keepends=True)
+              replacement = replacement.rstrip() + "\n\n"
+              lines[node.lineno - 1:node.end_lineno] = [replacement]
+              return "".join(lines)
+
+          source = BENCH.read_text(encoding="utf-8")
+          for required in (
+              "_achievement_index_view",
+              "_guide_index_view",
+              "_on_achievement_requested",
+              "_on_guide_requested",
+          ):
+              if required not in source:
+                  raise SystemExit(f"expected stale benchmark symbol missing: {required}")
+
+          source = replace_function(source, "index_is_ready", '''def runtime_is_ready(window: AtlasWindow, label: str) -> bool:
+              page = current_encyclopedia_page(window)
+              if page is None or not tab_is_visible(window, label):
+                  return False
+              if label == QUESTS_TAB:
+                  return page.quest_page is not None
+              if label == ACHIEVEMENTS_TAB:
+                  return bool(getattr(page, "_achievement_ready", False)) and page.get_achievements_view() is not None
+              if label == GUIDES_TAB:
+                  return bool(getattr(page, "_guide_runtime_ready", False)) and page.guides_view is not None
+              return True
+          ''')
+
+          source = replace_function(source, "open_index", '''def open_runtime(
+              app: QApplication,
+              window: AtlasWindow,
+              label: str,
+              *,
+              timeout: float = 60.0,
+          ) -> tuple[float, float]:
+              """Measure the canonical view through completion of async hydration."""
+              started = time.perf_counter()
+              window.open_encyclopedia_tab(label)
+              max_ui_block_ms = wait_until_with_ui_block(
+                  app,
+                  lambda: runtime_is_ready(window, label),
+                  timeout,
+                  f"{label} canonical runtime",
+              )
+              return milliseconds(started), max_ui_block_ms
+          ''')
+
+          source = replace_function(source, "first_achievement_detail", '''def first_achievement_detail(
+              app: QApplication,
+              window: AtlasWindow,
+          ) -> tuple[float, int, float]:
+              page = current_encyclopedia_page(window)
+              if page is None:
+                  raise RuntimeError("Encyclopedia page did not load before Success detail measurement.")
+              view = page.get_achievements_view()
+              if view is None or not bool(getattr(view, "_runtime_ready", False)):
+                  raise RuntimeError("Canonical Success view is not hydrated.")
+              achievements = list(getattr(view, "achievements", ()) or ())
+              if not achievements:
+                  raise RuntimeError("Canonical Success view contains no selectable achievement.")
+              achievement_id = int(getattr(achievements[0], "id", 0) or 0)
+              if achievement_id <= 0:
+                  raise RuntimeError("Canonical Success view returned an invalid achievement id.")
+              started = time.perf_counter()
+              call_started = time.perf_counter()
+              selected = bool(view.select_achievement(achievement_id))
+              call_block_ms = round((time.perf_counter() - call_started) * 1000.0, 2)
+              if not selected:
+                  raise RuntimeError(f"Unable to select Success {achievement_id} from canonical view.")
+              pump_events(app, 0.01)
+              return milliseconds(started), achievement_id, call_block_ms
+          ''')
+
+          source = replace_function(source, "first_guide_detail", '''def first_guide_detail(
+              app: QApplication,
+              window: AtlasWindow,
+          ) -> tuple[float, str, float]:
+              page = current_encyclopedia_page(window)
+              if page is None:
+                  raise RuntimeError("Encyclopedia page did not load before Guide detail measurement.")
+              view = page.guides_view
+              if view is None or not bool(getattr(view, "_runtime_ready", False)):
+                  raise RuntimeError("Canonical Guide view is not hydrated.")
+              guides = list(getattr(view, "guides", ()) or ())
+              if not guides:
+                  raise RuntimeError("Canonical Guide view contains no selectable guide.")
+              guide_id = str(getattr(guides[0], "id", "") or "")
+              if not guide_id:
+                  raise RuntimeError("Canonical Guide view returned an invalid guide id.")
+              started = time.perf_counter()
+              call_started = time.perf_counter()
+              selected = bool(view.select_guide(guide_id))
+              call_block_ms = round((time.perf_counter() - call_started) * 1000.0, 2)
+              if not selected:
+                  raise RuntimeError(f"Unable to select Guide {guide_id} from canonical view.")
+              pump_events(app, 0.01)
+              return milliseconds(started), guide_id, call_block_ms
+          ''')
+
+          source = replace_function(source, "measure", '''def measure() -> dict[str, object]:
+              app = QApplication.instance() or QApplication([])
+
+              startup_started = time.perf_counter()
+              window = AtlasWindow()
+              constructor_ms = milliseconds(startup_started)
+              window.show()
+              app.processEvents()
+              first_window_ms = milliseconds(startup_started)
+              pump_events(app, 0.25)
+              startup_stable_ms = milliseconds(startup_started)
+              startup_stable_rss_mb = current_rss_mb()
+
+              quests_open_ms, quests_open_ui_block_ms = open_runtime(app, window, QUESTS_TAB, timeout=30.0)
+              pump_events(app, 0.05)
+              rss_after_quests_mb = current_rss_mb()
+
+              achievements_open_ms, achievements_open_ui_block_ms = open_runtime(app, window, ACHIEVEMENTS_TAB)
+              pump_events(app, 0.05)
+              rss_after_achievements_mb = current_rss_mb()
+              achievement_objects_after_runtime = achievement_provider_object_counts(window)
+
+              achievement_detail_ms, achievement_id, achievement_ui_block_ms = first_achievement_detail(app, window)
+              pump_events(app, 0.05)
+              rss_after_first_achievement_detail_mb = current_rss_mb()
+              achievement_objects_after_first_detail = achievement_provider_object_counts(window)
+              page = current_encyclopedia_page(window)
+              achievement_provider = page.service.achievement_provider if page is not None else None
+              achievement_reward_detail_thread = str(getattr(achievement_provider, "last_detail_thread_name", "") or "")
+              achievement_reward_detail_ms = float(getattr(achievement_provider, "last_detail_ms", 0.0) or 0.0)
+              achievement_detail_sources_ready = bool(getattr(achievement_provider, "detail_sources_ready", False))
+
+              guide_open_ms, guide_open_ui_block_ms = open_runtime(app, window, GUIDES_TAB)
+              pump_events(app, 0.05)
+              rss_after_guide_mb = current_rss_mb()
+
+              guide_detail_ms, guide_id, guide_ui_block_ms = first_guide_detail(app, window)
+              pump_events(app, 0.05)
+              rss_after_first_guide_detail_mb = current_rss_mb()
+              rss_after_first_views_mb = current_rss_mb()
+
+              quests_hot_return_ms = open_hot_tab(app, window, QUESTS_TAB)
+              achievements_hot_return_ms = open_hot_tab(app, window, ACHIEVEMENTS_TAB)
+              guide_hot_return_ms = open_hot_tab(app, window, GUIDES_TAB)
+
+              round_trip_samples: dict[str, list[float]] = {"quests": [], "achievements": [], "guide": []}
+              for _ in range(HOT_ROUND_TRIPS):
+                  round_trip_samples["quests"].append(open_hot_tab(app, window, QUESTS_TAB))
+                  round_trip_samples["achievements"].append(open_hot_tab(app, window, ACHIEVEMENTS_TAB))
+                  round_trip_samples["guide"].append(open_hot_tab(app, window, GUIDES_TAB))
+              pump_events(app, 0.1)
+              rss_after_round_trips_mb = current_rss_mb()
+              idle_cpu_percent_one_core = measure_idle_cpu_percent(app, 1.0)
+
+              result = {
+                  "startup_constructor_ms": constructor_ms,
+                  "first_window_paint_ms": first_window_ms,
+                  "startup_stabilized_ms": startup_stable_ms,
+                  "startup_stabilized_rss_mb": startup_stable_rss_mb,
+                  "startup_preload_state": "DEFERRED_ON_DEMAND",
+                  "quests_open_ms": quests_open_ms,
+                  "quests_open_max_ui_block_ms": quests_open_ui_block_ms,
+                  "achievements_open_ms": achievements_open_ms,
+                  "achievements_open_max_ui_block_ms": achievements_open_ui_block_ms,
+                  "guide_open_ms": guide_open_ms,
+                  "guide_open_max_ui_block_ms": guide_open_ui_block_ms,
+                  "first_achievement_detail_ms": achievement_detail_ms,
+                  "first_achievement_detail_max_ui_block_ms": achievement_ui_block_ms,
+                  "first_achievement_id": achievement_id,
+                  "first_achievement_reward_detail_ms": achievement_reward_detail_ms,
+                  "first_achievement_reward_detail_thread": achievement_reward_detail_thread,
+                  "achievement_detail_sources_ready": achievement_detail_sources_ready,
+                  "achievement_objects_after_runtime": achievement_objects_after_runtime,
+                  "achievement_objects_after_first_detail": achievement_objects_after_first_detail,
+                  "first_guide_detail_ms": guide_detail_ms,
+                  "first_guide_detail_max_ui_block_ms": guide_ui_block_ms,
+                  "first_guide_id": guide_id,
+                  "quests_hot_return_ms": quests_hot_return_ms,
+                  "achievements_hot_return_ms": achievements_hot_return_ms,
+                  "guide_hot_return_ms": guide_hot_return_ms,
+                  "hot_round_trip_cycles": HOT_ROUND_TRIPS,
+                  "hot_round_trip_quests": summarize_samples(round_trip_samples["quests"]),
+                  "hot_round_trip_achievements": summarize_samples(round_trip_samples["achievements"]),
+                  "hot_round_trip_guide": summarize_samples(round_trip_samples["guide"]),
+                  "rss_after_quests_mb": rss_after_quests_mb,
+                  "rss_after_achievements_mb": rss_after_achievements_mb,
+                  "rss_after_guide_mb": rss_after_guide_mb,
+                  "rss_after_first_achievement_detail_mb": rss_after_first_achievement_detail_mb,
+                  "rss_after_first_guide_detail_mb": rss_after_first_guide_detail_mb,
+                  "rss_after_all_views_mb": rss_after_first_views_mb,
+                  "rss_after_round_trips_mb": rss_after_round_trips_mb,
+                  "idle_cpu_percent_one_core": idle_cpu_percent_one_core,
+                  "idle_cpu_sample_seconds": 1.0,
+              }
+
+              window._shutdown_background_services()
+              window.hide()
+              window.deleteLater()
+              app.processEvents()
+              return result
+          ''')
+
+          source = replace_function(source, "main", '''def main() -> int:
+              payload = {
+                  "schema_version": 4,
+                  "environment": {
+                      "platform": platform.platform(),
+                      "python": sys.version.split()[0],
+                      "pyside": PYSIDE_VERSION,
+                      "qt_qpa_platform": os.environ.get("QT_QPA_PLATFORM", ""),
+                      "git_head": git_head(),
+                      "notes": (
+                          "Offscreen canonical Encyclopedia user-path measurement. Cold Guide/Success metrics include the stable real view "
+                          "and completion of asynchronous runtime hydration; no lightweight functional index is measured."
+                      ),
+                  },
+                  "before": BEFORE,
+                  "after": measure(),
+              }
+              OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+              OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+              print(json.dumps(payload, ensure_ascii=False, indent=2))
+              return 0
+          ''')
+
+          forbidden = (
+              "_achievement_index_view",
+              "_guide_index_view",
+              "_on_achievement_requested",
+              "_on_guide_requested",
+              "def index_is_ready",
+              "def open_index",
+          )
+          leftovers = [value for value in forbidden if value in source]
+          if leftovers:
+              raise SystemExit(f"stale benchmark contract remains: {leftovers}")
+          ast.parse(source)
+          BENCH.write_text(source, encoding="utf-8", newline="\n")
+
+          test_source = TEST.read_text(encoding="utf-8")
+          anchor = "    def test_qimage_decode_emits_non_blocking_debug_measurement(self) -> None:\n"
+          if test_source.count(anchor) != 1:
+              raise SystemExit("performance guardrail insertion anchor changed")
+          guard = '''    def test_perf_benchmark_uses_only_canonical_encyclopedia_runtime(self) -> None:
+              source = _source("app/modules/encyclopedia/tools/benchmark_guides_performance.py")
+              for obsolete in (
+                  "_achievement_index_view",
+                  "_guide_index_view",
+                  "_on_achievement_requested",
+                  "_on_guide_requested",
+                  "def index_is_ready",
+                  "def open_index",
+              ):
+                  with self.subTest(obsolete=obsolete):
+                      self.assertNotIn(obsolete, source)
+              self.assertIn("def runtime_is_ready", source)
+              self.assertIn("def open_runtime", source)
+              self.assertIn("_achievement_ready", source)
+              self.assertIn("_guide_runtime_ready", source)
+              self.assertIn('"schema_version": 4', source)
+
+          '''
+          test_source = test_source.replace(anchor, guard + anchor, 1)
+          ast.parse(test_source)
+          TEST.write_text(test_source, encoding="utf-8", newline="\n")
+          PY
+          python -m py_compile app/modules/encyclopedia/tools/benchmark_guides_performance.py tests/test_performance_guardrails.py
+          python -m unittest tests.test_performance_guardrails -v
+          git diff --check
+      - name: Commit aligned benchmark
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/modules/encyclopedia/tools/benchmark_guides_performance.py tests/test_performance_guardrails.py
+          git commit -m "cleanup(encyclopedia): align benchmark with canonical runtime"
+          git push origin HEAD:cleanup/final-foundation
