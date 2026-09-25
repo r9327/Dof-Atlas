@@ -1,0 +1,56 @@
+name: AI Context CI
+
+on:
+  pull_request:
+    paths:
+      - ".ai/**"
+      - "AGENTS.md"
+      - "AI_CONTEXT.md"
+      - "ROAD_IA.md"
+      - "app/AGENTS.md"
+      - "data/AGENTS.md"
+      - "tests/AGENTS.md"
+      - "tests/test_ai_context.py"
+      - "tests/test_repository_git_hooks.py"
+      - "tools/AGENTS.md"
+      - "tools/ai_context.py"
+      - "tools/git_hook.py"
+      - ".githooks/**"
+      - ".github/workflows/ai-context-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dof-atlas-ai-context-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: AI Context / Targeted Validation
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Compile ROAD IA Python files
+        shell: pwsh
+        run: python -m compileall -q tools/ai_context.py tools/git_hook.py tests/test_ai_context.py
+
+      - name: Verify committed context index
+        shell: pwsh
+        run: python -m tools.ai_context check
+
+      - name: Run targeted ROAD IA tests
+        shell: pwsh
+        run: python -m unittest -v tests.test_ai_context tests.test_repository_git_hooks
