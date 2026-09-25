@@ -217,93 +217,92 @@ def tab_is_visible(window: AtlasWindow, label: str) -> bool:
     return index >= 0 and page.tabs.tabText(index) == label
 
 
-def index_is_ready(window: AtlasWindow, label: str) -> bool:
+def runtime_is_ready(window: AtlasWindow, label: str) -> bool:
     page = current_encyclopedia_page(window)
     if page is None or not tab_is_visible(window, label):
         return False
     if label == QUESTS_TAB:
         return page.quest_page is not None
     if label == ACHIEVEMENTS_TAB:
-        view = getattr(page, "_achievement_index_view", None)
-        return view is not None and bool(getattr(view, "_rows", []))
+        return bool(getattr(page, "_achievement_ready", False)) and page.get_achievements_view() is not None
     if label == GUIDES_TAB:
-        view = getattr(page, "_guide_index_view", None)
-        return view is not None and bool(getattr(view, "_rows", []))
+        return bool(getattr(page, "_guide_runtime_ready", False)) and page.guides_view is not None
     return True
 
 
-def open_index(
+
+def open_runtime(
     app: QApplication,
     window: AtlasWindow,
     label: str,
     *,
-    timeout: float = 30.0,
-) -> float:
-    """Measure the cold usable index, without forcing a rich detail runtime."""
-
+    timeout: float = 60.0,
+) -> tuple[float, float]:
+    """Measure the canonical view through completion of async hydration."""
     started = time.perf_counter()
     window.open_encyclopedia_tab(label)
-    wait_until(app, lambda: index_is_ready(window, label), timeout, f"{label} index")
-    return milliseconds(started)
+    max_ui_block_ms = wait_until_with_ui_block(
+        app,
+        lambda: runtime_is_ready(window, label),
+        timeout,
+        f"{label} canonical runtime",
+    )
+    return milliseconds(started), max_ui_block_ms
+
 
 
 def first_achievement_detail(
     app: QApplication,
     window: AtlasWindow,
-    *,
-    timeout: float = 60.0,
 ) -> tuple[float, int, float]:
     page = current_encyclopedia_page(window)
     if page is None:
         raise RuntimeError("Encyclopedia page did not load before Success detail measurement.")
-    index_view = getattr(page, "_achievement_index_view", None)
-    rows = list(getattr(index_view, "_rows", []) or [])
-    if not rows:
-        raise RuntimeError("Success index contains no selectable achievement.")
-    achievement_id = int(rows[0][0])
-
+    view = page.get_achievements_view()
+    if view is None or not bool(getattr(view, "_runtime_ready", False)):
+        raise RuntimeError("Canonical Success view is not hydrated.")
+    achievements = list(getattr(view, "achievements", ()) or ())
+    if not achievements:
+        raise RuntimeError("Canonical Success view contains no selectable achievement.")
+    achievement_id = int(getattr(achievements[0], "id", 0) or 0)
+    if achievement_id <= 0:
+        raise RuntimeError("Canonical Success view returned an invalid achievement id.")
     started = time.perf_counter()
-    page._on_achievement_requested(achievement_id)
-    max_ui_block_ms = wait_until_with_ui_block(
-        app,
-        lambda: bool(getattr(page, "_achievement_ready", False))
-        and getattr(page, "_pending_achievement_id", None) is None
-        and page.get_achievements_view() is not None
-        and tab_is_visible(window, ACHIEVEMENTS_TAB),
-        timeout,
-        f"Success detail {achievement_id}",
-    )
-    return milliseconds(started), achievement_id, max_ui_block_ms
+    call_started = time.perf_counter()
+    selected = bool(view.select_achievement(achievement_id))
+    call_block_ms = round((time.perf_counter() - call_started) * 1000.0, 2)
+    if not selected:
+        raise RuntimeError(f"Unable to select Success {achievement_id} from canonical view.")
+    pump_events(app, 0.01)
+    return milliseconds(started), achievement_id, call_block_ms
+
 
 
 def first_guide_detail(
     app: QApplication,
     window: AtlasWindow,
-    *,
-    timeout: float = 60.0,
 ) -> tuple[float, str, float]:
     page = current_encyclopedia_page(window)
     if page is None:
         raise RuntimeError("Encyclopedia page did not load before Guide detail measurement.")
-    index_view = getattr(page, "_guide_index_view", None)
-    rows = list(getattr(index_view, "_rows", []) or [])
-    if not rows:
-        raise RuntimeError("Guide index contains no selectable guide.")
-    guide_id = str(rows[0][0])
-
+    view = page.guides_view
+    if view is None or not bool(getattr(view, "_runtime_ready", False)):
+        raise RuntimeError("Canonical Guide view is not hydrated.")
+    guides = list(getattr(view, "guides", ()) or ())
+    if not guides:
+        raise RuntimeError("Canonical Guide view contains no selectable guide.")
+    guide_id = str(getattr(guides[0], "id", "") or "")
+    if not guide_id:
+        raise RuntimeError("Canonical Guide view returned an invalid guide id.")
     started = time.perf_counter()
-    page._on_guide_requested(guide_id)
-    max_ui_block_ms = wait_until_with_ui_block(
-        app,
-        lambda: bool(getattr(page, "_guide_runtime_ready", False))
-        and not str(getattr(page, "_pending_guide_id", "") or "")
-        and page.guides_view is not None
-        and str(getattr(page.guides_view, "current_guide_id", "") or "") == guide_id
-        and tab_is_visible(window, GUIDES_TAB),
-        timeout,
-        f"Guide detail {guide_id}",
-    )
-    return milliseconds(started), guide_id, max_ui_block_ms
+    call_started = time.perf_counter()
+    selected = bool(view.select_guide(guide_id))
+    call_block_ms = round((time.perf_counter() - call_started) * 1000.0, 2)
+    if not selected:
+        raise RuntimeError(f"Unable to select Guide {guide_id} from canonical view.")
+    pump_events(app, 0.01)
+    return milliseconds(started), guide_id, call_block_ms
+
 
 
 def open_hot_tab(
@@ -337,48 +336,33 @@ def measure() -> dict[str, object]:
     window.show()
     app.processEvents()
     first_window_ms = milliseconds(startup_started)
-
-    # Normal startup deliberately keeps heavy Encyclopedia content on demand.
     pump_events(app, 0.25)
     startup_stable_ms = milliseconds(startup_started)
     startup_stable_rss_mb = current_rss_mb()
 
-    quests_index_open_ms = open_index(app, window, QUESTS_TAB)
+    quests_open_ms, quests_open_ui_block_ms = open_runtime(app, window, QUESTS_TAB, timeout=30.0)
     pump_events(app, 0.05)
     rss_after_quests_mb = current_rss_mb()
 
-    achievements_index_open_ms = open_index(app, window, ACHIEVEMENTS_TAB)
+    achievements_open_ms, achievements_open_ui_block_ms = open_runtime(app, window, ACHIEVEMENTS_TAB)
     pump_events(app, 0.05)
-    rss_after_achievements_index_mb = current_rss_mb()
-    achievement_objects_after_index = achievement_provider_object_counts(window)
+    rss_after_achievements_mb = current_rss_mb()
+    achievement_objects_after_runtime = achievement_provider_object_counts(window)
 
-    guide_index_open_ms = open_index(app, window, GUIDES_TAB)
-    pump_events(app, 0.05)
-    rss_after_guide_index_mb = current_rss_mb()
-    rss_after_indexes_mb = current_rss_mb()
-
-    # Rich runtimes are intentionally measured only after the user selects a
-    # real item from the light index. A simple tab click must not pay this cost.
-    window.open_encyclopedia_tab(ACHIEVEMENTS_TAB)
-    wait_until(app, lambda: tab_is_visible(window, ACHIEVEMENTS_TAB), 10.0, "Success index revisit")
     achievement_detail_ms, achievement_id, achievement_ui_block_ms = first_achievement_detail(app, window)
     pump_events(app, 0.05)
     rss_after_first_achievement_detail_mb = current_rss_mb()
     achievement_objects_after_first_detail = achievement_provider_object_counts(window)
     page = current_encyclopedia_page(window)
     achievement_provider = page.service.achievement_provider if page is not None else None
-    achievement_reward_detail_thread = str(
-        getattr(achievement_provider, "last_detail_thread_name", "") or ""
-    )
-    achievement_reward_detail_ms = float(
-        getattr(achievement_provider, "last_detail_ms", 0.0) or 0.0
-    )
-    achievement_detail_sources_ready = bool(
-        getattr(achievement_provider, "detail_sources_ready", False)
-    )
+    achievement_reward_detail_thread = str(getattr(achievement_provider, "last_detail_thread_name", "") or "")
+    achievement_reward_detail_ms = float(getattr(achievement_provider, "last_detail_ms", 0.0) or 0.0)
+    achievement_detail_sources_ready = bool(getattr(achievement_provider, "detail_sources_ready", False))
 
-    window.open_encyclopedia_tab(GUIDES_TAB)
-    wait_until(app, lambda: tab_is_visible(window, GUIDES_TAB), 10.0, "Guide index revisit")
+    guide_open_ms, guide_open_ui_block_ms = open_runtime(app, window, GUIDES_TAB)
+    pump_events(app, 0.05)
+    rss_after_guide_mb = current_rss_mb()
+
     guide_detail_ms, guide_id, guide_ui_block_ms = first_guide_detail(app, window)
     pump_events(app, 0.05)
     rss_after_first_guide_detail_mb = current_rss_mb()
@@ -388,18 +372,13 @@ def measure() -> dict[str, object]:
     achievements_hot_return_ms = open_hot_tab(app, window, ACHIEVEMENTS_TAB)
     guide_hot_return_ms = open_hot_tab(app, window, GUIDES_TAB)
 
-    round_trip_samples: dict[str, list[float]] = {
-        "quests": [],
-        "achievements": [],
-        "guide": [],
-    }
+    round_trip_samples: dict[str, list[float]] = {"quests": [], "achievements": [], "guide": []}
     for _ in range(HOT_ROUND_TRIPS):
         round_trip_samples["quests"].append(open_hot_tab(app, window, QUESTS_TAB))
         round_trip_samples["achievements"].append(open_hot_tab(app, window, ACHIEVEMENTS_TAB))
         round_trip_samples["guide"].append(open_hot_tab(app, window, GUIDES_TAB))
     pump_events(app, 0.1)
     rss_after_round_trips_mb = current_rss_mb()
-
     idle_cpu_percent_one_core = measure_idle_cpu_percent(app, 1.0)
 
     result = {
@@ -408,16 +387,19 @@ def measure() -> dict[str, object]:
         "startup_stabilized_ms": startup_stable_ms,
         "startup_stabilized_rss_mb": startup_stable_rss_mb,
         "startup_preload_state": "DEFERRED_ON_DEMAND",
-        "quests_index_open_ms": quests_index_open_ms,
-        "achievements_index_open_ms": achievements_index_open_ms,
-        "guide_index_open_ms": guide_index_open_ms,
+        "quests_open_ms": quests_open_ms,
+        "quests_open_max_ui_block_ms": quests_open_ui_block_ms,
+        "achievements_open_ms": achievements_open_ms,
+        "achievements_open_max_ui_block_ms": achievements_open_ui_block_ms,
+        "guide_open_ms": guide_open_ms,
+        "guide_open_max_ui_block_ms": guide_open_ui_block_ms,
         "first_achievement_detail_ms": achievement_detail_ms,
         "first_achievement_detail_max_ui_block_ms": achievement_ui_block_ms,
         "first_achievement_id": achievement_id,
         "first_achievement_reward_detail_ms": achievement_reward_detail_ms,
         "first_achievement_reward_detail_thread": achievement_reward_detail_thread,
         "achievement_detail_sources_ready": achievement_detail_sources_ready,
-        "achievement_objects_after_index": achievement_objects_after_index,
+        "achievement_objects_after_runtime": achievement_objects_after_runtime,
         "achievement_objects_after_first_detail": achievement_objects_after_first_detail,
         "first_guide_detail_ms": guide_detail_ms,
         "first_guide_detail_max_ui_block_ms": guide_ui_block_ms,
@@ -430,22 +412,14 @@ def measure() -> dict[str, object]:
         "hot_round_trip_achievements": summarize_samples(round_trip_samples["achievements"]),
         "hot_round_trip_guide": summarize_samples(round_trip_samples["guide"]),
         "rss_after_quests_mb": rss_after_quests_mb,
-        "rss_after_achievements_index_mb": rss_after_achievements_index_mb,
-        "rss_after_guide_index_mb": rss_after_guide_index_mb,
-        "rss_after_indexes_mb": rss_after_indexes_mb,
+        "rss_after_achievements_mb": rss_after_achievements_mb,
+        "rss_after_guide_mb": rss_after_guide_mb,
         "rss_after_first_achievement_detail_mb": rss_after_first_achievement_detail_mb,
         "rss_after_first_guide_detail_mb": rss_after_first_guide_detail_mb,
-        "rss_after_first_views_mb": rss_after_first_views_mb,
+        "rss_after_all_views_mb": rss_after_first_views_mb,
         "rss_after_round_trips_mb": rss_after_round_trips_mb,
         "idle_cpu_percent_one_core": idle_cpu_percent_one_core,
         "idle_cpu_sample_seconds": 1.0,
-        # Compatibility names retained for existing report consumers.
-        "quests_open_ms": quests_index_open_ms,
-        "achievements_open_ms": achievements_index_open_ms,
-        "guide_open_ms": guide_index_open_ms,
-        "rss_after_achievements_mb": rss_after_achievements_index_mb,
-        "rss_after_guide_mb": rss_after_guide_index_mb,
-        "rss_after_all_views_mb": rss_after_first_views_mb,
     }
 
     window._shutdown_background_services()
@@ -455,9 +429,10 @@ def measure() -> dict[str, object]:
     return result
 
 
+
 def main() -> int:
     payload = {
-        "schema_version": 3,
+        "schema_version": 4,
         "environment": {
             "platform": platform.platform(),
             "python": sys.version.split()[0],
@@ -465,19 +440,18 @@ def main() -> int:
             "qt_qpa_platform": os.environ.get("QT_QPA_PLATFORM", ""),
             "git_head": git_head(),
             "notes": (
-                "Offscreen reproducible Phase 7B user-path measurement. Cold tab metrics wait for the usable light index only; "
-                "rich Guide/Success runtime is measured separately after selecting a real item. Network capture/UAC is excluded. "
-                "RAM is process working set on Windows; max UI block measures the longest QApplication.processEvents call while "
-                "waiting for each first rich detail; hot returns are measured after both rich runtimes are resident."
+                "Offscreen canonical Encyclopedia user-path measurement. Cold Guide/Success metrics include the stable real view "
+                "and completion of asynchronous runtime hydration; no lightweight functional index is measured."
             ),
         },
         "before": BEFORE,
         "after": measure(),
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + chr(10), encoding="utf-8")
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
+
 
 
 if __name__ == "__main__":
