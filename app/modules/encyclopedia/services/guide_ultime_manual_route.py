@@ -458,15 +458,12 @@ def load_manual_chapter(
     _seen: set[Path] | None = None,
     _expand_hooks: bool = True,
 ) -> dict[str, Any]:
-    """Resolve one chapter and cache only complete top-level compositions."""
+    """Resolve one chapter and cache complete compositions."""
 
     resolved = Path(path).resolve()
-    if _seen is not None:
-        return _load_manual_chapter_uncached(
-            resolved,
-            _seen=_seen,
-            _expand_hooks=_expand_hooks,
-        )
+    seen = set(_seen or ())
+    if resolved in seen:
+        raise ValueError(f"Cycle de composition détecté: {resolved}")
     key: tuple[object, ...] = (
         str(resolved),
         bool(_expand_hooks),
@@ -476,7 +473,11 @@ def load_manual_chapter(
         cached = _CHAPTER_CACHE.get(key)
         if cached is not None:
             return copy.deepcopy(cached)
-    result = _load_manual_chapter_uncached(resolved, _expand_hooks=_expand_hooks)
+    result = _load_manual_chapter_uncached(
+        resolved,
+        _seen=_seen,
+        _expand_hooks=_expand_hooks,
+    )
     frozen = copy.deepcopy(result)
     with _CACHE_LOCK:
         stale = [
