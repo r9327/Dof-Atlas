@@ -3,38 +3,27 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-import sys
 from pathlib import Path
 from typing import Iterable
 
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX_PATH = Path(".ai/context_index.json")
-WATCHED_TREES = (
-    ".githooks",
-    ".github",
-    "app",
-    "data",
-    "scripts",
-    "tests",
-    "tools",
-)
-WATCHED_ROOT_FILES = (
-    "AGENTS.md",
-    "AI_CONTEXT.md",
-    "DEVELOPMENT_GUARDRAILS.md",
-    "Dofus_Atlas.bat",
-    "GITHUB_PROTECTION.md",
-    "GUIDE_ULTIME_STATUS.md",
-    "PERFORMANCE_GUARDRAILS.md",
-    "PHASE_CERTIFICATION.md",
-    "ROAD_IA.md",
-    "ZERO_TRUST_RULES.md",
-    "bootstrap_dofus_atlas.ps1",
-    "launch.py",
-    "main.py",
-    "requirements-pyside.txt",
-    "sitecustomize.py",
+INDEX_EXCLUDED_TOP_LEVEL = frozenset({".ai"})
+QUALITY_ROOT_FILES = frozenset(
+    {
+        ".gitattributes",
+        ".gitignore",
+        "AGENTS.md",
+        "AI_CONTEXT.md",
+        "DEVELOPMENT_GUARDRAILS.md",
+        "GITHUB_PROTECTION.md",
+        "PERFORMANCE_GUARDRAILS.md",
+        "PHASE_CERTIFICATION.md",
+        "ROAD_IA.md",
+        "ZERO_TRUST_RULES.md",
+        "requirements-pyside.txt",
+    }
 )
 DOMAIN_TEST_MODULES: dict[str, tuple[str, ...]] = {
     "core": ("tests.test_character_identity_guardrails",),
@@ -95,37 +84,26 @@ def staged_tree_sha(root: Path) -> str:
     return _git(root, "write-tree")
 
 
-def _object_at(root: Path, tree_sha: str, path: str) -> dict[str, str] | None:
-    output = _git(root, "ls-tree", tree_sha, "--", path)
-    if not output:
-        return None
-    line = output.splitlines()[0]
-    metadata, object_path = line.split("\t", 1)
-    mode, object_type, sha = metadata.split(" ", 2)
-    if object_path != path:
-        return None
-    return {"mode": mode, "type": object_type, "sha": sha}
+def _tree_entries(root: Path, tree_sha: str) -> dict[str, dict[str, str]]:
+    entries: dict[str, dict[str, str]] = {}
+    output = _git(root, "ls-tree", tree_sha)
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        metadata, path = line.split("\t", 1)
+        mode, object_type, sha = metadata.split(" ", 2)
+        if path in INDEX_EXCLUDED_TOP_LEVEL:
+            continue
+        entries[path] = {"mode": mode, "type": object_type, "sha": sha}
+    return entries
 
 
 def build_index(root: Path, tree_sha: str) -> dict[str, object]:
-    trees: dict[str, dict[str, str]] = {}
-    root_files: dict[str, dict[str, str]] = {}
-
-    for path in WATCHED_TREES:
-        item = _object_at(root, tree_sha, path)
-        if item is not None:
-            trees[path] = item
-
-    for path in WATCHED_ROOT_FILES:
-        item = _object_at(root, tree_sha, path)
-        if item is not None:
-            root_files[path] = item
-
     return {
-        "schema_version": 1,
-        "source": "git-tree-fingerprints",
-        "watched_trees": trees,
-        "watched_root_files": root_files,
+        "schema_version": 2,
+        "source": "git-top-level-fingerprints",
+        "excluded_top_level": sorted(INDEX_EXCLUDED_TOP_LEVEL),
+        "entries": _tree_entries(root, tree_sha),
     }
 
 
@@ -169,6 +147,8 @@ def classify_path(path: str) -> str:
     lowered = normalized.casefold()
     name = Path(normalized).name.casefold()
 
+    if normalized in QUALITY_ROOT_FILES or lowered.startswith(".ai/"):
+        return "quality"
     if "guide" in lowered and (
         lowered.startswith("app/modules/encyclopedia/")
         or lowered.startswith("data/routes/")
@@ -182,13 +162,18 @@ def classify_path(path: str) -> str:
         return "core"
     if lowered.startswith("app/ui/") or lowered.startswith("app/pages/") or name == "main.py":
         return "ui"
-    if lowered.startswith("app/"):
+    if lowered.startswith("app/") or lowered.startswith("local_dofus_data/"):
         return "runtime"
-    if lowered.startswith("data/"):
+    if lowered.startswith("data/") or lowered.startswith("config/"):
         return "data"
     if lowered.startswith("tests/"):
         return "tests"
-    if lowered.startswith("tools/") or lowered.startswith(".github/") or lowered.startswith(".githooks/"):
+    if (
+        lowered.startswith("tools/")
+        or lowered.startswith("scripts/")
+        or lowered.startswith(".github/")
+        or lowered.startswith(".githooks/")
+    ):
         return "quality"
     return "repository"
 
@@ -253,6 +238,17 @@ def _changed_paths(root: Path) -> list[str]:
     return sorted(paths)
 
 
+def drift_report(root: Path, paths: Iterable[str] | None = None) -> dict[str, object]:
+    inspected = list(paths) if paths is not None else _changed_paths(root)
+    unclassified = [path for path in inspected if classify_path(path) == "repository"]
+    index_current = check_index(root)
+    return {
+        "status": "BLOCKED" if not index_current else ("WARN" if unclassified else "PASS"),
+        "index_current": index_current,
+        "unclassified_changes": unclassified,
+    }
+
+
 def _status_payload(root: Path) -> dict[str, object]:
     paths = _changed_paths(root)
     domains: dict[str, list[str]] = {}
@@ -267,6 +263,7 @@ def _status_payload(root: Path) -> dict[str, object]:
         "recommended_context": recommended_context(paths),
         "recommended_tests": recommended_tests(root, paths),
         "canonical_anchors": recommended_canonical_paths(root, paths),
+        "drift": drift_report(root, paths),
         "committed_index_current": check_index(root),
     }
 
@@ -299,6 +296,11 @@ def _print_status(payload: dict[str, object]) -> None:
         print("targeted tests:")
         for module in payload["recommended_tests"]:
             print(f"  - {module}")
+    drift = payload["drift"]
+    if drift["unclassified_changes"]:
+        print("architecture/context drift warnings:")
+        for path in drift["unclassified_changes"]:
+            print(f"  - no context route: {path}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -317,6 +319,10 @@ def main(argv: list[str] | None = None) -> int:
 
     check_parser = subparsers.add_parser("check", help="Verify the committed context index against a ref.")
     check_parser.add_argument("--ref", default="HEAD")
+
+    drift_parser = subparsers.add_parser("drift", help="Report unclassified changes and stale context metadata.")
+    drift_parser.add_argument("paths", nargs="*")
+    drift_parser.add_argument("--json", action="store_true")
 
     args = parser.parse_args(argv)
     root = ROOT.resolve()
@@ -364,6 +370,17 @@ def main(argv: list[str] | None = None) -> int:
         ok = check_index(root, ref=args.ref)
         print("AI context index: PASS" if ok else "AI context index: STALE/MISSING")
         return 0 if ok else 1
+
+    if command == "drift":
+        payload = drift_report(root, args.paths or None)
+        if args.json:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print(f"AI context drift: {payload['status']}")
+            print(f"context index: {'CURRENT' if payload['index_current'] else 'STALE/MISSING'}")
+            for path in payload["unclassified_changes"]:
+                print(f"warning: no context route: {path}")
+        return 1 if payload["status"] == "BLOCKED" else 0
 
     parser.error(f"unsupported command: {command}")
     return 2
