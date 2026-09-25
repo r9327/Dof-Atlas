@@ -40,6 +40,17 @@ class AiContextTests(unittest.TestCase):
         self.assertIn("ZERO_TRUST_RULES.md", quality_docs)
         self.assertIn("PHASE_CERTIFICATION.md", quality_docs)
 
+    def test_impact_recommendations_use_existing_tests_and_canonical_anchors(self) -> None:
+        guide_path = "app/modules/encyclopedia/views/guides_view.py"
+        guide_tests = ai_context.recommended_tests(ROOT, [guide_path])
+        guide_anchors = ai_context.recommended_canonical_paths(ROOT, [guide_path])
+        self.assertIn("tests.test_guide_ultime_manual_prerequisites", guide_tests)
+        self.assertIn("data/routes/guide_ultime_manual/manifest_v1.json", guide_anchors)
+
+        quality_tests = ai_context.recommended_tests(ROOT, ["tools/ai_context.py"])
+        self.assertIn("tests.test_ai_context", quality_tests)
+        self.assertIn("tests.test_repository_git_hooks", quality_tests)
+
     def test_committed_context_index_matches_head(self) -> None:
         index_path = ROOT / ai_context.INDEX_PATH
         self.assertTrue(index_path.is_file(), index_path)
