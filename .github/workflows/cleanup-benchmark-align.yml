@@ -260,7 +260,7 @@ jobs:
                   "after": measure(),
               }
               OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-              OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+              OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + chr(10), encoding="utf-8")
               print(json.dumps(payload, ensure_ascii=False, indent=2))
               return 0
           ''')
