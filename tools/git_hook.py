@@ -57,7 +57,7 @@ def pre_commit(root: Path) -> int:
             code = check_staged_syntax(root)
         elif label == "generated/runtime files":
             paths = git_paths(root, staged=True)
-            findings = find_forbidden(paths) + find_sensitive_content(root, paths, staged=True)
+            findings = find_forbidden(paths) + find_sensitive_content(root, paths)
             for finding in findings:
                 print(f"forbidden: {finding['path']} ({finding['reason']})", file=sys.stderr)
             code = 1 if findings else 0
