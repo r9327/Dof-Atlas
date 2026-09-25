@@ -18,11 +18,14 @@ class AiContextTests(unittest.TestCase):
             "app/modules/encyclopedia/providers/achievement_provider.py": "encyclopedia",
             "app/ui/theme.py": "ui",
             "app/preload.py": "runtime",
+            "local_dofus_data/catalog.py": "runtime",
             "data/local/example.json": "data",
+            "config/example.json": "data",
             "tests/test_repository_git_hooks.py": "tests",
             "tools/atlas_integrity.py": "quality",
             ".github/workflows/app-ci.yml": "quality",
             ".githooks/pre-commit": "quality",
+            "ROAD_IA.md": "quality",
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
@@ -57,6 +60,16 @@ class AiContextTests(unittest.TestCase):
         actual = json.loads(index_path.read_text(encoding="utf-8"))
         expected = ai_context.build_index(ROOT, ai_context.committed_tree_sha(ROOT))
         self.assertEqual(actual, expected)
+        self.assertEqual(actual["schema_version"], 2)
+        self.assertNotIn(".ai", actual["entries"])
+        self.assertIn("app", actual["entries"])
+        self.assertIn("local_dofus_data", actual["entries"])
+
+    def test_drift_warns_without_blocking_unknown_routes(self) -> None:
+        report = ai_context.drift_report(ROOT, ["future_area/new_service.py"])
+        self.assertTrue(report["index_current"])
+        self.assertEqual(report["status"], "WARN")
+        self.assertEqual(report["unclassified_changes"], ["future_area/new_service.py"])
 
     def test_agent_contract_routes_through_compact_context(self) -> None:
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
