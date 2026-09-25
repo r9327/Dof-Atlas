@@ -63,9 +63,10 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             self.assertEqual(calls, 2)
             self.assertEqual(third["call"], 2)
 
-    def test_recursive_resolution_bypasses_cache(self) -> None:
+    def test_recursive_resolution_reuses_cache_without_hiding_cycle(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            chapter = Path(tmp) / "chapter.json"
+            root = Path(tmp)
+            chapter = root / "chapter.json"
             chapter.write_text("{}", encoding="utf-8")
             calls = 0
 
@@ -74,7 +75,7 @@ class GuideManualRouteCacheTests(unittest.TestCase):
                 calls += 1
                 return {"call": calls}
 
-            seen = {Path(tmp) / "parent.json"}
+            seen = {root / "parent.json"}
             with patch.object(
                 guide_ultime_manual_route,
                 "_load_manual_chapter_uncached",
@@ -88,9 +89,14 @@ class GuideManualRouteCacheTests(unittest.TestCase):
                     chapter,
                     _seen=seen,
                 )
+                with self.assertRaises(ValueError):
+                    guide_ultime_manual_route.load_manual_chapter(
+                        chapter,
+                        _seen={chapter.resolve()},
+                    )
 
-            self.assertEqual((first["call"], second["call"]), (1, 2))
-            self.assertEqual(calls, 2)
+            self.assertEqual((first["call"], second["call"]), (1, 1))
+            self.assertEqual(calls, 1)
 
 
 if __name__ == "__main__":
