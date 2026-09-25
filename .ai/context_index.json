@@ -57,7 +57,7 @@
     },
     "GUIDE_ULTIME_STATUS.md": {
       "mode": "100644",
-      "sha": "f2c21da76deb11d90e107dd3a8d10dc05a9c5b9f",
+      "sha": "9ad2c1c5f039c7a34c31621ac59dc405590de13f",
       "type": "blob"
     },
     "Install_Dofus_Atlas.bat": {
@@ -87,12 +87,12 @@
     },
     "ZERO_TRUST_RULES.md": {
       "mode": "100644",
-      "sha": "0195e6e06f5cef9eea439b3e05cddb1169fc0a97",
+      "sha": "6790e1222f3fac7353875a513c6a597d96b4cc8c",
       "type": "blob"
     },
     "app": {
       "mode": "040000",
-      "sha": "df5042bf72e6b40765599317375d77500202ca2d",
+      "sha": "ba3341ae78a11cf9c385f9351994942730228567",
       "type": "tree"
     },
     "bootstrap_dofus_atlas.ps1": {
@@ -137,7 +137,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "27bbfbca59b364a0c8524eb21ffdd2462901e8b7",
+      "sha": "7b3616d0067fd78e94070a1cceb66cf91340db48",
       "type": "tree"
     },
     "tools": {
