@@ -1,0 +1,150 @@
+name: Profile final foundation Guide
+
+on:
+  push:
+    branches:
+      - validation/final-foundation-guide-profile
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  PRODUCT_SHA: e17264bc35ca3368db47e6a0400cf0a170f7ef81
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  profile:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout validation wrapper
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Prove exact product parent
+        run: |
+          $parent = (git rev-parse HEAD^).Trim()
+          if ($parent -ne $env:PRODUCT_SHA) { throw "Profile parent mismatch: $parent" }
+          $changed = @(git diff --name-only HEAD^ HEAD)
+          if ($changed.Count -ne 1 -or $changed[0] -ne ".github/workflows/profile-final-foundation-guide.yml") {
+            throw "Unexpected validation changes: $($changed -join ', ')"
+          }
+          git checkout --detach $env:PRODUCT_SHA
+          if ((git rev-parse HEAD).Trim() -ne $env:PRODUCT_SHA) { throw "Product checkout mismatch" }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install dependencies and catalog tool
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize Dofus catalog
+        run: |
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Profile cold Guide Ultime constructor
+        run: |
+          @'
+          from collections import defaultdict
+          from time import perf_counter
+
+          from app.modules.encyclopedia.providers import QuestProvider
+          from app.modules.encyclopedia.services import AchievementProgressService, GuideProgressService, QuestProgressService
+          from app.modules.encyclopedia.services import guide_ultime_manual_runtime_service as manual
+          from app.modules.encyclopedia.services.guide_ultime_manual_route import clear_manual_route_cache
+
+          timings = defaultdict(float)
+          counts = defaultdict(int)
+
+          def wrap_method(cls, name, bucket):
+              original = getattr(cls, name)
+              def wrapped(self, *args, **kwargs):
+                  started = perf_counter()
+                  try:
+                      return original(self, *args, **kwargs)
+                  finally:
+                      timings[bucket] += (perf_counter() - started) * 1000.0
+                      counts[bucket] += 1
+              setattr(cls, name, wrapped)
+
+          def wrap_function(module, name, bucket):
+              original = getattr(module, name)
+              def wrapped(*args, **kwargs):
+                  started = perf_counter()
+                  try:
+                      return original(*args, **kwargs)
+                  finally:
+                      timings[bucket] += (perf_counter() - started) * 1000.0
+                      counts[bucket] += 1
+              setattr(module, name, wrapped)
+
+          wrap_method(manual.GuideUltimeManualRuntimeService, "_build_quest_name_index", "quest_name_index")
+          wrap_method(manual.GuideUltimeManualRuntimeService, "_load_manual_preview", "manual_preview_total")
+          wrap_method(manual.GuideUltimeManualRuntimeService, "_load_manual_preview_uncached", "manual_preview_uncached")
+          wrap_method(manual.GuideUltimeManualRuntimeService, "_stage_to_card", "stage_to_card")
+          wrap_function(manual, "_manual_bundle_cache_key", "bundle_cache_key")
+          wrap_function(manual, "_manual_bundle_snapshot", "bundle_snapshot")
+          wrap_function(manual, "load_manual_chapter", "top_level_chapter_resolve")
+
+          provider = QuestProvider()
+          original_list = provider.list_quests
+          def timed_list_quests(*args, **kwargs):
+              started = perf_counter()
+              try:
+                  return original_list(*args, **kwargs)
+              finally:
+                  timings["provider_list_quests"] += (perf_counter() - started) * 1000.0
+                  counts["provider_list_quests"] += 1
+          provider.list_quests = timed_list_quests
+
+          clear_manual_route_cache()
+          manual.clear_manual_bundle_cache()
+          started = perf_counter()
+          service = manual.GuideUltimeManualRuntimeService(
+              QuestProgressService(),
+              AchievementProgressService(),
+              GuideProgressService(),
+              quest_provider=provider,
+              autoload=False,
+          )
+          total_ms = (perf_counter() - started) * 1000.0
+
+          print(f"PROFILE_TOTAL_MS={total_ms:.2f}")
+          for key in sorted(timings):
+              print(f"PROFILE_{key.upper()}_MS={timings[key]:.2f};CALLS={counts[key]}")
+          print(f"PROFILE_CARDS={len(service.cards)}")
+          print(f"PROFILE_MANUAL_ACTIVE={service.manual_preview_active}")
+          if not service.manual_preview_active or len(service.cards) < 200:
+              raise SystemExit(service.manual_preview_error or "manual route invalid")
+          '@ | python -X faulthandler -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
