@@ -53,4 +53,8 @@ jobs:
 
       - name: Run targeted ROAD IA tests
         shell: pwsh
-        run: python -m unittest -v tests.test_ai_context tests.test_repository_git_hooks
+        run: |
+          python -m unittest discover -s tests -p "test_ai_context.py" -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p "test_repository_git_hooks.py" -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
