@@ -1,0 +1,147 @@
+name: Apply foundation cleanup
+
+on:
+  push:
+    branches:
+      - cleanup/final-foundation
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/final-foundation
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Apply proven obsolete UI cleanup
+        shell: bash
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import ast
+          from pathlib import Path
+
+          PAGE = Path('app/modules/encyclopedia/views/encyclopedia_page.py')
+          BOOTSTRAP = Path('app/modules/encyclopedia/views/encyclopedia_bootstrap_views.py')
+          TEST = Path('tests/test_encyclopedia_tab_demand_loading.py')
+          OBSOLETE_TEST = Path('tests/test_achievement_index_virtualization.py')
+
+          def class_method(source: str, name: str) -> ast.FunctionDef:
+              tree = ast.parse(source)
+              page_class = next(
+                  node for node in tree.body
+                  if isinstance(node, ast.ClassDef) and node.name == 'EncyclopediaPage'
+              )
+              return next(
+                  node for node in page_class.body
+                  if isinstance(node, ast.FunctionDef) and node.name == name
+              )
+
+          def remove_method(source: str, name: str) -> str:
+              node = class_method(source, name)
+              lines = source.splitlines(keepends=True)
+              del lines[node.lineno - 1:node.end_lineno]
+              return ''.join(lines)
+
+          def replace_method(source: str, name: str, replacement: str) -> str:
+              node = class_method(source, name)
+              lines = source.splitlines(keepends=True)
+              lines[node.lineno - 1:node.end_lineno] = [replacement]
+              return ''.join(lines)
+
+          source = PAGE.read_text(encoding='utf-8')
+          old_import = '''from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import (\n    AchievementIndexView,\n    EncyclopediaWarmupView,\n    GuideIndexView,\n)\n'''
+          new_import = 'from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView\n'
+          if source.count(old_import) != 1:
+              raise SystemExit('bootstrap import contract changed')
+          source = source.replace(old_import, new_import, 1)
+
+          for assignment in (
+              '        self._achievement_index_view: AchievementIndexView | None = None\n',
+              '        self._guide_index_view: GuideIndexView | None = None\n',
+          ):
+              if source.count(assignment) != 1:
+                  raise SystemExit(f'index flag contract changed: {assignment.strip()}')
+              source = source.replace(assignment, '', 1)
+
+          for method in (
+              '_show_guide_index',
+              '_show_achievement_index',
+              '_on_achievement_requested',
+              '_on_guide_requested',
+              '_finish_pending_guide_request',
+          ):
+              source = remove_method(source, method)
+
+          source = replace_method(
+              source,
+              '_on_tab_changed_indexed',
+              '''    def _on_tab_changed_indexed(self, index: int) -> None:\n        if index < 0:\n            return\n        label = self.tabs.tabText(index)\n        if self._initializing:\n            self._last_ready_tab_index = index\n            self.sync_tab_accent(label)\n            self.sync_search_visibility()\n            return\n\n        if label == QUESTS_TAB:\n            if self.quest_page is not None:\n                self._activate_loaded_tab(QUESTS_TAB)\n                return\n            self._show_warmup(QUESTS_TAB)\n            self._last_ready_tab_index = self.tab_labels().index(QUESTS_TAB)\n            self.sync_tab_accent(QUESTS_TAB)\n            self.sync_search_visibility()\n            self.status_callback(f"Encyclopédie : {QUESTS_TAB}")\n            self.request_quest_runtime()\n            return\n\n        self._on_tab_changed_progressive(index)\n''',
+          )
+
+          source = replace_method(
+              source,
+              '_sync_search_visibility_indexed',
+              '''    def _sync_search_visibility_indexed(self) -> None:\n        widget = self.tabs.currentWidget()\n        if isinstance(widget, EncyclopediaWarmupView):\n            self.search.setVisible(False)\n            self.search.setEnabled(False)\n            return\n        self._sync_search_visibility_base()\n''',
+          )
+
+          legacy_reset = '            self._guide_index_view = None\n'
+          if source.count(legacy_reset) != 1:
+              raise SystemExit('guide index reset contract changed')
+          source = source.replace(legacy_reset, '', 1)
+
+          old_dispatch = '''    def on_tab_changed(self, index: int) -> None:\n        self._on_tab_changed_indexed(index)\n'''
+          new_dispatch = '''    def on_tab_changed(self, index: int) -> None:\n        self._on_tab_changed_indexed_runtime(index)\n'''
+          if source.count(old_dispatch) != 1:
+              raise SystemExit('tab dispatch contract changed')
+          source = source.replace(old_dispatch, new_dispatch, 1)
+
+          forbidden = (
+              'GuideIndexView',
+              'AchievementIndexView',
+              '_show_guide_index',
+              '_show_achievement_index',
+              '_on_guide_requested',
+              '_on_achievement_requested',
+              '_finish_pending_guide_request',
+              '_guide_index_view',
+              '_achievement_index_view',
+          )
+          remaining = [name for name in forbidden if name in source]
+          if remaining:
+              raise SystemExit(f'obsolete index symbols remain: {remaining}')
+          ast.parse(source)
+          PAGE.write_text(source, encoding='utf-8', newline='\n')
+
+          BOOTSTRAP.write_text('''from __future__ import annotations\n\nfrom PySide6.QtCore import Qt\nfrom PySide6.QtWidgets import QLabel, QProgressBar, QVBoxLayout, QWidget\n\n\nclass EncyclopediaWarmupView(QWidget):\n    """Neutral responsive shell while a requested heavy provider loads."""\n\n    def __init__(self, title: str, parent: QWidget | None = None) -> None:\n        super().__init__(parent)\n        self.setObjectName("EncyclopediaWarmupView")\n        root = QVBoxLayout(self)\n        root.setContentsMargins(18, 18, 18, 18)\n        root.setSpacing(12)\n        heading = QLabel(str(title or "Encyclopédie"))\n        heading.setObjectName("GuideSectionTitle")\n        heading.setAlignment(Qt.AlignCenter)\n        root.addStretch(1)\n        root.addWidget(heading)\n        progress = QProgressBar()\n        progress.setRange(0, 0)\n        progress.setTextVisible(False)\n        progress.setMaximumWidth(360)\n        root.addWidget(progress, 0, Qt.AlignHCenter)\n        root.addStretch(1)\n\n\n__all__ = ["EncyclopediaWarmupView"]\n''', encoding='utf-8', newline='\n')
+
+          TEST.write_text('''from __future__ import annotations\n\nimport unittest\n\nfrom app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB\nfrom app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage\n\n\nclass _Tabs:\n    def __init__(self, label: str) -> None:\n        self.label = label\n\n    def tabText(self, _index: int) -> str:\n        return self.label\n\n\nclass _PageProbe:\n    on_tab_changed = EncyclopediaPage.on_tab_changed\n    _on_tab_changed_indexed_runtime = EncyclopediaPage._on_tab_changed_indexed_runtime\n\n    def __init__(self, label: str) -> None:\n        self.tabs = _Tabs(label)\n        self._initializing = False\n        self.guides_view = None\n        self._related_ready = False\n        self._achievement_ready = False\n        self._pending_lazy_tab = ""\n        self.calls: list[object] = []\n\n    def _activate_loaded_tab(self, label: str) -> None:\n        self.calls.append(("activate", label))\n\n    def _start_full_guide_runtime(self) -> None:\n        self.calls.append("guide-runtime")\n\n    def _start_full_achievement_runtime(self) -> None:\n        self.calls.append("achievement-runtime")\n\n    def open_pending_lazy_tab(self) -> None:\n        self.calls.append("open-pending")\n\n    def _on_tab_changed_indexed(self, index: int) -> None:\n        self.calls.append(("indexed", index))\n\n\nclass EncyclopediaDemandLoadingTests(unittest.TestCase):\n    def test_cold_guide_tab_starts_canonical_runtime_directly(self) -> None:\n        page = _PageProbe(GUIDES_TAB)\n        page.on_tab_changed(0)\n        self.assertEqual(page.calls, ["guide-runtime"])\n\n    def test_cold_success_tab_starts_canonical_runtime_directly(self) -> None:\n        page = _PageProbe(ACHIEVEMENTS_TAB)\n        page.on_tab_changed(0)\n        self.assertEqual(page.calls, ["achievement-runtime"])\n\n    def test_loaded_guide_tab_reuses_existing_canonical_view(self) -> None:\n        page = _PageProbe(GUIDES_TAB)\n        page.guides_view = object()\n        page.on_tab_changed(0)\n        self.assertEqual(page.calls, [("activate", GUIDES_TAB)])\n\n    def test_ready_success_tab_opens_canonical_view_without_intermediate_index(self) -> None:\n        page = _PageProbe(ACHIEVEMENTS_TAB)\n        page._achievement_ready = True\n        page.on_tab_changed(0)\n        self.assertEqual(page._pending_lazy_tab, ACHIEVEMENTS_TAB)\n        self.assertEqual(page.calls, ["open-pending"])\n\n    def test_obsolete_light_index_entry_points_are_removed(self) -> None:\n        obsolete = (\n            "_show_guide_index",\n            "_show_achievement_index",\n            "_on_guide_requested",\n            "_on_achievement_requested",\n            "_finish_pending_guide_request",\n        )\n        for name in obsolete:\n            with self.subTest(name=name):\n                self.assertFalse(hasattr(EncyclopediaPage, name))\n\n\nif __name__ == "__main__":\n    unittest.main()\n''', encoding='utf-8', newline='\n')
+
+          if OBSOLETE_TEST.exists():
+              OBSOLETE_TEST.unlink()
+
+          for path in (PAGE, BOOTSTRAP, TEST):
+              compile(path.read_text(encoding='utf-8'), str(path), 'exec')
+          PY
+
+          git diff --check
+      - name: Commit cleanup patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No cleanup changes to commit"
+            exit 0
+          fi
+          git commit -m "fix(encyclopedia): remove obsolete lightweight loading path"
+          git push origin HEAD:cleanup/final-foundation
