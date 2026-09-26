@@ -14,7 +14,7 @@ env:
   QTWEBENGINE_DISABLE_SANDBOX: "1"
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
-  PRODUCT_SHA: e17264bc35ca3368db47e6a0400cf0a170f7ef81
+  PRODUCT_SHA: 40cf5a12f62c1983d6dd8fb9a12087be613d673a
 
 defaults:
   run:
@@ -25,26 +25,22 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout validation wrapper
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout exact cleanup candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ env.PRODUCT_SHA }}
           fetch-depth: 0
           lfs: false
           persist-credentials: false
 
-      - name: Prove exact product parent
+      - name: Verify exact product SHA
         run: |
-          $parent = (git rev-parse HEAD^).Trim()
-          if ($parent -ne $env:PRODUCT_SHA) { throw "Profile parent mismatch: $parent" }
-          $changed = @(git diff --name-only HEAD^ HEAD)
-          if ($changed.Count -ne 1 -or $changed[0] -ne ".github/workflows/profile-final-foundation-guide.yml") {
-            throw "Unexpected validation changes: $($changed -join ', ')"
-          }
-          git checkout --detach $env:PRODUCT_SHA
-          if ((git rev-parse HEAD).Trim() -ne $env:PRODUCT_SHA) { throw "Product checkout mismatch" }
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:PRODUCT_SHA) { throw "Profile checkout mismatch: $actual" }
+          Write-Host "Profile product SHA: $actual"
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.13"
           cache: pip
@@ -112,12 +108,15 @@ jobs:
           wrap_method(manual.GuideUltimeManualRuntimeService, "_load_manual_preview", "manual_preview_total")
           wrap_method(manual.GuideUltimeManualRuntimeService, "_load_manual_preview_uncached", "manual_preview_uncached")
           wrap_method(manual.GuideUltimeManualRuntimeService, "_stage_to_card", "stage_to_card")
+          wrap_method(manual.GuideUltimeManualRuntimeService, "_clean_player_instruction", "clean_player_instruction")
           wrap_function(manual, "_manual_bundle_cache_key", "bundle_cache_key")
           wrap_function(manual, "_manual_bundle_snapshot", "bundle_snapshot")
           wrap_function(manual, "load_manual_chapter", "top_level_chapter_resolve")
 
           provider = QuestProvider()
           original_list = provider.list_quests
+          original_get = provider.get_quest
+
           def timed_list_quests(*args, **kwargs):
               started = perf_counter()
               try:
@@ -125,7 +124,17 @@ jobs:
               finally:
                   timings["provider_list_quests"] += (perf_counter() - started) * 1000.0
                   counts["provider_list_quests"] += 1
+
+          def timed_get_quest(*args, **kwargs):
+              started = perf_counter()
+              try:
+                  return original_get(*args, **kwargs)
+              finally:
+                  timings["provider_get_quest"] += (perf_counter() - started) * 1000.0
+                  counts["provider_get_quest"] += 1
+
           provider.list_quests = timed_list_quests
+          provider.get_quest = timed_get_quest
 
           clear_manual_route_cache()
           manual.clear_manual_bundle_cache()
