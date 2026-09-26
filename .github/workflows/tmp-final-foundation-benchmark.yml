@@ -1,0 +1,137 @@
+name: TEMP Final foundation benchmark
+
+on:
+  push:
+    branches:
+      - validation/final-foundation-benchmark
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tmp-final-foundation-benchmark
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  CANDIDATE_SHA: 40cf5a12f62c1983d6dd8fb9a12087be613d673a
+
+jobs:
+  benchmark:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact cleanup candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Verify exact candidate
+        shell: pwsh
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) {
+            throw "Benchmark checkout mismatch: expected $env:CANDIDATE_SHA, got $actual"
+          }
+          Write-Host "Benchmark candidate SHA: $actual"
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize benchmark fixtures
+        shell: pwsh
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run canonical Encyclopedia benchmark
+        shell: pwsh
+        run: |
+          python -X faulthandler -m app.modules.encyclopedia.tools.benchmark_guides_performance
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Validate benchmark evidence
+        shell: pwsh
+        run: |
+          @'
+          import json
+          import os
+          from pathlib import Path
+
+          report = Path("artifacts/quests_guides_performance.json")
+          payload = json.loads(report.read_text(encoding="utf-8"))
+          expected = os.environ["CANDIDATE_SHA"]
+          actual = str(payload.get("environment", {}).get("git_head") or "")
+          if actual != expected:
+              raise SystemExit(f"benchmark SHA mismatch: expected {expected}, got {actual}")
+          if payload.get("schema_version") != 4:
+              raise SystemExit(f"unexpected schema_version: {payload.get('schema_version')!r}")
+          after = payload.get("after") or {}
+          required = (
+              "startup_stabilized_ms",
+              "startup_stabilized_rss_mb",
+              "quests_open_ms",
+              "quests_open_max_ui_block_ms",
+              "achievements_open_ms",
+              "achievements_open_max_ui_block_ms",
+              "guide_open_ms",
+              "guide_open_max_ui_block_ms",
+              "first_achievement_detail_ms",
+              "first_achievement_detail_max_ui_block_ms",
+              "first_guide_detail_ms",
+              "first_guide_detail_max_ui_block_ms",
+              "quests_hot_return_ms",
+              "achievements_hot_return_ms",
+              "guide_hot_return_ms",
+              "rss_after_all_views_mb",
+              "rss_after_round_trips_mb",
+              "idle_cpu_percent_one_core",
+          )
+          missing = [name for name in required if after.get(name) is None]
+          if missing:
+              raise SystemExit("missing benchmark metrics: " + ", ".join(missing))
+          print(json.dumps(after, ensure_ascii=False, indent=2))
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload benchmark report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: final-foundation-benchmark-${{ github.run_id }}
+          path: artifacts/quests_guides_performance.json
+          if-no-files-found: warn
+          retention-days: 30
