@@ -4,10 +4,14 @@ kind: feature
 working_set:
   - app/modules/encyclopedia/views/achievements_view.py
   - app/modules/encyclopedia/achievement_catalog_policy.py
-  - app/modules/encyclopedia/services/
+  - app/modules/encyclopedia/providers/achievement_provider.py
+  - app/modules/encyclopedia/services/serialized_achievement_progress_service.py
+  - app/modules/encyclopedia/services/achievement_progress_logic.py
+  - app/modules/encyclopedia/widgets/achievement_detail_widget.py
 shared_dependencies:
   - dofus_data
   - persistence_identity
   - shared_ui
 context_entries:
-  - app/modules/encyclopedia/providers/
+  - app/modules/encyclopedia/services/quest_graph_service.py
+  - app/modules/encyclopedia/providers/quest_provider.py

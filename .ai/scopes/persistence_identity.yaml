@@ -8,4 +8,8 @@ working_set:
   - app/storage.py
 shared_dependencies: []
 context_entries:
-  - app/services/
+  - app/services/character_data_service.py
+  - app/services/profile_settings_service.py
+  - app/modules/encyclopedia/services/quest_progress_service.py
+  - app/modules/encyclopedia/services/guide_progress_service.py
+  - app/modules/encyclopedia/services/serialized_achievement_progress_service.py
