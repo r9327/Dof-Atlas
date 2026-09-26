@@ -346,13 +346,14 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         stage_count_by_chapter: dict[str, int] = {}
         resolved_files_by_chapter: dict[str, list[str]] = {}
         index = 1
+        chapter_memo: dict[tuple[Path, bool], dict[str, Any]] = {}
 
         for chapter_meta in chapters:
             chapter_id = str(chapter_meta.get("id") or "").strip()
             filename = str(chapter_meta.get("file") or "").strip()
             if not filename:
                 raise ValueError(f"Chapitre canonique sans fichier: {chapter_id}")
-            chapter = load_manual_chapter(self.manual_dir / filename)
+            chapter = load_manual_chapter(self.manual_dir / filename, _memo=chapter_memo)
             stages = [row for row in chapter.get("stages", []) or [] if isinstance(row, dict)]
             stage_count_by_chapter[chapter_id] = len(stages)
             resolved_files_by_chapter[chapter_id] = [
