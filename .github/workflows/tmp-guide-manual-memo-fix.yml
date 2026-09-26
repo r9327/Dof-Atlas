@@ -53,14 +53,25 @@ jobs:
           PY
 
       - name: Verify exact scope and syntax
-        shell: bash
         run: |
           python -m py_compile app/modules/encyclopedia/services/guide_ultime_manual_route.py app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py tests/test_guide_manual_route_cache.py
           test "$(git diff --name-only | sort)" = "$(printf '%s\n' app/modules/encyclopedia/services/guide_ultime_manual_route.py app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py tests/test_guide_manual_route_cache.py | sort)"
           git diff --check
 
-      - name: Test manual route memo contract
-        run: python -m unittest tests.test_guide_manual_route_cache
+      - name: Cache top-level isolation
+        run: python -m unittest tests.test_guide_manual_route_cache.GuideManualRouteCacheTests.test_top_level_resolution_is_reused_and_returns_isolated_copy
+
+      - name: Cache invalidation
+        run: python -m unittest tests.test_guide_manual_route_cache.GuideManualRouteCacheTests.test_sibling_json_change_invalidates_top_level_cache
+
+      - name: Shared memo reuse
+        run: python -m unittest tests.test_guide_manual_route_cache.GuideManualRouteCacheTests.test_shared_memo_reuses_recursive_resolution_and_returns_isolated_copy
+
+      - name: Shared memo cycle safety
+        run: python -m unittest tests.test_guide_manual_route_cache.GuideManualRouteCacheTests.test_shared_memo_does_not_mask_active_cycle
+
+      - name: Recursive path still bypasses implicit cache
+        run: python -m unittest tests.test_guide_manual_route_cache.GuideManualRouteCacheTests.test_recursive_resolution_bypasses_cache
 
       - name: Test manual route composition
         run: python -m unittest tests.test_guide_ultime_manual_route_composition
@@ -72,7 +83,6 @@ jobs:
         run: python -m unittest tests.test_guide_manual_bundle_cache
 
       - name: Commit tested product patch
-        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
