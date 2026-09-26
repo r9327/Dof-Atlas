@@ -212,7 +212,7 @@ Critères de fermeture V2-2 :
 - les zones non implémentées restent explicitement identifiées comme telles ;
 - aucun code produit, format persistant ou comportement runtime n'a été modifié.
 
-## V2-3 — `.ai/context-map.yaml` — TODO
+## V2-3 — `.ai/context-map.yaml` — DONE
 
 Matérialiser la cartographie V2-2 dans une carte machine compacte, sans dupliquer le dépôt ni les guardrails.
 
