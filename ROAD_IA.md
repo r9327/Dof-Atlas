@@ -224,9 +224,18 @@ Définir par scope le petit working set, les dépendances partagées et les entr
 
 Relier les scopes aux `AGENTS.md`, guardrails et sources de vérité existants sans recopier leurs contenus.
 
-## V2-6 — `tools/agent.py` minimal — TODO
+## V2-6 — `tools/agent.py` minimal — DONE
 
-Fournir les commandes `doctor`, `inspect`, `impact` et `validate`. `validate` délègue à `atlas_integrity` et ne devient jamais une deuxième autorité.
+Les commandes `doctor`, `inspect`, `impact` et `validate` sont présentes dans `tools/agent.py`. `validate` délègue directement à `tools.atlas_integrity.main` et ne devient pas une deuxième autorité de validation.
+
+Preuve de fermeture :
+
+- commit candidat : `5f4a4f01783bee1b3b2747c3f188e3c666dc0bd1` ;
+- test ciblé : `tests/test_agent_tool.py` ;
+- Public Pull Request CI : PASS ;
+- AI Context CI : PASS ;
+- Phase Certification / Full Validation : PASS sur le SHA exact ;
+- aucun changement produit et aucun lot V2-7+ inclus.
 
 ## V2-7 — Index symboles AST léger — TODO
 
