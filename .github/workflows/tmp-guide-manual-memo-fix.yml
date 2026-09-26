@@ -72,7 +72,6 @@ jobs:
 
           git diff --check
           git diff --stat
-          git diff -- app/modules/encyclopedia/views/encyclopedia_page.py tests/test_lazy_quests_page_performance.py
 
       - name: Run targeted regressions
         shell: bash
@@ -91,27 +90,40 @@ jobs:
             tests.test_guide_ultime_refresh_performance \
             tests.test_performance_guardrails
 
-      - name: Sync and verify ROAD IA
+      - name: Commit tested product fix locally
         shell: bash
         run: |
           set -euo pipefail
           rm -f achievement_progress.json.lock guide_progress.json.lock quest_progress.json.lock
+          test -z "$(git status --short | grep '^??' || true)"
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' 'app/modules/encyclopedia/views/encyclopedia_page.py' 'tests/test_lazy_quests_page_performance.py' | sort)"
+          test "$changed" = "$expected"
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app/modules/encyclopedia/views/encyclopedia_page.py tests/test_lazy_quests_page_performance.py
+          git diff --cached --check
+          git commit -m "perf(guide): prewarm manual runtime off UI thread"
+
+      - name: Sync and verify ROAD IA against product commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --short)"
           python -m tools.ai_context sync --stage
           python -m tools.ai_context check
           python -m tools.ai_context drift
           git diff --cached --check
-          changed="$(git diff --cached --name-only | sort)"
-          expected="$(printf '%s\n' '.ai/context_index.json' 'app/modules/encyclopedia/views/encyclopedia_page.py' 'tests/test_lazy_quests_page_performance.py' | sort)"
-          test "$changed" = "$expected"
+          changed="$(git diff --cached --name-only)"
+          test "$changed" = ".ai/context_index.json"
           test -z "$(git status --short | grep '^??' || true)"
           git diff --cached --stat
+          git commit -m "chore(ai): sync Guide prewarm fingerprint"
+          test -z "$(git status --short)"
 
-      - name: Commit and push exact fix
+      - name: Push both validated commits atomically
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "perf(guide): prewarm manual runtime off UI thread"
           git push origin HEAD:cleanup/final-foundation
