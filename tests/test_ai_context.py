@@ -25,6 +25,19 @@ def _git(root: Path, *arguments: str) -> str:
     return completed.stdout.strip()
 
 
+def _git_path_exists(root: Path, path: str) -> bool:
+    completed = subprocess.run(
+        ["git", "cat-file", "-e", f"HEAD:{path.rstrip('/')}"],
+        cwd=root,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+    )
+    return completed.returncode == 0
+
+
 def _commit_all(root: Path, message: str) -> None:
     _git(root, "add", "-A")
     _git(root, "commit", "-m", message)
@@ -149,15 +162,17 @@ class AiContextTests(unittest.TestCase):
         self.assertEqual(set(scopes), expected_scopes)
 
         for entry in defaults:
-            self.assertTrue((ROOT / entry).exists(), entry)
+            self.assertTrue(_git_path_exists(ROOT, entry), entry)
 
         for scope, payload in scopes.items():
             self.assertIn("rule_entries", payload, scope)
             self.assertIn("canonical_entries", payload, scope)
             for key in ("rule_entries", "canonical_entries"):
                 for entry in payload[key]:
-                    target = ROOT / entry.rstrip("/")
-                    self.assertTrue(target.exists(), f"{scope}: missing {entry}")
+                    self.assertTrue(
+                        _git_path_exists(ROOT, entry),
+                        f"{scope}: missing {entry}",
+                    )
 
         self.assertIn("data/AGENTS.md", scopes["encyclopedia_guide"]["rule_entries"])
         self.assertIn("PHASE_CERTIFICATION.md", scopes["encyclopedia_guide"]["rule_entries"])
