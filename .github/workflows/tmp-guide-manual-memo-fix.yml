@@ -1,4 +1,4 @@
-name: TEMP Sync cleanup ROAD IA
+name: TEMP Apply Guide prewarm fix
 
 on:
   push:
@@ -8,33 +8,101 @@ on:
 permissions:
   contents: write
 
+env:
+  EXPECTED_HEAD: 40cf5a12f62c1983d6dd8fb9a12087be613d673a
+
 jobs:
-  sync:
+  patch:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout cleanup candidate
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: cleanup/final-foundation
-          fetch-depth: 1
+          fetch-depth: 0
+
+      - name: Verify exact cleanup head
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$EXPECTED_HEAD"
+          test -z "$(git status --short)"
+
+      - name: Apply minimal Guide prewarm patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          page_path = Path("app/modules/encyclopedia/views/encyclopedia_page.py")
+          page = page_path.read_text(encoding="utf-8")
+
+          anchor = '''@dataclass(slots=True)\nclass _AchievementStagePayload:\n    achievement_provider: object\n    graph: QuestGraphService\n    progress_synchronized: bool = False\n\n\nclass EncyclopediaPage(QWidget):\n'''
+          replacement = '''@dataclass(slots=True)\nclass _AchievementStagePayload:\n    achievement_provider: object\n    graph: QuestGraphService\n    progress_synchronized: bool = False\n\n\ndef _warm_guide_ultime_runtime_cache(\n    quest_provider: QuestProvider,\n    *,\n    quest_progress_path: Path,\n    achievement_progress_path: Path,\n    guide_progress_path: Path,\n) -> None:\n    # Manual Guide composition is pure Python/file work and is expensive on a\n    # cold cache. Prime the existing thread-safe canonical bundle cache from the\n    # Guide worker so selecting Guide Ultime never performs that composition on\n    # the Qt UI thread. The final widget/service remains the sole runtime owner.\n    from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (\n        GuideUltimeManualRuntimeService,\n    )\n\n    GuideUltimeManualRuntimeService(\n        QuestProgressService(quest_progress_path),\n        AchievementProgressService(achievement_progress_path),\n        GuideProgressService(guide_progress_path),\n        quest_provider=quest_provider,\n        autoload=False,\n    )\n\n\nclass EncyclopediaPage(QWidget):\n'''
+          if page.count(anchor) != 1:
+              raise SystemExit(f"unexpected helper anchor count: {page.count(anchor)}")
+          page = page.replace(anchor, replacement, 1)
+
+          anchor = '''                    graph = QuestGraphService(\n                        quest_provider,\n                        guide_provider=active_guide_provider,\n                        achievement_provider=achievement_provider,\n                    )\n'''
+          replacement = '''                    try:\n                        _warm_guide_ultime_runtime_cache(\n                            quest_provider,\n                            quest_progress_path=quest_progress_path,\n                            achievement_progress_path=achievement_progress_path,\n                            guide_progress_path=guide_progress_path,\n                        )\n                    except Exception:\n                        # This is a performance warmup only. A cache failure must\n                        # never make the canonical Guide catalogue unavailable.\n                        LOGGER.exception(\n                            "Préchargement du runtime Guide Ultime impossible"\n                        )\n                    graph = QuestGraphService(\n                        quest_provider,\n                        guide_provider=active_guide_provider,\n                        achievement_provider=achievement_provider,\n                    )\n'''
+          if page.count(anchor) != 1:
+              raise SystemExit(f"unexpected worker anchor count: {page.count(anchor)}")
+          page = page.replace(anchor, replacement, 1)
+          page_path.write_text(page, encoding="utf-8")
+
+          test_path = Path("tests/test_lazy_quests_page_performance.py")
+          test = test_path.read_text(encoding="utf-8")
+          anchor = '''        with patch(\n            "app.modules.encyclopedia.views.encyclopedia_page.Thread",\n            side_effect=run_thread,\n        ):\n            EncyclopediaPageImpl.request_related_preload(page, GUIDES_TAB)\n\n        self.assertEqual(gate.state, RelatedPreloadState.LOADING)\n        guide_provider.reload.assert_called_once_with()\n        guide_provider.load_all.assert_not_called()\n        page.guideRuntimeFinished.emit.assert_called_once()\n'''
+          replacement = '''        with patch(\n            "app.modules.encyclopedia.views.encyclopedia_page._warm_guide_ultime_runtime_cache"\n        ) as warm_cache, patch(\n            "app.modules.encyclopedia.views.encyclopedia_page.Thread",\n            side_effect=run_thread,\n        ):\n            EncyclopediaPageImpl.request_related_preload(page, GUIDES_TAB)\n\n        self.assertEqual(gate.state, RelatedPreloadState.LOADING)\n        guide_provider.reload.assert_called_once_with()\n        guide_provider.load_all.assert_not_called()\n        warm_cache.assert_called_once_with(\n            page.quest_provider,\n            quest_progress_path=page.quest_progress_path,\n            achievement_progress_path=page.achievement_progress_service.path,\n            guide_progress_path=page.guide_progress_service.path,\n        )\n        page.guideRuntimeFinished.emit.assert_called_once()\n'''
+          if test.count(anchor) != 1:
+              raise SystemExit(f"unexpected test anchor count: {test.count(anchor)}")
+          test = test.replace(anchor, replacement, 1)
+          test_path.write_text(test, encoding="utf-8")
+          PY
+
+          git diff --check
+          git diff --stat
+          git diff -- app/modules/encyclopedia/views/encyclopedia_page.py tests/test_lazy_quests_page_performance.py
+
+      - name: Run targeted regressions
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+          QTWEBENGINE_DISABLE_SANDBOX: "1"
+          PYTHONUTF8: "1"
+        run: |
+          set -euo pipefail
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          python -X faulthandler -m unittest -v \
+            tests.test_lazy_quests_page_performance \
+            tests.test_encyclopedia_tab_demand_loading \
+            tests.test_guide_ultime_manual_runtime_text \
+            tests.test_guide_ultime_refresh_performance \
+            tests.test_performance_guardrails
 
       - name: Sync and verify ROAD IA
         shell: bash
         run: |
+          set -euo pipefail
           python -m tools.ai_context sync --stage
           python -m tools.ai_context check
           python -m tools.ai_context drift
+          git add app/modules/encyclopedia/views/encyclopedia_page.py tests/test_lazy_quests_page_performance.py
           git diff --cached --check
-          test "$(git diff --cached --name-only)" = ".ai/context_index.json"
+          changed="$(git diff --cached --name-only | sort)"
+          expected="$(printf '%s\n' '.ai/context_index.json' 'app/modules/encyclopedia/views/encyclopedia_page.py' 'tests/test_lazy_quests_page_performance.py' | sort)"
+          test "$changed" = "$expected"
+          git diff --cached --stat
 
-      - name: Commit canonical index
+      - name: Commit and push exact fix
         shell: bash
         run: |
-          if git diff --cached --quiet; then
-            echo "ROAD IA already current"
-            exit 0
-          fi
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore(ai): sync cleanup Guide memo fingerprint"
+          git commit -m "perf(guide): prewarm manual runtime off UI thread"
           git push origin HEAD:cleanup/final-foundation
