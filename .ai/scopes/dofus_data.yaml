@@ -1,0 +1,9 @@
+schema_version: 1
+scope: dofus_data
+kind: shared_infrastructure
+working_set:
+  - local_dofus_data/
+  - app/local_data_cache.py
+  - app/quest_catalog.py
+shared_dependencies: []
+context_entries: []

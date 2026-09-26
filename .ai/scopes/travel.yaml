@@ -1,0 +1,12 @@
+schema_version: 1
+scope: travel
+kind: feature
+working_set:
+  - app/macros/travel.py
+shared_dependencies:
+  - cartography
+  - input_hotkeys
+  - macro_runtime
+  - windows_qt_runtime
+context_entries:
+  - app/macros/input_tools.py

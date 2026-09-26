@@ -1,0 +1,13 @@
+schema_version: 1
+scope: encyclopedia_achievements
+kind: feature
+working_set:
+  - app/modules/encyclopedia/views/achievements_view.py
+  - app/modules/encyclopedia/achievement_catalog_policy.py
+  - app/modules/encyclopedia/services/
+shared_dependencies:
+  - dofus_data
+  - persistence_identity
+  - shared_ui
+context_entries:
+  - app/modules/encyclopedia/providers/

@@ -1,0 +1,11 @@
+schema_version: 1
+scope: persistence_identity
+kind: shared_infrastructure
+working_set:
+  - app/core/character_identity.py
+  - app/core/json_store.py
+  - app/core/progress_coordinator.py
+  - app/storage.py
+shared_dependencies: []
+context_entries:
+  - app/services/

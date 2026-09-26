@@ -1,0 +1,10 @@
+schema_version: 1
+scope: shared_ui
+kind: shared_infrastructure
+working_set:
+  - app/ui/theme.py
+  - app/ui/components.py
+  - app/ui/styles/
+shared_dependencies: []
+context_entries:
+  - main.py

@@ -1,0 +1,14 @@
+schema_version: 1
+scope: encyclopedia_quests
+kind: feature
+working_set:
+  - app/quest_catalog.py
+  - app/pages/quests_page.py
+  - app/pages/progressive_quests_page.py
+  - app/modules/encyclopedia/providers/
+shared_dependencies:
+  - dofus_data
+  - persistence_identity
+  - shared_ui
+context_entries:
+  - app/modules/encyclopedia/services/

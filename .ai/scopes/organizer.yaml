@@ -1,0 +1,16 @@
+schema_version: 1
+scope: organizer
+kind: feature
+working_set:
+  - app/pages/organizer_page.py
+  - app/pages/organizer_icon_cache.py
+shared_dependencies:
+  - persistence_identity
+  - network_capture
+  - shared_ui
+  - windows_qt_runtime
+  - input_hotkeys
+  - macro_runtime
+context_entries:
+  - app/services/character_order_service.py
+  - main.py

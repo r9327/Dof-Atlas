@@ -1,0 +1,11 @@
+schema_version: 1
+scope: quality_ci
+kind: shared_infrastructure
+working_set:
+  - tools/atlas_integrity.py
+  - tools/atlas_integrity_policy.json
+shared_dependencies: []
+context_entries:
+  - tests/
+  - .github/workflows/
+  - .githooks/

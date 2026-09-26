@@ -1,0 +1,13 @@
+schema_version: 1
+scope: encyclopedia_shell
+kind: feature
+working_set:
+  - app/modules/encyclopedia/views/encyclopedia_page.py
+  - app/modules/encyclopedia/constants.py
+shared_dependencies:
+  - dofus_data
+  - persistence_identity
+  - startup_lifecycle
+  - shared_ui
+context_entries:
+  - main.py

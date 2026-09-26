@@ -1,0 +1,11 @@
+schema_version: 1
+scope: world_scan
+kind: feature
+working_set:
+  - app/ui/world_scan_panel.py
+  - app/cartography/scan_status_service.py
+shared_dependencies:
+  - cartography
+  - shared_ui
+context_entries:
+  - app/ui/map_canvas_widget.py

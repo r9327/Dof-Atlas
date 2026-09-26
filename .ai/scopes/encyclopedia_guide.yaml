@@ -1,0 +1,15 @@
+schema_version: 1
+scope: encyclopedia_guide
+kind: feature
+working_set:
+  - app/modules/encyclopedia/views/guides_view.py
+  - app/modules/encyclopedia/views/guide_ultime_manual_view.py
+  - app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py
+  - data/routes/guide_ultime_manual/
+shared_dependencies:
+  - cartography
+  - dofus_data
+  - persistence_identity
+  - shared_ui
+context_entries:
+  - app/quest_catalog.py
