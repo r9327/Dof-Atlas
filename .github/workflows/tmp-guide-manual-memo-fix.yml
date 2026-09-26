@@ -1,0 +1,128 @@
+name: TEMP Guide manual memo fix
+
+on:
+  push:
+    branches:
+      - validation/final-foundation-benchmark
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout cleanup candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: cleanup/final-foundation
+          fetch-depth: 0
+
+      - name: Apply targeted memo patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_exact(path: Path, old: str, new: str, expected: int = 1) -> None:
+              text = path.read_text(encoding="utf-8")
+              actual = text.count(old)
+              if actual != expected:
+                  raise SystemExit(f"{path}: expected {expected} occurrence(s), found {actual}: {old[:80]!r}")
+              path.write_text(text.replace(old, new), encoding="utf-8")
+
+          route = Path("app/modules/encyclopedia/services/guide_ultime_manual_route.py")
+          runtime = Path("app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py")
+          tests = Path("tests/test_guide_manual_route_cache.py")
+
+          replace_exact(
+              route,
+              """def _expand_route_hooks(\n    payload: dict[str, Any],\n    path: Path,\n    seen: set[Path],\n) -> dict[str, Any]:\n""",
+              """def _expand_route_hooks(\n    payload: dict[str, Any],\n    path: Path,\n    seen: set[Path],\n    *,\n    _memo: dict[tuple[Path, bool], dict[str, Any]] | None = None,\n) -> dict[str, Any]:\n""",
+          )
+          replace_exact(
+              route,
+              "dependency = load_manual_chapter(dependency_path, _seen=seen)",
+              "dependency = load_manual_chapter(dependency_path, _seen=seen, _memo=_memo)",
+          )
+          replace_exact(
+              route,
+              """def _load_manual_chapter_uncached(\n    path: Path,\n    *,\n    _seen: set[Path] | None = None,\n    _expand_hooks: bool = True,\n) -> dict[str, Any]:\n""",
+              """def _load_manual_chapter_uncached(\n    path: Path,\n    *,\n    _seen: set[Path] | None = None,\n    _expand_hooks: bool = True,\n    _memo: dict[tuple[Path, bool], dict[str, Any]] | None = None,\n) -> dict[str, Any]:\n""",
+          )
+          replace_exact(
+              route,
+              "result = load_manual_chapter(base_path, _seen=seen, _expand_hooks=False)",
+              "result = load_manual_chapter(base_path, _seen=seen, _expand_hooks=False, _memo=_memo)",
+          )
+          replace_exact(
+              route,
+              "imported = load_manual_chapter(import_path, _seen=seen)",
+              "imported = load_manual_chapter(import_path, _seen=seen, _memo=_memo)",
+          )
+          replace_exact(
+              route,
+              "return _expand_route_hooks(result, path, seen) if _expand_hooks else result",
+              "return _expand_route_hooks(result, path, seen, _memo=_memo) if _expand_hooks else result",
+              expected=2,
+          )
+          replace_exact(
+              route,
+              """def load_manual_chapter(\n    path: Path,\n    *,\n    _seen: set[Path] | None = None,\n    _expand_hooks: bool = True,\n) -> dict[str, Any]:\n""",
+              """def load_manual_chapter(\n    path: Path,\n    *,\n    _seen: set[Path] | None = None,\n    _expand_hooks: bool = True,\n    _memo: dict[tuple[Path, bool], dict[str, Any]] | None = None,\n) -> dict[str, Any]:\n""",
+          )
+          replace_exact(
+              route,
+              """    resolved = Path(path).resolve()\n    if _seen is not None:\n        return _load_manual_chapter_uncached(\n            resolved,\n            _seen=_seen,\n            _expand_hooks=_expand_hooks,\n        )\n    key: tuple[object, ...] = (\n""",
+              """    resolved = Path(path).resolve()\n    memo_key = (resolved, bool(_expand_hooks))\n    if _seen is not None and resolved in _seen:\n        raise ValueError(f\"Cycle de composition détecté: {resolved}\")\n    if _memo is not None:\n        cached = _memo.get(memo_key)\n        if cached is not None:\n            return copy.deepcopy(cached)\n        result = _load_manual_chapter_uncached(\n            resolved,\n            _seen=_seen,\n            _expand_hooks=_expand_hooks,\n            _memo=_memo,\n        )\n        frozen = copy.deepcopy(result)\n        _memo[memo_key] = frozen\n        return copy.deepcopy(frozen)\n    if _seen is not None:\n        return _load_manual_chapter_uncached(\n            resolved,\n            _seen=_seen,\n            _expand_hooks=_expand_hooks,\n        )\n    key: tuple[object, ...] = (\n""",
+          )
+
+          replace_exact(
+              runtime,
+              """        index = 1\n\n        for chapter_meta in chapters:\n""",
+              """        index = 1\n        chapter_memo: dict[tuple[Path, bool], dict[str, Any]] = {}\n\n        for chapter_meta in chapters:\n""",
+          )
+          replace_exact(
+              runtime,
+              "chapter = load_manual_chapter(self.manual_dir / filename)",
+              "chapter = load_manual_chapter(self.manual_dir / filename, _memo=chapter_memo)",
+          )
+
+          marker = "    def test_recursive_resolution_bypasses_cache(self) -> None:\n"
+          addition = '''    def test_shared_memo_reuses_recursive_resolution_and_returns_isolated_copy(self) -> None:\n        with tempfile.TemporaryDirectory() as tmp:\n            chapter = Path(tmp) / "chapter.json"\n            chapter.write_text("{}", encoding="utf-8")\n            calls = 0\n\n            def resolver(path, *, _seen=None, _expand_hooks=True, _memo=None):\n                nonlocal calls\n                calls += 1\n                return {"call": calls, "rows": [calls]}\n\n            memo: dict[tuple[Path, bool], dict] = {}\n            seen = {Path(tmp) / "parent.json"}\n            with patch.object(\n                guide_ultime_manual_route,\n                "_load_manual_chapter_uncached",\n                resolver,\n            ):\n                first = guide_ultime_manual_route.load_manual_chapter(\n                    chapter,\n                    _seen=seen,\n                    _memo=memo,\n                )\n                first["rows"].append(999)\n                second = guide_ultime_manual_route.load_manual_chapter(\n                    chapter,\n                    _seen=seen,\n                    _memo=memo,\n                )\n\n            self.assertEqual(calls, 1)\n            self.assertEqual(second["rows"], [1])\n\n    def test_shared_memo_does_not_mask_active_cycle(self) -> None:\n        with tempfile.TemporaryDirectory() as tmp:\n            chapter = Path(tmp) / "chapter.json"\n            chapter.write_text("{}", encoding="utf-8")\n            resolved = chapter.resolve()\n            memo = {(resolved, True): {"rows": [1]}}\n\n            with self.assertRaisesRegex(ValueError, "Cycle de composition"):\n                guide_ultime_manual_route.load_manual_chapter(\n                    chapter,\n                    _seen={resolved},\n                    _memo=memo,\n                )\n\n'''
+          replace_exact(tests, marker, addition + marker)
+          PY
+
+      - name: Verify exact scope and syntax
+        shell: bash
+        run: |
+          python -m py_compile \
+            app/modules/encyclopedia/services/guide_ultime_manual_route.py \
+            app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py \
+            tests/test_guide_manual_route_cache.py
+          test "$(git diff --name-only | sort)" = "$(printf '%s\n' \
+            app/modules/encyclopedia/services/guide_ultime_manual_route.py \
+            app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py \
+            tests/test_guide_manual_route_cache.py | sort)"
+          git diff --check
+
+      - name: Run targeted Guide route tests
+        shell: bash
+        run: |
+          python -m unittest \
+            tests.test_guide_manual_route_cache \
+            tests.test_guide_ultime_manual_route_composition \
+            tests.test_guide_ultime_manual_route_hooks \
+            tests.test_guide_manual_bundle_cache
+
+      - name: Commit tested product patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            app/modules/encyclopedia/services/guide_ultime_manual_route.py \
+            app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py \
+            tests/test_guide_manual_route_cache.py
+          git commit -m "perf(guide): memoize manual chapter resolution"
+          git push origin HEAD:cleanup/final-foundation
