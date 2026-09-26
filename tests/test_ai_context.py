@@ -30,6 +30,57 @@ def _commit_all(root: Path, message: str) -> None:
     _git(root, "commit", "-m", message)
 
 
+def _context_map_lists(path: Path) -> tuple[list[str], dict[str, dict[str, list[str]]]]:
+    defaults: list[str] = []
+    scopes: dict[str, dict[str, list[str]]] = {}
+    section = ""
+    current_scope = ""
+    current_list = ""
+
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        if raw_line == "rule_defaults:":
+            section = "rule_defaults"
+            current_scope = ""
+            current_list = ""
+            continue
+        if raw_line == "scopes:":
+            section = "scopes"
+            current_scope = ""
+            current_list = ""
+            continue
+
+        if section == "rule_defaults" and raw_line.startswith("  - "):
+            defaults.append(raw_line[4:])
+            continue
+
+        if section != "scopes":
+            continue
+
+        if raw_line.startswith("  ") and not raw_line.startswith("    ") and raw_line.endswith(":"):
+            current_scope = raw_line.strip()[:-1]
+            scopes[current_scope] = {}
+            current_list = ""
+            continue
+
+        if not current_scope or not raw_line.startswith("    ") or raw_line.startswith("      "):
+            if current_scope and current_list and raw_line.startswith("      - "):
+                scopes[current_scope][current_list].append(raw_line[8:])
+            continue
+
+        field = raw_line.strip()
+        if field.endswith(": []"):
+            key = field.removesuffix(": []")
+            scopes[current_scope][key] = []
+            current_list = ""
+        elif field.endswith(":"):
+            current_list = field[:-1]
+            scopes[current_scope][current_list] = []
+        else:
+            current_list = ""
+
+    return defaults, scopes
+
+
 class AiContextTests(unittest.TestCase):
     def test_route_classifies_major_project_areas(self) -> None:
         cases = {
@@ -62,6 +113,58 @@ class AiContextTests(unittest.TestCase):
         quality_docs = ai_context.recommended_context(["tools/atlas_integrity.py"])
         self.assertIn("ZERO_TRUST_RULES.md", quality_docs)
         self.assertIn("PHASE_CERTIFICATION.md", quality_docs)
+
+    def test_v2_scope_rule_routes_reference_existing_contracts(self) -> None:
+        defaults, scopes = _context_map_lists(ROOT / ".ai/context-map.yaml")
+        self.assertEqual(
+            defaults,
+            ["AGENTS.md", "DEVELOPMENT_GUARDRAILS.md", "ZERO_TRUST_RULES.md"],
+        )
+
+        expected_scopes = {
+            "home",
+            "character",
+            "organizer",
+            "equipment",
+            "craft",
+            "zaap",
+            "travel",
+            "world_scan",
+            "encyclopedia_shell",
+            "encyclopedia_quests",
+            "encyclopedia_achievements",
+            "encyclopedia_guide",
+            "encyclopedia_bestiary",
+            "cartography",
+            "persistence_identity",
+            "startup_lifecycle",
+            "network_capture",
+            "dofus_data",
+            "shared_ui",
+            "windows_qt_runtime",
+            "input_hotkeys",
+            "macro_runtime",
+            "quality_ci",
+        }
+        self.assertEqual(set(scopes), expected_scopes)
+
+        for entry in defaults:
+            self.assertTrue((ROOT / entry).exists(), entry)
+
+        for scope, payload in scopes.items():
+            self.assertIn("rule_entries", payload, scope)
+            self.assertIn("canonical_entries", payload, scope)
+            for key in ("rule_entries", "canonical_entries"):
+                for entry in payload[key]:
+                    target = ROOT / entry.rstrip("/")
+                    self.assertTrue(target.exists(), f"{scope}: missing {entry}")
+
+        self.assertIn("data/AGENTS.md", scopes["encyclopedia_guide"]["rule_entries"])
+        self.assertIn("PHASE_CERTIFICATION.md", scopes["encyclopedia_guide"]["rule_entries"])
+        self.assertIn("PERFORMANCE_GUARDRAILS.md", scopes["shared_ui"]["rule_entries"])
+        self.assertIn("tools/AGENTS.md", scopes["quality_ci"]["rule_entries"])
+        self.assertIn("tests/AGENTS.md", scopes["quality_ci"]["rule_entries"])
+        self.assertEqual(scopes["encyclopedia_bestiary"]["canonical_entries"], [])
 
     def test_impact_recommendations_use_existing_tests_and_canonical_anchors(self) -> None:
         guide_path = "app/modules/encyclopedia/views/guides_view.py"
