@@ -66,6 +66,30 @@ class _AchievementStagePayload:
     progress_synchronized: bool = False
 
 
+def _warm_guide_ultime_runtime_cache(
+    quest_provider: QuestProvider,
+    *,
+    quest_progress_path: Path,
+    achievement_progress_path: Path,
+    guide_progress_path: Path,
+) -> None:
+    # Manual Guide composition is pure Python/file work and is expensive on a
+    # cold cache. Prime the existing thread-safe canonical bundle cache from the
+    # Guide worker so selecting Guide Ultime never performs that composition on
+    # the Qt UI thread. The final widget/service remains the sole runtime owner.
+    from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+        GuideUltimeManualRuntimeService,
+    )
+
+    GuideUltimeManualRuntimeService(
+        QuestProgressService(quest_progress_path),
+        AchievementProgressService(achievement_progress_path),
+        GuideProgressService(guide_progress_path),
+        quest_provider=quest_provider,
+        autoload=False,
+    )
+
+
 class EncyclopediaPage(QWidget):
     guideRuntimeFinished = Signal(object)
     achievementRuntimeFinished = Signal(object)
@@ -940,6 +964,19 @@ class EncyclopediaPage(QWidget):
                         detail = f" · {'; '.join(errors[:3])}" if errors else ""
                         raise RuntimeError(
                             f"Aucun guide chargé depuis {catalog_path}{detail}"
+                        )
+                    try:
+                        _warm_guide_ultime_runtime_cache(
+                            quest_provider,
+                            quest_progress_path=quest_progress_path,
+                            achievement_progress_path=achievement_progress_path,
+                            guide_progress_path=guide_progress_path,
+                        )
+                    except Exception:
+                        # This is a performance warmup only. A cache failure must
+                        # never make the canonical Guide catalogue unavailable.
+                        LOGGER.exception(
+                            "Préchargement du runtime Guide Ultime impossible"
                         )
                     graph = QuestGraphService(
                         quest_provider,

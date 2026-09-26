@@ -558,6 +558,8 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             return SimpleNamespace(start=target)
 
         with patch(
+            "app.modules.encyclopedia.views.encyclopedia_page._warm_guide_ultime_runtime_cache"
+        ) as warm_cache, patch(
             "app.modules.encyclopedia.views.encyclopedia_page.Thread",
             side_effect=run_thread,
         ):
@@ -566,6 +568,12 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         self.assertEqual(gate.state, RelatedPreloadState.LOADING)
         guide_provider.reload.assert_called_once_with()
         guide_provider.load_all.assert_not_called()
+        warm_cache.assert_called_once_with(
+            page.quest_provider,
+            quest_progress_path=page.quest_progress_path,
+            achievement_progress_path=page.achievement_progress_service.path,
+            guide_progress_path=page.guide_progress_service.path,
+        )
         page.guideRuntimeFinished.emit.assert_called_once()
 
     def test_guide_hydration_keeps_rich_detail_unbuilt(self):
