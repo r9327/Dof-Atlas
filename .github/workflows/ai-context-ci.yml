@@ -1,0 +1,182 @@
+name: AI Context CI
+
+on:
+  pull_request:
+    paths:
+      - ".ai/**"
+      - "AGENTS.md"
+      - "AI_CONTEXT.md"
+      - "ROAD_IA.md"
+      - "app/AGENTS.md"
+      - "data/AGENTS.md"
+      - "tests/AGENTS.md"
+      - "tests/test_ai_context.py"
+      - "tests/test_repository_git_hooks.py"
+      - "tools/AGENTS.md"
+      - "tools/ai_context.py"
+      - "tools/git_hook.py"
+      - ".githooks/**"
+      - ".github/workflows/ai-context-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dof-atlas-ai-context-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+  VALIDATION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main' }}
+
+jobs:
+  validate:
+    name: AI Context / Targeted Validation
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+          sparse-checkout: |
+            .ai
+            .githooks
+            .github
+            data/routes/guide_ultime_manual
+            tests
+            tools
+          sparse-checkout-cone-mode: true
+
+      - name: Verify exact candidate checkout
+        shell: pwsh
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) {
+            throw "AI context checkout mismatch: expected $env:CANDIDATE_SHA, got $actual"
+          }
+          Write-Host "AI context candidate SHA: $actual"
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Compile ROAD IA Python files
+        shell: pwsh
+        run: python -m compileall -q tools/ai_context.py tools/git_hook.py tests/test_ai_context.py
+
+      - name: Verify committed context index
+        shell: pwsh
+        run: python -m tools.ai_context check
+
+      - name: Run targeted ROAD IA tests
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -p "test_ai_context.py" -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p "test_repository_git_hooks.py" -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  integrity-fast:
+    name: AI Context / FAST + Full Suite
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Verify exact candidate checkout
+        shell: pwsh
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) {
+            throw "FAST/full checkout mismatch: expected $env:CANDIDATE_SHA, got $actual"
+          }
+          Write-Host "Validation candidate SHA: $actual"
+          Write-Host "Validation base SHA: $env:VALIDATION_BASE_SHA"
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize validation LFS fixtures
+        shell: pwsh
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          @'
+          from pathlib import Path
+
+          required = [
+              Path("data/images/misc/dofus_atlas_logo.png"),
+              Path("tools/doduda/doduda.exe"),
+          ]
+          pointer = b"version https://git-lfs.github.com/spec/v1"
+          errors = []
+          for path in required:
+              if not path.is_file():
+                  errors.append(f"missing validation fixture: {path}")
+              elif path.read_bytes()[: len(pointer)] == pointer:
+                  errors.append(f"unmaterialized LFS pointer: {path}")
+          if errors:
+              raise SystemExit("\n".join(errors))
+          print("Validation LFS fixtures materialized")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize local Dofus catalog
+        shell: pwsh
+        run: |
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          $code = $LASTEXITCODE
+          if ($code -ne 0) { exit $code }
+
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run Atlas Integrity FAST
+        shell: pwsh
+        run: |
+          python -X faulthandler -m tools.atlas_integrity fast --base-ref "$env:VALIDATION_BASE_SHA"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run full application test suite
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest discover -v -s tests -p "test_*.py"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
