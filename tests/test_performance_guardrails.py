@@ -196,6 +196,24 @@ class PerformanceGuardrailTests(unittest.TestCase):
         self.assertIn('"startup_preload_state": "DEFERRED_ON_DEMAND"', source)
         self.assertNotIn('30.0,\n        "startup preload"', source)
 
+    def test_perf_benchmark_uses_only_canonical_encyclopedia_runtime(self) -> None:
+        source = _source("app/modules/encyclopedia/tools/benchmark_guides_performance.py")
+        for obsolete in (
+            "_achievement_index_view",
+            "_guide_index_view",
+            "_on_achievement_requested",
+            "_on_guide_requested",
+            "def index_is_ready",
+            "def open_index",
+        ):
+            with self.subTest(obsolete=obsolete):
+                self.assertNotIn(obsolete, source)
+        self.assertIn("def runtime_is_ready", source)
+        self.assertIn("def open_runtime", source)
+        self.assertIn("_achievement_ready", source)
+        self.assertIn("_guide_runtime_ready", source)
+        self.assertIn('"schema_version": 4', source)
+
     def test_qimage_decode_emits_non_blocking_debug_measurement(self) -> None:
         source = _source("app/modules/encyclopedia/views/guides_view.py")
         self.assertIn("def _decode_qimage", source)

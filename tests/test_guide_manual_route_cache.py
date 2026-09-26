@@ -63,6 +63,37 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             self.assertEqual(calls, 2)
             self.assertEqual(third["call"], 2)
 
+    def test_shared_memo_reuses_recursive_resolution_and_returns_isolated_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            chapter = Path(tmp) / "chapter.json"
+            chapter.write_text("{}", encoding="utf-8")
+            calls = 0
+
+            def resolver(path, *, _seen=None, _expand_hooks=True, _memo=None):
+                nonlocal calls
+                calls += 1
+                return {"call": calls, "rows": [calls]}
+
+            memo: dict[tuple[Path, bool], dict] = {}
+            seen = {Path(tmp) / "parent.json"}
+            with patch.object(guide_ultime_manual_route, "_load_manual_chapter_uncached", resolver):
+                first = guide_ultime_manual_route.load_manual_chapter(chapter, _seen=seen, _memo=memo)
+                first["rows"].append(999)
+                second = guide_ultime_manual_route.load_manual_chapter(chapter, _seen=seen, _memo=memo)
+
+            self.assertEqual(calls, 1)
+            self.assertEqual(second["rows"], [1])
+
+    def test_shared_memo_does_not_mask_active_cycle(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            chapter = Path(tmp) / "chapter.json"
+            chapter.write_text("{}", encoding="utf-8")
+            resolved = chapter.resolve()
+            memo = {(resolved, True): {"rows": [1]}}
+
+            with self.assertRaisesRegex(ValueError, "Cycle de composition"):
+                guide_ultime_manual_route.load_manual_chapter(chapter, _seen={resolved}, _memo=memo)
+
     def test_recursive_resolution_bypasses_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             chapter = Path(tmp) / "chapter.json"

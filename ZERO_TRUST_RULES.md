@@ -15,4 +15,4 @@ This short contract applies to Codex, Work, GPT, humans and other contributors. 
 11. Protected integration branches accept changes through a temporary branch, pull request, checks and merge — never direct push.
 12. Stop only for real ambiguity involving data loss/corruption, identity/persistence, required architecture reopening, irreducible native crash, unjustified major dependency/change, Guide content, or unavailable admin authority.
 
-The known Guide blockers `GUIDE_PREREQUISITE_DATA` and `GUIDE_FINAL_COVERAGE` remain blocking. Known does not mean allowed.
+Historical Guide failures, including `GUIDE_PREREQUISITE_DATA` and `GUIDE_FINAL_COVERAGE`, are not presumed current. They block only when a validation of the exact current HEAD reports them failing; never carry an old failure or an old PASS forward without current evidence.
