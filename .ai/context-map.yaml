@@ -1,74 +1,229 @@
-schema_version: 1
+schema_version: 2
+
+rule_defaults:
+  - AGENTS.md
+  - DEVELOPMENT_GUARDRAILS.md
+  - ZERO_TRUST_RULES.md
 
 scopes:
   home:
     kind: feature
     manifest: .ai/scopes/home.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+    canonical_entries:
+      - app/pages/home_page.py
+
   character:
     kind: feature
     manifest: .ai/scopes/character.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/core/character_identity.py
+      - app/services/character_data_service.py
+      - app/services/character_order_service.py
+
   organizer:
     kind: feature
     manifest: .ai/scopes/organizer.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/pages/organizer_page.py
+      - app/services/character_order_service.py
+
   equipment:
     kind: feature
     manifest: .ai/scopes/equipment.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+    canonical_entries:
+      - app/pages/equipment_page.py
+
   craft:
     kind: feature
     manifest: .ai/scopes/craft.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/pages/craft_page.py
+      - local_dofus_data/compatibility_adapter.py
+
   zaap:
     kind: feature
     manifest: .ai/scopes/zaap.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/macros/zaap.py
+
   travel:
     kind: feature
     manifest: .ai/scopes/travel.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/macros/travel.py
+
   world_scan:
     kind: feature
     manifest: .ai/scopes/world_scan.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+    canonical_entries:
+      - app/cartography/scan_status_service.py
+      - app/ui/world_scan_panel.py
+
   encyclopedia_shell:
     kind: feature
     manifest: .ai/scopes/encyclopedia_shell.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+    canonical_entries:
+      - app/modules/encyclopedia/views/encyclopedia_page.py
+      - app/modules/encyclopedia/constants.py
+
   encyclopedia_quests:
     kind: feature
     manifest: .ai/scopes/encyclopedia_quests.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+    canonical_entries:
+      - app/quest_catalog.py
+      - app/modules/encyclopedia/services/quest_progress_service.py
+
   encyclopedia_achievements:
     kind: feature
     manifest: .ai/scopes/encyclopedia_achievements.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+    canonical_entries:
+      - app/modules/encyclopedia/achievement_catalog_policy.py
+      - app/modules/encyclopedia/services/serialized_achievement_progress_service.py
+
   encyclopedia_guide:
     kind: feature
     manifest: .ai/scopes/encyclopedia_guide.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - data/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+      - PHASE_CERTIFICATION.md
+    canonical_entries:
+      - data/routes/guide_ultime_manual/manifest_v1.json
+      - app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py
+      - app/modules/encyclopedia/services/guide_progress_service.py
+
   encyclopedia_bestiary:
     kind: feature
     implementation: placeholder
     manifest: .ai/scopes/encyclopedia_bestiary.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+    canonical_entries: []
 
   cartography:
     kind: shared_infrastructure
     manifest: .ai/scopes/cartography.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/cartography/
+      - app/services/maps/
+
   persistence_identity:
     kind: shared_infrastructure
     manifest: .ai/scopes/persistence_identity.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/core/character_identity.py
+      - app/core/json_store.py
+      - app/core/progress_coordinator.py
+
   startup_lifecycle:
     kind: shared_infrastructure
     manifest: .ai/scopes/startup_lifecycle.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+    canonical_entries:
+      - main.py
+      - app/preload.py
+      - app/background_work.py
+
   network_capture:
     kind: shared_infrastructure
     manifest: .ai/scopes/network_capture.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/network/
+      - app/ui/network_bridge.py
+
   dofus_data:
     kind: shared_infrastructure
     manifest: .ai/scopes/dofus_data.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - local_dofus_data/
+      - app/local_data_cache.py
+      - app/quest_catalog.py
+
   shared_ui:
     kind: shared_infrastructure
     manifest: .ai/scopes/shared_ui.yaml
+    rule_entries:
+      - app/AGENTS.md
+      - PERFORMANCE_GUARDRAILS.md
+    canonical_entries:
+      - app/ui/theme.py
+      - app/ui/components.py
+
   windows_qt_runtime:
     kind: shared_infrastructure
     manifest: .ai/scopes/windows_qt_runtime.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/windows/
+
   input_hotkeys:
     kind: shared_infrastructure
     manifest: .ai/scopes/input_hotkeys.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/input/
+
   macro_runtime:
     kind: shared_infrastructure
     manifest: .ai/scopes/macro_runtime.yaml
+    rule_entries:
+      - app/AGENTS.md
+    canonical_entries:
+      - app/macros/input_tools.py
+      - app/macros/switch_character.py
+      - app/macros/switch_click.py
+      - app/macros/direction.py
+      - app/macros/auto_group.py
+
   quality_ci:
     kind: shared_infrastructure
     manifest: .ai/scopes/quality_ci.yaml
+    rule_entries:
+      - tools/AGENTS.md
+      - tests/AGENTS.md
+      - PHASE_CERTIFICATION.md
+    canonical_entries:
+      - tools/atlas_integrity.py
+      - tools/atlas_integrity_policy.json
