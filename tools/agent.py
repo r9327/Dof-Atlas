@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import subprocess
 import sys
@@ -240,6 +241,96 @@ def impact_payload(root: Path, paths: Iterable[str]) -> dict[str, Any]:
     }
 
 
+def _symbol_anchors(
+    context_map: dict[str, Any],
+    manifests: dict[str, dict[str, Any]],
+    scope: str,
+) -> list[str]:
+    config = context_map["scopes"].get(scope)
+    if config is None:
+        raise AgentConfigError(f"unknown scope: {scope}")
+    manifest = manifests[scope]
+    return _unique(
+        [
+            *manifest.get("working_set", []),
+            *manifest.get("context_entries", []),
+            *config.get("canonical_entries", []),
+        ]
+    )
+
+
+def _python_files_for_anchor(root: Path, anchor: str) -> list[str]:
+    normalized = ai_context.normalize_path(anchor)
+    target = root / normalized.rstrip("/")
+    if target.is_file():
+        return [normalized] if target.suffix.casefold() == ".py" else []
+    if not target.is_dir():
+        return []
+    return [
+        path.relative_to(root).as_posix()
+        for path in sorted(target.rglob("*.py"))
+        if "__pycache__" not in path.parts
+    ]
+
+
+def symbol_files_for_scope(root: Path, scope: str) -> list[str]:
+    root = root.resolve()
+    context_map, manifests = _model(root)
+    files: list[str] = []
+    for anchor in _symbol_anchors(context_map, manifests, scope):
+        files.extend(_python_files_for_anchor(root, anchor))
+    return _unique(files)
+
+
+def _python_symbols(root: Path, relative: str) -> list[dict[str, Any]]:
+    source_path = root / relative
+    try:
+        source = source_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise AgentConfigError(f"python source unavailable: {relative}: {exc}") from exc
+    try:
+        tree = ast.parse(source, filename=relative)
+    except SyntaxError as exc:
+        location = f"{relative}:{exc.lineno or '?'}"
+        raise AgentConfigError(f"unable to parse Python source {location}: {exc.msg}") from exc
+
+    symbols: list[dict[str, Any]] = []
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            kind = "class"
+        elif isinstance(node, ast.AsyncFunctionDef):
+            kind = "async_function"
+        elif isinstance(node, ast.FunctionDef):
+            kind = "function"
+        else:
+            continue
+        symbols.append(
+            {
+                "name": node.name,
+                "kind": kind,
+                "line": node.lineno,
+                "end_line": getattr(node, "end_lineno", node.lineno),
+            }
+        )
+    return symbols
+
+
+def symbols_payload(root: Path, scope: str) -> dict[str, Any]:
+    root = root.resolve()
+    files = symbol_files_for_scope(root, scope)
+    indexed: dict[str, list[dict[str, Any]]] = {}
+    for relative in files:
+        indexed[relative] = _python_symbols(root, relative)
+    return {
+        "schema_version": 1,
+        "source": "scope-declared-python-ast",
+        "scope": scope,
+        "file_count": len(files),
+        "symbol_count": sum(len(symbols) for symbols in indexed.values()),
+        "files": indexed,
+    }
+
+
 def _print_payload(payload: dict[str, Any]) -> None:
     for key, value in payload.items():
         if isinstance(value, list):
@@ -265,6 +356,9 @@ def main(argv: list[str] | None = None) -> int:
     impact = commands.add_parser("impact")
     impact.add_argument("paths", nargs="+")
     impact.add_argument("--json", action="store_true")
+    symbols = commands.add_parser("symbols")
+    symbols.add_argument("scope")
+    symbols.add_argument("--json", action="store_true")
     validate = commands.add_parser("validate")
     validate.add_argument("integrity_args", nargs=argparse.REMAINDER)
 
@@ -281,6 +375,9 @@ def main(argv: list[str] | None = None) -> int:
             exit_code = 0
         elif command == "impact":
             payload = impact_payload(ROOT, args.paths)
+            exit_code = 0
+        elif command == "symbols":
+            payload = symbols_payload(ROOT, args.scope)
             exit_code = 0
         else:
             parser.error(f"unsupported command: {command}")
