@@ -216,7 +216,7 @@ Critères de fermeture V2-2 :
 
 Matérialiser la cartographie V2-2 dans une carte machine compacte, sans dupliquer le dépôt ni les guardrails.
 
-## V2-4 — Manifests `.ai/scopes/*.yaml` — TODO
+## V2-4 — Manifests `.ai/scopes/*.yaml` — DONE
 
 Définir par scope le petit working set, les dépendances partagées et les entrées de contexte réellement utiles.
 
