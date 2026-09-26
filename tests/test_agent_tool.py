@@ -131,6 +131,91 @@ async def async_task():
         with self.assertRaisesRegex(agent.AgentConfigError, "unknown scope"):
             agent.symbols_payload(ROOT, "missing_scope")
 
+    def test_imports_enriches_working_set_without_recursive_scan(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".ai/scopes").mkdir(parents=True)
+            (root / "src/pkg").mkdir(parents=True)
+            (root / ".ai/context-map.yaml").write_text(
+                """schema_version: 2
+rule_defaults:
+  - AGENTS.md
+scopes:
+  demo:
+    kind: feature
+    manifest: .ai/scopes/demo.yaml
+    rule_entries: []
+    canonical_entries: []
+""",
+                encoding="utf-8",
+            )
+            (root / ".ai/scopes/demo.yaml").write_text(
+                """schema_version: 1
+scope: demo
+kind: feature
+working_set:
+  - src/pkg/main.py
+shared_dependencies: []
+context_entries: []
+""",
+                encoding="utf-8",
+            )
+            (root / "src/__init__.py").write_text("", encoding="utf-8")
+            (root / "src/pkg/__init__.py").write_text("", encoding="utf-8")
+            (root / "src/pkg/main.py").write_text(
+                """import json
+from src.shared import helper
+from . import sibling
+from .nested import thing
+
+def lazy_dependency():
+    from src.deep import value
+    return value
+""",
+                encoding="utf-8",
+            )
+            (root / "src/shared.py").write_text(
+                "from src.transitive import value\n",
+                encoding="utf-8",
+            )
+            (root / "src/pkg/sibling.py").write_text("VALUE = 1\n", encoding="utf-8")
+            (root / "src/pkg/nested.py").write_text("VALUE = 1\n", encoding="utf-8")
+            (root / "src/deep.py").write_text("VALUE = 1\n", encoding="utf-8")
+            (root / "src/transitive.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+            payload = agent.imports_payload(root, "demo")
+
+        self.assertEqual(payload["schema_version"], 1)
+        self.assertEqual(payload["source"], "scope-working-set-python-imports")
+        self.assertEqual(payload["scope"], "demo")
+        self.assertEqual(payload["file_count"], 1)
+        self.assertEqual(
+            set(payload["files"]["src/pkg/main.py"]),
+            {"src/shared.py", "src/pkg/sibling.py", "src/pkg/nested.py", "src/deep.py"},
+        )
+        self.assertEqual(
+            set(payload["import_dependencies"]),
+            {"src/shared.py", "src/pkg/sibling.py", "src/pkg/nested.py", "src/deep.py"},
+        )
+        self.assertNotIn("src/transitive.py", payload["import_dependencies"])
+        self.assertEqual(payload["enriched_working_set"][0], "src/pkg/main.py")
+        self.assertNotIn("src/transitive.py", payload["enriched_working_set"])
+
+    def test_imports_real_scope_resolves_internal_dependencies(self) -> None:
+        payload = agent.imports_payload(ROOT, "encyclopedia_guide")
+        self.assertGreater(payload["file_count"], 0)
+        self.assertGreater(payload["edge_count"], 0)
+        guide_view = "app/modules/encyclopedia/views/guides_view.py"
+        self.assertIn(guide_view, payload["files"])
+        self.assertIn("app/quest_catalog.py", payload["files"][guide_view])
+        self.assertIn("app/quest_catalog.py", payload["import_dependencies"])
+        self.assertIn("app/quest_catalog.py", payload["enriched_working_set"])
+        self.assertTrue(all(path.endswith(".py") for path in payload["import_dependencies"]))
+
+    def test_imports_rejects_unknown_scope(self) -> None:
+        with self.assertRaisesRegex(agent.AgentConfigError, "unknown scope"):
+            agent.imports_payload(ROOT, "missing_scope")
+
     def test_validate_delegates_directly_to_atlas_integrity(self) -> None:
         arguments = ["critical", "--base-ref", "origin/main", "--json"]
         with mock.patch.object(agent.atlas_integrity, "main", return_value=7) as delegated:
