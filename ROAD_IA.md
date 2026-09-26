@@ -220,7 +220,7 @@ Matérialiser la cartographie V2-2 dans une carte machine compacte, sans dupliqu
 
 Définir par scope le petit working set, les dépendances partagées et les entrées de contexte réellement utiles.
 
-## V2-5 — Routage des règles existantes — TODO
+## V2-5 — Routage des règles existantes — DONE
 
 Relier les scopes aux `AGENTS.md`, guardrails et sources de vérité existants sans recopier leurs contenus.
 
