@@ -367,7 +367,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             _activate_loaded_tab=Mock(),
             status_callback=Mock(),
             request_achievement_runtime=Mock(),
-            _show_achievement_index=Mock(),
         )
 
         EncyclopediaPageImpl._start_full_achievement_runtime(page)
@@ -375,7 +374,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         page.ensure_achievements_view.assert_called_once_with()
         page._activate_loaded_tab.assert_called_once_with(ACHIEVEMENTS_TAB)
         page.request_achievement_runtime.assert_called_once_with()
-        page._show_achievement_index.assert_not_called()
 
     def test_success_target_pending_contract_cold_and_ready(self):
         for ready in (False, True):
@@ -463,13 +461,13 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
-    def test_guide_tab_delegates_to_indexed_on_demand_handler(self):
-        page = SimpleNamespace(_on_tab_changed_indexed=Mock())
+    def test_guide_tab_delegates_to_canonical_runtime_handler(self):
+        page = SimpleNamespace(_on_tab_changed_indexed_runtime=Mock())
         index = ENCYCLOPEDIA_TABS.index(GUIDES_TAB)
 
         EncyclopediaPageImpl.on_tab_changed(page, index)
 
-        page._on_tab_changed_indexed.assert_called_once_with(index)
+        page._on_tab_changed_indexed_runtime.assert_called_once_with(index)
 
     def test_guide_ultime_navigation_is_preserved_until_runtime_finishes(self):
         tabs = Mock()

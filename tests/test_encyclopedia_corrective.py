@@ -114,7 +114,7 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
         self.app.processEvents()
         page.set_character_key("character:1")
         # These corrective tests exercise the historical rich Guide UI itself.
-        # Cold-tab/index behavior is covered by dedicated Phase 7B tests.
+        # Cold-tab/runtime behavior is covered by dedicated Phase 7B tests.
         self.hydrate_guides(page)
         return page
 
@@ -188,12 +188,13 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
             self.assertIs(page.service.guide_provider, guide_provider)
             self.assertIsNone(page.guides_view)
 
-            # Merely opening the cold Guide tab now keeps the lightweight index.
+            # Opening the cold Guide tab mounts the canonical shell immediately;
+            # heavy runtime hydration remains deferred to the background worker.
             page.on_tab_changed(page.tab_labels().index(GUIDES_TAB))
-            self.app.processEvents()
-            self.assertIsNone(page.guides_view)
-
-            view = page.ensure_guides_view()
+            view = page.guides_view
+            self.assertIsNotNone(view)
+            assert view is not None
+            self.assertIs(page.tabs.widget(page.tab_labels().index(GUIDES_TAB)), view)
             self.assertFalse(view._runtime_ready)
             self.assertIs(view.provider, guide_provider)
             self.assertIs(view.graph, graph)
