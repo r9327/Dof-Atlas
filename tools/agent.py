@@ -282,18 +282,21 @@ def symbol_files_for_scope(root: Path, scope: str) -> list[str]:
     return _unique(files)
 
 
-def _python_symbols(root: Path, relative: str) -> list[dict[str, Any]]:
+def _parse_python_ast(root: Path, relative: str) -> ast.Module:
     source_path = root / relative
     try:
         source = source_path.read_text(encoding="utf-8")
     except OSError as exc:
         raise AgentConfigError(f"python source unavailable: {relative}: {exc}") from exc
     try:
-        tree = ast.parse(source, filename=relative)
+        return ast.parse(source, filename=relative)
     except SyntaxError as exc:
         location = f"{relative}:{exc.lineno or '?'}"
         raise AgentConfigError(f"unable to parse Python source {location}: {exc.msg}") from exc
 
+
+def _python_symbols(root: Path, relative: str) -> list[dict[str, Any]]:
+    tree = _parse_python_ast(root, relative)
     symbols: list[dict[str, Any]] = []
     for node in tree.body:
         if isinstance(node, ast.ClassDef):
@@ -331,6 +334,96 @@ def symbols_payload(root: Path, scope: str) -> dict[str, Any]:
     }
 
 
+def _working_set_python_files(root: Path, manifest: dict[str, Any]) -> list[str]:
+    files: list[str] = []
+    for anchor in manifest.get("working_set", []):
+        files.extend(_python_files_for_anchor(root, anchor))
+    return _unique(files)
+
+
+def _module_path(root: Path, module: str) -> str | None:
+    if not module:
+        return None
+    target = root.joinpath(*module.split("."))
+    module_file = target.with_suffix(".py")
+    if module_file.is_file():
+        return module_file.relative_to(root).as_posix()
+    package_file = target / "__init__.py"
+    if package_file.is_file():
+        return package_file.relative_to(root).as_posix()
+    return None
+
+
+def _import_from_module(relative: str, node: ast.ImportFrom) -> str:
+    if node.level:
+        package = list(Path(relative).with_suffix("").parent.parts)
+        trim = node.level - 1
+        if trim > len(package):
+            return ""
+        prefix = package[: len(package) - trim] if trim else package
+    else:
+        prefix = []
+    suffix = node.module.split(".") if node.module else []
+    return ".".join([*prefix, *suffix])
+
+
+def _internal_imports(root: Path, relative: str) -> list[str]:
+    tree = _parse_python_ast(root, relative)
+    imports: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                resolved = _module_path(root, alias.name)
+                if resolved:
+                    imports.append(resolved)
+            continue
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        module = _import_from_module(relative, node)
+        if node.module is None:
+            for alias in node.names:
+                child = ".".join(part for part in (module, alias.name) if part)
+                resolved = _module_path(root, child)
+                if resolved:
+                    imports.append(resolved)
+            continue
+        resolved = _module_path(root, module)
+        if resolved:
+            imports.append(resolved)
+    return _unique(imports)
+
+
+def imports_payload(root: Path, scope: str) -> dict[str, Any]:
+    root = root.resolve()
+    context_map, manifests = _model(root)
+    if scope not in context_map["scopes"]:
+        raise AgentConfigError(f"unknown scope: {scope}")
+    manifest = manifests[scope]
+    working_set = list(manifest.get("working_set", []))
+    source_files = _working_set_python_files(root, manifest)
+    edges: dict[str, list[str]] = {}
+    dependencies: list[str] = []
+    for relative in source_files:
+        resolved = _internal_imports(root, relative)
+        edges[relative] = resolved
+        dependencies.extend(
+            path
+            for path in resolved
+            if not any(_matches(path, anchor) for anchor in working_set)
+        )
+    import_dependencies = _unique(dependencies)
+    return {
+        "schema_version": 1,
+        "source": "scope-working-set-python-imports",
+        "scope": scope,
+        "file_count": len(source_files),
+        "edge_count": sum(len(paths) for paths in edges.values()),
+        "files": edges,
+        "import_dependencies": import_dependencies,
+        "enriched_working_set": _unique([*working_set, *import_dependencies]),
+    }
+
+
 def _print_payload(payload: dict[str, Any]) -> None:
     for key, value in payload.items():
         if isinstance(value, list):
@@ -359,6 +452,9 @@ def main(argv: list[str] | None = None) -> int:
     symbols = commands.add_parser("symbols")
     symbols.add_argument("scope")
     symbols.add_argument("--json", action="store_true")
+    imports = commands.add_parser("imports")
+    imports.add_argument("scope")
+    imports.add_argument("--json", action="store_true")
     validate = commands.add_parser("validate")
     validate.add_argument("integrity_args", nargs=argparse.REMAINDER)
 
@@ -378,6 +474,9 @@ def main(argv: list[str] | None = None) -> int:
             exit_code = 0
         elif command == "symbols":
             payload = symbols_payload(ROOT, args.scope)
+            exit_code = 0
+        elif command == "imports":
+            payload = imports_payload(ROOT, args.scope)
             exit_code = 0
         else:
             parser.error(f"unsupported command: {command}")
