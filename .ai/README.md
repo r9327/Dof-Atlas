@@ -20,4 +20,16 @@ Chaque manifest reste compact et descriptif :
 - `context_entries` contient les fichiers voisins utiles à comprendre le scope sans les déclarer propriétaires du domaine ;
 - `implementation: placeholder` est conservé lorsqu'une surface n'a pas encore d'implémentation canonique dédiée.
 
-Ces manifests ne remplacent ni les sources de vérité produit, ni les guardrails, ni `atlas_integrity`. Le routage explicite des règles existantes appartient à ROAD IA V2-5.
+Ces manifests ne remplacent ni les sources de vérité produit, ni les guardrails, ni `atlas_integrity`.
+
+## Routage des règles
+
+`context-map.yaml` porte aussi le routage ROAD IA V2 des règles existantes sans recopier leur contenu :
+
+- `rule_defaults` contient les contrats racine hérités par tous les scopes ;
+- `rule_entries` ajoute uniquement les instructions locales ou guardrails réellement pertinents au scope ;
+- `canonical_entries` référence les propriétaires ou sources canoniques à relire en priorité lorsqu'ils sont clairement identifiés dans le dépôt courant.
+
+Les entrées de `rule_defaults`, `rule_entries` et `canonical_entries` sont des chemins du dépôt, jamais une copie de leurs règles ou de leur logique. Un scope placeholder peut garder `canonical_entries: []` tant qu'aucun backend canonique dédié n'existe.
+
+Le routage V2 ne crée donc aucune nouvelle autorité : `AGENTS.md`, les guardrails, les sources de vérité produit et `atlas_integrity` restent les contrats réels.
