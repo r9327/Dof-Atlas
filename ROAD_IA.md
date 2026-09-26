@@ -97,7 +97,6 @@ Objectif : rendre une reprise ChatGPT/Codex fiable sans énorme prompt manuel.
 - il contient branche, SHA, base, objectif, fichiers réellement modifiés, état vérifié, tests déclarés, blocages, prochaine action et tests ciblés suggérés ;
 - aucun log massif ni copie de dépôt n'est inclus ;
 - le format texte est couvert par un test ciblé.
-
 Preuve : test ciblé et validation de reprise/handoff réussis.
 
 ### IA-6 — Certification ROAD IA — DONE
@@ -237,9 +236,21 @@ Preuve de fermeture :
 - Phase Certification / Full Validation : PASS sur le SHA exact ;
 - aucun changement produit et aucun lot V2-7+ inclus.
 
-## V2-7 — Index symboles AST léger — TODO
+## V2-7 — Index symboles AST léger — DONE
 
-Indexer seulement les symboles Python utiles au routage, sans base lourde ni analyse globale permanente.
+`tools/agent.py symbols <scope>` indexe uniquement les définitions Python top-level utiles au routage (`class`, `def`, `async def`) présentes dans les fichiers `.py` déjà déclarés par le scope via son working set, ses context entries et ses canonical entries. Aucun import n'est suivi et aucune dépendance n'est dérivée dans ce lot ; V2-8 reste séparé.
+
+Preuve de fermeture :
+
+- commit candidat certifié : `230fda073c8865a145a2da4704f845ba815a0fc4` ;
+- tests ciblés `tests/test_agent_tool.py` : PASS ;
+- Atlas Integrity FAST : PASS ;
+- full application suite : PASS ;
+- Public Pull Request CI : PASS ;
+- AI Context CI : PASS ;
+- Phase Certification / Full Validation : PASS sur le SHA exact ;
+- PR temporaire #37 fermée sans merge ;
+- aucun changement produit et aucun lot V2-8+ inclus.
 
 ## V2-8 — Dépendances imports — TODO
 
