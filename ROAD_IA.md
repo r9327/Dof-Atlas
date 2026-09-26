@@ -252,9 +252,21 @@ Preuve de fermeture :
 - PR temporaire #37 fermée sans merge ;
 - aucun changement produit et aucun lot V2-8+ inclus.
 
-## V2-8 — Dépendances imports — TODO
+## V2-8 — Dépendances imports — DONE
 
-Dériver un graphe d'imports léger pour enrichir le working set sans scanner tout le dépôt à chaque demande.
+`tools/agent.py imports <scope>` dérive uniquement les imports Python internes directs des fichiers déclarés dans le working set du scope. Les imports absolus et relatifs sont résolus uniquement lorsqu'ils correspondent à un fichier ou package réellement présent dans le dépôt ; les dépendances externes sont ignorées. L'enrichissement reste borné à un seul niveau : les fichiers importés ne sont pas reparcourus, donc aucun scan global ni fermeture transitive n'est introduit.
+
+Preuve de fermeture :
+
+- commit candidat certifié : `6e56fe2180e65cd793400e87c048b9778c234319` ;
+- tests ciblés `tests/test_agent_tool.py` : PASS ;
+- Atlas Integrity FAST : PASS ;
+- full application suite : PASS ;
+- Public Pull Request CI : PASS ;
+- AI Context CI : PASS ;
+- Phase Certification / Full Validation : PASS sur le SHA exact ;
+- PR temporaire #38 utilisée uniquement pour validation, sans merge ;
+- aucun changement produit et aucun lot V2-9+ inclus.
 
 ## V2-9 — Maintenance minimale de la carte — TODO
 
