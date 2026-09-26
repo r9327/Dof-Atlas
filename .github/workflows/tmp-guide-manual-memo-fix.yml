@@ -95,14 +95,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f achievement_progress.json.lock guide_progress.json.lock quest_progress.json.lock
+          git add app/modules/encyclopedia/views/encyclopedia_page.py tests/test_lazy_quests_page_performance.py
           python -m tools.ai_context sync --stage
           python -m tools.ai_context check
           python -m tools.ai_context drift
-          git add app/modules/encyclopedia/views/encyclopedia_page.py tests/test_lazy_quests_page_performance.py
           git diff --cached --check
           changed="$(git diff --cached --name-only | sort)"
           expected="$(printf '%s\n' '.ai/context_index.json' 'app/modules/encyclopedia/views/encyclopedia_page.py' 'tests/test_lazy_quests_page_performance.py' | sort)"
           test "$changed" = "$expected"
+          test -z "$(git status --short | grep '^??' || true)"
           git diff --cached --stat
 
       - name: Commit and push exact fix
