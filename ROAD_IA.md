@@ -320,9 +320,22 @@ Preuve de fermeture :
 - Phase Certification / Full Validation : PASS sur le SHA exact ;
 - aucun changement produit et aucun lot V2-12+ inclus.
 
-## V2-12 — Checkpoint global — TODO
+## V2-12 — Checkpoint global — DONE
 
-Vérifier qu'une demande peut être routée vers un petit working set exploitable et que les principaux domaines sont couverts sans scan global.
+`tests/test_agent_checkpoint.py` vérifie transversalement la carte V2 sans ajouter de nouveau routeur : chaque scope actif possède un working set explicite et borné, aucune ancre de working set ne prend une racine globale (`app/`, `data/`, `tests/`, `tools/` ou `.`), chaque scope actif expose au moins une route primaire `OWNED` vers lui, ainsi que ses entrées canoniques et ses tests ciblés. Les scopes `placeholder` restent du contexte uniquement et ne deviennent jamais propriétaires métier.
+
+Le checkpoint s'appuie uniquement sur `tools/agent.py`, `.ai/context-map.yaml` et les manifests existants. Il ne lance pas de scan global supplémentaire et ne crée ni nouvelle autorité de validation, ni nouvelle gate.
+
+Preuve de fermeture :
+
+- commit candidat certifié : `aa9cc8e3445d056d5aabeab0d3b66cde02c4ac89` ;
+- test global `tests/test_agent_checkpoint.py` exécuté dans la full application suite : PASS ;
+- Atlas Integrity FAST : PASS ;
+- full application suite : PASS ;
+- Public Pull Request CI : PASS ;
+- AI Context CI : PASS ;
+- Phase Certification / Full Validation : PASS sur le SHA exact ;
+- aucun changement produit, aucun changement de `tools/agent.py` / `atlas_integrity` / policy / `DIFF_TARGETS`, et aucun lot V2-13 inclus.
 
 ## V2-13 — Intégration finale `atlas_integrity` — TODO
 
