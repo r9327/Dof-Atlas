@@ -14,6 +14,10 @@ scopes:
       - PERFORMANCE_GUARDRAILS.md
     canonical_entries:
       - app/pages/home_page.py
+    test_entries:
+      - tests.test_home_guide_ultime_source
+      - tests.test_home_manual_guide_import_deferral
+      - tests.test_network_home_status
 
   character:
     kind: feature
@@ -24,6 +28,10 @@ scopes:
       - app/core/character_identity.py
       - app/services/character_data_service.py
       - app/services/character_order_service.py
+    test_entries:
+      - tests.test_character_page
+      - tests.test_character_data_service
+      - tests.test_character_order_service
 
   organizer:
     kind: feature
@@ -33,6 +41,10 @@ scopes:
     canonical_entries:
       - app/pages/organizer_page.py
       - app/services/character_order_service.py
+    test_entries:
+      - tests.test_organizer_character_order
+      - tests.test_organizer_icon_cache
+      - tests.test_organizer_shutdown_guard
 
   equipment:
     kind: feature
@@ -42,6 +54,8 @@ scopes:
       - PERFORMANCE_GUARDRAILS.md
     canonical_entries:
       - app/pages/equipment_page.py
+    test_entries:
+      - tests.test_equipment_deferred_start
 
   craft:
     kind: feature
@@ -51,6 +65,9 @@ scopes:
     canonical_entries:
       - app/pages/craft_page.py
       - local_dofus_data/compatibility_adapter.py
+    test_entries:
+      - tests.test_craft_compatibility_adapter
+      - tests.test_craft_minimal_lazy
 
   zaap:
     kind: feature
@@ -59,6 +76,8 @@ scopes:
       - app/AGENTS.md
     canonical_entries:
       - app/macros/zaap.py
+    test_entries:
+      - tests.test_runtime_lazy_macros
 
   travel:
     kind: feature
@@ -67,6 +86,8 @@ scopes:
       - app/AGENTS.md
     canonical_entries:
       - app/macros/travel.py
+    test_entries:
+      - tests.test_runtime_lazy_macros
 
   world_scan:
     kind: feature
@@ -77,6 +98,8 @@ scopes:
     canonical_entries:
       - app/cartography/scan_status_service.py
       - app/ui/world_scan_panel.py
+    test_entries:
+      - tests.test_world_scan_async_loading
 
   encyclopedia_shell:
     kind: feature
@@ -87,6 +110,9 @@ scopes:
     canonical_entries:
       - app/modules/encyclopedia/views/encyclopedia_page.py
       - app/modules/encyclopedia/constants.py
+    test_entries:
+      - tests.test_encyclopedia_on_demand_loading
+      - tests.test_encyclopedia_tab_demand_loading
 
   encyclopedia_quests:
     kind: feature
@@ -97,6 +123,9 @@ scopes:
     canonical_entries:
       - app/quest_catalog.py
       - app/modules/encyclopedia/services/quest_progress_service.py
+    test_entries:
+      - tests.test_quest_catalog_details
+      - tests.test_quest_progress_batch_contract
 
   encyclopedia_achievements:
     kind: feature
@@ -107,6 +136,10 @@ scopes:
     canonical_entries:
       - app/modules/encyclopedia/achievement_catalog_policy.py
       - app/modules/encyclopedia/services/serialized_achievement_progress_service.py
+    test_entries:
+      - tests.test_achievements_phase2
+      - tests.test_achievement_progress_logic
+      - tests.test_optimized_achievements_refresh
 
   encyclopedia_guide:
     kind: feature
@@ -120,6 +153,10 @@ scopes:
       - data/routes/guide_ultime_manual/manifest_v1.json
       - app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py
       - app/modules/encyclopedia/services/guide_progress_service.py
+    test_entries:
+      - tests.test_guide_ultime_manual_prerequisites
+      - tests.test_guide_ultime_final_coverage_catalog
+      - tests.test_guide_ultime_manual_ui_navigation
 
   encyclopedia_bestiary:
     kind: feature
@@ -129,6 +166,7 @@ scopes:
       - app/AGENTS.md
       - PERFORMANCE_GUARDRAILS.md
     canonical_entries: []
+    test_entries: []
 
   cartography:
     kind: shared_infrastructure
@@ -138,6 +176,9 @@ scopes:
     canonical_entries:
       - app/cartography/
       - app/services/maps/
+    test_entries:
+      - tests.test_cartography_recovery_security
+      - tests.test_world_db
 
   persistence_identity:
     kind: shared_infrastructure
@@ -148,6 +189,10 @@ scopes:
       - app/core/character_identity.py
       - app/core/json_store.py
       - app/core/progress_coordinator.py
+    test_entries:
+      - tests.test_character_identity_guardrails
+      - tests.test_json_store
+      - tests.test_progress_interprocess_locking
 
   startup_lifecycle:
     kind: shared_infrastructure
@@ -159,6 +204,10 @@ scopes:
       - main.py
       - app/preload.py
       - app/background_work.py
+    test_entries:
+      - tests.test_main_startup_fast_path
+      - tests.test_startup_resource_contracts
+      - tests.test_runtime_async_startup
 
   network_capture:
     kind: shared_infrastructure
@@ -168,6 +217,10 @@ scopes:
     canonical_entries:
       - app/network/
       - app/ui/network_bridge.py
+    test_entries:
+      - tests.test_network_runtime_lifecycle
+      - tests.test_network_session_safety
+      - tests.test_network_identity_routing
 
   dofus_data:
     kind: shared_infrastructure
@@ -178,6 +231,10 @@ scopes:
       - local_dofus_data/
       - app/local_data_cache.py
       - app/quest_catalog.py
+    test_entries:
+      - tests.test_compatibility_adapter
+      - tests.test_local_data_cache_lazy_import
+      - tests.test_quest_catalog_safe_cache
 
   shared_ui:
     kind: shared_infrastructure
@@ -188,6 +245,10 @@ scopes:
     canonical_entries:
       - app/ui/theme.py
       - app/ui/components.py
+    test_entries:
+      - tests.test_ui_foundation
+      - tests.test_theme_runtime_cache
+      - tests.test_performance_guardrails
 
   windows_qt_runtime:
     kind: shared_infrastructure
@@ -196,6 +257,10 @@ scopes:
       - app/AGENTS.md
     canonical_entries:
       - app/windows/
+    test_entries:
+      - tests.test_windows_embed_lazy_binding
+      - tests.test_windows_event_watcher
+      - tests.test_single_instance
 
   input_hotkeys:
     kind: shared_infrastructure
@@ -204,6 +269,10 @@ scopes:
       - app/AGENTS.md
     canonical_entries:
       - app/input/
+    test_entries:
+      - tests.test_runtime_hook_lifecycle
+      - tests.test_managed_hooks_lazy
+      - tests.test_character_hotkey_mapping
 
   macro_runtime:
     kind: shared_infrastructure
@@ -216,6 +285,9 @@ scopes:
       - app/macros/switch_click.py
       - app/macros/direction.py
       - app/macros/auto_group.py
+    test_entries:
+      - tests.test_direction_macro
+      - tests.test_runtime_lazy_macros
 
   quality_ci:
     kind: shared_infrastructure
@@ -227,3 +299,8 @@ scopes:
     canonical_entries:
       - tools/atlas_integrity.py
       - tools/atlas_integrity_policy.json
+    test_entries:
+      - tests.test_atlas_integrity
+      - tests.test_ai_context
+      - tests.test_meta_integrity
+      - tests.test_phase_certification_guardrails
