@@ -337,6 +337,21 @@ Preuve de fermeture :
 - Phase Certification / Full Validation : PASS sur le SHA exact ;
 - aucun changement produit, aucun changement de `tools/agent.py` / `atlas_integrity` / policy / `DIFF_TARGETS`, et aucun lot V2-13 inclus.
 
-## V2-13 — Intégration finale `atlas_integrity` — TODO
+## V2-13 — Intégration finale `atlas_integrity` — DONE
 
-Fermer la V2 avec `atlas_integrity` comme autorité de validation, sans système parallèle, puis reprendre la ROAD V3 exactement où elle était arrêtée.
+Aucun changement exécutable n'est requis pour ce lot : l'intégration finale demandée est déjà canonique dans le dépôt courant. `tools/agent.py validate` délègue directement à `tools.atlas_integrity.main` en conservant les arguments et le code retour ; `tests/test_agent_tool.py` couvre explicitement cette délégation. `PHASE_CERTIFICATION.md` définit `tools/atlas_integrity_policy.json` et `tools.atlas_integrity` comme source machine de vérité, et la certification de phase exécute le mode `FULL`. Le workflow ROAD IA réutilise également `tools.atlas_integrity fast` au lieu d'introduire une gate parallèle.
+
+La ROAD IA V2 reste donc un routeur et un outillage de contexte ; elle ne décide jamais elle-même du verdict produit. Aucun validateur, score bloquant, policy parallèle, modification de `DIFF_TARGETS` ou nouvelle autorité de certification n'est ajouté pour fermer la V2.
+
+Preuve de fermeture avant synchronisation documentaire finale :
+
+- état exécutable certifié : `eaf8bec3e50d9f4a5a551b6695c5053eb2a6464f` ;
+- test `tests/test_agent_tool.py::AgentToolTests.test_validate_delegates_directly_to_atlas_integrity` : PASS dans la full application suite ;
+- Atlas Integrity FAST : PASS ;
+- full application suite : PASS ;
+- Public Pull Request CI : PASS ;
+- AI Context CI : PASS ;
+- Phase Certification / Full Validation : PASS sur le SHA exact ;
+- aucun changement produit, aucun changement exécutable V2-13 et aucun système parallèle introduit.
+
+ROAD IA V2 est fermée. La reprise de la ROAD V3 doit repartir du dépôt réel et de son premier lot encore ouvert ; elle ne commence pas automatiquement dans ce lot V2-13.
