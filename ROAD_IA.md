@@ -305,9 +305,20 @@ Preuve de fermeture :
 - Phase Certification / Full Validation : PASS sur le SHA exact ;
 - aucun changement produit et aucun lot V2-11+ inclus.
 
-## V2-11 — Hotspots indicatifs — TODO
+## V2-11 — Hotspots indicatifs — DONE
 
-Signaler uniquement les zones à forte centralité/risque utiles à l'agent ; aucun score ne doit devenir une nouvelle gate produit sans besoin démontré.
+`tools/agent_hotspots.py` produit un rapport strictement informatif : il réutilise le risque existant de `atlas_integrity.classify_risk()` et la centralité déclarée par les `shared_dependencies` des manifests. Une zone est signalée seulement si le classifieur existant la place en risque `HIGH`/`CRITICAL` ou si une infrastructure partagée est consommée par au moins deux scopes. Aucun score combiné, aucune nouvelle gate et aucun blocage produit ne sont introduits.
+
+Preuve de fermeture :
+
+- commit candidat certifié : `ca4bae4131957dda33131e1a29a6e6415ee5b91e` ;
+- test ciblé `tests/test_agent_hotspots.py` : PASS ;
+- Atlas Integrity FAST : PASS ;
+- full application suite : PASS ;
+- Public Pull Request CI : PASS ;
+- AI Context CI : PASS ;
+- Phase Certification / Full Validation : PASS sur le SHA exact ;
+- aucun changement produit et aucun lot V2-12+ inclus.
 
 ## V2-12 — Checkpoint global — TODO
 
