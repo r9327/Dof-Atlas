@@ -288,9 +288,22 @@ Preuve de fermeture :
 - Phase Certification / Full Validation : PASS sur le SHA exact ;
 - aucun changement produit et aucun lot V2-10+ inclus.
 
-## V2-10 — Mapping tests par scope — TODO
+## V2-10 — Mapping tests par scope — DONE
 
-Associer les validations ciblées existantes aux scopes sans remplacer `DIFF_TARGETS` ni la policy d'intégrité.
+Chaque scope de `.ai/context-map.yaml` déclare maintenant explicitement ses `test_entries`, y compris une liste vide lorsqu'aucun test direct fiable ne doit être inventé. `tools/agent.py` vérifie dans `doctor` que ces modules existent, les expose via `inspect`, puis les place dans `scope_tests` et en tête de `recommended_tests` dans `impact` avant le fallback générique historique de `tools.ai_context`.
+
+Ce mapping reste une aide au ciblage : il ne modifie ni `DIFF_TARGETS`, ni `tools.atlas_integrity`, ni `tools/atlas_integrity_policy.json`, qui restent les autorités de validation.
+
+Preuve de fermeture :
+
+- commit candidat certifié : `12a8fa7f6f437c9370dcd6381b18909b30823fb2` ;
+- tests ciblés ROAD IA, dont `tests/test_agent_scope_tests.py` : PASS ;
+- Atlas Integrity FAST : PASS ;
+- full application suite : PASS ;
+- Public Pull Request CI : PASS ;
+- AI Context CI : PASS ;
+- Phase Certification / Full Validation : PASS sur le SHA exact ;
+- aucun changement produit et aucun lot V2-11+ inclus.
 
 ## V2-11 — Hotspots indicatifs — TODO
 
