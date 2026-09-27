@@ -390,7 +390,7 @@ class AchievementsView(QWidget):
         self.show_achievement(achievement_id)
 
     def show_achievement(self, achievement_id: int) -> None:
-        achievement = self.provider.get_by_id(int(achievement_id))
+        achievement = self.provider.get_detail_by_id(int(achievement_id))
         if achievement is None or not self.provider.is_retained(achievement.id):
             self.show_empty()
             return

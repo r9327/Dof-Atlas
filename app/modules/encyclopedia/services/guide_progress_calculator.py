@@ -118,6 +118,19 @@ class GuideProgressCalculator:
             self._trackable_objective_ids[quest_id] = objective_ids
         return objective_ids
 
+    @staticmethod
+    def _objective_details_available(quest: QuestRecord) -> bool:
+        """Return whether objective metadata is already resident for a lazy quest."""
+
+        details = getattr(quest, "_details", None)
+        cached = getattr(details, "cached", None)
+        if not callable(cached):
+            return True
+        try:
+            return bool(cached(int(quest.id)))
+        except Exception:
+            return False
+
     def step_completed(
         self,
         guide: Guide,
@@ -137,6 +150,16 @@ class GuideProgressCalculator:
                 return True
             if quest is None:
                 return False
+            if not self._objective_details_available(quest):
+                # Most Guide/Home rows have no objective-level progress. Avoid
+                # synchronously loading every quest detail just to rediscover that
+                # fact. If objective progress exists, preserve the historical
+                # completion semantics and load only that specific quest detail.
+                if not self.quest_progress_service.completed_objectives(
+                    character_key,
+                    quest_id,
+                ):
+                    return False
             return self.quest_progress(
                 quest,
                 character_key,

@@ -1,0 +1,13 @@
+schema_version: 1
+scope: macro_runtime
+kind: shared_infrastructure
+working_set:
+  - app/macros/input_tools.py
+  - app/macros/switch_character.py
+  - app/macros/switch_click.py
+  - app/macros/direction.py
+  - app/macros/auto_group.py
+shared_dependencies:
+  - input_hotkeys
+  - windows_qt_runtime
+context_entries: []

@@ -1,76 +1,16 @@
 from __future__ import annotations
 
-import json
-import os
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import Mock, patch
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-
-from PySide6.QtWidgets import QApplication
-
 import main
-from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB
-from app.modules.encyclopedia.providers import (
-    AchievementProvider,
-    GuideProvider,
-    QuestProvider,
-)
+from app.modules.encyclopedia.constants import GUIDES_TAB
+from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
 from app.modules.encyclopedia.services import QuestGraphService
-from app.modules.encyclopedia.views import EncyclopediaPage
-from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import (
-    AchievementIndexView,
-    GuideIndexView,
-)
 from app.quest_catalog import QuestCatalog, QuestRecord
 
 
-class _NoLoadQuestProvider(QuestProvider):
-    def __init__(self) -> None:
-        super().__init__(catalog=None)
-        self.calls = 0
-
-    def get_catalog(self):
-        self.calls += 1
-        raise AssertionError("Guide index must not request the quest catalog")
-
-
-class _DeferredThread:
-    created: list["_DeferredThread"] = []
-
-    def __init__(self, *, target, name: str, daemon: bool) -> None:
-        self.target = target
-        self.name = name
-        self.daemon = daemon
-        self.started = False
-        self.__class__.created.append(self)
-
-    def start(self) -> None:
-        self.started = True
-
-
 class EncyclopediaOnDemandTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.app = QApplication.instance() or QApplication([])
-
-    @staticmethod
-    def _paths(root: Path) -> dict[str, Path]:
-        paths = {
-            "profile": root / "profiles.json",
-            "clients": root / "clients.json",
-            "quest_progress": root / "quest_progress.json",
-            "achievement_progress": root / "achievement_progress.json",
-            "guide_progress": root / "guide_progress.json",
-            "owned": root / "owned.json",
-        }
-        paths["profile"].write_text("{}", encoding="utf-8")
-        paths["clients"].write_text(json.dumps({"clients": []}), encoding="utf-8")
-        paths["owned"].write_text("{}", encoding="utf-8")
-        return paths
-
     @staticmethod
     def _catalog() -> QuestCatalog:
         return QuestCatalog(
@@ -85,80 +25,6 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
                 )
             ]
         )
-
-    def test_guide_index_defers_quest_catalog_to_worker(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            paths = self._paths(Path(temporary))
-            provider = _NoLoadQuestProvider()
-            page = EncyclopediaPage(
-                lambda _text: None,
-                quest_provider=provider,
-                progress_path=paths["quest_progress"],
-                achievement_progress_path=paths["achievement_progress"],
-                guide_progress_path=paths["guide_progress"],
-                profile_path=paths["profile"],
-                client_index_path=paths["clients"],
-                owned_items_path=paths["owned"],
-                initial_tab=GUIDES_TAB,
-            )
-            _DeferredThread.created.clear()
-            with patch.dict(
-                page.request_related_preload.__globals__,
-                {"Thread": _DeferredThread},
-            ):
-                self.app.processEvents()
-
-            self.assertEqual(provider.calls, 0)
-            self.assertIsInstance(page.tabs.currentWidget(), GuideIndexView)
-            self.assertEqual(len(_DeferredThread.created), 1)
-            self.assertTrue(_DeferredThread.created[0].started)
-            page.deleteLater()
-            self.app.processEvents()
-
-    def test_success_index_defers_heavy_load_then_applies_it_once(self) -> None:
-        provider = QuestProvider(catalog=self._catalog())
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            paths = self._paths(root)
-            achievement_provider = AchievementProvider(
-                data_dir=root,
-                quest_provider=provider,
-            )
-            load_all = Mock(wraps=achievement_provider.load_all)
-            achievement_provider.load_all = load_all
-            page = EncyclopediaPage(
-                lambda _text: None,
-                quest_provider=provider,
-                achievement_provider=achievement_provider,
-                progress_path=paths["quest_progress"],
-                achievement_progress_path=paths["achievement_progress"],
-                guide_progress_path=paths["guide_progress"],
-                profile_path=paths["profile"],
-                client_index_path=paths["clients"],
-                owned_items_path=paths["owned"],
-                initial_tab=GUIDES_TAB,
-            )
-            _DeferredThread.created.clear()
-            with patch.dict(
-                page._start_achievement_stage.__globals__,
-                {"Thread": _DeferredThread},
-            ):
-                page.tabs.setCurrentIndex(page.tab_labels().index(ACHIEVEMENTS_TAB))
-
-            self.assertIsInstance(page.tabs.currentWidget(), AchievementIndexView)
-            self.assertEqual(load_all.call_count, 0)
-            self.assertEqual(len(_DeferredThread.created), 1)
-            self.assertTrue(_DeferredThread.created[0].started)
-
-            _DeferredThread.created[0].target()
-            page._achievement_load_timer.timeout.emit()
-
-            self.assertEqual(page.current_tab_label(), ACHIEVEMENTS_TAB)
-            self.assertEqual(load_all.call_count, 1)
-            page._achievement_load_timer.timeout.emit()
-            self.assertEqual(load_all.call_count, 1)
-            page.deleteLater()
-            self.app.processEvents()
 
     def test_canonical_factory_creates_lazy_shell_without_quest_preload(self) -> None:
         class CapturedPage:

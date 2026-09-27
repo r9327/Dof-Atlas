@@ -1199,7 +1199,10 @@ def resolve_local_asset_path(value: Any) -> str:
     text = str(value or "").strip()
     if not text:
         return ""
-    path = Path(text)
+    # JSON authored or generated on Windows can retain backslashes even when
+    # the checkout is validated on POSIX.  Normalize separators before asking
+    # pathlib to identify the portable project-relative ``data`` suffix.
+    path = Path(text.replace("\\", "/"))
     candidates = [path] if path.is_absolute() else [ROOT_DIR / path, path]
 
     normalized_parts = [part.casefold() for part in path.parts]

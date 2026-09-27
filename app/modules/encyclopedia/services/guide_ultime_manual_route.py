@@ -127,6 +127,8 @@ def _expand_route_hooks(
     payload: dict[str, Any],
     path: Path,
     seen: set[Path],
+    *,
+    _memo: dict[tuple[Path, bool], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Expand authored transversal stage ids into the player-facing canonical stage.
 
@@ -172,7 +174,7 @@ def _expand_route_hooks(
         if not dependency_path.is_file() or dependency_path == path:
             continue
         try:
-            dependency = load_manual_chapter(dependency_path, _seen=seen)
+            dependency = load_manual_chapter(dependency_path, _seen=seen, _memo=_memo)
         except (FileNotFoundError, KeyError, ValueError):
             continue
         for row in dependency.get("stages", []) or []:
@@ -288,6 +290,7 @@ def _load_manual_chapter_uncached(
     *,
     _seen: set[Path] | None = None,
     _expand_hooks: bool = True,
+    _memo: dict[tuple[Path, bool], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Resolve a manual chapter, including versioned base/patch compositions.
 
@@ -313,12 +316,12 @@ def _load_manual_chapter_uncached(
     if not base_name:
         result = copy.deepcopy(source)
         result["_resolved_from"] = [path.name]
-        return _expand_route_hooks(result, path, seen) if _expand_hooks else result
+        return _expand_route_hooks(result, path, seen, _memo=_memo) if _expand_hooks else result
 
     base_path = path.parent / base_name
     if not base_path.is_file():
         raise FileNotFoundError(f"Base de route manuelle absente: {base_path}")
-    result = load_manual_chapter(base_path, _seen=seen, _expand_hooks=False)
+    result = load_manual_chapter(base_path, _seen=seen, _expand_hooks=False, _memo=_memo)
     result = copy.deepcopy(result)
 
     reserved = {
@@ -377,7 +380,7 @@ def _load_manual_chapter_uncached(
         import_path = (path.parent / filename).resolve()
         if not import_path.is_file():
             raise FileNotFoundError(f"Fichier de stage importé absent: {import_path}")
-        imported = load_manual_chapter(import_path, _seen=seen)
+        imported = load_manual_chapter(import_path, _seen=seen, _memo=_memo)
         imported_stage = next(
             (row for row in imported.get("stages", []) or [] if isinstance(row, dict) and str(row.get("id") or "").strip() == stage_id),
             None,
@@ -449,7 +452,7 @@ def _load_manual_chapter_uncached(
     result["_resolved_from"] = resolved_from
     if imported_sources:
         result["_stage_imports_resolved"] = imported_sources
-    return _expand_route_hooks(result, path, seen) if _expand_hooks else result
+    return _expand_route_hooks(result, path, seen, _memo=_memo) if _expand_hooks else result
 
 
 def load_manual_chapter(
@@ -457,10 +460,27 @@ def load_manual_chapter(
     *,
     _seen: set[Path] | None = None,
     _expand_hooks: bool = True,
+    _memo: dict[tuple[Path, bool], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Resolve one chapter and cache only complete top-level compositions."""
 
     resolved = Path(path).resolve()
+    memo_key = (resolved, bool(_expand_hooks))
+    if _seen is not None and resolved in _seen:
+        raise ValueError(f"Cycle de composition détecté: {resolved}")
+    if _memo is not None:
+        cached = _memo.get(memo_key)
+        if cached is not None:
+            return copy.deepcopy(cached)
+        result = _load_manual_chapter_uncached(
+            resolved,
+            _seen=_seen,
+            _expand_hooks=_expand_hooks,
+            _memo=_memo,
+        )
+        frozen = copy.deepcopy(result)
+        _memo[memo_key] = frozen
+        return copy.deepcopy(frozen)
     if _seen is not None:
         return _load_manual_chapter_uncached(
             resolved,

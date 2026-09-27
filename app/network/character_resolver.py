@@ -14,11 +14,39 @@ from app.constants import (
     QUEST_PROGRESS_FILE,
 )
 from app.core.character_identity import character_key as canonical_character_key
+from app.core.json_store import (
+    InvalidPersistentJsonError,
+    read_json_validated,
+    write_json_atomic,
+)
 from app.quest_catalog import QuestCharacter, load_quest_characters, normalize_text
 
 
 _BINDING_LOCK = threading.RLock()
 _TCP_SESSION_RE = re.compile(r"^tcp:(\d+):\d+$")
+
+
+def binding_schema_error(payload: object) -> str | None:
+    if not isinstance(payload, dict):
+        return "la racine doit être un objet"
+    for group_name in ("characters", "legacy_slots", "slots"):
+        if group_name not in payload:
+            continue
+        rows = payload[group_name]
+        if not isinstance(rows, dict):
+            return f"{group_name} doit être un objet"
+        for raw_key, row in rows.items():
+            if not str(raw_key).isdigit():
+                return f"{group_name} contient une clé non numérique: {raw_key!r}"
+            if not isinstance(row, dict):
+                return f"{group_name}[{raw_key!r}] doit être un objet"
+    return None
+
+
+def read_binding_payload(path: Path) -> dict:
+    payload = read_json_validated(Path(path), {}, binding_schema_error)
+    return dict(payload)
+
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,10 +90,8 @@ def merge_verified_binding_classes(
 
     with _BINDING_LOCK:
         try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError, TypeError):
-            return False
-        if not isinstance(payload, dict):
+            payload = read_binding_payload(path)
+        except InvalidPersistentJsonError:
             return False
         row_groups = [
             rows
@@ -115,13 +141,7 @@ def merge_verified_binding_classes(
         if not changed:
             return False
 
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = path.with_suffix(path.suffix + ".tmp")
-        temporary.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        temporary.replace(path)
+        write_json_atomic(path, payload)
         return True
 
 
@@ -209,7 +229,12 @@ class CharacterSlotResolver:
 
         # A concrete Dofus character id is the only progression boundary.
         with _BINDING_LOCK:
-            payload = self._read_binding_payload_unlocked()
+            try:
+                payload = self._read_binding_payload_unlocked()
+            except InvalidPersistentJsonError:
+                # Safe mode: Atlas keeps running with no selected character,
+                # while the original binding remains available for recovery.
+                return None
             characters = payload["characters"]
             character_key = self.character_key(stable_id)
             row = characters.get(str(stable_id))
@@ -276,12 +301,7 @@ class CharacterSlotResolver:
         return unique[0] if len(unique) == 1 else None
 
     def _read_binding_payload_unlocked(self) -> dict:
-        try:
-            payload = json.loads(self.binding_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError, TypeError):
-            payload = {}
-        if not isinstance(payload, dict):
-            payload = {}
+        payload = read_binding_payload(self.binding_path)
         characters = payload.get("characters")
         if not isinstance(characters, dict):
             characters = {}
@@ -362,13 +382,7 @@ class CharacterSlotResolver:
         self._write_binding_payload_unlocked(payload)
 
     def _write_binding_payload_unlocked(self, payload: dict) -> None:
-        self.binding_path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = self.binding_path.with_suffix(self.binding_path.suffix + ".tmp")
-        temporary.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        temporary.replace(self.binding_path)
+        write_json_atomic(self.binding_path, payload)
 
     @staticmethod
     def _positive_int(value: object) -> int | None:
@@ -463,7 +477,9 @@ class CharacterSlotResolver:
 
 
 __all__ = [
+    "binding_schema_error",
     "CharacterResolution",
     "CharacterSlotResolver",
     "merge_verified_binding_classes",
+    "read_binding_payload",
 ]

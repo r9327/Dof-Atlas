@@ -2513,6 +2513,43 @@ QLabel#GuideBreadcrumbCurrent {
     color: @TEXT;
 }
 
+#GuideManualActionSection,
+#GuideManualResourceSection,
+#GuideManualDungeonSection,
+#GuideManualWarningSection,
+#GuideManualDestinationSection {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+#GuideManualResourceSection,
+#GuideManualDestinationSection {
+    border-color: @GREEN_BORDER;
+}
+
+#GuideManualDungeonSection {
+    border-color: @RED_DARK;
+}
+
+#GuideManualWarningSection {
+    background: @DANGER_PANEL;
+    border-color: @RED_DARK;
+}
+
+#GuideManualSectionTitle {
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+    font-weight: 800;
+}
+
+#GuideManualNavPage {
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+    padding: 0 8px;
+}
+
 #GuideManualSheet {
     background: @PANEL;
     border: 1px solid @BORDER_SOFT;

@@ -50,6 +50,8 @@ class GuideCatalogFillTests(unittest.TestCase):
                 for row in range(view.result_model.rowCount())
             ]
             self.assertEqual([group for group in groups if group], ["AVENTURE", "DOFUS", "ALIGNEMENTS"])
+            view.select_guide("dofus_turquoise")
+            self.app.processEvents()
             self.assertEqual(view.splitter.count(), 3)
             self.assertFalse(hasattr(view, "filter_panel"))
             view.deleteLater()

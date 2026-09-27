@@ -1,0 +1,11 @@
+schema_version: 1
+scope: cartography
+kind: shared_infrastructure
+working_set:
+  - app/cartography/
+  - app/services/maps/
+  - app/ui/map_canvas_widget.py
+shared_dependencies:
+  - shared_ui
+context_entries:
+  - app/ui/world_scan_panel.py

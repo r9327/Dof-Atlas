@@ -76,6 +76,13 @@ class QuestVisualsLot6Tests(unittest.TestCase):
         self.assertEqual(resolved, (ROOT_DIR / relative).resolve())
         self.assertTrue(resolved.exists())
 
+    def test_windows_separators_are_rebased_on_posix(self) -> None:
+        relative = Path("data/encyclopedia/images/quests/260/step_01.webp")
+        stale = r"C:\Users\TestUser\Atlas\data\encyclopedia\images\quests\260\step_01.webp"
+        resolved = Path(resolve_local_asset_path(stale))
+        self.assertEqual(resolved, (ROOT_DIR / relative).resolve())
+        self.assertTrue(resolved.exists())
+
     def test_ordered_blocks_keep_image_between_its_two_paragraphs(self) -> None:
         image = "C:/Users/TestUser/Atlas/data/encyclopedia/images/quests/260/step_01.webp"
         blocks = enrichment_solution_blocks(

@@ -28,11 +28,7 @@ from app.modules.encyclopedia.services import (
 )
 from app.modules.encyclopedia.views.guides_view import GuidesView
 from app.modules.encyclopedia.views.achievements_view import AchievementsView
-from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import (
-    AchievementIndexView,
-    EncyclopediaWarmupView,
-    GuideIndexView,
-)
+from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView
 from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
     DeferredAchievementGuidesView,
 )
@@ -68,6 +64,30 @@ class _AchievementStagePayload:
     achievement_provider: object
     graph: QuestGraphService
     progress_synchronized: bool = False
+
+
+def _warm_guide_ultime_runtime_cache(
+    quest_provider: QuestProvider,
+    *,
+    quest_progress_path: Path,
+    achievement_progress_path: Path,
+    guide_progress_path: Path,
+) -> None:
+    # Manual Guide composition is pure Python/file work and is expensive on a
+    # cold cache. Prime the existing thread-safe canonical bundle cache from the
+    # Guide worker so selecting Guide Ultime never performs that composition on
+    # the Qt UI thread. The final widget/service remains the sole runtime owner.
+    from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+        GuideUltimeManualRuntimeService,
+    )
+
+    GuideUltimeManualRuntimeService(
+        QuestProgressService(quest_progress_path),
+        AchievementProgressService(achievement_progress_path),
+        GuideProgressService(guide_progress_path),
+        quest_provider=quest_provider,
+        autoload=False,
+    )
 
 
 class EncyclopediaPage(QWidget):
@@ -510,8 +530,6 @@ class EncyclopediaPage(QWidget):
         self._guide_runtime_ready = False
         self._success_runtime_requested = False
         self._full_guide_tab_requested = False
-        self._achievement_index_view: AchievementIndexView | None = None
-        self._guide_index_view: GuideIndexView | None = None
         self._pending_guide_id = ""
         self._pending_achievement_id: int | None = None
         self._pending_achievement_context_id: int | None = None
@@ -539,8 +557,6 @@ class EncyclopediaPage(QWidget):
             and self._quest_graph is not None
         )
 
-        if self.current_tab_label() == GUIDES_TAB and self.guides_view is None:
-            self.ensure_guides_view()
         self._guide_runtime_ready = bool(
             self.guides_view is not None
             and getattr(self.guides_view, "_runtime_ready", False)
@@ -668,38 +684,8 @@ class EncyclopediaPage(QWidget):
             return EncyclopediaWarmupView(QUESTS_TAB)
         return self._build_quests_page_progressive()
 
-    def _show_guide_index(self) -> GuideIndexView:
-        current = self.tabs.widget(self.tab_labels().index(GUIDES_TAB))
-        if isinstance(current, GuideIndexView):
-            self._guide_index_view = current
-            return current
-        view = GuideIndexView()
-        view.guideRequested.connect(self._on_guide_requested)
-        self._guide_index_view = view
-        self.replace_tab_widget(GUIDES_TAB, view)
-        return view
 
-    def _show_achievement_index(self) -> AchievementIndexView:
-        index = self.tab_labels().index(ACHIEVEMENTS_TAB)
-        current = self.tabs.widget(index)
-        if isinstance(current, AchievementIndexView):
-            self._achievement_index_view = current
-            return current
-        view = AchievementIndexView(data_dir=self.service.achievement_provider.data_dir)
-        view.achievementRequested.connect(self._on_achievement_requested)
-        self._achievement_index_view = view
-        self.replace_tab_widget(ACHIEVEMENTS_TAB, view)
-        return view
 
-    def _on_achievement_requested(self, achievement_id: int) -> None:
-        self._pending_achievement_id = int(achievement_id)
-        self._pending_lazy_tab = ACHIEVEMENTS_TAB
-        if self._achievement_index_view is not None:
-            self._achievement_index_view.set_loading(int(achievement_id))
-        if self._achievement_ready or self._related_ready:
-            self.open_pending_lazy_tab()
-            return
-        self.request_achievement_runtime()
 
     def _show_warmup(self, label: str) -> EncyclopediaWarmupView:
         index = self.tab_labels().index(label)
@@ -787,28 +773,7 @@ class EncyclopediaPage(QWidget):
         self.replace_tab_widget(ACHIEVEMENTS_TAB, view)
         return view
 
-    def _on_guide_requested(self, guide_id: str) -> None:
-        guide_id = str(guide_id or "").strip()
-        if not guide_id:
-            return
-        self._pending_guide_id = guide_id
-        if self._guide_index_view is not None:
-            self._guide_index_view.set_loading(guide_id)
-        if self._guide_runtime_ready:
-            self._finish_pending_guide_request()
-            return
-        self.request_related_preload(GUIDES_TAB)
 
-    def _finish_pending_guide_request(self) -> bool:
-        guide_id = str(self._pending_guide_id or "")
-        if not guide_id or not self._related_ready:
-            return False
-        view = self.ensure_guides_view()
-        self._guide_index_view = None
-        self._pending_guide_id = ""
-        if GUIDES_TAB in self.tab_labels():
-            self.tabs.setCurrentIndex(self.tab_labels().index(GUIDES_TAB))
-        return bool(view.select_guide(guide_id))
 
 
     def _activate_loaded_tab(self, label: str) -> None:
@@ -841,48 +806,6 @@ class EncyclopediaPage(QWidget):
             self.sync_search_visibility()
             return
 
-        if (
-            label == ACHIEVEMENTS_TAB
-            and not self._achievement_ready
-            and not self._related_ready
-        ):
-            self._show_achievement_index()
-            self._last_ready_tab_index = self.tab_labels().index(ACHIEVEMENTS_TAB)
-            self.sync_tab_accent(ACHIEVEMENTS_TAB)
-            self.sync_search_visibility()
-            self.status_callback(f"Encyclopédie : {ACHIEVEMENTS_TAB}")
-            return
-
-        if label == GUIDES_TAB:
-            if self.guides_view is not None:
-                self._activate_loaded_tab(GUIDES_TAB)
-                return
-            if self._related_ready:
-                self._activate_loaded_tab(GUIDES_TAB)
-                return
-            self._show_guide_index()
-            self._last_ready_tab_index = self.tab_labels().index(GUIDES_TAB)
-            self.sync_tab_accent(GUIDES_TAB)
-            self.sync_search_visibility()
-            self.status_callback(f"Encyclopédie : {GUIDES_TAB}")
-            return
-
-        if label == ACHIEVEMENTS_TAB:
-            if isinstance(self.tabs.widget(index), AchievementsView):
-                self._activate_loaded_tab(ACHIEVEMENTS_TAB)
-                return
-            if self._achievement_ready or self._related_ready:
-                self.open_pending_lazy_tab()
-                self._activate_loaded_tab(ACHIEVEMENTS_TAB)
-                return
-            self._show_warmup(ACHIEVEMENTS_TAB)
-            self._last_ready_tab_index = self.tab_labels().index(ACHIEVEMENTS_TAB)
-            self.sync_tab_accent(ACHIEVEMENTS_TAB)
-            self.sync_search_visibility()
-            self.status_callback(f"Encyclopédie : {ACHIEVEMENTS_TAB}")
-            self.request_achievement_runtime()
-            return
-
         if label == QUESTS_TAB:
             if self.quest_page is not None:
                 self._activate_loaded_tab(QUESTS_TAB)
@@ -899,7 +822,7 @@ class EncyclopediaPage(QWidget):
 
     def _sync_search_visibility_indexed(self) -> None:
         widget = self.tabs.currentWidget()
-        if isinstance(widget, (AchievementIndexView, GuideIndexView, EncyclopediaWarmupView)):
+        if isinstance(widget, EncyclopediaWarmupView):
             self.search.setVisible(False)
             self.search.setEnabled(False)
             return
@@ -926,7 +849,7 @@ class EncyclopediaPage(QWidget):
             self._start_full_guide_runtime()
             return
         if label == ACHIEVEMENTS_TAB:
-            if self._achievement_ready or self._related_ready:
+            if self._achievement_ready:
                 self._pending_lazy_tab = ACHIEVEMENTS_TAB
                 self.open_pending_lazy_tab()
                 return
@@ -1041,6 +964,19 @@ class EncyclopediaPage(QWidget):
                         detail = f" · {'; '.join(errors[:3])}" if errors else ""
                         raise RuntimeError(
                             f"Aucun guide chargé depuis {catalog_path}{detail}"
+                        )
+                    try:
+                        _warm_guide_ultime_runtime_cache(
+                            quest_provider,
+                            quest_progress_path=quest_progress_path,
+                            achievement_progress_path=achievement_progress_path,
+                            guide_progress_path=guide_progress_path,
+                        )
+                    except Exception:
+                        # This is a performance warmup only. A cache failure must
+                        # never make the canonical Guide catalogue unavailable.
+                        LOGGER.exception(
+                            "Préchargement du runtime Guide Ultime impossible"
                         )
                     graph = QuestGraphService(
                         quest_provider,
@@ -1340,7 +1276,6 @@ class EncyclopediaPage(QWidget):
         self._pending_lazy_tab = ""
         if label == GUIDES_TAB:
             view = self.ensure_guides_view()
-            self._guide_index_view = None
             if self._pending_guide_id:
                 guide_id = self._pending_guide_id
                 self._pending_guide_id = ""
@@ -1369,30 +1304,6 @@ class EncyclopediaPage(QWidget):
         self.status_callback(f"Encyclopédie : {label}")
 
     def on_tab_changed(self, index: int) -> None:
-        if index < 0:
-            return
-        label = self.tabs.tabText(index)
-        if self._initializing:
-            self._on_tab_changed_indexed_runtime(index)
-            return
-        if label == GUIDES_TAB:
-            view = self.ensure_guides_view()
-            if getattr(view, "_runtime_ready", False):
-                self._guide_runtime_ready = True
-                self._activate_loaded_tab(GUIDES_TAB)
-            else:
-                self._guide_runtime_ready = False
-                self._start_full_guide_runtime()
-            return
-        if label == ACHIEVEMENTS_TAB:
-            self.ensure_achievements_view()
-            if self._achievement_ready:
-                self._activate_loaded_tab(ACHIEVEMENTS_TAB)
-                self._pending_lazy_tab = ACHIEVEMENTS_TAB
-                self.open_pending_lazy_tab()
-            else:
-                self._start_full_achievement_runtime()
-            return
         self._on_tab_changed_indexed_runtime(index)
 
     def navigate_to_guide(self, guide_id: str) -> bool:

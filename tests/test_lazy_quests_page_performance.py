@@ -367,7 +367,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             _activate_loaded_tab=Mock(),
             status_callback=Mock(),
             request_achievement_runtime=Mock(),
-            _show_achievement_index=Mock(),
         )
 
         EncyclopediaPageImpl._start_full_achievement_runtime(page)
@@ -375,7 +374,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         page.ensure_achievements_view.assert_called_once_with()
         page._activate_loaded_tab.assert_called_once_with(ACHIEVEMENTS_TAB)
         page.request_achievement_runtime.assert_called_once_with()
-        page._show_achievement_index.assert_not_called()
 
     def test_success_target_pending_contract_cold_and_ready(self):
         for ready in (False, True):
@@ -439,7 +437,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         tabs.setCurrentIndex.assert_called_once_with(success_index)
         success_view.show_achievement.assert_called_once_with(1385)
 
-
     def test_stable_guide_view_constructor_does_not_load_catalogues(self):
         with tempfile.TemporaryDirectory() as temporary:
             provider = Mock()
@@ -464,28 +461,13 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
-    def test_guide_tab_starts_nonblocking_runtime_without_building_rich_view(self):
-        tabs = Mock()
-        tabs.tabText.return_value = GUIDES_TAB
-        stable_view = object()
-        page = SimpleNamespace(
-            _initializing=False,
-            tabs=tabs,
-            guides_view=None,
-            _guide_runtime_ready=False,
-            ensure_guides_view=Mock(return_value=stable_view),
-            _start_full_guide_runtime=Mock(),
-            _activate_loaded_tab=Mock(),
-            open_pending_lazy_tab=Mock(),
-            _on_tab_changed_indexed_runtime=Mock(),
-        )
+    def test_guide_tab_delegates_to_canonical_runtime_handler(self):
+        page = SimpleNamespace(_on_tab_changed_indexed_runtime=Mock())
+        index = ENCYCLOPEDIA_TABS.index(GUIDES_TAB)
 
-        EncyclopediaPageImpl.on_tab_changed(page, ENCYCLOPEDIA_TABS.index(GUIDES_TAB))
+        EncyclopediaPageImpl.on_tab_changed(page, index)
 
-        page.ensure_guides_view.assert_called_once_with()
-        page._activate_loaded_tab.assert_not_called()
-        page._start_full_guide_runtime.assert_called_once_with()
-        page.open_pending_lazy_tab.assert_not_called()
+        page._on_tab_changed_indexed_runtime.assert_called_once_with(index)
 
     def test_guide_ultime_navigation_is_preserved_until_runtime_finishes(self):
         tabs = Mock()
@@ -541,7 +523,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         )
         page.sync_search_visibility.assert_called_once_with()
 
-
     def test_failed_guide_runtime_retries_and_reloads_provider(self):
         gate = RelatedPreloadGate()
         self.assertTrue(gate.begin())
@@ -577,6 +558,8 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             return SimpleNamespace(start=target)
 
         with patch(
+            "app.modules.encyclopedia.views.encyclopedia_page._warm_guide_ultime_runtime_cache"
+        ) as warm_cache, patch(
             "app.modules.encyclopedia.views.encyclopedia_page.Thread",
             side_effect=run_thread,
         ):
@@ -585,9 +568,13 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         self.assertEqual(gate.state, RelatedPreloadState.LOADING)
         guide_provider.reload.assert_called_once_with()
         guide_provider.load_all.assert_not_called()
+        warm_cache.assert_called_once_with(
+            page.quest_provider,
+            quest_progress_path=page.quest_progress_path,
+            achievement_progress_path=page.achievement_progress_service.path,
+            guide_progress_path=page.guide_progress_service.path,
+        )
         page.guideRuntimeFinished.emit.assert_called_once()
-
-
 
     def test_guide_hydration_keeps_rich_detail_unbuilt(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -645,7 +632,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         view.refresh.assert_called_once_with()
         view.deleteLater()
         self.app.processEvents()
-
 
     def test_cold_success_refresh_never_wakes_provider_on_qt_thread(self):
         provider = Mock()

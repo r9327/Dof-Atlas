@@ -1,0 +1,14 @@
+schema_version: 1
+scope: character
+kind: feature
+working_set:
+  - app/pages/character_page.py
+  - app/pages/_character_page_impl.py
+  - app/services/character_data_service.py
+  - app/services/character_order_service.py
+shared_dependencies:
+  - persistence_identity
+  - shared_ui
+  - windows_qt_runtime
+context_entries:
+  - app/core/character_identity.py

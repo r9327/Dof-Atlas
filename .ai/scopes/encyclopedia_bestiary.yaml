@@ -1,0 +1,10 @@
+schema_version: 1
+scope: encyclopedia_bestiary
+kind: feature
+implementation: placeholder
+working_set:
+  - app/modules/encyclopedia/constants.py
+  - app/modules/encyclopedia/views/encyclopedia_page.py
+shared_dependencies:
+  - shared_ui
+context_entries: []

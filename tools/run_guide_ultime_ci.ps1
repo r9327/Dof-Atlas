@@ -102,6 +102,7 @@ try {
         "tests.test_guide_ultime_route_sanitizer",
         "tests.test_guide_ultime_route_sheet_ui",
         "tests.test_guide_ultime_manual_preview",
+        "tests.test_guide_ultime_manual_ui_navigation",
         "tests.test_guide_ultime_manual_success_sync",
         "tests.test_guide_ultime_success_links",
         "tests.test_guide_ultime_manual_class_branch",
@@ -140,17 +141,17 @@ try {
     Invoke-PythonCheck "06_route_hook_resolution" @("-m", "tools.audit_guide_ultime_manual_route_hooks", "--strict")
     Invoke-PythonCheck "07_prerequisite_order_audit" @(
         "-m", "tools.audit_guide_ultime_manual_prerequisites",
-        "--strict", "--allow-missing-catalog",
+        "--strict",
         "--output", ".\artifacts\ci_guide_ultime_logs\prerequisite_order.json"
     )
     Invoke-PythonCheck "08_light_coverage_audit" @("-m", "tools.audit_guide_ultime_manual_coverage")
     Invoke-PythonCheck "09_final_success_coverage_audit" @(
         "-m", "tools.audit_guide_ultime_manual_final_coverage",
-        "--strict", "--allow-missing-achievement-catalog",
+        "--strict",
         "--output", ".\artifacts\ci_guide_ultime_logs\final_coverage.json"
     )
     Invoke-PythonCheck "10_runtime_audit" @("-m", "tools.audit_guide_ultime_manual_runtime", "--strict-fields")
-    Invoke-PythonCheck "10b_action_quality_inventory" @("-m", "tools.audit_guide_ultime_action_quality", "--output", ".\artifacts\ci_guide_ultime_logs\action_quality.json")
+    Invoke-PythonCheck "10b_action_quality_inventory" @("-m", "tools.audit_guide_ultime_action_quality", "--strict-hard", "--output", ".\artifacts\ci_guide_ultime_logs\action_quality.json")
 
     Invoke-PythonCheck "11_existing_guides_tests" @("-m", "unittest", "tests.test_guides_phase3")
     Invoke-PythonCheck "12_existing_success_tests" @("-m", "unittest", "tests.test_achievements_lot7")

@@ -105,7 +105,7 @@ class GuideUltimeManualBossFusionTests(unittest.TestCase):
 
         self.assertIn("L200-ENUT-PREP", by_id)
         self.assertIn("L200-ENUT-CLOSE", by_id)
-        self.assertIn("Reconnaissance de dettes", by_id["L200-ENUT-PREP"]["quests"])
+        self.assertIn("Reconnaissance de dette", by_id["L200-ENUT-PREP"]["quests"])
 
     def test_post_200_v5_removes_every_relocated_stage_and_defers_au_detour(self) -> None:
         resolved = load_manual_chapter(ROUTE_BASE / "level_200_plus_v5.json")

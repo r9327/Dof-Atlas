@@ -55,7 +55,12 @@ Le verdict `PASS_BASELINE_NON_REGRESSION` n'est accepté que si toutes les condi
 
 Toute dérive de contenu, nouveau blocker, base qui ne descend plus de l'ancre figée, changement d'un fichier protégé dans l'historique hérité ou dans le diff courant, ou modification du périmètre de couverture fait repasser la certification à `NOT CERTIFIED`.
 
-`PASS_BASELINE_NON_REGRESSION` certifie donc la phase contre toute régression de cette dette ; il ne transforme jamais la dette Guide en `PASS` global et ne signifie jamais `GUIDE CERTIFIED`. La future phase Guide devra supprimer ce baseline de transition en fermant réellement les audits Guide.
+`PASS_BASELINE_NON_REGRESSION` décrit historiquement la non-régression de cette
+dette ; il ne transforme jamais la dette Guide en `PASS` global et ne signifie
+jamais `GUIDE CERTIFIED`. Dès que le chantier Guide est déclaré `CERTIFIED`, ce
+baseline reste une trace de transition mais ne peut plus autoriser un verdict
+final : un FULL `BLOCKED` ou un `GUIDE_NOT_CERTIFIED` fait échouer la
+certification.
 
 ## CI
 
@@ -71,8 +76,16 @@ Le workflow ne délivre `PHASE CERTIFICATION: PASS` que si :
 2. les fixtures LFS requises sont matérialisées ;
 3. le catalogue Dofus local est matérialisé ;
 4. `tools.atlas_integrity full` a réellement exécuté les groupes requis ;
-5. le verdict strict est `PASS`, ou le seul écart est accepté par le contrat `PASS_BASELINE_NON_REGRESSION` décrit ci-dessus ;
+5. le verdict strict est `PASS` et le Guide est `GUIDE_CERTIFIED` ; `PASS_BASELINE_NON_REGRESSION` reste diagnostique et ne ferme pas le chantier Guide ;
 6. le validateur `tools.phase_certification_verdict` accepte les preuves et le SHA exact.
+
+Pour le Guide, le verdict distinct `GUIDE_CERTIFIED` n'est émis que lorsque le
+manifeste est `CERTIFIED`, que les catalogues Quêtes et Succès sont réellement
+chargés et non vides, que les audits prérequis et actions ne contiennent aucune
+erreur dure, que la couverture retenue ne contient aucun succès partiel ou
+absent, et que tous les contrats vérifiés sont couverts. Un catalogue absent,
+un rapport incomplet ou un verdict FULL `BLOCKED` produit
+`GUIDE_NOT_CERTIFIED` et fait échouer la certification.
 
 Le SHA certifié et le type de verdict doivent apparaître dans le résumé GitHub Actions.
 

@@ -1,0 +1,12 @@
+schema_version: 1
+scope: home
+kind: feature
+working_set:
+  - app/pages/home_page.py
+shared_dependencies:
+  - persistence_identity
+  - startup_lifecycle
+  - network_capture
+  - shared_ui
+context_entries:
+  - main.py

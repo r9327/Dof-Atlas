@@ -111,35 +111,27 @@ SOLUTION_IMAGE_EXECUTOR = ThreadPoolExecutor(
 
 
 class _AsyncImageDelivery(QObject):
-    guideImageBytesRead = Signal(object, object, QSize)
-    solutionImageBytesRead = Signal(object, bytes)
+    guideImageDecoded = Signal(object, object, QSize, str)
+    solutionImageDecoded = Signal(object, object)
 
     def __init__(self) -> None:
         super().__init__()
-        self.guideImageBytesRead.connect(self._deliver_guide_image)
-        self.solutionImageBytesRead.connect(self._deliver_solution_image)
+        self.guideImageDecoded.connect(self._deliver_guide_image)
+        self.solutionImageDecoded.connect(self._deliver_solution_image)
 
-    @Slot(object, object, QSize)
-    def _deliver_guide_image(self, target_ref, candidates, size: QSize) -> None:
+    @Slot(object, object, QSize, str)
+    def _deliver_guide_image(self, target_ref, image: QImage, size: QSize, used_path: str) -> None:
         target = target_ref()
         if target is None or not isValid(target):
             return
-        image = QImage()
-        used_path = ""
-        for path, payload in candidates:
-            candidate = _decode_qimage(payload, "guide")
-            if not candidate.isNull():
-                image = candidate
-                used_path = path
-                break
         target.imageDecoded.emit(image, size, used_path)
 
-    @Slot(object, bytes)
-    def _deliver_solution_image(self, target_ref, payload: bytes) -> None:
+    @Slot(object, object)
+    def _deliver_solution_image(self, target_ref, image: QImage) -> None:
         target = target_ref()
         if target is None or not isValid(target):
             return
-        target.imageLoaded.emit(_decode_qimage(payload, "solution"))
+        target.imageLoaded.emit(image)
 
 
 _ASYNC_IMAGE_DELIVERY: _AsyncImageDelivery | None = None
@@ -149,7 +141,7 @@ def _decode_qimage(payload: bytes, kind: str) -> QImage:
     started = time.perf_counter()
     image = QImage.fromData(payload)
     LOGGER.debug(
-        "QImage decode kind=%s bytes=%d width=%d height=%d ui_ms=%.3f",
+        "QImage decode kind=%s bytes=%d width=%d height=%d worker_ms=%.3f",
         kind,
         len(payload),
         image.width(),
@@ -167,15 +159,22 @@ def _ensure_async_image_delivery() -> _AsyncImageDelivery:
 
 
 def _decode_guide_image(target_ref, paths: tuple[str, ...], size: QSize) -> None:
-    candidates: list[tuple[str, bytes]] = []
+    image = QImage()
+    used_path = ""
     for path in paths:
         try:
-            candidates.append((path, Path(path).read_bytes()))
+            payload = Path(path).read_bytes()
         except OSError:
             continue
+        candidate = _decode_qimage(payload, "guide")
+        if candidate.isNull():
+            continue
+        image = candidate
+        used_path = path
+        break
     delivery = _ASYNC_IMAGE_DELIVERY
     if delivery is not None:
-        delivery.guideImageBytesRead.emit(target_ref, candidates, size)
+        delivery.guideImageDecoded.emit(target_ref, image, size, used_path)
 
 
 def _decode_solution_image(target_ref, image_path: str) -> None:
@@ -183,9 +182,10 @@ def _decode_solution_image(target_ref, image_path: str) -> None:
         payload = Path(image_path).read_bytes()
     except OSError:
         payload = b""
+    image = _decode_qimage(payload, "solution")
     delivery = _ASYNC_IMAGE_DELIVERY
     if delivery is not None:
-        delivery.solutionImageBytesRead.emit(target_ref, payload)
+        delivery.solutionImageDecoded.emit(target_ref, image)
 
 
 def _single_shot(parent: QObject, delay_ms: int, callback: Callable[[], None]) -> None:

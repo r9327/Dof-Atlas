@@ -2,6 +2,8 @@
 
 Install the repository-local Git hooks once with `powershell -NoProfile -ExecutionPolicy Bypass -File tools/install_git_hooks.ps1`.
 
+For every non-trivial task, first run `py -3.13 -m tools.ai_context status` and use `AI_CONTEXT.md` as the compact navigation layer. This does not replace the permanent project contracts below. The generated `.ai/context_index.json` is maintained by the pre-commit hook and must not be edited manually.
+
 Read `ZERO_TRUST_RULES.md` for the permanent short contribution contract.
 
 ## Mandatory project contract
@@ -183,6 +185,8 @@ For UI changes, when possible:
 If the change introduces a problem, fix it before finishing.
 
 For a phase or major lot, do not report `CERTIFIED`, `phase terminée`, `100 % terminée` or an equivalent final state unless the `Phase Certification / Full Validation` workflow has passed on the exact candidate SHA. `Public PR / Safe Validation` alone is never sufficient.
+
+After a phase has both `Public PR / Safe Validation` = PASS and `Phase Certification / Full Validation` = PASS on the same exact SHA, perform a conservative Git cleanup for that phase before moving on: remove only branches proven redundant, merged or temporary, preserve anything containing unique work, and do not change the certified product SHA as part of cleanup.
 
 ---
 

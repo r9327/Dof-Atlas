@@ -1,0 +1,11 @@
+schema_version: 1
+scope: zaap
+kind: feature
+working_set:
+  - app/macros/zaap.py
+shared_dependencies:
+  - input_hotkeys
+  - macro_runtime
+  - windows_qt_runtime
+context_entries:
+  - app/macros/input_tools.py

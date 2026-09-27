@@ -73,7 +73,7 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
         self.assertTrue(GuideHomeCard._atlas_async_image_loader)
         self.assertEqual(GuideHomeCard._load_image.__module__, guides_module.__name__)
 
-    def test_image_workers_transport_bytes_without_using_qimage_plugins(self) -> None:
+    def test_image_workers_decode_before_ui_delivery(self) -> None:
         class SignalCapture:
             def __init__(self) -> None:
                 self.calls = []
@@ -82,28 +82,30 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
                 self.calls.append(args)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            path = Path(temp_dir) / "raw-image.bin"
-            path.write_bytes(b"image payload")
+            path = Path(temp_dir) / "worker-image.png"
+            self._png(path)
             guide_signal = SignalCapture()
             solution_signal = SignalCapture()
             delivery = SimpleNamespace(
-                guideImageBytesRead=guide_signal,
-                solutionImageBytesRead=solution_signal,
+                guideImageDecoded=guide_signal,
+                solutionImageDecoded=solution_signal,
             )
 
-            with (
-                patch.object(guides_module, "_ASYNC_IMAGE_DELIVERY", delivery),
-                patch.object(
-                    guides_module,
-                    "QImage",
-                    side_effect=AssertionError("QImage decoding must stay on the Qt thread"),
-                ),
-            ):
+            with patch.object(guides_module, "_ASYNC_IMAGE_DELIVERY", delivery):
                 guides_module._decode_guide_image(None, (str(path),), QSize(30, 30))
                 guides_module._decode_solution_image(None, str(path))
 
-            self.assertEqual(guide_signal.calls[0][1], [(str(path), b"image payload")])
-            self.assertEqual(solution_signal.calls[0][1], b"image payload")
+            guide_args = guide_signal.calls[0]
+            self.assertIsNone(guide_args[0])
+            self.assertIsInstance(guide_args[1], QImage)
+            self.assertFalse(guide_args[1].isNull())
+            self.assertEqual(guide_args[2], QSize(30, 30))
+            self.assertEqual(guide_args[3], str(path))
+
+            solution_args = solution_signal.calls[0]
+            self.assertIsNone(solution_args[0])
+            self.assertIsInstance(solution_args[1], QImage)
+            self.assertFalse(solution_args[1].isNull())
 
     def test_hidden_images_do_not_queue_decode_work(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

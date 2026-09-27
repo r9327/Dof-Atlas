@@ -22,6 +22,18 @@ class DeferredAchievementGuidesView(_OptimizedGuidesView):
         self._deferred_achievement_context_id: int | None = None
         self._deferred_quest_id: int | None = None
         self._deferred_quest_preserve_scroll = False
+        # A provider that is already fully loaded with actual Guide rows has no
+        # catalogue I/O left to defer. Loaded-but-empty providers must keep the
+        # deferred recovery path so a stale/temporarily missing catalogue can be
+        # retried by EncyclopediaPage instead of failing inside the Qt slot.
+        provider = kwargs.get("provider")
+        if (
+            kwargs.get("defer_runtime") is True
+            and getattr(provider, "_loaded", False) is True
+            and bool(getattr(provider, "_guides", ()))
+            and kwargs.get("graph") is not None
+        ):
+            kwargs["defer_runtime"] = False
         super().__init__(*args, **kwargs)
 
     def _achievement_runtime_ready(self) -> bool:

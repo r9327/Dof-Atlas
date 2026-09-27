@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QToolButton
 
 from app.constants import LOGO_PATH
 from app.modules.encyclopedia.models.reward import Reward
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 
 
 class RewardCard(QFrame):
@@ -21,10 +22,15 @@ class RewardCard(QFrame):
         icon.setObjectName("RewardIcon")
         icon.setFixedSize(28, 28)
         icon.setIconSize(QSize(24, 24))
-        if reward.image_path and Path(reward.image_path).exists():
-            icon.setIcon(QIcon(reward.image_path))
-        elif LOGO_PATH.exists():
-            icon.setIcon(QIcon(str(LOGO_PATH)))
+
+        image_path = Path(reward.image_path) if reward.image_path else None
+        if image_path is None or not image_path.exists():
+            image_path = LOGO_PATH if LOGO_PATH.exists() else None
+        if image_path is not None:
+            pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(24, 24))
+            if not pixmap.isNull():
+                icon.setIcon(QIcon(pixmap))
+
         icon.setEnabled(False)
         label = QLabel(self.label_for(reward))
         label.setObjectName("CompactLabel")

@@ -1,0 +1,13 @@
+schema_version: 1
+scope: startup_lifecycle
+kind: shared_infrastructure
+working_set:
+  - launch.py
+  - main.py
+  - app/preload.py
+  - app/background_work.py
+shared_dependencies:
+  - network_capture
+  - shared_ui
+  - windows_qt_runtime
+context_entries: []

@@ -407,6 +407,15 @@ Ne pas modifier ou supprimer une règle LFS sans vérifier pourquoi elle existe.
 
 Ne jamais faire de `git reset --hard` vers une autre référence ou de suppression massive sur une branche partagée sans comprendre l'impact.
 
+### Nettoyage Git de fin de phase
+
+Après double validation du même SHA exact — `Public PR / Safe Validation` = PASS et `Phase Certification / Full Validation` = PASS — effectuer le nettoyage Git de la phase avant de passer à la suivante.
+
+- Vérifier les commits uniques avant toute suppression.
+- Supprimer uniquement les branches de phase, correctif, diagnostic ou temporaires prouvées redondantes, fusionnées ou remplacées.
+- Conserver toute branche ou référence contenant du travail unique ou dont l'inutilité n'est pas prouvée.
+- Le nettoyage ne doit modifier ni le produit certifié ni son SHA ; aucun `push --force` ni réécriture d'historique pour nettoyer.
+
 ---
 
 ## 12. Tests minimum par type de changement

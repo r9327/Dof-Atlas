@@ -1,0 +1,8 @@
+schema_version: 1
+scope: input_hotkeys
+kind: shared_infrastructure
+working_set:
+  - app/input/
+shared_dependencies:
+  - windows_qt_runtime
+context_entries: []

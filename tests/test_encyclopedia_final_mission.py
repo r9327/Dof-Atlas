@@ -55,6 +55,16 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
             owned_items_path=owned,
         )
 
+    def hydrate_guides(self, page: EncyclopediaPage):
+        view = page.ensure_guides_view()
+        if not view._runtime_ready:
+            view.hydrate_runtime(graph=page._quest_graph)
+        page._guide_runtime_ready = bool(view._runtime_ready)
+        page._related_ready = page._guide_runtime_ready
+        if page._guide_runtime_ready:
+            page._related_preload_gate.mark_ready()
+        return view
+
     def test_guide_catalog_is_local_and_covers_required_routes(self):
         catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
         rows = [row for row in catalog.get("guides", []) if row.get("enabled", True)]
@@ -79,9 +89,12 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             page = self.make_page(Path(tmp))
             page.tabs.setCurrentIndex(page.tab_labels().index("GUIDES"))
-            self.assertEqual(page.guides_view.splitter.count(), 3)
-            self.assertEqual(page.guides_view.splitter.handleWidth(), 0)
-            self.assertFalse(hasattr(page.guides_view, "category_buttons"))
+            view = self.hydrate_guides(page)
+            view.select_guide("dofus_turquoise")
+            self.app.processEvents()
+            self.assertEqual(view.splitter.count(), 3)
+            self.assertEqual(view.splitter.handleWidth(), 0)
+            self.assertFalse(hasattr(view, "category_buttons"))
             page.tabs.setCurrentIndex(page.tab_labels().index("QUÊTES"))
             self.assertEqual(page.quest_page.splitter.count(), 2)
             self.assertEqual(page.quest_page.splitter.handleWidth(), 0)
@@ -95,24 +108,25 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             page = self.make_page(Path(tmp))
             page.tabs.setCurrentIndex(page.tab_labels().index("GUIDES"))
+            view = self.hydrate_guides(page)
             guide = self.guide_provider.get_by_id("dofus_turquoise")
             assert guide is not None
-            progress = load_quest_progress(page.guides_view.quest_progress_path)
-            set_quest_done(progress, "character:1", 1653, True, page.guides_view.quest_progress_path)
-            page.guides_view.refresh_external_progress()
-            page.guides_view.select_guide("dofus_turquoise")
+            progress = load_quest_progress(view.quest_progress_path)
+            set_quest_done(progress, "character:1", 1653, True, view.quest_progress_path)
+            view.refresh_external_progress()
+            view.select_guide("dofus_turquoise")
             line = next(
                 row
-                for row in page.guides_view.findChildren(QuestLine)
+                for row in view.findChildren(QuestLine)
                 if row.step.step_type == "quest" and row.step.entity_id == 1653
             )
             line.selected.emit(1653)
             self.app.processEvents()
 
             self.assertEqual(page.current_tab_label(), "GUIDES")
-            self.assertEqual(page.guides_view.current_quest_id, 1653)
-            self.assertEqual(page.guides_view.quest_detail_view.current_quest_id, 1653)
-            labels = [label.text() for label in page.guides_view.quest_detail_view.findChildren(QLabel)]
+            self.assertEqual(view.current_quest_id, 1653)
+            self.assertEqual(view.quest_detail_view.current_quest_id, 1653)
+            labels = [label.text() for label in view.quest_detail_view.findChildren(QLabel)]
             self.assertTrue(any(text == "Informations de quête" for text in labels))
             self.assertTrue(any("Plongeon et dragon" in text for text in labels))
             page.deleteLater()

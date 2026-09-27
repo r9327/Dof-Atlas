@@ -98,6 +98,7 @@ class AchievementLot7QuestSyncTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
         cls.provider = AchievementProvider()
+        cls.provider.load_all()
 
     @staticmethod
     def fake_alignment_guides() -> SimpleNamespace:
@@ -215,6 +216,7 @@ class AchievementLot7AlignmentTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
         cls.provider = AchievementProvider()
+        cls.provider.load_all()
 
     def test_alignment_choice_is_persisted_per_character(self):
         with tempfile.TemporaryDirectory() as tmp:

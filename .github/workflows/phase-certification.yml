@@ -130,6 +130,63 @@ jobs:
           '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Measure canonical Encyclopedia user paths
+        id: timing
+        if: >-
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'pull_request' && startsWith(github.event.pull_request.title, 'Phase 7B'))
+        continue-on-error: true
+        run: |
+          $log = "artifacts/phase_certification/06_timing_performance.log"
+          $report = "artifacts/phase_certification/06_timing_performance.json"
+          & python -X faulthandler -m app.modules.encyclopedia.tools.benchmark_guides_performance 2>&1 | Tee-Object -FilePath $log
+          $code = $LASTEXITCODE
+          if ($null -eq $code) { $code = 0 }
+          if ($code -ne 0) { exit $code }
+          Copy-Item -LiteralPath "artifacts/quests_guides_performance.json" -Destination $report -Force
+
+          @'
+          import json
+          import os
+          from pathlib import Path
+
+          report = Path("artifacts/phase_certification/06_timing_performance.json")
+          payload = json.loads(report.read_text(encoding="utf-8"))
+          expected_head = os.environ.get("CANDIDATE_SHA", "")
+          actual_head = str(payload.get("environment", {}).get("git_head") or "")
+          if actual_head != expected_head:
+              raise SystemExit(f"timing benchmark SHA mismatch: expected {expected_head}, got {actual_head}")
+          if payload.get("schema_version") != 4:
+              raise SystemExit(f"unexpected performance schema: {payload.get('schema_version')!r}")
+
+          after = payload.get("after") or {}
+          required = (
+              "startup_stabilized_ms",
+              "startup_stabilized_rss_mb",
+              "quests_open_ms",
+              "quests_open_max_ui_block_ms",
+              "achievements_open_ms",
+              "achievements_open_max_ui_block_ms",
+              "guide_open_ms",
+              "guide_open_max_ui_block_ms",
+              "first_achievement_detail_ms",
+              "first_achievement_detail_max_ui_block_ms",
+              "first_guide_detail_ms",
+              "first_guide_detail_max_ui_block_ms",
+              "quests_hot_return_ms",
+              "achievements_hot_return_ms",
+              "guide_hot_return_ms",
+              "rss_after_all_views_mb",
+              "rss_after_round_trips_mb",
+              "idle_cpu_percent_one_core",
+          )
+          missing = [name for name in required if after.get(name) is None]
+          if missing:
+              raise SystemExit("missing canonical Encyclopedia timing metrics: " + ", ".join(missing))
+          print("Canonical Encyclopedia timing evidence captured for exact candidate SHA")
+          '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Run full Atlas phase certification gate
         id: certification
         continue-on-error: true
@@ -163,6 +220,10 @@ jobs:
           $failures = @()
           if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
           if ("${{ steps.catalog.outcome }}" -ne "success") { $failures += "Dofus catalog" }
+          $timingOutcome = "${{ steps.timing.outcome }}"
+          if ($timingOutcome -and $timingOutcome -ne "success" -and $timingOutcome -ne "skipped") {
+            $failures += "Encyclopedia timing performance"
+          }
 
           if ($failures.Count -gt 0) {
             $message = "PHASE CERTIFICATION: NOT CERTIFIED - " + ($failures -join ", ")
@@ -179,14 +240,17 @@ jobs:
             --output $phaseReport
           $code = $LASTEXITCODE
           if ($code -ne 0) {
+            $phase = Get-Content -LiteralPath $phaseReport -Raw | ConvertFrom-Json
             $message = "PHASE CERTIFICATION: NOT CERTIFIED - phase verdict rejected the FULL evidence"
             Write-Host $message
+            Write-Host "Guide verdict: $($phase.guide_status)"
             if ($env:GITHUB_STEP_SUMMARY) {
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: NOT CERTIFIED"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:CANDIDATE_SHA``"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:CERT_BASE_REF``"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Full evidence or frozen baseline non-regression contract failed."
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide verdict: ``$($phase.guide_status)``"
             }
             throw $message
           }
@@ -195,6 +259,7 @@ jobs:
           Write-Host "PHASE CERTIFICATION: PASS"
           Write-Host "Certified SHA: $env:CANDIDATE_SHA"
           Write-Host "Phase verdict: $($phase.status)"
+          Write-Host "Guide verdict: $($phase.guide_status)"
           if ($env:GITHUB_STEP_SUMMARY) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PHASE CERTIFICATION: PASS"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
@@ -202,6 +267,7 @@ jobs:
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base ref: ``$env:CERT_BASE_REF``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Integrity mode: ``FULL``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Phase verdict: ``$($phase.status)``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide verdict: ``$($phase.guide_status)``"
             if ($phase.status -eq "PASS_BASELINE_NON_REGRESSION") {
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide status: existing ``BUILDING`` debt carried byte-for-byte unchanged from the Phase 1 base; this is not GUIDE CERTIFIED."
             }

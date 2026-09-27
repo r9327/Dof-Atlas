@@ -328,6 +328,12 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("tools.audit_guide_ultime_canonical_dependencies", local_source)
         self.assertIn("tools.validate_guide_ultime_manual_transversals_v16", local_source)
 
+    def test_guide_runner_fails_closed_on_hard_debt_and_missing_catalogs(self) -> None:
+        source = self._local_runner()
+        self.assertIn('"--strict-hard"', source)
+        self.assertNotIn('"--allow-missing-catalog"', source)
+        self.assertNotIn('"--allow-missing-achievement-catalog"', source)
+
     def test_runtime_audit_rejects_unsupported_canonical_fields(self) -> None:
         app_source = self._workflow("app-ci.yml")
         local_source = self._local_runner()

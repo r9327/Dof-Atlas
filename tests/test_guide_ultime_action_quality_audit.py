@@ -43,6 +43,20 @@ class GuideUltimeActionQualityAuditTests(unittest.TestCase):
         )
         self.assertIn("placeholder_or_unverified_instruction", {row["code"] for row in placeholder})
 
+    def test_placeholder_tokens_do_not_match_inside_normal_words(self) -> None:
+        for text in ("Vaincre le Mastodonte.", "À Pandala, vérifier le passage."):
+            with self.subTest(text=text):
+                issues = _line_issues(
+                    chapter_id="chapter",
+                    stage_id="stage",
+                    line_index=0,
+                    line={"kind": "action", "position": "zone", "text": text},
+                )
+                self.assertNotIn(
+                    "placeholder_or_unverified_instruction",
+                    {row["code"] for row in issues},
+                )
+
     def test_authoring_language_is_review_issue(self) -> None:
         for text in (
             "Ne déclarer obtenu que si le runtime confirme.",

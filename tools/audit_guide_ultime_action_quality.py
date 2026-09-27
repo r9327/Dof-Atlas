@@ -82,7 +82,8 @@ _INTERNAL_STAGE_ID_RE = re.compile(
 def _contains_token(raw_value: str, normalized_value: str, token: str) -> bool:
     normalized_token = normalize_text(token)
     if normalized_token:
-        return normalized_token in normalized_value
+        pattern = rf"(?<![a-z0-9]){re.escape(normalized_token)}(?![a-z0-9])"
+        return re.search(pattern, normalized_value) is not None
     return bool(token) and token.casefold() in raw_value.casefold()
 
 

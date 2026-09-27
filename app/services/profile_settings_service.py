@@ -6,7 +6,7 @@ from typing import Any, Callable, Iterable, Mapping
 
 from app.constants import KEY_SELECTED_CHARACTER, KEY_TOPMOST, PROFILE_FILE
 from app.core.character_identity import require_character_key
-from app.core.json_store import read_json_resilient, _write_json_atomic_unchecked
+from app.core.json_store import read_json_validated, _write_json_atomic_unchecked
 from app.core.progress_coordinator import coordinator_for
 
 
@@ -34,7 +34,11 @@ class ProfileSettingsService:
     def load(self, default: Mapping[str, Any] | None = None) -> dict[str, Any]:
         coordinator = coordinator_for(self.profile_path)
         with coordinator.lock:
-            payload = read_json_resilient(self.profile_path, dict(default or {}))
+            payload = read_json_validated(
+                self.profile_path,
+                dict(default or {}),
+                self._profile_schema_error,
+            )
             return deepcopy(self._coerce_payload(payload, default))
 
     def mutate(
@@ -46,7 +50,11 @@ class ProfileSettingsService:
         coordinator = coordinator_for(self.profile_path)
         with coordinator.lock:
             payload = self._coerce_payload(
-                read_json_resilient(self.profile_path, dict(default or {})),
+                read_json_validated(
+                    self.profile_path,
+                    dict(default or {}),
+                    self._profile_schema_error,
+                ),
                 default,
             )
             before = deepcopy(payload)
@@ -56,6 +64,10 @@ class ProfileSettingsService:
                 _write_json_atomic_unchecked(self.profile_path, payload)
                 coordinator.mark_changed()
             return deepcopy(payload), changed
+
+    @staticmethod
+    def _profile_schema_error(payload: Any) -> str | None:
+        return None if isinstance(payload, dict) else "la racine doit être un objet"
 
     def update_values(
         self,
