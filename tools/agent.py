@@ -138,11 +138,34 @@ def _unique(values: Iterable[str]) -> list[str]:
     return list(dict.fromkeys(value for value in values if value))
 
 
+def _test_module_path(module: str) -> Path:
+    return Path(*module.split(".")).with_suffix(".py")
+
+
+def _scope_test_mapping_errors(root: Path, context_map: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for scope, config in context_map["scopes"].items():
+        tests = config.get("test_entries")
+        if not isinstance(tests, list):
+            errors.append(f"{scope}: test_entries must be an explicit list")
+            continue
+        if len(tests) != len(_unique(str(module) for module in tests)):
+            errors.append(f"{scope}: duplicate test_entries")
+        for module in tests:
+            if not isinstance(module, str) or not module.startswith("tests."):
+                errors.append(f"{scope}: invalid test module {module}")
+                continue
+            if not (root / _test_module_path(module)).is_file():
+                errors.append(f"{scope}: missing test module {module}")
+    return errors
+
+
 def doctor_payload(root: Path = ROOT) -> dict[str, Any]:
     root = root.resolve()
     context_map, manifests = _model(root)
     errors: list[str] = []
     scopes = context_map["scopes"]
+    errors.extend(_scope_test_mapping_errors(root, context_map))
     for scope, manifest in manifests.items():
         declared = scopes[scope].get("implementation")
         if declared is not None and manifest.get("implementation") != declared:
@@ -187,6 +210,7 @@ def inspect_scope(root: Path, scope: str) -> dict[str, Any]:
         "manifest": config.get("manifest"),
         "rules": _unique([*context_map["rule_defaults"], *config.get("rule_entries", [])]),
         "canonical_entries": list(config.get("canonical_entries", [])),
+        "test_entries": list(config.get("test_entries", [])),
         "working_set": list(manifest.get("working_set", [])),
         "shared_dependencies": list(manifest.get("shared_dependencies", [])),
         "context_entries": list(manifest.get("context_entries", [])),
@@ -379,11 +403,13 @@ def impact_payload(root: Path, paths: Iterable[str]) -> dict[str, Any]:
     dependencies: list[str] = []
     working_set: list[str] = []
     context_entries: list[str] = []
+    scope_tests: list[str] = []
     for scope in scopes:
         config = context_map["scopes"][scope]
         manifest = manifests[scope]
         rules.extend(config.get("rule_entries", []))
         canonical.extend(config.get("canonical_entries", []))
+        scope_tests.extend(config.get("test_entries", []))
         dependencies.extend(manifest.get("shared_dependencies", []))
         working_set.extend(manifest.get("working_set", []))
         context_entries.extend(manifest.get("context_entries", []))
@@ -392,6 +418,8 @@ def impact_payload(root: Path, paths: Iterable[str]) -> dict[str, Any]:
         path: _ownership_detail(context_map, manifests, path)
         for path in normalized
     }
+    explicit_tests = _unique(scope_tests)
+    fallback_tests = ai_context.recommended_tests(root, normalized)
     return {
         "paths": normalized,
         "domains": {path: ai_context.classify_path(path) for path in normalized},
@@ -409,7 +437,8 @@ def impact_payload(root: Path, paths: Iterable[str]) -> dict[str, Any]:
         "canonical_entries": _unique(canonical),
         "working_set": _unique(working_set),
         "context_entries": _unique(context_entries),
-        "recommended_tests": ai_context.recommended_tests(root, normalized),
+        "scope_tests": explicit_tests,
+        "recommended_tests": _unique([*explicit_tests, *fallback_tests]),
     }
 
 
