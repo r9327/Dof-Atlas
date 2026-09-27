@@ -17,6 +17,7 @@ class AgentToolTests(unittest.TestCase):
         self.assertEqual(payload["status"], "PASS")
         self.assertTrue(payload["context_index_current"])
         self.assertEqual(payload["scope_count"], 23)
+        self.assertEqual(payload["ownership_conflicts"], [])
         self.assertEqual(payload["errors"], [])
 
     def test_inspect_combines_scope_manifest_and_existing_rules(self) -> None:
@@ -45,12 +46,174 @@ class AgentToolTests(unittest.TestCase):
         payload = agent.impact_payload(ROOT, [path])
         self.assertEqual(payload["scope_matches"][path], ["encyclopedia_guide"])
         self.assertEqual(payload["scopes"], ["encyclopedia_guide"])
+        self.assertEqual(payload["ownership"][path]["status"], "OWNED")
+        self.assertEqual(payload["ownership"][path]["primary_scope"], "encyclopedia_guide")
+        self.assertEqual(payload["unowned_paths"], [])
+        self.assertEqual(payload["ambiguous_paths"], [])
         self.assertIn("persistence_identity", payload["shared_dependencies"])
         self.assertIn(
             "data/routes/guide_ultime_manual/manifest_v1.json",
             payload["canonical_entries"],
         )
         self.assertIn("tests.test_guide_ultime_manual_prerequisites", payload["recommended_tests"])
+
+    def test_ownership_distinguishes_specific_placeholder_ambiguous_and_unowned_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".ai/scopes").mkdir(parents=True)
+            (root / ".ai/context-map.yaml").write_text(
+                """schema_version: 2
+rule_defaults:
+  - AGENTS.md
+scopes:
+  broad:
+    kind: shared_infrastructure
+    manifest: .ai/scopes/broad.yaml
+    rule_entries: []
+    canonical_entries: []
+  feature:
+    kind: feature
+    manifest: .ai/scopes/feature.yaml
+    rule_entries: []
+    canonical_entries: []
+  conflict_a:
+    kind: feature
+    manifest: .ai/scopes/conflict_a.yaml
+    rule_entries: []
+    canonical_entries: []
+  conflict_b:
+    kind: feature
+    manifest: .ai/scopes/conflict_b.yaml
+    rule_entries: []
+    canonical_entries: []
+  shell:
+    kind: feature
+    manifest: .ai/scopes/shell.yaml
+    rule_entries: []
+    canonical_entries: []
+  placeholder:
+    kind: feature
+    implementation: placeholder
+    manifest: .ai/scopes/placeholder.yaml
+    rule_entries: []
+    canonical_entries: []
+""",
+                encoding="utf-8",
+            )
+            manifests = {
+                "broad": """schema_version: 1
+scope: broad
+kind: shared_infrastructure
+working_set:
+  - src/
+shared_dependencies: []
+context_entries: []
+""",
+                "feature": """schema_version: 1
+scope: feature
+kind: feature
+working_set:
+  - src/feature.py
+shared_dependencies: []
+context_entries: []
+""",
+                "conflict_a": """schema_version: 1
+scope: conflict_a
+kind: feature
+working_set:
+  - src/conflict.py
+shared_dependencies: []
+context_entries: []
+""",
+                "conflict_b": """schema_version: 1
+scope: conflict_b
+kind: feature
+working_set:
+  - src/conflict.py
+shared_dependencies: []
+context_entries: []
+""",
+                "shell": """schema_version: 1
+scope: shell
+kind: feature
+working_set:
+  - src/shell.py
+shared_dependencies: []
+context_entries: []
+""",
+                "placeholder": """schema_version: 1
+scope: placeholder
+kind: feature
+implementation: placeholder
+working_set:
+  - src/shell.py
+shared_dependencies: []
+context_entries: []
+""",
+            }
+            for scope, content in manifests.items():
+                (root / f".ai/scopes/{scope}.yaml").write_text(content, encoding="utf-8")
+
+            payload = agent.ownership_payload(
+                root,
+                ["src/feature.py", "src/conflict.py", "src/shell.py", "other/new.py"],
+            )
+            conflicts = agent.ownership_conflicts(root)
+
+        feature = payload["paths"]["src/feature.py"]
+        self.assertEqual(feature["status"], "OWNED")
+        self.assertEqual(feature["primary_scope"], "feature")
+        self.assertEqual(feature["shadowed_scopes"], ["broad"])
+
+        conflict = payload["paths"]["src/conflict.py"]
+        self.assertEqual(conflict["status"], "AMBIGUOUS")
+        self.assertEqual(set(conflict["candidate_scopes"]), {"conflict_a", "conflict_b"})
+        self.assertEqual(
+            set(conflict["review_manifests"]),
+            {".ai/scopes/conflict_a.yaml", ".ai/scopes/conflict_b.yaml"},
+        )
+
+        shell = payload["paths"]["src/shell.py"]
+        self.assertEqual(shell["status"], "OWNED")
+        self.assertEqual(shell["primary_scope"], "shell")
+        self.assertEqual(shell["placeholder_scopes"], ["placeholder"])
+
+        self.assertEqual(payload["paths"]["other/new.py"]["status"], "UNOWNED")
+        self.assertEqual(payload["unowned_paths"], ["other/new.py"])
+        self.assertEqual(payload["ambiguous_paths"], ["src/conflict.py"])
+        self.assertEqual(payload["status"], "WARN")
+        self.assertEqual(len(conflicts), 1)
+        self.assertEqual(conflicts[0]["anchor"], "src/conflict.py")
+        self.assertEqual(set(conflicts[0]["scopes"]), {"conflict_a", "conflict_b"})
+
+    def test_ownership_real_map_has_unique_primary_routes(self) -> None:
+        self.assertEqual(agent.ownership_conflicts(ROOT), [])
+        payload = agent.ownership_payload(
+            ROOT,
+            [
+                "app/quest_catalog.py",
+                "app/cartography/scan_status_service.py",
+                "app/modules/encyclopedia/constants.py",
+                "unmapped/new_module.py",
+            ],
+        )
+        self.assertEqual(payload["paths"]["app/quest_catalog.py"]["primary_scope"], "dofus_data")
+        self.assertEqual(
+            payload["paths"]["app/cartography/scan_status_service.py"]["primary_scope"],
+            "world_scan",
+        )
+        shell = payload["paths"]["app/modules/encyclopedia/constants.py"]
+        self.assertEqual(shell["primary_scope"], "encyclopedia_shell")
+        self.assertIn("encyclopedia_bestiary", shell["placeholder_scopes"])
+        self.assertEqual(payload["paths"]["unmapped/new_module.py"]["status"], "UNOWNED")
+
+        quests = agent.inspect_scope(ROOT, "encyclopedia_quests")
+        self.assertNotIn("app/quest_catalog.py", quests["working_set"])
+        self.assertIn("app/quest_catalog.py", quests["context_entries"])
+        self.assertIn(
+            "app/quest_catalog.py",
+            agent.symbols_payload(ROOT, "encyclopedia_quests")["files"],
+        )
 
     def test_symbols_indexes_only_declared_python_scope_entries(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
