@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QLabel
 
 from app.modules.encyclopedia.services.guide_quest_view_model import (
     quest_rewards,
@@ -8,8 +9,12 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 )
 from app.modules.encyclopedia.views.guides_view import (
     GUIDE_ULTIME_LEGACY_ID,
+    GuideHomeCard,
     GuidesView as _OptimizedGuidesView,
 )
+
+
+GUIDE_SUCCESS_TITLE = "Guide Succès"
 
 
 class DeferredAchievementGuidesView(_OptimizedGuidesView):
@@ -47,6 +52,39 @@ class DeferredAchievementGuidesView(_OptimizedGuidesView):
         if not self._achievement_runtime_ready():
             return False
         return bool(super()._sync_achievement_progress())
+
+    def _refresh_guide_ultime_home_labels(self) -> None:
+        """Project the canonical Guide Succès identity without text heuristics."""
+
+        if not hasattr(self, "home_content"):
+            return
+        card = next(
+            (
+                row
+                for row in self.home_content.findChildren(GuideHomeCard)
+                if str(getattr(getattr(row, "guide", None), "id", ""))
+                == GUIDE_ULTIME_LEGACY_ID
+            ),
+            None,
+        )
+        if card is None:
+            return
+
+        title = card.findChild(QLabel, "GuideHomeCardTitle")
+        if title is not None:
+            title.setText(GUIDE_SUCCESS_TITLE)
+        card.setToolTip(f"Ouvrir le guide {GUIDE_SUCCESS_TITLE}")
+
+        # Until the canonical manual runtime has been instantiated, keep the
+        # preloaded lightweight progress snapshot. Once available, it becomes
+        # authoritative and replaces the historical guide_complet counter.
+        service = self.guide_ultime_service
+        if service is None or not service.available:
+            return
+        completed, total = service.route_sheet_progress(self.current_character_key)
+        progress = card.findChild(QLabel, "GuideHomeProgress")
+        if progress is not None:
+            progress.setText(f"{completed} / {total} fiches")
 
     def _selected_series_rewards(self, guide):
         """Quest rewards never need the Success provider.
@@ -165,4 +203,4 @@ class DeferredAchievementGuidesView(_OptimizedGuidesView):
         return changed
 
 
-__all__ = ["DeferredAchievementGuidesView"]
+__all__ = ["DeferredAchievementGuidesView", "GUIDE_SUCCESS_TITLE"]
