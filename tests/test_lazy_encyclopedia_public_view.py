@@ -41,6 +41,11 @@ print(json.dumps({
         self.assertFalse(payload["achievements"])
         self.assertFalse(payload["placeholder"])
 
+    def test_obsolete_placeholder_public_api_is_removed(self) -> None:
+        self.assertNotIn("EncyclopediaPlaceholderView", views.__all__)
+        with self.assertRaises(AttributeError):
+            getattr(views, "EncyclopediaPlaceholderView")
+
     def test_proxy_constructor_and_isinstance_preserve_shell_contract(self) -> None:
         class RealPage:
             def __init__(self, value: int = 0) -> None:
