@@ -268,9 +268,25 @@ Preuve de fermeture :
 - PR temporaire #38 utilisée uniquement pour validation, sans merge ;
 - aucun changement produit et aucun lot V2-9+ inclus.
 
-## V2-9 — Maintenance minimale de la carte — TODO
+## V2-9 — Maintenance minimale de la carte — DONE
 
-Détecter les chemins `UNOWNED` ou réellement `AMBIGUOUS` et permettre une mise à jour simple lors de l'évolution du dépôt.
+`tools/agent.py ownership <paths...>` classe les chemins demandés en `OWNED`, `UNOWNED` ou réellement `AMBIGUOUS`. La sélection donne priorité à l'ancre active la plus spécifique ; les scopes `placeholder` restent visibles comme contexte mais ne deviennent jamais propriétaires métier. `impact` expose la même décision d'ownership et `doctor` bloque les doubles ancres exactes entre scopes actifs afin de détecter une dérive simple de la carte sans scan global.
+
+Deux conflits réels de working set révélés pendant la validation ont été normalisés sans changement produit :
+
+- `app/quest_catalog.py` garde `dofus_data` comme propriétaire primaire ; `encyclopedia_quests` le consomme via `context_entries` et sa dépendance partagée `dofus_data` ;
+- `main.py` garde `startup_lifecycle` comme propriétaire primaire ; `windows_qt_runtime` le conserve uniquement dans `context_entries`.
+
+Preuve de fermeture :
+
+- commit candidat certifié : `c066569549db4a81d77942583bc7482c4af41e69` ;
+- tests ciblés `tests/test_agent_tool.py` : PASS ;
+- Atlas Integrity FAST : PASS ;
+- full application suite : PASS ;
+- Public Pull Request CI : PASS ;
+- AI Context CI : PASS ;
+- Phase Certification / Full Validation : PASS sur le SHA exact ;
+- aucun changement produit et aucun lot V2-10+ inclus.
 
 ## V2-10 — Mapping tests par scope — TODO
 
