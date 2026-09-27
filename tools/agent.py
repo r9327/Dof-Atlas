@@ -154,6 +154,13 @@ def doctor_payload(root: Path = ROOT) -> dict[str, Any]:
             elif config.get("kind") != "shared_infrastructure":
                 errors.append(f"{scope}: non-shared dependency {dependency}")
 
+    conflicts = _declared_ownership_conflicts(context_map, manifests)
+    for conflict in conflicts:
+        errors.append(
+            "ambiguous working_set anchor "
+            f"{conflict['anchor']}: {', '.join(conflict['scopes'])}"
+        )
+
     index_current = ai_context.check_index(root)
     if not index_current:
         errors.append("committed context index is stale or missing")
@@ -163,6 +170,7 @@ def doctor_payload(root: Path = ROOT) -> dict[str, Any]:
         "head": _git(root, "rev-parse", "HEAD"),
         "context_index_current": index_current,
         "scope_count": len(scopes),
+        "ownership_conflicts": conflicts,
         "errors": errors,
     }
 
@@ -198,6 +206,159 @@ def _matches(path: str, anchor: str) -> bool:
     return path == anchor
 
 
+def _scope_implementation(config: dict[str, Any], manifest: dict[str, Any]) -> str:
+    implementation = config.get("implementation", manifest.get("implementation"))
+    return str(implementation or "")
+
+
+def _anchor_specificity(anchor: str) -> tuple[int, int, int]:
+    normalized = ai_context.normalize_path(anchor)
+    trimmed = normalized.rstrip("/")
+    parts = [part for part in trimmed.split("/") if part]
+    exact = 0 if normalized.endswith("/") else 1
+    return len(parts), exact, len(trimmed)
+
+
+def _scope_match_details(
+    context_map: dict[str, Any],
+    manifests: dict[str, dict[str, Any]],
+    path: str,
+) -> list[dict[str, Any]]:
+    details: list[dict[str, Any]] = []
+    for scope, manifest in manifests.items():
+        matching_anchors = [
+            anchor
+            for anchor in manifest.get("working_set", [])
+            if _matches(path, anchor)
+        ]
+        if not matching_anchors:
+            continue
+        anchor = max(matching_anchors, key=_anchor_specificity)
+        config = context_map["scopes"][scope]
+        details.append(
+            {
+                "scope": scope,
+                "kind": config.get("kind"),
+                "anchor": ai_context.normalize_path(anchor),
+                "manifest": config.get("manifest"),
+                "implementation": _scope_implementation(config, manifest),
+            }
+        )
+    return details
+
+
+def _ownership_detail(
+    context_map: dict[str, Any],
+    manifests: dict[str, dict[str, Any]],
+    path: str,
+) -> dict[str, Any]:
+    matched = _scope_match_details(context_map, manifests, path)
+    active = [detail for detail in matched if detail["implementation"] != "placeholder"]
+    placeholders = [detail for detail in matched if detail["implementation"] == "placeholder"]
+
+    candidates: list[dict[str, Any]] = []
+    if active:
+        best = max(_anchor_specificity(detail["anchor"]) for detail in active)
+        candidates = [
+            detail
+            for detail in active
+            if _anchor_specificity(detail["anchor"]) == best
+        ]
+
+    if not candidates:
+        status = "UNOWNED"
+        primary = None
+        maintenance_hint = "assign one primary scope working_set; create a scope only if no existing scope fits"
+    elif len(candidates) == 1:
+        status = "OWNED"
+        primary = candidates[0]
+        maintenance_hint = ""
+    else:
+        status = "AMBIGUOUS"
+        primary = None
+        maintenance_hint = (
+            "keep one primary working_set owner; move secondary use to context_entries "
+            "or shared_dependencies"
+        )
+
+    candidate_scopes = [detail["scope"] for detail in candidates]
+    return {
+        "status": status,
+        "primary_scope": primary["scope"] if primary else None,
+        "primary_anchor": primary["anchor"] if primary else None,
+        "candidate_scopes": candidate_scopes,
+        "matched_scopes": [detail["scope"] for detail in matched],
+        "shadowed_scopes": [
+            detail["scope"]
+            for detail in active
+            if detail["scope"] not in candidate_scopes
+        ],
+        "placeholder_scopes": [detail["scope"] for detail in placeholders],
+        "review_manifests": _unique(
+            str(detail["manifest"])
+            for detail in candidates
+            if detail.get("manifest")
+        ),
+        "maintenance_hint": maintenance_hint,
+    }
+
+
+def ownership_payload(root: Path, paths: Iterable[str]) -> dict[str, Any]:
+    root = root.resolve()
+    normalized = _unique(ai_context.normalize_path(path) for path in paths)
+    context_map, manifests = _model(root)
+    details = {
+        path: _ownership_detail(context_map, manifests, path)
+        for path in normalized
+    }
+    unowned = [path for path, detail in details.items() if detail["status"] == "UNOWNED"]
+    ambiguous = [path for path, detail in details.items() if detail["status"] == "AMBIGUOUS"]
+    return {
+        "schema_version": 1,
+        "source": "scope-working-set-ownership",
+        "status": "WARN" if unowned or ambiguous else "PASS",
+        "paths": details,
+        "unowned_paths": unowned,
+        "ambiguous_paths": ambiguous,
+    }
+
+
+def _declared_ownership_conflicts(
+    context_map: dict[str, Any],
+    manifests: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    owners: dict[str, list[str]] = {}
+    for scope, manifest in manifests.items():
+        config = context_map["scopes"][scope]
+        if _scope_implementation(config, manifest) == "placeholder":
+            continue
+        for anchor in manifest.get("working_set", []):
+            normalized = ai_context.normalize_path(anchor)
+            owners.setdefault(normalized, []).append(scope)
+
+    conflicts: list[dict[str, Any]] = []
+    for anchor, scopes in sorted(owners.items()):
+        unique_scopes = _unique(scopes)
+        if len(unique_scopes) < 2:
+            continue
+        conflicts.append(
+            {
+                "anchor": anchor,
+                "scopes": unique_scopes,
+                "manifests": [
+                    context_map["scopes"][scope]["manifest"]
+                    for scope in unique_scopes
+                ],
+            }
+        )
+    return conflicts
+
+
+def ownership_conflicts(root: Path = ROOT) -> list[dict[str, Any]]:
+    context_map, manifests = _model(root.resolve())
+    return _declared_ownership_conflicts(context_map, manifests)
+
+
 def impact_payload(root: Path, paths: Iterable[str]) -> dict[str, Any]:
     root = root.resolve()
     normalized = _unique(ai_context.normalize_path(path) for path in paths)
@@ -227,11 +388,22 @@ def impact_payload(root: Path, paths: Iterable[str]) -> dict[str, Any]:
         working_set.extend(manifest.get("working_set", []))
         context_entries.extend(manifest.get("context_entries", []))
 
+    ownership = {
+        path: _ownership_detail(context_map, manifests, path)
+        for path in normalized
+    }
     return {
         "paths": normalized,
         "domains": {path: ai_context.classify_path(path) for path in normalized},
         "scope_matches": matches,
         "scopes": scopes,
+        "ownership": ownership,
+        "unowned_paths": [
+            path for path, detail in ownership.items() if detail["status"] == "UNOWNED"
+        ],
+        "ambiguous_paths": [
+            path for path, detail in ownership.items() if detail["status"] == "AMBIGUOUS"
+        ],
         "shared_dependencies": _unique(dependencies),
         "rules": _unique(rules),
         "canonical_entries": _unique(canonical),
@@ -449,6 +621,9 @@ def main(argv: list[str] | None = None) -> int:
     impact = commands.add_parser("impact")
     impact.add_argument("paths", nargs="+")
     impact.add_argument("--json", action="store_true")
+    ownership = commands.add_parser("ownership")
+    ownership.add_argument("paths", nargs="+")
+    ownership.add_argument("--json", action="store_true")
     symbols = commands.add_parser("symbols")
     symbols.add_argument("scope")
     symbols.add_argument("--json", action="store_true")
@@ -471,6 +646,9 @@ def main(argv: list[str] | None = None) -> int:
             exit_code = 0
         elif command == "impact":
             payload = impact_payload(ROOT, args.paths)
+            exit_code = 0
+        elif command == "ownership":
+            payload = ownership_payload(ROOT, args.paths)
             exit_code = 0
         elif command == "symbols":
             payload = symbols_payload(ROOT, args.scope)
