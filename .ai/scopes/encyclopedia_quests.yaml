@@ -2,7 +2,6 @@ schema_version: 1
 scope: encyclopedia_quests
 kind: feature
 working_set:
-  - app/quest_catalog.py
   - app/pages/quests_page.py
   - app/pages/_quests_page_impl.py
   - app/pages/progressive_quests_page.py
@@ -14,5 +13,6 @@ shared_dependencies:
   - persistence_identity
   - shared_ui
 context_entries:
+  - app/quest_catalog.py
   - app/modules/encyclopedia/services/quest_graph_service.py
   - app/modules/encyclopedia/services/guide_quest_view_model.py
