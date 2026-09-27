@@ -557,9 +557,11 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         def run_thread(*, target, **_kwargs):
             return SimpleNamespace(start=target)
 
+        guide_success_runtime = SimpleNamespace(available=False)
         with patch(
-            "app.modules.encyclopedia.views.encyclopedia_page._warm_guide_ultime_runtime_cache"
-        ) as warm_cache, patch(
+            "app.modules.encyclopedia.views.encyclopedia_page._build_guide_success_runtime",
+            return_value=guide_success_runtime,
+        ) as build_guide_success, patch(
             "app.modules.encyclopedia.views.encyclopedia_page.Thread",
             side_effect=run_thread,
         ):
@@ -568,7 +570,7 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         self.assertEqual(gate.state, RelatedPreloadState.LOADING)
         guide_provider.reload.assert_called_once_with()
         guide_provider.load_all.assert_not_called()
-        warm_cache.assert_called_once_with(
+        build_guide_success.assert_called_once_with(
             page.quest_provider,
             quest_progress_path=page.quest_progress_path,
             achievement_progress_path=page.achievement_progress_service.path,
