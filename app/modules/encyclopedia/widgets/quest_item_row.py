@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import QPoint, QSize, Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygon
-from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
+from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPen, QPixmap, QPolygon
+from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QToolButton, QToolTip, QWidget
 
 from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem, format_number
 from app.ui.components import AtlasButton
@@ -92,11 +92,24 @@ def item_row(
     name.setToolTip("Copier le nom de l'objet")
     name.setCursor(Qt.PointingHandCursor)
     name.setProperty("copyText", item.name)
-    name.clicked.connect(
-        lambda _checked=False, value=item.name: (
-            on_copy(value) if on_copy is not None else QApplication.clipboard().setText(value)
+
+    def copy_name() -> None:
+        value = str(item.name or "").strip()
+        if not value:
+            return
+        if on_copy is not None:
+            on_copy(value)
+        else:
+            QApplication.clipboard().setText(value)
+        QToolTip.showText(
+            QCursor.pos(),
+            f"Copié : {value}",
+            name,
+            name.rect(),
+            1200,
         )
-    )
+
+    name.clicked.connect(lambda _checked=False: copy_name())
     layout.addWidget(name, 0)
     if item.quantity is not None:
         quantity = QLabel(f"x{format_number(item.quantity)}")
