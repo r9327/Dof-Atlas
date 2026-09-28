@@ -103,36 +103,42 @@ class GuideUltimeManualCard(QFrame):
             "À PRÉPARER",
             sections.get("prepare"),
             "GuideManualResourceSection",
+            "prepare",
         )
         self._add_line_section(
             root,
             "À FAIRE MAINTENANT",
             sections.get("now"),
             "GuideManualActionSection",
+            "now",
         )
         self._add_line_section(
             root,
             "À PROFITER ICI",
             sections.get("opportunity"),
             "GuideManualActionSection",
+            "opportunity",
         )
         self._add_line_section(
             root,
             "À CONSERVER POUR PLUS TARD",
             sections.get("keep"),
             "GuideManualResourceSection",
+            "keep",
         )
         self._add_line_section(
             root,
             "BOSS / CAPTURES",
             sections.get("boss"),
             "GuideManualDungeonSection",
+            "boss",
         )
         self._add_line_section(
             root,
             "AVANT DE PARTIR",
             sections.get("before_leave"),
             "GuideManualWarningSection",
+            "before_leave",
         )
 
     @staticmethod
@@ -226,6 +232,7 @@ class GuideUltimeManualCard(QFrame):
         title: str,
         rows,
         object_name: str,
+        section_key: str,
     ) -> None:
         visible = [
             row for row in rows or []
@@ -244,11 +251,49 @@ class GuideUltimeManualCard(QFrame):
         heading.setObjectName("GuideManualSectionTitle")
         layout.addWidget(heading)
 
+        checker = getattr(self.service, "checklist_checked", None)
+        setter = getattr(self.service, "set_checklist_checked", None)
         for row in visible:
             text = str(row.get("text") or "").strip()
             position = str(row.get("position") or "").strip()
             kind = str(row.get("kind") or "")
             prefix = "⚠ " if kind == "warning" else "• "
+
+            row_widget = QFrame()
+            row_widget.setObjectName("GuideManualChecklistRow")
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(7)
+
+            check = QCheckBox()
+            check.setObjectName("GuideManualLineCheck")
+            check.setToolTip("Repère personnel : n'influence pas la validation canonique de la fiche.")
+            checked = False
+            if callable(checker):
+                checked = bool(
+                    checker(
+                        self.character_key,
+                        self.card,
+                        section_key,
+                        row,
+                        self.index,
+                    )
+                )
+            check.setChecked(checked)
+            check.setEnabled(callable(setter))
+            if callable(setter):
+                check.toggled.connect(
+                    lambda value, current=row, section=section_key: setter(
+                        self.character_key,
+                        self.card,
+                        section,
+                        current,
+                        self.index,
+                        bool(value),
+                    )
+                )
+            row_layout.addWidget(check, 0, Qt.AlignTop)
+
             line = QLabel()
             line.setTextFormat(Qt.RichText)
             line.setText(
@@ -263,7 +308,8 @@ class GuideUltimeManualCard(QFrame):
             line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
             line.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            layout.addWidget(line)
+            row_layout.addWidget(line, 1)
+            layout.addWidget(row_widget)
 
         root.addWidget(frame)
 
