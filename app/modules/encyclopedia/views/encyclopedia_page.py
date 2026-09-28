@@ -508,6 +508,24 @@ class EncyclopediaPage(QWidget):
             self.quest_page.search.clear()
         self.tabs.setCurrentIndex(ENCYCLOPEDIA_TABS.index(QUESTS_TAB))
         self.quest_page.select_quest(quest_id)
+        if source == "guide_gps" and self.quest_page.selected_quest_id == quest_id:
+            from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
+
+            raw_index = context.get("guide_index")
+            try:
+                guide_index = int(raw_index) if raw_index is not None else None
+            except (TypeError, ValueError):
+                guide_index = None
+            self.quest_page.quest_detail_view.show_quest(
+                quest_id,
+                QuestViewContext(
+                    host="guide_gps",
+                    guide_id=str(context.get("guide_id") or "guide_complet"),
+                    guide_title="Guide Ultime",
+                    guide_stage_id=str(context.get("guide_stage_id") or ""),
+                    guide_index=guide_index,
+                ),
+            )
         return self.quest_page.selected_quest_id == quest_id
 
 
