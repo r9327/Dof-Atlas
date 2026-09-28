@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -629,6 +630,13 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
             if command:
                 QApplication.clipboard().setText(command)
                 watched.setToolTip(f"Copié : {command}")
+                QToolTip.showText(
+                    event.globalPosition().toPoint(),
+                    f"Copié : {command}",
+                    watched,
+                    watched.rect(),
+                    1200,
+                )
                 event.accept()
                 return True
         return super().eventFilter(watched, event)
