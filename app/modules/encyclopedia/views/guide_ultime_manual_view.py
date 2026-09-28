@@ -96,6 +96,7 @@ class GuideUltimeManualCard(QFrame):
         )
         if not isinstance(sections, dict) or not any(sections.values()):
             sections = {"now": manual_lines}
+        sections = self._without_prepare_duplicates(sections)
 
         self._add_line_section(
             root,
@@ -133,6 +134,35 @@ class GuideUltimeManualCard(QFrame):
             sections.get("before_leave"),
             "GuideManualWarningSection",
         )
+
+    @staticmethod
+    def _section_row_fingerprint(row: Any) -> str:
+        if not isinstance(row, dict):
+            return ""
+        position = " ".join(str(row.get("position") or "").split()).casefold()
+        text = " ".join(str(row.get("text") or "").split()).casefold()
+        if not text:
+            return ""
+        return f"{position}\n{text}"
+
+    @classmethod
+    def _without_prepare_duplicates(cls, sections: dict[str, Any]) -> dict[str, list[Any]]:
+        """Keep preparation only for instructions not already executed now."""
+        visible = {
+            str(key): list(rows or []) if isinstance(rows, (list, tuple)) else []
+            for key, rows in sections.items()
+        }
+        now_fingerprints = {
+            cls._section_row_fingerprint(row)
+            for row in visible.get("now", [])
+        }
+        now_fingerprints.discard("")
+        visible["prepare"] = [
+            row
+            for row in visible.get("prepare", [])
+            if cls._section_row_fingerprint(row) not in now_fingerprints
+        ]
+        return visible
 
     def _add_quest_rows(self, root: QVBoxLayout) -> None:
         quest_provider = getattr(self.service, "quest_provider", None)
