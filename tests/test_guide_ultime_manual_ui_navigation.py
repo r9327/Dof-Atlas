@@ -117,12 +117,27 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.route_progress_label.text(), "0 %")
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
             self.assertEqual(view.validation_check.text(), "Validation")
+            self.assertEqual(view.route_lock_check.text(), "Verrouiller")
+            self.assertIn("Validation", view.route_legend.text())
             self.assertIsNot(
                 view.nav_page_label.parentWidget(),
                 view.prev_button.parentWidget(),
             )
             self.assertNotIn("Quêtes", view.route_progress_label.text())
             self.assertNotIn("Donjons", view.route_progress_label.text())
+        finally:
+            view.close()
+
+    def test_progress_bar_lock_blocks_only_direct_bar_jumps(self) -> None:
+        _service, view = self._view()
+        try:
+            view.route_lock_check.setChecked(True)
+            view._jump_from_progress(1.0)
+            self.assertEqual(view.view_index, 0)
+
+            view.route_lock_check.setChecked(False)
+            view._jump_from_progress(1.0)
+            self.assertEqual(view.view_index, 1)
         finally:
             view.close()
 
