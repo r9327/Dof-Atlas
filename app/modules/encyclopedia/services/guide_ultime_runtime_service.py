@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
@@ -91,6 +93,62 @@ class GuideUltimeRuntimeService(GuideUltimeGeneratedService):
         self.set_manual_checked(character_key, stable_key, True)
         self.set_manual_checked(character_key, legacy_key, False)
         return True
+
+    def checklist_key(
+        self,
+        card: dict[str, Any],
+        section: str,
+        row: dict[str, Any],
+        fallback_index: int = 0,
+    ) -> str:
+        """Return a deterministic auxiliary checklist identity for one visible line.
+
+        Checklist state deliberately does not participate in card completion. The
+        semantic payload is content-addressed so reordering sibling rows preserves
+        checks, while a genuinely changed instruction becomes a new checklist item.
+        Old keys are never deleted implicitly.
+        """
+        payload = {
+            "section": str(section or "").strip().casefold(),
+            "position": " ".join(str(row.get("position") or "").split()).casefold(),
+            "text": " ".join(str(row.get("text") or "").split()).casefold(),
+        }
+        encoded = json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        digest = hashlib.sha256(encoded).hexdigest()[:20]
+        return f"checklist:{self.card_key(card, fallback_index)}:{payload['section']}:{digest}"
+
+    def checklist_checked(
+        self,
+        character_key: str,
+        card: dict[str, Any],
+        section: str,
+        row: dict[str, Any],
+        fallback_index: int = 0,
+    ) -> bool:
+        return self.manual_checked(
+            character_key,
+            self.checklist_key(card, section, row, fallback_index),
+        )
+
+    def set_checklist_checked(
+        self,
+        character_key: str,
+        card: dict[str, Any],
+        section: str,
+        row: dict[str, Any],
+        fallback_index: int,
+        checked: bool,
+    ) -> None:
+        self.set_manual_checked(
+            character_key,
+            self.checklist_key(card, section, row, fallback_index),
+            bool(checked),
+        )
 
     def route_sheet_progress(self, character_key: str) -> tuple[int, int]:
         """Return completion of the route units actually rendered to the player."""
