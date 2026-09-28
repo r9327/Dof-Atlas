@@ -87,7 +87,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "ce59626a6c2a6c361d1523a87d37b4a038d154b3",
+      "sha": "868cb82bafe7e5c6a9805a23d8f787fcf3183774",
       "type": "tree"
     },
     "bootstrap_dofus_atlas.ps1": {
@@ -132,7 +132,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "6e0fc2c3a20022c22d41b07622abdacdfd3f8597",
+      "sha": "1bb7819fde22d5b4444ccba80d870ae576cd13ac",
       "type": "tree"
     },
     "tools": {
