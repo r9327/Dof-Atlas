@@ -5,13 +5,30 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QFrame
+from PySide6.QtWidgets import QApplication, QFrame, QPushButton
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
 
 
+class _FakeQuest:
+    def __init__(self, quest_id: int, name: str) -> None:
+        self.id = int(quest_id)
+        self.name = name
+
+
+class _FakeQuestProvider:
+    def __init__(self) -> None:
+        self.by_id = {
+            101: _FakeQuest(101, "Quête canonique test"),
+        }
+
+    def get_quest(self, quest_id: int):
+        return self.by_id.get(int(quest_id))
+
+
 class _FakeManualUiService:
     def __init__(self) -> None:
+        self.quest_provider = _FakeQuestProvider()
         long_lines = [
             {
                 "kind": "action",
@@ -26,10 +43,12 @@ class _FakeManualUiService:
         self.cards = [
             {
                 "manual_title": "Première fiche",
+                "manual_stage_id": "TEST-01",
                 "manual_chapter_id": "chapter_one",
                 "manual_chapter_label": "Chapitre un",
                 "destination": "[1,-1] Zone test",
                 "manual_resource_names": [],
+                "manual_quest_ids": [101],
                 "manual_lines": list(long_lines),
             },
             {
@@ -117,6 +136,42 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertNotIn("GuideManualSuccessBlock", object_names)
         finally:
             view.close()
+
+    def test_canonical_quest_row_opens_quests_tab_with_stable_return_context(self) -> None:
+        _service, view = self._view()
+        calls: list[tuple[tuple, dict]] = []
+        view.navigate_entity = lambda *args, **kwargs: calls.append((args, kwargs)) or True
+        try:
+            button = next(
+                candidate
+                for candidate in view.findChildren(QPushButton)
+                if candidate.objectName() == "GuideManualQuestButton"
+            )
+            self.assertEqual(button.text(), "Quête canonique test")
+            self.assertIn("fiche canonique", button.toolTip())
+
+            button.click()
+            QApplication.processEvents()
+
+            self.assertEqual(calls[0][0], ("quest", 101))
+            self.assertEqual(calls[0][1]["source"], "guide_gps")
+            self.assertEqual(calls[0][1]["guide_id"], "guide_complet")
+            self.assertEqual(calls[0][1]["guide_stage_id"], "TEST-01")
+            self.assertEqual(calls[0][1]["guide_index"], 0)
+        finally:
+            view.close()
+
+    def test_position_is_bold_in_manual_action_html(self) -> None:
+        from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualCard
+
+        rendered = GuideUltimeManualCard._format_line_html(
+            "• ",
+            "[1,-2]",
+            "Parler au PNJ.",
+            [],
+            [],
+        )
+        self.assertIn("<b>[1,-2]</b>", rendered)
 
     def test_validation_control_persists_manual_page_state(self) -> None:
         service, view = self._view()

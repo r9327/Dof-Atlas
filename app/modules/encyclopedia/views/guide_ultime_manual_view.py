@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
+from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
 
 
@@ -52,6 +53,8 @@ class GuideManualProgressBar(QProgressBar):
 class GuideUltimeManualCard(QFrame):
     """A single hand-authored road-book sheet."""
 
+    questRequested = Signal(int, str, int)
+
     def __init__(self, service, character_key: str, card: dict[str, Any], index: int, parent=None) -> None:
         super().__init__(parent)
         self.service = service
@@ -75,6 +78,8 @@ class GuideUltimeManualCard(QFrame):
             where.setObjectName("GuideManualLocation")
             where.setWordWrap(True)
             root.addWidget(where)
+
+        self._add_quest_rows(root)
 
         self._resource_names = [
             str(value).strip()
@@ -128,6 +133,62 @@ class GuideUltimeManualCard(QFrame):
             sections.get("before_leave"),
             "GuideManualWarningSection",
         )
+
+    def _add_quest_rows(self, root: QVBoxLayout) -> None:
+        quest_provider = getattr(self.service, "quest_provider", None)
+        if quest_provider is None:
+            return
+        quest_ids = [
+            int(value)
+            for value in self.card.get("manual_quest_ids", []) or []
+            if isinstance(value, int) or str(value).isdigit()
+        ]
+        if not quest_ids:
+            return
+
+        rows: list[tuple[int, str]] = []
+        seen: set[int] = set()
+        for quest_id in quest_ids:
+            if quest_id in seen:
+                continue
+            seen.add(quest_id)
+            try:
+                quest = quest_provider.get_quest(quest_id)
+            except Exception:
+                quest = None
+            name = str(getattr(quest, "name", "") or "").strip()
+            if name:
+                rows.append((quest_id, name))
+        if not rows:
+            return
+
+        frame = QFrame()
+        frame.setObjectName("GuideManualQuestSection")
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(6)
+
+        heading = QLabel("QUÊTES DE L'ÉTAPE")
+        heading.setObjectName("GuideManualSectionTitle")
+        layout.addWidget(heading)
+
+        stage_id = str(self.card.get("manual_stage_id") or "")
+        for quest_id, name in rows:
+            button = AtlasButton(name)
+            button.setObjectName("GuideManualQuestButton")
+            button.setToolTip(
+                f"{name}\nOuvrir la fiche canonique dans l'onglet Quêtes."
+            )
+            button.clicked.connect(
+                lambda _checked=False, qid=quest_id, sid=stage_id: self.questRequested.emit(
+                    qid,
+                    sid,
+                    self.index,
+                )
+            )
+            layout.addWidget(button)
+
+        root.addWidget(frame)
 
     def _add_line_section(
         self,
@@ -226,7 +287,9 @@ class GuideUltimeManualCard(QFrame):
         npc_names: list[str],
         resource_names: list[str],
     ) -> str:
-        plain = str(prefix or "") + (f"{position} — " if position else "") + str(text or "")
+        prefix_text = str(prefix or "")
+        position_text = str(position or "")
+        plain = prefix_text + (f"{position_text} — " if position_text else "") + str(text or "")
         spans: list[tuple[int, int, str]] = []
 
         def add_span(start: int, end: int, kind: str) -> None:
@@ -235,6 +298,9 @@ class GuideUltimeManualCard(QFrame):
             if any(not (end <= existing_start or start >= existing_end) for existing_start, existing_end, _ in spans):
                 return
             spans.append((start, end, kind))
+
+        if position_text:
+            add_span(len(prefix_text), len(prefix_text) + len(position_text), "position")
 
         for name in sorted({value for value in npc_names if value}, key=len, reverse=True):
             pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
@@ -259,8 +325,10 @@ class GuideUltimeManualCard(QFrame):
             value = html.escape(plain[start:end])
             if kind == "npc":
                 rendered.append(f'<span style="color:{NPC_COLOR};"><b>{value}</b></span>')
-            else:
+            elif kind == "resource":
                 rendered.append(f'<span style="color:{RESOURCE_COLOR};"><b>{value}</b></span>')
+            else:
+                rendered.append(f"<b>{value}</b>")
             cursor = end
         rendered.append(html.escape(plain[cursor:]))
         return "".join(rendered)
@@ -407,6 +475,7 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         card = self.service.cards[index]
         self._add_manual_order_choice(card)
         widget = GuideUltimeManualCard(self.service, self.character_key, card, index)
+        widget.questRequested.connect(self._open_quest_from_card)
         self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = 1
@@ -416,6 +485,19 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self._make_positions_copyable(widget)
         if reset_scroll:
             self._reset_scroll_to_top()
+
+    def _open_quest_from_card(self, quest_id: int, stage_id: str, index: int) -> None:
+        navigator = self.navigate_entity
+        if not callable(navigator):
+            return
+        navigator(
+            "quest",
+            int(quest_id),
+            source="guide_gps",
+            guide_id="guide_complet",
+            guide_stage_id=str(stage_id or ""),
+            guide_index=int(index),
+        )
 
     def _sync_validation_control(self, card: dict[str, Any], index: int) -> None:
         automatic = bool(self.service.card_auto_complete(self.character_key, card))
