@@ -410,7 +410,19 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.route_progress_label = QLabel()
         self.route_progress_label.setObjectName("GuideManualPercent")
         progress_layout.addWidget(self.route_progress_label)
+        self.route_lock_check = QCheckBox("Verrouiller")
+        self.route_lock_check.setObjectName("GuideManualProgressLock")
+        self.route_lock_check.setToolTip("Empêcher les sauts accidentels par clic dans la barre de progression.")
+        self.route_lock_check.toggled.connect(self._route_lock_toggled)
+        progress_layout.addWidget(self.route_lock_check)
         root.addWidget(progress)
+
+        self.route_legend = QLabel(
+            "Barre : cliquer pour parcourir les fiches · Verrouiller : bloquer les sauts par clic · Validation : secours manuel uniquement."
+        )
+        self.route_legend.setObjectName("GuideManualLegend")
+        self.route_legend.setWordWrap(True)
+        root.addWidget(self.route_legend)
 
         self.scroll = QScrollArea()
         self.scroll.setObjectName("GuideManualScroll")
@@ -458,6 +470,14 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
     def _sync_order_combo(self) -> None:
         return
 
+    def _route_lock_toggled(self, locked: bool) -> None:
+        self.route_bar.setCursor(Qt.ArrowCursor if locked else Qt.PointingHandCursor)
+        self.route_bar.setToolTip(
+            "Barre verrouillée : décochez Verrouiller pour naviguer par clic."
+            if locked
+            else "Cliquer dans la barre pour naviguer directement dans le Guide GPS."
+        )
+
     def _refresh_header(self) -> None:
         completed, total = self.service.route_sheet_progress(self.character_key)
         if total <= 0:
@@ -481,6 +501,8 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self._render_window(reset_scroll=True)
 
     def _jump_from_progress(self, ratio: float) -> None:
+        if self.route_lock_check.isChecked():
+            return
         total = len(self.service.cards)
         if total <= 0:
             return
