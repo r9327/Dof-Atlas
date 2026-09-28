@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QLabel
 
 from app.modules.encyclopedia.services.guide_quest_view_model import (
     quest_rewards,
@@ -8,6 +9,8 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 )
 from app.modules.encyclopedia.views.guides_view import (
     GUIDE_ULTIME_LEGACY_ID,
+    GUIDE_ULTIME_TITLE,
+    GuideHomeCard,
     GuidesView as _OptimizedGuidesView,
 )
 
@@ -39,6 +42,32 @@ class DeferredAchievementGuidesView(_OptimizedGuidesView):
     def _achievement_runtime_ready(self) -> bool:
         provider = getattr(self, "achievement_provider", None)
         return bool(provider is not None and getattr(provider, "_loaded", False))
+
+    def _refresh_guide_ultime_home_labels(self) -> None:
+        """Refresh the Guide Ultime card by stable Guide identity, never display text."""
+        target = next(
+            (
+                card
+                for card in self.home_content.findChildren(GuideHomeCard)
+                if str(getattr(getattr(card, "guide", None), "id", ""))
+                == GUIDE_ULTIME_LEGACY_ID
+            ),
+            None,
+        )
+        if target is None:
+            return
+
+        title = target.findChild(QLabel, "GuideHomeCardTitle")
+        if title is not None:
+            title.setText(GUIDE_ULTIME_TITLE)
+
+        service = self.guide_ultime_service
+        if service is None or not service.available:
+            return
+        completed, total = service.route_sheet_progress(self.current_character_key)
+        progress = target.findChild(QLabel, "GuideHomeProgress")
+        if progress is not None:
+            progress.setText(f"{completed} / {total} fiches")
 
     def _sync_achievement_progress(self) -> bool:
         # Character changes and external refreshes can happen after construction.

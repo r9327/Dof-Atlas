@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import subprocess
 import sys
@@ -71,6 +72,29 @@ print(json.dumps({
         payload = json.loads(result.stdout.strip().splitlines()[-1])
         self.assertEqual(payload["proxy"], "EncyclopediaPage")
         self.assertFalse(payload["manual_runtime"])
+
+    def test_modern_guides_home_uses_stable_guide_id_not_display_text(self) -> None:
+        path = Path("app/modules/encyclopedia/views/deferred_achievement_guides_view.py")
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        guides_class = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "DeferredAchievementGuidesView"
+        )
+        method = next(
+            node
+            for node in guides_class.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_refresh_guide_ultime_home_labels"
+        )
+        source = ast.unparse(method)
+        self.assertIn("GuideHomeCard", source)
+        self.assertIn("GUIDE_ULTIME_LEGACY_ID", source)
+        self.assertIn("card.guide", source.replace("getattr(card, 'guide', None)", "card.guide"))
+        self.assertNotIn("aventure de zéro", source.casefold())
+        self.assertNotIn("aventure de zero", source.casefold())
+        self.assertNotIn("GuideUltimeManualRuntimeService(", source)
 
 
 if __name__ == "__main__":
