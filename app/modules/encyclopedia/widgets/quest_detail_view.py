@@ -48,6 +48,8 @@ class QuestViewContext:
     host: str = "quests"
     guide_id: str = ""
     guide_title: str = ""
+    guide_stage_id: str = ""
+    guide_index: int | None = None
     achievement_id: int | None = None
     ordered_quest_ids: tuple[int, ...] = ()
 
@@ -118,6 +120,11 @@ class QuestDetailView(QWidget):
         title_layout.addWidget(self.title_label)
         title_layout.addWidget(self.meta_label)
         header_layout.addLayout(title_layout, 1)
+        self.guide_return_button = AtlasButton("← Retour au Guide")
+        self.guide_return_button.setObjectName("QuestGuideReturnButton")
+        self.guide_return_button.setVisible(False)
+        self.guide_return_button.clicked.connect(self.return_to_guide)
+        header_layout.addWidget(self.guide_return_button, 0, Qt.AlignRight | Qt.AlignVCenter)
         self.done_button = QToolButton()
         self.done_button.setObjectName("QuestGlobalDoneButton")
         self.done_button.setCursor(Qt.PointingHandCursor)
@@ -243,6 +250,7 @@ class QuestDetailView(QWidget):
         self.title_label.setText("Quêtes")
         self.meta_label.clear()
         self.meta_label.setVisible(False)
+        self.guide_return_button.setVisible(False)
         self.done_button.setVisible(False)
         self._clear_layout(self.center_layout)
         self._clear_layout(self.right_layout)
@@ -268,11 +276,31 @@ class QuestDetailView(QWidget):
         level = _guide_ui()._display_quest_level_text(quest)
         self.meta_label.setText(level)
         self.meta_label.setVisible(bool(level))
+        has_guide_return = self.context.host == "guide_gps" and bool(self.context.guide_id)
+        self.guide_return_button.setVisible(has_guide_return)
+        self.guide_return_button.setToolTip(
+            "Revenir à l'étape du Guide qui a ouvert cette quête."
+            if has_guide_return
+            else ""
+        )
         self.done_button.setVisible(True)
         self.done_button.setText("✓ Quête terminée" if completed else "○ Marquer terminée")
         self.done_button.setProperty("state", "done" if completed else "todo")
         self.done_button.style().unpolish(self.done_button)
         self.done_button.style().polish(self.done_button)
+
+    def return_to_guide(self) -> bool:
+        if self.navigate_entity_callback is None or not self.context.guide_id:
+            return False
+        return bool(
+            self.navigate_entity_callback(
+                "guide",
+                self.context.guide_id,
+                source="guide_gps_return",
+                guide_stage_id=self.context.guide_stage_id,
+                guide_index=self.context.guide_index,
+            )
+        )
 
     def _render_solution(self, quest: QuestRecord, step: Any) -> None:
         ui = _guide_ui()
@@ -591,6 +619,8 @@ class QuestDetailView(QWidget):
                 entity_id,
                 source=self.context.host,
                 guide_id=self.context.guide_id,
+                guide_stage_id=self.context.guide_stage_id,
+                guide_index=self.context.guide_index,
                 achievement_id=self.context.achievement_id,
             )
         )
