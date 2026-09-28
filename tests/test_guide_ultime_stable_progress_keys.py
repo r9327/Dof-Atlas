@@ -39,7 +39,7 @@ class GuideUltimeStableProgressKeyTests(unittest.TestCase):
         self.assertEqual(self.service.page_key(reordered, 0), "page:manual:astrub:astrub-egouts-prairie")
 
     def test_legacy_gps_key_is_migrated_lazily(self) -> None:
-        character = "slot:1"
+        character = "character:1"
         self.service.checked.add((character, "page:gps:42"))
 
         self.assertTrue(self.service.page_checked(character, self.card, 0))
@@ -51,6 +51,38 @@ class GuideUltimeStableProgressKeyTests(unittest.TestCase):
             self.service.card_key(self.card, 1),
             self.service.card_key(self.card, 999),
         )
+
+    def test_checklist_key_survives_card_and_sibling_reordering(self) -> None:
+        row = {
+            "kind": "action",
+            "position": "[5,-18]",
+            "text": "Tue 4 × Piou Rouge.",
+        }
+        first = self.service.checklist_key(self.card, "boss", row, 0)
+        reordered = dict(self.card, index=99)
+        second = self.service.checklist_key(reordered, "boss", dict(row), 999)
+
+        self.assertEqual(first, second)
+        self.assertIn("manual:astrub:astrub-egouts-prairie", first)
+        self.assertIn(":boss:", first)
+
+    def test_checklist_state_is_auxiliary_and_persists_by_semantic_line(self) -> None:
+        character = "character:1"
+        row = {
+            "kind": "action",
+            "position": "[5,-18]",
+            "text": "Tue 4 × Piou Rouge.",
+        }
+        self.service.set_checklist_checked(character, self.card, "boss", row, 0, True)
+        self.assertTrue(
+            self.service.checklist_checked(character, self.card, "boss", row, 999)
+        )
+
+        changed_row = dict(row, text="Tue 5 × Piou Rouge.")
+        self.assertFalse(
+            self.service.checklist_checked(character, self.card, "boss", changed_row, 0)
+        )
+        self.assertEqual(len(self.service.checked), 1)
 
 
 if __name__ == "__main__":
