@@ -335,6 +335,23 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
+    def test_same_character_reentry_resets_history_to_active_sheet(self) -> None:
+        service, view = self._view()
+        try:
+            view.navigate_relative(1)
+            QApplication.processEvents()
+            self.assertEqual(view.view_index, 1)
+
+            service.active_index = 0
+            view.set_character_key("character:1")
+            QApplication.processEvents()
+
+            self.assertEqual(view.active_index, 0)
+            self.assertEqual(view.view_index, 0)
+            self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
+        finally:
+            view.close()
+
 
 if __name__ == "__main__":
     unittest.main()
