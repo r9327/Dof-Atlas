@@ -7,7 +7,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QFrame, QPushButton
 
-from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
+from app.modules.encyclopedia.views.guide_ultime_manual_view import (
+    GuideUltimeManualCard,
+    GuideUltimeManualView,
+)
 
 
 class _FakeQuest:
@@ -161,9 +164,35 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_position_is_bold_in_manual_action_html(self) -> None:
-        from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualCard
+    def test_prepare_drops_only_exact_actions_already_done_now(self) -> None:
+        duplicate_prepare = {
+            "kind": "warning",
+            "position": "[1,-2]",
+            "text": "Prendre la clé.",
+        }
+        duplicate_now = {
+            "kind": "action",
+            "position": " [1,-2] ",
+            "text": "  PRENDRE LA CLÉ. ",
+        }
+        distinct_prepare = {
+            "kind": "warning",
+            "position": "",
+            "text": "Prépare 4 × Potion.",
+        }
+        result = GuideUltimeManualCard._without_prepare_duplicates(
+            {
+                "prepare": [duplicate_prepare, distinct_prepare],
+                "now": [duplicate_now],
+                "boss": [],
+            }
+        )
 
+        self.assertEqual(result["prepare"], [distinct_prepare])
+        self.assertEqual(result["now"], [duplicate_now])
+        self.assertEqual(result["boss"], [])
+
+    def test_position_is_bold_in_manual_action_html(self) -> None:
         rendered = GuideUltimeManualCard._format_line_html(
             "• ",
             "[1,-2]",
