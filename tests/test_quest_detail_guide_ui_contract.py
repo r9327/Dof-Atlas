@@ -45,6 +45,14 @@ class QuestDetailGuideUiContractTests(unittest.TestCase):
         self.assertIn("guide_index=", source)
         self.assertIn("self.quest_page.select_quest(quest_id)", source)
 
+    def test_shared_item_copy_shows_short_confirmation(self) -> None:
+        source = Path(
+            "app/modules/encyclopedia/widgets/quest_item_row.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("QApplication.clipboard().setText(value)", source)
+        self.assertIn("QToolTip.showText", source)
+        self.assertIn("1200", source)
+
 
 if __name__ == "__main__":
     unittest.main()
