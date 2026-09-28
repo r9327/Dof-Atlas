@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from app.modules.encyclopedia.views import guides_view
 
@@ -28,10 +29,21 @@ class QuestDetailGuideUiContractTests(unittest.TestCase):
         self.assertEqual([], missing, f"Primitives manquantes pour QuestDetailView: {missing}")
 
     def test_compatibility_surface_uses_explicit_imports_not_wildcards(self) -> None:
-        source = __import__("pathlib").Path(guides_view.__file__).read_text(encoding="utf-8")
+        source = Path(guides_view.__file__).read_text(encoding="utf-8")
         self.assertNotIn("import *", source)
         self.assertIn("quest_solution_document_widgets", source)
         self.assertIn("quest_navigation_footer", source)
+
+    def test_encyclopedia_routes_guide_gps_quest_to_canonical_quest_sheet(self) -> None:
+        source = Path(
+            "app/modules/encyclopedia/views/encyclopedia_page.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('source == "guide_gps"', source)
+        self.assertIn("QuestViewContext(", source)
+        self.assertIn('host="guide_gps"', source)
+        self.assertIn("guide_stage_id=", source)
+        self.assertIn("guide_index=", source)
+        self.assertIn("self.quest_page.select_quest(quest_id)", source)
 
 
 if __name__ == "__main__":
