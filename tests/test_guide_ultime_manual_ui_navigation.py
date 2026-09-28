@@ -5,7 +5,7 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QFrame, QPushButton
+from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QPushButton
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
@@ -68,6 +68,8 @@ class _FakeManualUiService:
         self.completed = 0
         self.page_state = False
         self.page_updates: list[tuple[int, bool]] = []
+        self.line_checks: set[tuple[str, str]] = set()
+        self.line_updates: list[tuple[str, str, bool]] = []
 
     def reload_progress(self) -> None:
         return
@@ -96,6 +98,32 @@ class _FakeManualUiService:
     ) -> None:
         self.page_state = bool(checked)
         self.page_updates.append((int(index), bool(checked)))
+
+    def checklist_checked(
+        self,
+        _character_key: str,
+        _card: dict,
+        section: str,
+        row: dict,
+        _index: int,
+    ) -> bool:
+        return (str(section), str(row.get("text") or "")) in self.line_checks
+
+    def set_checklist_checked(
+        self,
+        _character_key: str,
+        _card: dict,
+        section: str,
+        row: dict,
+        _index: int,
+        checked: bool,
+    ) -> None:
+        key = (str(section), str(row.get("text") or ""))
+        if checked:
+            self.line_checks.add(key)
+        else:
+            self.line_checks.discard(key)
+        self.line_updates.append((key[0], key[1], bool(checked)))
 
 
 class GuideUltimeManualUiNavigationTests(unittest.TestCase):
@@ -206,6 +234,27 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         self.assertEqual(result["prepare"], [distinct_prepare])
         self.assertEqual(result["now"], [duplicate_now])
         self.assertEqual(result["boss"], [])
+
+    def test_manual_lines_are_checkable_without_validating_page(self) -> None:
+        service, view = self._view()
+        try:
+            checks = [
+                check
+                for check in view.findChildren(QCheckBox)
+                if check.objectName() == "GuideManualLineCheck"
+            ]
+            self.assertGreater(len(checks), 0)
+            self.assertFalse(service.page_state)
+
+            checks[0].setChecked(True)
+            QApplication.processEvents()
+
+            self.assertTrue(service.line_updates)
+            self.assertTrue(service.line_updates[-1][2])
+            self.assertFalse(service.page_state)
+            self.assertEqual(service.page_updates, [])
+        finally:
+            view.close()
 
     def test_position_is_bold_in_manual_action_html(self) -> None:
         rendered = GuideUltimeManualCard._format_line_html(
