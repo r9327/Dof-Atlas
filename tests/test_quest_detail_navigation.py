@@ -13,7 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import QuestGraphService, QuestProgressService
-from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
+from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView, QuestViewContext
 
 
 class QuestDetailNavigationTests(unittest.TestCase):
@@ -58,6 +58,45 @@ class QuestDetailNavigationTests(unittest.TestCase):
             self.app.processEvents()
             self.assertEqual(center_bar.value(), 0)
             self.assertEqual(right_bar.value(), 0)
+
+            view.close()
+            view.deleteLater()
+
+    def test_guide_gps_context_exposes_return_to_same_guide_stage(self) -> None:
+        quest_provider = QuestProvider()
+        achievement_provider = AchievementProvider(quest_provider=quest_provider)
+        guide_provider = GuideProvider(
+            quest_provider=quest_provider,
+            achievement_provider=achievement_provider,
+        )
+        graph = QuestGraphService(quest_provider, guide_provider, achievement_provider)
+        calls: list[tuple[tuple, dict]] = []
+
+        with tempfile.TemporaryDirectory() as tmp:
+            view = QuestDetailView(
+                quest_provider,
+                graph,
+                QuestProgressService(Path(tmp) / "progress.json"),
+                achievement_provider=achievement_provider,
+                guide_provider=guide_provider,
+                navigate_entity=lambda *args, **kwargs: calls.append((args, kwargs)) or True,
+            )
+            context = QuestViewContext(
+                host="guide_gps",
+                guide_id="guide_complet",
+                guide_stage_id="TEST-STAGE",
+                guide_index=12,
+            )
+
+            self.assertTrue(view.show_quest(2464, context))
+            self.assertFalse(view.guide_return_button.isHidden())
+
+            view.guide_return_button.click()
+
+            self.assertEqual(calls[0][0], ("guide", "guide_complet"))
+            self.assertEqual(calls[0][1]["source"], "guide_gps_return")
+            self.assertEqual(calls[0][1]["guide_stage_id"], "TEST-STAGE")
+            self.assertEqual(calls[0][1]["guide_index"], 12)
 
             view.close()
             view.deleteLater()
