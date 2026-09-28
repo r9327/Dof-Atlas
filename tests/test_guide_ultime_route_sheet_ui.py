@@ -89,6 +89,12 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
         self.assertNotIn("ENSUITE", next_source)
         self.assertNotIn("_section", next_source)
 
+    def test_position_copy_shows_short_confirmation(self):
+        source = inspect.getsource(GuideUltimeUniversalView.eventFilter)
+        self.assertIn("QApplication.clipboard().setText(command)", source)
+        self.assertIn("QToolTip.showText", source)
+        self.assertIn("1200", source)
+
     def test_active_sheet_keeps_neutral_panel_background(self):
         source = guide_universal_stylesheet()
         self.assertIn('#GuideUltimeRouteSheet[state="active"]', source)
