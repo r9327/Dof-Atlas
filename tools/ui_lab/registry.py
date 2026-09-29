@@ -29,9 +29,8 @@ class PreviewSpec:
 def default_previews() -> tuple[PreviewSpec, ...]:
     """Return the canonical UI Lab catalog.
 
-    A planned entry is intentionally visible in the catalog so the tool also
-    shows which important screens are not wired to a standalone preview yet.
-    It is not a second product UI implementation.
+    LIVE entries instantiate the real product widget hierarchy. Planned entries
+    stay visible only to describe capture coverage; they never render a fake UI.
     """
 
     return (
@@ -39,24 +38,31 @@ def default_previews() -> tuple[PreviewSpec, ...]:
             key="encyclopedia.guides",
             label="Guide Succès",
             group="Encyclopédie",
-            source="app/modules/encyclopedia/views/guides_view.py",
+            source="app/modules/encyclopedia/views/encyclopedia_page.py",
             status=LIVE,
             factory_path="tools.ui_lab.screens:create_guides_preview",
-            description="Vraie vue Guides, avec progression isolée dans un bac à sable temporaire.",
+            description="Vrai onglet GUIDES dans le vrai EncyclopediaPage.",
+            scenarios=("default", "guide_first"),
         ),
         PreviewSpec(
             key="encyclopedia.quests",
             label="Quêtes",
             group="Encyclopédie",
-            source="app/pages/quests_page.py",
-            description="À brancher sur la vraie vue Quêtes.",
+            source="app/modules/encyclopedia/views/encyclopedia_page.py",
+            status=LIVE,
+            factory_path="tools.ui_lab.screens:create_quests_preview",
+            description="Vrai onglet QUÊTES dans le vrai EncyclopediaPage.",
+            scenarios=("default", "detail_first"),
         ),
         PreviewSpec(
             key="encyclopedia.achievements",
             label="Succès",
             group="Encyclopédie",
-            source="app/modules/encyclopedia/views/achievements_view.py",
-            description="À brancher sur la vraie vue Succès.",
+            source="app/modules/encyclopedia/views/encyclopedia_page.py",
+            status=LIVE,
+            factory_path="tools.ui_lab.screens:create_achievements_preview",
+            description="Vrai onglet SUCCÈS dans le vrai EncyclopediaPage.",
+            scenarios=("default", "detail_first"),
         ),
         PreviewSpec(
             key="encyclopedia.bestiary",
@@ -70,7 +76,10 @@ def default_previews() -> tuple[PreviewSpec, ...]:
             label="Accueil",
             group="Application",
             source="app/pages/home_page.py",
-            description="À brancher sur la vraie page Accueil.",
+            status=LIVE,
+            factory_path="tools.ui_lab.screens:create_home_preview",
+            description="Vraie HomePage produit, sans reconstruction du layout.",
+            scenarios=("default", "saved_progress"),
         ),
         PreviewSpec(
             key="organizer",
