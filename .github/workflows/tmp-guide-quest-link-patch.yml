@@ -1,5 +1,6 @@
 name: Phase 7E Guide Ergonomics Validation
 
+# Re-run after making the detour audit conservative across unknown maps.
 on:
   push:
     branches:
