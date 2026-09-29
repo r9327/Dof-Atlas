@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import difflib
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -52,6 +53,8 @@ from app.storage import (
 )
 from app.ui.components import AtlasButton
 
+
+LOGGER = logging.getLogger(__name__)
 
 _RESULT_BATCH_SIZE = 8
 
@@ -957,8 +960,12 @@ class CraftPage(QWidget):
                 if results:
                     self.item_lookup_cache[key] = results[0]
                     return results[0]
-            except Exception:
-                pass
+            except Exception as exc:
+                LOGGER.debug(
+                    "Recherche cache local indisponible pour %r; fallback index mémoire: %s",
+                    name,
+                    exc,
+                )
 
         # The old fallback returned the first substring match, making results
         # depend on insertion order. Accept a partial only when it is unique;
