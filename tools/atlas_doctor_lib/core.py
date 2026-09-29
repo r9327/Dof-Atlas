@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import subprocess
-import sys
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -12,7 +11,6 @@ from pathlib import Path
 from typing import Any, Iterable
 
 RUNTIME_RELATIVE = Path('.ai/runtime/atlas_doctor')
-SCHEMA_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -68,12 +66,34 @@ def run_git(root: Path, *args: str, check: bool = True) -> str:
     return completed.stdout.strip()
 
 
+def _worktree_digest(root: Path, status: str) -> str:
+    if not status:
+        return ''
+    digest = hashlib.sha256()
+    tracked_diff = run_git(root, 'diff', '--binary', 'HEAD', '--', check=False)
+    digest.update(tracked_diff.encode('utf-8', errors='replace'))
+    untracked = run_git(root, 'ls-files', '--others', '--exclude-standard', '-z', check=False)
+    for relative in sorted(item for item in untracked.split('\0') if item):
+        digest.update(relative.encode('utf-8', errors='replace'))
+        path = root / relative
+        try:
+            with path.open('rb') as handle:
+                while True:
+                    chunk = handle.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    digest.update(chunk)
+        except OSError:
+            digest.update(b'<unreadable>')
+    return digest.hexdigest()
+
+
 def git_state(root: Path) -> dict[str, Any]:
     head = run_git(root, 'rev-parse', 'HEAD')
     branch = run_git(root, 'branch', '--show-current', check=False) or '(detached)'
     status = run_git(root, 'status', '--short', '--untracked-files=all', check=False)
     remote = run_git(root, 'remote', 'get-url', 'origin', check=False)
-    dirty_digest = hashlib.sha256(status.encode('utf-8')).hexdigest() if status else ''
+    dirty_digest = _worktree_digest(root, status)
     return {
         'head': head,
         'branch': branch,
@@ -151,7 +171,3 @@ def verdict_from_counts(counts: dict[str, int]) -> str:
 
 def milliseconds(started: float) -> float:
     return round((time.perf_counter() - started) * 1000.0, 3)
-
-
-def python_executable() -> str:
-    return sys.executable or 'python'
