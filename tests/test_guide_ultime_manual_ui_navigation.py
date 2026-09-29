@@ -5,7 +5,7 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QPushButton
+from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QPushButton, QToolButton
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
@@ -180,20 +180,30 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertNotIn("GuideBreadcrumb", object_names)
             self.assertNotIn("GuideManualDestinationSection", object_names)
             self.assertNotIn("GuideManualSuccessBlock", object_names)
+            self.assertNotIn("GuideManualQuestSection", object_names)
         finally:
             view.close()
 
-    def test_canonical_quest_row_opens_quests_tab_with_stable_return_context(self) -> None:
+    def test_inline_quest_link_opens_quests_tab_with_stable_return_context(self) -> None:
         _service, view = self._view()
         calls: list[tuple[tuple, dict]] = []
         view.navigate_entity = lambda *args, **kwargs: calls.append((args, kwargs)) or True
         try:
+            self.assertFalse(
+                any(
+                    candidate.objectName() == "GuideManualQuestButton"
+                    for candidate in view.findChildren(QPushButton)
+                )
+            )
             button = next(
                 candidate
-                for candidate in view.findChildren(QPushButton)
-                if candidate.objectName() == "GuideManualQuestButton"
+                for candidate in view.findChildren(QToolButton)
+                if candidate.objectName() == "GuideManualQuestInlineButton"
             )
-            self.assertEqual(button.text(), "Quête canonique test")
+            self.assertEqual(button.text(), "↗")
+            self.assertEqual((button.width(), button.height()), (18, 18))
+            self.assertTrue(button.autoRaise())
+            self.assertIn("Quête canonique test", button.toolTip())
             self.assertIn("fiche canonique", button.toolTip())
 
             button.click()
@@ -206,6 +216,46 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(calls[0][1]["guide_index"], 0)
         finally:
             view.close()
+
+    def test_inline_quest_link_is_shown_once_per_quest_and_map(self) -> None:
+        service = _FakeManualUiService()
+        card = {
+            "manual_title": "Déduplication quête/map",
+            "manual_stage_id": "TEST-DEDUPE",
+            "destination": "[5,-7] Zone test",
+            "manual_resource_names": [],
+            "manual_quest_ids": [101],
+            "manual_lines": [
+                {
+                    "kind": "action",
+                    "position": "[5,-7] — Premier objectif",
+                    "text": "Première action de la quête sur cette map.",
+                },
+                {
+                    "kind": "action",
+                    "position": "[5,-7] — Deuxième objectif",
+                    "text": "Deuxième action de la même quête sur cette map.",
+                },
+                {
+                    "kind": "action",
+                    "position": "[6,-7] — Map suivante",
+                    "text": "La quête continue sur une autre map.",
+                },
+            ],
+        }
+        widget = GuideUltimeManualCard(service, "character:1", card, 0)
+        widget.show()
+        QApplication.processEvents()
+        try:
+            buttons = [
+                candidate
+                for candidate in widget.findChildren(QToolButton)
+                if candidate.objectName() == "GuideManualQuestInlineButton"
+            ]
+            self.assertEqual(len(buttons), 2)
+            self.assertTrue(all(button.text() == "↗" for button in buttons))
+        finally:
+            widget.close()
 
     def test_prepare_drops_only_exact_actions_already_done_now(self) -> None:
         duplicate_prepare = {
