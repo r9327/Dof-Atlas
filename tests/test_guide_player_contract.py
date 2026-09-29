@@ -70,12 +70,13 @@ class GuidePlayerContractTests(unittest.TestCase):
         )
         self.assertIn("preparation_repeated_in_now", {row["code"] for row in issues})
 
-    def test_repository_audit_covers_the_canonical_route(self) -> None:
+    def test_repository_audit_covers_the_canonical_route_without_hard_7e_violation(self) -> None:
         report = audit()
         self.assertEqual(report["chapter_count"], 13)
         self.assertEqual(report["stage_count"], 267)
         self.assertGreater(report["line_count"], 0)
-        self.assertIn(report["status"], {"PASS", "REVIEW_REQUIRED", "BLOCKED"})
+        self.assertEqual(report["hard_issue_count"], 0, report["issues"][:20])
+        self.assertIn(report["status"], {"PASS", "REVIEW_REQUIRED"})
 
 
 if __name__ == "__main__":
