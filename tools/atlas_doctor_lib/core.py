@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import time
+from contextlib import suppress
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -133,10 +134,8 @@ def write_json(root: Path, name: str, payload: dict[str, Any], *, rotate: bool =
     path = _json_path(root, name)
     if rotate and path.exists():
         previous = _json_path(root, f'previous_{name.removeprefix("latest_")}')
-        try:
+        with suppress(OSError):
             previous.write_bytes(path.read_bytes())
-        except OSError:
-            pass
     temp = path.with_suffix('.tmp')
     temp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     os.replace(temp, path)
