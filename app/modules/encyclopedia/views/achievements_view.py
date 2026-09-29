@@ -106,7 +106,11 @@ class AchievementsView(QWidget):
         self.navigate_callback = navigate_callback
         self.quest_provider = quest_provider or provider.quest_provider
         self.guide_provider = guide_provider
-        self.quest_graph = quest_graph or QuestGraphService(self.quest_provider, guide_provider, provider)
+        self.quest_graph = (
+            quest_graph
+            if defer_runtime
+            else (quest_graph or QuestGraphService(self.quest_provider, guide_provider, provider))
+        )
         self.quest_progress_service = quest_progress_service or QuestProgressService()
         self._runtime_ready = False
         self.achievements = [] if defer_runtime else provider.load_retained()

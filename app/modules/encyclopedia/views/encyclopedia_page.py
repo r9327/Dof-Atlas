@@ -224,7 +224,7 @@ class EncyclopediaPage(QWidget):
                     navigate_callback=self.navigate_to_entity,
                     quest_provider=self.quest_provider,
                     guide_provider=(self.service.guide_provider if self._guide_provider_supplied else None),
-                    quest_graph=self._quest_graph or QuestGraphService(self.quest_provider),
+                    quest_graph=self._quest_graph,
                     quest_progress_service=QuestProgressService(self.quest_progress_path),
                     defer_runtime=True,
                 )
