@@ -1,4 +1,4 @@
-name: Doctor Final Candidate
+name: Doctor Truth + Network Disabled Validation
 
 on:
   push:
@@ -14,7 +14,7 @@ env:
   QTWEBENGINE_DISABLE_SANDBOX: "1"
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
-  CANDIDATE_SHA: 693b3b3e95e72626e85833597df0953caddc2fc5
+  CANDIDATE_SHA: 95e1abf85c9fb654128296a77c3fbb0cb9bb640f
 
 jobs:
   doctor:
@@ -40,6 +40,14 @@ jobs:
         shell: pwsh
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
 
+      - name: Compile and targeted tests
+        shell: pwsh
+        run: |
+          python -m compileall -q app tools tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest tests.test_atlas_doctor tests.test_network_runtime_disabled
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Materialize certification data
         shell: pwsh
         run: |
@@ -50,19 +58,25 @@ jobs:
           & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Run Doctor strict CRITICAL
+      - name: Run Doctor strict CRITICAL and preserve observations
         shell: pwsh
         run: |
           python tools/atlas_doctor.py --json audit --force --gate critical > "$env:RUNNER_TEMP\doctor-final.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $payload = Get-Content "$env:RUNNER_TEMP\doctor-final.json" -Raw | ConvertFrom-Json
           Write-Host ("Doctor verdict={0} issues={1} observations={2}" -f $payload.summary.verdict, $payload.summary.issues_total, $payload.summary.observations_total)
-          if ([int]$payload.summary.issues_total -ne 0) { throw "Doctor final candidate has actionable issues" }
+          if ([int]$payload.summary.observations_total -le 0) { throw "Doctor unexpectedly hid all observations" }
+          python tools/atlas_doctor.py --json issues > "$env:RUNNER_TEMP\doctor-findings.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $findings = Get-Content "$env:RUNNER_TEMP\doctor-findings.json" -Raw | ConvertFrom-Json
+          if ([int]$findings.observations_count -ne [int]$payload.summary.observations_total) { throw "Option issues does not expose every observation" }
 
-      - name: Upload Doctor report
+      - name: Upload Doctor reports
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: doctor-final-candidate
-          path: ${{ runner.temp }}/doctor-final.json
+          name: doctor-truth-network-disabled
+          path: |
+            ${{ runner.temp }}/doctor-final.json
+            ${{ runner.temp }}/doctor-findings.json
           if-no-files-found: error
           retention-days: 7
