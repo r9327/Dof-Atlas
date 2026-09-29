@@ -44,6 +44,7 @@ logs/startup_profile.jsonl
 .coverage
 coverage.xml
 htmlcov/
+.ai/runtime/
 
 # Données massives régénérables
 data/exports/
