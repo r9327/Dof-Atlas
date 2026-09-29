@@ -1,27 +1,7 @@
 {
   "include_lab_shell": true,
+  "segment_overlap": 80,
   "captures": [
-    {
-      "screen": "encyclopedia.guides",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 1200
-    },
-    {
-      "screen": "encyclopedia.quests",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 1200
-    },
-    {
-      "screen": "encyclopedia.achievements",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 1200
-    },
     {
       "screen": "home",
       "scenario": "default",
@@ -30,13 +10,15 @@
       "settle_ms": 800
     },
     {
+      "screen": "organizer",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 800
+    },
+    {
       "screen": "encyclopedia.guides",
-      "scenario": "target",
-      "params": {
-        "guide_id": "dofus_emeraude",
-        "quest_id": 1958
-      },
-      "output_name": "guide-dofus-emeraude-quest-1958",
+      "scenario": "default",
       "width": 1400,
       "height": 900,
       "settle_ms": 1200
@@ -48,6 +30,8 @@
         "quest_id": 1958
       },
       "output_name": "quest-1958",
+      "capture_segments": true,
+      "capture_full_scroll": true,
       "width": 1400,
       "height": 900,
       "settle_ms": 1200
@@ -59,6 +43,85 @@
         "achievement_id": 1048
       },
       "output_name": "achievement-1048",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    },
+    {
+      "screen": "bestiary.dungeons",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 800
+    },
+    {
+      "screen": "bestiary.monsters",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 800
+    },
+    {
+      "screen": "bestiary.archmonsters",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 800
+    },
+    {
+      "screen": "bestiary.wanted",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 800
+    },
+    {
+      "screen": "stuffs.pvm",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 600
+    },
+    {
+      "screen": "tools.treasure_hunt",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 400
+    },
+    {
+      "screen": "tools.ocre",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 400
+    },
+    {
+      "screen": "almanax",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 400
+    },
+    {
+      "screen": "tutorials.default",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 400
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "target",
+      "params": {
+        "guide_id": "dofus_emeraude",
+        "quest_id": 1958
+      },
+      "output_name": "guide-dofus-emeraude-quest-1958",
+      "capture_segments": true,
+      "capture_full_scroll": true,
       "width": 1400,
       "height": 900,
       "settle_ms": 1200
