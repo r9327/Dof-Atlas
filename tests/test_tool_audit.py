@@ -17,6 +17,20 @@ class ToolAuditTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
+    def test_utf8_bom_python_is_not_reported_as_parse_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "tools/bom_tool.py"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                "def main(): return 0\nif __name__ == '__main__': main()\n",
+                encoding="utf-8-sig",
+            )
+            report = audit(root)
+
+        self.assertEqual(report["parse_error_count"], 0)
+        self.assertNotIn("tools/bom_tool.py", report["parse_errors"])
+
     def test_versioned_family_and_test_reference_are_detected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -125,8 +139,6 @@ class ToolAuditTests(unittest.TestCase):
         self.assertIn("tools/atlas_integrity.py", paths)
         self.assertIn("tools/guide_integrity.py", paths)
         self.assertIn("tools/tool_audit.py", paths)
-        # Existing repository debt must remain visible instead of making this
-        # informational inventory fail. The new audit itself must parse cleanly.
         self.assertEqual(report["parse_error_count"], len(report["parse_errors"]))
         self.assertNotIn("tools/tool_audit.py", report["parse_errors"])
         self.assertFalse(report["blocking"])
