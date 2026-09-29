@@ -123,6 +123,15 @@ CHECKS: tuple[GuideCheck, ...] = (
         str(CI_LOG_DIR / "action_quality.json"),
         modes=("fast", "full"),
     ),
+    _check(
+        "player_contract_7e",
+        "Phase 7E player Guide contract",
+        "tools.guide_player_contract",
+        "--strict-hard",
+        "--output",
+        str(CI_LOG_DIR / "player_contract_7e.json"),
+        modes=("fast", "full"),
+    ),
 )
 
 
