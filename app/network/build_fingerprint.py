@@ -5,6 +5,7 @@ import ctypes.wintypes
 import hashlib
 import os
 import threading
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable
@@ -66,10 +67,8 @@ def process_executable_path(pid: int) -> Path | None:
     except Exception:
         return None
     finally:
-        try:
+        with suppress(Exception):
             close_handle(process)
-        except Exception:
-            pass
 
 
 def protocol_build_files_for_executable(executable: str | Path) -> ProtocolBuildFiles | None:
