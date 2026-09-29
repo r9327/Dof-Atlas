@@ -1,0 +1,12 @@
+{
+  "include_lab_shell": true,
+  "captures": [
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    }
+  ]
+}
