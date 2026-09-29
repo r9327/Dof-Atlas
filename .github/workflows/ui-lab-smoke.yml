@@ -1,0 +1,75 @@
+name: UI Lab Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - tool/ui-lab-skeleton
+    paths:
+      - ".github/workflows/ui-lab-smoke.yml"
+      - "tools/ui_lab/**"
+      - "tests/test_ui_lab_registry.py"
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  smoke:
+    name: Windows / UI Lab Smoke
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          lfs: false
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+
+      - name: Compile UI Lab
+        run: python -m compileall -q tools/ui_lab tests/test_ui_lab_registry.py
+
+      - name: Run UI Lab registry tests
+        run: python -m unittest -v tests.test_ui_lab_registry
+
+      - name: Instantiate UI Lab and live Guides preview offscreen
+        run: |
+          @'
+          from PySide6.QtWidgets import QApplication
+          from tools.ui_lab.window import UiLabWindow
+
+          app = QApplication.instance() or QApplication([])
+          window = UiLabWindow()
+          app.processEvents()
+
+          assert window._current_spec is not None, "No preview selected"
+          assert window._current_spec.key == "encyclopedia.guides", window._current_spec.key
+          assert window._current_preview is not None, window.statusBar().currentMessage()
+          assert window.capture_button.isEnabled(), "Live preview failed to load"
+
+          print("UI_LAB_SMOKE_OK", window.statusBar().currentMessage())
+          window.close()
+          app.processEvents()
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
