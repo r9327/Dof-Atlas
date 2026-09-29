@@ -1,0 +1,69 @@
+name: Product Silent Exception Scan
+
+on:
+  push:
+    branches:
+      - run/product-exception-scan
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: doctor/product-cleanup-v2-final
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Scan except-pass blocks
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast
+          import json
+          from pathlib import Path
+
+          rows = []
+          paths = [Path('main.py'), *sorted(Path('app').rglob('*.py'))]
+          for path in paths:
+              try:
+                  source = path.read_text(encoding='utf-8')
+                  tree = ast.parse(source, filename=str(path))
+              except Exception as exc:
+                  rows.append({'path': str(path), 'parse_error': f'{type(exc).__name__}: {exc}'})
+                  continue
+              for node in ast.walk(tree):
+                  if not isinstance(node, ast.ExceptHandler):
+                      continue
+                  meaningful = [stmt for stmt in node.body if not (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str))]
+                  if len(meaningful) == 1 and isinstance(meaningful[0], ast.Pass):
+                      try:
+                          exception = ast.unparse(node.type) if node.type is not None else 'bare except'
+                      except Exception:
+                          exception = '<unknown>'
+                      rows.append({
+                          'path': str(path).replace('\\', '/'),
+                          'line': int(node.lineno),
+                          'exception': exception,
+                      })
+          payload = {'count': len(rows), 'rows': rows}
+          Path('silent-exceptions.json').write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding='utf-8')
+          print(json.dumps(payload, indent=2, ensure_ascii=False))
+          PY
+
+      - name: Upload scan
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: product-silent-exceptions
+          path: silent-exceptions.json
+          if-no-files-found: error
+          retention-days: 7
