@@ -3,16 +3,24 @@
 
 from __future__ import annotations
 
-from app.pages._quests_page_impl import *  # noqa: F401,F403
+from contextlib import suppress
+
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QTreeWidgetItem
+
+from app.pages import _quests_page_impl as _impl
 from app.pages._quests_page_impl import (
     HIERARCHY_ID_ROLE,
     HIERARCHY_KIND_ROLE,
+    MIN_QUEST_SEARCH_CHARS,
     NativeQuestDetailPanel,
+    QuestHierarchyPath,
+    QuestRecord,
+    QuestViewContext,
     QuestsPage as _EagerQuestsPage,
+    load_owned_items,
     quest_detail_html,
 )
-from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QTreeWidgetItem
 
 
 _MIN_LAZY_QUESTS = 500
@@ -85,10 +93,8 @@ class QuestsPage(_EagerQuestsPage):
         self._search_debounce_timer.setSingleShot(True)
         self._search_debounce_timer.setInterval(_LARGE_CATALOG_SEARCH_DEBOUNCE_MS)
         self._search_debounce_timer.timeout.connect(self._flush_search_refresh)
-        try:
+        with suppress(RuntimeError, TypeError):
             self.search.textChanged.disconnect()
-        except (RuntimeError, TypeError):
-            pass
         self.search.textChanged.connect(self._on_search_text_changed)
 
     def _large_hierarchy_catalog(self) -> bool:
@@ -392,3 +398,19 @@ class QuestsPage(_EagerQuestsPage):
                 ordered_quest_ids=active_series.quest_ids if active_series is not None else (),
             ),
         )
+
+
+def __getattr__(name: str):
+    """Preserve named compatibility imports without a wildcard dependency."""
+
+    if name.startswith("_"):
+        raise AttributeError(name)
+    try:
+        return getattr(_impl, name)
+    except AttributeError as exc:
+        raise AttributeError(name) from exc
+
+
+__all__ = sorted(
+    {name for name in dir(_impl) if not name.startswith("_")} | {"QuestsPage"}
+)
