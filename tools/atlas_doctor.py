@@ -12,6 +12,7 @@ from atlas_doctor_lib import (
     cache_matches_git,
     compare_runs,
     git_state,
+    inspect_live,
     load_json,
     project_root,
     run_audit,
@@ -48,23 +49,52 @@ def command_audit(root: Path, args) -> dict[str, Any]:
     return payload
 
 
+def command_live(root: Path, args) -> dict[str, Any]:
+    _audit(root, force=False)
+    payload = inspect_live(root, sample_seconds=args.sample_seconds, trace_io=not args.no_io_trace)
+    if not args.json:
+        summary = payload.get('summary') or {}
+        print(
+            f"Pic RAM : {summary.get('rss_peak_mb')} MiB | "
+            f"CPU pic : {summary.get('cpu_peak_total_percent')}% | "
+            f"Processus max : {summary.get('max_process_count')}"
+        )
+        io_trace = payload.get('io_trace') or {}
+        io_summary = io_trace.get('summary') or {}
+        if io_summary:
+            print(
+                f"I/O : {io_summary.get('unique_files', 0)} fichiers | "
+                f"lecture {io_summary.get('read_ms', 0)} ms | "
+                f"JSON {io_summary.get('json_ms', 0)} ms"
+            )
+    return payload
+
+
 def command_perf(root: Path, args) -> dict[str, Any]:
     _audit(root, force=False)
     payload = run_performance(root, include_runtime=not args.files_only)
     if not args.json:
         profile = payload.get('file_profile') or {}
         print(f"Fichiers mesures : {profile.get('files_measured', 0)}")
-        print(f"Lecture cumulee : {profile.get('total_read_ms', 0)} ms | JSON parse : {profile.get('total_json_parse_ms', 0)} ms")
+        print(
+            f"Lecture cumulee : {profile.get('total_read_ms', 0)} ms | "
+            f"JSON parse : {profile.get('total_json_parse_ms', 0)} ms"
+        )
         runtime = payload.get('runtime') or {}
         if runtime:
             print(f"Benchmark runtime : {runtime.get('status', 'N/A')} ({runtime.get('duration_ms', 0)} ms)")
+            print(f"Trace I/O runtime : {runtime.get('io_trace_status', 'N/A')}")
     return payload
 
 
 def command_compare(root: Path, args) -> dict[str, Any]:
     payload = compare_runs(load_json(root, 'latest_audit'), load_json(root, 'previous_audit'))
     if not args.json:
-        print(f"Nouveaux : {len(payload.get('new_issues', []))} | Corriges : {len(payload.get('fixed_issues', []))} | Inchanges : {payload.get('unchanged_count', 0)}")
+        print(
+            f"Nouveaux : {len(payload.get('new_issues', []))} | "
+            f"Corriges : {len(payload.get('fixed_issues', []))} | "
+            f"Inchanges : {payload.get('unchanged_count', 0)}"
+        )
     return payload
 
 
@@ -78,7 +108,10 @@ def command_issues(root: Path, args) -> dict[str, Any]:
     if not args.json:
         for item in issues:
             line = f":{item['line']}" if item.get('line') else ''
-            print(f"[{item['severity']}] {item['rule']} - {item['path']}{line} - {item['title']} ({item['confidence']})")
+            print(
+                f"[{item['severity']}] {item['rule']} - {item['path']}{line} - "
+                f"{item['title']} ({item['confidence']})"
+            )
     return payload
 
 
@@ -88,7 +121,10 @@ def command_verify(root: Path, args) -> dict[str, Any]:
     comparison = compare_runs(current, before)
     payload = {'audit': current.get('summary'), 'comparison': comparison}
     if not args.json:
-        print(f"Nouveaux : {len(comparison.get('new_issues', []))} | Corriges : {len(comparison.get('fixed_issues', []))}")
+        print(
+            f"Nouveaux : {len(comparison.get('new_issues', []))} | "
+            f"Corriges : {len(comparison.get('fixed_issues', []))}"
+        )
         _summary(current)
     return payload
 
@@ -121,7 +157,11 @@ def command_all(root: Path, args) -> dict[str, Any]:
     audit = run_audit(root)
     perf = run_performance(root, include_runtime=True)
     report = build_ai_report(root)
-    payload = {'audit': audit.get('summary'), 'performance_status': (perf.get('runtime') or {}).get('status'), 'report': report}
+    payload = {
+        'audit': audit.get('summary'),
+        'performance_status': (perf.get('runtime') or {}).get('status'),
+        'report': report,
+    }
     if not args.json:
         _summary(audit)
         print(f"Performance runtime : {payload['performance_status']}")
@@ -136,6 +176,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     audit = sub.add_parser('audit')
     audit.add_argument('--force', action='store_true')
+
+    live = sub.add_parser('live')
+    live.add_argument('--sample-seconds', type=float, default=0.5)
+    live.add_argument('--no-io-trace', action='store_true')
 
     perf = sub.add_parser('perf')
     perf.add_argument('--files-only', action='store_true', help='Ne pas lancer le benchmark Qt runtime.')
@@ -153,8 +197,11 @@ def build_parser() -> argparse.ArgumentParser:
 def menu(root: Path) -> int:
     actions = {
         '1': ('Audit complet', lambda: command_audit(root, argparse.Namespace(force=True, json=False))),
-        '2': ('Inspecteur performances + I/O runtime', lambda: command_perf(root, argparse.Namespace(files_only=False, json=False))),
-        '3': ('Performance Lab (fichiers + benchmark app)', lambda: command_perf(root, argparse.Namespace(files_only=False, json=False))),
+        '2': (
+            'Inspecteur performances LIVE + I/O',
+            lambda: command_live(root, argparse.Namespace(sample_seconds=0.5, no_io_trace=False, json=False)),
+        ),
+        '3': ('Performance Lab automatise', lambda: command_perf(root, argparse.Namespace(files_only=False, json=False))),
         '4': ('Comparer avec le dernier audit', lambda: command_compare(root, argparse.Namespace(json=False))),
         '5': ('Voir les problemes detectes', lambda: command_issues(root, argparse.Namespace(severity=None, json=False))),
         '6': ('Verifier les corrections', lambda: command_verify(root, argparse.Namespace(json=False))),
@@ -191,6 +238,7 @@ def main(argv: list[str] | None = None) -> int:
         return menu(root)
     handlers = {
         'audit': command_audit,
+        'live': command_live,
         'perf': command_perf,
         'compare': command_compare,
         'issues': command_issues,
