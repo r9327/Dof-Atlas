@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 class PreviewContext:
     sandbox_root: Path
     report_status: Callable[[str], None]
+    scenario: str = "default"
 
 
 def create_guides_preview(context: PreviewContext) -> "QWidget":
