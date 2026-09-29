@@ -95,15 +95,21 @@ def run_runtime_benchmark(root: Path, *, timeout: int = 180) -> dict[str, Any]:
 
     trace_path = root / '.ai/runtime/atlas_doctor/runtime_io_trace.json'
     trace_path.parent.mkdir(parents=True, exist_ok=True)
+    trace_path.unlink(missing_ok=True)
     artifact = root / 'artifacts/quests_guides_performance.json'
+    artifact.unlink(missing_ok=True)
 
     # Run the canonical benchmark without instrumentation first so its timing/RAM
     # remains comparable with historical same-machine baselines.
-    clean_command = [sys.executable, str(benchmark)]
+    clean_command = [sys.executable, '-m', 'app.modules.encyclopedia.tools.benchmark_guides_performance']
+    env = os.environ.copy()
+    current_pythonpath = env.get('PYTHONPATH', '')
+    env['PYTHONPATH'] = str(root) + (os.pathsep + current_pythonpath if current_pythonpath else '')
     started = time.perf_counter()
     clean = subprocess.run(
         clean_command,
         cwd=root,
+        env=env,
         text=True,
         encoding='utf-8',
         errors='replace',
@@ -121,7 +127,6 @@ def run_runtime_benchmark(root: Path, *, timeout: int = 180) -> dict[str, Any]:
 
     # Separate traced run: diagnostic I/O overhead must not contaminate the
     # canonical performance numbers above.
-    env = os.environ.copy()
     env['ATLAS_DOCTOR_IO_TRACE'] = str(trace_path)
     trace_command = [sys.executable, str(runner), str(benchmark)]
     trace_started = time.perf_counter()

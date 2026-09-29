@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -10,11 +11,12 @@ from typing import Any
 from atlas_doctor_lib import (
     build_ai_report,
     cache_matches_git,
+    compare_performance,
     compare_runs,
     git_state,
-    inspect_live,
     load_json,
     project_root,
+    inspect_live,
     run_audit,
     run_performance,
     runtime_dir,
@@ -25,12 +27,21 @@ def _print_json(payload: Any) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
-def _audit(root: Path, *, force: bool = False) -> dict[str, Any]:
+def _audit(
+    root: Path,
+    *,
+    force: bool = False,
+    integrity_mode: str | None = None,
+) -> dict[str, Any]:
     state = git_state(root)
     cached = load_json(root, 'latest_audit')
     if not force and cache_matches_git(cached, state):
-        return cached or {}
-    return run_audit(root)
+        ranks = {None: 0, 'FAST': 1, 'CRITICAL': 2, 'FULL': 3, 'DEEP': 4}
+        cached_mode = cached.get('integrity_mode') if cached else None
+        requested = integrity_mode.upper() if integrity_mode else None
+        if ranks.get(cached_mode, 0) >= ranks.get(requested, 0):
+            return cached or {}
+    return run_audit(root, integrity_mode=integrity_mode)
 
 
 def _summary(payload: dict[str, Any]) -> None:
@@ -42,64 +53,65 @@ def _summary(payload: dict[str, Any]) -> None:
 
 
 def command_audit(root: Path, args) -> dict[str, Any]:
-    payload = _audit(root, force=args.force)
+    payload = _audit(root, force=args.force, integrity_mode=args.gate)
     if not args.json:
         _summary(payload)
         print(f"Snapshot : {root / '.ai/runtime/atlas_doctor/latest_audit.json'}")
     return payload
 
 
+
 def command_live(root: Path, args) -> dict[str, Any]:
-    _audit(root, force=False)
-    payload = inspect_live(root, sample_seconds=args.sample_seconds, trace_io=not args.no_io_trace)
+    _audit(root, force=False, integrity_mode=None)
+    payload = inspect_live(
+        root,
+        sample_seconds=args.sample_seconds,
+        trace_io=not args.no_io_trace,
+        quiet=args.json,
+    )
     if not args.json:
         summary = payload.get('summary') or {}
-        print(
-            f"Pic RAM : {summary.get('rss_peak_mb')} MiB | "
-            f"CPU pic : {summary.get('cpu_peak_total_percent')}% | "
-            f"Processus max : {summary.get('max_process_count')}"
-        )
+        print(f"Pic RAM : {summary.get('rss_peak_mb')} MiB | CPU pic : {summary.get('cpu_peak_total_percent')}% | Processus max : {summary.get('max_process_count')}")
         io_trace = payload.get('io_trace') or {}
         io_summary = io_trace.get('summary') or {}
         if io_summary:
-            print(
-                f"I/O : {io_summary.get('unique_files', 0)} fichiers | "
-                f"lecture {io_summary.get('read_ms', 0)} ms | "
-                f"JSON {io_summary.get('json_ms', 0)} ms"
-            )
+            print(f"I/O : {io_summary.get('unique_files', 0)} fichiers | lecture {io_summary.get('read_ms', 0)} ms | JSON {io_summary.get('json_ms', 0)} ms")
     return payload
 
 
 def command_perf(root: Path, args) -> dict[str, Any]:
-    _audit(root, force=False)
+    _audit(root, force=False, integrity_mode=None)
     payload = run_performance(root, include_runtime=not args.files_only)
     if not args.json:
         profile = payload.get('file_profile') or {}
         print(f"Fichiers mesures : {profile.get('files_measured', 0)}")
-        print(
-            f"Lecture cumulee : {profile.get('total_read_ms', 0)} ms | "
-            f"JSON parse : {profile.get('total_json_parse_ms', 0)} ms"
-        )
+        print(f"Lecture cumulee : {profile.get('total_read_ms', 0)} ms | JSON parse : {profile.get('total_json_parse_ms', 0)} ms")
         runtime = payload.get('runtime') or {}
         if runtime:
             print(f"Benchmark runtime : {runtime.get('status', 'N/A')} ({runtime.get('duration_ms', 0)} ms)")
-            print(f"Trace I/O runtime : {runtime.get('io_trace_status', 'N/A')}")
     return payload
 
 
 def command_compare(root: Path, args) -> dict[str, Any]:
-    payload = compare_runs(load_json(root, 'latest_audit'), load_json(root, 'previous_audit'))
+    audit_comparison = compare_runs(load_json(root, 'latest_audit'), load_json(root, 'previous_audit'))
+    perf_comparison = compare_performance(load_json(root, 'latest_perf'), load_json(root, 'previous_perf'))
+    payload = {'audit': audit_comparison, 'performance': perf_comparison}
     if not args.json:
         print(
-            f"Nouveaux : {len(payload.get('new_issues', []))} | "
-            f"Corriges : {len(payload.get('fixed_issues', []))} | "
-            f"Inchanges : {payload.get('unchanged_count', 0)}"
+            f"Audit - nouveaux : {len(audit_comparison.get('new_issues', []))} | "
+            f"corriges : {len(audit_comparison.get('fixed_issues', []))} | "
+            f"inchanges : {audit_comparison.get('unchanged_count', 0)}"
         )
+        regressions = perf_comparison.get('regressions_15pct', [])
+        improvements = perf_comparison.get('improvements_15pct', [])
+        print(f"Perf - regressions >=15% : {len(regressions)} | ameliorations >=15% : {len(improvements)}")
+        for row in regressions[:10]:
+            print(f"  WARN {row['metric']}: {row['previous']} -> {row['current']} ({row['delta_percent']}%)")
     return payload
 
 
 def command_issues(root: Path, args) -> dict[str, Any]:
-    audit = _audit(root, force=False)
+    audit = _audit(root, force=False, integrity_mode=None)
     issues = audit.get('issues', [])
     if args.severity:
         allowed = {item.upper() for item in args.severity}
@@ -108,29 +120,23 @@ def command_issues(root: Path, args) -> dict[str, Any]:
     if not args.json:
         for item in issues:
             line = f":{item['line']}" if item.get('line') else ''
-            print(
-                f"[{item['severity']}] {item['rule']} - {item['path']}{line} - "
-                f"{item['title']} ({item['confidence']})"
-            )
+            print(f"[{item['severity']}] {item['rule']} - {item['path']}{line} - {item['title']} ({item['confidence']})")
     return payload
 
 
 def command_verify(root: Path, args) -> dict[str, Any]:
     before = load_json(root, 'latest_audit')
-    current = run_audit(root)
+    current = run_audit(root, integrity_mode='critical')
     comparison = compare_runs(current, before)
     payload = {'audit': current.get('summary'), 'comparison': comparison}
     if not args.json:
-        print(
-            f"Nouveaux : {len(comparison.get('new_issues', []))} | "
-            f"Corriges : {len(comparison.get('fixed_issues', []))}"
-        )
+        print(f"Nouveaux : {len(comparison.get('new_issues', []))} | Corriges : {len(comparison.get('fixed_issues', []))}")
         _summary(current)
     return payload
 
 
 def command_report(root: Path, args) -> dict[str, Any]:
-    _audit(root, force=False)
+    _audit(root, force=False, integrity_mode=None)
     payload = build_ai_report(root)
     if not args.json:
         print(f"Rapport IA : {root / '.ai/runtime/atlas_doctor/latest_report.json'}")
@@ -154,14 +160,10 @@ def command_clean(root: Path, args) -> dict[str, Any]:
 
 
 def command_all(root: Path, args) -> dict[str, Any]:
-    audit = run_audit(root)
+    audit = run_audit(root, integrity_mode='full')
     perf = run_performance(root, include_runtime=True)
     report = build_ai_report(root)
-    payload = {
-        'audit': audit.get('summary'),
-        'performance_status': (perf.get('runtime') or {}).get('status'),
-        'report': report,
-    }
+    payload = {'audit': audit.get('summary'), 'performance_status': (perf.get('runtime') or {}).get('status'), 'report': report}
     if not args.json:
         _summary(audit)
         print(f"Performance runtime : {payload['performance_status']}")
@@ -176,6 +178,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     audit = sub.add_parser('audit')
     audit.add_argument('--force', action='store_true')
+    audit.add_argument('--gate', choices=('fast', 'critical', 'full', 'deep'), default='critical')
 
     live = sub.add_parser('live')
     live.add_argument('--sample-seconds', type=float, default=0.5)
@@ -194,13 +197,22 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+
+def _read_choice() -> str:
+    if os.name == 'nt':
+        import msvcrt
+
+        while True:
+            choice = msvcrt.getwch()
+            if choice in '0123456789':
+                print(choice)
+                return choice
+    return input('Choix : ').strip()
+
 def menu(root: Path) -> int:
     actions = {
-        '1': ('Audit complet', lambda: command_audit(root, argparse.Namespace(force=True, json=False))),
-        '2': (
-            'Inspecteur performances LIVE + I/O',
-            lambda: command_live(root, argparse.Namespace(sample_seconds=0.5, no_io_trace=False, json=False)),
-        ),
+        '1': ('Audit complet', lambda: command_audit(root, argparse.Namespace(force=True, gate='critical', json=False))),
+        '2': ('Inspecteur performances LIVE + I/O', lambda: command_live(root, argparse.Namespace(sample_seconds=0.5, no_io_trace=False, json=False))),
         '3': ('Performance Lab automatise', lambda: command_perf(root, argparse.Namespace(files_only=False, json=False))),
         '4': ('Comparer avec le dernier audit', lambda: command_compare(root, argparse.Namespace(json=False))),
         '5': ('Voir les problemes detectes', lambda: command_issues(root, argparse.Namespace(severity=None, json=False))),
@@ -214,7 +226,8 @@ def menu(root: Path) -> int:
         for key, (label, _) in actions.items():
             print(f'[{key}] {label}')
         print('[0] Quitter')
-        choice = input('Choix : ').strip()
+        print('Choix : ', end='', flush=True)
+        choice = _read_choice()
         if choice == '0':
             return 0
         action = actions.get(choice)
@@ -232,7 +245,11 @@ def menu(root: Path) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    json_requested = '--json' in raw_argv
+    raw_argv = [item for item in raw_argv if item != '--json']
+    args = parser.parse_args(raw_argv)
+    args.json = json_requested
     root = project_root(Path.cwd())
     if not args.command:
         return menu(root)

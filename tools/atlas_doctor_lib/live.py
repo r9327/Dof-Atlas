@@ -158,7 +158,13 @@ def _sample_tree(pid: int) -> dict[str, Any]:
     return {'process_count': sampled, 'rss_bytes': rss_total, 'cpu_seconds': cpu_total}
 
 
-def inspect_live(root: Path, *, sample_seconds: float = 0.5, trace_io: bool = True) -> dict[str, Any]:
+def inspect_live(
+    root: Path,
+    *,
+    sample_seconds: float = 0.5,
+    trace_io: bool = True,
+    quiet: bool = False,
+) -> dict[str, Any]:
     started = time.perf_counter()
     main_script = root / 'main.py'
     runner = root / 'tools/atlas_doctor_io_runner.py'
@@ -166,19 +172,29 @@ def inspect_live(root: Path, *, sample_seconds: float = 0.5, trace_io: bool = Tr
         raise RuntimeError('main.py introuvable.')
 
     trace_path = root / '.ai/runtime/atlas_doctor/live_io_trace.json'
+    trace_path.unlink(missing_ok=True)
     env = os.environ.copy()
+    current_pythonpath = env.get('PYTHONPATH', '')
+    env['PYTHONPATH'] = str(root) + (os.pathsep + current_pythonpath if current_pythonpath else '')
     if trace_io and runner.is_file():
         env['ATLAS_DOCTOR_IO_TRACE'] = str(trace_path)
         command = [sys.executable, str(runner), str(main_script)]
     else:
         command = [sys.executable, str(main_script)]
 
-    process = subprocess.Popen(command, cwd=root, env=env)
+    process = subprocess.Popen(
+        command,
+        cwd=root,
+        env=env,
+        stdout=subprocess.DEVNULL if quiet else None,
+        stderr=subprocess.DEVNULL if quiet else None,
+    )
     samples: list[dict[str, Any]] = []
     previous_cpu: float | None = None
     previous_wall: float | None = None
     logical_cpus = max(1, os.cpu_count() or 1)
-    print(f'Atlas lance (PID {process.pid}). Utilise l app normalement puis ferme-la pour terminer la mesure.')
+    if not quiet:
+        print(f'Atlas lance (PID {process.pid}). Utilise l app normalement puis ferme-la pour terminer la mesure.')
     try:
         while process.poll() is None:
             wall = time.perf_counter()
@@ -205,7 +221,7 @@ def inspect_live(root: Path, *, sample_seconds: float = 0.5, trace_io: bool = Tr
             samples.append(row)
             previous_cpu = cpu
             previous_wall = wall
-            if len(samples) % max(1, round(1.0 / sample_seconds)) == 0:
+            if not quiet and len(samples) % max(1, round(1.0 / sample_seconds)) == 0:
                 print(f"RAM {row['rss_mb']:.1f} MiB | CPU {row['cpu_total_percent']:.1f}% | processus {row['process_count']}")
             time.sleep(sample_seconds)
     except KeyboardInterrupt:
@@ -227,6 +243,12 @@ def inspect_live(root: Path, *, sample_seconds: float = 0.5, trace_io: bool = Tr
 
     rss_values = [float(item['rss_mb']) for item in samples]
     cpu_values = [float(item['cpu_total_percent']) for item in samples]
+    rss_growth_mb = None
+    if len(rss_values) >= 6:
+        window = max(1, len(rss_values) // 5)
+        first_avg = sum(rss_values[:window]) / window
+        last_avg = sum(rss_values[-window:]) / window
+        rss_growth_mb = round(last_avg - first_avg, 2)
     payload = {
         'schema_version': 1,
         'kind': 'live_performance',
@@ -240,6 +262,8 @@ def inspect_live(root: Path, *, sample_seconds: float = 0.5, trace_io: bool = Tr
             'samples': len(samples),
             'rss_peak_mb': round(max(rss_values), 2) if rss_values else None,
             'rss_last_mb': round(rss_values[-1], 2) if rss_values else None,
+            'rss_growth_mb': rss_growth_mb,
+            'possible_memory_growth': bool(rss_growth_mb is not None and rss_growth_mb >= 20.0),
             'cpu_peak_total_percent': round(max(cpu_values), 2) if cpu_values else None,
             'max_process_count': max((int(item['process_count']) for item in samples), default=0),
         },

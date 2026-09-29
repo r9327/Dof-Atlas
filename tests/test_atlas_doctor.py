@@ -8,8 +8,9 @@ from pathlib import Path
 
 from tools.atlas_doctor_lib.audit import run_audit
 from tools.atlas_doctor_lib.core import cache_matches_git, git_state, load_json
+from tools.atlas_doctor_lib.live import _sample_tree
 from tools.atlas_doctor_lib.perf import profile_data_files
-from tools.atlas_doctor_lib.report import compare_runs
+from tools.atlas_doctor_lib.report import compare_performance, compare_runs
 
 
 def _git(root: Path, *args: str) -> str:
@@ -30,6 +31,7 @@ class AtlasDoctorTests(unittest.TestCase):
         (root / '.gitignore').write_text('.ai/runtime/\n', encoding='utf-8')
         _git(root, 'add', '-A')
         _git(root, 'commit', '-m', 'baseline')
+        directory.root = root  # type: ignore[attr-defined]
         return directory
 
     def test_audit_detects_silent_exception_and_writes_cache(self) -> None:
@@ -48,15 +50,20 @@ class AtlasDoctorTests(unittest.TestCase):
         finally:
             directory.cleanup()
 
-    def test_cache_invalidates_when_worktree_changes(self) -> None:
+    def test_cache_invalidates_when_worktree_content_changes(self) -> None:
         directory = self.make_repo()
         try:
             root = Path(directory.name)
             payload = run_audit(root)
             state = git_state(root)
             self.assertTrue(cache_matches_git(payload, state))
-            (root / 'main.py').write_text('print("changed")\n', encoding='utf-8')
-            self.assertFalse(cache_matches_git(payload, git_state(root)))
+            target = root / 'main.py'
+            target.write_text('print("changed-1")\n', encoding='utf-8')
+            dirty_state = git_state(root)
+            self.assertFalse(cache_matches_git(payload, dirty_state))
+            dirty_payload = {'git': dirty_state}
+            target.write_text('print("changed-2")\n', encoding='utf-8')
+            self.assertFalse(cache_matches_git(dirty_payload, git_state(root)))
         finally:
             directory.cleanup()
 
@@ -76,6 +83,55 @@ class AtlasDoctorTests(unittest.TestCase):
             self.assertGreaterEqual(row['json_parse_ms'], 0.0)
         finally:
             directory.cleanup()
+
+    def test_audit_flags_forbidden_import_star(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'wildcard.py'
+            target.write_text('from math import *\n', encoding='utf-8')
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'wildcard')
+            payload = run_audit(root)
+            self.assertIn('import_star', {item['rule'] for item in payload['issues']})
+        finally:
+            directory.cleanup()
+
+    def test_live_sampler_reads_current_process(self) -> None:
+        import os
+
+        sample = _sample_tree(os.getpid())
+        self.assertGreaterEqual(sample['process_count'], 1)
+        self.assertGreater(sample['rss_bytes'], 0)
+        self.assertGreaterEqual(sample['cpu_seconds'], 0.0)
+
+    def test_compare_performance_detects_large_regression(self) -> None:
+        old = {
+            'runtime': {'benchmark': {'after': {'quests_open_ms': 100.0, 'startup_stabilized_rss_mb': 90.0}}},
+            'file_profile': {'total_read_ms': 10.0, 'total_json_parse_ms': 20.0, 'p95_file_total_ms': 2.0},
+        }
+        new = {
+            'runtime': {'benchmark': {'after': {'quests_open_ms': 130.0, 'startup_stabilized_rss_mb': 92.0}}},
+            'file_profile': {'total_read_ms': 13.0, 'total_json_parse_ms': 20.0, 'p95_file_total_ms': 2.0},
+        }
+        payload = compare_performance(new, old)
+        metrics = {row['metric'] for row in payload['regressions_15pct']}
+        self.assertIn('quests_open_ms', metrics)
+        self.assertIn('file_profile.total_read_ms', metrics)
+
+
+    def test_compare_runs_rejects_different_audit_modes(self) -> None:
+        old = {'integrity_mode': None, 'issues': []}
+        new = {'integrity_mode': 'CRITICAL', 'issues': []}
+        payload = compare_runs(new, old)
+        self.assertEqual(payload['status'], 'UNAVAILABLE')
+
+    def test_compare_performance_ignores_non_cost_numeric_ids(self) -> None:
+        old = {'runtime': {'benchmark': {'after': {'first_achievement_id': 10, 'quests_open_ms': 100.0}}}}
+        new = {'runtime': {'benchmark': {'after': {'first_achievement_id': 9999, 'quests_open_ms': 100.0}}}}
+        payload = compare_performance(new, old)
+        metrics = {row['metric'] for row in payload['metrics']}
+        self.assertNotIn('first_achievement_id', metrics)
 
     def test_compare_runs_reports_new_and_fixed_issue_ids(self) -> None:
         old = {'issues': [{'id': 'a'}, {'id': 'b'}]}

@@ -187,6 +187,9 @@ def main() -> int:
         print('Usage: atlas_doctor_io_runner.py <script.py> [args...]', file=sys.stderr)
         return 2
     target = Path(sys.argv[1]).resolve()
+    repo_root = next((candidate for candidate in (target.parent, *target.parents) if (candidate / 'main.py').is_file()), None)
+    if repo_root is not None and str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
     output_value = os.environ.get('ATLAS_DOCTOR_IO_TRACE')
     if not output_value:
         print('ATLAS_DOCTOR_IO_TRACE manquant', file=sys.stderr)
