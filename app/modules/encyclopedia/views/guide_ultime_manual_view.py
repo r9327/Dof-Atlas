@@ -13,12 +13,12 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
-from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
 
 
@@ -79,8 +79,8 @@ class GuideUltimeManualCard(QFrame):
             where.setWordWrap(True)
             root.addWidget(where)
 
-        self._add_quest_rows(root)
-
+        self._quest_rows = self._canonical_quest_rows()
+        self._shown_quest_map_links: set[tuple[int, str]] = set()
         self._resource_names = [
             str(value).strip()
             for value in card.get("manual_resource_names", []) or []
@@ -170,17 +170,17 @@ class GuideUltimeManualCard(QFrame):
         ]
         return visible
 
-    def _add_quest_rows(self, root: QVBoxLayout) -> None:
+    def _canonical_quest_rows(self) -> list[tuple[int, str]]:
         quest_provider = getattr(self.service, "quest_provider", None)
         if quest_provider is None:
-            return
+            return []
         quest_ids = [
             int(value)
             for value in self.card.get("manual_quest_ids", []) or []
             if isinstance(value, int) or str(value).isdigit()
         ]
         if not quest_ids:
-            return
+            return []
 
         rows: list[tuple[int, str]] = []
         seen: set[int] = set()
@@ -195,36 +195,90 @@ class GuideUltimeManualCard(QFrame):
             name = str(getattr(quest, "name", "") or "").strip()
             if name:
                 rows.append((quest_id, name))
-        if not rows:
+        return rows
+
+    @staticmethod
+    def _position_key(position: str) -> str:
+        value = " ".join(str(position or "").split()).strip()
+        match = re.search(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]", value)
+        if match:
+            return f"{int(match.group(1))},{int(match.group(2))}"
+        return value.casefold()
+
+    @staticmethod
+    def _quest_name_key(value: str) -> str:
+        return " ".join(str(value or "").split()).strip().casefold()
+
+    def _waypoint_quest_ids_for_row(self, row: dict[str, Any]) -> list[int]:
+        stage = self.card.get("manual_stage_data")
+        if not isinstance(stage, dict) or not self._quest_rows:
+            return []
+        row_position = self._position_key(str(row.get("position") or ""))
+        if not row_position:
+            return []
+
+        quest_ids_by_name = {
+            self._quest_name_key(name): quest_id
+            for quest_id, name in self._quest_rows
+        }
+        result: list[int] = []
+        for waypoint in stage.get("waypoints", []) or []:
+            if not isinstance(waypoint, dict):
+                continue
+            wx = waypoint.get("x")
+            wy = waypoint.get("y")
+            try:
+                coords = f"{int(wx)},{int(wy)}"
+            except (TypeError, ValueError):
+                coords = ""
+            label = str(waypoint.get("label") or "").strip()
+            waypoint_position = coords or self._position_key(label)
+            if waypoint_position != row_position:
+                continue
+            for quest_name in waypoint.get("quests", []) or []:
+                quest_id = quest_ids_by_name.get(self._quest_name_key(quest_name))
+                if quest_id is not None and quest_id not in result:
+                    result.append(quest_id)
+        return result
+
+    def _quest_ids_for_row(self, row: dict[str, Any]) -> list[int]:
+        waypoint_ids = self._waypoint_quest_ids_for_row(row)
+        if waypoint_ids:
+            return waypoint_ids
+        return [quest_id for quest_id, _name in self._quest_rows]
+
+    def _add_inline_quest_links(self, row_layout: QHBoxLayout, row: dict[str, Any]) -> None:
+        if not self._quest_rows:
             return
-
-        frame = QFrame()
-        frame.setObjectName("GuideManualQuestSection")
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(6)
-
-        heading = QLabel("QUÊTES DE L'ÉTAPE")
-        heading.setObjectName("GuideManualSectionTitle")
-        layout.addWidget(heading)
-
+        position = str(row.get("position") or self.card.get("destination") or "").strip()
+        map_key = self._position_key(position) or "__stage__"
+        names = {quest_id: name for quest_id, name in self._quest_rows}
         stage_id = str(self.card.get("manual_stage_id") or "")
-        for quest_id, name in rows:
-            button = AtlasButton(name)
-            button.setObjectName("GuideManualQuestButton")
+        for quest_id in self._quest_ids_for_row(row):
+            dedupe_key = (int(quest_id), map_key)
+            if dedupe_key in self._shown_quest_map_links:
+                continue
+            name = names.get(int(quest_id))
+            if not name:
+                continue
+            self._shown_quest_map_links.add(dedupe_key)
+            button = QToolButton()
+            button.setObjectName("GuideManualQuestInlineButton")
+            button.setText("↗")
+            button.setAutoRaise(True)
+            button.setCursor(Qt.PointingHandCursor)
+            button.setFixedSize(18, 18)
             button.setToolTip(
                 f"{name}\nOuvrir la fiche canonique dans l'onglet Quêtes."
             )
             button.clicked.connect(
                 lambda _checked=False, qid=quest_id, sid=stage_id: self.questRequested.emit(
-                    qid,
+                    int(qid),
                     sid,
                     self.index,
                 )
             )
-            layout.addWidget(button)
-
-        root.addWidget(frame)
+            row_layout.addWidget(button, 0, Qt.AlignTop)
 
     def _add_line_section(
         self,
@@ -309,6 +363,8 @@ class GuideUltimeManualCard(QFrame):
             line.setWordWrap(True)
             line.setTextInteractionFlags(Qt.TextSelectableByMouse)
             row_layout.addWidget(line, 1)
+            if section_key == "now":
+                self._add_inline_quest_links(row_layout, row)
             layout.addWidget(row_widget)
 
         root.addWidget(frame)
