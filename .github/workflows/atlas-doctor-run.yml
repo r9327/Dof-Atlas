@@ -1,4 +1,4 @@
-name: Atlas Doctor Zero Actionable Validation
+name: Atlas Doctor Zero Actionable Finalization
 
 on:
   push:
@@ -15,11 +15,12 @@ env:
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
   TARGET_BRANCH: doctor/zero-actionable-v1
+  BASE_SHA: 07e14fa90eacd9143fc71140359386aeb8c6b5e2
 
 jobs:
-  validate:
+  finalize:
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       - name: Checkout cleanup branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -40,7 +41,7 @@ jobs:
         shell: pwsh
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
 
-      - name: Finalize Doctor issue versus observation presentation
+      - name: Migrate last Encyclopedia placeholder consumers
         shell: pwsh
         run: |
           @'
@@ -54,12 +55,65 @@ jobs:
                   raise SystemExit(f"{path}: expected one patch anchor, found {count}")
               target.write_text(text.replace(old, new, 1), encoding="utf-8")
 
+          page = "app/modules/encyclopedia/views/encyclopedia_page.py"
+
+          replace_once(
+              page,
+              '''from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView\nfrom app.modules.encyclopedia.views.deferred_achievement_guides_view import (''',
+              '''from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView\nfrom app.modules.encyclopedia.views.future_module_view import EncyclopediaFutureModuleView\nfrom app.modules.encyclopedia.views.deferred_achievement_guides_view import (''',
+          )
+          replace_once(
+              page,
+              '''from app.modules.encyclopedia.views.placeholder_view import EncyclopediaPlaceholderView\n''',
+              '''''',
+          )
+          replace_once(
+              page,
+              '''        self._lazy_placeholders: dict[str, QWidget] = {}\n''',
+              '''''',
+          )
+
+          replace_once(
+              page,
+              '''        for tab_name in ENCYCLOPEDIA_TABS:\n            if tab_name == QUESTS_TAB and self._initial_tab == QUESTS_TAB:\n                self.tabs.addTab(self.build_quests_page(), tab_name)\n            else:\n                placeholder = EncyclopediaPlaceholderView()\n                self._lazy_placeholders[tab_name] = placeholder\n                self.tabs.addTab(placeholder, tab_name)''',
+              '''        for tab_name in ENCYCLOPEDIA_TABS:\n            if tab_name == QUESTS_TAB and self._initial_tab == QUESTS_TAB:\n                self.tabs.addTab(self.build_quests_page(), tab_name)\n            elif tab_name == GUIDES_TAB:\n                self.guides_view = DeferredAchievementGuidesView(\n                    self.status_callback,\n                    provider=self.service.guide_provider,\n                    quest_provider=self.service.quest_provider,\n                    achievement_provider=self.service.achievement_provider,\n                    achievement_progress_service=self.achievement_progress_service,\n                    guide_progress_service=self.guide_progress_service,\n                    quest_progress_path=self.quest_progress_path,\n                    navigate_callback=self.navigate_to_entity,\n                    launch_travel_callback=self._launch_travel_callback,\n                    character_key=self.current_character_key,\n                    graph=self._quest_graph,\n                    initial_progress_by_guide=self._guide_progress_by_guide,\n                    initial_progress_character_key=self._guide_progress_character_key,\n                    defer_runtime=True,\n                )\n                self.guides_view.achievementRuntimeRequested.connect(\n                    self.request_achievement_warmup\n                )\n                self.tabs.addTab(self.guides_view, tab_name)\n            elif tab_name == ACHIEVEMENTS_TAB:\n                achievement_view = AchievementsView(\n                    self.status_callback,\n                    provider=self.service.achievement_provider,\n                    progress_service=self.achievement_progress_service,\n                    character_key=self.current_character_key,\n                    navigate_callback=self.navigate_to_entity,\n                    quest_provider=self.quest_provider,\n                    guide_provider=(\n                        self.service.guide_provider\n                        if self._guide_provider_supplied\n                        else None\n                    ),\n                    quest_graph=self._quest_graph or QuestGraphService(self.quest_provider),\n                    quest_progress_service=QuestProgressService(self.quest_progress_path),\n                    defer_runtime=True,\n                )\n                self.tabs.addTab(achievement_view, tab_name)\n            else:\n                self.tabs.addTab(EncyclopediaFutureModuleView(tab_name), tab_name)''',
+          )
+
+          replace_once(
+              page,
+              '''        self._lazy_placeholders.pop(label, None)\n''',
+              '''''',
+          )
+
+          replace_once(
+              page,
+              '''        was_lazy_placeholder = isinstance(self.tabs.widget(index), EncyclopediaPlaceholderView)\n        if was_lazy_placeholder and label in {GUIDES_TAB, ACHIEVEMENTS_TAB} and not self._related_ready:\n            fallback = self._last_ready_tab_index\n            self.tabs.blockSignals(True)\n            self.tabs.setCurrentIndex(fallback)\n            self.tabs.blockSignals(False)\n            self.request_related_preload(label)\n            self.status_callback(f"Préparation de {label} en arrière-plan...")\n            return\n        widget = self.ensure_tab_loaded(label)\n        self._last_ready_tab_index = index\n        self.sync_tab_accent(label)\n        self.sync_search_visibility()\n        if not was_lazy_placeholder:\n            refresh = getattr(widget, "refresh_external_progress", None)\n            if callable(refresh):\n                refresh()\n            self.sync_character_to_children()\n        self.on_search_changed(self.search.text())\n        self.status_callback(f"Encyclopédie : {label}")''',
+              '''        widget = self.ensure_tab_loaded(label)\n        self._last_ready_tab_index = index\n        self.sync_tab_accent(label)\n        self.sync_search_visibility()\n        refresh = getattr(widget, "refresh_external_progress", None)\n        if callable(refresh):\n            refresh()\n        self.sync_character_to_children()\n        self.on_search_changed(self.search.text())\n        self.status_callback(f"Encyclopédie : {label}")''',
+          )
+
+          replace_once(
+              page,
+              '''        self._achievement_ready = bool(\n            self._achievement_provider_supplied\n            and getattr(self.service.achievement_provider, "_loaded", False)\n            and self._quest_graph is not None\n        )''',
+              '''        achievements_view = self.get_achievements_view()\n        self._achievement_ready = bool(\n            achievements_view is not None\n            and getattr(achievements_view, "_runtime_ready", False)\n        )''',
+          )
+
+          replace_once(
+              page,
+              '''        if label == GUIDES_TAB:\n            if self.guides_view is not None:\n                self._activate_loaded_tab(GUIDES_TAB)\n                return\n            if self._related_ready:\n                self._pending_lazy_tab = GUIDES_TAB\n                self.open_pending_lazy_tab()\n                return\n            self._start_full_guide_runtime()\n            return''',
+              '''        if label == GUIDES_TAB:\n            if self._guide_runtime_ready:\n                self._activate_loaded_tab(GUIDES_TAB)\n                return\n            self._start_full_guide_runtime()\n            return''',
+          )
+
+          replace_once(
+              "tests/test_project_guardrails.py",
+              '''        existing_baseline = {\n            "app/pages/quests_page.py:from app.pages._quests_page_impl import *",\n        }''',
+              '''        existing_baseline: set[str] = set()''',
+          )
+
           replace_once(
               "tools/atlas_doctor.py",
               '''    print(f"Problemes : {summary.get('issues_total', 0)} | Duree : {payload.get('duration_ms', 0)} ms")''',
               '''    print(\n        f"Problemes : {summary.get('issues_total', 0)} | "\n        f"Observations a revoir : {summary.get('observations_total', 0)} | "\n        f"Duree : {payload.get('duration_ms', 0)} ms"\n    )''',
           )
-
           replace_once(
               "tools/atlas_doctor_lib/report.py",
               '''    issues = list((audit or {}).get('issues', []))\n    actionable = [''',
@@ -72,19 +126,45 @@ jobs:
           )
           '@ | python -
 
+      - name: Verify obsolete placeholder is gone from runtime wiring
+        shell: pwsh
+        run: |
+          $matches = git grep -n "EncyclopediaPlaceholderView" -- app tests 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host $matches
+            throw "Obsolete EncyclopediaPlaceholderView reference remains"
+          }
+          Write-Host "No EncyclopediaPlaceholderView runtime/test reference remains"
+
       - name: Sync ROAD IA context
         shell: pwsh
         run: |
           python -m tools.ai_context sync
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Compile and run Atlas Doctor unit tests
+      - name: Compile and run targeted regressions
         shell: pwsh
         run: |
-          python -m py_compile tools/atlas_doctor.py tools/atlas_doctor_lib/audit.py tools/atlas_doctor_lib/report.py app/pages/quests_page.py app/input/hotkeys.py app/pages/craft_page.py app/storage.py app/network/build_fingerprint.py app/windows/focus.py app/windows/unity_windows.py
+          python -m py_compile app/modules/encyclopedia/views/encyclopedia_page.py app/modules/encyclopedia/views/future_module_view.py app/pages/quests_page.py tools/atlas_doctor.py tools/atlas_doctor_lib/audit.py tools/atlas_doctor_lib/report.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m unittest tests.test_atlas_doctor
+          python -m unittest -v tests.test_project_guardrails tests.test_lazy_quests_page_performance tests.test_encyclopedia_on_demand_loading tests.test_startup_resource_contracts tests.test_performance_budgets tests.test_atlas_doctor
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Commit migrated runtime before integrity gate
+        shell: pwsh
+        run: |
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git config user.name "r9327"
+          git config user.email "216230118+r9327@users.noreply.github.com"
+          git add app/modules/encyclopedia/views/encyclopedia_page.py app/modules/encyclopedia/views/future_module_view.py tests/test_project_guardrails.py tools/atlas_doctor.py tools/atlas_doctor_lib/report.py .ai/context_index.json
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "fix(doctor): migrate final Encyclopedia consumers and clear debt baseline"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            git push origin HEAD:$env:TARGET_BRANCH
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          git status --short
 
       - name: Materialize certification LFS fixtures
         shell: pwsh
@@ -100,22 +180,29 @@ jobs:
           & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Run Atlas Doctor CRITICAL
+      - name: Run differential CRITICAL integrity
         shell: pwsh
         run: |
-          python tools/atlas_doctor.py --json audit --force --gate critical > doctor-final.json
+          python -m tools.atlas_integrity critical --base-ref $env:BASE_SHA --root . --json > "$env:RUNNER_TEMP\integrity-diff.json"
+          $code = $LASTEXITCODE
+          Get-Content "$env:RUNNER_TEMP\integrity-diff.json" | Select-Object -Last 80
+          if ($code -ne 0) { exit $code }
+
+      - name: Run Atlas Doctor CRITICAL and require zero actionable
+        shell: pwsh
+        run: |
+          python tools/atlas_doctor.py --json audit --force --gate critical > "$env:RUNNER_TEMP\doctor-final.json"
           $doctorCode = $LASTEXITCODE
-          Write-Host "Doctor exit: $doctorCode"
           @'
-          import json
+          import json, os
           from pathlib import Path
-          payload = json.loads(Path("doctor-final.json").read_text(encoding="utf-8"))
+          payload = json.loads((Path(os.environ["RUNNER_TEMP"]) / "doctor-final.json").read_text(encoding="utf-8"))
           summary = payload.get("summary") or {}
           print(json.dumps(summary, ensure_ascii=False, indent=2))
           issues = payload.get("issues") or []
           if issues:
               for issue in issues:
-                  print(f"ACTIONABLE {issue.get('severity')} {issue.get('rule')} {issue.get('path')}:{issue.get('line')}")
+                  print(f"ACTIONABLE {issue.get('severity')} {issue.get('rule')} {issue.get('path')}:{issue.get('line')} {issue.get('evidence')}")
               raise SystemExit(f"Atlas Doctor still has {len(issues)} actionable issue(s)")
           integrity = payload.get("integrity") or {}
           if integrity.get("status") != "PASS":
@@ -125,28 +212,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($doctorCode -ne 0) { exit $doctorCode }
 
-      - name: Commit Doctor presentation and ROAD IA sync
-        shell: pwsh
-        run: |
-          git diff --check
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          git config user.name "r9327"
-          git config user.email "216230118+r9327@users.noreply.github.com"
-          git add tools/atlas_doctor.py tools/atlas_doctor_lib/report.py .ai/context_index.json
-          if (-not (git diff --cached --quiet)) {
-            git commit -m "feat(doctor): distinguish zero issues from review observations"
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            git push origin HEAD:$env:TARGET_BRANCH
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
-
-      - name: Upload final Doctor report
+      - name: Upload final validation reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: atlas-doctor-zero-actionable
+          name: atlas-doctor-zero-actionable-final
           path: |
-            doctor-final.json
+            ${{ runner.temp }}/doctor-final.json
+            ${{ runner.temp }}/integrity-diff.json
             .ai/runtime/atlas_doctor/latest_audit.json
           if-no-files-found: warn
           retention-days: 7
