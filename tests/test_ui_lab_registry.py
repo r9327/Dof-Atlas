@@ -50,6 +50,9 @@ class UiLabRegistryTests(unittest.TestCase):
         self.assertIn("guide_first", live["encyclopedia.guides"].scenarios)
         self.assertIn("detail_first", live["encyclopedia.quests"].scenarios)
         self.assertIn("detail_first", live["encyclopedia.achievements"].scenarios)
+        self.assertIn("target", live["encyclopedia.guides"].scenarios)
+        self.assertIn("target", live["encyclopedia.quests"].scenarios)
+        self.assertIn("target", live["encyclopedia.achievements"].scenarios)
         self.assertIn("saved_progress", live["home"].scenarios)
 
 
