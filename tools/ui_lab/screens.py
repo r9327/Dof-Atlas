@@ -3,9 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
+from unittest.mock import patch
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
+    from PySide6.QtWidgets import QAbstractScrollArea, QWidget
 
 
 @dataclass(slots=True)
@@ -26,6 +27,40 @@ def _int_param(context: PreviewContext, name: str) -> int | None:
         raise ValueError(f"Paramètre UI Lab invalide {name}={value!r}") from exc
 
 
+def _mark_scroll_target(root: "QWidget", area: "QAbstractScrollArea | None", fallback_name: str) -> None:
+    if area is None:
+        return
+    name = str(area.objectName() or "").strip()
+    if not name:
+        name = fallback_name
+        area.setObjectName(name)
+    root.setProperty("uiLabCaptureScrollTarget", name)
+
+
+class _EncyclopediaShellProxy:
+    """Non-visual proxy used only to invoke AtlasWindow's real tab grouping logic."""
+
+    def __init__(self, page: "QWidget", tab_name: str) -> None:
+        self.page_widgets = {"Quetes": page}
+        self.page_nav_group = {"Quetes": ""}
+        self.pending_encyclopedia_tab = tab_name
+        self.current_character_key = ""
+
+    def refresh_nav_selection(self, _group: str) -> None:
+        return
+
+
+def _apply_product_encyclopedia_navigation(page: "QWidget", tab_name: str) -> None:
+    """Run the exact AtlasWindow grouping/visibility path used by the product shell."""
+
+    from main import AtlasWindow
+
+    proxy = _EncyclopediaShellProxy(page, tab_name)
+    AtlasWindow.finish_pending_encyclopedia_tab(proxy)
+    if proxy.pending_encyclopedia_tab:
+        raise RuntimeError(f"Navigation produit impossible vers {tab_name}")
+
+
 def _build_encyclopedia_preview(context: PreviewContext, tab_name: str) -> "QWidget":
     """Build the canonical EncyclopediaPage with real providers and sandboxed writes."""
 
@@ -40,7 +75,6 @@ def _build_encyclopedia_preview(context: PreviewContext, tab_name: str) -> "QWid
     catalog = QuestCatalog.load()
     quest_provider = QuestProvider(catalog=catalog)
     achievement_provider = AchievementProvider(quest_provider=quest_provider)
-    # Product contract: rich Success detail sources are prepared before opening a detail.
     achievement_provider.load_all()
     guide_provider = GuideProvider(
         quest_provider=quest_provider,
@@ -67,10 +101,7 @@ def _build_encyclopedia_preview(context: PreviewContext, tab_name: str) -> "QWid
         quest_graph=graph,
         initial_tab=tab_name,
     )
-    page.ensure_tab_loaded(tab_name)
-    page.tabs.setCurrentIndex(page.tab_labels().index(tab_name))
-    page.sync_tab_accent(tab_name)
-    page.sync_search_visibility()
+    _apply_product_encyclopedia_navigation(page, tab_name)
     return page
 
 
@@ -98,6 +129,12 @@ def create_guides_preview(context: PreviewContext) -> "QWidget":
             raise ValueError(f"Guide introuvable pour la capture: {guide_id}")
         if quest_id is not None and not view.show_quest_detail(quest_id):
             raise ValueError(f"Quête {quest_id} absente du guide {guide_id}")
+
+    if getattr(view, "current_quest_id", None) is not None:
+        detail = getattr(view, "quest_detail_view", None)
+        _mark_scroll_target(page, getattr(detail, "center_scroll", None), "UiLabGuideQuestScroll")
+    elif getattr(view, "detail_page", None) is not None:
+        _mark_scroll_target(page, getattr(view, "center_scroll", None), "UiLabGuideOverviewScroll")
     return page
 
 
@@ -120,6 +157,8 @@ def create_quests_preview(context: PreviewContext) -> "QWidget":
         if quest_id not in quest_page.catalog.by_id:
             raise ValueError(f"Quête introuvable pour la capture: {quest_id}")
         quest_page.select_quest(quest_id, persist=False)
+        detail = getattr(quest_page, "quest_detail_view", None)
+        _mark_scroll_target(page, getattr(detail, "center_scroll", None), "UiLabQuestDetailScroll")
     return page
 
 
@@ -135,9 +174,33 @@ def create_achievements_preview(context: PreviewContext) -> "QWidget":
             achievement_id = int(achievements[0].id)
     if context.scenario == "target" and achievement_id is None:
         raise ValueError("Le scénario Succès 'target' requiert achievement_id")
-    if achievement_id is not None and not view.select_achievement(achievement_id):
-        raise ValueError(f"Succès introuvable ou non retenu pour la capture: {achievement_id}")
+    if achievement_id is not None:
+        if not view.select_achievement(achievement_id):
+            raise ValueError(f"Succès introuvable ou non retenu pour la capture: {achievement_id}")
+        _mark_scroll_target(page, getattr(view, "detail_scroll", None), "UiLabAchievementDetailScroll")
     return page
+
+
+def _create_bestiary_preview(context: PreviewContext, tab_name: str) -> "QWidget":
+    # These are currently canonical product placeholder tabs. The Lab deliberately
+    # captures that real state instead of inventing a Bestiary implementation.
+    return _build_encyclopedia_preview(context, tab_name)
+
+
+def create_dungeons_preview(context: PreviewContext) -> "QWidget":
+    return _create_bestiary_preview(context, "DONJONS")
+
+
+def create_monsters_preview(context: PreviewContext) -> "QWidget":
+    return _create_bestiary_preview(context, "MONSTRES")
+
+
+def create_archmonsters_preview(context: PreviewContext) -> "QWidget":
+    return _create_bestiary_preview(context, "ARCHIMONSTRES")
+
+
+def create_wanted_preview(context: PreviewContext) -> "QWidget":
+    return _create_bestiary_preview(context, "AVIS DE RECHERCHE")
 
 
 def create_home_preview(context: PreviewContext) -> "QWidget":
@@ -167,3 +230,109 @@ def create_home_preview(context: PreviewContext) -> "QWidget":
             },
         )
     return page
+
+
+class _NoopWindowEventWatcher:
+    def __init__(self, *_args, **_kwargs) -> None:
+        return
+
+    def start(self) -> None:
+        return
+
+    def stop(self) -> None:
+        return
+
+    def replace_tracked_hwnds(self, *_args, **_kwargs) -> None:
+        return
+
+
+def create_organizer_preview(context: PreviewContext) -> "QWidget":
+    """Instantiate the real OrganizerPage with only persistence/OS watchers isolated."""
+
+    import app.pages.organizer_page as organizer_module
+    import app.storage as storage_module
+
+    scratch = context.sandbox_root / "organizer"
+    scratch.mkdir(parents=True, exist_ok=True)
+    profile = scratch / "profiles.json"
+    client_json = scratch / "clients.json"
+    client_ini = scratch / "clients.ini"
+
+    with (
+        patch.multiple(
+            organizer_module,
+            PROFILE_FILE=profile,
+            CLIENT_INDEX_JSON=client_json,
+            CLIENT_INDEX_INI=client_ini,
+            UnityWindowEventWatcher=_NoopWindowEventWatcher,
+            scan_unity_sessions=lambda: [],
+        ),
+        patch.object(storage_module, "PROFILE_FILE", profile),
+    ):
+        page = organizer_module.OrganizerPage(
+            context.report_status,
+            lambda *_args, **_kwargs: None,
+            stop_runtime_callback=lambda *_args, **_kwargs: None,
+            launch_auto_group_callback=lambda *_args, **_kwargs: None,
+            launch_travel_callback=lambda *_args, **_kwargs: None,
+            launch_zaap_callback=lambda *_args, **_kwargs: None,
+        )
+    page.startup_scan_timer.stop()
+    _mark_scroll_target(page, getattr(page, "sessions_area", None), "UiLabOrganizerSessionsScroll")
+    return page
+
+
+def _create_equipment_preview(context: PreviewContext, section: str) -> "QWidget":
+    from app.pages.equipment_page import EquipmentPage
+
+    page = EquipmentPage(context.report_status)
+    setter = getattr(page, "set_section", None)
+    if callable(setter):
+        setter(section)
+    # The actual product embeds a remote WebView. For deterministic skeleton
+    # capture keep its real lightweight pre-WebEngine state instead of fetching
+    # mutable external content during CI.
+    page._web_start_scheduled = True
+    return page
+
+
+def create_equipment_pvm_preview(context: PreviewContext) -> "QWidget":
+    return _create_equipment_preview(context, "PvM")
+
+
+def create_equipment_pvp_preview(context: PreviewContext) -> "QWidget":
+    return _create_equipment_preview(context, "PvP")
+
+
+def create_equipment_builders_preview(context: PreviewContext) -> "QWidget":
+    return _create_equipment_preview(context, "Builders")
+
+
+def _product_placeholder(title: str, message: str, badge: str = "En travaux") -> "QWidget":
+    from main import AtlasWindow
+
+    return AtlasWindow.placeholder_page(None, title, message, badge=badge)
+
+
+def create_almanax_preview(_context: PreviewContext) -> "QWidget":
+    return _product_placeholder("Almanax", "Le module Almanax sera intégré ici.")
+
+
+def create_tutorials_preview(_context: PreviewContext) -> "QWidget":
+    return _product_placeholder("Tutoriels", "Les tutoriels seront intégrés ici.", badge="Tutoriels")
+
+
+def create_dofus_noob_preview(_context: PreviewContext) -> "QWidget":
+    return _product_placeholder(
+        "Dofus Noob",
+        "L'intégration des tutoriels Dofus Noob sera ajoutée ici.",
+        badge="Tutoriels",
+    )
+
+
+def create_treasure_hunt_preview(_context: PreviewContext) -> "QWidget":
+    return _product_placeholder("Chasse au trésor", "Le module Chasse au trésor sera intégré ici.")
+
+
+def create_ocre_preview(_context: PreviewContext) -> "QWidget":
+    return _product_placeholder("Ocre", "Le module Ocre sera intégré ici.")
