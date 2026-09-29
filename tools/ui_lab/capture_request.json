@@ -24,6 +24,26 @@
       "settle_ms": 1200
     },
     {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_prepare",
+      "output_name": "guide-gps-prepare",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_combat",
+      "output_name": "guide-gps-combat",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    },
+    {
       "screen": "encyclopedia.quests",
       "scenario": "target",
       "params": {
