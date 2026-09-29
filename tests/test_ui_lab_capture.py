@@ -10,7 +10,7 @@ class UiLabCaptureTests(unittest.TestCase):
     def test_default_capture_request_covers_main_groups_and_long_targets(self) -> None:
         captures, include_lab_shell = load_request(Path("tools/ui_lab/capture_request.json"))
         self.assertTrue(include_lab_shell)
-        self.assertEqual(len(captures), 18)
+        self.assertEqual(len(captures), 21)
         self.assertEqual(captures[0].screen, "home")
         self.assertEqual(captures[1].screen, "organizer")
 
@@ -26,11 +26,14 @@ class UiLabCaptureTests(unittest.TestCase):
                 "bestiary.wanted",
                 "tools.crafts",
                 "tools.world_map",
-                "stuffs.pvm",
                 "tools.treasure_hunt",
                 "tools.ocre",
+                "stuffs.pvm",
+                "stuffs.pvp",
+                "stuffs.builders",
                 "almanax",
                 "tutorials.default",
+                "tutorials.dofus_noob",
             }.issubset(screens)
         )
 
