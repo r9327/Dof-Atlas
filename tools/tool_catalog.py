@@ -34,6 +34,7 @@ _EXPENSIVE_HINTS = (
     "run_guide_ultime_ci",
 )
 _VARIABLE_HINTS = ("agent.py", "atlas_integrity.py", "guide_integrity.py")
+_COST_ORDER = {"cheap": 0, "unknown": 1, "variable": 2, "expensive": 3}
 _CAPABILITY_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("ai_context", ("ai_context", "agent")),
     ("validation", ("integrity", "validate", "audit", "check", "certification")),
@@ -62,7 +63,7 @@ def _supports_json(source: str) -> bool:
 
 def _supports_describe(source: str) -> bool:
     lowered = source.casefold()
-    return "--describe" in lowered or "describe" in lowered and "argparse" in lowered
+    return "--describe" in lowered or ("describe" in lowered and "argparse" in lowered)
 
 
 def _supports_help(source: str, kind: str) -> bool:
@@ -239,6 +240,58 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
     }
 
 
+def select_tools(
+    report: dict[str, Any],
+    *,
+    capability: str | None = None,
+    max_cost: str | None = None,
+    safe_only: bool = False,
+    preferred_only: bool = False,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    if max_cost is not None and max_cost not in _COST_ORDER:
+        raise ValueError(f"unsupported max_cost: {max_cost}")
+    rows: list[dict[str, Any]] = []
+    for row in report["tools"]:
+        if capability and capability not in row["capabilities"]:
+            continue
+        if preferred_only and not row["preferred_for_agent"]:
+            continue
+        if safe_only and (
+            row["mutation_state"] == "unguarded"
+            or row["readiness"] in {"review_before_agent_use", "legacy_review"}
+        ):
+            continue
+        if max_cost is not None and _COST_ORDER[row["cost_hint"]] > _COST_ORDER[max_cost]:
+            continue
+        rows.append(row)
+
+    rows.sort(
+        key=lambda row: (
+            0 if row["preferred_for_agent"] else 1,
+            -int(row["readiness_score"]),
+            _COST_ORDER[row["cost_hint"]],
+            row["path"],
+        )
+    )
+    if limit is not None:
+        rows = rows[: max(0, limit)]
+    return {
+        "schema_version": _SCHEMA_VERSION,
+        "source": "tools.tool_catalog.select_tools",
+        "read_only": True,
+        "filters": {
+            "capability": capability,
+            "max_cost": max_cost,
+            "safe_only": safe_only,
+            "preferred_only": preferred_only,
+            "limit": limit,
+        },
+        "match_count": len(rows),
+        "tools": rows,
+    }
+
+
 def _print_summary(report: dict[str, Any]) -> None:
     print(
         "AI tool catalog: tools={tool_count} ready={agent_ready_count} "
@@ -253,28 +306,65 @@ def _print_summary(report: dict[str, Any]) -> None:
         )
 
 
+def _print_selection(selection: dict[str, Any]) -> None:
+    print(f"AI tool selection: matches={selection['match_count']}")
+    for row in selection["tools"]:
+        print(
+            f"  - {row['path']} | {row['readiness']} | cost={row['cost_hint']} "
+            f"| mutation={row['mutation_state']} | {row['invocation']}"
+        )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Read-only AI catalog of Dofus Atlas repository tools."
     )
-    parser.add_argument("--json", action="store_true", help="Print the full machine-readable catalog.")
+    parser.add_argument("--json", action="store_true", help="Print machine-readable output.")
     parser.add_argument("--tool", default=None, help="Restrict output to one exact tools/... path.")
+    parser.add_argument("--capability", default=None, help="Select tools exposing one derived capability.")
+    parser.add_argument("--max-cost", choices=tuple(_COST_ORDER), default=None)
+    parser.add_argument("--safe-only", action="store_true", help="Exclude unguarded or legacy-review tools.")
+    parser.add_argument("--preferred-only", action="store_true", help="Return canonical agent entry points only.")
+    parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args(argv)
 
     report = catalog(ROOT)
+    selection_requested = any(
+        (
+            args.capability,
+            args.max_cost,
+            args.safe_only,
+            args.preferred_only,
+            args.limit is not None,
+        )
+    )
     if args.tool:
         rows = [row for row in report["tools"] if row["path"] == args.tool]
         if not rows:
             parser.error(f"unknown tool path: {args.tool}")
         payload: Any = rows[0]
+        output_kind = "tool"
+    elif selection_requested:
+        payload = select_tools(
+            report,
+            capability=args.capability,
+            max_cost=args.max_cost,
+            safe_only=args.safe_only,
+            preferred_only=args.preferred_only,
+            limit=args.limit,
+        )
+        output_kind = "selection"
     else:
         payload = report
+        output_kind = "catalog"
 
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
-    elif args.tool:
+    elif output_kind == "tool":
         for key, value in payload.items():
             print(f"{key}: {value}")
+    elif output_kind == "selection":
+        _print_selection(payload)
     else:
         _print_summary(report)
     return 0
