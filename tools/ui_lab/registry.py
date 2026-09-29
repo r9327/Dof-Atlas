@@ -232,4 +232,15 @@ def resolve_factory(spec: PreviewSpec) -> Callable:
     factory = getattr(module, attribute)
     if not callable(factory):
         raise TypeError(f"Factory UI Lab non appelable: {spec.factory_path}")
-    return factory
+
+    def product_factory(context):
+        from tools.ui_lab.product_shell import wrap_product_shell
+
+        content = factory(context)
+        return wrap_product_shell(
+            content,
+            group=spec.group,
+            active_label=spec.label,
+        )
+
+    return product_factory
