@@ -105,8 +105,11 @@ jobs:
         shell: pwsh
         run: |
           $matches = git grep -n "EncyclopediaPlaceholderView" -- app tests 2>$null
-          if ($LASTEXITCODE -eq 0) { Write-Host $matches; throw "Obsolete EncyclopediaPlaceholderView reference remains" }
+          $grepCode = $LASTEXITCODE
+          if ($grepCode -eq 0) { Write-Host $matches; throw "Obsolete EncyclopediaPlaceholderView reference remains" }
+          if ($grepCode -ne 1) { throw "git grep failed with exit code $grepCode" }
           Write-Host "No obsolete EncyclopediaPlaceholderView reference remains"
+          exit 0
 
       - name: Sync ROAD IA context
         shell: pwsh
