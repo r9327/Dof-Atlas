@@ -31,6 +31,25 @@ class ToolAuditTests(unittest.TestCase):
         self.assertEqual(report["parse_error_count"], 0)
         self.assertNotIn("tools/bom_tool.py", report["parse_errors"])
 
+    def test_from_tools_import_counts_as_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/sample.py",
+                "def main(): return 0\nif __name__ == '__main__': main()\n",
+            )
+            self._write(
+                root,
+                "tests/test_sample.py",
+                "from tools import sample\n",
+            )
+            report = audit(root)
+
+        row = next(row for row in report["tools"] if row["path"] == "tools/sample.py")
+        self.assertEqual(row["test_references"], ["tests/test_sample.py"])
+        self.assertNotIn("tools/sample.py", report["unreferenced_entrypoints"])
+
     def test_versioned_family_and_test_reference_are_detected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
