@@ -120,6 +120,10 @@ def find_avoidable_revisits(cards: Iterable[dict[str, Any]]) -> list[dict[str, A
         if not map_key:
             continue
         for right_index in range(left_index + 2, len(segments)):
+            between = segments[left_index + 1 : right_index]
+            if any(not segment.get("map") for segment in between):
+                break
+
             right = segments[right_index]
             if not right.get("map"):
                 break
@@ -132,11 +136,7 @@ def find_avoidable_revisits(cards: Iterable[dict[str, Any]]) -> list[dict[str, A
             if any(has_explicit_route_barrier(card) for card in window):
                 break
 
-            intermediate = [
-                str(segment["map"])
-                for segment in segments[left_index + 1 : right_index]
-                if segment.get("map")
-            ]
+            intermediate = [str(segment["map"]) for segment in between]
             findings.append(
                 {
                     "map": map_key,
