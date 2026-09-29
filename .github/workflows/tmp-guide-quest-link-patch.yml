@@ -1,0 +1,222 @@
+name: Temporary Guide Quest Link Patch
+
+on:
+  push:
+    branches:
+      - phase7e-guide-success-ui-finalization
+    paths:
+      - .github/workflows/tmp-guide-quest-link-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase7e-guide-success-ui-finalization
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Apply targeted Guide GPS patch
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          path = Path("app/modules/encyclopedia/views/guide_ultime_manual_view.py")
+          source = path.read_text(encoding="utf-8")
+
+          source = source.replace(
+              "    QScrollArea,\n    QVBoxLayout,",
+              "    QScrollArea,\n    QToolButton,\n    QVBoxLayout,",
+              1,
+          )
+          source = source.replace(
+              "from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView\nfrom app.ui.components import AtlasButton\nfrom app.ui.theme import PALETTE",
+              "from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView\nfrom app.quest_catalog import normalize_text\nfrom app.ui.theme import PALETTE",
+              1,
+          )
+          old_init = "        self._add_quest_rows(root)\n\n        self._resource_names = ["
+          new_init = "        self._quest_id_by_name = self._build_quest_id_by_name()\n        self._shown_quest_links: set[tuple[int, str]] = set()\n\n        self._resource_names = ["
+          if old_init not in source:
+              raise SystemExit("legacy quest block invocation not found")
+          source = source.replace(old_init, new_init, 1)
+
+          start = source.index("    def _add_quest_rows(self, root: QVBoxLayout) -> None:\n")
+          end = source.index("    def _add_line_section(\n", start)
+          helpers = '''    def _build_quest_id_by_name(self) -> dict[str, int]:
+              quest_provider = getattr(self.service, "quest_provider", None)
+              quest_ids = [
+                  int(value)
+                  for value in self.card.get("manual_quest_ids", []) or []
+                  if isinstance(value, int) or str(value).isdigit()
+              ]
+              raw_names = [
+                  str(value).strip()
+                  for value in self.card.get("manual_quest_names", []) or []
+                  if str(value).strip()
+              ]
+              mapping: dict[str, int] = {}
+              for index, quest_id in enumerate(quest_ids):
+                  names: list[str] = []
+                  if index < len(raw_names):
+                      names.append(raw_names[index])
+                  if quest_provider is not None:
+                      try:
+                          quest = quest_provider.get_quest(quest_id)
+                      except Exception:
+                          quest = None
+                      canonical = str(getattr(quest, "name", "") or "").strip()
+                      if canonical:
+                          names.append(canonical)
+                  for name in names:
+                      key = normalize_text(name)
+                      if key:
+                          mapping.setdefault(key, quest_id)
+              return mapping
+
+          def _quest_links_for_row(self, row: dict[str, Any]) -> list[tuple[int, str]]:
+              position = str(row.get("position") or self.card.get("destination") or "").strip()
+              map_key = normalize_text(" ".join(position.split()))
+              links: list[tuple[int, str]] = []
+              for raw_name in row.get("quest_names", []) or []:
+                  quest_name = str(raw_name or "").strip()
+                  if not quest_name:
+                      continue
+                  quest_id = self._quest_id_by_name.get(normalize_text(quest_name))
+                  if quest_id is None:
+                      continue
+                  fingerprint = (quest_id, map_key)
+                  if fingerprint in self._shown_quest_links:
+                      continue
+                  self._shown_quest_links.add(fingerprint)
+                  links.append((quest_id, quest_name))
+              return links
+
+          '''
+          source = source[:start] + helpers + source[end:]
+
+          old_line = '''            line.setTextInteractionFlags(Qt.TextSelectableByMouse)
+              row_layout.addWidget(line, 1)
+              layout.addWidget(row_widget)
+          '''
+          new_line = '''            line.setTextInteractionFlags(Qt.TextSelectableByMouse)
+              row_layout.addWidget(line, 1)
+
+              stage_id = str(self.card.get("manual_stage_id") or "")
+              for quest_id, quest_name in self._quest_links_for_row(row):
+                  button = QToolButton()
+                  button.setObjectName("GuideManualQuestLinkButton")
+                  button.setText("↗")
+                  button.setAutoRaise(True)
+                  button.setFixedSize(20, 20)
+                  button.setCursor(Qt.PointingHandCursor)
+                  button.setFocusPolicy(Qt.NoFocus)
+                  button.setToolTip(f"{quest_name}\\nOuvrir dans Quêtes")
+                  button.clicked.connect(
+                      lambda _checked=False, qid=quest_id, sid=stage_id: self.questRequested.emit(
+                          qid,
+                          sid,
+                          self.index,
+                      )
+                  )
+                  row_layout.addWidget(button, 0, Qt.AlignTop | Qt.AlignRight)
+
+              layout.addWidget(row_widget)
+          '''
+          if old_line not in source:
+              raise SystemExit("line insertion point not found")
+          source = source.replace(old_line, new_line, 1)
+          if "GuideManualQuestSection" in source or "GuideManualQuestButton" in source:
+              raise SystemExit("legacy quest block still present")
+          path.write_text(source, encoding="utf-8")
+
+          test = Path("tests/test_guide_manual_quest_links.py")
+          test.write_text('''from __future__ import annotations
+
+import os
+import unittest
+from types import SimpleNamespace
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtWidgets import QApplication, QFrame, QToolButton
+
+from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualCard
+
+
+class _QuestProvider:
+    def get_quest(self, quest_id: int):
+        if int(quest_id) == 1958:
+            return SimpleNamespace(id=1958, name="Les principes d'Archie m'aident")
+        return None
+
+
+class _Service:
+    quest_provider = _QuestProvider()
+
+    def manual_sections_for_card(self, _character_key, _card):
+        name = "Les principes d'Archie m'aident"
+        return {
+            "now": [
+                {"position": "[1, 2]", "text": "Première action", "kind": "action", "quest_names": [name]},
+                {"position": "[1, 2]", "text": "Deuxième action", "kind": "action", "quest_names": [name]},
+                {"position": "[2, 2]", "text": "Action autre map", "kind": "action", "quest_names": [name]},
+            ]
+        }
+
+
+class GuideManualQuestLinksTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_quest_link_is_compact_and_deduplicated_per_map(self) -> None:
+        name = "Les principes d'Archie m'aident"
+        card = {
+            "manual_stage_id": "stage-1",
+            "destination": "[1, 2]",
+            "manual_title": "Étape test",
+            "manual_quest_ids": [1958],
+            "manual_quest_names": [name],
+        }
+        widget = GuideUltimeManualCard(_Service(), "", card, 7)
+
+        self.assertIsNone(widget.findChild(QFrame, "GuideManualQuestSection"))
+        buttons = widget.findChildren(QToolButton, "GuideManualQuestLinkButton")
+        self.assertEqual(len(buttons), 2)
+        self.assertTrue(all(button.text() == "↗" for button in buttons))
+
+        emitted: list[tuple[int, str, int]] = []
+        widget.questRequested.connect(lambda quest_id, stage_id, index: emitted.append((quest_id, stage_id, index)))
+        buttons[0].click()
+        self.assertEqual(emitted, [(1958, "stage-1", 7)])
+
+
+if __name__ == "__main__":
+    unittest.main()
+''', encoding="utf-8")
+          '@ | Set-Content -Encoding utf8 .tmp_apply_guide_patch.py
+          python .tmp_apply_guide_patch.py
+          Remove-Item .tmp_apply_guide_patch.py
+      - name: Install runtime dependencies
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check -r requirements-pyside.txt
+      - name: Validate targeted behavior
+        shell: pwsh
+        run: |
+          python -m py_compile app/modules/encyclopedia/views/guide_ultime_manual_view.py tests/test_guide_manual_quest_links.py
+          python -m unittest tests.test_guide_manual_quest_links -v
+      - name: Commit validated product change
+        shell: pwsh
+        run: |
+          git config user.name "r9327"
+          git config user.email "216230118+r9327@users.noreply.github.com"
+          git add app/modules/encyclopedia/views/guide_ultime_manual_view.py tests/test_guide_manual_quest_links.py
+          git diff --cached --check
+          git commit -m "fix(guide): move quest links onto action lines"
+          git push origin HEAD:phase7e-guide-success-ui-finalization
