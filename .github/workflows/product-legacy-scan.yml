@@ -1,0 +1,97 @@
+name: Product Legacy Marker Scan
+
+on:
+  push:
+    branches:
+      - run/product-legacy-scan
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: doctor/product-cleanup-v2-final
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Scan legacy/fallback/placeholder markers
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast
+          import json
+          import re
+          from pathlib import Path
+
+          patterns = re.compile(r"legacy|fallback|placeholder", re.IGNORECASE)
+          paths = [Path("main.py"), *sorted(Path("app").rglob("*.py"))]
+          sources = {}
+          matches = []
+          definitions = []
+          for path in paths:
+              normalized = str(path).replace('\\', '/')
+              try:
+                  text = path.read_text(encoding='utf-8-sig')
+              except Exception as exc:
+                  matches.append({'path': normalized, 'read_error': f'{type(exc).__name__}: {exc}'})
+                  continue
+              sources[normalized] = text
+              for lineno, line in enumerate(text.splitlines(), 1):
+                  if patterns.search(line):
+                      matches.append({'path': normalized, 'line': lineno, 'text': line.strip()})
+              try:
+                  tree = ast.parse(text, filename=normalized)
+              except SyntaxError as exc:
+                  definitions.append({'path': normalized, 'parse_error': str(exc)})
+                  continue
+              for node in ast.walk(tree):
+                  if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and patterns.search(node.name):
+                      definitions.append({
+                          'path': normalized,
+                          'line': node.lineno,
+                          'kind': type(node).__name__,
+                          'name': node.name,
+                      })
+
+          combined = '\n'.join(sources.values())
+          for row in definitions:
+              name = row.get('name')
+              if name:
+                  row['text_occurrences'] = len(re.findall(rf'(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])', combined))
+
+          by_path = {}
+          for row in matches:
+              path = row.get('path', '<unknown>')
+              by_path[path] = by_path.get(path, 0) + 1
+          payload = {
+              'match_count': len(matches),
+              'definition_count': len([row for row in definitions if row.get('name')]),
+              'matches_by_path': dict(sorted(by_path.items(), key=lambda item: (-item[1], item[0]))),
+              'definitions': definitions,
+              'matches': matches,
+          }
+          Path('legacy-markers.json').write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding='utf-8')
+          print(json.dumps({
+              'match_count': payload['match_count'],
+              'definition_count': payload['definition_count'],
+              'matches_by_path': payload['matches_by_path'],
+              'definitions': payload['definitions'],
+          }, indent=2, ensure_ascii=False))
+          PY
+
+      - name: Upload scan
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: product-legacy-markers
+          path: legacy-markers.json
+          if-no-files-found: error
+          retention-days: 7
