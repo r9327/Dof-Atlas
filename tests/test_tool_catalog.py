@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.tool_catalog import catalog
+from tools.tool_catalog import catalog, select_tools
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,6 +74,52 @@ class ToolCatalogTests(unittest.TestCase):
             row["upgrade_actions"],
         )
         self.assertEqual(report["unguarded_mutator_count"], 1)
+
+    def test_safe_selection_filters_out_unguarded_mutators(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            safe_source = (
+                "import argparse, json\n"
+                "def main():\n"
+                "    p = argparse.ArgumentParser()\n"
+                "    p.add_argument('--json', action='store_true')\n"
+                "    print(json.dumps({'ok': True}))\n"
+                "if __name__ == '__main__': main()\n"
+            )
+            unsafe_source = (
+                "import argparse, json\n"
+                "from pathlib import Path\n"
+                "def main():\n"
+                "    p = argparse.ArgumentParser()\n"
+                "    p.add_argument('--json', action='store_true')\n"
+                "    Path('x').write_text('x')\n"
+                "    print(json.dumps({'ok': True}))\n"
+                "if __name__ == '__main__': main()\n"
+            )
+            self._write(root, "tools/safe_validation.py", safe_source)
+            self._write(root, "tools/unsafe_validation.py", unsafe_source)
+            self._write(
+                root,
+                "tests/test_safe_validation.py",
+                "from tools.safe_validation import main\n",
+            )
+            self._write(
+                root,
+                "tests/test_unsafe_validation.py",
+                "from tools.unsafe_validation import main\n",
+            )
+            report = catalog(root)
+            selection = select_tools(
+                report,
+                capability="validation",
+                safe_only=True,
+            )
+
+        selected = {row["path"] for row in selection["tools"]}
+        self.assertIn("tools/safe_validation.py", selected)
+        self.assertNotIn("tools/unsafe_validation.py", selected)
+        self.assertTrue(selection["read_only"])
+        self.assertTrue(selection["filters"]["safe_only"])
 
     def test_versioned_wrapper_is_not_promoted_as_canonical(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
