@@ -27,7 +27,7 @@
       "screen": "encyclopedia.quests",
       "scenario": "target",
       "params": {
-        "quest_id": 1958
+        "quest_name": "Les principes d'Archie m'aident"
       },
       "output_name": "quest-1958",
       "capture_segments": true,
@@ -40,7 +40,7 @@
       "screen": "encyclopedia.achievements",
       "scenario": "target",
       "params": {
-        "achievement_id": 1048
+        "achievement_name": "Vert émeraude"
       },
       "output_name": "achievement-1048",
       "capture_segments": true,
@@ -151,8 +151,8 @@
       "screen": "encyclopedia.guides",
       "scenario": "target",
       "params": {
-        "guide_id": "dofus_emeraude",
-        "quest_id": 1958
+        "guide_name": "Dofus Émeraude",
+        "quest_name": "Les principes d'Archie m'aident"
       },
       "output_name": "guide-dofus-emeraude-quest-1958",
       "capture_segments": true,
