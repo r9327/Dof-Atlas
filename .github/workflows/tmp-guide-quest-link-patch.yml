@@ -1,4 +1,4 @@
-name: Temporary Guide Quest Link Validation
+name: Phase 7E Guide Ergonomics Validation
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - .github/workflows/tmp-guide-quest-link-patch.yml
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   QT_QPA_PLATFORM: offscreen
@@ -18,7 +18,7 @@ env:
   PYTHONUTF8: "1"
 
 jobs:
-  targeted-guide-validation:
+  apply-and-validate:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -27,7 +27,7 @@ jobs:
         with:
           ref: phase7e-guide-success-ui-finalization
           fetch-depth: 0
-          persist-credentials: false
+          persist-credentials: true
           lfs: false
 
       - name: Set up Python 3.13
@@ -37,20 +37,40 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-pyside.txt
 
+      - name: Apply targeted Phase 7E ergonomics patch
+        shell: pwsh
+        run: |
+          python tools/_phase7e_apply_ergonomics.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Install application dependencies
         shell: pwsh
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Compile touched Guide files
+      - name: Compile touched files
         shell: pwsh
         run: |
-          python -m py_compile app/modules/encyclopedia/views/guide_ultime_manual_view.py tests/test_guide_ultime_manual_ui_navigation.py
+          python -m py_compile app/modules/encyclopedia/views/guide_ultime_manual_view.py app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py app/modules/encyclopedia/services/guide_route_detour_audit.py tests/test_guide_manual_quest_links.py tests/test_guide_manual_item_copy.py tests/test_guide_route_detour_audit.py tests/test_guide_ultime_manual_ui_navigation.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Run targeted Guide UI regressions
+      - name: Run targeted Guide regressions
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_guide_ultime_manual_ui_navigation tests.test_guide_style_single_source
+          python -X faulthandler -m unittest -v tests.test_guide_manual_quest_links tests.test_guide_manual_item_copy tests.test_guide_route_detour_audit tests.test_guide_ultime_manual_ui_navigation tests.test_guide_style_single_source
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Validate and commit product changes
+        shell: pwsh
+        run: |
+          git rm tools/_phase7e_apply_ergonomics.py
+          git add app/modules/encyclopedia/views/guide_ultime_manual_view.py app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py app/modules/encyclopedia/services/guide_route_detour_audit.py tests/test_guide_manual_quest_links.py tests/test_guide_manual_item_copy.py tests/test_guide_route_detour_audit.py tests/test_guide_ultime_manual_ui_navigation.py
+          git diff --cached --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git config user.name "r9327"
+          git config user.email "216230118+r9327@users.noreply.github.com"
+          git commit -m "feat(guide): finish phase7e navigation ergonomics"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git push origin HEAD:phase7e-guide-success-ui-finalization
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
