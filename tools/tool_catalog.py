@@ -37,7 +37,7 @@ _VARIABLE_HINTS = ("agent.py", "atlas_integrity.py", "guide_integrity.py")
 _COST_ORDER = {"cheap": 0, "unknown": 1, "variable": 2, "expensive": 3}
 _CAPABILITY_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("ai_context", ("ai_context", "agent")),
-    ("validation", ("integrity", "validate", "audit", "check", "certification")),
+    ("validation", ("integrity", "validate", "validation", "audit", "check", "certification")),
     ("guide", ("guide",)),
     ("performance", ("performance", "startup", "budget")),
     ("coverage", ("coverage",)),
@@ -76,13 +76,13 @@ def _supports_describe(source: str) -> bool:
 
 def _supports_help(source: str, kind: str) -> bool:
     lowered = source.casefold()
-    if kind == "python":
+    if kind in {"python", "py"}:
         return "argparse.argumentparser" in lowered or "click." in lowered or "typer." in lowered
     return "param(" in lowered or "--help" in lowered or "-help" in lowered
 
 
 def _invocation(path: str, kind: str) -> str:
-    if kind == "python" and path.endswith(".py"):
+    if kind in {"python", "py"} and path.endswith(".py"):
         return "py -3.13 -m " + path[:-3].replace("/", ".")
     return path.replace("/", "\\")
 
