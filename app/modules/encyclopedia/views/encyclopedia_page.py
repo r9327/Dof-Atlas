@@ -29,10 +29,10 @@ from app.modules.encyclopedia.services import (
 from app.modules.encyclopedia.views.guides_view import GuidesView
 from app.modules.encyclopedia.views.achievements_view import AchievementsView
 from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView
+from app.modules.encyclopedia.views.future_module_view import EncyclopediaFutureModuleView
 from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
     DeferredAchievementGuidesView,
 )
-from app.modules.encyclopedia.views.placeholder_view import EncyclopediaPlaceholderView
 from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadGate,
     RelatedPreloadState,
@@ -151,7 +151,6 @@ class EncyclopediaPage(QWidget):
         self._guide_progress_character_key = guide_progress_character_key or ""
         self._launch_travel_callback = launch_travel_callback
         self._related_data_ready_callback = related_data_ready_callback
-        self._lazy_placeholders: dict[str, QWidget] = {}
         self._related_ready = all(
             value is not None
             for value in (achievement_provider, guide_provider, self._quest_graph)
@@ -197,10 +196,41 @@ class EncyclopediaPage(QWidget):
         for tab_name in ENCYCLOPEDIA_TABS:
             if tab_name == QUESTS_TAB and self._initial_tab == QUESTS_TAB:
                 self.tabs.addTab(self.build_quests_page(), tab_name)
+            elif tab_name == GUIDES_TAB:
+                self.guides_view = DeferredAchievementGuidesView(
+                    self.status_callback,
+                    provider=self.service.guide_provider,
+                    quest_provider=self.service.quest_provider,
+                    achievement_provider=self.service.achievement_provider,
+                    achievement_progress_service=self.achievement_progress_service,
+                    guide_progress_service=self.guide_progress_service,
+                    quest_progress_path=self.quest_progress_path,
+                    navigate_callback=self.navigate_to_entity,
+                    launch_travel_callback=self._launch_travel_callback,
+                    character_key=self.current_character_key,
+                    graph=self._quest_graph,
+                    initial_progress_by_guide=self._guide_progress_by_guide,
+                    initial_progress_character_key=self._guide_progress_character_key,
+                    defer_runtime=True,
+                )
+                self.guides_view.achievementRuntimeRequested.connect(self.request_achievement_warmup)
+                self.tabs.addTab(self.guides_view, tab_name)
+            elif tab_name == ACHIEVEMENTS_TAB:
+                achievement_view = AchievementsView(
+                    self.status_callback,
+                    provider=self.service.achievement_provider,
+                    progress_service=self.achievement_progress_service,
+                    character_key=self.current_character_key,
+                    navigate_callback=self.navigate_to_entity,
+                    quest_provider=self.quest_provider,
+                    guide_provider=(self.service.guide_provider if self._guide_provider_supplied else None),
+                    quest_graph=self._quest_graph or QuestGraphService(self.quest_provider),
+                    quest_progress_service=QuestProgressService(self.quest_progress_path),
+                    defer_runtime=True,
+                )
+                self.tabs.addTab(achievement_view, tab_name)
             else:
-                placeholder = EncyclopediaPlaceholderView()
-                self._lazy_placeholders[tab_name] = placeholder
-                self.tabs.addTab(placeholder, tab_name)
+                self.tabs.addTab(EncyclopediaFutureModuleView(tab_name), tab_name)
 
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_characters()
@@ -260,7 +290,6 @@ class EncyclopediaPage(QWidget):
         if target_label in self.tab_labels():
             self.tabs.setCurrentIndex(self.tab_labels().index(target_label))
         self.tabs.blockSignals(False)
-        self._lazy_placeholders.pop(label, None)
         if old_widget is not widget:
             old_widget.deleteLater()
 
@@ -436,24 +465,14 @@ class EncyclopediaPage(QWidget):
             self.sync_tab_accent(label)
             self.sync_search_visibility()
             return
-        was_lazy_placeholder = isinstance(self.tabs.widget(index), EncyclopediaPlaceholderView)
-        if was_lazy_placeholder and label in {GUIDES_TAB, ACHIEVEMENTS_TAB} and not self._related_ready:
-            fallback = self._last_ready_tab_index
-            self.tabs.blockSignals(True)
-            self.tabs.setCurrentIndex(fallback)
-            self.tabs.blockSignals(False)
-            self.request_related_preload(label)
-            self.status_callback(f"Préparation de {label} en arrière-plan...")
-            return
         widget = self.ensure_tab_loaded(label)
         self._last_ready_tab_index = index
         self.sync_tab_accent(label)
         self.sync_search_visibility()
-        if not was_lazy_placeholder:
-            refresh = getattr(widget, "refresh_external_progress", None)
-            if callable(refresh):
-                refresh()
-            self.sync_character_to_children()
+        refresh = getattr(widget, "refresh_external_progress", None)
+        if callable(refresh):
+            refresh()
+        self.sync_character_to_children()
         self.on_search_changed(self.search.text())
         self.status_callback(f"Encyclopédie : {label}")
 
@@ -569,10 +588,10 @@ class EncyclopediaPage(QWidget):
         self._quest_load_timer = QTimer(self)
         self._quest_load_timer.setInterval(30)
         self._quest_load_timer.timeout.connect(self._collect_quest_runtime)
+        achievements_view = self.get_achievements_view()
         self._achievement_ready = bool(
-            self._achievement_provider_supplied
-            and getattr(self.service.achievement_provider, "_loaded", False)
-            and self._quest_graph is not None
+            achievements_view is not None
+            and getattr(achievements_view, "_runtime_ready", False)
         )
 
         self._guide_runtime_ready = bool(
@@ -857,12 +876,8 @@ class EncyclopediaPage(QWidget):
             self._on_tab_changed_indexed(index)
             return
         if label == GUIDES_TAB:
-            if self.guides_view is not None:
+            if self._guide_runtime_ready:
                 self._activate_loaded_tab(GUIDES_TAB)
-                return
-            if self._related_ready:
-                self._pending_lazy_tab = GUIDES_TAB
-                self.open_pending_lazy_tab()
                 return
             self._start_full_guide_runtime()
             return

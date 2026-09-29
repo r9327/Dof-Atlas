@@ -194,6 +194,7 @@ def build_ai_report(root) -> dict[str, Any]:
     comparison = compare_runs(audit, previous_audit)
     perf_comparison = compare_performance(perf, previous_perf)
     issues = list((audit or {}).get('issues', []))
+    observations = list((audit or {}).get('observations', []))
     actionable = [
         item for item in issues
         if item.get('severity') in {'CRITICAL', 'HIGH', 'MEDIUM'}
@@ -210,6 +211,8 @@ def build_ai_report(root) -> dict[str, Any]:
         'performance_comparison': perf_comparison,
         'issues_actionable': actionable,
         'issues_total': len(issues),
+        'observations_review': observations,
+        'observations_total': len(observations),
         'performance': _compact_performance(perf),
         'live_performance': _compact_live(live),
         'full_snapshots': {

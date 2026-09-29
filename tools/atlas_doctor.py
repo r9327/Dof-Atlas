@@ -49,7 +49,11 @@ def _summary(payload: dict[str, Any]) -> None:
     severity = summary.get('severity') or {}
     print(f"Verdict : {summary.get('verdict', 'N/A')}")
     print(' | '.join(f'{key} {severity.get(key, 0)}' for key in ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO')))
-    print(f"Problemes : {summary.get('issues_total', 0)} | Duree : {payload.get('duration_ms', 0)} ms")
+    print(
+        f"Problemes : {summary.get('issues_total', 0)} | "
+        f"Observations a revoir : {summary.get('observations_total', 0)} | "
+        f"Duree : {payload.get('duration_ms', 0)} ms"
+    )
 
 
 def command_audit(root: Path, args) -> dict[str, Any]:

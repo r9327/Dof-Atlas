@@ -16,7 +16,9 @@ from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, ENCYCLOPEDIA_TA
 from app.modules.encyclopedia.models import Achievement
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import AchievementProgressService
-from app.modules.encyclopedia.views import EncyclopediaPage, EncyclopediaPlaceholderView, GuidesView
+from app.modules.encyclopedia.views import EncyclopediaPage, GuidesView
+from app.modules.encyclopedia.views.achievements_view import AchievementsView
+from app.modules.encyclopedia.views.future_module_view import EncyclopediaFutureModuleView
 from app.modules.encyclopedia.widgets import AchievementDetailWidget
 from app.quest_catalog import QuestCatalog, QuestCharacter, QuestRecord, QuestStep
 
@@ -168,7 +170,7 @@ class AchievementContextPhase2Tests(unittest.TestCase):
             widget.deleteLater()
             app.processEvents()
 
-    def test_visible_achievements_tab_and_other_placeholders_remain(self):
+    def test_implemented_tabs_use_final_views_and_future_modules_are_explicit(self):
         app = self.app()
         with tempfile.TemporaryDirectory() as tmp:
             profile, client_index, quest_progress, achievement_progress, owned = self.make_temp_paths(Path(tmp))
@@ -192,31 +194,27 @@ class AchievementContextPhase2Tests(unittest.TestCase):
                 )
 
             self.assertEqual(page.tab_labels(), list(ENCYCLOPEDIA_TABS))
-            self.assertFalse(hasattr(page, "achievements_view"))
-            self.assertIsInstance(page.tabs.widget(page.tab_labels().index("GUIDES")), EncyclopediaPlaceholderView)
-            page.tabs.setCurrentIndex(page.tab_labels().index("GUIDES"))
-            app.processEvents()
-            guide_tab = page.tabs.widget(page.tab_labels().index("GUIDES"))
-            self.assertNotIsInstance(guide_tab, EncyclopediaPlaceholderView)
+            guide_index = page.tab_labels().index("GUIDES")
+            guide_tab = page.tabs.widget(guide_index)
             self.assertIsInstance(guide_tab, GuidesView)
             self.assertIs(guide_tab, page.guides_view)
+            page.tabs.setCurrentIndex(guide_index)
+            app.processEvents()
+            self.assertIs(page.tabs.widget(guide_index), guide_tab)
+
+            achievement_index = page.tab_labels().index(ACHIEVEMENTS_TAB)
+            achievement_tab = page.tabs.widget(achievement_index)
+            self.assertIsInstance(achievement_tab, AchievementsView)
+            page.tabs.setCurrentIndex(achievement_index)
+            app.processEvents()
+            self.assertIs(page.tabs.widget(achievement_index), achievement_tab)
+
             page.tabs.setCurrentIndex(page.tab_labels().index(QUESTS_TAB))
             app.processEvents()
-            self.assertIsInstance(page.tabs.widget(page.tab_labels().index(ACHIEVEMENTS_TAB)), EncyclopediaPlaceholderView)
-            page.tabs.setCurrentIndex(page.tab_labels().index(ACHIEVEMENTS_TAB))
-            app.processEvents()
-            self.assertEqual(page.current_tab_label(), ACHIEVEMENTS_TAB)
-            self.assertNotIsInstance(
-                page.tabs.widget(page.tab_labels().index(ACHIEVEMENTS_TAB)),
-                EncyclopediaPlaceholderView,
-            )
-            page.tabs.setCurrentIndex(page.tab_labels().index(QUESTS_TAB))
-            app.processEvents()
-            placeholder_tabs = {"DONJONS", "MONSTRES", "ARCHIMONSTRES", "AVIS DE RECHERCHE"}
+            future_tabs = {"DONJONS", "MONSTRES", "ARCHIMONSTRES", "AVIS DE RECHERCHE"}
             for index in range(page.tabs.count()):
-                label = page.tabs.tabText(index)
-                if label in placeholder_tabs:
-                    self.assertIsInstance(page.tabs.widget(index), EncyclopediaPlaceholderView)
+                if page.tabs.tabText(index) in future_tabs:
+                    self.assertIsInstance(page.tabs.widget(index), EncyclopediaFutureModuleView)
 
             self.assertEqual(page.current_tab_label(), QUESTS_TAB)
             assert page.quest_page is not None
