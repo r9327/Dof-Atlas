@@ -15,7 +15,7 @@ env:
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
   BEFORE_SHA: 07e14fa90eacd9143fc71140359386aeb8c6b5e2
-  AFTER_SHA: fc287838c0f6ccc9b70b26cebd994f7f30dbf50c
+  AFTER_SHA: aba1c35cf02dce326469bea5012889dc98289347
 
 jobs:
   compare:
@@ -101,7 +101,7 @@ jobs:
               "rss_after_all_views_mb", "rss_after_round_trips_mb",
               "idle_cpu_percent_one_core",
           ]
-          result = {"before_sha": "07e14fa90eacd9143fc71140359386aeb8c6b5e2", "after_sha": "fc287838c0f6ccc9b70b26cebd994f7f30dbf50c", "metrics": {}}
+          result = {"before_sha": "07e14fa90eacd9143fc71140359386aeb8c6b5e2", "after_sha": "aba1c35cf02dce326469bea5012889dc98289347", "metrics": {}}
           for key in keys:
               b = [float(row[key]) for row in before if row.get(key) is not None]
               a = [float(row[key]) for row in after if row.get(key) is not None]
@@ -118,7 +118,7 @@ jobs:
       - name: Upload performance comparison
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: doctor-zero-performance-compare
+          name: doctor-zero-performance-compare-final
           path: perf-results/*.json
           if-no-files-found: error
           retention-days: 7
