@@ -55,25 +55,16 @@ jobs:
               target.write_text(text.replace(old, new), encoding="utf-8")
 
           def grep_lines(term: str) -> list[str]:
-              completed = subprocess.run(
-                  ["git", "grep", "-n", term, "--", "*.py"],
-                  text=True,
-                  capture_output=True,
-              )
+              completed = subprocess.run(["git", "grep", "-n", term, "--", "*.py"], text=True, capture_output=True)
               if completed.returncode not in (0, 1):
                   raise SystemExit(completed.stderr)
               return completed.stdout.splitlines()
 
-          # LinkService looked unreferenced to the static heuristic, but exact
-          # repository proof shows real Guide consumers. Keep it.
           link_refs = grep_lines("LinkService")
           if not any("app/modules/encyclopedia/views/guides_view.py" in row for row in link_refs):
               raise SystemExit("Expected active LinkService Guide consumer disappeared; review manually")
-          print("KEEP LinkService - active refs:")
-          print("\n".join(link_refs))
+          print("KEEP LinkService - active refs:\n" + "\n".join(link_refs))
 
-          # This old dataclass model layer has no importer. Delete only after
-          # proving both normal import forms have zero references.
           model_refs = grep_lines("local_dofus_data.models") + grep_lines("from local_dofus_data import models")
           if model_refs:
               raise SystemExit("local_dofus_data/models.py still has consumers:\n" + "\n".join(model_refs))
@@ -90,11 +81,7 @@ jobs:
               '''    def _on_network_status(self, status: object) -> None:\n        if not all(hasattr(status, name) for name in ("running", "calibrating", "reason")):\n            return\n        text, state = self._network_summary(status)\n        self.network_status.setText(text)\n        if self.network_indicator.property("state") != state:\n            self.network_indicator.setProperty("state", state)\n            self.network_indicator.style().unpolish(self.network_indicator)\n            self.network_indicator.style().polish(self.network_indicator)\n\n    @staticmethod\n    def _network_summary(status: object) -> tuple[str, str]:\n        reason = str(getattr(status, "reason", "") or "")\n        if reason == NETWORK_RUNTIME_DISABLED_REASON:\n            return "Désactivé · maintenance", "idle"\n        if bool(getattr(status, "running", False)):\n            return "Actif", "active"\n        if bool(getattr(status, "calibrating", False)) or reason in {\n''',
           )
 
-          replace_once(
-              "main.py",
-              "from app.network.character_runtime_state import character_runtime_state\n",
-              "from app.network.runtime_gate import NETWORK_RUNTIME_ENABLED\n",
-          )
+          replace_once("main.py", "from app.network.character_runtime_state import character_runtime_state\n", "from app.network.runtime_gate import NETWORK_RUNTIME_ENABLED\n")
           replace_once(
               "main.py",
               '''        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":\n            self._schedule_owned_callback(0, self.prepare_network_capture)\n''',
@@ -112,13 +99,12 @@ jobs:
           )
           '@ | python -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
           git rm local_dofus_data/models.py
 
       - name: Sync ROAD IA context
         shell: pwsh
         run: |
-          python tools/ai_context.py update
+          python tools/ai_context.py sync
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Compile and targeted tests
