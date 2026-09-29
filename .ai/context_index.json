@@ -17,7 +17,7 @@
     },
     ".gitignore": {
       "mode": "100644",
-      "sha": "d926b0280a3df38bb5e07c747db97bfa4e5003aa",
+      "sha": "82f863b6a184bba75246dafedc71cfb3453726ea",
       "type": "blob"
     },
     "AGENTS.md": {
@@ -87,7 +87,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "66e51d7d5677e95e3237fb7376b8691a370be389",
+      "sha": "bde8c05ff4e7089b9b9e96bdfb415f0705dbdbaa",
       "type": "tree"
     },
     "bootstrap_dofus_atlas.ps1": {
@@ -132,12 +132,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "84f823dee3f5023e2df3c14d611a3a80a8749273",
+      "sha": "11d68a938655729e9fd5bbca8facc6d981f8fc4d",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "2ac0d93d37fc3184057ec473a2a726bb2bbcbfc8",
+      "sha": "0fc725f5580f583f4577afd1f14828de77c2a3dc",
       "type": "tree"
     }
   },
