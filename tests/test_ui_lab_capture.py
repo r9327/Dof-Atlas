@@ -47,7 +47,10 @@ class UiLabCaptureTests(unittest.TestCase):
             if capture.output_name == "quest-1958"
         )
         self.assertEqual(quest_target.scenario, "target")
-        self.assertEqual(quest_target.params["quest_id"], 1958)
+        self.assertEqual(
+            quest_target.params["quest_name"],
+            "Les principes d'Archie m'aident",
+        )
         self.assertTrue(quest_target.capture_segments)
         self.assertTrue(quest_target.capture_full_scroll)
         self.assertEqual(quest_target.segment_overlap, 80)
@@ -57,8 +60,11 @@ class UiLabCaptureTests(unittest.TestCase):
             for capture in captures
             if capture.output_name == "guide-dofus-emeraude-quest-1958"
         )
-        self.assertEqual(guide_target.params["guide_id"], "dofus_emeraude")
-        self.assertEqual(guide_target.params["quest_id"], 1958)
+        self.assertEqual(guide_target.params["guide_name"], "Dofus Émeraude")
+        self.assertEqual(
+            guide_target.params["quest_name"],
+            "Les principes d'Archie m'aident",
+        )
         self.assertTrue(guide_target.capture_segments)
         self.assertTrue(guide_target.capture_full_scroll)
 
@@ -67,6 +73,7 @@ class UiLabCaptureTests(unittest.TestCase):
             for capture in captures
             if capture.output_name == "achievement-1048"
         )
+        self.assertEqual(achievement_target.params["achievement_name"], "Vert émeraude")
         self.assertTrue(achievement_target.capture_segments)
         self.assertTrue(achievement_target.capture_full_scroll)
 
