@@ -10,7 +10,7 @@ class UiLabCaptureTests(unittest.TestCase):
     def test_default_capture_request_covers_main_groups_and_long_targets(self) -> None:
         captures, include_lab_shell = load_request(Path("tools/ui_lab/capture_request.json"))
         self.assertTrue(include_lab_shell)
-        self.assertEqual(len(captures), 21)
+        self.assertEqual(len(captures), 23)
         self.assertEqual(captures[0].screen, "home")
         self.assertEqual(captures[1].screen, "organizer")
 
@@ -40,6 +40,13 @@ class UiLabCaptureTests(unittest.TestCase):
         for capture in captures:
             self.assertGreaterEqual(capture.width, 320)
             self.assertGreaterEqual(capture.height, 240)
+
+        gps_prepare = next(capture for capture in captures if capture.output_name == "guide-gps-prepare")
+        gps_combat = next(capture for capture in captures if capture.output_name == "guide-gps-combat")
+        self.assertEqual(gps_prepare.scenario, "gps_prepare")
+        self.assertEqual(gps_combat.scenario, "gps_combat")
+        self.assertTrue(gps_prepare.capture_segments and gps_prepare.capture_full_scroll)
+        self.assertTrue(gps_combat.capture_segments and gps_combat.capture_full_scroll)
 
         quest_target = next(
             capture
