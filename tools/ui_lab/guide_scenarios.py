@@ -53,6 +53,22 @@ def _find_card_index(service: Any, character_key: str, predicate, label: str) ->
     raise ValueError(f"Aucune fiche réelle du Guide Ultime avec {label} n'a été trouvée")
 
 
+def _focus_section_later(manual_view: Any, object_name: str) -> None:
+    """Focus the requested real widget after Qt has laid out the manual sheet."""
+
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QWidget
+
+    def focus() -> None:
+        scroll = getattr(manual_view, "scroll", None)
+        target = manual_view.findChild(QWidget, object_name)
+        if scroll is not None and target is not None:
+            scroll.ensureWidgetVisible(target, 0, 100)
+
+    QTimer.singleShot(0, focus)
+    QTimer.singleShot(100, focus)
+
+
 def create_guides_preview(context: PreviewContext):
     """Extend the normal Guide preview with real Guide Ultime GPS states."""
 
@@ -88,10 +104,12 @@ def create_guides_preview(context: PreviewContext):
         manual_view._show_index(
             _find_card_index(service, character_key, _card_has_prepare, "une section À PRÉPARER")
         )
+        _focus_section_later(manual_view, "GuideManualResourceSection")
     elif context.scenario == "gps_combat":
         manual_view._show_index(
             _find_card_index(service, character_key, _card_has_combat, "un combat/boss")
         )
+        _focus_section_later(manual_view, "GuideManualCombat")
 
     _mark_scroll_target(page, getattr(manual_view, "scroll", None), "UiLabGuideGpsScroll")
     return page
