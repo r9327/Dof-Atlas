@@ -53,6 +53,15 @@ jobs:
       - name: Run UI Lab registry tests
         run: python -m unittest -v tests.test_ui_lab_registry
 
+      - name: Materialize local quest catalog
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Instantiate UI Lab and live Guides preview offscreen
         run: |
           @'
