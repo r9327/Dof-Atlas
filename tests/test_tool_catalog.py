@@ -42,6 +42,8 @@ class ToolCatalogTests(unittest.TestCase):
         self.assertTrue(row["discoverable_help"])
         self.assertEqual(row["mutation_state"], "none")
         self.assertEqual(row["readiness"], "agent_ready")
+        self.assertTrue(row["safe_for_agent"])
+        self.assertTrue(row["automation_ready"])
         self.assertGreaterEqual(row["readiness_score"], 85)
         self.assertEqual(row["invocation"], "py -3.13 -m tools.sample")
 
@@ -69,13 +71,15 @@ class ToolCatalogTests(unittest.TestCase):
         row = report["tools"][0]
         self.assertEqual(row["mutation_state"], "unguarded")
         self.assertEqual(row["readiness"], "review_before_agent_use")
+        self.assertFalse(row["safe_for_agent"])
+        self.assertFalse(row["automation_ready"])
         self.assertIn(
             "make_default_read_only_and_require_explicit_apply_flag",
             row["upgrade_actions"],
         )
         self.assertEqual(report["unguarded_mutator_count"], 1)
 
-    def test_safe_selection_filters_out_unguarded_mutators(self) -> None:
+    def test_safe_and_ready_selection_filters_out_unsafe_tools(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             safe_source = (
@@ -109,19 +113,27 @@ class ToolCatalogTests(unittest.TestCase):
                 "from tools.unsafe_validation import main\n",
             )
             report = catalog(root)
-            selection = select_tools(
+            safe_selection = select_tools(
                 report,
                 capability="validation",
                 safe_only=True,
             )
+            ready_selection = select_tools(
+                report,
+                capability="validation",
+                ready_only=True,
+            )
 
-        selected = {row["path"] for row in selection["tools"]}
-        self.assertIn("tools/safe_validation.py", selected)
-        self.assertNotIn("tools/unsafe_validation.py", selected)
-        self.assertTrue(selection["read_only"])
-        self.assertTrue(selection["filters"]["safe_only"])
+        safe_selected = {row["path"] for row in safe_selection["tools"]}
+        ready_selected = {row["path"] for row in ready_selection["tools"]}
+        self.assertIn("tools/safe_validation.py", safe_selected)
+        self.assertNotIn("tools/unsafe_validation.py", safe_selected)
+        self.assertEqual(ready_selected, {"tools/safe_validation.py"})
+        self.assertTrue(safe_selection["read_only"])
+        self.assertTrue(safe_selection["filters"]["safe_only"])
+        self.assertTrue(ready_selection["filters"]["ready_only"])
 
-    def test_versioned_wrapper_is_not_promoted_as_canonical(self) -> None:
+    def test_versioned_wrapper_is_legacy_and_not_automation_ready(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self._write(root, "tools/base.py", "def main(): return 0\n")
@@ -134,18 +146,27 @@ class ToolCatalogTests(unittest.TestCase):
                     "    raise SystemExit(base.main())\n",
                 )
             report = catalog(root)
+            selection = select_tools(report, ready_only=True)
 
         rows = {row["path"]: row for row in report["tools"]}
         row = rows["tools/sample_v2.py"]
         self.assertIn("collapse_version_family_after_consumer_review", row["upgrade_actions"])
         self.assertIn("absorb_or_remove_thin_wrapper_after_contract_review", row["upgrade_actions"])
+        self.assertEqual(row["canonicality"], "legacy")
+        self.assertEqual(row["readiness"], "legacy_review")
         self.assertFalse(row["preferred_for_agent"])
+        self.assertFalse(row["automation_ready"])
+        self.assertNotIn(
+            "tools/sample_v2.py",
+            {item["path"] for item in selection["tools"]},
+        )
 
     def test_repository_catalog_exposes_canonical_ai_entrypoints(self) -> None:
         report = catalog(ROOT)
         preferred = {row["path"] for row in report["preferred_entrypoints"]}
         self.assertEqual(report["schema_version"], 1)
         self.assertTrue(report["read_only"])
+        self.assertIn("automation_ready_count", report)
         self.assertIn("tools/agent.py", preferred)
         self.assertIn("tools/ai_context.py", preferred)
         self.assertIn("tools/atlas_integrity.py", preferred)
