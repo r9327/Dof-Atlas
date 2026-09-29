@@ -64,7 +64,6 @@ def command_audit(root: Path, args) -> dict[str, Any]:
     return payload
 
 
-
 def command_live(root: Path, args) -> dict[str, Any]:
     _audit(root, force=False, integrity_mode=None)
     payload = inspect_live(
@@ -102,9 +101,14 @@ def command_compare(root: Path, args) -> dict[str, Any]:
     payload = {'audit': audit_comparison, 'performance': perf_comparison}
     if not args.json:
         print(
-            f"Audit - nouveaux : {len(audit_comparison.get('new_issues', []))} | "
+            f"Audit - nouveaux problemes : {len(audit_comparison.get('new_issues', []))} | "
             f"corriges : {len(audit_comparison.get('fixed_issues', []))} | "
             f"inchanges : {audit_comparison.get('unchanged_count', 0)}"
+        )
+        print(
+            f"Observations - nouvelles : {len(audit_comparison.get('new_observations', []))} | "
+            f"disparues : {len(audit_comparison.get('resolved_observations', []))} | "
+            f"inchangees : {audit_comparison.get('unchanged_observations_count', 0)}"
         )
         regressions = perf_comparison.get('regressions_15pct', [])
         improvements = perf_comparison.get('improvements_15pct', [])
@@ -114,17 +118,50 @@ def command_compare(root: Path, args) -> dict[str, Any]:
     return payload
 
 
+def _filter_findings(rows: list[dict[str, Any]], severity: list[str] | None) -> list[dict[str, Any]]:
+    if not severity:
+        return rows
+    allowed = {item.upper() for item in severity}
+    return [item for item in rows if str(item.get('severity') or '').upper() in allowed]
+
+
+def _print_finding(item: dict[str, Any], *, kind: str) -> None:
+    line = f":{item['line']}" if item.get('line') else ''
+    print(
+        f"[{kind}][{item.get('severity', 'INFO')}] {item.get('rule', '?')} - "
+        f"{item.get('path', '?')}{line} - {item.get('title', '')} "
+        f"({item.get('confidence', 'suspect')})"
+    )
+
+
 def command_issues(root: Path, args) -> dict[str, Any]:
+    """Show the complete Doctor truth: blocking issues AND observations.
+
+    The command name is kept for CLI compatibility, but observations are not
+    hidden anymore. A clean actionable count must never make review evidence
+    disappear from the human or AI view.
+    """
+
     audit = _audit(root, force=False, integrity_mode=None)
-    issues = audit.get('issues', [])
-    if args.severity:
-        allowed = {item.upper() for item in args.severity}
-        issues = [item for item in issues if item.get('severity') in allowed]
-    payload = {'count': len(issues), 'issues': issues}
+    issues = _filter_findings(list(audit.get('issues', [])), args.severity)
+    observations = _filter_findings(list(audit.get('observations', [])), args.severity)
+    payload = {
+        'issues_count': len(issues),
+        'observations_count': len(observations),
+        'total_findings': len(issues) + len(observations),
+        'issues': issues,
+        'observations': observations,
+    }
     if not args.json:
-        for item in issues:
-            line = f":{item['line']}" if item.get('line') else ''
-            print(f"[{item['severity']}] {item['rule']} - {item['path']}{line} - {item['title']} ({item['confidence']})")
+        print(f"Problemes : {len(issues)} | Observations : {len(observations)} | Total visible : {len(issues) + len(observations)}")
+        if issues:
+            print('\n--- PROBLEMES ---')
+            for item in issues:
+                _print_finding(item, kind='ISSUE')
+        if observations:
+            print('\n--- OBSERVATIONS A REVOIR ---')
+            for item in observations:
+                _print_finding(item, kind='OBS')
     return payload
 
 
@@ -134,7 +171,12 @@ def command_verify(root: Path, args) -> dict[str, Any]:
     comparison = compare_runs(current, before)
     payload = {'audit': current.get('summary'), 'comparison': comparison}
     if not args.json:
-        print(f"Nouveaux : {len(comparison.get('new_issues', []))} | Corriges : {len(comparison.get('fixed_issues', []))}")
+        print(
+            f"Nouveaux problemes : {len(comparison.get('new_issues', []))} | "
+            f"Corriges : {len(comparison.get('fixed_issues', []))} | "
+            f"Nouvelles observations : {len(comparison.get('new_observations', []))} | "
+            f"Observations disparues : {len(comparison.get('resolved_observations', []))}"
+        )
         _summary(current)
     return payload
 
@@ -201,7 +243,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-
 def _read_choice() -> str:
     if os.name == 'nt':
         import msvcrt
@@ -213,13 +254,14 @@ def _read_choice() -> str:
                 return choice
     return input('Choix : ').strip()
 
+
 def menu(root: Path) -> int:
     actions = {
         '1': ('Audit complet', lambda: command_audit(root, argparse.Namespace(force=True, gate='critical', json=False))),
         '2': ('Inspecteur performances LIVE + I/O', lambda: command_live(root, argparse.Namespace(sample_seconds=0.5, no_io_trace=False, json=False))),
         '3': ('Performance Lab automatise', lambda: command_perf(root, argparse.Namespace(files_only=False, json=False))),
         '4': ('Comparer avec le dernier audit', lambda: command_compare(root, argparse.Namespace(json=False))),
-        '5': ('Voir les problemes detectes', lambda: command_issues(root, argparse.Namespace(severity=None, json=False))),
+        '5': ('Voir TOUS les constats (problemes + observations)', lambda: command_issues(root, argparse.Namespace(severity=None, json=False))),
         '6': ('Verifier les corrections', lambda: command_verify(root, argparse.Namespace(json=False))),
         '7': ('Exporter le rapport IA', lambda: command_report(root, argparse.Namespace(json=False))),
         '8': ('Nettoyer les fichiers temporaires Doctor', lambda: command_clean(root, argparse.Namespace(json=False))),
