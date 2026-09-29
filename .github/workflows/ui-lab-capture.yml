@@ -15,11 +15,11 @@ permissions:
   contents: read
 
 env:
-  QT_QPA_PLATFORM: offscreen
+  QT_QPA_PLATFORM: windows
   QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
   QTWEBENGINE_DISABLE_SANDBOX: "1"
-  PYTHONUNBUFFERED: "1"
-  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: 1
+  PYTHONUTF8: 1
 
 defaults:
   run:
