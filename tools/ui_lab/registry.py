@@ -7,6 +7,7 @@ from typing import Callable
 
 LIVE = "live"
 PLANNED = "planned"
+DEFAULT_SCENARIO = "default"
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,6 +19,7 @@ class PreviewSpec:
     status: str = PLANNED
     factory_path: str | None = None
     description: str = ""
+    scenarios: tuple[str, ...] = (DEFAULT_SCENARIO,)
 
     @property
     def is_live(self) -> bool:
@@ -92,6 +94,13 @@ def default_previews() -> tuple[PreviewSpec, ...]:
             description="Logique Zaap repérée ; aucune page UI autonome n'est raccordée au labo pour l'instant.",
         ),
     )
+
+
+def get_preview(key: str) -> PreviewSpec:
+    for spec in default_previews():
+        if spec.key == key:
+            return spec
+    raise KeyError(f"Écran UI Lab inconnu: {key}")
 
 
 def resolve_factory(spec: PreviewSpec) -> Callable:
