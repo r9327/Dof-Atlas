@@ -46,7 +46,7 @@ def default_previews() -> tuple[PreviewSpec, ...]:
             key="encyclopedia.quests",
             label="Quêtes",
             group="Encyclopédie",
-            source="app/modules/encyclopedia/views/quests_view.py",
+            source="app/pages/quests_page.py",
             description="À brancher sur la vraie vue Quêtes.",
         ),
         PreviewSpec(
@@ -60,8 +60,8 @@ def default_previews() -> tuple[PreviewSpec, ...]:
             key="encyclopedia.bestiary",
             label="Bestiaire",
             group="Encyclopédie",
-            source="app/modules/encyclopedia/views/bestiary_view.py",
-            description="À brancher sur la vraie vue Bestiaire.",
+            source="vue autonome non localisée",
+            description="Entrée réservée : raccorder la vue canonique quand son hôte exact est identifié.",
         ),
         PreviewSpec(
             key="home",
@@ -88,8 +88,8 @@ def default_previews() -> tuple[PreviewSpec, ...]:
             key="zaap",
             label="Zaap",
             group="Application",
-            source="app/pages/zaap_page.py",
-            description="À brancher sur la vraie page Zaap.",
+            source="app/macros/zaap.py",
+            description="Logique Zaap repérée ; aucune page UI autonome n'est raccordée au labo pour l'instant.",
         ),
     )
 
