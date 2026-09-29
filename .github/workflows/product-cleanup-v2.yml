@@ -1,0 +1,176 @@
+name: Product Cleanup V2
+
+on:
+  push:
+    branches:
+      - run/product-cleanup-v2-workflow
+
+permissions:
+  contents: write
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  cleanup:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout product cleanup branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: doctor/product-cleanup-v2-final
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: true
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install dependencies
+        shell: pwsh
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+
+      - name: Patch network entry points and proven dead model
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import subprocess
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one replacement, found {count}")
+              target.write_text(text.replace(old, new), encoding="utf-8")
+
+          replace_once(
+              "main.py",
+              "from app.network.character_runtime_state import character_runtime_state\n",
+              "from app.network.runtime_gate import NETWORK_RUNTIME_ENABLED\n",
+          )
+          replace_once(
+              "main.py",
+              '''        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":\n            self._schedule_owned_callback(0, self.prepare_network_capture)\n''',
+              '''        if (\n            NETWORK_RUNTIME_ENABLED\n            and os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen"\n        ):\n            self._schedule_owned_callback(0, self.prepare_network_capture)\n''',
+          )
+          replace_once(
+              "main.py",
+              '''    def prepare_network_capture(self) -> None:\n        """Request UAC as soon as the visible shell enters its event loop."""\n\n        bridge = getattr(self.home_page, "network_bridge", None)\n''',
+              '''    def prepare_network_capture(self) -> None:\n        """Request capture only when the network runtime is certified/enabled."""\n\n        if not NETWORK_RUNTIME_ENABLED:\n            return\n        bridge = getattr(self.home_page, "network_bridge", None)\n''',
+          )
+          replace_once(
+              "main.py",
+              '''    def _connected_characters(self, known_characters: list[Any]) -> list[Any]:\n        runtime_store = character_runtime_state()\n''',
+              '''    def _connected_characters(self, known_characters: list[Any]) -> list[Any]:\n        if not NETWORK_RUNTIME_ENABLED:\n            return []\n        from app.network.character_runtime_state import character_runtime_state\n\n        runtime_store = character_runtime_state()\n''',
+          )
+
+          replace_once(
+              "app/pages/home_page.py",
+              "from typing import Any\n",
+              "from typing import Any, TYPE_CHECKING\n",
+          )
+          replace_once(
+              "app/pages/home_page.py",
+              "from app.network.application_coordinator import NetworkApplicationStatus\n",
+              '''if TYPE_CHECKING:\n    from app.network.application_coordinator import NetworkApplicationStatus\n''',
+          )
+          replace_once(
+              "app/pages/home_page.py",
+              '''    def _on_network_status(self, status: object) -> None:\n        if not isinstance(status, NetworkApplicationStatus):\n            return\n''',
+              '''    def _on_network_status(self, status: object) -> None:\n        if not all(hasattr(status, name) for name in ("running", "calibrating", "reason")):\n            return\n''',
+          )
+
+          completed = subprocess.run(
+              ["git", "grep", "-n", "local_dofus_data.models", "--", "*.py"],
+              text=True,
+              capture_output=True,
+          )
+          if completed.returncode not in (0, 1):
+              raise SystemExit(completed.stderr)
+          if completed.stdout.strip():
+              raise SystemExit("local_dofus_data/models.py still has consumers:\n" + completed.stdout)
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          if (Test-Path local_dofus_data/models.py) {
+            git rm local_dofus_data/models.py
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+          @'
+          from __future__ import annotations
+
+          import sys
+          import unittest
+
+          from app.network.runtime_gate import (
+              NETWORK_RUNTIME_DISABLED_REASON,
+              NETWORK_RUNTIME_ENABLED,
+          )
+          from app.ui.network_bridge import NetworkRuntimeStatus, NetworkUiBridge
+
+
+          class NetworkRuntimeDisabledTests(unittest.TestCase):
+              def test_network_runtime_is_hard_disabled_until_repair(self) -> None:
+                  self.assertFalse(NETWORK_RUNTIME_ENABLED)
+                  before = "app.network.application_coordinator" in sys.modules
+                  bridge = NetworkUiBridge()
+                  self.assertIsNone(bridge.coordinator)
+                  self.assertFalse(bridge._timer.isActive())
+                  self.assertFalse(bridge._progress_timer.isActive())
+                  self.assertFalse(bridge.last_status.running)
+                  self.assertFalse(bridge.last_status.calibrating)
+                  self.assertEqual(bridge.last_status.reason, NETWORK_RUNTIME_DISABLED_REASON)
+                  self.assertFalse(bridge.request_calibration())
+                  self.assertFalse(bridge.prepare_capture())
+                  self.assertFalse(bridge.request_verified_runtime())
+                  self.assertTrue(bridge.stop())
+                  if not before:
+                      self.assertNotIn("app.network.application_coordinator", sys.modules)
+
+              def test_disabled_status_is_explicit(self) -> None:
+                  status = NetworkRuntimeStatus()
+                  self.assertEqual(status.reason, NETWORK_RUNTIME_DISABLED_REASON)
+
+
+          if __name__ == "__main__":
+              unittest.main()
+          '@ | Set-Content -LiteralPath tests/test_network_runtime_disabled.py -Encoding utf8
+
+      - name: Compile and targeted tests
+        shell: pwsh
+        run: |
+          python -m compileall -q app local_dofus_data tests main.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest tests.test_network_runtime_disabled tests.test_home_guide_ultime_source tests.test_project_guardrails
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Sync AI context index
+        shell: pwsh
+        run: |
+          git add app main.py local_dofus_data tests
+          python tools/ai_context.py sync --stage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Commit and push product cleanup
+        shell: pwsh
+        run: |
+          git status --short
+          git config user.name "r9327"
+          git config user.email "216230118+r9327@users.noreply.github.com"
+          git add -A
+          git commit -m "cleanup(product): disable network runtime and remove dead model"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git push origin HEAD:doctor/product-cleanup-v2-final
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
