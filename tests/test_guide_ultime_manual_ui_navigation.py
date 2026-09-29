@@ -203,8 +203,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(button.text(), "↗")
             self.assertEqual((button.width(), button.height()), (18, 18))
             self.assertTrue(button.autoRaise())
-            self.assertIn("Quête canonique test", button.toolTip())
-            self.assertIn("fiche canonique", button.toolTip())
+            self.assertEqual(button.toolTip(), "Quête canonique test")
 
             button.click()
             QApplication.processEvents()

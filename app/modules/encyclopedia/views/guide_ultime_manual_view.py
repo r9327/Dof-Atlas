@@ -3,9 +3,12 @@ from __future__ import annotations
 import html
 import re
 from typing import Any
+from urllib.parse import quote, unquote
 
 from PySide6.QtCore import QTimer, Signal, Qt
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QFrame,
     QHBoxLayout,
@@ -14,6 +17,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QToolButton,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -268,9 +272,7 @@ class GuideUltimeManualCard(QFrame):
             button.setAutoRaise(True)
             button.setCursor(Qt.PointingHandCursor)
             button.setFixedSize(18, 18)
-            button.setToolTip(
-                f"{name}\nOuvrir la fiche canonique dans l'onglet Quêtes."
-            )
+            button.setToolTip(name)
             button.clicked.connect(
                 lambda _checked=False, qid=quest_id, sid=stage_id: self.questRequested.emit(
                     int(qid),
@@ -361,7 +363,9 @@ class GuideUltimeManualCard(QFrame):
             )
             line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
-            line.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            line.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
+            line.setOpenExternalLinks(False)
+            line.linkActivated.connect(self._copy_item_link)
             row_layout.addWidget(line, 1)
             if section_key == "now":
                 self._add_inline_quest_links(row_layout, row)
@@ -442,7 +446,7 @@ class GuideUltimeManualCard(QFrame):
         for name in sorted({value for value in resource_names if value}, key=len, reverse=True):
             pattern = cls._resource_regex(name)
             for match in pattern.finditer(plain):
-                add_span(match.start(), match.end(), "resource")
+                add_span(match.start(), match.end(), f"resource:{quote(name, safe='')}")
 
         if not spans:
             return html.escape(plain)
@@ -457,13 +461,27 @@ class GuideUltimeManualCard(QFrame):
             value = html.escape(plain[start:end])
             if kind == "npc":
                 rendered.append(f'<span style="color:{NPC_COLOR};"><b>{value}</b></span>')
-            elif kind == "resource":
-                rendered.append(f'<span style="color:{RESOURCE_COLOR};"><b>{value}</b></span>')
+            elif kind.startswith("resource:"):
+                payload = kind.split(":", 1)[1]
+                rendered.append(
+                    f'<a href="copy-item:{payload}" style="color:{RESOURCE_COLOR}; text-decoration:none;"><b>{value}</b></a>'
+                )
             else:
                 rendered.append(f"<b>{value}</b>")
             cursor = end
         rendered.append(html.escape(plain[cursor:]))
         return "".join(rendered)
+
+
+    def _copy_item_link(self, href: str) -> None:
+        value = str(href or "")
+        if not value.startswith("copy-item:"):
+            return
+        item_name = unquote(value.split(":", 1)[1]).strip()
+        if not item_name:
+            return
+        QApplication.clipboard().setText(item_name)
+        QToolTip.showText(QCursor.pos(), f"Copié : {item_name}", self)
 
     @staticmethod
     def _resource_regex(name: str) -> re.Pattern[str]:

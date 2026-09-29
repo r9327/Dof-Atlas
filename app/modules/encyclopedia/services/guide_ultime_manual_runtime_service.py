@@ -7,6 +7,7 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 
+from app.modules.encyclopedia.services.guide_route_detour_audit import find_avoidable_revisits
 from app.modules.encyclopedia.services.guide_ultime_manual_conditions import GuideUltimeManualConditionsMixin
 from app.modules.encyclopedia.services.guide_ultime_manual_route import (
     _manual_tree_signature,
@@ -386,6 +387,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                 unsupported_by_chapter[chapter_id] = sorted(unsupported)
 
         self._link_next_cards(cards)
+        avoidable_revisits = find_avoidable_revisits(cards)
 
         self.manual_audit_data = {
             "manifest_status": str(payload.get("status") or ""),
@@ -396,6 +398,8 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "resolved_files_by_chapter": resolved_files_by_chapter,
             "empty_cards": empty_cards,
             "unsupported_stage_fields": unsupported_by_chapter,
+            "avoidable_revisit_count": len(avoidable_revisits),
+            "avoidable_revisits": avoidable_revisits,
         }
 
         if not cards:
