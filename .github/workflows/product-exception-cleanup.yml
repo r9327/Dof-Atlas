@@ -1,0 +1,287 @@
+name: Product Exception Cleanup
+
+on:
+  push:
+    branches:
+      - run/product-exception-cleanup
+
+permissions:
+  contents: write
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  cleanup:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout product branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: doctor/product-cleanup-v2-final
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: true
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install dependencies
+        shell: pwsh
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+
+      - name: Replace silent product exceptions
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one replacement, found {count}")
+              target.write_text(text.replace(old, new), encoding="utf-8")
+
+          # main.py: shutdown failures must be visible, not swallowed.
+          replace_once(
+              "main.py",
+              '''            except RuntimeError:\n                pass\n\n        bridge = getattr(getattr(self, "home_page", None), "network_bridge", None)\n''',
+              '''            except RuntimeError:\n                LOGGER.debug("Organizer watcher already unavailable during shutdown.", exc_info=True)\n\n        bridge = getattr(getattr(self, "home_page", None), "network_bridge", None)\n''',
+          )
+          replace_once(
+              "main.py",
+              '''            except RuntimeError:\n                pass\n\n        self.runtime.stop()\n''',
+              '''            except RuntimeError:\n                LOGGER.debug("Network bridge already unavailable during shutdown.", exc_info=True)\n\n        self.runtime.stop()\n''',
+          )
+
+          # background_work.py: restoring Windows priority can fail; record it.
+          replace_once(
+              "app/background_work.py",
+              "import ctypes\nimport os\n",
+              "import ctypes\nimport logging\nimport os\n",
+          )
+          replace_once(
+              "app/background_work.py",
+              "from typing import Iterator\n\n\n# Windows lowers CPU",
+              "from typing import Iterator\n\n\n_LOGGER = logging.getLogger(__name__)\n\n\n# Windows lowers CPU",
+          )
+          replace_once(
+              "app/background_work.py",
+              '''            except (AttributeError, OSError, TypeError, ValueError):\n                pass\n''',
+              '''            except (AttributeError, OSError, TypeError, ValueError):\n                _LOGGER.debug("Unable to restore Windows background thread priority.", exc_info=True)\n''',
+          )
+
+          # world_db.py: missing test DB files are an expected loop condition.
+          replace_once(
+              "app/cartography/world_db.py",
+              '''            except FileNotFoundError:\n                pass\n            except OSError as exc:\n''',
+              '''            except FileNotFoundError:\n                continue\n            except OSError as exc:\n''',
+          )
+
+          # constants.py/core logger: log rotation failure must be observable.
+          replace_once(
+              "app/constants.py",
+              '''    except OSError:\n        pass\nLOGGER = logging.getLogger("dofus_atlas_pyside")\n''',
+              '''    except OSError:\n        logging.getLogger("dofus_atlas_pyside").warning(\n            "Rotation du log PySide impossible.",\n            exc_info=True,\n        )\nLOGGER = logging.getLogger("dofus_atlas_pyside")\n''',
+          )
+          replace_once(
+              "app/core/logger.py",
+              '''        except OSError:\n            pass\n\n    handler = logging.FileHandler''',
+              '''        except OSError:\n            logger.warning("Rotation du log runtime impossible.", exc_info=True)\n\n    handler = logging.FileHandler''',
+          )
+
+          # Progress backup failure is relevant diagnostic information.
+          replace_once(
+              "app/modules/encyclopedia/services/progress_service.py",
+              "import json\nimport re\n",
+              "import json\nimport logging\nimport re\n",
+          )
+          replace_once(
+              "app/modules/encyclopedia/services/progress_service.py",
+              "from app.modules.encyclopedia.models.progress_state import ProgressState\n\n\nACHIEVEMENT_PROGRESS_FILE",
+              "from app.modules.encyclopedia.models.progress_state import ProgressState\n\n\n_LOGGER = logging.getLogger(__name__)\n\n\nACHIEVEMENT_PROGRESS_FILE",
+          )
+          replace_once(
+              "app/modules/encyclopedia/services/progress_service.py",
+              '''        except OSError:\n            pass\n\n    @staticmethod\n''',
+              '''        except OSError:\n            _LOGGER.warning(\n                "Sauvegarde du fichier de progression corrompu impossible: %s",\n                self.path,\n                exc_info=True,\n            )\n\n    @staticmethod\n''',
+          )
+
+          # ValueError here is normal fallback control flow; make it explicit.
+          replace_once(
+              "app/modules/encyclopedia/services/quest_graph_service.py",
+              '''                try:\n                    index = ordered.index(quest_id)\n                except ValueError:\n                    pass\n                else:\n                    previous = ordered[index - 1] if index > 0 else None\n                    following = ordered[index + 1] if index + 1 < len(ordered) else None\n                    return previous, following\n''',
+              '''                try:\n                    index = ordered.index(quest_id)\n                except ValueError:\n                    index = -1\n                if index >= 0:\n                    previous = ordered[index - 1] if index > 0 else None\n                    following = ordered[index + 1] if index + 1 < len(ordered) else None\n                    return previous, following\n''',
+          )
+
+          # Success search signal disconnect is expected once; keep it visible in debug logs.
+          replace_once(
+              "app/modules/encyclopedia/views/achievements_view.py",
+              "from collections.abc import Callable\n",
+              "import logging\nfrom collections.abc import Callable\n",
+          )
+          replace_once(
+              "app/modules/encyclopedia/views/achievements_view.py",
+              "from app.ui.theme import PALETTE\n\n\nCATEGORY_ROLE",
+              "from app.ui.theme import PALETTE\n\n\n_LOGGER = logging.getLogger(__name__)\n\n\nCATEGORY_ROLE",
+          )
+          replace_once(
+              "app/modules/encyclopedia/views/achievements_view.py",
+              '''        except (RuntimeError, TypeError):\n            pass\n        self.search.textChanged.connect''',
+              '''        except (RuntimeError, TypeError):\n            _LOGGER.debug("Success search signal had no previous connection.", exc_info=True)\n        self.search.textChanged.connect''',
+          )
+
+          # Worker completion may race QObject deletion; log instead of swallowing.
+          first = '''                try:\n                    self.guideRuntimeFinished.emit(result)\n                except RuntimeError:\n                    pass\n'''
+          second = '''                try:\n                    self.achievementRuntimeFinished.emit(result)\n                except RuntimeError:\n                    pass\n'''
+          replace_once(
+              "app/modules/encyclopedia/views/encyclopedia_page.py",
+              first,
+              '''                try:\n                    self.guideRuntimeFinished.emit(result)\n                except RuntimeError:\n                    LOGGER.debug(\n                        "Guide runtime receiver deleted before worker completion.",\n                        exc_info=True,\n                    )\n''',
+          )
+          replace_once(
+              "app/modules/encyclopedia/views/encyclopedia_page.py",
+              second,
+              '''                try:\n                    self.achievementRuntimeFinished.emit(result)\n                except RuntimeError:\n                    LOGGER.debug(\n                        "Success runtime receiver deleted before worker completion.",\n                        exc_info=True,\n                    )\n''',
+          )
+
+          # Quest detail ordered context: explicit fallback to graph navigation.
+          replace_once(
+              "app/modules/encyclopedia/widgets/quest_detail_view.py",
+              '''            try:\n                index = ordered.index(int(quest_id))\n            except ValueError:\n                pass\n            else:\n                previous = ordered[index - 1] if index > 0 else None\n                following = ordered[index + 1] if index + 1 < len(ordered) else None\n                return previous, following\n''',
+              '''            try:\n                index = ordered.index(int(quest_id))\n            except ValueError:\n                index = -1\n            if index >= 0:\n                previous = ordered[index - 1] if index > 0 else None\n                following = ordered[index + 1] if index + 1 < len(ordered) else None\n                return previous, following\n''',
+          )
+
+          # Organizer stale Qt widgets are expected lifecycle races: debug-log them.
+          replace_once(
+              "app/pages/organizer_page.py",
+              "import os\n",
+              "import logging\nimport os\n",
+          )
+          replace_once(
+              "app/pages/organizer_page.py",
+              "CLASS_ICON_DIRS = (\n",
+              "_LOGGER = logging.getLogger(__name__)\n\n\nCLASS_ICON_DIRS = (\n",
+          )
+          replace_once(
+              "app/pages/organizer_page.py",
+              '''            except RuntimeError:\n                pass\n        self.drag_pending_index = None\n''',
+              '''            except RuntimeError:\n                _LOGGER.debug("Pending drag row was deleted before restyle.", exc_info=True)\n        self.drag_pending_index = None\n''',
+          )
+          replace_once(
+              "app/pages/organizer_page.py",
+              '''        except RuntimeError:\n            pass\n        self.drag_ghost = None\n''',
+              '''        except RuntimeError:\n            _LOGGER.debug("Drag ghost was already deleted during cleanup.", exc_info=True)\n        self.drag_ghost = None\n''',
+          )
+          replace_once(
+              "app/pages/organizer_page.py",
+              '''            except RuntimeError:\n                pass\n            try:\n                self.drag_session_row.setCursor(Qt.OpenHandCursor)\n            except RuntimeError:\n                pass\n''',
+              '''            except RuntimeError:\n                _LOGGER.debug("Dragged row mouse grab was already released/deleted.", exc_info=True)\n            try:\n                self.drag_session_row.setCursor(Qt.OpenHandCursor)\n            except RuntimeError:\n                _LOGGER.debug("Dragged row was deleted before cursor reset.", exc_info=True)\n''',
+          )
+
+          # Legacy quest cache deletion is optional, but a failure should be traceable.
+          replace_once(
+              "app/quest_catalog.py",
+              "import json\nimport re\n",
+              "import json\nimport logging\nimport re\n",
+          )
+          replace_once(
+              "app/quest_catalog.py",
+              "from app.quest_source_index import build_image_index\n\n\nSENTINEL_COORD",
+              "from app.quest_source_index import build_image_index\n\n\n_LOGGER = logging.getLogger(__name__)\n\n\nSENTINEL_COORD",
+          )
+          replace_once(
+              "app/quest_catalog.py",
+              '''        except OSError:\n            pass\n    except (OSError, TypeError, ValueError):\n''',
+              '''        except OSError:\n            _LOGGER.debug("Suppression ancien cache quêtes impossible.", exc_info=True)\n    except (OSError, TypeError, ValueError):\n''',
+          )
+
+          # Deferred records: missing lazy detail state is a normal fallback.
+          replace_once(
+              "app/quest_catalog_details.py",
+              '''            try:\n                details = object.__getattribute__(self, "_details")\n            except AttributeError:\n                pass\n            else:\n                return getattr(details.get(object.__getattribute__(self, "id")), name)\n''',
+              '''            try:\n                details = object.__getattribute__(self, "_details")\n            except AttributeError:\n                details = None\n            if details is not None:\n                return getattr(details.get(object.__getattribute__(self, "id")), name)\n''',
+          )
+
+          # World scan worker can finish after page destruction; record at debug level.
+          replace_once(
+              "app/ui/world_scan_panel.py",
+              '''            except RuntimeError:\n                # The page can be destroyed while the worker is finishing.\n                pass\n''',
+              '''            except RuntimeError:\n                # The page can be destroyed while the worker is finishing.\n                LOGGER.debug(\n                    "Cartography receiver deleted before worker completion.",\n                    exc_info=True,\n                )\n''',
+          )
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Assert no silent product exceptions remain
+        shell: pwsh
+        run: |
+          @'
+          import ast
+          from pathlib import Path
+
+          offenders = []
+          for path in [Path("main.py"), *sorted(Path("app").rglob("*.py"))]:
+              normalized = str(path).replace("\\", "/")
+              if normalized.startswith("app/network/") or "/tools/" in normalized:
+                  continue
+              try:
+                  tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=normalized)
+              except SyntaxError as exc:
+                  offenders.append(f"{normalized}:{exc.lineno}: parse error: {exc}")
+                  continue
+              for node in ast.walk(tree):
+                  if not isinstance(node, ast.ExceptHandler):
+                      continue
+                  meaningful = [
+                      stmt for stmt in node.body
+                      if not (
+                          isinstance(stmt, ast.Expr)
+                          and isinstance(stmt.value, ast.Constant)
+                          and isinstance(stmt.value.value, str)
+                      )
+                  ]
+                  if len(meaningful) == 1 and isinstance(meaningful[0], ast.Pass):
+                      offenders.append(f"{normalized}:{node.lineno}: silent except-pass")
+          if offenders:
+              raise SystemExit("\n".join(offenders))
+          print("No silent except-pass remains in active product code outside disabled network/tools.")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Compile and targeted tests
+        shell: pwsh
+        run: |
+          python -m compileall -q app tests main.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest tests.test_network_runtime_disabled tests.test_project_guardrails tests.test_achievements_phase2 tests.test_quest_catalog_details tests.test_world_scan_panel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Sync AI context index
+        shell: pwsh
+        run: |
+          git add app main.py tests
+          python tools/ai_context.py sync --stage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Commit and push
+        shell: pwsh
+        run: |
+          git status --short
+          git config user.name "r9327"
+          git config user.email "216230118+r9327@users.noreply.github.com"
+          git add -A
+          git commit -m "cleanup(product): make exception handling explicit"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git push origin HEAD:doctor/product-cleanup-v2-final
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
