@@ -69,6 +69,7 @@ class GuideManualQuestLinksTests(unittest.TestCase):
         self.assertEqual(len(buttons), 2)
         self.assertTrue(all(button.text() == "↗" for button in buttons))
         self.assertTrue(all(button.width() == 18 and button.height() == 18 for button in buttons))
+        self.assertTrue(all(button.toolTip() == QUEST_NAME for button in buttons))
 
         emitted: list[tuple[int, str, int]] = []
         widget.questRequested.connect(
