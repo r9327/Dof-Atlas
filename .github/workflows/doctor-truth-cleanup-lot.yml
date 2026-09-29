@@ -1,0 +1,155 @@
+name: Doctor Truth Cleanup Lot
+
+on:
+  push:
+    branches:
+      - run/doctor-final-20260929
+
+permissions:
+  contents: write
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  cleanup:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout Doctor branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: doctor/zero-actionable-v1
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: true
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install dependencies
+        shell: pwsh
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+
+      - name: Prove dead modules and patch network entry points
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import subprocess
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one replacement, found {count}")
+              target.write_text(text.replace(old, new), encoding="utf-8")
+
+          def prove_no_refs(term: str, excluded: set[str]) -> None:
+              completed = subprocess.run(
+                  ["git", "grep", "-n", term, "--", "*.py"],
+                  text=True,
+                  capture_output=True,
+              )
+              if completed.returncode not in (0, 1):
+                  raise SystemExit(completed.stderr)
+              refs = []
+              for line in completed.stdout.splitlines():
+                  path = line.split(":", 1)[0].replace("\\", "/")
+                  if path not in excluded:
+                      refs.append(line)
+              if refs:
+                  raise SystemExit(f"{term} still has consumers:\n" + "\n".join(refs))
+
+          # LinkService is only a stale lazy export; no consumer is allowed before deletion.
+          prove_no_refs(
+              "LinkService",
+              {
+                  "app/modules/encyclopedia/services/link_service.py",
+                  "app/modules/encyclopedia/services/__init__.py",
+              },
+          )
+          # Old local dataclass model layer has no importer at all.
+          prove_no_refs("local_dofus_data.models", set())
+          prove_no_refs("from local_dofus_data import models", set())
+
+          services = Path("app/modules/encyclopedia/services/__init__.py")
+          text = services.read_text(encoding="utf-8")
+          block = '''    "LinkService": (\n        "app.modules.encyclopedia.services.link_service",\n        "LinkService",\n    ),\n'''
+          if text.count(block) != 1 or text.count('    "LinkService",\n') != 1:
+              raise SystemExit("LinkService export contract changed; aborting deletion")
+          text = text.replace(block, "").replace('    "LinkService",\n', "")
+          services.write_text(text, encoding="utf-8")
+
+          replace_once(
+              "app/pages/home_page.py",
+              "from app.network.application_coordinator import NetworkApplicationStatus\n",
+              "from app.network.runtime_gate import NETWORK_RUNTIME_DISABLED_REASON\n",
+          )
+          replace_once(
+              "app/pages/home_page.py",
+              '''    def _on_network_status(self, status: object) -> None:\n        if not isinstance(status, NetworkApplicationStatus):\n            return\n        text, state = self._network_summary(status)\n        self.network_status.setText(text)\n        if self.network_indicator.property("state") != state:\n            self.network_indicator.setProperty("state", state)\n            self.network_indicator.style().unpolish(self.network_indicator)\n            self.network_indicator.style().polish(self.network_indicator)\n\n    @staticmethod\n    def _network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:\n        if status.running:\n            return "Actif", "active"\n        reason = str(status.reason or "")\n        if status.calibrating or reason in {\n''',
+              '''    def _on_network_status(self, status: object) -> None:\n        if not all(hasattr(status, name) for name in ("running", "calibrating", "reason")):\n            return\n        text, state = self._network_summary(status)\n        self.network_status.setText(text)\n        if self.network_indicator.property("state") != state:\n            self.network_indicator.setProperty("state", state)\n            self.network_indicator.style().unpolish(self.network_indicator)\n            self.network_indicator.style().polish(self.network_indicator)\n\n    @staticmethod\n    def _network_summary(status: object) -> tuple[str, str]:\n        reason = str(getattr(status, "reason", "") or "")\n        if reason == NETWORK_RUNTIME_DISABLED_REASON:\n            return "Désactivé · maintenance", "idle"\n        if bool(getattr(status, "running", False)):\n            return "Actif", "active"\n        if bool(getattr(status, "calibrating", False)) or reason in {\n''',
+          )
+
+          replace_once(
+              "main.py",
+              "from app.network.character_runtime_state import character_runtime_state\n",
+              "from app.network.runtime_gate import NETWORK_RUNTIME_ENABLED\n",
+          )
+          replace_once(
+              "main.py",
+              '''        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":\n            self._schedule_owned_callback(0, self.prepare_network_capture)\n''',
+              '''        if (\n            NETWORK_RUNTIME_ENABLED\n            and os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen"\n        ):\n            self._schedule_owned_callback(0, self.prepare_network_capture)\n''',
+          )
+          replace_once(
+              "main.py",
+              '''    def prepare_network_capture(self) -> None:\n        """Request UAC as soon as the visible shell enters its event loop."""\n\n        bridge = getattr(self.home_page, "network_bridge", None)\n''',
+              '''    def prepare_network_capture(self) -> None:\n        """Request capture only when the network feature is explicitly enabled."""\n\n        if not NETWORK_RUNTIME_ENABLED:\n            return\n        bridge = getattr(self.home_page, "network_bridge", None)\n''',
+          )
+          replace_once(
+              "main.py",
+              '''    def _connected_characters(self, known_characters: list[Any]) -> list[Any]:\n        runtime_store = character_runtime_state()\n''',
+              '''    def _connected_characters(self, known_characters: list[Any]) -> list[Any]:\n        if not NETWORK_RUNTIME_ENABLED:\n            return []\n        from app.network.character_runtime_state import character_runtime_state\n\n        runtime_store = character_runtime_state()\n''',
+          )
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          git rm app/modules/encyclopedia/services/link_service.py
+          git rm local_dofus_data/models.py
+
+      - name: Sync ROAD IA context
+        shell: pwsh
+        run: |
+          python tools/ai_context.py update
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Compile and targeted tests
+        shell: pwsh
+        run: |
+          python -m compileall -q app local_dofus_data tools tests main.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest tests.test_atlas_doctor tests.test_network_runtime_disabled tests.test_home_guide_ultime_source tests.test_project_guardrails
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Commit and push Doctor cleanup
+        shell: pwsh
+        run: |
+          git status --short
+          if (-not (git status --porcelain)) { throw "Expected cleanup changes" }
+          git config user.name "r9327"
+          git config user.email "216230118+r9327@users.noreply.github.com"
+          git add -A
+          git commit -m "cleanup(doctor): keep audit truth and disable network runtime"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git push origin HEAD:doctor/zero-actionable-v1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
