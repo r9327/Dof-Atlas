@@ -201,27 +201,69 @@ def _reference_tokens(path: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(tokens))
 
 
+def _tool_module_path(module: str) -> str | None:
+    if not module.startswith("tools."):
+        return None
+    return module.replace(".", "/") + ".py"
+
+
+def _python_tool_import_paths(source: str) -> set[str]:
+    """Return explicit tools/*.py imports without executing repository code."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    result: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                relative = _tool_module_path(alias.name)
+                if relative:
+                    result.add(relative)
+            continue
+        if not isinstance(node, ast.ImportFrom) or not node.module:
+            continue
+        if node.module == "tools":
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                relative = _tool_module_path(f"tools.{alias.name}")
+                if relative:
+                    result.add(relative)
+            continue
+        relative = _tool_module_path(node.module)
+        if relative:
+            result.add(relative)
+    return result
+
+
 def _reference_counts(
     *,
     root: Path,
     tool_paths: list[str],
     reference_paths: list[str],
 ) -> dict[str, dict[str, Any]]:
-    corpus: dict[str, str] = {}
+    corpus: dict[str, tuple[str, set[str]]] = {}
     for relative in reference_paths:
         text = _read_text(root, relative)
-        if text:
-            corpus[relative] = text
+        if not text:
+            continue
+        imported_tools = (
+            _python_tool_import_paths(text)
+            if Path(relative).suffix.casefold() == ".py"
+            else set()
+        )
+        corpus[relative] = (text, imported_tools)
 
     result: dict[str, dict[str, Any]] = {}
     for tool in tool_paths:
         tokens = _reference_tokens(tool)
         refs: list[str] = []
         test_refs: list[str] = []
-        for relative, text in corpus.items():
+        for relative, (text, imported_tools) in corpus.items():
             if relative == tool:
                 continue
-            if any(token in text for token in tokens):
+            if tool in imported_tools or any(token in text for token in tokens):
                 refs.append(relative)
                 if relative.startswith("tests/"):
                     test_refs.append(relative)
