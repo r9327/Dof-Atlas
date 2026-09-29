@@ -232,6 +232,29 @@ def _scroll_positions(area: QAbstractScrollArea, overlap: int) -> list[int]:
     return positions
 
 
+def _save_full_frame_stack(frames: list[QImage], path: Path) -> None:
+    if not frames:
+        raise RuntimeError(f"Aucune frame disponible pour la capture full: {path}")
+    width = max(frame.width() for frame in frames)
+    height = sum(frame.height() for frame in frames)
+    if height > MAX_FULL_SCROLL_HEIGHT:
+        raise RuntimeError(
+            f"Capture full trop haute ({height}px > {MAX_FULL_SCROLL_HEIGHT}px) pour {path.name}"
+        )
+    full_image = QImage(width, height, QImage.Format_ARGB32)
+    full_image.fill(0)
+    painter = QPainter(full_image)
+    try:
+        y = 0
+        for frame in frames:
+            painter.drawImage(0, y, frame)
+            y += frame.height()
+    finally:
+        painter.end()
+    if not full_image.save(str(path), "PNG"):
+        raise RuntimeError(f"Capture full impossible: {path}")
+
+
 def _capture_long_view(
     app: QApplication,
     widget,
@@ -242,67 +265,54 @@ def _capture_long_view(
     if not (spec.capture_segments or spec.capture_full_scroll):
         return {}
 
+    safe_base = _safe_slug(base_name)
     area = _scroll_target(widget, spec)
     if area is None or area.verticalScrollBar().maximum() <= 0:
+        full_file: str | None = None
+        if spec.capture_full_scroll:
+            frame = widget.grab()
+            if frame.isNull():
+                raise RuntimeError(f"Capture full impossible pour {base_name}")
+            full_file = f"{safe_base}-full.png"
+            if not frame.save(str(output_dir / full_file), "PNG"):
+                raise RuntimeError(f"Capture full impossible: {output_dir / full_file}")
         return {
             "scroll_target": None,
             "segments": [],
-            "full_file": None,
+            "full_file": full_file,
             "scroll_range": 0,
+            "full_scope": "full_window" if full_file else None,
         }
 
     bar = area.verticalScrollBar()
     original_value = int(bar.value())
     positions = _scroll_positions(area, spec.segment_overlap)
     segments: list[str] = []
+    full_frames: list[QImage] = []
     full_file: str | None = None
-    safe_base = _safe_slug(base_name)
-
-    viewport = area.viewport()
-    viewport_width = max(1, int(viewport.width()))
-    viewport_height = max(1, int(viewport.height()))
-    full_height = int(bar.maximum()) + viewport_height
-    if spec.capture_full_scroll and full_height > MAX_FULL_SCROLL_HEIGHT:
-        raise RuntimeError(
-            f"Capture full trop haute ({full_height}px > {MAX_FULL_SCROLL_HEIGHT}px) pour {base_name}"
-        )
-
-    full_image: QImage | None = None
-    painter: QPainter | None = None
-    if spec.capture_full_scroll:
-        full_image = QImage(viewport_width, full_height, QImage.Format_ARGB32)
-        full_image.fill(0)
-        painter = QPainter(full_image)
 
     try:
         for index, position in enumerate(positions, 1):
             bar.setValue(position)
             _settle(app, min(max(80, spec.settle_ms // 4), 300))
+            frame = widget.grab()
+            if frame.isNull():
+                raise RuntimeError(f"Capture segment impossible pour {base_name}")
 
             if spec.capture_segments:
                 segment_name = f"{safe_base}-{index:02d}.png"
                 segment_path = output_dir / segment_name
-                segment = widget.grab()
-                if segment.isNull() or not segment.save(str(segment_path), "PNG"):
+                if not frame.save(str(segment_path), "PNG"):
                     raise RuntimeError(f"Capture segment impossible: {segment_path}")
                 segments.append(segment_name)
 
-            if painter is not None:
-                viewport_pixmap = viewport.grab()
-                if viewport_pixmap.isNull():
-                    raise RuntimeError(f"Capture viewport impossible pour {base_name}")
-                painter.drawPixmap(0, position, viewport_pixmap)
+            if spec.capture_full_scroll:
+                full_frames.append(frame.toImage())
 
-        if painter is not None and full_image is not None:
-            painter.end()
-            painter = None
+        if spec.capture_full_scroll:
             full_file = f"{safe_base}-full.png"
-            full_path = output_dir / full_file
-            if not full_image.save(str(full_path), "PNG"):
-                raise RuntimeError(f"Capture full impossible: {full_path}")
+            _save_full_frame_stack(full_frames, output_dir / full_file)
     finally:
-        if painter is not None:
-            painter.end()
         bar.setValue(original_value)
         _settle(app, 50)
 
@@ -311,7 +321,7 @@ def _capture_long_view(
         "segments": segments,
         "full_file": full_file,
         "scroll_range": int(bar.maximum()),
-        "full_scope": "scroll_content" if full_file else None,
+        "full_scope": "full_window_segments" if full_file else None,
     }
 
 
