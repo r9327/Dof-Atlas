@@ -96,10 +96,15 @@ class UiLabRegistryTests(unittest.TestCase):
 
     def test_exact_tab_scenarios_are_declared(self) -> None:
         live = {preview.key: preview for preview in default_previews() if preview.is_live}
-        self.assertIn("guide_first", live["encyclopedia.guides"].scenarios)
+        guide_scenarios = live["encyclopedia.guides"].scenarios
+        self.assertIn("guide_first", guide_scenarios)
+        self.assertIn("target", guide_scenarios)
+        self.assertIn("gps_active", guide_scenarios)
+        self.assertIn("gps_page", guide_scenarios)
+        self.assertIn("gps_prepare", guide_scenarios)
+        self.assertIn("gps_combat", guide_scenarios)
         self.assertIn("detail_first", live["encyclopedia.quests"].scenarios)
         self.assertIn("detail_first", live["encyclopedia.achievements"].scenarios)
-        self.assertIn("target", live["encyclopedia.guides"].scenarios)
         self.assertIn("target", live["encyclopedia.quests"].scenarios)
         self.assertIn("target", live["encyclopedia.achievements"].scenarios)
         self.assertIn("saved_progress", live["home"].scenarios)
