@@ -1,0 +1,188 @@
+name: Atlas Doctor Zero Actionable Finalization V2
+
+on:
+  push:
+    branches:
+      - run/atlas-doctor-20260929
+
+permissions:
+  contents: write
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  TARGET_BRANCH: doctor/zero-actionable-v1
+  BASE_SHA: 07e14fa90eacd9143fc71140359386aeb8c6b5e2
+
+jobs:
+  finalize-v2:
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout cleanup branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: true
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install dependencies
+        shell: pwsh
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+
+      - name: Migrate final Encyclopedia consumers and contracts
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one patch anchor, found {count}")
+              target.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          page = "app/modules/encyclopedia/views/encyclopedia_page.py"
+          replace_once(page,
+              '''from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView\nfrom app.modules.encyclopedia.views.deferred_achievement_guides_view import (''',
+              '''from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView\nfrom app.modules.encyclopedia.views.future_module_view import EncyclopediaFutureModuleView\nfrom app.modules.encyclopedia.views.deferred_achievement_guides_view import (''')
+          replace_once(page, '''from app.modules.encyclopedia.views.placeholder_view import EncyclopediaPlaceholderView\n''', '''''')
+          replace_once(page, '''        self._lazy_placeholders: dict[str, QWidget] = {}\n''', '''''')
+          replace_once(page,
+              '''        for tab_name in ENCYCLOPEDIA_TABS:\n            if tab_name == QUESTS_TAB and self._initial_tab == QUESTS_TAB:\n                self.tabs.addTab(self.build_quests_page(), tab_name)\n            else:\n                placeholder = EncyclopediaPlaceholderView()\n                self._lazy_placeholders[tab_name] = placeholder\n                self.tabs.addTab(placeholder, tab_name)''',
+              '''        for tab_name in ENCYCLOPEDIA_TABS:\n            if tab_name == QUESTS_TAB and self._initial_tab == QUESTS_TAB:\n                self.tabs.addTab(self.build_quests_page(), tab_name)\n            elif tab_name == GUIDES_TAB:\n                self.guides_view = DeferredAchievementGuidesView(\n                    self.status_callback,\n                    provider=self.service.guide_provider,\n                    quest_provider=self.service.quest_provider,\n                    achievement_provider=self.service.achievement_provider,\n                    achievement_progress_service=self.achievement_progress_service,\n                    guide_progress_service=self.guide_progress_service,\n                    quest_progress_path=self.quest_progress_path,\n                    navigate_callback=self.navigate_to_entity,\n                    launch_travel_callback=self._launch_travel_callback,\n                    character_key=self.current_character_key,\n                    graph=self._quest_graph,\n                    initial_progress_by_guide=self._guide_progress_by_guide,\n                    initial_progress_character_key=self._guide_progress_character_key,\n                    defer_runtime=True,\n                )\n                self.guides_view.achievementRuntimeRequested.connect(self.request_achievement_warmup)\n                self.tabs.addTab(self.guides_view, tab_name)\n            elif tab_name == ACHIEVEMENTS_TAB:\n                achievement_view = AchievementsView(\n                    self.status_callback,\n                    provider=self.service.achievement_provider,\n                    progress_service=self.achievement_progress_service,\n                    character_key=self.current_character_key,\n                    navigate_callback=self.navigate_to_entity,\n                    quest_provider=self.quest_provider,\n                    guide_provider=(self.service.guide_provider if self._guide_provider_supplied else None),\n                    quest_graph=self._quest_graph or QuestGraphService(self.quest_provider),\n                    quest_progress_service=QuestProgressService(self.quest_progress_path),\n                    defer_runtime=True,\n                )\n                self.tabs.addTab(achievement_view, tab_name)\n            else:\n                self.tabs.addTab(EncyclopediaFutureModuleView(tab_name), tab_name)''')
+          replace_once(page, '''        self._lazy_placeholders.pop(label, None)\n''', '''''')
+          replace_once(page,
+              '''        was_lazy_placeholder = isinstance(self.tabs.widget(index), EncyclopediaPlaceholderView)\n        if was_lazy_placeholder and label in {GUIDES_TAB, ACHIEVEMENTS_TAB} and not self._related_ready:\n            fallback = self._last_ready_tab_index\n            self.tabs.blockSignals(True)\n            self.tabs.setCurrentIndex(fallback)\n            self.tabs.blockSignals(False)\n            self.request_related_preload(label)\n            self.status_callback(f"Préparation de {label} en arrière-plan...")\n            return\n        widget = self.ensure_tab_loaded(label)\n        self._last_ready_tab_index = index\n        self.sync_tab_accent(label)\n        self.sync_search_visibility()\n        if not was_lazy_placeholder:\n            refresh = getattr(widget, "refresh_external_progress", None)\n            if callable(refresh):\n                refresh()\n            self.sync_character_to_children()\n        self.on_search_changed(self.search.text())\n        self.status_callback(f"Encyclopédie : {label}")''',
+              '''        widget = self.ensure_tab_loaded(label)\n        self._last_ready_tab_index = index\n        self.sync_tab_accent(label)\n        self.sync_search_visibility()\n        refresh = getattr(widget, "refresh_external_progress", None)\n        if callable(refresh):\n            refresh()\n        self.sync_character_to_children()\n        self.on_search_changed(self.search.text())\n        self.status_callback(f"Encyclopédie : {label}")''')
+          replace_once(page,
+              '''        self._achievement_ready = bool(\n            self._achievement_provider_supplied\n            and getattr(self.service.achievement_provider, "_loaded", False)\n            and self._quest_graph is not None\n        )''',
+              '''        achievements_view = self.get_achievements_view()\n        self._achievement_ready = bool(\n            achievements_view is not None\n            and getattr(achievements_view, "_runtime_ready", False)\n        )''')
+          replace_once(page,
+              '''        if label == GUIDES_TAB:\n            if self.guides_view is not None:\n                self._activate_loaded_tab(GUIDES_TAB)\n                return\n            if self._related_ready:\n                self._pending_lazy_tab = GUIDES_TAB\n                self.open_pending_lazy_tab()\n                return\n            self._start_full_guide_runtime()\n            return''',
+              '''        if label == GUIDES_TAB:\n            if self._guide_runtime_ready:\n                self._activate_loaded_tab(GUIDES_TAB)\n                return\n            self._start_full_guide_runtime()\n            return''')
+
+          test_path = Path("tests/test_achievements_phase2.py")
+          text = test_path.read_text(encoding="utf-8")
+          text = text.replace(
+              "from app.modules.encyclopedia.views import EncyclopediaPage, EncyclopediaPlaceholderView, GuidesView",
+              "from app.modules.encyclopedia.views import EncyclopediaPage, GuidesView\nfrom app.modules.encyclopedia.views.achievements_view import AchievementsView\nfrom app.modules.encyclopedia.views.future_module_view import EncyclopediaFutureModuleView",
+              1,
+          )
+          start = text.index("    def test_visible_achievements_tab_and_other_placeholders_remain(self):")
+          end = text.index("\n\n\nif __name__ == \"__main__\":", start)
+          new_test = '''    def test_implemented_tabs_use_final_views_and_future_modules_are_explicit(self):\n        app = self.app()\n        with tempfile.TemporaryDirectory() as tmp:\n            profile, client_index, quest_progress, achievement_progress, owned = self.make_temp_paths(Path(tmp))\n            quest_provider = QuestProvider(catalog=self.make_quest_catalog(2122))\n            achievement_provider = AchievementProvider(quest_provider=quest_provider)\n            verified_characters = [QuestCharacter("character:201", "Alpha", 1, True)]\n            with patch(\n                "app.modules.encyclopedia.views.encyclopedia_page.load_quest_characters",\n                return_value=verified_characters,\n            ):\n                page = EncyclopediaPage(\n                    lambda _text: None,\n                    quest_provider=quest_provider,\n                    guide_provider=self.make_empty_guide_provider(Path(tmp), quest_provider),\n                    achievement_provider=achievement_provider,\n                    progress_path=quest_progress,\n                    achievement_progress_path=achievement_progress,\n                    profile_path=profile,\n                    client_index_path=client_index,\n                    owned_items_path=owned,\n                )\n\n            self.assertEqual(page.tab_labels(), list(ENCYCLOPEDIA_TABS))\n            guide_index = page.tab_labels().index("GUIDES")\n            guide_tab = page.tabs.widget(guide_index)\n            self.assertIsInstance(guide_tab, GuidesView)\n            self.assertIs(guide_tab, page.guides_view)\n            page.tabs.setCurrentIndex(guide_index)\n            app.processEvents()\n            self.assertIs(page.tabs.widget(guide_index), guide_tab)\n\n            achievement_index = page.tab_labels().index(ACHIEVEMENTS_TAB)\n            achievement_tab = page.tabs.widget(achievement_index)\n            self.assertIsInstance(achievement_tab, AchievementsView)\n            page.tabs.setCurrentIndex(achievement_index)\n            app.processEvents()\n            self.assertIs(page.tabs.widget(achievement_index), achievement_tab)\n\n            page.tabs.setCurrentIndex(page.tab_labels().index(QUESTS_TAB))\n            app.processEvents()\n            future_tabs = {"DONJONS", "MONSTRES", "ARCHIMONSTRES", "AVIS DE RECHERCHE"}\n            for index in range(page.tabs.count()):\n                if page.tabs.tabText(index) in future_tabs:\n                    self.assertIsInstance(page.tabs.widget(index), EncyclopediaFutureModuleView)\n\n            self.assertEqual(page.current_tab_label(), QUESTS_TAB)\n            assert page.quest_page is not None\n            page.quest_page.search.setText("bouft")\n            app.processEvents()\n            self.assertEqual(page.quest_page.quest_list.count(), 1)\n            self.assertIn("Bouftou royal", page.quest_page.quest_list.item(0).text())\n\n            page.deleteLater()\n            app.processEvents()'''
+          test_path.write_text(text[:start] + new_test + text[end:], encoding="utf-8")
+
+          replace_once("tests/test_project_guardrails.py",
+              '''        existing_baseline = {\n            "app/pages/quests_page.py:from app.pages._quests_page_impl import *",\n        }''',
+              '''        existing_baseline: set[str] = set()''')
+          replace_once("tools/atlas_doctor.py",
+              '''    print(f"Problemes : {summary.get('issues_total', 0)} | Duree : {payload.get('duration_ms', 0)} ms")''',
+              '''    print(\n        f"Problemes : {summary.get('issues_total', 0)} | "\n        f"Observations a revoir : {summary.get('observations_total', 0)} | "\n        f"Duree : {payload.get('duration_ms', 0)} ms"\n    )''')
+          replace_once("tools/atlas_doctor_lib/report.py",
+              '''    issues = list((audit or {}).get('issues', []))\n    actionable = [''',
+              '''    issues = list((audit or {}).get('issues', []))\n    observations = list((audit or {}).get('observations', []))\n    actionable = [''')
+          replace_once("tools/atlas_doctor_lib/report.py",
+              '''        'issues_actionable': actionable,\n        'issues_total': len(issues),''',
+              '''        'issues_actionable': actionable,\n        'issues_total': len(issues),\n        'observations_review': observations,\n        'observations_total': len(observations),''')
+          '@ | python -
+
+      - name: Verify obsolete placeholder is gone
+        shell: pwsh
+        run: |
+          $matches = git grep -n "EncyclopediaPlaceholderView" -- app tests 2>$null
+          if ($LASTEXITCODE -eq 0) { Write-Host $matches; throw "Obsolete EncyclopediaPlaceholderView reference remains" }
+          Write-Host "No obsolete EncyclopediaPlaceholderView reference remains"
+
+      - name: Sync ROAD IA context
+        shell: pwsh
+        run: python -m tools.ai_context sync
+
+      - name: Compile and run targeted regressions
+        shell: pwsh
+        run: |
+          python -m py_compile app/modules/encyclopedia/views/encyclopedia_page.py app/modules/encyclopedia/views/future_module_view.py app/pages/quests_page.py tools/atlas_doctor.py tools/atlas_doctor_lib/audit.py tools/atlas_doctor_lib/report.py tests/test_achievements_phase2.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest -v tests.test_project_guardrails tests.test_lazy_quests_page_performance tests.test_encyclopedia_on_demand_loading tests.test_startup_resource_contracts tests.test_performance_budgets tests.test_atlas_doctor tests.test_achievements_phase2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Commit coherent migration
+        shell: pwsh
+        run: |
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git config user.name "r9327"
+          git config user.email "216230118+r9327@users.noreply.github.com"
+          git add app/modules/encyclopedia/views/encyclopedia_page.py app/modules/encyclopedia/views/future_module_view.py tests/test_achievements_phase2.py tests/test_project_guardrails.py tools/atlas_doctor.py tools/atlas_doctor_lib/report.py .ai/context_index.json
+          git commit -m "fix(doctor): complete final Encyclopedia migration"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git push origin HEAD:$env:TARGET_BRANCH
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize certification fixtures and catalog
+        shell: pwsh
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run differential CRITICAL integrity
+        shell: pwsh
+        run: |
+          python -m tools.atlas_integrity critical --base-ref $env:BASE_SHA --root . --json > "$env:RUNNER_TEMP\integrity-diff.json"
+          $code = $LASTEXITCODE
+          Get-Content "$env:RUNNER_TEMP\integrity-diff.json" | Select-Object -Last 80
+          if ($code -ne 0) { exit $code }
+
+      - name: Run Doctor and require zero actionable
+        shell: pwsh
+        run: |
+          python tools/atlas_doctor.py --json audit --force --gate critical > "$env:RUNNER_TEMP\doctor-final.json"
+          $doctorCode = $LASTEXITCODE
+          @'
+          import json, os
+          from pathlib import Path
+          payload = json.loads((Path(os.environ["RUNNER_TEMP"]) / "doctor-final.json").read_text(encoding="utf-8"))
+          summary = payload.get("summary") or {}
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          issues = payload.get("issues") or []
+          if issues:
+              for issue in issues:
+                  print(f"ACTIONABLE {issue.get('severity')} {issue.get('rule')} {issue.get('path')}:{issue.get('line')} {issue.get('evidence')}")
+              raise SystemExit(f"Atlas Doctor still has {len(issues)} actionable issue(s)")
+          integrity = payload.get("integrity") or {}
+          if integrity.get("status") != "PASS":
+              raise SystemExit(f"Atlas Integrity CRITICAL not PASS: {integrity.get('status')}")
+          print(f"ZERO ACTIONABLE CONFIRMED; observations={summary.get('observations_total', 0)}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($doctorCode -ne 0) { exit $doctorCode }
+
+      - name: Upload validation reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: atlas-doctor-zero-actionable-v2
+          path: |
+            ${{ runner.temp }}/doctor-final.json
+            ${{ runner.temp }}/integrity-diff.json
+            .ai/runtime/atlas_doctor/latest_audit.json
+          if-no-files-found: warn
+          retention-days: 7
