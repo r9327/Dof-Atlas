@@ -119,7 +119,6 @@ class AtlasDoctorTests(unittest.TestCase):
         self.assertIn('quests_open_ms', metrics)
         self.assertIn('file_profile.total_read_ms', metrics)
 
-
     def test_compare_runs_rejects_different_audit_modes(self) -> None:
         old = {'integrity_mode': None, 'issues': []}
         new = {'integrity_mode': 'CRITICAL', 'issues': []}
@@ -134,12 +133,26 @@ class AtlasDoctorTests(unittest.TestCase):
         self.assertNotIn('first_achievement_id', metrics)
 
     def test_compare_runs_reports_new_and_fixed_issue_ids(self) -> None:
-        old = {'issues': [{'id': 'a'}, {'id': 'b'}]}
-        new = {'issues': [{'id': 'b'}, {'id': 'c'}]}
+        old = {'issues': [{'id': 'a'}, {'id': 'b'}], 'observations': []}
+        new = {'issues': [{'id': 'b'}, {'id': 'c'}], 'observations': []}
         payload = compare_runs(new, old)
         self.assertEqual([item['id'] for item in payload['new_issues']], ['c'])
         self.assertEqual([item['id'] for item in payload['fixed_issues']], ['a'])
         self.assertEqual(payload['unchanged_count'], 1)
+
+    def test_compare_runs_never_hides_observation_changes(self) -> None:
+        old = {
+            'issues': [],
+            'observations': [{'id': 'obs-a'}, {'id': 'obs-b'}],
+        }
+        new = {
+            'issues': [],
+            'observations': [{'id': 'obs-b'}, {'id': 'obs-c'}],
+        }
+        payload = compare_runs(new, old)
+        self.assertEqual([item['id'] for item in payload['new_observations']], ['obs-c'])
+        self.assertEqual([item['id'] for item in payload['resolved_observations']], ['obs-a'])
+        self.assertEqual(payload['unchanged_observations_count'], 1)
 
 
 if __name__ == '__main__':
