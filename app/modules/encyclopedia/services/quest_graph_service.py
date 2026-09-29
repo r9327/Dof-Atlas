@@ -141,8 +141,8 @@ class QuestGraphService:
                 try:
                     index = ordered.index(quest_id)
                 except ValueError:
-                    pass
-                else:
+                    index = -1
+                if index >= 0:
                     previous = ordered[index - 1] if index > 0 else None
                     following = ordered[index + 1] if index + 1 < len(ordered) else None
                     return previous, following

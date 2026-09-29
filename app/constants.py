@@ -47,7 +47,10 @@ if PYSIDE_LOG_FILE.exists() and PYSIDE_LOG_FILE.stat().st_size > 512 * 1024:
     try:
         PYSIDE_LOG_FILE.replace(os_replace_target)
     except OSError:
-        pass
+        logging.getLogger("dofus_atlas_pyside").warning(
+            "Rotation du log PySide impossible.",
+            exc_info=True,
+        )
 LOGGER = logging.getLogger("dofus_atlas_pyside")
 
 

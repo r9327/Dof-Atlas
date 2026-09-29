@@ -30,8 +30,8 @@ class DeferredQuestRecord(qc.QuestRecord):
             try:
                 details = object.__getattribute__(self, "_details")
             except AttributeError:
-                pass
-            else:
+                details = None
+            if details is not None:
                 return getattr(details.get(object.__getattribute__(self, "id")), name)
         return super().__getattribute__(name)
 

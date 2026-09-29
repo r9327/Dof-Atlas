@@ -301,7 +301,10 @@ class WorldScanPanel(QWidget):
                 self.cartographyLoadFinished.emit(generation, payload)
             except RuntimeError:
                 # The page can be destroyed while the worker is finishing.
-                pass
+                LOGGER.debug(
+                    "Cartography receiver deleted before worker completion.",
+                    exc_info=True,
+                )
 
         Thread(target=worker, name="DofusAtlasCartographyLoad", daemon=True).start()
 

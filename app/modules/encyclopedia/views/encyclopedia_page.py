@@ -1039,7 +1039,10 @@ class EncyclopediaPage(QWidget):
                 try:
                     self.guideRuntimeFinished.emit(result)
                 except RuntimeError:
-                    pass
+                    LOGGER.debug(
+                        "Guide runtime receiver deleted before worker completion.",
+                        exc_info=True,
+                    )
 
         try:
             Thread(target=worker, name="DofusAtlasGuideStage", daemon=True).start()
@@ -1164,7 +1167,10 @@ class EncyclopediaPage(QWidget):
                 try:
                     self.achievementRuntimeFinished.emit(result)
                 except RuntimeError:
-                    pass
+                    LOGGER.debug(
+                        "Success runtime receiver deleted before worker completion.",
+                        exc_info=True,
+                    )
 
         try:
             Thread(target=worker, name="DofusAtlasAchievementStage", daemon=True).start()

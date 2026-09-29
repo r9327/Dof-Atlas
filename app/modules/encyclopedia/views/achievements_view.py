@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
@@ -40,6 +41,9 @@ from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.quest_catalog import normalize_text
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 CATEGORY_ROLE = Qt.UserRole
@@ -667,7 +671,7 @@ class AchievementsView(QWidget):
         try:
             self.search.textChanged.disconnect()
         except (RuntimeError, TypeError):
-            pass
+            _LOGGER.debug("Success search signal had no previous connection.", exc_info=True)
         self.search.textChanged.connect(lambda _text: self._search_debounce_timer.start())
 
         batch_timer = QTimer(self)
