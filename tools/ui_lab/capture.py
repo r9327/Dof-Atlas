@@ -11,6 +11,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 from PySide6.QtCore import QEventLoop
+from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import QApplication
 
 from app.ui.theme import atlas_stylesheet
@@ -43,6 +44,16 @@ def _settle(app: QApplication, milliseconds: int) -> None:
         app.processEvents(QEventLoop.AllEvents, 50)
         time.sleep(0.01)
     app.processEvents(QEventLoop.AllEvents, 50)
+
+
+def _configure_application(app: QApplication) -> str:
+    families = set(QFontDatabase.families())
+    candidates = ("Segoe UI", "Arial", "Tahoma", "DejaVu Sans")
+    family = next((candidate for candidate in candidates if candidate in families), app.font().family())
+    app.setApplicationName("Dofus Atlas UI Capture")
+    app.setFont(QFont(family))
+    app.setStyleSheet(atlas_stylesheet() + f'\nQWidget {{ font-family: "{family}"; }}\n')
+    return family
 
 
 def _validate_capture(spec: CaptureSpec, preview: PreviewSpec) -> None:
@@ -158,8 +169,7 @@ def run_request(request_path: Path, output_dir: Path) -> Path:
     app = QApplication.instance() or QApplication([])
     if not isinstance(app, QApplication):
         raise RuntimeError("Une QApplication est requise pour les captures UI Lab")
-    app.setApplicationName("Dofus Atlas UI Capture")
-    app.setStyleSheet(atlas_stylesheet())
+    font_family = _configure_application(app)
 
     results = [capture_preview(app, capture, output_dir) for capture in captures]
     if include_lab_shell:
@@ -167,7 +177,7 @@ def run_request(request_path: Path, output_dir: Path) -> Path:
 
     manifest_path = output_dir / "manifest.json"
     manifest_path.write_text(
-        json.dumps({"captures": results}, ensure_ascii=False, indent=2) + "\n",
+        json.dumps({"font_family": font_family, "captures": results}, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     return manifest_path
@@ -197,8 +207,7 @@ def main(argv: list[str] | None = None) -> int:
     app = QApplication.instance() or QApplication(sys.argv[:1])
     if not isinstance(app, QApplication):
         raise RuntimeError("Une QApplication est requise pour les captures UI Lab")
-    app.setApplicationName("Dofus Atlas UI Capture")
-    app.setStyleSheet(atlas_stylesheet())
+    font_family = _configure_application(app)
     result = capture_preview(
         app,
         CaptureSpec(
@@ -211,7 +220,10 @@ def main(argv: list[str] | None = None) -> int:
         args.output_dir,
     )
     manifest = args.output_dir / "manifest.json"
-    manifest.write_text(json.dumps({"captures": [result]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    manifest.write_text(
+        json.dumps({"font_family": font_family, "captures": [result]}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     print(manifest)
     return 0
 
