@@ -26,8 +26,14 @@ def get_runtime_logger() -> logging.Logger:
     if RUNTIME_LOG_FILE.exists() and RUNTIME_LOG_FILE.stat().st_size > MAX_RUNTIME_LOG_BYTES:
         try:
             RUNTIME_LOG_FILE.replace(LOG_DIR / "session_runtime.log.old")
-        except OSError:
-            pass
+        except OSError as exc:
+            # Rotation failure is non-fatal, but must remain visible instead of
+            # being silently swallowed before the file handler is installed.
+            logging.getLogger("dofus_atlas_runtime.bootstrap").warning(
+                "Unable to rotate runtime log %s: %s",
+                RUNTIME_LOG_FILE,
+                exc,
+            )
 
     handler = logging.FileHandler(RUNTIME_LOG_FILE, encoding="utf-8")
     handler.setLevel(logging.INFO)
