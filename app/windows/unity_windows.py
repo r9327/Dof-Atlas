@@ -39,20 +39,17 @@ class UnityWindow:
 def enable_dpi_awareness() -> None:
     if os.name != "nt":
         return
-    try:
-        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+    attempts = (
+        lambda: ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)),
+        lambda: ctypes.windll.shcore.SetProcessDpiAwareness(2),
+        lambda: ctypes.windll.user32.SetProcessDPIAware(),
+    )
+    for attempt in attempts:
+        try:
+            attempt()
+        except (AttributeError, OSError, TypeError, ValueError):
+            continue
         return
-    except Exception:
-        pass
-    try:
-        ctypes.windll.shcore.SetProcessDpiAwareness(2)
-        return
-    except Exception:
-        pass
-    try:
-        ctypes.windll.user32.SetProcessDPIAware()
-    except Exception:
-        pass
 
 
 def _win32():
