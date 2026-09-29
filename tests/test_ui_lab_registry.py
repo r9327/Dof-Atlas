@@ -24,17 +24,33 @@ class UiLabRegistryTests(unittest.TestCase):
             else:
                 self.fail(f"Statut UI Lab inconnu: {preview.status}")
 
-    def test_initial_live_preview_is_the_real_guides_view_adapter(self) -> None:
-        live = [preview for preview in default_previews() if preview.is_live]
-        self.assertEqual([preview.key for preview in live], ["encyclopedia.guides"])
+    def test_core_product_surfaces_are_live(self) -> None:
+        live = {preview.key: preview for preview in default_previews() if preview.is_live}
         self.assertEqual(
-            live[0].factory_path,
-            "tools.ui_lab.screens:create_guides_preview",
+            set(live),
+            {
+                "encyclopedia.guides",
+                "encyclopedia.quests",
+                "encyclopedia.achievements",
+                "home",
+            },
         )
-        self.assertEqual(
-            live[0].source,
-            "app/modules/encyclopedia/views/guides_view.py",
-        )
+        for key in (
+            "encyclopedia.guides",
+            "encyclopedia.quests",
+            "encyclopedia.achievements",
+        ):
+            self.assertEqual(
+                live[key].source,
+                "app/modules/encyclopedia/views/encyclopedia_page.py",
+            )
+
+    def test_exact_tab_scenarios_are_declared(self) -> None:
+        live = {preview.key: preview for preview in default_previews() if preview.is_live}
+        self.assertIn("guide_first", live["encyclopedia.guides"].scenarios)
+        self.assertIn("detail_first", live["encyclopedia.quests"].scenarios)
+        self.assertIn("detail_first", live["encyclopedia.achievements"].scenarios)
+        self.assertIn("saved_progress", live["home"].scenarios)
 
 
 if __name__ == "__main__":
