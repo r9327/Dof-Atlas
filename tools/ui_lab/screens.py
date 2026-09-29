@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Iterable
 from unittest.mock import patch
 
 if TYPE_CHECKING:
@@ -25,6 +25,39 @@ def _int_param(context: PreviewContext, name: str) -> int | None:
         return int(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"Paramètre UI Lab invalide {name}={value!r}") from exc
+
+
+def _entity_label(value: object) -> str:
+    for attribute in ("title", "name", "label"):
+        text = str(getattr(value, attribute, "") or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _resolve_named_entity(items: Iterable[object], query: str, kind: str) -> object:
+    from app.quest_catalog import normalize_text
+
+    needle = normalize_text(str(query or "").strip())
+    if not needle:
+        raise ValueError(f"Nom {kind} vide pour la capture")
+
+    rows = [item for item in items if _entity_label(item)]
+    exact = [item for item in rows if normalize_text(_entity_label(item)) == needle]
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        labels = ", ".join(_entity_label(item) for item in exact[:5])
+        raise ValueError(f"Nom {kind} ambigu: {query!r} ({labels})")
+
+    contains = [item for item in rows if needle in normalize_text(_entity_label(item))]
+    if len(contains) == 1:
+        return contains[0]
+    if len(contains) > 1:
+        labels = ", ".join(_entity_label(item) for item in contains[:5])
+        raise ValueError(f"Nom {kind} ambigu: {query!r} ({labels})")
+
+    raise ValueError(f"{kind.capitalize()} introuvable pour la capture: {query}")
 
 
 def _mark_scroll_target(root: "QWidget", area: "QAbstractScrollArea | None", fallback_name: str) -> None:
@@ -112,6 +145,16 @@ def create_guides_preview(context: PreviewContext) -> "QWidget":
     view = page.ensure_tab_loaded(GUIDES_TAB)
     quest_id = _int_param(context, "quest_id")
     requested_guide_id = str(context.params.get("guide_id") or "").strip()
+    requested_guide_name = str(context.params.get("guide_name") or "").strip()
+    requested_quest_name = str(context.params.get("quest_name") or "").strip()
+
+    if quest_id is None and requested_quest_name:
+        quest = _resolve_named_entity(page.quest_provider.get_catalog().quests, requested_quest_name, "quête")
+        quest_id = int(getattr(quest, "id"))
+    if not requested_guide_id and requested_guide_name:
+        guides = list(getattr(view, "guides", ()) or view.provider.load_all())
+        guide = _resolve_named_entity(guides, requested_guide_name, "guide")
+        requested_guide_id = str(getattr(guide, "id"))
 
     if context.scenario in {"guide_first", "target"}:
         guide_id = requested_guide_id
@@ -124,7 +167,7 @@ def create_guides_preview(context: PreviewContext) -> "QWidget":
             if guides:
                 guide_id = guides[0].id
         if not guide_id:
-            raise ValueError("Le scénario Guides 'target' requiert guide_id ou quest_id")
+            raise ValueError("Le scénario Guides 'target' requiert guide_id, guide_name, quest_id ou quest_name")
         if not view.select_guide(guide_id):
             raise ValueError(f"Guide introuvable pour la capture: {guide_id}")
         if quest_id is not None and not view.show_quest_detail(quest_id):
@@ -147,12 +190,18 @@ def create_quests_preview(context: PreviewContext) -> "QWidget":
         raise RuntimeError("La vraie page Quêtes n'a pas été chargée")
 
     quest_id = _int_param(context, "quest_id")
+    quest_name = str(context.params.get("quest_name") or "").strip()
+    if quest_id is None and quest_name:
+        quest = _resolve_named_entity(quest_page.catalog.quests, quest_name, "quête")
+        quest_id = int(getattr(quest, "id"))
+        if bool(getattr(quest_page.catalog, "deferred_details", False)):
+            quest_page.catalog.get_detail(quest_id)
     if context.scenario == "detail_first" and quest_id is None:
         quests = list(getattr(quest_page.catalog, "quests", ()) or ())
         if quests:
             quest_id = int(quests[0].id)
     if context.scenario == "target" and quest_id is None:
-        raise ValueError("Le scénario Quêtes 'target' requiert quest_id")
+        raise ValueError("Le scénario Quêtes 'target' requiert quest_id ou quest_name")
     if quest_id is not None:
         if quest_id not in quest_page.catalog.by_id:
             raise ValueError(f"Quête introuvable pour la capture: {quest_id}")
@@ -168,12 +217,17 @@ def create_achievements_preview(context: PreviewContext) -> "QWidget":
     page = _build_encyclopedia_preview(context, ACHIEVEMENTS_TAB)
     view = page.ensure_tab_loaded(ACHIEVEMENTS_TAB)
     achievement_id = _int_param(context, "achievement_id")
+    achievement_name = str(context.params.get("achievement_name") or "").strip()
+    if achievement_id is None and achievement_name:
+        achievements = list(getattr(view, "achievements", ()) or ())
+        achievement = _resolve_named_entity(achievements, achievement_name, "succès")
+        achievement_id = int(getattr(achievement, "id"))
     if context.scenario == "detail_first" and achievement_id is None:
         achievements = list(getattr(view, "achievements", ()) or ())
         if achievements:
             achievement_id = int(achievements[0].id)
     if context.scenario == "target" and achievement_id is None:
-        raise ValueError("Le scénario Succès 'target' requiert achievement_id")
+        raise ValueError("Le scénario Succès 'target' requiert achievement_id ou achievement_name")
     if achievement_id is not None:
         if not view.select_achievement(achievement_id):
             raise ValueError(f"Succès introuvable ou non retenu pour la capture: {achievement_id}")
