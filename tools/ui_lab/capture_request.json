@@ -78,6 +78,20 @@
       "settle_ms": 800
     },
     {
+      "screen": "tools.crafts",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 600
+    },
+    {
+      "screen": "tools.world_map",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1600
+    },
+    {
       "screen": "stuffs.pvm",
       "scenario": "default",
       "width": 1400,
