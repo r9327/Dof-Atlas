@@ -47,11 +47,19 @@ _CAPABILITY_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("quest_data", ("quest",)),
     ("generation", ("build_", "generate_", "apply_", "repair_", "promote_")),
 )
+_LEGACY_ACTIONS = {
+    "absorb_or_remove_thin_wrapper_after_contract_review",
+    "collapse_version_family_after_consumer_review",
+}
+_BLOCKING_AGENT_ACTIONS = {
+    "fix_parse_error",
+    "make_default_read_only_and_require_explicit_apply_flag",
+}
 
 
 def _read_source(root: Path, relative: str) -> str:
     try:
-        return (root / relative).read_text(encoding="utf-8", errors="replace")
+        return (root / relative).read_text(encoding="utf-8-sig", errors="replace")
     except OSError:
         return ""
 
@@ -150,13 +158,14 @@ def _readiness_score(row: dict[str, Any], source: str, version_members: set[str]
 
 
 def _readiness_label(score: int, actions: list[str]) -> str:
-    if "fix_parse_error" in actions or "make_default_read_only_and_require_explicit_apply_flag" in actions:
+    action_set = set(actions)
+    if action_set & _BLOCKING_AGENT_ACTIONS:
         return "review_before_agent_use"
-    if score >= 85:
-        return "agent_ready"
-    if score >= 60:
+    if action_set & _LEGACY_ACTIONS:
+        return "legacy_review"
+    if actions or score < 85:
         return "usable_with_upgrade"
-    return "legacy_review"
+    return "agent_ready"
 
 
 def catalog(root: Path = ROOT) -> dict[str, Any]:
@@ -173,6 +182,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
         source = _read_source(root, path)
         actions = _upgrade_actions(row, source=source, version_members=version_members)
         score = _readiness_score(row, source, version_members)
+        readiness = _readiness_label(score, actions)
         preferred_role = _PREFERRED_ENTRYPOINTS.get(path)
         structured_output = _supports_json(source)
         mutation_state = (
@@ -182,12 +192,27 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
             if row.get("explicit_mutation_gate")
             else "unguarded"
         )
+        legacy = bool(row.get("wrapper")) or path in version_members
+        role = "entrypoint" if row.get("executable") else "library"
+        safe_for_agent = (
+            mutation_state != "unguarded"
+            and readiness != "review_before_agent_use"
+        )
+        automation_ready = (
+            role == "entrypoint"
+            and safe_for_agent
+            and readiness == "agent_ready"
+            and not legacy
+        )
         tools.append(
             {
                 "path": path,
-                "role": "entrypoint" if row.get("executable") else "library",
+                "role": role,
                 "preferred_role": preferred_role,
                 "preferred_for_agent": preferred_role is not None,
+                "canonicality": (
+                    "preferred" if preferred_role is not None else "legacy" if legacy else "specialized"
+                ),
                 "invocation": _invocation(path, str(row.get("kind", ""))),
                 "capabilities": _capabilities(path),
                 "cost_hint": _cost_hint(path),
@@ -200,13 +225,20 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
                 "targeted_tests": list(row.get("test_references", [])),
                 "references": list(row.get("references", [])),
                 "readiness_score": score,
-                "readiness": _readiness_label(score, actions),
+                "readiness": readiness,
+                "safe_for_agent": safe_for_agent,
+                "automation_ready": automation_ready,
                 "upgrade_actions": actions,
             }
         )
 
     ready = [row for row in tools if row["readiness"] == "agent_ready"]
-    review = [row for row in tools if row["readiness"] == "review_before_agent_use"]
+    automation_ready = [row for row in tools if row["automation_ready"]]
+    review = [
+        row
+        for row in tools
+        if row["readiness"] in {"review_before_agent_use", "legacy_review"}
+    ]
     preferred = [row for row in tools if row["preferred_for_agent"]]
     structured = [row for row in tools if row["structured_output"]]
     unguarded = [row for row in tools if row["mutation_state"] == "unguarded"]
@@ -216,6 +248,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
         "read_only": True,
         "tool_count": len(tools),
         "agent_ready_count": len(ready),
+        "automation_ready_count": len(automation_ready),
         "structured_output_count": len(structured),
         "preferred_entrypoint_count": len(preferred),
         "unguarded_mutator_count": len(unguarded),
@@ -226,6 +259,8 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
                 "invocation": row["invocation"],
                 "readiness": row["readiness"],
                 "readiness_score": row["readiness_score"],
+                "safe_for_agent": row["safe_for_agent"],
+                "automation_ready": row["automation_ready"],
             }
             for row in preferred
         ],
@@ -233,6 +268,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
         "tools": tools,
         "policy": {
             "default": "prefer preferred_entrypoints; use specialized tools only when their capability is required",
+            "automatic_execution": "require automation_ready=true; safe_for_agent alone is not enough",
             "mutations": "never call an unguarded mutator automatically",
             "legacy": "versioned/wrapper/unreferenced tools require contract and consumer review before deletion or AI automation",
             "heavy_checks": "respect cost_hint and route expensive validation through canonical orchestrators",
@@ -246,6 +282,7 @@ def select_tools(
     capability: str | None = None,
     max_cost: str | None = None,
     safe_only: bool = False,
+    ready_only: bool = False,
     preferred_only: bool = False,
     limit: int | None = None,
 ) -> dict[str, Any]:
@@ -257,10 +294,9 @@ def select_tools(
             continue
         if preferred_only and not row["preferred_for_agent"]:
             continue
-        if safe_only and (
-            row["mutation_state"] == "unguarded"
-            or row["readiness"] in {"review_before_agent_use", "legacy_review"}
-        ):
+        if safe_only and not row["safe_for_agent"]:
+            continue
+        if ready_only and not row["automation_ready"]:
             continue
         if max_cost is not None and _COST_ORDER[row["cost_hint"]] > _COST_ORDER[max_cost]:
             continue
@@ -269,6 +305,7 @@ def select_tools(
     rows.sort(
         key=lambda row: (
             0 if row["preferred_for_agent"] else 1,
+            0 if row["automation_ready"] else 1,
             -int(row["readiness_score"]),
             _COST_ORDER[row["cost_hint"]],
             row["path"],
@@ -284,6 +321,7 @@ def select_tools(
             "capability": capability,
             "max_cost": max_cost,
             "safe_only": safe_only,
+            "ready_only": ready_only,
             "preferred_only": preferred_only,
             "limit": limit,
         },
@@ -295,14 +333,15 @@ def select_tools(
 def _print_summary(report: dict[str, Any]) -> None:
     print(
         "AI tool catalog: tools={tool_count} ready={agent_ready_count} "
-        "structured={structured_output_count} preferred={preferred_entrypoint_count} "
-        "unguarded_mutators={unguarded_mutator_count}".format(**report)
+        "automation_ready={automation_ready_count} structured={structured_output_count} "
+        "preferred={preferred_entrypoint_count} unguarded_mutators={unguarded_mutator_count}".format(**report)
     )
     print("preferred entrypoints:")
     for row in report["preferred_entrypoints"]:
         print(
             f"  - {row['path']}: {row['role']} | {row['readiness']} "
-            f"({row['readiness_score']}/100) | {row['invocation']}"
+            f"({row['readiness_score']}/100) | safe={row['safe_for_agent']} "
+            f"| auto={row['automation_ready']} | {row['invocation']}"
         )
 
 
@@ -311,6 +350,7 @@ def _print_selection(selection: dict[str, Any]) -> None:
     for row in selection["tools"]:
         print(
             f"  - {row['path']} | {row['readiness']} | cost={row['cost_hint']} "
+            f"| safe={row['safe_for_agent']} | auto={row['automation_ready']} "
             f"| mutation={row['mutation_state']} | {row['invocation']}"
         )
 
@@ -323,7 +363,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tool", default=None, help="Restrict output to one exact tools/... path.")
     parser.add_argument("--capability", default=None, help="Select tools exposing one derived capability.")
     parser.add_argument("--max-cost", choices=tuple(_COST_ORDER), default=None)
-    parser.add_argument("--safe-only", action="store_true", help="Exclude unguarded or legacy-review tools.")
+    parser.add_argument("--safe-only", action="store_true", help="Exclude tools requiring a safety review.")
+    parser.add_argument("--ready-only", action="store_true", help="Return only automation-ready entry points.")
     parser.add_argument("--preferred-only", action="store_true", help="Return canonical agent entry points only.")
     parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args(argv)
@@ -334,6 +375,7 @@ def main(argv: list[str] | None = None) -> int:
             args.capability,
             args.max_cost,
             args.safe_only,
+            args.ready_only,
             args.preferred_only,
             args.limit is not None,
         )
@@ -350,6 +392,7 @@ def main(argv: list[str] | None = None) -> int:
             capability=args.capability,
             max_cost=args.max_cost,
             safe_only=args.safe_only,
+            ready_only=args.ready_only,
             preferred_only=args.preferred_only,
             limit=args.limit,
         )
