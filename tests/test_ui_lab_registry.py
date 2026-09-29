@@ -24,21 +24,64 @@ class UiLabRegistryTests(unittest.TestCase):
             else:
                 self.fail(f"Statut UI Lab inconnu: {preview.status}")
 
-    def test_core_product_surfaces_are_live(self) -> None:
-        live = {preview.key: preview for preview in default_previews() if preview.is_live}
-        self.assertEqual(
-            set(live),
+    def test_main_navigation_groups_match_product_shell(self) -> None:
+        previews = default_previews()
+        groups = {preview.group for preview in previews}
+        self.assertTrue(
             {
-                "encyclopedia.guides",
-                "encyclopedia.quests",
-                "encyclopedia.achievements",
-                "home",
-            },
+                "Accueil",
+                "Organizer",
+                "Encyclopédie",
+                "Bestiaire",
+                "Outils",
+                "Stuffs",
+                "Almanax",
+                "Tutoriels",
+            }.issubset(groups)
         )
+
+        by_group: dict[str, list[str]] = {}
+        for preview in previews:
+            by_group.setdefault(preview.group, []).append(preview.label)
+
+        self.assertEqual(by_group["Encyclopédie"], ["Guide", "Quêtes", "Succès"])
+        self.assertEqual(
+            by_group["Bestiaire"],
+            ["Donjons", "Monstres", "Archimonstres", "Avis de recherche"],
+        )
+        self.assertEqual(by_group["Stuffs"], ["PvM", "PvP", "Builders"])
+
+    def test_core_and_bestiary_product_surfaces_are_live(self) -> None:
+        live = {preview.key: preview for preview in default_previews() if preview.is_live}
+        required = {
+            "home",
+            "organizer",
+            "encyclopedia.guides",
+            "encyclopedia.quests",
+            "encyclopedia.achievements",
+            "bestiary.dungeons",
+            "bestiary.monsters",
+            "bestiary.archmonsters",
+            "bestiary.wanted",
+            "stuffs.pvm",
+            "stuffs.pvp",
+            "stuffs.builders",
+            "tools.treasure_hunt",
+            "tools.ocre",
+            "almanax",
+            "tutorials.default",
+            "tutorials.dofus_noob",
+        }
+        self.assertTrue(required.issubset(set(live)))
+
         for key in (
             "encyclopedia.guides",
             "encyclopedia.quests",
             "encyclopedia.achievements",
+            "bestiary.dungeons",
+            "bestiary.monsters",
+            "bestiary.archmonsters",
+            "bestiary.wanted",
         ):
             self.assertEqual(
                 live[key].source,
