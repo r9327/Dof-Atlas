@@ -1,11 +1,13 @@
 # Dofus Atlas — UI Lab
 
-UI Lab est un outil développeur autonome pour inspecter et capturer visuellement les écrans de Dofus Atlas sans lancer tout le shell de l'application ni parcourir le code.
+UI Lab est un outil développeur autonome pour inspecter et capturer visuellement les écrans de Dofus Atlas sans parcourir le code ni demander une action manuelle à l'utilisateur.
 
-## Contrat
+## Contrat de fidélité
 
 - Les aperçus `LIVE` instancient les vrais widgets produit.
+- Pour l'Encyclopédie, une capture d'onglet instancie le vrai `EncyclopediaPage` puis sélectionne le vrai onglet demandé. Elle inclut donc le vrai `QTabWidget`, la vraie barre de recherche, les vrais espacements et le vrai contenu d'onglet.
 - Aucune seconde implémentation visuelle de l'application ne doit être créée ici.
+- Un scénario peut piloter une API produit existante pour placer l'écran dans un état déterministe, mais il ne doit jamais recopier ou réinterpréter le layout.
 - Les données métier canoniques restent lues depuis le dépôt.
 - Les fichiers de progression susceptibles d'être modifiés sont redirigés vers un dossier temporaire.
 - Les écrans non encore raccordés restent visibles comme `SQUELETTE` afin de montrer la couverture actuelle du catalogue.
@@ -39,13 +41,16 @@ La requête JSON contient la liste des écrans/scénarios à capturer. Le moteur
 6. enregistre le PNG ;
 7. écrit `manifest.json` avec la source, le scénario et le fichier produit.
 
-Le fichier `tools/ui_lab/capture_request.json` est volontairement versionné : le modifier constitue une demande explicite de nouvelles captures pour l'automatisation GitHub.
+Le fichier `tools/ui_lab/capture_request.json` est versionné : le modifier constitue une demande explicite de nouvelles captures pour l'automatisation GitHub.
 
-## Squelette initial
+## Couverture LIVE actuelle
 
-Le premier aperçu `LIVE` est `Encyclopédie > Guide Succès` et instancie directement `GuidesView`.
+- `encyclopedia.guides` : vrai `EncyclopediaPage`, onglet `GUIDES` ; scénarios `default`, `guide_first`.
+- `encyclopedia.quests` : vrai `EncyclopediaPage`, onglet `QUÊTES` ; scénarios `default`, `detail_first`.
+- `encyclopedia.achievements` : vrai `EncyclopediaPage`, onglet `SUCCÈS` ; scénarios `default`, `detail_first`.
+- `home` : vraie `HomePage` ; scénarios `default`, `saved_progress`.
 
-Les entrées suivantes sont déjà déclarées mais pas encore raccordées : Quêtes, Succès, Bestiaire, Accueil, Organizer, Équipement et Zaap.
+Restent à raccorder sans imitation : Bestiaire/Monstres, Organizer, Équipement et Zaap selon leur hôte produit canonique.
 
 ## Ajouter un écran ou un scénario
 
@@ -53,7 +58,7 @@ Les entrées suivantes sont déjà déclarées mais pas encore raccordées : Qu�
 2. Isoler tout fichier mutable dans `PreviewContext.sandbox_root`.
 3. Passer l'entrée correspondante du registre à `status=LIVE` et renseigner `factory_path`.
 4. Déclarer ses scénarios dans `PreviewSpec.scenarios`.
-5. Utiliser `PreviewContext.scenario` uniquement pour préparer l'état de démonstration, jamais pour recopier le layout produit.
+5. Utiliser `PreviewContext.scenario` uniquement pour appeler des comportements produit existants et préparer l'état demandé.
 6. Ajouter ou adapter un test ciblé.
 
-Le but final est que l'agent puisse demander une capture d'un écran/état précis et récupérer directement les PNG produits par la CI, sans action manuelle de l'utilisateur.
+Le but final est que l'agent puisse recevoir « montre l'onglet Succès », « montre la première quête ouverte » ou une cible plus précise, demander la capture correspondante à la CI Windows et renvoyer directement le PNG, sans action manuelle de l'utilisateur.
