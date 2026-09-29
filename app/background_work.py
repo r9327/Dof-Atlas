@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import ctypes
+import logging
 import os
 from contextlib import contextmanager
 from typing import Iterator
 
+
+LOGGER = logging.getLogger(__name__)
 
 # Windows lowers CPU, memory and I/O scheduling priority for the current thread
 # while it is in background mode. This is intentionally thread-scoped: Atlas'
@@ -42,8 +45,14 @@ def background_io_priority() -> Iterator[None]:
                     handle,
                     _THREAD_MODE_BACKGROUND_END,
                 )
-            except (AttributeError, OSError, TypeError, ValueError):
-                pass
+            except (AttributeError, OSError, TypeError, ValueError) as exc:
+                # Best-effort scheduler cleanup must never hide an error from
+                # diagnostics even though it cannot safely fail application exit.
+                LOGGER.debug(
+                    "Unable to restore Windows thread background priority: %s",
+                    exc,
+                    exc_info=True,
+                )
 
 
 __all__ = ["background_io_priority"]
