@@ -99,7 +99,10 @@ def _read_text(root: Path, relative: str) -> str:
     try:
         if path.stat().st_size > _MAX_TEXT_BYTES:
             return ""
-        return path.read_text(encoding="utf-8", errors="replace")
+        # utf-8-sig accepts normal UTF-8 while stripping an optional BOM.
+        # Python itself accepts BOM-marked UTF-8 source, so the tooling audit
+        # must not report those files as AST parse errors.
+        return path.read_text(encoding="utf-8-sig", errors="replace")
     except OSError:
         return ""
 
@@ -258,64 +261,86 @@ def _versioned_families(tool_paths: Iterable[str]) -> list[dict[str, Any]]:
 
 def _suggestion(row: dict[str, Any], version_members: set[str]) -> str:
     path = str(row["path"])
+    if row.get("parse_error"):
+        return "review_parse_error"
+    if row.get("mutation_capable") and not row.get("explicit_mutation_gate"):
+        return "review_mutation_safety"
     if path in version_members:
-        return "consolidate_version_family"
-    if row["wrapper"]:
-        return "review_wrapper_for_absorption"
-    if row["path_hack"]:
-        return "remove_import_path_hack"
-    if row["executable"] and not row["references"] and not row["test_references"]:
+        return "review_version_family"
+    if row.get("wrapper"):
+        return "review_wrapper_absorption"
+    if row.get("executable") and not row.get("references"):
         return "review_unreferenced_entrypoint"
-    if row["executable"] and not row["test_references"]:
-        return "add_or_confirm_targeted_test_coverage"
-    return "keep_or_review_in_place"
+    if row.get("path_hack"):
+        return "review_import_path_hack"
+    if row.get("cwd_dependency"):
+        return "review_cwd_dependency"
+    if row.get("executable") and not row.get("test_references"):
+        return "review_targeted_test_gap"
+    return "keep_or_review_manually"
+
+
+def _tool_row(
+    *,
+    root: Path,
+    path: str,
+    references: dict[str, Any],
+) -> dict[str, Any]:
+    source = _read_text(root, path)
+    suffix = Path(path).suffix.casefold()
+    shape = _python_shape(source) if suffix == ".py" else {
+        "parse_error": False,
+        "has_main": False,
+        "imports_tools": False,
+    }
+    lowered = source.casefold()
+    mutation_capable = any(marker in lowered for marker in _MUTATION_MARKERS)
+    explicit_mutation_gate = mutation_capable and any(
+        marker in lowered for marker in _MUTATION_GATES
+    )
+    cwd_dependency = "path.cwd(" in lowered or "get-location" in lowered or "$pwd" in lowered
+    path_hack = "sys.path.insert" in lowered or "sys.path.append" in lowered
+    row = {
+        "path": path,
+        "kind": suffix.lstrip("."),
+        "line_count": _nonblank_line_count(source),
+        "parse_error": bool(shape.get("parse_error")),
+        "executable": _is_executable(path, source, shape),
+        "wrapper": _is_wrapper(path, source, shape),
+        "path_hack": path_hack,
+        "cwd_dependency": cwd_dependency,
+        "mutation_capable": mutation_capable,
+        "explicit_mutation_gate": explicit_mutation_gate,
+        "references": list(references.get("references", [])),
+        "test_references": list(references.get("test_references", [])),
+    }
+    return row
 
 
 def audit(root: Path = ROOT) -> dict[str, Any]:
     root = root.resolve()
     tracked = _git_tracked_paths(root)
     tool_paths = _tool_paths(tracked)
-    refs = _reference_counts(
+    reference_paths = _reference_paths(tracked)
+    references = _reference_counts(
         root=root,
         tool_paths=tool_paths,
-        reference_paths=_reference_paths(tracked),
+        reference_paths=reference_paths,
     )
     families = _versioned_families(tool_paths)
     version_members = {
-        member
+        path
         for family in families
-        for member in family["members"]
+        for path in family["members"]
     }
-
-    tools: list[dict[str, Any]] = []
-    for path in tool_paths:
-        source = _read_text(root, path)
-        suffix = Path(path).suffix.casefold()
-        shape = (
-            _python_shape(source)
-            if suffix == ".py"
-            else {"parse_error": False, "has_main": True, "imports_tools": False}
-        )
-        lowered = source.casefold()
-        executable = _is_executable(path, source, shape)
-        row = {
-            "path": path,
-            "kind": "python" if suffix == ".py" else "script",
-            "line_count": _nonblank_line_count(source),
-            "executable": executable,
-            "library": suffix == ".py" and not executable,
-            "wrapper": _is_wrapper(path, source, shape),
-            "path_hack": "sys.path.insert" in source or "sys.path.append" in source,
-            "cwd_dependency": "path.cwd()" in lowered or "os.getcwd()" in lowered,
-            "mutation_capable": any(marker in lowered for marker in _MUTATION_MARKERS),
-            "explicit_mutation_gate": any(flag in lowered for flag in _MUTATION_GATES),
-            "references": refs[path]["references"],
-            "test_references": refs[path]["test_references"],
-            "parse_error": bool(shape.get("parse_error")),
-        }
+    tools = [
+        _tool_row(root=root, path=path, references=references[path])
+        for path in tool_paths
+    ]
+    for row in tools:
         row["recommendation"] = _suggestion(row, version_members)
-        tools.append(row)
 
+    parse_errors = [row["path"] for row in tools if row["parse_error"]]
     wrappers = [row["path"] for row in tools if row["wrapper"]]
     path_hacks = [row["path"] for row in tools if row["path_hack"]]
     cwd_dependencies = [row["path"] for row in tools if row["cwd_dependency"]]
@@ -325,113 +350,110 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
         for row in tools
         if row["mutation_capable"] and not row["explicit_mutation_gate"]
     ]
-    unreferenced = [
+    unreferenced_entrypoints = [
         row["path"]
         for row in tools
-        if row["executable"] and not row["references"] and not row["test_references"]
+        if row["executable"] and not row["references"]
     ]
-    test_gaps = [
+    targeted_test_gaps = [
         row["path"]
         for row in tools
         if row["executable"] and not row["test_references"]
     ]
-    parse_errors = [row["path"] for row in tools if row["parse_error"]]
-
-    review_count = sum(
-        bool(group)
-        for group in (
-            families,
-            wrappers,
-            path_hacks,
-            cwd_dependencies,
-            mutation_without_gate,
-            unreferenced,
-            test_gaps,
-            parse_errors,
-        )
-    )
+    review_candidates = [
+        row["path"]
+        for row in tools
+        if row["recommendation"] != "keep_or_review_manually"
+    ]
     return {
         "schema_version": 1,
-        "status": "REVIEW_REQUIRED" if review_count else "CLEAN",
+        "source": "tracked-repository-tooling",
+        "read_only": True,
         "blocking": False,
-        "source": "tracked_repository_tool_inventory",
+        "status": "REVIEW_REQUIRED" if review_candidates else "CLEAN",
+        "note": (
+            "Findings are consolidation review candidates only. Zero references, "
+            "wrapper status or a versioned filename is not proof that a tool is dead."
+        ),
         "tool_count": len(tools),
-        "executable_count": sum(1 for row in tools if row["executable"]),
-        "library_count": sum(1 for row in tools if row["library"]),
         "versioned_family_count": len(families),
         "wrapper_count": len(wrappers),
+        "parse_error_count": len(parse_errors),
         "path_hack_count": len(path_hacks),
         "cwd_dependency_count": len(cwd_dependencies),
         "mutation_capable_count": len(mutation_capable),
         "mutation_without_gate_count": len(mutation_without_gate),
-        "unreferenced_executable_count": len(unreferenced),
-        "targeted_test_gap_count": len(test_gaps),
-        "parse_error_count": len(parse_errors),
+        "unreferenced_entrypoint_count": len(unreferenced_entrypoints),
+        "targeted_test_gap_count": len(targeted_test_gaps),
+        "review_candidate_count": len(review_candidates),
         "versioned_families": families,
         "wrappers": wrappers,
+        "parse_errors": parse_errors,
         "path_hacks": path_hacks,
         "cwd_dependencies": cwd_dependencies,
         "mutation_capable": mutation_capable,
         "mutation_without_gate": mutation_without_gate,
-        "unreferenced_executables": unreferenced,
-        "targeted_test_gaps": test_gaps,
-        "parse_errors": parse_errors,
+        "unreferenced_entrypoints": unreferenced_entrypoints,
+        "targeted_test_gaps": targeted_test_gaps,
+        "review_candidates": review_candidates,
         "tools": tools,
-        "note": (
-            "Informational only. A zero-reference result is a review candidate, not proof that a tool is dead. "
-            "Deletion still requires explicit consumer and contract review."
-        ),
     }
 
 
-def _print_summary(report: dict[str, Any]) -> None:
-    print(f"tooling audit: {report['status']} (blocking={report['blocking']})")
-    print(
-        "tools={tool_count} executable={executable_count} libraries={library_count} "
-        "version_families={versioned_family_count} wrappers={wrapper_count} "
-        "path_hacks={path_hack_count} unreferenced={unreferenced_executable_count} "
-        "test_gaps={targeted_test_gap_count}".format(**report)
-    )
-    if report["versioned_families"]:
-        print("versioned families:")
-        for family in report["versioned_families"]:
-            print(f"  - {family['family']}: {', '.join(family['members'])}")
-    if report["path_hacks"]:
-        print("import path hacks:")
-        for path in report["path_hacks"]:
-            print(f"  - {path}")
-    if report["unreferenced_executables"]:
-        print("unreferenced entrypoints to review:")
-        for path in report["unreferenced_executables"]:
-            print(f"  - {path}")
+def _print_list(label: str, values: Iterable[str]) -> None:
+    rows = list(values)
+    if not rows:
+        return
+    print(f"{label} ({len(rows)}):")
+    for value in rows:
+        print(f"  - {value}")
+
+
+def _print_human(report: dict[str, Any]) -> None:
+    print("TOOLING CONSOLIDATION AUDIT")
+    print()
+    print(f"Tools                       {report['tool_count']}")
+    print(f"Versioned families          {report['versioned_family_count']}")
+    print(f"Thin wrappers               {report['wrapper_count']}")
+    print(f"Parse errors                {report['parse_error_count']}")
+    print(f"sys.path hacks              {report['path_hack_count']}")
+    print(f"cwd-coupled tools           {report['cwd_dependency_count']}")
+    print(f"Mutation-capable            {report['mutation_capable_count']}")
+    print(f"Mutators without gate       {report['mutation_without_gate_count']}")
+    print(f"Unreferenced entrypoints    {report['unreferenced_entrypoint_count']}")
+    print(f"Targeted-test gaps          {report['targeted_test_gap_count']}")
+    print(f"Review candidates           {report['review_candidate_count']}")
+    print()
+    for family in report["versioned_families"]:
+        print(
+            f"VERSION FAMILY {family['family']}: "
+            f"{', '.join(str(version) for version in family['versions'])}"
+        )
+        for member in family["members"]:
+            print(f"  - {member}")
+    _print_list("WRAPPERS", report["wrappers"])
+    _print_list("PARSE ERRORS", report["parse_errors"])
+    _print_list("PATH HACKS", report["path_hacks"])
+    _print_list("CWD DEPENDENCIES", report["cwd_dependencies"])
+    _print_list("MUTATORS WITHOUT EXPLICIT GATE", report["mutation_without_gate"])
+    _print_list("UNREFERENCED ENTRYPOINTS (review only)", report["unreferenced_entrypoints"])
+    _print_list("TARGETED TEST GAPS", report["targeted_test_gaps"])
+    print()
+    print("NOTE:")
+    print(report["note"])
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Read-only Dofus Atlas tooling consolidation audit."
+        description="Read-only inventory of repository tooling consolidation candidates."
     )
-    parser.add_argument("--json", action="store_true", help="Print the full JSON report.")
-    parser.add_argument(
-        "--output",
-        type=Path,
-        default=None,
-        help="Optional UTF-8 JSON report path.",
-    )
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
-
     report = audit(ROOT)
     if args.json:
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
     else:
-        _print_summary(report)
-    if args.output is not None:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(
-            json.dumps(report, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-    # This first audit is intentionally non-blocking. It informs later cleanup
-    # micro-lots but never makes CI green/red by itself.
+        _print_human(report)
     return 0
 
 
