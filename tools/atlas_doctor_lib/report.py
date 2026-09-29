@@ -5,6 +5,15 @@ from typing import Any
 from .core import load_json, utc_now, write_json
 
 
+def _finding_map(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    mapped: dict[str, dict[str, Any]] = {}
+    for item in rows:
+        finding_id = str(item.get('id') or '').strip()
+        if finding_id:
+            mapped[finding_id] = item
+    return mapped
+
+
 def compare_runs(current: dict[str, Any] | None, previous: dict[str, Any] | None) -> dict[str, Any]:
     if not current or not previous:
         return {'status': 'UNAVAILABLE', 'reason': 'Deux snapshots sont necessaires.'}
@@ -15,15 +24,29 @@ def compare_runs(current: dict[str, Any] | None, previous: dict[str, Any] | None
             'status': 'UNAVAILABLE',
             'reason': f'Modes audit differents: {previous_mode or "STATIC"} -> {current_mode or "STATIC"}.',
         }
-    current_issues = {item['id']: item for item in current.get('issues', [])}
-    previous_issues = {item['id']: item for item in previous.get('issues', [])}
-    new_ids = sorted(current_issues.keys() - previous_issues.keys())
-    fixed_ids = sorted(previous_issues.keys() - current_issues.keys())
+
+    current_issues = _finding_map(list(current.get('issues', [])))
+    previous_issues = _finding_map(list(previous.get('issues', [])))
+    current_observations = _finding_map(list(current.get('observations', [])))
+    previous_observations = _finding_map(list(previous.get('observations', [])))
+
+    new_issue_ids = sorted(current_issues.keys() - previous_issues.keys())
+    fixed_issue_ids = sorted(previous_issues.keys() - current_issues.keys())
+    new_observation_ids = sorted(current_observations.keys() - previous_observations.keys())
+    resolved_observation_ids = sorted(previous_observations.keys() - current_observations.keys())
+
     return {
         'status': 'PASS',
-        'new_issues': [current_issues[item] for item in new_ids],
-        'fixed_issues': [previous_issues[item] for item in fixed_ids],
+        'new_issues': [current_issues[item] for item in new_issue_ids],
+        'fixed_issues': [previous_issues[item] for item in fixed_issue_ids],
         'unchanged_count': len(current_issues.keys() & previous_issues.keys()),
+        # Observations are deliberately compared too. They are not blockers, but
+        # Atlas Doctor must never make them disappear from before/after truth.
+        'new_observations': [current_observations[item] for item in new_observation_ids],
+        'resolved_observations': [previous_observations[item] for item in resolved_observation_ids],
+        'unchanged_observations_count': len(
+            current_observations.keys() & previous_observations.keys()
+        ),
     }
 
 
@@ -211,6 +234,8 @@ def build_ai_report(root) -> dict[str, Any]:
         'performance_comparison': perf_comparison,
         'issues_actionable': actionable,
         'issues_total': len(issues),
+        # Never omit observations from the AI-facing truth. They may be heuristic
+        # or intentionally accepted, but they remain evidence to review.
         'observations_review': observations,
         'observations_total': len(observations),
         'performance': _compact_performance(perf),
@@ -222,6 +247,7 @@ def build_ai_report(root) -> dict[str, Any]:
         },
         'instructions_for_agent': [
             'Traiter CRITICAL/HIGH confirmes avant les suspects.',
+            'Ne jamais cacher/supprimer une observation pour obtenir artificiellement zero.',
             'Ne jamais supprimer un module marque suspect sans verifier wiring dynamique et consommateurs reels.',
             'Comparer les performances uniquement sur la meme machine/environnement.',
             'Une hausse >=15% est un signal de regression a verifier, pas une preuve absolue entre environnements differents.',
