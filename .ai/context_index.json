@@ -17,7 +17,7 @@
     },
     ".gitignore": {
       "mode": "100644",
-      "sha": "d926b0280a3df38bb5e07c747db97bfa4e5003aa",
+      "sha": "82f863b6a184bba75246dafedc71cfb3453726ea",
       "type": "blob"
     },
     "AGENTS.md": {
@@ -38,6 +38,11 @@
     "Analyze_Startup.bat": {
       "mode": "100644",
       "sha": "22af8591af8d800b2c6f6f03b6fef6767a3200ad",
+      "type": "blob"
+    },
+    "Atlas_Doctor.bat": {
+      "mode": "100644",
+      "sha": "ae9ee3c435a01ae5ca27e6cba58c5911e50ee764",
       "type": "blob"
     },
     "DEVELOPMENT_GUARDRAILS.md": {
@@ -87,7 +92,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "66e51d7d5677e95e3237fb7376b8691a370be389",
+      "sha": "bde8c05ff4e7089b9b9e96bdfb415f0705dbdbaa",
       "type": "tree"
     },
     "bootstrap_dofus_atlas.ps1": {
@@ -132,12 +137,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "84f823dee3f5023e2df3c14d611a3a80a8749273",
+      "sha": "bec9ab7e74461a14c36a28388ed83cf7f1069ce5",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "2ac0d93d37fc3184057ec473a2a726bb2bbcbfc8",
+      "sha": "392af25602e9f40578f56b0baa167be69a06815c",
       "type": "tree"
     }
   },
