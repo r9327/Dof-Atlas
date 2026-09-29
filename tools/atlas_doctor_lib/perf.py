@@ -95,12 +95,38 @@ def run_runtime_benchmark(root: Path, *, timeout: int = 180) -> dict[str, Any]:
 
     trace_path = root / '.ai/runtime/atlas_doctor/runtime_io_trace.json'
     trace_path.parent.mkdir(parents=True, exist_ok=True)
+    artifact = root / 'artifacts/quests_guides_performance.json'
+
+    # Run the canonical benchmark without instrumentation first so its timing/RAM
+    # remains comparable with historical same-machine baselines.
+    clean_command = [sys.executable, str(benchmark)]
+    started = time.perf_counter()
+    clean = subprocess.run(
+        clean_command,
+        cwd=root,
+        text=True,
+        encoding='utf-8',
+        errors='replace',
+        capture_output=True,
+        check=False,
+        timeout=timeout,
+    )
+    clean_duration_ms = milliseconds(started)
+    benchmark_payload: dict[str, Any] | None = None
+    if artifact.is_file():
+        try:
+            benchmark_payload = json.loads(artifact.read_text(encoding='utf-8'))
+        except (OSError, json.JSONDecodeError):
+            benchmark_payload = None
+
+    # Separate traced run: diagnostic I/O overhead must not contaminate the
+    # canonical performance numbers above.
     env = os.environ.copy()
     env['ATLAS_DOCTOR_IO_TRACE'] = str(trace_path)
-    command = [sys.executable, str(runner), str(benchmark)]
-    started = time.perf_counter()
-    completed = subprocess.run(
-        command,
+    trace_command = [sys.executable, str(runner), str(benchmark)]
+    trace_started = time.perf_counter()
+    traced = subprocess.run(
+        trace_command,
         cwd=root,
         env=env,
         text=True,
@@ -110,14 +136,7 @@ def run_runtime_benchmark(root: Path, *, timeout: int = 180) -> dict[str, Any]:
         check=False,
         timeout=timeout,
     )
-    duration_ms = milliseconds(started)
-    artifact = root / 'artifacts/quests_guides_performance.json'
-    benchmark_payload: dict[str, Any] | None = None
-    if artifact.is_file():
-        try:
-            benchmark_payload = json.loads(artifact.read_text(encoding='utf-8'))
-        except (OSError, json.JSONDecodeError):
-            benchmark_payload = None
+    trace_duration_ms = milliseconds(trace_started)
     trace_payload: dict[str, Any] | None = None
     if trace_path.is_file():
         try:
@@ -125,15 +144,23 @@ def run_runtime_benchmark(root: Path, *, timeout: int = 180) -> dict[str, Any]:
         except (OSError, json.JSONDecodeError):
             trace_payload = None
 
+    clean_ok = clean.returncode == 0 and benchmark_payload is not None
+    trace_ok = traced.returncode == 0 and trace_payload is not None
     return {
-        'status': 'PASS' if completed.returncode == 0 and benchmark_payload else 'FAIL',
-        'returncode': completed.returncode,
-        'duration_ms': duration_ms,
-        'command': command,
+        'status': 'PASS' if clean_ok else 'FAIL',
+        'clean_returncode': clean.returncode,
+        'trace_returncode': traced.returncode,
+        'duration_ms': round(clean_duration_ms + trace_duration_ms, 3),
+        'clean_duration_ms': clean_duration_ms,
+        'trace_duration_ms': trace_duration_ms,
+        'clean_command': clean_command,
+        'trace_command': trace_command,
         'benchmark': benchmark_payload,
+        'io_trace_status': 'PASS' if trace_ok else 'FAIL',
         'io_trace': trace_payload,
-        'stdout_tail': completed.stdout.splitlines()[-20:],
-        'stderr_tail': completed.stderr.splitlines()[-40:],
+        'clean_stdout_tail': clean.stdout.splitlines()[-20:],
+        'clean_stderr_tail': clean.stderr.splitlines()[-40:],
+        'trace_stderr_tail': traced.stderr.splitlines()[-40:],
     }
 
 
