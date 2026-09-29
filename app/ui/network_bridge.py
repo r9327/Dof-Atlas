@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Iterable, TYPE_CHECKING
 
 from PySide6.QtCore import QObject, QTimer, Signal
@@ -14,8 +15,14 @@ _PROGRESS_REFRESH_DEBOUNCE_MS = 120
 
 
 if TYPE_CHECKING:
-    from app.network.application_coordinator import NetworkApplicationStatus
     from app.quest_catalog import QuestCatalog
+
+
+@dataclass(frozen=True, slots=True)
+class NetworkBridgeStatus:
+    running: bool
+    calibrating: bool
+    reason: str
 
 
 class NetworkUiBridge(QObject):
@@ -24,8 +31,8 @@ class NetworkUiBridge(QObject):
     IMPORTANT: the network feature is currently hard-disabled by
     ``app.network.runtime_gate``. The bridge intentionally remains available so
     existing UI wiring stays stable, but while the gate is false it must not
-    construct the coordinator, start capture/calibration workers, or poll any
-    network runtime. Keeping the bridge inert lets Atlas Doctor continue to
+    import/construct the coordinator, start capture/calibration workers, or poll
+    any network runtime. Keeping the bridge inert lets Atlas Doctor continue to
     report every network observation without silently deleting or suppressing
     the code that still needs repair.
     """
@@ -36,11 +43,9 @@ class NetworkUiBridge(QObject):
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        from app.network.application_coordinator import NetworkApplicationStatus
-
         self.coordinator: Any | None = None
         self._context_signature: tuple[int, int, int] | None = None
-        self._last_status = NetworkApplicationStatus(
+        self._last_status: object = NetworkBridgeStatus(
             running=False,
             calibrating=False,
             reason=NETWORK_RUNTIME_DISABLED_REASON,
@@ -68,7 +73,7 @@ class NetworkUiBridge(QObject):
         self._timer.start()
 
     @property
-    def last_status(self) -> NetworkApplicationStatus:
+    def last_status(self) -> object:
         return self._last_status
 
     def configure_context(
@@ -233,6 +238,7 @@ def network_ui_bridge() -> NetworkUiBridge:
 __all__ = [
     "NETWORK_RUNTIME_DISABLED_REASON",
     "NETWORK_RUNTIME_ENABLED",
+    "NetworkBridgeStatus",
     "NetworkUiBridge",
     "network_ui_bridge",
     "refresh_visible_encyclopedia_widgets",
