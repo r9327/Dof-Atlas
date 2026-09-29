@@ -52,7 +52,7 @@ from app.constants import (
     QUEST_PROGRESS_FILE,
 )
 from app.core.runtime_state import AtlasRuntime
-from app.network.character_runtime_state import character_runtime_state
+from app.network.runtime_gate import NETWORK_RUNTIME_ENABLED
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -657,7 +657,10 @@ class AtlasWindow(QMainWindow):
         if self.topmost_enabled:
             self._schedule_owned_callback(0, lambda: self.set_topmost(True))
         self._schedule_owned_callback(0, self.start_runtime)
-        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
+        if (
+            NETWORK_RUNTIME_ENABLED
+            and os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen"
+        ):
             self._schedule_owned_callback(0, self.prepare_network_capture)
         if EQUIPMENT_PRELOAD_DELAY_MS > 0:
             self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
@@ -877,6 +880,10 @@ class AtlasWindow(QMainWindow):
         )
 
     def _connected_characters(self, known_characters: list[Any]) -> list[Any]:
+        if not NETWORK_RUNTIME_ENABLED:
+            return []
+        from app.network.character_runtime_state import character_runtime_state
+
         runtime_store = character_runtime_state()
         runtime_keys = {
             character.key
@@ -990,8 +997,10 @@ class AtlasWindow(QMainWindow):
             self.on_global_character_changed()
 
     def prepare_network_capture(self) -> None:
-        """Request UAC as soon as the visible shell enters its event loop."""
+        """Request capture only when the network feature is explicitly enabled."""
 
+        if not NETWORK_RUNTIME_ENABLED:
+            return
         bridge = getattr(self.home_page, "network_bridge", None)
         prepare = getattr(bridge, "prepare_capture", None)
         if callable(prepare):

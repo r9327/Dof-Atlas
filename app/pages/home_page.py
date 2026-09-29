@@ -30,7 +30,7 @@ from app.modules.encyclopedia.services import (
     GuideProgressService,
     QuestProgressService,
 )
-from app.network.application_coordinator import NetworkApplicationStatus
+from app.network.runtime_gate import NETWORK_RUNTIME_DISABLED_REASON
 from app.quest_catalog import QuestCatalog
 from app.ui.network_bridge import network_ui_bridge
 
@@ -621,7 +621,7 @@ class HomePage(QWidget):
             self.refresh_progress()
 
     def _on_network_status(self, status: object) -> None:
-        if not isinstance(status, NetworkApplicationStatus):
+        if not all(hasattr(status, name) for name in ("running", "calibrating", "reason")):
             return
         text, state = self._network_summary(status)
         self.network_status.setText(text)
@@ -631,11 +631,13 @@ class HomePage(QWidget):
             self.network_indicator.style().polish(self.network_indicator)
 
     @staticmethod
-    def _network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:
-        if status.running:
+    def _network_summary(status: object) -> tuple[str, str]:
+        reason = str(getattr(status, "reason", "") or "")
+        if reason == NETWORK_RUNTIME_DISABLED_REASON:
+            return "Désactivé · maintenance", "idle"
+        if bool(getattr(status, "running", False)):
             return "Actif", "active"
-        reason = str(status.reason or "")
-        if status.calibrating or reason in {
+        if bool(getattr(status, "calibrating", False)) or reason in {
             "calibrating",
             "awaiting_character_identity",
             "awaiting_quest_journal",
