@@ -23,6 +23,7 @@ DEFAULT_WIDTH = 1400
 DEFAULT_HEIGHT = 900
 DEFAULT_SETTLE_MS = 1000
 DEFAULT_SEGMENT_OVERLAP = 80
+DEFAULT_READY_TIMEOUT_MS = 15000
 MAX_FULL_SCROLL_HEIGHT = 30000
 
 
@@ -78,15 +79,129 @@ def _validate_capture(spec: CaptureSpec, preview: PreviewSpec) -> None:
         raise ValueError("segment_overlap doit être positif ou nul")
 
 
+def _target_id(spec: CaptureSpec, name: str) -> int | None:
+    value = spec.params.get(name)
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _target_ready(widget, spec: CaptureSpec) -> bool:
+    if spec.screen == "encyclopedia.quests":
+        quest_id = _target_id(spec, "quest_id")
+        if quest_id is None:
+            return True
+        page = getattr(widget, "quest_page", None)
+        detail = getattr(page, "quest_detail_view", None)
+        return bool(
+            page is not None
+            and not bool(getattr(page, "_detail_pending", False))
+            and int(getattr(detail, "current_quest_id", 0) or 0) == quest_id
+        )
+
+    if spec.screen == "encyclopedia.guides":
+        quest_id = _target_id(spec, "quest_id")
+        if quest_id is None:
+            return True
+        view = getattr(widget, "guides_view", None)
+        detail = getattr(view, "quest_detail_view", None)
+        return bool(
+            view is not None
+            and int(getattr(view, "current_quest_id", 0) or 0) == quest_id
+            and int(getattr(detail, "current_quest_id", 0) or 0) == quest_id
+        )
+
+    if spec.screen == "encyclopedia.achievements":
+        achievement_id = _target_id(spec, "achievement_id")
+        if achievement_id is None:
+            return True
+        getter = getattr(widget, "get_achievements_view", None)
+        view = getter() if callable(getter) else None
+        return bool(
+            view is not None
+            and bool(getattr(view, "_detail_open", False))
+            and int(getattr(view, "current_achievement_id", 0) or 0) == achievement_id
+        )
+
+    return True
+
+
+def _wait_for_target_ready(
+    app: QApplication,
+    widget,
+    spec: CaptureSpec,
+    timeout_ms: int = DEFAULT_READY_TIMEOUT_MS,
+) -> None:
+    if _target_ready(widget, spec):
+        return
+    deadline = time.monotonic() + max(1, timeout_ms) / 1000.0
+    while time.monotonic() < deadline:
+        app.processEvents(QEventLoop.AllEvents, 50)
+        if _target_ready(widget, spec):
+            app.processEvents(QEventLoop.AllEvents, 50)
+            return
+        time.sleep(0.02)
+    raise RuntimeError(
+        f"La cible UI n'est pas devenue prête avant capture: {spec.screen} "
+        f"scenario={spec.scenario} params={spec.params}"
+    )
+
+
+def _product_scroll_target(widget, spec: CaptureSpec) -> QAbstractScrollArea | None:
+    if spec.screen == "encyclopedia.quests":
+        page = getattr(widget, "quest_page", None)
+        detail = getattr(page, "quest_detail_view", None)
+        area = getattr(detail, "center_scroll", None)
+        return area if isinstance(area, QAbstractScrollArea) else None
+
+    if spec.screen == "encyclopedia.guides":
+        view = getattr(widget, "guides_view", None)
+        if view is None:
+            return None
+        if _target_id(spec, "quest_id") is not None:
+            detail = getattr(view, "quest_detail_view", None)
+            area = getattr(detail, "center_scroll", None)
+        else:
+            area = getattr(view, "center_scroll", None)
+        return area if isinstance(area, QAbstractScrollArea) else None
+
+    if spec.screen == "encyclopedia.achievements":
+        getter = getattr(widget, "get_achievements_view", None)
+        view = getter() if callable(getter) else None
+        area = getattr(view, "detail_scroll", None)
+        return area if isinstance(area, QAbstractScrollArea) else None
+
+    if spec.screen == "organizer":
+        area = getattr(widget, "sessions_area", None)
+        return area if isinstance(area, QAbstractScrollArea) else None
+
+    if spec.screen == "tools.crafts":
+        area = getattr(widget, "global_scroll", None)
+        return area if isinstance(area, QAbstractScrollArea) else None
+
+    return None
+
+
 def _scroll_target(widget, spec: CaptureSpec) -> QAbstractScrollArea | None:
+    product_target = _product_scroll_target(widget, spec)
+    if product_target is not None and product_target.isVisible():
+        return product_target
+
     requested_name = str(spec.scroll_object_name or "").strip()
     if not requested_name:
         requested_name = str(widget.property("uiLabCaptureScrollTarget") or "").strip()
     if requested_name:
-        target = widget.findChild(QAbstractScrollArea, requested_name)
-        if target is None:
-            raise RuntimeError(f"Zone de scroll UI Lab introuvable: {requested_name}")
-        return target
+        matches = [
+            area
+            for area in widget.findChildren(QAbstractScrollArea, requested_name)
+            if area.isVisible()
+        ]
+        if not matches:
+            raise RuntimeError(f"Zone de scroll UI Lab introuvable ou invisible: {requested_name}")
+        return max(matches, key=lambda area: int(area.verticalScrollBar().maximum()))
 
     candidates = [
         area
@@ -220,6 +335,7 @@ def capture_preview(app: QApplication, spec: CaptureSpec, output_dir: Path) -> d
         try:
             widget.resize(spec.width, spec.height)
             widget.show()
+            _wait_for_target_ready(app, widget, spec)
             _settle(app, spec.settle_ms)
             pixmap = widget.grab()
             if pixmap.isNull() or not pixmap.save(str(output_path), "PNG"):
