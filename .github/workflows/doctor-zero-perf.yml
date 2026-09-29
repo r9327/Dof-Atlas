@@ -15,7 +15,7 @@ env:
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
   BEFORE_SHA: 07e14fa90eacd9143fc71140359386aeb8c6b5e2
-  AFTER_SHA: aba1c35cf02dce326469bea5012889dc98289347
+  AFTER_SHA: 693b3b3e95e72626e85833597df0953caddc2fc5
 
 jobs:
   compare:
@@ -101,7 +101,7 @@ jobs:
               "rss_after_all_views_mb", "rss_after_round_trips_mb",
               "idle_cpu_percent_one_core",
           ]
-          result = {"before_sha": "07e14fa90eacd9143fc71140359386aeb8c6b5e2", "after_sha": "aba1c35cf02dce326469bea5012889dc98289347", "metrics": {}}
+          result = {"before_sha": "07e14fa90eacd9143fc71140359386aeb8c6b5e2", "after_sha": "693b3b3e95e72626e85833597df0953caddc2fc5", "metrics": {}}
           for key in keys:
               b = [float(row[key]) for row in before if row.get(key) is not None]
               a = [float(row[key]) for row in after if row.get(key) is not None]
