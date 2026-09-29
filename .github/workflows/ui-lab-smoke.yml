@@ -56,7 +56,7 @@ jobs:
       - name: Instantiate UI Lab and live Guides preview offscreen
         run: |
           @'
-          from PySide6.QtWidgets import QApplication
+          from PySide6.QtWidgets import QApplication, QTextEdit
           from tools.ui_lab.window import UiLabWindow
 
           app = QApplication.instance() or QApplication([])
@@ -65,7 +65,12 @@ jobs:
 
           assert window._current_spec is not None, "No preview selected"
           assert window._current_spec.key == "encyclopedia.guides", window._current_spec.key
-          assert window._current_preview is not None, window.statusBar().currentMessage()
+          if window._current_preview is None:
+              for log in window.preview_host.findChildren(QTextEdit):
+                  print("UI_LAB_TRACEBACK_START")
+                  print(log.toPlainText())
+                  print("UI_LAB_TRACEBACK_END")
+              raise AssertionError(window.statusBar().currentMessage())
           assert window.capture_button.isEnabled(), "Live preview failed to load"
 
           print("UI_LAB_SMOKE_OK", window.statusBar().currentMessage())
