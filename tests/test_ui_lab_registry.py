@@ -49,9 +49,13 @@ class UiLabRegistryTests(unittest.TestCase):
             by_group["Bestiaire"],
             ["Donjons", "Monstres", "Archimonstres", "Avis de recherche"],
         )
+        self.assertEqual(
+            by_group["Outils"],
+            ["Crafts", "Map monde", "Chasse au trésor", "Ocre"],
+        )
         self.assertEqual(by_group["Stuffs"], ["PvM", "PvP", "Builders"])
 
-    def test_core_and_bestiary_product_surfaces_are_live(self) -> None:
+    def test_current_product_navigation_surfaces_are_live(self) -> None:
         live = {preview.key: preview for preview in default_previews() if preview.is_live}
         required = {
             "home",
@@ -63,11 +67,13 @@ class UiLabRegistryTests(unittest.TestCase):
             "bestiary.monsters",
             "bestiary.archmonsters",
             "bestiary.wanted",
+            "tools.crafts",
+            "tools.world_map",
+            "tools.treasure_hunt",
+            "tools.ocre",
             "stuffs.pvm",
             "stuffs.pvp",
             "stuffs.builders",
-            "tools.treasure_hunt",
-            "tools.ocre",
             "almanax",
             "tutorials.default",
             "tutorials.dofus_noob",
