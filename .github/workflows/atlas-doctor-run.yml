@@ -50,10 +50,10 @@ jobs:
         shell: pwsh
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
 
-      - name: Materialize validation LFS fixtures
+      - name: Materialize certification LFS fixtures
         shell: pwsh
         run: |
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,tools/doduda/doduda.exe" --exclude=""
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Materialize local Dofus catalog
@@ -72,10 +72,10 @@ jobs:
           Write-Host "ATLAS_DOCTOR_AUDIT_EXIT=$auditCode"
           python tools/atlas_doctor.py --json report | Tee-Object -FilePath doctor-report-console.json
           Write-Host "ATLAS_DOCTOR_REPORT_EXIT=$LASTEXITCODE"
-          if (-not (Test-Path -LiteralPath ".ai/runtime/atlas_doctor/latest_audit.json")) { throw "Doctor audit JSON missing" }
+          if (-not (Test-Path -LiteralPath "doctor-audit-console.json")) { throw "Doctor audit JSON missing" }
 
       - name: Upload Doctor details
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: atlas-doctor-details-after
           path: |
@@ -116,10 +116,10 @@ jobs:
         shell: pwsh
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
 
-      - name: Materialize benchmark data
+      - name: Materialize benchmark data and certification fixtures
         shell: pwsh
         run: |
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,tools/doduda/doduda.exe" --exclude=""
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $catalog = "data/cache/dofus_maps/raw/doduda_cli"
           if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
@@ -157,7 +157,7 @@ jobs:
           }
 
       - name: Upload benchmark samples
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: atlas-perf-before-after
           path: perf-results/*.json
