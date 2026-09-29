@@ -5,7 +5,7 @@ import json
 import re
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -31,6 +31,8 @@ class CaptureSpec:
     width: int = DEFAULT_WIDTH
     height: int = DEFAULT_HEIGHT
     settle_ms: int = DEFAULT_SETTLE_MS
+    params: dict[str, Any] = field(default_factory=dict)
+    output_name: str = ""
 
 
 def _safe_slug(value: str) -> str:
@@ -72,7 +74,8 @@ def capture_preview(app: QApplication, spec: CaptureSpec, output_dir: Path) -> d
     preview = get_preview(spec.screen)
     _validate_capture(spec, preview)
     output_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"{_safe_slug(preview.key)}__{_safe_slug(spec.scenario)}.png"
+    base_name = spec.output_name.strip() or f"{preview.key}__{spec.scenario}"
+    filename = f"{_safe_slug(base_name)}.png"
     output_path = output_dir / filename
     status_messages: list[str] = []
 
@@ -81,6 +84,7 @@ def capture_preview(app: QApplication, spec: CaptureSpec, output_dir: Path) -> d
             sandbox_root=Path(sandbox),
             report_status=status_messages.append,
             scenario=spec.scenario,
+            params=dict(spec.params),
         )
         widget = resolve_factory(preview)(context)
         try:
@@ -99,6 +103,7 @@ def capture_preview(app: QApplication, spec: CaptureSpec, output_dir: Path) -> d
         "screen": preview.key,
         "label": preview.label,
         "scenario": spec.scenario,
+        "params": spec.params,
         "source": preview.source,
         "width": spec.width,
         "height": spec.height,
@@ -140,12 +145,19 @@ def _capture_spec_from_dict(raw: dict[str, Any]) -> CaptureSpec:
     screen = str(raw.get("screen", "")).strip()
     if not screen:
         raise ValueError("Chaque capture doit renseigner 'screen'")
+    params = raw.get("params", {})
+    if params is None:
+        params = {}
+    if not isinstance(params, dict):
+        raise ValueError("Le champ 'params' d'une capture doit être un objet JSON")
     return CaptureSpec(
         screen=screen,
         scenario=str(raw.get("scenario", DEFAULT_SCENARIO)),
         width=int(raw.get("width", DEFAULT_WIDTH)),
         height=int(raw.get("height", DEFAULT_HEIGHT)),
         settle_ms=int(raw.get("settle_ms", DEFAULT_SETTLE_MS)),
+        params=dict(params),
+        output_name=str(raw.get("output_name", "") or ""),
     )
 
 
