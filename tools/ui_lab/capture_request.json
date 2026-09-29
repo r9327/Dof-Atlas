@@ -7,6 +7,27 @@
       "width": 1400,
       "height": 900,
       "settle_ms": 1200
+    },
+    {
+      "screen": "encyclopedia.quests",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    },
+    {
+      "screen": "encyclopedia.achievements",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    },
+    {
+      "screen": "home",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 800
     }
   ]
 }
