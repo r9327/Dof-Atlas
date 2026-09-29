@@ -42,7 +42,7 @@ def default_previews() -> tuple[PreviewSpec, ...]:
             status=LIVE,
             factory_path="tools.ui_lab.screens:create_guides_preview",
             description="Vrai onglet GUIDES dans le vrai EncyclopediaPage.",
-            scenarios=("default", "guide_first"),
+            scenarios=("default", "guide_first", "target"),
         ),
         PreviewSpec(
             key="encyclopedia.quests",
@@ -52,7 +52,7 @@ def default_previews() -> tuple[PreviewSpec, ...]:
             status=LIVE,
             factory_path="tools.ui_lab.screens:create_quests_preview",
             description="Vrai onglet QUÊTES dans le vrai EncyclopediaPage.",
-            scenarios=("default", "detail_first"),
+            scenarios=("default", "detail_first", "target"),
         ),
         PreviewSpec(
             key="encyclopedia.achievements",
@@ -62,7 +62,7 @@ def default_previews() -> tuple[PreviewSpec, ...]:
             status=LIVE,
             factory_path="tools.ui_lab.screens:create_achievements_preview",
             description="Vrai onglet SUCCÈS dans le vrai EncyclopediaPage.",
-            scenarios=("default", "detail_first"),
+            scenarios=("default", "detail_first", "target"),
         ),
         PreviewSpec(
             key="encyclopedia.bestiary",
