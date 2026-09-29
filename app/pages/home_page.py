@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import unicodedata
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
@@ -30,7 +30,8 @@ from app.modules.encyclopedia.services import (
     GuideProgressService,
     QuestProgressService,
 )
-from app.network.application_coordinator import NetworkApplicationStatus
+if TYPE_CHECKING:
+    from app.network.application_coordinator import NetworkApplicationStatus
 from app.quest_catalog import QuestCatalog
 from app.ui.network_bridge import network_ui_bridge
 
@@ -621,7 +622,7 @@ class HomePage(QWidget):
             self.refresh_progress()
 
     def _on_network_status(self, status: object) -> None:
-        if not isinstance(status, NetworkApplicationStatus):
+        if not all(hasattr(status, name) for name in ("running", "calibrating", "reason")):
             return
         text, state = self._network_summary(status)
         self.network_status.setText(text)
