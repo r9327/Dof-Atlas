@@ -1,0 +1,103 @@
+name: Doctor Zero Defer Success Graph
+
+on:
+  push:
+    branches:
+      - run/doctor-zero-perf-20260929
+
+permissions:
+  contents: write
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  TARGET_BRANCH: doctor/zero-actionable-v1
+
+jobs:
+  fix:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout Doctor branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: true
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install dependencies
+        shell: pwsh
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+
+      - name: Defer Success quest graph until shared runtime exists
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one anchor, found {count}")
+              target.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace_once(
+              "app/modules/encyclopedia/views/achievements_view.py",
+              '''        self.quest_graph = quest_graph or QuestGraphService(self.quest_provider, guide_provider, provider)''',
+              '''        self.quest_graph = (\n            quest_graph\n            if defer_runtime\n            else (quest_graph or QuestGraphService(self.quest_provider, guide_provider, provider))\n        )''',
+          )
+
+          replace_once(
+              "app/modules/encyclopedia/views/encyclopedia_page.py",
+              '''                    quest_graph=self._quest_graph or QuestGraphService(self.quest_provider),''',
+              '''                    quest_graph=self._quest_graph,''',
+          )
+          '@ | python -
+
+      - name: Sync ROAD IA context
+        shell: pwsh
+        run: python -m tools.ai_context sync
+
+      - name: Materialize Dofus catalog
+        shell: pwsh
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Compile and test
+        shell: pwsh
+        run: |
+          python -m py_compile app/modules/encyclopedia/views/achievements_view.py app/modules/encyclopedia/views/encyclopedia_page.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest -v tests.test_lazy_quests_page_performance tests.test_achievements_phase2 tests.test_project_guardrails tests.test_encyclopedia_on_demand_loading tests.test_startup_resource_contracts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Commit deferred graph fix
+        shell: pwsh
+        run: |
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git config user.name "r9327"
+          git config user.email "216230118+r9327@users.noreply.github.com"
+          git add app/modules/encyclopedia/views/achievements_view.py app/modules/encyclopedia/views/encyclopedia_page.py .ai/context_index.json
+          git commit -m "perf(encyclopedia): defer cold Success quest graph"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git push origin HEAD:$env:TARGET_BRANCH
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
