@@ -1,4 +1,4 @@
-name: Atlas Doctor Details and Perf Compare
+name: Atlas Doctor Zero Actionable Patch
 
 on:
   push:
@@ -6,160 +6,143 @@ on:
       - run/atlas-doctor-20260929
 
 permissions:
-  contents: read
+  contents: write
 
 env:
-  QT_QPA_PLATFORM: offscreen
-  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
-  QTWEBENGINE_DISABLE_SANDBOX: "1"
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
-  BEFORE_SHA: c06af5f03bd96538bc2d11dbd39e1b946ce33300
-  AFTER_SHA: 07e14fa90eacd9143fc71140359386aeb8c6b5e2
+  TARGET_BRANCH: doctor/zero-actionable-v1
 
 jobs:
-  doctor-details:
-    name: Doctor details on merged SHA
+  patch:
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
-      - name: Checkout merged snapshot
+      - name: Checkout cleanup branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ env.AFTER_SHA }}
+          ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 0
-          lfs: false
-          persist-credentials: false
-
-      - name: Verify exact merged SHA
-        shell: pwsh
-        run: |
-          $actual = (git rev-parse HEAD).Trim()
-          Write-Host "Atlas Doctor target SHA: $actual"
-          if ($actual -ne $env:AFTER_SHA) { throw "Checkout mismatch" }
-          git status --short
+          persist-credentials: true
 
       - name: Set up Python 3.13
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.13"
-          cache: pip
-          cache-dependency-path: requirements-pyside.txt
 
-      - name: Install application dependencies
-        shell: pwsh
-        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
-
-      - name: Materialize certification LFS fixtures
+      - name: Apply exact diagnostic patches
         shell: pwsh
         run: |
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          @'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one patch anchor, found {count}")
+              target.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace_once(
+              "app/input/hotkeys.py",
+              '''            except Exception:\n                pass\n        return spec.matches(self.input_state.snapshot())''',
+              '''            except Exception as exc:\n                self.logger.debug(\n                    "Lecture physique des touches indisponible; fallback InputState: %s",\n                    exc,\n                )\n        return spec.matches(self.input_state.snapshot())''',
+          )
+
+          replace_once(
+              "app/modules/encyclopedia/services/guide_auto_validation_contract.py",
+              '''import copy\nimport re''',
+              '''import copy\nimport logging\nimport re''',
+          )
+          replace_once(
+              "app/modules/encyclopedia/services/guide_auto_validation_contract.py",
+              '''AUTO_VALIDATION_SCHEMA_VERSION = 1''',
+              '''LOGGER = logging.getLogger(__name__)\n\nAUTO_VALIDATION_SCHEMA_VERSION = 1''',
+          )
+          replace_once(
+              "app/modules/encyclopedia/services/guide_auto_validation_contract.py",
+              '''        except Exception:\n            # Custom providers or partial test data retain the historical path.\n            pass\n\n    return _achievement_index_from_loaded_provider(achievement_provider)''',
+              '''        except Exception as exc:\n            # Custom providers or partial test data retain the historical path.\n            LOGGER.debug(\n                "Index Succès léger indisponible; fallback provider complet: %s",\n                exc,\n            )\n\n    return _achievement_index_from_loaded_provider(achievement_provider)''',
+          )
+
+          replace_once(
+              "app/pages/craft_page.py",
+              '''import difflib\nfrom datetime import datetime''',
+              '''import difflib\nimport logging\nfrom datetime import datetime''',
+          )
+          replace_once(
+              "app/pages/craft_page.py",
+              '''_RESULT_BATCH_SIZE = 8''',
+              '''LOGGER = logging.getLogger(__name__)\n\n_RESULT_BATCH_SIZE = 8''',
+          )
+          replace_once(
+              "app/pages/craft_page.py",
+              '''            except Exception:\n                pass\n\n        # The old fallback returned the first substring match''',
+              '''            except Exception as exc:\n                LOGGER.debug(\n                    "Recherche cache local indisponible pour %r; fallback index mémoire: %s",\n                    name,\n                    exc,\n                )\n\n        # The old fallback returned the first substring match''',
+          )
+
+          replace_once(
+              "app/storage.py",
+              '''    except Exception:\n        pass\n\n    def enum_callback(hwnd: int, _extra: Any) -> bool:''',
+              '''    except Exception as exc:\n        LOGGER.debug("WindowFromPoint Unity indisponible pour %s: %s", point, exc)\n\n    def enum_callback(hwnd: int, _extra: Any) -> bool:''',
+          )
+          replace_once(
+              "app/storage.py",
+              '''    try:\n        win32gui.EnumWindows(enum_callback, None)\n    except Exception:\n        pass\n\n    seen: set[int] = set()''',
+              '''    try:\n        win32gui.EnumWindows(enum_callback, None)\n    except Exception as exc:\n        LOGGER.debug("EnumWindows Unity interrompu pour %s: %s", point, exc)\n\n    seen: set[int] = set()''',
+          )
+          '@ | python -
+
+      - name: Compile patched modules
+        shell: pwsh
+        run: |
+          python -m py_compile app/input/hotkeys.py app/modules/encyclopedia/services/guide_auto_validation_contract.py app/pages/craft_page.py app/storage.py app/network/build_fingerprint.py app/windows/focus.py app/windows/unity_windows.py app/pages/quests_page.py tools/atlas_doctor_lib/audit.py tools/atlas_doctor_lib/core.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Materialize local Dofus catalog
+      - name: Verify no broad silent pass remains in runtime
         shell: pwsh
         run: |
-          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
-          if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
-          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          @'
+          import ast
+          from pathlib import Path
+
+          findings = []
+          for path in [Path("main.py"), *Path("app").rglob("*.py")]:
+              if not path.is_file():
+                  continue
+              tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
+              for node in ast.walk(tree):
+                  if not isinstance(node, ast.ExceptHandler):
+                      continue
+                  if not node.body or not all(isinstance(row, ast.Pass) for row in node.body):
+                      continue
+                  broad = node.type is None
+                  if node.type is not None:
+                      try:
+                          broad = ast.unparse(node.type) in {"Exception", "BaseException"}
+                      except Exception:
+                          broad = True
+                  if broad:
+                      findings.append(f"{path}:{getattr(node, 'lineno', '?')}")
+          if findings:
+              raise SystemExit("Broad silent exception(s) remain:\n" + "\n".join(findings))
+          print("No broad silent runtime exception remains")
+          '@ | python -
+
+      - name: Commit cleanup
+        shell: pwsh
+        run: |
+          git diff --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Run Doctor audit and report
-        shell: pwsh
-        run: |
-          python tools/atlas_doctor.py --json audit --force --gate critical | Tee-Object -FilePath doctor-audit-console.json
-          $auditCode = $LASTEXITCODE
-          Write-Host "ATLAS_DOCTOR_AUDIT_EXIT=$auditCode"
-          python tools/atlas_doctor.py --json report | Tee-Object -FilePath doctor-report-console.json
-          Write-Host "ATLAS_DOCTOR_REPORT_EXIT=$LASTEXITCODE"
-          if (-not (Test-Path -LiteralPath "doctor-audit-console.json")) { throw "Doctor audit JSON missing" }
-
-      - name: Upload Doctor details
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: atlas-doctor-details-after
-          path: |
-            .ai/runtime/atlas_doctor/*.json
-            doctor-audit-console.json
-            doctor-report-console.json
-          if-no-files-found: error
-          retention-days: 7
-
-  perf-before-after:
-    name: Canonical performance before vs after
-    runs-on: windows-latest
-    timeout-minutes: 60
-    steps:
-      - name: Checkout BEFORE snapshot
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ env.BEFORE_SHA }}
-          fetch-depth: 0
-          lfs: false
-          persist-credentials: false
-
-      - name: Verify BEFORE SHA
-        shell: pwsh
-        run: |
-          $actual = (git rev-parse HEAD).Trim()
-          Write-Host "BEFORE target SHA: $actual"
-          if ($actual -ne $env:BEFORE_SHA) { throw "BEFORE checkout mismatch" }
-
-      - name: Set up Python 3.13
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
-        with:
-          python-version: "3.13"
-          cache: pip
-          cache-dependency-path: requirements-pyside.txt
-
-      - name: Install application dependencies
-        shell: pwsh
-        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
-
-      - name: Materialize benchmark data and certification fixtures
-        shell: pwsh
-        run: |
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
-          if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
-          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          New-Item -ItemType Directory -Force -Path perf-results | Out-Null
-
-      - name: Run BEFORE benchmark three times
-        shell: pwsh
-        run: |
-          1..3 | ForEach-Object {
-            Write-Host "=== BEFORE benchmark run $_ ==="
-            python -m app.modules.encyclopedia.tools.benchmark_guides_performance
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            Copy-Item "artifacts/quests_guides_performance.json" "perf-results/before-$_.json" -Force
+          git config user.name "r9327"
+          git config user.email "216230118+r9327@users.noreply.github.com"
+          git add app/input/hotkeys.py app/modules/encyclopedia/services/guide_auto_validation_contract.py app/pages/craft_page.py app/storage.py
+          if (git diff --cached --quiet) {
+            Write-Host "No patch changes to commit"
+            exit 0
           }
-
-      - name: Checkout AFTER snapshot on same runner
-        shell: pwsh
-        run: |
-          git checkout --force $env:AFTER_SHA
+          git commit -m "cleanup(runtime): diagnose intentional fallback paths"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $actual = (git rev-parse HEAD).Trim()
-          Write-Host "AFTER target SHA: $actual"
-          if ($actual -ne $env:AFTER_SHA) { throw "AFTER checkout mismatch" }
-
-      - name: Run AFTER benchmark three times
-        shell: pwsh
-        run: |
-          1..3 | ForEach-Object {
-            Write-Host "=== AFTER benchmark run $_ ==="
-            python -m app.modules.encyclopedia.tools.benchmark_guides_performance
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            Copy-Item "artifacts/quests_guides_performance.json" "perf-results/after-$_.json" -Force
-          }
-
-      - name: Upload benchmark samples
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: atlas-perf-before-after
-          path: perf-results/*.json
-          if-no-files-found: error
-          retention-days: 7
+          git push origin HEAD:$env:TARGET_BRANCH
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
