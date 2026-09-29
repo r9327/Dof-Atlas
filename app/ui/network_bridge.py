@@ -5,6 +5,11 @@ from typing import Any, Iterable, TYPE_CHECKING
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QApplication
 
+from app.network.runtime_gate import (
+    NETWORK_RUNTIME_DISABLED_REASON,
+    NETWORK_RUNTIME_ENABLED,
+)
+
 _PROGRESS_REFRESH_DEBOUNCE_MS = 120
 
 
@@ -14,12 +19,15 @@ if TYPE_CHECKING:
 
 
 class NetworkUiBridge(QObject):
-    """Qt-side adapter around the thread-owned network coordinator.
+    """Qt-side adapter around the optional network coordinator.
 
-    Heavy fingerprint/capture bootstrap stays inside NetworkApplicationCoordinator.
-    This object only drains queues on the UI thread and emits Qt signals. It owns
-    no progression state and keeps the verified network runtime alive while the
-    main application is hidden to the tray.
+    IMPORTANT: the network feature is currently hard-disabled by
+    ``app.network.runtime_gate``. The bridge intentionally remains available so
+    existing UI wiring stays stable, but while the gate is false it must not
+    construct the coordinator, start capture/calibration workers, or poll any
+    network runtime. Keeping the bridge inert lets Atlas Doctor continue to
+    report every network observation without silently deleting or suppressing
+    the code that still needs repair.
     """
 
     statusChanged = Signal(object)
@@ -28,14 +36,15 @@ class NetworkUiBridge(QObject):
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        # Home imports this module before its first paint, but the real bridge is
-        # created only after Encyclopedia context or an explicit calibration
-        # request. Keep coordinator/settings/catalog imports on that real-use path.
-        from app.network.application_coordinator import NetworkApplicationCoordinator
+        from app.network.application_coordinator import NetworkApplicationStatus
 
-        self.coordinator = NetworkApplicationCoordinator(self._window_handles)
+        self.coordinator: Any | None = None
         self._context_signature: tuple[int, int, int] | None = None
-        self._last_status = self.coordinator.latest_status()
+        self._last_status = NetworkApplicationStatus(
+            running=False,
+            calibrating=False,
+            reason=NETWORK_RUNTIME_DISABLED_REASON,
+        )
         self._stopped = False
         self._pending_progress_characters: set[str] = set()
         self._progress_timer = QTimer(self)
@@ -45,6 +54,17 @@ class NetworkUiBridge(QObject):
         self._timer = QTimer(self)
         self._timer.setInterval(180)
         self._timer.timeout.connect(self._poll)
+
+        if not NETWORK_RUNTIME_ENABLED:
+            # DO NOT start any network path until the stack is repaired and
+            # explicitly re-certified. No coordinator means no worker, capture,
+            # calibration, UAC helper, packet polling or progression ingestion.
+            return
+
+        from app.network.application_coordinator import NetworkApplicationCoordinator
+
+        self.coordinator = NetworkApplicationCoordinator(self._window_handles)
+        self._last_status = self.coordinator.latest_status()
         self._timer.start()
 
     @property
@@ -58,10 +78,10 @@ class NetworkUiBridge(QObject):
         achievement_provider: Any,
         guide_provider: Any = None,
     ) -> bool:
+        if self._stopped or self.coordinator is None:
+            return False
         from app.quest_catalog import QuestCatalog
 
-        if self._stopped:
-            return False
         if not isinstance(quest_catalog, QuestCatalog) or achievement_provider is None:
             return False
         signature = (id(quest_catalog), id(achievement_provider), id(guide_provider))
@@ -76,17 +96,17 @@ class NetworkUiBridge(QObject):
         return True
 
     def request_calibration(self) -> bool:
-        if self._stopped:
+        if self._stopped or self.coordinator is None:
             return False
         return self.coordinator.request_start_calibration()
 
     def prepare_capture(self) -> bool:
-        if self._stopped:
+        if self._stopped or self.coordinator is None:
             return False
         return self.coordinator.request_prepare_capture()
 
     def request_verified_runtime(self) -> bool:
-        if self._stopped:
+        if self._stopped or self.coordinator is None:
             return False
         return self.coordinator.request_start_verified_runtime()
 
@@ -97,10 +117,12 @@ class NetworkUiBridge(QObject):
         self._timer.stop()
         self._progress_timer.stop()
         self._pending_progress_characters.clear()
+        if self.coordinator is None:
+            return True
         return bool(self.coordinator.stop())
 
     def _poll(self) -> None:
-        if self._stopped:
+        if self._stopped or self.coordinator is None:
             return
         statuses = self.coordinator.drain_statuses(50)
         if statuses:
@@ -151,6 +173,7 @@ class NetworkUiBridge(QObject):
             return tuple(dict.fromkeys(handles))
         except Exception:
             from app.core.logger import get_runtime_logger
+
             get_runtime_logger().exception("Network window handle lookup failed.")
             return ()
 
@@ -159,13 +182,7 @@ def refresh_visible_encyclopedia_widgets(
     widgets: Iterable[object],
     character_key: str,
 ) -> int:
-    """Refresh only the visible Encyclopedia tab for the changed character.
-
-    EncyclopediaPage already refreshes hidden tabs when they are opened. Network
-    ingestion therefore refreshes only the currently displayed child, avoiding
-    three expensive UI rebuilds for every completed quest while keeping the
-    screen the player is looking at immediately synchronized.
-    """
+    """Refresh only the visible Encyclopedia tab for a verified change."""
 
     target = str(character_key or "").strip()
     if not target:
@@ -214,6 +231,8 @@ def network_ui_bridge() -> NetworkUiBridge:
 
 
 __all__ = [
+    "NETWORK_RUNTIME_DISABLED_REASON",
+    "NETWORK_RUNTIME_ENABLED",
     "NetworkUiBridge",
     "network_ui_bridge",
     "refresh_visible_encyclopedia_widgets",
