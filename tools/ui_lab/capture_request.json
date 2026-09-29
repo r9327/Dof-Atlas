@@ -92,13 +92,6 @@
       "settle_ms": 1600
     },
     {
-      "screen": "stuffs.pvm",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 600
-    },
-    {
       "screen": "tools.treasure_hunt",
       "scenario": "default",
       "width": 1400,
@@ -113,6 +106,27 @@
       "settle_ms": 400
     },
     {
+      "screen": "stuffs.pvm",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 600
+    },
+    {
+      "screen": "stuffs.pvp",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 600
+    },
+    {
+      "screen": "stuffs.builders",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 600
+    },
+    {
       "screen": "almanax",
       "scenario": "default",
       "width": 1400,
@@ -121,6 +135,13 @@
     },
     {
       "screen": "tutorials.default",
+      "scenario": "default",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 400
+    },
+    {
+      "screen": "tutorials.dofus_noob",
       "scenario": "default",
       "width": 1400,
       "height": 900,
