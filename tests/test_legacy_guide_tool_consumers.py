@@ -52,6 +52,34 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
             expected,
         )
 
+    def test_legacy_gps_base_is_only_imported_by_orphan_strict_wrapper(self) -> None:
+        report = audit(ROOT)
+        rows = {row["path"]: row for row in report["tools"]}
+        base = rows["tools/build_guide_ultime_gps_route.py"]
+        expected = ["tools/build_guide_ultime_gps_route_strict.py"]
+
+        self.assertEqual(
+            base["consumer_references"],
+            expected,
+            msg=f"GPS base has unexpected live consumers: {base['consumer_references']}",
+        )
+        self.assertEqual(base["import_references"], expected)
+        self.assertEqual(base["invocation_references"], [])
+
+    def test_legacy_forensic_base_is_only_imported_by_orphan_v2_wrapper(self) -> None:
+        report = audit(ROOT)
+        rows = {row["path"]: row for row in report["tools"]}
+        base = rows["tools/audit_guide_ultime_route_forensic.py"]
+        expected = ["tools/audit_guide_ultime_route_forensic_v2.py"]
+
+        self.assertEqual(
+            base["consumer_references"],
+            expected,
+            msg=f"forensic base has unexpected live consumers: {base['consumer_references']}",
+        )
+        self.assertEqual(base["import_references"], expected)
+        self.assertEqual(base["invocation_references"], [])
+
 
 if __name__ == "__main__":
     unittest.main()
