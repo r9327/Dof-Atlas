@@ -6,7 +6,7 @@ from app.modules.encyclopedia.services.guide_ultime_route_adapter import GuideUl
 from tools import guide_forensic, guide_gps
 
 
-class GuideToolCanonicalEntrypointTests(unittest.TestCase):
+class GuideToolCanonicalEntrypointsTests(unittest.TestCase):
     def test_gps_entrypoint_uses_player_safe_adapter(self) -> None:
         original = guide_gps._builder.AdventureRouteAdapter
         try:
@@ -53,7 +53,7 @@ class GuideToolCanonicalEntrypointTests(unittest.TestCase):
         audit = guide_forensic.GuideForensicAudit(route, {})
         audit.route_qids = set()
         audit._check_branch_contract()
-        self.assertEqual(audit.hard_errors, [])
+        self.assertEqual(audit.hard, [])
 
 
 if __name__ == "__main__":
