@@ -18,7 +18,7 @@ class GuideActionContractTests(unittest.TestCase):
         ]
         self.assertIn("preparation_action_duplicate", [row.code for row in validate_actions(actions)])
 
-    def test_consecutive_same_npc_talks_group(self) -> None:
+    def test_consecutive_same_npc_talks_group_and_are_hard_violation_until_collapsed(self) -> None:
         actions = [
             GuideAction(GuideActionType.TALK, actor_id=7, map_id=10, quest_ids=(1,)),
             GuideAction(GuideActionType.TALK, actor_id=7, map_id=10, quest_ids=(2,)),
@@ -26,6 +26,12 @@ class GuideActionContractTests(unittest.TestCase):
         ]
         groups = group_consecutive_talks(actions)
         self.assertEqual([len(group) for group in groups], [2, 1])
+        self.assertIn("consecutive_talks_not_grouped", [row.code for row in validate_actions(actions)])
+
+    def test_semantic_targets_are_required(self) -> None:
+        self.assertIn("talk_without_actor", [row.code for row in validate_actions([GuideAction(GuideActionType.TALK)])])
+        self.assertIn("item_action_without_item", [row.code for row in validate_actions([GuideAction(GuideActionType.BUY)])])
+        self.assertIn("fight_without_monster", [row.code for row in validate_actions([GuideAction(GuideActionType.FIGHT)])])
 
     def test_quantity_must_be_positive(self) -> None:
         with self.assertRaises(ValueError):
