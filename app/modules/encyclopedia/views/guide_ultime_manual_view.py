@@ -202,6 +202,30 @@ class GuideUltimeManualCard(QFrame):
 
         root.addWidget(frame)
 
+    def _contract_row(self) -> dict[str, Any]:
+        contract = getattr(self.service, "auto_validation_contract", None)
+        if not isinstance(contract, dict):
+            return {}
+        contract_id = id(contract)
+        cached = getattr(self.service, "_manual_contract_row_index_cache", None)
+        if not (
+            isinstance(cached, tuple)
+            and len(cached) == 2
+            and cached[0] == contract_id
+            and isinstance(cached[1], dict)
+        ):
+            index: dict[str, dict[str, Any]] = {}
+            for row in contract.get("cards", []) or []:
+                if not isinstance(row, dict):
+                    continue
+                key = str(row.get("card_key") or "").strip()
+                if key and key not in index:
+                    index[key] = row
+            cached = (contract_id, index)
+            self.service._manual_contract_row_index_cache = cached
+        card_key = self.service.card_key(self.card, self.index)
+        return cached[1].get(str(card_key or "").strip(), {})
+
     def _page_toggled(self, checked: bool) -> None:
         self.service.set_page_checked(self.character_key, self.card, self.index, bool(checked))
         parent = self.parentWidget()
