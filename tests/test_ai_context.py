@@ -26,8 +26,9 @@ def _git(root: Path, *arguments: str) -> str:
 
 
 def _git_path_exists(root: Path, path: str) -> bool:
+    target = path.rstrip("/")
     completed = subprocess.run(
-        ["git", "cat-file", "-e", f"HEAD:{path.rstrip('/')}"],
+        ["git", "ls-tree", "HEAD", "--", target],
         cwd=root,
         text=True,
         encoding="utf-8",
@@ -35,7 +36,7 @@ def _git_path_exists(root: Path, path: str) -> bool:
         capture_output=True,
         check=False,
     )
-    return completed.returncode == 0
+    return completed.returncode == 0 and bool(completed.stdout.strip())
 
 
 def _commit_all(root: Path, message: str) -> None:
