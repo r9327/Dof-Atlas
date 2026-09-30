@@ -37,16 +37,29 @@ if ($LASTEXITCODE -ne 0) {
     throw "Graphify extraction failed with exit code $LASTEXITCODE"
 }
 
-$graphPath = Join-Path $repoRoot "graphify-out\graph.json"
-$htmlPath = Join-Path $repoRoot "graphify-out\graph.html"
-if (-not (Test-Path -LiteralPath $graphPath)) {
-    throw "Graphify finished without graphify-out\graph.json"
+Write-Host "Clustering the graph and generating the structural report..."
+& $graphifyExe cluster-only . --no-label
+if ($LASTEXITCODE -ne 0) {
+    throw "Graphify clustering failed with exit code $LASTEXITCODE"
 }
-if (-not (Test-Path -LiteralPath $htmlPath)) {
-    throw "Graphify finished without graphify-out\graph.html"
+
+Write-Host "Generating the interactive HTML viewer..."
+& $graphifyExe export html --graph graphify-out/graph.json
+if ($LASTEXITCODE -ne 0) {
+    throw "Graphify HTML export failed with exit code $LASTEXITCODE"
+}
+
+$graphPath = Join-Path $repoRoot "graphify-out\graph.json"
+$reportPath = Join-Path $repoRoot "graphify-out\GRAPH_REPORT.md"
+$htmlPath = Join-Path $repoRoot "graphify-out\graph.html"
+foreach ($path in @($graphPath, $reportPath, $htmlPath)) {
+    if (-not (Test-Path -LiteralPath $path)) {
+        throw "Graphify finished without expected output: $path"
+    }
 }
 
 Write-Host "Graphify ready: $graphPath"
+Write-Host "Structural report: $reportPath"
 Write-Host "Visual map: $htmlPath"
 Write-Host "The generated graphify-out directory is intentionally local and ignored by Git."
 

@@ -57,6 +57,14 @@ jobs:
         shell: bash
         run: graphify extract . --code-only
 
+      - name: Cluster graph and generate report
+        shell: bash
+        run: graphify cluster-only . --no-label
+
+      - name: Generate interactive HTML viewer
+        shell: bash
+        run: graphify export html --graph graphify-out/graph.json
+
       - name: Verify graph output
         shell: bash
         run: |
@@ -74,9 +82,10 @@ jobs:
 
           graph = json.loads(graph_path.read_text(encoding="utf-8"))
           nodes = graph.get("nodes", [])
+          edges = graph.get("edges", [])
           if not nodes:
               raise SystemExit("Graphify produced an empty graph")
-          print(f"Graphify graph ready: {len(nodes)} nodes")
+          print(f"Graphify graph ready: {len(nodes)} nodes, {len(edges)} edges")
           PY
 
       - name: Upload visual map and graph
