@@ -18,6 +18,19 @@ from pathlib import Path
 from typing import Iterable
 
 
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "guide-integrity",
+    "role": "guide_validation_orchestrator",
+    "capabilities": ["validation", "guide"],
+    "modes": ["fast", "full", "list"],
+    "cost_hint": "variable",
+    "side_effects": "artifact_output",
+    "structured_output": True,
+    "canonical": True,
+    "recommended_tests": ["tests.test_guide_integrity"],
+}
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SUMMARY = ROOT / "artifacts" / "guide_integrity_summary.json"
 CI_LOG_DIR = Path("artifacts") / "ci_guide_ultime_logs"
