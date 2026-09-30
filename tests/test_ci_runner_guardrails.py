@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FEATURE_BRANCH = "feature/guide-ultime-v5-ui"
 CANONICAL_LOCK_MODULE = "tools.audit_guide_ultime_canonical_lock"
 CANONICAL_DEPENDENCY_MODULE = "tools.audit_guide_ultime_canonical_dependencies"
-FINAL_TRANSVERSAL_MODULE = "tools.validate_guide_ultime_manual_transversals_v16"
+FINAL_TRANSVERSAL_MODULE = "tools.validate_guide_ultime_manual_transversals"
 GUIDE_RUNNER = ".\\tools\\run_guide_ultime_ci.ps1"
 
 
@@ -311,11 +311,15 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         local_source = self._local_runner()
         self.assertTrue(critical_modules.issubset(self._test_modules(local_source)))
         self.assertIn(
-            '"-m", "tools.validate_guide_ultime_manual_transversals_v16"',
+            '"-m", "tools.validate_guide_ultime_manual_transversals"',
             local_source,
         )
         self.assertNotIn(
             '"-m", "tools.validate_guide_ultime_manual_transversals_v15"',
+            local_source,
+        )
+        self.assertNotIn(
+            '"-m", "tools.validate_guide_ultime_manual_transversals_v16"',
             local_source,
         )
 
@@ -326,7 +330,8 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertGreaterEqual(len(self._test_modules(local_source)), 20)
         self.assertIn("tools.audit_guide_ultime_canonical_lock", local_source)
         self.assertIn("tools.audit_guide_ultime_canonical_dependencies", local_source)
-        self.assertIn("tools.validate_guide_ultime_manual_transversals_v16", local_source)
+        self.assertIn("tools.validate_guide_ultime_manual_transversals", local_source)
+        self.assertNotIn("tools.validate_guide_ultime_manual_transversals_v16", local_source)
 
     def test_guide_runner_fails_closed_on_hard_debt_and_missing_catalogs(self) -> None:
         source = self._local_runner()
