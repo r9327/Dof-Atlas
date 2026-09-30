@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
-from tools import ai_context, atlas_integrity
+from tools import agent_planner, ai_context, atlas_integrity
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -659,6 +659,9 @@ def main(argv: list[str] | None = None) -> int:
     imports = commands.add_parser("imports")
     imports.add_argument("scope")
     imports.add_argument("--json", action="store_true")
+    plan = commands.add_parser("plan")
+    plan.add_argument("paths", nargs="+")
+    plan.add_argument("--json", action="store_true")
     validate = commands.add_parser("validate")
     validate.add_argument("integrity_args", nargs=argparse.REMAINDER)
 
@@ -684,6 +687,10 @@ def main(argv: list[str] | None = None) -> int:
             exit_code = 0
         elif command == "imports":
             payload = imports_payload(ROOT, args.scope)
+            exit_code = 0
+        elif command == "plan":
+            impact = impact_payload(ROOT, args.paths)
+            payload = agent_planner.build_plan(ROOT, args.paths, impact)
             exit_code = 0
         else:
             parser.error(f"unsupported command: {command}")
