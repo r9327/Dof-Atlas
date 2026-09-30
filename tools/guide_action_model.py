@@ -50,3 +50,27 @@ class GuideAction:
         if self.action_type is GuideActionType.FIGHT:
             return ("monster", self.monster_id)
         return ("map", self.map_id)
+
+    def to_payload(self) -> dict[str, Any]:
+        """Stable JSON-safe boundary shared by runtime, UI and validators."""
+        payload: dict[str, Any] = {
+            "action_type": self.action_type.value,
+            "quantity": self.quantity,
+            "quest_ids": list(self.quest_ids),
+            "purchase_alternative": self.purchase_alternative,
+            "requires_preparation": self.requires_preparation,
+        }
+        optional = {
+            "actor_id": self.actor_id,
+            "item_id": self.item_id,
+            "monster_id": self.monster_id,
+            "map_id": self.map_id,
+            "position": self.position,
+            "primary_acquisition": self.primary_acquisition,
+            "first_use_step": self.first_use_step,
+            "natural_acquisition_step": self.natural_acquisition_step,
+        }
+        payload.update({key: value for key, value in optional.items() if value is not None})
+        if self.metadata:
+            payload["metadata"] = dict(self.metadata)
+        return payload
