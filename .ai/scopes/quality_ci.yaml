@@ -5,8 +5,14 @@ working_set:
   - tools/atlas_integrity.py
   - tools/atlas_integrity_policy.json
   - tools/agent_hotspots.py
+  - tools/atlas_doctor.py
+  - tools/atlas_doctor_lib/
+  - tools/atlas_doctor_io_runner.py
+  - tools/graphify.py
+  - tools/graphify.ps1
 shared_dependencies: []
 context_entries:
+  - GRAPHIFY.md
   - tests/
   - .github/workflows/
   - .githooks/

@@ -82,3 +82,6 @@ dist/
 # Graphify — carte locale régénérable
 # Ne pas versionner le graphe généré : il est construit à la demande localement ou en artefact CI.
 graphify-out/
+
+# Atlas Doctor — diagnostics temporaires reconstruisibles
+.ai/runtime/

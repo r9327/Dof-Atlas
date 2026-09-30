@@ -662,6 +662,7 @@ def main(argv: list[str] | None = None) -> int:
     plan = commands.add_parser("plan")
     plan.add_argument("paths", nargs="+")
     plan.add_argument("--json", action="store_true")
+    plan.add_argument("--structural", action="store_true", help="Refactor, module move/deletion, consumers, cycles or dependency cleanup: require Graphify preflight.")
     validate = commands.add_parser("validate")
     validate.add_argument("integrity_args", nargs=argparse.REMAINDER)
 
@@ -691,6 +692,20 @@ def main(argv: list[str] | None = None) -> int:
         elif command == "plan":
             impact = impact_payload(ROOT, args.paths)
             payload = agent_planner.build_plan(ROOT, args.paths, impact)
+            from tools.atlas_doctor_lib.architecture import graph_status
+            graph = graph_status(ROOT) if args.structural else None
+            payload["architecture_preflight"] = {
+                "required": args.structural,
+                "status": graph["status"] if graph else "OPTIONAL",
+                "graph": graph,
+                "diagnostic_command": ["py", "-3.13", "-m", "tools.atlas_doctor", "graph", "--json"],
+                "rebuild_command": ["py", "-3.13", "-m", "tools.atlas_doctor", "graph", "--rebuild", "--json"],
+                "rule": "Confirm graph relationships against source, consumers, tests and Atlas Integrity before structural changes.",
+            }
+            if args.structural and graph["status"] != "PASS":
+                payload["status"] = "REVIEW_REQUIRED"
+                payload["automation_safe"] = False
+                payload.setdefault("policy", {})["automatic_editing"] = "requires_human_or_agent_review"
             exit_code = 0
         else:
             parser.error(f"unsupported command: {command}")

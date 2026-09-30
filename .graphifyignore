@@ -32,3 +32,6 @@ data/archive/
 **/*.zip
 **/*.tar
 **/*.gz
+
+# Doctor diagnostics are development output, not graph input.
+.ai/runtime/

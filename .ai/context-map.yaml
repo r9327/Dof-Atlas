@@ -299,8 +299,12 @@ scopes:
     canonical_entries:
       - tools/atlas_integrity.py
       - tools/atlas_integrity_policy.json
+      - tools/atlas_doctor.py
+      - tools/graphify.py
     test_entries:
       - tests.test_atlas_integrity
       - tests.test_ai_context
       - tests.test_meta_integrity
       - tests.test_phase_certification_guardrails
+      - tests.test_atlas_doctor
+      - tests.test_atlas_doctor_graphify
