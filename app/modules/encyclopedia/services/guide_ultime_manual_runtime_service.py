@@ -481,6 +481,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         quest_names = self._stage_quest_names(stage)
         quest_ids = [self._quest_name_to_id[name] for name in quest_names if name in self._quest_name_to_id]
         lines = self._stage_lines(stage, quest_names, chapter_preparation=chapter_preparation)
+        structured_runtime_lines = self._stage_structured_runtime_lines(stage)
         resource_names = self._stage_resource_names(chapter, stage)
         temporal_hooks = self._string_list(stage.get("temporal_hooks")) + self._string_list(stage.get("temporal_hook"))
         temporal_hooks = list(dict.fromkeys(temporal_hooks))
@@ -517,6 +518,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "subzone": zone,
             "destination": destination,
             "manual_lines": lines,
+            "structured_runtime_lines": structured_runtime_lines,
             "manual_quest_ids": quest_ids,
             "manual_quest_names": quest_names,
             "manual_resource_names": resource_names,
@@ -864,6 +866,62 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             self._append_player_value(result, stage.get(field), quest_names, kind="warning")
 
         return self._dedupe_lines(result)
+
+    def _stage_structured_runtime_lines(
+        self,
+        stage: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        """Emit only semantics proven directly by canonical manual fields.
+
+        Current manual chapters provide authoritative waypoint coordinates and
+        optional quest names, but most NPC/item/monster targets are still free
+        text. Until those targets gain canonical ids, do not infer them from
+        rendered French instructions: only coordinate-backed travel actions are
+        safe to promote to the HARD structured contract.
+        """
+
+        result: list[dict[str, Any]] = []
+        seen: set[tuple[str, tuple[int, ...]]] = set()
+        for waypoint in stage.get("waypoints", []) or []:
+            if not isinstance(waypoint, dict):
+                continue
+            x = self._as_int(waypoint.get("x"))
+            y = self._as_int(waypoint.get("y"))
+            if x is None or y is None:
+                continue
+
+            label = str(waypoint.get("label") or "").strip()
+            position = self._location_text(x, y, label)
+            quest_ids: list[int] = []
+            for value in waypoint.get("quests", []) or []:
+                if not isinstance(value, str) or value.startswith("conditional:"):
+                    continue
+                quest_id = self._quest_name_to_id.get(normalize_text(value))
+                if quest_id is not None and quest_id not in quest_ids:
+                    quest_ids.append(quest_id)
+
+            key = (position, tuple(quest_ids))
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(
+                {
+                    "kind": "semantic",
+                    "position": position,
+                    "guide_actions": [
+                        {
+                            "action_type": "travel",
+                            "quantity": 1,
+                            "quest_ids": quest_ids,
+                            "purchase_alternative": False,
+                            "requires_preparation": False,
+                            "position": position,
+                            "metadata": {"source": "manual_waypoint"},
+                        }
+                    ],
+                }
+            )
+        return result
 
     @classmethod
     def _chapter_preparation_schedule(
