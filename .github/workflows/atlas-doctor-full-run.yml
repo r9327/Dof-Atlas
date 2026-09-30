@@ -64,6 +64,7 @@ jobs:
           if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
           & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Add-Content -LiteralPath ".git/info/exclude" -Value "manifest.json"
           @'
           from app.quest_catalog import QuestCatalog
           count = len(QuestCatalog.load().quests)
@@ -123,6 +124,7 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/atlas_doctor" | Out-Null
           & python "$env:DOCTOR_ROOT\atlas_doctor.py" issues --json 1> "artifacts/atlas_doctor/issues.json"
           Write-Host "issues command exit code: $LASTEXITCODE"
 
