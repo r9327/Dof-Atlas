@@ -5,9 +5,12 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFrame, QLabel
 
-from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
+from app.modules.encyclopedia.views.guide_ultime_manual_view import (
+    GuideUltimeManualCard,
+    GuideUltimeManualView,
+)
 
 
 class _FakeManualUiService:
@@ -44,7 +47,16 @@ class _FakeManualUiService:
         self.available = True
         self.active_index = 0
         self.completed = 0
-        self.auto_validation_contract = None
+        # Regression fixture: Guide UI must not render success-linked controls even
+        # when the validation contract still contains success metadata.
+        self.auto_validation_contract = {
+            "cards": [
+                {
+                    "card_key": "legacy-success-target",
+                    "successes": [{"achievement_id": 999, "name": "Succès de test"}],
+                }
+            ]
+        }
 
     def reload_progress(self) -> None:
         return
@@ -96,6 +108,48 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertNotIn("Donjons", view.route_progress_label.text())
         finally:
             view.close()
+
+    def test_manual_ui_omits_obsolete_success_destination_and_breadcrumb_blocks(self) -> None:
+        _service, view = self._view()
+        try:
+            texts = [label.text() for label in view.findChildren(QLabel)]
+            self.assertFalse(any("SUCCÈS LIÉS" in text for text in texts))
+            self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
+            self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
+            self.assertEqual(view.guide_button.text(), "Guide")
+        finally:
+            view.close()
+
+    def test_guide_button_returns_to_active_sheet_then_guides_catalog(self) -> None:
+        _service, view = self._view()
+        returned: list[bool] = []
+        view.backToGuidesRequested.connect(lambda: returned.append(True))
+        try:
+            view.navigate_relative(1)
+            QApplication.processEvents()
+            self.assertEqual(view.view_index, 1)
+
+            view.guide_button.click()
+            QApplication.processEvents()
+            self.assertEqual(view.view_index, 0)
+            self.assertEqual(returned, [])
+
+            view.guide_button.click()
+            QApplication.processEvents()
+            self.assertEqual(returned, [True])
+        finally:
+            view.close()
+
+    def test_manual_line_positions_are_bold(self) -> None:
+        rendered = GuideUltimeManualCard._format_line_html(
+            "• ",
+            "[5,-3]",
+            "Parler au PNJ.",
+            [],
+            [],
+        )
+        self.assertIn("<b>[5,-3]</b>", rendered)
+        self.assertIn("Parler au PNJ.", rendered)
 
     def test_next_sheet_always_starts_at_top(self) -> None:
         _service, view = self._view()
