@@ -59,7 +59,7 @@ class GuideUltimeManualBontaOrderTests(unittest.TestCase):
             [(character_key, "bonta", "Cœur Vaillant")],
         )
 
-        service.set_bonta_order(character_key, "coeur vaillant")
+        service.set_bonta_order(character_key, "Cœur Vaillant")
         self.assertEqual(service.selected_order_name(character_key), "Cœur Vaillant")
 
         with self.assertRaisesRegex(ValueError, "ne peut plus être changé"):
