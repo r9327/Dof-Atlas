@@ -31,7 +31,7 @@ class ToolAuditTests(unittest.TestCase):
         self.assertEqual(report["parse_error_count"], 0)
         self.assertNotIn("tools/bom_tool.py", report["parse_errors"])
 
-    def test_from_tools_import_counts_as_reference(self) -> None:
+    def test_from_tools_import_is_classified_as_consumer_reference(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self._write(
@@ -47,8 +47,93 @@ class ToolAuditTests(unittest.TestCase):
             report = audit(root)
 
         row = next(row for row in report["tools"] if row["path"] == "tools/sample.py")
-        self.assertEqual(row["test_references"], ["tests/test_sample.py"])
+        self.assertEqual(row["import_references"], ["tests/test_sample.py"])
+        self.assertEqual(row["consumer_references"], ["tests/test_sample.py"])
+        self.assertEqual(row["test_consumer_references"], ["tests/test_sample.py"])
+        self.assertEqual(row["text_references"], [])
         self.assertNotIn("tools/sample.py", report["unreferenced_entrypoints"])
+
+    def test_plain_text_mention_is_not_a_consumer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/sample.py",
+                "def main(): return 0\nif __name__ == '__main__': main()\n",
+            )
+            self._write(
+                root,
+                "tests/test_source_contract.py",
+                "EXPECTED = 'tools/sample.py'\n",
+            )
+            report = audit(root)
+
+        row = next(row for row in report["tools"] if row["path"] == "tools/sample.py")
+        self.assertEqual(row["references"], ["tests/test_source_contract.py"])
+        self.assertEqual(row["text_references"], ["tests/test_source_contract.py"])
+        self.assertEqual(row["consumer_references"], [])
+        self.assertEqual(row["test_references"], ["tests/test_source_contract.py"])
+        self.assertEqual(row["test_consumer_references"], [])
+        self.assertIn("tools/sample.py", report["unreferenced_entrypoints"])
+
+    def test_powershell_python_file_invocation_is_a_consumer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/sample.py",
+                "def main(): return 0\nif __name__ == '__main__': main()\n",
+            )
+            self._write(
+                root,
+                "tools/run.ps1",
+                "py -3.13 -u .\\tools\\sample.py --strict\n",
+            )
+            report = audit(root)
+
+        row = next(row for row in report["tools"] if row["path"] == "tools/sample.py")
+        self.assertEqual(row["invocation_references"], ["tools/run.ps1"])
+        self.assertEqual(row["consumer_references"], ["tools/run.ps1"])
+        self.assertEqual(row["text_references"], [])
+
+    def test_powershell_module_helper_invocation_is_a_consumer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/sample.py",
+                "def main(): return 0\nif __name__ == '__main__': main()\n",
+            )
+            self._write(
+                root,
+                "tools/run.ps1",
+                'Invoke-PythonCheck "sample" @("-m", "tools.sample", "--strict")\n',
+            )
+            report = audit(root)
+
+        row = next(row for row in report["tools"] if row["path"] == "tools/sample.py")
+        self.assertEqual(row["invocation_references"], ["tools/run.ps1"])
+        self.assertEqual(row["consumer_references"], ["tools/run.ps1"])
+
+    def test_python_subprocess_literal_invocation_is_a_consumer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/sample.py",
+                "def main(): return 0\nif __name__ == '__main__': main()\n",
+            )
+            self._write(
+                root,
+                "tools/caller.py",
+                "import subprocess\n"
+                "subprocess.run(['python', '-m', 'tools.sample', '--json'])\n",
+            )
+            report = audit(root)
+
+        row = next(row for row in report["tools"] if row["path"] == "tools/sample.py")
+        self.assertEqual(row["invocation_references"], ["tools/caller.py"])
+        self.assertEqual(row["consumer_references"], ["tools/caller.py"])
 
     def test_versioned_family_and_test_reference_are_detected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -79,6 +164,7 @@ class ToolAuditTests(unittest.TestCase):
             if row["path"] == "tools/sample_v2.py"
         )
         self.assertEqual(row["test_references"], ["tests/test_sample.py"])
+        self.assertEqual(row["consumer_references"], ["tests/test_sample.py"])
 
     def test_wrapper_path_hack_and_cwd_dependency_are_inventory_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -134,7 +220,7 @@ class ToolAuditTests(unittest.TestCase):
         self.assertNotIn("tools/gated.py", report["mutation_without_gate"])
         self.assertIn("tools/gated.py", report["mutation_capable"])
 
-    def test_zero_reference_is_only_a_review_candidate(self) -> None:
+    def test_zero_consumer_reference_is_only_a_review_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self._write(
@@ -145,10 +231,10 @@ class ToolAuditTests(unittest.TestCase):
             report = audit(root)
 
         row = report["tools"][0]
-        self.assertEqual(row["recommendation"], "review_unreferenced_entrypoint")
+        self.assertEqual(row["recommendation"], "review_unconsumed_entrypoint")
         self.assertEqual(report["status"], "REVIEW_REQUIRED")
         self.assertFalse(report["blocking"])
-        self.assertIn("not proof", report["note"])
+        self.assertIn("not standalone proof", report["note"])
 
     def test_repository_inventory_covers_current_canonical_tooling(self) -> None:
         report = audit(ROOT)

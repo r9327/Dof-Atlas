@@ -62,6 +62,15 @@ _MUTATION_GATES = (
     "--output",
     "--json-output",
 )
+_PYTHON_EXECUTION_CALLS = {
+    "subprocess.run",
+    "subprocess.popen",
+    "subprocess.call",
+    "subprocess.check_call",
+    "subprocess.check_output",
+    "os.system",
+    "os.popen",
+}
 
 
 def _normalized(path: Path | str) -> str:
@@ -237,39 +246,173 @@ def _python_tool_import_paths(source: str) -> set[str]:
     return result
 
 
+def _literal_command_tokens(node: ast.AST) -> list[str]:
+    if isinstance(node, (ast.List, ast.Tuple)):
+        values: list[str] = []
+        for item in node.elts:
+            if isinstance(item, ast.Constant) and isinstance(item.value, str):
+                values.append(item.value)
+        return values
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return re.findall(r"[^\s\"']+", node.value)
+    return []
+
+
+def _command_tool_paths(tokens: Iterable[str]) -> set[str]:
+    values = [str(value).strip().strip("\"'") for value in tokens if str(value).strip()]
+    normalized = [value.replace("\\", "/").removeprefix("./") for value in values]
+    result: set[str] = set()
+    for index, value in enumerate(normalized):
+        lowered = value.casefold()
+        if lowered == "-m" and index + 1 < len(normalized):
+            module_path = _tool_module_path(normalized[index + 1])
+            if module_path:
+                result.add(module_path)
+            continue
+        if lowered.startswith("tools/") and Path(lowered).suffix in _TOOL_SUFFIXES:
+            result.add(lowered)
+    return result
+
+
+def _python_tool_invocation_paths(source: str) -> set[str]:
+    """Return tools explicitly executed through Python process APIs."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    result: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        try:
+            function_name = ast.unparse(node.func).casefold()
+        except Exception:
+            function_name = ""
+        if function_name not in _PYTHON_EXECUTION_CALLS or not node.args:
+            continue
+        result.update(_command_tool_paths(_literal_command_tokens(node.args[0])))
+    return result
+
+
+def _line_invokes_tool(path: str, raw_line: str) -> bool:
+    """Conservatively detect shell/workflow execution, not prose mentions."""
+    line = raw_line.casefold().replace("\\", "/").strip()
+    if not line or line.startswith("#"):
+        return False
+    tool = path.casefold().replace("\\", "/")
+    suffix = Path(tool).suffix
+    optional_path = rf"(?:\./)?{re.escape(tool)}(?=$|[\s\"'`,)])"
+
+    if suffix == ".py":
+        module = tool[:-3].replace("/", ".")
+        module_pattern = re.escape(module)
+        if re.search(
+            rf"(?:^|[;&|]\s*)\&?\s*(?:py(?:\.exe)?|python(?:\.exe)?)\b(?:\s+-\S+)*\s+-m\s+{module_pattern}(?=$|[\s\"'`,)])",
+            line,
+        ):
+            return True
+        if re.search(
+            rf"(?:^|[;&|]\s*)\&?\s*(?:py(?:\.exe)?|python(?:\.exe)?)\b(?:\s+-\S+)*\s+{optional_path}",
+            line,
+        ):
+            return True
+        # PowerShell helper used by the Guide CI runner: @("-m", "tools.foo", ...)
+        if "invoke-pythoncheck" in line and re.search(
+            rf"[\"']-m[\"']\s*,\s*[\"']{module_pattern}[\"']",
+            line,
+        ):
+            return True
+        return False
+
+    if tool not in line and Path(tool).name not in line:
+        return False
+    if re.search(rf"(?:^|[;&|]\s*)\&?\s*{optional_path}", line):
+        return True
+    if suffix == ".ps1" and re.search(
+        rf"\b(?:pwsh|powershell)(?:\.exe)?\b.*{optional_path}",
+        line,
+    ):
+        return True
+    if suffix in {".bat", ".cmd"} and re.search(
+        rf"(?:^|[;&|]\s*)call\s+{optional_path}",
+        line,
+    ):
+        return True
+    if suffix == ".sh" and re.search(
+        rf"(?:^|[;&|]\s*)(?:bash|sh)\s+{optional_path}",
+        line,
+    ):
+        return True
+    return False
+
+
+def _text_tool_invocation_paths(source: str, tool_paths: Iterable[str]) -> set[str]:
+    result: set[str] = set()
+    for line in source.splitlines():
+        for tool in tool_paths:
+            if _line_invokes_tool(tool, line):
+                result.add(tool)
+    return result
+
+
 def _reference_counts(
     *,
     root: Path,
     tool_paths: list[str],
     reference_paths: list[str],
 ) -> dict[str, dict[str, Any]]:
-    corpus: dict[str, tuple[str, set[str]]] = {}
+    corpus: dict[str, tuple[str, set[str], set[str]]] = {}
     for relative in reference_paths:
         text = _read_text(root, relative)
         if not text:
             continue
-        imported_tools = (
-            _python_tool_import_paths(text)
-            if Path(relative).suffix.casefold() == ".py"
-            else set()
+        suffix = Path(relative).suffix.casefold()
+        imported_tools = _python_tool_import_paths(text) if suffix == ".py" else set()
+        invoked_tools = (
+            _python_tool_invocation_paths(text)
+            if suffix == ".py"
+            else _text_tool_invocation_paths(text, tool_paths)
         )
-        corpus[relative] = (text, imported_tools)
+        corpus[relative] = (text, imported_tools, invoked_tools)
 
     result: dict[str, dict[str, Any]] = {}
     for tool in tool_paths:
         tokens = _reference_tokens(tool)
-        refs: list[str] = []
+        import_refs: list[str] = []
+        invocation_refs: list[str] = []
+        text_refs: list[str] = []
+        all_refs: list[str] = []
         test_refs: list[str] = []
-        for relative, (text, imported_tools) in corpus.items():
+        test_consumer_refs: list[str] = []
+        for relative, (text, imported_tools, invoked_tools) in corpus.items():
             if relative == tool:
                 continue
-            if tool in imported_tools or any(token in text for token in tokens):
-                refs.append(relative)
-                if relative.startswith("tests/"):
-                    test_refs.append(relative)
+            imported = tool in imported_tools
+            invoked = tool in invoked_tools
+            mentioned = any(token in text for token in tokens)
+            if not (imported or invoked or mentioned):
+                continue
+            all_refs.append(relative)
+            if imported:
+                import_refs.append(relative)
+            if invoked:
+                invocation_refs.append(relative)
+            if mentioned and not imported and not invoked:
+                text_refs.append(relative)
+            if relative.startswith("tests/"):
+                test_refs.append(relative)
+                if imported or invoked:
+                    test_consumer_refs.append(relative)
+        consumers = sorted(set(import_refs) | set(invocation_refs))
         result[tool] = {
-            "references": sorted(refs),
-            "test_references": sorted(test_refs),
+            # Backward-compatible broad mentions for inventory/display purposes.
+            "references": sorted(set(all_refs)),
+            "import_references": sorted(set(import_refs)),
+            "invocation_references": sorted(set(invocation_refs)),
+            "consumer_references": consumers,
+            "text_references": sorted(set(text_refs)),
+            "test_references": sorted(set(test_refs)),
+            "test_consumer_references": sorted(set(test_consumer_refs)),
         }
     return result
 
@@ -311,8 +454,8 @@ def _suggestion(row: dict[str, Any], version_members: set[str]) -> str:
         return "review_version_family"
     if row.get("wrapper"):
         return "review_wrapper_absorption"
-    if row.get("executable") and not row.get("references"):
-        return "review_unreferenced_entrypoint"
+    if row.get("executable") and not row.get("consumer_references"):
+        return "review_unconsumed_entrypoint"
     if row.get("path_hack"):
         return "review_import_path_hack"
     if row.get("cwd_dependency"):
@@ -354,7 +497,12 @@ def _tool_row(
         "mutation_capable": mutation_capable,
         "explicit_mutation_gate": explicit_mutation_gate,
         "references": list(references.get("references", [])),
+        "import_references": list(references.get("import_references", [])),
+        "invocation_references": list(references.get("invocation_references", [])),
+        "consumer_references": list(references.get("consumer_references", [])),
+        "text_references": list(references.get("text_references", [])),
         "test_references": list(references.get("test_references", [])),
+        "test_consumer_references": list(references.get("test_consumer_references", [])),
     }
     return row
 
@@ -395,7 +543,7 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
     unreferenced_entrypoints = [
         row["path"]
         for row in tools
-        if row["executable"] and not row["references"]
+        if row["executable"] and not row["consumer_references"]
     ]
     targeted_test_gaps = [
         row["path"]
@@ -414,8 +562,9 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
         "blocking": False,
         "status": "REVIEW_REQUIRED" if review_candidates else "CLEAN",
         "note": (
-            "Findings are consolidation review candidates only. Zero references, "
-            "wrapper status or a versioned filename is not proof that a tool is dead."
+            "References are classified by evidence. consumer_references contains only "
+            "AST imports or conservative execution evidence; text_references are mentions only. "
+            "Even zero consumer references is a review signal, not standalone proof of deletion safety."
         ),
         "tool_count": len(tools),
         "versioned_family_count": len(families),
@@ -462,7 +611,7 @@ def _print_human(report: dict[str, Any]) -> None:
     print(f"cwd-coupled tools           {report['cwd_dependency_count']}")
     print(f"Mutation-capable            {report['mutation_capable_count']}")
     print(f"Mutators without gate       {report['mutation_without_gate_count']}")
-    print(f"Unreferenced entrypoints    {report['unreferenced_entrypoint_count']}")
+    print(f"Unconsumed entrypoints      {report['unreferenced_entrypoint_count']}")
     print(f"Targeted-test gaps          {report['targeted_test_gap_count']}")
     print(f"Review candidates           {report['review_candidate_count']}")
     print()
@@ -478,7 +627,7 @@ def _print_human(report: dict[str, Any]) -> None:
     _print_list("PATH HACKS", report["path_hacks"])
     _print_list("CWD DEPENDENCIES", report["cwd_dependencies"])
     _print_list("MUTATORS WITHOUT EXPLICIT GATE", report["mutation_without_gate"])
-    _print_list("UNREFERENCED ENTRYPOINTS (review only)", report["unreferenced_entrypoints"])
+    _print_list("UNCONSUMED ENTRYPOINTS (review only)", report["unreferenced_entrypoints"])
     _print_list("TARGETED TEST GAPS", report["targeted_test_gaps"])
     print()
     print("NOTE:")
