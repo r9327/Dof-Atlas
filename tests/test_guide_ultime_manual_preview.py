@@ -248,32 +248,19 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         self.assertIn("manual_manifest", source)
         self.assertIn("empty_cards", source)
 
-    def test_breadcrumb_matches_quests_page_construction_and_uses_theme_tokens(self):
+    def test_manual_ui_uses_single_guide_button_without_breadcrumb(self):
         source = inspect.getsource(GuideUltimeManualView._build_ui)
-        render = inspect.getsource(GuideUltimeManualView._render_breadcrumb)
+        button_source = inspect.getsource(GuideUltimeManualView._guide_button_clicked)
         view_source = inspect.getsource(GuideUltimeManualView)
-        style_source = (ROOT / "app" / "ui" / "theme.py").read_text(encoding="utf-8")
 
-        self.assertIn('setObjectName("GuideBreadcrumb")', source)
-        self.assertIn("setContentsMargins(8, 5, 8, 5)", source)
-        self.assertIn("setSpacing(5)", source)
-        self.assertIn('setObjectName("GuideBreadcrumbButton")', render)
-        self.assertIn(
-            'setObjectName("GuideBreadcrumbSeparator")',
-            inspect.getsource(GuideUltimeManualView._add_breadcrumb_separator),
-        )
-        self.assertIn('setObjectName("GuideBreadcrumbCurrent")', render)
+        self.assertNotIn('setObjectName("GuideBreadcrumb")', source)
+        self.assertIn('AtlasButton("Guide")', source)
+        self.assertIn('setObjectName("GuideManualGuideButton")', source)
+        self.assertIn("self.view_index != self.active_index", button_source)
+        self.assertIn("self.go_active()", button_source)
+        self.assertIn("self._return_to_guides_catalog()", button_source)
         self.assertNotIn("setStyleSheet(", view_source)
         self.assertNotIn("_apply_manual_style", view_source)
-
-        self.assertIn("QFrame#GuideBreadcrumb", style_source)
-        self.assertIn("QPushButton#GuideBreadcrumbButton", style_source)
-        self.assertIn("background: @PANEL;", style_source)
-        self.assertIn("border: 1px solid @BORDER;", style_source)
-        self.assertIn("background: transparent;", style_source)
-        self.assertIn("font-size: @FONT_SMALL;", style_source)
-        self.assertIn("min-height: 22px;", style_source)
-        self.assertIn("max-height: 22px;", style_source)
 
     def test_no_permanent_order_picker_and_no_old_section_titles(self):
         build = inspect.getsource(GuideUltimeManualView._build_ui)
@@ -285,7 +272,6 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         self.assertIn("Choisis ton Ordre Bonta", inline)
         self.assertNotIn("FAIS ÇA ICI", whole)
         self.assertNotIn('"ENSUITE"', whole)
-
 
     def test_7d_walkthrough_sections_keep_authored_intent_separate(self):
         service = self._bare_service()
@@ -348,8 +334,8 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         self.assertIn("À CONSERVER POUR PLUS TARD", source)
         self.assertIn("BOSS / CAPTURES", source)
         self.assertIn("AVANT DE PARTIR", source)
-        self.assertIn("DESTINATION SUIVANTE", inspect.getsource(GuideUltimeManualCard._add_destination_section))
-
+        self.assertNotIn("DESTINATION SUIVANTE", source)
+        self.assertFalse(hasattr(GuideUltimeManualCard, "_add_destination_section"))
 
 
 if __name__ == "__main__":
