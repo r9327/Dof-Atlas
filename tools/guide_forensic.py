@@ -56,7 +56,8 @@ class GuideForensicAudit(base.ForensicAudit):
             for option in card.get("options", []) or []:
                 if not isinstance(option, dict):
                     continue
-                key = base._norm(str(option.get("order") or "").strip())
+                raw_order = str(option.get("order") or "").strip().replace("Œ", "Oe").replace("œ", "oe")
+                key = base._norm(raw_order)
                 if key not in canonical_orders:
                     continue
                 qid = base._safe_int(option.get("quest_id"))
