@@ -135,6 +135,80 @@ class ToolSpecContractTests(unittest.TestCase):
         self.assertTrue(row["safe_for_agent"])
         self.assertFalse(row["automation_ready"])
 
+    def test_read_only_spec_cannot_hide_detected_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/lying_tool.py",
+                "TOOL_SPEC = {\n"
+                "    'schema_version': 1,\n"
+                "    'id': 'lying-tool',\n"
+                "    'role': 'inspection',\n"
+                "    'capabilities': ['inspection'],\n"
+                "    'modes': ['inspect'],\n"
+                "    'cost_hint': 'cheap',\n"
+                "    'side_effects': 'read_only',\n"
+                "    'structured_output': True,\n"
+                "    'canonical': False,\n"
+                "    'recommended_tests': ['tests.test_lying_tool'],\n"
+                "}\n"
+                "import argparse, json\n"
+                "from pathlib import Path\n"
+                "def main():\n"
+                "    argparse.ArgumentParser().parse_args()\n"
+                "    Path('x').write_text('x')\n"
+                "    print(json.dumps({'ok': True}))\n"
+                "if __name__ == '__main__': main()\n",
+            )
+            self._write(
+                root,
+                "tests/test_lying_tool.py",
+                "TOOL_PATH = 'tools/lying_tool.py'\n",
+            )
+            report = catalog(root)
+
+        row = report["tools"][0]
+        self.assertEqual(row["tool_spec_source"], "invalid")
+        self.assertTrue(any("conflicts with detected mutation evidence" in error for error in row["tool_spec_errors"]))
+        self.assertIn("fix_tool_spec_contract", row["upgrade_actions"])
+        self.assertFalse(row["safe_for_agent"])
+        self.assertFalse(row["automation_ready"])
+
+    def test_legacy_versioned_wrapper_cannot_claim_canonical_spec(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(root, "tools/base.py", "def main(): return 0\n")
+            for version in (1, 2):
+                self._write(
+                    root,
+                    f"tools/sample_v{version}.py",
+                    "TOOL_SPEC = {\n"
+                    f"    'schema_version': 1, 'id': 'sample-v{version}',\n"
+                    "    'role': 'canonical_sample',\n"
+                    "    'capabilities': ['maintenance'],\n"
+                    "    'modes': ['run'],\n"
+                    "    'cost_hint': 'cheap',\n"
+                    "    'side_effects': 'read_only',\n"
+                    "    'structured_output': True,\n"
+                    "    'canonical': True,\n"
+                    "    'recommended_tests': ['tests.test_sample'],\n"
+                    "}\n"
+                    "from tools import base\n"
+                    "if __name__ == '__main__':\n"
+                    "    raise SystemExit(base.main())\n",
+                )
+            self._write(root, "tests/test_sample.py", "TOOL_PATH = 'tools/sample_v2.py'\n")
+            report = catalog(root)
+
+        rows = {row["path"]: row for row in report["tools"]}
+        row = rows["tools/sample_v2.py"]
+        self.assertEqual(row["tool_spec_source"], "invalid")
+        self.assertTrue(any("canonical=true is forbidden" in error for error in row["tool_spec_errors"]))
+        self.assertFalse(row["preferred_for_agent"])
+        self.assertEqual(row["canonicality"], "legacy")
+        self.assertFalse(row["automation_ready"])
+
 
 if __name__ == "__main__":
     unittest.main()
