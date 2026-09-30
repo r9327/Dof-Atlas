@@ -1,0 +1,88 @@
+name: Graphify Code Map
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".graphifyignore"
+      - ".gitignore"
+      - "GRAPHIFY.md"
+      - "tools/graphify.ps1"
+      - ".github/workflows/graphify-map.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dof-atlas-graphify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  graphify:
+    name: Graphify / AST Code Map
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Verify exact candidate checkout
+        shell: bash
+        run: |
+          actual="$(git rev-parse HEAD)"
+          if [ "$actual" != "$CANDIDATE_SHA" ]; then
+            echo "Graphify checkout mismatch: expected $CANDIDATE_SHA, got $actual" >&2
+            exit 1
+          fi
+          echo "Graphify candidate SHA: $actual"
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned Graphify
+        shell: bash
+        run: python -m pip install --disable-pip-version-check "graphifyy==0.9.72"
+
+      - name: Build local-only AST graph
+        shell: bash
+        run: graphify extract . --code-only
+
+      - name: Verify graph output
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          graph_path = Path("graphify-out/graph.json")
+          html_path = Path("graphify-out/graph.html")
+          report_path = Path("graphify-out/GRAPH_REPORT.md")
+
+          for path in (graph_path, html_path, report_path):
+              if not path.is_file():
+                  raise SystemExit(f"missing Graphify output: {path}")
+
+          graph = json.loads(graph_path.read_text(encoding="utf-8"))
+          nodes = graph.get("nodes", [])
+          if not nodes:
+              raise SystemExit("Graphify produced an empty graph")
+          print(f"Graphify graph ready: {len(nodes)} nodes")
+          PY
+
+      - name: Upload visual map and graph
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: graphify-code-map-${{ env.CANDIDATE_SHA }}
+          path: graphify-out/
+          if-no-files-found: error
+          retention-days: 7
