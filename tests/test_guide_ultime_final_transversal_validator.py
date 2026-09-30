@@ -4,8 +4,7 @@ from pathlib import Path
 import unittest
 
 from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
-from tools import validate_guide_ultime_manual_transversals_v15 as validator
-from tools import validate_guide_ultime_manual_transversals_v16 as validator_v16
+from tools import validate_guide_ultime_manual_transversals as validator
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,12 +24,12 @@ class GuideUltimeFinalTransversalValidatorTests(unittest.TestCase):
             "level_191_200": "level_191_200_v22.json",
             "level_200_plus": "level_200_plus_v11.json",
         }
-        actual = {chapter_id: filename for chapter_id, filename, _ in validator.EXPECTED_CHAPTERS}
+        actual = {chapter_id: filename for chapter_id, filename, _ in validator._impl.EXPECTED_CHAPTERS}
         for chapter_id, filename in expected.items():
             self.assertEqual(actual.get(chapter_id), filename, chapter_id)
-        self.assertEqual(validator.EXPECTED_BONTA_FILE, "bonta_1_100_v17.json")
-        self.assertEqual(validator.EXPECTED_TEMPORAL_FILE, "temporal_registry_v15.json")
-        self.assertEqual(validator.EXPECTED_OCRE_FINAL_FILE, "ocre_final_route_v2.json")
+        self.assertEqual(validator._impl.EXPECTED_BONTA_FILE, "bonta_1_100_v17.json")
+        self.assertEqual(validator._impl.EXPECTED_TEMPORAL_FILE, "temporal_registry_v15.json")
+        self.assertEqual(validator._impl.EXPECTED_OCRE_FINAL_FILE, "ocre_final_route_v2.json")
 
     def test_final_static_transversal_audit_passes_without_catalog(self) -> None:
         report = validator.audit(skip_catalog=True)
@@ -50,17 +49,11 @@ class GuideUltimeFinalTransversalValidatorTests(unittest.TestCase):
         self.assertIn("Qui nous protège du Protecteur ?", flovoraison.get("quests", []))
         self.assertIn("Flovoraison", flovoraison.get("quests", []))
 
-    def test_validator_is_module_safe(self) -> None:
+    def test_canonical_validator_is_module_safe(self) -> None:
         source = Path(validator.__file__).read_text(encoding="utf-8")
         self.assertNotIn("sys.path.insert", source)
         self.assertNotIn("import sys", source)
-
-    def test_v16_validator_is_module_safe(self) -> None:
-        source = Path(validator_v16.__file__).read_text(encoding="utf-8")
-        self.assertIn("from tools import validate_guide_ultime_manual_transversals_v15 as v15", source)
-        self.assertNotIn("sys.path.insert", source)
-        self.assertNotIn("import sys", source)
-        self.assertIs(validator_v16.v15, validator)
+        self.assertIsNotNone(validator._impl)
 
 
 if __name__ == "__main__":
