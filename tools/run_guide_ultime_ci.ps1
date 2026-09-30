@@ -137,7 +137,7 @@ try {
     Invoke-PythonCheck "03b_canonical_lock_audit" @("-m", "tools.audit_guide_ultime_canonical_lock", "--strict", "--output", ".\artifacts\ci_guide_ultime_logs\canonical_lock.json")
     Invoke-PythonCheck "03c_canonical_dependency_audit" @("-m", "tools.audit_guide_ultime_canonical_dependencies", "--strict", "--output", ".\artifacts\ci_guide_ultime_logs\canonical_dependencies.json")
     Invoke-PythonCheck "04_structural_audit" @("-m", "tools.validate_guide_ultime_manual_bundle", "--strict", "--skip-catalog")
-    Invoke-PythonCheck "05_transversal_v16_audit" @("-m", "tools.validate_guide_ultime_manual_transversals_v16", "--strict", "--skip-catalog")
+    Invoke-PythonCheck "05_transversal_canonical_audit" @("-m", "tools.validate_guide_ultime_manual_transversals", "--strict", "--skip-catalog")
     Invoke-PythonCheck "06_route_hook_resolution" @("-m", "tools.audit_guide_ultime_manual_route_hooks", "--strict")
     Invoke-PythonCheck "07_prerequisite_order_audit" @(
         "-m", "tools.audit_guide_ultime_manual_prerequisites",
