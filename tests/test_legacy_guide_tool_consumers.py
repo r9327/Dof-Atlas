@@ -10,34 +10,33 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class LegacyGuideToolConsumerTests(unittest.TestCase):
-    def test_old_v5_runner_is_not_consumed_by_current_repository_paths(self) -> None:
+    def test_old_v5_runner_is_removed_while_current_ci_runner_stays_consumed(self) -> None:
         report = audit(ROOT)
         rows = {row["path"]: row for row in report["tools"]}
 
-        runner = rows["tools/run_guide_ultime_v5.ps1"]
-        self.assertEqual(
-            runner["references"],
-            [],
-            msg=f"old V5 runner still has consumers: {runner['references']}",
+        self.assertNotIn("tools/run_guide_ultime_v5.ps1", rows)
+        current = rows["tools/run_guide_ultime_ci.ps1"]
+        self.assertTrue(
+            current["references"],
+            msg="current Guide CI runner unexpectedly has no repository consumers",
         )
 
-    def test_gps_strict_and_forensic_v2_are_only_reached_from_old_v5_runner(self) -> None:
+    def test_gps_strict_and_forensic_v2_are_now_unreferenced_cleanup_candidates(self) -> None:
         report = audit(ROOT)
         rows = {row["path"]: row for row in report["tools"]}
-        expected = ["tools/run_guide_ultime_v5.ps1"]
 
         gps = rows["tools/build_guide_ultime_gps_route_strict.py"]
         forensic = rows["tools/audit_guide_ultime_route_forensic_v2.py"]
 
         self.assertEqual(
             gps["references"],
-            expected,
-            msg=f"GPS strict has unexpected consumers: {gps['references']}",
+            [],
+            msg=f"GPS strict still has consumers: {gps['references']}",
         )
         self.assertEqual(
             forensic["references"],
-            expected,
-            msg=f"forensic V2 has unexpected consumers: {forensic['references']}",
+            [],
+            msg=f"forensic V2 still has consumers: {forensic['references']}",
         )
 
 
