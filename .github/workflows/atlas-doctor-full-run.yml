@@ -1,0 +1,185 @@
+name: Atlas Doctor Full Scan
+
+on:
+  push:
+    branches:
+      - run/atlas-doctor-full-20260930
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  TARGET_SHA: 20234416a9d9e14e3d179300278caf9760cf06a8
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  doctor:
+    name: Atlas Doctor / FULL + Performance + AI Report
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact current main target
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Verify exact target
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          Write-Host "Target SHA:  $env:TARGET_SHA"
+          Write-Host "Checkout SHA: $actual"
+          if ($actual -ne $env:TARGET_SHA) { throw "Atlas Doctor target mismatch" }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize required LFS fixtures
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize local Dofus catalog
+        run: |
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize Atlas Doctor outside tracked tree
+        run: |
+          git fetch origin refs/heads/tool/atlas-doctor-v1:refs/remotes/origin/tool/atlas-doctor-v1 --depth=1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $doctor = Join-Path $env:RUNNER_TEMP "atlas_doctor"
+          New-Item -ItemType Directory -Force -Path (Join-Path $doctor "atlas_doctor_lib") | Out-Null
+          $files = @(
+            "tools/atlas_doctor.py",
+            "tools/atlas_doctor_lib/__init__.py",
+            "tools/atlas_doctor_lib/audit.py",
+            "tools/atlas_doctor_lib/core.py",
+            "tools/atlas_doctor_lib/gates.py",
+            "tools/atlas_doctor_lib/live.py",
+            "tools/atlas_doctor_lib/perf.py",
+            "tools/atlas_doctor_lib/report.py"
+          )
+          foreach ($source in $files) {
+            $relative = $source -replace '^tools/', ''
+            $destination = Join-Path $doctor $relative
+            New-Item -ItemType Directory -Force -Path (Split-Path $destination) | Out-Null
+            git show "origin/tool/atlas-doctor-v1:$source" | Set-Content -LiteralPath $destination -Encoding utf8NoBOM
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          git show "origin/tool/atlas-doctor-v1:tools/atlas_doctor_io_runner.py" | Set-Content -LiteralPath "tools/atlas_doctor_io_runner.py" -Encoding utf8NoBOM
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Add-Content -LiteralPath ".git/info/exclude" -Value "tools/atlas_doctor_io_runner.py"
+          $gates = Join-Path $doctor "atlas_doctor_lib/gates.py"
+          $raw = Get-Content -LiteralPath $gates -Raw
+          $raw = $raw.Replace("timeout: int = 900", "timeout: int = 1800")
+          Set-Content -LiteralPath $gates -Value $raw -Encoding utf8NoBOM
+          "DOCTOR_ROOT=$doctor" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $status = git status --short --untracked-files=all
+          Write-Host "Worktree status before Doctor:"
+          Write-Host $status
+          if ($status) { throw "Target worktree is not clean before Doctor" }
+
+      - name: Run Atlas Doctor ALL
+        id: doctor
+        continue-on-error: true
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/atlas_doctor" | Out-Null
+          & python "$env:DOCTOR_ROOT\atlas_doctor.py" all --json 2>&1 | Tee-Object -FilePath "artifacts/atlas_doctor/all.log"
+          $code = $LASTEXITCODE
+          "DOCTOR_EXIT=$code" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Atlas Doctor exit code: $code"
+
+      - name: Export Doctor issues
+        if: always()
+        continue-on-error: true
+        run: |
+          & python "$env:DOCTOR_ROOT\atlas_doctor.py" issues --json 1> "artifacts/atlas_doctor/issues.json"
+          Write-Host "issues command exit code: $LASTEXITCODE"
+
+      - name: Summarize Doctor evidence
+        if: always()
+        run: |
+          @'
+          import json
+          from pathlib import Path
+
+          root = Path('.ai/runtime/atlas_doctor')
+          out = Path('artifacts/atlas_doctor/summary.json')
+          out.parent.mkdir(parents=True, exist_ok=True)
+
+          def load(name):
+              path = root / name
+              if not path.is_file():
+                  return None
+              return json.loads(path.read_text(encoding='utf-8'))
+
+          audit = load('latest_audit.json') or {}
+          perf = load('latest_perf.json') or {}
+          report = load('latest_report.json') or {}
+          summary = {
+              'audit': audit.get('summary'),
+              'audit_git': audit.get('git'),
+              'integrity_mode': audit.get('integrity_mode'),
+              'integrity_status': (audit.get('integrity') or {}).get('status'),
+              'issues_total': len(audit.get('issues') or []),
+              'performance_runtime': perf.get('runtime'),
+              'file_profile': perf.get('file_profile'),
+              'ai_report': report,
+          }
+          out.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+          verdict = str((audit.get('summary') or {}).get('verdict') or '')
+          runtime_status = str((perf.get('runtime') or {}).get('status') or '')
+          if verdict == 'FAIL' or runtime_status == 'FAIL':
+              raise SystemExit(2)
+          '@ | python -
+
+      - name: Upload Atlas Doctor evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: atlas-doctor-full-${{ env.TARGET_SHA }}
+          path: |
+            .ai/runtime/atlas_doctor/**
+            artifacts/atlas_doctor/**
+            artifacts/quests_guides_performance.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce Doctor execution
+        if: always()
+        run: |
+          if ("$env:DOCTOR_EXIT" -ne "0") {
+            throw "Atlas Doctor ALL returned exit code $env:DOCTOR_EXIT"
+          }
