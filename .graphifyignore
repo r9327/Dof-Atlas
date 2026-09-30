@@ -1,0 +1,34 @@
+# Dofus Atlas — Graphify input exclusions
+# Keep the graph focused on source code and avoid generated/runtime/binary content.
+
+graphify-out/
+.git/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.cache/
+.codex_deps/
+build/
+dist/
+logs/
+artifacts/
+
+data/cache/
+data/raw/
+data/exports/
+data/reports/
+data/archive/
+
+# Binary/media assets are not useful to the initial AST-only code graph.
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.ico
+**/*.exe
+**/*.dll
+**/*.zip
+**/*.tar
+**/*.gz

@@ -4,6 +4,8 @@ Install the repository-local Git hooks once with `powershell -NoProfile -Executi
 
 For every non-trivial task, first run `py -3.13 -m tools.ai_context status` and use `AI_CONTEXT.md` as the compact navigation layer. This does not replace the permanent project contracts below. The generated `.ai/context_index.json` is maintained by the pre-commit hook and must not be edited manually.
 
+For every non-trivial structural task, Graphify is mandatory before modifying code. This includes refactors, code deletion or moves, dependency/cycle analysis, consumer discovery, architecture cleanup and blast-radius analysis. Read `GRAPHIFY.md`, use a graph built for the exact current candidate SHA when available, and inspect the relevant graph/report before editing. Use Graphify to discover relationships, then confirm important consumers and runtime behavior against the current source and tests. A text search alone is not sufficient justification for structural deletion. Trivial edits that do not change code structure do not require Graphify. If the environment cannot run Graphify and cannot access an exact-SHA Graphify artifact, stop before a structural refactor and report that limitation rather than pretending the graph was used.
+
 Read `ZERO_TRUST_RULES.md` for the permanent short contribution contract.
 
 ## Mandatory project contract
