@@ -10,18 +10,20 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class LegacyGuideToolConsumerTests(unittest.TestCase):
-    def test_old_v5_runner_has_no_live_import_or_invocation_consumers(self) -> None:
+    def test_old_v4_and_v5_runners_have_no_live_consumers(self) -> None:
         report = audit(ROOT)
         rows = {row["path"]: row for row in report["tools"]}
 
-        runner = rows["tools/run_guide_ultime_v5.ps1"]
-        self.assertEqual(
-            runner["consumer_references"],
-            [],
-            msg=f"old V5 runner still has live consumers: {runner['consumer_references']}",
-        )
+        for path in ("tools/run_guide_ultime_v4.ps1", "tools/run_guide_ultime_v5.ps1"):
+            runner = rows[path]
+            self.assertEqual(
+                runner["consumer_references"],
+                [],
+                msg=f"legacy runner still has live consumers: {path} -> {runner['consumer_references']}",
+            )
+
         self.assertTrue(
-            runner["text_references"],
+            rows["tools/run_guide_ultime_v5.ps1"]["text_references"],
             msg="expected historical/source-contract mentions to remain visible as text evidence",
         )
 
@@ -46,13 +48,14 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
         )
         self.assertEqual(forensic["invocation_references"], expected)
 
-    def test_legacy_gps_base_has_only_known_wrapper_and_policy_test_consumers(self) -> None:
+    def test_legacy_gps_base_has_only_known_v4_wrapper_and_policy_consumers(self) -> None:
         report = audit(ROOT)
         rows = {row["path"]: row for row in report["tools"]}
         base = rows["tools/build_guide_ultime_gps_route.py"]
         expected = [
             "tests/test_guide_ultime_v3_policy.py",
             "tools/build_guide_ultime_gps_route_strict.py",
+            "tools/run_guide_ultime_v4.ps1",
         ]
 
         self.assertEqual(
@@ -60,8 +63,11 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
             expected,
             msg=f"GPS base has unexpected live consumers: {base['consumer_references']}",
         )
-        self.assertEqual(base["import_references"], expected)
-        self.assertEqual(base["invocation_references"], [])
+        self.assertEqual(
+            base["import_references"],
+            ["tests/test_guide_ultime_v3_policy.py", "tools/build_guide_ultime_gps_route_strict.py"],
+        )
+        self.assertEqual(base["invocation_references"], ["tools/run_guide_ultime_v4.ps1"])
 
     def test_legacy_forensic_base_is_only_imported_by_orphan_v2_wrapper(self) -> None:
         report = audit(ROOT)
