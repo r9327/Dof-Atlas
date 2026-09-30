@@ -1,6 +1,23 @@
 # Dofus Atlas — Graphify
 
-Graphify is an optional development map for navigating the Dofus Atlas codebase. It complements `AI_CONTEXT.md` and `tools/ai_context.py`; it does not replace the repository contracts, tests, or source code as the source of truth.
+Graphify is the structural code map for Dofus Atlas. It complements `AI_CONTEXT.md` and `tools/ai_context.py`; it does not replace repository contracts, tests, or source code as the source of truth.
+
+Graphify is mandatory for non-trivial structural work: refactors, code deletion or moves, dependency/cycle analysis, consumer discovery, architecture cleanup and blast-radius analysis. It is optional for trivial edits that do not change code structure.
+
+## Agent contract
+
+Before a structural change:
+
+1. identify the exact candidate SHA;
+2. use a Graphify graph built from that same SHA;
+3. inspect the relevant nodes, hubs, cycles, communities and cross-community relationships;
+4. use the graph to discover likely consumers and impact paths;
+5. confirm important relationships in the current source and tests before editing;
+6. after the change, regenerate Graphify when the structural impact is meaningful and compare the affected area.
+
+Do not justify deletion or decoupling from text search alone when Graphify can expose structural consumers.
+
+If an agent has a local checkout, it should generate or refresh the graph locally. If it only has GitHub access, it should use the `Graphify Code Map` workflow artifact for the exact SHA when available. If neither is possible, the agent must state that limitation and stop before a risky structural refactor rather than claiming Graphify was used.
 
 ## Local Windows setup
 
@@ -26,10 +43,12 @@ Generated local files include:
 
 ## GitHub generation
 
-The `Graphify Code Map` workflow can be started manually from GitHub Actions and also validates changes to this integration on pull requests. It builds the same AST-only map, clusters it without LLM labels, exports the HTML viewer, verifies the outputs and uploads `graphify-out/` as a workflow artifact.
+The `Graphify Code Map` workflow builds an AST-only map for pull-request candidate SHAs and for canonical `main` updates. It clusters the graph without LLM labels, exports the HTML viewer, verifies the outputs and uploads `graphify-out/` as a workflow artifact.
+
+This keeps an exact-SHA structural map available to GitHub-based agents without committing generated graph data to the repository.
 
 ## Safety / project integration
 
-The first integration deliberately does **not** run `graphify hook install` and does not let Graphify rewrite `AGENTS.md` or `.codex/hooks.json`. Dofus Atlas already owns repository-local Git hooks and AI instructions. Any always-on Graphify/Codex integration must be merged deliberately with those existing mechanisms instead of replacing them.
+Do **not** run `graphify hook install`. Dofus Atlas already owns repository-local Git hooks and AI instructions, so Graphify must integrate with those mechanisms rather than replacing them.
 
-Use Graphify as a navigation and impact-analysis aid. Confirm important relationships against the current code and tests, especially for inferred edges.
+Graphify is a navigation and impact-analysis tool. Confirm important relationships against the current code and tests, especially inferred edges. A cleaner graph never justifies a functional, performance or persistence regression.
