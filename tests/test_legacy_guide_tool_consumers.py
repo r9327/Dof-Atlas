@@ -39,6 +39,28 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
             msg=f"forensic V2 still has consumers: {forensic['references']}",
         )
 
+    def test_legacy_gps_base_is_only_consumed_by_its_orphan_strict_wrapper(self) -> None:
+        report = audit(ROOT)
+        rows = {row["path"]: row for row in report["tools"]}
+        base = rows["tools/build_guide_ultime_gps_route.py"]
+
+        self.assertEqual(
+            base["references"],
+            ["tools/build_guide_ultime_gps_route_strict.py"],
+            msg=f"GPS base has unexpected consumers: {base['references']}",
+        )
+
+    def test_legacy_forensic_base_is_only_consumed_by_its_orphan_v2_wrapper(self) -> None:
+        report = audit(ROOT)
+        rows = {row["path"]: row for row in report["tools"]}
+        base = rows["tools/audit_guide_ultime_route_forensic.py"]
+
+        self.assertEqual(
+            base["references"],
+            ["tools/audit_guide_ultime_route_forensic_v2.py"],
+            msg=f"forensic base has unexpected consumers: {base['references']}",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
