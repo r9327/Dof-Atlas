@@ -132,12 +132,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "d069d4b4a5e5989e60b2ac9fba0dab450c3f297f",
+      "sha": "74caf5b453bc6aa8ec0991414dc0adb4aeb4b52f",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "c1a8f3c76937e780ea2f623887cd4bec55477c5c",
+      "sha": "7dc99c30e4b05a56738660f22844e2be5857f876",
       "type": "tree"
     }
   },
