@@ -38,25 +38,22 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
             expected,
             msg=f"GPS strict has unexpected live consumers: {gps['consumer_references']}",
         )
-        self.assertEqual(
-            gps["invocation_references"],
-            expected,
-        )
+        self.assertEqual(gps["invocation_references"], expected)
         self.assertEqual(
             forensic["consumer_references"],
             expected,
             msg=f"forensic V2 has unexpected live consumers: {forensic['consumer_references']}",
         )
-        self.assertEqual(
-            forensic["invocation_references"],
-            expected,
-        )
+        self.assertEqual(forensic["invocation_references"], expected)
 
-    def test_legacy_gps_base_is_only_imported_by_orphan_strict_wrapper(self) -> None:
+    def test_legacy_gps_base_has_only_known_wrapper_and_policy_test_consumers(self) -> None:
         report = audit(ROOT)
         rows = {row["path"]: row for row in report["tools"]}
         base = rows["tools/build_guide_ultime_gps_route.py"]
-        expected = ["tools/build_guide_ultime_gps_route_strict.py"]
+        expected = [
+            "tests/test_guide_ultime_v3_policy.py",
+            "tools/build_guide_ultime_gps_route_strict.py",
+        ]
 
         self.assertEqual(
             base["consumer_references"],
