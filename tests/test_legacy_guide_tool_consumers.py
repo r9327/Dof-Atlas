@@ -23,6 +23,34 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
                 msg=f"legacy runner still has live consumers: {path} -> {runner['consumer_references']}",
             )
 
+    def test_legacy_scopes_are_closed_under_builder_and_scope_test(self) -> None:
+        report = audit(ROOT)
+        rows = {row["path"]: row for row in report["tools"]}
+
+        scope_v4 = rows["tools/guide_ultime_scope_v4.py"]
+        self.assertEqual(
+            scope_v4["consumer_references"],
+            [],
+            msg=f"V4 scope still has live consumers: {scope_v4['consumer_references']}",
+        )
+
+        scope_v5 = rows["tools/guide_ultime_scope_v5.py"]
+        expected_v5 = [
+            "tests/test_guide_ultime_v5_scope.py",
+            "tools/build_guide_ultime_final.py",
+        ]
+        self.assertEqual(
+            scope_v5["consumer_references"],
+            expected_v5,
+            msg=f"V5 scope escaped the closed legacy subgraph: {scope_v5['consumer_references']}",
+        )
+        self.assertEqual(
+            scope_v5["import_references"],
+            expected_v5,
+            msg=f"V5 scope has unexpected non-import consumers: {scope_v5['consumer_references']}",
+        )
+        self.assertEqual(scope_v5["invocation_references"], [])
+
     def test_legacy_final_builder_is_only_invoked_by_old_v4_v5_runners(self) -> None:
         report = audit(ROOT)
         rows = {row["path"]: row for row in report["tools"]}
