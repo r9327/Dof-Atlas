@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -124,21 +123,12 @@ class GuideUltimeManualCard(QFrame):
             sections.get("boss"),
             "GuideManualDungeonSection",
         )
-
-        self._add_success_targets(root)
-
         self._add_line_section(
             root,
             "AVANT DE PARTIR",
             sections.get("before_leave"),
             "GuideManualWarningSection",
         )
-
-        next_card = service.cards[index + 1] if index + 1 < len(service.cards) else None
-        if isinstance(next_card, dict):
-            destination = str(next_card.get("destination") or "").strip()
-            if destination:
-                self._add_destination_section(root, destination)
 
         automatic = service.card_auto_complete(character_key, card)
         manual = service.page_checked(character_key, card, index)
@@ -212,22 +202,6 @@ class GuideUltimeManualCard(QFrame):
 
         root.addWidget(frame)
 
-    @staticmethod
-    def _add_destination_section(root: QVBoxLayout, destination: str) -> None:
-        frame = QFrame()
-        frame.setObjectName("GuideManualDestinationSection")
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(5)
-        title = QLabel("DESTINATION SUIVANTE")
-        title.setObjectName("GuideManualSectionTitle")
-        layout.addWidget(title)
-        next_line = QLabel(f"→ {destination}")
-        next_line.setObjectName("GuideManualNext")
-        next_line.setWordWrap(True)
-        layout.addWidget(next_line)
-        root.addWidget(frame)
-
     def _contract_row(self) -> dict[str, Any]:
         contract = getattr(self.service, "auto_validation_contract", None)
         if not isinstance(contract, dict):
@@ -252,86 +226,6 @@ class GuideUltimeManualCard(QFrame):
         card_key = self.service.card_key(self.card, self.index)
         return cached[1].get(str(card_key or "").strip(), {})
 
-    def _add_success_targets(self, root: QVBoxLayout) -> None:
-        targets = [
-            row
-            for row in self._contract_row().get("successes", []) or []
-            if isinstance(row, dict) and str(row.get("name") or "").strip()
-        ]
-        if not targets:
-            return
-
-        frame = QFrame()
-        frame.setObjectName("GuideManualSuccessBlock")
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(6)
-        title = QLabel("SUCCÈS LIÉS")
-        title.setObjectName("GuideManualSuccessTitle")
-        layout.addWidget(title)
-
-        for target in targets:
-            achievement_id = self._safe_int(target.get("achievement_id"))
-            name = str(target.get("name") or "").strip()
-            row_layout = QHBoxLayout()
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(8)
-
-            done = bool(
-                achievement_id is not None
-                and self.service.achievement_progress.is_achievement_completed(
-                    self.character_key, achievement_id
-                )
-            )
-            checkbox = QCheckBox(name)
-            checkbox.setObjectName("GuideManualSuccessCheck")
-            checkbox.setChecked(done)
-            checkbox.setProperty("state", "done" if done else "todo")
-            checkbox.setEnabled(achievement_id is not None)
-            if achievement_id is None:
-                checkbox.setToolTip("Succès non résolu dans le catalogue Atlas : aucune progression n'est inventée.")
-            else:
-                checkbox.setToolTip("Progression partagée avec l'onglet Succès pour ce personnage.")
-                checkbox.toggled.connect(
-                    lambda value, aid=achievement_id: self._success_toggled(aid, value)
-                )
-            row_layout.addWidget(checkbox, 1)
-
-            open_button = QPushButton("Ouvrir dans Succès")
-            open_button.setObjectName("GuideManualSuccessOpen")
-            open_button.setEnabled(achievement_id is not None)
-            if achievement_id is not None:
-                open_button.clicked.connect(
-                    lambda _checked=False, aid=achievement_id: self._open_success(aid)
-                )
-            row_layout.addWidget(open_button)
-            layout.addLayout(row_layout)
-
-        root.addWidget(frame)
-
-    def _success_toggled(self, achievement_id: int, checked: bool) -> None:
-        self.service.achievement_progress.set_achievement_completed(
-            self.character_key,
-            int(achievement_id),
-            bool(checked),
-        )
-        parent = self.parentWidget()
-        while parent is not None:
-            handler = getattr(parent, "_shared_achievement_progress_changed", None)
-            if callable(handler):
-                handler()
-                return
-            parent = parent.parentWidget()
-
-    def _open_success(self, achievement_id: int) -> None:
-        parent = self.parentWidget()
-        while parent is not None:
-            navigator = getattr(parent, "navigate_entity", None)
-            if callable(navigator):
-                navigator("achievement", int(achievement_id), source="achievement")
-                return
-            parent = parent.parentWidget()
-
     def _page_toggled(self, checked: bool) -> None:
         self.service.set_page_checked(self.character_key, self.card, self.index, bool(checked))
         parent = self.parentWidget()
@@ -341,13 +235,6 @@ class GuideUltimeManualCard(QFrame):
                 handler()
                 return
             parent = parent.parentWidget()
-
-    @staticmethod
-    def _safe_int(value: Any) -> int | None:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
 
     @staticmethod
     def _line_object_name(kind: str, text: str) -> str:
@@ -399,7 +286,8 @@ class GuideUltimeManualCard(QFrame):
         npc_names: list[str],
         resource_names: list[str],
     ) -> str:
-        plain = str(prefix or "") + (f"{position} — " if position else "") + str(text or "")
+        prefix_text = str(prefix or "")
+        plain = prefix_text + (f"{position} — " if position else "") + str(text or "")
         spans: list[tuple[int, int, str]] = []
 
         def add_span(start: int, end: int, kind: str) -> None:
@@ -408,6 +296,10 @@ class GuideUltimeManualCard(QFrame):
             if any(not (end <= existing_start or start >= existing_end) for existing_start, existing_end, _ in spans):
                 return
             spans.append((start, end, kind))
+
+        if position:
+            start = len(prefix_text)
+            add_span(start, start + len(position), "position")
 
         for name in sorted({value for value in npc_names if value}, key=len, reverse=True):
             pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
@@ -432,8 +324,10 @@ class GuideUltimeManualCard(QFrame):
             value = html.escape(plain[start:end])
             if kind == "npc":
                 rendered.append(f'<span style="color:{NPC_COLOR};"><b>{value}</b></span>')
-            else:
+            elif kind == "resource":
                 rendered.append(f'<span style="color:{RESOURCE_COLOR};"><b>{value}</b></span>')
+            else:
+                rendered.append(f"<b>{value}</b>")
             cursor = end
         rendered.append(html.escape(plain[cursor:]))
         return "".join(rendered)
@@ -460,7 +354,7 @@ class GuideUltimeManualCard(QFrame):
 
 
 class GuideUltimeManualView(GuideUltimeUniversalView):
-    """Manual Guide Ultime using the exact Quêtes breadcrumb structure."""
+    """Manual Guide Ultime with one focused navigation control."""
 
     def _build_ui(self) -> None:
         self.filter_mode = "Tout"
@@ -468,13 +362,6 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(6)
-
-        self.breadcrumb = QFrame()
-        self.breadcrumb.setObjectName("GuideBreadcrumb")
-        self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
-        self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
-        self.breadcrumb_layout.setSpacing(5)
-        root.addWidget(self.breadcrumb)
 
         progress = QFrame()
         progress.setObjectName("GuideManualProgressFrame")
@@ -518,6 +405,11 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.nav_page_label = QLabel()
         self.nav_page_label.setObjectName("GuideManualNavPage")
         nav_layout.addWidget(self.nav_page_label)
+        self.guide_button = AtlasButton("Guide")
+        self.guide_button.setObjectName("GuideManualGuideButton")
+        self.guide_button.clicked.connect(lambda _checked=False: self._guide_button_clicked())
+        nav_layout.addWidget(self.guide_button)
+        nav_layout.addStretch(1)
         self.next_button = QPushButton("Suivant →")
         self.next_button.setObjectName("GuideManualNextButton")
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
@@ -528,7 +420,6 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.progress_details.setVisible(False)
         self.position_label = QLabel()
         self.position_label.setVisible(False)
-
 
     def _sync_order_combo(self) -> None:
         return
@@ -570,13 +461,18 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.active_index = self.service.first_incomplete_index(self.character_key)
         self._show_index(self.active_index)
 
+    def _guide_button_clicked(self) -> None:
+        if self.view_index != self.active_index:
+            self.go_active()
+            return
+        self._return_to_guides_catalog()
+
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._clear_cards()
         if not self.service.cards:
             return
         index = max(0, min(self.view_index, len(self.service.cards) - 1))
         card = self.service.cards[index]
-        self._render_breadcrumb(card)
         self._add_manual_order_choice(card)
         widget = GuideUltimeManualCard(self.service, self.character_key, card, index)
         self.cards_layout.addWidget(widget)
@@ -584,6 +480,11 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.rendered_card_count = 1
         self.prev_button.setEnabled(index > 0)
         self.next_button.setEnabled(index < len(self.service.cards) - 1)
+        self.guide_button.setToolTip(
+            "Revenir à la fiche Guide active."
+            if index != self.active_index
+            else "Retour au choix des Guides."
+        )
         self._make_positions_copyable(widget)
         if reset_scroll:
             self._reset_scroll_to_top()
@@ -624,56 +525,6 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.active_index = self.service.first_incomplete_index(self.character_key)
         self._show_index(self.active_index)
 
-    def _render_breadcrumb(self, card: dict[str, Any]) -> None:
-        while self.breadcrumb_layout.count():
-            item = self.breadcrumb_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
-
-        guides = AtlasButton("Guides")
-        guides.setObjectName("GuideBreadcrumbButton")
-        guides.clicked.connect(lambda _checked=False: self._return_to_guides_catalog())
-        self.breadcrumb_layout.addWidget(guides)
-        self._add_breadcrumb_separator()
-
-        guide = AtlasButton("Guide Ultime")
-        guide.setObjectName("GuideBreadcrumbButton")
-        guide.clicked.connect(lambda _checked=False: self.go_active())
-        self.breadcrumb_layout.addWidget(guide)
-        self._add_breadcrumb_separator()
-
-        chapter_name = str(card.get("manual_chapter_label") or "").strip()
-        if not chapter_name:
-            chapter_name = self._chapter_label(str(card.get("manual_chapter_id") or ""))
-        chapter = AtlasButton(chapter_name)
-        chapter.setObjectName("GuideBreadcrumbButton")
-        chapter.clicked.connect(
-            lambda _checked=False, chapter_id=str(card.get("manual_chapter_id") or ""): self._go_chapter(chapter_id)
-        )
-        self.breadcrumb_layout.addWidget(chapter)
-        self._add_breadcrumb_separator()
-
-        current_text = str(card.get("manual_title") or "Fiche de route")
-        current = QLabel(current_text)
-        current.setObjectName("GuideBreadcrumbCurrent")
-        current.setWordWrap(False)
-        current.setToolTip(current_text)
-        current.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        self.breadcrumb_layout.addWidget(current, 1)
-
-    def _add_breadcrumb_separator(self) -> None:
-        separator = QLabel(">")
-        separator.setObjectName("GuideBreadcrumbSeparator")
-        self.breadcrumb_layout.addWidget(separator)
-
-    def _go_chapter(self, chapter_id: str) -> None:
-        for index, card in enumerate(self.service.cards):
-            if str(card.get("manual_chapter_id") or "") == str(chapter_id):
-                self._show_index(index)
-                return
-
     def refresh_external_progress(self) -> None:
         self.service.reload_progress()
         if not self.service.available:
@@ -693,10 +544,6 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
     def _manual_page_changed(self) -> None:
         self._follow_active_after_progress_change()
 
-    def _shared_achievement_progress_changed(self) -> None:
-        self.service.reload_progress()
-        self._follow_active_after_progress_change()
-
     def _reset_scroll_to_top(self) -> None:
         bar = self.scroll.verticalScrollBar()
         bar.setValue(bar.minimum())
@@ -706,7 +553,3 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
                 self.scroll.verticalScrollBar().minimum()
             ),
         )
-
-    @staticmethod
-    def _chapter_label(chapter_id: str) -> str:
-        return chapter_id.replace("_", " ").title() or "Parcours"

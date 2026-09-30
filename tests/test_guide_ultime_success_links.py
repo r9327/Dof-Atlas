@@ -83,22 +83,16 @@ class GuideUltimeSuccessLinkTests(unittest.TestCase):
             "manual_stage_data": {"id": "GPS-01"},
         }
 
-    def test_success_checkbox_writes_shared_achievement_progress(self) -> None:
+    def test_linked_success_checkbox_is_not_rendered_in_guide(self) -> None:
         card = self._card()
         service = _Service(card)
-        widget = GuideUltimeManualCard(service, "hero", card, 0)
+        widget = GuideUltimeManualCard(service, "character:1", card, 0)
         checks = widget.findChildren(QCheckBox, "GuideManualSuccessCheck")
-        self.assertEqual(len(checks), 1)
-        self.assertFalse(checks[0].isChecked())
-
-        checks[0].click()
-        self.assertEqual(service.achievement_progress.completed, {123})
-
-        checks[0].click()
+        self.assertEqual(checks, [])
         self.assertEqual(service.achievement_progress.completed, set())
         widget.close()
 
-    def test_open_success_reuses_existing_entity_navigator(self) -> None:
+    def test_linked_success_open_button_is_not_rendered_in_guide(self) -> None:
         card = self._card()
         service = _Service(card)
         parent = QWidget()
@@ -106,12 +100,10 @@ class GuideUltimeSuccessLinkTests(unittest.TestCase):
         parent.navigate_entity = lambda entity_type, entity_id, **context: calls.append(
             (str(entity_type), int(entity_id), dict(context))
         ) or True
-        widget = GuideUltimeManualCard(service, "hero", card, 0, parent=parent)
+        widget = GuideUltimeManualCard(service, "character:1", card, 0, parent=parent)
         buttons = widget.findChildren(QPushButton, "GuideManualSuccessOpen")
-        self.assertEqual(len(buttons), 1)
-
-        buttons[0].click()
-        self.assertEqual(calls, [("achievement", 123, {"source": "achievement"})])
+        self.assertEqual(buttons, [])
+        self.assertEqual(calls, [])
         widget.close()
         parent.close()
 
