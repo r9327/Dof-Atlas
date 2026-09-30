@@ -12,17 +12,17 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "511fcf516a82aed1bf6b7b4d225157e73780af2b",
+      "sha": "1e1b2b0aa304508be74c8f18d92adc6e88e76656",
       "type": "tree"
     },
     ".gitignore": {
       "mode": "100644",
-      "sha": "e12f886b4f027610349a1ef36e6dcffda5a5c717",
+      "sha": "d214740f1351c66330b429a642784d0d4c3d594b",
       "type": "blob"
     },
     ".graphifyignore": {
       "mode": "100644",
-      "sha": "7d2b946522808423153f142d16129efef75cb3cb",
+      "sha": "2d5b414b9533c228bd93a109cc47507a49a6fbe4",
       "type": "blob"
     },
     "AGENTS.md": {
@@ -32,7 +32,7 @@
     },
     "AI_CONTEXT.md": {
       "mode": "100644",
-      "sha": "345877be0b181d0209a63cc6ce8fc455ac010384",
+      "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
       "type": "blob"
     },
     "AUDIT_NETWORK_QUESTS_2026-09-07.md": {
@@ -43,6 +43,11 @@
     "Analyze_Startup.bat": {
       "mode": "100644",
       "sha": "22af8591af8d800b2c6f6f03b6fef6767a3200ad",
+      "type": "blob"
+    },
+    "Atlas_Doctor.bat": {
+      "mode": "100644",
+      "sha": "e2c19f0a3aab4ef04f569d4fb2bb75e8a2527df9",
       "type": "blob"
     },
     "DEVELOPMENT_GUARDRAILS.md": {
@@ -62,7 +67,7 @@
     },
     "GRAPHIFY.md": {
       "mode": "100644",
-      "sha": "d9f0d96573fa20e50f7be953b32571a8fe09e759",
+      "sha": "1441857ff57780de801730f176917cf396957faf",
       "type": "blob"
     },
     "GUIDE_ULTIME_STATUS.md": {
@@ -87,7 +92,7 @@
     },
     "ROAD_IA.md": {
       "mode": "100644",
-      "sha": "aea8b5efe6405a35a07393ac203cd4036327a6c1",
+      "sha": "3de746d96117d885f9b1033b45b0e2da98bedfdc",
       "type": "blob"
     },
     "ZERO_TRUST_RULES.md": {
@@ -142,12 +147,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "ad745b03d32c90f62baca1e304e4a4605a535e78",
+      "sha": "d72afefc9ac541b98804e840cbbc43c3717910e0",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "991ae87c8eb19691c49ecd5ed670c5451a03f3a8",
+      "sha": "4ca9f5754de0cf4cc5140f5028c2f08df6a36b3b",
       "type": "tree"
     }
   },

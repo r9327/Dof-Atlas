@@ -355,3 +355,15 @@ Preuve de fermeture avant synchronisation documentaire finale :
 - aucun changement produit, aucun changement exécutable V2-13 et aucun système parallèle introduit.
 
 ROAD IA V2 est fermée. La reprise de la ROAD V3 doit repartir du dépôt réel et de son premier lot encore ouvert ; elle ne commence pas automatiquement dans ce lot V2-13.
+
+## Atlas Doctor et Graphify — diagnostic unifie
+
+Atlas Doctor est recupere depuis les fichiers propres de la PR #47, sans reprendre sa branche Phase 7E. Le lanceur Windows delegue au module canonique `tools.atlas_doctor` ; les commandes audit, live, perf, compare, issues, verify, report, clean et all restent disponibles. `quick` ne lance ni gate ni Graphify. `graph` consulte le graph ; `--rebuild` et `--install` sont explicites.
+
+Separation permanente : Agent route le contexte et le plan ; Doctor diagnostique le repo/runtime/performance/architecture ; `tools.graphify` reutilise Graphify pinne en mode AST/code-only/no-label ; Atlas Integrity reste la gate canonique. Les travaux structurels utilisent `tools.agent plan --structural`, puis les relations sont confirmees dans les sources, imports, consommateurs, contrats et tests.
+
+Les sorties restent dans `graphify-out/` et `.ai/runtime/atlas_doctor/`, ignores. Le cache Doctor suit HEAD et le contenu du worktree ; la signature du graph, la version et les sorties attendues sont verifies. Aucun hook Graphify, watcher, daemon ou generation au lancement produit n'est ajoute.
+
+`tools.tool_audit` reste une vue derivee de revue. Zero consommateur n'autorise pas une suppression : familles versionnees, wrappers, entrees historiques et mutateurs restent soumis a la preuve des consommateurs et du remplacement canonique. Les facades Guide modernes sont preservees.
+
+La preuve de validation est portee par les tests cibles et les workflows sur le HEAD exact de la PR d'integration ; aucune validation historique de #47 n'est transposee au candidat courant.

@@ -22,7 +22,8 @@ Pour tout refactor non trivial, suppression ou déplacement de code, analyse de 
 
 - Lire `GRAPHIFY.md`.
 - Utiliser un graphe correspondant au SHA candidat exact quand il existe.
-- En local, générer/rafraîchir le graphe avec `tools/graphify.ps1` avant la modification structurelle.
+- En local, consulter `tools.atlas_doctor graph --json`, puis générer/rafraîchir explicitement avec `tools.atlas_doctor graph --rebuild` avant la modification structurelle.
+- Utiliser `tools.agent plan --structural --json` pour les refactors, suppressions/déplacements, recherches de consommateurs, dépendances/cycles et consolidations ; le plan courant sans ce flag ne force pas de scan coûteux.
 - Sur GitHub sans shell local, utiliser l'artifact `Graphify Code Map` du SHA exact si disponible.
 - Inspecter le sous-graphe pertinent, les hubs, cycles et liaisons inter-domaines avant d'éditer.
 - Vérifier ensuite les relations importantes dans le code courant et les tests : Graphify guide l'analyse, il ne remplace pas la preuve runtime.

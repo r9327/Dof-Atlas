@@ -50,17 +50,9 @@ jobs:
         shell: bash
         run: python -m pip install --disable-pip-version-check "graphifyy==0.9.72"
 
-      - name: Build local-only AST graph
+      - name: Build graph through Atlas Doctor and canonical Graphify engine
         shell: bash
-        run: graphify extract . --code-only
-
-      - name: Cluster graph and generate report
-        shell: bash
-        run: graphify cluster-only . --no-label
-
-      - name: Generate interactive HTML viewer
-        shell: bash
-        run: graphify export html --graph graphify-out/graph.json
+        run: python -m tools.atlas_doctor graph --rebuild --json
 
       - name: Verify graph output
         shell: bash
