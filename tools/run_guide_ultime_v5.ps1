@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "[1/5] Guide Ultime V5 UNIVERSAL - tests"
-py -3.13 -m unittest tests.test_guide_ultime_v5_scope tests.test_guide_ultime_v5_source_contract tests.test_guide_ultime_v5_or_runtime tests.test_guide_ultime_v3_policy
+py -3.13 -m unittest tests.test_guide_ultime_v5_scope tests.test_guide_ultime_manual_bonta_order tests.test_guide_ultime_v5_or_runtime tests.test_guide_ultime_v3_policy
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[2/5] Guide Ultime V5 UNIVERSAL - content lock STRICT"
