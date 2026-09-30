@@ -164,6 +164,22 @@ def _validated_tool_spec(source: str, path: str) -> tuple[dict[str, Any] | None,
     }, []
 
 
+def _tool_spec_evidence_errors(
+    tool_spec: dict[str, Any] | None,
+    row: dict[str, Any],
+    *,
+    legacy: bool,
+) -> list[str]:
+    if tool_spec is None:
+        return []
+    errors: list[str] = []
+    if tool_spec["side_effects"] == "read_only" and row.get("mutation_capable"):
+        errors.append("TOOL_SPEC.side_effects=read_only conflicts with detected mutation evidence")
+    if tool_spec["canonical"] and legacy:
+        errors.append("TOOL_SPEC.canonical=true is forbidden on versioned or wrapper legacy tools")
+    return errors
+
+
 def _supports_json(source: str) -> bool:
     lowered = source.casefold()
     return "--json" in lowered or "json.dumps(" in lowered or "convertto-json" in lowered
@@ -298,7 +314,20 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
     for row in inventory.get("tools", []):
         path = str(row["path"])
         source = _read_source(root, path)
-        tool_spec, tool_spec_errors = _validated_tool_spec(source, path)
+        parsed_tool_spec, tool_spec_errors = _validated_tool_spec(source, path)
+        mutation_state = (
+            "none"
+            if not row.get("mutation_capable")
+            else "guarded"
+            if row.get("explicit_mutation_gate")
+            else "unguarded"
+        )
+        legacy = bool(row.get("wrapper")) or path in version_members
+        tool_spec_errors = [
+            *tool_spec_errors,
+            *_tool_spec_evidence_errors(parsed_tool_spec, row, legacy=legacy),
+        ]
+        tool_spec = parsed_tool_spec if not tool_spec_errors else None
         actions = _upgrade_actions(
             row,
             source=source,
@@ -319,19 +348,11 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
             if tool_spec is not None
             else _supports_json(source)
         )
-        mutation_state = (
-            "none"
-            if not row.get("mutation_capable")
-            else "guarded"
-            if row.get("explicit_mutation_gate")
-            else "unguarded"
-        )
         side_effects = (
             str(tool_spec["side_effects"])
             if tool_spec is not None
             else _derived_side_effects(mutation_state)
         )
-        legacy = bool(row.get("wrapper")) or path in version_members
         role = "entrypoint" if row.get("executable") else "library"
         safe_for_agent = (
             mutation_state != "unguarded"
@@ -354,6 +375,13 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
             str(tool_spec["cost_hint"])
             if tool_spec is not None
             else _cost_hint(path)
+        )
+        spec_source = (
+            "explicit"
+            if tool_spec is not None
+            else "invalid"
+            if tool_spec_errors
+            else "heuristic"
         )
         tools.append(
             {
@@ -386,7 +414,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
                 "readiness": readiness,
                 "safe_for_agent": safe_for_agent,
                 "automation_ready": automation_ready,
-                "tool_spec_source": "explicit" if tool_spec is not None else "heuristic",
+                "tool_spec_source": spec_source,
                 "tool_spec": tool_spec,
                 "tool_spec_errors": tool_spec_errors,
                 "upgrade_actions": actions,
@@ -443,7 +471,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
             "mutations": "never call an unguarded or mutation_unknown tool automatically",
             "legacy": "versioned/wrapper/unreferenced tools require contract and consumer review before deletion or AI automation",
             "heavy_checks": "respect cost_hint and route expensive validation through canonical orchestrators",
-            "static_specs": "TOOL_SPEC is parsed with AST/literal_eval only and overrides heuristic metadata when valid",
+            "static_specs": "TOOL_SPEC is parsed with AST/literal_eval only, cross-checked against audit evidence, and overrides heuristic metadata only when valid",
         },
     }
 
