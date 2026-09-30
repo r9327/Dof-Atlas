@@ -27,6 +27,27 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
             msg="expected historical/source-contract mentions to remain visible as text evidence",
         )
 
+    def test_legacy_final_builder_has_only_known_v4_v5_and_policy_consumers(self) -> None:
+        report = audit(ROOT)
+        rows = {row["path"]: row for row in report["tools"]}
+        builder = rows["tools/build_guide_ultime_final.py"]
+        expected = [
+            "tests/test_guide_ultime_v3_policy.py",
+            "tools/run_guide_ultime_v4.ps1",
+            "tools/run_guide_ultime_v5.ps1",
+        ]
+
+        self.assertEqual(
+            builder["consumer_references"],
+            expected,
+            msg=f"final builder has unexpected live consumers: {builder['consumer_references']}",
+        )
+        self.assertEqual(builder["import_references"], ["tests/test_guide_ultime_v3_policy.py"])
+        self.assertEqual(
+            builder["invocation_references"],
+            ["tools/run_guide_ultime_v4.ps1", "tools/run_guide_ultime_v5.ps1"],
+        )
+
     def test_gps_strict_and_forensic_v2_are_only_invoked_by_old_v5_runner(self) -> None:
         report = audit(ROOT)
         rows = {row["path"]: row for row in report["tools"]}
