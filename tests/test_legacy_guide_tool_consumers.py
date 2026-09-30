@@ -7,6 +7,7 @@ from tools.tool_audit import audit
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PROOF_TEST = "tests/test_legacy_guide_tool_consumers.py"
 
 
 class LegacyGuideToolConsumerTests(unittest.TestCase):
@@ -21,11 +22,6 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
                 [],
                 msg=f"legacy runner still has live consumers: {path} -> {runner['consumer_references']}",
             )
-
-        self.assertTrue(
-            rows["tools/run_guide_ultime_v5.ps1"]["text_references"],
-            msg="expected historical/source-contract mentions to remain visible as text evidence",
-        )
 
     def test_legacy_final_builder_is_only_invoked_by_old_v4_v5_runners(self) -> None:
         report = audit(ROOT)
@@ -92,6 +88,31 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
         )
         self.assertEqual(base["import_references"], expected)
         self.assertEqual(base["invocation_references"], [])
+
+    def test_no_product_test_reads_legacy_v4_v5_builder_sources(self) -> None:
+        report = audit(ROOT)
+        rows = {row["path"]: row for row in report["tools"]}
+        legacy_paths = (
+            "tools/run_guide_ultime_v4.ps1",
+            "tools/run_guide_ultime_v5.ps1",
+            "tools/build_guide_ultime_final.py",
+            "tools/build_guide_ultime_gps_route.py",
+            "tools/build_guide_ultime_gps_route_strict.py",
+            "tools/audit_guide_ultime_route_forensic.py",
+            "tools/audit_guide_ultime_route_forensic_v2.py",
+        )
+
+        for path in legacy_paths:
+            self.assertEqual(
+                rows[path]["test_references"],
+                [PROOF_TEST],
+                msg=f"legacy source still has another test reference: {path} -> {rows[path]['test_references']}",
+            )
+            self.assertEqual(
+                rows[path]["test_consumer_references"],
+                [],
+                msg=f"legacy source still has a test consumer: {path} -> {rows[path]['test_consumer_references']}",
+            )
 
 
 if __name__ == "__main__":
