@@ -1,79 +1,46 @@
-name: Doctor observations graph and consumer evidence
+name: Temporary exact candidate graph before consolidation
 on:
   push:
     branches: [diagnostic/doctor-observations-review]
 permissions:
   contents: read
-  actions: read
 jobs:
-  evidence:
+  graph:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: c580ea3077f7e68f926c6e0e9bf6478908fee54f
+          ref: c3ab1b85bbcf071cfb6423cd1a842e97e2d80df5
           fetch-depth: 0
           lfs: false
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.13"
-      - name: Exact source and canonical context before structural review
-        run: |
-          test "$(git rev-parse HEAD)" = "c580ea3077f7e68f926c6e0e9bf6478908fee54f"
-          git rev-parse HEAD
-          git status --short
-          git branch --show-current
-          git fetch origin
-          python -m tools.ai_context status
-          python -m tools.ai_context check
-      - name: Read actual exact-SHA Graphify artifact
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          curl --location --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/r9327/Dof-Atlas/actions/artifacts/11165406674/zip" -o "$RUNNER_TEMP/graph.zip"
+      - run: |
+          test "$(git rev-parse HEAD)" = "c3ab1b85bbcf071cfb6423cd1a842e97e2d80df5"
+          python -m pip install graphifyy==0.9.72
+          python -m tools.atlas_doctor graph --rebuild --json > "$RUNNER_TEMP/graph-summary.json"
           python - <<'PY'
-          import collections,json,os,pathlib,urllib.request,zipfile
-          targets=["tools/audit_guide_ultime_action_quality.py","tools/audit_guide_ultime_manual_coverage.py","tools/audit_guide_ultime_manual_final_coverage.py","tools/audit_guide_ultime_manual_prerequisites.py","tools/audit_guide_ultime_manual_route_hooks.py","tools/audit_guide_ultime_manual_runtime.py","tools/audit_guide_ultime_route_forensic.py","tools/build_guide_ultime_final.py","tools/build_guide_ultime_gps_route.py","tools/validate_guide_ultime_manual_bundle.py","tools/validate_guide_ultime_manual_route.py","tools/atlas_doctor_lib/core.py","tools/atlas_doctor_lib/live.py"]
-          req=urllib.request.Request("https://api.github.com/repos/r9327/Dof-Atlas/actions/artifacts/11165406674",headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"],"Accept":"application/vnd.github+json"})
-          with urllib.request.urlopen(req) as response: meta=json.load(response)
-          assert meta["workflow_run"]["head_sha"]=="c580ea3077f7e68f926c6e0e9bf6478908fee54f" and not meta["expired"]
-          with zipfile.ZipFile(pathlib.Path(os.environ["RUNNER_TEMP"])/"graph.zip") as archive:
-              name=next(n for n in archive.namelist() if n.endswith("graph.json"))
-              graph=json.loads(archive.read(name))
-              report=next(n for n in archive.namelist() if n.endswith("GRAPH_REPORT.md"))
-              print("EXACT_GRAPH_REPORT="+archive.read(report).decode()[:18000])
-          nodes={str(n["id"]):n for n in graph["nodes"]}
-          print("EXACT_GRAPH="+json.dumps({"sha":meta["workflow_run"]["head_sha"],"nodes":len(nodes),"links":len(graph["links"])}))
-          for path in targets:
-              matches={key for key,node in nodes.items() if node.get("source_file")==path}
-              consumers=set();relations=collections.Counter()
-              for edge in graph["links"]:
-                  a,b=str(edge["source"]),str(edge["target"])
-                  if a in matches or b in matches:
-                      other=nodes.get(b if a in matches else a,{})
-                      candidate=other.get("source_file")
-                      if candidate and candidate!=path: consumers.add(candidate)
-                      relations[edge.get("relation","UNKNOWN")]+=1
-              print("GRAPH_TARGET="+json.dumps({"path":path,"nodes":len(matches),"adjacent_files":sorted(consumers),"relations":relations}))
+          import json,os,pathlib
+          p=json.loads((pathlib.Path(os.environ["RUNNER_TEMP"])/"graph-summary.json").read_text())
+          assert p["status"]=="PASS" and p["git"]["head"]=="c3ab1b85bbcf071cfb6423cd1a842e97e2d80df5"
+          print("CURRENT_GRAPH_SUMMARY="+json.dumps(p["summary"]))
+          print(pathlib.Path("graphify-out/GRAPH_REPORT.md").read_text()[:16000])
+          graph=json.loads(pathlib.Path("graphify-out/graph.json").read_text());nodes={str(n["id"]):n for n in graph["nodes"]}
+          for target in ["tools/validate_guide_ultime_manual_route.py","tools/validate_guide_ultime_manual_bundle.py","tools/atlas_doctor_lib/core.py","tools/atlas_doctor_lib/live.py"]:
+              keys={k for k,n in nodes.items() if n.get("source_file")==target};adjacent=set()
+              for link in graph["links"]:
+                  a,b=str(link["source"]),str(link["target"])
+                  if a in keys or b in keys:
+                      path=nodes.get(b if a in keys else a,{}).get("source_file")
+                      if path and path!=target: adjacent.add(path)
+              print("CURRENT_GRAPH_TARGET="+json.dumps({"path":target,"nodes":len(keys),"adjacent_files":sorted(adjacent)}))
           PY
-      - name: Current Tool Audit consumers and every tracked invocation
-        run: |
-          python -m tools.tool_audit --json > "$RUNNER_TEMP/tool-audit.json"
-          python - <<'PY'
-          import json,os,pathlib,subprocess
-          targets=["tools/audit_guide_ultime_action_quality.py","tools/audit_guide_ultime_manual_coverage.py","tools/audit_guide_ultime_manual_final_coverage.py","tools/audit_guide_ultime_manual_prerequisites.py","tools/audit_guide_ultime_manual_route_hooks.py","tools/audit_guide_ultime_manual_runtime.py","tools/audit_guide_ultime_route_forensic.py","tools/build_guide_ultime_final.py","tools/build_guide_ultime_gps_route.py","tools/validate_guide_ultime_manual_bundle.py","tools/validate_guide_ultime_manual_route.py","tools/atlas_doctor_lib/core.py","tools/atlas_doctor_lib/live.py"]
-          p=json.loads((pathlib.Path(os.environ["RUNNER_TEMP"])/"tool-audit.json").read_text())
-          print("TOOL_AUDIT_COUNTS="+json.dumps({k:v for k,v in p.items() if k.endswith("_count")}))
-          for path in targets:
-              matches=[v for v in p.get("tools",[]) if v.get("path")==path]
-              print("TOOL_CONSUMER="+json.dumps(matches))
-              stem=pathlib.Path(path).stem
-              search=subprocess.run(["git","grep","-n","-F",stem,"--","*.py","*.ps1","*.bat","*.yml","*.yaml","*.md",".githooks/*"],capture_output=True,text=True)
-              assert search.returncode in (0,1),search.stderr
-              print("INVOCATIONS="+json.dumps({"path":path,"lines":search.stdout.splitlines()}))
-          assert not subprocess.check_output(["git","status","--short"],text=True).strip()
-          PY
+          git diff --check
+          test -z "$(git status --short)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graphify-pre-consolidation-c3ab1b85bbcf071cfb6423cd1a842e97e2d80df5
+          path: graphify-out/
