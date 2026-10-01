@@ -138,6 +138,9 @@ jobs:
           if ($doctorExit -eq 1) {
             Write-Warning "Doctor returned REVIEW; non-blocking advisory findings are recorded in the report."
           }
+          # PowerShell preserves the last native process exit code. At this point
+          # REVIEW has been explicitly accepted and every hard condition passed.
+          exit 0
 
       - name: Run merge-safety contracts outside Doctor FAST policy
         shell: pwsh
