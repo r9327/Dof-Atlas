@@ -98,7 +98,7 @@ def _preferred_validation_tools(
         )
         command = (
             ["py", "-3.13", "-m", path[:-3].replace("/", "."), mode]
-            + (["--json"] if row.get("structured_output") else [])
+            + (["--json"] if row.get("json_cli_flag") else [])
             if mode else []
         )
         output.append({

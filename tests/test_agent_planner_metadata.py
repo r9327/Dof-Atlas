@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from tools.agent_planner import build_plan
-from tools.tool_catalog import _validated_tool_spec
+from tools.tool_catalog import _validated_tool_spec, _json_cli_flag
 from tests import test_agent_planner as planner_fixtures
 
 
@@ -87,6 +87,13 @@ class MetadataPlannerTests(unittest.TestCase):
                     preferred_role="repository_validation_orchestrator")
         self.assertEqual([row["path"] for row in self.plan()["recommended_tools"]],
                          ["tools/atlas_integrity.py"])
+
+    def test_json_artifact_is_not_a_json_cli_option(self):
+        self.assertFalse(_json_cli_flag("import json\nprint(json.dumps({}))"))
+        self.assertTrue(_json_cli_flag("import argparse\np=argparse.ArgumentParser()\np.add_argument('--json')"))
+        self.custom(structured_output=True, json_cli_flag=False)
+        row = next(row for row in self.plan()["recommended_tools"] if row["path"] == "tools/custom_validator.py")
+        self.assertNotIn("--json", row["command"])
 
     def test_optional_target_scopes_are_validated_statically(self):
         spec = {"schema_version": 1, "id": "example", "role": "example_validation_orchestrator",

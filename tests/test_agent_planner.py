@@ -70,6 +70,7 @@ class AgentPlannerTests(unittest.TestCase):
                 "capabilities": ["validation"],
                 "side_effects": "artifact_output",
                 "structured_output": True,
+                "json_cli_flag": path == "tools/atlas_integrity.py",
                 "modes": ["fast", "critical", "full", "deep"] if path == "tools/atlas_integrity.py" else ["fast", "full"],
                 "target_scopes": ["encyclopedia_guide"] if path == "tools/guide_integrity.py" else [],
                 "declared_tests": [],

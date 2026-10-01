@@ -187,6 +187,21 @@ def _supports_json(source: str) -> bool:
     return "--json" in lowered or "json.dumps(" in lowered or "convertto-json" in lowered
 
 
+def _json_cli_flag(source: str) -> bool:
+    """JSON serialization or an artifact does not imply a --json CLI option."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return False
+    return any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "add_argument"
+        and any(isinstance(arg, ast.Constant) and arg.value == "--json" for arg in node.args)
+        for node in ast.walk(tree)
+    )
+
+
 def _supports_describe(source: str) -> bool:
     lowered = source.casefold()
     return "--describe" in lowered or ("describe" in lowered and "argparse" in lowered)
@@ -398,6 +413,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
                 "capabilities": capabilities,
                 "cost_hint": cost_hint,
                 "structured_output": structured_output,
+                "json_cli_flag": _json_cli_flag(source),
                 "describe_contract": _supports_describe(source),
                 "discoverable_help": _supports_help(source, str(row.get("kind", ""))),
                 "mutation_state": mutation_state,
