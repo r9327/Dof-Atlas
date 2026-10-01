@@ -624,6 +624,6 @@ def reset_database_for_tests(path: Path) -> None:
             try:
                 candidate.unlink()
             except FileNotFoundError:
-                pass
+                continue
             except OSError as exc:
                 LOGGER.warning("Suppression base cartographie test impossible: %s", exc)

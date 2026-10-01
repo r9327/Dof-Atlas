@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import ctypes
+import logging
 import os
 from contextlib import contextmanager
 from typing import Iterator
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 # Windows lowers CPU, memory and I/O scheduling priority for the current thread
@@ -43,7 +47,7 @@ def background_io_priority() -> Iterator[None]:
                     _THREAD_MODE_BACKGROUND_END,
                 )
             except (AttributeError, OSError, TypeError, ValueError):
-                pass
+                _LOGGER.debug("Unable to restore Windows background thread priority.", exc_info=True)
 
 
 __all__ = ["background_io_priority"]

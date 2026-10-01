@@ -2033,7 +2033,7 @@ class AtlasWindow(QMainWindow):
             try:
                 stop_watcher()
             except RuntimeError:
-                pass
+                LOGGER.debug("Organizer watcher already unavailable during shutdown.", exc_info=True)
 
         bridge = getattr(getattr(self, "home_page", None), "network_bridge", None)
         stop_bridge = getattr(bridge, "stop", None)
@@ -2041,7 +2041,7 @@ class AtlasWindow(QMainWindow):
             try:
                 stop_bridge()
             except RuntimeError:
-                pass
+                LOGGER.debug("Network bridge already unavailable during shutdown.", exc_info=True)
 
         self.runtime.stop()
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import html
 import json
+import logging
 import re
 import unicodedata
 from collections import defaultdict
@@ -23,6 +24,9 @@ from app.constants import (
 )
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.quest_source_index import build_image_index
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 SENTINEL_COORD = -2147483648
@@ -633,7 +637,7 @@ def write_quest_catalog_cache(catalog: QuestCatalog, data_dir: Path = RAW_QUEST_
         try:
             QUEST_CATALOG_LEGACY_CACHE_PATH.unlink(missing_ok=True)
         except OSError:
-            pass
+            _LOGGER.debug("Suppression ancien cache quêtes impossible.", exc_info=True)
     except (OSError, TypeError, ValueError):
         return
 

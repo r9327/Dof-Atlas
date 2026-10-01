@@ -102,7 +102,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "0183c69c96e466ef2e4f13646b2bbb6dc0cd461f",
+      "sha": "8c17d873c38669be81cf37087fd1ab81b09c8066",
       "type": "tree"
     },
     "bootstrap_dofus_atlas.ps1": {
@@ -127,7 +127,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "94d6e8033843dc0ef01193f0261124efdd933fdc",
+      "sha": "7401b6e9c6251a7bdf2de07778fdda730f193cf1",
       "type": "blob"
     },
     "requirements-pyside.txt": {
