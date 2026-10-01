@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: 66b98a303cfcf6dce0e887e033d68674cee7dab3
+          ref: 72576934f31aa04b81aed168e97d0bfa9dcf927f
           fetch-depth: 0
           lfs: false
           persist-credentials: false
@@ -28,7 +28,7 @@ jobs:
         shell: pwsh
         run: |
           git rev-parse HEAD
-          if ((git rev-parse HEAD).Trim() -ne "66b98a303cfcf6dce0e887e033d68674cee7dab3") { throw "Wrong source SHA" }
+          if ((git rev-parse HEAD).Trim() -ne "72576934f31aa04b81aed168e97d0bfa9dcf927f") { throw "Wrong source SHA" }
           git status --short
           git branch --show-current
           git fetch origin
@@ -52,7 +52,7 @@ jobs:
       - name: Targeted Doctor Agent Graph and Tool Catalog contracts
         shell: pwsh
         run: |
-          python -m unittest tests.test_guide_ultime_final_coverage_catalog tests.test_guide_ultime_manual_prerequisites tests.test_ci_runner_guardrails tests.test_guide_tools_harness_contract tests.test_guide_integrity tests.test_atlas_doctor tests.test_atlas_doctor_graphify tests.test_agent_graph tests.test_tool_audit tests.test_tool_catalog tests.test_legacy_guide_tool_consumers
+          python -m unittest tests.test_canonical_manual_bundle_validation tests.test_guide_ultime_final_coverage_catalog tests.test_guide_ultime_manual_prerequisites tests.test_ci_runner_guardrails tests.test_guide_tools_harness_contract tests.test_guide_integrity tests.test_atlas_doctor tests.test_atlas_doctor_graphify tests.test_agent_graph tests.test_tool_audit tests.test_tool_catalog tests.test_legacy_guide_tool_consumers
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Materialize canonical validation fixtures
         shell: pwsh
