@@ -2,9 +2,9 @@ from __future__ import annotations
 
 """Deterministic cost/quality routing for ROAD IA work cards.
 
-The router deliberately uses relative cost ranks instead of embedding provider
-prices. Model identifiers are resolved from environment variables so the task
-policy stays stable while providers, prices and available models evolve.
+Task topology, requested output quality and estimated AI consumption are a
+separate concern from Atlas Doctor validation levels. This module only selects
+an AI work profile; it never selects or weakens repository validation depth.
 """
 
 import argparse
@@ -69,34 +69,28 @@ def _quality_rank(config: dict[str, Any], quality: str) -> int:
 
 
 def infer_task_type(
-    paths: Iterable[str], *, work_depth: str = "SOFT", structural: bool = False,
+    paths: Iterable[str], *, structural: bool = False, certification: bool = False,
 ) -> str:
     normalized = [str(path).replace("\\", "/") for path in paths]
-    depth = work_depth.upper()
+    if certification:
+        return "certification"
     if structural:
         return "structural"
-    if any(
-        path.startswith(".github/")
-        or path in {"tools/atlas_integrity.py", "tools/atlas_doctor.py"}
-        for path in normalized
-    ):
-        return "certification"
     if not normalized:
         return "read_only"
-    if depth == "HARD":
-        return "refactor"
-    if depth == "MEDIUM" or len(normalized) > 1:
-        return "feature"
     if len(normalized) == 1 and normalized[0].startswith(("docs/", ".ai/")):
         return "tiny_edit"
-    return "localized_fix"
+    if len(normalized) == 1:
+        return "localized_fix"
+    if len(normalized) <= 4:
+        return "feature"
+    return "refactor"
 
 
 def select_work_card(
     *,
     task_type: str,
     requested_quality: str | None = None,
-    work_depth: str = "SOFT",
     config: dict[str, Any] | None = None,
     environ: dict[str, str] | None = None,
 ) -> dict[str, Any]:
@@ -106,10 +100,6 @@ def select_work_card(
     if task_type not in resolved["task_profiles"]:
         allowed = ", ".join(sorted(resolved["task_profiles"]))
         raise TaskProfileError(f"Unknown task type '{task_type}'. Expected one of: {allowed}.")
-    depth = work_depth.upper()
-    floors = resolved.get("work_depth_quality_floor", {})
-    if depth not in floors:
-        raise TaskProfileError("work_depth must be SOFT, MEDIUM or HARD.")
 
     requested = (
         requested_quality
@@ -118,11 +108,9 @@ def select_work_card(
     ).casefold()
     profile = resolved["task_profiles"][task_type]
     task_floor = str(profile["minimum_quality"]).casefold()
-    depth_floor = str(floors[depth]).casefold()
     requested_rank = _quality_rank(resolved, requested)
     task_floor_rank = _quality_rank(resolved, task_floor)
-    depth_floor_rank = _quality_rank(resolved, depth_floor)
-    effective_rank = max(requested_rank, task_floor_rank, depth_floor_rank)
+    effective_rank = max(requested_rank, task_floor_rank)
 
     eligible = [
         row
@@ -136,7 +124,7 @@ def select_work_card(
     selected = min(
         eligible,
         key=lambda row: (
-            int(row.get("cost_rank", 10**9)),
+            int(row.get("consumption_rank", row.get("cost_rank", 10**9))),
             int(row.get("quality_rank", 10**9)),
             str(row.get("id", "")),
         ),
@@ -154,8 +142,6 @@ def select_work_card(
         escalations.append(
             f"task floor {task_floor} exceeds requested quality {requested}"
         )
-    if depth_floor_rank > max(requested_rank, task_floor_rank):
-        escalations.append(f"{depth} work depth requires at least {depth_floor}")
 
     model_env = str(selected.get("model_env") or "")
     resolved_model = env.get(model_env) if model_env else None
@@ -164,46 +150,39 @@ def select_work_card(
         "task_type": task_type,
         "description": str(profile.get("description") or ""),
         "requested_quality": requested,
-        "recommended_quality": str(
-            profile.get("recommended_quality") or task_floor
-        ),
+        "recommended_quality": str(profile.get("recommended_quality") or task_floor),
         "task_minimum_quality": task_floor,
-        "work_depth": depth,
-        "work_depth_quality_floor": depth_floor,
         "effective_quality": effective_quality,
         "selected_tier": str(selected["id"]),
         "quality_rank": int(selected["quality_rank"]),
-        "cost_rank": int(selected["cost_rank"]),
+        "consumption_rank": int(selected.get("consumption_rank", selected.get("cost_rank", 0))),
+        "consumption_label": str(selected.get("consumption_label") or "unknown"),
         "reasoning_effort": str(selected.get("reasoning_effort") or ""),
         "model_env": model_env,
         "resolved_model": resolved_model,
         "model_resolution": "environment" if resolved_model else "tier_only",
         "escalations": escalations,
         "selection_rule": (
-            "cheapest configured tier satisfying requested quality, task floor "
-            "and work-depth floor"
+            "lowest-consumption configured tier satisfying requested quality "
+            "and the task-type minimum quality"
         ),
+        "doctor_validation": "independent",
     }
 
 
-def route_for_plan(
-    paths: Iterable[str],
-    *,
-    work_depth: str,
-    structural: bool = False,
-    requested_quality: str | None = None,
-    task_type: str | None = None,
+def route_for_task(
+    paths: Iterable[str], *, structural: bool = False, certification: bool = False,
+    requested_quality: str | None = None, task_type: str | None = None,
 ) -> dict[str, Any]:
     paths = list(paths)
     resolved_task = (
-        infer_task_type(paths, work_depth=work_depth, structural=structural)
+        infer_task_type(paths, structural=structural, certification=certification)
         if task_type in {None, "", "auto"}
         else str(task_type).casefold()
     )
     return select_work_card(
         task_type=resolved_task,
         requested_quality=requested_quality,
-        work_depth=work_depth,
     )
 
 
@@ -211,8 +190,8 @@ def main(argv: list[str] | None = None) -> int:
     config = load_config()
     parser = argparse.ArgumentParser(
         description=(
-            "Select the cheapest ROAD IA model tier that satisfies a task "
-            "quality floor."
+            "Select the lowest-consumption ROAD IA tier compatible with the "
+            "task topology and requested output quality."
         )
     )
     parser.add_argument(
@@ -221,18 +200,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--quality", choices=tuple(config["quality_levels"]), default=None
     )
-    parser.add_argument(
-        "--depth", choices=("SOFT", "MEDIUM", "HARD"), default="SOFT"
-    )
     parser.add_argument("--structural", action="store_true")
+    parser.add_argument("--certification", action="store_true")
     parser.add_argument("--path", dest="paths", action="append", default=[])
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
-        card = route_for_plan(
+        card = route_for_task(
             args.paths,
-            work_depth=args.depth,
             structural=args.structural,
+            certification=args.certification,
             requested_quality=args.quality,
             task_type=args.task,
         )
