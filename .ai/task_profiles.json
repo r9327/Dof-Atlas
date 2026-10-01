@@ -2,29 +2,32 @@
   "schema_version": 1,
   "default_requested_quality": "balanced",
   "quality_levels": {
-    "economy": {"rank": 1, "label": "Economy"},
-    "balanced": {"rank": 2, "label": "Balanced"},
-    "best": {"rank": 3, "label": "Best"}
+    "economy": {"rank": 1, "label": "Eco"},
+    "balanced": {"rank": 2, "label": "Standard"},
+    "best": {"rank": 3, "label": "Premium"}
   },
   "model_tiers": [
     {
       "id": "economy",
       "quality_rank": 1,
-      "cost_rank": 1,
+      "consumption_rank": 1,
+      "consumption_label": "low",
       "reasoning_effort": "low",
       "model_env": "DOF_AI_MODEL_ECONOMY"
     },
     {
       "id": "balanced",
       "quality_rank": 2,
-      "cost_rank": 2,
+      "consumption_rank": 2,
+      "consumption_label": "moderate",
       "reasoning_effort": "medium",
       "model_env": "DOF_AI_MODEL_BALANCED"
     },
     {
       "id": "premium",
       "quality_rank": 3,
-      "cost_rank": 3,
+      "consumption_rank": 3,
+      "consumption_label": "high",
       "reasoning_effort": "high",
       "model_env": "DOF_AI_MODEL_PREMIUM"
     }
