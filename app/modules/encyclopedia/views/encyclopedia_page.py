@@ -32,7 +32,6 @@ from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import Encyclop
 from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
     DeferredAchievementGuidesView,
 )
-from app.modules.encyclopedia.views.placeholder_view import EncyclopediaPlaceholderView
 from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadGate,
     RelatedPreloadState,
@@ -151,7 +150,7 @@ class EncyclopediaPage(QWidget):
         self._guide_progress_character_key = guide_progress_character_key or ""
         self._launch_travel_callback = launch_travel_callback
         self._related_data_ready_callback = related_data_ready_callback
-        self._lazy_placeholders: dict[str, QWidget] = {}
+        self._lazy_slots: dict[str, QWidget] = {}
         self._related_ready = all(
             value is not None
             for value in (achievement_provider, guide_provider, self._quest_graph)
@@ -198,9 +197,10 @@ class EncyclopediaPage(QWidget):
             if tab_name == QUESTS_TAB and self._initial_tab == QUESTS_TAB:
                 self.tabs.addTab(self.build_quests_page(), tab_name)
             else:
-                placeholder = EncyclopediaPlaceholderView()
-                self._lazy_placeholders[tab_name] = placeholder
-                self.tabs.addTab(placeholder, tab_name)
+                slot = QWidget()
+                slot.setObjectName("EncyclopediaLazySlot")
+                self._lazy_slots[tab_name] = slot
+                self.tabs.addTab(slot, tab_name)
 
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_characters()
@@ -260,7 +260,7 @@ class EncyclopediaPage(QWidget):
         if target_label in self.tab_labels():
             self.tabs.setCurrentIndex(self.tab_labels().index(target_label))
         self.tabs.blockSignals(False)
-        self._lazy_placeholders.pop(label, None)
+        self._lazy_slots.pop(label, None)
         if old_widget is not widget:
             old_widget.deleteLater()
 
@@ -436,8 +436,8 @@ class EncyclopediaPage(QWidget):
             self.sync_tab_accent(label)
             self.sync_search_visibility()
             return
-        was_lazy_placeholder = isinstance(self.tabs.widget(index), EncyclopediaPlaceholderView)
-        if was_lazy_placeholder and label in {GUIDES_TAB, ACHIEVEMENTS_TAB} and not self._related_ready:
+        was_lazy_slot = self._lazy_slots.get(label) is self.tabs.widget(index)
+        if was_lazy_slot and label in {GUIDES_TAB, ACHIEVEMENTS_TAB} and not self._related_ready:
             fallback = self._last_ready_tab_index
             self.tabs.blockSignals(True)
             self.tabs.setCurrentIndex(fallback)
@@ -449,7 +449,7 @@ class EncyclopediaPage(QWidget):
         self._last_ready_tab_index = index
         self.sync_tab_accent(label)
         self.sync_search_visibility()
-        if not was_lazy_placeholder:
+        if not was_lazy_slot:
             refresh = getattr(widget, "refresh_external_progress", None)
             if callable(refresh):
                 refresh()

@@ -16,7 +16,7 @@ from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, ENCYCLOPEDIA_TA
 from app.modules.encyclopedia.models import Achievement
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import AchievementProgressService
-from app.modules.encyclopedia.views import EncyclopediaPage, EncyclopediaPlaceholderView, GuidesView
+from app.modules.encyclopedia.views import EncyclopediaPage, GuidesView
 from app.modules.encyclopedia.widgets import AchievementDetailWidget
 from app.quest_catalog import QuestCatalog, QuestCharacter, QuestRecord, QuestStep
 
@@ -168,7 +168,7 @@ class AchievementContextPhase2Tests(unittest.TestCase):
             widget.deleteLater()
             app.processEvents()
 
-    def test_visible_achievements_tab_and_other_placeholders_remain(self):
+    def test_tabs_remain_lazy_without_visible_placeholder_ui(self):
         app = self.app()
         with tempfile.TemporaryDirectory() as tmp:
             profile, client_index, quest_progress, achievement_progress, owned = self.make_temp_paths(Path(tmp))
@@ -193,30 +193,33 @@ class AchievementContextPhase2Tests(unittest.TestCase):
 
             self.assertEqual(page.tab_labels(), list(ENCYCLOPEDIA_TABS))
             self.assertFalse(hasattr(page, "achievements_view"))
-            self.assertIsInstance(page.tabs.widget(page.tab_labels().index("GUIDES")), EncyclopediaPlaceholderView)
+            guide_slot = page.tabs.widget(page.tab_labels().index("GUIDES"))
+            self.assertEqual(guide_slot.objectName(), "EncyclopediaLazySlot")
+            self.assertEqual(guide_slot.findChildren(QLabel), [])
             page.tabs.setCurrentIndex(page.tab_labels().index("GUIDES"))
             app.processEvents()
             guide_tab = page.tabs.widget(page.tab_labels().index("GUIDES"))
-            self.assertNotIsInstance(guide_tab, EncyclopediaPlaceholderView)
+            self.assertIsNot(guide_tab, guide_slot)
             self.assertIsInstance(guide_tab, GuidesView)
             self.assertIs(guide_tab, page.guides_view)
             page.tabs.setCurrentIndex(page.tab_labels().index(QUESTS_TAB))
             app.processEvents()
-            self.assertIsInstance(page.tabs.widget(page.tab_labels().index(ACHIEVEMENTS_TAB)), EncyclopediaPlaceholderView)
+            achievement_slot = page.tabs.widget(page.tab_labels().index(ACHIEVEMENTS_TAB))
+            self.assertEqual(achievement_slot.objectName(), "EncyclopediaLazySlot")
+            self.assertEqual(achievement_slot.findChildren(QLabel), [])
             page.tabs.setCurrentIndex(page.tab_labels().index(ACHIEVEMENTS_TAB))
             app.processEvents()
             self.assertEqual(page.current_tab_label(), ACHIEVEMENTS_TAB)
-            self.assertNotIsInstance(
-                page.tabs.widget(page.tab_labels().index(ACHIEVEMENTS_TAB)),
-                EncyclopediaPlaceholderView,
-            )
+            self.assertIsNot(page.tabs.widget(page.tab_labels().index(ACHIEVEMENTS_TAB)), achievement_slot)
             page.tabs.setCurrentIndex(page.tab_labels().index(QUESTS_TAB))
             app.processEvents()
-            placeholder_tabs = {"DONJONS", "MONSTRES", "ARCHIMONSTRES", "AVIS DE RECHERCHE"}
+            lazy_tabs = {"DONJONS", "MONSTRES", "ARCHIMONSTRES", "AVIS DE RECHERCHE"}
             for index in range(page.tabs.count()):
                 label = page.tabs.tabText(index)
-                if label in placeholder_tabs:
-                    self.assertIsInstance(page.tabs.widget(index), EncyclopediaPlaceholderView)
+                if label in lazy_tabs:
+                    slot = page.tabs.widget(index)
+                    self.assertEqual(slot.objectName(), "EncyclopediaLazySlot")
+                    self.assertEqual(slot.findChildren(QLabel), [])
 
             self.assertEqual(page.current_tab_label(), QUESTS_TAB)
             assert page.quest_page is not None
