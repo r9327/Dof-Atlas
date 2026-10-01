@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import unittest
 from pathlib import Path
@@ -7,12 +8,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "public-pr-ci.yml"
+POLICY = ROOT / "tools" / "atlas_integrity_policy.json"
 
 
 class PublicPrCiGuardrailsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.source = WORKFLOW.read_text(encoding="utf-8")
+        cls.policy = json.loads(POLICY.read_text(encoding="utf-8"))
 
     def test_public_pr_runner_stays_github_hosted_and_read_only(self) -> None:
         self.assertIn("pull_request:", self.source)
@@ -25,36 +28,56 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         )
         self.assertNotRegex(self.source, r"(?m)^\s+[A-Za-z_-]+:\s*write\s*$")
 
-    def test_public_pr_executes_repository_guards(self) -> None:
-        required = (
-            "git diff --check",
-            "tools.check_generated_files --root . --tracked",
-            "tools.atlas_meta_integrity --root . --base-ref",
+    def test_public_pr_uses_doctor_fast_as_canonical_merge_gate(self) -> None:
+        for token in (
+            "tools.atlas_doctor verify",
+            "--gate fast",
+            '--base-ref "$env:BASE_SHA"',
+            "doctor-fast.json",
+            "payload.integrity.status",
+            "payload.audit.severity.CRITICAL",
             "actions/dependency-review-action@",
             "fail-on-severity: low",
             "pip install --require-hashes --no-deps -r requirements-pyside.txt",
-            "tests.test_architecture_debt_baseline",
-            "tests.test_clean_foundation_guardrails",
-            "tests.test_character_identity_contract",
-            "tests.test_character_identity_guardrails",
-            "tests.test_character_identity_invariants",
-            "tests.test_character_write_boundaries",
-            "tests.test_progress_concurrent_instances",
-            "tests.test_quest_progress_batch_contract",
-            "tests.test_project_guardrails",
-            "tests.test_generated_files_guard",
-            "tests.test_generated_file_guardrails",
-            "tests.test_repository_git_hooks",
-            "tests.test_meta_integrity",
-            "tests.test_atlas_integrity",
-            "tests.test_ci_runner_guardrails",
-            "tests.test_performance_guardrails",
-            "tests.test_public_pr_ci_guardrails",
-            "tests.test_security_hardening_guardrails",
-        )
-        for token in required:
+            "git diff --check",
+        ):
             with self.subTest(token=token):
                 self.assertIn(token, self.source)
+
+        fast_groups = set(self.policy["modes"]["FAST"])
+        self.assertEqual(
+            fast_groups,
+            {
+                "META_INTEGRITY",
+                "SYNTAX",
+                "GENERATED_FILES",
+                "ARCHITECTURE",
+                "IDENTITY",
+                "DIFF_TARGETS",
+            },
+        )
+
+    def test_non_doctor_merge_contracts_remain_explicit(self) -> None:
+        for module in (
+            "tests.test_atlas_integrity",
+            "tests.test_ci_runner_guardrails",
+            "tests.test_phase_certification_guardrails",
+            "tests.test_repository_git_hooks",
+            "tests.test_public_pr_ci_guardrails",
+            "tests.test_security_hardening_guardrails",
+        ):
+            self.assertIn(module, self.source)
+
+        ci_modules = set(self.policy["groups"]["CI_INTEGRITY"]["modules"])
+        self.assertIn("tests.test_ci_runner_guardrails", ci_modules)
+        self.assertIn("tests.test_phase_certification_guardrails", ci_modules)
+
+    def test_doctor_review_is_advisory_but_hard_failure_blocks(self) -> None:
+        self.assertIn("$doctorExit -ge 2", self.source)
+        self.assertIn('$integrityStatus -ne "PASS"', self.source)
+        self.assertIn("$criticalCount -gt 0", self.source)
+        self.assertIn("$doctorExit -eq 1", self.source)
+        self.assertIn("Doctor returned REVIEW", self.source)
 
     def test_dependency_review_failure_is_deferred_but_never_swallowed(self) -> None:
         self.assertEqual(self.source.count("continue-on-error: true"), 1)
@@ -69,6 +92,8 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             self.source,
             r"uses: actions/checkout@[0-9a-f]{40}",
         )
+        self.assertIn("ref: ${{ env.CANDIDATE_SHA }}", self.source)
+        self.assertIn("git rev-parse HEAD", self.source)
         self.assertIn("lfs: false", self.source)
         self.assertIn("fetch-depth: 0", self.source)
         self.assertIn("persist-credentials: false", self.source)
