@@ -9,7 +9,6 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "tools" / "audit_guide_ultime_manual_runtime.py"
 
 
 class GuideUltimeRuntimeAuditCliTests(unittest.TestCase):
@@ -20,12 +19,13 @@ class GuideUltimeRuntimeAuditCliTests(unittest.TestCase):
             completed = subprocess.run(
                 [
                     sys.executable,
-                    str(SCRIPT),
+                    "-m",
+                    "tools.audit_guide_ultime_manual_runtime",
                     "--strict-fields",
                     "--output",
                     str(output),
                 ],
-                cwd=tmp_path,
+                cwd=ROOT,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
