@@ -3,13 +3,10 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sys
 from pathlib import Path
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 from app.constants import RAW_QUEST_DATA_DIR
 from app.modules.encyclopedia.providers import QuestProvider
@@ -92,6 +89,48 @@ def catalog_index() -> dict[str, list[int]]:
     return result
 
 
+def route_field_errors(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Validate location pairs and quantities through the canonical bundle gate."""
+    errors: list[dict[str, Any]] = []
+    for stage in payload.get("stages", []) or []:
+        if not isinstance(stage, dict):
+            continue
+        stage_id = str(stage.get("id") or "").strip()
+        locations = [(key, stage[key]) for key in ("start", "end") if isinstance(stage.get(key), dict)]
+        locations.extend(
+            (f"waypoints[{index}]", row)
+            for index, row in enumerate(stage.get("waypoints", []) or [])
+            if isinstance(row, dict)
+        )
+        for location_key, location in locations:
+            has_x = location.get("x") is not None
+            has_y = location.get("y") is not None
+            if has_x != has_y:
+                errors.append({
+                    "code": "coordinate_pair_incomplete", "stage_id": stage_id,
+                    "location": location_key, "x": location.get("x"), "y": location.get("y"),
+                })
+            elif has_x and has_y:
+                try:
+                    x, y = int(location["x"]), int(location["y"])
+                    valid = abs(x) <= 10000 and abs(y) <= 10000
+                except (TypeError, ValueError, OverflowError):
+                    valid = False
+                if not valid:
+                    errors.append({
+                        "code": "invalid_coordinate", "stage_id": stage_id,
+                        "location": location_key, "x": location["x"], "y": location["y"],
+                    })
+    resource_plan = payload.get("resource_plan")
+    if isinstance(resource_plan, dict):
+        for row in resource_plan.get("collect_before_leaving_incarnam", []) or []:
+            if isinstance(row, dict):
+                quantity = row.get("quantity")
+                if type(quantity) is not int or quantity <= 0:
+                    errors.append({"code": "invalid_resource_quantity", "row": row})
+    return errors
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Valide le bundle canonique Guide Ultime manuel.")
     parser.add_argument("--strict", action="store_true")
@@ -120,6 +159,7 @@ def main() -> None:
             hard.append({"code": "canonical_composition_failed", "chapter": chapter_id, "file": filename, "error": repr(exc)})
             continue
         chapter_payloads[chapter_id] = payload
+        hard.extend({"chapter": chapter_id, "file": filename, **error} for error in route_field_errors(payload))
         stages = [stage for stage in payload.get("stages", []) or [] if isinstance(stage, dict)]
         declared = row.get("stage_count")
         if isinstance(declared, int) and declared != len(stages):
@@ -136,11 +176,15 @@ def main() -> None:
             compact_pause = stage.get("pause") if isinstance(stage.get("pause"), list) else None
             if checkpoint is None and not compact_pause:
                 hard.append({"code": "pause_checkpoint_missing", "chapter": chapter_id, "stage": stage_id})
+            if checkpoint is not None and checkpoint.get("safe") is not True:
+                hard.append({"code": "pause_checkpoint_unsafe", "chapter": chapter_id, "file": filename, "stage": stage_id})
 
     # Never allow the historical Dofus INT32_MIN sentinel back into manual sources,
     # including superseded files: they remain useful audit history.
     for path in BASE.glob("*.json"):
         payload = load(path)
+        if path.name not in {str(row.get("file") or "") for row in chapter_rows}:
+            hard.extend({"file": path.name, **error} for error in route_field_errors(payload))
         for json_path, value in walk(payload):
             if value == -2147483648 or (isinstance(value, str) and SENTINEL in value):
                 hard.append({"code": "sentinel_present", "file": path.name, "path": json_path})

@@ -5,12 +5,13 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from tools.atlas_doctor_lib.audit import run_audit
-from tools.atlas_doctor_lib.core import cache_matches_git, git_state, load_json
-from tools.atlas_doctor_lib.live import _sample_tree
+from tools.atlas_doctor_lib.core import cache_matches_git, git_state, load_json, write_json
+from tools.atlas_doctor_lib.live import _sample_tree, inspect_live
 from tools.atlas_doctor_lib.perf import profile_data_files
-from tools.atlas_doctor_lib.report import compare_performance, compare_runs
+from tools.atlas_doctor_lib.report import build_ai_report, compare_performance, compare_runs
 
 
 def _git(root: Path, *args: str) -> str:
@@ -43,6 +44,9 @@ class AtlasDoctorTests(unittest.TestCase):
             _git(root, 'add', '-A')
             _git(root, 'commit', '-m', 'bad')
             payload = run_audit(root)
+            self.assertEqual(payload['analysis_sources'], {
+                'static_ast': True, 'tracked_files': True, 'graph': False, 'atlas_integrity': False,
+            })
             rules = {item['rule'] for item in payload['issues']}
             self.assertIn('silent_exception', rules)
             cached = load_json(root, 'latest_audit')
@@ -96,6 +100,80 @@ class AtlasDoctorTests(unittest.TestCase):
             self.assertIn('import_star', {item['rule'] for item in payload['issues']})
         finally:
             directory.cleanup()
+
+    def test_snapshot_rotation_publishes_previous_and_latest(self) -> None:
+        with tempfile.TemporaryDirectory(prefix='atlas-doctor-rotation-') as directory:
+            root = Path(directory)
+            write_json(root, 'latest_audit', {'value': 'before'})
+            write_json(root, 'latest_audit', {'value': 'after'}, rotate=True)
+            self.assertEqual(load_json(root, 'previous_audit'), {'value': 'before'})
+            self.assertEqual(load_json(root, 'latest_audit'), {'value': 'after'})
+
+    def test_failed_rotation_preserves_both_published_snapshots(self) -> None:
+        with tempfile.TemporaryDirectory(prefix='atlas-doctor-rotation-') as directory:
+            root = Path(directory)
+            write_json(root, 'latest_audit', {'value': 'original'})
+            write_json(root, 'latest_audit', {'value': 'before'}, rotate=True)
+            with patch('tools.atlas_doctor_lib.core.os.replace', side_effect=OSError('rotation denied')):
+                with self.assertRaisesRegex(OSError, 'rotation denied'):
+                    write_json(root, 'latest_audit', {'value': 'after'}, rotate=True)
+            self.assertEqual(load_json(root, 'previous_audit'), {'value': 'original'})
+            self.assertEqual(load_json(root, 'latest_audit'), {'value': 'before'})
+
+    def test_live_trace_failure_states_reach_agent_report(self) -> None:
+        directory = self.make_repo()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        runner = root / 'tools' / 'atlas_doctor_io_runner.py'
+        runner.parent.mkdir()
+        runner.write_text('# subprocess boundary fixture', encoding='utf-8')
+        process = Mock(pid=123, returncode=0)
+        process.poll.return_value = 0
+        process.wait.return_value = 0
+        cases = (
+            (None, True, 'UNAVAILABLE'),
+            (b'{invalid json', True, 'FAIL'),
+            (b'[]', True, 'FAIL'),
+            (b'\\xff', True, 'FAIL'),
+            (b'{"schema_version":1,"summary":{"unique_files":0},"slowest":[]}', True, 'PASS'),
+            (None, False, 'DISABLED'),
+        )
+        for content, trace_io, expected in cases:
+            with self.subTest(content=content, trace_io=trace_io):
+                def launch(*args, **kwargs):
+                    if content is not None:
+                        path = Path(kwargs['env']['ATLAS_DOCTOR_IO_TRACE'])
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_bytes(content)
+                    return process
+
+                with patch('tools.atlas_doctor_lib.live.git_state', return_value=git_state(root)), \
+                        patch('tools.atlas_doctor_lib.live.subprocess.Popen', side_effect=launch):
+                    payload = inspect_live(root, trace_io=trace_io, quiet=True)
+                self.assertEqual(payload['io_trace_status'], expected)
+                if expected == 'PASS':
+                    self.assertIsInstance(payload['io_trace'], dict)
+                    self.assertIsNone(payload['io_trace_reason'])
+                else:
+                    self.assertIsNone(payload['io_trace'])
+                    self.assertTrue(payload['io_trace_reason'])
+                report = build_ai_report(root)['live_performance']
+                self.assertEqual(report['io_trace_status'], expected)
+                self.assertEqual(report['io_trace_reason'], payload['io_trace_reason'])
+                self.assertEqual(report['io_trace_path'], payload['io_trace_path'])
+
+    def test_missing_live_runner_is_explicit(self) -> None:
+        directory = self.make_repo()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        process = Mock(pid=123, returncode=0)
+        process.poll.return_value = 0
+        process.wait.return_value = 0
+        with patch('tools.atlas_doctor_lib.live.git_state', return_value=git_state(root)), \
+                patch('tools.atlas_doctor_lib.live.subprocess.Popen', return_value=process):
+            payload = inspect_live(root, trace_io=True, quiet=True)
+        self.assertEqual(payload['io_trace_status'], 'UNAVAILABLE')
+        self.assertIn('runner is absent', payload['io_trace_reason'])
 
     def test_live_sampler_reads_current_process(self) -> None:
         import os

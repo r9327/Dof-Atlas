@@ -235,11 +235,20 @@ def inspect_live(
             process.wait(timeout=5)
 
     trace_payload = None
-    if trace_path.is_file():
+    trace_status = 'DISABLED' if not trace_io else 'UNAVAILABLE'
+    trace_reason = 'I/O tracing was not requested.' if not trace_io else 'The I/O runner did not produce a trace.'
+    if trace_io and not runner.is_file():
+        trace_reason = 'The canonical I/O runner is absent.'
+    elif trace_io and trace_path.is_file():
         try:
-            trace_payload = json.loads(trace_path.read_text(encoding='utf-8'))
-        except (OSError, json.JSONDecodeError):
-            pass
+            candidate = json.loads(trace_path.read_text(encoding='utf-8'))
+            if not isinstance(candidate, dict):
+                trace_status, trace_reason = 'FAIL', 'The I/O trace must be a JSON object.'
+            else:
+                trace_payload = candidate
+                trace_status, trace_reason = 'PASS', None
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            trace_status, trace_reason = 'FAIL', f'{type(exc).__name__}: {exc}'
 
     rss_values = [float(item['rss_mb']) for item in samples]
     cpu_values = [float(item['cpu_total_percent']) for item in samples]
@@ -269,6 +278,9 @@ def inspect_live(
         },
         'samples': samples,
         'io_trace': trace_payload,
+        'io_trace_status': trace_status,
+        'io_trace_reason': trace_reason,
+        'io_trace_path': str(trace_path),
     }
     write_json(root, 'latest_live_perf', payload, rotate=True)
     return payload

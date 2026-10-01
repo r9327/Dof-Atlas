@@ -8,9 +8,10 @@ from tools.tool_audit import audit
 
 ROOT = Path(__file__).resolve().parents[1]
 PROOF_TEST = "tests/test_legacy_guide_tool_consumers.py"
-RETIRED_WRAPPERS = (
+RETIRED_TOOLS = (
     "tools/build_guide_ultime_gps_route_strict.py",
     "tools/audit_guide_ultime_route_forensic_v2.py",
+    "tools/validate_guide_ultime_manual_route.py",
 )
 DEFERRED_LEGACY = (
     "tools/run_guide_ultime_v5.ps1",
@@ -21,9 +22,9 @@ DEFERRED_LEGACY = (
 
 
 class LegacyGuideToolConsumerTests(unittest.TestCase):
-    def test_retired_wrappers_are_gone(self) -> None:
-        for path in RETIRED_WRAPPERS:
-            self.assertFalse((ROOT / path).exists(), msg=f"retired wrapper restored: {path}")
+    def test_retired_tools_are_gone(self) -> None:
+        for path in RETIRED_TOOLS:
+            self.assertFalse((ROOT / path).exists(), msg=f"retired tool restored: {path}")
 
     def test_v5_runner_has_no_live_consumers(self) -> None:
         report = audit(ROOT)

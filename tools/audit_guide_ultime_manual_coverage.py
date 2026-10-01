@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import json
-import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
 from app.quest_catalog import normalize_text
