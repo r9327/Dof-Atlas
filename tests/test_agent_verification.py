@@ -194,6 +194,9 @@ class AgentVerificationTests(unittest.TestCase):
         result = self.execute()
         self.assertEqual(result["status"], "REVIEW")
         self.assertIn("changed during", result["primary_cause"])
+        self.assertTrue(result["worktree_changed"])
+        self.assertIn("M tools/local.py", result["git_after"]["status_lines"])
+        self.assertFalse(result["git"]["dirty"])
 
     def test_invalid_test_metadata_is_not_executed(self):
         self.plan["execution_tests"] = ["--fake-option"]

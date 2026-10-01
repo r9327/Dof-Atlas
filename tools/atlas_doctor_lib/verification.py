@@ -155,7 +155,8 @@ def execute_plan(
         checks.append(gate)
         tools_executed.append("tools/atlas_integrity.py")
     final_state = git_state(root)
-    if final_state["head"] != state["head"] or final_state["dirty_digest"] != state["dirty_digest"]:
+    worktree_changed = final_state["head"] != state["head"] or final_state["dirty_digest"] != state["dirty_digest"]
+    if worktree_changed:
         reviews.append("Repository changed during verification; results require a fresh run.")
     status = "FAIL" if any(row["status"] == "FAIL" for row in checks) else (
         "REVIEW" if reviews or not checks or any(row["status"] != "PASS" for row in checks) else "PASS")
@@ -177,7 +178,7 @@ def execute_plan(
     payload = {
         "schema_version": 1, "kind": "verification", "source": "tools.atlas_doctor_lib.verification",
         "generated_at": utc_now(), "status": status, "level": plan.get("level", "UNKNOWN"),
-        "git": state, "base_ref": base_ref,
+        "git": state, "git_after": final_state, "worktree_changed": worktree_changed, "base_ref": base_ref,
         "baseline": {
             "requested_ref": base_ref,
             "resolved_sha": base_sha,

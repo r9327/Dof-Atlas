@@ -412,7 +412,7 @@ Ce lot etait explicitement optionnel. Aucune preuve n'a etabli une mutation repo
 
 Les merges #74 et #76 valident leurs micro-lots ; leurs checks Phase Certification skipped ne constituent pas une certification de fermeture. La PR #77 a corrige la fausse escalade provoquee par les sorties runtime, sans supprimer les verrous JSON ni affaiblir la policy. Sur l'implementation `8661cfd05974ff3933a6fb81c6644514600a8b0d`, la suite complete compte 1821 tests PASS et Phase Certification run `36851325785` est PASS avec `GUIDE_CERTIFIED`. Les scenarios runtime et leurs couts sont publies dans [PR #80](https://github.com/r9327/Dof-Atlas/pull/80); un FAIL courant n'est jamais accepte comme non-regression.
 
-La fermeture definitive exige les checks termines et verts du HEAD courant de #80, ainsi que la matrice runtime. Une modification documentaire ou d'index change aussi le SHA et impose de nouvelles validations exactes. Avant de reprendre un lot deja implemente, verifier ces preuves GitHub plutot que refaire l'outillage. Doctor/Agent/Graph restent des outils d'assistance et ne remplacent jamais Atlas Integrity ni les contrats produit.
+La PR #80 a ete mergee sur `a4ec7b58714f483d722d447ae7924f754d1b0c7e` apres ses checks exacts verts. Le scenario HARD reel a cependant revele une mutation de `data/local/zaaps.json` pendant DATA_INTEGRITY, malgre tous les groupes FULL PASS. La fermeture definitive exige aussi la correction et la revalidation de cette matrice runtime. Une modification documentaire ou d'index change aussi le SHA et impose de nouvelles validations exactes. Avant de reprendre un lot deja implemente, verifier ces preuves GitHub plutot que refaire l'outillage. Doctor/Agent/Graph restent des outils d'assistance et ne remplacent jamais Atlas Integrity ni les contrats produit.
 
 ## Reprise pratique avant / apres
 
@@ -436,3 +436,9 @@ SOFT cible les consommateurs de tests prouves par Tool Audit; les mentions textu
 Aucun outil n'est supprime sur la seule indication zero consumer. Les hooks PowerShell ont des consommateurs Git; `atlas_doctor_io_runner` et `atlas_fault_injection` sont appeles dynamiquement par leurs moteurs. Les facades Guide modernes et leurs tests restent canoniques. Les moteurs Guide v4/v5 conservent des contrats et consommateurs distincts; les mutateurs historiques v2/v3 ne disposent pas d'un remplacement prouve et restent candidats a revue. Cette ROAD ne leur invente pas un remplacement.
 
 Le cycle produit observe entre `guides_view`, `widgets/__init__` et `quest_detail_view` reste une observation hors du perimetre tooling. Il ne justifie pas un refactor produit dans ce chantier.
+
+## Isolation des ecritures de validation
+
+La cause prouvee est le bootstrap offline de `get_adapter()` pendant les tests shell Guide : le vrai importeur regenere le snapshot zaap suivi. Les validations utilisent desormais un cache temporaire explicite `DOFUS_ATLAS_VALIDATION_DATA_DIR` (chemin absolu), en conservant les sources raw et images reelles. Les tests et le harness Guide etablissent ce cache et ne modifient jamais le snapshot source. Sans cette variable, le constructeur produit reste inchange. Aucun test ni moteur n'est simule, aucun fichier suivi n'est restaure pour masquer une mutation. Doctor conserve le blocage sur mutation et expose `git_after` et `worktree_changed` pour en identifier les chemins.
+
+La CI du merge `a4ec7b58714f483d722d447ae7924f754d1b0c7e` a aussi expose un index AI Context perime apres l'integration concurrente des hooks #79 : les contrats de contexte echouent, sans masquer l'erreur. La correction synchronise l'index par `tools.ai_context sync --stage` sur la combinaison actuelle, sans modification manuelle des fingerprints.

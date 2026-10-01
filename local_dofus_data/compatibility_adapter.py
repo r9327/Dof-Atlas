@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -244,7 +246,19 @@ _ADAPTER: LocalCompatibilityAdapter | None = None
 def get_adapter() -> LocalCompatibilityAdapter:
     global _ADAPTER
     if _ADAPTER is None:
-        _ADAPTER = LocalCompatibilityAdapter()
+        validation_dir = os.environ.get("DOFUS_ATLAS_VALIDATION_DATA_DIR")
+        if validation_dir:
+            output_root = Path(validation_dir)
+            if not output_root.is_absolute():
+                raise ValueError("DOFUS_ATLAS_VALIDATION_DATA_DIR must be absolute.")
+            config = replace(
+                DEFAULT_CONFIG, local_dir=output_root / "local",
+                sqlite_path=output_root / "local" / "dofus_data.sqlite",
+                exports_dir=output_root / "exports", reports_dir=output_root / "reports",
+            )
+            _ADAPTER = LocalCompatibilityAdapter(config=config)
+        else:
+            _ADAPTER = LocalCompatibilityAdapter()
     return _ADAPTER
 
 

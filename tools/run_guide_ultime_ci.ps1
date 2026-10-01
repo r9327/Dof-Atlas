@@ -8,6 +8,19 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $LogDir = Join-Path $Root "artifacts\ci_guide_ultime_logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
+$OwnedValidationDir = $null
+if (-not $env:DOFUS_ATLAS_VALIDATION_DATA_DIR) {
+    $OwnedValidationDir = Join-Path ([IO.Path]::GetTempPath()) ("atlas-guide-data-" + [guid]::NewGuid().ToString("N"))
+    $env:DOFUS_ATLAS_VALIDATION_DATA_DIR = $OwnedValidationDir
+}
+$ValidationLocal = Join-Path $env:DOFUS_ATLAS_VALIDATION_DATA_DIR "local"
+New-Item -ItemType Directory -Force -Path $ValidationLocal | Out-Null
+$ZaapSeed = Join-Path $Root "data\local\zaaps.json"
+$ZaapSandbox = Join-Path $ValidationLocal "zaaps.json"
+if ((Test-Path $ZaapSeed) -and -not (Test-Path $ZaapSandbox)) {
+    Copy-Item -LiteralPath $ZaapSeed -Destination $ZaapSandbox
+}
+
 $results = [System.Collections.Generic.List[object]]::new()
 
 function Write-LogLine {
@@ -159,6 +172,10 @@ try {
 }
 finally {
     Pop-Location
+    if ($OwnedValidationDir) {
+        Remove-Item -LiteralPath $OwnedValidationDir -Recurse -Force
+        Remove-Item Env:\DOFUS_ATLAS_VALIDATION_DATA_DIR
+    }
 }
 
 $summaryJson = Join-Path $LogDir "ci_summary.json"
