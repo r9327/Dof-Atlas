@@ -483,12 +483,6 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
         if isinstance(node, ast.ImportFrom) and any(alias.name == '*' for alias in node.names):
             issues.append(Issue('import_star', 'architecture', 'HIGH', 'confirmed', path, _line(node), 'Import wildcard interdit', ast.unparse(node), 'Remplacer par des imports explicites pour garder les dependances auditables.'))
 
-        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
-            lowered_name = node.name.casefold()
-            marker = next((item for item in LEGACY_MARKERS if item in lowered_name), None)
-            if marker:
-                issues.append(Issue('legacy_symbol_marker', 'legacy', 'INFO', 'suspect', path, _line(node), 'Symbole potentiellement legacy/obsolet', f'{node.name} contient {marker}', 'Verifier ses consommateurs et le contrat canonique avant toute suppression.'))
-
         if isinstance(node, ast.While) and isinstance(node.test, ast.Constant) and node.test.value is True:
             if path.startswith('app/') and not _contains_blocking_call(node, blocking_functions):
                 issues.append(Issue('busy_loop_risk', 'performance', 'MEDIUM', 'suspect', path, _line(node), 'Boucle infinie sans attente bloquante visible', 'while True sans sleep/wait/get/join/acquire detecte statiquement', 'Verifier que cette boucle ne peut pas tourner a vide et consommer du CPU.'))
@@ -597,6 +591,34 @@ def run_audit(
             for index in range(1, len(parts)):
                 imported['.'.join(parts[:index])] += 1
 
+    symbol_references: Counter[str] = Counter()
+    for tree in trees.values():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                symbol_references[node.id] += 1
+            elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
+                symbol_references[node.attr] += 1
+    for path, tree in trees.items():
+        if path.startswith('tests/'):
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            lowered_name = node.name.casefold()
+            marker = next((item for item in LEGACY_MARKERS if item in lowered_name), None)
+            if not marker:
+                continue
+            references = symbol_references.get(node.name, 0)
+            confidence = 'confirmed' if references else 'suspect'
+            rule = 'compatibility_symbol_contract' if references else 'legacy_symbol_marker'
+            title = 'Symbole de compatibilite/fallback consomme' if references else 'Symbole legacy sans consommateur detecte'
+            recommendation = (
+                'Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.'
+                if references
+                else 'Prouver le wiring dynamique ou supprimer le symbole apres reverse-impact.'
+            )
+            issues.append(Issue(rule, 'legacy', 'INFO', confidence, path, _line(node), title, f'{node.name} contient {marker}; references={references}', recommendation))
+
     for module, path in module_to_path.items():
         if not path.startswith(('app/', 'local_dofus_data/')):
             continue
@@ -616,7 +638,7 @@ def run_audit(
     for symbol, locations in symbols.items():
         unique = sorted(set(locations))
         if len(unique) >= 4:
-            issues.append(Issue('repeated_symbol_name', 'architecture', 'INFO', 'suspect', unique[0], None, f'Symbole {symbol} present dans plusieurs modules', ', '.join(unique[:8]), 'Verifier uniquement si ces implementations portent réellement la meme responsabilite.'))
+            issues.append(Issue('repeated_symbol_name', 'architecture', 'INFO', 'confirmed', unique[0], None, f'Nom de symbole courant dans plusieurs modules', ', '.join(unique[:8]), 'Observation uniquement: un nom repete ne prouve ni dependance ni duplication de responsabilite.'))
 
     integrity: dict[str, Any] | None = None
     if integrity_mode:

@@ -294,6 +294,32 @@ class AtlasDoctorTests(unittest.TestCase):
         finally:
             directory.cleanup()
 
+    def test_audit_uses_consumers_not_legacy_words_to_classify_symbols(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'compat.py'
+            target.write_text(
+                'def legacy_adapter():\n'
+                '    return 1\n'
+                'def use_adapter():\n'
+                '    return legacy_adapter()\n'
+                'def obsolete_orphan():\n'
+                '    return 2\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'compatibility symbols')
+            issues = run_audit(root, save=False)['issues']
+            confirmed = {
+                item['line'] for item in issues if item['rule'] == 'compatibility_symbol_contract'
+            }
+            suspects = {item['line'] for item in issues if item['rule'] == 'legacy_symbol_marker'}
+            self.assertIn(1, confirmed)
+            self.assertIn(5, suspects)
+        finally:
+            directory.cleanup()
+
     def test_audit_recognizes_transitive_blocking_io_but_keeps_true_spin(self) -> None:
         directory = self.make_repo()
         try:
