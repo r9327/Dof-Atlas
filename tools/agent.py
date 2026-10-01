@@ -689,6 +689,10 @@ def main(argv: list[str] | None = None) -> int:
     plan = commands.add_parser("plan")
     plan.add_argument("paths", nargs="+")
     plan.add_argument("--json", action="store_true")
+    levels = plan.add_mutually_exclusive_group()
+    levels.add_argument("--soft", dest="level", action="store_const", const="SOFT")
+    levels.add_argument("--medium", dest="level", action="store_const", const="MEDIUM")
+    levels.add_argument("--hard", dest="level", action="store_const", const="HARD")
     plan.add_argument("--structural", action="store_true", help="Refactor, module move/deletion, consumers, cycles or dependency cleanup: require Graphify preflight.")
     validate = commands.add_parser("validate")
     validate.add_argument("integrity_args", nargs=argparse.REMAINDER)
@@ -731,7 +735,12 @@ def main(argv: list[str] | None = None) -> int:
                 impact["scopes"] = _unique([
                     *impact.get("scopes", []), *graph_impact.get("scopes", []),
                 ])
-            payload = agent_planner.build_plan(ROOT, args.paths, impact)
+            options = {}
+            if args.level:
+                options["level"] = args.level
+            if args.structural:
+                options["structural"] = True
+            payload = agent_planner.build_plan(ROOT, args.paths, impact, **options)
             graph = graph_impact["graph"] if graph_impact else None
             payload["architecture_preflight"] = {
                 "required": args.structural,

@@ -420,8 +420,16 @@ Le moteur graph recoit les resolveurs existants de l'Agent via la facade `revers
 
 Validation RD-1 : PR #73, HEAD exact `ded119e82864b5fae78053591768250a83aca6b5`, six checks PASS dont Phase Certification. 116 tests cibles et Atlas Integrity FAST PASS ; Graphify reel, CLI Agent/Doctor et 20 tests graph PASS sous Windows. Le nettoyage conservateur des branches a preserve le main certifie `98059f52f9c47727c8344b649175676bb4569267`.
 
-## RD-2 — Planner par metadonnees — CODE_DONE
+## RD-2 — Planner par metadonnees — VALIDATED
 
 Le planner reutilise `tools.tool_catalog.select_tools`. Les facades specialisees sont selectionnees par leur role canonique et leurs `TOOL_SPEC.target_scopes` optionnels, ou lorsque leur propre source change. Aucun nom « Guide » dans un chemin ne choisit un moteur. Les tests declares, couts, modes, effets de bord et raisons restent exposes. Un mode FAST indisponible impose REVIEW au lieu de lancer FULL implicitement.
 
-Atlas Integrity demeure l'unique autorite globale. Ses groupes, notamment META_INTEGRITY et la validation AI Context, ne sont pas dupliques par un lancement independant du mutateur AI Context. Les moteurs specialises conservent leur implementation. Ce micro-lot ne ferme pas les niveaux, verify, baseline ou mesures restant ouverts.
+Atlas Integrity demeure l'unique autorite globale. Ses groupes, notamment META_INTEGRITY, ne sont pas dupliques. La validation AI Context reste une execution explicite de son moteur existant ; un indice de chemin ne selectionne pas son mode mutateur. Les moteurs specialises conservent leur implementation. Ce micro-lot ne ferme pas les niveaux, verify, baseline ou mesures restant ouverts.
+
+Validation RD-2 : candidat source `6805ce4bb612776cc448387db71e40d7882e2189`, 129 tests cibles Windows et Atlas Integrity FAST (risque MEDIUM, golden flows ajoutes par la policy) PASS. Agent doctor, Guide tools doctor et AI Context PASS ; index genere canoniquement.
+
+## RD-3 — Profondeurs de travail — CODE_DONE
+
+Le planner choisit SOFT, MEDIUM ou HARD et explique chaque escalade. Les overrides `--soft`, `--medium`, `--hard` de `agent plan` sont mutuellement exclusifs. Aucun override ne baisse le minimum d'Atlas Integrity. Plusieurs fichiers/scopes elargissent les controles ; un changement structurel/critique demande HARD. DEEP est conserve seulement lorsqu'exige par la policy.
+
+SOFT utilise les tests consommateurs directs declares/observes du catalogue lorsqu'ils existent, sinon le ciblage scope existant. MEDIUM conserve les tests elargis scopes. HARD delegue FULL_SUITE a Atlas Integrity sans seconde decouverte complete. Aucun benchmark runtime supplementaire n'est lance par reflexe.

@@ -122,6 +122,61 @@ def _test_command(modules: Iterable[str]) -> list[str]:
     return ["py", "-3.13", "-m", "unittest", *tests]
 
 
+def choose_work_depth(
+    paths: list[str], impact: dict[str, Any], classification: dict[str, Any],
+    minimum_mode: str, *, requested: str | None = None, structural: bool = False,
+) -> dict[str, Any]:
+    """Depth is a routing choice; the canonical integrity floor is never lowered."""
+    order = ("SOFT", "MEDIUM", "HARD")
+    if requested is not None:
+        requested = requested.upper()
+        if requested not in order:
+            raise ValueError("work level must be SOFT, MEDIUM or HARD")
+    floor = "HARD" if minimum_mode in {"FULL", "DEEP"} else "MEDIUM" if minimum_mode == "CRITICAL" else "SOFT"
+    reasons = [f"Atlas Integrity policy requires at least {minimum_mode}."]
+    if structural or classification.get("risk") == "CRITICAL":
+        floor = "HARD"
+        reasons.append("Structural work or critical risk requires comprehensive validation.")
+    elif len(paths) > 1 or len(impact.get("scopes", [])) > 1:
+        if floor == "SOFT":
+            floor = "MEDIUM"
+        reasons.append("Multiple changed files or affected scopes require wider targeted checks.")
+    selected = max((floor, requested or "SOFT"), key=order.index)
+    mode_floor = {"SOFT": "FAST", "MEDIUM": "CRITICAL", "HARD": "FULL"}[selected]
+    mode = max((minimum_mode, mode_floor), key=_MODE_ORDER.index)
+    start = requested or "SOFT"
+    escalations = []
+    if order.index(selected) > order.index(start):
+        escalations.append({"from": start, "to": selected, "reasons": reasons})
+    return {"requested": requested or "AUTO", "level": selected,
+            "integrity_mode": mode, "reasons": reasons,
+            "escalations": escalations, "graph_depth": 2 if selected == "HARD" else 1,
+            "performance": "Only canonical policy-required groups; no extra runtime benchmark."}
+
+
+def _execution_tests(
+    root: Path, paths: list[str], tests: list[str], report: dict[str, Any], level: str,
+) -> list[str]:
+    if level == "HARD":
+        return []  # FULL_SUITE stays owned and executed by Atlas Integrity.
+    if level != "SOFT":
+        return tests
+    direct = []
+    for row in report.get("tools", []):
+        if row.get("path") in paths:
+            direct.extend(row.get("declared_tests", []))
+            direct.extend(
+                path[:-3].replace("/", ".")
+                for path in row.get("targeted_tests", [])
+                if path.startswith("tests/test_") and path.endswith(".py")
+                and (root / path).is_file()
+            )
+    direct.extend(path[:-3].replace("/", ".") for path in paths
+                  if path.startswith("tests/test_") and path.endswith(".py")
+                  and (root / path).is_file())
+    return _unique(direct) or tests
+
+
 def build_plan(
     root: Path,
     paths: Iterable[str],
@@ -129,19 +184,22 @@ def build_plan(
     *,
     policy: dict[str, Any] | None = None,
     catalog_report: dict[str, Any] | None = None,
+    level: str | None = None,
+    structural: bool = False,
 ) -> dict[str, Any]:
     root = root.resolve()
     normalized = atlas_integrity.normalize_paths(paths)
     classification = atlas_integrity.classify_risk(normalized)
     resolved_policy = policy or atlas_integrity.load_policy(root)
     minimum_mode = minimum_integrity_mode(resolved_policy, classification)
+    depth = choose_work_depth(normalized, impact, classification, minimum_mode, requested=level, structural=structural)
     groups = required_groups(resolved_policy, classification)
     report = catalog_report or tooling_catalog(root)
     tools = _preferred_validation_tools(
         report,
         scopes=impact.get("scopes", []),
         paths=normalized,
-        minimum_mode=minimum_mode,
+        minimum_mode=depth["integrity_mode"],
     )
 
     unowned = list(impact.get("unowned_paths", []))
@@ -163,7 +221,8 @@ def build_plan(
         *(str(module) for module in impact.get("recommended_tests", [])),
         *(str(module) for row in tools for module in row.get("declared_tests", [])),
     ])
-    mode_argument = minimum_mode.casefold()
+    execution_tests = _execution_tests(root, normalized, tests, report, depth["level"])
+    mode_argument = depth["integrity_mode"].casefold()
 
     return {
         "schema_version": _SCHEMA_VERSION,
@@ -172,6 +231,9 @@ def build_plan(
         "read_only": True,
         "status": "READY" if automation_safe else "REVIEW_REQUIRED",
         "automation_safe": automation_safe,
+        "level": depth["level"],
+        "depth": depth,
+        "integrity_mode": depth["integrity_mode"],
         "paths": normalized,
         "scopes": list(impact.get("scopes", [])),
         "ownership": {
@@ -183,7 +245,9 @@ def build_plan(
         "required_groups": groups,
         "minimum_integrity_mode": minimum_mode,
         "recommended_tests": tests,
-        "test_command": _test_command(tests),
+        "execution_tests": execution_tests,
+        "tests_delegated_to_integrity": depth["level"] == "HARD",
+        "test_command": _test_command(execution_tests),
         "validation_command": [
             "py",
             "-3.13",
