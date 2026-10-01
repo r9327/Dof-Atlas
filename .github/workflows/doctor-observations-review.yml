@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: c3ab1b85bbcf071cfb6423cd1a842e97e2d80df5
+          ref: 66b98a303cfcf6dce0e887e033d68674cee7dab3
           fetch-depth: 0
           lfs: false
           persist-credentials: false
@@ -19,13 +19,13 @@ jobs:
         with:
           python-version: "3.13"
       - run: |
-          test "$(git rev-parse HEAD)" = "c3ab1b85bbcf071cfb6423cd1a842e97e2d80df5"
+          test "$(git rev-parse HEAD)" = "66b98a303cfcf6dce0e887e033d68674cee7dab3"
           python -m pip install graphifyy==0.9.72
           python -m tools.atlas_doctor graph --rebuild --json > "$RUNNER_TEMP/graph-summary.json"
           python - <<'PY'
           import json,os,pathlib
           p=json.loads((pathlib.Path(os.environ["RUNNER_TEMP"])/"graph-summary.json").read_text())
-          assert p["status"]=="PASS" and p["git"]["head"]=="c3ab1b85bbcf071cfb6423cd1a842e97e2d80df5"
+          assert p["status"]=="PASS" and p["git"]["head"]=="66b98a303cfcf6dce0e887e033d68674cee7dab3"
           print("CURRENT_GRAPH_SUMMARY="+json.dumps(p["summary"]))
           print(pathlib.Path("graphify-out/GRAPH_REPORT.md").read_text()[:16000])
           graph=json.loads(pathlib.Path("graphify-out/graph.json").read_text());nodes={str(n["id"]):n for n in graph["nodes"]}
@@ -42,5 +42,5 @@ jobs:
           test -z "$(git status --short)"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: graphify-pre-consolidation-c3ab1b85bbcf071cfb6423cd1a842e97e2d80df5
+          name: graphify-pre-consolidation-66b98a303cfcf6dce0e887e033d68674cee7dab3
           path: graphify-out/
