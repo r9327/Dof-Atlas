@@ -105,6 +105,7 @@ jobs:
       - name: Run merge-safety contracts outside Doctor FAST policy
         shell: pwsh
         run: |
+          # Doctor FAST ARCHITECTURE owns tests.test_project_guardrails.
           python -X faulthandler -m unittest -v `
             tests.test_atlas_integrity `
             tests.test_ci_runner_guardrails `
