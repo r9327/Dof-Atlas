@@ -8,6 +8,7 @@ Atlas Integrity policy/classification, and the AI tool catalog into one stable
 plan that callers can inspect before editing or validating the repository.
 """
 
+import time
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -177,25 +178,56 @@ def _execution_tests(
     return _unique(direct) or tests
 
 
-def _planning_catalog(root: Path) -> dict[str, Any]:
-    # Inventory inputs are git-tracked source/docs/tests only. Never cache gates:
-    # their ignored application fixtures may change independently of Git.
+def _planning_catalog(
+    root: Path, *, cache_info: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return the current tool catalog and optionally expose cache evidence.
+
+    The public return shape stays the catalog itself so existing callers/tests keep
+    their contract. Cache metadata is observational only and never authorizes a
+    validation result to be reused.
+    """
     from tools.atlas_doctor_lib.core import cache_matches_git, git_state, load_json, write_json
+
+    started = time.perf_counter()
     try:
         state = git_state(root)
     except RuntimeError:
-        return tooling_catalog(root)
+        report = tooling_catalog(root)
+        if cache_info is not None:
+            cache_info.update({
+                "status": "BYPASS",
+                "reason": "Git state unavailable; catalog discovered directly.",
+                "duration_ms": round((time.perf_counter() - started) * 1000.0, 3),
+            })
+        return report
+
     cached = load_json(root, "planner_catalog")
     if (cached and cached.get("schema_version") == 1
             and cached.get("kind") == "planner_catalog"
             and cache_matches_git(cached, state)):
         report = cached.get("catalog")
         if isinstance(report, dict) and report.get("schema_version") == 1:
+            if cache_info is not None:
+                cache_info.update({
+                    "status": "HIT",
+                    "head": state.get("head"),
+                    "dirty_digest": state.get("dirty_digest", ""),
+                    "duration_ms": round((time.perf_counter() - started) * 1000.0, 3),
+                })
             return report
+
     report = tooling_catalog(root)
     write_json(root, "planner_catalog", {
         "schema_version": 1, "kind": "planner_catalog", "git": state, "catalog": report,
     })
+    if cache_info is not None:
+        cache_info.update({
+            "status": "MISS",
+            "head": state.get("head"),
+            "dirty_digest": state.get("dirty_digest", ""),
+            "duration_ms": round((time.perf_counter() - started) * 1000.0, 3),
+        })
     return report
 
 
@@ -216,7 +248,14 @@ def build_plan(
     minimum_mode = minimum_integrity_mode(resolved_policy, classification)
     depth = choose_work_depth(normalized, impact, classification, minimum_mode, requested=level, structural=structural)
     groups = required_groups(resolved_policy, classification)
-    report = catalog_report if catalog_report is not None else _planning_catalog(root)
+    planner_cache: dict[str, Any] = {}
+    if catalog_report is not None:
+        report = catalog_report
+        planner_cache = {"status": "PROVIDED", "duration_ms": 0.0}
+    else:
+        report = _planning_catalog(root, cache_info=planner_cache)
+        if not planner_cache:
+            planner_cache = {"status": "UNKNOWN"}
     tools = _preferred_validation_tools(
         report,
         scopes=impact.get("scopes", []),
@@ -280,6 +319,7 @@ def build_plan(
             "--json",
         ],
         "recommended_tools": tools,
+        "planner_cache": planner_cache,
         "planning_reasons": [
             "Scope and ownership come from the existing Agent map.",
             "Risk and minimum mode come from Atlas Integrity classification/policy.",
