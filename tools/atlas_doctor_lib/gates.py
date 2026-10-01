@@ -11,12 +11,25 @@ from typing import Any
 from .core import milliseconds
 
 INTEGRITY_MODES = {'fast', 'critical', 'full', 'deep'}
+INTEGRITY_TIMEOUT_SECONDS = {
+    'fast': 900,
+    'critical': 900,
+    'full': 7200,
+    'deep': 7200,
+}
 
 
-def run_integrity_gate(root: Path, mode: str = 'critical', *, base_ref: str = 'HEAD', timeout: int = 900) -> dict[str, Any]:
+def run_integrity_gate(
+    root: Path,
+    mode: str = 'critical',
+    *,
+    base_ref: str = 'HEAD',
+    timeout: int | None = None,
+) -> dict[str, Any]:
     normalized = mode.casefold()
     if normalized not in INTEGRITY_MODES:
         raise ValueError(f'Mode integrity inconnu: {mode}')
+    effective_timeout = timeout if timeout is not None else INTEGRITY_TIMEOUT_SECONDS[normalized]
     integrity = root / 'tools/atlas_integrity.py'
     if not integrity.is_file():
         return {
@@ -28,6 +41,7 @@ def run_integrity_gate(root: Path, mode: str = 'critical', *, base_ref: str = 'H
     env = os.environ.copy()
     current_pythonpath = env.get('PYTHONPATH', '')
     env['PYTHONPATH'] = str(root) + (os.pathsep + current_pythonpath if current_pythonpath else '')
+    env.setdefault('PYTHONUTF8', '1')
     command = [
         sys.executable,
         '-m',
@@ -50,7 +64,7 @@ def run_integrity_gate(root: Path, mode: str = 'critical', *, base_ref: str = 'H
             errors='replace',
             capture_output=True,
             check=False,
-            timeout=timeout,
+            timeout=effective_timeout,
         )
     except subprocess.TimeoutExpired as exc:
         return {
@@ -58,7 +72,7 @@ def run_integrity_gate(root: Path, mode: str = 'critical', *, base_ref: str = 'H
             'mode': normalized.upper(),
             'duration_ms': milliseconds(started),
             'command': command,
-            'reason': f'Integrity gate depasse {timeout}s',
+            'reason': f'Integrity gate depasse {effective_timeout}s',
             'stdout_tail': (exc.stdout or '').splitlines()[-30:] if isinstance(exc.stdout, str) else [],
             'stderr_tail': (exc.stderr or '').splitlines()[-30:] if isinstance(exc.stderr, str) else [],
         }
