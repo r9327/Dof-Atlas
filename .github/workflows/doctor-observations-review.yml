@@ -31,3 +31,24 @@ jobs:
           assert subprocess.check_output(["git","diff","--cached","--name-only"],text=True).splitlines()==[".ai/context_index.json"]
           print("CANONICAL_INDEX_BASE64="+base64.b64encode(pathlib.Path(".ai/context_index.json").read_bytes()).decode())
           PY
+      - name: Existing canonical pause checkpoint contract evidence
+        run: |
+          python - <<'PY'
+          import collections,json,pathlib
+          from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
+          base=pathlib.Path("data/routes/guide_ultime_manual")
+          manifest=json.loads((base/"manifest_v1.json").read_text())
+          counts=collections.Counter();unsafe=[]
+          for row in manifest["canonical"]["chapters"]:
+              for stage in load_manual_chapter(base/row["file"]).get("stages",[]):
+                  checkpoint=stage.get("pause_checkpoint")
+                  if isinstance(checkpoint,dict):
+                      counts["checkpoint_dict"]+=1
+                      counts["safe_"+repr(checkpoint.get("safe"))]+=1
+                      if checkpoint.get("safe",True) is not True:
+                          unsafe.append({"file":row["file"],"stage":stage.get("id"),"checkpoint":checkpoint})
+                  elif stage.get("pause"):
+                      counts["compact_pause"]+=1
+                  else: counts["no_pause"]+=1
+          print("PAUSE_CONTRACT_EVIDENCE="+json.dumps({"counts":counts,"unsafe":unsafe}))
+          PY
