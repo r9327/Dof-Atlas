@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import subprocess
 import tempfile
 import unittest
@@ -98,6 +99,52 @@ class AtlasDoctorTests(unittest.TestCase):
             _git(root, 'commit', '-m', 'wildcard')
             payload = run_audit(root)
             self.assertIn('import_star', {item['rule'] for item in payload['issues']})
+        finally:
+            directory.cleanup()
+
+    def test_large_file_contract_requires_hash_generator_and_consumers(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'data' / 'catalog.json'
+            target.write_text('{"items":[]}', encoding='utf-8')
+            generator = root / 'app' / 'generate.py'
+            generator.write_text('OUTPUT = "catalog.json"\n', encoding='utf-8')
+            consumer = root / 'app' / 'consume.py'
+            consumer.write_text('SOURCE = "catalog.json"\n', encoding='utf-8')
+            digest = hashlib.sha256(target.read_bytes()).hexdigest()
+            (root / 'data' / 'large_file_contracts.json').write_text(
+                json.dumps(
+                    {
+                        'schema_version': 1,
+                        'files': [
+                            {
+                                'path': 'data/catalog.json',
+                                'sha256': digest,
+                                'role': 'canonical_runtime_source',
+                                'generator': 'app/generate.py',
+                                'consumers': ['app/consume.py'],
+                            }
+                        ],
+                    }
+                ),
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'contracted data')
+            with patch('tools.atlas_doctor_lib.audit.LARGE_TRACKED_FILE_BYTES', 1):
+                issues = run_audit(root, save=False)['issues']
+            target_rules = {item['rule'] for item in issues if item['path'] == 'data/catalog.json'}
+            self.assertIn('contracted_large_file', target_rules)
+            self.assertNotIn('large_tracked_file', target_rules)
+
+            target.write_text('{"items":[1]}', encoding='utf-8')
+            with patch('tools.atlas_doctor_lib.audit.LARGE_TRACKED_FILE_BYTES', 1):
+                issues = run_audit(root, save=False)['issues']
+            rules = {item['rule'] for item in issues}
+            target_rules = {item['rule'] for item in issues if item['path'] == 'data/catalog.json'}
+            self.assertIn('invalid_large_file_contract', rules)
+            self.assertIn('large_tracked_file', target_rules)
         finally:
             directory.cleanup()
 

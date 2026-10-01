@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -15,6 +17,9 @@ RUNTIME_PREFIXES = ('artifacts/', 'logs/', '.ai/runtime/')
 ENTRYPOINT_NAMES = {'main.py', 'launch.py', '__main__.py', '__init__.py'}
 LEGACY_MARKERS = ('legacy', 'deprecated', 'obsolete', 'lightweight', 'placeholder', 'fallback')
 THREAD_CALLS = {'QThread', 'Thread', 'threading.Thread', 'threading.Timer', 'ThreadPoolExecutor', 'concurrent.futures.ThreadPoolExecutor'}
+LARGE_TRACKED_FILE_BYTES = 20 * 1024 * 1024
+LARGE_FILE_CONTRACT_PATH = Path('data/large_file_contracts.json')
+LARGE_FILE_ROLES = {'canonical_runtime_source', 'canonical_provenance_index'}
 
 
 def _module_name(path: str) -> str:
@@ -373,6 +378,66 @@ def _has_main_guard(tree: ast.AST) -> bool:
     return False
 
 
+def _validated_large_file_contracts(root: Path) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    contract_path = root / LARGE_FILE_CONTRACT_PATH
+    if not contract_path.is_file():
+        return {}, []
+    try:
+        payload = json.loads(contract_path.read_text(encoding='utf-8'))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return {}, [f'{LARGE_FILE_CONTRACT_PATH.as_posix()}: {exc}']
+    rows = payload.get('files') if isinstance(payload, dict) else None
+    if not isinstance(payload, dict) or payload.get('schema_version') != 1 or not isinstance(rows, list):
+        return {}, [f'{LARGE_FILE_CONTRACT_PATH.as_posix()}: schema invalide']
+    validated: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for index, row in enumerate(rows):
+        label = f'{LARGE_FILE_CONTRACT_PATH.as_posix()} files[{index}]'
+        if not isinstance(row, dict):
+            errors.append(f'{label}: objet attendu')
+            continue
+        path = str(row.get('path') or '').replace('\\', '/').strip('/')
+        role = str(row.get('role') or '')
+        expected_sha = str(row.get('sha256') or '').casefold()
+        generator = str(row.get('generator') or '').replace('\\', '/').strip('/')
+        consumers = row.get('consumers')
+        if not path or role not in LARGE_FILE_ROLES or len(expected_sha) != 64:
+            errors.append(f'{label}: path/role/sha256 invalide')
+            continue
+        target = root / path
+        generator_path = root / generator
+        if not target.is_file() or not generator_path.is_file() or not isinstance(consumers, list) or not consumers:
+            errors.append(f'{label}: fichier, generateur ou consommateurs manquants')
+            continue
+        consumer_paths = [root / str(value) for value in consumers]
+        if any(not consumer.is_file() for consumer in consumer_paths):
+            errors.append(f'{label}: consommateur absent')
+            continue
+        basename = Path(path).name
+        evidence_paths = [generator_path, *consumer_paths]
+        try:
+            if any(basename not in evidence.read_text(encoding='utf-8-sig') for evidence in evidence_paths):
+                errors.append(f'{label}: reference source non prouvee')
+                continue
+            with target.open('rb') as stream:
+                actual_sha = hashlib.file_digest(stream, 'sha256').hexdigest()
+        except (OSError, UnicodeError) as exc:
+            errors.append(f'{label}: {exc}')
+            continue
+        if actual_sha != expected_sha:
+            errors.append(f'{label}: sha256 divergent')
+            continue
+        if role == 'canonical_runtime_source' and not any(
+            str(value).replace('\\', '/').startswith('app/')
+            and '/tools/' not in str(value).replace('\\', '/')
+            for value in consumers
+        ):
+            errors.append(f'{label}: consommateur runtime non prouve')
+            continue
+        validated[path] = row
+    return validated, errors
+
+
 def _collect_imports(tree: ast.AST, current_module: str) -> set[str]:
     imports: set[str] = set()
     package = current_module.rsplit('.', 1)[0] if '.' in current_module else ''
@@ -482,7 +547,10 @@ def run_audit(
     started = time.perf_counter()
     state = git_state(root)
     files = tracked_files(root)
+    large_file_contracts, contract_errors = _validated_large_file_contracts(root)
     issues: list[Issue] = []
+    for error in contract_errors:
+        issues.append(Issue('invalid_large_file_contract', 'git', 'HIGH', 'confirmed', LARGE_FILE_CONTRACT_PATH.as_posix(), None, 'Contrat de gros fichier invalide', error, 'Corriger le hash, le role, le generateur ou les consommateurs prouves.'))
     trees: dict[str, ast.AST] = {}
     imports_by_file: dict[str, set[str]] = {}
     module_to_path: dict[str, str] = {}
@@ -505,8 +573,12 @@ def run_audit(
         if lower.endswith(RUNTIME_SUFFIXES) or lower.startswith(RUNTIME_PREFIXES):
             issues.append(Issue('tracked_runtime_artifact', 'git', 'HIGH', 'confirmed', path, None, 'Artefact runtime suivi par Git', f'Fichier runtime/transitoire suivi ({size} octets)', 'Retirer du suivi Git et ajouter une regle ignoree si necessaire.'))
 
-        if size >= 20 * 1024 * 1024:
-            issues.append(Issue('large_tracked_file', 'git', 'MEDIUM', 'confirmed', path, None, 'Gros fichier suivi par Git', f'{size / 1024 / 1024:.1f} MiB', 'Verifier qu il s agit bien d une source necessaire et non d un artefact regenerable.'))
+        if size >= LARGE_TRACKED_FILE_BYTES:
+            contract = large_file_contracts.get(path)
+            if contract is not None:
+                issues.append(Issue('contracted_large_file', 'git', 'INFO', 'confirmed', path, None, 'Gros fichier canonique avec provenance verifiee', f"{size / 1024 / 1024:.1f} MiB; role={contract['role']}; generator={contract['generator']}", 'Maintenir le hash, le generateur, les consommateurs et la justification lors de toute regeneration.'))
+            else:
+                issues.append(Issue('large_tracked_file', 'git', 'MEDIUM', 'confirmed', path, None, 'Gros fichier suivi par Git', f'{size / 1024 / 1024:.1f} MiB', 'Verifier qu il s agit bien d une source necessaire et non d un artefact regenerable.'))
 
         if path.endswith('.py'):
             tree, python_issues = _scan_python(path, full)

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "data/encyclopedia/quests/quests_enriched.json",
+      "sha256": "552713d7e7599c0fbbb59845c98e827a0e17ee5862da0cda413700c89ee6d644",
+      "role": "canonical_runtime_source",
+      "generator": "app/modules/encyclopedia/tools/enrich_quests.py",
+      "consumers": [
+        "app/quest_catalog.py",
+        "app/modules/encyclopedia/services/guide_path_profiles.py"
+      ],
+      "regeneration": "py -3.13 -m app.modules.encyclopedia.tools.enrich_quests",
+      "regeneration_requires_network": true,
+      "rationale": "Enrichissement offline charge a la demande par QuestCatalog; il evite une dependance reseau au runtime."
+    },
+    {
+      "path": "data/encyclopedia/quests/image_manifest.json",
+      "sha256": "c76c122b5ed88301bd7b399f39a2a680666407e3e8800ac60b2bcd130d2a0f3c",
+      "role": "canonical_provenance_index",
+      "generator": "app/modules/encyclopedia/tools/enrich_quests.py",
+      "consumers": [
+        "app/modules/encyclopedia/tools/audit_quest_visuals.py",
+        "app/modules/encyclopedia/tools/integrate_quest_visuals_lot6.py"
+      ],
+      "regeneration": "py -3.13 -m app.modules.encyclopedia.tools.enrich_quests",
+      "regeneration_requires_network": true,
+      "rationale": "Index URL/SHA de provenance et deduplication des images; sa regeneration exacte depend des sources reseau historiques."
+    }
+  ]
+}
