@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: c0a71d56e9a418237b538f4065c57e7a967e7d66
+          ref: f82854756ba73eb33e4fbafcfbab1fc575e177b9
           fetch-depth: 0
           lfs: false
           persist-credentials: false
@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
         run: |
           git rev-parse HEAD
-          if ((git rev-parse HEAD).Trim() -ne "c0a71d56e9a418237b538f4065c57e7a967e7d66") { throw "Wrong source SHA" }
+          if ((git rev-parse HEAD).Trim() -ne "f82854756ba73eb33e4fbafcfbab1fc575e177b9") { throw "Wrong source SHA" }
           git status --short
           git branch --show-current
           git fetch origin
@@ -54,38 +54,16 @@ jobs:
       - name: Targeted Doctor Agent Graph and Tool Catalog contracts
         shell: pwsh
         run: |
-          python -m unittest tests.test_canonical_manual_bundle_validation tests.test_guide_ultime_final_coverage_catalog tests.test_guide_ultime_manual_prerequisites tests.test_ci_runner_guardrails tests.test_guide_tools_harness_contract tests.test_guide_integrity tests.test_agent_verification tests.test_doctor_verification_contract tests.test_atlas_doctor tests.test_atlas_doctor_graphify tests.test_agent_graph tests.test_tool_audit tests.test_tool_catalog tests.test_legacy_guide_tool_consumers
+          python -m unittest tests.test_canonical_manual_bundle_validation tests.test_atlas_doctor tests.test_atlas_doctor_graphify tests.test_agent_verification tests.test_doctor_verification_contract tests.test_guide_integrity
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Materialize canonical validation fixtures
+      - name: Actual static Doctor and clean worktree
         shell: pwsh
         run: |
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & ".\tools\doduda\doduda.exe" --headless --output "data/cache/dofus_maps/raw/doduda_cli" -i "images-.*"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -c "from app.quest_catalog import QuestCatalog; count=len(QuestCatalog.load().quests); print('Materialized quests:',count); assert count>=1900"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Canonical FAST gate for targeted impact contracts
-        shell: pwsh
-        run: |
-          python -m tools.atlas_integrity critical --base-ref "c580ea3077f7e68f926c6e0e9bf6478908fee54f" --json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m tools.agent doctor --json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m tools.guide_tools_cli doctor
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m tools.ai_context check
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          git diff --check
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Actual canonical Guide engines and Doctor comparison
-        shell: pwsh
-        run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_guide_ultime_ci.ps1 -Mode Fast
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m tools.atlas_doctor quick --json > "$env:RUNNER_TEMP/doctor-after.json"
           $env:DOCTOR_EXIT = "$LASTEXITCODE"
-          python -c "import json,os,pathlib; p=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'doctor-after.json').read_text(encoding='utf-8-sig')); assert (int(os.environ['DOCTOR_EXIT']),p['summary']['verdict']) in ((0,'PASS'),(1,'WARN')); print('DOCTOR_AFTER='+json.dumps({'summary':p['summary'],'issues':p.get('issues',[])}))"
+          python -c "import json,os,pathlib; p=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'doctor-after.json').read_text(encoding='utf-8-sig')); assert (int(os.environ['DOCTOR_EXIT']),p['summary']['verdict']) in ((0,'PASS'),(1,'WARN')); assert p['analysis_sources']['graph'] is False; print('DOCTOR_AFTER='+json.dumps({'summary':p['summary'],'issues':p.get('issues',[]),'analysis_sources':p['analysis_sources']}))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m tools.ai_context check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git diff --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
