@@ -10,6 +10,12 @@ Inside `tools/`:
 - changes to integrity, certification, mutation, coverage, performance or hook tooling require targeted tests;
 - generated metadata must be reproducible from the repository and must not become a second manual source of truth.
 
+Ponytail integration:
+
+- `tools/ponytail_policy.json` is the shared machine-readable Ponytail decision profile used by repository agents and Atlas Doctor;
+- `tools.atlas_doctor_lib.ponytail.evaluate_ponytail()` is the reusable API; `py -3.13 -m tools.atlas_doctor ponytail --json` is the canonical CLI surface;
+- Ponytail findings are advisory review evidence, never authority to weaken Atlas guardrails or to delete code without consumer/runtime proof.
+
 AI-facing tooling contract for new or modernized entry points:
 
 - prefer callable Python modules and module execution (`py -3.13 -m tools.<name>`) over ad-hoc launch-only scripts when platform-specific shell behavior is not required;

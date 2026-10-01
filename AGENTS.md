@@ -48,6 +48,19 @@ Do not blindly follow a proposed technical implementation when a better solution
 
 Focus on the requested outcome.
 
+### Ponytail discipline (repository-level)
+
+For agents working directly from the repository, apply Ponytail-style minimalism as an additional decision filter. Project-specific Atlas guardrails always take precedence. The shared machine-readable profile is `tools/ponytail_policy.json`; Atlas Doctor consumes the same profile through `py -3.13 -m tools.atlas_doctor ponytail --json`.
+
+Before adding code:
+
+1. Skip work that is not actually required by the requested outcome.
+2. Reuse the current canonical implementation before creating another one.
+3. Prefer the standard library, native platform features or an already-installed dependency before adding a new dependency or abstraction.
+4. Use the smallest coherent implementation that fully solves the current problem.
+5. Do not generalize for hypothetical future needs or create parallel systems "just in case".
+6. Never trade away validation, security, data-loss protection, accessibility or project guardrails merely to make the diff smaller.
+
 ---
 
 ## Autonomy
