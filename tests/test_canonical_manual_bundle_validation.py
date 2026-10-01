@@ -62,6 +62,7 @@ class CanonicalManualBundleValidationTests(unittest.TestCase):
             payload = copy.deepcopy(original(path))
             if not injected and payload.get("stages"):
                 payload["stages"][0]["start"] = {"x": 0}
+                payload["stages"][0]["pause_checkpoint"] = {"safe": False}
                 payload["resource_plan"] = {"collect_before_leaving_incarnam": [{"quantity": 0}]}
                 injected.append(path.name)
             return payload
@@ -73,7 +74,7 @@ class CanonicalManualBundleValidationTests(unittest.TestCase):
                 bundle.main()
         self.assertEqual(raised.exception.code, 1)
         report = json.loads(output.getvalue())
-        for code in ("coordinate_pair_incomplete", "invalid_resource_quantity"):
+        for code in ("coordinate_pair_incomplete", "invalid_resource_quantity", "pause_checkpoint_unsafe"):
             error = next(row for row in report["hard_errors"] if row["code"] == code)
             self.assertEqual(error["file"], injected[0])
             self.assertTrue(error["chapter"])
