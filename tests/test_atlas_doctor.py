@@ -101,6 +101,133 @@ class AtlasDoctorTests(unittest.TestCase):
         finally:
             directory.cleanup()
 
+    def test_audit_resolves_canonical_lazy_export_mapping(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            package = root / 'app' / 'package'
+            package.mkdir()
+            (package / '__init__.py').write_text(
+                'from importlib import import_module\n'
+                '_LAZY_EXPORTS = {"Thing": ("app.package.thing", "Thing")}\n'
+                'def __getattr__(name):\n'
+                '    target = _LAZY_EXPORTS.get(name)\n'
+                '    module_name, attribute_name = target\n'
+                '    return getattr(import_module(module_name), attribute_name)\n',
+                encoding='utf-8',
+            )
+            (package / 'thing.py').write_text('class Thing:\n    pass\n', encoding='utf-8')
+            (package / 'dead.py').write_text('class Dead:\n    pass\n', encoding='utf-8')
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'lazy exports')
+            issues = run_audit(root, save=False)['issues']
+            dead_paths = {item['path'] for item in issues if item['rule'] == 'unreferenced_module'}
+            self.assertNotIn('app/package/thing.py', dead_paths)
+            self.assertIn('app/package/dead.py', dead_paths)
+        finally:
+            directory.cleanup()
+
+    def test_audit_keeps_unproven_dynamic_import_as_unreferenced(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            package = root / 'app' / 'package'
+            package.mkdir()
+            (package / '__init__.py').write_text(
+                'from importlib import import_module\n'
+                'UNRELATED = {"Thing": ("app.package.thing", "Thing")}\n'
+                'def load(module_name):\n'
+                '    return import_module(module_name)\n',
+                encoding='utf-8',
+            )
+            (package / 'thing.py').write_text('class Thing:\n    pass\n', encoding='utf-8')
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'unproven dynamic import')
+            issues = run_audit(root, save=False)['issues']
+            dead_paths = {item['path'] for item in issues if item['rule'] == 'unreferenced_module'}
+            self.assertIn('app/package/thing.py', dead_paths)
+        finally:
+            directory.cleanup()
+
+    def test_audit_recognizes_executor_submitted_io_but_keeps_direct_ui_io(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            view = root / 'app' / 'pages' / 'view.py'
+            view.parent.mkdir()
+            view.write_text(
+                'from concurrent.futures import ThreadPoolExecutor\n'
+                'from pathlib import Path\n'
+                'POOL = ThreadPoolExecutor(max_workers=1)\n'
+                'def decode(path):\n'
+                '    return Path(path).read_bytes()\n'
+                'def direct(path):\n'
+                '    return Path(path).read_bytes()\n'
+                'def start(path):\n'
+                '    return POOL.submit(decode, path)\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'executor io')
+            issues = run_audit(root, save=False)['issues']
+            io_lines = {item['line'] for item in issues if item['rule'] == 'sync_io_ui'}
+            self.assertNotIn(5, io_lines)
+            self.assertIn(7, io_lines)
+        finally:
+            directory.cleanup()
+
+    def test_audit_recognizes_transitive_blocking_io_but_keeps_true_spin(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'loops.py'
+            target.write_text(
+                'def blocking(stream):\n'
+                '    return stream.read(1)\n'
+                'def consume(stream):\n'
+                '    while True:\n'
+                '        if not blocking(stream):\n'
+                '            break\n'
+                'def spin(flag):\n'
+                '    while True:\n'
+                '        if flag():\n'
+                '            continue\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'loops')
+            issues = run_audit(root, save=False)['issues']
+            loop_lines = {item['line'] for item in issues if item['rule'] == 'busy_loop_risk'}
+            self.assertNotIn(4, loop_lines)
+            self.assertIn(8, loop_lines)
+        finally:
+            directory.cleanup()
+
+    def test_audit_distinguishes_controlled_and_ordinary_dynamic_exec(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'dynamic.py'
+            target.write_text(
+                'def controlled(source, path):\n'
+                '    namespace: dict = {"__file__": str(path), "__name__": "isolated"}\n'
+                '    exec(compile(source, str(path), "exec"), namespace)\n'
+                'def ordinary(source):\n'
+                '    exec(source)\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'dynamic exec')
+            issues = run_audit(root, save=False)['issues']
+            controlled = [item for item in issues if item['rule'] == 'controlled_dynamic_exec']
+            ordinary = [item for item in issues if item['rule'] == 'dynamic_exec']
+            self.assertEqual([item['line'] for item in controlled], [3])
+            self.assertEqual([item['line'] for item in ordinary], [5])
+            self.assertEqual(controlled[0]['severity'], 'INFO')
+            self.assertEqual(ordinary[0]['severity'], 'HIGH')
+        finally:
+            directory.cleanup()
+
     def test_snapshot_rotation_publishes_previous_and_latest(self) -> None:
         with tempfile.TemporaryDirectory(prefix='atlas-doctor-rotation-') as directory:
             root = Path(directory)

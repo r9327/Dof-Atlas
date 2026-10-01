@@ -42,14 +42,193 @@ def _call_name(node: ast.Call) -> str:
     return ''
 
 
-def _contains_blocking_call(node: ast.While) -> bool:
-    blocking_suffixes = ('sleep', 'wait', 'exec', 'get', 'join', 'acquire')
+def _direct_blocking_call(name: str) -> bool:
+    blocking_suffixes = (
+        'sleep',
+        'wait',
+        'exec',
+        'get',
+        'join',
+        'acquire',
+        'read',
+        'readline',
+        'read_item',
+        'recv',
+        'recvfrom',
+        'accept',
+        'urlopen',
+        'select',
+    )
+    return bool(name) and name.endswith(blocking_suffixes)
+
+
+def _blocking_function_names(tree: ast.AST) -> set[str]:
+    """Return local functions that transitively perform a blocking operation."""
+
+    functions = {
+        node.name: node
+        for node in getattr(tree, 'body', [])
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    blocking = {
+        name
+        for name, function in functions.items()
+        if any(
+            isinstance(child, ast.Call) and _direct_blocking_call(_call_name(child))
+            for child in ast.walk(function)
+        )
+    }
+    changed = True
+    while changed:
+        changed = False
+        for name, function in functions.items():
+            if name in blocking:
+                continue
+            if any(
+                isinstance(child, ast.Call) and _call_name(child).split('.')[-1] in blocking
+                for child in ast.walk(function)
+            ):
+                blocking.add(name)
+                changed = True
+    return blocking
+
+
+def _contains_blocking_call(node: ast.While, blocking_functions: set[str]) -> bool:
     for child in ast.walk(node):
         if isinstance(child, ast.Call):
             name = _call_name(child)
-            if name.endswith(blocking_suffixes):
+            if _direct_blocking_call(name) or name.split('.')[-1] in blocking_functions:
                 return True
     return False
+
+
+def _submitted_function_node_ids(tree: ast.AST) -> set[int]:
+    submitted_names: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not _call_name(node).endswith('.submit') or not node.args:
+            continue
+        callback = node.args[0]
+        if isinstance(callback, ast.Name):
+            submitted_names.add(callback.id)
+    background_nodes: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in submitted_names:
+            background_nodes.update(id(child) for child in ast.walk(node))
+    return background_nodes
+
+
+def _literal_module_targets(value: ast.AST) -> set[str]:
+    targets: set[str] = set()
+    if not isinstance(value, ast.Dict):
+        return targets
+    for item in value.values:
+        if not isinstance(item, (ast.Tuple, ast.List)) or not item.elts:
+            continue
+        module = item.elts[0]
+        if isinstance(module, ast.Constant) and isinstance(module.value, str) and '.' in module.value:
+            targets.add(module.value)
+    return targets
+
+
+def _dynamic_import_targets(tree: ast.AST) -> set[str]:
+    """Resolve the canonical mapping.get -> unpack -> import_module pattern."""
+
+    mappings: dict[str, set[str]] = {}
+    for statement in getattr(tree, 'body', []):
+        if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
+            continue
+        target = statement.target if isinstance(statement, ast.AnnAssign) else (
+            statement.targets[0] if len(statement.targets) == 1 else None
+        )
+        value = statement.value
+        if isinstance(target, ast.Name) and value is not None:
+            modules = _literal_module_targets(value)
+            if modules:
+                mappings[target.id] = modules
+
+    resolved: set[str] = set()
+    for function in ast.walk(tree):
+        if not isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        imported_names = {
+            call.args[0].id
+            for call in ast.walk(function)
+            if isinstance(call, ast.Call)
+            and _call_name(call).split('.')[-1] == 'import_module'
+            and call.args
+            and isinstance(call.args[0], ast.Name)
+        }
+        if not imported_names:
+            continue
+        unpack_sources: dict[str, str] = {}
+        mapping_lookups: dict[str, str] = {}
+        for statement in ast.walk(function):
+            if not isinstance(statement, ast.Assign) or len(statement.targets) != 1:
+                continue
+            target = statement.targets[0]
+            if isinstance(target, (ast.Tuple, ast.List)) and isinstance(statement.value, ast.Name):
+                for element in target.elts:
+                    if isinstance(element, ast.Name):
+                        unpack_sources[element.id] = statement.value.id
+            if isinstance(target, ast.Name) and isinstance(statement.value, ast.Call):
+                call = statement.value
+                if (
+                    isinstance(call.func, ast.Attribute)
+                    and call.func.attr == 'get'
+                    and isinstance(call.func.value, ast.Name)
+                    and call.func.value.id in mappings
+                ):
+                    mapping_lookups[target.id] = call.func.value.id
+        for imported_name in imported_names:
+            source_name = unpack_sources.get(imported_name)
+            mapping_name = mapping_lookups.get(source_name or '')
+            if mapping_name:
+                resolved.update(mappings[mapping_name])
+    return resolved
+
+
+def _controlled_exec_call_ids(tree: ast.AST) -> set[int]:
+    """Recognize compile(..., filename, 'exec') in an explicit isolated namespace."""
+
+    controlled: set[int] = set()
+    for function in ast.walk(tree):
+        if not isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        isolated_namespaces: set[str] = set()
+        for statement in ast.walk(function):
+            if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
+                continue
+            target = statement.target if isinstance(statement, ast.AnnAssign) else (
+                statement.targets[0] if len(statement.targets) == 1 else None
+            )
+            if not isinstance(target, ast.Name) or not isinstance(statement.value, ast.Dict):
+                continue
+            keys = {
+                key.value
+                for key in statement.value.keys
+                if isinstance(key, ast.Constant) and isinstance(key.value, str)
+            }
+            if {'__file__', '__name__'} <= keys and keys <= {
+                '__file__', '__name__', '__package__', '__builtins__'
+            }:
+                isolated_namespaces.add(target.id)
+        for call in ast.walk(function):
+            if not isinstance(call, ast.Call) or _call_name(call) not in {'exec', 'builtins.exec'}:
+                continue
+            if len(call.args) != 2 or call.keywords or not isinstance(call.args[1], ast.Name):
+                continue
+            compiled = call.args[0]
+            if (
+                call.args[1].id in isolated_namespaces
+                and isinstance(compiled, ast.Call)
+                and _call_name(compiled) in {'compile', 'builtins.compile'}
+                and len(compiled.args) >= 3
+                and isinstance(compiled.args[2], ast.Constant)
+                and compiled.args[2].value == 'exec'
+                and not compiled.keywords
+            ):
+                controlled.add(id(call))
+    return controlled
 
 
 def _open_writes(node: ast.Call) -> bool:
@@ -95,6 +274,7 @@ def _collect_imports(tree: ast.AST, current_module: str) -> set[str]:
             if module:
                 imports.add(module)
                 imports.update(f'{module}.{alias.name}' for alias in node.names if alias.name != '*')
+    imports.update(_dynamic_import_targets(tree))
     return imports
 
 
@@ -111,6 +291,10 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
         issues.append(Issue('python_syntax_error', 'code', 'CRITICAL', 'confirmed', path, exc.lineno, 'Erreur de syntaxe Python', exc.msg, 'Corriger la syntaxe avant toute autre validation.'))
         return None, issues
 
+    blocking_functions = _blocking_function_names(tree)
+    background_nodes = _submitted_function_node_ids(tree)
+    controlled_execs = _controlled_exec_call_ids(tree)
+
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and any(alias.name == '*' for alias in node.names):
             issues.append(Issue('import_star', 'architecture', 'HIGH', 'confirmed', path, _line(node), 'Import wildcard interdit', ast.unparse(node), 'Remplacer par des imports explicites pour garder les dependances auditables.'))
@@ -122,7 +306,7 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
                 issues.append(Issue('legacy_symbol_marker', 'legacy', 'INFO', 'suspect', path, _line(node), 'Symbole potentiellement legacy/obsolet', f'{node.name} contient {marker}', 'Verifier ses consommateurs et le contrat canonique avant toute suppression.'))
 
         if isinstance(node, ast.While) and isinstance(node.test, ast.Constant) and node.test.value is True:
-            if path.startswith('app/') and not _contains_blocking_call(node):
+            if path.startswith('app/') and not _contains_blocking_call(node, blocking_functions):
                 issues.append(Issue('busy_loop_risk', 'performance', 'MEDIUM', 'suspect', path, _line(node), 'Boucle infinie sans attente bloquante visible', 'while True sans sleep/wait/get/join/acquire detecte statiquement', 'Verifier que cette boucle ne peut pas tourner a vide et consommer du CPU.'))
 
         if isinstance(node, ast.ExceptHandler):
@@ -135,7 +319,10 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
             if name in {'sys.path.append', 'sys.path.insert', 'sys.path.extend'}:
                 issues.append(Issue('sys_path_hack', 'architecture', 'HIGH', 'confirmed', path, _line(node), 'Mutation de sys.path detectee', name, 'Corriger les imports/package plutot que modifier sys.path au runtime.'))
             if name in {'eval', 'exec', 'builtins.eval', 'builtins.exec'}:
-                issues.append(Issue('dynamic_exec', 'reliability', 'HIGH', 'confirmed', path, _line(node), 'Execution dynamique de code', name, 'Verifier si cette execution est indispensable; preferer une API structuree et validee.'))
+                if id(node) in controlled_execs:
+                    issues.append(Issue('controlled_dynamic_exec', 'reliability', 'INFO', 'confirmed', path, _line(node), 'Execution dynamique controlee et isolee', ast.unparse(node), 'Conserver uniquement pour un outil local teste; toute execution ordinaire reste interdite.'))
+                else:
+                    issues.append(Issue('dynamic_exec', 'reliability', 'HIGH', 'confirmed', path, _line(node), 'Execution dynamique de code', name, 'Verifier si cette execution est indispensable; preferer une API structuree et validee.'))
             if name.endswith('lru_cache'):
                 maxsize_none = any(keyword.arg == 'maxsize' and isinstance(keyword.value, ast.Constant) and keyword.value.value is None for keyword in node.keywords)
                 if maxsize_none:
@@ -146,9 +333,9 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
                 issues.append(Issue('parentless_qtimer', 'lifecycle', 'LOW', 'suspect', path, _line(node), 'QTimer sans parent visible', name, 'Verifier son proprietaire, son arret et sa destruction a la fermeture de la vue/service.'))
             if path.startswith(UI_SCOPES) and (name.endswith(('write_text', 'write_bytes')) or _open_writes(node)):
                 issues.append(Issue('ui_direct_file_write', 'persistence', 'MEDIUM', 'suspect', path, _line(node), 'Ecriture fichier directe depuis une couche UI', name, 'Verifier qu un service canonique de persistence n existe pas et que l ecriture est atomique/coordonneee.'))
-            if path.startswith(UI_SCOPES) and name.endswith(('read_text', 'read_bytes')):
+            if path.startswith(UI_SCOPES) and id(node) not in background_nodes and name.endswith(('read_text', 'read_bytes')):
                 issues.append(Issue('sync_io_ui', 'performance', 'MEDIUM', 'suspect', path, _line(node), 'I/O synchrone potentielle dans une vue UI', name, 'Verifier si cet acces disque arrive sur le thread Qt; deplacer/cacher seulement si mesure utile.'))
-            if path.startswith(UI_SCOPES) and name in {'open', 'builtins.open', 'json.load'}:
+            if path.startswith(UI_SCOPES) and id(node) not in background_nodes and name in {'open', 'builtins.open', 'json.load'}:
                 issues.append(Issue('sync_io_ui', 'performance', 'MEDIUM', 'suspect', path, _line(node), 'I/O synchrone potentielle dans une vue UI', name, 'Verifier si cet acces disque arrive sur le thread Qt; deplacer/cacher seulement si mesure utile.'))
             if name.endswith('setStyleSheet') and path.startswith('app/'):
                 issues.append(Issue('local_stylesheet', 'ui', 'LOW', 'suspect', path, _line(node), 'Style local a verifier', name, 'Verifier que ce style ne duplique pas theme.py/components.py; conserver si semantique locale legitime.'))
