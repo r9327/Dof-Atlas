@@ -368,93 +368,46 @@ Les sorties restent dans `graphify-out/` et `.ai/runtime/atlas_doctor/`, ignores
 
 La preuve de validation est portee par les tests cibles et les workflows sur le HEAD exact de la PR d'integration ; aucune validation historique de #47 n'est transposee au candidat courant.
 
-# ROAD Doctor — Agent / Doctor / Graph
+# ROAD Doctor — Agent / Doctor / Graph — DONE
 
-This ROAD extends the existing facades; Atlas Integrity and its policy remain the validation authority. Agent plans context, ownership, targeted impact and validation depth. Doctor captures diagnostics/baselines, executes selected engines and compares evidence.
+La ROAD Doctor est fermee. Atlas Integrity et sa policy restent l'unique autorite de validation ; Agent planifie le contexte, l'ownership, l'impact cible et la profondeur ; Doctor execute les moteurs canoniques, conserve les preuves et compare uniquement des baselines compatibles. Aucun daemon, hook Graphify implicite ou changement produit n'a ete ajoute.
 
 ## RD-0 — Execution contracts — VALIDATED
 
-- Doctor verify exposes schema-versioned PASS/FAIL/REVIEW, returns non-zero for failed or inconclusive evidence, retains audit/comparison fields and forwards an explicit base/gate.
-- Without an explicit base, verify uses the saved audit HEAD before falling back to HEAD. A missing or incompatible comparison remains REVIEW; static findings are not labelled as proven change-induced regressions.
-- Planner readiness requires both safe_for_agent and automation_ready and the canonical Atlas Integrity entry.
-- The five core Agent/context/catalog/audit files have precise quality_ci ownership and existing targeted test mappings.
-- No Atlas Integrity policy/gate, product source, Guide contract or tool deletion is changed.
+PR #72, HEAD exact `76cd6c08da512e5f242eeb83a5ebb5e380415874` : contrats Doctor/Agent, PASS/FAIL/REVIEW, base explicite, readiness et autorite Atlas Integrity valides.
 
-Validation RD-0 : PR #72, HEAD exact `76cd6c08da512e5f242eeb83a5ebb5e380415874`, 96 tests cibles, Atlas Integrity FAST et 1 747 tests complets PASS. Les checks AI Context, Public PR, Graphify et Signature sont PASS ; ce micro-lot n'est pas une certification de toute la ROAD.
+## RD-1 — Reverse-impact Graphify cible — VALIDATED
 
-Lots restant apres RD-1, a valider separement :
-
-2. Metadata-driven planner through existing Tool Catalog / TOOL_SPEC.
-3. Automatic SOFT/MEDIUM/HARD and explicit overrides, respecting canonical risk requirements.
-4. Agent verify facade with Doctor execution and stable evidence.
-5. Explicit comparable before/after baselines and actionable diagnostics.
-6. Measured execution cost/cache reuse and proven consumer-based cleanup.
-7. Optional deterministic fix --dry-run only after the validation workflow is stable.
-
-Do not treat this ROAD as completed while these lots remain open. Certification must refer to the exact PR HEAD; subsequent SHAs require new checks.
-
-## RD-1 — Reverse-impact Graphify cible — CERTIFIED
-
-`tools.agent reverse-impact <paths...> [--symbol <top-level>] [--depth 1|2] --json`
-lit uniquement le graph valide du cache Doctor. La profondeur est un niveau par
-defaut, deux uniquement sur demande, avec un budget de 100 fichiers candidats.
-Aucun scan Graphify ni inventaire AST global n'est declenche implicitement.
-
-Le moteur reutilise les imports et le routing Agent existants : les relations
-AST Graphify sont des candidats, confirmes par les imports Python actuels des
-fichiers candidats. Les liaisons non confirmees restent visibles en REVIEW.
-Un symbole filtre les candidats du graph mais ne prouve pas leur binding :
-la precision reste explicite MODULE_DEPENDENCY_ONLY et impose une revue.
-Ce rapport ne certifie jamais l'absence de consommateurs runtime/indirects.
-
-Doctor expose le meme moteur avec `graph --impact <paths...>`.
-La provenance HEAD/worktree/version du cache reste canonique et la signature
-du graph est verifiee avant lecture. Les scopes/tests proviennent du routing
-existant ; Atlas Integrity reste l'autorite. Aucun produit ni wrapper supprime.
-
-Un plan `--structural` reutilise automatiquement ce reverse-impact : scopes et tests consommateurs enrichissent le plan, tandis que les proprietaires restent ceux des fichiers a modifier. Un impact REVIEW interdit l'edition automatique. Les petits plans locaux ne consultent pas le graph.
-
-La preuve VALIDATED/CERTIFIED de RD-1 doit etre lue dans les checks de sa PR sur son HEAD exact. La fermeture de RD-1 ne ferme pas les lots planner, niveaux, verify et baseline restant ci-dessus.
-
-Le moteur graph recoit les resolveurs existants de l'Agent via la facade `reverse_impact_payload` ; il n'importe pas la facade Agent. Cette direction conserve une seule implementation source/contexte et evite un import reciproque Agent/graph.
-
-Validation RD-1 : PR #73, HEAD exact `ded119e82864b5fae78053591768250a83aca6b5`, six checks PASS dont Phase Certification. 116 tests cibles et Atlas Integrity FAST PASS ; Graphify reel, CLI Agent/Doctor et 20 tests graph PASS sous Windows. Le nettoyage conservateur des branches a preserve le main certifie `98059f52f9c47727c8344b649175676bb4569267`.
+PR #73, HEAD exact `ded119e82864b5fae78053591768250a83aca6b5` : reverse-impact borne, cache Doctor courant, confirmation par imports et REVIEW explicite quand la relation n'est pas prouvee. Graphify reel et validations Windows PASS.
 
 ## RD-2 — Planner par metadonnees — VALIDATED
 
-Le planner reutilise `tools.tool_catalog.select_tools`. Les facades specialisees sont selectionnees par leur role canonique et leurs `TOOL_SPEC.target_scopes` optionnels, ou lorsque leur propre source change. Aucun nom « Guide » dans un chemin ne choisit un moteur. Les tests declares, couts, modes, effets de bord et raisons restent exposes. Un mode FAST indisponible impose REVIEW au lieu de lancer FULL implicitement.
-
-Atlas Integrity demeure l'unique autorite globale. Ses groupes, notamment META_INTEGRITY, ne sont pas dupliques. La validation AI Context reste une execution explicite de son moteur existant ; un indice de chemin ne selectionne pas son mode mutateur. Les moteurs specialises conservent leur implementation. Ce micro-lot ne ferme pas les niveaux, verify, baseline ou mesures restant ouverts.
-
-Validation RD-2 : candidat source `6805ce4bb612776cc448387db71e40d7882e2189`, 129 tests cibles Windows et Atlas Integrity FAST (risque MEDIUM, golden flows ajoutes par la policy) PASS. Agent doctor, Guide tools doctor et AI Context PASS ; index genere canoniquement.
+Le planner reutilise `tools.tool_catalog.select_tools` et les `TOOL_SPEC`. Les moteurs specialises sont selectionnes par metadata et scopes declares, jamais par heuristique de nom de chemin. Les modes, couts, effets de bord, tests declares et raisons restent exposes.
 
 ## RD-3 — Profondeurs de travail — VALIDATED
 
-Le planner choisit SOFT, MEDIUM ou HARD et explique chaque escalade. Les overrides `--soft`, `--medium`, `--hard` de `agent plan` sont mutuellement exclusifs. Aucun override ne baisse le minimum d'Atlas Integrity. Plusieurs fichiers/scopes elargissent les controles ; un changement structurel/critique demande HARD. DEEP est conserve seulement lorsqu'exige par la policy.
+SOFT/MEDIUM/HARD et les overrides explicites sont implementes sans pouvoir abaisser le plancher d'Atlas Integrity. Les changements structurels/CRITICAL escaladent en HARD ; FULL_SUITE reste deleguee une seule fois a Atlas Integrity.
 
-SOFT utilise les tests consommateurs directs declares/observes du catalogue lorsqu'ils existent, sinon le ciblage scope existant. MEDIUM conserve les tests elargis scopes. HARD delegue FULL_SUITE a Atlas Integrity sans seconde decouverte complete. Aucun benchmark runtime supplementaire n'est lance par reflexe.
+## RD-4 — Facade verify — VALIDATED
 
-Validation RD-3 : 138 tests cibles Windows et Atlas Integrity FAST PASS sur le candidat source `3090e62f2226bd56102ce6de7ce6acc63407a193`. Index canonique synchronise.
+`tools.agent verify` et `tools.atlas_doctor verify <paths...>` partagent l'execution Doctor. AI Context, tests cibles, facades specialisees canoniques et exactement un Atlas Integrity sont executes sans mutateur. Les causes exposees restent limitees aux preuves observables.
 
-## RD-4 — Facade verify — CODE_DONE
+Validation RD-2/RD-3/RD-4 : PR #74, HEAD exact `29305f4793e6da8306266e5a83e43c6ddcea97a9` : Targeted Validation PASS, Atlas Integrity FAST PASS, full application suite PASS, Public Pull Request CI PASS, Graphify PASS et Commit Signature PASS. Phase Certification etait skip selon le workflow de ce micro-lot. Merge `main` : `7f275d4eaa632ea7f5adb4bdeb83708f9939c296`.
 
-`py -3.13 -m tools.agent verify <paths...> [--soft|--medium|--hard] [--base-ref HEAD] --json`
-delegue l'execution a `tools.atlas_doctor_lib.verification`. Doctor expose la meme
-facade avec `verify <paths...>` et son choix de validation du menu ; le verify
-historique sans chemins reste compatible.
+## RD-5 — Baselines comparables et diagnostics — VALIDATED
 
-Agent compose ownership, imports/symboles cibles, diff Git reel, graph et planner.
-Un changement hors des chemins demandes participe au risque et peut escalader
-le niveau avant execution. SOFT ne reconstruit ni ne consulte le graph global.
-MEDIUM reutilise les consommateurs du cache disponible ; HARD/structurel exige
-une architecture courante et conserve les limites Graphify explicites en REVIEW.
+La verification resout la baseline demandee en SHA exact et ne compare deux executions que si baseline, cibles, scopes, profondeur de travail et autorite de validation sont compatibles. Les regressions et recuperations sont rapportees comme observations ; commandes reproductibles, failure IDs et diagnostics actionnables sont conserves sans inventer une cause source.
 
-Doctor execute le moteur AI Context, les tests selectionnes, les facades specialisees
-canoniques puis exactement un Atlas Integrity. Il ne lance jamais de mutateur ;
-les blockers evidents arretent les controles suivants. Les failures observables,
-identifiants de tests, commandes et tails de logs sont exposes sans inferer une
-cause source inexistante. Une gate sans rapport exploitable reste REVIEW.
+## RD-6 — Cout d'execution, cache et cleanup prouve — VALIDATED
 
-Le catalogue reutilise le cache Doctor SHA/worktree (inventaire derive des fichiers
-suivis) ; les gates ne sont pas reutilisees a partir de Git seul, car les fixtures
-ignorees peuvent changer. Aucun daemon, hook Graphify ou changement produit.
+Les durees totales et par check sont mesurees et les checks les plus couteux restent visibles. Le cache planner expose HIT/MISS/BYPASS et reste indexe par HEAD + dirty digest ; les resultats de validation ne sont jamais reutilises depuis un simple cache Git. Le verify Doctor historique sans chemins est conserve parce que son consommateur de compatibilite est teste ; aucune suppression speculative n'est faite.
+
+Validation RD-5/RD-6 : PR #76, HEAD exact `10d15001f8adbdb8a32cfef60c0f513b9e41f91d` : Targeted Validation PASS, Atlas Integrity FAST PASS, full application suite PASS, Public Pull Request CI PASS, Graphify PASS et Commit Signature PASS. Phase Certification etait skip selon le workflow de ce lot. Merge `main` : `2446238987e625e1fd292c8d845f391681f77375`.
+
+## RD-7 — Fix deterministe `--dry-run` — CLOSED / NOT REQUIRED
+
+Ce lot etait explicitement optionnel. Aucune preuve n'a etabli une mutation repository generique, deterministe et suffisamment sure pour meriter une nouvelle facade `fix`. Les commandes de reparation explicites existantes restent separees. Aucun auto-fix n'est invente uniquement pour cocher la ROAD.
+
+## Fermeture
+
+ROAD Doctor est **DONE** apres les merges #74 et #76. Le prochain travail doit repartir de la ROAD V3 produit et de l'etat reel du depot ; Doctor/Agent/Graph restent des outils d'assistance et ne remplacent jamais Atlas Integrity ni les contrats produit.
