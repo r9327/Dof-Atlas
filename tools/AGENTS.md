@@ -28,3 +28,10 @@ AI-facing tooling contract for new or modernized entry points:
 - document or expose a cost/mode boundary for commands that can become expensive; route broad FAST/FULL/DEEP validation through canonical orchestrators rather than teaching agents many equivalent commands;
 - every executable tool intended for recurring use needs targeted contract tests before it is promoted as a preferred AI entry point;
 - `tools.tool_audit` and `tools.tool_catalog` are read-only derived views: use them to discover consolidation/readiness issues, never as sole proof that a file is dead or safe to delete.
+
+Agent skill routing:
+
+- `tools/skills/dofus-atlas-tools/SKILL.md` is the repository-local agent playbook for choosing and using Dofus Atlas tools;
+- the skill is a routing layer only: `tools.tool_catalog` plus each tool's `TOOL_SPEC` remain the canonical machine-readable contracts;
+- keep volatile CLI details in `TOOL_SPEC`/source and make the skill query the catalog instead of duplicating those details;
+- keep the skill wired into the ROAD IA `quality_ci` scope and protect that routing with its targeted contract test.
