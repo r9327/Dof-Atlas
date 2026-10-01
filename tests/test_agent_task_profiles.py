@@ -9,16 +9,14 @@ from tools.agent_task_profiles import infer_task_type, load_config, select_work_
 
 
 class AgentTaskProfileTests(unittest.TestCase):
-    def test_economy_task_selects_lowest_consumption_eligible_tier(self) -> None:
-        card = select_work_card(
-            task_type="tiny_edit",
-            requested_quality="economy",
-            environ={},
-        )
+    def test_task_recommendation_is_used_when_user_does_not_choose_quality(self) -> None:
+        card = select_work_card(task_type="tiny_edit", environ={})
+        self.assertEqual(card["recommended_quality"], "economy")
+        self.assertEqual(card["selected_quality"], "economy")
         self.assertEqual(card["selected_tier"], "economy")
         self.assertEqual(card["consumption_rank"], 1)
         self.assertEqual(card["consumption_label"], "low")
-        self.assertEqual(card["effective_quality"], "economy")
+        self.assertFalse(card["user_override"])
         self.assertEqual(card["doctor_validation"], "independent")
 
     def test_requested_best_quality_selects_premium_tier(self) -> None:
@@ -27,19 +25,24 @@ class AgentTaskProfileTests(unittest.TestCase):
             requested_quality="best",
             environ={},
         )
+        self.assertEqual(card["recommended_quality"], "balanced")
+        self.assertEqual(card["selected_quality"], "best")
         self.assertEqual(card["selected_tier"], "premium")
         self.assertEqual(card["reasoning_effort"], "high")
         self.assertEqual(card["consumption_label"], "high")
+        self.assertTrue(card["user_override"])
 
-    def test_task_quality_floor_cannot_be_lowered_by_requested_quality(self) -> None:
+    def test_user_can_choose_economy_even_when_task_recommends_premium(self) -> None:
         card = select_work_card(
             task_type="structural",
             requested_quality="economy",
             environ={},
         )
-        self.assertEqual(card["effective_quality"], "best")
-        self.assertEqual(card["selected_tier"], "premium")
-        self.assertTrue(card["escalations"])
+        self.assertEqual(card["recommended_quality"], "best")
+        self.assertEqual(card["selected_quality"], "economy")
+        self.assertEqual(card["selected_tier"], "economy")
+        self.assertEqual(card["consumption_rank"], 1)
+        self.assertTrue(card["user_override"])
 
     def test_model_id_is_resolved_from_environment_without_changing_policy(self) -> None:
         card = select_work_card(
