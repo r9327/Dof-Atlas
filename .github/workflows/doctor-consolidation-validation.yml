@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: f82854756ba73eb33e4fbafcfbab1fc575e177b9
+          ref: 8ae1a794bd79b495356fda762a53370fe5ff3b11
           fetch-depth: 0
           lfs: false
           persist-credentials: false
@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
         run: |
           git rev-parse HEAD
-          if ((git rev-parse HEAD).Trim() -ne "f82854756ba73eb33e4fbafcfbab1fc575e177b9") { throw "Wrong source SHA" }
+          if ((git rev-parse HEAD).Trim() -ne "8ae1a794bd79b495356fda762a53370fe5ff3b11") { throw "Wrong source SHA" }
           git status --short
           git branch --show-current
           git fetch origin
