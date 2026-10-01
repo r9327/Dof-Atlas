@@ -180,6 +180,22 @@ class AgentVerificationTests(unittest.TestCase):
             self.assertEqual(discover.call_count, 3)
 
     def test_real_diff_escalates_a_requested_soft_plan_before_execution(self):
+        target = self.root / "app/services/shared_provider.py"
+        target.parent.mkdir(parents=True)
+        target.write_text("identity = 1\n", encoding="utf-8")
+        impact = {"scopes": ["quality_ci"], "recommended_tests": [],
+                  "unowned_paths": [], "ambiguous_paths": []}
+        policy = agent.atlas_integrity.load_policy(agent.ROOT)
+        with patch.object(agent, "impact_payload", return_value=impact), \
+             patch.object(agent_planner, "_planning_catalog", return_value=fixtures.AgentPlannerTests._catalog()), \
+             patch.object(agent.atlas_integrity, "load_policy", return_value=policy), \
+             patch("tools.atlas_doctor_lib.architecture.graph_status", return_value={"status": "MISSING", "reason": "missing"}):
+            plan = agent.plan_payload(self.root, ["tools/local.py"], level="SOFT", base_ref="HEAD")
+        self.assertIn("app/services/shared_provider.py", plan["paths"])
+        self.assertEqual(plan["level"], "MEDIUM")
+        self.assertEqual(plan["depth"]["escalations"][0]["from"], "SOFT")
+
+    def test_root_of_trust_diff_escalates_soft_to_hard(self):
         target = self.root / "app/core/character_identity.py"
         target.parent.mkdir(parents=True)
         target.write_text("identity = 1\n", encoding="utf-8")
@@ -191,8 +207,9 @@ class AgentVerificationTests(unittest.TestCase):
              patch.object(agent.atlas_integrity, "load_policy", return_value=policy), \
              patch("tools.atlas_doctor_lib.architecture.graph_status", return_value={"status": "MISSING", "reason": "missing"}):
             plan = agent.plan_payload(self.root, ["tools/local.py"], level="SOFT", base_ref="HEAD")
-        self.assertIn("app/core/character_identity.py", plan["paths"])
-        self.assertEqual(plan["level"], "MEDIUM")
+        self.assertEqual(plan["risk"]["risk"], "CRITICAL")
+        self.assertEqual(plan["level"], "HARD")
+        self.assertEqual(plan["integrity_mode"], "FULL")
         self.assertEqual(plan["depth"]["escalations"][0]["from"], "SOFT")
 
     def test_verify_cli_json_and_exit_code_route_to_doctor_executor(self):
