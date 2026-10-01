@@ -313,6 +313,7 @@ scopes:
       - tests.test_agent_scope_tests
       - tests.test_agent_checkpoint
       - tests.test_agent_planner
+      - tests.test_agent_verification
       - tests.test_agent_work_depth
       - tests.test_agent_planner_metadata
       - tests.test_guide_integrity

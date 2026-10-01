@@ -428,8 +428,33 @@ Atlas Integrity demeure l'unique autorite globale. Ses groupes, notamment META_I
 
 Validation RD-2 : candidat source `6805ce4bb612776cc448387db71e40d7882e2189`, 129 tests cibles Windows et Atlas Integrity FAST (risque MEDIUM, golden flows ajoutes par la policy) PASS. Agent doctor, Guide tools doctor et AI Context PASS ; index genere canoniquement.
 
-## RD-3 — Profondeurs de travail — CODE_DONE
+## RD-3 — Profondeurs de travail — VALIDATED
 
 Le planner choisit SOFT, MEDIUM ou HARD et explique chaque escalade. Les overrides `--soft`, `--medium`, `--hard` de `agent plan` sont mutuellement exclusifs. Aucun override ne baisse le minimum d'Atlas Integrity. Plusieurs fichiers/scopes elargissent les controles ; un changement structurel/critique demande HARD. DEEP est conserve seulement lorsqu'exige par la policy.
 
 SOFT utilise les tests consommateurs directs declares/observes du catalogue lorsqu'ils existent, sinon le ciblage scope existant. MEDIUM conserve les tests elargis scopes. HARD delegue FULL_SUITE a Atlas Integrity sans seconde decouverte complete. Aucun benchmark runtime supplementaire n'est lance par reflexe.
+
+Validation RD-3 : 138 tests cibles Windows et Atlas Integrity FAST PASS sur le candidat source `3090e62f2226bd56102ce6de7ce6acc63407a193`. Index canonique synchronise.
+
+## RD-4 — Facade verify — CODE_DONE
+
+`py -3.13 -m tools.agent verify <paths...> [--soft|--medium|--hard] [--base-ref HEAD] --json`
+delegue l'execution a `tools.atlas_doctor_lib.verification`. Doctor expose la meme
+facade avec `verify <paths...>` et son choix de validation du menu ; le verify
+historique sans chemins reste compatible.
+
+Agent compose ownership, imports/symboles cibles, diff Git reel, graph et planner.
+Un changement hors des chemins demandes participe au risque et peut escalader
+le niveau avant execution. SOFT ne reconstruit ni ne consulte le graph global.
+MEDIUM reutilise les consommateurs du cache disponible ; HARD/structurel exige
+une architecture courante et conserve les limites Graphify explicites en REVIEW.
+
+Doctor execute le moteur AI Context, les tests selectionnes, les facades specialisees
+canoniques puis exactement un Atlas Integrity. Il ne lance jamais de mutateur ;
+les blockers evidents arretent les controles suivants. Les failures observables,
+identifiants de tests, commandes et tails de logs sont exposes sans inferer une
+cause source inexistante. Une gate sans rapport exploitable reste REVIEW.
+
+Le catalogue reutilise le cache Doctor SHA/worktree (inventaire derive des fichiers
+suivis) ; les gates ne sont pas reutilisees a partir de Git seul, car les fixtures
+ignorees peuvent changer. Aucun daemon, hook Graphify ou changement produit.

@@ -6,6 +6,7 @@ working_set:
   - tools/agent_planner.py
   - tools/agent_graph.py
   - tools/guide_integrity.py
+  - tests/test_agent_verification.py
   - tests/test_agent_work_depth.py
   - tests/test_agent_planner_metadata.py
   - tools/tool_catalog.py

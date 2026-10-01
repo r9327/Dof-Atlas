@@ -177,6 +177,28 @@ def _execution_tests(
     return _unique(direct) or tests
 
 
+def _planning_catalog(root: Path) -> dict[str, Any]:
+    # Inventory inputs are git-tracked source/docs/tests only. Never cache gates:
+    # their ignored application fixtures may change independently of Git.
+    from tools.atlas_doctor_lib.core import cache_matches_git, git_state, load_json, write_json
+    try:
+        state = git_state(root)
+    except RuntimeError:
+        return tooling_catalog(root)
+    cached = load_json(root, "planner_catalog")
+    if (cached and cached.get("schema_version") == 1
+            and cached.get("kind") == "planner_catalog"
+            and cache_matches_git(cached, state)):
+        report = cached.get("catalog")
+        if isinstance(report, dict) and report.get("schema_version") == 1:
+            return report
+    report = tooling_catalog(root)
+    write_json(root, "planner_catalog", {
+        "schema_version": 1, "kind": "planner_catalog", "git": state, "catalog": report,
+    })
+    return report
+
+
 def build_plan(
     root: Path,
     paths: Iterable[str],
@@ -189,12 +211,12 @@ def build_plan(
 ) -> dict[str, Any]:
     root = root.resolve()
     normalized = atlas_integrity.normalize_paths(paths)
-    classification = atlas_integrity.classify_risk(normalized)
+    classification = atlas_integrity.classify_risk([*normalized, *impact.get("risk_paths", [])])
     resolved_policy = policy or atlas_integrity.load_policy(root)
     minimum_mode = minimum_integrity_mode(resolved_policy, classification)
     depth = choose_work_depth(normalized, impact, classification, minimum_mode, requested=level, structural=structural)
     groups = required_groups(resolved_policy, classification)
-    report = catalog_report or tooling_catalog(root)
+    report = catalog_report if catalog_report is not None else _planning_catalog(root)
     tools = _preferred_validation_tools(
         report,
         scopes=impact.get("scopes", []),
