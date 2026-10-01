@@ -107,6 +107,13 @@ def reverse_impact(
 
     for path in requested:
         payload["direct_dependencies"][path] = current_imports(path)
+    covered = {node_path(node.get("source_file")) for node in nodes.values()}
+    missing = sorted(set(requested) - covered)
+    if missing:
+        payload["missing_graph_paths"] = missing
+        payload["source_files_parsed"] = len(imports)
+        payload["reason"] = "Graph coverage is missing requested files; absence is not evidence of zero consumers."
+        return payload
     impacted = set(requested)
     frontier = set(requested)
     examined = set(requested)

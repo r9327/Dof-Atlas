@@ -202,10 +202,14 @@ def command_verify(root: Path, args) -> dict[str, Any]:
             raise ValueError("--gate belongs to legacy verify; use --soft/--medium/--hard with paths.")
         from tools.agent import verify_payload, _verification_summary
         payload = verify_payload(root, args.paths, level=args.level, structural=args.structural,
-                                 base_ref=args.base_ref or "HEAD", rebuild_graph=args.rebuild_graph)
+                                 base_ref=args.base_ref or "HEAD", rebuild_graph=args.rebuild_graph,
+                                 baseline_name=getattr(args, "baseline", None),
+                                 save_baseline=getattr(args, "save_baseline", None))
         if not args.json:
             _verification_summary(payload)
         return payload
+    if getattr(args, "baseline", None) or getattr(args, "save_baseline", None):
+        raise ValueError("Named baselines require targeted verify paths.")
     before = load_json(root, 'latest_audit')
     explicit_base = getattr(args, 'base_ref', None)
     baseline_head = ((before or {}).get('git') or {}).get('head')
@@ -316,6 +320,9 @@ def build_parser() -> argparse.ArgumentParser:
     levels.add_argument('--soft', dest='level', action='store_const', const='SOFT')
     levels.add_argument('--medium', dest='level', action='store_const', const='MEDIUM')
     levels.add_argument('--hard', dest='level', action='store_const', const='HARD')
+    baselines = verify.add_mutually_exclusive_group()
+    baselines.add_argument('--baseline', help='Comparer une baseline nommee et sa base SHA immuable.')
+    baselines.add_argument('--save-baseline', help='Enregistrer une baseline avant modification; aucun ecrasement.')
     verify.add_argument('--base-ref', help='Base du changement; sinon HEAD du snapshot precedent, puis HEAD.')
     sub.add_parser('report')
     sub.add_parser('clean')

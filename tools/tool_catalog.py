@@ -421,6 +421,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
                 "repository_root_anchored": not bool(row.get("cwd_dependency")),
                 "import_path_clean": not bool(row.get("path_hack")),
                 "targeted_tests": list(row.get("test_references", [])),
+                "consumer_tests": list(row.get("test_consumer_references", [])),
                 "declared_tests": (
                     list(tool_spec["recommended_tests"])
                     if tool_spec is not None

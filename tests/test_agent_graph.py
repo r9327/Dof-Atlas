@@ -78,6 +78,17 @@ class AgentGraphTests(unittest.TestCase):
         self.assertEqual(result["recommended_tests"], ["tests.test_agent_graph"])
         self.assertTrue(result["read_only"])
 
+    def test_current_graph_missing_a_requested_file_does_not_claim_zero_consumers(self):
+        self.raw["nodes"] = [node for node in self.raw["nodes"] if node["id"] != "target"]
+        self.raw["links"] = [self.edge("outer", "consumer")]
+        self.refresh()
+        result = self.query()
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertEqual(result["missing_graph_paths"], ["tools/target.py"])
+        self.assertIn("coverage", result["reason"])
+        self.assertEqual(result["confirmed_relationships"], [])
+        self.assertEqual(result["source_files_parsed"], 1)
+
     def test_real_submodule_imports_from_format_finds_package_consumer(self):
         self.write("tools/consumer.py", "from tools import target as dependency\n")
         self.raw["nodes"][0].update(label="target.py", source_location="L1")

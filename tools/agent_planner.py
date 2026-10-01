@@ -168,7 +168,7 @@ def _execution_tests(
             direct.extend(row.get("declared_tests", []))
             direct.extend(
                 path[:-3].replace("/", ".")
-                for path in row.get("targeted_tests", [])
+                for path in row.get("consumer_tests", row.get("targeted_tests", []))
                 if path.startswith("tests/test_") and path.endswith(".py")
                 and (root / path).is_file()
             )

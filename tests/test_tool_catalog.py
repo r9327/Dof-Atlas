@@ -47,6 +47,16 @@ class ToolCatalogTests(unittest.TestCase):
         self.assertGreaterEqual(row["readiness_score"], 85)
         self.assertEqual(row["invocation"], "py -3.13 -m tools.sample")
 
+    def test_actual_test_consumers_are_distinct_from_literal_mentions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(root, "tools/sample.py", "def main(): return 0\n")
+            self._write(root, "tests/test_direct.py", "from tools.sample import main\n")
+            self._write(root, "tests/test_mention.py", "EXAMPLE = 'tools/sample.py'\n")
+            row = catalog(root)["tools"][0]
+        self.assertEqual(row["consumer_tests"], ["tests/test_direct.py"])
+        self.assertEqual(row["targeted_tests"], ["tests/test_direct.py", "tests/test_mention.py"])
+
     def test_unguarded_mutator_requires_review_before_agent_use(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
