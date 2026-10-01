@@ -9,6 +9,7 @@ working_set:
   - tests/test_agent_verification.py
   - tests/test_agent_work_depth.py
   - tests/test_agent_planner_metadata.py
+  - tests/test_dofus_atlas_tools_skill.py
   - tools/tool_catalog.py
   - tools/tool_audit.py
   - tools/ai_context.py
