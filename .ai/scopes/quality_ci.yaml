@@ -4,6 +4,7 @@ kind: shared_infrastructure
 working_set:
   - tools/agent.py
   - tools/agent_planner.py
+  - tools/agent_graph.py
   - tools/tool_catalog.py
   - tools/tool_audit.py
   - tools/ai_context.py

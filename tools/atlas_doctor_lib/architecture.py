@@ -104,6 +104,7 @@ def graph_status(root: Path, *, state: dict[str, Any] | None = None) -> dict[str
         payload.update(status="INVALID", reason=str(exc))
         return payload
     payload["summary"] = summary
+    payload["graph_signature"] = signature
     cached = load_json(root, "latest_graph")
     if not isinstance(cached, dict):
         cached = None

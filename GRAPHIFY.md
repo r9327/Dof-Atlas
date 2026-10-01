@@ -32,6 +32,8 @@ py -3.13 -m tools.atlas_doctor graph --rebuild --open
 py -3.13 -m tools.atlas_doctor graph --install --open
 py -3.13 -m tools.atlas_doctor report --json
 py -3.13 -m tools.agent plan tools/atlas_doctor.py --structural --json
+py -3.13 -m tools.agent reverse-impact tools/agent.py --json
+py -3.13 -m tools.atlas_doctor graph --impact tools/agent.py --json
 ```
 
 The quick diagnostic never probes, installs or executes Graphify. Architecture reads an existing graph by default. Doctor reuses its HEAD/worktree cache and validates the graph signature, pinned version and expected outputs; absent, unverified, stale or invalid graphs are explicit states. Tracked changes and untracked file contents invalidate provenance. Generated data remains ignored.
@@ -73,3 +75,9 @@ This keeps an exact-SHA structural map available to GitHub-based agents without 
 Do **not** run `graphify hook install`. Dofus Atlas already owns repository-local Git hooks and AI instructions, so Graphify must integrate with those mechanisms rather than replacing them.
 
 Graphify is a navigation and impact-analysis tool. Confirm important relationships against the current code and tests, especially inferred edges. A cleaner graph never justifies a functional, performance or persistence regression.
+
+## Targeted consumer impact
+
+`agent reverse-impact <paths...>` and `atlas_doctor graph --impact <paths...>` share one Agent engine. They read the current Doctor cache without starting Graphify or scanning all repository sources. The default is one reverse-dependency level; `--depth 2` is explicit and inspection is capped at 100 candidate files. Only current Python imports confirm file dependencies from AST/extracted graph candidates, including Graphify's `imports_from` submodule records. Unconfirmed bindings, truncation and source errors remain REVIEW.
+
+`--symbol` filters candidates for one current top-level definition. Its module-level import evidence does not prove symbol binding and always requires review. Reports never certify the absence of dynamic or indirect consumers. Consumer ownership is advisory; ownership of files being changed remains a planning requirement. Structural plans reuse the impact scopes/tests automatically; ordinary local plans do not consult Graphify.
