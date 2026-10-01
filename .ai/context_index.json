@@ -122,7 +122,7 @@
     },
     "local_dofus_data": {
       "mode": "040000",
-      "sha": "83d911c8467326a555a1825d5a5bd76a0c2a870c",
+      "sha": "dd8983241533951fe01f82529af077118a1575e5",
       "type": "tree"
     },
     "main.py": {
