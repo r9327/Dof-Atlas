@@ -58,8 +58,8 @@ def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFo
         try:
             if path.exists():
                 return ImageFont.truetype(str(path), size)
-        except Exception:
-            pass
+        except (OSError, ValueError):
+            continue
     return ImageFont.load_default()
 
 

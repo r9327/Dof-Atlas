@@ -5,6 +5,7 @@ import hashlib
 import json
 import subprocess
 import sys
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Sequence
@@ -301,10 +302,8 @@ def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
         )
         temporary.replace(path)
     except OSError as exc:
-        try:
+        with suppress(OSError):
             temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
         raise ProtocolExtractionError(f"cannot write extraction manifest: {path}") from exc
 
 

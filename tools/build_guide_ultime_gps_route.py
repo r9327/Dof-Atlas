@@ -805,9 +805,11 @@ def full_success_context_for_step(step: RouteStep, targets: dict[str, Any]) -> d
     for action in step.actions:
         if action.dungeon_id is not None:
             try:
-                dungeon_ids.add(int(action.dungeon_id))
+                dungeon_id = int(action.dungeon_id)
             except (TypeError, ValueError):
-                pass
+                dungeon_id = None
+            if dungeon_id is not None:
+                dungeon_ids.add(dungeon_id)
         if action.dungeon_name:
             dungeon_names.add(norm(action.dungeon_name))
         monster_ids.update(int(v) for v in (action.monster_ids or ()) if str(v).lstrip("-").isdigit())
@@ -1406,8 +1408,8 @@ if __name__ == "__main__":
         }
         try:
             CRASH_AUDIT.write_text(json.dumps(crash, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        except Exception:
-            pass
+        except Exception as audit_exc:
+            print(f"GPS crash audit unavailable: {audit_exc}", file=sys.stderr, flush=True)
         print(f"GPS ERROR [{_GPS_STAGE}] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
         traceback.print_exc()
         if isinstance(exc, SystemExit):

@@ -1084,7 +1084,7 @@ def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFo
             if path.exists():
                 return ImageFont.truetype(str(path), size)
         except OSError:
-            pass
+            continue
     return ImageFont.load_default()
 
 

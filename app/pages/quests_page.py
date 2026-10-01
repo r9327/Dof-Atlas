@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
+
 from app.pages._quests_page_impl import (
     HIERARCHY_ID_ROLE,
     HIERARCHY_KIND_ROLE,
@@ -99,10 +101,8 @@ class QuestsPage(_EagerQuestsPage):
         self._search_debounce_timer.setSingleShot(True)
         self._search_debounce_timer.setInterval(_LARGE_CATALOG_SEARCH_DEBOUNCE_MS)
         self._search_debounce_timer.timeout.connect(self._flush_search_refresh)
-        try:
+        with suppress(RuntimeError, TypeError):
             self.search.textChanged.disconnect()
-        except (RuntimeError, TypeError):
-            pass
         self.search.textChanged.connect(self._on_search_text_changed)
 
     def _large_hierarchy_catalog(self) -> bool:

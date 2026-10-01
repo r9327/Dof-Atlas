@@ -340,7 +340,7 @@ def achievement_ids_in(
                         TypeError,
                         ValueError,
                     ):
-                        pass
+                        continue
 
             for child in value.values():
                 walk(child)

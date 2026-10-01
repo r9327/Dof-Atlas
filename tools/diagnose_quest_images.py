@@ -307,7 +307,7 @@ def disk_images(root: Path):
             try:
                 total += p.stat().st_size
             except OSError:
-                pass
+                continue
 
     return {
         "path": str(base),

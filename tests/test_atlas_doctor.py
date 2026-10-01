@@ -101,6 +101,25 @@ class AtlasDoctorTests(unittest.TestCase):
         finally:
             directory.cleanup()
 
+    def test_audit_accepts_narrow_intentional_suppression(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'cleanup.py'
+            target.write_text(
+                'from contextlib import suppress\n'
+                'def close_socket(sock):\n'
+                '    with suppress(OSError):\n'
+                '        sock.close()\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'intentional-cleanup')
+            payload = run_audit(root)
+            self.assertNotIn('silent_exception', {item['rule'] for item in payload['issues']})
+        finally:
+            directory.cleanup()
+
     def test_audit_resolves_canonical_lazy_export_mapping(self) -> None:
         directory = self.make_repo()
         try:

@@ -248,7 +248,7 @@ class NetworkApplicationCoordinator:
                 try:
                     command = self._commands.get(timeout=0.15)
                 except Empty:
-                    pass
+                    command = None
                 if command is not None:
                     self._handle_command(command)
                 if self._stop_event.is_set():
