@@ -63,13 +63,7 @@ def __getattr__(name: str):
         from app.modules.encyclopedia.views.guides_view import GuidesView
 
         return GuidesView
-    if name == "EncyclopediaPlaceholderView":
-        from app.modules.encyclopedia.views.placeholder_view import (
-            EncyclopediaPlaceholderView,
-        )
-
-        return EncyclopediaPlaceholderView
     raise AttributeError(name)
 
 
-__all__ = ["EncyclopediaPage", "EncyclopediaPlaceholderView", "GuidesView"]
+__all__ = ["EncyclopediaPage", "GuidesView"]

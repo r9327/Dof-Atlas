@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
@@ -19,6 +20,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from shiboken6 import isValid
 
 from app.constants import (
     CLIENT_INDEX_INI,
@@ -60,6 +62,9 @@ from app.services.character_order_service import CharacterOrderService
 from app.services.profile_settings_service import ProfileSettingsService
 from app.ui.components import AtlasButton
 from app.windows_embed import EVENT_SYSTEM_FOREGROUND, UnityWindowEventWatcher, scan_unity_sessions
+
+_LOGGER = logging.getLogger(__name__)
+
 
 CLASS_ICON_DIRS = (
     DATA_DIR / "images" / "classes",
@@ -631,10 +636,13 @@ class OrganizerPage(QWidget):
         self._profiles_baseline = dict(current)
 
     def set_runtime_active(self, connected: bool) -> None:
-        if not hasattr(self, "runtime_status_dot"):
+        if not isValid(self):
             return
-        self.runtime_status_dot.setObjectName("runtimeStatusActive" if connected else "runtimeStatusInactive")
-        self.restyle_button(self.runtime_status_dot)
+        status_dot = getattr(self, "runtime_status_dot", None)
+        if status_dot is None or not isValid(status_dot):
+            return
+        status_dot.setObjectName("runtimeStatusActive" if connected else "runtimeStatusInactive")
+        self.restyle_button(status_dot)
 
     def reload_profiles_and_export(self) -> None:
         self.profiles = self.load_profiles()
@@ -1282,7 +1290,7 @@ class OrganizerPage(QWidget):
                 index = self.drag_pending_index if self.drag_pending_index is not None else 0
                 self.set_session_row_state(self.drag_pending_row, self.base_session_slot_object_name(index))
             except RuntimeError:
-                pass
+                _LOGGER.debug("Pending drag row was deleted before restyle.", exc_info=True)
         self.drag_pending_index = None
         self.drag_pending_row = None
         self.drag_start_global = None
@@ -1378,7 +1386,7 @@ class OrganizerPage(QWidget):
             self.drag_ghost.close()
             self.drag_ghost.deleteLater()
         except RuntimeError:
-            pass
+            _LOGGER.debug("Drag ghost was already deleted during cleanup.", exc_info=True)
         self.drag_ghost = None
         self.drag_ghost_offset = QPoint(0, 0)
 
@@ -1422,11 +1430,11 @@ class OrganizerPage(QWidget):
             try:
                 self.drag_session_row.releaseMouse()
             except RuntimeError:
-                pass
+                _LOGGER.debug("Dragged row mouse grab was already released/deleted.", exc_info=True)
             try:
                 self.drag_session_row.setCursor(Qt.OpenHandCursor)
             except RuntimeError:
-                pass
+                _LOGGER.debug("Dragged row was deleted before cursor reset.", exc_info=True)
         for widget, index in self.session_slot_widgets:
             self.set_session_row_state(widget, self.base_session_slot_object_name(index))
         self.drag_session_index = None

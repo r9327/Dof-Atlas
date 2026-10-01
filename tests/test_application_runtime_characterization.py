@@ -244,7 +244,6 @@ def application_entry():
         quest_path = root / "quest.json"
         achievement_path = root / "achievement.json"
         guide_path = root / "guide.json"
-        cache_path = root / "home-cache.json"
         manifest_path = root / "manifest.json"
         quest_path.write_text("{}", encoding="utf-8")
         achievement_path.write_text("{}", encoding="utf-8")
@@ -256,7 +255,6 @@ def application_entry():
         GuideProgressService(guide_path).set_manual_step_completed(
             "character:1", progress_guide_id, "page:first", True
         )
-        refresh_globals["_HOME_PROGRESS_CACHE_PATH"] = cache_path
         refresh_globals["_MANUAL_ROUTE_MANIFEST_PATH"] = manifest_path
         refresh_globals["GUIDE_PROGRESS_FILE"] = guide_path
         constants.QUEST_PROGRESS_FILE = quest_path
@@ -265,30 +263,6 @@ def application_entry():
         first = Home("character:1")
         refresh(first)
 
-        signature = [
-            [path.stat().st_mtime_ns, path.stat().st_size]
-            for path in (quest_path, achievement_path, guide_path)
-        ]
-        cache_path.write_text(
-            json.dumps({
-                "version": 1,
-                "characters": {
-                    "character:2": {
-                        "progress_signature": signature,
-                        "percent": 75,
-                        "chapter": "Bonta",
-                        "step": "Étape sauvegardée",
-                        "zone": "[1,2]",
-                        "guide_id": "guide_complet",
-                    },
-                    "character:3": {
-                        "progress_signature": signature,
-                        "percent": 175,
-                    }
-                },
-            }),
-            encoding="utf-8",
-        )
         second = Home("character:2")
         refresh(second)
 
@@ -296,20 +270,15 @@ def application_entry():
         refresh(bounded)
 
         quest_path.write_text('{"generation": 2}', encoding="utf-8")
-        after_stale_cache = Home("character:2")
-        refresh(after_stale_cache)
-
-        cache_path.write_text("{broken", encoding="utf-8")
-        after_corruption = Home("character:2")
-        refresh(after_corruption)
+        after_progress_change = Home("character:2")
+        refresh(after_progress_change)
 
         payload["home"] = {
             "persisted_percent": first.progress_bar.value(),
-            "cached_percent": second.progress_bar.value(),
-            "cached_chapter": second.chapter_value.text(),
-            "bounded_percent": bounded.progress_bar.value(),
-            "stale_percent": after_stale_cache.progress_bar.value(),
-            "corrupt_percent": after_corruption.progress_bar.value(),
+            "cold_percent": second.progress_bar.value(),
+            "cold_chapter": second.chapter_value.text(),
+            "other_character_percent": bounded.progress_bar.value(),
+            "changed_input_percent": after_progress_change.progress_bar.value(),
             "guide_progress_still_present": GuideProgressService(guide_path).is_manual_step_completed(
                 "character:1", progress_guide_id, "page:first"
             ),
@@ -352,11 +321,10 @@ print(json.dumps(payload, ensure_ascii=False))
             self.assertEqual(state["character_keys"], ["character:1"])
             self.assertEqual(state["nav_refreshes"], ["Encyclopédie"])
         self.assertEqual(payload["home"]["persisted_percent"], 25)
-        self.assertEqual(payload["home"]["cached_percent"], 75)
-        self.assertEqual(payload["home"]["cached_chapter"], "Bonta")
-        self.assertEqual(payload["home"]["bounded_percent"], 100)
-        self.assertEqual(payload["home"]["stale_percent"], 0)
-        self.assertEqual(payload["home"]["corrupt_percent"], 0)
+        self.assertEqual(payload["home"]["cold_percent"], 0)
+        self.assertEqual(payload["home"]["cold_chapter"], "Progression sauvegardée")
+        self.assertEqual(payload["home"]["other_character_percent"], 0)
+        self.assertEqual(payload["home"]["changed_input_percent"], 0)
         self.assertTrue(payload["home"]["guide_progress_still_present"])
         self.assertEqual(
             payload["home"]["heavy_operations"],

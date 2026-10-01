@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import sys
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -167,10 +168,8 @@ def install_verified_protocol_mapping(
                 ) from rollback_exc
         raise ProtocolMappingError(f"cannot install protocol mapping: {destination}") from exc
     finally:
-        try:
+        with suppress(OSError):
             temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
 
     return ProtocolMappingInstallResult(
         True,

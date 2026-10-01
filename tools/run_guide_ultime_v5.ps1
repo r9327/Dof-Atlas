@@ -5,7 +5,7 @@ py -3.13 -m unittest tests.test_guide_ultime_v5_scope tests.test_guide_ultime_ma
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[2/5] Guide Ultime - content lock STRICT"
-py -3.13 .\tools\build_guide_ultime_final.py --strict
+py -3.13 -m tools.build_guide_ultime_final --strict
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Audit disponible: artifacts\guide_ultime_final_audit.json"
     exit $LASTEXITCODE
@@ -31,7 +31,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "[5/5] Guide Ultime - rangement artifacts"
-py -3.13 .\tools\organize_guide_ultime_artifacts.py --apply
+py -3.13 -m tools.organize_guide_ultime_artifacts --apply
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "GUIDE STRICT PASS"

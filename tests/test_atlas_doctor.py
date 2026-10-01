@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import subprocess
 import tempfile
 import unittest
@@ -98,6 +99,276 @@ class AtlasDoctorTests(unittest.TestCase):
             _git(root, 'commit', '-m', 'wildcard')
             payload = run_audit(root)
             self.assertIn('import_star', {item['rule'] for item in payload['issues']})
+        finally:
+            directory.cleanup()
+
+    def test_large_file_contract_requires_hash_generator_and_consumers(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'data' / 'catalog.json'
+            target.write_text('{"items":[]}', encoding='utf-8')
+            generator = root / 'app' / 'generate.py'
+            generator.write_text('OUTPUT = "catalog.json"\n', encoding='utf-8')
+            consumer = root / 'app' / 'consume.py'
+            consumer.write_text('SOURCE = "catalog.json"\n', encoding='utf-8')
+            digest = hashlib.sha256(target.read_bytes()).hexdigest()
+            (root / 'data' / 'large_file_contracts.json').write_text(
+                json.dumps(
+                    {
+                        'schema_version': 1,
+                        'files': [
+                            {
+                                'path': 'data/catalog.json',
+                                'sha256': digest,
+                                'role': 'canonical_runtime_source',
+                                'generator': 'app/generate.py',
+                                'consumers': ['app/consume.py'],
+                            }
+                        ],
+                    }
+                ),
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'contracted data')
+            with patch('tools.atlas_doctor_lib.audit.LARGE_TRACKED_FILE_BYTES', 1):
+                issues = run_audit(root, save=False)['issues']
+            target_rules = {item['rule'] for item in issues if item['path'] == 'data/catalog.json'}
+            self.assertIn('contracted_large_file', target_rules)
+            self.assertNotIn('large_tracked_file', target_rules)
+
+            target.write_text('{"items":[1]}', encoding='utf-8')
+            with patch('tools.atlas_doctor_lib.audit.LARGE_TRACKED_FILE_BYTES', 1):
+                issues = run_audit(root, save=False)['issues']
+            rules = {item['rule'] for item in issues}
+            target_rules = {item['rule'] for item in issues if item['path'] == 'data/catalog.json'}
+            self.assertIn('invalid_large_file_contract', rules)
+            self.assertIn('large_tracked_file', target_rules)
+        finally:
+            directory.cleanup()
+
+    def test_audit_accepts_narrow_intentional_suppression(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'cleanup.py'
+            target.write_text(
+                'from contextlib import suppress\n'
+                'def close_socket(sock):\n'
+                '    with suppress(OSError):\n'
+                '        sock.close()\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'intentional-cleanup')
+            payload = run_audit(root)
+            self.assertNotIn('silent_exception', {item['rule'] for item in payload['issues']})
+        finally:
+            directory.cleanup()
+
+    def test_audit_resolves_canonical_lazy_export_mapping(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            package = root / 'app' / 'package'
+            package.mkdir()
+            (package / '__init__.py').write_text(
+                'from importlib import import_module\n'
+                '_LAZY_EXPORTS = {"Thing": ("app.package.thing", "Thing")}\n'
+                'def __getattr__(name):\n'
+                '    target = _LAZY_EXPORTS.get(name)\n'
+                '    module_name, attribute_name = target\n'
+                '    return getattr(import_module(module_name), attribute_name)\n',
+                encoding='utf-8',
+            )
+            (package / 'thing.py').write_text('class Thing:\n    pass\n', encoding='utf-8')
+            (package / 'dead.py').write_text('class Dead:\n    pass\n', encoding='utf-8')
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'lazy exports')
+            issues = run_audit(root, save=False)['issues']
+            dead_paths = {item['path'] for item in issues if item['rule'] == 'unreferenced_module'}
+            self.assertNotIn('app/package/thing.py', dead_paths)
+            self.assertIn('app/package/dead.py', dead_paths)
+        finally:
+            directory.cleanup()
+
+    def test_audit_keeps_unproven_dynamic_import_as_unreferenced(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            package = root / 'app' / 'package'
+            package.mkdir()
+            (package / '__init__.py').write_text(
+                'from importlib import import_module\n'
+                'UNRELATED = {"Thing": ("app.package.thing", "Thing")}\n'
+                'def load(module_name):\n'
+                '    return import_module(module_name)\n',
+                encoding='utf-8',
+            )
+            (package / 'thing.py').write_text('class Thing:\n    pass\n', encoding='utf-8')
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'unproven dynamic import')
+            issues = run_audit(root, save=False)['issues']
+            dead_paths = {item['path'] for item in issues if item['rule'] == 'unreferenced_module'}
+            self.assertIn('app/package/thing.py', dead_paths)
+        finally:
+            directory.cleanup()
+
+    def test_audit_recognizes_executor_submitted_io_but_keeps_direct_ui_io(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            view = root / 'app' / 'pages' / 'view.py'
+            view.parent.mkdir()
+            view.write_text(
+                'from concurrent.futures import ThreadPoolExecutor\n'
+                'from pathlib import Path\n'
+                'POOL = ThreadPoolExecutor(max_workers=1)\n'
+                'def decode(path):\n'
+                '    return Path(path).read_bytes()\n'
+                'def direct(path):\n'
+                '    return Path(path).read_bytes()\n'
+                'def start(path):\n'
+                '    return POOL.submit(decode, path)\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'executor io')
+            issues = run_audit(root, save=False)['issues']
+            io_lines = {item['line'] for item in issues if item['rule'] == 'sync_io_ui'}
+            self.assertNotIn(5, io_lines)
+            self.assertIn(7, io_lines)
+        finally:
+            directory.cleanup()
+
+    def test_audit_classifies_single_load_cached_ui_io_without_hiding_direct_io(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            view = root / 'app' / 'pages' / 'cached_view.py'
+            view.parent.mkdir()
+            view.write_text(
+                'from functools import lru_cache\n'
+                'from pathlib import Path\n'
+                '@lru_cache(maxsize=1)\n'
+                'def manifest():\n'
+                '    return Path("manifest.json").read_text()\n'
+                'def direct():\n'
+                '    return Path("other.json").read_text()\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'cached ui io')
+            issues = run_audit(root, save=False)['issues']
+            cached_lines = {item['line'] for item in issues if item['rule'] == 'single_load_sync_io_ui'}
+            direct_lines = {item['line'] for item in issues if item['rule'] == 'sync_io_ui'}
+            self.assertIn(5, cached_lines)
+            self.assertNotIn(5, direct_lines)
+            self.assertIn(7, direct_lines)
+        finally:
+            directory.cleanup()
+
+    def test_audit_confirms_managed_worker_but_keeps_unmanaged_worker_for_review(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'workers.py'
+            target.write_text(
+                'from concurrent.futures import ThreadPoolExecutor\n'
+                'from threading import Thread\n'
+                'def managed():\n'
+                '    with ThreadPoolExecutor(max_workers=1) as pool:\n'
+                '        return pool.submit(lambda: 1).result()\n'
+                'def unmanaged():\n'
+                '    Thread(target=lambda: None).start()\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'worker lifecycle')
+            issues = run_audit(root, save=False)['issues']
+            managed = {item['line'] for item in issues if item['rule'] == 'managed_worker_lifecycle'}
+            review = {item['line'] for item in issues if item['rule'] == 'worker_lifecycle_review'}
+            self.assertIn(4, managed)
+            self.assertIn(7, review)
+        finally:
+            directory.cleanup()
+
+    def test_audit_uses_consumers_not_legacy_words_to_classify_symbols(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'compat.py'
+            target.write_text(
+                'def legacy_adapter():\n'
+                '    return 1\n'
+                'def use_adapter():\n'
+                '    return legacy_adapter()\n'
+                'def obsolete_orphan():\n'
+                '    return 2\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'compatibility symbols')
+            issues = run_audit(root, save=False)['issues']
+            confirmed = {
+                item['line'] for item in issues if item['rule'] == 'compatibility_symbol_contract'
+            }
+            suspects = {item['line'] for item in issues if item['rule'] == 'legacy_symbol_marker'}
+            self.assertIn(1, confirmed)
+            self.assertIn(5, suspects)
+        finally:
+            directory.cleanup()
+
+    def test_audit_recognizes_transitive_blocking_io_but_keeps_true_spin(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'loops.py'
+            target.write_text(
+                'def blocking(stream):\n'
+                '    return stream.read(1)\n'
+                'def consume(stream):\n'
+                '    while True:\n'
+                '        if not blocking(stream):\n'
+                '            break\n'
+                'def spin(flag):\n'
+                '    while True:\n'
+                '        if flag():\n'
+                '            continue\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'loops')
+            issues = run_audit(root, save=False)['issues']
+            loop_lines = {item['line'] for item in issues if item['rule'] == 'busy_loop_risk'}
+            self.assertNotIn(4, loop_lines)
+            self.assertIn(8, loop_lines)
+        finally:
+            directory.cleanup()
+
+    def test_audit_distinguishes_controlled_and_ordinary_dynamic_exec(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'dynamic.py'
+            target.write_text(
+                'def controlled(source, path):\n'
+                '    namespace: dict = {"__file__": str(path), "__name__": "isolated"}\n'
+                '    exec(compile(source, str(path), "exec"), namespace)\n'
+                'def ordinary(source):\n'
+                '    exec(source)\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'dynamic exec')
+            issues = run_audit(root, save=False)['issues']
+            controlled = [item for item in issues if item['rule'] == 'controlled_dynamic_exec']
+            ordinary = [item for item in issues if item['rule'] == 'dynamic_exec']
+            self.assertEqual([item['line'] for item in controlled], [3])
+            self.assertEqual([item['line'] for item in ordinary], [5])
+            self.assertEqual(controlled[0]['severity'], 'INFO')
+            self.assertEqual(ordinary[0]['severity'], 'HIGH')
         finally:
             directory.cleanup()
 

@@ -113,6 +113,19 @@ class DoctorVerificationContractTests(unittest.TestCase):
         self.assertIn('tools.atlas_integrity', command)
         self.assertEqual(result['status'], 'PASS')
 
+    def test_gate_adapter_uses_mode_aware_timeout_and_utf8(self):
+        completed = subprocess.CompletedProcess([], 0, json.dumps({'verdict': 'PASS'}), '')
+        with (patch.object(Path, 'is_file', return_value=True),
+              patch.object(gates.subprocess, 'run', return_value=completed) as run):
+            gates.run_integrity_gate(Path.cwd(), 'full')
+        self.assertEqual(run.call_args.kwargs['timeout'], 7200)
+        self.assertEqual(run.call_args.kwargs['env']['PYTHONUTF8'], '1')
+
+        with (patch.object(Path, 'is_file', return_value=True),
+              patch.object(gates.subprocess, 'run', return_value=completed) as run):
+            gates.run_integrity_gate(Path.cwd(), 'critical', timeout=12)
+        self.assertEqual(run.call_args.kwargs['timeout'], 12)
+
     def test_core_tooling_has_one_owned_scope_and_existing_tests(self):
         paths = ['tools/agent.py', 'tools/agent_planner.py', 'tools/tool_catalog.py',
                  'tools/tool_audit.py', 'tools/ai_context.py']

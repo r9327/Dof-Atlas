@@ -300,9 +300,7 @@ class ProjectGuardrailsTests(unittest.TestCase):
 
     def test_no_wildcard_imports_in_application_code(self) -> None:
         candidates = [ROOT / "main.py", *(ROOT / "app").rglob("*.py")]
-        existing_baseline = {
-            "app/pages/quests_page.py:from app.pages._quests_page_impl import *",
-        }
+        existing_baseline: set[str] = set()
         found: set[str] = set()
         diagnostics: list[str] = []
         for path in candidates:

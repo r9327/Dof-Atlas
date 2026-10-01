@@ -7,6 +7,7 @@ import socket
 import threading
 import time
 from collections import deque
+from contextlib import suppress
 from dataclasses import dataclass
 from logging import Logger
 from typing import Any, Callable, Iterable
@@ -485,25 +486,19 @@ class WindowsRawProtocolSource:
         except Exception:
             self.logger.exception("Windows raw network capture could not bind a local interface.")
             if capture_socket is not None:
-                try:
+                with suppress(OSError):
                     capture_socket.close()
-                except OSError:
-                    pass
             return None
 
     @staticmethod
     def _close_capture_socket(capture_socket: socket.socket) -> None:
-        try:
+        with suppress(OSError):
             sio_rcvall = getattr(socket, "SIO_RCVALL", None)
             rcvall_off = getattr(socket, "RCVALL_OFF", None)
             if sio_rcvall is not None and rcvall_off is not None:
                 capture_socket.ioctl(sio_rcvall, rcvall_off)
-        except OSError:
-            pass
-        try:
+        with suppress(OSError):
             capture_socket.close()
-        except OSError:
-            pass
 
     def _get_queued_item(self) -> ProtocolTransportItem | None:
         try:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import re
 from pathlib import Path
 from threading import RLock
@@ -9,6 +10,8 @@ from typing import Any
 from app.modules.encyclopedia.services.guide_ultime_manual_route import _manual_tree_signature
 from app.quest_catalog import doduda_rows, normalize_text, read_json_file, text_for
 
+
+LOGGER = logging.getLogger(__name__)
 
 AUTO_VALIDATION_SCHEMA_VERSION = 1
 _MANUAL_DIR = Path(__file__).resolve().parents[4] / "data" / "routes" / "guide_ultime_manual"
@@ -251,9 +254,12 @@ def _achievement_index(achievement_provider: Any) -> dict[str, tuple[int, str]]:
                     result[key] = (int(achievement_id), name)
             if result:
                 return result
-        except Exception:
+        except Exception as exc:
             # Custom providers or partial test data retain the historical path.
-            pass
+            LOGGER.debug(
+                "Index Succès léger indisponible; fallback provider complet: %s",
+                exc,
+            )
 
     return _achievement_index_from_loaded_provider(achievement_provider)
 

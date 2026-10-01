@@ -3,6 +3,7 @@ from __future__ import annotations
 """Canonical Guide GPS entry point with player-safe map semantics."""
 
 import json
+import sys
 import traceback
 
 from app.modules.encyclopedia.services.guide_ultime_route_adapter import GuideUltimeRouteAdapter
@@ -38,8 +39,8 @@ def _run() -> None:
                     ) + "\n",
                     encoding="utf-8",
                 )
-            except Exception:
-                pass
+            except Exception as audit_exc:
+                print(f"GPS crash audit unavailable: {audit_exc}", file=sys.stderr, flush=True)
         if isinstance(exc, SystemExit):
             raise SystemExit(exc.code if isinstance(exc.code, int) else 1)
         raise

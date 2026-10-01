@@ -92,10 +92,7 @@ class ProtobufAnyStreamDecoder:
         messages: list[FramedProtocolMessage] = []
         consumed = 0
 
-        while True:
-            found = self._find_next_type_prefix(consumed)
-            if found is None:
-                break
+        while (found := self._find_next_type_prefix(consumed)) is not None:
             prefix_at, prefix = found
 
             type_end = prefix_at + len(prefix)

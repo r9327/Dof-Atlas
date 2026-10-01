@@ -771,8 +771,8 @@ def dofus_window_from_point(mouse_x: int, mouse_y: int) -> dict[str, Any] | None
         root = int(win32gui.GetAncestor(hwnd, win32con.GA_ROOT)) if hwnd else 0
         if root:
             candidates.append(root)
-    except Exception:
-        pass
+    except Exception as exc:
+        LOGGER.debug("WindowFromPoint Unity indisponible pour %s: %s", point, exc)
 
     def enum_callback(hwnd: int, _extra: Any) -> bool:
         try:
@@ -788,8 +788,8 @@ def dofus_window_from_point(mouse_x: int, mouse_y: int) -> dict[str, Any] | None
 
     try:
         win32gui.EnumWindows(enum_callback, None)
-    except Exception:
-        pass
+    except Exception as exc:
+        LOGGER.debug("EnumWindows Unity interrompu pour %s: %s", point, exc)
 
     seen: set[int] = set()
     for hwnd in candidates:

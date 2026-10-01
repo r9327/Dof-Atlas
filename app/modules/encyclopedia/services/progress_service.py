@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import shutil
 from pathlib import Path
@@ -9,6 +10,9 @@ from typing import Any, Iterable
 from app.constants import DATA_DIR
 from local_dofus_data.utils import now_iso, save_json_atomic
 from app.modules.encyclopedia.models.progress_state import ProgressState
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 ACHIEVEMENT_PROGRESS_FILE = DATA_DIR / "encyclopedia" / "progress" / "achievement_progress.json"
@@ -470,7 +474,11 @@ class AchievementProgressService:
         try:
             shutil.copy2(self.path, backup)
         except OSError:
-            pass
+            _LOGGER.warning(
+                "Sauvegarde du fichier de progression corrompu impossible: %s",
+                self.path,
+                exc_info=True,
+            )
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:

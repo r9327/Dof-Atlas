@@ -3,14 +3,20 @@
 
 from __future__ import annotations
 
-from app.pages._quests_page_impl import *  # noqa: F401,F403
+from contextlib import suppress
+
 from app.pages._quests_page_impl import (
     HIERARCHY_ID_ROLE,
     HIERARCHY_KIND_ROLE,
+    MIN_QUEST_SEARCH_CHARS,
     NativeQuestDetailPanel,
     QuestsPage as _EagerQuestsPage,
+    linkify_travel_coordinates,
+    load_owned_items,
     quest_detail_html,
+    quest_required_items,
 )
+from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QTreeWidgetItem
 
@@ -18,6 +24,16 @@ from PySide6.QtWidgets import QTreeWidgetItem
 _MIN_LAZY_QUESTS = 500
 _LAZY_POPULATED_ROLE = HIERARCHY_ID_ROLE + 1000
 _LARGE_CATALOG_SEARCH_DEBOUNCE_MS = 120
+
+__all__ = [
+    "HIERARCHY_ID_ROLE",
+    "HIERARCHY_KIND_ROLE",
+    "MIN_QUEST_SEARCH_CHARS",
+    "QuestsPage",
+    "linkify_travel_coordinates",
+    "quest_detail_html",
+    "quest_required_items",
+]
 
 
 class _LazyCompatQuestDetailPanel(NativeQuestDetailPanel):
@@ -85,10 +101,8 @@ class QuestsPage(_EagerQuestsPage):
         self._search_debounce_timer.setSingleShot(True)
         self._search_debounce_timer.setInterval(_LARGE_CATALOG_SEARCH_DEBOUNCE_MS)
         self._search_debounce_timer.timeout.connect(self._flush_search_refresh)
-        try:
+        with suppress(RuntimeError, TypeError):
             self.search.textChanged.disconnect()
-        except (RuntimeError, TypeError):
-            pass
         self.search.textChanged.connect(self._on_search_text_changed)
 
     def _large_hierarchy_catalog(self) -> bool:

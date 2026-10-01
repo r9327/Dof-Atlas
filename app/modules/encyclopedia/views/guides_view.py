@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import re
 import logging
 import time
@@ -75,7 +76,8 @@ from app.modules.encyclopedia.views.guide_home_image_cache import (
 )
 from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_state
 from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
-from app.modules.encyclopedia.widgets import CollapsedColumnRail, FixedColumnSplitter, GuideListModel
+from app.modules.encyclopedia.widgets.dashboard import CollapsedColumnRail, FixedColumnSplitter
+from app.modules.encyclopedia.widgets.guide_card import GuideListModel
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import normalize_text
 from app.storage import AtlasButton
@@ -108,6 +110,7 @@ SOLUTION_IMAGE_EXECUTOR = ThreadPoolExecutor(
     max_workers=4,
     thread_name_prefix="DofusAtlasQuestImage",
 )
+atexit.register(SOLUTION_IMAGE_EXECUTOR.shutdown, wait=False, cancel_futures=True)
 
 
 class _AsyncImageDelivery(QObject):

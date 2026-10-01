@@ -24,6 +24,7 @@ from app.windows.unity_windows import enable_dpi_awareness
 StatusCallback = Callable[[str], None]
 ActiveCallback = Callable[[bool], None]
 RUNTIME_STARTUP_JOIN_TIMEOUT_SECONDS = 5.0
+MACRO_THREAD_JOIN_TIMEOUT_SECONDS = 2.0
 
 
 class _RuntimeCallbackBridge(QObject):
@@ -390,6 +391,7 @@ class AtlasRuntime:
     def stop(self) -> None:
         self._cancel_pending_startup()
         self.emergency_stop("arret runtime")
+        self._join_macro_threads()
         self.registry.stop()
         self.mouse_hook.stop()
         with self._state_lock:
@@ -397,6 +399,18 @@ class AtlasRuntime:
         self._emit_active(False)
         self.logger.info("Runtime Python arrete.")
         self._emit_status("Runtime Python arrete.")
+
+    def _join_macro_threads(self) -> None:
+        current = threading.current_thread()
+        threads = [thread for thread in self._threads if thread is not current and thread.is_alive()]
+        for thread in threads:
+            thread.join(MACRO_THREAD_JOIN_TIMEOUT_SECONDS)
+        self._threads = [thread for thread in threads if thread.is_alive()]
+        if self._threads:
+            self.logger.error(
+                "Threads macro encore actifs apres arret: %s",
+                [thread.name for thread in self._threads],
+            )
 
     def reload_hotkeys(self, force_restart: bool = False) -> None:
         self.settings = load_settings()

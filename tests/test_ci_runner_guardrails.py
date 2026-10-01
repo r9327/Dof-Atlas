@@ -282,15 +282,15 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             if module != FINAL_TRANSVERSAL_MODULE:
                 self.assertIn("Path(__file__).resolve().parents[1]", source, module)
 
-    def test_remaining_direct_audits_bootstrap_repository_root(self) -> None:
+    def test_remaining_audits_are_module_safe(self) -> None:
         for relative in (
             "tools/audit_guide_ultime_manual_route_hooks.py",
             "tools/audit_guide_ultime_manual_prerequisites.py",
         ):
             source = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn("import sys", source, relative)
             self.assertIn("Path(__file__).resolve().parents[1]", source, relative)
-            self.assertIn("sys.path.insert(0, str(ROOT))", source, relative)
+            self.assertNotIn("import sys", source, relative)
+            self.assertNotIn("sys.path.insert", source, relative)
 
     def test_shell_route_path_contract_is_platform_neutral(self) -> None:
         source = (ROOT / "tests" / "_pyside_shell_base.py").read_text(encoding="utf-8-sig")

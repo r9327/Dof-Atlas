@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import suppress
 from pathlib import Path
 
 from app.network.contracts import (
@@ -182,10 +183,8 @@ def install_calibrated_current_profile(
                 ) from rollback_exc
         raise ProtocolMappingError(f"cannot install calibrated protocol mapping: {destination}") from exc
     finally:
-        try:
+        with suppress(OSError):
             temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
 
     return ProtocolMappingInstallResult(
         True,
@@ -332,10 +331,8 @@ def _rollback(
             f"cannot rollback calibrated protocol mapping after {reason}: {destination}"
         ) from exc
     finally:
-        try:
+        with suppress(OSError):
             rollback_temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
     if previous_bytes is None and destination.exists():
         raise ProtocolMappingError(
             f"calibrated mapping still exists after rollback ({reason}): {destination}"

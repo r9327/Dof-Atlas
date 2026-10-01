@@ -357,7 +357,7 @@ def store_image(
                     by_sha.setdefault(raw_sha256, row)
                     return local, raw_sha256, "deterministic_file_reuse"
         except (OSError, UnidentifiedImageError):
-            pass
+            continue
         target = folder / f"{stem}_{suffix}.webp"
         suffix += 1
 
