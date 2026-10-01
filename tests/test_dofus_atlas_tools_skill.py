@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_RELATIVE = "tools/skills/dofus-atlas-tools/SKILL.md"
+TEST_RELATIVE = "tests/test_dofus_atlas_tools_skill.py"
 SKILL = ROOT / SKILL_RELATIVE
 
 
@@ -40,11 +41,10 @@ class DofusAtlasToolsSkillTests(unittest.TestCase):
     def test_quality_ci_scope_and_tool_guidance_route_to_skill(self) -> None:
         tooling_guidance = (ROOT / "tools/AGENTS.md").read_text(encoding="utf-8")
         scope_manifest = (ROOT / ".ai/scopes/quality_ci.yaml").read_text(encoding="utf-8")
-        context_map = (ROOT / ".ai/context-map.yaml").read_text(encoding="utf-8")
 
         self.assertIn(SKILL_RELATIVE, tooling_guidance)
         self.assertIn(SKILL_RELATIVE, scope_manifest)
-        self.assertIn("tests.test_dofus_atlas_tools_skill", context_map)
+        self.assertIn(TEST_RELATIVE, scope_manifest)
 
 
 if __name__ == "__main__":
