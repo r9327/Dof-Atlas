@@ -27,7 +27,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "ccdc9fa75d8a8aa650da03083f341c5de867387a",
+      "sha": "9f79bd5e57643b81f39c93b7d507bd75b0581568",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -147,12 +147,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "20cde05fbcaeacb6608c0bf3c3dfe3526f3c85d8",
+      "sha": "cad3ae693c1023c4352434b98aea8348645e3285",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "aca642f3cd862292a9dc08c945321e6a1e09fab8",
+      "sha": "3984ad48b09436bd9bc6fffbbe3428aeb2c1c287",
       "type": "tree"
     }
   },
