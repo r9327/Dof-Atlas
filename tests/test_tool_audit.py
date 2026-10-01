@@ -193,6 +193,18 @@ class ToolAuditTests(unittest.TestCase):
         self.assertIn("tools/legacy.py", report["cwd_dependencies"])
         self.assertFalse(report["blocking"])
 
+    def test_path_hack_detector_ignores_its_own_rule_literals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/detector.py",
+                "FORBIDDEN = {'sys.path.insert', 'sys.path.append'}\n",
+            )
+            report = audit(root)
+
+        self.assertNotIn("tools/detector.py", report["path_hacks"])
+
     def test_mutation_capability_distinguishes_explicit_gate(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -8,7 +8,6 @@ import json
 import os
 import re
 import shutil
-import sys
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,10 +15,6 @@ from typing import Iterable
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-UNITYPY_VENDOR = ROOT_DIR / ".codex_deps" / "unitypy"
-if UNITYPY_VENDOR.exists():
-    sys.path.insert(0, str(UNITYPY_VENDOR))
-
 try:
     import UnityPy  # type: ignore
     from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageStat
@@ -27,8 +22,7 @@ try:
 except ImportError as exc:
     raise SystemExit(
         "Missing dependency. Install it with:\n"
-        "  py -m pip install UnityPy pillow\n"
-        "or vendor it in .codex_deps/unitypy."
+        "  py -m pip install UnityPy pillow"
     ) from exc
 
 

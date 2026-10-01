@@ -2,20 +2,14 @@ from __future__ import annotations
 
 import json
 import os
-import sys
-from pathlib import Path
-
-
-ROOT_DIR = Path(__file__).resolve().parents[1]
-UNITYPY_VENDOR = ROOT_DIR / ".codex_deps" / "unitypy"
-if UNITYPY_VENDOR.exists():
-    sys.path.insert(0, str(UNITYPY_VENDOR))
-
 import re
+from pathlib import Path
 
 import UnityPy  # type: ignore
 from UnityPy import config as unitypy_config  # type: ignore
 
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
 
 unitypy_config.FALLBACK_UNITY_VERSION = "6000.0.0f1"
 

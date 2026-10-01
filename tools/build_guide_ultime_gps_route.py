@@ -4,7 +4,7 @@ from __future__ import annotations
 
 Run from the repository root AFTER build_guide_ultime_final.py:
 
-    py -3.13 .\tools\build_guide_ultime_gps_route.py --strict
+    py -3.13 -m tools.guide_gps --strict
 
 V5 UNIVERSAL:
 - consumes guide_ultime_final.json (single content-lock source of truth);
@@ -31,11 +31,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Iterable
 
-ROOT = Path.cwd()
-if not (ROOT / "app").exists():
-    ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parents[1]
 
 from app.constants import RAW_QUEST_DATA_DIR
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
@@ -943,7 +939,7 @@ def main() -> None:
     if not GUIDE_PATH.exists():
         raise SystemExit(
             "artifacts/guide_ultime_final.json absent. "
-            "Lance d'abord tools/build_guide_ultime_final.py --strict"
+            "Lance d'abord py -3.13 -m tools.build_guide_ultime_final --strict"
         )
 
     guide = load_json(GUIDE_PATH)

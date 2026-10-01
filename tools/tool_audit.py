@@ -465,6 +465,29 @@ def _suggestion(row: dict[str, Any], version_members: set[str]) -> str:
     return "keep_or_review_manually"
 
 
+def _has_sys_path_mutation(source: str) -> bool:
+    """Detect executable sys.path mutations without matching audit literals."""
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr not in {"append", "insert", "extend"}:
+            continue
+        owner = node.func.value
+        if (
+            isinstance(owner, ast.Attribute)
+            and owner.attr == "path"
+            and isinstance(owner.value, ast.Name)
+            and owner.value.id == "sys"
+        ):
+            return True
+    return False
+
+
 def _tool_row(
     *,
     root: Path,
@@ -484,7 +507,7 @@ def _tool_row(
         marker in lowered for marker in _MUTATION_GATES
     )
     cwd_dependency = "path.cwd(" in lowered or "get-location" in lowered or "$pwd" in lowered
-    path_hack = "sys.path.insert" in lowered or "sys.path.append" in lowered
+    path_hack = suffix == ".py" and _has_sys_path_mutation(source)
     row = {
         "path": path,
         "kind": suffix.lstrip("."),

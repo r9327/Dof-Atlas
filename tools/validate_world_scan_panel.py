@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import os
-import sys
 import json
 from pathlib import Path
 
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT_DIR = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT_DIR))
 
 from PIL import Image
 from PySide6.QtWidgets import QApplication

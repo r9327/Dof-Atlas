@@ -468,7 +468,7 @@ class WorldScanPanel(QWidget):
                 self.current_world_name,
                 str(view.get("asset_path") or ""),
                 False,
-                "python scripts/recover_cartography_assets.py",
+                "py -3.13 -m scripts.recover_cartography_assets",
             )
         else:
             self.canvas.set_map_placeholder("")
@@ -501,7 +501,7 @@ class WorldScanPanel(QWidget):
         return (
             "Carte locale absente ou non valid\u00e9e pour ce monde.\n"
             f"Asset manquant : {asset_path}\n"
-            "Lancez : python scripts/recover_cartography_assets.py"
+            "Lancez : py -3.13 -m scripts.recover_cartography_assets"
         )
 
     def log_scan_world_debug(self, reason: str) -> None:

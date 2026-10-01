@@ -6,21 +6,17 @@ import gc
 import hashlib
 import os
 import re
-import sys
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+import UnityPy
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageStat
+from UnityPy import config as unitypy_config
+
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
-UNITYPY_VENDOR = ROOT_DIR / ".codex_deps" / "unitypy"
-if UNITYPY_VENDOR.exists():
-    sys.path.insert(0, str(UNITYPY_VENDOR))
-
-import UnityPy  # noqa: E402
-from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageStat  # noqa: E402
-from UnityPy import config as unitypy_config  # noqa: E402
-
 
 LOCAL_APP_DATA = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
 DOFUS_INSTALL_DIR = LOCAL_APP_DATA / "Ankama" / "Dofus-dofus3"

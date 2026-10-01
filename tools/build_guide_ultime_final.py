@@ -4,11 +4,11 @@ from __future__ import annotations
 
 Run from the Dofus Atlas repository root:
 
-    py -3.13 .\tools\build_guide_ultime_final.py --strict
+    py -3.13 -m tools.build_guide_ultime_final --strict
 
 Optional integration write (only after the strict audit passes):
 
-    py -3.13 .\tools\build_guide_ultime_final.py --strict --apply
+    py -3.13 -m tools.build_guide_ultime_final --strict --apply
 
 This generator deliberately does NOT use the visual order of an older guide as a
 hard dependency. Real quest prerequisites come from local quest data; the legacy
@@ -19,19 +19,12 @@ import argparse
 import csv
 import json
 import re
-import sys
 import unicodedata
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
-if not (ROOT / "app").exists():
-    candidate = Path.cwd()
-    if (candidate / "app").exists():
-        ROOT = candidate
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -8,12 +7,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-if str(ROOT_DIR / "app") not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR / "app"))
-
-from app.session_manager_pyside import (  # noqa: E402
+from app.session_manager_pyside import (
     JOB_RESOURCE_GROUPS,
     REPORTS_DIR,
     ROOT_DIR as APP_ROOT_DIR,
