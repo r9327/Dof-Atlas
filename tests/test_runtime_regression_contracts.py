@@ -11,6 +11,7 @@ from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication
 
 import app.storage as storage
+from app.core.runtime_state import AtlasRuntime
 from main import AtlasWindow, find_lookup_item
 
 
@@ -90,6 +91,20 @@ class RuntimeRegressionContractTests(unittest.TestCase):
         method = source.split("    def stop_runtime(self) -> None:", 1)[1].split("\n    def ", 1)[0]
         self.assertIn('self.runtime.emergency_stop("bouton stop")', method)
         self.assertNotIn("update_runtime_badge(False)", method)
+
+    def test_runtime_joins_cooperative_macro_worker_during_shutdown(self) -> None:
+        runtime = AtlasRuntime()
+
+        def cooperative_macro() -> None:
+            runtime.macro_lock.stop_event.wait(1.0)
+
+        self.assertTrue(runtime._spawn_macro("test", cooperative_macro))
+        worker = runtime._threads[0]
+        runtime.macro_lock.request_stop("test shutdown")
+        runtime._join_macro_threads()
+
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(runtime._threads, [])
 
     def test_main_explicitly_enables_dpi_before_qapplication(self) -> None:
         source = Path(__file__).resolve().parents[1].joinpath("main.py").read_text(encoding="utf-8")

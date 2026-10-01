@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from shiboken6 import isValid
 
 from app.constants import (
     CLIENT_INDEX_INI,
@@ -635,10 +636,13 @@ class OrganizerPage(QWidget):
         self._profiles_baseline = dict(current)
 
     def set_runtime_active(self, connected: bool) -> None:
-        if not hasattr(self, "runtime_status_dot"):
+        if not isValid(self):
             return
-        self.runtime_status_dot.setObjectName("runtimeStatusActive" if connected else "runtimeStatusInactive")
-        self.restyle_button(self.runtime_status_dot)
+        status_dot = getattr(self, "runtime_status_dot", None)
+        if status_dot is None or not isValid(status_dot):
+            return
+        status_dot.setObjectName("runtimeStatusActive" if connected else "runtimeStatusInactive")
+        self.restyle_button(status_dot)
 
     def reload_profiles_and_export(self) -> None:
         self.profiles = self.load_profiles()

@@ -222,6 +222,31 @@ class AtlasDoctorTests(unittest.TestCase):
         finally:
             directory.cleanup()
 
+    def test_audit_confirms_managed_worker_but_keeps_unmanaged_worker_for_review(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / 'app' / 'workers.py'
+            target.write_text(
+                'from concurrent.futures import ThreadPoolExecutor\n'
+                'from threading import Thread\n'
+                'def managed():\n'
+                '    with ThreadPoolExecutor(max_workers=1) as pool:\n'
+                '        return pool.submit(lambda: 1).result()\n'
+                'def unmanaged():\n'
+                '    Thread(target=lambda: None).start()\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'worker lifecycle')
+            issues = run_audit(root, save=False)['issues']
+            managed = {item['line'] for item in issues if item['rule'] == 'managed_worker_lifecycle'}
+            review = {item['line'] for item in issues if item['rule'] == 'worker_lifecycle_review'}
+            self.assertIn(4, managed)
+            self.assertIn(7, review)
+        finally:
+            directory.cleanup()
+
     def test_audit_recognizes_transitive_blocking_io_but_keeps_true_spin(self) -> None:
         directory = self.make_repo()
         try:

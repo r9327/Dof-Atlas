@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import re
 import logging
 import time
@@ -109,6 +110,7 @@ SOLUTION_IMAGE_EXECUTOR = ThreadPoolExecutor(
     max_workers=4,
     thread_name_prefix="DofusAtlasQuestImage",
 )
+atexit.register(SOLUTION_IMAGE_EXECUTOR.shutdown, wait=False, cancel_futures=True)
 
 
 class _AsyncImageDelivery(QObject):

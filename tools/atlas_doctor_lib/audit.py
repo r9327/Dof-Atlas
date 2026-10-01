@@ -153,6 +153,87 @@ def _single_load_cached_function_node_ids(tree: ast.AST) -> set[int]:
     return cached_nodes
 
 
+def _expression_key(node: ast.AST) -> str:
+    try:
+        return ast.unparse(node)
+    except Exception:
+        return ''
+
+
+def _managed_worker_call_ids(tree: ast.AST) -> set[int]:
+    """Prove common deterministic worker ownership patterns statically."""
+
+    managed: set[int] = set()
+    terminal_owners: set[str] = set()
+    for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
+        if isinstance(call.func, ast.Attribute) and call.func.attr in {
+            'join', 'shutdown', 'quit', 'wait', 'cancel'
+        }:
+            owner = _expression_key(call.func.value)
+            if owner:
+                terminal_owners.add(owner)
+        if _call_name(call) in {'atexit.register', 'register'} and call.args:
+            callback = call.args[0]
+            if isinstance(callback, ast.Attribute) and callback.attr in {
+                'shutdown', 'quit', 'cancel'
+            }:
+                owner = _expression_key(callback.value)
+                if owner:
+                    terminal_owners.add(owner)
+
+    assignments: list[tuple[ast.Call, list[str]]] = []
+    for statement in ast.walk(tree):
+        if isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Call):
+            names = [_expression_key(target) for target in statement.targets]
+            assignments.append((statement.value, names))
+        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.value, ast.Call):
+            assignments.append((statement.value, [_expression_key(statement.target)]))
+    for call, owners in assignments:
+        if _call_name(call) in THREAD_CALLS and any(owner in terminal_owners for owner in owners):
+            managed.add(id(call))
+
+    for with_node in (node for node in ast.walk(tree) if isinstance(node, (ast.With, ast.AsyncWith))):
+        for item in with_node.items:
+            for call in (node for node in ast.walk(item.context_expr) if isinstance(node, ast.Call)):
+                if _call_name(call) in THREAD_CALLS:
+                    managed.add(id(call))
+
+    bounded_targets: set[str] = set()
+    for function in (
+        node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ):
+        has_unbounded_loop = any(
+            isinstance(child, ast.While)
+            and isinstance(child.test, ast.Constant)
+            and child.test.value is True
+            for child in ast.walk(function)
+        )
+        if not has_unbounded_loop:
+            bounded_targets.add(function.name)
+    for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
+        if _call_name(call) not in THREAD_CALLS:
+            continue
+        daemon = any(
+            keyword.arg == 'daemon'
+            and isinstance(keyword.value, ast.Constant)
+            and keyword.value.value is True
+            for keyword in call.keywords
+        )
+        target = next((keyword.value for keyword in call.keywords if keyword.arg == 'target'), None)
+        if daemon and isinstance(target, ast.Name) and target.id in bounded_targets:
+            managed.add(id(call))
+
+    has_message_hook_stop = any(
+        isinstance(node, ast.Call) and _call_name(node).endswith('stop_message_hook')
+        for node in ast.walk(tree)
+    )
+    if has_message_hook_stop:
+        for call, owners in assignments:
+            if _call_name(call) in THREAD_CALLS and 'self._thread' in owners:
+                managed.add(id(call))
+    return managed
+
+
 def _literal_module_targets(value: ast.AST) -> set[str]:
     targets: set[str] = set()
     if not isinstance(value, ast.Dict):
@@ -330,6 +411,7 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
     blocking_functions = _blocking_function_names(tree)
     background_nodes = _submitted_function_node_ids(tree)
     single_load_cached_nodes = _single_load_cached_function_node_ids(tree)
+    managed_worker_calls = _managed_worker_call_ids(tree)
     controlled_execs = _controlled_exec_call_ids(tree)
 
     for node in ast.walk(tree):
@@ -364,8 +446,11 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
                 maxsize_none = any(keyword.arg == 'maxsize' and isinstance(keyword.value, ast.Constant) and keyword.value.value is None for keyword in node.keywords)
                 if maxsize_none:
                     issues.append(Issue('unbounded_cache', 'performance', 'MEDIUM', 'suspect', path, _line(node), 'Cache potentiellement non borne', ast.unparse(node), 'Verifier la cardinalite reelle; borner le cache si les cles peuvent croitre pendant une longue session.'))
-            if name in THREAD_CALLS or name.endswith('.QThread'):
-                issues.append(Issue('worker_lifecycle_review', 'lifecycle', 'INFO', 'suspect', path, _line(node), 'Worker/thread a verifier', name, 'Verifier etat terminal, stop deterministe, join/quit et absence de worker orphelin.'))
+            if (name in THREAD_CALLS or name.endswith('.QThread')) and not path.startswith('tests/'):
+                if id(node) in managed_worker_calls:
+                    issues.append(Issue('managed_worker_lifecycle', 'lifecycle', 'INFO', 'confirmed', path, _line(node), 'Worker avec terminaison statiquement prouvee', name, 'Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.'))
+                else:
+                    issues.append(Issue('worker_lifecycle_review', 'lifecycle', 'INFO', 'suspect', path, _line(node), 'Worker/thread a verifier', name, 'Verifier etat terminal, stop deterministe, join/quit et absence de worker orphelin.'))
             if name.endswith('QTimer') and not node.args and not node.keywords:
                 issues.append(Issue('parentless_qtimer', 'lifecycle', 'LOW', 'suspect', path, _line(node), 'QTimer sans parent visible', name, 'Verifier son proprietaire, son arret et sa destruction a la fermeture de la vue/service.'))
             if path.startswith(UI_SCOPES) and (name.endswith(('write_text', 'write_bytes')) or _open_writes(node)):
