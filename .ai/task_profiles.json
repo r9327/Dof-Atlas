@@ -34,37 +34,30 @@
   ],
   "task_profiles": {
     "read_only": {
-      "minimum_quality": "economy",
       "recommended_quality": "economy",
       "description": "Navigation, lecture, recherche et inspection sans modification."
     },
     "tiny_edit": {
-      "minimum_quality": "economy",
       "recommended_quality": "economy",
       "description": "Petite modification localisee a faible risque."
     },
     "localized_fix": {
-      "minimum_quality": "economy",
       "recommended_quality": "balanced",
       "description": "Correction ciblee avec diagnostic et tests bornes."
     },
     "feature": {
-      "minimum_quality": "balanced",
       "recommended_quality": "balanced",
       "description": "Fonctionnalite ou changement multi-fichiers borne."
     },
     "refactor": {
-      "minimum_quality": "balanced",
       "recommended_quality": "best",
       "description": "Refactorisation avec impacts consommateurs possibles."
     },
     "structural": {
-      "minimum_quality": "best",
       "recommended_quality": "best",
       "description": "Changement structurel, dependances, deplacement ou suppression de modules."
     },
     "certification": {
-      "minimum_quality": "best",
       "recommended_quality": "best",
       "description": "Certification, integrite globale ou changement de garde-fous."
     }
