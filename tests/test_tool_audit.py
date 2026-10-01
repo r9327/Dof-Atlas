@@ -76,6 +76,60 @@ class ToolAuditTests(unittest.TestCase):
         self.assertEqual(row["test_consumer_references"], [])
         self.assertIn("tools/sample.py", report["unreferenced_entrypoints"])
 
+    def test_returned_module_command_is_a_consumer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/sample.py",
+                "def main(): return 0\nif __name__ == '__main__': main()\n",
+            )
+            self._write(
+                root,
+                "tools/engine.py",
+                "def command(python):\n"
+                "    return [python, '-m', 'tools.sample', '--json']\n",
+            )
+            report = audit(root)
+
+        row = next(row for row in report["tools"] if row["path"] == "tools/sample.py")
+        self.assertEqual(row["invocation_references"], ["tools/engine.py"])
+        self.assertNotIn("tools/sample.py", report["unreferenced_entrypoints"])
+
+    def test_extensionless_git_hook_is_a_shell_consumer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(root, "tools/pre_commit.ps1", "Write-Host ok\n")
+            self._write(
+                root,
+                ".githooks/pre-commit",
+                "exec powershell.exe -NoProfile -File tools/pre_commit.ps1\n",
+            )
+            report = audit(root)
+
+        row = next(row for row in report["tools"] if row["path"] == "tools/pre_commit.ps1")
+        self.assertEqual(row["invocation_references"], [".githooks/pre-commit"])
+
+    def test_source_contract_read_is_stronger_than_plain_mention(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/harness.ps1",
+                "Write-Host canonical\n",
+            )
+            self._write(
+                root,
+                "tests/test_harness.py",
+                "from pathlib import Path\n"
+                "TEXT = (Path('tools') / 'harness.ps1').read_text()\n",
+            )
+            report = audit(root)
+
+        row = next(row for row in report["tools"] if row["path"] == "tools/harness.ps1")
+        self.assertEqual(row["contract_references"], ["tests/test_harness.py"])
+        self.assertNotIn("tools/harness.ps1", report["unreferenced_entrypoints"])
+
     def test_powershell_python_file_invocation_is_a_consumer(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

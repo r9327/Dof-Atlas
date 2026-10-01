@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RETIRED_MAINTENANCE_TOOLS = (
     "tools/audit_lot6_coverage.py",
+    "tools/audit_lot6_final_runtime.py",
     "tools/audit_lot6_forensic.py",
     "tools/audit_quest_images_fast.py",
     "tools/diagnose_quest_images.py",
@@ -18,6 +19,7 @@ RETIRED_MAINTENANCE_TOOLS = (
     "tools/reconcile_guide_ultime_manifest_counts.py",
     "tools/repair_guides_full.py",
     "tools/validate_world_scan_panel.py",
+    "tools/apply_ui_navigation_modules.py",
 )
 
 

@@ -77,6 +77,13 @@ def _normalized(path: Path | str) -> str:
     return str(path).replace("\\", "/")
 
 
+def _expression_name(node: ast.AST) -> str:
+    try:
+        return ast.unparse(node)
+    except Exception:
+        return ""
+
+
 def _git_tracked_paths(root: Path) -> list[str]:
     completed = subprocess.run(
         ["git", "ls-files", "-z"],
@@ -128,7 +135,7 @@ def _reference_paths(tracked: Iterable[str]) -> list[str]:
     rows: list[str] = []
     for path in tracked:
         suffix = Path(path).suffix.casefold()
-        if suffix not in _TEXT_SUFFIXES:
+        if suffix not in _TEXT_SUFFIXES and not (not suffix and path.startswith('.githooks/')):
             continue
         if path.startswith(_REFERENCE_ROOTS) or "/" not in path:
             rows.append(path)
@@ -281,6 +288,15 @@ def _python_tool_invocation_paths(source: str) -> set[str]:
     except SyntaxError:
         return set()
     result: set[str] = set()
+    command_variables: dict[str, set[str]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and isinstance(node.value, (ast.List, ast.Tuple)):
+            paths = _command_tool_paths(_literal_command_tokens(node.value))
+            for target in node.targets:
+                if paths and isinstance(target, ast.Name):
+                    command_variables[target.id] = paths
+        elif isinstance(node, ast.Return) and isinstance(node.value, (ast.List, ast.Tuple)):
+            result.update(_command_tool_paths(_literal_command_tokens(node.value)))
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
@@ -290,7 +306,36 @@ def _python_tool_invocation_paths(source: str) -> set[str]:
             function_name = ""
         if function_name not in _PYTHON_EXECUTION_CALLS or not node.args:
             continue
-        result.update(_command_tool_paths(_literal_command_tokens(node.args[0])))
+        argument = node.args[0]
+        result.update(_command_tool_paths(_literal_command_tokens(argument)))
+        if isinstance(argument, ast.Name):
+            result.update(command_variables.get(argument.id, set()))
+    return result
+
+
+def _python_tool_contract_paths(source: str, tool_paths: Iterable[str]) -> set[str]:
+    """Find tests that inspect a tool file instead of merely naming it."""
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    result: set[str] = set()
+    tools = {path.replace('\\', '/'): path for path in tool_paths}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr not in {'read_text', 'read_bytes', 'is_file', 'exists', 'stat'}:
+            continue
+        values = [
+            str(child.value).replace('\\', '/').strip('/')
+            for child in ast.walk(node.func.value)
+            if isinstance(child, ast.Constant) and isinstance(child.value, str)
+        ]
+        evidence = '/'.join(value for value in values if value)
+        for normalized, original in tools.items():
+            if normalized in evidence or Path(normalized).name in values:
+                result.add(original)
     return result
 
 
@@ -361,7 +406,7 @@ def _reference_counts(
     tool_paths: list[str],
     reference_paths: list[str],
 ) -> dict[str, dict[str, Any]]:
-    corpus: dict[str, tuple[str, set[str], set[str]]] = {}
+    corpus: dict[str, tuple[str, set[str], set[str], set[str]]] = {}
     for relative in reference_paths:
         text = _read_text(root, relative)
         if not text:
@@ -373,7 +418,12 @@ def _reference_counts(
             if suffix == ".py"
             else _text_tool_invocation_paths(text, tool_paths)
         )
-        corpus[relative] = (text, imported_tools, invoked_tools)
+        contracted_tools = (
+            _python_tool_contract_paths(text, tool_paths)
+            if suffix == ".py" and relative.startswith("tests/")
+            else set()
+        )
+        corpus[relative] = (text, imported_tools, invoked_tools, contracted_tools)
 
     result: dict[str, dict[str, Any]] = {}
     for tool in tool_paths:
@@ -384,19 +434,23 @@ def _reference_counts(
         all_refs: list[str] = []
         test_refs: list[str] = []
         test_consumer_refs: list[str] = []
-        for relative, (text, imported_tools, invoked_tools) in corpus.items():
+        contract_refs: list[str] = []
+        for relative, (text, imported_tools, invoked_tools, contracted_tools) in corpus.items():
             if relative == tool:
                 continue
             imported = tool in imported_tools
             invoked = tool in invoked_tools
+            contracted = tool in contracted_tools
             mentioned = any(token in text for token in tokens)
-            if not (imported or invoked or mentioned):
+            if not (imported or invoked or contracted or mentioned):
                 continue
             all_refs.append(relative)
             if imported:
                 import_refs.append(relative)
             if invoked:
                 invocation_refs.append(relative)
+            if contracted:
+                contract_refs.append(relative)
             if mentioned and not imported and not invoked:
                 text_refs.append(relative)
             if relative.startswith("tests/"):
@@ -413,6 +467,7 @@ def _reference_counts(
             "text_references": sorted(set(text_refs)),
             "test_references": sorted(set(test_refs)),
             "test_consumer_references": sorted(set(test_consumer_refs)),
+            "contract_references": sorted(set(contract_refs)),
         }
     return result
 
@@ -448,19 +503,20 @@ def _suggestion(row: dict[str, Any], version_members: set[str]) -> str:
     path = str(row["path"])
     if row.get("parse_error"):
         return "review_parse_error"
-    if row.get("mutation_capable") and not row.get("explicit_mutation_gate"):
+    has_contract = bool(row.get("consumer_references") or row.get("contract_references"))
+    if row.get("mutation_capable") and not row.get("explicit_mutation_gate") and not has_contract:
         return "review_mutation_safety"
-    if path in version_members:
+    if path in version_members and not has_contract:
         return "review_version_family"
-    if row.get("wrapper"):
+    if row.get("wrapper") and not has_contract:
         return "review_wrapper_absorption"
-    if row.get("executable") and not row.get("consumer_references"):
+    if row.get("executable") and not has_contract:
         return "review_unconsumed_entrypoint"
     if row.get("path_hack"):
         return "review_import_path_hack"
     if row.get("cwd_dependency"):
         return "review_cwd_dependency"
-    if row.get("executable") and not row.get("test_references"):
+    if row.get("executable") and not has_contract:
         return "review_targeted_test_gap"
     return "keep_or_review_manually"
 
@@ -506,7 +562,21 @@ def _tool_row(
     explicit_mutation_gate = mutation_capable and any(
         marker in lowered for marker in _MUTATION_GATES
     )
-    cwd_dependency = "path.cwd(" in lowered or "get-location" in lowered or "$pwd" in lowered
+    if suffix == ".py":
+        try:
+            parsed = ast.parse(source)
+        except SyntaxError:
+            parsed = None
+        cwd_dependency = bool(
+            parsed
+            and any(
+                isinstance(node, ast.Call)
+                and _expression_name(node.func) in {"Path.cwd", "pathlib.Path.cwd", "os.getcwd"}
+                for node in ast.walk(parsed)
+            )
+        )
+    else:
+        cwd_dependency = "get-location" in lowered or "$pwd" in lowered
     path_hack = suffix == ".py" and _has_sys_path_mutation(source)
     row = {
         "path": path,
@@ -526,6 +596,7 @@ def _tool_row(
         "text_references": list(references.get("text_references", [])),
         "test_references": list(references.get("test_references", [])),
         "test_consumer_references": list(references.get("test_consumer_references", [])),
+        "contract_references": list(references.get("contract_references", [])),
     }
     return row
 
@@ -561,17 +632,19 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
     mutation_without_gate = [
         row["path"]
         for row in tools
-        if row["mutation_capable"] and not row["explicit_mutation_gate"]
+        if row["mutation_capable"]
+        and not row["explicit_mutation_gate"]
+        and not (row["consumer_references"] or row["contract_references"])
     ]
     unreferenced_entrypoints = [
         row["path"]
         for row in tools
-        if row["executable"] and not row["consumer_references"]
+        if row["executable"] and not (row["consumer_references"] or row["contract_references"])
     ]
     targeted_test_gaps = [
         row["path"]
         for row in tools
-        if row["executable"] and not row["test_references"]
+        if row["executable"] and not (row["contract_references"] or row["consumer_references"])
     ]
     review_candidates = [
         row["path"]
