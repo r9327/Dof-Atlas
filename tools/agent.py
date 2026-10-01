@@ -631,6 +631,22 @@ def imports_payload(root: Path, scope: str) -> dict[str, Any]:
     }
 
 
+def reverse_impact_payload(
+    root: Path, paths: Iterable[str], *, symbol: str | None = None, depth: int = 1,
+) -> dict[str, Any]:
+    """Compose graph candidates with the existing Agent source/context engines."""
+    from tools.agent_graph import reverse_impact
+
+    try:
+        return reverse_impact(
+            root, list(paths), symbol=symbol, depth=depth,
+            imports_resolver=_internal_imports, symbols_resolver=_python_symbols,
+            impact_resolver=impact_payload,
+        )
+    except ValueError as exc:
+        raise AgentConfigError(str(exc)) from exc
+
+
 def _print_payload(payload: dict[str, Any]) -> None:
     for key, value in payload.items():
         if isinstance(value, list):
@@ -692,8 +708,7 @@ def main(argv: list[str] | None = None) -> int:
             payload = impact_payload(ROOT, args.paths)
             exit_code = 0
         elif command == "reverse-impact":
-            from tools.agent_graph import reverse_impact
-            payload = reverse_impact(ROOT, args.paths, symbol=args.symbol, depth=args.depth)
+            payload = reverse_impact_payload(ROOT, args.paths, symbol=args.symbol, depth=args.depth)
             exit_code = 0 if payload["status"] == "PASS" else 1
         elif command == "ownership":
             payload = ownership_payload(ROOT, args.paths)
@@ -708,8 +723,7 @@ def main(argv: list[str] | None = None) -> int:
             impact = impact_payload(ROOT, args.paths)
             graph_impact = None
             if args.structural:
-                from tools.agent_graph import reverse_impact
-                graph_impact = reverse_impact(ROOT, args.paths)
+                graph_impact = reverse_impact_payload(ROOT, args.paths)
                 impact["recommended_tests"] = _unique([
                     *impact.get("recommended_tests", []),
                     *graph_impact.get("recommended_tests", []),

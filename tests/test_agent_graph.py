@@ -66,7 +66,7 @@ class AgentGraphTests(unittest.TestCase):
                       "graph_signature": hashlib.sha256(self.graph_path.read_bytes()).hexdigest()}
 
     def query(self, **kwargs):
-        return agent_graph.reverse_impact(self.root, ["tools/target.py"], **kwargs)
+        return agent.reverse_impact_payload(self.root, ["tools/target.py"], **kwargs)
 
     def test_real_format_import_edge_confirms_current_consumer_only(self):
         result = self.query()
@@ -132,7 +132,7 @@ class AgentGraphTests(unittest.TestCase):
 
     def test_invalid_paths_cannot_escape_the_repository(self):
         for path in ("../outside.py", str(self.root / "tools/target.py"), "tools/missing.py"):
-            result = agent_graph.reverse_impact(self.root, [path])
+            result = agent.reverse_impact_payload(self.root, [path])
             self.assertEqual(result["status"], "REVIEW")
             self.assertEqual(result["source_files_parsed"], 0)
 
@@ -180,7 +180,11 @@ class AgentGraphTests(unittest.TestCase):
         plan = {"status": "READY", "automation_safe": True}
         with mock.patch("tools.agent_graph.reverse_impact", return_value=graph_impact) as query, mock.patch.object(agent.agent_planner, "build_plan", return_value=plan) as planner, contextlib.redirect_stdout(io.StringIO()) as output:
             self.assertEqual(agent.main(["plan", "tools/agent.py", "--structural", "--json"]), 0)
-        query.assert_called_once_with(agent.ROOT, ["tools/agent.py"])
+        query.assert_called_once_with(
+            agent.ROOT, ["tools/agent.py"], symbol=None, depth=1,
+            imports_resolver=agent._internal_imports, symbols_resolver=agent._python_symbols,
+            impact_resolver=agent.impact_payload,
+        )
         impact = planner.call_args.args[2]
         self.assertIn("tests.test_consumer", impact["recommended_tests"])
         self.assertEqual(json.loads(output.getvalue())["architecture_preflight"]["impact"], graph_impact)
@@ -208,6 +212,9 @@ class AgentGraphTests(unittest.TestCase):
             result = self.query()
         self.assertEqual(result["status"], "REVIEW")
         self.assertEqual(result["ownership_review_paths"], ["tools/target.py"])
+
+    def test_graph_engine_does_not_import_the_agent_facade_reciprocally(self):
+        self.assertNotIn("tools/agent.py", agent._internal_imports(ROOT, "tools/agent_graph.py"))
 
     def test_new_cli_help_exposes_bounded_cost(self):
         with contextlib.redirect_stdout(io.StringIO()) as output, self.assertRaises(SystemExit) as exit:

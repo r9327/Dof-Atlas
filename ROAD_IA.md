@@ -415,3 +415,5 @@ existant ; Atlas Integrity reste l'autorite. Aucun produit ni wrapper supprime.
 Un plan `--structural` reutilise automatiquement ce reverse-impact : scopes et tests consommateurs enrichissent le plan, tandis que les proprietaires restent ceux des fichiers a modifier. Un impact REVIEW interdit l'edition automatique. Les petits plans locaux ne consultent pas le graph.
 
 La preuve VALIDATED/CERTIFIED de RD-1 doit etre lue dans les checks de sa PR sur son HEAD exact. La fermeture de RD-1 ne ferme pas les lots planner, niveaux, verify et baseline restant ci-dessus.
+
+Le moteur graph recoit les resolveurs existants de l'Agent via la facade `reverse_impact_payload` ; il n'importe pas la facade Agent. Cette direction conserve une seule implementation source/contexte et evite un import reciproque Agent/graph.

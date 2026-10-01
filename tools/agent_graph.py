@@ -9,9 +9,8 @@ explicitly advisory. No graph generation or repository-wide source scan.
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
-from tools import agent
 from tools.atlas_doctor_lib import architecture as graph_architecture
 
 MAX_FILES = 100
@@ -33,11 +32,15 @@ def _source_path(root: Path, value: Any) -> str | None:
 
 
 def reverse_impact(
-    root: Path, paths: list[str], *, symbol: str | None = None, depth: int = 1,
+    root: Path, paths: list[str], *,
+    imports_resolver: Callable[[Path, str], list[str]],
+    symbols_resolver: Callable[[Path, str], list[dict[str, Any]]],
+    impact_resolver: Callable[[Path, list[str]], dict[str, Any]],
+    symbol: str | None = None, depth: int = 1,
 ) -> dict[str, Any]:
     root = root.resolve()
     if depth not in (1, 2):
-        raise agent.AgentConfigError("reverse impact depth must be 1 or 2")
+        raise ValueError("reverse impact depth must be 1 or 2")
     requested = sorted(set(paths))
     graph = graph_architecture.graph_status(root)
     payload: dict[str, Any] = {
@@ -63,7 +66,7 @@ def reverse_impact(
     payload["paths"] = requested
     if symbol:
         if len(requested) != 1 or symbol not in {
-            row["name"] for row in agent._python_symbols(root, requested[0])
+            row["name"] for row in symbols_resolver(root, requested[0])
         }:
             payload["reason"] = "Symbol must identify a current top-level definition in one requested file."
             return payload
@@ -96,8 +99,8 @@ def reverse_impact(
     def current_imports(path: str) -> list[str]:
         if path not in imports:
             try:
-                imports[path] = agent._internal_imports(root, path)
-            except agent.AgentConfigError as exc:
+                imports[path] = imports_resolver(root, path)
+            except RuntimeError as exc:
                 imports[path] = []
                 payload["source_errors"].append({"path": path, "reason": str(exc)})
         return imports[path]
@@ -143,7 +146,7 @@ def reverse_impact(
                     payload["unconfirmed_relationships"].append(row)
         frontier = following
     payload["impacted_files"] = sorted(impacted)
-    impact = agent.impact_payload(root, payload["impacted_files"])
+    impact = impact_resolver(root, payload["impacted_files"])
     payload["scopes"] = impact["scopes"]
     payload["recommended_tests"] = impact["recommended_tests"]
     payload["source_files_parsed"] = len(imports)

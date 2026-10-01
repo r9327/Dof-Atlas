@@ -91,8 +91,8 @@ def command_graph(root: Path, args) -> dict[str, Any]:
         if payload["status"] != "PASS":
             print("Utiliser Graph > reconstruire (ou --rebuild); installation explicite : --install.")
     if getattr(args, "impact", None):
-        from tools.agent_graph import reverse_impact
-        payload["impact"] = reverse_impact(root, args.impact, symbol=args.symbol, depth=args.depth)
+        from tools.agent import reverse_impact_payload
+        payload["impact"] = reverse_impact_payload(root, args.impact, symbol=args.symbol, depth=args.depth)
         if not args.json:
             print(f"Impact : {payload['impact']['status']}")
             print("Fichiers : " + ", ".join(payload["impact"]["impacted_files"]))
