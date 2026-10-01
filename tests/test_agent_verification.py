@@ -21,7 +21,7 @@ class AgentVerificationTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.root = Path(self.directory.name)
+        self.root = Path(self.directory.name).resolve()
         for arguments in (["init"], ["config", "user.email", "atlas@example.invalid"],
                           ["config", "user.name", "Atlas Tests"]):
             subprocess.run(["git", *arguments], cwd=self.root, check=True, capture_output=True)
@@ -185,9 +185,10 @@ class AgentVerificationTests(unittest.TestCase):
         target.write_text("identity = 1\n", encoding="utf-8")
         impact = {"scopes": ["quality_ci"], "recommended_tests": [],
                   "unowned_paths": [], "ambiguous_paths": []}
+        policy = agent.atlas_integrity.load_policy(agent.ROOT)
         with patch.object(agent, "impact_payload", return_value=impact), \
              patch.object(agent_planner, "_planning_catalog", return_value=fixtures.AgentPlannerTests._catalog()), \
-             patch.object(agent.atlas_integrity, "load_policy", return_value=fixtures.AgentPlannerTests._policy()), \
+             patch.object(agent.atlas_integrity, "load_policy", return_value=policy), \
              patch("tools.atlas_doctor_lib.architecture.graph_status", return_value={"status": "MISSING", "reason": "missing"}):
             plan = agent.plan_payload(self.root, ["tools/local.py"], level="SOFT", base_ref="HEAD")
         self.assertIn("app/core/character_identity.py", plan["paths"])
