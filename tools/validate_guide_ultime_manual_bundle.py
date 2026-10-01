@@ -176,6 +176,8 @@ def main() -> None:
             compact_pause = stage.get("pause") if isinstance(stage.get("pause"), list) else None
             if checkpoint is None and not compact_pause:
                 hard.append({"code": "pause_checkpoint_missing", "chapter": chapter_id, "stage": stage_id})
+            if checkpoint is not None and checkpoint.get("safe") is not True:
+                hard.append({"code": "pause_checkpoint_unsafe", "chapter": chapter_id, "stage": stage_id})
 
     # Never allow the historical Dofus INT32_MIN sentinel back into manual sources,
     # including superseded files: they remain useful audit history.
