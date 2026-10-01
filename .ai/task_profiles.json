@@ -29,11 +29,6 @@
       "model_env": "DOF_AI_MODEL_PREMIUM"
     }
   ],
-  "work_depth_quality_floor": {
-    "SOFT": "economy",
-    "MEDIUM": "balanced",
-    "HARD": "best"
-  },
   "task_profiles": {
     "read_only": {
       "minimum_quality": "economy",
