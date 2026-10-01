@@ -132,6 +132,7 @@ def _validated_tool_spec(source: str, path: str) -> tuple[dict[str, Any] | None,
     capabilities = _string_list(payload, "capabilities", errors)
     modes = _string_list(payload, "modes", errors)
     recommended_tests = _string_list(payload, "recommended_tests", errors)
+    target_scopes = _string_list(payload, "target_scopes", errors) if "target_scopes" in payload else []
     cost_hint = payload.get("cost_hint")
     if cost_hint not in _COST_ORDER:
         errors.append(f"TOOL_SPEC.cost_hint must be one of {sorted(_COST_ORDER)}")
@@ -161,6 +162,7 @@ def _validated_tool_spec(source: str, path: str) -> tuple[dict[str, Any] | None,
         "structured_output": structured_output,
         "canonical": canonical,
         "recommended_tests": recommended_tests,
+        "target_scopes": target_scopes,
     }, []
 
 
@@ -409,6 +411,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
                     else []
                 ),
                 "modes": list(tool_spec["modes"]) if tool_spec is not None else [],
+                "target_scopes": list(tool_spec["target_scopes"]) if tool_spec is not None else [],
                 "references": list(row.get("references", [])),
                 "readiness_score": score,
                 "readiness": readiness,

@@ -393,7 +393,7 @@ Lots restant apres RD-1, a valider separement :
 
 Do not treat this ROAD as completed while these lots remain open. Certification must refer to the exact PR HEAD; subsequent SHAs require new checks.
 
-## RD-1 — Reverse-impact Graphify cible — CODE_DONE
+## RD-1 — Reverse-impact Graphify cible — CERTIFIED
 
 `tools.agent reverse-impact <paths...> [--symbol <top-level>] [--depth 1|2] --json`
 lit uniquement le graph valide du cache Doctor. La profondeur est un niveau par
@@ -417,3 +417,11 @@ Un plan `--structural` reutilise automatiquement ce reverse-impact : scopes et t
 La preuve VALIDATED/CERTIFIED de RD-1 doit etre lue dans les checks de sa PR sur son HEAD exact. La fermeture de RD-1 ne ferme pas les lots planner, niveaux, verify et baseline restant ci-dessus.
 
 Le moteur graph recoit les resolveurs existants de l'Agent via la facade `reverse_impact_payload` ; il n'importe pas la facade Agent. Cette direction conserve une seule implementation source/contexte et evite un import reciproque Agent/graph.
+
+Validation RD-1 : PR #73, HEAD exact `ded119e82864b5fae78053591768250a83aca6b5`, six checks PASS dont Phase Certification. 116 tests cibles et Atlas Integrity FAST PASS ; Graphify reel, CLI Agent/Doctor et 20 tests graph PASS sous Windows. Le nettoyage conservateur des branches a preserve le main certifie `98059f52f9c47727c8344b649175676bb4569267`.
+
+## RD-2 — Planner par metadonnees — CODE_DONE
+
+Le planner reutilise `tools.tool_catalog.select_tools`. Les facades specialisees sont selectionnees par leur role canonique et leurs `TOOL_SPEC.target_scopes` optionnels, ou lorsque leur propre source change. Aucun nom « Guide » dans un chemin ne choisit un moteur. Les tests declares, couts, modes, effets de bord et raisons restent exposes. Un mode FAST indisponible impose REVIEW au lieu de lancer FULL implicitement.
+
+Atlas Integrity demeure l'unique autorite globale. Ses groupes, notamment META_INTEGRITY et la validation AI Context, ne sont pas dupliques par un lancement independant du mutateur AI Context. Les moteurs specialises conservent leur implementation. Ce micro-lot ne ferme pas les niveaux, verify, baseline ou mesures restant ouverts.

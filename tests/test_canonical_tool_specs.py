@@ -23,6 +23,7 @@ class CanonicalToolSpecTests(unittest.TestCase):
         self.assertEqual(guide["cost_hint"], "variable")
         self.assertEqual(guide["side_effects"], "artifact_output")
         self.assertIn("tests.test_guide_integrity", guide["declared_tests"])
+        self.assertEqual(guide["target_scopes"], ["encyclopedia_guide"])
         self.assertTrue(guide["safe_for_agent"])
         self.assertTrue(guide["automation_ready"])
 
