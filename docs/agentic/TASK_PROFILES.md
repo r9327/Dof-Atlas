@@ -2,7 +2,7 @@
 
 ## Goal
 
-Use a small work card for each AI task so the execution layer can select the lowest-consumption configured model tier that still satisfies the requested output quality and the minimum quality appropriate to the task topology.
+Use a small work card for each AI task so the execution layer can propose a sensible quality/consumption level for that task topology, then select the lowest-consumption configured model tier that satisfies the quality actually chosen.
 
 This system is completely independent from Atlas Doctor validation levels. Doctor SOFT/MEDIUM/HARD decides how code is checked; task profiles decide how much AI quality/consumption to spend on doing the work. Neither system may infer or weaken the other.
 
@@ -10,11 +10,11 @@ The policy is stored in `.ai/task_profiles.json`. The router is `tools.agent_tas
 
 ## Quality / consumption offers
 
-- `economy` / **Eco**: low consumption, suitable for reading, navigation, tiny edits and other bounded low-risk work.
+- `economy` / **Eco**: low consumption, suitable for reading, navigation, tiny edits and other bounded work.
 - `balanced` / **Standard**: moderate consumption and the default best quality/consumption ratio for normal implementation work.
-- `best` / **Premium**: high consumption and maximum configured quality for structural work, certification work or an explicit maximum-quality request.
+- `best` / **Premium**: high consumption and maximum configured quality when the task or the user benefits from deeper reasoning.
 
-The user may request a quality level. A task profile may impose a higher minimum when using a lower tier would be unreasonable for that task topology. The selected tier is always the eligible tier with the lowest `consumption_rank`.
+Each task topology only provides a recommendation. If the user explicitly chooses another quality, that choice wins. The selected tier is then the eligible tier with the lowest `consumption_rank` that satisfies the chosen quality.
 
 Provider prices are deliberately not embedded in repository policy because prices and model availability change independently of the codebase.
 
@@ -32,25 +32,25 @@ If those variables are absent, the router still returns the stable tier, quality
 
 ## Usage
 
-Automatic task inference from the task topology:
+Automatic task inference from the task topology, accepting the recommended quality:
 
 ```powershell
-py -3.13 -m tools.agent_task_profiles --task auto --quality economy --path app/modules/example.py --json
+py -3.13 -m tools.agent_task_profiles --task auto --path app/modules/example.py --json
 ```
 
-Explicit normal feature, using the default quality/consumption ratio:
+Explicit normal feature with Standard quality:
 
 ```powershell
 py -3.13 -m tools.agent_task_profiles --task feature --quality balanced --json
 ```
 
-Structural work keeps its own task-quality floor even if a lower quality is requested:
+A structural task recommends Premium, but an explicit Eco choice is still honored:
 
 ```powershell
 py -3.13 -m tools.agent_task_profiles --task structural --quality economy --json
 ```
 
-This escalation concerns only the AI tier used to perform the task. Atlas Doctor remains separate and is run according to its own validation policy.
+Atlas Doctor remains separate and is run according to its own validation policy regardless of the AI quality/consumption tier selected here.
 
 ## RTK on Windows / Codex
 
