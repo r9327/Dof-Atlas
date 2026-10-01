@@ -12,18 +12,38 @@ concurrency:
   group: dof-atlas-public-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+
 jobs:
   safe-validation:
     name: Public PR / Safe Validation
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
-      - name: Checkout pull request
+      - name: Checkout exact pull request candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ env.CANDIDATE_SHA }}
           lfs: false
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        shell: pwsh
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) {
+            throw "PR checkout mismatch: expected $env:CANDIDATE_SHA, got $actual"
+          }
+          Write-Host "PR candidate SHA: $actual"
+          Write-Host "PR base SHA: $env:BASE_SHA"
 
       - name: Reject vulnerable dependency changes
         id: dependency_review
@@ -44,75 +64,105 @@ jobs:
         shell: pwsh
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
 
-      - name: Compile Python sources and guardrails
-        shell: pwsh
-        run: python -m compileall -q app local_dofus_data tools tests main.py
-
       - name: Validate pull request diff hygiene
         shell: pwsh
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           git diff --check "$env:BASE_SHA...HEAD"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Reject generated files and probable secrets
+      - name: Classify Doctor risk
+        id: doctor_risk
         shell: pwsh
         run: |
-          python -m tools.check_generated_files --root . --tracked
+          $risk = python -c "import os; from pathlib import Path; from tools.atlas_integrity import changed_files, classify_risk; root=Path.cwd(); print(classify_risk(changed_files(root, os.environ['BASE_SHA']))['risk'])"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $risk = $risk.Trim()
+          if ($risk -notin @("LOW", "MEDIUM", "HIGH", "CRITICAL")) {
+            throw "Unexpected Atlas Integrity risk classification: $risk"
+          }
+          Write-Host "Doctor risk: $risk"
+          "risk=$risk" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Materialize CRITICAL Doctor fixtures
+        if: steps.doctor_risk.outputs.risk == 'CRITICAL'
+        shell: pwsh
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Verify repository meta integrity
-        shell: pwsh
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          python -m tools.atlas_meta_integrity --root . --base-ref "$env:BASE_SHA"
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Run public-safe critical regression checks
+          @'
+          from app.quest_catalog import QuestCatalog
+          catalog = QuestCatalog.load()
+          count = len(catalog.quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run canonical Doctor FAST merge gate
+        id: doctor
         shell: pwsh
         run: |
-          python -m unittest -v `
-            tests.test_architecture_debt_baseline `
-            tests.test_clean_foundation_guardrails `
-            tests.test_character_identity_contract `
-            tests.test_character_identity_guardrails `
-            tests.test_character_identity_invariants `
-            tests.test_character_write_boundaries `
-            tests.test_character_data_service `
-            tests.test_progress_concurrent_instances `
-            tests.test_quest_progress_batch_contract `
-            tests.test_project_guardrails `
-            tests.test_generated_files_guard `
-            tests.test_generated_file_guardrails `
-            tests.test_repository_git_hooks `
-            tests.test_meta_integrity `
+          New-Item -ItemType Directory -Force -Path "artifacts/pr_doctor" | Out-Null
+          $report = "artifacts/pr_doctor/doctor-fast.json"
+
+          python -X faulthandler -m tools.atlas_doctor verify --gate fast --base-ref "$env:BASE_SHA" --json 1> $report
+          $doctorExit = $LASTEXITCODE
+
+          if (-not (Test-Path -LiteralPath $report)) {
+            throw "Atlas Doctor did not produce its machine-readable report."
+          }
+
+          $payload = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+          $integrityStatus = [string]$payload.integrity.status
+          $criticalCount = [int]$payload.audit.severity.CRITICAL
+
+          Write-Host "Doctor status: $($payload.status)"
+          Write-Host "Atlas Integrity FAST status: $integrityStatus"
+          Write-Host "Doctor CRITICAL findings: $criticalCount"
+
+          # Doctor exit code 1 means REVIEW (for example pre-existing HIGH findings
+          # or no previous local audit baseline). The merge gate blocks only hard
+          # Doctor failure, failed FAST integrity evidence, or a CRITICAL finding.
+          if ($doctorExit -ge 2 -or $integrityStatus -ne "PASS" -or $criticalCount -gt 0) {
+            throw "Doctor FAST merge gate failed. Inspect artifacts/pr_doctor/doctor-fast.json."
+          }
+          if ($doctorExit -eq 1) {
+            Write-Warning "Doctor returned REVIEW; non-blocking advisory findings are recorded in the report."
+          }
+          # PowerShell preserves the last native process exit code. At this point
+          # REVIEW has been explicitly accepted and every hard condition passed.
+          exit 0
+
+      - name: Run merge-safety contracts outside Doctor FAST policy
+        shell: pwsh
+        run: |
+          # Doctor FAST ARCHITECTURE owns tests.test_project_guardrails.
+          python -X faulthandler -m unittest -v `
             tests.test_atlas_integrity `
             tests.test_ci_runner_guardrails `
-            tests.test_performance_guardrails `
-            tests.test_public_pr_ci_guardrails `
             tests.test_phase_certification_guardrails `
+            tests.test_repository_git_hooks `
+            tests.test_public_pr_ci_guardrails `
             tests.test_security_hardening_guardrails
-
-      - name: Run Phase 1 closure regression targets
-        shell: pwsh
-        run: |
-          python -X faulthandler -m unittest -v `
-            tests.test_alignment_order_identity_boundary `
-            tests.test_direction_macro `
-            tests.test_profile_settings_service `
-            tests.test_profile_storage_bridge `
-            tests.test_quest_source_boundaries
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Run Phase 2 closure regression targets
-        shell: pwsh
-        run: |
-          python -X faulthandler -m unittest -v `
-            tests.test_character_page_modern `
-            tests.test_lazy_quests_page_performance
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload Doctor merge evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pr-doctor-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/pr_doctor/**
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Report PR validation boundary
         if: ${{ always() }}
@@ -123,8 +173,12 @@ jobs:
           if ($env:GITHUB_STEP_SUMMARY) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PR SAFE VALIDATION ONLY"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "This workflow is **NOT PHASE CERTIFICATION**."
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "A phase can be declared **CERTIFIED** only after `Phase Certification / Full Validation` succeeds on the exact candidate SHA."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:CANDIDATE_SHA``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Doctor risk: ``${{ steps.doctor_risk.outputs.risk }}``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Required merge gate: ``Atlas Doctor FAST`` through ``Public PR / Safe Validation``."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- CRITICAL diffs materialize the fixtures required by Doctor's risk escalation; ordinary PRs stay lightweight."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- This workflow is **NOT PHASE CERTIFICATION**."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- A phase can be declared **CERTIFIED** only after ``Phase Certification / Full Validation`` succeeds on the exact candidate SHA."
           }
 
       - name: Enforce dependency review verdict
