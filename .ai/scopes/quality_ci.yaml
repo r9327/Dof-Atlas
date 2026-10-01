@@ -22,6 +22,7 @@ working_set:
   - tools/graphify.ps1
 shared_dependencies: []
 context_entries:
+  - tools/skills/dofus-atlas-tools/SKILL.md
   - GRAPHIFY.md
   - tests/
   - .github/workflows/
