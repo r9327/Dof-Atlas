@@ -5,6 +5,7 @@ import ast
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -647,6 +648,32 @@ def reverse_impact_payload(
         raise AgentConfigError(str(exc)) from exc
 
 
+def _structural_path_changes(root: Path, paths: list[str], base_ref: str | None) -> list[dict[str, Any]]:
+    """Recognize actual module deletions/renames without scanning repository sources."""
+    if not (root / ".git").exists():
+        return []
+    commands = [("diff", "--name-status", "--find-renames", "HEAD")]
+    if base_ref is not None:
+        commands.append(("diff", "--name-status", "--find-renames", f"{base_ref}...HEAD"))
+    changes = []
+    seen = set()
+    selected = set(paths)
+    for command in commands:
+        for line in _git(root, *command).splitlines():
+            fields = line.split("\t")
+            if len(fields) < 2 or not fields[0].startswith(("D", "R")):
+                continue
+            candidates = fields[1:]
+            if not selected.intersection(candidates) or not any(path.endswith(".py") for path in candidates):
+                continue
+            key = tuple(fields)
+            if key not in seen:
+                seen.add(key)
+                changes.append({"kind": "module_deleted" if fields[0].startswith("D") else "module_moved",
+                                "paths": candidates})
+    return changes
+
+
 def plan_payload(
     root: Path, paths: Iterable[str], *, level: str | None = None,
     structural: bool = False, base_ref: str | None = None,
@@ -666,6 +693,8 @@ def plan_payload(
             (root / path).resolve().relative_to(root)
         except ValueError as exc:
             raise AgentConfigError(f"Path resolves outside the repository: {path}") from exc
+    structural_changes = _structural_path_changes(root, normalized, base_ref)
+    structural = structural or bool(structural_changes)
     impact = impact_payload(root, normalized)
     options: dict[str, Any] = {}
     if level:
@@ -701,6 +730,7 @@ def plan_payload(
         else:
             graph = graph_status(root)
     payload["requested_paths"] = requested
+    payload["structural_changes"] = structural_changes
     payload["source_diagnostics"] = {
         "status": "FAIL" if source_errors else "REVIEW" if len(python_paths) > 100 else "PASS",
         "files": diagnostics, "errors": source_errors, "truncated": len(python_paths) > 100,
@@ -727,16 +757,32 @@ def plan_payload(
 def verify_payload(
     root: Path, paths: Iterable[str], *, level: str | None = None,
     structural: bool = False, base_ref: str = "HEAD", rebuild_graph: bool = False,
+    baseline_name: str | None = None, save_baseline: str | None = None,
 ) -> dict[str, Any]:
     from tools.atlas_doctor_lib.verification import execute_plan
+    from tools.atlas_doctor_lib.verification_evidence import prepare_baseline, finalize_evidence
+    from tools.atlas_doctor_lib.core import load_json, milliseconds
+    started = time.perf_counter()
     try:
+        previous = prepare_baseline(root, compare=baseline_name, save=save_baseline)
+        if baseline_name and base_ref == "HEAD":
+            base_ref = previous["baseline"]["resolved_sha"]
+        if previous is None:
+            previous = load_json(root, "latest_verification")
+        graph_started = time.perf_counter()
         if rebuild_graph:
             from tools.atlas_doctor_lib.architecture import architecture
             generated = architecture(root, rebuild=True)
             if generated.get("status") != "PASS":
                 raise RuntimeError(generated.get("reason") or "Explicit graph rebuild failed.")
+        graph_ms = milliseconds(graph_started) if rebuild_graph else 0.0
+        planning_started = time.perf_counter()
         plan = plan_payload(root, paths, level=level, structural=structural, base_ref=base_ref)
-        return execute_plan(root, plan, base_ref=base_ref, preflight=doctor_payload(root))
+        preflight = doctor_payload(root)
+        planning_ms = milliseconds(planning_started)
+        payload = execute_plan(root, plan, base_ref=base_ref, preflight=preflight)
+        return finalize_evidence(root, payload, total_ms=milliseconds(started), planning_ms=planning_ms,
+                                 graph_ms=graph_ms, previous=previous, save=save_baseline)
     except (AgentConfigError, atlas_integrity.IntegrityConfigError, RuntimeError, ValueError, OSError) as exc:
         return {
             "schema_version": 1, "kind": "verification", "status": "REVIEW",
@@ -807,6 +853,9 @@ def main(argv: list[str] | None = None) -> int:
     verify.add_argument("--structural", action="store_true")
     verify.add_argument("--rebuild-graph", action="store_true", help="Explicitly rebuild through canonical Doctor/Graphify.")
     verify.add_argument("--json", action="store_true")
+    baselines = verify.add_mutually_exclusive_group()
+    baselines.add_argument("--baseline", help="Compare with a named before snapshot; use its immutable base SHA.")
+    baselines.add_argument("--save-baseline", help="Save a named before snapshot without overwriting it.")
     verify_levels = verify.add_mutually_exclusive_group()
     verify_levels.add_argument("--soft", dest="level", action="store_const", const="SOFT")
     verify_levels.add_argument("--medium", dest="level", action="store_const", const="MEDIUM")
@@ -845,7 +894,8 @@ def main(argv: list[str] | None = None) -> int:
             exit_code = 0
         elif command == "verify":
             payload = verify_payload(ROOT, args.paths, level=args.level, structural=args.structural,
-                                     base_ref=args.base_ref, rebuild_graph=args.rebuild_graph)
+                                     base_ref=args.base_ref, rebuild_graph=args.rebuild_graph,
+                                     baseline_name=args.baseline, save_baseline=args.save_baseline)
             exit_code = {"PASS": 0, "REVIEW": 1, "FAIL": 2}[payload["status"]]
         else:
             parser.error(f"unsupported command: {command}")

@@ -368,9 +368,9 @@ Les sorties restent dans `graphify-out/` et `.ai/runtime/atlas_doctor/`, ignores
 
 La preuve de validation est portee par les tests cibles et les workflows sur le HEAD exact de la PR d'integration ; aucune validation historique de #47 n'est transposee au candidat courant.
 
-# ROAD Doctor — Agent / Doctor / Graph — VALIDATED / final certification pending
+# ROAD Doctor — Agent / Doctor / Graph — preuves de cloture : PR #80
 
-La ROAD Doctor reste ouverte pour la verification SOFT/MEDIUM/HARD reelle, les correctifs issus des mesures et la certification finale sur un SHA exact. Atlas Integrity et sa policy restent l'unique autorite de validation ; Agent planifie le contexte, l'ownership, l'impact cible et la profondeur ; Doctor execute les moteurs canoniques, conserve les preuves et compare uniquement des baselines compatibles. Aucun daemon, hook Graphify implicite ou changement produit n'a ete ajoute.
+Les lots Doctor / Agent / Graph sont implementes. Leur fermeture est controlee par les preuves machine du HEAD exact de la PR #80, et par les scenarios runtime SOFT/MEDIUM/HARD documentes dans cette PR. Atlas Integrity et sa policy restent l'unique autorite de validation ; Agent planifie le contexte, l'ownership, l'impact cible et la profondeur ; Doctor execute les moteurs canoniques, conserve les preuves et compare uniquement des baselines compatibles. Aucun daemon, hook Graphify implicite ou changement produit n'a ete ajoute.
 
 ## RD-0 — Execution contracts — VALIDATED
 
@@ -410,4 +410,29 @@ Ce lot etait explicitement optionnel. Aucune preuve n'a etabli une mutation repo
 
 ## Fermeture
 
-Les merges #74 et #76 valident leurs micro-lots ; ils ne certifient pas la fermeture de cette ROAD. La verification SOFT reelle a revele des sorties generees non ignorees, qui faisaient escalader le diff en HARD. Le correctif conserve les verrous JSON sur disque, exclut leurs sidecars et le manifeste CDN racine de Doduda, et renforce le garde-fou canonique. La ROAD demeure ouverte tant que la matrice finale et Phase Certification ne sont pas PASS sur le candidat exact. Doctor/Agent/Graph restent des outils d'assistance et ne remplacent jamais Atlas Integrity ni les contrats produit.
+Les merges #74 et #76 valident leurs micro-lots ; leurs checks Phase Certification skipped ne constituent pas une certification de fermeture. La PR #77 a corrige la fausse escalade provoquee par les sorties runtime, sans supprimer les verrous JSON ni affaiblir la policy. Sur l'implementation `8661cfd05974ff3933a6fb81c6644514600a8b0d`, la suite complete compte 1821 tests PASS et Phase Certification run `36851325785` est PASS avec `GUIDE_CERTIFIED`. Les scenarios runtime et leurs couts sont publies dans [PR #80](https://github.com/r9327/Dof-Atlas/pull/80); un FAIL courant n'est jamais accepte comme non-regression.
+
+La fermeture definitive exige les checks termines et verts du HEAD courant de #80, ainsi que la matrice runtime. Une modification documentaire ou d'index change aussi le SHA et impose de nouvelles validations exactes. Avant de reprendre un lot deja implemente, verifier ces preuves GitHub plutot que refaire l'outillage. Doctor/Agent/Graph restent des outils d'assistance et ne remplacent jamais Atlas Integrity ni les contrats produit.
+
+## Reprise pratique avant / apres
+
+```powershell
+py -3.13 -m tools.agent plan tools/agent.py --json
+py -3.13 -m tools.atlas_doctor verify tools/agent.py --soft --save-baseline before --json
+# Modifier le code, puis synchroniser AI Context par son mecanisme canonique.
+py -3.13 -m tools.atlas_doctor verify tools/agent.py --baseline before --json
+```
+
+Une baseline nommee est un snapshot ignore dans `.ai/runtime/atlas_doctor/`; elle n'est pas ecrasee par les validations suivantes. La comparaison reutilise son SHA de base immuable lorsque `--base-ref` vaut `HEAD` (valeur par defaut). Une baseline absente, invalide ou un nom dangereux produit REVIEW avant les controles. `--save-baseline` et `--baseline` sont exclusifs.
+
+La compatibilite comprend les tests effectivement selectionnes, les commandes des moteurs, les scopes, la profondeur, l'autorite et l'environnement machine/dependances/policy. Des contrats differents produisent UNAVAILABLE, jamais une fausse absence de regression. Les nouveaux failure IDs sont distingues des IDs preexistants; une cause source n'est pas deduite d'un simple statut. Un echec courant reste FAIL meme lorsqu'il etait deja present.
+
+Les durees de la facade incluent planification, reconstruction explicite du graph et execution. Les deltas temporels sont des observations comparables sur la meme machine; une hausse d'au moins 15 % et 1 seconde appelle une revue, sans remplacer une gate.
+
+SOFT cible les consommateurs de tests prouves par Tool Audit; les mentions textuelles restent une aide de revue, pas un consommateur execute automatiquement. Une suppression ou un renommage de module Python detecte par Git impose un preflight structurel et peut escalader en HARD. Un graph requis absent ou perime arrete la verification avant les controles couteux. Aucun graph n'est reconstruit implicitement.
+
+## Revue de consolidation
+
+Aucun outil n'est supprime sur la seule indication zero consumer. Les hooks PowerShell ont des consommateurs Git; `atlas_doctor_io_runner` et `atlas_fault_injection` sont appeles dynamiquement par leurs moteurs. Les facades Guide modernes et leurs tests restent canoniques. Les moteurs Guide v4/v5 conservent des contrats et consommateurs distincts; les mutateurs historiques v2/v3 ne disposent pas d'un remplacement prouve et restent candidats a revue. Cette ROAD ne leur invente pas un remplacement.
+
+Le cycle produit observe entre `guides_view`, `widgets/__init__` et `quest_detail_view` reste une observation hors du perimetre tooling. Il ne justifie pas un refactor produit dans ce chantier.

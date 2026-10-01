@@ -141,6 +141,43 @@ class AgentVerificationTests(unittest.TestCase):
         self.assertIn("tools.custom_validator", command)
         self.assertNotIn("--json", command)
 
+    def test_missing_required_graph_stops_before_checks_without_waiving_validation(self):
+        self.plan["architecture_preflight"] = {
+            "required": True, "graph": {"status": "MISSING", "reason": "Required graph is absent"}}
+        result = self.execute()
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertTrue(result["early_stop"])
+        self.assertIn("Required graph is absent", result["primary_cause"])
+        self.commands.assert_not_called()
+        self.gate.assert_not_called()
+
+    def test_actual_module_deletion_automatically_requires_structural_graph(self):
+        (self.root / "tools/local.py").unlink()
+        impact = {"scopes": ["quality_ci"], "recommended_tests": [],
+                  "unowned_paths": [], "ambiguous_paths": []}
+        policy = agent.atlas_integrity.load_policy(agent.ROOT)
+        with patch.object(agent, "impact_payload", return_value=impact), \
+             patch.object(agent_planner, "_planning_catalog", return_value=fixtures.AgentPlannerTests._catalog()), \
+             patch.object(agent.atlas_integrity, "load_policy", return_value=policy), \
+             patch("tools.atlas_doctor_lib.architecture.graph_status",
+                   return_value={"status": "MISSING", "reason": "missing"}):
+            plan = agent.plan_payload(self.root, ["tools/local.py"], level="SOFT", base_ref="HEAD")
+        self.assertEqual(plan["level"], "HARD")
+        self.assertTrue(plan["architecture_preflight"]["required"])
+        self.assertEqual(plan["structural_changes"][0]["kind"], "module_deleted")
+        self.assertEqual(plan["status"], "REVIEW_REQUIRED")
+
+    def test_soft_consumer_selection_excludes_a_broad_literal_mention(self):
+        (self.root / "tests").mkdir()
+        for name in ("direct", "mention"):
+            (self.root / f"tests/test_{name}.py").write_text("", encoding="utf-8")
+        report = {"tools": [{"path": "tools/local.py",
+                            "targeted_tests": ["tests/test_direct.py", "tests/test_mention.py"],
+                            "consumer_tests": ["tests/test_direct.py"]}]}
+        selected = agent_planner._execution_tests(self.root, ["tools/local.py"],
+                                                  ["tests.test_broad"], report, "SOFT")
+        self.assertEqual(selected, ["tests.test_direct"])
+
     def test_source_parse_failure_stops_and_retains_actual_file_evidence(self):
         self.plan["source_diagnostics"] = {"status": "FAIL",
             "errors": [{"path": "tools/local.py", "reason": "observed syntax error at line 2"}]}
@@ -291,6 +328,81 @@ class AgentVerificationTests(unittest.TestCase):
         self.assertFalse(result["cache"]["validation_reused"])
         self.assertGreaterEqual(result["cost"]["checks_duration_ms"], 2.0)
         self.gate.assert_called_once()
+
+
+    def test_named_baseline_survives_code_change_and_latest_rotation(self):
+        with patch.object(agent, "plan_payload", side_effect=lambda *a, **kw: copy.deepcopy(self.plan)) as plan, \
+             patch.object(agent, "doctor_payload", return_value={"status": "PASS"}):
+            before = agent.verify_payload(self.root, ["tools/local.py"], save_baseline="before")
+            self.assertEqual(before["status"], "PASS")
+            saved = load_json(self.root, "baseline_before")
+            (self.root / "tools/local.py").write_text("def f():\n    return 2\n", encoding="utf-8")
+            subprocess.run(["git", "add", "tools/local.py"], cwd=self.root, check=True, capture_output=True)
+            subprocess.run(["git", "commit", "-m", "change"], cwd=self.root, check=True, capture_output=True)
+            after = agent.verify_payload(self.root, ["tools/local.py"], baseline_name="before")
+            self.assertEqual(plan.call_args.kwargs["base_ref"], before["baseline"]["resolved_sha"])
+            self.assertEqual(after["comparison"]["status"], "STABLE")
+            self.assertEqual(load_json(self.root, "baseline_before"), saved)
+            self.assertGreaterEqual(after["duration_ms"], after["cost"]["execution_duration_ms"])
+            self.assertGreaterEqual(after["cost"]["planning_duration_ms"], 0)
+            self.assertEqual(after["cost"]["graph_rebuild_duration_ms"], 0)
+            overwritten = agent.verify_payload(self.root, ["tools/local.py"], save_baseline="before")
+            self.assertEqual(overwritten["status"], "REVIEW")
+            self.assertIn("already exists", overwritten["primary_cause"])
+
+    def test_missing_invalid_or_unsafe_named_baseline_stops_before_execution(self):
+        from tools.atlas_doctor_lib.core import write_json
+        write_json(self.root, "baseline_invalid", {"schema_version": 1, "kind": "verification",
+                                                  "comparison_key": {}, "baseline": []})
+        for name in ("missing", "../escape", "invalid"):
+            with self.subTest(name=name), patch.object(agent, "plan_payload") as plan:
+                result = agent.verify_payload(self.root, ["tools/local.py"], baseline_name=name)
+                self.assertEqual(result["status"], "REVIEW")
+                plan.assert_not_called()
+        self.commands.assert_not_called()
+        self.gate.assert_not_called()
+
+    def test_failure_identity_distinguishes_existing_and_new_failures(self):
+        def snapshot(ids):
+            return {"schema_version": 1, "kind": "verification", "status": "FAIL",
+                    "comparison_key": {"base_sha": "same"},
+                    "checks": [{"key": "tests", "status": "FAIL", "failure_ids": ids}]}
+        existing = verification.compare_verifications(snapshot(["old"]), snapshot(["old"]))
+        self.assertEqual(existing["status"], "STABLE")
+        self.assertEqual(existing["current_status"], "FAIL")
+        self.assertEqual(existing["preexisting_failure_ids"], [{"check": "tests", "id": "old"}])
+        changed = verification.compare_verifications(snapshot(["old"]), snapshot(["new"]))
+        self.assertEqual(changed["status"], "REGRESSION")
+        self.assertEqual(changed["new_failure_ids"], [{"check": "tests", "id": "new"}])
+        unknown = verification.compare_verifications(snapshot([]), snapshot([]))
+        self.assertEqual(unknown["status"], "REVIEW")
+
+    def test_unexecuted_previous_check_cannot_establish_regression(self):
+        before = {"schema_version": 1, "kind": "verification",
+                  "comparison_key": {"base_sha": "same"}, "checks": []}
+        after = {**before, "checks": [{"key": "tests", "status": "FAIL", "failure_ids": ["new"]}]}
+        self.assertEqual(verification.compare_verifications(before, after)["status"], "REVIEW")
+
+    def test_execution_coverage_and_environment_are_comparison_contracts(self):
+        before = self.execute()
+        self.plan["execution_tests"] = ["tests.test_other"]
+        after = self.execute()
+        comparison = verification.compare_verifications(before, after)
+        self.assertFalse(comparison["comparable"])
+        self.assertIn("execution_tests", comparison["differing_fields"])
+        after = copy.deepcopy(before)
+        after["comparison_key"]["environment"]["machine"] = "different-machine"
+        self.assertIn("environment", verification.compare_verifications(before, after)["differing_fields"])
+
+    def test_baseline_flags_route_through_both_existing_facades(self):
+        payload = {"schema_version": 1, "status": "PASS", "level": "SOFT"}
+        with patch.object(agent, "verify_payload", return_value=payload) as verify, redirect_stdout(io.StringIO()):
+            self.assertEqual(agent.main(["verify", "tools/agent.py", "--save-baseline", "before", "--json"]), 0)
+        self.assertEqual(verify.call_args.kwargs["save_baseline"], "before")
+        args = atlas_doctor.build_parser().parse_args(["verify", "tools/agent.py", "--baseline", "before"])
+        with patch.object(agent, "verify_payload", return_value=payload) as verify:
+            atlas_doctor.command_verify(self.root, args)
+        self.assertEqual(verify.call_args.kwargs["baseline_name"], "before")
 
 
 class CommandEvidenceTests(unittest.TestCase):

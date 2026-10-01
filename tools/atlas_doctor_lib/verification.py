@@ -9,7 +9,10 @@ import time
 from pathlib import Path
 from typing import Any
 
-from .core import git_state, load_json, milliseconds, run_git, utc_now, write_json
+from .core import git_state, load_json, milliseconds, utc_now, write_json
+from .verification_evidence import (
+    _resolved_commit, _comparison_key, compare_verifications, _cost_evidence, _actionable_diagnostics,
+)
 from .gates import run_integrity_gate
 
 
@@ -61,183 +64,6 @@ def _review_reasons(plan: dict[str, Any]) -> list[str]:
     return reasons
 
 
-def _resolved_commit(root: Path, base_ref: str) -> tuple[str | None, str | None]:
-    try:
-        resolved = run_git(root, "rev-parse", "--verify", f"{base_ref}^{{commit}}")
-    except RuntimeError as exc:
-        return None, str(exc)
-    return resolved or None, None
-
-
-def _comparison_key(
-    plan: dict[str, Any], *, base_ref: str, base_sha: str | None,
-) -> dict[str, Any]:
-    architecture = plan.get("architecture_preflight") or {}
-    return {
-        "base_ref": base_ref,
-        "base_sha": base_sha,
-        "requested_paths": sorted(
-            str(path) for path in (plan.get("requested_paths") or plan.get("paths") or [])
-        ),
-        "scopes": sorted(str(scope) for scope in plan.get("scopes", [])),
-        "level": str(plan.get("level", "UNKNOWN")),
-        "integrity_mode": str(
-            plan.get("integrity_mode") or plan.get("minimum_integrity_mode") or "UNKNOWN"
-        ).upper(),
-        "structural": bool(architecture.get("required")),
-        "validation_authority": "tools.atlas_integrity",
-    }
-
-
-def compare_verifications(
-    previous: dict[str, Any] | None,
-    current: dict[str, Any],
-) -> dict[str, Any]:
-    """Compare only verification runs that share an explicit execution contract."""
-    if not previous:
-        return {
-            "status": "UNAVAILABLE",
-            "comparable": False,
-            "reason": "No previous verification snapshot is available.",
-            "new_non_pass": [],
-            "recovered": [],
-            "status_changes": [],
-        }
-    if previous.get("schema_version") != 1 or previous.get("kind") != "verification":
-        return {
-            "status": "UNAVAILABLE",
-            "comparable": False,
-            "reason": "Previous verification uses an incompatible schema or kind.",
-            "new_non_pass": [],
-            "recovered": [],
-            "status_changes": [],
-        }
-    previous_key = previous.get("comparison_key")
-    current_key = current.get("comparison_key")
-    if not isinstance(previous_key, dict) or previous_key != current_key:
-        differing = []
-        if isinstance(previous_key, dict) and isinstance(current_key, dict):
-            differing = sorted(
-                key for key in set(previous_key) | set(current_key)
-                if previous_key.get(key) != current_key.get(key)
-            )
-        return {
-            "status": "UNAVAILABLE",
-            "comparable": False,
-            "reason": "Verification contracts differ; use the same explicit base, targets and work depth.",
-            "differing_fields": differing,
-            "new_non_pass": [],
-            "recovered": [],
-            "status_changes": [],
-        }
-
-    previous_checks = {
-        str(row.get("key")): str(row.get("status"))
-        for row in previous.get("checks", [])
-        if row.get("key")
-    }
-    current_checks = {
-        str(row.get("key")): str(row.get("status"))
-        for row in current.get("checks", [])
-        if row.get("key")
-    }
-    changes = [
-        {"key": key, "previous": previous_checks.get(key), "current": current_checks.get(key)}
-        for key in sorted(set(previous_checks) | set(current_checks))
-        if previous_checks.get(key) != current_checks.get(key)
-    ]
-    new_non_pass = [
-        row for row in changes
-        if row["current"] not in {None, "PASS"} and row["previous"] in {None, "PASS"}
-    ]
-    recovered = [
-        row for row in changes
-        if row["current"] == "PASS" and row["previous"] not in {None, "PASS"}
-    ]
-    if new_non_pass:
-        status = "REGRESSION"
-    elif recovered:
-        status = "IMPROVED"
-    else:
-        status = "STABLE"
-    return {
-        "status": status,
-        "comparable": True,
-        "reason": None,
-        "previous_status": previous.get("status"),
-        "current_status": current.get("status"),
-        "new_non_pass": new_non_pass,
-        "recovered": recovered,
-        "status_changes": changes,
-    }
-
-
-def _check_duration_ms(check: dict[str, Any]) -> float:
-    value = check.get("duration_ms")
-    if isinstance(value, (int, float)):
-        return float(value)
-    seconds = check.get("duration_seconds")
-    if isinstance(seconds, (int, float)):
-        return round(float(seconds) * 1000.0, 3)
-    return 0.0
-
-
-def _cost_evidence(
-    plan: dict[str, Any],
-    checks: list[dict[str, Any]],
-    *,
-    total_duration_ms: float,
-) -> dict[str, Any]:
-    measured = [
-        {"key": str(check.get("key", "unknown")), "duration_ms": _check_duration_ms(check)}
-        for check in checks
-    ]
-    measured.sort(key=lambda row: row["duration_ms"], reverse=True)
-    return {
-        "total_duration_ms": total_duration_ms,
-        "checks_duration_ms": round(sum(row["duration_ms"] for row in measured), 3),
-        "slowest_checks": measured[:5],
-        "planned_tool_cost_hints": [
-            {
-                "path": row.get("path"),
-                "cost_hint": row.get("cost_hint"),
-                "mode": row.get("mode"),
-            }
-            for row in plan.get("recommended_tools", [])
-        ],
-        "planner_catalog_cache": plan.get("planner_cache") or {"status": "UNKNOWN"},
-        "validation_reused": False,
-    }
-
-
-def _actionable_diagnostics(
-    checks: list[dict[str, Any]],
-    reviews: list[str],
-) -> list[dict[str, Any]]:
-    diagnostics = []
-    for check in checks:
-        if check.get("status") == "PASS":
-            continue
-        diagnostics.append({
-            "key": check.get("key"),
-            "status": check.get("status"),
-            "reason": check.get("reason") or f"{check.get('key', 'check')} requires review.",
-            "failure_ids": list(check.get("failure_ids", [])),
-            "reproduction_command": list(check.get("command", [])),
-            "next_action": "Reproduce this exact check and inspect its recorded evidence before changing source.",
-        })
-    for reason in reviews:
-        diagnostics.append({
-            "key": "review",
-            "status": "REVIEW",
-            "reason": reason,
-            "failure_ids": [],
-            "reproduction_command": [],
-            "next_action": "Resolve the recorded review condition, then rerun the same verification contract.",
-        })
-    return diagnostics
-
-
 def execute_plan(
     root: Path, plan: dict[str, Any], *, base_ref: str = "HEAD",
     preflight: dict[str, Any] | None = None,
@@ -264,6 +90,10 @@ def execute_plan(
     if preflight is not None and preflight.get("status") != "PASS":
         reviews.append("Agent/AI Context preflight failed: " + "; ".join(preflight.get("errors", [])))
         blocking_plan.append("agent_preflight")
+    architecture_preflight = plan.get("architecture_preflight") or {}
+    if (architecture_preflight.get("required")
+            and (architecture_preflight.get("graph") or {}).get("status") != "PASS"):
+        blocking_plan.append("graph_preflight")
     source = plan.get("source_diagnostics") or {}
     if source.get("status") == "FAIL":
         checks.append({"key": "source", "status": "FAIL", "command": [sys.executable, "-m", "tools.agent", "plan", *plan.get("paths", []), "--json"],
@@ -341,7 +171,7 @@ def execute_plan(
         diagnosis = {"certainty": "REVIEW" if reviews else "PASS"}
 
     duration_ms = milliseconds(started)
-    comparison_key = _comparison_key(plan, base_ref=base_ref, base_sha=base_sha)
+    comparison_key = _comparison_key(plan, base_ref=base_ref, base_sha=base_sha, root=root)
     architecture = plan.get("architecture_preflight") or {}
     graph = architecture.get("graph") or {}
     payload = {
