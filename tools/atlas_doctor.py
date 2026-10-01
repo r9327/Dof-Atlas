@@ -90,6 +90,14 @@ def command_graph(root: Path, args) -> dict[str, Any]:
         print(f"Rapport : {payload.get('report', root / 'graphify-out/GRAPH_REPORT.md')}")
         if payload["status"] != "PASS":
             print("Utiliser Graph > reconstruire (ou --rebuild); installation explicite : --install.")
+    if getattr(args, "impact", None):
+        from tools.agent import reverse_impact_payload
+        payload["impact"] = reverse_impact_payload(root, args.impact, symbol=args.symbol, depth=args.depth)
+        if not args.json:
+            print(f"Impact : {payload['impact']['status']}")
+            print("Fichiers : " + ", ".join(payload["impact"]["impacted_files"]))
+        if payload["impact"]["status"] != "PASS" and payload["status"] == "PASS":
+            payload["status"] = "REVIEW"
     if args.open and payload["status"] == "PASS":
         import webbrowser
         webbrowser.open(Path(payload["html"]).as_uri())
@@ -272,6 +280,9 @@ def build_parser() -> argparse.ArgumentParser:
     graph.add_argument('--rebuild', action='store_true', help='Generer explicitement le graph AST, clustering et HTML.')
     graph.add_argument('--install', action='store_true', help='Installer explicitement Graphify pinne via uv puis generer.')
     graph.add_argument('--open', action='store_true', help='Ouvrir le HTML du graph courant.')
+    graph.add_argument('--impact', nargs='+', help='Consommateurs candidats confirmes par imports; aucune reconstruction implicite.')
+    graph.add_argument('--symbol', help='Symbole top-level candidat; precision de liaison a revoir.')
+    graph.add_argument('--depth', type=int, choices=(1, 2), default=1)
 
     audit = sub.add_parser('audit')
     audit.add_argument('--force', action='store_true')

@@ -591,6 +591,12 @@ def _internal_imports(root: Path, relative: str) -> list[str]:
         resolved = _module_path(root, module)
         if resolved:
             imports.append(resolved)
+        # from package import submodule also imports the existing child module.
+        for alias in node.names:
+            child = ".".join(part for part in (module, alias.name) if part)
+            resolved = _module_path(root, child)
+            if resolved:
+                imports.append(resolved)
     return _unique(imports)
 
 
@@ -625,6 +631,22 @@ def imports_payload(root: Path, scope: str) -> dict[str, Any]:
     }
 
 
+def reverse_impact_payload(
+    root: Path, paths: Iterable[str], *, symbol: str | None = None, depth: int = 1,
+) -> dict[str, Any]:
+    """Compose graph candidates with the existing Agent source/context engines."""
+    from tools.agent_graph import reverse_impact
+
+    try:
+        return reverse_impact(
+            root, list(paths), symbol=symbol, depth=depth,
+            imports_resolver=_internal_imports, symbols_resolver=_python_symbols,
+            impact_resolver=impact_payload,
+        )
+    except ValueError as exc:
+        raise AgentConfigError(str(exc)) from exc
+
+
 def _print_payload(payload: dict[str, Any]) -> None:
     for key, value in payload.items():
         if isinstance(value, list):
@@ -650,6 +672,11 @@ def main(argv: list[str] | None = None) -> int:
     impact = commands.add_parser("impact")
     impact.add_argument("paths", nargs="+")
     impact.add_argument("--json", action="store_true")
+    reverse = commands.add_parser("reverse-impact", help="Read a current graph; confirm bounded consumer imports without rebuilding.")
+    reverse.add_argument("paths", nargs="+")
+    reverse.add_argument("--symbol", help="Top-level symbol candidates; requires review of binding.")
+    reverse.add_argument("--depth", type=int, choices=(1, 2), default=1)
+    reverse.add_argument("--json", action="store_true")
     ownership = commands.add_parser("ownership")
     ownership.add_argument("paths", nargs="+")
     ownership.add_argument("--json", action="store_true")
@@ -680,6 +707,9 @@ def main(argv: list[str] | None = None) -> int:
         elif command == "impact":
             payload = impact_payload(ROOT, args.paths)
             exit_code = 0
+        elif command == "reverse-impact":
+            payload = reverse_impact_payload(ROOT, args.paths, symbol=args.symbol, depth=args.depth)
+            exit_code = 0 if payload["status"] == "PASS" else 1
         elif command == "ownership":
             payload = ownership_payload(ROOT, args.paths)
             exit_code = 0
@@ -691,18 +721,28 @@ def main(argv: list[str] | None = None) -> int:
             exit_code = 0
         elif command == "plan":
             impact = impact_payload(ROOT, args.paths)
+            graph_impact = None
+            if args.structural:
+                graph_impact = reverse_impact_payload(ROOT, args.paths)
+                impact["recommended_tests"] = _unique([
+                    *impact.get("recommended_tests", []),
+                    *graph_impact.get("recommended_tests", []),
+                ])
+                impact["scopes"] = _unique([
+                    *impact.get("scopes", []), *graph_impact.get("scopes", []),
+                ])
             payload = agent_planner.build_plan(ROOT, args.paths, impact)
-            from tools.atlas_doctor_lib.architecture import graph_status
-            graph = graph_status(ROOT) if args.structural else None
+            graph = graph_impact["graph"] if graph_impact else None
             payload["architecture_preflight"] = {
                 "required": args.structural,
                 "status": graph["status"] if graph else "OPTIONAL",
                 "graph": graph,
+                "impact": graph_impact,
                 "diagnostic_command": ["py", "-3.13", "-m", "tools.atlas_doctor", "graph", "--json"],
                 "rebuild_command": ["py", "-3.13", "-m", "tools.atlas_doctor", "graph", "--rebuild", "--json"],
                 "rule": "Confirm graph relationships against source, consumers, tests and Atlas Integrity before structural changes.",
             }
-            if args.structural and graph["status"] != "PASS":
+            if args.structural and (graph["status"] != "PASS" or graph_impact["status"] != "PASS"):
                 payload["status"] = "REVIEW_REQUIRED"
                 payload["automation_safe"] = False
                 payload.setdefault("policy", {})["automatic_editing"] = "requires_human_or_agent_review"

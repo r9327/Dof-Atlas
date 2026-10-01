@@ -67,7 +67,7 @@
     },
     "GRAPHIFY.md": {
       "mode": "100644",
-      "sha": "1441857ff57780de801730f176917cf396957faf",
+      "sha": "9ccf3d602280179da05678adb737a74139ba74fe",
       "type": "blob"
     },
     "GUIDE_ULTIME_STATUS.md": {
@@ -92,7 +92,7 @@
     },
     "ROAD_IA.md": {
       "mode": "100644",
-      "sha": "65fcaaaf0e39ac13f1ff35df0e3c853a46b91b1c",
+      "sha": "5ab0023b96f540da6ef3ead6399b1df2b1ae0c93",
       "type": "blob"
     },
     "ZERO_TRUST_RULES.md": {
@@ -147,12 +147,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "80718c4a598c712842a1640188db3b685c325ff6",
+      "sha": "08a35edadc2e3862166dc35f0d0d8f40a5d5f3e5",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "081f8219869e422bcd61b4af48b7eb2b89bfaafa",
+      "sha": "13a892f2bef9c4f76b9431be80233f8d221419ed",
       "type": "tree"
     }
   },

@@ -372,7 +372,7 @@ La preuve de validation est portee par les tests cibles et les workflows sur le 
 
 This ROAD extends the existing facades; Atlas Integrity and its policy remain the validation authority. Agent plans context, ownership, targeted impact and validation depth. Doctor captures diagnostics/baselines, executes selected engines and compares evidence.
 
-## RD-0 — Execution contracts — IMPLEMENTED — VALIDATION PENDING
+## RD-0 — Execution contracts — VALIDATED
 
 - Doctor verify exposes schema-versioned PASS/FAIL/REVIEW, returns non-zero for failed or inconclusive evidence, retains audit/comparison fields and forwards an explicit base/gate.
 - Without an explicit base, verify uses the saved audit HEAD before falling back to HEAD. A missing or incompatible comparison remains REVIEW; static findings are not labelled as proven change-induced regressions.
@@ -380,9 +380,10 @@ This ROAD extends the existing facades; Atlas Integrity and its policy remain th
 - The five core Agent/context/catalog/audit files have precise quality_ci ownership and existing targeted test mappings.
 - No Atlas Integrity policy/gate, product source, Guide contract or tool deletion is changed.
 
-Next coherent lots, validated separately before proceeding:
+Validation RD-0 : PR #72, HEAD exact `76cd6c08da512e5f242eeb83a5ebb5e380415874`, 96 tests cibles, Atlas Integrity FAST et 1 747 tests complets PASS. Les checks AI Context, Public PR, Graphify et Signature sont PASS ; ce micro-lot n'est pas une certification de toute la ROAD.
 
-1. Targeted Graphify reverse-impact for files/symbols, with source-confirmed relationships and bounded depth.
+Lots restant apres RD-1, a valider separement :
+
 2. Metadata-driven planner through existing Tool Catalog / TOOL_SPEC.
 3. Automatic SOFT/MEDIUM/HARD and explicit overrides, respecting canonical risk requirements.
 4. Agent verify facade with Doctor execution and stable evidence.
@@ -391,3 +392,28 @@ Next coherent lots, validated separately before proceeding:
 7. Optional deterministic fix --dry-run only after the validation workflow is stable.
 
 Do not treat this ROAD as completed while these lots remain open. Certification must refer to the exact PR HEAD; subsequent SHAs require new checks.
+
+## RD-1 — Reverse-impact Graphify cible — CODE_DONE
+
+`tools.agent reverse-impact <paths...> [--symbol <top-level>] [--depth 1|2] --json`
+lit uniquement le graph valide du cache Doctor. La profondeur est un niveau par
+defaut, deux uniquement sur demande, avec un budget de 100 fichiers candidats.
+Aucun scan Graphify ni inventaire AST global n'est declenche implicitement.
+
+Le moteur reutilise les imports et le routing Agent existants : les relations
+AST Graphify sont des candidats, confirmes par les imports Python actuels des
+fichiers candidats. Les liaisons non confirmees restent visibles en REVIEW.
+Un symbole filtre les candidats du graph mais ne prouve pas leur binding :
+la precision reste explicite MODULE_DEPENDENCY_ONLY et impose une revue.
+Ce rapport ne certifie jamais l'absence de consommateurs runtime/indirects.
+
+Doctor expose le meme moteur avec `graph --impact <paths...>`.
+La provenance HEAD/worktree/version du cache reste canonique et la signature
+du graph est verifiee avant lecture. Les scopes/tests proviennent du routing
+existant ; Atlas Integrity reste l'autorite. Aucun produit ni wrapper supprime.
+
+Un plan `--structural` reutilise automatiquement ce reverse-impact : scopes et tests consommateurs enrichissent le plan, tandis que les proprietaires restent ceux des fichiers a modifier. Un impact REVIEW interdit l'edition automatique. Les petits plans locaux ne consultent pas le graph.
+
+La preuve VALIDATED/CERTIFIED de RD-1 doit etre lue dans les checks de sa PR sur son HEAD exact. La fermeture de RD-1 ne ferme pas les lots planner, niveaux, verify et baseline restant ci-dessus.
+
+Le moteur graph recoit les resolveurs existants de l'Agent via la facade `reverse_impact_payload` ; il n'importe pas la facade Agent. Cette direction conserve une seule implementation source/contexte et evite un import reciproque Agent/graph.
