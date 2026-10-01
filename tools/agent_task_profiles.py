@@ -16,6 +16,19 @@ from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / ".ai" / "task_profiles.json"
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "agent_task_profiles",
+    "role": "ai_cost_quality_routing",
+    "capabilities": ["ai_context"],
+    "modes": ["route"],
+    "cost_hint": "cheap",
+    "side_effects": "read_only",
+    "structured_output": True,
+    "canonical": True,
+    "recommended_tests": ["tests.test_agent_task_profiles"],
+    "target_scopes": [],
+}
 _VALID_TASK_TYPES = (
     "read_only",
     "tiny_edit",
@@ -98,7 +111,11 @@ def select_work_card(
     if depth not in floors:
         raise TaskProfileError("work_depth must be SOFT, MEDIUM or HARD.")
 
-    requested = (requested_quality or resolved.get("default_requested_quality") or "balanced").casefold()
+    requested = (
+        requested_quality
+        or resolved.get("default_requested_quality")
+        or "balanced"
+    ).casefold()
     profile = resolved["task_profiles"][task_type]
     task_floor = str(profile["minimum_quality"]).casefold()
     depth_floor = str(floors[depth]).casefold()
@@ -108,7 +125,8 @@ def select_work_card(
     effective_rank = max(requested_rank, task_floor_rank, depth_floor_rank)
 
     eligible = [
-        row for row in resolved["model_tiers"]
+        row
+        for row in resolved["model_tiers"]
         if int(row.get("quality_rank", 0)) >= effective_rank
     ]
     if not eligible:
@@ -124,13 +142,18 @@ def select_work_card(
         ),
     )
     effective_names = [
-        name for name, row in resolved["quality_levels"].items()
+        name
+        for name, row in resolved["quality_levels"].items()
         if int(row.get("rank", -1)) == effective_rank
     ]
-    effective_quality = sorted(effective_names)[0] if effective_names else str(effective_rank)
+    effective_quality = (
+        sorted(effective_names)[0] if effective_names else str(effective_rank)
+    )
     escalations: list[str] = []
     if task_floor_rank > requested_rank:
-        escalations.append(f"task floor {task_floor} exceeds requested quality {requested}")
+        escalations.append(
+            f"task floor {task_floor} exceeds requested quality {requested}"
+        )
     if depth_floor_rank > max(requested_rank, task_floor_rank):
         escalations.append(f"{depth} work depth requires at least {depth_floor}")
 
@@ -141,7 +164,9 @@ def select_work_card(
         "task_type": task_type,
         "description": str(profile.get("description") or ""),
         "requested_quality": requested,
-        "recommended_quality": str(profile.get("recommended_quality") or task_floor),
+        "recommended_quality": str(
+            profile.get("recommended_quality") or task_floor
+        ),
         "task_minimum_quality": task_floor,
         "work_depth": depth,
         "work_depth_quality_floor": depth_floor,
@@ -154,13 +179,20 @@ def select_work_card(
         "resolved_model": resolved_model,
         "model_resolution": "environment" if resolved_model else "tier_only",
         "escalations": escalations,
-        "selection_rule": "cheapest configured tier satisfying requested quality, task floor and work-depth floor",
+        "selection_rule": (
+            "cheapest configured tier satisfying requested quality, task floor "
+            "and work-depth floor"
+        ),
     }
 
 
 def route_for_plan(
-    paths: Iterable[str], *, work_depth: str, structural: bool = False,
-    requested_quality: str | None = None, task_type: str | None = None,
+    paths: Iterable[str],
+    *,
+    work_depth: str,
+    structural: bool = False,
+    requested_quality: str | None = None,
+    task_type: str | None = None,
 ) -> dict[str, Any]:
     paths = list(paths)
     resolved_task = (
@@ -178,11 +210,20 @@ def route_for_plan(
 def main(argv: list[str] | None = None) -> int:
     config = load_config()
     parser = argparse.ArgumentParser(
-        description="Select the cheapest ROAD IA model tier that satisfies a task quality floor."
+        description=(
+            "Select the cheapest ROAD IA model tier that satisfies a task "
+            "quality floor."
+        )
     )
-    parser.add_argument("--task", choices=("auto", *_VALID_TASK_TYPES), default="auto")
-    parser.add_argument("--quality", choices=tuple(config["quality_levels"]), default=None)
-    parser.add_argument("--depth", choices=("SOFT", "MEDIUM", "HARD"), default="SOFT")
+    parser.add_argument(
+        "--task", choices=("auto", *_VALID_TASK_TYPES), default="auto"
+    )
+    parser.add_argument(
+        "--quality", choices=tuple(config["quality_levels"]), default=None
+    )
+    parser.add_argument(
+        "--depth", choices=("SOFT", "MEDIUM", "HARD"), default="SOFT"
+    )
     parser.add_argument("--structural", action="store_true")
     parser.add_argument("--path", dest="paths", action="append", default=[])
     parser.add_argument("--json", action="store_true")
