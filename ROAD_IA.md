@@ -367,3 +367,27 @@ Les sorties restent dans `graphify-out/` et `.ai/runtime/atlas_doctor/`, ignores
 `tools.tool_audit` reste une vue derivee de revue. Zero consommateur n'autorise pas une suppression : familles versionnees, wrappers, entrees historiques et mutateurs restent soumis a la preuve des consommateurs et du remplacement canonique. Les facades Guide modernes sont preservees.
 
 La preuve de validation est portee par les tests cibles et les workflows sur le HEAD exact de la PR d'integration ; aucune validation historique de #47 n'est transposee au candidat courant.
+
+# ROAD Doctor — Agent / Doctor / Graph
+
+This ROAD extends the existing facades; Atlas Integrity and its policy remain the validation authority. Agent plans context, ownership, targeted impact and validation depth. Doctor captures diagnostics/baselines, executes selected engines and compares evidence.
+
+## RD-0 — Execution contracts — IMPLEMENTED — VALIDATION PENDING
+
+- Doctor verify exposes schema-versioned PASS/FAIL/REVIEW, returns non-zero for failed or inconclusive evidence, retains audit/comparison fields and forwards an explicit base/gate.
+- Without an explicit base, verify uses the saved audit HEAD before falling back to HEAD. A missing or incompatible comparison remains REVIEW; static findings are not labelled as proven change-induced regressions.
+- Planner readiness requires both safe_for_agent and automation_ready and the canonical Atlas Integrity entry.
+- The five core Agent/context/catalog/audit files have precise quality_ci ownership and existing targeted test mappings.
+- No Atlas Integrity policy/gate, product source, Guide contract or tool deletion is changed.
+
+Next coherent lots, validated separately before proceeding:
+
+1. Targeted Graphify reverse-impact for files/symbols, with source-confirmed relationships and bounded depth.
+2. Metadata-driven planner through existing Tool Catalog / TOOL_SPEC.
+3. Automatic SOFT/MEDIUM/HARD and explicit overrides, respecting canonical risk requirements.
+4. Agent verify facade with Doctor execution and stable evidence.
+5. Explicit comparable before/after baselines and actionable diagnostics.
+6. Measured execution cost/cache reuse and proven consumer-based cleanup.
+7. Optional deterministic fix --dry-run only after the validation workflow is stable.
+
+Do not treat this ROAD as completed while these lots remain open. Certification must refer to the exact PR HEAD; subsequent SHAs require new checks.

@@ -190,10 +190,37 @@ def command_issues(root: Path, args) -> dict[str, Any]:
 
 def command_verify(root: Path, args) -> dict[str, Any]:
     before = load_json(root, 'latest_audit')
-    current = run_audit(root, integrity_mode='critical')
+    explicit_base = getattr(args, 'base_ref', None)
+    baseline_head = ((before or {}).get('git') or {}).get('head')
+    base_ref = explicit_base or baseline_head or 'HEAD'
+    current = run_audit(root, integrity_mode=getattr(args, 'gate', 'critical'), base_ref=base_ref)
     comparison = compare_runs(current, before)
-    payload = {'audit': current.get('summary'), 'comparison': comparison}
+    integrity = current.get('integrity') or {}
+    summary = current.get('summary') or {}
+    if summary.get('verdict') == 'FAIL' or integrity.get('status') == 'FAIL':
+        status = 'FAIL'
+    elif (integrity.get('status') != 'PASS' or summary.get('verdict') != 'PASS'
+          or comparison.get('status') != 'PASS'):
+        status = 'REVIEW'
+    else:
+        status = 'PASS'
+    blockers = (integrity.get('report') or {}).get('blockers') or []
+    reason = ', '.join(str(item) for item in blockers) or integrity.get('reason')
+    if not reason and status == 'REVIEW':
+        reason = comparison.get('reason') or 'Audit findings require review; no regression cause is inferred.'
+    if not reason and status == 'FAIL':
+        reason = 'Audit failed; inspect the recorded evidence.'
+    payload = {
+        'schema_version': 1, 'kind': 'verification', 'status': status,
+        'base_ref': base_ref, 'audit': summary, 'integrity': integrity,
+        'comparison': comparison, 'primary_cause': reason,
+        'reproduction_command': integrity.get('command'),
+        'next_action': 'Inspect the recorded blockers and reproduction command.' if status != 'PASS' else None,
+    }
     if not args.json:
+        print(f"Verification : {status} | Base : {base_ref}")
+        if reason:
+            print(reason)
         print(f"Nouveaux : {len(comparison.get('new_issues', []))} | Corriges : {len(comparison.get('fixed_issues', []))}")
         _summary(current)
     return payload
@@ -260,7 +287,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser('compare')
     issues = sub.add_parser('issues')
     issues.add_argument('--severity', nargs='*')
-    sub.add_parser('verify')
+    verify = sub.add_parser('verify')
+    verify.add_argument('--gate', choices=('fast', 'critical', 'full', 'deep'), default='critical')
+    verify.add_argument('--base-ref', help='Base du changement; sinon HEAD du snapshot precedent, puis HEAD.')
     sub.add_parser('report')
     sub.add_parser('clean')
     sub.add_parser('all')
@@ -339,6 +368,8 @@ def main(argv: list[str] | None = None) -> int:
     payload = handlers[args.command](root, args)
     if args.json:
         _print_json(payload)
+    if args.command == 'verify':
+        return {'PASS': 0, 'REVIEW': 1, 'FAIL': 2}[payload['status']]
     if args.command == 'graph':
         return 0 if payload['status'] == 'PASS' else 1
     if args.command in {'audit', 'quick'}:

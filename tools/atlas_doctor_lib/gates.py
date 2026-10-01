@@ -13,7 +13,7 @@ from .core import milliseconds
 INTEGRITY_MODES = {'fast', 'critical', 'full', 'deep'}
 
 
-def run_integrity_gate(root: Path, mode: str = 'critical', *, timeout: int = 900) -> dict[str, Any]:
+def run_integrity_gate(root: Path, mode: str = 'critical', *, base_ref: str = 'HEAD', timeout: int = 900) -> dict[str, Any]:
     normalized = mode.casefold()
     if normalized not in INTEGRITY_MODES:
         raise ValueError(f'Mode integrity inconnu: {mode}')
@@ -34,7 +34,7 @@ def run_integrity_gate(root: Path, mode: str = 'critical', *, timeout: int = 900
         'tools.atlas_integrity',
         normalized,
         '--base-ref',
-        'HEAD',
+        base_ref,
         '--root',
         str(root),
         '--json',

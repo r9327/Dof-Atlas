@@ -184,5 +184,24 @@ class AgentPlannerTests(unittest.TestCase):
         self.assertIn("tools/atlas_integrity.py", recommended)
 
 
+    def test_safe_but_not_automation_ready_tool_requires_review(self) -> None:
+        report = self._catalog()
+        report['tools'][0]['automation_ready'] = False
+        impact = {'scopes': [], 'unowned_paths': [], 'ambiguous_paths': []}
+        with tempfile.TemporaryDirectory() as directory:
+            plan = build_plan(Path(directory), ['README.md'], impact, policy=self._policy(), catalog_report=report)
+        self.assertFalse(plan['automation_safe'])
+        self.assertEqual(plan['status'], 'REVIEW_REQUIRED')
+        self.assertEqual(plan['unsafe_recommended_tools'], [])
+        self.assertEqual(plan['non_automated_recommended_tools'], ['tools/atlas_integrity.py'])
+
+    def test_missing_validation_authority_cannot_produce_ready_plan(self) -> None:
+        impact = {'scopes': [], 'unowned_paths': [], 'ambiguous_paths': []}
+        with tempfile.TemporaryDirectory() as directory:
+            plan = build_plan(Path(directory), ['README.md'], impact, policy=self._policy(), catalog_report={'tools': []})
+        self.assertFalse(plan['automation_safe'])
+        self.assertEqual(plan['missing_validation_tools'], ['tools/atlas_integrity.py'])
+
+
 if __name__ == "__main__":
     unittest.main()
