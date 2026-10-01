@@ -70,6 +70,43 @@ jobs:
           git diff --check "$env:BASE_SHA...HEAD"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Classify Doctor risk
+        id: doctor_risk
+        shell: pwsh
+        run: |
+          $risk = python -c "import os; from pathlib import Path; from tools.atlas_integrity import changed_files, classify_risk; root=Path.cwd(); print(classify_risk(changed_files(root, os.environ['BASE_SHA']))['risk'])"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $risk = $risk.Trim()
+          if ($risk -notin @("LOW", "MEDIUM", "HIGH", "CRITICAL")) {
+            throw "Unexpected Atlas Integrity risk classification: $risk"
+          }
+          Write-Host "Doctor risk: $risk"
+          "risk=$risk" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Materialize CRITICAL Doctor fixtures
+        if: steps.doctor_risk.outputs.risk == 'CRITICAL'
+        shell: pwsh
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          @'
+          from app.quest_catalog import QuestCatalog
+          catalog = QuestCatalog.load()
+          count = len(catalog.quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Run canonical Doctor FAST merge gate
         id: doctor
         shell: pwsh
@@ -134,7 +171,9 @@ jobs:
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## PR SAFE VALIDATION ONLY"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:CANDIDATE_SHA``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Doctor risk: ``${{ steps.doctor_risk.outputs.risk }}``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Required merge gate: ``Atlas Doctor FAST`` through ``Public PR / Safe Validation``."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- CRITICAL diffs materialize the fixtures required by Doctor's risk escalation; ordinary PRs stay lightweight."
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- This workflow is **NOT PHASE CERTIFICATION**."
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- A phase can be declared **CERTIFIED** only after ``Phase Certification / Full Validation`` succeeds on the exact candidate SHA."
           }
