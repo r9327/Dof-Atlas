@@ -97,7 +97,7 @@
     },
     "ZERO_TRUST_RULES.md": {
       "mode": "100644",
-      "sha": "6790e1222f3fac7353875a513c6a597d96b4cc8c",
+      "sha": "d5e9ca1cf12d85d86e1476766c2a5f537774c688",
       "type": "blob"
     },
     "app": {
@@ -147,12 +147,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "9fdface90ae70bb5faabe90f4012b495613269dd",
+      "sha": "f2ef14ab2c1b49be346855dc8f0a9c0ad1eb8e19",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "78419140905f5e3c48a3665144a3968534ca9f79",
+      "sha": "d16ce36c7bc2d48b11553a01c9274f2b67a7d7d7",
       "type": "tree"
     }
   },
