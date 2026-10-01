@@ -26,7 +26,11 @@ Remaining versioned tools are retained by evidence:
 
 - `guide_ultime_scope_v4.py`: `tests/test_guide_ultime_v4_scope.py`.
 - `guide_ultime_scope_v5.py`: the adventure route adapter, v5 scope tests, forensic audit and final builder.
-- `apply_verified_guides_v2.py` / `v3.py`: historical mutators with no proven canonical replacement; zero consumers remains a review signal.
+- `apply_verified_guides_v2.py`, `apply_verified_guides_v3.py` and
+  `atlas_complete_guides_v1.py` are retired historical mutators. Exact-HEAD
+  Graphify reverse impact and the tracked consumer audit found no consumer,
+  workflow, import or current documentation entry; the canonical Guide data
+  and validation flows do not call them.
 - The v15 transversal engine: internal dependency of the canonical entry, not a preferred command.
 
 GPS, forensic, Guide Integrity, the Guide facade and structured actions keep their canonical entry points.

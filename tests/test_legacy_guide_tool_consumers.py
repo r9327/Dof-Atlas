@@ -12,6 +12,9 @@ RETIRED_TOOLS = (
     "tools/build_guide_ultime_gps_route_strict.py",
     "tools/audit_guide_ultime_route_forensic_v2.py",
     "tools/validate_guide_ultime_manual_route.py",
+    "tools/apply_verified_guides_v2.py",
+    "tools/apply_verified_guides_v3.py",
+    "tools/atlas_complete_guides_v1.py",
 )
 DEFERRED_LEGACY = (
     "tools/run_guide_ultime_v5.ps1",
