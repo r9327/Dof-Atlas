@@ -43,6 +43,10 @@ class GeneratedFilesGuardTests(unittest.TestCase):
     def test_runtime_outputs_are_ignored_but_real_new_data_still_affects_risk(self) -> None:
         outputs = [
             "manifest.json",
+            "quest_progress.json.lock",
+            "achievement_progress.json.lock",
+            "guide_progress.json.lock",
+            "data/client_profiles.json.lock",
             "data/local/quest_progress.json.lock",
             "data/encyclopedia/progress/achievement_progress.json.lock",
             "data/encyclopedia/progress/guide_progress.json.lock",

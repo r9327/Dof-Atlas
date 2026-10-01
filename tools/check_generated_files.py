@@ -11,9 +11,6 @@ from typing import Iterable
 ROOT = Path(__file__).resolve().parents[1]
 FORBIDDEN_EXACT = {
     "manifest.json",
-    "data/local/quest_progress.json.lock",
-    "data/encyclopedia/progress/achievement_progress.json.lock",
-    "data/encyclopedia/progress/guide_progress.json.lock",
     "logs/start_log.txt",
     ".coverage",
     "coverage.xml",
@@ -27,6 +24,7 @@ FORBIDDEN_EXACT = {
 }
 FORBIDDEN_PREFIXES = ("artifacts/", "htmlcov/")
 FORBIDDEN_SUFFIXES = (
+    ".json.lock",
     ".sqlite-wal",
     ".sqlite-shm",
     ".dmp",
