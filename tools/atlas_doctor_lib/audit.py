@@ -299,6 +299,12 @@ def run_audit(
         'integrity_mode': integrity_mode.upper() if integrity_mode else None,
         'integrity_base_ref': base_ref if integrity_mode else None,
         'integrity': integrity,
+        'analysis_sources': {
+            'static_ast': True,
+            'tracked_files': True,
+            'graph': False,
+            'atlas_integrity': bool(integrity_mode),
+        },
         'duration_ms': milliseconds(started),
         'summary': {
             'verdict': verdict,

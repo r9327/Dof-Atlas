@@ -154,6 +154,9 @@ def _compact_live(live: dict[str, Any] | None) -> dict[str, Any] | None:
         'git': live.get('git'),
         'duration_ms': live.get('duration_ms'),
         'summary': live.get('summary'),
+        'io_trace_status': live.get('io_trace_status'),
+        'io_trace_reason': live.get('io_trace_reason'),
+        'io_trace_path': live.get('io_trace_path'),
         'io_trace': _compact_io_trace(live.get('io_trace')),
     }
 
@@ -207,6 +210,7 @@ def build_ai_report(root) -> dict[str, Any]:
         'generated_at': utc_now(),
         'architecture': graph_status(root),
         'audit_summary': (audit or {}).get('summary'),
+        'audit_analysis_sources': (audit or {}).get('analysis_sources'),
         'git': (audit or perf or live or {}).get('git'),
         'integrity': _compact_integrity((audit or {}).get('integrity')),
         'audit_comparison': comparison,
@@ -221,7 +225,8 @@ def build_ai_report(root) -> dict[str, Any]:
             'live_performance': '.ai/runtime/atlas_doctor/latest_live_perf.json',
         },
         'instructions_for_agent': [
-            'Traiter CRITICAL/HIGH confirmes avant les suspects.',
+            'Prioriser la revue CRITICAL/HIGH; confirmed confirme le motif detecte, pas automatiquement un bug.',
+            'Le diagnostic statique ne consulte pas Graphify: verifier audit_analysis_sources puis architecture pour le graph.',
             'Ne jamais supprimer un module marque suspect sans verifier wiring dynamique et consommateurs reels.',
             'Comparer les performances uniquement sur la meme machine/environnement.',
             'Une hausse >=15% est un signal de regression a verifier, pas une preuve absolue entre environnements differents.',
