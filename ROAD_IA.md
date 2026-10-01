@@ -368,9 +368,9 @@ Les sorties restent dans `graphify-out/` et `.ai/runtime/atlas_doctor/`, ignores
 
 La preuve de validation est portee par les tests cibles et les workflows sur le HEAD exact de la PR d'integration ; aucune validation historique de #47 n'est transposee au candidat courant.
 
-# ROAD Doctor — Agent / Doctor / Graph — DONE
+# ROAD Doctor — Agent / Doctor / Graph — VALIDATED / final certification pending
 
-La ROAD Doctor est fermee. Atlas Integrity et sa policy restent l'unique autorite de validation ; Agent planifie le contexte, l'ownership, l'impact cible et la profondeur ; Doctor execute les moteurs canoniques, conserve les preuves et compare uniquement des baselines compatibles. Aucun daemon, hook Graphify implicite ou changement produit n'a ete ajoute.
+La ROAD Doctor reste ouverte pour la verification SOFT/MEDIUM/HARD reelle, les correctifs issus des mesures et la certification finale sur un SHA exact. Atlas Integrity et sa policy restent l'unique autorite de validation ; Agent planifie le contexte, l'ownership, l'impact cible et la profondeur ; Doctor execute les moteurs canoniques, conserve les preuves et compare uniquement des baselines compatibles. Aucun daemon, hook Graphify implicite ou changement produit n'a ete ajoute.
 
 ## RD-0 — Execution contracts — VALIDATED
 
@@ -410,4 +410,4 @@ Ce lot etait explicitement optionnel. Aucune preuve n'a etabli une mutation repo
 
 ## Fermeture
 
-ROAD Doctor est **DONE** apres les merges #74 et #76. Le prochain travail doit repartir de la ROAD V3 produit et de l'etat reel du depot ; Doctor/Agent/Graph restent des outils d'assistance et ne remplacent jamais Atlas Integrity ni les contrats produit.
+Les merges #74 et #76 valident leurs micro-lots ; ils ne certifient pas la fermeture de cette ROAD. La verification SOFT reelle a revele des sorties generees non ignorees, qui faisaient escalader le diff en HARD. Le correctif conserve les verrous JSON sur disque, exclut leurs sidecars et le manifeste CDN racine de Doduda, et renforce le garde-fou canonique. La ROAD demeure ouverte tant que la matrice finale et Phase Certification ne sont pas PASS sur le candidat exact. Doctor/Agent/Graph restent des outils d'assistance et ne remplacent jamais Atlas Integrity ni les contrats produit.

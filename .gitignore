@@ -9,6 +9,8 @@ venv/
 .idea/
 
 # Runtime / utilisateur
+# Persistent JSON resource-lock sidecars (InterProcessResourceLock); keep them on disk.
+*.json.lock
 .env
 .env.*
 !.env.example
@@ -46,6 +48,8 @@ coverage.xml
 htmlcov/
 
 # Données massives régénérables
+# Doduda CDN metadata created in its working directory, even with --output elsewhere.
+/manifest.json
 data/exports/
 data/raw/
 data/cache/
