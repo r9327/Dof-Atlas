@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import tempfile
+import subprocess
 import unittest
 from pathlib import Path
 
-from tools.check_generated_files import find_forbidden, find_sensitive_content
+from tools.check_generated_files import find_forbidden, find_sensitive_content, git_paths
+from tools import atlas_integrity
 
 
 class GeneratedFilesGuardTests(unittest.TestCase):
@@ -37,6 +39,38 @@ class GeneratedFilesGuardTests(unittest.TestCase):
             ),
             [],
         )
+
+    def test_runtime_outputs_are_ignored_but_real_new_data_still_affects_risk(self) -> None:
+        outputs = [
+            "manifest.json",
+            "data/local/quest_progress.json.lock",
+            "data/encyclopedia/progress/achievement_progress.json.lock",
+            "data/encyclopedia/progress/guide_progress.json.lock",
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for args in (["init"], ["config", "user.email", "atlas@example.invalid"],
+                         ["config", "user.name", "Atlas Tests"]):
+                subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
+            (root / ".gitignore").write_bytes(
+                (Path(__file__).resolve().parents[1] / ".gitignore").read_bytes())
+            subprocess.run(["git", "add", ".gitignore"], cwd=root, check=True, capture_output=True)
+            subprocess.run(["git", "commit", "-m", "fixture"], cwd=root, check=True, capture_output=True)
+            for relative in outputs:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("{}", encoding="utf-8")
+            self.assertEqual(atlas_integrity.changed_files(root, "HEAD"), [])
+            genuine = root / "data/routes/manifest.json"
+            genuine.parent.mkdir(parents=True, exist_ok=True)
+            genuine.write_text("{}", encoding="utf-8")
+            self.assertIn("data/routes/manifest.json", atlas_integrity.changed_files(root, "HEAD"))
+            self.assertEqual(find_forbidden(["data/routes/manifest.json"]), [])
+            subprocess.run(["git", "add", "--force", *outputs], cwd=root,
+                           check=True, capture_output=True)
+            self.assertEqual({item["path"] for item in find_forbidden(git_paths(root, True))},
+                             set(outputs))
+            self.assertTrue(all((root / path).exists() for path in outputs))
 
     def test_sensitive_content_rejects_real_user_paths_and_private_keys(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

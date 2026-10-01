@@ -18,10 +18,13 @@ data/local/*.sqlite
 data/local/*.sqlite-wal
 data/local/*.sqlite-shm
 data/local/quest_progress.json
+data/local/quest_progress.json.lock
 data/local/network_character_bindings.json
 data/local/craft_selection.json
 data/encyclopedia/progress/achievement_progress.json
+data/encyclopedia/progress/achievement_progress.json.lock
 data/encyclopedia/progress/guide_progress.json
+data/encyclopedia/progress/guide_progress.json.lock
 data/bootstrap_status.txt
 config/zaap_shortcuts.json
 data/client_index.ini
@@ -46,6 +49,8 @@ coverage.xml
 htmlcov/
 
 # Données massives régénérables
+# Doduda CDN metadata created in its working directory, even with --output elsewhere.
+/manifest.json
 data/exports/
 data/raw/
 data/cache/
