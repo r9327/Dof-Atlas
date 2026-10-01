@@ -197,11 +197,20 @@ def command_issues(root: Path, args) -> dict[str, Any]:
 
 
 def command_verify(root: Path, args) -> dict[str, Any]:
+    if getattr(args, "paths", None):
+        if getattr(args, "gate", None):
+            raise ValueError("--gate belongs to legacy verify; use --soft/--medium/--hard with paths.")
+        from tools.agent import verify_payload, _verification_summary
+        payload = verify_payload(root, args.paths, level=args.level, structural=args.structural,
+                                 base_ref=args.base_ref or "HEAD", rebuild_graph=args.rebuild_graph)
+        if not args.json:
+            _verification_summary(payload)
+        return payload
     before = load_json(root, 'latest_audit')
     explicit_base = getattr(args, 'base_ref', None)
     baseline_head = ((before or {}).get('git') or {}).get('head')
     base_ref = explicit_base or baseline_head or 'HEAD'
-    current = run_audit(root, integrity_mode=getattr(args, 'gate', 'critical'), base_ref=base_ref)
+    current = run_audit(root, integrity_mode=getattr(args, 'gate', None) or 'critical', base_ref=base_ref)
     comparison = compare_runs(current, before)
     integrity = current.get('integrity') or {}
     summary = current.get('summary') or {}
@@ -299,13 +308,31 @@ def build_parser() -> argparse.ArgumentParser:
     issues = sub.add_parser('issues')
     issues.add_argument('--severity', nargs='*')
     verify = sub.add_parser('verify')
-    verify.add_argument('--gate', choices=('fast', 'critical', 'full', 'deep'), default='critical')
+    verify.add_argument('paths', nargs='*', help='Targeted Agent plan / Doctor execution; omit for legacy audit comparison.')
+    verify.add_argument('--gate', choices=('fast', 'critical', 'full', 'deep'), help='Legacy verify without paths; default critical.')
+    verify.add_argument('--structural', action='store_true')
+    verify.add_argument('--rebuild-graph', action='store_true')
+    levels = verify.add_mutually_exclusive_group()
+    levels.add_argument('--soft', dest='level', action='store_const', const='SOFT')
+    levels.add_argument('--medium', dest='level', action='store_const', const='MEDIUM')
+    levels.add_argument('--hard', dest='level', action='store_const', const='HARD')
     verify.add_argument('--base-ref', help='Base du changement; sinon HEAD du snapshot precedent, puis HEAD.')
     sub.add_parser('report')
     sub.add_parser('clean')
     sub.add_parser('all')
     return parser
 
+
+
+def menu_verify(root: Path) -> dict[str, Any]:
+    import shlex
+    paths = shlex.split(input("Chemins relatifs avec / (vide : verification historique) : ").strip())
+    if not paths:
+        return command_verify(root, argparse.Namespace(json=False))
+    return command_verify(root, argparse.Namespace(
+        json=False, paths=paths, gate=None, level=None, structural=False,
+        base_ref="HEAD", rebuild_graph=False,
+    ))
 
 
 def _read_choice() -> str:
@@ -326,7 +353,7 @@ def menu(root: Path) -> int:
         '3': ('Performance Lab automatise', lambda: command_perf(root, argparse.Namespace(files_only=False, json=False))),
         '4': ('Comparer avec le dernier audit', lambda: command_compare(root, argparse.Namespace(json=False))),
         '5': ('Architecture / Graph', lambda: menu_graph(root)),
-        '6': ('Verifier les corrections', lambda: command_verify(root, argparse.Namespace(json=False))),
+        '6': ('Validation ciblee / verifier les corrections', lambda: menu_verify(root)),
         '7': ('Exporter le rapport IA', lambda: command_report(root, argparse.Namespace(json=False))),
         '8': ('Nettoyer les fichiers temporaires Doctor', lambda: command_clean(root, argparse.Namespace(json=False))),
         '9': ('TOUT LANCER', lambda: command_all(root, argparse.Namespace(json=False))),

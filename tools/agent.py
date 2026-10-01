@@ -647,6 +647,113 @@ def reverse_impact_payload(
         raise AgentConfigError(str(exc)) from exc
 
 
+def plan_payload(
+    root: Path, paths: Iterable[str], *, level: str | None = None,
+    structural: bool = False, base_ref: str | None = None,
+) -> dict[str, Any]:
+    """Agent owns context/impact/planning; Doctor remains the execution facade."""
+    root = root.resolve()
+    requested = _unique(ai_context.normalize_path(path) for path in paths)
+    for path in requested:
+        if Path(path).is_absolute() or ".." in Path(path).parts:
+            raise AgentConfigError("Expected repository-relative paths without traversal.")
+    normalized = list(requested)
+    if base_ref is not None:
+        atlas_integrity.resolve_base_ref(root, base_ref)
+        normalized = _unique([*requested, *atlas_integrity.changed_files(root, base_ref)])
+    for path in normalized:
+        try:
+            (root / path).resolve().relative_to(root)
+        except ValueError as exc:
+            raise AgentConfigError(f"Path resolves outside the repository: {path}") from exc
+    impact = impact_payload(root, normalized)
+    options: dict[str, Any] = {}
+    if level:
+        options["level"] = level
+    if structural:
+        options["structural"] = True
+    payload = agent_planner.build_plan(root, normalized, impact, **options)
+    python_paths = [path for path in normalized if path.endswith(".py") and (root / path).is_file()]
+    diagnostics = []
+    for path in python_paths[:100]:
+        try:
+            diagnostics.append({"path": path, "imports": _internal_imports(root, path),
+                                "symbols": _python_symbols(root, path)})
+        except AgentConfigError as exc:
+            diagnostics.append({"path": path, "status": "FAIL", "reason": str(exc)})
+    source_errors = [row for row in diagnostics if row.get("status") == "FAIL"]
+    graph_impact = None
+    graph = None
+    graph_required = structural or payload.get("level") == "HARD"
+    if graph_required or payload.get("level") == "MEDIUM":
+        from tools.atlas_doctor_lib.architecture import graph_status
+        if python_paths:
+            graph_impact = reverse_impact_payload(
+                root, python_paths, depth=(payload.get("depth") or {}).get("graph_depth", 1),
+            )
+            graph = graph_impact["graph"]
+            impact["recommended_tests"] = _unique([
+                *impact.get("recommended_tests", []), *graph_impact.get("recommended_tests", []),
+            ])
+            impact["scopes"] = _unique([*impact.get("scopes", []), *graph_impact.get("scopes", [])])
+            impact["risk_paths"] = graph_impact.get("impacted_files", [])
+            payload = agent_planner.build_plan(root, normalized, impact, **options)
+        else:
+            graph = graph_status(root)
+    payload["requested_paths"] = requested
+    payload["source_diagnostics"] = {
+        "status": "FAIL" if source_errors else "REVIEW" if len(python_paths) > 100 else "PASS",
+        "files": diagnostics, "errors": source_errors, "truncated": len(python_paths) > 100,
+        "coverage": "Current imports and top-level definitions of requested/changed Python files only.",
+    }
+    payload["architecture_preflight"] = {
+        "required": graph_required,
+        "status": graph["status"] if graph else "OPTIONAL",
+        "graph": graph, "impact": graph_impact,
+        "diagnostic_command": ["py", "-3.13", "-m", "tools.atlas_doctor", "graph", "--json"],
+        "rebuild_command": ["py", "-3.13", "-m", "tools.atlas_doctor", "graph", "--rebuild", "--json"],
+        "rule": "Confirm graph relationships against source, consumers, tests and Atlas Integrity before structural changes.",
+    }
+    if graph_required and (
+        graph["status"] != "PASS" or (graph_impact and graph_impact["status"] != "PASS")
+        or (structural and not python_paths)
+    ):
+        payload["status"] = "REVIEW_REQUIRED"
+        payload["automation_safe"] = False
+        payload.setdefault("policy", {})["automatic_editing"] = "requires_human_or_agent_review"
+    return payload
+
+
+def verify_payload(
+    root: Path, paths: Iterable[str], *, level: str | None = None,
+    structural: bool = False, base_ref: str = "HEAD", rebuild_graph: bool = False,
+) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.verification import execute_plan
+    try:
+        if rebuild_graph:
+            from tools.atlas_doctor_lib.architecture import architecture
+            generated = architecture(root, rebuild=True)
+            if generated.get("status") != "PASS":
+                raise RuntimeError(generated.get("reason") or "Explicit graph rebuild failed.")
+        plan = plan_payload(root, paths, level=level, structural=structural, base_ref=base_ref)
+        return execute_plan(root, plan, base_ref=base_ref, preflight=doctor_payload(root))
+    except (AgentConfigError, atlas_integrity.IntegrityConfigError, RuntimeError, ValueError, OSError) as exc:
+        return {
+            "schema_version": 1, "kind": "verification", "status": "REVIEW",
+            "level": "UNKNOWN", "scopes": [], "checks": [], "tests_executed": [],
+            "tools_executed": [], "primary_cause": str(exc),
+            "next_action": "Check repository-relative paths, base ref, context and engine availability.",
+        }
+
+
+def _verification_summary(payload: dict[str, Any]) -> None:
+    print(f"Verification: {payload['status']} | Level: {payload['level']} | Scopes: {', '.join(payload.get('scopes', [])) or 'UNKNOWN'}")
+    print(f"Tests: {len(payload.get('tests_executed', []))} | Tools: {len(payload.get('tools_executed', []))} | Duration: {payload.get('duration_ms', 0)} ms")
+    if payload.get("primary_cause"):
+        print(payload["primary_cause"])
+        print(payload.get("next_action") or "Inspect the recorded evidence.")
+
+
 def _print_payload(payload: dict[str, Any]) -> None:
     for key, value in payload.items():
         if isinstance(value, list):
@@ -689,7 +796,21 @@ def main(argv: list[str] | None = None) -> int:
     plan = commands.add_parser("plan")
     plan.add_argument("paths", nargs="+")
     plan.add_argument("--json", action="store_true")
+    levels = plan.add_mutually_exclusive_group()
+    levels.add_argument("--soft", dest="level", action="store_const", const="SOFT")
+    levels.add_argument("--medium", dest="level", action="store_const", const="MEDIUM")
+    levels.add_argument("--hard", dest="level", action="store_const", const="HARD")
     plan.add_argument("--structural", action="store_true", help="Refactor, module move/deletion, consumers, cycles or dependency cleanup: require Graphify preflight.")
+    verify = commands.add_parser("verify", help="Agent plans; Doctor executes targeted checks and canonical Atlas Integrity.")
+    verify.add_argument("paths", nargs="+")
+    verify.add_argument("--base-ref", default="HEAD", help="Include the real Git diff, staged and untracked changes; default HEAD.")
+    verify.add_argument("--structural", action="store_true")
+    verify.add_argument("--rebuild-graph", action="store_true", help="Explicitly rebuild through canonical Doctor/Graphify.")
+    verify.add_argument("--json", action="store_true")
+    verify_levels = verify.add_mutually_exclusive_group()
+    verify_levels.add_argument("--soft", dest="level", action="store_const", const="SOFT")
+    verify_levels.add_argument("--medium", dest="level", action="store_const", const="MEDIUM")
+    verify_levels.add_argument("--hard", dest="level", action="store_const", const="HARD")
     validate = commands.add_parser("validate")
     validate.add_argument("integrity_args", nargs=argparse.REMAINDER)
 
@@ -720,33 +841,12 @@ def main(argv: list[str] | None = None) -> int:
             payload = imports_payload(ROOT, args.scope)
             exit_code = 0
         elif command == "plan":
-            impact = impact_payload(ROOT, args.paths)
-            graph_impact = None
-            if args.structural:
-                graph_impact = reverse_impact_payload(ROOT, args.paths)
-                impact["recommended_tests"] = _unique([
-                    *impact.get("recommended_tests", []),
-                    *graph_impact.get("recommended_tests", []),
-                ])
-                impact["scopes"] = _unique([
-                    *impact.get("scopes", []), *graph_impact.get("scopes", []),
-                ])
-            payload = agent_planner.build_plan(ROOT, args.paths, impact)
-            graph = graph_impact["graph"] if graph_impact else None
-            payload["architecture_preflight"] = {
-                "required": args.structural,
-                "status": graph["status"] if graph else "OPTIONAL",
-                "graph": graph,
-                "impact": graph_impact,
-                "diagnostic_command": ["py", "-3.13", "-m", "tools.atlas_doctor", "graph", "--json"],
-                "rebuild_command": ["py", "-3.13", "-m", "tools.atlas_doctor", "graph", "--rebuild", "--json"],
-                "rule": "Confirm graph relationships against source, consumers, tests and Atlas Integrity before structural changes.",
-            }
-            if args.structural and (graph["status"] != "PASS" or graph_impact["status"] != "PASS"):
-                payload["status"] = "REVIEW_REQUIRED"
-                payload["automation_safe"] = False
-                payload.setdefault("policy", {})["automatic_editing"] = "requires_human_or_agent_review"
+            payload = plan_payload(ROOT, args.paths, level=args.level, structural=args.structural)
             exit_code = 0
+        elif command == "verify":
+            payload = verify_payload(ROOT, args.paths, level=args.level, structural=args.structural,
+                                     base_ref=args.base_ref, rebuild_graph=args.rebuild_graph)
+            exit_code = {"PASS": 0, "REVIEW": 1, "FAIL": 2}[payload["status"]]
         else:
             parser.error(f"unsupported command: {command}")
             return 2
@@ -756,6 +856,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2, ensure_ascii=False))
+    elif command == "verify":
+        _verification_summary(payload)
     else:
         _print_payload(payload)
     return exit_code

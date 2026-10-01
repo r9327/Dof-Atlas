@@ -60,6 +60,21 @@ class AgentPlannerTests(unittest.TestCase):
                 "safe_for_agent": safe,
                 "automation_ready": safe,
                 "cost_hint": "variable",
+                "preferred_for_agent": True,
+                "preferred_role": (
+                    "repository_validation_orchestrator" if path == "tools/atlas_integrity.py"
+                    else "guide_validation_orchestrator" if path == "tools/guide_integrity.py"
+                    else "ai_context_maintenance"
+                ),
+                "readiness_score": 100 if safe else 0,
+                "capabilities": ["validation"],
+                "side_effects": "artifact_output",
+                "structured_output": True,
+                "json_cli_flag": path == "tools/atlas_integrity.py",
+                "modes": ["fast", "critical", "full", "deep"] if path == "tools/atlas_integrity.py" else ["fast", "full"],
+                "target_scopes": ["encyclopedia_guide"] if path == "tools/guide_integrity.py" else [],
+                "declared_tests": [],
+                "tool_spec": None,
             }
 
         return {
@@ -163,7 +178,7 @@ class AgentPlannerTests(unittest.TestCase):
         self.assertFalse(plan["automation_safe"])
         self.assertEqual(plan["unsafe_recommended_tools"], ["tools/atlas_integrity.py"])
 
-    def test_ai_context_change_recommends_context_tool(self) -> None:
+    def test_context_validation_remains_owned_by_atlas_meta_group(self) -> None:
         impact = {
             "scopes": [],
             "unowned_paths": [],
@@ -180,8 +195,9 @@ class AgentPlannerTests(unittest.TestCase):
             )
 
         recommended = {row["path"] for row in plan["recommended_tools"]}
-        self.assertIn("tools/ai_context.py", recommended)
         self.assertIn("tools/atlas_integrity.py", recommended)
+        self.assertNotIn("tools/ai_context.py", recommended)
+        self.assertIn("META_INTEGRITY", self._policy()["modes"][plan["minimum_integrity_mode"]])
 
 
     def test_safe_but_not_automation_ready_tool_requires_review(self) -> None:

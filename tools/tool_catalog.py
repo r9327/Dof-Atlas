@@ -132,6 +132,7 @@ def _validated_tool_spec(source: str, path: str) -> tuple[dict[str, Any] | None,
     capabilities = _string_list(payload, "capabilities", errors)
     modes = _string_list(payload, "modes", errors)
     recommended_tests = _string_list(payload, "recommended_tests", errors)
+    target_scopes = _string_list(payload, "target_scopes", errors) if "target_scopes" in payload else []
     cost_hint = payload.get("cost_hint")
     if cost_hint not in _COST_ORDER:
         errors.append(f"TOOL_SPEC.cost_hint must be one of {sorted(_COST_ORDER)}")
@@ -161,6 +162,7 @@ def _validated_tool_spec(source: str, path: str) -> tuple[dict[str, Any] | None,
         "structured_output": structured_output,
         "canonical": canonical,
         "recommended_tests": recommended_tests,
+        "target_scopes": target_scopes,
     }, []
 
 
@@ -183,6 +185,21 @@ def _tool_spec_evidence_errors(
 def _supports_json(source: str) -> bool:
     lowered = source.casefold()
     return "--json" in lowered or "json.dumps(" in lowered or "convertto-json" in lowered
+
+
+def _json_cli_flag(source: str) -> bool:
+    """JSON serialization or an artifact does not imply a --json CLI option."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return False
+    return any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "add_argument"
+        and any(isinstance(arg, ast.Constant) and arg.value == "--json" for arg in node.args)
+        for node in ast.walk(tree)
+    )
 
 
 def _supports_describe(source: str) -> bool:
@@ -396,6 +413,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
                 "capabilities": capabilities,
                 "cost_hint": cost_hint,
                 "structured_output": structured_output,
+                "json_cli_flag": _json_cli_flag(source),
                 "describe_contract": _supports_describe(source),
                 "discoverable_help": _supports_help(source, str(row.get("kind", ""))),
                 "mutation_state": mutation_state,
@@ -409,6 +427,7 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
                     else []
                 ),
                 "modes": list(tool_spec["modes"]) if tool_spec is not None else [],
+                "target_scopes": list(tool_spec["target_scopes"]) if tool_spec is not None else [],
                 "references": list(row.get("references", [])),
                 "readiness_score": score,
                 "readiness": readiness,

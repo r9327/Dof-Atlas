@@ -393,7 +393,7 @@ Lots restant apres RD-1, a valider separement :
 
 Do not treat this ROAD as completed while these lots remain open. Certification must refer to the exact PR HEAD; subsequent SHAs require new checks.
 
-## RD-1 — Reverse-impact Graphify cible — CODE_DONE
+## RD-1 — Reverse-impact Graphify cible — CERTIFIED
 
 `tools.agent reverse-impact <paths...> [--symbol <top-level>] [--depth 1|2] --json`
 lit uniquement le graph valide du cache Doctor. La profondeur est un niveau par
@@ -417,3 +417,44 @@ Un plan `--structural` reutilise automatiquement ce reverse-impact : scopes et t
 La preuve VALIDATED/CERTIFIED de RD-1 doit etre lue dans les checks de sa PR sur son HEAD exact. La fermeture de RD-1 ne ferme pas les lots planner, niveaux, verify et baseline restant ci-dessus.
 
 Le moteur graph recoit les resolveurs existants de l'Agent via la facade `reverse_impact_payload` ; il n'importe pas la facade Agent. Cette direction conserve une seule implementation source/contexte et evite un import reciproque Agent/graph.
+
+Validation RD-1 : PR #73, HEAD exact `ded119e82864b5fae78053591768250a83aca6b5`, six checks PASS dont Phase Certification. 116 tests cibles et Atlas Integrity FAST PASS ; Graphify reel, CLI Agent/Doctor et 20 tests graph PASS sous Windows. Le nettoyage conservateur des branches a preserve le main certifie `98059f52f9c47727c8344b649175676bb4569267`.
+
+## RD-2 — Planner par metadonnees — VALIDATED
+
+Le planner reutilise `tools.tool_catalog.select_tools`. Les facades specialisees sont selectionnees par leur role canonique et leurs `TOOL_SPEC.target_scopes` optionnels, ou lorsque leur propre source change. Aucun nom « Guide » dans un chemin ne choisit un moteur. Les tests declares, couts, modes, effets de bord et raisons restent exposes. Un mode FAST indisponible impose REVIEW au lieu de lancer FULL implicitement.
+
+Atlas Integrity demeure l'unique autorite globale. Ses groupes, notamment META_INTEGRITY, ne sont pas dupliques. La validation AI Context reste une execution explicite de son moteur existant ; un indice de chemin ne selectionne pas son mode mutateur. Les moteurs specialises conservent leur implementation. Ce micro-lot ne ferme pas les niveaux, verify, baseline ou mesures restant ouverts.
+
+Validation RD-2 : candidat source `6805ce4bb612776cc448387db71e40d7882e2189`, 129 tests cibles Windows et Atlas Integrity FAST (risque MEDIUM, golden flows ajoutes par la policy) PASS. Agent doctor, Guide tools doctor et AI Context PASS ; index genere canoniquement.
+
+## RD-3 — Profondeurs de travail — VALIDATED
+
+Le planner choisit SOFT, MEDIUM ou HARD et explique chaque escalade. Les overrides `--soft`, `--medium`, `--hard` de `agent plan` sont mutuellement exclusifs. Aucun override ne baisse le minimum d'Atlas Integrity. Plusieurs fichiers/scopes elargissent les controles ; un changement structurel/critique demande HARD. DEEP est conserve seulement lorsqu'exige par la policy.
+
+SOFT utilise les tests consommateurs directs declares/observes du catalogue lorsqu'ils existent, sinon le ciblage scope existant. MEDIUM conserve les tests elargis scopes. HARD delegue FULL_SUITE a Atlas Integrity sans seconde decouverte complete. Aucun benchmark runtime supplementaire n'est lance par reflexe.
+
+Validation RD-3 : 138 tests cibles Windows et Atlas Integrity FAST PASS sur le candidat source `3090e62f2226bd56102ce6de7ce6acc63407a193`. Index canonique synchronise.
+
+## RD-4 — Facade verify — CODE_DONE
+
+`py -3.13 -m tools.agent verify <paths...> [--soft|--medium|--hard] [--base-ref HEAD] --json`
+delegue l'execution a `tools.atlas_doctor_lib.verification`. Doctor expose la meme
+facade avec `verify <paths...>` et son choix de validation du menu ; le verify
+historique sans chemins reste compatible.
+
+Agent compose ownership, imports/symboles cibles, diff Git reel, graph et planner.
+Un changement hors des chemins demandes participe au risque et peut escalader
+le niveau avant execution. SOFT ne reconstruit ni ne consulte le graph global.
+MEDIUM reutilise les consommateurs du cache disponible ; HARD/structurel exige
+une architecture courante et conserve les limites Graphify explicites en REVIEW.
+
+Doctor execute le moteur AI Context, les tests selectionnes, les facades specialisees
+canoniques puis exactement un Atlas Integrity. Il ne lance jamais de mutateur ;
+les blockers evidents arretent les controles suivants. Les failures observables,
+identifiants de tests, commandes et tails de logs sont exposes sans inferer une
+cause source inexistante. Une gate sans rapport exploitable reste REVIEW.
+
+Le catalogue reutilise le cache Doctor SHA/worktree (inventaire derive des fichiers
+suivis) ; les gates ne sont pas reutilisees a partir de Git seul, car les fixtures
+ignorees peuvent changer. Aucun daemon, hook Graphify ou changement produit.
