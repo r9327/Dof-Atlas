@@ -76,6 +76,8 @@ class AgentVerificationTests(unittest.TestCase):
         self.assertEqual(result["diagnosis"]["certainty"], "OBSERVED_FAILURE")
         self.assertIn("test_contract", result["diagnosis"]["failure_ids"][0])
         self.assertIn("unittest", result["diagnosis"]["command"])
+        self.assertEqual(result["diagnostics"][0]["key"], "tests")
+        self.assertEqual(result["diagnostics"][0]["reproduction_command"], result["diagnosis"]["command"])
         self.gate.assert_not_called()
 
     def test_unsafe_or_mutating_engine_is_never_run(self):
@@ -170,9 +172,13 @@ class AgentVerificationTests(unittest.TestCase):
     def test_planning_catalog_cache_reuses_head_and_invalidates_dirty_content(self):
         report = {"schema_version": 1, "tools": []}
         with patch.object(agent_planner, "tooling_catalog", return_value=report) as discover:
-            self.assertEqual(agent_planner._planning_catalog(self.root), report)
-            self.assertEqual(agent_planner._planning_catalog(self.root), report)
+            first_cache = {}
+            second_cache = {}
+            self.assertEqual(agent_planner._planning_catalog(self.root, cache_info=first_cache), report)
+            self.assertEqual(agent_planner._planning_catalog(self.root, cache_info=second_cache), report)
             self.assertEqual(discover.call_count, 1)
+            self.assertEqual(first_cache["status"], "MISS")
+            self.assertEqual(second_cache["status"], "HIT")
             (self.root / "tools/local.py").write_text("x = 2\n", encoding="utf-8")
             agent_planner._planning_catalog(self.root)
             (self.root / "tools/local.py").write_text("x = 3\n", encoding="utf-8")
@@ -233,6 +239,58 @@ class AgentVerificationTests(unittest.TestCase):
         for flag in ("--soft", "--medium", "--hard", "--base-ref", "--rebuild-graph"):
             self.assertIn(flag, out.getvalue())
         self.assertNotIn("--install-hook", out.getvalue())
+
+    def test_baseline_is_resolved_and_same_contract_is_comparable(self):
+        first = self.execute()
+        head = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.root, text=True
+        ).strip()
+        self.assertEqual(first["baseline"]["resolved_sha"], head)
+        self.assertEqual(first["comparison"]["status"], "UNAVAILABLE")
+        second = self.execute()
+        self.assertTrue(second["comparison"]["comparable"])
+        self.assertEqual(second["comparison"]["status"], "STABLE")
+        self.assertEqual(load_json(self.root, "previous_verification")["comparison_key"],
+                         first["comparison_key"])
+
+    def test_comparison_rejects_different_explicit_baselines(self):
+        previous = {
+            "schema_version": 1, "kind": "verification", "status": "PASS",
+            "comparison_key": {"base_sha": "before"}, "checks": [],
+        }
+        current = {
+            "schema_version": 1, "kind": "verification", "status": "PASS",
+            "comparison_key": {"base_sha": "after"}, "checks": [],
+        }
+        comparison = verification.compare_verifications(previous, current)
+        self.assertFalse(comparison["comparable"])
+        self.assertIn("base_sha", comparison["differing_fields"])
+
+    def test_comparison_reports_observed_regression_and_recovery(self):
+        key = {"base_sha": "same", "level": "SOFT"}
+        passing = {
+            "schema_version": 1, "kind": "verification", "status": "PASS",
+            "comparison_key": key, "checks": [{"key": "tests", "status": "PASS"}],
+        }
+        failing = {
+            "schema_version": 1, "kind": "verification", "status": "FAIL",
+            "comparison_key": key, "checks": [{"key": "tests", "status": "FAIL"}],
+        }
+        regression = verification.compare_verifications(passing, failing)
+        recovery = verification.compare_verifications(failing, passing)
+        self.assertEqual(regression["status"], "REGRESSION")
+        self.assertEqual(regression["new_non_pass"][0]["key"], "tests")
+        self.assertEqual(recovery["status"], "IMPROVED")
+        self.assertEqual(recovery["recovered"][0]["key"], "tests")
+
+    def test_cost_and_cache_evidence_are_observational_only(self):
+        self.plan["planner_cache"] = {"status": "HIT", "duration_ms": 0.5}
+        result = self.execute()
+        self.assertEqual(result["cost"]["planner_catalog_cache"]["status"], "HIT")
+        self.assertFalse(result["cost"]["validation_reused"])
+        self.assertFalse(result["cache"]["validation_reused"])
+        self.assertGreaterEqual(result["cost"]["checks_duration_ms"], 2.0)
+        self.gate.assert_called_once()
 
 
 class CommandEvidenceTests(unittest.TestCase):
