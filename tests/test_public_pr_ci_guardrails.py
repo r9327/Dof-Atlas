@@ -97,6 +97,10 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         self.assertIn("$criticalCount -gt 0", self.source)
         self.assertIn("$doctorExit -eq 1", self.source)
         self.assertIn("Doctor returned REVIEW", self.source)
+        self.assertRegex(
+            self.source,
+            r"(?s)Doctor returned REVIEW.*?\n\s+}\s*\n\s+.*REVIEW has been explicitly accepted.*?\n\s+exit 0",
+        )
 
     def test_dependency_review_failure_is_deferred_but_never_swallowed(self) -> None:
         self.assertEqual(self.source.count("continue-on-error: true"), 1)
