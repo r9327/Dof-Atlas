@@ -129,17 +129,21 @@ def load_json(root: Path, name: str) -> dict[str, Any] | None:
         return None
 
 
+def _write_atomic(path: Path, content: bytes) -> None:
+    temp = path.with_suffix('.tmp')
+    temp.write_bytes(content)
+    os.replace(temp, path)
+
+
 def write_json(root: Path, name: str, payload: dict[str, Any], *, rotate: bool = False) -> Path:
     path = _json_path(root, name)
     if rotate and path.exists():
         previous = _json_path(root, f'previous_{name.removeprefix("latest_")}')
-        try:
-            previous.write_bytes(path.read_bytes())
-        except OSError:
-            pass
-    temp = path.with_suffix('.tmp')
-    temp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    os.replace(temp, path)
+        # Preserve both published snapshots if rotation fails. Never silently
+        # replace the current result while leaving a stale or partial baseline.
+        _write_atomic(previous, path.read_bytes())
+    content = (json.dumps(payload, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+    _write_atomic(path, content)
     return path
 
 
