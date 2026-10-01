@@ -165,6 +165,7 @@ def run_audit(
     *,
     save: bool = True,
     integrity_mode: str | None = None,
+    base_ref: str = 'HEAD',
 ) -> dict[str, Any]:
     started = time.perf_counter()
     state = git_state(root)
@@ -235,7 +236,7 @@ def run_audit(
 
     integrity: dict[str, Any] | None = None
     if integrity_mode:
-        integrity = run_integrity_gate(root, integrity_mode)
+        integrity = run_integrity_gate(root, integrity_mode, base_ref=base_ref)
         integrity_report = integrity.get('report') or {}
         groups = integrity_report.get('groups') or {}
         for group_name, group in groups.items():
@@ -296,6 +297,7 @@ def run_audit(
         'generated_at': utc_now(),
         'git': state,
         'integrity_mode': integrity_mode.upper() if integrity_mode else None,
+        'integrity_base_ref': base_ref if integrity_mode else None,
         'integrity': integrity,
         'duration_ms': milliseconds(started),
         'summary': {

@@ -297,11 +297,26 @@ scopes:
       - tests/AGENTS.md
       - PHASE_CERTIFICATION.md
     canonical_entries:
+      - tools/agent.py
+      - tools/agent_planner.py
+      - tools/tool_catalog.py
+      - tools/tool_audit.py
+      - tools/ai_context.py
       - tools/atlas_integrity.py
       - tools/atlas_integrity_policy.json
       - tools/atlas_doctor.py
       - tools/graphify.py
     test_entries:
+      - tests.test_agent_tool
+      - tests.test_agent_scope_tests
+      - tests.test_agent_checkpoint
+      - tests.test_agent_planner
+      - tests.test_agent_plan_cli
+      - tests.test_tool_catalog
+      - tests.test_tool_audit
+      - tests.test_tool_spec_contract
+      - tests.test_canonical_tool_specs
+      - tests.test_doctor_verification_contract
       - tests.test_atlas_integrity
       - tests.test_ai_context
       - tests.test_meta_integrity

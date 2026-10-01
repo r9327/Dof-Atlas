@@ -126,7 +126,13 @@ def build_plan(
         for row in tools
         if not row.get("safe_for_agent")
     ]
-    automation_safe = not ownership_review_required and not unsafe_tools
+    non_automated_tools = [
+        str(row.get('path')) for row in tools if not row.get('automation_ready')
+    ]
+    missing_validation_tools = [] if any(
+        row.get('path') == 'tools/atlas_integrity.py' for row in tools
+    ) else ['tools/atlas_integrity.py']
+    automation_safe = not (ownership_review_required or unsafe_tools or non_automated_tools or missing_validation_tools)
     tests = _unique(str(module) for module in impact.get("recommended_tests", []))
     mode_argument = minimum_mode.casefold()
 
@@ -159,6 +165,8 @@ def build_plan(
         ],
         "recommended_tools": tools,
         "unsafe_recommended_tools": unsafe_tools,
+        "non_automated_recommended_tools": non_automated_tools,
+        "missing_validation_tools": missing_validation_tools,
         "rules": list(impact.get("rules", [])),
         "canonical_entries": list(impact.get("canonical_entries", [])),
         "context_entries": list(impact.get("context_entries", [])),
