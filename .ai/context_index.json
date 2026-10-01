@@ -12,7 +12,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "1e1b2b0aa304508be74c8f18d92adc6e88e76656",
+      "sha": "dd10f2afb2b4d7bbda139f6d9a41f6e7c97740ca",
       "type": "tree"
     },
     ".gitignore": {
@@ -27,7 +27,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "ccdc9fa75d8a8aa650da03083f341c5de867387a",
+      "sha": "9f79bd5e57643b81f39c93b7d507bd75b0581568",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -97,7 +97,7 @@
     },
     "ZERO_TRUST_RULES.md": {
       "mode": "100644",
-      "sha": "6790e1222f3fac7353875a513c6a597d96b4cc8c",
+      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a",
       "type": "blob"
     },
     "app": {
@@ -147,12 +147,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "5343c0026755a7b112e1a08367d381223c1c92e4",
+      "sha": "c70ddef055883b8c9dea02b8462b323d60e8baa3",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "761d0c78c63514b7b988e819635c10e539987a46",
+      "sha": "aeb7bffd5a424f4feed33269243b832a3b0627e2",
       "type": "tree"
     }
   },

@@ -21,6 +21,7 @@ from tools.atlas_doctor_lib import (
     cache_matches_git,
     compare_performance,
     compare_runs,
+    evaluate_ponytail,
     git_state,
     load_json,
     project_root,
@@ -104,13 +105,33 @@ def command_graph(root: Path, args) -> dict[str, Any]:
     return payload
 
 
+def command_ponytail(root: Path, args) -> dict[str, Any]:
+    payload = evaluate_ponytail(root, base_ref=args.base_ref, required=True)
+    if not args.json:
+        summary = payload.get('summary') or {}
+        print(f"Ponytail : {payload.get('status', 'N/A')} | Base : {payload.get('base_ref', 'N/A')}")
+        print(
+            f"Findings : {summary.get('findings_total', 0)} | "
+            f"Fichiers : {summary.get('changed_files', 0)} | "
+            f"Ajouts : {summary.get('added_lines', 0)} lignes"
+        )
+        for item in payload.get('findings', []):
+            line = f":{item['line']}" if item.get('line') else ''
+            print(f"[{item['severity']}] {item['rule']} - {item['path']}{line} - {item['title']}")
+        graph = payload.get('graph_evidence') or {}
+        print(f"Graphify evidence : {graph.get('status', 'N/A')}")
+    return payload
+
+
 def menu_diagnostics(root: Path) -> dict[str, Any]:
     payload = command_quick(root, argparse.Namespace(json=False))
-    choice = input("A : audit avec gate CRITICAL | P : problemes | Entree : retour\n").strip().casefold()
+    choice = input("A : audit avec gate CRITICAL | P : problemes | T : Ponytail | Entree : retour\n").strip().casefold()
     if choice == "a":
         return command_audit(root, argparse.Namespace(force=True, gate="critical", json=False))
     if choice == "p":
         return command_issues(root, argparse.Namespace(severity=None, json=False))
+    if choice == "t":
+        return command_ponytail(root, argparse.Namespace(base_ref=None, json=False))
     return payload
 
 
@@ -130,7 +151,6 @@ def command_audit(root: Path, args) -> dict[str, Any]:
         _summary(payload)
         print(f"Snapshot : {root / '.ai/runtime/atlas_doctor/latest_audit.json'}")
     return payload
-
 
 
 def command_live(root: Path, args) -> dict[str, Any]:
@@ -273,11 +293,18 @@ def command_clean(root: Path, args) -> dict[str, Any]:
 
 def command_all(root: Path, args) -> dict[str, Any]:
     audit = run_audit(root, integrity_mode='full')
+    ponytail = evaluate_ponytail(root, required=True)
     perf = run_performance(root, include_runtime=True)
     report = build_ai_report(root)
-    payload = {'audit': audit.get('summary'), 'performance_status': (perf.get('runtime') or {}).get('status'), 'report': report}
+    payload = {
+        'audit': audit.get('summary'),
+        'ponytail': ponytail,
+        'performance_status': (perf.get('runtime') or {}).get('status'),
+        'report': report,
+    }
     if not args.json:
         _summary(audit)
+        print(f"Ponytail : {ponytail.get('status', 'N/A')}")
         print(f"Performance runtime : {payload['performance_status']}")
         print(f"Rapport : {root / '.ai/runtime/atlas_doctor/latest_report.json'}")
     return payload
@@ -296,6 +323,9 @@ def build_parser() -> argparse.ArgumentParser:
     graph.add_argument('--impact', nargs='+', help='Consommateurs candidats confirmes par imports; aucune reconstruction implicite.')
     graph.add_argument('--symbol', help='Symbole top-level candidat; precision de liaison a revoir.')
     graph.add_argument('--depth', type=int, choices=(1, 2), default=1)
+
+    ponytail = sub.add_parser('ponytail', help='Evaluer le diff avec la policy Ponytail partagee du depot.')
+    ponytail.add_argument('--base-ref', help='Base Git explicite; sinon merge-base origin/main, puis HEAD~1.')
 
     audit = sub.add_parser('audit')
     audit.add_argument('--force', action='store_true')
@@ -330,7 +360,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-
 def menu_verify(root: Path) -> dict[str, Any]:
     import shlex
     paths = shlex.split(input("Chemins relatifs avec / (vide : verification historique) : ").strip())
@@ -352,6 +381,7 @@ def _read_choice() -> str:
                 print(choice)
                 return choice
     return input('Choix : ').strip()
+
 
 def menu(root: Path) -> int:
     actions = {
@@ -400,6 +430,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {
         'quick': command_quick,
         'graph': command_graph,
+        'ponytail': command_ponytail,
         'audit': command_audit,
         'live': command_live,
         'perf': command_perf,
@@ -415,6 +446,8 @@ def main(argv: list[str] | None = None) -> int:
         _print_json(payload)
     if args.command == 'verify':
         return {'PASS': 0, 'REVIEW': 1, 'FAIL': 2}[payload['status']]
+    if args.command == 'ponytail':
+        return {'PASS': 0, 'REVIEW': 1, 'FAIL': 2, 'UNAVAILABLE': 2}.get(payload.get('status'), 2)
     if args.command == 'graph':
         return 0 if payload['status'] == 'PASS' else 1
     if args.command in {'audit', 'quick'}:
