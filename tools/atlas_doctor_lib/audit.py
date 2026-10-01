@@ -117,6 +117,42 @@ def _submitted_function_node_ids(tree: ast.AST) -> set[int]:
     return background_nodes
 
 
+def _single_load_cached_function_node_ids(tree: ast.AST) -> set[int]:
+    """Return nodes in zero-argument functions cached to a single result."""
+
+    cached_nodes: set[int] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        args = node.args
+        if args.posonlyargs or args.args or args.kwonlyargs or args.vararg or args.kwarg:
+            continue
+        bounded = False
+        for decorator in node.decorator_list:
+            if isinstance(decorator, ast.Call) and _call_name(decorator).endswith('lru_cache'):
+                maxsize = next(
+                    (
+                        keyword.value.value
+                        for keyword in decorator.keywords
+                        if keyword.arg == 'maxsize' and isinstance(keyword.value, ast.Constant)
+                    ),
+                    None,
+                )
+                bounded = maxsize == 1
+            elif isinstance(decorator, ast.Name) and decorator.id == 'cache':
+                bounded = True
+            elif (
+                isinstance(decorator, ast.Attribute)
+                and decorator.attr == 'cache'
+                and isinstance(decorator.value, ast.Name)
+                and decorator.value.id == 'functools'
+            ):
+                bounded = True
+        if bounded:
+            cached_nodes.update(id(child) for child in ast.walk(node))
+    return cached_nodes
+
+
 def _literal_module_targets(value: ast.AST) -> set[str]:
     targets: set[str] = set()
     if not isinstance(value, ast.Dict):
@@ -293,6 +329,7 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
 
     blocking_functions = _blocking_function_names(tree)
     background_nodes = _submitted_function_node_ids(tree)
+    single_load_cached_nodes = _single_load_cached_function_node_ids(tree)
     controlled_execs = _controlled_exec_call_ids(tree)
 
     for node in ast.walk(tree):
@@ -334,7 +371,10 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
             if path.startswith(UI_SCOPES) and (name.endswith(('write_text', 'write_bytes')) or _open_writes(node)):
                 issues.append(Issue('ui_direct_file_write', 'persistence', 'MEDIUM', 'suspect', path, _line(node), 'Ecriture fichier directe depuis une couche UI', name, 'Verifier qu un service canonique de persistence n existe pas et que l ecriture est atomique/coordonneee.'))
             if path.startswith(UI_SCOPES) and id(node) not in background_nodes and name.endswith(('read_text', 'read_bytes')):
-                issues.append(Issue('sync_io_ui', 'performance', 'MEDIUM', 'suspect', path, _line(node), 'I/O synchrone potentielle dans une vue UI', name, 'Verifier si cet acces disque arrive sur le thread Qt; deplacer/cacher seulement si mesure utile.'))
+                if id(node) in single_load_cached_nodes:
+                    issues.append(Issue('single_load_sync_io_ui', 'performance', 'INFO', 'confirmed', path, _line(node), 'I/O UI bornee a un chargement memoise', name, 'Conserver uniquement pour une petite donnee froide avec contrat de taille; les lectures ordinaires restent MEDIUM.'))
+                else:
+                    issues.append(Issue('sync_io_ui', 'performance', 'MEDIUM', 'suspect', path, _line(node), 'I/O synchrone potentielle dans une vue UI', name, 'Verifier si cet acces disque arrive sur le thread Qt; deplacer/cacher seulement si mesure utile.'))
             if path.startswith(UI_SCOPES) and id(node) not in background_nodes and name in {'open', 'builtins.open', 'json.load'}:
                 issues.append(Issue('sync_io_ui', 'performance', 'MEDIUM', 'suspect', path, _line(node), 'I/O synchrone potentielle dans une vue UI', name, 'Verifier si cet acces disque arrive sur le thread Qt; deplacer/cacher seulement si mesure utile.'))
             if name.endswith('setStyleSheet') and path.startswith('app/'):

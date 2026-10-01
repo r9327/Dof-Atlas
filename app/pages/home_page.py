@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unicodedata
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -37,108 +38,13 @@ from app.ui.network_bridge import network_ui_bridge
 
 HOME_GUIDE_BANNER_PATH = Path(LOGO_PATH).parent / "home_guide_banner.png"
 GUIDE_ULTIME_LEGACY_ID = "guide_complet"
-_HOME_PROGRESS_CACHE_PATH = ROOT_DIR / ".cache" / "dofus_atlas" / "home_progress_v1.json"
 _MANUAL_ROUTE_MANIFEST_PATH = (
     ROOT_DIR / "data" / "routes" / "guide_ultime_manual" / "manifest_v1.json"
 )
 _GUIDE_PROGRESS_ID = "guide_ultime_v5"
 
 
-def _file_stamp(path: Path) -> tuple[int, int]:
-    try:
-        stat = path.stat()
-    except OSError:
-        return (0, 0)
-    return int(stat.st_mtime_ns), int(stat.st_size)
-
-
-def _saved_progress_signature() -> tuple[tuple[int, int], ...]:
-    # Import the canonical paths lazily without loading Encyclopedia providers.
-    from app.constants import QUEST_PROGRESS_FILE as quest_progress_file
-    from app.modules.encyclopedia.services import (
-        ACHIEVEMENT_PROGRESS_FILE as achievement_progress_file,
-    )
-
-    return (
-        _file_stamp(Path(quest_progress_file)),
-        _file_stamp(Path(achievement_progress_file)),
-        _file_stamp(Path(GUIDE_PROGRESS_FILE)),
-    )
-
-
-def _read_home_progress_cache() -> dict[str, Any]:
-    try:
-        payload = json.loads(_HOME_PROGRESS_CACHE_PATH.read_text(encoding="utf-8"))
-    except Exception:
-        return {"version": 1, "characters": {}}
-    if not isinstance(payload, dict):
-        return {"version": 1, "characters": {}}
-    if not isinstance(payload.get("characters"), dict):
-        payload["characters"] = {}
-    payload["version"] = 1
-    return payload
-
-
-def _write_home_progress_cache(payload: dict[str, Any]) -> None:
-    try:
-        _HOME_PROGRESS_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        temporary = _HOME_PROGRESS_CACHE_PATH.with_suffix(
-            _HOME_PROGRESS_CACHE_PATH.suffix + ".tmp"
-        )
-        temporary.write_text(
-            json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
-            encoding="utf-8",
-        )
-        temporary.replace(_HOME_PROGRESS_CACHE_PATH)
-    except OSError:
-        # This cache is reconstructible display data, never progression truth.
-        return
-
-
-def _cached_home_progress(character_key: str) -> dict[str, Any] | None:
-    row = _read_home_progress_cache().get("characters", {}).get(character_key)
-    if not isinstance(row, dict):
-        return None
-    expected = [list(value) for value in _saved_progress_signature()]
-    if row.get("progress_signature") != expected:
-        return None
-    try:
-        percent = max(0, min(100, int(row.get("percent") or 0)))
-    except (TypeError, ValueError):
-        return None
-    return {
-        "percent": percent,
-        "chapter": str(row.get("chapter") or "Progression sauvegardée"),
-        "step": str(row.get("step") or "Progression locale disponible"),
-        "zone": str(row.get("zone") or "—"),
-        "guide_id": str(row.get("guide_id") or GUIDE_ULTIME_LEGACY_ID),
-    }
-
-
-def _save_home_progress(page: "HomePage") -> None:
-    character_key = str(page.character_key or "").strip()
-    if not character_key:
-        return
-    try:
-        percent = max(0, min(100, int(page.progress_bar.value())))
-    except Exception:
-        return
-    payload = _read_home_progress_cache()
-    characters = payload.setdefault("characters", {})
-    if not isinstance(characters, dict):
-        characters = {}
-        payload["characters"] = characters
-    characters[character_key] = {
-        "progress_signature": [list(value) for value in _saved_progress_signature()],
-        "percent": percent,
-        "chapter": str(page.chapter_value.text() or ""),
-        "step": str(page.step_value.text() or ""),
-        "zone": str(page.zone_value.text() or ""),
-        "guide_id": str(page.current_guide_id or GUIDE_ULTIME_LEGACY_ID),
-    }
-    _write_home_progress_cache(payload)
-
-
+@lru_cache(maxsize=1)
 def _manual_route_stage_total() -> int:
     """Read only compact manifest metadata, never route chapter bodies."""
 
@@ -713,15 +619,11 @@ class HomePage(QWidget):
     def refresh_progress(self) -> None:
         character_key = str(self.character_key or "").strip()
         if character_key and (self.catalog is None or self.guide_provider is None):
-            summary = _cached_home_progress(character_key)
-            if summary is None:
-                summary = _persisted_manual_summary(character_key)
+            summary = _persisted_manual_summary(character_key)
             _apply_saved_progress(self, summary)
             return
 
         self._refresh_rich_progress()
-        if character_key and self.catalog is not None and self.guide_provider is not None:
-            _save_home_progress(self)
 
     def _refresh_rich_progress(self) -> None:
         # The canonical manual route only needs the quest catalog. The legacy

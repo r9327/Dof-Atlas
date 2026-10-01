@@ -195,6 +195,33 @@ class AtlasDoctorTests(unittest.TestCase):
         finally:
             directory.cleanup()
 
+    def test_audit_classifies_single_load_cached_ui_io_without_hiding_direct_io(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            view = root / 'app' / 'pages' / 'cached_view.py'
+            view.parent.mkdir()
+            view.write_text(
+                'from functools import lru_cache\n'
+                'from pathlib import Path\n'
+                '@lru_cache(maxsize=1)\n'
+                'def manifest():\n'
+                '    return Path("manifest.json").read_text()\n'
+                'def direct():\n'
+                '    return Path("other.json").read_text()\n',
+                encoding='utf-8',
+            )
+            _git(root, 'add', '-A')
+            _git(root, 'commit', '-m', 'cached ui io')
+            issues = run_audit(root, save=False)['issues']
+            cached_lines = {item['line'] for item in issues if item['rule'] == 'single_load_sync_io_ui'}
+            direct_lines = {item['line'] for item in issues if item['rule'] == 'sync_io_ui'}
+            self.assertIn(5, cached_lines)
+            self.assertNotIn(5, direct_lines)
+            self.assertIn(7, direct_lines)
+        finally:
+            directory.cleanup()
+
     def test_audit_recognizes_transitive_blocking_io_but_keeps_true_spin(self) -> None:
         directory = self.make_repo()
         try:
