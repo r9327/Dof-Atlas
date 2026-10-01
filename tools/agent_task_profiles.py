@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Deterministic cost/quality routing for ROAD IA work cards.
+"""Deterministic quality/consumption routing for ROAD IA work cards.
 
 Task topology, requested output quality and estimated AI consumption are a
 separate concern from Atlas Doctor validation levels. This module only selects
@@ -19,7 +19,7 @@ DEFAULT_CONFIG = ROOT / ".ai" / "task_profiles.json"
 TOOL_SPEC = {
     "schema_version": 1,
     "id": "agent_task_profiles",
-    "role": "ai_cost_quality_routing",
+    "role": "ai_quality_consumption_routing",
     "capabilities": ["ai_context"],
     "modes": ["route"],
     "cost_hint": "cheap",
@@ -101,47 +101,32 @@ def select_work_card(
         allowed = ", ".join(sorted(resolved["task_profiles"]))
         raise TaskProfileError(f"Unknown task type '{task_type}'. Expected one of: {allowed}.")
 
-    requested = (
-        requested_quality
+    profile = resolved["task_profiles"][task_type]
+    recommended = str(
+        profile.get("recommended_quality")
         or resolved.get("default_requested_quality")
         or "balanced"
     ).casefold()
-    profile = resolved["task_profiles"][task_type]
-    task_floor = str(profile["minimum_quality"]).casefold()
-    requested_rank = _quality_rank(resolved, requested)
-    task_floor_rank = _quality_rank(resolved, task_floor)
-    effective_rank = max(requested_rank, task_floor_rank)
+    selected_quality = (requested_quality or recommended).casefold()
+    selected_rank = _quality_rank(resolved, selected_quality)
 
     eligible = [
         row
         for row in resolved["model_tiers"]
-        if int(row.get("quality_rank", 0)) >= effective_rank
+        if int(row.get("quality_rank", 0)) >= selected_rank
     ]
     if not eligible:
         raise TaskProfileError(
-            f"No model tier satisfies quality rank {effective_rank} for {task_type}."
+            f"No model tier satisfies quality rank {selected_rank} for {task_type}."
         )
     selected = min(
         eligible,
         key=lambda row: (
-            int(row.get("consumption_rank", row.get("cost_rank", 10**9))),
+            int(row.get("consumption_rank", 10**9)),
             int(row.get("quality_rank", 10**9)),
             str(row.get("id", "")),
         ),
     )
-    effective_names = [
-        name
-        for name, row in resolved["quality_levels"].items()
-        if int(row.get("rank", -1)) == effective_rank
-    ]
-    effective_quality = (
-        sorted(effective_names)[0] if effective_names else str(effective_rank)
-    )
-    escalations: list[str] = []
-    if task_floor_rank > requested_rank:
-        escalations.append(
-            f"task floor {task_floor} exceeds requested quality {requested}"
-        )
 
     model_env = str(selected.get("model_env") or "")
     resolved_model = env.get(model_env) if model_env else None
@@ -149,22 +134,21 @@ def select_work_card(
         "schema_version": 1,
         "task_type": task_type,
         "description": str(profile.get("description") or ""),
-        "requested_quality": requested,
-        "recommended_quality": str(profile.get("recommended_quality") or task_floor),
-        "task_minimum_quality": task_floor,
-        "effective_quality": effective_quality,
+        "recommended_quality": recommended,
+        "requested_quality": requested_quality.casefold() if requested_quality else None,
+        "selected_quality": selected_quality,
+        "user_override": requested_quality is not None and selected_quality != recommended,
         "selected_tier": str(selected["id"]),
         "quality_rank": int(selected["quality_rank"]),
-        "consumption_rank": int(selected.get("consumption_rank", selected.get("cost_rank", 0))),
+        "consumption_rank": int(selected["consumption_rank"]),
         "consumption_label": str(selected.get("consumption_label") or "unknown"),
         "reasoning_effort": str(selected.get("reasoning_effort") or ""),
         "model_env": model_env,
         "resolved_model": resolved_model,
         "model_resolution": "environment" if resolved_model else "tier_only",
-        "escalations": escalations,
         "selection_rule": (
-            "lowest-consumption configured tier satisfying requested quality "
-            "and the task-type minimum quality"
+            "lowest-consumption configured tier satisfying the selected quality; "
+            "task topology only supplies a recommendation"
         ),
         "doctor_validation": "independent",
     }
@@ -190,8 +174,8 @@ def main(argv: list[str] | None = None) -> int:
     config = load_config()
     parser = argparse.ArgumentParser(
         description=(
-            "Select the lowest-consumption ROAD IA tier compatible with the "
-            "task topology and requested output quality."
+            "Propose a quality/consumption profile by task topology and select "
+            "the lowest-consumption tier satisfying the chosen quality."
         )
     )
     parser.add_argument(
