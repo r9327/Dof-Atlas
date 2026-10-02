@@ -31,7 +31,13 @@ _MULTI_ACTION_RE = re.compile(
     r"tue\b|fais\b|bats\b|ramasse\b|donne\b|clique\b|ouvre\b|termine\b|valide\b)",
     flags=re.IGNORECASE,
 )
-_TALK_RE = re.compile(r"^(?:parle\b|parler\b|discute\b|discuter\b)", flags=re.IGNORECASE)
+_TALK_TARGET_RE = re.compile(
+    r"^(?:parle(?:r)?|discute(?:r)?)\s+"
+    r"(?:(?:à|a)\s+(?:la\s+|le\s+|l['’]\s*)?|au\s+|aux\s+|avec\s+)"
+    r"(?P<target>.+?)"
+    r"(?=\s+(?:pour|afin(?:\s+de)?|et)\b|[.,;:]|$)",
+    flags=re.IGNORECASE,
+)
 _DROP_RE = re.compile(r"\bdrop\w*\b", flags=re.IGNORECASE)
 _PURCHASE_RE = re.compile(r"\b(?:achet\w*|ach[èe]t\w*|hdv|h[ôo]tel de vente)\b", flags=re.IGNORECASE)
 _DESTINATION_NEXT_RE = re.compile(r"\bdestination\s+suivante\b", flags=re.IGNORECASE)
@@ -51,6 +57,15 @@ def _issue(
         "stage": stage,
         **details,
     }
+
+
+def _talk_target(text: str) -> str:
+    """Return a conservative normalized interlocutor for an explicit talk action."""
+    value = " ".join(str(text or "").split()).strip()
+    match = _TALK_TARGET_RE.search(value)
+    if match is None:
+        return ""
+    return normalize_text(match.group("target"))
 
 
 def line_contract_issues(
@@ -119,7 +134,7 @@ def stage_contract_issues(
 ) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     fingerprints: dict[str, list[int]] = defaultdict(list)
-    talk_by_position: dict[str, list[int]] = defaultdict(list)
+    talk_by_position_target: dict[tuple[str, str], list[int]] = defaultdict(list)
 
     for index, line in enumerate(lines):
         if not isinstance(line, dict):
@@ -130,8 +145,9 @@ def stage_contract_issues(
         fingerprint = normalize_text(f"{kind} {position} {text}")
         if fingerprint:
             fingerprints[fingerprint].append(index)
-        if kind == "action" and position and _TALK_RE.search(text):
-            talk_by_position[normalize_text(position)].append(index)
+        target = _talk_target(text) if kind == "action" and position else ""
+        if target:
+            talk_by_position_target[(normalize_text(position), target)].append(index)
 
     for indexes in fingerprints.values():
         if len(indexes) > 1:
@@ -148,7 +164,7 @@ def stage_contract_issues(
                 )
             )
 
-    for position_key, indexes in talk_by_position.items():
+    for (position_key, target), indexes in talk_by_position_target.items():
         if len(indexes) > 1:
             issues.append(
                 _issue(
@@ -158,6 +174,7 @@ def stage_contract_issues(
                     stage_id,
                     line_indexes=indexes,
                     position=position_key,
+                    target=target,
                     texts=[str(lines[index].get("text") or "") for index in indexes],
                 )
             )
