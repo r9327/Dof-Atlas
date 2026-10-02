@@ -83,11 +83,11 @@ jobs:
           Write-Host "Doctor risk: $risk"
           "risk=$risk" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-      - name: Materialize CRITICAL Doctor fixtures
-        if: steps.doctor_risk.outputs.risk == 'CRITICAL'
+      - name: Materialize Doctor quest catalog
+        if: steps.doctor_risk.outputs.risk != 'LOW'
         shell: pwsh
         run: |
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           $catalog = "data/cache/dofus_maps/raw/doduda_cli"
@@ -105,6 +105,13 @@ jobs:
           if count < 1900:
               raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
           '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize CRITICAL Doctor fixtures
+        if: steps.doctor_risk.outputs.risk == 'CRITICAL'
+        shell: pwsh
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude=""
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run canonical Doctor FAST merge gate
@@ -176,7 +183,7 @@ jobs:
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:CANDIDATE_SHA``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Doctor risk: ``${{ steps.doctor_risk.outputs.risk }}``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Required merge gate: ``Atlas Doctor FAST`` through ``Public PR / Safe Validation``."
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- CRITICAL diffs materialize the fixtures required by Doctor's risk escalation; ordinary PRs stay lightweight."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- MEDIUM/HIGH materialize only the QuestCatalog required by Golden Flows; CRITICAL additionally materializes heavy image fixtures."
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- This workflow is **NOT PHASE CERTIFICATION**."
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- A phase can be declared **CERTIFIED** only after ``Phase Certification / Full Validation`` succeeds on the exact candidate SHA."
           }
