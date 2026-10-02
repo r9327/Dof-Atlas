@@ -45,17 +45,13 @@ class GuideUltimeManualClickableEntityTests(unittest.TestCase):
             [],
             ["Bière du Chabrulé", "Breuvage d'Erazal"],
         )
+        beer_href = quote("Bière du Chabrulé", safe="")
+        brew_href = quote("Breuvage d'Erazal", safe="")
 
         self.assertIn('href="travel-copy:-12,34"', rendered)
         self.assertIn('href="travel-copy:5,-6"', rendered)
-        self.assertIn(
-            f'href="item-copy:{quote("Bière du Chabrulé", safe="")}"',
-            rendered,
-        )
-        self.assertIn(
-            f'href="item-copy:{quote("Breuvage d\'Erazal", safe="")}"',
-            rendered,
-        )
+        self.assertIn(f'href="item-copy:{beer_href}"', rendered)
+        self.assertIn(f'href="item-copy:{brew_href}"', rendered)
 
     def test_item_link_copies_only_canonical_item_name(self) -> None:
         encoded = quote("Bière du Chabrulé", safe="")
