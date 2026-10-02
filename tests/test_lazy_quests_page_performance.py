@@ -557,24 +557,37 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         def run_thread(*, target, **_kwargs):
             return SimpleNamespace(start=target)
 
+        guide_success = SimpleNamespace(
+            available=True,
+            route_sheet_progress=Mock(return_value=(12, 34)),
+        )
         with patch(
-            "app.modules.encyclopedia.views.encyclopedia_page._warm_guide_ultime_runtime_cache"
-        ) as warm_cache, patch(
+            "app.modules.encyclopedia.views.encyclopedia_page._build_guide_success_runtime",
+            return_value=guide_success,
+        ) as build_guide_success, patch(
             "app.modules.encyclopedia.views.encyclopedia_page.Thread",
             side_effect=run_thread,
+        ), patch(
+            "app.modules.encyclopedia.views.encyclopedia_page.QuestGraphService",
+            return_value=Mock(),
         ):
             EncyclopediaPageImpl.request_related_preload(page, GUIDES_TAB)
 
         self.assertEqual(gate.state, RelatedPreloadState.LOADING)
         guide_provider.reload.assert_called_once_with()
         guide_provider.load_all.assert_not_called()
-        warm_cache.assert_called_once_with(
+        build_guide_success.assert_called_once_with(
             page.quest_provider,
             quest_progress_path=page.quest_progress_path,
             achievement_progress_path=page.achievement_progress_service.path,
             guide_progress_path=page.guide_progress_service.path,
         )
         page.guideRuntimeFinished.emit.assert_called_once()
+        payload = page.guideRuntimeFinished.emit.call_args.args[0]
+        self.assertEqual(
+            payload.progress_by_guide["guide_complet"],
+            (12, 34, "En cours"),
+        )
 
     def test_guide_hydration_keeps_rich_detail_unbuilt(self):
         with tempfile.TemporaryDirectory() as temporary:

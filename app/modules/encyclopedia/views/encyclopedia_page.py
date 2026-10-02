@@ -42,6 +42,7 @@ from app.quest_catalog import QuestCatalog, QuestCharacter, load_quest_character
 
 
 LOGGER = logging.getLogger(__name__)
+GUIDE_SUCCESS_CATALOG_ID = "guide_complet"
 
 
 @dataclass(slots=True)
@@ -64,22 +65,19 @@ class _AchievementStagePayload:
     progress_synchronized: bool = False
 
 
-def _warm_guide_ultime_runtime_cache(
+def _build_guide_success_runtime(
     quest_provider: QuestProvider,
     *,
     quest_progress_path: Path,
     achievement_progress_path: Path,
     guide_progress_path: Path,
-) -> None:
-    # Manual Guide composition is pure Python/file work and is expensive on a
-    # cold cache. Prime the existing thread-safe canonical bundle cache from the
-    # Guide worker so selecting Guide Ultime never performs that composition on
-    # the Qt UI thread. The final widget/service remains the sole runtime owner.
+):
+    """Build the canonical Guide Succès service inside the Guide worker."""
     from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
         GuideUltimeManualRuntimeService,
     )
 
-    GuideUltimeManualRuntimeService(
+    return GuideUltimeManualRuntimeService(
         QuestProgressService(quest_progress_path),
         AchievementProgressService(achievement_progress_path),
         GuideProgressService(guide_progress_path),
@@ -905,18 +903,19 @@ class EncyclopediaPage(QWidget):
                         raise RuntimeError(
                             f"Aucun guide chargé depuis {catalog_path}{detail}"
                         )
+                    guide_success_service = None
                     try:
-                        _warm_guide_ultime_runtime_cache(
+                        guide_success_service = _build_guide_success_runtime(
                             quest_provider,
                             quest_progress_path=quest_progress_path,
                             achievement_progress_path=achievement_progress_path,
                             guide_progress_path=guide_progress_path,
                         )
                     except Exception:
-                        # This is a performance warmup only. A cache failure must
-                        # never make the canonical Guide catalogue unavailable.
+                        # Keep the generic catalogue available if the canonical
+                        # manual route cannot be materialized in this worker.
                         LOGGER.exception(
-                            "Préchargement du runtime Guide Ultime impossible"
+                            "Préchargement du runtime Guide Succès impossible"
                         )
                     graph = QuestGraphService(
                         quest_provider,
@@ -934,6 +933,23 @@ class EncyclopediaPage(QWidget):
                         )
                     except Exception:
                         progress = {}
+                    if (
+                        guide_success_service is not None
+                        and guide_success_service.available
+                    ):
+                        try:
+                            completed, total = guide_success_service.route_sheet_progress(
+                                character_key
+                            )
+                            progress[GUIDE_SUCCESS_CATALOG_ID] = (
+                                completed,
+                                total,
+                                EncyclopediaPage._guide_progress_state(completed, total),
+                            )
+                        except Exception:
+                            LOGGER.exception(
+                                "Calcul de progression Guide Succès impossible"
+                            )
                     result: object = _GuideStagePayload(
                         active_guide_provider,
                         graph,
