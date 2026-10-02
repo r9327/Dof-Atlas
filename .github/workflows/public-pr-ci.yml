@@ -169,7 +169,7 @@ jobs:
           name: pr-doctor-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/pr_doctor/**
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 4
 
       - name: Report PR validation boundary
         if: ${{ always() }}

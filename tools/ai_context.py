@@ -50,6 +50,7 @@ DOMAIN_CANONICAL_PATHS: dict[str, tuple[str, ...]] = {
         "GUIDE_ULTIME_STATUS.md",
     ),
     "quality": (
+        "ROAD_IA.md",
         "ZERO_TRUST_RULES.md",
         "PHASE_CERTIFICATION.md",
         "tests/critical_regression_inventory.json",
@@ -186,6 +187,7 @@ def recommended_context(paths: Iterable[str]) -> list[str]:
     if "guide" in domains:
         documents.append("GUIDE_ULTIME_STATUS.md")
     if domains & {"quality", "tests"}:
+        documents.append("ROAD_IA.md")
         documents.append("ZERO_TRUST_RULES.md")
     if domains & {"quality", "tests", "guide"}:
         documents.append("PHASE_CERTIFICATION.md")
