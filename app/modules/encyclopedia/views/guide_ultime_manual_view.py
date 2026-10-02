@@ -3,9 +3,12 @@ from __future__ import annotations
 import html
 import re
 from typing import Any
+from urllib.parse import quote, unquote
 
 from PySide6.QtCore import QTimer, Signal, Qt
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QFrame,
     QHBoxLayout,
@@ -13,10 +16,12 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
 
+from app.modules.encyclopedia.services.guide_quest_view_model import quest_items_from_objectives
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
@@ -24,6 +29,8 @@ from app.ui.theme import PALETTE
 
 NPC_COLOR = PALETTE["YELLOW"]
 RESOURCE_COLOR = PALETTE["GREEN"]
+POSITION_COLOR = PALETTE["TEXT_SOFT"]
+_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
 _NAME_WORD = r"[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]*"
 _NPC_NAME = rf"{_NAME_WORD}(?:\s+(?:(?:de|des|du|d['’]|of|le|la|l['’])\s+)?{_NAME_WORD}){{0,3}}"
 _NPC_PATTERNS = (
@@ -59,6 +66,7 @@ class GuideUltimeManualCard(QFrame):
         self.character_key = character_key
         self.card = card
         self.index = index
+        self._resource_names = self._clickable_resource_names(service, card)
         self.setObjectName("GuideManualSheet")
 
         root = QVBoxLayout(self)
@@ -72,18 +80,14 @@ class GuideUltimeManualCard(QFrame):
 
         location = str(card.get("destination") or "").strip()
         if location:
-            where = QLabel(location)
+            where = QLabel()
             where.setObjectName("GuideManualLocation")
             where.setWordWrap(True)
+            self._set_clickable_text(where, self._format_line_html("", "", location, [], []))
             root.addWidget(where)
 
         self._add_quest_links(root)
 
-        self._resource_names = [
-            str(value).strip()
-            for value in card.get("manual_resource_names", []) or []
-            if str(value).strip()
-        ]
         line_provider = getattr(service, "manual_lines_for_card", None)
         manual_lines = line_provider(character_key, card) if callable(line_provider) else card.get("manual_lines", []) or []
         section_provider = getattr(service, "manual_sections_for_card", None)
@@ -208,6 +212,40 @@ class GuideUltimeManualCard(QFrame):
             result.append((quest_id, name or f"Quête #{quest_id}"))
         return result
 
+    @staticmethod
+    def _clickable_resource_names(service, card: dict[str, Any]) -> list[str]:
+        names = [
+            str(value).strip()
+            for value in card.get("manual_resource_names", []) or []
+            if str(value).strip()
+        ]
+        provider = getattr(service, "quest_provider", None)
+        getter = getattr(provider, "get_quest", None)
+        if callable(getter):
+            for raw in card.get("manual_quest_ids", []) or []:
+                try:
+                    quest_id = int(raw)
+                    quest = getter(quest_id)
+                except (KeyError, LookupError, TypeError, ValueError):
+                    continue
+                try:
+                    items = quest_items_from_objectives(quest)
+                except (AttributeError, TypeError, ValueError):
+                    continue
+                for item in items:
+                    name = str(getattr(item, "name", "") or "").strip()
+                    if name:
+                        names.append(name)
+
+        result: list[str] = []
+        seen: set[str] = set()
+        for name in names:
+            key = name.casefold()
+            if key and key not in seen:
+                seen.add(key)
+                result.append(name)
+        return sorted(result, key=len, reverse=True)
+
     def _open_quest(self, quest_id: int) -> None:
         parent = self.parentWidget()
         while parent is not None:
@@ -249,22 +287,50 @@ class GuideUltimeManualCard(QFrame):
             kind = str(row.get("kind") or "")
             prefix = "⚠ " if kind == "warning" else "• "
             line = QLabel()
-            line.setTextFormat(Qt.RichText)
-            line.setText(
+            self._set_clickable_text(
+                line,
                 self._format_line_html(
                     prefix,
                     position,
                     text,
                     self._npc_names(text),
                     self._resource_names,
-                )
+                ),
             )
             line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
-            line.setTextInteractionFlags(Qt.TextSelectableByMouse)
             layout.addWidget(line)
 
         root.addWidget(frame)
+
+    def _set_clickable_text(self, label: QLabel, rendered: str) -> None:
+        label.setTextFormat(Qt.RichText)
+        label.setText(rendered)
+        label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
+        label.setOpenExternalLinks(False)
+        label.linkActivated.connect(self._copy_link_target)
+
+    @staticmethod
+    def _copy_text_for_link(href: str) -> str | None:
+        value = str(href or "")
+        if value.startswith("item-copy:"):
+            name = unquote(value.removeprefix("item-copy:")).strip()
+            return name or None
+        if value.startswith("travel-copy:"):
+            raw = value.removeprefix("travel-copy:")
+            match = re.fullmatch(r"(-?\d+),(-?\d+)", raw)
+            if not match:
+                return None
+            return f"/travel {int(match.group(1))},{int(match.group(2))}"
+        return None
+
+    def _copy_link_target(self, href: str) -> None:
+        value = self._copy_text_for_link(href)
+        if not value:
+            return
+        QApplication.clipboard().setText(value)
+        QToolTip.showText(QCursor.pos(), "Copié", self)
+        QTimer.singleShot(800, QToolTip.hideText)
 
     def _contract_row(self) -> dict[str, Any]:
         contract = getattr(self.service, "auto_validation_contract", None)
@@ -352,18 +418,22 @@ class GuideUltimeManualCard(QFrame):
     ) -> str:
         prefix_text = str(prefix or "")
         plain = prefix_text + (f"{position} — " if position else "") + str(text or "")
-        spans: list[tuple[int, int, str]] = []
+        spans: list[tuple[int, int, str, str]] = []
 
-        def add_span(start: int, end: int, kind: str) -> None:
+        def add_span(start: int, end: int, kind: str, payload: str = "") -> None:
             if start >= end:
                 return
-            if any(not (end <= existing_start or start >= existing_end) for existing_start, existing_end, _ in spans):
+            if any(not (end <= existing_start or start >= existing_end) for existing_start, existing_end, _, _ in spans):
                 return
-            spans.append((start, end, kind))
+            spans.append((start, end, kind, payload))
 
-        if position:
-            start = len(prefix_text)
-            add_span(start, start + len(position), "position")
+        for match in _COORD_RE.finditer(plain):
+            add_span(
+                match.start(),
+                match.end(),
+                "position",
+                f"{int(match.group(1))},{int(match.group(2))}",
+            )
 
         for name in sorted({value for value in npc_names if value}, key=len, reverse=True):
             pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
@@ -373,7 +443,7 @@ class GuideUltimeManualCard(QFrame):
         for name in sorted({value for value in resource_names if value}, key=len, reverse=True):
             pattern = cls._resource_regex(name)
             for match in pattern.finditer(plain):
-                add_span(match.start(), match.end(), "resource")
+                add_span(match.start(), match.end(), "resource", name)
 
         if not spans:
             return html.escape(plain)
@@ -381,7 +451,7 @@ class GuideUltimeManualCard(QFrame):
         spans.sort(key=lambda row: row[0])
         rendered: list[str] = []
         cursor = 0
-        for start, end, kind in spans:
+        for start, end, kind, payload in spans:
             if start < cursor:
                 continue
             rendered.append(html.escape(plain[cursor:start]))
@@ -389,9 +459,15 @@ class GuideUltimeManualCard(QFrame):
             if kind == "npc":
                 rendered.append(f'<span style="color:{NPC_COLOR};"><b>{value}</b></span>')
             elif kind == "resource":
-                rendered.append(f'<span style="color:{RESOURCE_COLOR};"><b>{value}</b></span>')
+                href = html.escape(f"item-copy:{quote(payload, safe='')}", quote=True)
+                rendered.append(
+                    f'<a href="{href}" style="color:{RESOURCE_COLOR};text-decoration:none;"><b>{value}</b></a>'
+                )
             else:
-                rendered.append(f"<b>{value}</b>")
+                href = html.escape(f"travel-copy:{payload}", quote=True)
+                rendered.append(
+                    f'<a href="{href}" style="color:{POSITION_COLOR};text-decoration:none;"><b>{value}</b></a>'
+                )
             cursor = end
         rendered.append(html.escape(plain[cursor:]))
         return "".join(rendered)
