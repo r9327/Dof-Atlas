@@ -65,6 +65,20 @@ _ACQUIRE_RE = re.compile(
     r"craft\w*|fabriqu\w*|prends|prendre|[ée]chang\w*)\b",
     flags=re.IGNORECASE,
 )
+_RESOURCE_TRAILING_CONNECTORS = {
+    "a",
+    "au",
+    "aux",
+    "avec",
+    "chez",
+    "contre",
+    "dans",
+    "en",
+    "et",
+    "pour",
+    "puis",
+    "sur",
+}
 
 
 def _has_player_action(text: str) -> bool:
@@ -127,10 +141,30 @@ def ensure_drop_purchase_alternative(text: str) -> str:
     return value
 
 
+def _resource_name_matches(text: str, resource_name: str) -> bool:
+    """Match the exact normalized item phrase, not a prefix or word fragment."""
+    resource_tokens = [token for token in normalize_text(resource_name).split("_") if token]
+    text_tokens = [token for token in normalize_text(text).split("_") if token]
+    if not resource_tokens or len(resource_tokens) > len(text_tokens):
+        return False
+
+    width = len(resource_tokens)
+    for index in range(len(text_tokens) - width + 1):
+        if text_tokens[index : index + width] != resource_tokens:
+            continue
+        next_index = index + width
+        if next_index >= len(text_tokens):
+            return True
+        if text_tokens[next_index] in _RESOURCE_TRAILING_CONNECTORS:
+            return True
+    return False
+
+
 def line_acquires_resource(text: str, resource_name: str) -> bool:
-    resource_key = normalize_text(resource_name)
-    text_key = normalize_text(text)
-    return bool(resource_key and resource_key in text_key and _ACQUIRE_RE.search(str(text or "")))
+    return bool(
+        _resource_name_matches(text, resource_name)
+        and _ACQUIRE_RE.search(str(text or ""))
+    )
 
 
 def preparation_resource_name(text: str) -> str:
@@ -162,7 +196,11 @@ def apply_player_line_policy(lines: list[dict[str, Any]]) -> list[dict[str, Any]
             split_row["text"] = ensure_drop_purchase_alternative(part)
             expanded.append(split_row)
 
-    action_texts = [str(row.get("text") or "") for row in expanded if str(row.get("kind") or "") == "action"]
+    action_texts = [
+        str(row.get("text") or "")
+        for row in expanded
+        if str(row.get("kind") or "") == "action"
+    ]
     filtered: list[dict[str, Any]] = []
     for row in expanded:
         if str(row.get("kind") or "") == "warning":
