@@ -58,6 +58,18 @@ class GuidePlayerContractTests(unittest.TestCase):
         )
         self.assertIn("repeated_talk_same_position", {row["code"] for row in issues})
 
+    def test_different_talk_targets_on_same_position_are_not_flagged(self) -> None:
+        issues = stage_contract_issues(
+            chapter_id="chapter",
+            stage_id="stage",
+            lines=[
+                {"kind": "action", "position": "[1,2]", "text": "Parler à Berb pour avancer la quête."},
+                {"kind": "action", "position": "[1,2]", "text": "Parler au tavernier pour la visite."},
+            ],
+            resource_names=[],
+        )
+        self.assertNotIn("repeated_talk_same_position", {row["code"] for row in issues})
+
     def test_preparation_repeated_in_current_actions_is_flagged(self) -> None:
         issues = stage_contract_issues(
             chapter_id="chapter",
