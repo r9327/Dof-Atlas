@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import unittest
 
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_core import (
@@ -14,6 +15,15 @@ from app.modules.encyclopedia.services.guide_ultime_player_policy import (
     line_acquires_resource,
     split_real_actions,
 )
+
+
+class _SectionPolicyService(GuideUltimeManualRuntimeService):
+    """Keep the section-policy regression test independent from manifest conditions."""
+
+    def manual_lines_for_card(self, _character_key: str, card: dict) -> list[dict]:
+        return copy.deepcopy(
+            [row for row in card.get("manual_lines", []) or [] if isinstance(row, dict)]
+        )
 
 
 class GuideUltimePlayerPolicyTests(unittest.TestCase):
@@ -72,6 +82,41 @@ class GuideUltimePlayerPolicyTests(unittest.TestCase):
             ]
         )
         self.assertEqual([row["kind"] for row in rows], ["warning", "action"])
+
+    def test_section_classification_survives_action_splitting_and_global_preparation_dedupe(self) -> None:
+        service = object.__new__(_SectionPolicyService)
+        service._quest_name_to_id = {}
+        service.quest_provider = None
+        stage = {
+            "preparation": [{"name": "Clef de test", "quantity": 1}],
+            "route": [
+                {
+                    "pos": "[1,2]",
+                    "do": "Achète 1 × Clef de test puis parle à Testeur.",
+                }
+            ],
+            "dungeon": {"name": "Donjon de test", "boss": "Boss de test"},
+            "capture_note": "Préparer la capture si elle est encore nécessaire.",
+        }
+        card = {
+            "manual_stage_data": stage,
+            "manual_chapter_preparation": [],
+            "manual_quest_names": [],
+            "manual_lines": service._stage_lines(stage, []),
+        }
+
+        sections = service.manual_sections_for_card("character:1", card)
+        boss_text = "\n".join(str(row.get("text") or "") for row in sections["boss"])
+        now_text = "\n".join(str(row.get("text") or "") for row in sections["now"])
+        prepare_text = "\n".join(str(row.get("text") or "") for row in sections["prepare"])
+
+        self.assertIn("Donjon de test", boss_text)
+        self.assertIn("Boss de test", boss_text)
+        self.assertIn("capture", boss_text.casefold())
+        self.assertNotIn("Donjon de test", now_text)
+        self.assertNotIn("Clef de test", prepare_text)
+        self.assertIn("Achète 1 × Clef de test", now_text)
+        self.assertIn("parle à Testeur", now_text)
 
 
 if __name__ == "__main__":
