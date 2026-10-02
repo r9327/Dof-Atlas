@@ -85,4 +85,4 @@ jobs:
           name: graphify-code-map-${{ env.CANDIDATE_SHA }}
           path: graphify-out/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 4
