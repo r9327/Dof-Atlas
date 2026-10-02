@@ -1,0 +1,32 @@
+name: Phase Certification Main Trigger
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: dof-atlas-phase-certification-main-trigger
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    name: Dispatch Phase Certification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch canonical Phase Certification on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          BASE_REF: ${{ github.event.before }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          gh api --method POST "repos/$REPOSITORY/actions/workflows/phase-certification.yml/dispatches" \
+            -f ref="$REF_NAME" \
+            -f "inputs[base_ref]=$BASE_REF"
+          echo "Requested Phase Certification for main at $EXPECTED_SHA (base $BASE_REF)."
