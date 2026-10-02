@@ -165,6 +165,7 @@ try {
     )
     Invoke-PythonCheck "10_runtime_audit" @("-m", "tools.audit_guide_ultime_manual_runtime", "--strict-fields")
     Invoke-PythonCheck "10b_action_quality_inventory" @("-m", "tools.audit_guide_ultime_action_quality", "--strict-hard", "--output", ".\artifacts\ci_guide_ultime_logs\action_quality.json")
+    Invoke-PythonCheck "10c_player_contract_7e" @("-m", "tools.guide_player_contract", "--strict-hard", "--output", ".\artifacts\ci_guide_ultime_logs\player_contract_7e.json")
 
     Invoke-PythonCheck "11_existing_guides_tests" @("-m", "unittest", "tests.test_guides_phase3")
     Invoke-PythonCheck "12_existing_success_tests" @("-m", "unittest", "tests.test_achievements_lot7")
