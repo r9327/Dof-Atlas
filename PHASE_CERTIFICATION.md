@@ -97,6 +97,23 @@ Un test couvrant un comportement utile ne doit pas être supprimé uniquement pa
 
 Les shims de compatibilité peuvent subsister lorsqu'ils sont réellement nécessaires, mais le code moderne interne doit utiliser directement le chemin canonique dès que la migration est possible.
 
+## Verrou cumulatif Phase 7D après Phase 7E
+
+L'audit cumulatif Phase 1 → 7D reste une preuve historique de l'état qu'il a certifié. Il ne suffit pas, à lui seul, à fermer définitivement les Phases 1 → 7 après des changements ultérieurs de Phase 7E.
+
+Avant tout démarrage de la Phase 8, après le merge du dernier correctif de Phase 7E, un rejeu cumulatif Phase 1 → 7E est obligatoire sur le SHA exact de `main`.
+
+Ce rejeu doit :
+
+1. vérifier les contrats historiques des Phases 1 → 7D ainsi que tous les contrats ajoutés en 7E ;
+2. couvrir les tests, données, UI, Guide, performances et garde-fous applicables au périmètre cumulé ;
+3. exécuter `tools.atlas_integrity full` et obtenir `Phase Certification / Full Validation = PASS` sur ce même SHA exact ;
+4. ne laisser aucun `FAIL`, `NOT RUN` ou `BLOCKED` obligatoire, ni aucun skip qui masque un contrôle requis ;
+5. conserver un worktree propre pour la preuve locale de clôture lorsqu'une exécution locale fait partie de l'audit ;
+6. considérer toute régression d'une phase antérieure comme bloquante pour la clôture cumulative et pour le démarrage de la Phase 8.
+
+Une certification obtenue avant le dernier merge 7E ne satisfait pas ce verrou. Les Phases 1 → 7 ne peuvent être déclarées « 100 % terminées » qu'après ce rejeu cumulatif `PASS` sur le `main` final.
+
 ## Rapport final
 
 Tout rapport de clôture doit distinguer explicitement :
