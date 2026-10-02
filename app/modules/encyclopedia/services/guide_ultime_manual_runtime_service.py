@@ -66,6 +66,21 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
         )
         return card
 
+    def _raw_stage_lines(
+        self,
+        stage: dict[str, Any],
+        quest_names: list[str],
+        *,
+        chapter_preparation: Any = None,
+    ) -> list[dict[str, Any]]:
+        """Render authored lines before the Phase 7E presentation policy mutates them."""
+        return _core.GuideUltimeManualRuntimeService._stage_lines(
+            self,
+            stage,
+            quest_names,
+            chapter_preparation=chapter_preparation,
+        )
+
     def _stage_lines(
         self,
         stage: dict[str, Any],
@@ -73,12 +88,58 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
         *,
         chapter_preparation: Any = None,
     ) -> list[dict[str, Any]]:
-        lines = super()._stage_lines(
-            stage,
-            quest_names,
-            chapter_preparation=chapter_preparation,
+        return apply_player_line_policy(
+            self._raw_stage_lines(
+                stage,
+                quest_names,
+                chapter_preparation=chapter_preparation,
+            )
         )
-        return apply_player_line_policy(lines)
+
+    def manual_sections_for_card(
+        self,
+        character_key: str,
+        card: dict[str, Any],
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Classify authored intent first, then apply the player policy across all sections.
+
+        Action splitting changes line fingerprints. Classifying already-split lines can
+        therefore move a dungeon/boss instruction into the generic ``now`` bucket.
+        Rebuild only the source card's authored lines without presentation transforms,
+        let the canonical core classify those stable fingerprints, then run the Phase
+        7E policy once across the tagged section rows so preparation dedupe still sees
+        acquisitions from every section.
+        """
+        stage = card.get("manual_stage_data")
+        if not isinstance(stage, dict):
+            return super().manual_sections_for_card(character_key, card)
+
+        source_card = copy.deepcopy(card)
+        source_card["manual_lines"] = self._raw_stage_lines(
+            stage,
+            [
+                str(value)
+                for value in source_card.get("manual_quest_names", []) or []
+                if str(value).strip()
+            ],
+            chapter_preparation=source_card.get("manual_chapter_preparation"),
+        )
+        sections = super().manual_sections_for_card(character_key, source_card)
+
+        tagged: list[dict[str, Any]] = []
+        for section_name, rows in sections.items():
+            for raw in rows:
+                if not isinstance(raw, dict):
+                    continue
+                row = copy.deepcopy(raw)
+                row["_phase7e_section"] = section_name
+                tagged.append(row)
+
+        result = {key: [] for key in sections}
+        for row in apply_player_line_policy(tagged):
+            section_name = str(row.pop("_phase7e_section", "now") or "now")
+            result.setdefault(section_name, []).append(row)
+        return result
 
 
 def __getattr__(name: str) -> Any:
