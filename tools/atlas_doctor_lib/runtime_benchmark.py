@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import copy
 import ctypes
 import json
@@ -151,48 +150,6 @@ def _current_encyclopedia_page(window: Any) -> Any | None:
     return page if isinstance(page, EncyclopediaPage) else None
 
 
-def _achievement_provider_object_counts(window: Any) -> dict[str, int]:
-    page = _current_encyclopedia_page(window)
-    if page is None:
-        return {"Achievement": 0, "Reward": 0, "EntityRef": 0}
-    provider = page.service.achievement_provider
-    achievements = list(getattr(provider, "_achievements", ()) or ())
-    detail = getattr(provider, "_detail_cache", None)
-    achievement_ids = {id(achievement) for achievement in achievements}
-    if detail is not None:
-        achievement_ids.add(id(detail))
-
-    reward_ids: set[int] = set()
-    entity_ref_ids: set[int] = set()
-    for achievement in (*achievements, *((detail,) if detail is not None else ())):
-        reward_ids.update(
-            id(reward) for reward in tuple(getattr(achievement, "rewards", ()) or ())
-        )
-        for ref in (
-            *tuple(getattr(achievement, "linked_quests", ()) or ()),
-            *tuple(getattr(achievement, "linked_monsters", ()) or ()),
-            *tuple(getattr(achievement, "linked_dungeons", ()) or ()),
-            *tuple(getattr(achievement, "linked_achievements", ()) or ()),
-            *tuple(getattr(achievement, "resolved_linked_quests", ()) or ()),
-            *tuple(getattr(achievement, "resolved_linked_monsters", ()) or ()),
-            *tuple(getattr(achievement, "resolved_linked_dungeons", ()) or ()),
-        ):
-            entity_ref_ids.add(id(ref))
-        for objective in tuple(getattr(achievement, "objectives", ()) or ()):
-            ref = getattr(objective, "entity_ref", None)
-            if ref is not None:
-                entity_ref_ids.add(id(ref))
-            entity_ref_ids.update(
-                id(ref)
-                for ref in tuple(getattr(objective, "entity_refs", ()) or ())
-            )
-    return {
-        "Achievement": len(achievement_ids),
-        "Reward": len(reward_ids),
-        "EntityRef": len(entity_ref_ids),
-    }
-
-
 def _tab_is_visible(window: Any, label: str) -> bool:
     page = _current_encyclopedia_page(window)
     if page is None or window.pending_encyclopedia_tab:
@@ -303,7 +260,7 @@ def _open_hot_tab(
     return milliseconds(started)
 
 
-def _summarize_samples(samples: list[float]) -> dict[str, float]:
+def _summarize(samples: list[float]) -> dict[str, float]:
     if not samples:
         return {"avg_ms": 0.0, "max_ms": 0.0}
     return {
@@ -341,42 +298,29 @@ def measure_sample(root: Path) -> dict[str, Any]:
         startup_stable_ms = milliseconds(startup_started)
         startup_stable_rss_mb = current_rss_mb()
 
-        quests_open_ms, quests_open_ui_block_ms = _open_runtime(
+        quests_open_ms, quests_ui_block_ms = _open_runtime(
             app, window, QUESTS_TAB, timeout=30.0
         )
         _pump_events(app, 0.05)
         rss_after_quests_mb = current_rss_mb()
 
-        achievements_open_ms, achievements_open_ui_block_ms = _open_runtime(
+        achievements_open_ms, achievements_ui_block_ms = _open_runtime(
             app, window, ACHIEVEMENTS_TAB
         )
         _pump_events(app, 0.05)
         rss_after_achievements_mb = current_rss_mb()
-        achievement_objects_after_runtime = _achievement_provider_object_counts(window)
-
-        achievement_detail_ms, achievement_id, achievement_ui_block_ms = (
+        achievement_detail_ms, achievement_id, achievement_detail_block_ms = (
             _first_achievement_detail(app, window)
         )
         _pump_events(app, 0.05)
         rss_after_first_achievement_detail_mb = current_rss_mb()
-        achievement_objects_after_first_detail = _achievement_provider_object_counts(window)
-        page = _current_encyclopedia_page(window)
-        achievement_provider = page.service.achievement_provider if page is not None else None
-        achievement_reward_detail_thread = str(
-            getattr(achievement_provider, "last_detail_thread_name", "") or ""
-        )
-        achievement_reward_detail_ms = float(
-            getattr(achievement_provider, "last_detail_ms", 0.0) or 0.0
-        )
-        achievement_detail_sources_ready = bool(
-            getattr(achievement_provider, "detail_sources_ready", False)
-        )
 
-        guide_open_ms, guide_open_ui_block_ms = _open_runtime(app, window, GUIDES_TAB)
+        guide_open_ms, guide_ui_block_ms = _open_runtime(app, window, GUIDES_TAB)
         _pump_events(app, 0.05)
         rss_after_guide_mb = current_rss_mb()
-
-        guide_detail_ms, guide_id, guide_ui_block_ms = _first_guide_detail(app, window)
+        guide_detail_ms, guide_id, guide_detail_block_ms = _first_guide_detail(
+            app, window
+        )
         _pump_events(app, 0.05)
         rss_after_first_guide_detail_mb = current_rss_mb()
         rss_after_all_views_mb = current_rss_mb()
@@ -385,21 +329,18 @@ def measure_sample(root: Path) -> dict[str, Any]:
         achievements_hot_return_ms = _open_hot_tab(app, window, ACHIEVEMENTS_TAB)
         guide_hot_return_ms = _open_hot_tab(app, window, GUIDES_TAB)
 
-        round_trip_samples: dict[str, list[float]] = {
+        round_trips: dict[str, list[float]] = {
             "quests": [],
             "achievements": [],
             "guide": [],
         }
         for _ in range(HOT_ROUND_TRIPS):
-            round_trip_samples["quests"].append(
-                _open_hot_tab(app, window, QUESTS_TAB)
-            )
-            round_trip_samples["achievements"].append(
+            round_trips["quests"].append(_open_hot_tab(app, window, QUESTS_TAB))
+            round_trips["achievements"].append(
                 _open_hot_tab(app, window, ACHIEVEMENTS_TAB)
             )
-            round_trip_samples["guide"].append(
-                _open_hot_tab(app, window, GUIDES_TAB)
-            )
+            round_trips["guide"].append(_open_hot_tab(app, window, GUIDES_TAB))
+
         _pump_events(app, 0.1)
         rss_after_round_trips_mb = current_rss_mb()
         idle_cpu_percent_one_core = _measure_idle_cpu_percent(app, 1.0)
@@ -411,31 +352,24 @@ def measure_sample(root: Path) -> dict[str, Any]:
             "startup_stabilized_rss_mb": startup_stable_rss_mb,
             "startup_preload_state": "DEFERRED_ON_DEMAND",
             "quests_open_ms": quests_open_ms,
-            "quests_open_max_ui_block_ms": quests_open_ui_block_ms,
+            "quests_open_max_ui_block_ms": quests_ui_block_ms,
             "achievements_open_ms": achievements_open_ms,
-            "achievements_open_max_ui_block_ms": achievements_open_ui_block_ms,
+            "achievements_open_max_ui_block_ms": achievements_ui_block_ms,
             "guide_open_ms": guide_open_ms,
-            "guide_open_max_ui_block_ms": guide_open_ui_block_ms,
+            "guide_open_max_ui_block_ms": guide_ui_block_ms,
             "first_achievement_detail_ms": achievement_detail_ms,
-            "first_achievement_detail_max_ui_block_ms": achievement_ui_block_ms,
+            "first_achievement_detail_max_ui_block_ms": achievement_detail_block_ms,
             "first_achievement_id": achievement_id,
-            "first_achievement_reward_detail_ms": achievement_reward_detail_ms,
-            "first_achievement_reward_detail_thread": achievement_reward_detail_thread,
-            "achievement_detail_sources_ready": achievement_detail_sources_ready,
-            "achievement_objects_after_runtime": achievement_objects_after_runtime,
-            "achievement_objects_after_first_detail": achievement_objects_after_first_detail,
             "first_guide_detail_ms": guide_detail_ms,
-            "first_guide_detail_max_ui_block_ms": guide_ui_block_ms,
+            "first_guide_detail_max_ui_block_ms": guide_detail_block_ms,
             "first_guide_id": guide_id,
             "quests_hot_return_ms": quests_hot_return_ms,
             "achievements_hot_return_ms": achievements_hot_return_ms,
             "guide_hot_return_ms": guide_hot_return_ms,
             "hot_round_trip_cycles": HOT_ROUND_TRIPS,
-            "hot_round_trip_quests": _summarize_samples(round_trip_samples["quests"]),
-            "hot_round_trip_achievements": _summarize_samples(
-                round_trip_samples["achievements"]
-            ),
-            "hot_round_trip_guide": _summarize_samples(round_trip_samples["guide"]),
+            "hot_round_trip_quests": _summarize(round_trips["quests"]),
+            "hot_round_trip_achievements": _summarize(round_trips["achievements"]),
+            "hot_round_trip_guide": _summarize(round_trips["guide"]),
             "rss_after_quests_mb": rss_after_quests_mb,
             "rss_after_achievements_mb": rss_after_achievements_mb,
             "rss_after_guide_mb": rss_after_guide_mb,
@@ -485,17 +419,14 @@ def _median_tree(values: list[Any]) -> Any:
     ):
         return round(float(median(float(value) for value in present)), 3)
     first = present[0]
-    if all(value == first for value in present):
-        return copy.deepcopy(first)
     return copy.deepcopy(first)
 
 
 def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
     if not samples:
         raise ValueError("At least one runtime sample is required.")
-    environments = [sample.get("environment") or {} for sample in samples]
     medians = _median_tree([sample.get("metrics") or {} for sample in samples])
-    environment = dict(environments[0])
+    environment = dict(samples[0].get("environment") or {})
     environment["sample_count"] = len(samples)
     return {
         "schema_version": SCHEMA_VERSION,
@@ -504,8 +435,8 @@ def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
         "sample_count": len(samples),
         "samples": samples,
         "medians": medians,
-        # Compatibility contract used by Doctor compare/report. New code should
-        # prefer `medians`; `after` intentionally contains the same aggregate.
+        # Doctor compare/report historically reads benchmark.after. Keep that
+        # compatibility key while making medians the explicit canonical aggregate.
         "after": copy.deepcopy(medians),
     }
 
@@ -619,31 +550,13 @@ def attach_baseline_comparison(
     return result
 
 
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
+def write_sample(root: Path, output: Path) -> dict[str, Any]:
+    """Internal subprocess worker used only by the canonical Doctor perf command."""
+
+    payload = measure_sample(root.resolve())
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Atlas Doctor runtime benchmark sample runner."
-    )
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--root", type=Path, default=Path.cwd())
-    return parser
-
-
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    root = args.root.resolve()
-    payload = measure_sample(root)
-    _write_json(args.output, payload)
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    return payload
