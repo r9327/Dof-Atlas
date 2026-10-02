@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# CI-only perf trigger for certified main c2ab9124f22182bf744918f1224e43e9544b593e.
+
 import unittest
 
 from tools.atlas_doctor_lib.runtime_benchmark import (
