@@ -77,6 +77,8 @@ class GuideUltimeManualCard(QFrame):
             where.setWordWrap(True)
             root.addWidget(where)
 
+        self._add_quest_links(root)
+
         self._resource_names = [
             str(value).strip()
             for value in card.get("manual_resource_names", []) or []
@@ -154,6 +156,68 @@ class GuideUltimeManualCard(QFrame):
             self.page_check.setToolTip("Secours temporaire tant que la validation automatique n'est pas branchée.")
             self.page_check.toggled.connect(self._page_toggled)
         root.addWidget(self.page_check)
+
+    def _add_quest_links(self, root: QVBoxLayout) -> None:
+        quests = self._quest_links()
+        if not quests:
+            return
+
+        frame = QFrame()
+        frame.setObjectName("GuideManualQuestSection")
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(6)
+
+        heading = QLabel("QUÊTES DE LA FICHE")
+        heading.setObjectName("GuideManualSectionTitle")
+        layout.addWidget(heading)
+
+        for quest_id, name in quests:
+            button = QPushButton(name)
+            button.setObjectName("GuideManualQuestLink")
+            button.setProperty("questId", quest_id)
+            button.setToolTip(f"Ouvrir « {name} » dans l’onglet Quêtes.")
+            button.clicked.connect(
+                lambda _checked=False, qid=quest_id: self._open_quest(qid)
+            )
+            layout.addWidget(button)
+
+        root.addWidget(frame)
+
+    def _quest_links(self) -> list[tuple[int, str]]:
+        provider = getattr(self.service, "quest_provider", None)
+        getter = getattr(provider, "get_quest", None)
+        result: list[tuple[int, str]] = []
+        seen: set[int] = set()
+        for raw in self.card.get("manual_quest_ids", []) or []:
+            try:
+                quest_id = int(raw)
+            except (TypeError, ValueError):
+                continue
+            if quest_id in seen:
+                continue
+            seen.add(quest_id)
+
+            name = ""
+            if callable(getter):
+                try:
+                    quest = getter(quest_id)
+                except (KeyError, LookupError, TypeError, ValueError):
+                    quest = None
+                name = str(getattr(quest, "name", "") or "").strip()
+            result.append((quest_id, name or f"Quête #{quest_id}"))
+        return result
+
+    def _open_quest(self, quest_id: int) -> None:
+        parent = self.parentWidget()
+        while parent is not None:
+            navigator = getattr(parent, "navigate_entity", None)
+            if callable(navigator):
+                # No Guide/Achievement source override here: the UX contract is
+                # to open the canonical quest sheet in the Quêtes tab.
+                navigator("quest", int(quest_id))
+                return
+            parent = parent.parentWidget()
 
     def _add_line_section(
         self,
