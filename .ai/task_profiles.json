@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "default_requested_quality": "balanced",
+  "quality_levels": {
+    "economy": {"rank": 1, "label": "Eco"},
+    "balanced": {"rank": 2, "label": "Standard"},
+    "best": {"rank": 3, "label": "Premium"}
+  },
+  "model_tiers": [
+    {
+      "id": "economy",
+      "quality_rank": 1,
+      "consumption_rank": 1,
+      "consumption_label": "low",
+      "reasoning_effort": "low",
+      "model_env": "DOF_AI_MODEL_ECONOMY"
+    },
+    {
+      "id": "balanced",
+      "quality_rank": 2,
+      "consumption_rank": 2,
+      "consumption_label": "moderate",
+      "reasoning_effort": "medium",
+      "model_env": "DOF_AI_MODEL_BALANCED"
+    },
+    {
+      "id": "premium",
+      "quality_rank": 3,
+      "consumption_rank": 3,
+      "consumption_label": "high",
+      "reasoning_effort": "high",
+      "model_env": "DOF_AI_MODEL_PREMIUM"
+    }
+  ],
+  "task_profiles": {
+    "read_only": {
+      "recommended_quality": "economy",
+      "description": "Navigation, lecture, recherche et inspection sans modification."
+    },
+    "tiny_edit": {
+      "recommended_quality": "economy",
+      "description": "Petite modification localisee a faible risque."
+    },
+    "localized_fix": {
+      "recommended_quality": "balanced",
+      "description": "Correction ciblee avec diagnostic et tests bornes."
+    },
+    "feature": {
+      "recommended_quality": "balanced",
+      "description": "Fonctionnalite ou changement multi-fichiers borne."
+    },
+    "refactor": {
+      "recommended_quality": "best",
+      "description": "Refactorisation avec impacts consommateurs possibles."
+    },
+    "structural": {
+      "recommended_quality": "best",
+      "description": "Changement structurel, dependances, deplacement ou suppression de modules."
+    },
+    "certification": {
+      "recommended_quality": "best",
+      "description": "Certification, integrite globale ou changement de garde-fous."
+    }
+  }
+}

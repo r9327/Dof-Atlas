@@ -57,24 +57,29 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             },
         )
 
-    def test_critical_pr_materializes_heavy_fixtures_conditionally(self) -> None:
+    def test_non_low_pr_materializes_quest_catalog_and_critical_adds_heavy_fixtures(self) -> None:
         for token in (
             "name: Classify Doctor risk",
             "from tools.atlas_integrity import changed_files, classify_risk",
-            "if: steps.doctor_risk.outputs.risk == 'CRITICAL'",
-            "git lfs pull --include=",
-            "tools/doduda/doduda.exe",
+            "name: Materialize Doctor quest catalog",
+            "if: steps.doctor_risk.outputs.risk != 'LOW'",
+            'git lfs pull --include="tools/doduda/doduda.exe"',
             "QuestCatalog.load()",
             "count < 1900",
+            "name: Materialize CRITICAL Doctor fixtures",
+            "if: steps.doctor_risk.outputs.risk == 'CRITICAL'",
+            "data/images/misc/dofus_atlas_logo.png",
         ):
             with self.subTest(token=token):
                 self.assertIn(token, self.source)
 
         classify_index = self.source.index("name: Classify Doctor risk")
-        materialize_index = self.source.index("name: Materialize CRITICAL Doctor fixtures")
+        catalog_index = self.source.index("name: Materialize Doctor quest catalog")
+        heavy_index = self.source.index("name: Materialize CRITICAL Doctor fixtures")
         doctor_index = self.source.index("name: Run canonical Doctor FAST merge gate")
-        self.assertLess(classify_index, materialize_index)
-        self.assertLess(materialize_index, doctor_index)
+        self.assertLess(classify_index, catalog_index)
+        self.assertLess(catalog_index, heavy_index)
+        self.assertLess(heavy_index, doctor_index)
 
     def test_non_doctor_merge_contracts_remain_explicit(self) -> None:
         for module in (
