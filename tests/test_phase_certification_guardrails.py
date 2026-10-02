@@ -467,12 +467,14 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("NOT PHASE CERTIFICATION", self.public_pr)
         self.assertIn("tests.test_phase_certification_guardrails", self.public_pr)
 
-    def test_phase_certification_is_exact_head_full_gate_for_phase_prs(self) -> None:
+    def test_phase_certification_is_exact_head_full_gate_for_phase_prs_and_main(self) -> None:
         source = self.certification_workflow
         self.assertIn("workflow_dispatch:", source)
+        self.assertIn("push:\n    branches:\n      - main", source)
         self.assertIn("pull_request:", source)
-        self.assertNotIn("push:\n", source)
         self.assertIn("synchronize", source)
+        self.assertIn("github.event_name == 'push'", source)
+        self.assertIn("github.event.before", source)
         self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", source)
         self.assertIn(
             "github.event.pull_request.head.repo.full_name == github.repository",
