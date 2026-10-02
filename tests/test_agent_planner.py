@@ -104,7 +104,7 @@ class AgentPlannerTests(unittest.TestCase):
             "recommended_tests": ["tests.test_alpha", "tests.test_beta"],
             "rules": ["AGENTS.md"],
             "canonical_entries": ["app/modules/encyclopedia/guide.py"],
-            "context_entries": ["ROAD_IA.md"],
+            "context_entries": ["AI_CONTEXT.md"],
             "working_set": ["app/modules/encyclopedia/"],
         }
         with tempfile.TemporaryDirectory() as directory:

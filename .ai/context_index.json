@@ -12,7 +12,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "9865e7e718611de064815a6b0bbcede6bd8f0d95",
+      "sha": "9ca53f0d93aee37e06e0f899b8f04f646d2a6515",
       "type": "tree"
     },
     ".gitignore": {
@@ -33,11 +33,6 @@
     "AI_CONTEXT.md": {
       "mode": "100644",
       "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
-      "type": "blob"
-    },
-    "AUDIT_NETWORK_QUESTS_2026-09-07.md": {
-      "mode": "100644",
-      "sha": "7ea51f453daded65d6b7538f223e30ae8d0d7e12",
       "type": "blob"
     },
     "Analyze_Startup.bat": {
@@ -90,11 +85,6 @@
       "sha": "66877b87a257b85cc4983d89cc23db4c3d4b0156",
       "type": "blob"
     },
-    "ROAD_IA.md": {
-      "mode": "100644",
-      "sha": "ae30ba11dcb0dec182d7c7f67456317fcc510949",
-      "type": "blob"
-    },
     "ZERO_TRUST_RULES.md": {
       "mode": "100644",
       "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a",
@@ -102,7 +92,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "0ee69321205c1bed973c69bd0517fec94a0087cf",
+      "sha": "32b8fe81450248de4defcbcaeeb4e9ad35038c30",
       "type": "tree"
     },
     "bootstrap_dofus_atlas.ps1": {
@@ -112,7 +102,7 @@
     },
     "data": {
       "mode": "040000",
-      "sha": "855f42ee9dd3cd0aa6b6cb88715bb790b960dfe5",
+      "sha": "97a7491f91e92455b9004097d35a8d4e39de0870",
       "type": "tree"
     },
     "docs": {
@@ -127,7 +117,7 @@
     },
     "local_dofus_data": {
       "mode": "040000",
-      "sha": "dd8983241533951fe01f82529af077118a1575e5",
+      "sha": "a9aef8772f6d2d48c5253095f3ee24278d68fe7e",
       "type": "tree"
     },
     "main.py": {
@@ -152,12 +142,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "796cb0e9d0a0a515580379cab785ca48bc77323f",
+      "sha": "79c879d9e3eb1629f819867c0bc98681881b8932",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "42948106d649a63ebed079a54b5b23a22dbcbfab",
+      "sha": "aadec7d81c16ee382deefe426de1697ff0aad5cb",
       "type": "tree"
     }
   },

@@ -110,7 +110,6 @@ class AiContextTests(unittest.TestCase):
             "tools/atlas_integrity.py": "quality",
             ".github/workflows/app-ci.yml": "quality",
             ".githooks/pre-commit": "quality",
-            "ROAD_IA.md": "quality",
         }
         for path, expected in cases.items():
             with self.subTest(path=path):

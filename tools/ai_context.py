@@ -20,7 +20,6 @@ QUALITY_ROOT_FILES = frozenset(
         "GITHUB_PROTECTION.md",
         "PERFORMANCE_GUARDRAILS.md",
         "PHASE_CERTIFICATION.md",
-        "ROAD_IA.md",
         "ZERO_TRUST_RULES.md",
         "requirements-pyside.txt",
     }
