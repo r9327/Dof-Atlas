@@ -127,4 +127,4 @@ jobs:
             artifacts/doctor/perf/runtime.json
             .ai/runtime/atlas_doctor/latest_perf.json
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 4

@@ -18,3 +18,5 @@ Canonical entry points:
 The semantic boundary is `tools.guide_integrity_contracts`. Runtime and UI producers normalize action dictionaries into `GuideAction` values so Guide Integrity can validate structured data instead of rendered text. Text heuristics remain compatibility diagnostics and must not be promoted blindly from REVIEW to HARD.
 
 Historical versioned wrappers and mutators remain retired. The canonical transversal entry delegates to the retained v15 engine; older implementations remain available in Git history rather than as parallel entry points.
+
+Audit output retention is bounded. Local Guide archive rotation keeps the four most recent runs under `artifacts/archive/guide_ultime/`; fixed-name Doctor and Guide reports overwrite their previous output. Routine GitHub audit artifacts expire after four days, while phase-certification evidence keeps its longer dedicated retention.
