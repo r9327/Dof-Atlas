@@ -34,7 +34,12 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
             index,
             chapter_preparation=chapter_preparation,
         )
-        card.update({"manual_stage_data": copy.deepcopy(stage)})
+        card.update(
+            {
+                "manual_stage_data": copy.deepcopy(stage),
+                "manual_chapter_preparation": copy.deepcopy(chapter_preparation or []),
+            }
+        )
         return card
 
     def _stage_lines(

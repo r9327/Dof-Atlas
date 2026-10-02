@@ -65,6 +65,10 @@ _ACQUIRE_RE = re.compile(
     r"craft\w*|fabriqu\w*|prends|prendre|[ée]chang\w*)\b",
     flags=re.IGNORECASE,
 )
+_ACQUISITION_CLAUSE_SPLIT_RE = re.compile(
+    r"\s*(?:[,;.!?]|\b(?:puis|ensuite)\b)\s*",
+    flags=re.IGNORECASE,
+)
 _RESOURCE_TRAILING_CONNECTORS = {
     "a",
     "au",
@@ -161,10 +165,13 @@ def _resource_name_matches(text: str, resource_name: str) -> bool:
 
 
 def line_acquires_resource(text: str, resource_name: str) -> bool:
-    return bool(
-        _resource_name_matches(text, resource_name)
-        and _ACQUIRE_RE.search(str(text or ""))
-    )
+    """Require the acquisition verb and resource to live in the same clause."""
+    for clause in _ACQUISITION_CLAUSE_SPLIT_RE.split(str(text or "")):
+        if not clause:
+            continue
+        if _resource_name_matches(clause, resource_name) and _ACQUIRE_RE.search(clause):
+            return True
+    return False
 
 
 def preparation_resource_name(text: str) -> str:

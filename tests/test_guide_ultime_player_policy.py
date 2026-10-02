@@ -11,6 +11,7 @@ from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service impor
 from app.modules.encyclopedia.services.guide_ultime_player_policy import (
     apply_player_line_policy,
     ensure_drop_purchase_alternative,
+    line_acquires_resource,
     split_real_actions,
 )
 
@@ -45,6 +46,15 @@ class GuideUltimePlayerPolicyTests(unittest.TestCase):
         )
         noun = "Conserve les ressources et drops utiles."
         self.assertEqual(ensure_drop_purchase_alternative(noun), noun)
+
+    def test_acquisition_requires_resource_and_verb_in_the_same_clause(self) -> None:
+        text = (
+            "Après Nyée, remettre l'Oeuf noir, fabriquer l'ambre enchanté avec les ressources déjà préparées, "
+            "terminer les combats/dialogues et purifier l'ambre avec l'Anneau Ocre."
+        )
+        self.assertFalse(line_acquires_resource(text, "Ambre"))
+        self.assertFalse(line_acquires_resource("Conserver l'Or pendant l'Ordre 80.", "Or"))
+        self.assertTrue(line_acquires_resource("Achète 30 Ambre avant de repartir.", "Ambre"))
 
     def test_preparation_is_removed_only_when_the_same_stage_acquires_the_item(self) -> None:
         rows = apply_player_line_policy(
