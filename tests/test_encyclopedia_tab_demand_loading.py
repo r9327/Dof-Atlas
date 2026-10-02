@@ -75,6 +75,10 @@ class EncyclopediaDemandLoadingTests(unittest.TestCase):
             "_on_guide_requested",
             "_on_achievement_requested",
             "_finish_pending_guide_request",
+            "_ensure_guides_view_base",
+            "_ensure_guides_view_progressive",
+            "_promote_guides_runtime_context",
+            "_on_tab_changed_progressive",
         )
         for name in obsolete:
             with self.subTest(name=name):
