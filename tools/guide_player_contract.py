@@ -19,18 +19,17 @@ from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service impor
     MANUAL_DIR,
     GuideUltimeManualRuntimeService,
 )
+from app.modules.encyclopedia.services.guide_ultime_player_policy import (
+    has_actionable_drop,
+    has_purchase_alternative,
+    line_acquires_resource,
+    split_real_actions,
+)
 from app.quest_catalog import normalize_text
 
 
 MANIFEST = MANUAL_DIR / "manifest_v1.json"
 
-_MULTI_ACTION_RE = re.compile(
-    r"(?:\b(?:puis|ensuite|et)\b|[;,])\s*"
-    r"(?:va\b|rends[- ]?toi\b|retourne\b|reviens\b|parle\b|prends\b|lance\b|"
-    r"entre\b|rejoins\b|t[ée]l[ée]porte\b|utilise\b|ach[èe]te\b|drop\w*\b|"
-    r"tue\b|fais\b|bats\b|ramasse\b|donne\b|clique\b|ouvre\b|termine\b|valide\b)",
-    flags=re.IGNORECASE,
-)
 _TALK_TARGET_RE = re.compile(
     r"^(?:parle(?:r)?|discute(?:r)?)\s+"
     r"(?:(?:à|a)\s+(?:la\s+|le\s+|l['’]\s*)?|au\s+|aux\s+|avec\s+)"
@@ -38,8 +37,6 @@ _TALK_TARGET_RE = re.compile(
     r"(?=\s+(?:pour|afin(?:\s+de)?|et)\b|[.,;:]|$)",
     flags=re.IGNORECASE,
 )
-_DROP_RE = re.compile(r"\bdrop\w*\b", flags=re.IGNORECASE)
-_PURCHASE_RE = re.compile(r"\b(?:achet\w*|ach[èe]t\w*|hdv|h[ôo]tel de vente)\b", flags=re.IGNORECASE)
 _DESTINATION_NEXT_RE = re.compile(r"\bdestination\s+suivante\b", flags=re.IGNORECASE)
 
 
@@ -94,7 +91,7 @@ def line_contract_issues(
             )
         )
 
-    if kind == "action" and _MULTI_ACTION_RE.search(text):
+    if kind == "action" and len(split_real_actions(text)) > 1:
         issues.append(
             _issue(
                 "review",
@@ -108,7 +105,7 @@ def line_contract_issues(
             )
         )
 
-    if kind == "action" and _DROP_RE.search(text) and not _PURCHASE_RE.search(text):
+    if kind == "action" and has_actionable_drop(text) and not has_purchase_alternative(text):
         issues.append(
             _issue(
                 "review",
@@ -179,24 +176,25 @@ def stage_contract_issues(
                 )
             )
 
-    normalized_resources = [(name, normalize_text(name)) for name in resource_names]
-    for resource_name, resource_key in normalized_resources:
+    for resource_name in resource_names:
+        resource_key = normalize_text(resource_name)
         if not resource_key:
             continue
         preparation_indexes: list[int] = []
-        action_indexes: list[int] = []
+        acquisition_indexes: list[int] = []
         for index, line in enumerate(lines):
             if not isinstance(line, dict):
                 continue
-            text_key = normalize_text(line.get("text"))
+            text = str(line.get("text") or "")
+            text_key = normalize_text(text)
             if resource_key not in text_key:
                 continue
             kind = str(line.get("kind") or "").strip()
             if kind == "warning" and text_key.startswith("prepare_"):
                 preparation_indexes.append(index)
-            elif kind == "action":
-                action_indexes.append(index)
-        if preparation_indexes and action_indexes:
+            elif kind == "action" and line_acquires_resource(text, resource_name):
+                acquisition_indexes.append(index)
+        if preparation_indexes and acquisition_indexes:
             issues.append(
                 _issue(
                     "review",
@@ -205,7 +203,7 @@ def stage_contract_issues(
                     stage_id,
                     resource=resource_name,
                     preparation_line_indexes=preparation_indexes,
-                    action_line_indexes=action_indexes,
+                    action_line_indexes=acquisition_indexes,
                 )
             )
 

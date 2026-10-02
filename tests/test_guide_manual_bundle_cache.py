@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from app.modules.encyclopedia.services import guide_ultime_manual_runtime_service as manual_runtime
+from app.modules.encyclopedia.services import guide_ultime_manual_runtime_core as manual_runtime
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
     GuideUltimeManualRuntimeService,
 )

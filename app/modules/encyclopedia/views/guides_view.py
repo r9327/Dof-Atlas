@@ -3056,19 +3056,28 @@ class GuidesView(QWidget):
     def _refresh_guide_ultime_home_labels(self) -> None:
         if not hasattr(self, "home_content"):
             return
-        for label in self.home_content.findChildren(QLabel):
-            text = label.text().strip().casefold()
-            if "aventure de zéro" in text or "aventure de zero" in text:
-                label.setText(GUIDE_ULTIME_TITLE)
+        card = next(
+            (
+                candidate
+                for candidate in self.home_content.findChildren(GuideHomeCard)
+                if str(getattr(getattr(candidate, "guide", None), "id", ""))
+                == GUIDE_ULTIME_LEGACY_ID
+            ),
+            None,
+        )
+        if card is None:
+            return
+        title = card.findChild(QLabel, "GuideHomeCardTitle")
+        if title is not None:
+            title.setText(GUIDE_ULTIME_TITLE)
+        card.setToolTip(f"Ouvrir le guide {GUIDE_ULTIME_TITLE}")
         service = self.guide_ultime_service
         if service is None or not service.available:
             return
         completed, total = service.route_sheet_progress(self.current_character_key)
-        for label in self.home_content.findChildren(QLabel, "GuideHomeProgress"):
-            parent = label.parentWidget()
-            title = parent.findChild(QLabel, "GuideHomeCardTitle") if parent is not None else None
-            if title is not None and title.text().strip() == GUIDE_ULTIME_TITLE:
-                label.setText(f"{completed} / {total} fiches")
+        progress = card.findChild(QLabel, "GuideHomeProgress")
+        if progress is not None:
+            progress.setText(f"{completed} / {total} fiches")
 
     def refresh_home(self) -> None:
         signature = self._current_home_render_signature()
