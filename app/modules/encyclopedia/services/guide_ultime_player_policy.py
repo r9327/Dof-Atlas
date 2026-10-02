@@ -71,8 +71,10 @@ _ACQUISITION_CLAUSE_SPLIT_RE = re.compile(
 )
 _RESOURCE_TRAILING_CONNECTORS = {
     "a",
+    "apres",
     "au",
     "aux",
+    "avant",
     "avec",
     "chez",
     "contre",

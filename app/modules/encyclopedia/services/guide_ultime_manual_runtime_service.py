@@ -16,6 +16,30 @@ clear_manual_bundle_cache = _core.clear_manual_bundle_cache
 class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
     """Canonical manual runtime with the Phase 7E player-facing policy applied once."""
 
+    @classmethod
+    def _structured_rows_from_fields(
+        cls,
+        stage: dict[str, Any],
+        fields: tuple[str, ...],
+    ) -> list[dict[str, Any]]:
+        return super()._structured_rows_from_fields(stage, fields)
+
+    @staticmethod
+    def _link_next_cards(cards) -> None:
+        for index, card in enumerate(cards):
+            if index + 1 >= len(cards):
+                card["ensuite"] = None
+                continue
+            nxt = cards[index + 1]
+            card["ensuite"] = {
+                "destination": str(nxt.get("destination") or ""),
+                "x": nxt.get("x"),
+                "y": nxt.get("y"),
+                "zone": str(nxt.get("zone") or ""),
+                "subzone": str(nxt.get("subzone") or ""),
+                "manual_stage_id": str(nxt.get("manual_stage_id") or ""),
+            }
+
     def _stage_to_card(
         self,
         chapter_id: str,
