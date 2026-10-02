@@ -8,10 +8,20 @@ import time
 from pathlib import Path
 from typing import Any
 
-from .core import git_state, milliseconds, tracked_files, utc_now, write_json
+from .core import (
+    git_state,
+    load_json,
+    milliseconds,
+    runtime_dir,
+    tracked_files,
+    utc_now,
+    write_json,
+)
 
 DATA_EXTENSIONS = {'.json', '.jsonl', '.csv', '.txt', '.yaml', '.yml'}
 DATA_PREFIXES = ('data/', 'config/', 'local_dofus_data/')
+DEFAULT_RUNTIME_SAMPLES = 3
+RUNTIME_ARTIFACT = Path('artifacts/doctor/perf/runtime.json')
 
 
 def _percentile(values: list[float], percentile: float) -> float:
@@ -85,94 +95,145 @@ def profile_data_files(root: Path, *, max_file_mb: float = 64.0) -> dict[str, An
     }
 
 
-def run_runtime_benchmark(root: Path, *, timeout: int = 180) -> dict[str, Any]:
-    benchmark = root / 'app/modules/encyclopedia/tools/benchmark_guides_performance.py'
-    runner = root / 'tools/atlas_doctor_io_runner.py'
-    if not benchmark.is_file():
-        return {'status': 'UNAVAILABLE', 'reason': f'Benchmark canonique absent: {benchmark.relative_to(root)}'}
-    if not runner.is_file():
-        return {'status': 'UNAVAILABLE', 'reason': 'atlas_doctor_io_runner.py absent'}
+def _previous_runtime_benchmark(root: Path) -> dict[str, Any] | None:
+    previous = load_json(root, 'latest_perf') or {}
+    benchmark = ((previous.get('runtime') or {}).get('benchmark') or {})
+    return benchmark if isinstance(benchmark, dict) and benchmark else None
 
-    trace_path = root / '.ai/runtime/atlas_doctor/runtime_io_trace.json'
-    trace_path.parent.mkdir(parents=True, exist_ok=True)
-    trace_path.unlink(missing_ok=True)
-    artifact = root / 'artifacts/quests_guides_performance.json'
-    artifact.unlink(missing_ok=True)
 
-    # Run the canonical benchmark without instrumentation first so its timing/RAM
-    # remains comparable with historical same-machine baselines.
-    clean_command = [sys.executable, '-m', 'app.modules.encyclopedia.tools.benchmark_guides_performance']
+def _runtime_environment(root: Path) -> dict[str, str]:
     env = os.environ.copy()
     current_pythonpath = env.get('PYTHONPATH', '')
-    env['PYTHONPATH'] = str(root) + (os.pathsep + current_pythonpath if current_pythonpath else '')
+    env['PYTHONPATH'] = str(root) + (
+        os.pathsep + current_pythonpath if current_pythonpath else ''
+    )
+    env.setdefault('QT_QPA_PLATFORM', 'offscreen')
+    env.setdefault('QTWEBENGINE_CHROMIUM_FLAGS', '--disable-gpu --no-sandbox')
+    env.setdefault('QTWEBENGINE_DISABLE_SANDBOX', '1')
+    env.setdefault('PYTHONUNBUFFERED', '1')
+    env.setdefault('PYTHONUTF8', '1')
+    return env
+
+
+def run_runtime_benchmark(
+    root: Path,
+    *,
+    timeout: int = 180,
+    samples: int = DEFAULT_RUNTIME_SAMPLES,
+) -> dict[str, Any]:
+    """Run canonical UI/RAM samples in isolated processes and aggregate medians."""
+
+    from .runtime_benchmark import aggregate_samples, attach_baseline_comparison
+
+    sample_count = max(1, int(samples))
+    sample_dir = runtime_dir(root) / 'perf_samples'
+    sample_dir.mkdir(parents=True, exist_ok=True)
+    for stale in sample_dir.glob('sample-*.json'):
+        stale.unlink(missing_ok=True)
+
+    env = _runtime_environment(root)
+    collected: list[dict[str, Any]] = []
+    executions: list[dict[str, Any]] = []
     started = time.perf_counter()
-    clean = subprocess.run(
-        clean_command,
-        cwd=root,
-        env=env,
-        text=True,
-        encoding='utf-8',
-        errors='replace',
-        capture_output=True,
-        check=False,
-        timeout=timeout,
+    worker = (
+        'import sys; from pathlib import Path; '
+        'from tools.atlas_doctor_lib.runtime_benchmark import write_sample; '
+        'write_sample(Path(sys.argv[1]), Path(sys.argv[2]))'
     )
-    clean_duration_ms = milliseconds(started)
-    benchmark_payload: dict[str, Any] | None = None
-    if artifact.is_file():
-        try:
-            benchmark_payload = json.loads(artifact.read_text(encoding='utf-8'))
-        except (OSError, json.JSONDecodeError):
-            benchmark_payload = None
 
-    # Separate traced run: diagnostic I/O overhead must not contaminate the
-    # canonical performance numbers above.
-    env['ATLAS_DOCTOR_IO_TRACE'] = str(trace_path)
-    trace_command = [sys.executable, '-m', 'tools.atlas_doctor_io_runner', str(benchmark)]
-    trace_started = time.perf_counter()
-    traced = subprocess.run(
-        trace_command,
-        cwd=root,
-        env=env,
-        text=True,
-        encoding='utf-8',
-        errors='replace',
-        capture_output=True,
-        check=False,
-        timeout=timeout,
+    for index in range(1, sample_count + 1):
+        output_path = sample_dir / f'sample-{index}.json'
+        command = [
+            sys.executable,
+            '-c',
+            worker,
+            str(root),
+            str(output_path),
+        ]
+        sample_started = time.perf_counter()
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=root,
+                env=env,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                capture_output=True,
+                check=False,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exc:
+            return {
+                'status': 'FAIL',
+                'reason': f'Runtime sample {index}/{sample_count} timed out after {timeout}s.',
+                'duration_ms': milliseconds(started),
+                'sample_count': len(collected),
+                'command': command,
+                'stdout_tail': (exc.stdout or '').splitlines()[-20:] if isinstance(exc.stdout, str) else [],
+                'stderr_tail': (exc.stderr or '').splitlines()[-40:] if isinstance(exc.stderr, str) else [],
+            }
+
+        execution = {
+            'sample': index,
+            'returncode': completed.returncode,
+            'duration_ms': milliseconds(sample_started),
+            'stdout_tail': completed.stdout.splitlines()[-10:],
+            'stderr_tail': completed.stderr.splitlines()[-20:],
+        }
+        executions.append(execution)
+        if completed.returncode != 0 or not output_path.is_file():
+            return {
+                'status': 'FAIL',
+                'reason': f'Runtime sample {index}/{sample_count} failed.',
+                'duration_ms': milliseconds(started),
+                'sample_count': len(collected),
+                'executions': executions,
+                'command': command,
+            }
+        try:
+            sample_payload = json.loads(output_path.read_text(encoding='utf-8'))
+        except (OSError, json.JSONDecodeError) as exc:
+            return {
+                'status': 'FAIL',
+                'reason': f'Runtime sample {index}/{sample_count} produced invalid JSON: {exc}',
+                'duration_ms': milliseconds(started),
+                'sample_count': len(collected),
+                'executions': executions,
+            }
+        collected.append(sample_payload)
+
+    benchmark = aggregate_samples(collected)
+    benchmark = attach_baseline_comparison(
+        benchmark,
+        _previous_runtime_benchmark(root),
     )
-    trace_duration_ms = milliseconds(trace_started)
-    trace_payload: dict[str, Any] | None = None
-    if trace_path.is_file():
-        try:
-            trace_payload = json.loads(trace_path.read_text(encoding='utf-8'))
-        except (OSError, json.JSONDecodeError):
-            trace_payload = None
-
-    clean_ok = clean.returncode == 0 and benchmark_payload is not None
-    trace_ok = traced.returncode == 0 and trace_payload is not None
+    artifact = root / RUNTIME_ARTIFACT
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(
+        json.dumps(benchmark, ensure_ascii=False, indent=2) + '\n',
+        encoding='utf-8',
+    )
+    total_duration_ms = milliseconds(started)
     return {
-        'status': 'PASS' if clean_ok else 'FAIL',
-        'clean_returncode': clean.returncode,
-        'trace_returncode': traced.returncode,
-        'duration_ms': round(clean_duration_ms + trace_duration_ms, 3),
-        'clean_duration_ms': clean_duration_ms,
-        'trace_duration_ms': trace_duration_ms,
-        'clean_command': clean_command,
-        'trace_command': trace_command,
-        'benchmark': benchmark_payload,
-        'io_trace_status': 'PASS' if trace_ok else 'FAIL',
-        'io_trace': trace_payload,
-        'clean_stdout_tail': clean.stdout.splitlines()[-20:],
-        'clean_stderr_tail': clean.stderr.splitlines()[-40:],
-        'trace_stderr_tail': traced.stderr.splitlines()[-40:],
+        'status': 'PASS',
+        'duration_ms': total_duration_ms,
+        'clean_duration_ms': total_duration_ms,
+        'trace_duration_ms': 0.0,
+        'sample_count': sample_count,
+        'executions': executions,
+        'benchmark': benchmark,
+        'artifact': str(RUNTIME_ARTIFACT).replace('\\', '/'),
+        'io_trace_status': 'NOT_RUN',
+        'io_trace_reason': 'Runtime performance uses isolated clean samples; use Doctor live for I/O tracing.',
+        'io_trace': None,
     }
 
 
 def run_performance(root: Path, *, include_runtime: bool = True, save: bool = True) -> dict[str, Any]:
     started = time.perf_counter()
     payload: dict[str, Any] = {
-        'schema_version': 1,
+        'schema_version': 2,
         'kind': 'performance',
         'generated_at': utc_now(),
         'git': git_state(root),

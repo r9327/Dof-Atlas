@@ -1,0 +1,130 @@
+name: Doctor Runtime Performance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "tools/atlas_doctor_lib/perf.py"
+      - "tools/atlas_doctor_lib/runtime_benchmark.py"
+      - "tests/test_atlas_doctor_runtime_benchmark.py"
+      - ".github/workflows/doctor-runtime-perf.yml"
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  benchmark:
+    name: Doctor Runtime Benchmark
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        shell: pwsh
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) {
+            throw "Performance checkout mismatch: expected $env:CANDIDATE_SHA, got $actual"
+          }
+          Write-Host "Performance candidate SHA: $actual"
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        shell: pwsh
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+
+      - name: Materialize canonical benchmark data
+        shell: pwsh
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          @'
+          from app.quest_catalog import QuestCatalog
+          catalog = QuestCatalog.load()
+          count = len(catalog.quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Validate benchmark contracts
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_atlas_doctor_runtime_benchmark
+
+      - name: Run canonical Doctor performance lab
+        shell: pwsh
+        run: python -X faulthandler -m tools.atlas_doctor perf
+
+      - name: Publish benchmark summary
+        if: always()
+        shell: pwsh
+        run: |
+          $path = "artifacts/doctor/perf/runtime.json"
+          if (-not (Test-Path -LiteralPath $path)) {
+            Write-Warning "No runtime benchmark artifact was produced."
+            exit 0
+          }
+          $payload = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+          $m = $payload.medians
+          Write-Host "Samples: $($payload.sample_count)"
+          Write-Host "Startup RSS: $($m.startup_stabilized_rss_mb) MiB"
+          Write-Host "Quests open: $($m.quests_open_ms) ms"
+          Write-Host "Achievements open: $($m.achievements_open_ms) ms"
+          Write-Host "Guide open: $($m.guide_open_ms) ms"
+          Write-Host "RSS after all views: $($m.rss_after_all_views_mb) MiB"
+          Write-Host "RSS after round trips: $($m.rss_after_round_trips_mb) MiB"
+          if ($env:GITHUB_STEP_SUMMARY) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Atlas Doctor runtime performance"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate: ``$env:CANDIDATE_SHA``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Samples: ``$($payload.sample_count)``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Startup RSS: ``$($m.startup_stabilized_rss_mb) MiB``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Quests cold open: ``$($m.quests_open_ms) ms``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Success cold open: ``$($m.achievements_open_ms) ms``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide cold open: ``$($m.guide_open_ms) ms``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- RSS after all views: ``$($m.rss_after_all_views_mb) MiB``"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- RSS after round trips: ``$($m.rss_after_round_trips_mb) MiB``"
+          }
+
+      - name: Upload Doctor performance evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: doctor-runtime-perf-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/doctor/perf/runtime.json
+            .ai/runtime/atlas_doctor/latest_perf.json
+          if-no-files-found: warn
+          retention-days: 14
