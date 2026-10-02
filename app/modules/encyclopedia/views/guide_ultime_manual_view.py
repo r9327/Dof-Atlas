@@ -625,7 +625,6 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
             if index != self.active_index
             else "Retour au choix des Guides."
         )
-        self._make_positions_copyable(widget)
         if reset_scroll:
             self._reset_scroll_to_top()
 
