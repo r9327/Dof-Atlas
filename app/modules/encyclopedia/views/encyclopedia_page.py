@@ -26,7 +26,6 @@ from app.modules.encyclopedia.services import (
     QuestProgressService,
     build_related_encyclopedia_data,
 )
-from app.modules.encyclopedia.views.guides_view import GuidesView
 from app.modules.encyclopedia.views.achievements_view import AchievementsView
 from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView
 from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
@@ -134,7 +133,7 @@ class EncyclopediaPage(QWidget):
         self._initializing = True
         self._initial_tab = initial_tab if initial_tab in ENCYCLOPEDIA_TABS else DEFAULT_TAB
         self.quest_page: QuestsPage | None = None
-        self.guides_view: GuidesView | None = None
+        self.guides_view: DeferredAchievementGuidesView | None = None
         self._achievement_provider_supplied = achievement_provider is not None
         self._guide_provider_supplied = guide_provider is not None
         self._owned_items = owned_items
@@ -211,30 +210,6 @@ class EncyclopediaPage(QWidget):
         self._initializing = False
         if self.quest_page is None:
             QTimer.singleShot(0, lambda index=self.tabs.currentIndex(): self.on_tab_changed(index))
-
-
-    def _ensure_guides_view_base(self) -> GuidesView:
-        if self.guides_view is None:
-            self.guides_view = GuidesView(
-                self.status_callback,
-                provider=self.service.guide_provider,
-                quest_provider=self.service.quest_provider,
-                achievement_provider=self.service.achievement_provider,
-                achievement_progress_service=self.achievement_progress_service,
-                guide_progress_service=self.guide_progress_service,
-                quest_progress_path=self.quest_progress_path,
-                navigate_callback=self.navigate_to_entity,
-                launch_travel_callback=self._launch_travel_callback,
-                character_key=self.current_character_key,
-                graph=self._quest_graph,
-                initial_progress_by_guide=self._guide_progress_by_guide,
-                initial_progress_character_key=self._guide_progress_character_key,
-            )
-            self.replace_tab_widget(GUIDES_TAB, self.guides_view)
-        return self.guides_view
-
-
-
 
 
     def ensure_tab_loaded(self, label: str) -> QWidget:
@@ -424,7 +399,7 @@ class EncyclopediaPage(QWidget):
 
     def on_search_changed(self, text: str) -> None:
         widget = self.tabs.currentWidget()
-        if isinstance(widget, GuidesView):
+        if isinstance(widget, DeferredAchievementGuidesView):
             widget.set_search_text(text)
 
     def _on_tab_changed_base(self, index: int) -> None:
@@ -469,7 +444,10 @@ class EncyclopediaPage(QWidget):
 
     def _sync_search_visibility_base(self) -> None:
         widget = self.tabs.currentWidget()
-        embedded_search_active = isinstance(widget, (GuidesView, QuestsPage, AchievementsView))
+        embedded_search_active = isinstance(
+            widget,
+            (DeferredAchievementGuidesView, QuestsPage, AchievementsView),
+        )
         self.search.setVisible(not embedded_search_active)
         self.search.setEnabled(not embedded_search_active)
         if embedded_search_active and self.search.text():
@@ -639,44 +617,6 @@ class EncyclopediaPage(QWidget):
         self.quest_page = page
         return page
 
-    def _promote_guides_runtime_context(self, view) -> None:
-        graph = getattr(view, "graph", None)
-        if graph is None:
-            return
-        self._quest_graph = graph
-        self._guide_provider_supplied = True
-        self._achievement_provider_supplied = True
-        self._related_ready = True
-        self._related_preload_started = False
-        gate = getattr(self, "_related_preload_gate", None)
-        if gate is not None:
-            gate.mark_ready()
-
-    def _ensure_guides_view_progressive(self):
-        view = self._ensure_guides_view_base()
-        self._promote_guides_runtime_context(view)
-        return view
-
-    def _on_tab_changed_progressive(self, index: int) -> None:
-        if index < 0:
-            return
-        label = self.tabs.tabText(index)
-        if self._initializing or label != GUIDES_TAB:
-            self._on_tab_changed_base(index)
-            return
-
-        widget = self.ensure_guides_view()
-        guide_index = self.tab_labels().index(GUIDES_TAB)
-        self._last_ready_tab_index = guide_index
-        self.sync_tab_accent(GUIDES_TAB)
-        self.sync_search_visibility()
-        refresh = getattr(widget, "refresh_external_progress", None)
-        if callable(refresh):
-            refresh()
-        self.sync_character_to_children()
-        self.on_search_changed(self.search.text())
-        self.status_callback(f"Encyclopédie : {GUIDES_TAB}")
-
     def build_quests_page(self):
         # The public Encyclopedia shell may be created before any Doduda catalogue
         # exists. Never make the Qt constructor parse it synchronously.
@@ -818,7 +758,7 @@ class EncyclopediaPage(QWidget):
             self.request_quest_runtime()
             return
 
-        self._on_tab_changed_progressive(index)
+        self._on_tab_changed_base(index)
 
     def _sync_search_visibility_indexed(self) -> None:
         widget = self.tabs.currentWidget()
