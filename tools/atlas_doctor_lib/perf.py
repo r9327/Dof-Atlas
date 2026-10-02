@@ -135,16 +135,19 @@ def run_runtime_benchmark(
     collected: list[dict[str, Any]] = []
     executions: list[dict[str, Any]] = []
     started = time.perf_counter()
+    worker = (
+        'import sys; from pathlib import Path; '
+        'from tools.atlas_doctor_lib.runtime_benchmark import write_sample; '
+        'write_sample(Path(sys.argv[1]), Path(sys.argv[2]))'
+    )
 
     for index in range(1, sample_count + 1):
         output_path = sample_dir / f'sample-{index}.json'
         command = [
             sys.executable,
-            '-m',
-            'tools.atlas_doctor_lib.runtime_benchmark',
-            '--root',
+            '-c',
+            worker,
             str(root),
-            '--output',
             str(output_path),
         ]
         sample_started = time.perf_counter()
