@@ -6,6 +6,7 @@ on:
       - ".ai/**"
       - "AGENTS.md"
       - "AI_CONTEXT.md"
+      - "ROAD_IA.md"
       - "app/AGENTS.md"
       - "data/AGENTS.md"
       - "tests/AGENTS.md"

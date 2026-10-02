@@ -108,6 +108,7 @@ class AiContextTests(unittest.TestCase):
             "config/example.json": "data",
             "tests/test_repository_git_hooks.py": "tests",
             "tools/atlas_integrity.py": "quality",
+            "ROAD_IA.md": "quality",
             ".github/workflows/app-ci.yml": "quality",
             ".githooks/pre-commit": "quality",
         }
@@ -124,8 +125,18 @@ class AiContextTests(unittest.TestCase):
         self.assertNotIn("ZERO_TRUST_RULES.md", guide_docs)
 
         quality_docs = ai_context.recommended_context(["tools/atlas_integrity.py"])
+        self.assertIn("ROAD_IA.md", quality_docs)
         self.assertIn("ZERO_TRUST_RULES.md", quality_docs)
         self.assertIn("PHASE_CERTIFICATION.md", quality_docs)
+
+    def test_road_ia_is_compact_and_has_one_actionable_next_lot(self) -> None:
+        roadmap = (ROOT / "ROAD_IA.md").read_text(encoding="utf-8")
+        self.assertLessEqual(len(roadmap.splitlines()), 160)
+        self.assertEqual(roadmap.count(" — NEXT — "), 1)
+        self.assertIn("### IA-1 — NEXT —", roadmap)
+        self.assertIn("Maximum 160 lignes", roadmap)
+        workflow = (ROOT / ".github/workflows/ai-context-ci.yml").read_text(encoding="utf-8")
+        self.assertIn('"ROAD_IA.md"', workflow)
 
     def test_v2_scope_rule_routes_reference_existing_contracts(self) -> None:
         defaults, scopes = _context_map_lists(ROOT / ".ai/context-map.yaml")
