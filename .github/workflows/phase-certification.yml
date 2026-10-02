@@ -131,7 +131,7 @@ jobs:
           print(f"Materialized QuestCatalog: {count} quests")
           if count < 1900:
               raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
-          '@ | python -  2>&1 | Tee-Object -FilePath $log -Append
+          '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Measure canonical Encyclopedia user paths
