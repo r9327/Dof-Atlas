@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QProgressBar,
     QPushButton,
     QScrollArea,
     QToolButton,
@@ -16,6 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.modules.encyclopedia.services.guide_quest_view_model import quest_solution_steps
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideManualProgressBar,
     GuideUltimeManualCard,
@@ -150,10 +150,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
     def _visible_stage_title(self) -> str:
         """Keep authored action titles, hide redundant route/zone headings."""
         title = " ".join(str(self.card.get("manual_title") or "").split()).strip()
-        if not title or normalize_text(title) in {"fiche_de_route", "etape_gps"}:
-            return ""
         normalized = normalize_text(title)
-        if normalized.startswith("etape_gps"):
+        if not title or normalized in {"fiche de route", "etape gps"}:
+            return ""
+        if normalized.startswith("etape gps"):
             return ""
         for field in ("manual_route_position", "zone", "subzone", "destination"):
             candidate = normalize_text(self.card.get(field))
@@ -312,8 +312,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if direct:
             return direct
 
-        # A generated Lanyel combat row is explicitly typed as combat. If the
-        # catalogue text was normalized differently, keep a one-to-one fallback.
+        solution_targets = self._solution_combat_targets_for_row(row)
+        if solution_targets:
+            return solution_targets
+
+        # A generated combat row should remain a combat row even if catalogue
+        # wording was normalized differently. The fallback stays one-to-one.
         if section_key == "boss" or str(row.get("kind") or "") == "combat":
             remaining = [
                 target
@@ -323,6 +327,102 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             if len(remaining) == 1:
                 return remaining
         return []
+
+    def _solution_combat_targets_for_row(
+        self,
+        row: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        """Resolve Lanyel/source solution combats using their aligned objective ids."""
+        if str(row.get("kind") or "") != "combat":
+            return []
+        provider = getattr(self.service, "quest_provider", None)
+        getter = getattr(provider, "get_quest", None)
+        if not callable(getter):
+            return []
+
+        row_text = normalize_text(row.get("text"))
+        row_position = self._position_key(str(row.get("position") or ""))
+        result: list[dict[str, Any]] = []
+        seen: set[tuple[int, int]] = set()
+        for raw in self.card.get("manual_quest_ids", []) or []:
+            try:
+                quest_id = int(raw)
+                quest = getter(quest_id)
+            except (KeyError, LookupError, TypeError, ValueError):
+                continue
+            if quest is None:
+                continue
+            quest_name = str(getattr(quest, "name", "") or "").strip()
+            local_objectives: dict[int, Any] = {}
+            for quest_step in getattr(quest, "steps", ()) or ():
+                for local in getattr(quest_step, "objectives", ()) or ():
+                    objective_id = self._safe_positive_int(getattr(local, "id", None))
+                    if objective_id is not None:
+                        local_objectives[objective_id] = local
+
+            try:
+                solution_steps = quest_solution_steps(quest)
+            except (AttributeError, TypeError, ValueError):
+                continue
+            for solution_step in solution_steps:
+                for objective in getattr(solution_step, "objectives", ()) or ():
+                    if not bool(getattr(objective, "combat", False)):
+                        continue
+                    objective_id = self._safe_positive_int(
+                        getattr(objective, "objective_id", None)
+                    )
+                    if objective_id is None:
+                        continue
+                    key = (quest_id, objective_id)
+                    if key in seen or key in self._rendered_combat_keys:
+                        continue
+                    objective_text = normalize_text(getattr(objective, "text", ""))
+                    objective_position = self._position_key(
+                        str(getattr(objective, "position", "") or "")
+                    )
+                    text_matches = bool(
+                        objective_text
+                        and (
+                            objective_text == row_text
+                            or objective_text in row_text
+                            or row_text in objective_text
+                        )
+                    )
+                    position_matches = bool(
+                        row_position
+                        and objective_position
+                        and row_position == objective_position
+                    )
+                    if not (text_matches or position_matches):
+                        continue
+
+                    local = local_objectives.get(objective_id)
+                    local_text = str(
+                        getattr(local, "text", "")
+                        or getattr(objective, "text", "")
+                        or ""
+                    ).strip()
+                    monster = str(
+                        getattr(local, "image_label", "")
+                        or getattr(objective, "text", "")
+                        or local_text
+                    ).strip()
+                    quantity = (
+                        self._combat_quantity(local, local_text)
+                        if local is not None
+                        else self._safe_positive_int(getattr(objective, "quantity", None)) or 1
+                    )
+                    seen.add(key)
+                    result.append(
+                        {
+                            "quest_id": quest_id,
+                            "objective_id": objective_id,
+                            "quest_name": quest_name,
+                            "monster": monster,
+                            "quantity": quantity,
+                        }
+                    )
+        return result
 
     def _add_combat_target(
         self,
