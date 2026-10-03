@@ -50,7 +50,7 @@ def _find_card_index(service: Any, character_key: str, predicate, label: str) ->
     for index, card in enumerate(cards):
         if isinstance(card, dict) and predicate(service, character_key, card):
             return index
-    raise ValueError(f"Aucune fiche réelle du Guide Ultime avec {label} n'a été trouvée")
+    raise ValueError(f"Aucune fiche réelle du guide avec {label} n'a été trouvée")
 
 
 def _focus_section_later(manual_view: Any, object_name: str) -> None:
@@ -69,8 +69,20 @@ def _focus_section_later(manual_view: Any, object_name: str) -> None:
     QTimer.singleShot(100, focus)
 
 
+def _manual_view_and_service(view: Any, guide_id: str) -> tuple[Any, Any]:
+    if guide_id == "guide_complet":
+        return (
+            getattr(view, "guide_ultime_view", None),
+            getattr(view, "guide_ultime_service", None),
+        )
+    return (
+        getattr(view, "_catalog_manual_views", {}).get(guide_id),
+        getattr(view, "_catalog_manual_services", {}).get(guide_id),
+    )
+
+
 def create_guides_preview(context: PreviewContext):
-    """Extend the normal Guide preview with real Guide Ultime GPS states."""
+    """Extend the normal Guide preview with real shared-manual GPS states."""
 
     page = create_base_guides_preview(context)
     if context.scenario not in GPS_SCENARIOS:
@@ -79,13 +91,13 @@ def create_guides_preview(context: PreviewContext):
     from app.modules.encyclopedia.constants import GUIDES_TAB
 
     view = page.ensure_tab_loaded(GUIDES_TAB)
-    if not view.select_guide("guide_complet"):
-        raise RuntimeError("Le Guide Ultime réel n'est pas disponible pour la capture")
+    guide_id = str(context.params.get("guide_id") or "guide_complet").strip()
+    if not view.select_guide(guide_id):
+        raise RuntimeError(f"Le guide réel {guide_id} n'est pas disponible pour la capture")
 
-    manual_view = getattr(view, "guide_ultime_view", None)
-    service = getattr(view, "guide_ultime_service", None)
+    manual_view, service = _manual_view_and_service(view, guide_id)
     if manual_view is None or service is None or not bool(getattr(service, "available", False)):
-        raise RuntimeError("La vue GPS réelle du Guide Ultime n'a pas été matérialisée")
+        raise RuntimeError(f"La vue GPS réelle du guide {guide_id} n'a pas été matérialisée")
 
     character_key = str(getattr(manual_view, "character_key", "") or "")
     if context.scenario == "gps_active":
@@ -104,12 +116,12 @@ def create_guides_preview(context: PreviewContext):
         manual_view._show_index(
             _find_card_index(service, character_key, _card_has_prepare, "une section À PRÉPARER")
         )
-        _focus_section_later(manual_view, "GuideManualResourceSection")
+        _focus_section_later(manual_view, "GuideManualWarningSection")
     elif context.scenario == "gps_combat":
         manual_view._show_index(
             _find_card_index(service, character_key, _card_has_combat, "un combat/boss")
         )
-        _focus_section_later(manual_view, "GuideManualCombat")
+        _focus_section_later(manual_view, "GuideManualDungeonSection")
 
     _mark_scroll_target(page, getattr(manual_view, "scroll", None), "UiLabGuideGpsScroll")
     return page
