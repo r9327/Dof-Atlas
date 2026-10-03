@@ -40,5 +40,5 @@ def test_only_shared_guide_classes_own_visual_composition() -> None:
 
 def test_legacy_names_redirect_to_shared_renderer() -> None:
     source = LEGACY.read_text(encoding="utf-8")
-    assert "return SharedGuideManualView(*args, **kwargs)" in source
-    assert "return SharedGuideManualCard(*args, **kwargs)" in source
+    assert "return SharedGuideManualView.__new__(SharedGuideManualView)" in source
+    assert "return SharedGuideManualCard.__new__(SharedGuideManualCard)" in source
