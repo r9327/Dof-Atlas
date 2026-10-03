@@ -78,7 +78,7 @@ class GuideUltimeManualCard(QFrame):
                 SharedGuideManualCard,
             )
 
-            return SharedGuideManualCard(*args, **kwargs)
+            return SharedGuideManualCard.__new__(SharedGuideManualCard)
         return super().__new__(cls)
 
     def _add_legend(self, root: QVBoxLayout) -> None:
@@ -539,7 +539,7 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
                 SharedGuideManualView,
             )
 
-            return SharedGuideManualView(*args, **kwargs)
+            return SharedGuideManualView.__new__(SharedGuideManualView)
         return super().__new__(cls)
 
     def _sync_order_combo(self) -> None:
