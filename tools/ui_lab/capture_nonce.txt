@@ -1,0 +1,1 @@
+capture current shared Guide UI after top progress + inline combat fixes

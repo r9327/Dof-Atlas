@@ -25,12 +25,32 @@ from app.quest_catalog import normalize_text
 from app.ui.components import AtlasButton
 
 
+_COMBAT_STOP_WORDS = {
+    "affronter",
+    "battre",
+    "boss",
+    "capture",
+    "combat",
+    "contre",
+    "dans",
+    "des",
+    "du",
+    "elle",
+    "faire",
+    "les",
+    "monstre",
+    "pour",
+    "quete",
+    "tuer",
+    "une",
+    "vaincre",
+}
+
+
 class SharedGuideManualCard(GuideUltimeManualCard):
     """Canonical Guide Succès/Lanyel card with inline route semantics."""
 
     def __init__(self, service, character_key: str, card: dict[str, Any], index: int, parent=None) -> None:
-        # Keep the mature manual-card helpers but own the visual composition here:
-        # no duplicated location header and no detached combat block above the route.
         QFrame.__init__(self, parent)
         self.service = service
         self.character_key = character_key
@@ -42,6 +62,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self._combat_targets = self._quest_combat_targets()
         self._rendered_combat_keys: set[tuple[int, int]] = set()
         self._combat_evidence_cache: dict[tuple[int, int], tuple[str, str]] = {}
+        self._last_route_position_key = ""
         self.setObjectName("GuideManualSheet")
 
         root = QVBoxLayout(self)
@@ -106,12 +127,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             root,
             "BOSS / CAPTURES",
             sections.get("boss"),
-            "GuideManualDungeonSection",
+            "GuideManualCombatSection",
             "boss",
         )
-        # Defensive fallback: an objective that could only be tied to the current
-        # route sheet still stays in the body at combat time, never in the header.
-        self._add_unmatched_combats(root)
         self._add_line_section(
             root,
             "AVANT DE PARTIR",
@@ -161,6 +179,53 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 return ""
         return title
 
+    @staticmethod
+    def _is_combat_row(kind: str, text: str) -> bool:
+        if str(kind or "").casefold() == "combat":
+            return True
+        normalized = normalize_text(text)
+        return any(
+            token in normalized
+            for token in ("combat", "battre", "vaincre", "tuer", "affronter", "boss", "capture")
+        )
+
+    @staticmethod
+    def _combat_tokens(value: Any) -> set[str]:
+        normalized = normalize_text(value)
+        return {
+            token
+            for token in normalized.split()
+            if len(token) >= 4 and token not in _COMBAT_STOP_WORDS
+        }
+
+    @classmethod
+    def _combat_text_matches(cls, row_text: Any, *candidates: Any) -> bool:
+        row_normalized = normalize_text(row_text)
+        if not row_normalized:
+            return False
+        row_tokens = cls._combat_tokens(row_text)
+        for candidate in candidates:
+            normalized = normalize_text(candidate)
+            if not normalized:
+                continue
+            if normalized in row_normalized or row_normalized in normalized:
+                return True
+            candidate_tokens = cls._combat_tokens(candidate)
+            if candidate_tokens and row_tokens.intersection(candidate_tokens):
+                return True
+        return False
+
+    def _display_position(self, raw_position: str) -> str:
+        """Show one coordinate per contiguous map group instead of repeating it on every Lanyel line."""
+        value = str(raw_position or "").strip()
+        key = self._position_key(value)
+        if not key:
+            return value
+        if key == self._last_route_position_key:
+            return ""
+        self._last_route_position_key = key
+        return value
+
     def _add_line_section(
         self,
         root: QVBoxLayout,
@@ -177,12 +242,18 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if not visible:
             return
 
-        # The red semantic belongs to the whole preparation section. Individual
-        # rows stay transparent so « À préparer » remains one coherent block.
         frame = QFrame()
         frame.setObjectName(
             "GuideManualWarningSection" if section_key == "prepare" else object_name
         )
+        if section_key == "boss":
+            frame.setStyleSheet(
+                "QFrame#GuideManualCombatSection {"
+                "background: rgba(174, 183, 177, 0.035);"
+                "border: 1px solid rgba(174, 183, 177, 0.16);"
+                "border-radius: 6px;"
+                "}"
+            )
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(6)
@@ -193,15 +264,24 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
         for row in visible:
             text = str(row.get("text") or "").strip()
-            position = str(row.get("position") or "").strip()
+            position = self._display_position(str(row.get("position") or ""))
             kind = str(row.get("kind") or "")
             prefix = "⚠ " if kind == "warning" else "• "
+            combat_line = self._is_combat_row(kind, text)
 
             row_widget = QFrame()
             row_widget.setObjectName("GuideManualLineRow")
             if section_key == "prepare":
                 row_widget.setStyleSheet(
                     "QFrame#GuideManualLineRow { background: transparent; border: none; }"
+                )
+            elif combat_line:
+                row_widget.setStyleSheet(
+                    "QFrame#GuideManualLineRow {"
+                    "background: rgba(174, 183, 177, 0.045);"
+                    "border: 1px solid rgba(174, 183, 177, 0.14);"
+                    "border-radius: 4px;"
+                    "}"
                 )
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
@@ -218,15 +298,20 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     self._resource_names,
                 ),
             )
-            line.setObjectName(
-                "GuideManualLine"
-                if section_key == "prepare"
-                else self._line_object_name(kind, text)
-            )
             if section_key == "prepare":
+                line.setObjectName("GuideManualLine")
                 line.setStyleSheet(
                     "QLabel#GuideManualLine { background: transparent; border: none; padding: 2px 0; }"
                 )
+            elif combat_line:
+                line.setObjectName("GuideManualCombatInlineText")
+                line.setStyleSheet(
+                    "QLabel#GuideManualCombatInlineText {"
+                    "background: transparent; border: none; padding: 5px 7px;"
+                    "}"
+                )
+            else:
+                line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
             row_layout.addWidget(line, 1)
             if section_key == "now":
@@ -284,31 +369,31 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         row: dict[str, Any],
         section_key: str,
     ) -> list[dict[str, Any]]:
-        row_text = normalize_text(row.get("text"))
+        row_text = str(row.get("text") or "")
         row_position = self._position_key(str(row.get("position") or ""))
+        row_is_combat = self._is_combat_row(str(row.get("kind") or ""), row_text)
         unseen = [
             target
             for target in self._combat_targets
             if self._combat_key(target) not in self._rendered_combat_keys
         ]
+
         direct: list[dict[str, Any]] = []
+        same_position: list[dict[str, Any]] = []
         for target in unseen:
             target_position, objective_text = self._combat_evidence(target)
-            monster = normalize_text(target.get("monster"))
-            objective = normalize_text(objective_text)
-            if monster and monster in row_text:
-                direct.append(target)
-                continue
-            if objective and (objective in row_text or row_text in objective):
+            if self._combat_text_matches(
+                row_text,
+                target.get("monster"),
+                objective_text,
+            ):
                 direct.append(target)
                 continue
             if (
-                section_key == "boss"
-                and row_position
+                row_position
                 and self._position_key(target_position) == row_position
-                and len(unseen) == 1
             ):
-                direct.append(target)
+                same_position.append(target)
         if direct:
             return direct
 
@@ -316,33 +401,34 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if solution_targets:
             return solution_targets
 
-        # A generated combat row should remain a combat row even if catalogue
-        # wording was normalized differently. The fallback stays one-to-one.
-        if section_key == "boss" or str(row.get("kind") or "") == "combat":
-            remaining = [
-                target
-                for target in unseen
-                if self._combat_key(target) not in self._rendered_combat_keys
-            ]
-            if len(remaining) == 1:
-                return remaining
+        if row_is_combat and len(same_position) == 1:
+            return same_position
+
+        # Last safe fallback: only one still-unrendered combat and the current
+        # row itself is explicitly a combat row. Never dump unrelated combats
+        # into a detached block at the end of the sheet.
+        if row_is_combat and len(unseen) == 1:
+            return unseen
         return []
 
     def _solution_combat_targets_for_row(
         self,
         row: dict[str, Any],
     ) -> list[dict[str, Any]]:
-        """Resolve Lanyel/source solution combats using their aligned objective ids."""
-        if str(row.get("kind") or "") != "combat":
+        """Resolve source-solution combats against the exact route row."""
+        row_text = str(row.get("text") or "")
+        row_kind = str(row.get("kind") or "")
+        row_is_combat = self._is_combat_row(row_kind, row_text)
+        if not row_is_combat:
             return []
+
         provider = getattr(self.service, "quest_provider", None)
         getter = getattr(provider, "get_quest", None)
         if not callable(getter):
             return []
 
-        row_text = normalize_text(row.get("text"))
         row_position = self._position_key(str(row.get("position") or ""))
-        result: list[dict[str, Any]] = []
+        candidates: list[tuple[dict[str, Any], str, str, str]] = []
         seen: set[tuple[int, int]] = set()
         for raw in self.card.get("manual_quest_ids", []) or []:
             try:
@@ -376,25 +462,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     key = (quest_id, objective_id)
                     if key in seen or key in self._rendered_combat_keys:
                         continue
-                    objective_text = normalize_text(getattr(objective, "text", ""))
-                    objective_position = self._position_key(
-                        str(getattr(objective, "position", "") or "")
-                    )
-                    text_matches = bool(
-                        objective_text
-                        and (
-                            objective_text == row_text
-                            or objective_text in row_text
-                            or row_text in objective_text
-                        )
-                    )
-                    position_matches = bool(
-                        row_position
-                        and objective_position
-                        and row_position == objective_position
-                    )
-                    if not (text_matches or position_matches):
-                        continue
 
                     local = local_objectives.get(objective_id)
                     local_text = str(
@@ -402,9 +469,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                         or getattr(objective, "text", "")
                         or ""
                     ).strip()
+                    objective_text = str(getattr(objective, "text", "") or "").strip()
                     monster = str(
                         getattr(local, "image_label", "")
-                        or getattr(objective, "text", "")
+                        or objective_text
                         or local_text
                     ).strip()
                     quantity = (
@@ -412,17 +480,40 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                         if local is not None
                         else self._safe_positive_int(getattr(objective, "quantity", None)) or 1
                     )
-                    seen.add(key)
-                    result.append(
-                        {
-                            "quest_id": quest_id,
-                            "objective_id": objective_id,
-                            "quest_name": quest_name,
-                            "monster": monster,
-                            "quantity": quantity,
-                        }
+                    objective_position = self._position_key(
+                        str(getattr(objective, "position", "") or "")
                     )
-        return result
+                    target = {
+                        "quest_id": quest_id,
+                        "objective_id": objective_id,
+                        "quest_name": quest_name,
+                        "monster": monster,
+                        "quantity": quantity,
+                    }
+                    seen.add(key)
+                    candidates.append((target, objective_text, local_text, objective_position))
+
+        direct = [
+            target
+            for target, objective_text, local_text, _position in candidates
+            if self._combat_text_matches(
+                row_text,
+                target.get("monster"),
+                objective_text,
+                local_text,
+            )
+        ]
+        if direct:
+            return direct
+
+        same_position = [
+            target
+            for target, _objective_text, _local_text, objective_position in candidates
+            if row_position and objective_position == row_position
+        ]
+        if len(same_position) == 1:
+            return same_position
+        return []
 
     def _add_combat_target(
         self,
@@ -436,8 +527,15 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
         row = QFrame()
         row.setObjectName("GuideManualCombatInlineRow")
+        row.setStyleSheet(
+            "QFrame#GuideManualCombatInlineRow {"
+            "background: rgba(174, 183, 177, 0.055);"
+            "border: 1px solid rgba(174, 183, 177, 0.18);"
+            "border-radius: 4px;"
+            "}"
+        )
         row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(12, 2, 0, 2)
+        row_layout.setContentsMargins(16, 3, 6, 3)
         row_layout.setSpacing(6)
 
         quest_id, objective_id = key
@@ -449,6 +547,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             text += f" — {quest_name}"
         checkbox = QCheckBox(text)
         checkbox.setObjectName("GuideManualCombatCheck")
+        checkbox.setStyleSheet(
+            "QCheckBox#GuideManualCombatCheck { background: transparent; border: none; }"
+        )
         progress = getattr(self.service, "quest_progress", None)
         checked = bool(
             progress is not None
@@ -473,23 +574,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         row_layout.addWidget(checkbox, 1)
         layout.addWidget(row)
 
-    def _add_unmatched_combats(self, root: QVBoxLayout) -> None:
-        remaining = [
-            target
-            for target in self._combat_targets
-            if self._combat_key(target) not in self._rendered_combat_keys
-        ]
-        if not remaining:
-            return
-        frame = QFrame()
-        frame.setObjectName("GuideManualDungeonSection")
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(6)
-        for target in remaining:
-            self._add_combat_target(layout, target)
-        root.addWidget(frame)
-
 
 class SharedGuideManualView(GuideUltimeManualView):
     """Canonical manual road-book renderer reusable by Guide Succès and Lanyel."""
@@ -503,6 +587,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(6)
 
+        # Entire Guide/progress/lock/page strip stays pinned at the top directly
+        # under the Encyclopedia tabs for both Guide Succès and Lanyel.
+        self._build_progress_strip(root)
+
         self.scroll = QScrollArea()
         self.scroll.setObjectName("GuideManualScroll")
         self.scroll.setWidgetResizable(True)
@@ -515,7 +603,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.scroll.setWidget(self.content)
         root.addWidget(self.scroll, 1)
 
-        # Body navigation: exactly the three actions tied to the current sheet.
         nav = QFrame()
         nav.setObjectName("GuideManualNav")
         nav_layout = QHBoxLayout(nav)
@@ -539,51 +626,50 @@ class SharedGuideManualView(GuideUltimeManualView):
         nav_layout.addWidget(self.next_button)
         root.addWidget(nav)
 
-        # End/footer: Guide first, then real route progress, persistent lock and
-        # pagination at the far right.
-        footer = QFrame()
-        footer.setObjectName("GuideManualProgressFrame")
-        footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(8, 4, 8, 5)
-        footer_layout.setSpacing(8)
+        self.progress_details = QLabel()
+        self.progress_details.setVisible(False)
+        self.position_label = QLabel()
+        self.position_label.setVisible(False)
+        self._restore_route_lock_state()
+
+    def _build_progress_strip(self, root: QVBoxLayout) -> None:
+        strip = QFrame()
+        strip.setObjectName("GuideManualProgressFrame")
+        strip_layout = QHBoxLayout(strip)
+        strip_layout.setContentsMargins(8, 4, 8, 5)
+        strip_layout.setSpacing(8)
 
         self.guide_button = AtlasButton("Guide")
         self.guide_button.setObjectName("GuideManualGuideButton")
         self.guide_button.clicked.connect(
             lambda _checked=False: self._guide_button_clicked()
         )
-        footer_layout.addWidget(self.guide_button)
+        strip_layout.addWidget(self.guide_button)
 
         self.route_bar = GuideManualProgressBar()
         self.route_bar.setObjectName("GuideManualProgress")
         self.route_bar.setTextVisible(False)
         self.route_bar.setFixedHeight(7)
         self.route_bar.navigationRequested.connect(self._jump_from_progress)
-        footer_layout.addWidget(self.route_bar, 1)
+        strip_layout.addWidget(self.route_bar, 1)
 
         self.route_progress_label = QLabel()
         self.route_progress_label.setObjectName("GuideManualPercent")
-        footer_layout.addWidget(self.route_progress_label)
+        strip_layout.addWidget(self.route_progress_label)
 
         self.route_lock_check = QToolButton()
         self.route_lock_check.setObjectName("GuideManualProgressLock")
         self.route_lock_check.setCheckable(True)
         self.route_lock_check.setMinimumWidth(126)
         self.route_lock_check.toggled.connect(self._route_lock_toggled)
-        footer_layout.addWidget(self.route_lock_check)
+        strip_layout.addWidget(self.route_lock_check)
 
         self.nav_page_label = QLabel()
         self.nav_page_label.setObjectName("GuideManualNavPage")
         self.nav_page_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.nav_page_label.setMinimumWidth(94)
-        footer_layout.addWidget(self.nav_page_label)
-        root.addWidget(footer)
-
-        self.progress_details = QLabel()
-        self.progress_details.setVisible(False)
-        self.position_label = QLabel()
-        self.position_label.setVisible(False)
-        self._restore_route_lock_state()
+        strip_layout.addWidget(self.nav_page_label)
+        root.addWidget(strip)
 
     def _restore_route_lock_state(self) -> None:
         locked = False
