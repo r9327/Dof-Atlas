@@ -261,9 +261,9 @@ class ProjectGuardrailsTests(unittest.TestCase):
         self.assertIn('"command_args"', sources)
 
     def test_normal_launcher_is_offline_and_installer_is_explicit(self) -> None:
-        launcher = self._text("Dofus_Atlas.bat").casefold()
-        installer = self._text("Install_Dofus_Atlas.bat").casefold()
-        bootstrap = self._text("bootstrap_dofus_atlas.ps1")
+        launcher = self._text("DOFUS.bat").casefold()
+        installer = self._text("scripts/windows/Install_Dofus_Atlas.bat").casefold()
+        bootstrap = self._text("scripts/windows/bootstrap_dofus_atlas.ps1")
 
         self.assertNotIn("pip install", launcher)
         self.assertNotIn("ensurepip", launcher)

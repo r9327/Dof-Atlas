@@ -238,7 +238,7 @@ class GraphifyDoctorTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "-m", "tools.atlas_doctor", "graph", "--json"], cwd=ROOT, capture_output=True, text=True)
         self.assertIn(result.returncode, (0, 1))
         self.assertEqual(json.loads(result.stdout)["schema_version"], 1)
-        bat = (ROOT / "Atlas_Doctor.bat").read_text(encoding="utf-8")
+        bat = (ROOT / "scripts" / "windows" / "Atlas_Doctor.bat").read_text(encoding="utf-8")
         self.assertIn("cd /d", bat)
         self.assertIn("-m tools.atlas_doctor %*", bat)
         wrapper = (ROOT / "tools/graphify.ps1").read_text(encoding="utf-8")

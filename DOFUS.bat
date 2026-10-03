@@ -10,7 +10,7 @@ set "ROOT=%~dp0"
 set "LOG_DIR=%ROOT%logs"
 set "LOG_FILE=%LOG_DIR%\start_log.txt"
 set "APP_SCRIPT=%ROOT%launch.py"
-set "INSTALLER=%ROOT%Install_Dofus_Atlas.bat"
+set "INSTALLER=%ROOT%scripts\windows\Install_Dofus_Atlas.bat"
 set "PYTHON_EXE="
 set "PYTHONW_EXE="
 
@@ -33,7 +33,7 @@ if not exist "%APP_SCRIPT%" (
 
 call :find_python
 if "%PYTHON_EXE%"=="" (
-    call :error "PYTHON_MISSING" "Python 3.13 introuvable. Lance Install_Dofus_Atlas.bat pour installer ou reparer les prerequis."
+    call :error "PYTHON_MISSING" "Python 3.13 introuvable. Lance scripts\windows\Install_Dofus_Atlas.bat pour installer ou reparer les prerequis."
     exit /b 1
 )
 
@@ -47,7 +47,7 @@ call :step "Verification de l'environnement et du code"
 "%PYTHON_EXE%" -m app.startup_preflight "%APP_SCRIPT%" >> "%LOG_FILE%" 2>&1
 set "PREFLIGHT_CODE=%errorlevel%"
 if "%PREFLIGHT_CODE%"=="10" (
-    call :error "MODULES_MISSING" "Environnement Python incomplet. Lance Install_Dofus_Atlas.bat pour installer ou reparer les dependances."
+    call :error "MODULES_MISSING" "Environnement Python incomplet. Lance scripts\windows\Install_Dofus_Atlas.bat pour installer ou reparer les dependances."
     exit /b 1
 )
 if "%PREFLIGHT_CODE%"=="20" (
@@ -156,7 +156,7 @@ echo  ^| ERREUR                                             ^|
 echo  +----------------------------------------------------+
 echo  %~2
 echo.
-echo  Installation / reparation : Install_Dofus_Atlas.bat
+echo  Installation / reparation : scripts\windows\Install_Dofus_Atlas.bat
 echo  Log : logs\start_log.txt
 echo.
 >> "%LOG_FILE%" echo ERROR: %~1

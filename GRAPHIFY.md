@@ -21,7 +21,7 @@ If an agent has a local checkout, it should generate or refresh the graph locall
 
 ## Atlas Doctor: human and agent entry point
 
-Launch `Atlas_Doctor.bat` and choose **Architecture / Graph**. Viewing a graph does not regenerate it. The submenu explicitly offers rebuild, pinned installation through uv, or opening the HTML.
+Launch `scripts/windows/Atlas_Doctor.bat` and choose **Architecture / Graph**. Viewing a graph does not regenerate it. The submenu explicitly offers rebuild, pinned installation through uv, or opening the HTML.
 
 CLI:
 

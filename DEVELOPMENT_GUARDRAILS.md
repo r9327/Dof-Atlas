@@ -612,8 +612,8 @@ Un code qui compile, un JSON valide, une route qui s'affiche ou un test isolé q
 
 ### Démarrage
 
-- `Dofus_Atlas.bat`
-- `bootstrap_dofus_atlas.ps1`
+- `DOFUS.bat`
+- `scripts/windows/bootstrap_dofus_atlas.ps1`
 - `requirements-pyside.txt`
 
 ---

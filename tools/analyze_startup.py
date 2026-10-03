@@ -244,7 +244,7 @@ def _print_report(report: StartupReport) -> None:
             print(f"  {name:<28} total={_format_ms(elapsed):>10}  +{_format_ms(delta)}")
 
     if report.launcher_to_first_ui_ms is None:
-        print("\nProfil incomplet : lance Dofus_Atlas.bat une fois puis relance cet analyseur.")
+        print("\nProfil incomplet : lance DOFUS.bat une fois puis relance cet analyseur.")
     else:
         total = report.launcher_to_first_ui_ms
         if total >= 12000.0:

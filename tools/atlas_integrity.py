@@ -51,8 +51,8 @@ HIGH_PATTERNS = (
     "data/**/*.db",
     "data/**/*.json",
     "main.py",
-    "Dofus_Atlas.bat",
-    "bootstrap_dofus_atlas.ps1",
+    "DOFUS.bat",
+    "scripts/windows/bootstrap_dofus_atlas.ps1",
     "requirements-pyside.txt",
 )
 
@@ -93,8 +93,8 @@ def affected_groups(paths: Iterable[str]) -> list[str]:
             groups.add("PERSISTENCE")
         if any(token in lowered for token in ("startup", "launcher", "preflight")) or path in {
             "main.py",
-            "Dofus_Atlas.bat",
-            "bootstrap_dofus_atlas.ps1",
+            "DOFUS.bat",
+            "scripts/windows/bootstrap_dofus_atlas.ps1",
             "requirements-pyside.txt",
         }:
             groups.add("STARTUP")

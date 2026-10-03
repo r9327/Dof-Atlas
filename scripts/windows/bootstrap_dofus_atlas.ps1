@@ -4,7 +4,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Root = Split-Path -Parent $PSCommandPath
+$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $LogDir = Join-Path $Root "logs"
 $DataDir = Join-Path $Root "data"
 $LogFile = Join-Path $LogDir "bootstrap_prereqs.log"
