@@ -114,6 +114,20 @@ Ce rejeu doit :
 
 Une certification obtenue avant le dernier merge 7E ne satisfait pas ce verrou. Les Phases 1 → 7 ne peuvent être déclarées « 100 % terminées » qu'après ce rejeu cumulatif `PASS` sur le `main` final.
 
+## Phase 8 — état initial
+
+Statut : `STARTED` le 3 octobre 2026, après certification cumulative des Phases 1 → 7 sur le SHA exact de `main` `8f6357ce0e731d98ad700138d795533ae21ea4fa`.
+
+Baseline initiale :
+
+- Atlas Integrity FULL : `PASS`, 1 906 tests dans la suite globale, 0 erreur et 0 échec ;
+- Doctor HARD : `REVIEW` uniquement pour les limites d'ownership et d'impact borné déclarées, avec son autorité FULL interne à `PASS` ;
+- Graphify 0.9.72 : `PASS`, 10 282 nœuds, 30 715 liens, aucun cycle d'import signalé dans le rapport Graphify ;
+- budgets de ressources : `PASS` ; mesures Doctor conservées sous `.ai/runtime/atlas_doctor/`, `artifacts/doctor/perf/` et `graphify-out/`, tous emplacements canoniques ignorés par Git ;
+- CI post-merge : `Phase Certification / Full Validation`, `Full Application Suite`, `Graphify / AST Code Map`, validation FAST et signature à `PASS` sur ce même SHA.
+
+Premier chantier repris de la roadmap Phase 8 existante : `DA-LOG-015` — supprimer l'initialisation du logging par effet de bord lors de l'import de `app.constants`, puis installer explicitement le journal au bootstrap de l'application. Ce chantier doit préserver la rotation, l'idempotence et la visibilité des erreurs filesystem.
+
 ## Rapport final
 
 Tout rapport de clôture doit distinguer explicitement :
