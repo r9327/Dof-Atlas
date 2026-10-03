@@ -487,7 +487,10 @@ def symbol_files_for_scope(root: Path, scope: str) -> list[str]:
 def _parse_python_ast(root: Path, relative: str) -> ast.Module:
     source_path = root / relative
     try:
-        source = source_path.read_text(encoding="utf-8")
+        # Python accepts an optional UTF-8 BOM at the start of source files.
+        # Keep structural analysis aligned with the interpreter and the source
+        # guardrails instead of reporting valid files as parser failures.
+        source = source_path.read_text(encoding="utf-8-sig")
     except OSError as exc:
         raise AgentConfigError(f"python source unavailable: {relative}: {exc}") from exc
     try:
