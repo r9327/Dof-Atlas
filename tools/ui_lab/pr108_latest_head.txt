@@ -1,0 +1,1 @@
+PR #108 visual capture refreshed for ff02606b3f934da570c4da0361cfc7905d4992bb
