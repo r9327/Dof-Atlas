@@ -34,7 +34,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             return
 
         # The red semantic belongs to the whole preparation section. Individual
-        # rows stay transparent so several items read as one coherent block.
+        # rows stay fully transparent so the section reads as one coherent block.
         frame = QFrame()
         frame.setObjectName("GuideManualWarningSection")
         layout = QVBoxLayout(frame)
@@ -53,6 +53,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
             row_widget = QFrame()
             row_widget.setObjectName("GuideManualLineRow")
+            row_widget.setStyleSheet("QFrame#GuideManualLineRow { background: transparent; border: none; }")
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(7)
@@ -69,6 +70,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 ),
             )
             line.setObjectName("GuideManualLine")
+            line.setStyleSheet(
+                "QLabel#GuideManualLine { background: transparent; border: none; padding: 2px 0; }"
+            )
             line.setWordWrap(True)
             row_layout.addWidget(line, 1)
             layout.addWidget(row_widget)
