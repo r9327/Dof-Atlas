@@ -42,106 +42,6 @@ jobs:
           git checkout FETCH_HEAD -- tools/ui_lab
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-          $scenarioPath = "tools/ui_lab/guide_scenarios.py"
-          $scenario = Get-Content -LiteralPath $scenarioPath -Raw
-          $old = @'
-    view = page.ensure_tab_loaded(GUIDES_TAB)
-    if not view.select_guide("guide_complet"):
-        raise RuntimeError("Le Guide Ultime réel n'est pas disponible pour la capture")
-
-    manual_view = getattr(view, "guide_ultime_view", None)
-    service = getattr(view, "guide_ultime_service", None)
-'@
-          $new = @'
-    view = page.ensure_tab_loaded(GUIDES_TAB)
-    guide_id = str(context.params.get("guide_id") or "guide_complet")
-    if not view.select_guide(guide_id):
-        raise RuntimeError(f"Le guide réel {guide_id} n'est pas disponible pour la capture")
-
-    if guide_id == "guide_complet":
-        manual_view = getattr(view, "guide_ultime_view", None)
-        service = getattr(view, "guide_ultime_service", None)
-    else:
-        manual_view = getattr(view, "_catalog_manual_views", {}).get(guide_id)
-        service = getattr(view, "_catalog_manual_services", {}).get(guide_id)
-'@
-          if (-not $scenario.Contains($old)) { throw "UI Lab Guide scenario contract changed" }
-          $scenario = $scenario.Replace($old, $new)
-          $scenario = $scenario.Replace('GuideManualResourceSection', 'GuideManualWarningSection')
-          Set-Content -LiteralPath $scenarioPath -Value $scenario -Encoding utf8
-
-          @'
-          {
-            "include_lab_shell": true,
-            "segment_overlap": 80,
-            "captures": [
-              {
-                "screen": "encyclopedia.guides",
-                "scenario": "default",
-                "output_name": "01-accueil-guides-main",
-                "width": 1400,
-                "height": 900,
-                "settle_ms": 1400
-              },
-              {
-                "screen": "encyclopedia.guides",
-                "scenario": "gps_active",
-                "params": {"guide_id": "dofus_sylvestre"},
-                "output_name": "02-lanyel-gps-main",
-                "capture_segments": true,
-                "capture_full_scroll": true,
-                "width": 1400,
-                "height": 900,
-                "settle_ms": 1600
-              },
-              {
-                "screen": "encyclopedia.guides",
-                "scenario": "gps_prepare",
-                "params": {"guide_id": "dofus_sylvestre"},
-                "output_name": "03-lanyel-a-preparer-main",
-                "capture_segments": true,
-                "capture_full_scroll": true,
-                "width": 1400,
-                "height": 900,
-                "settle_ms": 1600
-              },
-              {
-                "screen": "encyclopedia.guides",
-                "scenario": "gps_active",
-                "params": {"guide_id": "guide_complet"},
-                "output_name": "04-guide-succes-main",
-                "capture_segments": true,
-                "capture_full_scroll": true,
-                "width": 1400,
-                "height": 900,
-                "settle_ms": 1600
-              },
-              {
-                "screen": "encyclopedia.guides",
-                "scenario": "gps_prepare",
-                "params": {"guide_id": "guide_complet"},
-                "output_name": "05-guide-succes-a-preparer-main",
-                "capture_segments": true,
-                "capture_full_scroll": true,
-                "width": 1400,
-                "height": 900,
-                "settle_ms": 1600
-              },
-              {
-                "screen": "encyclopedia.guides",
-                "scenario": "gps_combat",
-                "params": {"guide_id": "guide_complet"},
-                "output_name": "06-guide-succes-combat-main",
-                "capture_segments": true,
-                "capture_full_scroll": true,
-                "width": 1400,
-                "height": 900,
-                "settle_ms": 1600
-              }
-            ]
-          }
-          '@ | Set-Content -LiteralPath tools/ui_lab/capture_request.json -Encoding utf8
-
       - name: Set up Python 3.13
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -163,7 +63,7 @@ jobs:
 
       - name: Generate fresh merged-main Guide captures
         run: |
-          python -m tools.ui_lab.capture --request tools/ui_lab/capture_request.json --output-dir artifacts/ui_lab
+          python -m tools.ui_lab.capture --request tools/ui_lab/fresh_merged_guide_request.json --output-dir artifacts/ui_lab
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-Content artifacts/ui_lab/manifest.json
           $pngs = @(Get-ChildItem artifacts/ui_lab -Filter *.png)
