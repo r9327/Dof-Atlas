@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+from PySide6.QtWidgets import QLabel
+
 from app.modules.encyclopedia.services.guide_auto_validation_contract import (
     build_route_auto_validation_contract,
 )
 from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
     GuideCatalogManualRuntimeService,
 )
+from app.modules.encyclopedia.services.guide_catalog_route_stats import (
+    catalog_route_map_count,
+)
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
     GuideUltimeManualRuntimeService,
 )
 from app.modules.encyclopedia.views.guides_view import (
     GUIDE_ULTIME_LEGACY_ID,
+    GuideHomeCard,
     GuidesView as _BaseGuidesView,
 )
 from app.modules.encyclopedia.views.shared_manual_guide_view import (
@@ -27,7 +33,56 @@ class ManualRouteGuidesView(_BaseGuidesView):
     def __init__(self, *args, **kwargs) -> None:
         self._catalog_manual_services: dict[str, GuideCatalogManualRuntimeService] = {}
         self._catalog_manual_views: dict[str, SharedGuideManualView] = {}
+        self._catalog_route_map_counts: dict[str, int] = {}
         super().__init__(*args, **kwargs)
+
+    def _catalog_route_map_count(self, guide_id: str) -> int:
+        guide_id = str(guide_id or "")
+        cached = self._catalog_route_map_counts.get(guide_id)
+        if cached is not None:
+            return cached
+
+        service = self._catalog_manual_services.get(guide_id)
+        if service is not None and service.cards:
+            count = len(service.cards)
+        else:
+            provider = getattr(self, "provider", None)
+            quest_provider = getattr(self, "quest_provider", None)
+            guide = provider.get_by_id(guide_id) if provider is not None else None
+            if guide is None or quest_provider is None:
+                return 0
+            count = catalog_route_map_count(guide, quest_provider)
+
+        if count > 0:
+            self._catalog_route_map_counts[guide_id] = int(count)
+        return int(count)
+
+    def _refresh_catalog_route_home_labels(self) -> None:
+        if not hasattr(self, "home_content"):
+            return
+        cards = self.home_content.findChildren(GuideHomeCard)
+        for guide_id in CATALOG_MANUAL_GUIDE_IDS:
+            count = self._catalog_route_map_count(guide_id)
+            if count <= 0:
+                continue
+            card = next(
+                (
+                    candidate
+                    for candidate in cards
+                    if str(getattr(candidate.guide, "id", "")) == guide_id
+                ),
+                None,
+            )
+            if card is None:
+                continue
+            meta = card.findChild(QLabel, "GuideHomeCardMeta")
+            if meta is not None:
+                suffix = "map" if count == 1 else "maps"
+                meta.setText(f"Parcours optimisé · {count} {suffix}")
+
+    def refresh_home(self) -> None:
+        super().refresh_home()
+        self._refresh_catalog_route_home_labels()
 
     def ensure_guide_ultime_view(self) -> SharedGuideManualView | None:
         """Keep Guide Succès on the canonical service but use the shared renderer."""
@@ -104,6 +159,8 @@ class ManualRouteGuidesView(_BaseGuidesView):
         self.stack.addWidget(view)
         self._catalog_manual_services[guide_id] = service
         self._catalog_manual_views[guide_id] = view
+        self._catalog_route_map_counts[guide_id] = len(service.cards)
+        self._refresh_catalog_route_home_labels()
         return view
 
     def select_guide(self, guide_id: str) -> bool:
