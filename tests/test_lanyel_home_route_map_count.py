@@ -10,7 +10,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QLabel
 
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
-from app.modules.encyclopedia.services import AchievementProgressService, GuideProgressService
+from app.modules.encyclopedia.services import (
+    AchievementProgressService,
+    GuideProgressService,
+    QuestProgressService,
+)
 from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
     GuideCatalogManualRuntimeService,
 )
@@ -40,6 +44,7 @@ class LanyelHomeRouteMapCountTests(unittest.TestCase):
             path.write_text("{}", encoding="utf-8")
         return (
             quest_progress,
+            QuestProgressService(quest_progress),
             AchievementProgressService(achievement_progress),
             GuideProgressService(guide_progress),
         )
@@ -51,9 +56,9 @@ class LanyelHomeRouteMapCountTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            _quest_path, achievement_progress, guide_progress = self._services(root)
+            _quest_path, quest_progress, achievement_progress, guide_progress = self._services(root)
             runtime = GuideCatalogManualRuntimeService(
-                None,
+                quest_progress,
                 achievement_progress,
                 guide_progress,
                 guide=guide,
@@ -65,7 +70,7 @@ class LanyelHomeRouteMapCountTests(unittest.TestCase):
     def test_home_card_shows_optimized_route_map_count(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            quest_path, achievement_progress, guide_progress = self._services(root)
+            quest_path, _quest_progress, achievement_progress, guide_progress = self._services(root)
             view = DeferredAchievementGuidesView(
                 lambda _text: None,
                 provider=self.guide_provider,
