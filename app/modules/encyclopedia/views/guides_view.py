@@ -106,6 +106,8 @@ HOME_GUIDE_LEFT_MIN_WIDTH = 285
 HOME_GUIDE_LEFT_MAX_WIDTH = 360
 GUIDE_STEPS_OPEN_WIDTH = 190
 GUIDE_STEPS_COLLAPSED_WIDTH = 44
+GUIDE_SERIES_INITIAL_STEP_LIMIT = 40
+GUIDE_OVERVIEW_REWARD_LIMIT = 12
 SOLUTION_IMAGE_EXECUTOR = ThreadPoolExecutor(
     max_workers=4,
     thread_name_prefix="DofusAtlasQuestImage",
@@ -1105,6 +1107,8 @@ class GuidesView(QWidget):
         self.quest_nav_scroll_positions: dict[str, int] = {}
         self.current_series_by_guide: dict[str, str] = {}
         self.guide_prerequisites_expanded: dict[str, bool] = {}
+        self.series_step_limits: dict[tuple[str, str], int] = {}
+        self._selected_series_rewards_truncated = False
         self.steps_collapsed = False
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = initial_progress_character_key or ""
@@ -2567,10 +2571,16 @@ class GuidesView(QWidget):
         header_layout.addWidget(title, 1)
         self.center_layout.addWidget(header)
 
-        for step in sorted(
+        ordered_steps = sorted(
             series.steps,
             key=lambda item: item.order,
-        ):
+        )
+        limit_key = (guide.id, series.id)
+        visible_limit = self.series_step_limits.get(
+            limit_key,
+            GUIDE_SERIES_INITIAL_STEP_LIMIT,
+        )
+        for step in ordered_steps[:visible_limit]:
             quest = (
                 self.quest_catalog.by_id.get(
                     int(step.entity_id)
@@ -2605,7 +2615,31 @@ class GuidesView(QWidget):
 
             self.center_layout.addWidget(line)
 
+        if visible_limit < len(ordered_steps):
+            remaining = len(ordered_steps) - visible_limit
+            increment = min(GUIDE_SERIES_INITIAL_STEP_LIMIT, remaining)
+            more = AtlasButton(f"Afficher {increment} quêtes supplémentaires")
+            more.setObjectName("GuideSeriesLoadMoreButton")
+            more.setToolTip(f"{remaining} quête(s) restent dans cette série")
+            more.clicked.connect(
+                lambda _checked=False, key=limit_key: self._show_more_series_steps(key)
+            )
+            self.center_layout.addWidget(more)
+
         self.center_layout.addStretch(1)
+
+    def _show_more_series_steps(self, key: tuple[str, str]) -> None:
+        guide = self.current_guide()
+        if guide is None or key[0] != guide.id:
+            return
+        series_ref = self._selected_series_ref(guide)
+        if series_ref is None or series_ref[2].id != key[1]:
+            return
+        self.series_step_limits[key] = self.series_step_limits.get(
+            key,
+            GUIDE_SERIES_INITIAL_STEP_LIMIT,
+        ) + GUIDE_SERIES_INITIAL_STEP_LIMIT
+        self._populate_series_quests(guide)
 
     def _populate_guide_navigation(
         self,
@@ -2694,6 +2728,7 @@ class GuidesView(QWidget):
         self,
         guide: Guide,
     ) -> list[DisplayReward]:
+        self._selected_series_rewards_truncated = False
         series_ref = self._selected_series_ref(guide)
 
         if series_ref is None:
@@ -2721,11 +2756,7 @@ class GuidesView(QWidget):
             if quest is None:
                 continue
 
-            achievements = tuple(
-                self.achievement_provider.get_by_quest(
-                    int(quest.id)
-                )
-            )
+            achievements = self._achievement_rewards_for_quest(quest)
 
             for reward in quest_rewards(
                 quest,
@@ -2747,9 +2778,15 @@ class GuidesView(QWidget):
                     continue
 
                 seen.add(key)
+                if len(rewards) >= GUIDE_OVERVIEW_REWARD_LIMIT:
+                    self._selected_series_rewards_truncated = True
+                    return rewards
                 rewards.append(reward)
 
         return rewards
+
+    def _achievement_rewards_for_quest(self, quest) -> tuple:
+        return tuple(self.achievement_provider.get_by_quest(int(quest.id)))
 
     def _populate_guide_info(self, guide: Guide) -> None:
         clear_layout(self.right_layout)
@@ -2795,13 +2832,18 @@ class GuidesView(QWidget):
             )
 
         if rewards:
+            reward_widgets = [reward_row(reward) for reward in rewards]
+            if self._selected_series_rewards_truncated:
+                reward_widgets.append(
+                    text_label(
+                        "Ouvrez une quête pour consulter toutes ses récompenses.",
+                        "MutedLabel",
+                    )
+                )
             self.right_layout.addWidget(
                 info_section(
                     "R\u00c9COMPENSES",
-                    [
-                        reward_row(reward)
-                        for reward in rewards
-                    ],
+                    reward_widgets,
                 )
             )
 

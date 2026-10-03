@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QLabel
+from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QLabel, QToolButton
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
@@ -158,6 +158,23 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
             self.assertNotIn("Quêtes", view.route_progress_label.text())
             self.assertNotIn("Donjons", view.route_progress_label.text())
+            self.assertEqual(view.route_lock_check.text(), "Verrouiller")
+        finally:
+            view.close()
+
+    def test_progress_lock_blocks_only_direct_bar_jumps(self) -> None:
+        _service, view = self._view()
+        try:
+            view.route_lock_check.setChecked(True)
+            view._jump_from_progress(1.0)
+            self.assertEqual(view.view_index, 0)
+
+            view.navigate_relative(1)
+            self.assertEqual(view.view_index, 1)
+
+            view.route_lock_check.setChecked(False)
+            view._jump_from_progress(0.0)
+            self.assertEqual(view.view_index, 0)
         finally:
             view.close()
 
@@ -234,6 +251,54 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             card.page_check.deleteLater()
             card.close()
+
+    def test_inline_quest_overlay_is_deduplicated_per_quest_and_map(self) -> None:
+        service = _FakeManualUiService()
+        service.quest_provider = _FakeQuestProvider()
+        card_data = dict(service.cards[0])
+        card_data["manual_stage_id"] = "TEST-DEDUPE"
+        card_data["manual_quest_ids"] = [42, 42]
+        card_data["manual_lines"] = [
+            {"kind": "action", "position": "[1,2]", "text": "Première action."},
+            {"kind": "action", "position": "[1,2]", "text": "Deuxième action."},
+            {"kind": "action", "position": "[2,2]", "text": "Map suivante."},
+        ]
+        card = GuideUltimeManualCard(service, "character:1", card_data, 0)
+        try:
+            buttons = card.findChildren(QToolButton, "GuideManualQuestInlineButton")
+            self.assertEqual(len(buttons), 2)
+            self.assertTrue(all(button.toolTip() == "Combat test" for button in buttons))
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
+    def test_prepare_block_drops_only_exact_actions_already_done_now(self) -> None:
+        duplicate_prepare = {
+            "kind": "warning",
+            "position": "[1,-2]",
+            "text": "Prendre la clé.",
+        }
+        duplicate_now = {
+            "kind": "action",
+            "position": " [1,-2] ",
+            "text": "  PRENDRE LA CLÉ. ",
+        }
+        distinct_prepare = {
+            "kind": "warning",
+            "position": "",
+            "text": "Prépare 4 × Potion.",
+        }
+
+        result = GuideUltimeManualCard._without_prepare_duplicates(
+            {
+                "prepare": [duplicate_prepare, distinct_prepare],
+                "now": [duplicate_now],
+                "boss": [],
+            }
+        )
+
+        self.assertEqual(result["prepare"], [distinct_prepare])
+        self.assertEqual(result["now"], [duplicate_now])
 
     def test_guide_button_returns_to_active_sheet_then_guides_catalog(self) -> None:
         _service, view = self._view()

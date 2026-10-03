@@ -199,10 +199,16 @@ class AtlasIntegrityGateTests(unittest.TestCase):
     def test_deep_includes_reproducible_periodic_validations(self) -> None:
         report, fake = self._run("deep", ["docs/validation.md"])
         required = set(report["validations_required"])
-        self.assertTrue({"RANDOM_ORDER", "FAULT_INJECTION", "TARGETED_MUTATION", "CRITICAL_COVERAGE", "TIMING_PERFORMANCE"}.issubset(required))
+        self.assertTrue({"RANDOM_ORDER", "FAULT_INJECTION", "TARGETED_MUTATION", "CRITICAL_COVERAGE", "MONOLITHIC_LIFECYCLE", "TIMING_PERFORMANCE"}.issubset(required))
         random_commands = [command for command in fake.commands if "tools.random_order_tests" in command]
         self.assertEqual(len(random_commands), 1)
         self.assertIn("9327", random_commands[0])
+        lifecycle_commands = [
+            command for command in fake.commands
+            if "tools.atlas_lifecycle_soak" in command
+        ]
+        self.assertEqual(len(lifecycle_commands), 1)
+        self.assertIn("3", lifecycle_commands[0])
 
     def test_measured_timing_failure_does_not_become_performance_pass_or_hide_itself(self) -> None:
         report, _ = self._run("deep", ["docs/validation.md"], executor=FakeExecutor(failing_token="benchmark_guides_performance"))

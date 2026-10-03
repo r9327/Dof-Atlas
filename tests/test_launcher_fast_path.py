@@ -8,7 +8,7 @@ class LauncherFastPathTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.launcher = (
-            Path(__file__).resolve().parents[1] / "Dofus_Atlas.bat"
+            Path(__file__).resolve().parents[1] / "DOFUS.bat"
         ).read_text(encoding="utf-8")
 
     def test_launcher_uses_single_environment_and_syntax_preflight(self) -> None:

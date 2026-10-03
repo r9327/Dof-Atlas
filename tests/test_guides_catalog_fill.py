@@ -9,7 +9,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from app.constants import KEY_SESSION_ORDER
 from app.modules.encyclopedia.constants import ENCYCLOPEDIA_TABS
@@ -68,6 +68,48 @@ class GuideCatalogFillTests(unittest.TestCase):
         self.assertIn(2502, first_quests)
         self.assertEqual(len(first_quests), 5)
         self.assertTrue(all(self.quest_provider.get_quest(quest_id) is not None for quest_id in first_quests))
+
+    def test_lanyel_sylvestre_reuses_the_adventure_guide_engine(self):
+        guide = self.by_id["dofus_sylvestre"]
+        self.assertEqual(guide.id, "dofus_sylvestre")
+        self.assertEqual(guide.title, "Lanyel Sylvestre")
+        self.assertEqual(guide.category, "aventure")
+        self.assertEqual(len(guide.steps), 218)
+        self.assertEqual(len(guide.required_steps), 198)
+        self.assertFalse(guide.validation_errors)
+        self.assertEqual(
+            [candidate.id for candidate in self.provider.get_by_category("aventure")],
+            ["guide_complet", "dofus_sylvestre"],
+        )
+
+        result = GuideCatalogBuilder().build()
+        rebuilt = result.guides["dofus_sylvestre"]
+        self.assertEqual(rebuilt["title"], "Lanyel Sylvestre")
+        self.assertEqual(rebuilt["category"], "aventure")
+        catalog_row = next(
+            row for row in result.catalog["guides"]
+            if row["id"] == "dofus_sylvestre"
+        )
+        self.assertEqual(catalog_row["category"], "aventure")
+        self.assertEqual(catalog_row["order"], 20)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            view = self._make_guides_view(Path(tmp))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            self.app.processEvents()
+            self.assertEqual(view.current_guide_id, "dofus_sylvestre")
+            self.assertEqual(view.state, view.GUIDE_OVERVIEW)
+            self.assertIsNone(view.guide_ultime_view)
+            self.assertEqual(len(view.center_panel.findChildren(QuestLine)), 40)
+            self.assertEqual(len(view._selected_series_rewards(guide)), 12)
+            self.assertTrue(view._selected_series_rewards_truncated)
+            more = view.center_panel.findChild(QWidget, "GuideSeriesLoadMoreButton")
+            self.assertIsNotNone(more)
+            more.click()
+            self.app.processEvents()
+            self.assertEqual(len(view.center_panel.findChildren(QuestLine)), 80)
+            view.deleteLater()
+            self.app.processEvents()
 
     def test_dofus_guides_have_valid_objects_images_and_turquoise_is_preserved(self):
         dofus_guides = [guide for guide in self.guides if guide.category == "dofus"]

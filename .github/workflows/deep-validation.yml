@@ -73,4 +73,4 @@ jobs:
             deep-integrity.json
             artifacts/**
           if-no-files-found: warn
-          retention-days: 4
+          retention-days: 30

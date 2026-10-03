@@ -210,19 +210,20 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("tests.test_ci_runner_guardrails", source)
         self.assertIn("tests.test_security_hardening_guardrails", source)
 
-    def test_routine_audit_artifacts_expire_after_four_days(self) -> None:
+    def test_artifact_retention_matches_routine_and_certification_evidence(self) -> None:
         for name in (
             "public-pr-ci.yml",
             "doctor-runtime-perf.yml",
             "graphify-map.yml",
             "guide-ultime-v5-ui.yml",
-            "deep-validation.yml",
         ):
             source = self._workflow(name)
             self.assertIn("retention-days: 4", source, name)
 
         certification = self._workflow("phase-certification.yml")
         self.assertIn("retention-days: 30", certification)
+        deep = self._workflow("deep-validation.yml")
+        self.assertIn("retention-days: 30", deep)
 
     def test_detailed_guide_ci_materializes_only_its_visual_fixture(self) -> None:
         source = self._workflow("guide-ultime-v5-ui.yml")

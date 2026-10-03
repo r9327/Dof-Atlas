@@ -27,6 +27,10 @@ CATALOG_CATEGORIES = [
     {"id": "alignements", "label": "Alignements", "order": 30},
 ]
 
+# This stable legacy ID now owns an Adventure presentation. Keep its existing
+# route data and progression identity instead of regenerating it as a Dofus card.
+ADVENTURE_GUIDE_IDS = frozenset({"dofus_sylvestre"})
+
 DOFUS_GUIDE_ORDER = [
     "dofus_argente",
     "dofus_cawotte",
@@ -197,7 +201,11 @@ class GuideCatalogBuilder:
         self._v4_audits = {}
         candidates = self._dofus_candidates()
         accepted = [candidate for candidate in candidates if candidate.accepted]
-        generated_dofus = [self._dofus_guide_payload(candidate) for candidate in accepted]
+        generated_dofus = [
+            self._dofus_guide_payload(candidate)
+            for candidate in accepted
+            if candidate.guide_id not in ADVENTURE_GUIDE_IDS
+        ]
 
         existing = self._existing_guide_payloads()
         self._existing_snapshot = copy.deepcopy(existing)
@@ -1029,7 +1037,7 @@ class GuideCatalogBuilder:
     def _guide_order(self, payload: dict[str, Any]) -> int:
         category = str(payload.get("category") or "")
         if category == "aventure":
-            return 10
+            return 20 if payload.get("id") in ADVENTURE_GUIDE_IDS else 10
         if category == "alignements":
             return 10 if payload.get("id") == "alignement_bonta" else 20
         guide_id = str(payload.get("id") or "")

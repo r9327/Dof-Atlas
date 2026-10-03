@@ -65,27 +65,6 @@ class _AchievementStagePayload:
     progress_synchronized: bool = False
 
 
-def _build_guide_success_runtime(
-    quest_provider: QuestProvider,
-    *,
-    quest_progress_path: Path,
-    achievement_progress_path: Path,
-    guide_progress_path: Path,
-):
-    """Build the canonical Guide Succès service inside the Guide worker."""
-    from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
-        GuideUltimeManualRuntimeService,
-    )
-
-    return GuideUltimeManualRuntimeService(
-        QuestProgressService(quest_progress_path),
-        AchievementProgressService(achievement_progress_path),
-        GuideProgressService(guide_progress_path),
-        quest_provider=quest_provider,
-        autoload=False,
-    )
-
-
 class EncyclopediaPage(QWidget):
     guideRuntimeFinished = Signal(object)
     achievementRuntimeFinished = Signal(object)
@@ -585,6 +564,12 @@ class EncyclopediaPage(QWidget):
         )
         result: dict[str, tuple[int, int, str]] = {}
         for guide in guide_provider.load_all():
+            if guide.id == GUIDE_SUCCESS_CATALOG_ID:
+                # Building the manual route costs more than the Guide catalogue.
+                # Its exact sheet progress is filled on the first explicit open,
+                # never while the player is only waiting for the Guide home.
+                result[guide.id] = (0, 0, "")
+                continue
             progress = calculator.guide_progress(guide, character_key)
             result[guide.id] = (
                 progress.completed,
@@ -903,20 +888,6 @@ class EncyclopediaPage(QWidget):
                         raise RuntimeError(
                             f"Aucun guide chargé depuis {catalog_path}{detail}"
                         )
-                    guide_success_service = None
-                    try:
-                        guide_success_service = _build_guide_success_runtime(
-                            quest_provider,
-                            quest_progress_path=quest_progress_path,
-                            achievement_progress_path=achievement_progress_path,
-                            guide_progress_path=guide_progress_path,
-                        )
-                    except Exception:
-                        # Keep the generic catalogue available if the canonical
-                        # manual route cannot be materialized in this worker.
-                        LOGGER.exception(
-                            "Préchargement du runtime Guide Succès impossible"
-                        )
                     graph = QuestGraphService(
                         quest_provider,
                         guide_provider=active_guide_provider,
@@ -933,23 +904,6 @@ class EncyclopediaPage(QWidget):
                         )
                     except Exception:
                         progress = {}
-                    if (
-                        guide_success_service is not None
-                        and guide_success_service.available
-                    ):
-                        try:
-                            completed, total = guide_success_service.route_sheet_progress(
-                                character_key
-                            )
-                            progress[GUIDE_SUCCESS_CATALOG_ID] = (
-                                completed,
-                                total,
-                                EncyclopediaPage._guide_progress_state(completed, total),
-                            )
-                        except Exception:
-                            LOGGER.exception(
-                                "Calcul de progression Guide Succès impossible"
-                            )
                     result: object = _GuideStagePayload(
                         active_guide_provider,
                         graph,

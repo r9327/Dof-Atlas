@@ -15,6 +15,8 @@ working_set:
   - tools/ai_context.py
   - tools/atlas_integrity.py
   - tools/atlas_integrity_policy.json
+  - tools/atlas_lifecycle_soak.py
+  - tests/test_atlas_lifecycle_soak.py
   - tools/agent_hotspots.py
   - tools/atlas_doctor.py
   - tools/atlas_doctor_lib/

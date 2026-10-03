@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -47,9 +48,11 @@ def checks_for_mode(mode: str) -> tuple[GuideCheck, ...]:
 
 def _run_check(check: GuideCheck, *, root: Path) -> dict[str, object]:
     command = [sys.executable, "-X", "faulthandler", *check.argv]
+    env = os.environ.copy()
+    env["PYTHONUTF8"] = "1"
     print(f"[guide-integrity] START {check.key}: {check.label}")
     started = time.perf_counter()
-    completed = subprocess.run(command, cwd=root, check=False)
+    completed = subprocess.run(command, cwd=root, env=env, check=False)
     duration = round(time.perf_counter() - started, 3)
     status = "PASS" if completed.returncode == 0 else "FAIL"
     print(f"[guide-integrity] {status} {check.key} exit={completed.returncode} duration_s={duration}")

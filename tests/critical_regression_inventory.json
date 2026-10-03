@@ -309,6 +309,15 @@
       }
     },
     {
+      "id": "LONG_LIFECYCLE_CONTRACT",
+      "category": "qt_lifecycle",
+      "owner": {
+        "kind": "python_test",
+        "path": "tests/test_atlas_lifecycle_soak.py",
+        "symbol": "AtlasLifecycleSoakTests.test_repeats_the_same_inventory_in_one_process"
+      }
+    },
+    {
       "id": "CRITICAL_COVERAGE_CONTRACT",
       "category": "coverage",
       "owner": {

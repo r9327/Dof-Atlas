@@ -53,6 +53,9 @@ class GuideIntegrityTests(unittest.TestCase):
                 report = run("fast", root=Path(directory))
 
         self.assertEqual(mocked_run.call_count, 6)
+        self.assertTrue(
+            all(call.kwargs["env"]["PYTHONUTF8"] == "1" for call in mocked_run.call_args_list)
+        )
         self.assertEqual(report["status"], "FAIL")
         self.assertEqual(report["check_count"], 6)
         self.assertEqual(report["failed_check_count"], 1)
