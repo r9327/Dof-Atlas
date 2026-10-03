@@ -4,6 +4,7 @@ import copy
 import os
 import tempfile
 import unittest
+from collections import Counter
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -62,9 +63,30 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             service = view._catalog_manual_services["dofus_sylvestre"]
             self.assertEqual(service.guide_id, "dofus_sylvestre")
             self.assertEqual(service.guide_title, "Lanyel Sylvestre")
-            self.assertEqual(len(service.cards), 198)
+            self.assertEqual(service.manual_audit_data["quest_count"], 198)
+            self.assertEqual(service.manual_audit_data["route_model"], "map_segments")
+            self.assertGreater(len(service.cards), 0)
             self.assertTrue(all(card.get("manual_quest_ids") for card in service.cards))
-            self.assertTrue(any(service.manual_sections_for_card("character:1", card)["now"] for card in service.cards))
+            self.assertTrue(any(card.get("manual_route_position") for card in service.cards))
+            self.assertTrue(
+                any(
+                    service.manual_sections_for_card("character:1", card)["now"]
+                    for card in service.cards
+                )
+            )
+
+            # A road-book is not one card per quest: at least one quest must span
+            # several route positions (and equal consecutive positions may merge).
+            occurrences = Counter(
+                int(quest_id)
+                for card in service.cards
+                for quest_id in card.get("manual_quest_ids", ())
+            )
+            self.assertTrue(any(count > 1 for count in occurrences.values()))
+            self.assertGreaterEqual(
+                service.manual_audit_data["raw_segment_count"],
+                service.manual_audit_data["card_count"],
+            )
 
             self.assertTrue(view.select_guide("guide_complet"))
             self.app.processEvents()
