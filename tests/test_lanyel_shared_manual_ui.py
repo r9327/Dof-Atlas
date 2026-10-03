@@ -252,7 +252,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
-    def test_lock_toggle_is_visual_persistent_and_defaults_unlocked(self) -> None:
+    def test_lock_toggle_is_icon_only_persistent_and_defaults_unlocked(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
             self.assertTrue(view.select_guide("dofus_sylvestre"))
@@ -264,11 +264,12 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             toggle = shared.findChild(QToolButton, "GuideManualProgressLock")
             self.assertIsNotNone(toggle)
             self.assertFalse(toggle.isChecked())
-            self.assertEqual(toggle.text(), "🔓 Déverrouillé")
+            self.assertEqual(toggle.text(), "🔓")
+            self.assertEqual(toggle.width(), 26)
             toggle.click()
             self.app.processEvents()
             self.assertTrue(toggle.isChecked())
-            self.assertEqual(toggle.text(), "🔒 Verrouillé")
+            self.assertEqual(toggle.text(), "🔒")
             self.assertTrue(
                 service.manual_checked(
                     "character:1",
@@ -284,7 +285,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.app.processEvents()
             restored_toggle = restored.findChild(QToolButton, "GuideManualProgressLock")
             self.assertTrue(restored_toggle.isChecked())
-            self.assertEqual(restored_toggle.text(), "🔒 Verrouillé")
+            self.assertEqual(restored_toggle.text(), "🔒")
 
             restored.deleteLater()
             view.deleteLater()
