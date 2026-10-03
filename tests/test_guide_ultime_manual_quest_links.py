@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QToolButton
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
 
@@ -24,6 +24,7 @@ class _ManualQuestLinkService:
         self.cards = [
             {
                 "manual_title": "Fiche avec quête",
+                "manual_stage_id": "TEST-QUEST-LINK",
                 "destination": "[5,-3] Zone test",
                 "manual_quest_ids": [321, 321],
                 "manual_resource_names": [],
@@ -71,7 +72,7 @@ class GuideUltimeManualQuestLinkTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_canonical_quest_ids_render_one_link_and_open_quests_tab(self) -> None:
+    def test_canonical_quest_ids_render_one_inline_link_and_open_quests_tab(self) -> None:
         view = GuideUltimeManualView(_ManualQuestLinkService(), character_key="character:1")
         navigations: list[tuple[tuple[object, ...], dict[str, object]]] = []
 
@@ -83,16 +84,30 @@ class GuideUltimeManualQuestLinkTests(unittest.TestCase):
         view.show()
         QApplication.processEvents()
         try:
-            buttons = view.findChildren(QPushButton, "GuideManualQuestLink")
+            self.assertIsNone(view.findChild(QFrame, "GuideManualQuestSection"))
+            self.assertEqual(view.findChildren(QPushButton, "GuideManualQuestLink"), [])
+            buttons = view.findChildren(QToolButton, "GuideManualQuestInlineButton")
             self.assertEqual(len(buttons), 1)
-            self.assertEqual(buttons[0].text(), "Quête de test")
-            self.assertEqual(buttons[0].property("questId"), 321)
-            self.assertIn("onglet Quêtes", buttons[0].toolTip())
+            self.assertEqual(buttons[0].text(), "↗")
+            self.assertEqual(buttons[0].toolTip(), "Quête de test")
 
             buttons[0].click()
             QApplication.processEvents()
 
-            self.assertEqual(navigations, [(('quest', 321), {})])
+            self.assertEqual(
+                navigations,
+                [
+                    (
+                        ("quest", 321),
+                        {
+                            "source": "guide_gps",
+                            "guide_id": "guide_complet",
+                            "guide_stage_id": "TEST-QUEST-LINK",
+                            "guide_index": 0,
+                        },
+                    )
+                ],
+            )
         finally:
             view.close()
 

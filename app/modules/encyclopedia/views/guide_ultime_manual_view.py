@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QToolButton,
     QToolTip,
     QVBoxLayout,
     QWidget,
@@ -65,12 +66,16 @@ class GuideManualProgressBar(QProgressBar):
 class GuideUltimeManualCard(QFrame):
     """A single hand-authored road-book sheet. No per-line validation."""
 
+    questRequested = Signal(int, str, int)
+
     def __init__(self, service, character_key: str, card: dict[str, Any], index: int, parent=None) -> None:
         super().__init__(parent)
         self.service = service
         self.character_key = character_key
         self.card = card
         self.index = index
+        self._quest_rows = self._canonical_quest_rows()
+        self._shown_quest_map_links: set[tuple[int, str]] = set()
         self._resource_names = self._clickable_resource_names(service, card)
         self.setObjectName("GuideManualSheet")
 
@@ -94,7 +99,6 @@ class GuideUltimeManualCard(QFrame):
             self._set_clickable_text(where, self._format_line_html("", "", location, [], []))
             root.addWidget(where)
 
-        self._add_quest_links(root)
         self._add_quest_combats(root)
 
         line_provider = getattr(service, "manual_lines_for_card", None)
@@ -107,42 +111,49 @@ class GuideUltimeManualCard(QFrame):
         )
         if not isinstance(sections, dict) or not any(sections.values()):
             sections = {"now": manual_lines}
+        sections = self._without_prepare_duplicates(sections)
 
         self._add_line_section(
             root,
             "À PRÉPARER",
             sections.get("prepare"),
             "GuideManualResourceSection",
+            "prepare",
         )
         self._add_line_section(
             root,
             "À FAIRE MAINTENANT",
             sections.get("now"),
             "GuideManualActionSection",
+            "now",
         )
         self._add_line_section(
             root,
             "À PROFITER ICI",
             sections.get("opportunity"),
             "GuideManualActionSection",
+            "opportunity",
         )
         self._add_line_section(
             root,
             "À CONSERVER POUR PLUS TARD",
             sections.get("keep"),
             "GuideManualResourceSection",
+            "keep",
         )
         self._add_line_section(
             root,
             "BOSS / CAPTURES",
             sections.get("boss"),
             "GuideManualDungeonSection",
+            "boss",
         )
         self._add_line_section(
             root,
             "AVANT DE PARTIR",
             sections.get("before_leave"),
             "GuideManualWarningSection",
+            "before_leave",
         )
 
         automatic = service.card_auto_complete(character_key, card)
@@ -193,34 +204,34 @@ class GuideUltimeManualCard(QFrame):
             layout.addWidget(label)
         root.addWidget(frame)
 
-    def _add_quest_links(self, root: QVBoxLayout) -> None:
-        quests = self._quest_links()
-        if not quests:
-            return
+    @staticmethod
+    def _section_row_fingerprint(row: Any) -> str:
+        if not isinstance(row, dict):
+            return ""
+        position = " ".join(str(row.get("position") or "").split()).casefold()
+        text = " ".join(str(row.get("text") or "").split()).casefold()
+        return f"{position}\n{text}" if text else ""
 
-        frame = QFrame()
-        frame.setObjectName("GuideManualQuestSection")
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(6)
+    @classmethod
+    def _without_prepare_duplicates(cls, sections: dict[str, Any]) -> dict[str, list[Any]]:
+        """Do not repeat in preparation an instruction already executed now."""
+        visible = {
+            str(key): list(rows or []) if isinstance(rows, (list, tuple)) else []
+            for key, rows in sections.items()
+        }
+        now_fingerprints = {
+            cls._section_row_fingerprint(row)
+            for row in visible.get("now", [])
+        }
+        now_fingerprints.discard("")
+        visible["prepare"] = [
+            row
+            for row in visible.get("prepare", [])
+            if cls._section_row_fingerprint(row) not in now_fingerprints
+        ]
+        return visible
 
-        heading = QLabel("QUÊTES DE LA FICHE")
-        heading.setObjectName("GuideManualSectionTitle")
-        layout.addWidget(heading)
-
-        for quest_id, name in quests:
-            button = QPushButton(name)
-            button.setObjectName("GuideManualQuestLink")
-            button.setProperty("questId", quest_id)
-            button.setToolTip(f"Ouvrir « {name} » dans l’onglet Quêtes.")
-            button.clicked.connect(
-                lambda _checked=False, qid=quest_id: self._open_quest(qid)
-            )
-            layout.addWidget(button)
-
-        root.addWidget(frame)
-
-    def _quest_links(self) -> list[tuple[int, str]]:
+    def _canonical_quest_rows(self) -> list[tuple[int, str]]:
         provider = getattr(self.service, "quest_provider", None)
         getter = getattr(provider, "get_quest", None)
         result: list[tuple[int, str]] = []
@@ -243,6 +254,90 @@ class GuideUltimeManualCard(QFrame):
                 name = str(getattr(quest, "name", "") or "").strip()
             result.append((quest_id, name or f"Quête #{quest_id}"))
         return result
+
+    @staticmethod
+    def _position_key(position: str) -> str:
+        value = " ".join(str(position or "").split()).strip()
+        match = _COORD_RE.search(value)
+        if match:
+            return f"{int(match.group(1))},{int(match.group(2))}"
+        return value.casefold()
+
+    @staticmethod
+    def _quest_name_key(value: str) -> str:
+        return " ".join(str(value or "").split()).strip().casefold()
+
+    def _waypoint_quest_ids_for_row(self, row: dict[str, Any]) -> list[int]:
+        stage = self.card.get("manual_stage_data")
+        if not isinstance(stage, dict) or not self._quest_rows:
+            return []
+        row_position = self._position_key(str(row.get("position") or ""))
+        if not row_position:
+            return []
+
+        quest_ids_by_name = {
+            self._quest_name_key(name): quest_id
+            for quest_id, name in self._quest_rows
+        }
+        result: list[int] = []
+        for waypoint in stage.get("waypoints", []) or []:
+            if not isinstance(waypoint, dict):
+                continue
+            try:
+                coordinates = f"{int(waypoint.get('x'))},{int(waypoint.get('y'))}"
+            except (TypeError, ValueError):
+                coordinates = ""
+            waypoint_position = coordinates or self._position_key(
+                str(waypoint.get("label") or "")
+            )
+            if waypoint_position != row_position:
+                continue
+            for quest_name in waypoint.get("quests", []) or []:
+                quest_id = quest_ids_by_name.get(self._quest_name_key(quest_name))
+                if quest_id is not None and quest_id not in result:
+                    result.append(quest_id)
+        return result
+
+    def _quest_ids_for_row(self, row: dict[str, Any]) -> list[int]:
+        waypoint_ids = self._waypoint_quest_ids_for_row(row)
+        if waypoint_ids:
+            return waypoint_ids
+        return [quest_id for quest_id, _name in self._quest_rows]
+
+    def _add_inline_quest_links(
+        self,
+        row_layout: QHBoxLayout,
+        row: dict[str, Any],
+    ) -> None:
+        if not self._quest_rows:
+            return
+        position = str(row.get("position") or self.card.get("destination") or "").strip()
+        map_key = self._position_key(position) or "__stage__"
+        names = {quest_id: name for quest_id, name in self._quest_rows}
+        stage_id = str(self.card.get("manual_stage_id") or "")
+        for quest_id in self._quest_ids_for_row(row):
+            dedupe_key = (int(quest_id), map_key)
+            if dedupe_key in self._shown_quest_map_links:
+                continue
+            name = names.get(int(quest_id))
+            if not name:
+                continue
+            self._shown_quest_map_links.add(dedupe_key)
+            button = QToolButton()
+            button.setObjectName("GuideManualQuestInlineButton")
+            button.setText("↗")
+            button.setAutoRaise(True)
+            button.setCursor(Qt.PointingHandCursor)
+            button.setFixedSize(18, 18)
+            button.setToolTip(name)
+            button.clicked.connect(
+                lambda _checked=False, qid=quest_id, sid=stage_id: self.questRequested.emit(
+                    int(qid),
+                    sid,
+                    self.index,
+                )
+            )
+            row_layout.addWidget(button, 0, Qt.AlignTop)
 
     def _add_quest_combats(self, root: QVBoxLayout) -> None:
         targets = self._quest_combat_targets()
@@ -435,23 +530,13 @@ class GuideUltimeManualCard(QFrame):
                 result.append(name)
         return sorted(result, key=len, reverse=True)
 
-    def _open_quest(self, quest_id: int) -> None:
-        parent = self.parentWidget()
-        while parent is not None:
-            navigator = getattr(parent, "navigate_entity", None)
-            if callable(navigator):
-                # No Guide/Achievement source override here: the UX contract is
-                # to open the canonical quest sheet in the Quêtes tab.
-                navigator("quest", int(quest_id))
-                return
-            parent = parent.parentWidget()
-
     def _add_line_section(
         self,
         root: QVBoxLayout,
         title: str,
         rows,
         object_name: str,
+        section_key: str,
     ) -> None:
         visible = [
             row for row in rows or []
@@ -475,6 +560,12 @@ class GuideUltimeManualCard(QFrame):
             position = str(row.get("position") or "").strip()
             kind = str(row.get("kind") or "")
             prefix = "⚠ " if kind == "warning" else "• "
+
+            row_widget = QFrame()
+            row_widget.setObjectName("GuideManualLineRow")
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(7)
             line = QLabel()
             self._set_clickable_text(
                 line,
@@ -488,7 +579,10 @@ class GuideUltimeManualCard(QFrame):
             )
             line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
-            layout.addWidget(line)
+            row_layout.addWidget(line, 1)
+            if section_key == "now":
+                self._add_inline_quest_links(row_layout, row)
+            layout.addWidget(row_widget)
 
         root.addWidget(frame)
 
@@ -708,6 +802,13 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.route_progress_label = QLabel()
         self.route_progress_label.setObjectName("GuideManualPercent")
         progress_layout.addWidget(self.route_progress_label)
+        self.route_lock_check = QCheckBox("Verrouiller")
+        self.route_lock_check.setObjectName("GuideManualProgressLock")
+        self.route_lock_check.setToolTip(
+            "Empêcher les sauts accidentels par clic dans la barre de progression."
+        )
+        self.route_lock_check.toggled.connect(self._route_lock_toggled)
+        progress_layout.addWidget(self.route_lock_check)
         root.addWidget(progress)
 
         self.scroll = QScrollArea()
@@ -759,6 +860,14 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
     def _sync_order_combo(self) -> None:
         return
 
+    def _route_lock_toggled(self, locked: bool) -> None:
+        self.route_bar.setCursor(Qt.ArrowCursor if locked else Qt.PointingHandCursor)
+        self.route_bar.setToolTip(
+            "Barre verrouillée : décochez Verrouiller pour naviguer par clic."
+            if locked
+            else "Cliquer dans la barre pour naviguer directement dans le Guide GPS."
+        )
+
     def _refresh_header(self) -> None:
         completed, total = self.service.route_sheet_progress(self.character_key)
         if total <= 0:
@@ -781,6 +890,8 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self._render_window(reset_scroll=True)
 
     def _jump_from_progress(self, ratio: float) -> None:
+        if self.route_lock_check.isChecked():
+            return
         total = len(self.service.cards)
         if total <= 0:
             return
@@ -810,6 +921,7 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         card = self.service.cards[index]
         self._add_manual_order_choice(card)
         widget = GuideUltimeManualCard(self.service, self.character_key, card, index)
+        widget.questRequested.connect(self._open_quest_from_card)
         self._set_validation_widget(widget.page_check)
         self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
@@ -823,6 +935,19 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         )
         if reset_scroll:
             self._reset_scroll_to_top()
+
+    def _open_quest_from_card(self, quest_id: int, stage_id: str, index: int) -> None:
+        navigator = self.navigate_entity
+        if not callable(navigator):
+            return
+        navigator(
+            "quest",
+            int(quest_id),
+            source="guide_gps",
+            guide_id="guide_complet",
+            guide_stage_id=str(stage_id or ""),
+            guide_index=int(index),
+        )
 
     def _set_validation_widget(self, checkbox: QCheckBox) -> None:
         while self.validation_layout.count():
