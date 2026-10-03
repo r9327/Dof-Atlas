@@ -1,0 +1,178 @@
+name: Fresh Merged Guide Capture
+
+on:
+  push:
+    branches:
+      - tool/ui-lab-skeleton
+    paths:
+      - ".github/workflows/fresh-merged-guide-capture.yml"
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: windows
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: 1
+  PYTHONUTF8: 1
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  capture:
+    name: Windows / Fresh Merged Guide Capture
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact merged main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: e6c7276112cdb99231f4b4912f8f068843bbfc09
+          fetch-depth: 1
+          lfs: false
+          persist-credentials: false
+
+      - name: Inject canonical UI Lab tooling only
+        run: |
+          git fetch origin tool/ui-lab-skeleton --depth=1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git checkout FETCH_HEAD -- tools/ui_lab
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $scenarioPath = "tools/ui_lab/guide_scenarios.py"
+          $scenario = Get-Content -LiteralPath $scenarioPath -Raw
+          $old = @'
+    view = page.ensure_tab_loaded(GUIDES_TAB)
+    if not view.select_guide("guide_complet"):
+        raise RuntimeError("Le Guide Ultime réel n'est pas disponible pour la capture")
+
+    manual_view = getattr(view, "guide_ultime_view", None)
+    service = getattr(view, "guide_ultime_service", None)
+'@
+          $new = @'
+    view = page.ensure_tab_loaded(GUIDES_TAB)
+    guide_id = str(context.params.get("guide_id") or "guide_complet")
+    if not view.select_guide(guide_id):
+        raise RuntimeError(f"Le guide réel {guide_id} n'est pas disponible pour la capture")
+
+    if guide_id == "guide_complet":
+        manual_view = getattr(view, "guide_ultime_view", None)
+        service = getattr(view, "guide_ultime_service", None)
+    else:
+        manual_view = getattr(view, "_catalog_manual_views", {}).get(guide_id)
+        service = getattr(view, "_catalog_manual_services", {}).get(guide_id)
+'@
+          if (-not $scenario.Contains($old)) { throw "UI Lab Guide scenario contract changed" }
+          $scenario = $scenario.Replace($old, $new)
+          $scenario = $scenario.Replace('GuideManualResourceSection', 'GuideManualWarningSection')
+          Set-Content -LiteralPath $scenarioPath -Value $scenario -Encoding utf8
+
+          @'
+          {
+            "include_lab_shell": true,
+            "segment_overlap": 80,
+            "captures": [
+              {
+                "screen": "encyclopedia.guides",
+                "scenario": "default",
+                "output_name": "01-accueil-guides-main",
+                "width": 1400,
+                "height": 900,
+                "settle_ms": 1400
+              },
+              {
+                "screen": "encyclopedia.guides",
+                "scenario": "gps_active",
+                "params": {"guide_id": "dofus_sylvestre"},
+                "output_name": "02-lanyel-gps-main",
+                "capture_segments": true,
+                "capture_full_scroll": true,
+                "width": 1400,
+                "height": 900,
+                "settle_ms": 1600
+              },
+              {
+                "screen": "encyclopedia.guides",
+                "scenario": "gps_prepare",
+                "params": {"guide_id": "dofus_sylvestre"},
+                "output_name": "03-lanyel-a-preparer-main",
+                "capture_segments": true,
+                "capture_full_scroll": true,
+                "width": 1400,
+                "height": 900,
+                "settle_ms": 1600
+              },
+              {
+                "screen": "encyclopedia.guides",
+                "scenario": "gps_active",
+                "params": {"guide_id": "guide_complet"},
+                "output_name": "04-guide-succes-main",
+                "capture_segments": true,
+                "capture_full_scroll": true,
+                "width": 1400,
+                "height": 900,
+                "settle_ms": 1600
+              },
+              {
+                "screen": "encyclopedia.guides",
+                "scenario": "gps_prepare",
+                "params": {"guide_id": "guide_complet"},
+                "output_name": "05-guide-succes-a-preparer-main",
+                "capture_segments": true,
+                "capture_full_scroll": true,
+                "width": 1400,
+                "height": 900,
+                "settle_ms": 1600
+              },
+              {
+                "screen": "encyclopedia.guides",
+                "scenario": "gps_combat",
+                "params": {"guide_id": "guide_complet"},
+                "output_name": "06-guide-succes-combat-main",
+                "capture_segments": true,
+                "capture_full_scroll": true,
+                "width": 1400,
+                "height": 900,
+                "settle_ms": 1600
+              }
+            ]
+          }
+          '@ | Set-Content -LiteralPath tools/ui_lab/capture_request.json -Encoding utf8
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+
+      - name: Materialize local quest catalog
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) { Remove-Item -LiteralPath $catalog -Recurse -Force }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Generate fresh merged-main Guide captures
+        run: |
+          python -m tools.ui_lab.capture --request tools/ui_lab/capture_request.json --output-dir artifacts/ui_lab
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-Content artifacts/ui_lab/manifest.json
+          $pngs = @(Get-ChildItem artifacts/ui_lab -Filter *.png)
+          if ($pngs.Count -lt 6) { throw "Expected fresh Guide PNG captures" }
+
+      - name: Upload fresh Guide captures
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fresh-merged-guide-screens-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ui_lab/**
+          if-no-files-found: error
+          retention-days: 7
