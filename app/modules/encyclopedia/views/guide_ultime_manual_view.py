@@ -21,8 +21,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.modules.encyclopedia.services.guide_quest_view_model import quest_items_from_objectives
+from app.modules.encyclopedia.services.guide_quest_view_model import (
+    COMBAT_OBJECTIVE_TYPES,
+    quest_items_from_objectives,
+)
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
+from app.quest_catalog import normalize_text
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
 
@@ -31,6 +35,7 @@ NPC_COLOR = PALETTE["YELLOW"]
 RESOURCE_COLOR = PALETTE["GREEN"]
 POSITION_COLOR = PALETTE["TEXT_SOFT"]
 _COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
+_COMBAT_QUANTITY_RE = re.compile(r"\bx\s*(\d+)\b", re.IGNORECASE)
 _NAME_WORD = r"[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]*"
 _NPC_NAME = rf"{_NAME_WORD}(?:\s+(?:(?:de|des|du|d['’]|of|le|la|l['’])\s+)?{_NAME_WORD}){{0,3}}"
 _NPC_PATTERNS = (
@@ -73,6 +78,9 @@ class GuideUltimeManualCard(QFrame):
         root.setContentsMargins(18, 16, 18, 18)
         root.setSpacing(9)
 
+        if index == 0:
+            self._add_legend(root)
+
         title = QLabel(str(card.get("manual_title") or "Fiche de route"))
         title.setObjectName("GuideManualStageTitle")
         title.setWordWrap(True)
@@ -87,6 +95,7 @@ class GuideUltimeManualCard(QFrame):
             root.addWidget(where)
 
         self._add_quest_links(root)
+        self._add_quest_combats(root)
 
         line_provider = getattr(service, "manual_lines_for_card", None)
         manual_lines = line_provider(character_key, card) if callable(line_provider) else card.get("manual_lines", []) or []
@@ -147,11 +156,11 @@ class GuideUltimeManualCard(QFrame):
             and service.manual_order_choice_required(character_key, card)
         )
         if blocking:
-            label = "CHOISIS TON ORDRE POUR CONTINUER" if trigger_ready else "TERMINE D’ABORD LE RANG 20"
+            label = "CHOISIR L’ORDRE" if trigger_ready else "RANG 20 REQUIS"
         elif automatic:
-            label = "FICHE VALIDÉE AUTOMATIQUEMENT"
+            label = "VALIDÉE AUTOMATIQUEMENT"
         else:
-            label = "VALIDATION MANUELLE DE SECOURS"
+            label = "VALIDER LA FICHE"
         self.page_check = QCheckBox(label)
         self.page_check.setObjectName("GuideManualPageCheck")
         self.page_check.setChecked(bool((automatic or manual) and not blocking))
@@ -159,7 +168,30 @@ class GuideUltimeManualCard(QFrame):
         if not automatic and not blocking:
             self.page_check.setToolTip("Secours temporaire tant que la validation automatique n'est pas branchée.")
             self.page_check.toggled.connect(self._page_toggled)
-        root.addWidget(self.page_check)
+
+    def _add_legend(self, root: QVBoxLayout) -> None:
+        frame = QFrame()
+        frame.setObjectName("GuideManualLegendCard")
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(5)
+
+        title = QLabel("LÉGENDE")
+        title.setObjectName("GuideManualLegendTitle")
+        layout.addWidget(title)
+
+        rows = (
+            "Coordonnée en gras : cliquer copie la commande /travel x,y.",
+            "Objet en vert : cliquer copie son nom. PNJ en jaune : interlocuteur à trouver.",
+            "Case de combat : objectif partagé avec l’onglet Quêtes, avec monstre et quantité.",
+            "Validation : automatique quand Atlas dispose de la preuve, manuelle seulement en secours.",
+        )
+        for text in rows:
+            label = QLabel(f"• {text}")
+            label.setObjectName("GuideManualLegendText")
+            label.setWordWrap(True)
+            layout.addWidget(label)
+        root.addWidget(frame)
 
     def _add_quest_links(self, root: QVBoxLayout) -> None:
         quests = self._quest_links()
@@ -211,6 +243,163 @@ class GuideUltimeManualCard(QFrame):
                 name = str(getattr(quest, "name", "") or "").strip()
             result.append((quest_id, name or f"Quête #{quest_id}"))
         return result
+
+    def _add_quest_combats(self, root: QVBoxLayout) -> None:
+        targets = self._quest_combat_targets()
+        if not targets:
+            return
+
+        frame = QFrame()
+        frame.setObjectName("GuideManualDungeonSection")
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(6)
+
+        heading = QLabel("COMBATS DE QUÊTE")
+        heading.setObjectName("GuideManualSectionTitle")
+        layout.addWidget(heading)
+
+        progress = getattr(self.service, "quest_progress", None)
+        for target in targets:
+            quest_id = int(target["quest_id"])
+            objective_id = int(target["objective_id"])
+            quantity = int(target["quantity"])
+            monster = str(target["monster"])
+            quest_name = str(target["quest_name"])
+            text = f"{quantity} × {monster}"
+            if quest_name:
+                text += f" — {quest_name}"
+            checkbox = QCheckBox(text)
+            checkbox.setObjectName("GuideManualCombatCheck")
+            checked = bool(
+                progress is not None
+                and callable(getattr(progress, "is_objective_completed", None))
+                and progress.is_objective_completed(
+                    self.character_key,
+                    quest_id,
+                    objective_id,
+                )
+            )
+            checkbox.setChecked(checked)
+            checkbox.setProperty("state", "done" if checked else "todo")
+            checkbox.setToolTip("Progression partagée avec l’objectif de la fiche Quête.")
+            checkbox.toggled.connect(
+                lambda value, qid=quest_id, oid=objective_id, box=checkbox: self._combat_toggled(
+                    qid,
+                    oid,
+                    box,
+                    value,
+                )
+            )
+            layout.addWidget(checkbox)
+
+        root.addWidget(frame)
+
+    def _quest_combat_targets(self) -> list[dict[str, Any]]:
+        provider = getattr(self.service, "quest_provider", None)
+        getter = getattr(provider, "get_quest", None)
+        if not callable(getter):
+            return []
+
+        card_text = " ".join(
+            f"{row.get('position', '')} {row.get('text', '')}"
+            for row in self.card.get("manual_lines", []) or []
+            if isinstance(row, dict)
+        )
+        normalized_card_text = normalize_text(card_text)
+        card_coords = set(_COORD_RE.findall(card_text))
+        result: list[dict[str, Any]] = []
+        seen: set[tuple[int, int]] = set()
+        for raw in self.card.get("manual_quest_ids", []) or []:
+            try:
+                quest_id = int(raw)
+                quest = getter(quest_id)
+            except (KeyError, LookupError, TypeError, ValueError):
+                continue
+            quest_name = str(getattr(quest, "name", "") or "").strip()
+            for step in getattr(quest, "steps", ()) or ():
+                for objective in getattr(step, "objectives", ()) or ():
+                    objective_id = self._safe_positive_int(getattr(objective, "id", None))
+                    type_id = self._safe_positive_int(getattr(objective, "type_id", None))
+                    is_combat = bool(getattr(objective, "is_combat", False))
+                    if objective_id is None or not (
+                        is_combat or type_id in COMBAT_OBJECTIVE_TYPES
+                    ):
+                        continue
+                    objective_text = str(getattr(objective, "text", "") or "").strip()
+                    monster = str(
+                        getattr(objective, "image_label", "")
+                        or objective_text
+                        or ""
+                    ).strip()
+                    objective_coords = set(
+                        _COORD_RE.findall(
+                            str(getattr(objective, "map_label", "") or "")
+                        )
+                    )
+                    if not monster or not (
+                        normalize_text(monster) in normalized_card_text
+                        or bool(card_coords & objective_coords)
+                    ):
+                        continue
+                    key = (quest_id, objective_id)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    quantity = self._combat_quantity(objective, objective_text)
+                    result.append(
+                        {
+                            "quest_id": quest_id,
+                            "objective_id": objective_id,
+                            "quest_name": quest_name,
+                            "monster": monster,
+                            "quantity": quantity,
+                        }
+                    )
+        return result
+
+    @classmethod
+    def _combat_quantity(cls, objective: Any, objective_text: str) -> int:
+        match = _COMBAT_QUANTITY_RE.search(objective_text)
+        if match is not None:
+            return cls._safe_positive_int(match.group(1)) or 1
+        return cls._safe_positive_int(getattr(objective, "item_quantity", None)) or 1
+
+    @staticmethod
+    def _safe_positive_int(value: Any) -> int | None:
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            return None
+        return number if number > 0 else None
+
+    def _combat_toggled(
+        self,
+        quest_id: int,
+        objective_id: int,
+        checkbox: QCheckBox,
+        checked: bool,
+    ) -> None:
+        progress = getattr(self.service, "quest_progress", None)
+        setter = getattr(progress, "set_objective_completed", None)
+        if not callable(setter):
+            return
+        setter(
+            self.character_key,
+            int(quest_id),
+            int(objective_id),
+            bool(checked),
+        )
+        checkbox.setProperty("state", "done" if checked else "todo")
+        checkbox.style().unpolish(checkbox)
+        checkbox.style().polish(checkbox)
+        parent = self.parentWidget()
+        while parent is not None:
+            handler = getattr(parent, "_manual_objective_changed", None)
+            if callable(handler):
+                handler(int(quest_id))
+                return
+            parent = parent.parentWidget()
 
     @staticmethod
     def _clickable_resource_names(service, card: dict[str, Any]) -> list[str]:
@@ -541,15 +730,21 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.prev_button.setObjectName("GuideManualPrev")
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
         nav_layout.addWidget(self.prev_button)
-        nav_layout.addStretch(1)
         self.nav_page_label = QLabel()
         self.nav_page_label.setObjectName("GuideManualNavPage")
         nav_layout.addWidget(self.nav_page_label)
+        nav_layout.addStretch(1)
+        self.validation_host = QFrame()
+        self.validation_host.setObjectName("GuideManualValidationHost")
+        self.validation_layout = QHBoxLayout(self.validation_host)
+        self.validation_layout.setContentsMargins(0, 0, 0, 0)
+        self.validation_layout.setSpacing(0)
+        nav_layout.addWidget(self.validation_host)
+        nav_layout.addStretch(1)
         self.guide_button = AtlasButton("Guide")
         self.guide_button.setObjectName("GuideManualGuideButton")
         self.guide_button.clicked.connect(lambda _checked=False: self._guide_button_clicked())
         nav_layout.addWidget(self.guide_button)
-        nav_layout.addStretch(1)
         self.next_button = QPushButton("Suivant →")
         self.next_button.setObjectName("GuideManualNextButton")
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
@@ -615,6 +810,7 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         card = self.service.cards[index]
         self._add_manual_order_choice(card)
         widget = GuideUltimeManualCard(self.service, self.character_key, card, index)
+        self._set_validation_widget(widget.page_check)
         self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = 1
@@ -627,6 +823,15 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         )
         if reset_scroll:
             self._reset_scroll_to_top()
+
+    def _set_validation_widget(self, checkbox: QCheckBox) -> None:
+        while self.validation_layout.count():
+            item = self.validation_layout.takeAt(0)
+            previous = item.widget()
+            if previous is not None:
+                previous.setParent(None)
+                previous.deleteLater()
+        self.validation_layout.addWidget(checkbox)
 
     def _add_manual_order_choice(self, card: dict[str, Any]) -> None:
         required = getattr(self.service, "manual_order_choice_required", None)
@@ -681,6 +886,10 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self._render_window(reset_scroll=moved)
 
     def _manual_page_changed(self) -> None:
+        self._follow_active_after_progress_change()
+
+    def _manual_objective_changed(self, quest_id: int) -> None:
+        self.questProgressChanged.emit(int(quest_id))
         self._follow_active_after_progress_change()
 
     def _reset_scroll_to_top(self) -> None:

@@ -2516,15 +2516,13 @@ QLabel#GuideBreadcrumbCurrent {
 #GuideManualActionSection,
 #GuideManualResourceSection,
 #GuideManualDungeonSection,
-#GuideManualWarningSection,
-#GuideManualDestinationSection {
+#GuideManualWarningSection {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
 }
 
-#GuideManualResourceSection,
-#GuideManualDestinationSection {
+#GuideManualResourceSection {
     border-color: @GREEN_BORDER;
 }
 
@@ -2538,9 +2536,27 @@ QLabel#GuideBreadcrumbCurrent {
 }
 
 #GuideManualSectionTitle {
-    color: @TEXT_MUTED;
-    font-size: @FONT_SMALL;
+    color: @TEXT_SOFT;
+    font-size: @FONT_BODY;
     font-weight: 800;
+}
+
+#GuideManualLegendCard {
+    background: @PANEL_HOVER;
+    border: 1px solid @GREEN_BORDER;
+    border-radius: @RADIUS_XS;
+}
+
+#GuideManualLegendTitle {
+    color: @TEXT;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+#GuideManualLegendText {
+    color: @TEXT_SOFT;
+    font-size: 13px;
+    padding: 2px 0;
 }
 
 #GuideManualNavPage {
@@ -2604,68 +2620,28 @@ QLabel#GuideBreadcrumbCurrent {
     padding: 8px 10px;
 }
 
-#GuideManualSuccessBlock {
-    background: @PANEL_2;
-    border: 1px solid @GREEN_BORDER;
-    border-radius: @RADIUS_XS;
-}
-
-#GuideManualSuccessTitle {
-    color: @TEXT;
-    font-size: @FONT_BODY;
-    font-weight: 800;
-}
-
-#GuideManualSuccessCheck {
+#GuideManualCombatCheck {
     color: @TEXT_SOFT;
     background: transparent;
     spacing: 8px;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-#GuideManualSuccessCheck[state="done"] {
-    color: @GREEN;
-}
-
-#GuideManualSuccessCheck::indicator {
-    width: 16px;
-    height: 16px;
-}
-
-#GuideManualSuccessOpen {
-    background: transparent;
-    color: @TEXT_MUTED;
-    border: 1px solid @BORDER;
-    border-radius: @RADIUS_XS;
-    padding: 4px 8px;
-    font-size: @FONT_SMALL;
-    font-weight: 700;
-}
-
-#GuideManualSuccessOpen:hover {
-    color: @TEXT;
-    border-color: @GREEN_BORDER;
-    background: @PANEL_HOVER;
-}
-
-#GuideManualSuccessOpen:disabled {
-    color: @TEXT_DISABLED;
-    border-color: @BORDER_SOFT;
-}
-
-#GuideManualNext {
-    color: @GREEN;
     font-size: 14px;
     font-weight: 700;
-    margin-top: 7px;
+}
+
+#GuideManualCombatCheck[state="done"] {
+    color: @GREEN;
+}
+
+#GuideManualCombatCheck::indicator {
+    width: 16px;
+    height: 16px;
 }
 
 #GuideManualPageCheck {
     color: @TEXT_MUTED;
     background: transparent;
-    border-top: 1px solid @BORDER_SOFT;
-    padding: 10px 2px 2px 2px;
+    border: none;
+    padding: 2px;
     spacing: 9px;
     font-size: 12px;
     font-weight: 700;
