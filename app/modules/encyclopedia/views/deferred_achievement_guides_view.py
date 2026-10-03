@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from PySide6.QtCore import Signal
 
-from app.modules.encyclopedia.services.guide_quest_view_model import (
-    quest_rewards,
-    reward_label,
-)
 from app.modules.encyclopedia.views.guides_view import (
     GUIDE_ULTIME_LEGACY_ID,
     GuidesView as _OptimizedGuidesView,
@@ -48,36 +44,10 @@ class DeferredAchievementGuidesView(_OptimizedGuidesView):
             return False
         return bool(super()._sync_achievement_progress())
 
-    def _selected_series_rewards(self, guide):
-        """Quest rewards never need the Success provider.
+    def _achievement_rewards_for_quest(self, quest) -> tuple:
+        """Quest rewards render without waking the rich Success catalogue."""
 
-        The legacy implementation queried every quest's linked achievements even
-        though quest_rewards() deliberately ignores that argument. Keep the exact
-        visible reward result without waking the large Success catalogue.
-        """
-
-        series_ref = self._selected_series_ref(guide)
-        if series_ref is None:
-            return []
-        _part, _chapter, series = series_ref
-        rewards = []
-        seen: set[tuple[str, str]] = set()
-        for step in sorted(series.steps, key=lambda item: item.order):
-            if step.step_type != "quest" or step.entity_id is None:
-                continue
-            quest = self.quest_catalog.by_id.get(int(step.entity_id))
-            if quest is None:
-                continue
-            for reward in quest_rewards(quest):
-                key = (
-                    reward_label(reward),
-                    str(getattr(reward, "image_path", "") or ""),
-                )
-                if key in seen:
-                    continue
-                seen.add(key)
-                rewards.append(reward)
-        return rewards
+        return ()
 
     def _populate_guide_info(self, guide) -> None:
         if self._achievement_runtime_ready():

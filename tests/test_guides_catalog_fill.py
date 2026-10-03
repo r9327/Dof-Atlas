@@ -9,7 +9,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from app.constants import KEY_SESSION_ORDER
 from app.modules.encyclopedia.constants import ENCYCLOPEDIA_TABS
@@ -100,6 +100,14 @@ class GuideCatalogFillTests(unittest.TestCase):
             self.assertEqual(view.current_guide_id, "dofus_sylvestre")
             self.assertEqual(view.state, view.GUIDE_OVERVIEW)
             self.assertIsNone(view.guide_ultime_view)
+            self.assertEqual(len(view.center_panel.findChildren(QuestLine)), 40)
+            self.assertEqual(len(view._selected_series_rewards(guide)), 12)
+            self.assertTrue(view._selected_series_rewards_truncated)
+            more = view.center_panel.findChild(QWidget, "GuideSeriesLoadMoreButton")
+            self.assertIsNotNone(more)
+            more.click()
+            self.app.processEvents()
+            self.assertEqual(len(view.center_panel.findChildren(QuestLine)), 80)
             view.deleteLater()
             self.app.processEvents()
 

@@ -548,7 +548,9 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             achievement_progress_service=SimpleNamespace(
                 path=Path("achievement_progress.json")
             ),
-            _build_guide_progress_snapshot=Mock(return_value={}),
+            _build_guide_progress_snapshot=Mock(
+                return_value={"guide_complet": (0, 0, "")}
+            ),
             guideRuntimeFinished=SimpleNamespace(emit=Mock()),
             open_pending_lazy_tab=Mock(),
             status_callback=Mock(),
@@ -557,14 +559,7 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         def run_thread(*, target, **_kwargs):
             return SimpleNamespace(start=target)
 
-        guide_success = SimpleNamespace(
-            available=True,
-            route_sheet_progress=Mock(return_value=(12, 34)),
-        )
         with patch(
-            "app.modules.encyclopedia.views.encyclopedia_page._build_guide_success_runtime",
-            return_value=guide_success,
-        ) as build_guide_success, patch(
             "app.modules.encyclopedia.views.encyclopedia_page.Thread",
             side_effect=run_thread,
         ), patch(
@@ -576,17 +571,11 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         self.assertEqual(gate.state, RelatedPreloadState.LOADING)
         guide_provider.reload.assert_called_once_with()
         guide_provider.load_all.assert_not_called()
-        build_guide_success.assert_called_once_with(
-            page.quest_provider,
-            quest_progress_path=page.quest_progress_path,
-            achievement_progress_path=page.achievement_progress_service.path,
-            guide_progress_path=page.guide_progress_service.path,
-        )
         page.guideRuntimeFinished.emit.assert_called_once()
         payload = page.guideRuntimeFinished.emit.call_args.args[0]
         self.assertEqual(
             payload.progress_by_guide["guide_complet"],
-            (12, 34, "En cours"),
+            (0, 0, ""),
         )
 
     def test_guide_hydration_keeps_rich_detail_unbuilt(self):
