@@ -1,0 +1,69 @@
+{
+  "include_lab_shell": true,
+  "segment_overlap": 80,
+  "captures": [
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "default",
+      "output_name": "01-accueil-guides-main",
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1400
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_active",
+      "params": {"guide_id": "dofus_sylvestre"},
+      "output_name": "02-lanyel-gps-main",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1600
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_prepare",
+      "params": {"guide_id": "dofus_sylvestre"},
+      "output_name": "03-lanyel-a-preparer-main",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1600
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_active",
+      "params": {"guide_id": "guide_complet"},
+      "output_name": "04-guide-succes-main",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1600
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_prepare",
+      "params": {"guide_id": "guide_complet"},
+      "output_name": "05-guide-succes-a-preparer-main",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1600
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_combat",
+      "params": {"guide_id": "guide_complet"},
+      "output_name": "06-guide-succes-combat-main",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1600
+    }
+  ]
+}
