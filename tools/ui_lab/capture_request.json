@@ -1,201 +1,22 @@
 {
-  "include_lab_shell": true,
+  "include_lab_shell": false,
   "segment_overlap": 80,
   "captures": [
     {
-      "screen": "home",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 800
-    },
-    {
-      "screen": "organizer",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 800
-    },
-    {
       "screen": "encyclopedia.guides",
       "scenario": "default",
+      "output_name": "guide-succes-fresh",
       "width": 1400,
       "height": 900,
-      "settle_ms": 1200
+      "settle_ms": 1500
     },
     {
       "screen": "encyclopedia.guides",
       "scenario": "gps_prepare",
-      "output_name": "guide-gps-prepare",
-      "capture_segments": true,
-      "capture_full_scroll": true,
+      "output_name": "page-guide-fresh",
       "width": 1400,
       "height": 900,
-      "settle_ms": 1200
-    },
-    {
-      "screen": "encyclopedia.guides",
-      "scenario": "gps_combat",
-      "output_name": "guide-gps-combat",
-      "capture_segments": true,
-      "capture_full_scroll": true,
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 1200
-    },
-    {
-      "screen": "encyclopedia.quests",
-      "scenario": "target",
-      "params": {
-        "quest_name": "Les principes d'Archie m'aident"
-      },
-      "output_name": "quest-1958",
-      "capture_segments": true,
-      "capture_full_scroll": true,
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 1200
-    },
-    {
-      "screen": "encyclopedia.achievements",
-      "scenario": "target",
-      "params": {
-        "achievement_name": "Vert émeraude"
-      },
-      "output_name": "achievement-1048",
-      "capture_segments": true,
-      "capture_full_scroll": true,
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 1200
-    },
-    {
-      "screen": "bestiary.dungeons",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 800
-    },
-    {
-      "screen": "bestiary.monsters",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 800
-    },
-    {
-      "screen": "bestiary.archmonsters",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 800
-    },
-    {
-      "screen": "bestiary.wanted",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 800
-    },
-    {
-      "screen": "tools.crafts",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 600
-    },
-    {
-      "screen": "tools.world_map",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 1600
-    },
-    {
-      "screen": "tools.treasure_hunt",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 400
-    },
-    {
-      "screen": "tools.ocre",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 400
-    },
-    {
-      "screen": "stuffs.pvm",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 600
-    },
-    {
-      "screen": "stuffs.pvp",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 600
-    },
-    {
-      "screen": "stuffs.builders",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 600
-    },
-    {
-      "screen": "almanax",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 400
-    },
-    {
-      "screen": "tutorials.default",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 400
-    },
-    {
-      "screen": "tutorials.dofus_noob",
-      "scenario": "default",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 400
-    },
-    {
-      "screen": "encyclopedia.guides",
-      "scenario": "target",
-      "params": {
-        "guide_name": "Dofus Émeraude",
-        "quest_name": "Les principes d'Archie m'aident"
-      },
-      "output_name": "guide-dofus-emeraude-quest-1958",
-      "capture_segments": true,
-      "capture_full_scroll": true,
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 1200
-    },
-    {
-      "screen": "home",
-      "scenario": "saved_progress",
-      "params": {
-        "character_label": "UI Lab",
-        "percent": 42,
-        "chapter": "Chapitre ciblé",
-        "step": "Étape ciblée",
-        "zone": "[0, 0]",
-        "guide_id": "guide_complet"
-      },
-      "output_name": "home-saved-progress",
-      "width": 1400,
-      "height": 900,
-      "settle_ms": 800
+      "settle_ms": 1500
     }
   ]
 }
