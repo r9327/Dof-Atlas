@@ -77,7 +77,7 @@ class AtlasMetaIntegrityTests(unittest.TestCase):
     def test_current_inventory_is_valid(self) -> None:
         report = verify_repository(ROOT, changed_paths=[])
         self.assertEqual("PASS", report["verdict"], report["protections_missing"])
-        self.assertEqual(24, report["critical_test_count"])
+        self.assertEqual(25, report["critical_test_count"])
 
     def test_missing_hard_logical_id_is_blocked(self) -> None:
         payload = self._inventory()

@@ -44,6 +44,23 @@ certifiée. Seul le contrat de `PHASE_CERTIFICATION.md` autorise ce vocabulaire.
 - Graphify 0.9.72 fournit la carte AST explicite des travaux structurels.
 - Les résultats d’audit locaux sont bornés et les artefacts CI ordinaires expirent.
 - Les hooks et la méta-intégrité empêchent l’affaiblissement silencieux des gates.
+- Doctor DEEP orchestre mutation ciblée, fault injection, ordre reproductible,
+  lifecycle long monolithique et mesures, sans alourdir chaque FULL.
+
+## Cadence DEEP
+
+Commande opérateur unique :
+
+```powershell
+py -3.13 -m tools.atlas_doctor verify --gate deep --base-ref origin/main
+```
+
+Le propriétaire du dépôt l’exécute manuellement sur `main` au minimum avant la
+certification d’une phase, puis après toute modification des contrats de
+persistance, démarrage, concurrence/lifecycle ou des outils DEEP eux-mêmes. Le
+workflow sensible reste manuel et réservé au runner Windows isolé tant qu’un
+runner public sûr n’est pas démontré. Ses preuves machine sont conservées 30
+jours ; un nouvel SHA invalide toute preuve précédente.
 
 ## Lots actifs
 
@@ -63,18 +80,6 @@ Périmètre initial mesuré par `tools.tool_audit` :
 Sortie attendue : Tool Audit sans candidat inexpliqué, consommateurs confirmés,
 tests ciblés verts, Graphify avant/après si suppression, Atlas Integrity au niveau
 requis et diff intégré par PR.
-
-### IA-2 — QUEUED — Formaliser la cadence DEEP
-
-Objectif : rendre explicite quand et par qui exécuter les validations coûteuses
-qui ne font pas partie de chaque FULL.
-
-Périmètre : fault injection, mutation ciblée, ordre aléatoire, lifecycle
-monolithique et mesures temporelles. Conserver le workflow sensible manuel tant
-qu’une exécution automatique sûre sur runner public ou isolé n’est pas prouvée.
-
-Sortie attendue : commande opérateur unique, fréquence documentée, preuves
-conservées avec rétention adaptée et aucun affaiblissement du FULL courant.
 
 ### IA-3 — QUEUED — Réduire le coût de l’outillage IA sans perdre de couverture
 

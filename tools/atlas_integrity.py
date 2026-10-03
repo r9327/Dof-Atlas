@@ -344,6 +344,25 @@ def _command_for_group(
         return [python, "-m", "tools.atlas_mutation", "--json"]
     if runner == "random_order":
         return [python, "-X", "faulthandler", "-m", "tools.random_order_tests", "--seed", "9327", "--quiet"]
+    if runner == "lifecycle_soak":
+        modules = config.get("modules")
+        cycles = config.get("cycles")
+        if not isinstance(modules, list) or not modules:
+            raise IntegrityConfigError(f"{name}: lifecycle modules are missing")
+        if not isinstance(cycles, int) or cycles < 2:
+            raise IntegrityConfigError(f"{name}: lifecycle cycles must be at least two")
+        return [
+            python,
+            "-X",
+            "faulthandler",
+            "-m",
+            "tools.atlas_lifecycle_soak",
+            "--cycles",
+            str(cycles),
+            "--modules",
+            *modules,
+            "--json",
+        ]
     if runner == "timing_performance":
         return [python, "-X", "faulthandler", "-m", "app.modules.encyclopedia.tools.benchmark_guides_performance"]
     if runner == "critical_inventory":
@@ -522,11 +541,21 @@ def execute_gate(
         if name == "DATA_INTEGRITY":
             group_blockers, checks = _guide_details(root, config)
             groups[name]["tests"] = checks
-        if name in {"FAULT_INJECTION", "CRITICAL_COVERAGE", "TARGETED_MUTATION"}:
+        if name in {
+            "FAULT_INJECTION",
+            "CRITICAL_COVERAGE",
+            "TARGETED_MUTATION",
+            "MONOLITHIC_LIFECYCLE",
+        }:
             try:
                 groups[name]["details"] = json.loads(result.get("stdout", ""))
             except (json.JSONDecodeError, TypeError):
                 groups[name]["details"] = {"parse_error": True}
+            if name == "MONOLITHIC_LIFECYCLE":
+                counts = groups[name]["details"].get("counts", {})
+                if isinstance(counts, dict) and isinstance(counts.get("total_tests"), int):
+                    groups[name]["tests"] = counts["total_tests"]
+                    command_report["tests"] = counts["total_tests"]
         if status not in {"PASS", "MEASURED_ONLY"} and config.get("blocking", True) and not group_blockers:
             group_blockers.append(f"{name}_FAILED")
         groups[name]["blockers"] = group_blockers
