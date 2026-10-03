@@ -169,6 +169,19 @@ class AgentGraphTests(unittest.TestCase):
         self.assertIn("tools/__init__.py", imports)
         self.assertNotIn("tools/work.py", agent._internal_imports(self.root, "tools/consumer.py"))
 
+    def test_canonical_python_parser_accepts_utf8_bom(self):
+        source = self.root / "tools/bom_source.py"
+        source.write_text(
+            "from tools import target\n\ndef bom_work():\n    return target.work()\n",
+            encoding="utf-8-sig",
+        )
+
+        self.assertIn("tools/target.py", agent._internal_imports(self.root, "tools/bom_source.py"))
+        self.assertEqual(
+            [symbol["name"] for symbol in agent._python_symbols(self.root, "tools/bom_source.py")],
+            ["bom_work"],
+        )
+
     def test_agent_cli_routes_read_only_engine_and_stable_json(self):
         with mock.patch.object(agent, "ROOT", self.root), contextlib.redirect_stdout(io.StringIO()) as output:
             code = agent.main(["reverse-impact", "tools/target.py", "--json"])
