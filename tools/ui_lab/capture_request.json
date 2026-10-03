@@ -1,0 +1,50 @@
+{
+  "include_lab_shell": true,
+  "segment_overlap": 80,
+  "captures": [
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_prepare",
+      "params": {"guide_id": "guide_complet"},
+      "output_name": "guide-succes-prepare",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_combat",
+      "params": {"guide_id": "guide_complet"},
+      "output_name": "guide-succes-combat",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_prepare",
+      "params": {"guide_id": "dofus_sylvestre"},
+      "output_name": "lanyel-prepare",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    },
+    {
+      "screen": "encyclopedia.guides",
+      "scenario": "gps_combat",
+      "params": {"guide_id": "dofus_sylvestre"},
+      "output_name": "lanyel-combat",
+      "capture_segments": true,
+      "capture_full_scroll": true,
+      "width": 1400,
+      "height": 900,
+      "settle_ms": 1200
+    }
+  ]
+}
