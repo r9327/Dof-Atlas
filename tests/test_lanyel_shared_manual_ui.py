@@ -9,7 +9,15 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QFrame, QLabel
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QFrame,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QToolButton,
+)
 
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import AchievementProgressService, GuideProgressService
@@ -50,6 +58,17 @@ class LanyelSharedManualUiTests(unittest.TestCase):
         )
         view.set_character_key("character:1")
         return view
+
+    @staticmethod
+    def _layout_widget_names(frame: QFrame) -> list[str]:
+        layout = frame.layout()
+        assert layout is not None
+        result: list[str] = []
+        for index in range(layout.count()):
+            widget = layout.itemAt(index).widget()
+            if widget is not None:
+                result.append(widget.objectName())
+        return result
 
     def test_lanyel_opens_same_manual_roadbook_renderer_as_guide_succes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -118,6 +137,178 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertFalse(parent.findChildren(QLabel, "GuideManualWarning"))
 
             card.deleteLater()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_location_heading_is_removed_and_positions_stay_in_route_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            service = view._catalog_manual_services["dofus_sylvestre"]
+            source = copy.deepcopy(service.cards[0])
+            source["manual_title"] = "Village d’Amakna"
+            source["zone"] = "Village d’Amakna"
+            source["subzone"] = "Village d’Amakna"
+            source["destination"] = "[1,2] — Village d’Amakna"
+
+            card = SharedGuideManualCard(service, "character:1", source, 0)
+            self.app.processEvents()
+            self.assertIsNone(card.findChild(QLabel, "GuideManualLocation"))
+            titles = [
+                label.text()
+                for label in card.findChildren(QLabel, "GuideManualStageTitle")
+            ]
+            self.assertNotIn("Village d’Amakna", titles)
+
+            card.deleteLater()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_quest_combats_are_inline_in_route_body_and_keep_shared_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            service = view._catalog_manual_services["dofus_sylvestre"]
+
+            candidate_index = next(
+                (
+                    index
+                    for index, source in enumerate(service.cards)
+                    if service.manual_sections_for_card("character:1", source).get("boss")
+                ),
+                None,
+            )
+            self.assertIsNotNone(candidate_index)
+            source = service.cards[int(candidate_index)]
+            card = SharedGuideManualCard(
+                service,
+                "character:1",
+                source,
+                int(candidate_index),
+            )
+            self.app.processEvents()
+
+            combat_checks = card.findChildren(QCheckBox, "GuideManualCombatCheck")
+            self.assertTrue(combat_checks)
+            self.assertTrue(
+                all(
+                    checkbox.parentWidget() is not None
+                    and checkbox.parentWidget().objectName() == "GuideManualCombatInlineRow"
+                    for checkbox in combat_checks
+                )
+            )
+            self.assertFalse(
+                any(
+                    label.text().strip().upper() == "COMBATS DE QUÊTE"
+                    for label in card.findChildren(QLabel)
+                )
+            )
+            first = combat_checks[0]
+            before = first.isChecked()
+            first.click()
+            self.app.processEvents()
+            self.assertEqual(first.isChecked(), (not before))
+
+            card.deleteLater()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_navigation_and_footer_have_the_requested_order(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            self.assertIsInstance(shared, SharedGuideManualView)
+            self.app.processEvents()
+
+            nav = shared.findChild(QFrame, "GuideManualNav")
+            footer = shared.findChild(QFrame, "GuideManualProgressFrame")
+            self.assertIsNotNone(nav)
+            self.assertIsNotNone(footer)
+            self.assertEqual(
+                self._layout_widget_names(nav),
+                [
+                    "GuideManualPrev",
+                    "GuideManualValidationHost",
+                    "GuideManualNextButton",
+                ],
+            )
+            self.assertEqual(
+                self._layout_widget_names(footer),
+                [
+                    "GuideManualGuideButton",
+                    "GuideManualProgress",
+                    "GuideManualPercent",
+                    "GuideManualProgressLock",
+                    "GuideManualNavPage",
+                ],
+            )
+            page = shared.findChild(QLabel, "GuideManualNavPage")
+            self.assertIs(page.parentWidget(), footer)
+            validation = shared.findChild(QPushButton, "GuideManualPageCheck")
+            self.assertIsNotNone(validation)
+            self.assertEqual(validation.text(), "Valider")
+
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_lock_toggle_is_icon_only_persistent_and_defaults_unlocked(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            self.assertIsInstance(shared, SharedGuideManualView)
+            service = view._catalog_manual_services["dofus_sylvestre"]
+            self.app.processEvents()
+
+            toggle = shared.findChild(QToolButton, "GuideManualProgressLock")
+            self.assertIsNotNone(toggle)
+            self.assertFalse(toggle.isChecked())
+            self.assertEqual(toggle.text(), "🔓")
+            self.assertEqual(toggle.width(), 26)
+            toggle.click()
+            self.app.processEvents()
+            self.assertTrue(toggle.isChecked())
+            self.assertEqual(toggle.text(), "🔒")
+            self.assertTrue(
+                service.manual_checked(
+                    "character:1",
+                    SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY,
+                )
+            )
+
+            restored = SharedGuideManualView(
+                service,
+                character_key="character:1",
+                quest_provider=self.quest_provider,
+            )
+            self.app.processEvents()
+            restored_toggle = restored.findChild(QToolButton, "GuideManualProgressLock")
+            self.assertTrue(restored_toggle.isChecked())
+            self.assertEqual(restored_toggle.text(), "🔒")
+
+            restored.deleteLater()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_route_progress_advances_when_the_current_sheet_is_validated(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            self.assertIsInstance(shared, SharedGuideManualView)
+            self.app.processEvents()
+
+            bar = shared.findChild(QProgressBar, "GuideManualProgress")
+            validation = shared.findChild(QPushButton, "GuideManualPageCheck")
+            self.assertIsNotNone(bar)
+            self.assertIsNotNone(validation)
+            self.assertTrue(validation.isEnabled())
+            before = bar.value()
+            validation.click()
+            self.app.processEvents()
+            self.assertGreater(bar.value(), before)
+
             view.deleteLater()
             self.app.processEvents()
 
