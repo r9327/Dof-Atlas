@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from PySide6.QtCore import Signal
 
-from app.modules.encyclopedia.views.guides_view import (
-    GUIDE_ULTIME_LEGACY_ID,
-    GuidesView as _OptimizedGuidesView,
+from app.modules.encyclopedia.views.guides_view import GUIDE_ULTIME_LEGACY_ID
+from app.modules.encyclopedia.views.manual_route_guides_view import (
+    ManualRouteGuidesView as _OptimizedGuidesView,
 )
 
 
