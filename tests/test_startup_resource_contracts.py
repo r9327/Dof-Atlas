@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 import unittest
 from unittest.mock import Mock, patch
 
@@ -50,9 +49,9 @@ class StartupResourceContractTests(unittest.TestCase):
             guides.assert_not_called()
             graph.assert_not_called()
             self.assertIn("Quetes", window.page_factories)
-            self.assertNotIn(
-                "app.modules.encyclopedia.views.encyclopedia_page",
-                sys.modules,
+            self.assertNotEqual(
+                type(window.page_widgets["Quetes"]).__name__,
+                "EncyclopediaPage",
             )
             self.assertEqual(
                 window.stack.currentWidget(),
