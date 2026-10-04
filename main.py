@@ -1979,13 +1979,22 @@ class AtlasWindow(QMainWindow):
             task = str(result.pop("_preload_task", "") or "")
             result.pop("_complete", None)
             task_error = str(result.pop("_fatal_error", "") or "")
+            payload_key = "quests" if task in {"quests", "encyclopedia"} else task
+            task_payload = result.get(payload_key) if isinstance(result, dict) else None
+            payload_errors = task_payload.get("errors") if isinstance(task_payload, dict) else None
+            payload_error = (
+                str(payload_errors[0])
+                if isinstance(payload_errors, list) and payload_errors
+                else ""
+            )
+            task_failed = bool(task_error or payload_error)
             fatal_error = task_error or fatal_error
             if task:
                 completed_tasks.append(task)
                 with self.preload_state_lock:
                     self.preload_user_tasks.discard(task)
                     self.preload_states[task] = (
-                        PRELOAD_FAILED if task_error else PRELOAD_READY
+                        PRELOAD_FAILED if task_failed else PRELOAD_READY
                     )
             self.merge_preload_result(result)
             self.refresh_preload_popup()
@@ -2001,7 +2010,7 @@ class AtlasWindow(QMainWindow):
             if isinstance(result_quests, dict):
                 errors.extend(result_quests.get("errors") or [])
 
-            if task == "quests" and not task_error:
+            if task == "quests" and not task_failed:
                 current_quests = self.preload_results.get("quests")
                 catalog = current_quests.get("catalog") if isinstance(current_quests, dict) else None
                 if catalog is not None and self.preload_states.get("encyclopedia") == PRELOAD_IDLE:
