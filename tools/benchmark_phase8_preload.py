@@ -246,13 +246,13 @@ def measure() -> dict[str, Any]:
     startup_rss_mb, startup_peak_rss_mb = memory_mb()
 
     preload_states_before = preload_state_snapshot(window)
-    preload_started = time.perf_counter()
     preload_duration_ms, _preload_peak = wait_until(
         app,
         lambda: preload_terminal(window),
         timeout=90.0,
         label="functional preload",
     )
+    preload_completed_from_constructor_ms = milliseconds(startup_started)
     preload_states_after = preload_state_snapshot(window)
     pump(app, 0.05)
     rss_after_preload_mb, peak_after_preload_mb = memory_mb()
@@ -290,7 +290,7 @@ def measure() -> dict[str, Any]:
         "startup_stabilized_ms": startup_stabilized_ms,
         "startup_stabilized_rss_mb": startup_rss_mb,
         "preload_wait_from_stabilized_ms": preload_duration_ms,
-        "preload_wall_from_constructor_ms": round((time.perf_counter() - preload_started) * 1000.0, 2),
+        "preload_completed_from_constructor_ms": preload_completed_from_constructor_ms,
         "preload_states_before": preload_states_before,
         "preload_states_after": preload_states_after,
         "rss_after_preload_mb": rss_after_preload_mb,
