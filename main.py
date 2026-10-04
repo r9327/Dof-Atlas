@@ -61,6 +61,7 @@ from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
 from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle, atlas_application_icon
+from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
 from app.windows.unity_windows import enable_dpi_awareness
@@ -674,10 +675,18 @@ class AtlasWindow(QMainWindow):
         self.page_widgets: dict[str, QWidget] = {}
         self.page_factories: dict[str, Any] = {}
         self.preload_results: dict[str, Any] = dict(initial_preload) if isinstance(initial_preload, dict) else {}
+        initial_quests = self.preload_results.get("quests")
+        initial_related_ready = bool(
+            isinstance(initial_quests, dict)
+            and initial_quests.get("guide_provider") is not None
+            and initial_quests.get("achievement_provider") is not None
+            and initial_quests.get("quest_graph") is not None
+        )
         self.preload_started = False
-        self.preload_finished = bool(initial_preload)
+        self.preload_finished = bool(initial_preload) and initial_related_ready
         self.preload_states = {
             "quests": PRELOAD_READY if "quests" in self.preload_results else PRELOAD_IDLE,
+            "encyclopedia": PRELOAD_READY if initial_related_ready else PRELOAD_IDLE,
             "craft": PRELOAD_READY if "craft" in self.preload_results else PRELOAD_IDLE,
         }
         self.preload_state_lock = Lock()
@@ -685,7 +694,7 @@ class AtlasWindow(QMainWindow):
         self.pending_page_name = ""
         self.pending_encyclopedia_tab = ""
         self.pending_guide_target: tuple[str, int | None] | None = None
-        self.preload_queue: Queue[dict[str, Any]] = Queue(maxsize=4)
+        self.preload_queue: Queue[dict[str, Any]] = Queue(maxsize=8)
         self.preload_poll_timer = QTimer(self)
         self.preload_poll_timer.setInterval(120)
         self.preload_poll_timer.timeout.connect(self.collect_preload_result)
@@ -752,6 +761,7 @@ class AtlasWindow(QMainWindow):
         self.stack.setCurrentWidget(self.home_page)
 
         self.apply_style()
+        self.preload_popup = PreloadProgressPopup(self)
         self._schedule_owned_callback(POST_RENDER_TRAY_DELAY_MS, self.setup_tray)
         self.update_topmost_button()
         self.refresh_nav_selection("")
@@ -1065,10 +1075,6 @@ class AtlasWindow(QMainWindow):
             return
         self.refresh_global_characters()
 
-        # Network traffic from several clients is interleaved. The Organizer
-        # favorite wins when set; otherwise follow the last Dofus window brought
-        # to the foreground. A single connected client is an unambiguous final
-        # fallback for in-client character changes.
         index_payload = read_json(CLIENT_INDEX_JSON, {})
         clients = index_payload.get("clients", []) if isinstance(index_payload, dict) else []
         clients = [client for client in clients if isinstance(client, dict)]
@@ -1383,8 +1389,6 @@ class AtlasWindow(QMainWindow):
         target_index = labels.index(label)
         tab_bar = page.tabs.tabBar()
 
-        # Hiding the selected tab can synchronously emit currentChanged. Apply
-        # visibility and selection atomically, then activate only the target.
         was_blocked = page.tabs.blockSignals(True)
         try:
             for index, tab_name in enumerate(labels):
@@ -1398,13 +1402,9 @@ class AtlasWindow(QMainWindow):
         finally:
             page.tabs.blockSignals(was_blocked)
 
-        # Clear before the lazy handler can replace a placeholder or schedule a
-        # callback, so an older request cannot be replayed.
         self.pending_encyclopedia_tab = ""
         page.on_tab_changed(target_index)
 
-        # Lazy materialization may move the requested label. Restore the visual
-        # selection without invoking the handler a second time.
         refreshed_labels = page.tab_labels()
         if label in refreshed_labels:
             final_index = refreshed_labels.index(label)
@@ -1778,6 +1778,11 @@ class AtlasWindow(QMainWindow):
         start_preload = getattr(self, "start_preload", None)
         if callable(start_preload):
             start_preload("quests", user_requested=True)
+            if self.pending_guide_target or self.pending_encyclopedia_tab in {
+                GUIDES_TAB,
+                ACHIEVEMENTS_TAB,
+            }:
+                start_preload("encyclopedia", user_requested=True)
         encyclopedia_page_type = _resolve_encyclopedia_page()
         quest_provider_type = _resolve_quest_provider()
         preload = self.preload_results.get("quests")
@@ -1860,6 +1865,11 @@ class AtlasWindow(QMainWindow):
             for page_name, widget in self.page_widgets.items()
         }
 
+    def refresh_preload_popup(self) -> None:
+        popup = getattr(self, "preload_popup", None)
+        if popup is not None:
+            popup.update_states(dict(self.preload_states))
+
     def start_preload(
         self,
         target: str = "quests",
@@ -1870,13 +1880,44 @@ class AtlasWindow(QMainWindow):
         if prefer_quests is not None:
             target = "quests" if prefer_quests else "craft"
         task = str(target or "").strip().casefold()
-        builders: dict[str, Callable[[], dict[str, Any]]] = {
-            "quests": lambda: build_quest_preload(include_related=False),
-            "craft": build_craft_preload,
-        }
-        builder = builders.get(task)
-        if builder is None:
-            return
+        result_key = task
+
+        if task == "encyclopedia":
+            quests = self.preload_results.get("quests")
+            catalog = quests.get("catalog") if isinstance(quests, dict) else None
+            if catalog is None:
+                with self.preload_state_lock:
+                    quest_state = self.preload_states.get("quests", PRELOAD_IDLE)
+                    if quest_state in {PRELOAD_READY, PRELOAD_FAILED}:
+                        self.preload_states[task] = PRELOAD_FAILED
+                        self.preload_user_tasks.discard(task)
+                        self.preload_finished = all(
+                            state in {PRELOAD_READY, PRELOAD_FAILED}
+                            for state in self.preload_states.values()
+                        )
+                        self.refresh_preload_popup()
+                        return
+                self.start_preload("quests", user_requested=user_requested)
+                self._schedule_owned_callback(
+                    180,
+                    lambda: self.start_preload(
+                        "encyclopedia",
+                        user_requested=user_requested,
+                    ),
+                )
+                return
+            builder: Callable[[], dict[str, Any]] = (
+                lambda catalog=catalog: build_quest_related_preload(catalog)
+            )
+            result_key = "quests"
+        else:
+            builders: dict[str, Callable[[], dict[str, Any]]] = {
+                "quests": lambda: build_quest_preload(include_related=False),
+                "craft": build_craft_preload,
+            }
+            builder = builders.get(task)  # type: ignore[assignment]
+            if builder is None:
+                return
 
         with self.preload_state_lock:
             if self.preload_states.get(task) in {PRELOAD_LOADING, PRELOAD_READY}:
@@ -1894,6 +1935,7 @@ class AtlasWindow(QMainWindow):
                 self.preload_user_tasks.add(task)
             self.preload_started = True
             self.preload_finished = False
+        self.refresh_preload_popup()
 
         def worker() -> None:
             priority = nullcontext() if user_requested else background_io_priority()
@@ -1901,13 +1943,13 @@ class AtlasWindow(QMainWindow):
                 with priority:
                     payload = builder()
                 self.preload_queue.put(
-                    {task: payload, "_preload_task": task, "_complete": True}
+                    {result_key: payload, "_preload_task": task, "_complete": True}
                 )
             except Exception as exc:
                 LOGGER.exception("Préchargement asynchrone interrompu (%s).", task)
                 self.preload_queue.put(
                     {
-                        task: {"errors": [str(exc)]},
+                        result_key: {"errors": [str(exc)]},
                         "_preload_task": task,
                         "_fatal_error": str(exc),
                         "_complete": True,
@@ -1946,17 +1988,35 @@ class AtlasWindow(QMainWindow):
                         PRELOAD_FAILED if task_error else PRELOAD_READY
                     )
             self.merge_preload_result(result)
+            self.refresh_preload_popup()
             quests = self.preload_results.get("quests")
             if isinstance(quests, dict):
                 self.apply_home_preload_update(quests)
                 self.apply_encyclopedia_preload_update(quests)
             craft = result.get("craft") if isinstance(result, dict) else {}
-            quests = result.get("quests") if isinstance(result, dict) else {}
+            result_quests = result.get("quests") if isinstance(result, dict) else {}
             if isinstance(craft, dict):
                 errors.extend(craft.get("errors") or [])
                 self.apply_craft_preload_update(craft)
-            if isinstance(quests, dict):
-                errors.extend(quests.get("errors") or [])
+            if isinstance(result_quests, dict):
+                errors.extend(result_quests.get("errors") or [])
+
+            if task == "quests" and not task_error:
+                current_quests = self.preload_results.get("quests")
+                catalog = current_quests.get("catalog") if isinstance(current_quests, dict) else None
+                if catalog is not None and self.preload_states.get("encyclopedia") == PRELOAD_IDLE:
+                    user_waiting = (
+                        self.pending_page_name == "Quetes"
+                        or self.active_page_name() == "Quetes"
+                    )
+                    self._schedule_owned_callback(
+                        0,
+                        lambda priority=user_waiting: self.start_preload(
+                            "encyclopedia",
+                            user_requested=priority,
+                        ),
+                    )
+
         if not handled:
             return
 
@@ -1969,6 +2029,7 @@ class AtlasWindow(QMainWindow):
                 state in {PRELOAD_READY, PRELOAD_FAILED}
                 for state in self.preload_states.values()
             )
+        self.refresh_preload_popup()
         if not loading:
             self.preload_poll_timer.stop()
         if fatal_error:
@@ -2196,9 +2257,6 @@ class AtlasWindow(QMainWindow):
         self._ensure_runtime().start()
 
     def stop_runtime(self) -> None:
-        # The Organizer button is an emergency *macro* stop. It deliberately
-        # keeps keyboard/mouse hooks alive, so the runtime badge must keep
-        # reflecting the real hook state instead of pretending the runtime died.
         runtime = self.runtime
         if runtime is not None:
             runtime.emergency_stop("bouton stop")
@@ -2297,8 +2355,6 @@ def main() -> int:
         configure_logging()
         sys.excepthook = log_uncaught_exception
         LOGGER.info("[main] start argv=%s cwd=%s", sys.argv, Path.cwd())
-        # DPI awareness must be established explicitly before QApplication is
-        # created. Runtime modules must not be relied on for import-time OS effects.
         enable_dpi_awareness()
         configure_windows_app_id()
         app = QApplication(sys.argv)
@@ -2325,13 +2381,7 @@ def main() -> int:
                 QColor("#dbe5f2"),
             )
             app.processEvents()
-        # Apply the global theme while the splash is already visible. Child widgets
-        # created afterwards inherit it immediately, avoiding a full-tree repolish
-        # at the end of AtlasWindow construction.
         app.setStyleSheet(atlas_stylesheet())
-        # The shell already owns a terminal async preload path. Do not block the
-        # first visible window waiting for the quest catalogue; AtlasWindow starts
-        # that worker shortly after the UI has painted, or immediately on demand.
         initial_preload: dict[str, Any] = {}
         LOGGER.info("[preload] initial quest load deferred until window is visible")
         LOGGER.info("[main] creating AtlasWindow")
