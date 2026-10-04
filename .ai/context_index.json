@@ -1,34 +1,144 @@
 {
   "entries": {
-    ".gitattributes": {"mode": "100644", "sha": "877ffeada0dad4bfced98478dfa7c011fbcc4f42", "type": "blob"},
-    ".githooks": {"mode": "040000", "sha": "767c1467ef461f7eebfe1e1696cbcb5511166268", "type": "tree"},
-    ".github": {"mode": "040000", "sha": "c34867d3aee50a6b940ec6889d94763aba80d226", "type": "tree"},
-    ".gitignore": {"mode": "100644", "sha": "745a846157e2614b8451222cc9d0fe28f2eb78d9", "type": "blob"},
-    ".graphifyignore": {"mode": "100644", "sha": "2d5b414b9533c228bd93a109cc47507a49a6fbe4", "type": "blob"},
-    "AGENTS.md": {"mode": "100644", "sha": "aca1b690a07a77c9d179df8815780bc7bec39557", "type": "blob"},
-    "AI_CONTEXT.md": {"mode": "100644", "sha": "21797f68af70490bb9459d2029678c8e273e64ff", "type": "blob"},
-    "DEVELOPMENT_GUARDRAILS.md": {"mode": "100644", "sha": "39c4bdfaee0d29728e2abfc1069a0426a42ff73f", "type": "blob"},
-    "DOFUS.bat": {"mode": "100644", "sha": "6c91cb67128d610e3c99ceb4edad10a7df733960", "type": "blob"},
-    "GITHUB_PROTECTION.md": {"mode": "100644", "sha": "1d4b12864859a9f518d599fe9fe9f6ad16deed1d", "type": "blob"},
-    "GRAPHIFY.md": {"mode": "100644", "sha": "9d7864b60257ee12d353706b563253a331e7ec47", "type": "blob"},
-    "GUIDE_ULTIME_STATUS.md": {"mode": "100644", "sha": "9ad2c1c5f039c7a34c31621ac59dc405590de13f", "type": "blob"},
-    "PERFORMANCE_GUARDRAILS.md": {"mode": "100644", "sha": "dc57372db669fa795a18a610d4f0e7e15876194f", "type": "blob"},
-    "PHASE_CERTIFICATION.md": {"mode": "100644", "sha": "1b954a4e8d4bd530393464b149f8452cea0c92c9", "type": "blob"},
-    "ROAD_IA.md": {"mode": "100644", "sha": "7bec21d161e3680967f120d3a17313ed4f7d5a71", "type": "blob"},
-    "ZERO_TRUST_RULES.md": {"mode": "100644", "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a", "type": "blob"},
-    "app": {"mode": "040000", "sha": "99f91d9c1e1dfb154c7fcfaf74db134c886e38cd", "type": "tree"},
-    "data": {"mode": "040000", "sha": "6fc8d0d37c0356f52ea269577626f61818ee0747", "type": "tree"},
-    "docs": {"mode": "040000", "sha": "98755bb747d85c004bf41a7804b79ec8b5e1fd2b", "type": "tree"},
-    "launch.py": {"mode": "100644", "sha": "a127fed88dbae20e129d3a1ee4b168fb9cf08068", "type": "blob"},
-    "local_dofus_data": {"mode": "040000", "sha": "a9aef8772f6d2d48c5253095f3ee24278d68fe7e", "type": "tree"},
-    "main.py": {"mode": "100644", "sha": "7cf03979f3b2c91669ef0e0a2c6313fdcb543519", "type": "blob"},
-    "requirements-pyside.txt": {"mode": "100644", "sha": "0f49f9c7bc1d01fd0d7bac24d5c12c868df8f81c", "type": "blob"},
-    "scripts": {"mode": "040000", "sha": "25c209c2c8a0f98278447fe4f56c5652d7fcbcf8", "type": "tree"},
-    "sitecustomize.py": {"mode": "100644", "sha": "70246841cad0d4e2e850a9e4627f8b89ec0d7115", "type": "blob"},
-    "tests": {"mode": "040000", "sha": "536ae558daa403f70e34db08f95124ed3a5e8308", "type": "tree"},
-    "tools": {"mode": "040000", "sha": "2937583e910ad934a8bf80b0323d539a112e4814", "type": "tree"}
+    ".gitattributes": {
+      "mode": "100644",
+      "sha": "877ffeada0dad4bfced98478dfa7c011fbcc4f42",
+      "type": "blob"
+    },
+    ".githooks": {
+      "mode": "040000",
+      "sha": "767c1467ef461f7eebfe1e1696cbcb5511166268",
+      "type": "tree"
+    },
+    ".github": {
+      "mode": "040000",
+      "sha": "c34867d3aee50a6b940ec6889d94763aba80d226",
+      "type": "tree"
+    },
+    ".gitignore": {
+      "mode": "100644",
+      "sha": "745a846157e2614b8451222cc9d0fe28f2eb78d9",
+      "type": "blob"
+    },
+    ".graphifyignore": {
+      "mode": "100644",
+      "sha": "2d5b414b9533c228bd93a109cc47507a49a6fbe4",
+      "type": "blob"
+    },
+    "AGENTS.md": {
+      "mode": "100644",
+      "sha": "aca1b690a07a77c9d179df8815780bc7bec39557",
+      "type": "blob"
+    },
+    "AI_CONTEXT.md": {
+      "mode": "100644",
+      "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
+      "type": "blob"
+    },
+    "DEVELOPMENT_GUARDRAILS.md": {
+      "mode": "100644",
+      "sha": "39c4bdfaee0d29728e2abfc1069a0426a42ff73f",
+      "type": "blob"
+    },
+    "DOFUS.bat": {
+      "mode": "100644",
+      "sha": "6c91cb67128d610e3c99ceb4edad10a7df733960",
+      "type": "blob"
+    },
+    "GITHUB_PROTECTION.md": {
+      "mode": "100644",
+      "sha": "1d4b12864859a9f518d599fe9fe9f6ad16deed1d",
+      "type": "blob"
+    },
+    "GRAPHIFY.md": {
+      "mode": "100644",
+      "sha": "9d7864b60257ee12d353706b563253a331e7ec47",
+      "type": "blob"
+    },
+    "GUIDE_ULTIME_STATUS.md": {
+      "mode": "100644",
+      "sha": "9ad2c1c5f039c7a34c31621ac59dc405590de13f",
+      "type": "blob"
+    },
+    "PERFORMANCE_GUARDRAILS.md": {
+      "mode": "100644",
+      "sha": "dc57372db669fa795a18a610d4f0e7e15876194f",
+      "type": "blob"
+    },
+    "PHASE_CERTIFICATION.md": {
+      "mode": "100644",
+      "sha": "1b954a4e8d4bd530393464b149f8452cea0c92c9",
+      "type": "blob"
+    },
+    "ROAD_IA.md": {
+      "mode": "100644",
+      "sha": "7bec21d161e3680967f120d3a17313ed4f7d5a71",
+      "type": "blob"
+    },
+    "ZERO_TRUST_RULES.md": {
+      "mode": "100644",
+      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a",
+      "type": "blob"
+    },
+    "app": {
+      "mode": "040000",
+      "sha": "99f91d9c1e1dfb154c7fcfaf74db134c886e38cd",
+      "type": "tree"
+    },
+    "data": {
+      "mode": "040000",
+      "sha": "6fc8d0d37c0356f52ea269577626f61818ee0747",
+      "type": "tree"
+    },
+    "docs": {
+      "mode": "040000",
+      "sha": "98755bb747d85c004bf41a7804b79ec8b5e1fd2b",
+      "type": "tree"
+    },
+    "launch.py": {
+      "mode": "100644",
+      "sha": "a127fed88dbae20e129d3a1ee4b168fb9cf08068",
+      "type": "blob"
+    },
+    "local_dofus_data": {
+      "mode": "040000",
+      "sha": "a9aef8772f6d2d48c5253095f3ee24278d68fe7e",
+      "type": "tree"
+    },
+    "main.py": {
+      "mode": "100644",
+      "sha": "7cf03979f3b2c91669ef0e0a2c6313fdcb543519",
+      "type": "blob"
+    },
+    "requirements-pyside.txt": {
+      "mode": "100644",
+      "sha": "0f49f9c7bc1d01fd0d7bac24d5c12c868df8f81c",
+      "type": "blob"
+    },
+    "scripts": {
+      "mode": "040000",
+      "sha": "25c209c2c8a0f98278447fe4f56c5652d7fcbcf8",
+      "type": "tree"
+    },
+    "sitecustomize.py": {
+      "mode": "100644",
+      "sha": "70246841cad0d4e2e850a9e4627f8b89ec0d7115",
+      "type": "blob"
+    },
+    "tests": {
+      "mode": "040000",
+      "sha": "536ae558daa403f70e34db08f95124ed3a5e8308",
+      "type": "tree"
+    },
+    "tools": {
+      "mode": "040000",
+      "sha": "2937583e910ad934a8bf80b0323d539a112e4814",
+      "type": "tree"
+    }
   },
-  "excluded_top_level": [".ai"],
+  "excluded_top_level": [
+    ".ai"
+  ],
   "schema_version": 2,
   "source": "git-top-level-fingerprints"
 }
