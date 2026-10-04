@@ -84,6 +84,7 @@ class ShellReliabilityTests(unittest.TestCase):
                 "preload_user_tasks": set(),
                 "preload_queue": Queue(),
                 "preload_poll_timer": Timer(),
+                "refresh_preload_popup": lambda self: None,
             },
         )()
         with (
@@ -141,6 +142,7 @@ class ShellReliabilityTests(unittest.TestCase):
                 "preload_user_tasks": set(),
                 "preload_queue": Queue(),
                 "preload_poll_timer": Timer(),
+                "refresh_preload_popup": lambda self: None,
             },
         )()
         with (
@@ -193,6 +195,7 @@ class ShellReliabilityTests(unittest.TestCase):
                 "preload_user_tasks": set(),
                 "preload_queue": Queue(),
                 "preload_poll_timer": Timer(),
+                "refresh_preload_popup": lambda self: None,
             },
         )()
         with (
