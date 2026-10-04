@@ -42,6 +42,19 @@ _MANUAL_ROUTE_MANIFEST_PATH = (
 )
 _GUIDE_PROGRESS_ID = "guide_ultime_v5"
 
+# Lazy compatibility patch point kept for focused Home tests. The concrete
+# provider remains outside the module import path until Guide is authorized.
+QuestProvider: Any = None
+
+
+def _resolve_quest_provider() -> type:
+    global QuestProvider
+    if QuestProvider is None:
+        from app.modules.encyclopedia.providers import QuestProvider as resolved
+
+        QuestProvider = resolved
+    return QuestProvider
+
 
 @lru_cache(maxsize=1)
 def _manual_route_stage_total() -> int:
@@ -579,7 +592,6 @@ class HomePage(QWidget):
         if self.catalog is None:
             return
         try:
-            from app.modules.encyclopedia.providers import QuestProvider
             from app.modules.encyclopedia.services import (
                 ACHIEVEMENT_PROGRESS_FILE,
                 GUIDE_PROGRESS_FILE,
@@ -591,7 +603,7 @@ class HomePage(QWidget):
                 GuideUltimeManualRuntimeService,
             )
 
-            quest_provider = QuestProvider(catalog=self.catalog)
+            quest_provider = _resolve_quest_provider()(catalog=self.catalog)
             service = GuideUltimeManualRuntimeService(
                 QuestProgressService(QUEST_PROGRESS_FILE),
                 AchievementProgressService(ACHIEVEMENT_PROGRESS_FILE),
