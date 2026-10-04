@@ -5,6 +5,8 @@ from collections.abc import Mapping
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QDialog, QLabel, QProgressBar, QVBoxLayout, QWidget
 
+from app.background_work import install_preload_priority_bridge
+
 
 PRELOAD_TASK_ORDER = ("quests", "encyclopedia", "craft")
 PRELOAD_TASK_LABELS = {
@@ -24,6 +26,8 @@ class PreloadProgressPopup(QDialog):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        if parent is not None:
+            install_preload_priority_bridge(parent)
         self.setObjectName("PreloadProgressPopup")
         self.setWindowTitle("Préchargement")
         self.setWindowFlags(
