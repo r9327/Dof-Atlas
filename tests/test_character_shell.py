@@ -12,6 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QComboBox
 
 from app.constants import KEY_SELECTED_CHARACTER, KEY_SESSION_ORDER
+import app.network.character_runtime_state as character_runtime_state_module
 from app.network.character_runtime_state import CharacterRuntimeStateStore
 from app.pages.character_page import CharacterPage as RealCharacterPage
 from app.quest_catalog import QuestCharacter
@@ -159,7 +160,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                 patch.object(app_main, "CLIENT_INDEX_JSON", clients),
                 patch.object(app_main, "NETWORK_CHARACTER_BINDINGS_FILE", bindings),
                 patch.object(
-                    app_main,
+                    character_runtime_state_module,
                     "character_runtime_state",
                     return_value=CharacterRuntimeStateStore(),
                 ),
@@ -252,7 +253,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
             with (
                 patch.object(app_main, "CLIENT_INDEX_JSON", client_index),
                 patch.object(
-                    app_main,
+                    character_runtime_state_module,
                     "character_runtime_state",
                     return_value=runtime_state,
                 ),
