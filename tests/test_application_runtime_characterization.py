@@ -237,8 +237,6 @@ def application_entry():
 
     refresh = app_main.HomePage.refresh_progress
     refresh_globals = refresh.__globals__
-    refresh_globals["AchievementProvider"].load_all = counted_load_all("achievement_load_all")
-    refresh_globals["GuideProvider"].load_all = counted_load_all("guide_load_all")
     app_main.AtlasWindow.create_encyclopedia_page = counted_load_all("encyclopedia_create")
 
     with tempfile.TemporaryDirectory() as temporary:
