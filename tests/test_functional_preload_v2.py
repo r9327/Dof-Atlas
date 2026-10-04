@@ -39,6 +39,43 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
             popup.close()
             popup.deleteLater()
 
+    def test_payload_error_marks_task_failed_and_popup_reports_failure(self) -> None:
+        with patch.object(main.AtlasWindow, "_schedule_owned_callback", return_value=None):
+            window = main.AtlasWindow(initial_preload={})
+        try:
+            window.preload_states.update(
+                {
+                    "quests": main.PRELOAD_READY,
+                    "encyclopedia": main.PRELOAD_READY,
+                    "craft": main.PRELOAD_LOADING,
+                }
+            )
+            window.preload_started = True
+            window.preload_queue.put(
+                {
+                    "craft": {"items": [], "errors": ["craft preload failed"]},
+                    "_preload_task": "craft",
+                    "_complete": True,
+                }
+            )
+            with (
+                patch.object(window, "apply_home_preload_update", return_value=None),
+                patch.object(window, "apply_encyclopedia_preload_update", return_value=None),
+                patch.object(window, "apply_craft_preload_update", return_value=None),
+            ):
+                window.collect_preload_result()
+
+            self.assertEqual(window.preload_states["craft"], main.PRELOAD_FAILED)
+            self.assertTrue(window.preload_finished)
+            self.assertEqual(window.preload_popup.progress.value(), len(PRELOAD_TASK_ORDER))
+            self.assertIn("erreur", window.preload_popup.status_label.text().casefold())
+            self.assertIn("partiel", window.last_status_text.casefold())
+        finally:
+            window.quit_requested = True
+            window.close()
+            window.deleteLater()
+            self.app.processEvents()
+
     def test_related_warmup_reuses_quest_catalog_without_materializing_pages(self) -> None:
         catalog = object()
         with patch.object(main.AtlasWindow, "_schedule_owned_callback", return_value=None):
