@@ -81,6 +81,7 @@ class _NavigationShell:
     def __init__(self, page: _NavigationPage, target: str) -> None:
         self.pending_encyclopedia_tab = target
         self.page_widgets = {"Quetes": page}
+        self.page_factories: dict[str, object] = {}
         self.current_character_key = "character:42"
         self.page_nav_group = {"Quetes": "Encyclopédie"}
         self.nav_refreshes: list[str] = []
@@ -147,6 +148,7 @@ class Shell:
     def __init__(self, target):
         self.pending_encyclopedia_tab = target
         self.page_widgets = {"Quetes": object()}
+        self.page_factories = {}
         self.current_character_key = "character:1"
         self.page_nav_group = {"Quetes": "Encyclopédie"}
         self.nav_refreshes = []
@@ -491,6 +493,7 @@ print(json.dumps(payload, ensure_ascii=False))
                 self.character_combo.addItem("Beta", SimpleNamespace(key="character:2", label="Beta"))
                 self.home_page = HomeStub()
                 self.page_widgets: dict[str, object] = {}
+                self.page_factories: dict[str, object] = {}
                 self.persist_calls = 0
 
             def character_icon_path(self, _label: str) -> str:
@@ -562,6 +565,7 @@ print(json.dumps(payload, ensure_ascii=False))
             def __init__(self) -> None:
                 self.current_character_key = "character:42"
                 self.page_widgets: dict[str, object] = {}
+                self.page_factories: dict[str, object] = {}
 
             def sync_selected_character_to_pages(self) -> None:
                 app_main.AtlasWindow.sync_selected_character_to_pages(self)
