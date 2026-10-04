@@ -53,8 +53,12 @@ class GeneratedFilesGuardTests(unittest.TestCase):
         ]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for args in (["init"], ["config", "user.email", "atlas@example.invalid"],
-                         ["config", "user.name", "Atlas Tests"]):
+            for args in (
+                ["init"],
+                ["config", "user.email", "atlas@example.invalid"],
+                ["config", "user.name", "Atlas Tests"],
+                ["config", "commit.gpgsign", "false"],
+            ):
                 subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
             (root / ".gitignore").write_bytes(
                 (Path(__file__).resolve().parents[1] / ".gitignore").read_bytes())
