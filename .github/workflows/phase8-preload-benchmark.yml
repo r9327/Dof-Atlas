@@ -28,6 +28,8 @@ env:
   QT_QPA_PLATFORM: offscreen
   QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
   QTWEBENGINE_DISABLE_SANDBOX: "1"
+  QT_OPENGL: software
+  QT_QUICK_BACKEND: software
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
   CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
@@ -113,12 +115,26 @@ jobs:
           git checkout --force "$env:BASE_SHA" 2>&1 | Tee-Object -FilePath $log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & python -X faulthandler $runner --output $before 2>&1 | Tee-Object -FilePath $log -Append
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $baseCode = $LASTEXITCODE
+          if (-not (Test-Path -LiteralPath $before)) {
+            if ($baseCode -ne 0) { exit $baseCode }
+            throw "Base benchmark did not produce its JSON evidence."
+          }
+          if ($baseCode -ne 0) {
+            Write-Warning "Base Qt offscreen process exited after writing complete benchmark evidence (code $baseCode)."
+          }
 
           git checkout --force "$env:CANDIDATE_SHA" 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & python -X faulthandler $runner --output $after 2>&1 | Tee-Object -FilePath $log -Append
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $candidateCode = $LASTEXITCODE
+          if (-not (Test-Path -LiteralPath $after)) {
+            if ($candidateCode -ne 0) { exit $candidateCode }
+            throw "Candidate benchmark did not produce its JSON evidence."
+          }
+          if ($candidateCode -ne 0) {
+            Write-Warning "Candidate Qt offscreen process exited after writing complete benchmark evidence (code $candidateCode)."
+          }
 
       - name: Validate and compare benchmark evidence
         run: |
