@@ -256,7 +256,7 @@ def application_entry():
             "character:1", progress_guide_id, "page:first", True
         )
         refresh_globals["_MANUAL_ROUTE_MANIFEST_PATH"] = manifest_path
-        refresh_globals["GUIDE_PROGRESS_FILE"] = guide_path
+        services.GUIDE_PROGRESS_FILE = guide_path
         constants.QUEST_PROGRESS_FILE = quest_path
         services.ACHIEVEMENT_PROGRESS_FILE = achievement_path
 
