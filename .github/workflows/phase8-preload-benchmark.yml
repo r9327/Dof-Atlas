@@ -111,6 +111,7 @@ jobs:
           $before = Join-Path $env:GITHUB_WORKSPACE "artifacts/phase8_preload/before.json"
           $after = Join-Path $env:GITHUB_WORKSPACE "artifacts/phase8_preload/after.json"
           $log = Join-Path $env:GITHUB_WORKSPACE "artifacts/phase8_preload/benchmark.log"
+          $allowedQtTeardownCode = -1073741819
 
           git checkout --force "$env:BASE_SHA" 2>&1 | Tee-Object -FilePath $log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -121,7 +122,9 @@ jobs:
             throw "Base benchmark did not produce its JSON evidence."
           }
           if ($baseCode -ne 0) {
-            Write-Warning "Base Qt offscreen process exited after writing complete benchmark evidence (code $baseCode)."
+            if ($baseCode -ne $allowedQtTeardownCode) { exit $baseCode }
+            Write-Warning "Base Qt offscreen teardown crashed after writing complete benchmark evidence (code $baseCode)."
+            $global:LASTEXITCODE = 0
           }
 
           git checkout --force "$env:CANDIDATE_SHA" 2>&1 | Tee-Object -FilePath $log -Append
@@ -133,8 +136,11 @@ jobs:
             throw "Candidate benchmark did not produce its JSON evidence."
           }
           if ($candidateCode -ne 0) {
-            Write-Warning "Candidate Qt offscreen process exited after writing complete benchmark evidence (code $candidateCode)."
+            if ($candidateCode -ne $allowedQtTeardownCode) { exit $candidateCode }
+            Write-Warning "Candidate Qt offscreen teardown crashed after writing complete benchmark evidence (code $candidateCode)."
+            $global:LASTEXITCODE = 0
           }
+          exit 0
 
       - name: Validate and compare benchmark evidence
         run: |
@@ -183,6 +189,24 @@ jobs:
           states = after_metrics.get("preload_states_after") or {}
           if states and any(str(value) not in {"READY", "FAILED"} for value in states.values()):
               raise SystemExit(f"candidate preload did not reach terminal states: {states!r}")
+
+          rss_after_preload = float(after_metrics["rss_after_preload_mb"])
+          if rss_after_preload > 130.0:
+              raise SystemExit(
+                  f"candidate preload RAM budget exceeded: {rss_after_preload:.2f} MB > 130.00 MB"
+              )
+          startup_rss = float(after_metrics["startup_stabilized_rss_mb"])
+          if rss_after_preload - startup_rss > 60.0:
+              raise SystemExit(
+                  "candidate preload retained too much memory: "
+                  f"+{rss_after_preload - startup_rss:.2f} MB > +60.00 MB"
+              )
+          before_peak = float(before_metrics.get("peak_rss_mb") or 0.0)
+          after_peak = float(after_metrics["peak_rss_mb"])
+          if before_peak > 0.0 and after_peak > before_peak + 20.0:
+              raise SystemExit(
+                  f"candidate peak RAM regressed: {after_peak:.2f} MB vs {before_peak:.2f} MB base"
+              )
 
           deltas = {}
           for name in required:
