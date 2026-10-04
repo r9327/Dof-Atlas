@@ -55,7 +55,9 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
         self.assertIsNone(page.kwargs["quest_provider"]._catalog)
         self.assertEqual(page.kwargs["initial_tab"], GUIDES_TAB)
         self.assertEqual(page.character_keys, ["character:42"])
-        Shell.start_preload.assert_called_once_with("quests", user_requested=True)
+        self.assertEqual(Shell.start_preload.call_count, 2)
+        Shell.start_preload.assert_any_call("quests", user_requested=True)
+        Shell.start_preload.assert_any_call("encyclopedia", user_requested=True)
         build_quest_preload.assert_not_called()
 
     def test_canonical_factory_reuses_only_valid_loaded_preloads(self) -> None:
