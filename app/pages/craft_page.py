@@ -448,6 +448,9 @@ class CraftPage(QWidget):
         self.jobs_resize_timer = QTimer(self)
         self.jobs_resize_timer.setSingleShot(True)
         self.jobs_resize_timer.timeout.connect(self.refresh_jobs)
+        self.layout_timer = QTimer(self)
+        self.layout_timer.setSingleShot(True)
+        self.layout_timer.timeout.connect(self.apply_craft_body_layout)
         self.resource_dialog: CraftResourceDialog | None = None
 
         root = QVBoxLayout(self)
@@ -562,7 +565,7 @@ class CraftPage(QWidget):
             self.show_runtime_loading()
         else:
             self.hydrate_runtime(self.preload)
-        QTimer.singleShot(0, self.apply_craft_body_layout)
+        self.layout_timer.start(0)
 
     def is_navigation_ready(self) -> bool:
         return True
@@ -954,6 +957,9 @@ class CraftPage(QWidget):
             item = self.items_by_name[key]
             self.item_lookup_cache[key] = item
             return item
+        if bool(self.preload.get("_prepared")):
+            self.item_lookup_cache[key] = None
+            return None
         if hasattr(local_data_cache, "search_items"):
             try:
                 results = local_data_cache.search_items(name, limit=8)
