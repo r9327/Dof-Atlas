@@ -8,7 +8,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
-import mmap
+import re
 import tempfile
 import weakref
 from collections import OrderedDict, defaultdict
@@ -18,8 +18,8 @@ from threading import RLock
 
 from app.constants import LOGGER
 
+_SPACE = re.compile(r'\s*')
 _OPTIONAL_SOURCE_FIELDS = frozenset({("quests_enriched.json", "quests")})
-_JSON_WS = frozenset(b" \t\r\n")
 
 
 class QuestSourceError(RuntimeError):
@@ -52,185 +52,6 @@ def build_image_index(images_root: Path) -> dict[str, str]:
     return index
 
 
-def _skip_ws(source: mmap.mmap, cursor: int) -> int:
-    size = len(source)
-    while cursor < size and source[cursor] in _JSON_WS:
-        cursor += 1
-    return cursor
-
-
-def _scan_string_end(source: mmap.mmap, cursor: int) -> int:
-    if cursor >= len(source) or source[cursor] != 0x22:  # '"'
-        raise ValueError("JSON string expected")
-    cursor += 1
-    escaped = False
-    size = len(source)
-    while cursor < size:
-        byte = source[cursor]
-        cursor += 1
-        if escaped:
-            escaped = False
-            continue
-        if byte == 0x5C:  # '\\'
-            escaped = True
-            continue
-        if byte == 0x22:
-            return cursor
-    raise ValueError("Unterminated JSON string")
-
-
-def _scan_value_end(source: mmap.mmap, cursor: int) -> int:
-    """Return the byte offset immediately after one JSON value."""
-
-    cursor = _skip_ws(source, cursor)
-    size = len(source)
-    if cursor >= size:
-        raise ValueError("JSON value expected")
-
-    first = source[cursor]
-    if first == 0x22:
-        return _scan_string_end(source, cursor)
-
-    if first in (0x7B, 0x5B):  # { [
-        stack = [0x7D if first == 0x7B else 0x5D]
-        cursor += 1
-        in_string = False
-        escaped = False
-        while cursor < size:
-            byte = source[cursor]
-            cursor += 1
-            if in_string:
-                if escaped:
-                    escaped = False
-                elif byte == 0x5C:
-                    escaped = True
-                elif byte == 0x22:
-                    in_string = False
-                continue
-            if byte == 0x22:
-                in_string = True
-            elif byte == 0x7B:
-                stack.append(0x7D)
-            elif byte == 0x5B:
-                stack.append(0x5D)
-            elif byte in (0x7D, 0x5D):
-                if not stack or byte != stack[-1]:
-                    raise ValueError("Mismatched JSON container")
-                stack.pop()
-                if not stack:
-                    return cursor
-        raise ValueError("Unterminated JSON container")
-
-    start = cursor
-    while cursor < size and source[cursor] not in b",]} \t\r\n":
-        cursor += 1
-    if cursor == start:
-        raise ValueError("JSON scalar expected")
-    return cursor
-
-
-def _decode_json_string(source: mmap.mmap, start: int, end: int) -> str:
-    value = json.loads(source[start:end])
-    if not isinstance(value, str):
-        raise ValueError("JSON object key must be a string")
-    return value
-
-
-def _scan_for_container(
-    source: mmap.mmap,
-    cursor: int,
-    field: str,
-) -> tuple[tuple[int, int] | None, int]:
-    """Search one JSON value recursively for a named object member.
-
-    The search walks structure directly on the memory map and only decodes JSON
-    object keys. Large member values are never materialized while locating the
-    target container.
-    """
-
-    cursor = _skip_ws(source, cursor)
-    if cursor >= len(source):
-        raise ValueError("JSON value expected")
-
-    first = source[cursor]
-    if first == 0x7B:  # {
-        cursor += 1
-        while True:
-            cursor = _skip_ws(source, cursor)
-            if cursor >= len(source):
-                raise ValueError("Unterminated JSON object")
-            if source[cursor] == 0x7D:  # }
-                return None, cursor + 1
-
-            key_start = cursor
-            key_end = _scan_string_end(source, key_start)
-            key = _decode_json_string(source, key_start, key_end)
-            cursor = _skip_ws(source, key_end)
-            if cursor >= len(source) or source[cursor] != 0x3A:  # :
-                raise ValueError("Missing JSON member separator")
-            value_start = _skip_ws(source, cursor + 1)
-            if value_start >= len(source):
-                raise ValueError("JSON value expected")
-
-            opener = source[value_start]
-            if key == field and opener in (0x7B, 0x5B):
-                return (
-                    value_start + 1,
-                    0x7D if opener == 0x7B else 0x5D,
-                ), _scan_value_end(source, value_start)
-
-            if opener in (0x7B, 0x5B):
-                found, value_end = _scan_for_container(source, value_start, field)
-            else:
-                found = None
-                value_end = _scan_value_end(source, value_start)
-            if found is not None:
-                return found, value_end
-
-            cursor = _skip_ws(source, value_end)
-            if cursor < len(source) and source[cursor] == 0x2C:  # ,
-                cursor += 1
-                continue
-            if cursor < len(source) and source[cursor] == 0x7D:  # }
-                return None, cursor + 1
-            raise ValueError("Missing JSON member delimiter")
-
-    if first == 0x5B:  # [
-        cursor += 1
-        while True:
-            cursor = _skip_ws(source, cursor)
-            if cursor >= len(source):
-                raise ValueError("Unterminated JSON array")
-            if source[cursor] == 0x5D:  # ]
-                return None, cursor + 1
-
-            opener = source[cursor]
-            if opener in (0x7B, 0x5B):
-                found, value_end = _scan_for_container(source, cursor, field)
-            else:
-                found = None
-                value_end = _scan_value_end(source, cursor)
-            if found is not None:
-                return found, value_end
-
-            cursor = _skip_ws(source, value_end)
-            if cursor < len(source) and source[cursor] == 0x2C:  # ,
-                cursor += 1
-                continue
-            if cursor < len(source) and source[cursor] == 0x5D:  # ]
-                return None, cursor + 1
-            raise ValueError("Missing JSON array delimiter")
-
-    return None, _scan_value_end(source, cursor)
-
-
-def _find_container(source: mmap.mmap, field: str) -> tuple[int, int]:
-    found, _ = _scan_for_container(source, 0, field)
-    if found is None:
-        raise KeyError(field)
-    return found
-
-
 class JsonSourceMapping(Mapping):
     def __init__(self, path: Path, cache_root: Path, field: str, *, doduda=False, required=True):
         self.path, self.doduda, self.required = path, doduda, bool(required)
@@ -260,17 +81,16 @@ class JsonSourceMapping(Mapping):
             self._source_failure("fichier indisponible", exc)
             return
         self._stamp = (stat.st_mtime_ns, stat.st_size)
-        signature = [str(path.resolve()), *self._stamp, field, self.doduda, 2]
+        signature = [str(path.resolve()), *self._stamp, field, self.doduda, 1]
         digest = hashlib.sha256(json.dumps(signature).encode()).hexdigest()
         cache = cache_root / f"source_{digest}.json.gz"
         offsets = None
         if cache.exists():
             try:
-                with gzip.open(cache, "rt", encoding="utf-8") as stream:
+                with gzip.open(cache, 'rt', encoding='utf-8') as stream:
                     offsets = json.load(stream)
                 valid_cache = isinstance(offsets, dict) and all(
-                    isinstance(span, list)
-                    and len(span) == 2
+                    isinstance(span, list) and len(span) == 2
                     and all(isinstance(value, int) for value in span)
                     and 0 <= span[0] < span[1] <= stat.st_size
                     for span in offsets.values()
@@ -292,67 +112,56 @@ class JsonSourceMapping(Mapping):
                 self._source_failure("lecture/parsing impossible", exc)
                 return
             cache_root.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(dir=cache_root, suffix=".tmp", delete=False) as temp:
+            with tempfile.NamedTemporaryFile(dir=cache_root, suffix='.tmp', delete=False) as temp:
                 temp_path = Path(temp.name)
             try:
-                with gzip.open(temp_path, "wt", encoding="utf-8", compresslevel=1) as stream:
-                    stream.write(json.dumps(offsets, separators=(",", ":")))
+                with gzip.open(temp_path, 'wt', encoding='utf-8', compresslevel=1) as stream:
+                    stream.write(json.dumps(offsets, separators=(',', ':')))
                 temp_path.replace(cache)
             finally:
                 temp_path.unlink(missing_ok=True)
-        self._offsets = {
-            int(key) if self.doduda else key: tuple(span)
-            for key, span in offsets.items()
-        }
+        self._offsets = {int(key) if self.doduda else key: tuple(span) for key, span in offsets.items()}
 
     def _build_offsets(self, field):
-        """Build byte spans without allocating a decoded copy of the source."""
-
-        if self.path.stat().st_size <= 0:
-            raise ValueError("Empty JSON source")
-
-        offsets: dict[str, tuple[int, int]] = {}
-        with self.path.open("rb") as stream:
-            with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as source:
-                try:
-                    cursor, container_end = _find_container(source, field)
-                except KeyError:
-                    self._source_failure(f"champ requis absent ({field})")
-                    return {}
-
-                while True:
-                    cursor = _skip_ws(source, cursor)
-                    if cursor >= len(source):
-                        raise ValueError("Unterminated JSON collection")
-                    if source[cursor] == container_end:
-                        break
-
-                    if self.doduda:
-                        start = cursor
-                        value_end = _scan_value_end(source, cursor)
-                        value = json.loads(source[start:value_end])
-                        row = value.get("data") if isinstance(value, dict) else None
-                        key = row.get("id") if isinstance(row, dict) else None
-                    else:
-                        key_start = cursor
-                        key_end = _scan_string_end(source, key_start)
-                        key = _decode_json_string(source, key_start, key_end)
-                        cursor = _skip_ws(source, key_end)
-                        if cursor >= len(source) or source[cursor] != 0x3A:  # :
-                            raise ValueError("Missing JSON member separator")
-                        start = _skip_ws(source, cursor + 1)
-                        value_end = _scan_value_end(source, start)
-
-                    if key is not None:
-                        offsets[str(key)] = (start, value_end)
-
-                    cursor = _skip_ws(source, value_end)
-                    if cursor < len(source) and source[cursor] == 0x2C:  # ,
-                        cursor += 1
-                        continue
-                    if cursor < len(source) and source[cursor] == container_end:
-                        break
-                    raise ValueError("Missing JSON member delimiter")
+        # Decode one raw JSON member at a time with CPython's JSON parser.
+        # The source text is temporary; only byte spans survive this pass.
+        # Never construct the full source dictionary or rich quest records.
+        data = self.path.read_bytes().decode('utf-8')
+        marker = re.search(r'"' + re.escape(field) + r'"\s*:\s*([\[{])', data)
+        if marker is None:
+            self._source_failure(f"champ requis absent ({field})")
+            return {}
+        decoder = json.JSONDecoder()
+        cursor = marker.end()
+        byte_cursor = len(data[:cursor].encode('utf-8'))
+        previous = cursor
+        offsets = {}
+        end = ']' if self.doduda else '}'
+        while True:
+            cursor = _SPACE.match(data, cursor).end()
+            if data[cursor:cursor + 1] == end:
+                break
+            if not self.doduda:
+                key, cursor = decoder.raw_decode(data, cursor)
+                cursor = _SPACE.match(data, cursor).end()
+                if data[cursor:cursor + 1] != ':':
+                    raise ValueError("Missing JSON member separator")
+                cursor = _SPACE.match(data, cursor + 1).end()
+            byte_cursor += len(data[previous:cursor].encode('utf-8'))
+            start = byte_cursor
+            value, value_end = decoder.raw_decode(data, cursor)
+            byte_cursor += len(data[cursor:value_end].encode('utf-8'))
+            if self.doduda:
+                row = value.get('data') if isinstance(value, dict) else None
+                key = row.get('id') if isinstance(row, dict) else None
+            if key is not None:
+                offsets[str(key)] = (start, byte_cursor)
+            previous = value_end
+            cursor = _SPACE.match(data, value_end).end()
+            if data[cursor:cursor + 1] == ',':
+                cursor += 1
+            elif data[cursor:cursor + 1] != end:
+                raise ValueError("Missing JSON member delimiter")
         return offsets
 
     def __getitem__(self, key):
@@ -363,12 +172,12 @@ class JsonSourceMapping(Mapping):
                 return self._cache[key]
             start, end = self._offsets[key]
             if self._stream is None:
-                self._stream = self.path.open("rb")
+                self._stream = self.path.open('rb')
                 self._close_stream = weakref.finalize(self, self._stream.close)
             self._stream.seek(start)
             value = json.loads(self._stream.read(end - start))
             if self.doduda:
-                value = value["data"]
+                value = value['data']
             self._cache[key] = value
             while len(self._cache) > 128:
                 self._cache.popitem(last=False)
@@ -413,19 +222,15 @@ class QuestSources:
         return self._mappings[key]
 
     def rows(self, path):
-        return self.mapping(path, "RefIds", doduda=True, required=True)
+        return self.mapping(path, 'RefIds', doduda=True, required=True)
 
     def objectives_for_steps(self, path, step_ids):
         rows = self.rows(path)
         if self._objectives_by_step is None:
             self._objectives_by_step = defaultdict(list)
             for key, row in rows.items():
-                self._objectives_by_step[row.get("stepId")].append(key)
-        return (
-            rows[key]
-            for step in step_ids
-            for key in self._objectives_by_step.get(step, ())
-        )
+                self._objectives_by_step[row.get('stepId')].append(key)
+        return (rows[key] for step in step_ids for key in self._objectives_by_step.get(step, ()))
 
     def image_index(self, root):
         if self._image_index is None:
