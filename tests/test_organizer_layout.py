@@ -13,7 +13,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QFrame, QScrollArea
 
 import app.pages.organizer_page as organizer
-from app.ui.organizer_components import CharacterSlotsPanel
+import app.pages.organizer.character_sessions as organizer_sessions
+from app.pages.organizer.organizer_ui import CharacterSlotsPanel
 
 
 class OrganizerLayoutTests(unittest.TestCase):
@@ -31,9 +32,10 @@ class OrganizerLayoutTests(unittest.TestCase):
 
         with (
             patch.object(organizer, "PROFILE_FILE", profile),
-            patch.object(organizer, "CLIENT_INDEX_JSON", client_index),
-            patch.object(organizer, "CLIENT_INDEX_INI", client_ini),
-            patch.object(organizer, "scan_unity_sessions", return_value=[]),
+            patch.object(organizer_sessions, "PROFILE_FILE", profile),
+            patch.object(organizer_sessions, "CLIENT_INDEX_JSON", client_index),
+            patch.object(organizer_sessions, "CLIENT_INDEX_INI", client_ini),
+            patch.object(organizer_sessions, "scan_unity_sessions", return_value=[]),
             patch.object(organizer.UnityWindowEventWatcher, "start", return_value=None),
             patch.object(organizer.UnityWindowEventWatcher, "stop", return_value=None),
         ):
@@ -65,16 +67,13 @@ class OrganizerLayoutTests(unittest.TestCase):
                 slot.setFixedHeight(organizer.CHARACTER_SLOT_HEIGHT)
                 panel.add_slot(slot, index)
 
-            expected_grid_height = (
-                4 * organizer.CHARACTER_SLOT_HEIGHT
-                + 3 * panel.vertical_spacing
-            )
+            expected_grid_height = 4 * organizer.CHARACTER_SLOT_HEIGHT + 3 * panel.vertical_spacing
             self.assertEqual(panel.row_count(), 4)
             self.assertEqual(panel.slot_grid_height(), expected_grid_height)
             self.assertEqual(panel.grid.count(), organizer.SESSION_SLOT_COUNT)
             self.assertEqual(panel.findChildren(QScrollArea), [])
             self.assertEqual(panel.sizeHint().height(), panel.calculated_height())
-            self.assertGreaterEqual(panel.calculated_height(), expected_grid_height)
+            self.assertEqual(panel.height(), panel.calculated_height())
         finally:
             panel.deleteLater()
             self.app.processEvents()
@@ -89,12 +88,29 @@ class OrganizerLayoutTests(unittest.TestCase):
                     sorted(page.sessions_panel.grid_position(index) for _widget, index in page.session_slot_widgets),
                     [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1), (3, 0), (3, 1)],
                 )
-                self.assertGreaterEqual(
-                    page.sessions_panel.height(),
-                    page.sessions_panel.calculated_height(),
-                )
+                self.assertGreaterEqual(page.sessions_panel.height(), page.sessions_panel.calculated_height())
                 for widget, _index in page.session_slot_widgets:
                     self.assertTrue(widget.isVisibleTo(page.sessions_panel))
+
+    def test_reorder_keeps_exactly_eight_slots_and_persists_detected_order(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.sessions = page.build_session_slots(
+                    [
+                        {"nom": "Alpha", "hwnd": 101, "pid": 1},
+                        {"nom": "Beta", "hwnd": 202, "pid": 2},
+                    ]
+                )
+                self.assertEqual(len(page.sessions), 8)
+                self.assertTrue(page.move_session_to_slot(0, 1))
+                page.save_session_order()
+                expected = tuple(
+                    page.persisted_session_order_key(session)
+                    for session in page.sessions
+                    if organizer.session_is_detected(session)
+                )
+                self.assertEqual(page.character_order_service.load_order(), expected)
+                self.assertEqual(len(page.sessions), 8)
 
 
 if __name__ == "__main__":
