@@ -89,8 +89,12 @@ class OrganizerLayoutTests(unittest.TestCase):
                     [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1), (3, 0), (3, 1)],
                 )
                 self.assertGreaterEqual(page.sessions_panel.height(), page.sessions_panel.calculated_height())
+                self.assertEqual(page.sessions_content.height(), page.sessions_panel.slot_grid_height())
+                content_rect = page.sessions_content.rect()
                 for widget, _index in page.session_slot_widgets:
-                    self.assertTrue(widget.isVisibleTo(page.sessions_panel))
+                    self.assertFalse(widget.isHidden())
+                    self.assertGreaterEqual(widget.geometry().top(), content_rect.top())
+                    self.assertLessEqual(widget.geometry().bottom(), content_rect.bottom())
 
     def test_reorder_keeps_exactly_eight_slots_and_persists_detected_order(self):
         with tempfile.TemporaryDirectory() as temporary:
