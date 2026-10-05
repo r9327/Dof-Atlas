@@ -97,13 +97,23 @@ class EquipmentPage(QWidget):
 
     def showEvent(self, event) -> None:  # noqa: N802 - Qt API
         super().showEvent(event)
+        self.schedule_web_start()
+
+    def schedule_web_start(self) -> None:
+        """Preserve the historical lazy-start contract for injected test fakes.
+
+        Production never resolves a WebEngine class here, so this remains a
+        zero-cost no-op outside compatibility tests.
+        """
+
         if (
-            qwebengine_view_class() is not None
-            and not self._legacy_loaded
-            and not self._legacy_start_scheduled
+            qwebengine_view_class() is None
+            or self._legacy_loaded
+            or self._legacy_start_scheduled
         ):
-            self._legacy_start_scheduled = True
-            QTimer.singleShot(WEBENGINE_START_DELAY_MS, self.ensure_web_loaded)
+            return
+        self._legacy_start_scheduled = True
+        QTimer.singleShot(WEBENGINE_START_DELAY_MS, self.ensure_web_loaded)
 
     def ensure_web_loaded(self) -> None:
         """Compatibility-only fake loader; production is a no-op."""
