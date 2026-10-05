@@ -14,8 +14,8 @@ def _load_achievement_provider_class() -> type:
     real = _REAL_ACHIEVEMENT_PROVIDER
     if real is not None:
         return real
-    from app.modules.encyclopedia.providers.achievement_provider import (
-        AchievementProvider as RealAchievementProvider,
+    from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+        MemoryBoundAchievementProvider as RealAchievementProvider,
     )
 
     _REAL_ACHIEVEMENT_PROVIDER = RealAchievementProvider
