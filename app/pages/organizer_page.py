@@ -25,7 +25,8 @@ from app.constants import (
     PROFILE_FILE,
 )
 from app.services.character_order_service import CharacterOrderService
-from app.storage import default_profiles, normalize_key, read_json
+from app.services.profile_settings_service import ProfileSettingsService
+from app.storage import clean_auto_group_name, default_profiles, normalize_key, read_json
 from app.windows_embed import UnityWindowEventWatcher, scan_unity_sessions
 from app.pages.organizer.character_sessions import CharacterSessionsMixin
 from app.pages.organizer.common import (
@@ -186,6 +187,41 @@ class OrganizerPage(
         self.request_sessions_render()
         self._start_session_runtime()
 
+    def load_profiles(self) -> dict[str, Any]:
+        """Compatibility facade kept on OrganizerPage for callers and AST contracts."""
+
+        payload = read_json(PROFILE_FILE, default_profiles())
+        if not isinstance(payload, dict):
+            payload = default_profiles()
+        merged = default_profiles()
+        merged.update(payload)
+        cleaned = self.sanitize_profiles(merged)
+        cleaned[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        self._profiles_baseline = dict(cleaned)
+        return cleaned
+
+    def save_profiles(self, payload: dict[str, Any]) -> None:
+        """Persist only the Organizer delta while preserving newer shared state."""
+
+        snapshot = dict(payload)
+        snapshot[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        baseline = dict(getattr(self, "_profiles_baseline", {}))
+        updates = {
+            key: value
+            for key, value in snapshot.items()
+            if key not in baseline or baseline.get(key) != value
+        }
+        removals = tuple(key for key in baseline if key not in snapshot)
+        persisted, _changed = ProfileSettingsService(PROFILE_FILE).update_values(
+            updates,
+            remove_keys=removals,
+            default=default_profiles(),
+        )
+        current = self.sanitize_profiles(persisted)
+        current[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        self.profiles = current
+        self._profiles_baseline = dict(current)
+
     def _connect_actions(self) -> None:
         self.click_button.clicked.connect(lambda: self.begin_capture("click"))
         self.click_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_CLICK_HOTKEY))
@@ -247,6 +283,7 @@ __all__ = [
     "CLASS_ICON_EXTENSIONS",
     "DOFUS_CLASS_DEFINITIONS",
     "client_slot_hotkey_key",
+    "clean_auto_group_name",
     "default_profiles",
     "dofus_class_key_from_window_name",
     "dofus_class_key_for_character_name",
