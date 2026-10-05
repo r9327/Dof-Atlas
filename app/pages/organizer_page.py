@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -497,21 +496,19 @@ class OrganizerPage(QWidget):
         zaap_layout.addWidget(self.zaap, 1)
         root.addWidget(zaap_panel)
 
-        self.sessions_area = QScrollArea()
-        self.sessions_area.setObjectName("SessionsArea")
-        self.sessions_area.setWidgetResizable(True)
-        self.sessions_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.sessions_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.sessions_area.setFrameShape(QFrame.NoFrame)
+        session_rows = (SESSION_SLOT_COUNT + 1) // 2
+        sessions_content_height = (
+            session_rows * CHARACTER_SLOT_HEIGHT + max(0, session_rows - 1) * 6
+        )
         self.sessions_content = QWidget()
+        self.sessions_content.setFixedHeight(sessions_content_height)
+        self.sessions_content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.sessions_layout = QVBoxLayout(self.sessions_content)
         self.sessions_layout.setContentsMargins(0, 0, 0, 0)
-        self.sessions_layout.setSpacing(5)
-        self.sessions_area.setWidget(self.sessions_content)
+        self.sessions_layout.setSpacing(0)
         sessions_panel = QFrame()
         sessions_panel.setObjectName("card")
-        sessions_panel.setMaximumHeight(226)
-        sessions_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        sessions_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.apply_card_shadow(sessions_panel)
         sessions_panel_layout = QVBoxLayout(sessions_panel)
         sessions_panel_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
@@ -524,7 +521,7 @@ class OrganizerPage(QWidget):
         self.sessions_refresh_button.setFixedSize(32, BUTTON_HEIGHT)
         self.sessions_refresh_button.setToolTip("Scanner les fenêtres Dofus")
         sessions_panel_layout.addLayout(make_card_header(sessions_title, trailing=self.sessions_refresh_button))
-        sessions_panel_layout.addWidget(self.sessions_area, 1)
+        sessions_panel_layout.addWidget(self.sessions_content)
         root.addWidget(sessions_panel)
         root.addStretch(1)
 
@@ -1211,7 +1208,6 @@ class OrganizerPage(QWidget):
             self.session_row_widgets.append((row, index))
             self.session_slot_widgets.append((row, index))
         self.sessions_layout.addWidget(grid_host)
-        self.sessions_layout.addStretch(1)
         self._sessions_render_dirty = False
 
     def base_session_slot_object_name(self, index: int) -> str:
