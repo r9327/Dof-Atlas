@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import os
-import sys
-from types import ModuleType
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QPoint, Qt, QTimer, Signal
@@ -26,10 +25,8 @@ from app.constants import (
     PROFILE_FILE,
 )
 from app.services.character_order_service import CharacterOrderService
-from app.storage import default_profiles
+from app.storage import default_profiles, normalize_key, read_json
 from app.windows_embed import UnityWindowEventWatcher, scan_unity_sessions
-from app.pages.organizer import character_sessions as _character_sessions
-from app.pages.organizer import common as _organizer_common
 from app.pages.organizer.character_sessions import CharacterSessionsMixin
 from app.pages.organizer.common import (
     BUTTON_HEIGHT,
@@ -43,7 +40,6 @@ from app.pages.organizer.common import (
     SESSION_SLOT_COUNT,
     WINDOW_EVENT_DEBOUNCE_MS,
     client_slot_hotkey_key,
-    dofus_class_key_for_character_name,
     dofus_class_key_from_window_name,
     empty_session_slot,
     session_hwnd,
@@ -57,49 +53,59 @@ from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
 from app.pages.organizer.organizer_ui import OrganizerUiMixin
 
 
-_COMPAT_SESSION_GLOBALS = {
-    "PROFILE_FILE",
-    "CLIENT_INDEX_JSON",
-    "CLIENT_INDEX_INI",
-    "scan_unity_sessions",
-}
-_COMPAT_COMMON_GLOBALS = {
-    "CLIENT_INDEX_JSON",
-    "CLASS_ICON_DIRS",
-}
+def dofus_class_key_for_character_name(value: Any) -> str | None:
+    """Resolve a character class through the compatibility index path."""
+
+    character_key = normalize_key(value)
+    if not character_key:
+        return None
+    payload = read_json(CLIENT_INDEX_JSON, {"clients": []})
+    clients = payload.get("clients", []) if isinstance(payload, dict) else []
+    if not isinstance(clients, list):
+        return None
+
+    matches: set[str] = set()
+    for client in clients:
+        if not isinstance(client, dict):
+            continue
+        if normalize_key(client.get("character_name")) != character_key:
+            continue
+        explicit_class = normalize_key(client.get("class_key"))
+        if explicit_class in DOFUS_CLASS_DEFINITIONS:
+            matches.add(explicit_class)
+            continue
+        inferred_class = dofus_class_key_from_window_name(client.get("name"))
+        if inferred_class:
+            matches.add(inferred_class)
+    return next(iter(matches)) if len(matches) == 1 else None
 
 
-def _propagate_legacy_override(name: str, value: object) -> None:
-    """Keep the historical organizer_page monkeypatch surface working.
+def class_icon_candidates(class_key: str) -> list[Path]:
+    """Build class icon candidates from the public compatibility directories."""
 
-    Organizer was split into focused modules in Phase 8, but shell tests and a
-    few external helpers still patch paths/scanners on ``organizer_page``.
-    Propagate only those compatibility overrides to their new owners instead of
-    moving behaviour back into this entry module.
-    """
-
-    if name in _COMPAT_SESSION_GLOBALS:
-        setattr(_character_sessions, name, value)
-    if name in _COMPAT_COMMON_GLOBALS:
-        setattr(_organizer_common, name, value)
-
-
-def _sync_legacy_overrides() -> None:
-    module = sys.modules[__name__]
-    for name in _COMPAT_SESSION_GLOBALS | _COMPAT_COMMON_GLOBALS:
-        if hasattr(module, name):
-            _propagate_legacy_override(name, getattr(module, name))
-
-
-def class_icon_candidates(class_key: str):
-    _organizer_common.CLASS_ICON_DIRS = CLASS_ICON_DIRS
-    return _organizer_common.class_icon_candidates(class_key)
+    definition = DOFUS_CLASS_DEFINITIONS.get(class_key)
+    if not definition:
+        return []
+    class_id = definition["id"]
+    stems: list[str] = []
+    for value in (class_key, definition["label"], *definition["aliases"]):
+        key = normalize_key(value)
+        if key and key not in stems:
+            stems.append(key)
+    stems.extend([f"symbol_{class_id}", f"logo_transparent_{class_id}", f"class_{class_key}"])
+    return [
+        directory / f"{stem}{extension}"
+        for directory in CLASS_ICON_DIRS
+        for stem in stems
+        for extension in CLASS_ICON_EXTENSIONS
+    ]
 
 
-def class_icon_path_for_window_name(value: Any):
-    _organizer_common.CLASS_ICON_DIRS = CLASS_ICON_DIRS
-    _organizer_common.CLIENT_INDEX_JSON = CLIENT_INDEX_JSON
-    return _organizer_common.class_icon_path_for_window_name(value)
+def class_icon_path_for_window_name(value: Any) -> Path | None:
+    class_key = dofus_class_key_from_window_name(value) or dofus_class_key_for_character_name(value)
+    if not class_key:
+        return None
+    return next((path for path in class_icon_candidates(class_key) if path.exists()), None)
 
 
 class OrganizerPage(
@@ -125,7 +131,6 @@ class OrganizerPage(
         sessions_changed_callback=None,
         active_session_callback=None,
     ) -> None:
-        _sync_legacy_overrides()
         super().__init__(parent)
         self.setObjectName("organizerPage")
         self.status_callback = status_callback
@@ -140,7 +145,14 @@ class OrganizerPage(
         self._sessions_render_dirty = False
         self.release_retry_index = 0
 
-        self.character_order_service = CharacterOrderService(PROFILE_FILE)
+        # Explicit runtime dependencies keep the Phase 8 split testable without
+        # rebinding symbols inside the focused Organizer modules.
+        self.profile_file = PROFILE_FILE
+        self.client_index_json = CLIENT_INDEX_JSON
+        self.client_index_ini = CLIENT_INDEX_INI
+        self.scan_unity_sessions_callback = scan_unity_sessions
+
+        self.character_order_service = CharacterOrderService(self.profile_file)
         self.profiles = self.load_profiles()
         self.sessions: list[dict[str, Any]] = self.build_session_slots(self.load_last_sessions())
         self.capture_target: dict[str, Any] | None = None
@@ -212,17 +224,6 @@ class OrganizerPage(
         self.startup_scan_timer.setSingleShot(True)
         self.startup_scan_timer.timeout.connect(self.auto_scan_sessions_on_startup)
         self.startup_scan_timer.start(0)
-
-
-class _OrganizerCompatModule(ModuleType):
-    def __setattr__(self, name: str, value: object) -> None:
-        super().__setattr__(name, value)
-        if name in _COMPAT_SESSION_GLOBALS or name in _COMPAT_COMMON_GLOBALS:
-            _propagate_legacy_override(name, value)
-
-
-sys.modules[__name__].__class__ = _OrganizerCompatModule
-_sync_legacy_overrides()
 
 
 __all__ = [
