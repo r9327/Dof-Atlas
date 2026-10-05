@@ -57,7 +57,16 @@ class DofusItemProvider:
     def _load(self) -> None:
         """Keep monolithic Dofus JSON parsing outside Atlas' long-lived heap."""
 
-        if bool(getattr(sys, "frozen", False)) or self.data_dir != RAW_QUEST_DATA_DIR:
+        main_spec = getattr(sys.modules.get("__main__"), "__spec__", None)
+        main_name = str(getattr(main_spec, "name", "") or "")
+        nested_compact_worker = "--dump-compact" in sys.argv and main_name != __name__
+        if (
+            bool(getattr(sys, "frozen", False))
+            or self.data_dir != RAW_QUEST_DATA_DIR
+            or nested_compact_worker
+        ):
+            # A compact provider worker is already disposable. Spawning another
+            # Python process here only stacks both RSS values in the process tree.
             self._load_in_process()
             return
 
