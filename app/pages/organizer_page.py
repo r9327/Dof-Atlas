@@ -17,6 +17,7 @@ from app.constants import (
     PROFILE_FILE,
 )
 from app.services.character_order_service import CharacterOrderService
+from app.storage import default_profiles
 from app.windows_embed import UnityWindowEventWatcher
 from app.pages.organizer.character_sessions import CharacterSessionsMixin
 from app.pages.organizer.common import (
@@ -158,6 +159,7 @@ __all__ = [
     "CARD_SPACING",
     "CHARACTER_SLOT_HEIGHT",
     "client_slot_hotkey_key",
+    "default_profiles",
     "empty_session_slot",
     "session_name",
     "session_hwnd",
