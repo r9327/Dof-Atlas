@@ -1,0 +1,161 @@
+name: Phase 8 Memory Benchmark
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dof-atlas-phase8-memory-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  QT_OPENGL: software
+  QT_QUICK_BACKEND: software
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  benchmark:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       (startsWith(github.event.pull_request.head.ref, 'perf/phase8-memory') ||
+        startsWith(github.event.pull_request.title, 'Phase 8')))
+    name: Phase 8 / Staged Memory Benchmark
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize complete quest catalogue
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Measure staged process and process-tree memory
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/phase8_memory" | Out-Null
+          python -X faulthandler tools/benchmark_phase8_memory.py --output artifacts/phase8_memory/memory.json
+          $code = $LASTEXITCODE
+          if (-not (Test-Path -LiteralPath "artifacts/phase8_memory/memory.json")) {
+            exit $code
+          }
+          if ($code -ne 0 -and $code -ne -1073741819) {
+            exit $code
+          }
+          $global:LASTEXITCODE = 0
+
+      - name: Validate memory evidence shape
+        run: |
+          @'
+          import json
+          from pathlib import Path
+
+          path = Path("artifacts/phase8_memory/memory.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          metrics = payload.get("metrics") or {}
+          stages = metrics.get("stages") or []
+          by_label = {str(row.get("label")): row for row in stages if isinstance(row, dict)}
+          required = (
+              "startup_stabilized",
+              "after_preload",
+              "quests_active",
+              "after_quests_home",
+              "achievements_active",
+              "after_achievements_home",
+              "guide_active",
+              "after_guide_home",
+              "craft_active",
+              "before_equipment_home",
+              "equipment_active",
+              "after_equipment_home",
+              "after_equipment_home_stabilized",
+          )
+          missing = [name for name in required if name not in by_label]
+          if missing:
+              raise SystemExit("memory benchmark missing stages: " + ", ".join(missing))
+          for label in required:
+              row = by_label[label]
+              if row.get("process_rss_mb") is None or row.get("tree_rss_mb") is None:
+                  raise SystemExit(f"memory stage {label} has incomplete RSS evidence")
+          print(json.dumps(metrics, ensure_ascii=False, indent=2))
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish memory summary
+        if: always()
+        run: |
+          $path = "artifacts/phase8_memory/memory.json"
+          if (-not (Test-Path -LiteralPath $path)) { exit 0 }
+          $payload = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Phase 8 staged memory"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Stage | App RSS MB | Tree RSS MB | Children |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|---|---:|---:|---:|"
+          foreach ($row in $payload.metrics.stages) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| $($row.label) | $($row.process_rss_mb) | $($row.tree_rss_mb) | $($row.child_count) |"
+          }
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak app RSS: $($payload.metrics.peak_process_rss_mb) MB"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment active tree delta: $($payload.metrics.equipment_tree_delta_active_mb) MB"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment retained tree delta after Home: $($payload.metrics.equipment_tree_delta_stabilized_mb) MB"
+
+      - name: Upload memory evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: phase8-memory-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/phase8_memory/**
+          if-no-files-found: error
+          retention-days: 30
