@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QWidget
 
-from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB
+from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as BaseEncyclopediaPage
 
 
@@ -18,6 +18,9 @@ class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
     def __init__(self, *args, **kwargs) -> None:
         self._memory_restore_guide_id = ""
         self._memory_restore_achievement_id: int | None = None
+        self._memory_restore_quest_id: int | None = None
+        self._memory_restore_quest_series = ""
+        self._memory_restore_quest_search = ""
         super().__init__(*args, **kwargs)
 
     def _replace_with_lazy_slot(self, label: str, widget: QWidget) -> None:
@@ -46,6 +49,41 @@ class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
         widget.setParent(None)
         widget.deleteLater()
 
+    def _hibernate_quests(self) -> None:
+        page = getattr(self, "quest_page", None)
+        if page is None:
+            return
+        current_id = getattr(page, "selected_quest_id", None)
+        try:
+            self._memory_restore_quest_id = int(current_id) if current_id is not None else None
+        except (TypeError, ValueError):
+            self._memory_restore_quest_id = None
+        self._memory_restore_quest_series = str(getattr(page, "active_series_id", "") or "")
+        search = getattr(page, "search", None)
+        self._memory_restore_quest_search = str(search.text() if search is not None else "")
+        self._replace_with_lazy_slot(QUESTS_TAB, page)
+        self.quest_page = None
+
+    def _restore_quests_view(self):
+        if self.quest_page is not None:
+            return self.quest_page
+        # The resident QuestProvider keeps the SQLite-backed compact catalogue
+        # warm. Rebuild only the Qt representation; never reparse documentary
+        # quest sources just because the user comes back to the tab.
+        if getattr(self.quest_provider, "_catalog", None) is None:
+            return None
+        page = self._build_quests_page_progressive()
+        self.replace_tab_widget(QUESTS_TAB, page)
+        if self._memory_restore_quest_series:
+            page.active_series_id = self._memory_restore_quest_series
+        if self._memory_restore_quest_search and hasattr(page, "search"):
+            page.search.setText(self._memory_restore_quest_search)
+        quest_id = self._memory_restore_quest_id
+        self._memory_restore_quest_id = None
+        if quest_id is not None:
+            page.select_quest(quest_id)
+        return page
+
     def _hibernate_achievements(self) -> None:
         if not bool(getattr(self, "_achievement_ready", False)):
             return
@@ -68,8 +106,14 @@ class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
         self._memory_restore_guide_id = str(getattr(view, "current_guide_id", "") or "")
         self._replace_with_lazy_slot(GUIDES_TAB, view)
         self.guides_view = None
+        provider = getattr(getattr(self, "service", None), "guide_provider", None)
+        release_detail = getattr(provider, "release_detail_cache", None)
+        if callable(release_detail):
+            release_detail()
 
     def hibernate_heavy_views(self, *, active_label: str = "") -> None:
+        if active_label != QUESTS_TAB:
+            self._hibernate_quests()
         if active_label != ACHIEVEMENTS_TAB:
             self._hibernate_achievements()
         if active_label != GUIDES_TAB:
@@ -82,6 +126,11 @@ class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
     def on_tab_changed(self, index: int) -> None:
         label = self.tabs.tabText(index) if index >= 0 else ""
         self.hibernate_heavy_views(active_label=label)
+        if label == QUESTS_TAB and self.quest_page is None:
+            restored = self._restore_quests_view()
+            if restored is not None:
+                labels = self.tab_labels()
+                index = labels.index(QUESTS_TAB)
         super().on_tab_changed(index)
 
     def ensure_achievements_view(self):
