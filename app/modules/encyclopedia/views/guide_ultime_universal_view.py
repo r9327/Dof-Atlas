@@ -437,7 +437,6 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         self.position_label = QLabel()
         self.position_label.setVisible(False)
 
-
     def _return_to_guides_catalog(self) -> None:
         self.backToGuidesRequested.emit()
         parent = self.parentWidget()
@@ -575,7 +574,6 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         self.next_button.setEnabled(index < len(self.service.cards) - 1)
         self.current_button.setVisible(index != self.active_index)
         self._make_positions_copyable(widget)
-        QApplication.processEvents()
 
     def _quest_progress_changed(self, quest_id: int) -> None:
         previous_active = self.active_index
@@ -632,7 +630,6 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
                 event.accept()
                 return True
         return super().eventFilter(watched, event)
-
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:
