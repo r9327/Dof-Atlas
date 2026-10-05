@@ -19,7 +19,9 @@ from app.modules.encyclopedia.models.entity_ref import EntityRef
 from app.modules.encyclopedia.models.reward import Reward
 from app.modules.encyclopedia.providers.achievement_provider import (
     AchievementProvider as BaseAchievementProvider,
+    safe_int,
 )
+from app.quest_catalog import array_value, text_for
 from app.quest_source_index import QuestSources
 
 
@@ -151,6 +153,85 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         if self._catalog_loading:
             return ""
         return super()._image_for_icon(icon_id, folders)
+
+    def _objectives_by_achievement(
+        self,
+        rows,
+        achievement_rows,
+        entries,
+        quest_names: dict[int, str],
+        monster_names: dict[int, str],
+        achievement_names: dict[int, str],
+    ) -> dict[int, tuple[AchievementObjective, ...]]:
+        """Keep graph refs for every Success, rich objective text only when retained.
+
+        The compact subprocess used to build the complete rich objective payload
+        for all game achievements and then immediately erase most of it. That
+        transient duplication was the dominant process-tree peak. Non-retained
+        domains only need objective IDs/order and entity refs until link
+        resolution; their text and criterion are never emitted to Atlas.
+        """
+
+        retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+        result: dict[int, list[AchievementObjective]] = defaultdict(list)
+        for objective_id, row in rows.items():
+            achievement_id = safe_int(row.get("achievementId"))
+            if achievement_id is None:
+                continue
+            criterion = str(row.get("criterion") or "")
+            entity_refs = self._objective_entity_refs(
+                criterion,
+                quest_names,
+                monster_names,
+                achievement_names,
+            )
+            achievement_row = achievement_rows.get(achievement_id, {})
+            source_category_id = safe_int(achievement_row.get("categoryId"), 0) or 0
+            keep_rich_payload = self._top_category_id(source_category_id) in retained_ids
+            result[achievement_id].append(
+                AchievementObjective(
+                    id=objective_id,
+                    achievement_id=achievement_id,
+                    text=(
+                        text_for(entries, row.get("nameId"), f"Objectif {objective_id}")
+                        if keep_rich_payload
+                        else ""
+                    ),
+                    criterion=criterion if keep_rich_payload else "",
+                    order=safe_int(row.get("order"), 0) or 0,
+                    objective_type=(
+                        self._objective_type(criterion) if keep_rich_payload else ""
+                    ),
+                    required_quantity=1,
+                    entity_ref=entity_refs[0] if entity_refs else None,
+                    entity_refs=entity_refs,
+                )
+            )
+
+        ordered: dict[int, tuple[AchievementObjective, ...]] = {}
+        for achievement_id, objectives in result.items():
+            declared = [
+                int(value)
+                for value in array_value(
+                    achievement_rows.get(achievement_id, {}).get("objectiveIds")
+                )
+                if safe_int(value) is not None
+            ]
+            positions = {
+                objective_id: position
+                for position, objective_id in enumerate(declared)
+            }
+            ordered[achievement_id] = tuple(
+                sorted(
+                    objectives,
+                    key=lambda objective: (
+                        positions.get(objective.id, 999999),
+                        objective.order,
+                        objective.id,
+                    ),
+                )
+            )
+        return ordered
 
     def _trim_catalogue_payload(self) -> None:
         retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
