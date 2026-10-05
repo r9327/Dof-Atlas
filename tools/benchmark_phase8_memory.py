@@ -225,8 +225,14 @@ class PeakTreeSampler:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
+        self._phase = "startup"
         self.peak_process_rss_mb = 0.0
         self.peak_tree_rss_mb = 0.0
+        self.peak_tree_sample: dict[str, Any] = {}
+
+    def set_phase(self, phase: str) -> None:
+        with self._lock:
+            self._phase = str(phase)
 
     def start(self) -> None:
         if self._thread is not None:
@@ -240,8 +246,11 @@ class PeakTreeSampler:
             process_rss = float(sample.get("process_rss_mb") or 0.0)
             tree_rss = float(sample.get("tree_rss_mb") or process_rss)
             with self._lock:
+                phase = self._phase
                 self.peak_process_rss_mb = max(self.peak_process_rss_mb, process_rss)
-                self.peak_tree_rss_mb = max(self.peak_tree_rss_mb, tree_rss)
+                if tree_rss > self.peak_tree_rss_mb:
+                    self.peak_tree_rss_mb = tree_rss
+                    self.peak_tree_sample = {**sample, "phase": phase}
 
     def stop(self) -> None:
         self._stop.set()
@@ -300,6 +309,7 @@ def measure() -> dict[str, Any]:
     stages: list[dict[str, Any]] = []
     timings: dict[str, float] = {}
     sampler = PeakTreeSampler()
+    sampler.set_phase("startup")
     sampler.start()
 
     window = app_main.AtlasWindow()
@@ -307,6 +317,7 @@ def measure() -> dict[str, Any]:
     app.processEvents()
     _capture(app, stages, "startup_stabilized", 0.25)
 
+    sampler.set_phase("preload")
     wait_until(
         app,
         lambda: preload_terminal(window),
@@ -315,30 +326,41 @@ def measure() -> dict[str, Any]:
     )
     _capture(app, stages, "after_preload")
 
+    sampler.set_phase("quests_open")
     timings["quests_open_ms"] = open_encyclopedia(app, window, QUESTS_TAB)
     _capture(app, stages, "quests_active")
+    sampler.set_phase("quests_home")
     window.show_page("Home")
     _capture(app, stages, "after_quests_home", 0.35)
 
+    sampler.set_phase("achievements_open")
     timings["achievements_open_ms"] = open_encyclopedia(app, window, ACHIEVEMENTS_TAB)
     _capture(app, stages, "achievements_active")
+    sampler.set_phase("achievements_home")
     window.show_page("Home")
     _capture(app, stages, "after_achievements_home", 0.35)
 
+    sampler.set_phase("guide_open")
     timings["guide_open_ms"] = _open_guide_with_probe(app, window, stages)
     _capture(app, stages, "guide_active")
+    sampler.set_phase("guide_home")
     window.show_page("Home")
     _capture(app, stages, "after_guide_home", 0.35)
 
+    sampler.set_phase("craft_open")
     timings["craft_open_ms"] = open_page(app, window, "Craft")
     _capture(app, stages, "craft_active")
+    sampler.set_phase("craft_home")
     window.show_page("Home")
     before_equipment = _capture(app, stages, "before_equipment_home", 0.35)
 
+    sampler.set_phase("equipment_open")
     timings["equipment_open_ms"] = open_page(app, window, "Equipement", timeout=60.0)
     equipment_active = _capture(app, stages, "equipment_active", 0.50)
+    sampler.set_phase("equipment_home")
     window.show_page("Home")
     after_equipment = _capture(app, stages, "after_equipment_home", 0.50)
+    sampler.set_phase("equipment_home_stabilized")
     after_equipment_stable = _capture(app, stages, "after_equipment_home_stabilized", 1.50)
 
     sampler.stop()
@@ -361,6 +383,7 @@ def measure() -> dict[str, Any]:
         "stages": stages,
         "peak_process_rss_mb": round(sampler.peak_process_rss_mb, 2),
         "peak_tree_rss_mb": round(sampler.peak_tree_rss_mb, 2),
+        "peak_tree_sample": sampler.peak_tree_sample,
         "equipment_tree_delta_active_mb": round(active_tree - before_tree, 2),
         "equipment_tree_delta_after_home_mb": round(after_tree - before_tree, 2),
         "equipment_tree_delta_stabilized_mb": round(stable_tree - before_tree, 2),
