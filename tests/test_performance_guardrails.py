@@ -138,14 +138,16 @@ class PerformanceGuardrailTests(unittest.TestCase):
 
     def test_heavy_pages_remain_lazy_at_application_startup(self) -> None:
         source = _source("main.py")
+        self.assertIn('self.register_page("Organizer", self.loading_page("Organizer"))', source)
         self.assertIn('self.register_page("Quetes", self.loading_page("Encyclopédie"))', source)
         self.assertIn('self.register_page("Equipement", self.loading_page("Équipement"))', source)
+        self.assertIn('self.page_factories["Organizer"] = self.create_organizer_page', source)
         self.assertIn('self.page_factories["Quetes"] = self.create_encyclopedia_page', source)
         self.assertIn('self.page_factories["Equipement"] = self.create_equipment_page', source)
-        self.assertIn(
-            "self._schedule_owned_callback(STARTUP_PRELOAD_DELAY_MS, self.start_preload)",
-            source,
-        )
+        self.assertIn("GLOBAL_QUEST_PRELOAD_DELAY_MS", source)
+        self.assertIn('lambda: self.start_preload("quests")', source)
+        self.assertIn("GLOBAL_CRAFT_PRELOAD_DELAY_MS", source)
+        self.assertIn('lambda: self.start_preload("craft")', source)
 
     def test_qtwebengine_stays_out_of_equipment_module_level_imports(self) -> None:
         source = _source("app/pages/equipment_page.py")

@@ -10,8 +10,6 @@ class RelatedDataServiceContractTests(unittest.TestCase):
     def test_same_catalog_reuses_one_canonical_related_data_bundle(self) -> None:
         catalog = object()
         quest_provider = MagicMock(name="quest_provider")
-        achievement_provider = MagicMock(name="achievement_provider")
-        guide_provider = MagicMock(name="guide_provider")
         quest_graph = MagicMock(name="quest_graph")
 
         with (
@@ -25,14 +23,14 @@ class RelatedDataServiceContractTests(unittest.TestCase):
             ) as quest_provider_cls,
             patch.object(
                 related_data_service,
-                "AchievementProvider",
-                return_value=achievement_provider,
-            ) as achievement_provider_cls,
+                "_warm_achievement_source_indexes",
+                return_value=7,
+            ) as warm_achievement_indexes,
             patch.object(
                 related_data_service,
-                "GuideProvider",
-                return_value=guide_provider,
-            ) as guide_provider_cls,
+                "_warm_guide_files",
+                return_value=3,
+            ) as warm_guide_files,
             patch.object(
                 related_data_service,
                 "QuestGraphService",
@@ -43,26 +41,17 @@ class RelatedDataServiceContractTests(unittest.TestCase):
             second = related_data_service.build_related_encyclopedia_data(catalog)
 
             self.assertIs(first, second)
-            self.assertIs(first.achievement_provider, achievement_provider)
-            self.assertIs(first.guide_provider, guide_provider)
+            self.assertIsNone(first.achievement_provider)
+            self.assertIs(first.guide_provider, related_data_service._EMPTY_GUIDE_PROVIDER)
             self.assertIs(first.quest_graph, quest_graph)
+            self.assertEqual(first.warmed_source_count, 7)
+            self.assertEqual(first.warmed_guide_file_count, 3)
             self.assertEqual(related_data_service.related_data_build_count(), 1)
 
             quest_provider_cls.assert_called_once_with(catalog=catalog)
-            achievement_provider_cls.assert_called_once_with(
-                quest_provider=quest_provider
-            )
-            guide_provider_cls.assert_called_once_with(
-                quest_provider=quest_provider,
-                achievement_provider=achievement_provider,
-            )
-            achievement_provider.load_all.assert_called_once_with()
-            guide_provider.load_all.assert_called_once_with()
-            quest_graph_cls.assert_called_once_with(
-                quest_provider,
-                guide_provider,
-                achievement_provider,
-            )
+            warm_achievement_indexes.assert_called_once_with()
+            warm_guide_files.assert_called_once_with()
+            quest_graph_cls.assert_called_once_with(quest_provider)
 
     def test_new_catalog_replaces_the_active_canonical_bundle(self) -> None:
         first_catalog = object()
@@ -73,8 +62,16 @@ class RelatedDataServiceContractTests(unittest.TestCase):
             patch.object(related_data_service, "_CACHED_DATA", None),
             patch.object(related_data_service, "_BUILD_COUNT", 0),
             patch.object(related_data_service, "QuestProvider") as quest_provider_cls,
-            patch.object(related_data_service, "AchievementProvider") as achievement_provider_cls,
-            patch.object(related_data_service, "GuideProvider") as guide_provider_cls,
+            patch.object(
+                related_data_service,
+                "_warm_achievement_source_indexes",
+                return_value=7,
+            ) as warm_achievement_indexes,
+            patch.object(
+                related_data_service,
+                "_warm_guide_files",
+                return_value=3,
+            ) as warm_guide_files,
             patch.object(related_data_service, "QuestGraphService") as quest_graph_cls,
         ):
             first = related_data_service.build_related_encyclopedia_data(first_catalog)
@@ -83,8 +80,8 @@ class RelatedDataServiceContractTests(unittest.TestCase):
             self.assertIsNot(first, second)
             self.assertEqual(related_data_service.related_data_build_count(), 2)
             self.assertEqual(quest_provider_cls.call_count, 2)
-            self.assertEqual(achievement_provider_cls.call_count, 2)
-            self.assertEqual(guide_provider_cls.call_count, 2)
+            self.assertEqual(warm_achievement_indexes.call_count, 2)
+            self.assertEqual(warm_guide_files.call_count, 2)
             self.assertEqual(quest_graph_cls.call_count, 2)
 
 

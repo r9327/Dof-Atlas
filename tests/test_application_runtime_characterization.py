@@ -81,6 +81,7 @@ class _NavigationShell:
     def __init__(self, page: _NavigationPage, target: str) -> None:
         self.pending_encyclopedia_tab = target
         self.page_widgets = {"Quetes": page}
+        self.page_factories: dict[str, object] = {}
         self.current_character_key = "character:42"
         self.page_nav_group = {"Quetes": "Encyclopédie"}
         self.nav_refreshes: list[str] = []
@@ -147,6 +148,7 @@ class Shell:
     def __init__(self, target):
         self.pending_encyclopedia_tab = target
         self.page_widgets = {"Quetes": object()}
+        self.page_factories = {}
         self.current_character_key = "character:1"
         self.page_nav_group = {"Quetes": "Encyclopédie"}
         self.nav_refreshes = []
@@ -235,8 +237,6 @@ def application_entry():
 
     refresh = app_main.HomePage.refresh_progress
     refresh_globals = refresh.__globals__
-    refresh_globals["AchievementProvider"].load_all = counted_load_all("achievement_load_all")
-    refresh_globals["GuideProvider"].load_all = counted_load_all("guide_load_all")
     app_main.AtlasWindow.create_encyclopedia_page = counted_load_all("encyclopedia_create")
 
     with tempfile.TemporaryDirectory() as temporary:
@@ -256,7 +256,7 @@ def application_entry():
             "character:1", progress_guide_id, "page:first", True
         )
         refresh_globals["_MANUAL_ROUTE_MANIFEST_PATH"] = manifest_path
-        refresh_globals["GUIDE_PROGRESS_FILE"] = guide_path
+        services.GUIDE_PROGRESS_FILE = guide_path
         constants.QUEST_PROGRESS_FILE = quest_path
         services.ACHIEVEMENT_PROGRESS_FILE = achievement_path
 
@@ -491,6 +491,7 @@ print(json.dumps(payload, ensure_ascii=False))
                 self.character_combo.addItem("Beta", SimpleNamespace(key="character:2", label="Beta"))
                 self.home_page = HomeStub()
                 self.page_widgets: dict[str, object] = {}
+                self.page_factories: dict[str, object] = {}
                 self.persist_calls = 0
 
             def character_icon_path(self, _label: str) -> str:
@@ -562,6 +563,7 @@ print(json.dumps(payload, ensure_ascii=False))
             def __init__(self) -> None:
                 self.current_character_key = "character:42"
                 self.page_widgets: dict[str, object] = {}
+                self.page_factories: dict[str, object] = {}
 
             def sync_selected_character_to_pages(self) -> None:
                 app_main.AtlasWindow.sync_selected_character_to_pages(self)

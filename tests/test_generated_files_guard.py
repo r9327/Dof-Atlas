@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import subprocess
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.check_generated_files import find_forbidden, find_sensitive_content, git_paths
 from tools import atlas_integrity
@@ -51,10 +53,19 @@ class GeneratedFilesGuardTests(unittest.TestCase):
             "data/encyclopedia/progress/achievement_progress.json.lock",
             "data/encyclopedia/progress/guide_progress.json.lock",
         ]
-        with tempfile.TemporaryDirectory() as directory:
+        git_environment = {
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("GIT_") or key == "GIT_EXEC_PATH"
+        }
+        with patch.dict(os.environ, git_environment, clear=True), tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for args in (["init"], ["config", "user.email", "atlas@example.invalid"],
-                         ["config", "user.name", "Atlas Tests"]):
+            for args in (
+                ["init"],
+                ["config", "user.email", "atlas@example.invalid"],
+                ["config", "user.name", "Atlas Tests"],
+                ["config", "commit.gpgsign", "false"],
+            ):
                 subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
             (root / ".gitignore").write_bytes(
                 (Path(__file__).resolve().parents[1] / ".gitignore").read_bytes())

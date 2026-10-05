@@ -52,7 +52,7 @@ class CraftMinimalLazyTests(unittest.TestCase):
 
         self.assertIsInstance(page, Page)
         self.assertTrue(captured["defer_runtime"])
-        shell.start_preload.assert_called_once_with(prefer_quests=False)
+        shell.start_preload.assert_called_once_with("craft", user_requested=True)
 
     def test_search_icons_are_materialized_in_small_batches(self) -> None:
         page = CraftPage(Mock(), defer_runtime=True)

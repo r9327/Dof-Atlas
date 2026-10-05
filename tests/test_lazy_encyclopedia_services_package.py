@@ -68,30 +68,9 @@ print(json.dumps({
             def __init__(self, *, catalog) -> None:
                 self.catalog = catalog
 
-        class FakeAchievementProvider:
-            def __init__(self, *, quest_provider) -> None:
-                self.quest_provider = quest_provider
-                self.load_calls = 0
-
-            def load_all(self):
-                self.load_calls += 1
-                return []
-
-        class FakeGuideProvider:
-            def __init__(self, *, quest_provider, achievement_provider) -> None:
-                self.quest_provider = quest_provider
-                self.achievement_provider = achievement_provider
-                self.load_calls = 0
-
-            def load_all(self):
-                self.load_calls += 1
-                return []
-
         class FakeQuestGraphService:
-            def __init__(self, quest_provider, guide_provider, achievement_provider) -> None:
+            def __init__(self, quest_provider) -> None:
                 self.quest_provider = quest_provider
-                self.guide_provider = guide_provider
-                self.achievement_provider = achievement_provider
 
         previous_catalog = related._CACHED_CATALOG
         previous_data = related._CACHED_DATA
@@ -103,17 +82,21 @@ print(json.dumps({
         try:
             with (
                 patch.object(related, "QuestProvider", FakeQuestProvider),
-                patch.object(related, "AchievementProvider", FakeAchievementProvider),
-                patch.object(related, "GuideProvider", FakeGuideProvider),
                 patch.object(related, "QuestGraphService", FakeQuestGraphService),
+                patch.object(related, "_warm_achievement_source_indexes", return_value=7) as warm_success,
+                patch.object(related, "_warm_guide_files", return_value=23) as warm_guides,
             ):
                 first = related.build_related_encyclopedia_data(catalog)
                 second = related.build_related_encyclopedia_data(catalog)
 
             self.assertIs(first, second)
             self.assertEqual(related.related_data_build_count(), 1)
-            self.assertEqual(first.achievement_provider.load_calls, 1)
-            self.assertEqual(first.guide_provider.load_calls, 1)
+            self.assertIsNone(first.achievement_provider)
+            self.assertEqual(first.guide_provider.load_all(), [])
+            self.assertEqual(first.warmed_source_count, 7)
+            self.assertEqual(first.warmed_guide_file_count, 23)
+            warm_success.assert_called_once_with()
+            warm_guides.assert_called_once_with()
             self.assertFalse(hasattr(related, "_CACHE_PATH"))
         finally:
             related._CACHED_CATALOG = previous_catalog

@@ -26,7 +26,7 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
             ]
         )
 
-    def test_canonical_factory_creates_lazy_shell_without_quest_preload(self) -> None:
+    def test_canonical_factory_prioritizes_quest_preload_without_blocking_shell(self) -> None:
         class CapturedPage:
             def __init__(self, _status_callback, **kwargs) -> None:
                 self.kwargs = kwargs
@@ -43,7 +43,7 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
             set_status = Mock()
             launch_travel = Mock()
             on_encyclopedia_related_data_ready = Mock()
-            start_preload = Mock(side_effect=AssertionError("Quest preload forbidden"))
+            start_preload = Mock()
 
         with (
             patch.object(main, "EncyclopediaPage", CapturedPage),
@@ -55,7 +55,9 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
         self.assertIsNone(page.kwargs["quest_provider"]._catalog)
         self.assertEqual(page.kwargs["initial_tab"], GUIDES_TAB)
         self.assertEqual(page.character_keys, ["character:42"])
-        Shell.start_preload.assert_not_called()
+        self.assertEqual(Shell.start_preload.call_count, 2)
+        Shell.start_preload.assert_any_call("quests", user_requested=True)
+        Shell.start_preload.assert_any_call("encyclopedia", user_requested=True)
         build_quest_preload.assert_not_called()
 
     def test_canonical_factory_reuses_only_valid_loaded_preloads(self) -> None:

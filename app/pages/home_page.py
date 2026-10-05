@@ -4,7 +4,7 @@ import json
 import unicodedata
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
@@ -21,19 +21,18 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
-from app.modules.encyclopedia.models import Guide, GuideStep
-from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
-from app.modules.encyclopedia.services import (
-    ACHIEVEMENT_PROGRESS_FILE,
-    GUIDE_PROGRESS_FILE,
-    AchievementProgressService,
-    GuideProgressCalculator,
-    GuideProgressService,
-    QuestProgressService,
-)
 from app.network.application_coordinator import NetworkApplicationStatus
-from app.quest_catalog import QuestCatalog
 from app.ui.network_bridge import network_ui_bridge
+
+if TYPE_CHECKING:
+    from app.modules.encyclopedia.models import Guide, GuideStep
+    from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
+    from app.modules.encyclopedia.services import (
+        AchievementProgressService,
+        GuideProgressCalculator,
+        GuideUltimeManualRuntimeService,
+    )
+    from app.quest_catalog import QuestCatalog
 
 
 HOME_GUIDE_BANNER_PATH = Path(LOGO_PATH).parent / "home_guide_banner.png"
@@ -42,6 +41,19 @@ _MANUAL_ROUTE_MANIFEST_PATH = (
     ROOT_DIR / "data" / "routes" / "guide_ultime_manual" / "manifest_v1.json"
 )
 _GUIDE_PROGRESS_ID = "guide_ultime_v5"
+
+# Lazy compatibility patch point kept for focused Home tests. The concrete
+# provider remains outside the module import path until Guide is authorized.
+QuestProvider: Any = None
+
+
+def _resolve_quest_provider() -> type:
+    global QuestProvider
+    if QuestProvider is None:
+        from app.modules.encyclopedia.providers import QuestProvider as resolved
+
+        QuestProvider = resolved
+    return QuestProvider
 
 
 @lru_cache(maxsize=1)
@@ -69,6 +81,8 @@ def _manual_route_stage_total() -> int:
 
 def _persisted_manual_summary(character_key: str) -> dict[str, Any]:
     """Build the cheap cold-start projection from persisted manual checks."""
+
+    from app.modules.encyclopedia.services import GUIDE_PROGRESS_FILE, GuideProgressService
 
     total = _manual_route_stage_total()
     try:
@@ -495,6 +509,9 @@ class HomePage(QWidget):
         guide_provider: GuideProvider | None = None,
         achievement_provider: AchievementProvider | None = None,
     ) -> None:
+        from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
+        from app.quest_catalog import QuestCatalog
+
         catalog_changed = isinstance(catalog, QuestCatalog) and catalog is not self.catalog
         guide_provider_changed = isinstance(guide_provider, GuideProvider) and guide_provider is not self.guide_provider
         achievement_provider_changed = (
@@ -575,11 +592,18 @@ class HomePage(QWidget):
         if self.catalog is None:
             return
         try:
+            from app.modules.encyclopedia.services import (
+                ACHIEVEMENT_PROGRESS_FILE,
+                GUIDE_PROGRESS_FILE,
+                AchievementProgressService,
+                GuideProgressService,
+                QuestProgressService,
+            )
             from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
                 GuideUltimeManualRuntimeService,
             )
 
-            quest_provider = QuestProvider(catalog=self.catalog)
+            quest_provider = _resolve_quest_provider()(catalog=self.catalog)
             service = GuideUltimeManualRuntimeService(
                 QuestProgressService(QUEST_PROGRESS_FILE),
                 AchievementProgressService(ACHIEVEMENT_PROGRESS_FILE),
@@ -606,6 +630,11 @@ class HomePage(QWidget):
         return (int(stat.st_mtime_ns), int(stat.st_size))
 
     def _progress_input_signature(self) -> tuple[object, ...]:
+        from app.modules.encyclopedia.services import (
+            ACHIEVEMENT_PROGRESS_FILE,
+            GUIDE_PROGRESS_FILE,
+        )
+
         return (
             self.character_key,
             id(self.catalog),
@@ -626,6 +655,15 @@ class HomePage(QWidget):
         self._refresh_rich_progress()
 
     def _refresh_rich_progress(self) -> None:
+        from app.modules.encyclopedia.services import (
+            ACHIEVEMENT_PROGRESS_FILE,
+            GUIDE_PROGRESS_FILE,
+            AchievementProgressService,
+            GuideProgressCalculator,
+            GuideProgressService,
+            QuestProgressService,
+        )
+
         # The canonical manual route only needs the quest catalog. The legacy
         # GuideProvider is optional and must never gate primary Home progression.
         if self.catalog is None:

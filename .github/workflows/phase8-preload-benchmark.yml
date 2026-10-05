@@ -1,0 +1,272 @@
+name: Phase 8 Preload Benchmark
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Exact base ref or SHA for the comparison
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dof-atlas-phase8-preload-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  QT_OPENGL: software
+  QT_QUICK_BACKEND: software
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+  BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.base_ref }}
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  benchmark:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       (github.event.pull_request.head.ref == 'codex/phase8-startup-preload-v2' ||
+        startsWith(github.event.pull_request.title, 'Phase 8')))
+    name: Phase 8 / Comparable Preload Benchmark
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) {
+            throw "Phase 8 benchmark checkout mismatch: expected $env:CANDIDATE_SHA, got $actual"
+          }
+          Write-Host "Candidate SHA: $actual"
+          Write-Host "Base SHA/ref: $env:BASE_SHA"
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install application dependencies
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Prepare comparable benchmark inputs
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/phase8_preload" | Out-Null
+          $runner = Join-Path $env:RUNNER_TEMP "benchmark_phase8_preload.py"
+          Copy-Item -LiteralPath "tools/benchmark_phase8_preload.py" -Destination $runner -Force
+          Write-Host "Benchmark runner copied to $runner"
+
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Quest catalog incomplete: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Measure base and candidate on the same runner
+        run: |
+          $runner = Join-Path $env:RUNNER_TEMP "benchmark_phase8_preload.py"
+          $before = Join-Path $env:GITHUB_WORKSPACE "artifacts/phase8_preload/before.json"
+          $after = Join-Path $env:GITHUB_WORKSPACE "artifacts/phase8_preload/after.json"
+          $log = Join-Path $env:GITHUB_WORKSPACE "artifacts/phase8_preload/benchmark.log"
+          $allowedQtTeardownCode = -1073741819
+
+          git checkout --force "$env:BASE_SHA" 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & python -X faulthandler $runner --output $before 2>&1 | Tee-Object -FilePath $log -Append
+          $baseCode = $LASTEXITCODE
+          if (-not (Test-Path -LiteralPath $before)) {
+            if ($baseCode -ne 0) { exit $baseCode }
+            throw "Base benchmark did not produce its JSON evidence."
+          }
+          if ($baseCode -ne 0) {
+            if ($baseCode -ne $allowedQtTeardownCode) { exit $baseCode }
+            Write-Warning "Base Qt offscreen teardown crashed after writing complete benchmark evidence (code $baseCode)."
+            $global:LASTEXITCODE = 0
+          }
+
+          git checkout --force "$env:CANDIDATE_SHA" 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & python -X faulthandler $runner --output $after 2>&1 | Tee-Object -FilePath $log -Append
+          $candidateCode = $LASTEXITCODE
+          if (-not (Test-Path -LiteralPath $after)) {
+            if ($candidateCode -ne 0) { exit $candidateCode }
+            throw "Candidate benchmark did not produce its JSON evidence."
+          }
+          if ($candidateCode -ne 0) {
+            if ($candidateCode -ne $allowedQtTeardownCode) { exit $candidateCode }
+            Write-Warning "Candidate Qt offscreen teardown crashed after writing complete benchmark evidence (code $candidateCode)."
+            $global:LASTEXITCODE = 0
+          }
+          exit 0
+
+      - name: Validate and compare benchmark evidence
+        run: |
+          @'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("artifacts/phase8_preload")
+          before = json.loads((root / "before.json").read_text(encoding="utf-8"))
+          after = json.loads((root / "after.json").read_text(encoding="utf-8"))
+          before_metrics = before.get("metrics") or {}
+          after_metrics = after.get("metrics") or {}
+
+          expected_base = os.environ.get("BASE_SHA", "")
+          expected_candidate = os.environ.get("CANDIDATE_SHA", "")
+          if str(before_metrics.get("git_head") or "") != expected_base:
+              raise SystemExit(
+                  f"base benchmark SHA mismatch: expected {expected_base}, got {before_metrics.get('git_head')!r}"
+              )
+          if str(after_metrics.get("git_head") or "") != expected_candidate:
+              raise SystemExit(
+                  f"candidate benchmark SHA mismatch: expected {expected_candidate}, got {after_metrics.get('git_head')!r}"
+              )
+
+          required = (
+              "startup_constructor_ms",
+              "first_window_paint_ms",
+              "startup_stabilized_ms",
+              "startup_stabilized_rss_mb",
+              "preload_wait_from_stabilized_ms",
+              "preload_completed_from_constructor_ms",
+              "rss_after_preload_mb",
+              "peak_rss_mb",
+              "quests_open_ms",
+              "achievements_open_ms",
+              "guide_open_ms",
+              "craft_open_ms",
+              "equipment_open_ms",
+              "rss_after_first_accesses_mb",
+          )
+          missing = [name for name in required if after_metrics.get(name) is None]
+          if missing:
+              raise SystemExit("candidate benchmark missing metrics: " + ", ".join(missing))
+
+          states = after_metrics.get("preload_states_after") or {}
+          if states and any(str(value) not in {"READY", "FAILED"} for value in states.values()):
+              raise SystemExit(f"candidate preload did not reach terminal states: {states!r}")
+
+          rss_after_preload = float(after_metrics["rss_after_preload_mb"])
+          if rss_after_preload > 130.0:
+              raise SystemExit(
+                  f"candidate preload RAM budget exceeded: {rss_after_preload:.2f} MB > 130.00 MB"
+              )
+          startup_rss = float(after_metrics["startup_stabilized_rss_mb"])
+          if rss_after_preload - startup_rss > 60.0:
+              raise SystemExit(
+                  "candidate preload retained too much memory: "
+                  f"+{rss_after_preload - startup_rss:.2f} MB > +60.00 MB"
+              )
+          before_peak = float(before_metrics.get("peak_rss_mb") or 0.0)
+          after_peak = float(after_metrics["peak_rss_mb"])
+          if before_peak > 0.0 and after_peak > before_peak + 20.0:
+              raise SystemExit(
+                  f"candidate peak RAM regressed: {after_peak:.2f} MB vs {before_peak:.2f} MB base"
+              )
+
+          deltas = {}
+          for name in required:
+              before_value = before_metrics.get(name)
+              after_value = after_metrics.get(name)
+              if isinstance(before_value, (int, float)) and isinstance(after_value, (int, float)):
+                  deltas[name] = round(float(after_value) - float(before_value), 2)
+
+          comparison = {
+              "schema_version": 1,
+              "base_sha": expected_base,
+              "candidate_sha": expected_candidate,
+              "before": before_metrics,
+              "after": after_metrics,
+              "delta_after_minus_before": deltas,
+          }
+          (root / "comparison.json").write_text(
+              json.dumps(comparison, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(comparison, ensure_ascii=False, indent=2))
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish benchmark summary
+        if: always()
+        run: |
+          $comparison = "artifacts/phase8_preload/comparison.json"
+          if (-not (Test-Path -LiteralPath $comparison)) { exit 0 }
+          $payload = Get-Content -LiteralPath $comparison -Raw | ConvertFrom-Json
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Phase 8 preload benchmark"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Base: ``$($payload.base_sha)``"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate: ``$($payload.candidate_sha)``"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Metric | Before | After | Delta |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|---|---:|---:|---:|"
+          foreach ($name in @(
+            "startup_stabilized_ms",
+            "startup_stabilized_rss_mb",
+            "preload_completed_from_constructor_ms",
+            "rss_after_preload_mb",
+            "peak_rss_mb",
+            "quests_open_ms",
+            "achievements_open_ms",
+            "guide_open_ms",
+            "craft_open_ms",
+            "equipment_open_ms"
+          )) {
+            $before = $payload.before.$name
+            $after = $payload.after.$name
+            $delta = $payload.delta_after_minus_before.$name
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| $name | $before | $after | $delta |"
+          }
+
+      - name: Upload Phase 8 benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: phase8-preload-benchmark-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/phase8_preload/**
+          if-no-files-found: error
+          retention-days: 30

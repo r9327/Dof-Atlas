@@ -23,8 +23,8 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         app = QApplication.instance() or QApplication([])
         with patch.object(AtlasWindow, "setup_tray", return_value=None):
             window = AtlasWindow()
-        runtime = window.runtime
-        organizer = window.page_widgets["Organizer"]
+        runtime = window._ensure_runtime()
+        organizer = window.ensure_page_loaded("Organizer")
         bridge = Mock()
         bridge.stop.return_value = True
         window.home_page.network_bridge = bridge

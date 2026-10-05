@@ -89,7 +89,7 @@ class RuntimeRegressionContractTests(unittest.TestCase):
     def test_emergency_stop_does_not_fake_hook_badge_off(self) -> None:
         source = Path(__file__).resolve().parents[1].joinpath("main.py").read_text(encoding="utf-8")
         method = source.split("    def stop_runtime(self) -> None:", 1)[1].split("\n    def ", 1)[0]
-        self.assertIn('self.runtime.emergency_stop("bouton stop")', method)
+        self.assertIn('runtime.emergency_stop("bouton stop")', method)
         self.assertNotIn("update_runtime_badge(False)", method)
 
     def test_runtime_joins_cooperative_macro_worker_during_shutdown(self) -> None:

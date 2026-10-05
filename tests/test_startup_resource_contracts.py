@@ -49,7 +49,15 @@ class StartupResourceContractTests(unittest.TestCase):
             guides.assert_not_called()
             graph.assert_not_called()
             self.assertIn("Quetes", window.page_factories)
-            self.assertNotIsInstance(window.page_widgets["Quetes"], main.EncyclopediaPage)
+            self.assertNotEqual(
+                type(window.page_widgets["Quetes"]).__name__,
+                "EncyclopediaPage",
+            )
+            self.assertEqual(
+                window.stack.currentWidget(),
+                window.home_page,
+            )
+            self.assertIn("Organizer", window.page_factories)
         finally:
             window.quit_requested = True
             window.close()
