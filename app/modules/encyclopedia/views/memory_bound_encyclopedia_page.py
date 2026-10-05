@@ -29,6 +29,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self._memory_restore_quest_id: int | None = None
         self._memory_restore_quest_series = ""
         self._memory_restore_quest_search = ""
+        self._memory_has_been_shown = False
         super().__init__(*args, **kwargs)
 
     def _replace_with_lazy_slot(self, label: str, widget: QWidget) -> None:
@@ -136,7 +137,12 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             self._hibernate_guides()
 
     def hideEvent(self, event) -> None:  # noqa: N802 - Qt API
-        self.hibernate_heavy_views()
+        # QStackedWidget can emit a hide event while a freshly-created page is
+        # inserted behind the current page. That is construction, not a user
+        # departure: keep the preloaded Quests view intact until the page has
+        # genuinely been shown at least once.
+        if self._memory_has_been_shown:
+            self.hibernate_heavy_views()
         super().hideEvent(event)
 
     def showEvent(self, event) -> None:  # noqa: N802 - Qt API
@@ -147,6 +153,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         index stayed identical, so restore the active tab explicitly here.
         """
 
+        self._memory_has_been_shown = True
         super().showEvent(event)
         index = self.tabs.currentIndex()
         if index < 0:
