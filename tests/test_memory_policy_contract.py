@@ -8,6 +8,14 @@ ROOT = Path(__file__).resolve().parents[1]
 EQUIPMENT = ROOT / "app" / "pages" / "equipment_page.py"
 ENCYCLOPEDIA_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "views" / "__init__.py"
 PROVIDER_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "providers" / "__init__.py"
+DOFUS_ITEM_PROVIDER = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "providers"
+    / "dofus_item_provider.py"
+)
 MEMORY_PAGE = (
     ROOT
     / "app"
@@ -92,3 +100,17 @@ def test_related_index_warmup_runs_outside_long_lived_atlas_process() -> None:
     assert "achievement_index_warmup" in source
     assert "sys.executable" in source
     assert "QuestSources(" not in source
+
+
+def test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent() -> None:
+    source = DOFUS_ITEM_PROVIDER.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    method_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {"_load", "_load_in_process", "_dump_compact_default_items"} <= method_names
+    assert "subprocess.run" in source
+    assert "--dump-compact" in source
+    assert "sys.executable" in source
