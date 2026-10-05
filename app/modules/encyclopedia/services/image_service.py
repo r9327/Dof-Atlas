@@ -5,20 +5,20 @@ from pathlib import Path
 from threading import RLock
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QImageReader, QPixmap
 
 
 CacheKey = tuple[str, int, int, int, int]
-DEFAULT_IMAGE_CACHE_BYTES = 32 * 1024 * 1024
-DEFAULT_IMAGE_CACHE_ITEMS = 96
+DEFAULT_IMAGE_CACHE_BYTES = 8 * 1024 * 1024
+DEFAULT_IMAGE_CACHE_ITEMS = 64
 
 
 class ImageService:
-    """Bounded shared cache for decoded Encyclopedia pixmaps.
+    """Byte-bounded shared cache for decoded Encyclopedia thumbnails.
 
-    Async callers use ``get_scaled``/``store_scaled`` around their worker-side
-    image decode. Small visible-only callers may use ``load_scaled``. Catalogue
-    objects remain metadata-only and never retain decoded Qt images.
+    Catalogue objects remain metadata-only. Cached pixmaps are already scaled to
+    their visible size so Bestiary/Guide/Equipment cannot silently turn this into
+    a full-resolution image warehouse as the application grows.
     """
 
     def __init__(
@@ -88,8 +88,6 @@ class ImageService:
                 self._cache.move_to_end(key)
                 return existing[0]
 
-            # Oversized images remain usable by the caller but never evict the
-            # complete cache just to retain themselves.
             if cost <= 0 or self.max_bytes <= 0 or self.max_items <= 0 or cost > self.max_bytes:
                 return pixmap
 
@@ -102,17 +100,43 @@ class ImageService:
                 self._cache_bytes -= old_cost
         return pixmap
 
+    @staticmethod
+    def _decode_scaled(path: Path, size: QSize) -> QPixmap:
+        reader = QImageReader(str(path))
+        reader.setAutoTransform(True)
+        reader.setDecideFormatFromContent(True)
+        original = reader.size()
+        requested = QSize(size)
+        if (
+            original.isValid()
+            and requested.isValid()
+            and original.width() > 0
+            and original.height() > 0
+            and requested.width() > 0
+            and requested.height() > 0
+        ):
+            target = QSize(original)
+            target.scale(requested, Qt.KeepAspectRatio)
+            if target.width() < original.width() or target.height() < original.height():
+                reader.setScaledSize(target)
+        image = reader.read()
+        if image.isNull():
+            return QPixmap()
+        pixmap = QPixmap.fromImage(image)
+        if pixmap.width() > requested.width() or pixmap.height() > requested.height():
+            pixmap = pixmap.scaled(requested, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        return pixmap
+
     def load_scaled(self, path: Path, size: QSize) -> QPixmap:
-        """Synchronously load one small image already required by a visible view."""
+        """Decode one visible image close to its requested raster size."""
 
         path = Path(path)
         cached = self.get_scaled(path, size)
         if not cached.isNull():
             return cached
-        pixmap = QPixmap(str(path))
-        if pixmap.isNull():
+        scaled = self._decode_scaled(path, size)
+        if scaled.isNull():
             return QPixmap()
-        scaled = pixmap.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         return self.store_scaled(path, size, scaled)
 
     def info(self) -> dict[str, int]:
