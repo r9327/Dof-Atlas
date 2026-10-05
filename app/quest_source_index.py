@@ -21,7 +21,7 @@ from app.constants import LOGGER
 _SPACE = re.compile(r'\s*')
 _OPTIONAL_SOURCE_FIELDS = frozenset({("quests_enriched.json", "quests")})
 _ACHIEVEMENT_SOURCE_CACHE_NAME = "achievement_sources_v1"
-_ACHIEVEMENT_MAPPING_LIMIT = 4
+_ACHIEVEMENT_MAPPING_LIMIT = 1
 
 
 class QuestSourceError(RuntimeError):
