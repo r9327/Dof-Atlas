@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
+from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
 from app.modules.encyclopedia.models import DofusItem
 from app.modules.encyclopedia.providers.achievement_provider import safe_int
 from app.quest_catalog import array_value, doduda_rows, localized_name, read_json_file, text_for
@@ -50,6 +53,63 @@ class DofusItemProvider:
         self._loaded = True
 
     def _load(self) -> None:
+        """Keep monolithic Dofus JSON parsing outside Atlas' long-lived heap."""
+
+        if bool(getattr(sys, "frozen", False)) or self.data_dir != RAW_QUEST_DATA_DIR:
+            self._load_in_process()
+            return
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "app.modules.encyclopedia.providers.dofus_item_provider",
+                "--dump-compact",
+            ],
+            cwd=ROOT_DIR,
+            capture_output=True,
+            text=True,
+            timeout=90,
+            check=True,
+        )
+        lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+        if not lines:
+            raise RuntimeError("L'extraction des Dofus n'a produit aucun résultat")
+        try:
+            rows = json.loads(lines[-1])
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                f"Résultat de l'extraction des Dofus invalide: {lines[-1]!r}"
+            ) from exc
+        if not isinstance(rows, list):
+            raise RuntimeError("Résultat de l'extraction des Dofus invalide")
+
+        items: list[DofusItem] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            items.append(
+                DofusItem(
+                    id=int(row["id"]),
+                    original_id=int(row.get("original_id", row["id"])),
+                    name=str(row.get("name") or ""),
+                    level=safe_int(row.get("level")),
+                    type_id=int(row.get("type_id", DOFUS_TYPE_ID)),
+                    type_name=str(row.get("type_name") or "Dofus"),
+                    description=str(row.get("description") or ""),
+                    icon_id=safe_int(row.get("icon_id")),
+                    image_path=str(row.get("image_path") or ""),
+                    effects=tuple(str(value) for value in (row.get("effects") or ())),
+                    guide_id=str(row.get("guide_id") or ""),
+                    raw=dict(row.get("raw") or {}),
+                )
+            )
+        self._items = sorted(items, key=lambda item: (item.level or 0, item.name, item.id))
+        self._by_id = {item.id: item for item in self._items}
+
+    def _load_in_process(self) -> None:
+        """Legacy extractor used only by the disposable helper or custom fixtures."""
+
         language = read_json_file(self.data_dir / "languages" / "fr.json", {"entries": {}})
         entries = language.get("entries", {}) if isinstance(language, dict) else {}
         if not isinstance(entries, dict):
@@ -156,3 +216,15 @@ class DofusItemProvider:
             return json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             return default
+
+
+def _dump_compact_default_items() -> int:
+    provider = DofusItemProvider(RAW_QUEST_DATA_DIR)
+    provider._load_in_process()
+    print(json.dumps([asdict(item) for item in provider._items], ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    if "--dump-compact" in sys.argv:
+        raise SystemExit(_dump_compact_default_items())
