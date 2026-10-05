@@ -7,6 +7,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EQUIPMENT = ROOT / "app" / "pages" / "equipment_page.py"
 ENCYCLOPEDIA_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "views" / "__init__.py"
+ENCYCLOPEDIA_SERVICE = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "services"
+    / "encyclopedia_service.py"
+)
 PROVIDER_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "providers" / "__init__.py"
 DOFUS_ITEM_PROVIDER = (
     ROOT
@@ -56,6 +64,12 @@ def test_encyclopedia_public_facade_routes_to_memory_bound_page() -> None:
     assert "MemoryBoundEncyclopediaPage as RealEncyclopediaPage" in source
 
 
+def test_encyclopedia_runtime_constructs_provider_through_memory_facade() -> None:
+    source = ENCYCLOPEDIA_SERVICE.read_text(encoding="utf-8")
+    assert "from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider" in source
+    assert "providers.achievement_provider import AchievementProvider" not in source
+
+
 def test_memory_bound_page_hibernates_only_widget_layer() -> None:
     source = MEMORY_PAGE.read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -89,9 +103,17 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     }
     assert "memory_bound_achievement_provider" in facade
     assert "MemoryBoundAchievementProvider as RealAchievementProvider" in facade
-    assert {"_reset_sources", "_load", "prepare_detail_sources", "get_detail_by_id"} <= method_names
+    assert {
+        "_reset_sources",
+        "_trim_catalogue_payload",
+        "_load",
+        "prepare_detail_sources",
+        "get_detail_by_id",
+    } <= method_names
     assert "QuestSources(" in source
     assert "self._entries = None" in source
+    assert "self._image_indexes.clear()" in source
+    assert '"raw"' in source
 
 
 def test_related_index_warmup_runs_outside_long_lived_atlas_process() -> None:
