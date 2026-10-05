@@ -26,6 +26,7 @@ from PySide6.QtWidgets import QApplication
 
 from benchmark_phase8_preload import (
     app_main,
+    encyclopedia_ready,
     git_head,
     memory_mb,
     open_encyclopedia,
@@ -256,6 +257,44 @@ def _capture(app: QApplication, stages: list[dict[str, Any]], label: str, settle
     return sample
 
 
+def _open_guide_with_probe(
+    app: QApplication,
+    window: Any,
+    stages: list[dict[str, Any]],
+    *,
+    timeout: float = 60.0,
+) -> float:
+    """Open Guide while separating provider residency from final Qt hydration."""
+
+    started = time.perf_counter()
+    window.open_encyclopedia_tab(GUIDES_TAB)
+    deadline = started + max(1.0, float(timeout))
+    provider_captured = False
+    worker_captured = False
+
+    while time.perf_counter() < deadline:
+        app.processEvents()
+        page = getattr(window, "page_widgets", {}).get("Quetes")
+        if page is not None:
+            if not worker_captured and bool(getattr(page, "_related_preload_started", False)):
+                stages.append(memory_snapshot("guide_worker_started"))
+                worker_captured = True
+
+            service = getattr(page, "service", None)
+            provider = getattr(service, "guide_provider", None)
+            if not provider_captured and bool(getattr(provider, "_loaded", False)):
+                stages.append(memory_snapshot("guide_provider_loaded"))
+                provider_captured = True
+
+        if encyclopedia_ready(window, GUIDES_TAB):
+            if not provider_captured:
+                stages.append(memory_snapshot("guide_provider_loaded_late"))
+            return round((time.perf_counter() - started) * 1000.0, 2)
+        time.sleep(0.005)
+
+    raise RuntimeError(f"Timeout while waiting for Encyclopedia {GUIDES_TAB} ({timeout:.1f}s).")
+
+
 def measure() -> dict[str, Any]:
     app = QApplication.instance() or QApplication([])
     stages: list[dict[str, Any]] = []
@@ -286,7 +325,7 @@ def measure() -> dict[str, Any]:
     window.show_page("Home")
     _capture(app, stages, "after_achievements_home", 0.35)
 
-    timings["guide_open_ms"] = open_encyclopedia(app, window, GUIDES_TAB)
+    timings["guide_open_ms"] = _open_guide_with_probe(app, window, stages)
     _capture(app, stages, "guide_active")
     window.show_page("Home")
     _capture(app, stages, "after_guide_home", 0.35)
