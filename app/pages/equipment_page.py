@@ -15,7 +15,6 @@ from app.ui.components import AtlasButton
 # attribute. Production resolves that name to None and never imports a browser
 # runtime in this process.
 _LEGACY_BROWSER_ATTR = "Q" + "Web" + "EngineView"
-_LEGACY_LOADED_ATTR = "web" + "_" + "loaded"
 _QWEBENGINE_IMPORT_ATTEMPTED = True
 _RESTRICTED_PAGE_CLASS = None
 WEBENGINE_START_DELAY_MS = 0
@@ -41,9 +40,10 @@ class EquipmentPage(QWidget):
         self.status_callback = status_callback
         self.ready_callbacks: list[Callable[[], None]] = []
         self.section = "PvM"
-        self._legacy_loaded = False
+        self.web_loaded = False
+        self.web_unavailable = False
+        self._web_start_scheduled = False
         self._legacy_view = None
-        self._legacy_start_scheduled = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(18, 16, 18, 18)
@@ -73,11 +73,6 @@ class EquipmentPage(QWidget):
 
         self.set_section(self.section)
 
-    def __getattr__(self, name: str):
-        if name == _LEGACY_LOADED_ATTR:
-            return self._legacy_loaded
-        raise AttributeError(name)
-
     def is_navigation_ready(self) -> bool:
         return True
 
@@ -100,29 +95,33 @@ class EquipmentPage(QWidget):
         self.schedule_web_start()
 
     def schedule_web_start(self) -> None:
-        """Preserve the historical lazy-start contract for injected test fakes.
+        """Keep the old deferred-start lifecycle without loading Chromium.
 
-        Production never resolves a WebEngine class here, so this remains a
-        zero-cost no-op outside compatibility tests.
+        Production only schedules a cheap compatibility callback. The callback
+        becomes a no-op unless a test injects the historical lightweight fake.
+        This preserves shell contracts without retaining QtWebEngine in Atlas.
         """
 
-        if (
-            qwebengine_view_class() is None
-            or self._legacy_loaded
-            or self._legacy_start_scheduled
-        ):
+        if self.web_loaded or self.web_unavailable or self._web_start_scheduled:
             return
-        self._legacy_start_scheduled = True
-        QTimer.singleShot(WEBENGINE_START_DELAY_MS, self.ensure_web_loaded)
+        self._web_start_scheduled = True
+        QTimer.singleShot(WEBENGINE_START_DELAY_MS, self._start_scheduled_web)
+
+    def _start_scheduled_web(self) -> None:
+        self._web_start_scheduled = False
+        if not self.isVisible() or self.web_loaded or self.web_unavailable:
+            return
+        self.ensure_web_loaded()
 
     def ensure_web_loaded(self) -> None:
-        """Compatibility-only fake loader; production is a no-op."""
+        """Compatibility-only fake loader; production never imports WebEngine."""
 
-        self._legacy_start_scheduled = False
-        if self._legacy_loaded:
+        self._web_start_scheduled = False
+        if self.web_loaded or self.web_unavailable:
             return
         view_class = qwebengine_view_class()
         if view_class is None:
+            self.web_unavailable = True
             return
         view = view_class()
         page_class = _RESTRICTED_PAGE_CLASS
@@ -133,7 +132,7 @@ class EquipmentPage(QWidget):
         if hasattr(view, "load"):
             view.load(QUrl(HUZOUNET_URL))
         self._legacy_view = view
-        self._legacy_loaded = True
+        self.web_loaded = True
 
 
 __all__ = ["EquipmentPage", "qwebengine_view_class"]
