@@ -145,12 +145,13 @@ class OrganizerPage(
         self._sessions_render_dirty = False
         self.release_retry_index = 0
 
-        # Explicit runtime dependencies keep the Phase 8 split testable without
-        # rebinding symbols inside the focused Organizer modules.
+        # Keep runtime dependencies explicit while resolving the historical
+        # module-level scan hook at call time. Existing shell tests and tools
+        # patch organizer_page.scan_unity_sessions dynamically.
         self.profile_file = PROFILE_FILE
         self.client_index_json = CLIENT_INDEX_JSON
         self.client_index_ini = CLIENT_INDEX_INI
-        self.scan_unity_sessions_callback = scan_unity_sessions
+        self.scan_unity_sessions_callback = lambda: scan_unity_sessions()
 
         self.character_order_service = CharacterOrderService(self.profile_file)
         self.profiles = self.load_profiles()
