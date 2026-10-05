@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import subprocess
 import sys
 from collections import defaultdict
@@ -21,11 +23,11 @@ from app.modules.encyclopedia.providers.achievement_provider import (
     AchievementProvider as BaseAchievementProvider,
     safe_int,
 )
-from app.quest_catalog import array_value, text_for
-from app.quest_source_index import QuestSources
+from app.quest_source_index import JsonSourceMapping, QuestSources
 
 
 _DUMP_COMPACT_FLAG = "--dump-compact"
+_SPACE_RE = re.compile(r"\s*")
 
 
 def _entity_ref_from_dict(value: object) -> EntityRef | None:
@@ -134,6 +136,157 @@ def _achievement_from_dict(value: dict[str, Any]) -> Achievement:
     )
 
 
+class _SelectedEntriesMapping(JsonSourceMapping):
+    """Offset mapping for only the localization IDs used by the compact catalogue."""
+
+    def __init__(self, path: Path, cache_root: Path, selected_keys: set[str]) -> None:
+        self._selected_keys = frozenset(str(key) for key in selected_keys)
+        key_digest = hashlib.sha256(
+            "\0".join(sorted(self._selected_keys)).encode("utf-8")
+        ).hexdigest()
+        super().__init__(
+            path,
+            cache_root,
+            f"entries:selected:{key_digest}",
+            doduda=False,
+            required=True,
+        )
+
+    def _build_offsets(self, _field):
+        if not self._selected_keys:
+            return {}
+
+        data = self.path.read_bytes().decode("utf-8")
+        marker = re.search(r'"entries"\s*:\s*\{', data)
+        if marker is None:
+            self._source_failure("champ requis absent (entries)")
+            return {}
+
+        decoder = json.JSONDecoder()
+        cursor = marker.end()
+        byte_cursor = len(data[:cursor].encode("utf-8"))
+        previous = cursor
+        offsets: dict[str, tuple[int, int]] = {}
+        remaining = set(self._selected_keys)
+
+        while remaining:
+            cursor = _SPACE_RE.match(data, cursor).end()
+            if data[cursor:cursor + 1] == "}":
+                break
+            key, cursor = decoder.raw_decode(data, cursor)
+            cursor = _SPACE_RE.match(data, cursor).end()
+            if data[cursor:cursor + 1] != ":":
+                raise ValueError("Missing JSON member separator")
+            cursor = _SPACE_RE.match(data, cursor + 1).end()
+            byte_cursor += len(data[previous:cursor].encode("utf-8"))
+            start = byte_cursor
+            _value, value_end = decoder.raw_decode(data, cursor)
+            byte_cursor += len(data[cursor:value_end].encode("utf-8"))
+            key_text = str(key)
+            if key_text in remaining:
+                offsets[key_text] = (start, byte_cursor)
+                remaining.remove(key_text)
+            previous = value_end
+            cursor = _SPACE_RE.match(data, value_end).end()
+            if data[cursor:cursor + 1] == ",":
+                cursor += 1
+            elif data[cursor:cursor + 1] != "}":
+                raise ValueError("Missing JSON member delimiter")
+        return offsets
+
+
+class _CompactAchievementSources(QuestSources):
+    def __init__(
+        self,
+        cache_root: Path,
+        language_path: Path,
+        selected_text_ids: set[str],
+    ) -> None:
+        super().__init__(cache_root)
+        self._language_path = Path(language_path).resolve(strict=False)
+        self._selected_text_ids = set(selected_text_ids)
+
+    def mapping(self, path, field, *, doduda=False, required=None):
+        path = Path(path)
+        if (
+            not doduda
+            and str(field) == "entries"
+            and path.resolve(strict=False) == self._language_path
+        ):
+            if required is None:
+                required = True
+            key = (path, field, doduda, bool(required))
+            if key not in self._mappings:
+                self._mappings[key] = _SelectedEntriesMapping(
+                    path,
+                    self.cache_root,
+                    self._selected_text_ids,
+                )
+            return self._mappings[key]
+        return super().mapping(path, field, doduda=doduda, required=required)
+
+
+def _collect_compact_text_ids(data_dir: Path, cache_root: Path) -> set[str]:
+    """Collect localization IDs before loading the rich Success graph.
+
+    Raw game rows are scanned one source at a time so their offset dictionaries
+    do not accumulate. The large language file can then keep offsets only for
+    strings that the compact catalogue actually references.
+    """
+
+    selected: set[str] = set()
+    category_parents: dict[int, int] = {}
+    achievement_categories: dict[int, int] = {}
+    retained = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+
+    def add_text_id(value: object) -> None:
+        ident = safe_int(value)
+        if ident is not None and ident >= 0:
+            selected.add(str(ident))
+
+    def scan(filename: str, visitor) -> None:
+        sources = QuestSources(cache_root)
+        try:
+            for ident, row in sources.rows(data_dir / filename).items():
+                visitor(int(ident), row)
+        finally:
+            sources.close()
+
+    def visit_category(category_id: int, row: dict[str, Any]) -> None:
+        category_parents[category_id] = safe_int(row.get("parentId"), 0) or 0
+        add_text_id(row.get("nameId"))
+
+    scan("achievement_categories.json", visit_category)
+
+    def top_category(category_id: int) -> int:
+        parent_id = category_parents.get(int(category_id), 0)
+        return parent_id if parent_id else int(category_id)
+
+    def visit_achievement(achievement_id: int, row: dict[str, Any]) -> None:
+        achievement_categories[achievement_id] = safe_int(row.get("categoryId"), 0) or 0
+        add_text_id(row.get("nameId"))
+        add_text_id(row.get("descriptionId"))
+
+    scan("achievements.json", visit_achievement)
+
+    def visit_named_row(_row_id: int, row: dict[str, Any]) -> None:
+        add_text_id(row.get("nameId"))
+
+    for filename in ("quests.json", "monsters.json", "dungeons.json"):
+        scan(filename, visit_named_row)
+
+    def visit_objective(_objective_id: int, row: dict[str, Any]) -> None:
+        achievement_id = safe_int(row.get("achievementId"))
+        if achievement_id is None:
+            return
+        category_id = achievement_categories.get(achievement_id, 0)
+        if top_category(category_id) in retained:
+            add_text_id(row.get("nameId"))
+
+    scan("achievement_objectives.json", visit_objective)
+    return selected
+
+
 class MemoryBoundAchievementProvider(BaseAchievementProvider):
     """Rich retained Success runtime with reconstructible bulk data off-heap."""
 
@@ -153,85 +306,6 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         if self._catalog_loading:
             return ""
         return super()._image_for_icon(icon_id, folders)
-
-    def _objectives_by_achievement(
-        self,
-        rows,
-        achievement_rows,
-        entries,
-        quest_names: dict[int, str],
-        monster_names: dict[int, str],
-        achievement_names: dict[int, str],
-    ) -> dict[int, tuple[AchievementObjective, ...]]:
-        """Keep graph refs for every Success, rich objective text only when retained.
-
-        The compact subprocess used to build the complete rich objective payload
-        for all game achievements and then immediately erase most of it. That
-        transient duplication was the dominant process-tree peak. Non-retained
-        domains only need objective IDs/order and entity refs until link
-        resolution; their text and criterion are never emitted to Atlas.
-        """
-
-        retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
-        result: dict[int, list[AchievementObjective]] = defaultdict(list)
-        for objective_id, row in rows.items():
-            achievement_id = safe_int(row.get("achievementId"))
-            if achievement_id is None:
-                continue
-            criterion = str(row.get("criterion") or "")
-            entity_refs = self._objective_entity_refs(
-                criterion,
-                quest_names,
-                monster_names,
-                achievement_names,
-            )
-            achievement_row = achievement_rows.get(achievement_id, {})
-            source_category_id = safe_int(achievement_row.get("categoryId"), 0) or 0
-            keep_rich_payload = self._top_category_id(source_category_id) in retained_ids
-            result[achievement_id].append(
-                AchievementObjective(
-                    id=objective_id,
-                    achievement_id=achievement_id,
-                    text=(
-                        text_for(entries, row.get("nameId"), f"Objectif {objective_id}")
-                        if keep_rich_payload
-                        else ""
-                    ),
-                    criterion=criterion if keep_rich_payload else "",
-                    order=safe_int(row.get("order"), 0) or 0,
-                    objective_type=(
-                        self._objective_type(criterion) if keep_rich_payload else ""
-                    ),
-                    required_quantity=1,
-                    entity_ref=entity_refs[0] if entity_refs else None,
-                    entity_refs=entity_refs,
-                )
-            )
-
-        ordered: dict[int, tuple[AchievementObjective, ...]] = {}
-        for achievement_id, objectives in result.items():
-            declared = [
-                int(value)
-                for value in array_value(
-                    achievement_rows.get(achievement_id, {}).get("objectiveIds")
-                )
-                if safe_int(value) is not None
-            ]
-            positions = {
-                objective_id: position
-                for position, objective_id in enumerate(declared)
-            }
-            ordered[achievement_id] = tuple(
-                sorted(
-                    objectives,
-                    key=lambda objective: (
-                        positions.get(objective.id, 999999),
-                        objective.order,
-                        objective.id,
-                    ),
-                )
-            )
-        return ordered
 
     def _trim_catalogue_payload(self) -> None:
         retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
@@ -264,6 +338,15 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._image_indexes.clear()
 
     def _load_in_process(self) -> None:
+        cache_root = self._sources.cache_root
+        selected_text_ids = _collect_compact_text_ids(self.data_dir, cache_root)
+        self._sources.close()
+        self._sources = _CompactAchievementSources(
+            cache_root,
+            self.data_dir / "languages" / "fr.json",
+            selected_text_ids,
+        )
+        self._entries = None
         self._catalog_loading = True
         try:
             super()._load()
