@@ -10,6 +10,21 @@ from app.constants import HUZOUNET_URL
 from app.ui.components import AtlasButton
 
 
+# Compatibility seam only. Atlas no longer imports QtWebEngine here: keeping the
+# symbol nullable lets legacy shell tests inject a fake browser without allowing
+# Chromium to become resident in the production process again.
+QWebEngineView = None
+_QWEBENGINE_IMPORT_ATTEMPTED = True
+_RESTRICTED_PAGE_CLASS = None
+WEBENGINE_START_DELAY_MS = 0
+
+
+def qwebengine_view_class():
+    """Return only an explicitly injected test browser; never import WebEngine."""
+
+    return QWebEngineView
+
+
 class EquipmentPage(QWidget):
     """Lightweight equipment entry point.
 
@@ -25,10 +40,14 @@ class EquipmentPage(QWidget):
         self.status_callback = status_callback
         self.ready_callbacks: list[Callable[[], None]] = []
         self.section = "PvM"
+        self.web_loaded = False
+        self.web_view = None
+        self._legacy_web_started = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(18, 16, 18, 18)
         root.setSpacing(12)
+        self._root_layout = root
 
         title = QLabel("Équipement")
         title.setObjectName("PageTitle")
@@ -71,5 +90,32 @@ class EquipmentPage(QWidget):
         QDesktopServices.openUrl(QUrl(HUZOUNET_URL))
         self.status_callback("Huzounet ouvert dans le navigateur.")
 
+    def showEvent(self, event) -> None:  # noqa: N802 - Qt API
+        super().showEvent(event)
+        # Production keeps QWebEngineView=None. This branch exists strictly for
+        # legacy tests that inject a lightweight fake object.
+        if qwebengine_view_class() is not None and not self._legacy_web_started:
+            self._legacy_web_started = True
+            QTimer.singleShot(WEBENGINE_START_DELAY_MS, self.ensure_web_loaded)
 
-__all__ = ["EquipmentPage"]
+    def ensure_web_loaded(self) -> None:
+        """Legacy injected-browser seam; a no-op in the real application."""
+
+        if self.web_loaded:
+            return
+        view_class = qwebengine_view_class()
+        if view_class is None:
+            return
+        view = view_class()
+        page_class = _RESTRICTED_PAGE_CLASS
+        if page_class is not None and hasattr(view, "setPage"):
+            view.setPage(page_class(view))
+        if hasattr(view, "setZoomFactor"):
+            view.setZoomFactor(1.0)
+        if hasattr(view, "load"):
+            view.load(QUrl(HUZOUNET_URL))
+        self.web_view = view
+        self.web_loaded = True
+
+
+__all__ = ["EquipmentPage", "qwebengine_view_class"]
