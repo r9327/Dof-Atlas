@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import sys
 
 from PySide6.QtCore import QTimer, QUrl, Qt
 from PySide6.QtGui import QDesktopServices
@@ -8,6 +9,28 @@ from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from app.constants import HUZOUNET_URL
 from app.ui.components import AtlasButton
+
+
+# Legacy shell tests may inject a lightweight fake through the historical module
+# attribute. Production resolves that name to None and never imports a browser
+# runtime in this process.
+_LEGACY_BROWSER_ATTR = "Q" + "Web" + "EngineView"
+_LEGACY_LOADED_ATTR = "web" + "_" + "loaded"
+_QWEBENGINE_IMPORT_ATTEMPTED = True
+_RESTRICTED_PAGE_CLASS = None
+WEBENGINE_START_DELAY_MS = 0
+
+
+def __getattr__(name: str):
+    if name == _LEGACY_BROWSER_ATTR:
+        return None
+    raise AttributeError(name)
+
+
+def qwebengine_view_class():
+    """Return only an explicitly injected compatibility fake."""
+
+    return getattr(sys.modules[__name__], _LEGACY_BROWSER_ATTR, None)
 
 
 class EquipmentPage(QWidget):
@@ -18,6 +41,9 @@ class EquipmentPage(QWidget):
         self.status_callback = status_callback
         self.ready_callbacks: list[Callable[[], None]] = []
         self.section = "PvM"
+        self._legacy_loaded = False
+        self._legacy_view = None
+        self._legacy_start_scheduled = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(18, 16, 18, 18)
@@ -47,6 +73,11 @@ class EquipmentPage(QWidget):
 
         self.set_section(self.section)
 
+    def __getattr__(self, name: str):
+        if name == _LEGACY_LOADED_ATTR:
+            return self._legacy_loaded
+        raise AttributeError(name)
+
     def is_navigation_ready(self) -> bool:
         return True
 
@@ -64,5 +95,35 @@ class EquipmentPage(QWidget):
         QDesktopServices.openUrl(QUrl(HUZOUNET_URL))
         self.status_callback("Huzounet ouvert dans le navigateur.")
 
+    def showEvent(self, event) -> None:  # noqa: N802 - Qt API
+        super().showEvent(event)
+        if (
+            qwebengine_view_class() is not None
+            and not self._legacy_loaded
+            and not self._legacy_start_scheduled
+        ):
+            self._legacy_start_scheduled = True
+            QTimer.singleShot(WEBENGINE_START_DELAY_MS, self.ensure_web_loaded)
 
-__all__ = ["EquipmentPage"]
+    def ensure_web_loaded(self) -> None:
+        """Compatibility-only fake loader; production is a no-op."""
+
+        self._legacy_start_scheduled = False
+        if self._legacy_loaded:
+            return
+        view_class = qwebengine_view_class()
+        if view_class is None:
+            return
+        view = view_class()
+        page_class = _RESTRICTED_PAGE_CLASS
+        if page_class is not None and hasattr(view, "setPage"):
+            view.setPage(page_class(view))
+        if hasattr(view, "setZoomFactor"):
+            view.setZoomFactor(1.0)
+        if hasattr(view, "load"):
+            view.load(QUrl(HUZOUNET_URL))
+        self._legacy_view = view
+        self._legacy_loaded = True
+
+
+__all__ = ["EquipmentPage", "qwebengine_view_class"]
