@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.modules.encyclopedia.achievement_catalog_policy import RETAINED_TOP_CATEGORY_IDS
 from app.modules.encyclopedia.providers.achievement_provider import (
     AchievementProvider as BaseAchievementProvider,
 )
@@ -9,7 +10,7 @@ from app.quest_source_index import QuestSources
 
 
 class MemoryBoundAchievementProvider(BaseAchievementProvider):
-    """Rich Success runtime with reconstructible bulk data kept off the heap."""
+    """Rich retained Success runtime with reconstructible bulk data off-heap."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._catalog_loading = False
@@ -24,19 +25,12 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             self._entries = None
 
     def _image_for_icon(self, icon_id: int | None, folders: tuple[str, ...]) -> str:
-        # The Success catalogue UI never renders one decoded icon per Success.
-        # Building a recursive global image-path dictionary here used to allocate
-        # a large amount of memory before any detail was opened. Keep catalogue
-        # models metadata-only; documentary reward images remain detail-lazy.
         if self._catalog_loading:
             return ""
         return super()._image_for_icon(icon_id, folders)
 
     def _trim_catalogue_payload(self) -> None:
-        # The full Doduda row was retained once per Success although the runtime
-        # only needs the source category id later for stable sorting. Preserve
-        # that one value in place so every existing list/map keeps the same
-        # Achievement object without duplicating replacements.
+        retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
         for achievement in self._achievements:
             raw = achievement.raw if isinstance(achievement.raw, dict) else {}
             source_category_id = raw.get("categoryId")
@@ -46,8 +40,20 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 ({"categoryId": source_category_id} if source_category_id is not None else {}),
             )
 
-        # These maps duplicate relations already stored on each Achievement.
-        # Public accessors below read the canonical object instead.
+            # Atlas exposes only the retained Success domains in the catalogue.
+            # Other Successes are kept as lightweight identity/search summaries
+            # so Guide links and compatibility lookups still resolve, but their
+            # objectives/details do not occupy RAM permanently.
+            if int(achievement.category_id) not in retained_ids:
+                object.__setattr__(achievement, "description", "")
+                object.__setattr__(achievement, "objectives", ())
+                object.__setattr__(achievement, "rewards", ())
+                object.__setattr__(achievement, "linked_monsters", ())
+                object.__setattr__(achievement, "linked_dungeons", ())
+                object.__setattr__(achievement, "linked_achievements", ())
+                object.__setattr__(achievement, "resolved_linked_monsters", ())
+                object.__setattr__(achievement, "resolved_linked_dungeons", ())
+
         self._linked_quests = {}
         self._linked_monsters = {}
         self._linked_dungeons = {}
@@ -69,8 +75,6 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         try:
             super().prepare_detail_sources()
         finally:
-            # Durable byte-offset indexes stay on disk. The dictionaries that
-            # describe them are reconstructible and therefore not long-lived.
             self._reset_sources()
 
     def get_detail_by_id(self, achievement_id: int):
