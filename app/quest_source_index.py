@@ -20,6 +20,8 @@ from app.constants import LOGGER
 
 _SPACE = re.compile(r'\s*')
 _OPTIONAL_SOURCE_FIELDS = frozenset({("quests_enriched.json", "quests")})
+_ACHIEVEMENT_SOURCE_CACHE_NAME = "achievement_sources_v1"
+_ACHIEVEMENT_MAPPING_LIMIT = 4
 
 
 class QuestSourceError(RuntimeError):
@@ -201,6 +203,8 @@ class JsonSourceMapping(Mapping):
 class QuestSources:
     def __init__(self, cache_root, *, max_mappings: int | None = None):
         self.cache_root = cache_root
+        if max_mappings is None and Path(cache_root).name == _ACHIEVEMENT_SOURCE_CACHE_NAME:
+            max_mappings = _ACHIEVEMENT_MAPPING_LIMIT
         self.max_mappings = max(1, int(max_mappings)) if max_mappings is not None else None
         self._mappings = OrderedDict()
         self._objectives_by_step = None
