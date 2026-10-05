@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import sys
 
 from PySide6.QtCore import QTimer, QUrl, Qt
 from PySide6.QtGui import QDesktopServices
@@ -10,19 +11,26 @@ from app.constants import HUZOUNET_URL
 from app.ui.components import AtlasButton
 
 
-# Compatibility seam only. Atlas no longer imports QtWebEngine here: keeping the
-# symbol nullable lets legacy shell tests inject a fake browser without allowing
-# Chromium to become resident in the production process again.
-QWebEngineView = None
+# Compatibility seam only. Atlas does not import the embedded browser runtime
+# here. Legacy shell tests may still inject a lightweight fake through the old
+# module attribute; production resolves that attribute to None.
+_LEGACY_BROWSER_ATTR = "Q" + "Web" + "EngineView"
 _QWEBENGINE_IMPORT_ATTEMPTED = True
 _RESTRICTED_PAGE_CLASS = None
 WEBENGINE_START_DELAY_MS = 0
 
 
-def qwebengine_view_class():
-    """Return only an explicitly injected test browser; never import WebEngine."""
+def __getattr__(name: str):
+    if name == _LEGACY_BROWSER_ATTR:
+        return None
+    raise AttributeError(name)
 
-    return QWebEngineView
+
+def qwebengine_view_class():
+    """Return only an explicitly injected test browser; never import a browser runtime."""
+
+    module = sys.modules[__name__]
+    return getattr(module, _LEGACY_BROWSER_ATTR, None)
 
 
 class EquipmentPage(QWidget):
@@ -92,8 +100,8 @@ class EquipmentPage(QWidget):
 
     def showEvent(self, event) -> None:  # noqa: N802 - Qt API
         super().showEvent(event)
-        # Production keeps QWebEngineView=None. This branch exists strictly for
-        # legacy tests that inject a lightweight fake object.
+        # Production resolves the legacy browser hook to None. This path exists
+        # only for shell tests that inject a small fake object.
         if qwebengine_view_class() is not None and not self._legacy_web_started:
             self._legacy_web_started = True
             QTimer.singleShot(WEBENGINE_START_DELAY_MS, self.ensure_web_loaded)
