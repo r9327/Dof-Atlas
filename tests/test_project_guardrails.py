@@ -191,7 +191,7 @@ class ProjectGuardrailsTests(unittest.TestCase):
 
     def test_legacy_callback_compatibility_is_checked_before_invocation(self) -> None:
         storage = self._text("app/storage.py")
-        organizer = self._text("app/pages/organizer_page.py")
+        organizer = self._text("app/pages/organizer/character_sessions.py")
         self.assertIn("def invoke_compatible_callback", storage)
         self.assertIn("signature.bind(*args)", storage)
         self.assertIn("invoke_compatible_callback(self.reload_runtime_callback, True)", organizer)
