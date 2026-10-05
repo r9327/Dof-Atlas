@@ -128,8 +128,6 @@ def _scan_value_end(source: mmap.mmap, cursor: int) -> int:
 
     while cursor < size and source[cursor] not in b",]} \t\r\n":
         cursor += 1
-    if cursor == _skip_ws(source, cursor) and cursor == 0:
-        raise ValueError("JSON scalar expected")
     return cursor
 
 
@@ -141,46 +139,34 @@ def _decode_json_string(source: mmap.mmap, start: int, end: int) -> str:
 
 
 def _find_container(source: mmap.mmap, field: str) -> tuple[int, int]:
-    """Locate a named top-level field and return (first member, closing byte)."""
+    """Locate a named JSON collection anywhere in the source.
 
-    cursor = _skip_ws(source, 0)
-    if cursor >= len(source) or source[cursor] != 0x7B:  # {
-        raise ValueError("Top-level JSON object expected")
-    cursor += 1
+    Doduda exports do not guarantee that ``RefIds`` is a top-level member.
+    The legacy indexer therefore searched for the named field anywhere in the
+    document. Preserve that contract without decoding the complete file: use
+    mmap's byte search, then validate ``:`` and the collection opener.
+    """
 
-    while True:
-        cursor = _skip_ws(source, cursor)
-        if cursor >= len(source):
-            raise ValueError("Unterminated top-level JSON object")
-        if source[cursor] == 0x7D:  # }
-            break
-
-        key_start = cursor
-        key_end = _scan_string_end(source, key_start)
-        key = _decode_json_string(source, key_start, key_end)
-        cursor = _skip_ws(source, key_end)
-        if cursor >= len(source) or source[cursor] != 0x3A:  # :
-            raise ValueError("Missing JSON member separator")
-        value_start = _skip_ws(source, cursor + 1)
-        if value_start >= len(source):
-            raise ValueError("JSON value expected")
-
-        if key == field:
-            opener = source[value_start]
-            if opener == 0x7B:
-                return value_start + 1, 0x7D
-            if opener == 0x5B:
-                return value_start + 1, 0x5D
-            raise ValueError(f"champ requis invalide ({field})")
-
-        cursor = _skip_ws(source, _scan_value_end(source, value_start))
-        if cursor < len(source) and source[cursor] == 0x2C:  # ,
-            cursor += 1
+    needle = json.dumps(field, ensure_ascii=False).encode("utf-8")
+    search_from = 0
+    size = len(source)
+    while search_from < size:
+        key_start = source.find(needle, search_from)
+        if key_start < 0:
+            raise KeyError(field)
+        cursor = _skip_ws(source, key_start + len(needle))
+        if cursor >= size or source[cursor] != 0x3A:  # :
+            search_from = key_start + 1
             continue
-        if cursor < len(source) and source[cursor] == 0x7D:
-            break
-        raise ValueError("Missing JSON member delimiter")
-
+        value_start = _skip_ws(source, cursor + 1)
+        if value_start >= size:
+            raise ValueError("JSON value expected")
+        opener = source[value_start]
+        if opener == 0x7B:  # {
+            return value_start + 1, 0x7D
+        if opener == 0x5B:  # [
+            return value_start + 1, 0x5D
+        search_from = key_start + 1
     raise KeyError(field)
 
 
