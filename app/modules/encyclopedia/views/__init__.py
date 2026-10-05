@@ -25,8 +25,8 @@ def _load_encyclopedia_page_class() -> type:
     if real is not None:
         return real
 
-    from app.modules.encyclopedia.views.encyclopedia_page import (
-        EncyclopediaPage as RealEncyclopediaPage,
+    from app.modules.encyclopedia.views.memory_bound_encyclopedia_page import (
+        MemoryBoundEncyclopediaPage as RealEncyclopediaPage,
     )
 
     _ensure_guide_view_loaded()
