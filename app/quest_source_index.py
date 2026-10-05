@@ -20,8 +20,6 @@ from app.constants import LOGGER
 
 _SPACE = re.compile(r'\s*')
 _OPTIONAL_SOURCE_FIELDS = frozenset({("quests_enriched.json", "quests")})
-_ACHIEVEMENT_SOURCE_CACHE_NAME = "achievement_sources_v1"
-_ACHIEVEMENT_MAPPING_LIMIT = 1
 
 
 class QuestSourceError(RuntimeError):
@@ -201,12 +199,9 @@ class JsonSourceMapping(Mapping):
 
 
 class QuestSources:
-    def __init__(self, cache_root, *, max_mappings: int | None = None):
+    def __init__(self, cache_root):
         self.cache_root = cache_root
-        if max_mappings is None and Path(cache_root).name == _ACHIEVEMENT_SOURCE_CACHE_NAME:
-            max_mappings = _ACHIEVEMENT_MAPPING_LIMIT
-        self.max_mappings = max(1, int(max_mappings)) if max_mappings is not None else None
-        self._mappings = OrderedDict()
+        self._mappings = {}
         self._objectives_by_step = None
         self._image_index = None
         self.context = {}
@@ -216,24 +211,15 @@ class QuestSources:
         if required is None:
             required = (path.name, str(field)) not in _OPTIONAL_SOURCE_FIELDS
         key = (path, field, doduda, bool(required))
-        mapping = self._mappings.get(key)
-        if mapping is not None:
-            self._mappings.move_to_end(key)
-            return mapping
-
-        mapping = JsonSourceMapping(
-            path,
-            self.cache_root,
-            field,
-            doduda=doduda,
-            required=required,
-        )
-        self._mappings[key] = mapping
-        limit = self.max_mappings
-        while limit is not None and len(self._mappings) > limit:
-            _old_key, old_mapping = self._mappings.popitem(last=False)
-            old_mapping.close()
-        return mapping
+        if key not in self._mappings:
+            self._mappings[key] = JsonSourceMapping(
+                path,
+                self.cache_root,
+                field,
+                doduda=doduda,
+                required=required,
+            )
+        return self._mappings[key]
 
     def rows(self, path):
         return self.mapping(path, 'RefIds', doduda=True, required=True)
