@@ -99,7 +99,7 @@ class EquipmentPage(QWidget):
 
         Production only schedules a cheap compatibility callback. The callback
         becomes a no-op unless a test injects the historical lightweight fake.
-        This preserves shell contracts without retaining QtWebEngine in Atlas.
+        This preserves shell contracts without retaining an embedded browser runtime.
         """
 
         if self.web_loaded or self.web_unavailable or self._web_start_scheduled:
