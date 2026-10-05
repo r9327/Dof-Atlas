@@ -1,0 +1,124 @@
+from __future__ import annotations
+
+from PySide6.QtWidgets import QWidget
+
+from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB
+from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as BaseEncyclopediaPage
+
+
+class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
+    """Keep providers warm while releasing inactive heavy Qt view trees.
+
+    The catalogue/runtime providers stay resident so reopening a tab does not
+    rebuild data from disk. Only the heavyweight widget representation is
+    hibernated when another Encyclopedia tab becomes active or the whole page
+    leaves the screen.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        self._memory_restore_guide_id = ""
+        self._memory_restore_achievement_id: int | None = None
+        super().__init__(*args, **kwargs)
+
+    def _replace_with_lazy_slot(self, label: str, widget: QWidget) -> None:
+        labels = self.tab_labels()
+        if label not in labels:
+            return
+        index = labels.index(label)
+        if self.tabs.widget(index) is not widget:
+            return
+
+        current_label = self.current_tab_label()
+        slot = QWidget()
+        slot.setObjectName("EncyclopediaLazySlot")
+
+        blocked = self.tabs.blockSignals(True)
+        try:
+            self.tabs.removeTab(index)
+            self.tabs.insertTab(index, slot, label)
+            labels_after = self.tab_labels()
+            if current_label in labels_after:
+                self.tabs.setCurrentIndex(labels_after.index(current_label))
+        finally:
+            self.tabs.blockSignals(blocked)
+
+        self._lazy_slots[label] = slot
+        widget.setParent(None)
+        widget.deleteLater()
+
+    def _hibernate_achievements(self) -> None:
+        if not bool(getattr(self, "_achievement_ready", False)):
+            return
+        view = self.get_achievements_view()
+        if view is None:
+            return
+        current_id = getattr(view, "current_achievement_id", None)
+        try:
+            self._memory_restore_achievement_id = int(current_id) if current_id is not None else None
+        except (TypeError, ValueError):
+            self._memory_restore_achievement_id = None
+        self._replace_with_lazy_slot(ACHIEVEMENTS_TAB, view)
+
+    def _hibernate_guides(self) -> None:
+        if not bool(getattr(self, "_guide_runtime_ready", False)):
+            return
+        view = getattr(self, "guides_view", None)
+        if view is None:
+            return
+        self._memory_restore_guide_id = str(getattr(view, "current_guide_id", "") or "")
+        self._replace_with_lazy_slot(GUIDES_TAB, view)
+        self.guides_view = None
+
+    def hibernate_heavy_views(self, *, active_label: str = "") -> None:
+        if active_label != ACHIEVEMENTS_TAB:
+            self._hibernate_achievements()
+        if active_label != GUIDES_TAB:
+            self._hibernate_guides()
+
+    def hideEvent(self, event) -> None:  # noqa: N802 - Qt API
+        self.hibernate_heavy_views()
+        super().hideEvent(event)
+
+    def on_tab_changed(self, index: int) -> None:
+        label = self.tabs.tabText(index) if index >= 0 else ""
+        self.hibernate_heavy_views(active_label=label)
+        super().on_tab_changed(index)
+
+    def ensure_achievements_view(self):
+        existing = self.get_achievements_view()
+        view = super().ensure_achievements_view()
+        if existing is None and self._memory_restore_achievement_id is not None:
+            achievement_id = self._memory_restore_achievement_id
+            self._memory_restore_achievement_id = None
+            if bool(getattr(self, "_achievement_ready", False)):
+                view.show_achievement(achievement_id)
+        return view
+
+    def ensure_guides_view(self):
+        created = getattr(self, "guides_view", None) is None
+        view = super().ensure_guides_view()
+        if created and bool(getattr(self, "_guide_runtime_ready", False)) and not bool(
+            getattr(view, "_runtime_ready", False)
+        ):
+            view.hydrate_runtime(
+                graph=getattr(self, "_quest_graph", None),
+                initial_progress_by_guide=getattr(self, "_guide_progress_by_guide", None),
+                initial_progress_character_key=getattr(
+                    self,
+                    "_guide_progress_character_key",
+                    "",
+                ),
+            )
+            if bool(getattr(self, "_achievement_ready", False)):
+                apply_runtime = getattr(view, "apply_achievement_runtime", None)
+                if callable(apply_runtime):
+                    apply_runtime()
+
+        if created and self._memory_restore_guide_id:
+            guide_id = self._memory_restore_guide_id
+            self._memory_restore_guide_id = ""
+            view.select_guide(guide_id)
+        return view
+
+
+__all__ = ["MemoryBoundEncyclopediaPage"]
