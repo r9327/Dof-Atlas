@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
+from app.constants import ROOT_DIR
 from app.modules.encyclopedia.models import EntityRef, Guide, GuideSection, GuideStep
 from app.modules.encyclopedia.providers.achievement_provider import safe_int
 from app.modules.encyclopedia.providers.guide_provider import (
     DOFUS_UNKNOWN_ICON,
     GUIDE_COMPLETENESS_STATUSES,
+    GUIDES_DIR,
 )
 from app.modules.encyclopedia.providers.indexed_guide_provider import (
     IndexedGuideProvider,
@@ -17,9 +22,11 @@ from app.modules.encyclopedia.providers.indexed_guide_provider import (
 from app.quest_catalog import normalize_text
 
 
+_DUMP_COMPACT_FLAG = "--dump-compact"
 _INDEXED_ENTITY_TYPES = frozenset(
     {"quest", "achievement", "dungeon", "monster", "wanted", "archmonster"}
 )
+_PROGRESS_STEP_TYPES = frozenset({"quest", "achievement", "info"})
 _SEARCH_KEYS = frozenset({"title", "description", "notes", "content", "label", "source_reference"})
 
 
@@ -31,6 +38,50 @@ def _walk_dicts(value: object) -> Iterable[dict[str, Any]]:
     elif isinstance(value, list):
         for child in value:
             yield from _walk_dicts(child)
+
+
+def _entity_ref_payload(ref: EntityRef) -> dict[str, object]:
+    return {
+        "entity_type": ref.entity_type,
+        "entity_id": ref.entity_id,
+        "label": ref.label,
+    }
+
+
+def _summary_payload(guide: Guide, entity_keys: set[tuple[str, int]]) -> dict[str, object]:
+    return {
+        "id": guide.id,
+        "title": guide.title,
+        "category": guide.category,
+        "category_label": guide.category_label,
+        "description": guide.description,
+        "recommended_level_min": guide.recommended_level_min,
+        "recommended_level_max": guide.recommended_level_max,
+        "reward_item_id": guide.reward_item_id,
+        "illustration_item_id": guide.illustration_item_id,
+        "image_path": guide.image_path,
+        "order": guide.order,
+        "completeness_status": guide.completeness_status,
+        "verified_steps": guide.verified_steps,
+        "total_steps": guide.total_steps,
+        "validation_warnings": list(guide.validation_warnings),
+        "generation_source": guide.generation_source,
+        "steps": [
+            {
+                "id": step.id,
+                "step_type": step.step_type,
+                "order": step.order,
+                "title": step.title,
+                "entity_id": step.entity_id,
+                "optional": step.optional,
+            }
+            for step in guide.steps
+        ],
+        "context_entities": [_entity_ref_payload(ref) for ref in guide.context_entities],
+        "search_text": guide.search_text,
+        "source_file": str(guide.raw.get("source_file") or ""),
+        "entity_keys": [[entity_type, entity_id] for entity_type, entity_id in sorted(entity_keys)],
+    }
 
 
 class MemoryBoundGuideProvider(IndexedGuideProvider):
@@ -73,6 +124,69 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         return self._by_id.get(str(guide_id))
 
     def _load(self) -> None:
+        default_guides_dir = Path(GUIDES_DIR).resolve(strict=False)
+        current_guides_dir = Path(self.guides_dir).resolve(strict=False)
+        if bool(getattr(sys, "frozen", False)) or current_guides_dir != default_guides_dir:
+            self._load_in_process()
+            return
+        self._load_from_compact_subprocess()
+
+    def _load_from_compact_subprocess(self) -> None:
+        # Reading guide_complet.json in Atlas temporarily creates a very large
+        # Python object graph. Windows' allocator keeps many of those arenas
+        # reserved after json.loads() returns. Build summaries in a disposable
+        # process so only the compact rows ever enter Atlas' long-lived heap.
+        entries = self._guide_entries()
+        entry_by_file = {
+            path.name: (path, order, dict(catalog_entry))
+            for order, (path, catalog_entry) in enumerate(entries)
+        }
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+                _DUMP_COMPACT_FLAG,
+            ],
+            cwd=ROOT_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=90,
+            check=True,
+        )
+        summaries: list[Guide] = []
+        by_entity_ids: dict[tuple[str, int], set[str]] = defaultdict(set)
+        self._detail_entries = {}
+        for raw_line in completed.stdout.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if not isinstance(row, dict):
+                continue
+            guide = self._summary_from_compact_row(row)
+            source_file = str(row.get("source_file") or "")
+            entry = entry_by_file.get(source_file)
+            if entry is None:
+                continue
+            summaries.append(guide)
+            self._detail_entries[guide.id] = entry
+            raw_entity_keys = row.get("entity_keys")
+            if isinstance(raw_entity_keys, list):
+                for raw_key in raw_entity_keys:
+                    if not isinstance(raw_key, list) or len(raw_key) != 2:
+                        continue
+                    entity_type = str(raw_key[0] or "")
+                    entity_id = safe_int(raw_key[1])
+                    if entity_type and entity_id is not None:
+                        by_entity_ids[(entity_type, entity_id)].add(guide.id)
+        if not summaries:
+            raise RuntimeError("L'extraction compacte des Guides n'a produit aucun résultat")
+        self._install_summaries(summaries, by_entity_ids)
+
+    def _load_in_process(self) -> None:
         entries = self._guide_entries()
         summaries: list[Guide] = []
         by_entity_ids: dict[tuple[str, int], set[str]] = defaultdict(set)
@@ -104,6 +218,13 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             for entity_key in entity_keys:
                 by_entity_ids[entity_key].add(guide_id)
 
+        self._install_summaries(summaries, by_entity_ids)
+
+    def _install_summaries(
+        self,
+        summaries: list[Guide],
+        by_entity_ids: dict[tuple[str, int], set[str]],
+    ) -> None:
         self._guides = sorted(
             summaries,
             key=lambda guide: (
@@ -121,16 +242,94 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._by_category = defaultdict(
             list,
             {
-                category: sorted(values, key=lambda guide: (guide.order, normalize_text(guide.title), guide.id))
+                category: sorted(
+                    values,
+                    key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
+                )
                 for category, values in by_category.items()
             },
         )
         self._by_entity = defaultdict(
             list,
             {
-                entity_key: [self._by_id[guide_id] for guide_id in sorted(guide_ids) if guide_id in self._by_id]
+                entity_key: [
+                    self._by_id[guide_id]
+                    for guide_id in sorted(guide_ids)
+                    if guide_id in self._by_id
+                ]
                 for entity_key, guide_ids in by_entity_ids.items()
             },
+        )
+
+    def _summary_from_compact_row(self, row: dict[str, Any]) -> Guide:
+        reward_item_id = safe_int(row.get("reward_item_id"))
+        illustration_item_id = safe_int(row.get("illustration_item_id"))
+        reward_item = self.dofus_item_provider.get_by_id(reward_item_id)
+        illustration_item = self.dofus_item_provider.get_by_id(illustration_item_id)
+
+        steps: list[GuideStep] = []
+        raw_steps = row.get("steps")
+        if isinstance(raw_steps, list):
+            for raw_step in raw_steps:
+                if not isinstance(raw_step, dict):
+                    continue
+                steps.append(
+                    GuideStep(
+                        id=str(raw_step.get("id") or ""),
+                        step_type=str(raw_step.get("step_type") or "info"),
+                        order=int(raw_step.get("order") or len(steps) + 1),
+                        title=str(raw_step.get("title") or ""),
+                        entity_id=safe_int(raw_step.get("entity_id")),
+                        optional=bool(raw_step.get("optional", False)),
+                    )
+                )
+        refs: list[EntityRef] = []
+        raw_refs = row.get("context_entities")
+        if isinstance(raw_refs, list):
+            for raw_ref in raw_refs:
+                if not isinstance(raw_ref, dict):
+                    continue
+                entity_id = raw_ref.get("entity_id")
+                if entity_id is None:
+                    continue
+                refs.append(
+                    EntityRef(
+                        str(raw_ref.get("entity_type") or ""),
+                        entity_id,
+                        str(raw_ref.get("label") or ""),
+                    )
+                )
+        sections = (
+            GuideSection(
+                id=f"{row.get('id')}__summary",
+                title="",
+                order=0,
+                steps=tuple(steps),
+            ),
+        ) if steps else ()
+        return Guide(
+            id=str(row.get("id") or ""),
+            title=str(row.get("title") or ""),
+            category=str(row.get("category") or ""),
+            category_label=str(row.get("category_label") or ""),
+            description=str(row.get("description") or ""),
+            recommended_level_min=safe_int(row.get("recommended_level_min")),
+            recommended_level_max=safe_int(row.get("recommended_level_max")),
+            reward_item_id=reward_item_id,
+            illustration_item_id=illustration_item_id,
+            reward_item=reward_item,
+            illustration_item=illustration_item,
+            image_path=str(row.get("image_path") or ""),
+            order=int(row.get("order") or 0),
+            completeness_status=str(row.get("completeness_status") or "complete"),
+            verified_steps=safe_int(row.get("verified_steps")),
+            total_steps=safe_int(row.get("total_steps")),
+            validation_warnings=tuple(str(value) for value in row.get("validation_warnings", [])),
+            generation_source=str(row.get("generation_source") or ""),
+            sections=sections,
+            context_entities=tuple(refs),
+            search_text=str(row.get("search_text") or ""),
+            raw={"source_file": str(row.get("source_file") or "")},
         )
 
     def _summary_from_payload(
@@ -154,23 +353,25 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         if not image_path and DOFUS_UNKNOWN_ICON.exists():
             image_path = str(DOFUS_UNKNOWN_ICON)
 
-        quest_order: list[int] = []
-        quest_optional: dict[int, bool] = {}
         entity_keys: set[tuple[str, int]] = set()
         achievement_ids: set[int] = set()
-        search_values: list[str] = [
-            str(payload.get("title") or guide_id),
-            str(payload.get("description") or ""),
-            category,
-            category_label,
-        ]
+        progress_steps: list[GuideStep] = []
+        progress_step_keys: set[tuple[str, object]] = set()
+        search_chunks: set[str] = {
+            normalize_text(str(payload.get("title") or guide_id)),
+            normalize_text(str(payload.get("description") or "")),
+            normalize_text(category),
+            normalize_text(category_label),
+        }
+        catalog = self.quest_provider.get_catalog()
 
-        nodes = list(_walk_dicts(payload))
-        for node in nodes:
+        for node in _walk_dicts(payload):
             for key in _SEARCH_KEYS:
                 value = node.get(key)
                 if isinstance(value, str) and value.strip():
-                    search_values.append(value.strip())
+                    normalized = normalize_text(value)
+                    if normalized:
+                        search_chunks.add(normalized)
 
             linked = node.get("linked_achievement_ids")
             if isinstance(linked, list):
@@ -186,50 +387,68 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 entity_keys.add((step_type, entity_id))
                 if step_type == "achievement":
                     achievement_ids.add(entity_id)
-                if step_type == "quest":
-                    if entity_id not in quest_optional:
-                        quest_order.append(entity_id)
-                        quest_optional[entity_id] = bool(node.get("optional", False))
-                    else:
-                        quest_optional[entity_id] = quest_optional[entity_id] and bool(
-                            node.get("optional", False)
+
+            if step_type in _PROGRESS_STEP_TYPES:
+                raw_step_id = str(node.get("id") or "").strip()
+                identity: tuple[str, object]
+                if raw_step_id:
+                    identity = (step_type, raw_step_id)
+                elif entity_id is not None:
+                    identity = (step_type, entity_id)
+                else:
+                    identity = (step_type, len(progress_steps))
+                if identity not in progress_step_keys:
+                    progress_step_keys.add(identity)
+                    title = str(node.get("title") or "").strip()
+                    if step_type == "quest" and entity_id is not None:
+                        quest = catalog.by_id.get(entity_id)
+                        if quest is not None:
+                            title = quest.name
+                            search_chunks.add(normalize_text(quest.name))
+                    elif step_type == "achievement" and entity_id is not None:
+                        name = self._achievement_name(entity_id)
+                        if name:
+                            title = name
+                            search_chunks.add(normalize_text(name))
+                    progress_steps.append(
+                        GuideStep(
+                            id=raw_step_id or f"{guide_id}__summary_{step_type}_{entity_id if entity_id is not None else len(progress_steps)}",
+                            step_type=step_type,
+                            order=safe_int(node.get("order"), len(progress_steps) + 1) or len(progress_steps) + 1,
+                            title=title,
+                            entity_id=entity_id,
+                            optional=bool(node.get("optional", False)),
                         )
+                    )
 
-        # Older series may expose quest_ids without explicit step rows.
-        for node in nodes:
             raw_ids = node.get("quest_ids")
-            if not isinstance(raw_ids, list):
-                continue
-            for raw_id in raw_ids:
-                quest_id = safe_int(raw_id)
-                if quest_id is None:
-                    continue
-                entity_keys.add(("quest", quest_id))
-                if quest_id not in quest_optional:
-                    quest_order.append(quest_id)
-                    quest_optional[quest_id] = False
-
-        catalog = self.quest_provider.get_catalog()
-        summary_steps: list[GuideStep] = []
-        for step_order, quest_id in enumerate(quest_order, 1):
-            quest = catalog.by_id.get(quest_id)
-            title = quest.name if quest is not None else f"Quête {quest_id}"
-            search_values.append(title)
-            summary_steps.append(
-                GuideStep(
-                    id=f"{guide_id}__summary_quest_{quest_id}",
-                    step_type="quest",
-                    order=step_order,
-                    title=title,
-                    entity_id=quest_id,
-                    optional=quest_optional.get(quest_id, False),
-                )
-            )
+            if isinstance(raw_ids, list):
+                for raw_id in raw_ids:
+                    quest_id = safe_int(raw_id)
+                    if quest_id is None:
+                        continue
+                    entity_keys.add(("quest", quest_id))
+                    identity = ("quest", quest_id)
+                    if identity in progress_step_keys:
+                        continue
+                    progress_step_keys.add(identity)
+                    quest = catalog.by_id.get(quest_id)
+                    title = quest.name if quest is not None else f"Quête {quest_id}"
+                    search_chunks.add(normalize_text(title))
+                    progress_steps.append(
+                        GuideStep(
+                            id=f"{guide_id}__summary_quest_{quest_id}",
+                            step_type="quest",
+                            order=len(progress_steps) + 1,
+                            title=title,
+                            entity_id=quest_id,
+                        )
+                    )
 
         context_entities: list[EntityRef] = []
         for achievement_id in sorted(achievement_ids):
             name = self._achievement_name(achievement_id) or f"Succès {achievement_id}"
-            search_values.append(name)
+            search_chunks.add(normalize_text(name))
             context_entities.append(EntityRef("achievement", achievement_id, name))
 
         sections = (
@@ -237,9 +456,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 id=f"{guide_id}__summary",
                 title="",
                 order=0,
-                steps=tuple(summary_steps),
+                steps=tuple(progress_steps),
             ),
-        ) if summary_steps else ()
+        ) if progress_steps else ()
 
         completeness = str(payload.get("completeness_status") or "complete").strip().casefold()
         if completeness not in GUIDE_COMPLETENESS_STATUSES:
@@ -269,7 +488,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             generation_source=str(payload.get("generation_source") or "").strip(),
             sections=sections,
             context_entities=tuple(context_entities),
-            search_text=normalize_text(" ".join(search_values)),
+            search_text="_".join(sorted(chunk for chunk in search_chunks if chunk)),
             raw={"source_file": source_file},
         )
         return summary, entity_keys
@@ -285,6 +504,29 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 object.__setattr__(chapter, "raw", _drop_nested_raw(chapter.raw, "series"))
                 for series in chapter.series:
                     object.__setattr__(series, "raw", _drop_nested_raw(series.raw, "steps"))
+
+
+def _dump_compact_default_guides() -> int:
+    provider = MemoryBoundGuideProvider(guides_dir=GUIDES_DIR)
+    provider._load_in_process()
+    for guide in provider._guides:
+        entity_keys = {
+            entity_key
+            for entity_key, guides in provider._by_entity.items()
+            if any(candidate.id == guide.id for candidate in guides)
+        }
+        print(
+            json.dumps(
+                _summary_payload(guide, entity_keys),
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
+    return 0
+
+
+if __name__ == "__main__" and _DUMP_COMPACT_FLAG in sys.argv:
+    raise SystemExit(_dump_compact_default_guides())
 
 
 __all__ = ["MemoryBoundGuideProvider"]
