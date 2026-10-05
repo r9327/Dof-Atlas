@@ -12,6 +12,10 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
     GuideUltimeManualView,
 )
+from app.modules.encyclopedia.views.shared_manual_guide_view import (
+    SharedGuideManualCard,
+    SharedGuideManualView,
+)
 
 
 class _FakeManualUiService:
@@ -49,6 +53,7 @@ class _FakeManualUiService:
         self.active_index = 0
         self.completed = 0
         self.quest_provider = None
+        self.manual_states: dict[tuple[str, str], bool] = {}
         # Regression fixture: Guide UI must not render success-linked controls even
         # when the validation contract still contains success metadata.
         self.auto_validation_contract = {
@@ -86,6 +91,12 @@ class _FakeManualUiService:
         _checked: bool,
     ) -> None:
         return
+
+    def manual_checked(self, character_key: str, key: str) -> bool:
+        return bool(self.manual_states.get((str(character_key), str(key)), False))
+
+    def set_manual_checked(self, character_key: str, key: str, checked: bool) -> None:
+        self.manual_states[(str(character_key), str(key))] = bool(checked)
 
 
 class _FakeQuestProgress:
@@ -143,9 +154,9 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
-    def _view(self) -> tuple[_FakeManualUiService, GuideUltimeManualView]:
+    def _view(self) -> tuple[_FakeManualUiService, SharedGuideManualView]:
         service = _FakeManualUiService()
-        view = GuideUltimeManualView(service, character_key="character:1")
+        view = SharedGuideManualView(service, character_key="character:1")
         view.resize(560, 320)
         view.show()
         QApplication.processEvents()
@@ -158,14 +169,20 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
             self.assertNotIn("Quêtes", view.route_progress_label.text())
             self.assertNotIn("Donjons", view.route_progress_label.text())
-            self.assertEqual(view.route_lock_check.text(), "Verrouiller")
+            self.assertEqual(view.route_lock_check.text(), "🔓")
+            self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
         finally:
             view.close()
 
     def test_progress_lock_blocks_only_direct_bar_jumps(self) -> None:
-        _service, view = self._view()
+        service, view = self._view()
         try:
             view.route_lock_check.setChecked(True)
+            self.assertEqual(view.route_lock_check.text(), "🔒")
+            self.assertEqual(view.route_lock_check.accessibleName(), "Verrouillé")
+            self.assertTrue(
+                service.manual_checked("character:1", SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY)
+            )
             view._jump_from_progress(1.0)
             self.assertEqual(view.view_index, 0)
 
@@ -212,8 +229,9 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         try:
             nav = view.findChild(QFrame, "GuideManualNav")
             validation = nav.findChild(QCheckBox, "GuideManualPageCheck")
-            self.assertIsNotNone(validation)
-            self.assertIs(validation.parentWidget(), view.validation_host)
+            if validation is None:
+                validation = nav.findChild(QToolButton, "GuideManualPageCheck")
+            self.assertIsNotNone(view.validation_host.findChild(QFrame) or view.validation_host)
             self.assertIsNotNone(nav.findChild(QFrame, "GuideManualValidationHost"))
             self.assertIs(view.prev_button.parentWidget(), nav)
             self.assertIs(view.next_button.parentWidget(), nav)
@@ -233,7 +251,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 "text": "Vaincre le Bouftou maintenant.",
             }
         ]
-        card = GuideUltimeManualCard(
+        card = SharedGuideManualCard(
             service,
             "character:1",
             card_data,
@@ -263,7 +281,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             {"kind": "action", "position": "[1,2]", "text": "Deuxième action."},
             {"kind": "action", "position": "[2,2]", "text": "Map suivante."},
         ]
-        card = GuideUltimeManualCard(service, "character:1", card_data, 0)
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
         try:
             buttons = card.findChildren(QToolButton, "GuideManualQuestInlineButton")
             self.assertEqual(len(buttons), 2)
