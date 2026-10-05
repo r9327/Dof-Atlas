@@ -11,7 +11,7 @@ from app.modules.encyclopedia.services.guide_progress_calculator import (
     GuideProgressCalculator,
     ProgressCount,
 )
-from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
+from app.modules.encyclopedia.services.memory_bound_achievement_progress_service import (
     ACHIEVEMENT_PROGRESS_FILE,
     AchievementProgressService,
 )
