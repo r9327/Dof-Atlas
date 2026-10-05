@@ -18,6 +18,7 @@ from shiboken6 import isValid
 
 import app.modules.encyclopedia.views.guides_view as guides_module
 from app.pages import organizer_page
+import app.pages.organizer.character_sessions as organizer_sessions
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.views.guides_view import GuideHomeCard, SolutionImageLabel
 from tools.atlas_performance_budget import evaluate_metric
@@ -144,11 +145,11 @@ class QtAsyncNonAccumulationTests(unittest.TestCase):
             self.assertEqual(result["status"], "PASS", result)
 
     def test_offscreen_organizer_does_not_install_native_window_hooks(self) -> None:
-        profiles = organizer_page.default_profiles()
+        profiles = organizer_sessions.default_profiles()
         with (
-            patch.object(organizer_page, "read_json", return_value=profiles),
-            patch.object(organizer_page, "write_json", return_value=None),
-            patch.object(organizer_page, "write_text_atomic", return_value=None),
+            patch.object(organizer_sessions, "read_json", return_value=profiles),
+            patch.object(organizer_sessions, "write_json", return_value=None),
+            patch.object(organizer_sessions, "write_text_atomic", return_value=None),
             patch.object(
                 organizer_page.OrganizerPage,
                 "auto_scan_sessions_on_startup",
