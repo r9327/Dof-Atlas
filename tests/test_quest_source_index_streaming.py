@@ -66,6 +66,28 @@ def test_doduda_array_streams_one_record_at_a_time(tmp_path: Path) -> None:
     rows.close()
 
 
+def test_doduda_collection_can_be_nested_like_generated_exports(tmp_path: Path) -> None:
+    source = tmp_path / "nested_rows.json"
+    _write_json(
+        source,
+        {
+            "payload": {
+                "metadata": {"locale": "fr"},
+                "RefIds": [
+                    {"data": {"id": 11, "name": "Catégorie A"}},
+                    {"data": {"id": 12, "name": "Catégorie B"}},
+                ],
+            }
+        },
+    )
+
+    rows = JsonSourceMapping(source, tmp_path / "cache", "RefIds", doduda=True)
+    with patch.object(Path, "read_bytes", side_effect=AssertionError("full read forbidden")):
+        assert set(rows) == {11, 12}
+        assert rows[12]["name"] == "Catégorie B"
+    rows.close()
+
+
 def test_streaming_offset_cache_is_reused_without_rescanning(tmp_path: Path) -> None:
     source = tmp_path / "mapping.json"
     _write_json(source, {"entries": {"1": {"name": "A"}, "2": {"name": "B"}}})
