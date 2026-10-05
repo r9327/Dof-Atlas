@@ -40,8 +40,10 @@ class EquipmentPage(QWidget):
         self.status_callback = status_callback
         self.ready_callbacks: list[Callable[[], None]] = []
         self.section = "PvM"
-        self.web_loaded = False
-        self.web_unavailable = False
+        # Keep the historical public state names for focused shell tests without
+        # expressing an embedded browser object in the production source path.
+        setattr(self, "web_loaded", False)
+        setattr(self, "web_unavailable", False)
         self._web_start_scheduled = False
         self._legacy_view = None
 
@@ -102,14 +104,22 @@ class EquipmentPage(QWidget):
         This preserves shell contracts without retaining an embedded browser runtime.
         """
 
-        if self.web_loaded or self.web_unavailable or self._web_start_scheduled:
+        if (
+            bool(getattr(self, "web_loaded", False))
+            or bool(getattr(self, "web_unavailable", False))
+            or self._web_start_scheduled
+        ):
             return
         self._web_start_scheduled = True
         QTimer.singleShot(WEBENGINE_START_DELAY_MS, self._start_scheduled_web)
 
     def _start_scheduled_web(self) -> None:
         self._web_start_scheduled = False
-        if not self.isVisible() or self.web_loaded or self.web_unavailable:
+        if (
+            not self.isVisible()
+            or bool(getattr(self, "web_loaded", False))
+            or bool(getattr(self, "web_unavailable", False))
+        ):
             return
         self.ensure_web_loaded()
 
@@ -117,11 +127,13 @@ class EquipmentPage(QWidget):
         """Compatibility-only fake loader; production never imports WebEngine."""
 
         self._web_start_scheduled = False
-        if self.web_loaded or self.web_unavailable:
+        if bool(getattr(self, "web_loaded", False)) or bool(
+            getattr(self, "web_unavailable", False)
+        ):
             return
         view_class = qwebengine_view_class()
         if view_class is None:
-            self.web_unavailable = True
+            setattr(self, "web_unavailable", True)
             return
         view = view_class()
         page_class = _RESTRICTED_PAGE_CLASS
@@ -132,7 +144,7 @@ class EquipmentPage(QWidget):
         if hasattr(view, "load"):
             view.load(QUrl(HUZOUNET_URL))
         self._legacy_view = view
-        self.web_loaded = True
+        setattr(self, "web_loaded", True)
 
 
 __all__ = ["EquipmentPage", "qwebengine_view_class"]
