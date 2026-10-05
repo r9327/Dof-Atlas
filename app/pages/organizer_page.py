@@ -1,33 +1,50 @@
 from __future__ import annotations
 
 import os
+import sys
+from types import ModuleType
 from typing import Any
 
 from PySide6.QtCore import QPoint, Qt, QTimer, Signal
 from PySide6.QtWidgets import QLabel, QWidget
 
 from app.constants import (
+    CLIENT_INDEX_INI,
+    CLIENT_INDEX_JSON,
     KEY_CLICK_HOTKEY,
+    KEY_DEBUG_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
+    KEY_PRIMARY_WINDOW,
+    KEY_SCRIPT_SPEED,
+    KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
     KEY_SWITCH_MOVEMENT,
+    KEY_TRAVEL_TEXT,
     PROFILE_FILE,
 )
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles
-from app.windows_embed import UnityWindowEventWatcher
+from app.windows_embed import UnityWindowEventWatcher, scan_unity_sessions
+from app.pages.organizer import character_sessions as _character_sessions
+from app.pages.organizer import common as _organizer_common
 from app.pages.organizer.character_sessions import CharacterSessionsMixin
 from app.pages.organizer.common import (
     BUTTON_HEIGHT,
     CARD_PADDING,
     CARD_SPACING,
     CHARACTER_SLOT_HEIGHT,
+    CLASS_ICON_DIRS,
+    CLASS_ICON_EXTENSIONS,
+    DOFUS_CLASS_DEFINITIONS,
+    RELEASE_RETRY_DELAYS_MS,
     SESSION_SLOT_COUNT,
     WINDOW_EVENT_DEBOUNCE_MS,
     client_slot_hotkey_key,
+    dofus_class_key_for_character_name,
+    dofus_class_key_from_window_name,
     empty_session_slot,
     session_hwnd,
     session_is_detected,
@@ -38,6 +55,51 @@ from app.pages.organizer.common import (
 from app.pages.organizer.organizer_drag_drop import OrganizerDragDropMixin
 from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
 from app.pages.organizer.organizer_ui import OrganizerUiMixin
+
+
+_COMPAT_SESSION_GLOBALS = {
+    "PROFILE_FILE",
+    "CLIENT_INDEX_JSON",
+    "CLIENT_INDEX_INI",
+    "scan_unity_sessions",
+}
+_COMPAT_COMMON_GLOBALS = {
+    "CLIENT_INDEX_JSON",
+    "CLASS_ICON_DIRS",
+}
+
+
+def _propagate_legacy_override(name: str, value: object) -> None:
+    """Keep the historical organizer_page monkeypatch surface working.
+
+    Organizer was split into focused modules in Phase 8, but shell tests and a
+    few external helpers still patch paths/scanners on ``organizer_page``.
+    Propagate only those compatibility overrides to their new owners instead of
+    moving behaviour back into this entry module.
+    """
+
+    if name in _COMPAT_SESSION_GLOBALS:
+        setattr(_character_sessions, name, value)
+    if name in _COMPAT_COMMON_GLOBALS:
+        setattr(_organizer_common, name, value)
+
+
+def _sync_legacy_overrides() -> None:
+    module = sys.modules[__name__]
+    for name in _COMPAT_SESSION_GLOBALS | _COMPAT_COMMON_GLOBALS:
+        if hasattr(module, name):
+            _propagate_legacy_override(name, getattr(module, name))
+
+
+def class_icon_candidates(class_key: str):
+    _organizer_common.CLASS_ICON_DIRS = CLASS_ICON_DIRS
+    return _organizer_common.class_icon_candidates(class_key)
+
+
+def class_icon_path_for_window_name(value: Any):
+    _organizer_common.CLASS_ICON_DIRS = CLASS_ICON_DIRS
+    _organizer_common.CLIENT_INDEX_JSON = CLIENT_INDEX_JSON
+    return _organizer_common.class_icon_path_for_window_name(value)
 
 
 class OrganizerPage(
@@ -63,6 +125,7 @@ class OrganizerPage(
         sessions_changed_callback=None,
         active_session_callback=None,
     ) -> None:
+        _sync_legacy_overrides()
         super().__init__(parent)
         self.setObjectName("organizerPage")
         self.status_callback = status_callback
@@ -151,16 +214,44 @@ class OrganizerPage(
         self.startup_scan_timer.start(0)
 
 
+class _OrganizerCompatModule(ModuleType):
+    def __setattr__(self, name: str, value: object) -> None:
+        super().__setattr__(name, value)
+        if name in _COMPAT_SESSION_GLOBALS or name in _COMPAT_COMMON_GLOBALS:
+            _propagate_legacy_override(name, value)
+
+
+sys.modules[__name__].__class__ = _OrganizerCompatModule
+_sync_legacy_overrides()
+
+
 __all__ = [
     "OrganizerPage",
+    "PROFILE_FILE",
+    "CLIENT_INDEX_JSON",
+    "CLIENT_INDEX_INI",
+    "KEY_DEBUG_MODE",
+    "KEY_PRIMARY_WINDOW",
+    "KEY_SCRIPT_SPEED",
+    "KEY_SESSION_ORDER",
+    "KEY_TRAVEL_TEXT",
+    "RELEASE_RETRY_DELAYS_MS",
     "SESSION_SLOT_COUNT",
     "BUTTON_HEIGHT",
     "CARD_PADDING",
     "CARD_SPACING",
     "CHARACTER_SLOT_HEIGHT",
+    "CLASS_ICON_DIRS",
+    "CLASS_ICON_EXTENSIONS",
+    "DOFUS_CLASS_DEFINITIONS",
     "client_slot_hotkey_key",
     "default_profiles",
+    "dofus_class_key_from_window_name",
+    "dofus_class_key_for_character_name",
+    "class_icon_candidates",
+    "class_icon_path_for_window_name",
     "empty_session_slot",
+    "scan_unity_sessions",
     "session_name",
     "session_hwnd",
     "session_pid",
