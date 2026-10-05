@@ -131,13 +131,14 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
         self.assertIn("Get-FileHash -Path $installer -Algorithm SHA256", source)
         self.assertIn("$PythonInstallerSha256", source)
 
-    def test_equipment_webview_blocks_local_custom_and_popup_navigation(self) -> None:
+    def test_equipment_surface_is_external_and_has_no_embedded_web_runtime(self) -> None:
         source = (ROOT / "app" / "pages" / "equipment_page.py").read_text(encoding="utf-8")
-        self.assertIn('scheme in {"https", "about", "data", "blob"}', source)
-        self.assertIn('if scheme == "https" and (', source)
-        self.assertIn('NavigationTypeLinkClicked and scheme == "https"', source)
-        self.assertIn("def createWindow(self, _window_type):", source)
-        self.assertNotIn('scheme in {"http", "https"}', source)
+        self.assertIn("QDesktopServices.openUrl", source)
+        self.assertIn("QUrl(HUZOUNET_URL)", source)
+        self.assertNotIn("QWebEngineView", source)
+        self.assertNotIn("QWebEnginePage", source)
+        self.assertNotIn("QtWebEngine", source)
+        self.assertNotIn("NavigationTypeLinkClicked", source)
 
     def test_runtime_does_not_disable_qtwebengine_sandbox(self) -> None:
         candidates = [ROOT / "main.py", ROOT / "launch.py", ROOT / "DOFUS.bat", ROOT / "scripts" / "windows" / "bootstrap_dofus_atlas.ps1"]
