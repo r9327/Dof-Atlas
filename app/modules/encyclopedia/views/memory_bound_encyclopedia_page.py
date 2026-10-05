@@ -17,6 +17,8 @@ class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
 
     def __init__(self, *args, **kwargs) -> None:
         self._memory_restore_guide_id = ""
+        self._memory_restore_guide_quest_id: int | None = None
+        self._memory_restore_guide_state = ""
         self._memory_restore_achievement_id: int | None = None
         self._memory_restore_quest_id: int | None = None
         self._memory_restore_quest_series = ""
@@ -104,6 +106,14 @@ class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
         if view is None:
             return
         self._memory_restore_guide_id = str(getattr(view, "current_guide_id", "") or "")
+        current_quest_id = getattr(view, "current_quest_id", None)
+        try:
+            self._memory_restore_guide_quest_id = (
+                int(current_quest_id) if current_quest_id is not None else None
+            )
+        except (TypeError, ValueError):
+            self._memory_restore_guide_quest_id = None
+        self._memory_restore_guide_state = str(getattr(view, "state", "") or "")
         self._replace_with_lazy_slot(GUIDES_TAB, view)
         self.guides_view = None
         provider = getattr(getattr(self, "service", None), "guide_provider", None)
@@ -165,8 +175,18 @@ class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
 
         if created and self._memory_restore_guide_id:
             guide_id = self._memory_restore_guide_id
+            quest_id = self._memory_restore_guide_quest_id
+            previous_state = self._memory_restore_guide_state
             self._memory_restore_guide_id = ""
+            self._memory_restore_guide_quest_id = None
+            self._memory_restore_guide_state = ""
             view.select_guide(guide_id)
+            quest_detail_state = str(getattr(view, "QUEST_DETAIL", ""))
+            if (
+                quest_id is not None
+                and (not previous_state or previous_state == quest_detail_state)
+            ):
+                view.show_quest_detail(quest_id)
         return view
 
 
