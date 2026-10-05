@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import json
 import subprocess
 import sys
@@ -10,7 +11,8 @@ from typing import Any
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
 from app.modules.encyclopedia.models import DofusItem
 from app.modules.encyclopedia.providers.achievement_provider import safe_int
-from app.quest_catalog import array_value, doduda_rows, localized_name, read_json_file, text_for
+from app.quest_catalog import array_value, doduda_rows, localized_name, text_for
+from app.quest_source_index import QuestSources
 
 DOFUS_TYPE_ID = 23
 DOFUS_UNKNOWN_ICON = DATA_DIR / "encyclopedia" / "images" / "guides" / "dofus_unknown.svg"
@@ -108,51 +110,117 @@ class DofusItemProvider:
         self._by_id = {item.id: item for item in self._items}
 
     def _load_in_process(self) -> None:
-        """Legacy extractor used only by the disposable helper or custom fixtures."""
+        """Extract Dofus rows while never retaining the large sources together."""
 
-        language = read_json_file(self.data_dir / "languages" / "fr.json", {"entries": {}})
-        entries = language.get("entries", {}) if isinstance(language, dict) else {}
-        if not isinstance(entries, dict):
-            entries = {}
+        # items.json is the largest source used here. Keep only the handful of
+        # Dofus rows plus the effect-instance refs they actually reference, then
+        # release the monolithic payload before opening any other large source.
         item_payload = self._read_json(self.data_dir / "items.json", {})
         refs = (
             item_payload.get("references", {}).get("RefIds", [])
             if isinstance(item_payload, dict)
             else []
         )
-        items: dict[int, dict[str, Any]] = {}
-        item_refs: dict[int, dict[str, Any]] = {}
+        dofus_rows: dict[int, dict[str, Any]] = {}
+        effect_rids: set[int] = set()
         for ref in refs if isinstance(refs, list) else ():
             if not isinstance(ref, dict):
                 continue
             data = ref.get("data")
             if not isinstance(data, dict):
                 continue
-            rid = safe_int(ref.get("rid"))
-            if rid is not None:
-                item_refs[int(rid)] = data
             item_id = safe_int(data.get("id"))
-            if item_id is not None:
-                items[int(item_id)] = data
-        item_types = doduda_rows(self.data_dir / "item_types.json")
-        effects = doduda_rows(self.data_dir / "effects.json")
-        type_row = item_types.get(DOFUS_TYPE_ID, {})
-        type_name = text_for(entries, type_row.get("nameId"), "Dofus")
-        dofus_items: list[DofusItem] = []
-        for item_id, row in items.items():
-            if safe_int(row.get("typeId")) != DOFUS_TYPE_ID:
+            if item_id is None or safe_int(data.get("typeId")) != DOFUS_TYPE_ID:
                 continue
             if item_id in EXCLUDED_DOFUS_ITEM_IDS:
                 continue
-            effect_rows = [
-                item_refs.get(safe_int(ref.get("rid")))
-                for ref in array_value(row.get("possibleEffects"))
-                if isinstance(ref, dict)
+            dofus_rows[int(item_id)] = dict(data)
+            for effect_ref in array_value(data.get("possibleEffects")):
+                if not isinstance(effect_ref, dict):
+                    continue
+                rid = safe_int(effect_ref.get("rid"))
+                if rid is not None:
+                    effect_rids.add(int(rid))
+
+        effect_instances: dict[int, dict[str, Any]] = {}
+        if effect_rids:
+            for ref in refs if isinstance(refs, list) else ():
+                if not isinstance(ref, dict):
+                    continue
+                rid = safe_int(ref.get("rid"))
+                if rid is None or int(rid) not in effect_rids:
+                    continue
+                data = ref.get("data")
+                if isinstance(data, dict):
+                    effect_instances[int(rid)] = dict(data)
+
+        del refs, item_payload
+        gc.collect()
+
+        item_types = doduda_rows(self.data_dir / "item_types.json")
+        type_row = dict(item_types.get(DOFUS_TYPE_ID, {}))
+        del item_types
+        gc.collect()
+
+        needed_effect_ids = {
+            effect_id
+            for effect in effect_instances.values()
+            if (effect_id := safe_int(effect.get("effectId"))) is not None
+        }
+        all_effect_rows = doduda_rows(self.data_dir / "effects.json")
+        effect_rows = {
+            int(effect_id): dict(all_effect_rows[effect_id])
+            for effect_id in needed_effect_ids
+            if effect_id in all_effect_rows
+        }
+        del all_effect_rows
+        gc.collect()
+
+        # Reuse the durable language byte-offset cache produced by preload and
+        # decode only translations referenced by the selected Dofus/effects.
+        needed_entry_ids: set[str] = set()
+        for row in dofus_rows.values():
+            for field in ("nameId", "descriptionId"):
+                ident = safe_int(row.get(field))
+                if ident is not None:
+                    needed_entry_ids.add(str(ident))
+        type_name_id = safe_int(type_row.get("nameId"))
+        if type_name_id is not None:
+            needed_entry_ids.add(str(type_name_id))
+        for row in effect_rows.values():
+            ident = safe_int(row.get("descriptionId"))
+            if ident is not None:
+                needed_entry_ids.add(str(ident))
+
+        sources = QuestSources(ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1")
+        entries: dict[str, Any] = {}
+        try:
+            language_entries = sources.mapping(
+                self.data_dir / "languages" / "fr.json",
+                "entries",
+                required=True,
+            )
+            for ident in needed_entry_ids:
+                try:
+                    entries[ident] = language_entries[ident]
+                except KeyError:
+                    continue
+        finally:
+            sources.close()
+
+        type_name = text_for(entries, type_row.get("nameId"), "Dofus")
+        dofus_items: list[DofusItem] = []
+        for item_id, row in dofus_rows.items():
+            effect_rows_for_item = [
+                effect_instances.get(int(rid))
+                for effect_ref in array_value(row.get("possibleEffects"))
+                if isinstance(effect_ref, dict)
+                and (rid := safe_int(effect_ref.get("rid"))) is not None
             ]
             effect_labels = tuple(
                 label
-                for effect in effect_rows
-                for label in [self._effect_label(effect, effects, entries)]
+                for effect in effect_rows_for_item
+                for label in [self._effect_label(effect, effect_rows, entries)]
                 if label
             )
             icon_id = safe_int(row.get("iconId"))
