@@ -199,9 +199,10 @@ class JsonSourceMapping(Mapping):
 
 
 class QuestSources:
-    def __init__(self, cache_root):
+    def __init__(self, cache_root, *, max_mappings: int | None = None):
         self.cache_root = cache_root
-        self._mappings = {}
+        self.max_mappings = max(1, int(max_mappings)) if max_mappings is not None else None
+        self._mappings = OrderedDict()
         self._objectives_by_step = None
         self._image_index = None
         self.context = {}
@@ -211,15 +212,24 @@ class QuestSources:
         if required is None:
             required = (path.name, str(field)) not in _OPTIONAL_SOURCE_FIELDS
         key = (path, field, doduda, bool(required))
-        if key not in self._mappings:
-            self._mappings[key] = JsonSourceMapping(
-                path,
-                self.cache_root,
-                field,
-                doduda=doduda,
-                required=required,
-            )
-        return self._mappings[key]
+        mapping = self._mappings.get(key)
+        if mapping is not None:
+            self._mappings.move_to_end(key)
+            return mapping
+
+        mapping = JsonSourceMapping(
+            path,
+            self.cache_root,
+            field,
+            doduda=doduda,
+            required=required,
+        )
+        self._mappings[key] = mapping
+        limit = self.max_mappings
+        while limit is not None and len(self._mappings) > limit:
+            _old_key, old_mapping = self._mappings.popitem(last=False)
+            old_mapping.close()
+        return mapping
 
     def rows(self, path):
         return self.mapping(path, 'RefIds', doduda=True, required=True)
