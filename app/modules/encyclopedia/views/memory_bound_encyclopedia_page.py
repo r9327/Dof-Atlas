@@ -6,13 +6,19 @@ from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUE
 from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as BaseEncyclopediaPage
 
 
-class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
+class EncyclopediaPage(BaseEncyclopediaPage):
     """Keep providers warm while releasing inactive heavy Qt view trees.
 
     The catalogue/runtime providers stay resident so reopening a tab does not
     rebuild data from disk. Only the heavyweight widget representation is
     hibernated when another Encyclopedia tab becomes active or the whole page
     leaves the screen.
+
+    The runtime class deliberately keeps the historical public type name
+    ``EncyclopediaPage``. ``MemoryBoundEncyclopediaPage`` remains an alias for
+    the Phase 8 implementation so lazy facades and memory-policy contracts keep
+    their explicit implementation reference without breaking shell identity
+    checks based on the concrete Qt widget type name.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -190,4 +196,7 @@ class MemoryBoundEncyclopediaPage(BaseEncyclopediaPage):
         return view
 
 
-__all__ = ["MemoryBoundEncyclopediaPage"]
+MemoryBoundEncyclopediaPage = EncyclopediaPage
+
+
+__all__ = ["EncyclopediaPage", "MemoryBoundEncyclopediaPage"]
