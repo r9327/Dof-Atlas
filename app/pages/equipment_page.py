@@ -13,10 +13,10 @@ from app.ui.components import AtlasButton
 class EquipmentPage(QWidget):
     """Lightweight equipment entry point.
 
-    Huzounet used to be embedded through QtWebEngine. That single embedded
-    Chromium runtime retained more than one hundred megabytes after leaving the
-    page, which is incompatible with Atlas' multi-account memory budget. Keep
-    the useful shortcut, but open it in the user's browser until Atlas' native
+    Huzounet used to be embedded through a Chromium runtime. That embedded
+    browser retained more than one hundred megabytes after leaving the page,
+    which is incompatible with Atlas' multi-account memory budget. Keep the
+    useful shortcut, but open it in the user's browser until Atlas' native
     equipment rooms are implemented.
     """
 
