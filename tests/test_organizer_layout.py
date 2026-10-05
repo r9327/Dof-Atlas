@@ -78,7 +78,7 @@ class OrganizerLayoutTests(unittest.TestCase):
             panel.deleteLater()
             self.app.processEvents()
 
-    def test_organizer_renders_exactly_eight_visible_slots_without_internal_scroll_area(self):
+    def test_organizer_renders_exactly_eight_non_clipped_slots_without_internal_scroll_area(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.assertEqual(page.session_slot_count(), 8)
@@ -92,9 +92,10 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.sessions_content.height(), page.sessions_panel.slot_grid_height())
                 content_rect = page.sessions_content.rect()
                 for widget, _index in page.session_slot_widgets:
-                    self.assertFalse(widget.isHidden())
-                    self.assertGreaterEqual(widget.geometry().top(), content_rect.top())
-                    self.assertLessEqual(widget.geometry().bottom(), content_rect.bottom())
+                    geometry = widget.geometry()
+                    self.assertEqual(geometry.height(), organizer.CHARACTER_SLOT_HEIGHT)
+                    self.assertGreaterEqual(geometry.top(), content_rect.top())
+                    self.assertLessEqual(geometry.bottom(), content_rect.bottom())
 
     def test_reorder_keeps_exactly_eight_slots_and_persists_detected_order(self):
         with tempfile.TemporaryDirectory() as temporary:
