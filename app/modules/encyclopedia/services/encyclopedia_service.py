@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.providers.guide_provider import GuideProvider
 from app.modules.encyclopedia.providers.indexed_guide_provider import IndexedGuideProvider
-from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
 
 class EncyclopediaService:
