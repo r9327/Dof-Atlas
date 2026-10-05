@@ -139,6 +139,27 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self.hibernate_heavy_views()
         super().hideEvent(event)
 
+    def showEvent(self, event) -> None:  # noqa: N802 - Qt API
+        """Restore the active heavy tab after page-level hibernation.
+
+        Hiding the whole Encyclopedia intentionally releases its widget tree.
+        Showing it again does not emit QTabWidget.currentChanged when the tab
+        index stayed identical, so restore the active tab explicitly here.
+        """
+
+        super().showEvent(event)
+        index = self.tabs.currentIndex()
+        if index < 0:
+            return
+        label = self.tabs.tabText(index)
+        if label == QUESTS_TAB and self.quest_page is None:
+            self._restore_quests_view()
+        elif label == ACHIEVEMENTS_TAB and self.get_achievements_view() is None:
+            self.ensure_achievements_view()
+        elif label == GUIDES_TAB and getattr(self, "guides_view", None) is None:
+            self.ensure_guides_view()
+        self.sync_character_to_children()
+
     def on_tab_changed(self, index: int) -> None:
         label = self.tabs.tabText(index) if index >= 0 else ""
         self.hibernate_heavy_views(active_label=label)
