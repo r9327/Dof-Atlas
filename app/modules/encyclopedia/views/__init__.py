@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from typing import Any
 
 
@@ -12,10 +13,13 @@ def _ensure_guide_view_loaded() -> None:
     if _GUIDE_VIEW_LOADED:
         return
 
-    from app.modules.encyclopedia.views.guides_view import GuideHomeCard
+    guides_module = importlib.import_module("app.modules.encyclopedia.views.guides_view")
+    from app.modules.encyclopedia.views.guide_image_runtime_policy import (
+        install_guide_image_runtime_policy,
+    )
 
-    # Load the canonical Guide primitives only when Guides are requested.
-    _ = GuideHomeCard
+    install_guide_image_runtime_policy(guides_module)
+    _ = guides_module.GuideHomeCard
     _GUIDE_VIEW_LOADED = True
 
 
@@ -60,9 +64,8 @@ class EncyclopediaPage(metaclass=_LazyEncyclopediaPageMeta):
 def __getattr__(name: str):
     if name == "GuidesView":
         _ensure_guide_view_loaded()
-        from app.modules.encyclopedia.views.guides_view import GuidesView
-
-        return GuidesView
+        guides_module = importlib.import_module("app.modules.encyclopedia.views.guides_view")
+        return guides_module.GuidesView
     raise AttributeError(name)
 
 
