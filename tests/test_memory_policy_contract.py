@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EQUIPMENT = ROOT / "app" / "pages" / "equipment_page.py"
 ENCYCLOPEDIA_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "views" / "__init__.py"
+PROVIDER_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "providers" / "__init__.py"
 MEMORY_PAGE = (
     ROOT
     / "app"
@@ -14,6 +15,22 @@ MEMORY_PAGE = (
     / "encyclopedia"
     / "views"
     / "memory_bound_encyclopedia_page.py"
+)
+MEMORY_ACHIEVEMENT_PROVIDER = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "providers"
+    / "memory_bound_achievement_provider.py"
+)
+RELATED_DATA = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "services"
+    / "related_data_service.py"
 )
 
 
@@ -51,3 +68,27 @@ def test_memory_bound_page_hibernates_only_widget_layer() -> None:
     assert "service.achievement_provider" not in source
     assert "service.guide_provider = None" not in source
     assert "deleteLater()" in source
+
+
+def test_achievement_provider_releases_reconstructible_source_maps() -> None:
+    facade = PROVIDER_FACADE.read_text(encoding="utf-8")
+    source = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    method_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert "memory_bound_achievement_provider" in facade
+    assert "MemoryBoundAchievementProvider as RealAchievementProvider" in facade
+    assert {"_reset_sources", "_load", "prepare_detail_sources", "get_detail_by_id"} <= method_names
+    assert "QuestSources(" in source
+    assert "self._entries = None" in source
+
+
+def test_related_index_warmup_runs_outside_long_lived_atlas_process() -> None:
+    source = RELATED_DATA.read_text(encoding="utf-8")
+    assert "subprocess.run" in source
+    assert "achievement_index_warmup" in source
+    assert "sys.executable" in source
+    assert "QuestSources(" not in source
