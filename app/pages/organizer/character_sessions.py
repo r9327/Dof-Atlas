@@ -52,8 +52,21 @@ from .common import (
 
 
 class CharacterSessionsMixin:
+    def _profile_file(self):
+        return getattr(self, "profile_file", PROFILE_FILE)
+
+    def _client_index_json(self):
+        return getattr(self, "client_index_json", CLIENT_INDEX_JSON)
+
+    def _client_index_ini(self):
+        return getattr(self, "client_index_ini", CLIENT_INDEX_INI)
+
+    def _scan_unity_sessions(self) -> list[dict[str, Any]]:
+        scanner = getattr(self, "scan_unity_sessions_callback", scan_unity_sessions)
+        return scanner()
+
     def load_profiles(self) -> dict[str, Any]:
-        payload = read_json(PROFILE_FILE, default_profiles())
+        payload = read_json(self._profile_file(), default_profiles())
         if not isinstance(payload, dict):
             payload = default_profiles()
         merged = default_profiles()
@@ -102,7 +115,7 @@ class CharacterSessionsMixin:
             if key not in baseline or baseline.get(key) != value
         }
         removals = tuple(key for key in baseline if key not in snapshot)
-        persisted, _changed = ProfileSettingsService(PROFILE_FILE).update_values(
+        persisted, _changed = ProfileSettingsService(self._profile_file()).update_values(
             updates,
             remove_keys=removals,
             default=default_profiles(),
@@ -121,7 +134,7 @@ class CharacterSessionsMixin:
         self.profiles = self.load_profiles()
         refreshed = False
         if os.name == "nt":
-            sessions = scan_unity_sessions()
+            sessions = self._scan_unity_sessions()
             self.sessions = self.build_session_slots(sessions)
             refreshed = bool(sessions)
         self.export_client_index()
@@ -292,7 +305,7 @@ class CharacterSessionsMixin:
             self.status_callback("Scan sessions disponible seulement sous Windows.")
             return
         self.capture_target = None
-        self.sessions = self.build_session_slots(scan_unity_sessions())
+        self.sessions = self.build_session_slots(self._scan_unity_sessions())
         self.export_client_index()
         self.request_sessions_render()
         self.sync_event_watcher_sessions()
@@ -322,7 +335,7 @@ class CharacterSessionsMixin:
             return
         previous_signature = self.session_identity_signature()
         self.profiles = self.load_profiles()
-        self.sessions = self.build_session_slots(scan_unity_sessions())
+        self.sessions = self.build_session_slots(self._scan_unity_sessions())
         changed = self.session_identity_signature() != previous_signature
         if changed:
             self.export_client_index()
@@ -348,7 +361,7 @@ class CharacterSessionsMixin:
         if os.name != "nt" or not self.sessions_have_generic_names():
             return
         previous_signature = self.session_identity_signature()
-        self.sessions = self.build_session_slots(scan_unity_sessions())
+        self.sessions = self.build_session_slots(self._scan_unity_sessions())
         changed = self.session_identity_signature() != previous_signature
         if changed:
             self.export_client_index()
@@ -527,8 +540,8 @@ class CharacterSessionsMixin:
                     "",
                 ]
             )
-        write_json(CLIENT_INDEX_JSON, payload)
-        write_text_atomic(CLIENT_INDEX_INI, "\n".join(lines) + "\n")
+        write_json(self._client_index_json(), payload)
+        write_text_atomic(self._client_index_ini(), "\n".join(lines) + "\n")
 
     def resolve_client_binding(
         self,
