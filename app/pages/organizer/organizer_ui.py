@@ -20,6 +20,7 @@ from app.constants import (
     KEY_CLICK_HOTKEY,
     KEY_DEBUG_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
+    KEY_PRIMARY_WINDOW,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
@@ -487,7 +488,7 @@ class OrganizerUiMixin:
         self.session_slot_widgets = []
         self.sessions_grid = self.sessions_panel.grid
         self.sessions_placeholder = None
-        primary = str(self.profiles.get("__fenetre_principale__", ""))
+        primary = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
         primary_matched = False
         slot_count = self.session_slot_count()
         while len(self.sessions) < slot_count:
