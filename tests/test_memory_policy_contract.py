@@ -587,9 +587,12 @@ def test_home_release_clears_loaded_manual_guide_bundle_cache_without_importing_
         source.index("def _release_runtime_providers")
     ]
     assert "sys.modules.get" in helper
-    assert "guide_ultime_manual_runtime_service" in helper
     assert "guide_ultime_manual_runtime_core" in helper
     assert "clear_manual_bundle_cache" in helper
+    assert "guide_ultime_manual_route" in helper
+    assert "clear_manual_route_cache" in helper
+    assert "guide_auto_validation_contract" in helper
+    assert "clear_auto_validation_contract_cache" in helper
     assert "from app.modules.encyclopedia.services.guide_ultime" not in helper
 
     release = source[
@@ -597,6 +600,48 @@ def test_home_release_clears_loaded_manual_guide_bundle_cache_without_importing_
         source.index("def prepare_external_tab_navigation")
     ]
     assert "self._clear_reconstructible_manual_guide_cache()" in release
+
+
+def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots() -> None:
+    view_source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "views"
+        / "manual_route_guides_view.py"
+    ).read_text(encoding="utf-8")
+    assert "cache_manual_bundle=False" in view_source
+
+    core_source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_ultime_manual_runtime_core.py"
+    ).read_text(encoding="utf-8")
+    load = core_source[
+        core_source.index("def _load_manual_preview(self)"):
+        core_source.index("def manual_audit")
+    ]
+    assert "if not self.cache_manual_bundle:" in load
+    assert "self._load_manual_preview_uncached()" in load
+
+    wrapper_source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_ultime_manual_runtime_service.py"
+    ).read_text(encoding="utf-8")
+    stage = wrapper_source[
+        wrapper_source.index("def _stage_to_card"):
+        wrapper_source.index("def _raw_stage_lines")
+    ]
+    assert "copy.deepcopy(stage)" not in stage
+    assert "copy.deepcopy(chapter_preparation" not in stage
 
 
 def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
@@ -806,6 +851,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
         test_home_release_clears_loaded_manual_guide_bundle_cache_without_importing_it()
+        test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
         test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
         test_guide_home_defers_quest_runtime_until_needed()
