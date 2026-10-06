@@ -247,6 +247,24 @@ def ensure_lazy_catalog_cache(
         return max(0, int(row[0] if row else 0))
 
 
+def load_quest_name_index(
+    data_dir: Path = qc.RAW_QUEST_DATA_DIR,
+    *,
+    cache_root: Path = _CACHE_ROOT,
+) -> dict[str, int]:
+    """Return normalized quest-name -> id directly from the compact SQLite store."""
+
+    ensure_lazy_catalog_cache(data_dir, cache_root=cache_root)
+    _signature_value, path = _cache_identity(data_dir, cache_root)
+    result: dict[str, int] = {}
+    with _connect(path) as connection:
+        for quest_id, name in connection.execute("SELECT id, name FROM quests ORDER BY id"):
+            key = qc.normalize_text(str(name or ""))
+            if key and key not in result:
+                result[key] = int(quest_id)
+    return result
+
+
 class NetworkQuestRecord:
     """Tiny network-only row; rich Quest details stay SQLite-backed."""
 
