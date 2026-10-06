@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 from collections import defaultdict
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -182,9 +182,21 @@ def _compact_achievement_dict(achievement: Achievement) -> dict[str, object]:
         "linked_monsters": [_entity_ref_to_dict(ref) for ref in achievement.linked_monsters],
         "linked_dungeons": [_entity_ref_to_dict(ref) for ref in achievement.linked_dungeons],
         "linked_achievements": [_entity_ref_to_dict(ref) for ref in achievement.linked_achievements],
-        "resolved_linked_quests": [],
-        "resolved_linked_monsters": [],
-        "resolved_linked_dungeons": [],
+        "resolved_linked_quests": (
+            [_entity_ref_to_dict(ref) for ref in achievement.resolved_linked_quests]
+            if int(achievement.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+            else []
+        ),
+        "resolved_linked_monsters": (
+            [_entity_ref_to_dict(ref) for ref in achievement.resolved_linked_monsters]
+            if int(achievement.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+            else []
+        ),
+        "resolved_linked_dungeons": (
+            [_entity_ref_to_dict(ref) for ref in achievement.resolved_linked_dungeons]
+            if int(achievement.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+            else []
+        ),
         "search_text": str(achievement.search_text or ""),
         "raw": (
             {"categoryId": source_category_id}
@@ -396,6 +408,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._catalog_loading = False
         self._progress_objectives: dict[int, str] = {}
+        self._compat_cache_id: int | None = None
+        self._compat_cache: Achievement | None = None
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -424,6 +438,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._detail_cache = None
         self._detail_sources_ready = False
         self._progress_objectives = {}
+        self._compat_cache_id = None
+        self._compat_cache = None
         self._reset_sources()
 
     def _image_for_icon(self, icon_id: int | None, folders: tuple[str, ...]) -> str:
@@ -602,6 +618,52 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return ()
         return _progress_objectives_from_rows(payload)
 
+    def get_by_id(self, achievement_id: int) -> Achievement | None:
+        """Return a lightweight compatibility detail without warming rich sources."""
+
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        summary = self._by_id.get(achievement_id)
+        if summary is None:
+            return None
+        if self._compat_cache_id == achievement_id and self._compat_cache is not None:
+            return self._compat_cache
+
+        objectives: list[AchievementObjective] = []
+        for order, row in enumerate(self.progress_objectives_for(achievement_id), 1):
+            if len(row) != 5:
+                continue
+            objective_id, objective_type, criterion, text, raw_refs = row
+            refs = tuple(
+                EntityRef(str(entity_type or ""), int(entity_id), "")
+                for entity_type, entity_id in tuple(raw_refs or ())
+            )
+            objectives.append(
+                AchievementObjective(
+                    id=int(objective_id),
+                    achievement_id=achievement_id,
+                    text=str(text or ""),
+                    criterion=str(criterion or ""),
+                    order=order,
+                    objective_type=str(objective_type or ""),
+                    entity_ref=(refs[0] if refs else None),
+                    entity_refs=refs,
+                )
+            )
+
+        compatible = replace(summary, objectives=tuple(objectives))
+        self._compat_cache_id = achievement_id
+        self._compat_cache = compatible
+        return compatible
+
+    def is_retained(self, achievement_id: int) -> bool:
+        self._ensure_loaded()
+        summary = self._by_id.get(int(achievement_id))
+        return bool(
+            summary is not None
+            and int(summary.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+        )
+
     def prepare_detail_sources(self) -> None:
         if self._detail_sources_ready:
             return
@@ -670,19 +732,23 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         return self._get_detail_in_process(achievement_id)
 
     def get_linked_quests(self, achievement_id: int):
-        achievement = self.get_by_id(int(achievement_id))
+        self._ensure_loaded()
+        achievement = self._by_id.get(int(achievement_id))
         return list(achievement.linked_quests) if achievement is not None else []
 
     def get_linked_monsters(self, achievement_id: int):
-        achievement = self.get_by_id(int(achievement_id))
+        self._ensure_loaded()
+        achievement = self._by_id.get(int(achievement_id))
         return list(achievement.linked_monsters) if achievement is not None else []
 
     def get_linked_dungeons(self, achievement_id: int):
-        achievement = self.get_by_id(int(achievement_id))
+        self._ensure_loaded()
+        achievement = self._by_id.get(int(achievement_id))
         return list(achievement.linked_dungeons) if achievement is not None else []
 
     def get_linked_achievements(self, achievement_id: int):
-        achievement = self.get_by_id(int(achievement_id))
+        self._ensure_loaded()
+        achievement = self._by_id.get(int(achievement_id))
         return list(achievement.linked_achievements) if achievement is not None else []
 
 
