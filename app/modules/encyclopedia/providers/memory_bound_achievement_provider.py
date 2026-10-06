@@ -35,7 +35,7 @@ _SPACE_RE = re.compile(r"\s*")
 ACHIEVEMENT_COMPACT_CACHE = (
     ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_catalogue_v1.jsonl"
 )
-_ACHIEVEMENT_COMPACT_SCHEMA = 2
+_ACHIEVEMENT_COMPACT_SCHEMA = 3
 _ACHIEVEMENT_COMPACT_SOURCES = (
     "achievements.json",
     "achievement_categories.json",
@@ -827,6 +827,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._load_from_compact_subprocess()
 
     def _compact_value_by_id(self, achievement_id: int) -> dict[str, object] | None:
+        achievement_id = int(achievement_id)
         if self._compact_external_index is None:
             try:
                 payload = json.loads(
@@ -846,18 +847,50 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                         except (TypeError, ValueError):
                             continue
                 self._compact_external_index = index
-        span = self._compact_external_index.get(int(achievement_id))
-        if span is None:
-            return None
-        start, length = span
+
+        span = self._compact_external_index.get(achievement_id)
+        if span is not None:
+            start, length = span
+            try:
+                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    stream.seek(start)
+                    row = json.loads(stream.read(length))
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                return None
+            value = row.get("value") if isinstance(row, dict) else None
+            return value if isinstance(value, dict) else None
+
+        # Non-retained Successes are compatibility/cross-link lookups only.
+        # Stream the compact file for those rare requests instead of retaining
+        # a second global offset table for the whole corpus.
         try:
-            with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
-                stream.seek(start)
-                row = json.loads(stream.read(length))
+            with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                external = False
+                for raw_line in stream:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict):
+                        continue
+                    kind = str(row.get("kind") or "")
+                    if kind == "external_start":
+                        external = True
+                        continue
+                    if not external or kind != "achievement":
+                        continue
+                    value = row.get("value")
+                    if not isinstance(value, dict):
+                        continue
+                    try:
+                        row_id = int(value.get("id"))
+                    except (TypeError, ValueError):
+                        continue
+                    if row_id == achievement_id:
+                        return value
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             return None
-        value = row.get("value") if isinstance(row, dict) else None
-        return value if isinstance(value, dict) else None
+        return None
 
     def _load_external_summary(self, achievement_id: int) -> Achievement | None:
         value = self._compact_value_by_id(int(achievement_id))
@@ -1286,6 +1319,10 @@ def _build_compact_cache(path: Path) -> int:
             raw = line_bytes(payload)
             start = stream.tell()
             stream.write(raw)
+            # The resident index intentionally covers only retained Successes.
+            # External summaries remain in the JSONL and are scanned on-demand;
+            # keeping thousands of external offsets in the startup JSON made a
+            # short-lived allocation become permanent RSS high-water.
             offsets[str(achievement.id)] = [start, len(raw)]
 
         stream.write(line_bytes({"kind": "external_start"}))
@@ -1294,10 +1331,7 @@ def _build_compact_cache(path: Path) -> int:
                 "kind": "achievement",
                 "value": _compact_achievement_dict(achievement),
             }
-            raw = line_bytes(payload)
-            start = stream.tell()
-            stream.write(raw)
-            offsets[str(achievement.id)] = [start, len(raw)]
+            stream.write(line_bytes(payload))
 
     temp_index.write_text(
         json.dumps(

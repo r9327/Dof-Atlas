@@ -1150,11 +1150,11 @@ class CraftPage(QWidget):
                 button.setObjectName("ActiveButton")
             else:
                 button.setObjectName("SecondaryButton")
-            icon_source = self.job_icon_source(job)
-            icon = self.icon_cache.icon_for_item(icon_source)
-            if not icon.isNull() and key != "recolte":
-                button.setIcon(icon)
-                button.setIconSize(QSize(22, 22))
+            # Keep the initial Craft surface independent from the local-data
+            # adapter. Resolving a decorative job icon used to open the whole
+            # SQLite/repository stack before the user had searched or selected
+            # anything, permanently raising the process high-water mark.
+            # Functional item/resource icons remain loaded on explicit demand.
             button.clicked.connect(lambda _checked=False, target=name: self.set_job(target))
             self.job_buttons_layout.addWidget(button, index // button_columns, index % button_columns)
         for column in range(button_columns):
