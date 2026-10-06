@@ -930,6 +930,67 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return len(self._compact_category_ids.get(int(category_id), ()))
         return len(self._by_category.get(int(category_id), ()))
 
+    def catalogue_ids(self, category_id: int | None = None) -> tuple[int, ...]:
+        """Return retained Success IDs without materializing Achievement objects."""
+
+        self._ensure_loaded()
+        if self._compact_retained_ids:
+            if category_id is None:
+                return tuple(self._compact_retained_ids)
+            return tuple(self._compact_category_ids.get(int(category_id), ()))
+        if category_id is None:
+            return tuple(
+                int(achievement.id)
+                for achievement in self._achievements
+                if self.is_retained(int(achievement.id))
+            )
+        return tuple(
+            int(achievement.id)
+            for achievement in self._by_category.get(int(category_id), ())
+            if self.is_retained(int(achievement.id))
+        )
+
+    def catalogue_row_by_id(
+        self,
+        achievement_id: int,
+    ) -> tuple[int, str, int | None, int] | None:
+        """Return one primitive list row; rich Success objects stay cold."""
+
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        if (
+            self._compact_retained_set
+            and achievement_id in self._compact_retained_set
+            and self._compact_external_index is not None
+        ):
+            span = self._compact_external_index.get(achievement_id)
+            if span is not None:
+                start, length = span
+                try:
+                    with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                        stream.seek(start)
+                        payload = json.loads(stream.read(length))
+                except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                    return None
+                value = payload.get("value") if isinstance(payload, dict) else None
+                if isinstance(value, dict):
+                    return (
+                        achievement_id,
+                        str(value.get("name") or ""),
+                        safe_int(value.get("level")),
+                        int(value.get("points") or 0),
+                    )
+
+        summary = self._summary_by_id(achievement_id)
+        if summary is None or not self.is_retained(achievement_id):
+            return None
+        return (
+            achievement_id,
+            str(summary.name or ""),
+            summary.level,
+            int(summary.points or 0),
+        )
+
     def load_retained(self) -> list[Achievement]:
         self._ensure_loaded()
         if self._compact_retained_ids:
