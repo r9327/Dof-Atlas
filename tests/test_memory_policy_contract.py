@@ -652,6 +652,34 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
     assert "copy.deepcopy(chapter_preparation" not in stage
 
 
+def test_guide_auto_validation_uses_streamed_success_name_index_first() -> None:
+    provider = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
+    compact_names = provider[
+        provider.index("def compact_name_index"):
+        provider.index("def retained_count")
+    ]
+    assert "ACHIEVEMENT_COMPACT_CACHE.open" in compact_names
+    assert 'row.get("kind") != "achievement"' in compact_names
+    assert "read_json_file" not in compact_names
+    assert "doduda_rows" not in compact_names
+
+    contract = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_auto_validation_contract.py"
+    ).read_text(encoding="utf-8")
+    index = contract[
+        contract.index("def _achievement_index("):
+        contract.index("def _quantified_hints")
+    ]
+    compact_pos = index.index("compact_name_index")
+    raw_pos = index.index("read_json_file")
+    assert compact_pos < raw_pos
+
+
 def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     source = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
     assert '"objectives": []' in source
@@ -860,6 +888,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
         test_home_release_clears_loaded_manual_guide_bundle_cache_without_importing_it()
         test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots()
+        test_guide_auto_validation_uses_streamed_success_name_index_first()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
         test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
         test_guide_home_defers_quest_runtime_until_needed()
