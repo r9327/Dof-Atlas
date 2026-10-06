@@ -114,7 +114,10 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
         if not isinstance(stage, dict):
             return super().manual_sections_for_card(character_key, card)
 
-        source_card = copy.deepcopy(card)
+        # In compact runtime the visible authored stage can itself be large.
+        # A shallow card shell is enough: classification treats the stage as read-only
+        # and already deep-copies the emitted player lines.
+        source_card = dict(card) if self.compact_runtime else copy.deepcopy(card)
         source_card["manual_lines"] = self._raw_stage_lines(
             stage,
             [
