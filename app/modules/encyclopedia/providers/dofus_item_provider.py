@@ -15,6 +15,141 @@ from app.quest_source_index import QuestSources
 
 DOFUS_TYPE_ID = 23
 DOFUS_UNKNOWN_ICON = DATA_DIR / "encyclopedia" / "images" / "guides" / "dofus_unknown.svg"
+GUIDE_ITEMS_INDEX = ROOT_DIR / ".cache" / "dofus_atlas" / "guide_items_index_v1.json"
+_GUIDE_ITEMS_INDEX_SCHEMA = 1
+_GUIDE_ITEM_KEYS = frozenset({"item_id", "reward_item_id", "illustration_item_id"})
+
+
+def _guide_item_source_signature(data_dir: Path) -> list[list[object]]:
+    paths = [
+        data_dir / "items.json",
+        data_dir / "item_types.json",
+        data_dir / "effects.json",
+        data_dir / "languages" / "fr.json",
+    ]
+    guides_dir = DATA_DIR / "encyclopedia" / "guides"
+    if guides_dir.is_dir():
+        paths.extend(sorted(guides_dir.glob("*.json")))
+    signature: list[list[object]] = []
+    for path in paths:
+        try:
+            stat = path.stat()
+        except OSError:
+            signature.append([str(path.relative_to(ROOT_DIR)), -1, -1])
+            continue
+        try:
+            label = str(path.relative_to(ROOT_DIR))
+        except ValueError:
+            label = str(path)
+        signature.append([label.replace("\\", "/"), int(stat.st_size), int(stat.st_mtime_ns)])
+    return signature
+
+
+def _compact_item_payload(item: DofusItem) -> dict[str, object]:
+    payload = asdict(item)
+    raw = payload.get("raw")
+    if isinstance(raw, dict):
+        payload["raw"] = {
+            key: raw[key]
+            for key in ("id", "typeId", "nameId", "descriptionId", "iconId", "level")
+            if key in raw
+        }
+    return payload
+
+
+def _read_guide_items_index(
+    *,
+    data_dir: Path = RAW_QUEST_DATA_DIR,
+    path: Path = GUIDE_ITEMS_INDEX,
+) -> dict[int, dict[str, Any]] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if int(payload.get("schema_version") or 0) != _GUIDE_ITEMS_INDEX_SCHEMA:
+        return None
+    if payload.get("source_signature") != _guide_item_source_signature(data_dir):
+        return None
+    rows = payload.get("items")
+    if not isinstance(rows, dict):
+        return None
+    result: dict[int, dict[str, Any]] = {}
+    for raw_id, row in rows.items():
+        try:
+            item_id = int(raw_id)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(row, dict):
+            result[item_id] = row
+    return result
+
+
+def ensure_guide_items_index(
+    *,
+    data_dir: Path = RAW_QUEST_DATA_DIR,
+    path: Path = GUIDE_ITEMS_INDEX,
+) -> int:
+    """Build the Guide-only item store during preload, never on Guide open."""
+
+    cached = _read_guide_items_index(data_dir=data_dir, path=path)
+    if cached is not None:
+        return len(cached)
+    if bool(getattr(sys, "frozen", False)):
+        return 0
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.modules.encyclopedia.providers.dofus_item_provider",
+            "--build-guide-index",
+            str(path),
+        ],
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=90,
+        check=True,
+    )
+    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise RuntimeError("La génération de guide_items_index n'a produit aucun résultat")
+    payload = json.loads(lines[-1])
+    return max(0, int(payload.get("item_count") or 0))
+
+
+def _collect_guide_item_ids() -> set[int]:
+    guides_dir = DATA_DIR / "encyclopedia" / "guides"
+    result: set[int] = set()
+
+    def walk(value: object) -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if key in _GUIDE_ITEM_KEYS:
+                    item_id = safe_int(child)
+                    if item_id is not None:
+                        result.add(int(item_id))
+                elif key == "item_ids" and isinstance(child, list):
+                    for raw_id in child:
+                        item_id = safe_int(raw_id)
+                        if item_id is not None:
+                            result.add(int(item_id))
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    if guides_dir.is_dir():
+        for guide_path in sorted(guides_dir.glob("*.json")):
+            try:
+                walk(json.loads(guide_path.read_text(encoding="utf-8")))
+            except (OSError, ValueError, TypeError):
+                continue
+    return result
+
 def _iter_doduda_refs(path: Path):
     """Yield one Doduda RefIds entry at a time without loading the source file."""
 
@@ -114,13 +249,14 @@ class DofusItemProvider:
         self._loaded = False
         self._items: list[DofusItem] = []
         self._by_id: dict[int, DofusItem] = {}
+        self._guide_index_rows: dict[int, dict[str, Any]] | None = None
 
     def load_all(self) -> list[DofusItem]:
         self._ensure_loaded()
         return list(self._items)
 
     def get_by_id(self, item_id: int | None) -> DofusItem | None:
-        """Resolve one Guide item without loading the complete Doduda catalogue."""
+        """Resolve one Guide item from the compact preload store."""
 
         if item_id is None:
             return None
@@ -130,14 +266,53 @@ class DofusItemProvider:
             return cached
         if self._loaded:
             return None
-        item = self._load_one(item_id)
+
+        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
+        current_data_dir = Path(self.data_dir).resolve(strict=False)
+        if current_data_dir == default_data_dir:
+            row = self._guide_index_row(item_id)
+            item = self._item_from_compact_row(row) if row is not None else None
+        else:
+            # Focused tests/custom catalogues keep the generic indexed reader.
+            item = self._load_one(item_id)
         if item is None:
             return None
+
         self._by_id[item_id] = item
         while len(self._by_id) > 32:
             oldest_id = next(iter(self._by_id))
             self._by_id.pop(oldest_id, None)
         return item
+
+    def _guide_index_row(self, item_id: int) -> dict[str, Any] | None:
+        if self._guide_index_rows is None:
+            self._guide_index_rows = _read_guide_items_index(
+                data_dir=self.data_dir,
+                path=GUIDE_ITEMS_INDEX,
+            ) or {}
+        return self._guide_index_rows.get(int(item_id))
+
+    @staticmethod
+    def _item_from_compact_row(row: dict[str, Any] | None) -> DofusItem | None:
+        if not isinstance(row, dict):
+            return None
+        item_id = safe_int(row.get("id"))
+        if item_id is None:
+            return None
+        return DofusItem(
+            id=int(item_id),
+            original_id=safe_int(row.get("original_id"), int(item_id)) or int(item_id),
+            name=str(row.get("name") or ""),
+            level=safe_int(row.get("level")),
+            type_id=safe_int(row.get("type_id"), 0) or 0,
+            type_name=str(row.get("type_name") or ""),
+            description=str(row.get("description") or ""),
+            icon_id=safe_int(row.get("icon_id")),
+            image_path=str(row.get("image_path") or ""),
+            effects=tuple(str(value) for value in (row.get("effects") or ())),
+            guide_id=str(row.get("guide_id") or ""),
+            raw=dict(row.get("raw") or {}),
+        )
 
     def _load_one(self, item_id: int) -> DofusItem | None:
         """Read one item through byte-offset indexes prepared by preload."""
@@ -191,6 +366,24 @@ class DofusItemProvider:
 
     def _load(self) -> None:
         """Keep monolithic Dofus JSON parsing outside Atlas' long-lived heap."""
+
+        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
+        current_data_dir = Path(self.data_dir).resolve(strict=False)
+        if current_data_dir == default_data_dir:
+            compact_rows = _read_guide_items_index(
+                data_dir=self.data_dir,
+                path=GUIDE_ITEMS_INDEX,
+            )
+            if compact_rows:
+                items = [
+                    item
+                    for row in compact_rows.values()
+                    if (item := self._item_from_compact_row(row)) is not None
+                    and item.type_id == DOFUS_TYPE_ID
+                ]
+                self._items = sorted(items, key=lambda item: (item.level or 0, item.name, item.id))
+                self._by_id = {item.id: item for item in self._items}
+                return
 
         main_spec = getattr(sys.modules.get("__main__"), "__spec__", None)
         main_name = str(getattr(main_spec, "name", "") or "")
@@ -431,6 +624,93 @@ def _dump_compact_default_items() -> int:
     return 0
 
 
+def _build_guide_items_index(path: Path) -> int:
+    provider = DofusItemProvider(RAW_QUEST_DATA_DIR)
+    provider._load_in_process()
+    items: dict[int, DofusItem] = {item.id: item for item in provider._items}
+
+    requested = _collect_guide_item_ids() - set(items)
+    if requested:
+        sources = QuestSources(ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1")
+        try:
+            item_rows = sources.rows(RAW_QUEST_DATA_DIR / "items.json")
+            type_rows = sources.rows(RAW_QUEST_DATA_DIR / "item_types.json")
+            entries = sources.mapping(
+                RAW_QUEST_DATA_DIR / "languages" / "fr.json",
+                "entries",
+                required=True,
+            )
+            for item_id in sorted(requested):
+                try:
+                    row = item_rows[item_id]
+                except KeyError:
+                    continue
+                if not isinstance(row, dict):
+                    continue
+                type_id = safe_int(row.get("typeId"), 0) or 0
+                try:
+                    type_row = type_rows[type_id]
+                except KeyError:
+                    type_row = {}
+                if not isinstance(type_row, dict):
+                    type_row = {}
+                icon_id = safe_int(row.get("iconId"))
+                items[item_id] = DofusItem(
+                    id=item_id,
+                    original_id=item_id,
+                    name=localized_name(row, entries, f"Objet {item_id}"),
+                    level=safe_int(row.get("level")),
+                    type_id=type_id,
+                    type_name=text_for(entries, type_row.get("nameId"), ""),
+                    description=text_for(entries, row.get("descriptionId"), ""),
+                    icon_id=icon_id,
+                    image_path=provider._image_for_icon(icon_id),
+                    effects=(),
+                    raw={"id": item_id, "typeId": type_id},
+                )
+        finally:
+            sources.close()
+
+    payload = {
+        "schema_version": _GUIDE_ITEMS_INDEX_SCHEMA,
+        "source_signature": _guide_item_source_signature(RAW_QUEST_DATA_DIR),
+        "items": {
+            str(item_id): _compact_item_payload(item)
+            for item_id, item in sorted(items.items())
+        },
+    }
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+    print(
+        json.dumps(
+            {"item_count": len(items), "path": str(path)},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    )
+    return 0
+
+
 if __name__ == "__main__":
+    if "--build-guide-index" in sys.argv:
+        try:
+            target = Path(sys.argv[sys.argv.index("--build-guide-index") + 1])
+        except (ValueError, IndexError):
+            raise SystemExit(2)
+        raise SystemExit(_build_guide_items_index(target))
     if "--dump-compact" in sys.argv:
         raise SystemExit(_dump_compact_default_items())
+
+
+__all__ = [
+    "DOFUS_UNKNOWN_ICON",
+    "DofusItemProvider",
+    "GUIDE_ITEMS_INDEX",
+    "ensure_guide_items_index",
+]
