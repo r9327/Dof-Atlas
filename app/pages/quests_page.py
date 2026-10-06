@@ -16,7 +16,6 @@ from app.pages._quests_page_impl import (
     quest_detail_html,
     quest_required_items,
 )
-from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QTreeWidgetItem
 
@@ -399,6 +398,8 @@ class QuestsPage(_EagerQuestsPage):
             )
         )
         view = self._ensure_quest_detail_view()
+        from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
+
         view.set_character_key(self.current_character_key)
         active_series = self.hierarchy.series_by_id.get(self.active_series_id)
         view.show_quest(
