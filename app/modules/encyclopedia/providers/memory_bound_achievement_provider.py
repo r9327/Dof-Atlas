@@ -29,6 +29,7 @@ from app.quest_source_index import JsonSourceMapping, QuestSources
 _DUMP_COMPACT_FLAG = "--dump-compact"
 _DUMP_DETAIL_FLAG = "--dump-detail"
 _BUILD_COMPACT_CACHE_FLAG = "--build-compact-cache"
+_ENSURE_COMPACT_CACHE_FLAG = "--ensure-compact-cache"
 _SPACE_RE = re.compile(r"\s*")
 ACHIEVEMENT_COMPACT_CACHE = (
     ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_catalogue_v1.jsonl"
@@ -1181,6 +1182,22 @@ def _dump_default_detail(achievement_id: int) -> int:
         )
     )
     return 0
+
+
+def _ensure_compact_cache_cli() -> int:
+    if _achievement_compact_cache_valid(ACHIEVEMENT_COMPACT_CACHE, data_dir=RAW_QUEST_DATA_DIR):
+        try:
+            payload = json.loads(_achievement_compact_index_path(ACHIEVEMENT_COMPACT_CACHE).read_text(encoding="utf-8"))
+            count = max(0, int(payload.get("achievement_count") or 0))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            count = 0
+        print(json.dumps({"achievement_count": count, "path": str(ACHIEVEMENT_COMPACT_CACHE)}, ensure_ascii=False, separators=(",", ":")))
+        return 0
+    return _build_compact_cache(ACHIEVEMENT_COMPACT_CACHE)
+
+
+if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:
+    raise SystemExit(_ensure_compact_cache_cli())
 
 
 if __name__ == "__main__" and _BUILD_COMPACT_CACHE_FLAG in sys.argv:

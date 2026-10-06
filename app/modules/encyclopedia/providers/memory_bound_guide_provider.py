@@ -24,6 +24,7 @@ from app.quest_catalog import normalize_text
 
 _DUMP_COMPACT_FLAG = "--dump-compact"
 _BUILD_COMPACT_CACHE_FLAG = "--build-compact-cache"
+_ENSURE_COMPACT_CACHE_FLAG = "--ensure-compact-cache"
 GUIDE_COMPACT_CACHE = ROOT_DIR / ".cache" / "dofus_atlas" / "guide_catalogue_v1.jsonl"
 _GUIDE_COMPACT_SCHEMA = 1
 
@@ -724,6 +725,22 @@ def _dump_compact_default_guides() -> int:
             )
         )
     return 0
+
+
+def _ensure_compact_guide_cache_cli() -> int:
+    if _guide_compact_cache_valid(GUIDE_COMPACT_CACHE, guides_dir=GUIDES_DIR):
+        try:
+            with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                count = sum(1 for line in stream if '"kind":"guide"' in line)
+        except OSError:
+            count = 0
+        print(json.dumps({"guide_count": count, "path": str(GUIDE_COMPACT_CACHE)}, ensure_ascii=False, separators=(",", ":")))
+        return 0
+    return _build_compact_guide_cache(GUIDE_COMPACT_CACHE)
+
+
+if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:
+    raise SystemExit(_ensure_compact_guide_cache_cli())
 
 
 if __name__ == "__main__" and _BUILD_COMPACT_CACHE_FLAG in sys.argv:

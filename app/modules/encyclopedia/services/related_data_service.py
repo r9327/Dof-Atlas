@@ -86,26 +86,25 @@ def _warm_achievement_source_indexes() -> int:
 
 
 def _warm_guide_files() -> int:
-    """Warm small Guide JSON files in the filesystem cache, then release their bytes."""
+    """Count Guide sources without reading their bodies into Atlas' heap."""
 
     guides_dir = DATA_DIR / "encyclopedia" / "guides"
     if not guides_dir.is_dir():
         return 0
-    count = 0
-    for path in sorted(guides_dir.glob("*.json")):
-        try:
-            path.read_bytes()
-        except OSError:
-            continue
-        count += 1
-    return count
+    return sum(1 for path in guides_dir.glob("*.json") if path.is_file())
 
 
-def _run_compact_preload_builder(code: str, label: str) -> int:
-    """Run compact-store validation/building without importing heavy providers in Atlas."""
+def _run_compact_preload_worker(
+    module: str,
+    flag: str,
+    *,
+    label: str,
+    result_key: str,
+) -> int:
+    """Validate/build one compact store in exactly one disposable process."""
 
     completed = subprocess.run(
-        [sys.executable, "-c", code],
+        [sys.executable, "-m", module, flag],
         cwd=ROOT_DIR,
         capture_output=True,
         text=True,
@@ -118,47 +117,36 @@ def _run_compact_preload_builder(code: str, label: str) -> int:
     if not lines:
         raise RuntimeError(f"{label} n'a produit aucun résultat")
     try:
-        return max(0, int(lines[-1]))
-    except ValueError as exc:
+        payload = json.loads(lines[-1])
+        return max(0, int(payload.get(result_key) or 0))
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"Résultat {label} invalide: {lines[-1]!r}") from exc
 
 
 def _warm_achievement_catalogue() -> int:
-    """Build retained Success summaries while keeping the provider module out of Atlas."""
-
-    return _run_compact_preload_builder(
-        (
-            "from app.modules.encyclopedia.providers.memory_bound_achievement_provider "
-            "import ensure_achievement_compact_cache; "
-            "print(ensure_achievement_compact_cache())"
-        ),
-        "du cache compact Succès",
+    return _run_compact_preload_worker(
+        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+        "--ensure-compact-cache",
+        label="du cache compact Succès",
+        result_key="achievement_count",
     )
 
 
 def _warm_guide_catalogue() -> int:
-    """Build compact Guide summaries without importing the Guide provider in Atlas."""
-
-    return _run_compact_preload_builder(
-        (
-            "from app.modules.encyclopedia.providers.memory_bound_guide_provider "
-            "import ensure_guide_compact_cache; "
-            "print(ensure_guide_compact_cache())"
-        ),
-        "du cache compact Guide",
+    return _run_compact_preload_worker(
+        "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+        "--ensure-compact-cache",
+        label="du cache compact Guide",
+        result_key="guide_count",
     )
 
 
 def _warm_guide_items_index() -> int:
-    """Build the Guide item index without importing the item provider in Atlas."""
-
-    return _run_compact_preload_builder(
-        (
-            "from app.modules.encyclopedia.providers.dofus_item_provider "
-            "import ensure_guide_items_index; "
-            "print(ensure_guide_items_index())"
-        ),
-        "de guide_items_index",
+    return _run_compact_preload_worker(
+        "app.modules.encyclopedia.providers.dofus_item_provider",
+        "--ensure-guide-index",
+        label="de guide_items_index",
+        result_key="item_count",
     )
 
 

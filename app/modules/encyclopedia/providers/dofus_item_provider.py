@@ -697,7 +697,17 @@ def _build_guide_items_index(path: Path) -> int:
     return 0
 
 
+def _ensure_guide_items_index_cli() -> int:
+    cached = _read_guide_items_index(data_dir=RAW_QUEST_DATA_DIR, path=GUIDE_ITEMS_INDEX)
+    if cached is not None:
+        print(json.dumps({"item_count": len(cached), "path": str(GUIDE_ITEMS_INDEX)}, ensure_ascii=False, separators=(",", ":")))
+        return 0
+    return _build_guide_items_index(GUIDE_ITEMS_INDEX)
+
+
 if __name__ == "__main__":
+    if "--ensure-guide-index" in sys.argv:
+        raise SystemExit(_ensure_guide_items_index_cli())
     if "--build-guide-index" in sys.argv:
         try:
             target = Path(sys.argv[sys.argv.index("--build-guide-index") + 1])

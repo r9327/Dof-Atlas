@@ -343,6 +343,11 @@ def build_guide_progress_preload(
     catalog: Any,
     guide_provider: Any,
 ) -> tuple[dict[str, tuple[int, int, str]], str]:
+    load_all = getattr(guide_provider, "load_all", None)
+    guides = tuple(load_all()) if callable(load_all) else ()
+    if not guides:
+        return {}, ""
+
     from app.modules.encyclopedia.services import (
         ACHIEVEMENT_PROGRESS_FILE,
         GUIDE_PROGRESS_FILE,
@@ -364,7 +369,7 @@ def build_guide_progress_preload(
         catalog.by_id,
     )
     progress_by_guide: dict[str, tuple[int, int, str]] = {}
-    for guide in guide_provider.load_all():
+    for guide in guides:
         progress = calculator.guide_progress(guide, character_key)
         progress_by_guide[guide.id] = (
             progress.completed,
