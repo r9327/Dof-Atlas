@@ -23,6 +23,86 @@ from app.quest_catalog import normalize_text
 
 
 _DUMP_COMPACT_FLAG = "--dump-compact"
+_BUILD_COMPACT_CACHE_FLAG = "--build-compact-cache"
+GUIDE_COMPACT_CACHE = ROOT_DIR / ".cache" / "dofus_atlas" / "guide_catalogue_v1.jsonl"
+_GUIDE_COMPACT_SCHEMA = 1
+
+
+def _guide_compact_source_signature(guides_dir: Path = GUIDES_DIR) -> list[list[object]]:
+    signature: list[list[object]] = []
+    root = Path(guides_dir)
+    if not root.is_dir():
+        return signature
+    for path in sorted(root.glob("*.json")):
+        try:
+            stat = path.stat()
+        except OSError:
+            signature.append([path.name, -1, -1])
+            continue
+        signature.append([path.name, int(stat.st_size), int(stat.st_mtime_ns)])
+    return signature
+
+
+def _guide_compact_cache_valid(
+    path: Path = GUIDE_COMPACT_CACHE,
+    *,
+    guides_dir: Path = GUIDES_DIR,
+) -> bool:
+    try:
+        with path.open("r", encoding="utf-8") as stream:
+            meta = json.loads(stream.readline())
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+    return bool(
+        isinstance(meta, dict)
+        and meta.get("kind") == "meta"
+        and int(meta.get("schema_version") or 0) == _GUIDE_COMPACT_SCHEMA
+        and meta.get("source_signature") == _guide_compact_source_signature(guides_dir)
+    )
+
+
+def ensure_guide_compact_cache(
+    *,
+    guides_dir: Path = GUIDES_DIR,
+    path: Path = GUIDE_COMPACT_CACHE,
+) -> int:
+    """Build Guide summaries during preload so Guide open only reads compact rows."""
+
+    if _guide_compact_cache_valid(path, guides_dir=guides_dir):
+        count = 0
+        try:
+            with path.open("r", encoding="utf-8") as stream:
+                for line in stream:
+                    if '"kind":"guide"' in line:
+                        count += 1
+        except OSError:
+            return 0
+        return count
+    if bool(getattr(sys, "frozen", False)):
+        return 0
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+            _BUILD_COMPACT_CACHE_FLAG,
+            str(path),
+        ],
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=90,
+        check=True,
+    )
+    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise RuntimeError("La génération du cache compact Guide n'a produit aucun résultat")
+    payload = json.loads(lines[-1])
+    return max(0, int(payload.get("guide_count") or 0))
+
+
 _INDEXED_ENTITY_TYPES = frozenset(
     {"quest", "achievement", "dungeon", "monster", "wanted", "archmonster"}
 )
@@ -149,7 +229,53 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         if bool(getattr(sys, "frozen", False)) or current_guides_dir != default_guides_dir:
             self._load_in_process()
             return
+        if _guide_compact_cache_valid(
+            GUIDE_COMPACT_CACHE,
+            guides_dir=self.guides_dir,
+        ):
+            self._load_from_compact_cache()
+            return
         self._load_from_compact_subprocess()
+
+    def _load_from_compact_cache(self) -> None:
+        entries = self._guide_entries()
+        entry_by_file = {
+            path.name: (path, order, dict(catalog_entry))
+            for order, (path, catalog_entry) in enumerate(entries)
+        }
+        summaries: list[Guide] = []
+        by_entity_ids: dict[tuple[str, int], set[str]] = defaultdict(set)
+        self._detail_entries = {}
+        with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+            for raw_line in stream:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                row = json.loads(line)
+                if not isinstance(row, dict) or row.get("kind") != "guide":
+                    continue
+                value = row.get("value")
+                if not isinstance(value, dict):
+                    continue
+                guide = self._summary_from_compact_row(value)
+                source_file = str(value.get("source_file") or "")
+                entry = entry_by_file.get(source_file)
+                if entry is None:
+                    continue
+                summaries.append(guide)
+                self._detail_entries[guide.id] = entry
+                raw_entity_keys = value.get("entity_keys")
+                if isinstance(raw_entity_keys, list):
+                    for raw_key in raw_entity_keys:
+                        if not isinstance(raw_key, list) or len(raw_key) != 2:
+                            continue
+                        entity_type = str(raw_key[0] or "")
+                        entity_id = safe_int(raw_key[1])
+                        if entity_type and entity_id is not None:
+                            by_entity_ids[(entity_type, entity_id)].add(guide.id)
+        if not summaries:
+            raise RuntimeError("Cache compact Guide vide")
+        self._install_summaries(summaries, by_entity_ids)
 
     def _load_from_compact_subprocess(self) -> None:
         # Reading guide_complet.json in Atlas temporarily creates a very large
@@ -526,6 +652,58 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                     object.__setattr__(series, "raw", _drop_nested_raw(series.raw, "steps"))
 
 
+def _build_compact_guide_cache(path: Path) -> int:
+    provider = MemoryBoundGuideProvider(
+        guides_dir=GUIDES_DIR,
+        dofus_item_provider=_CompactGuideNoopItemProvider(),
+    )
+    provider._load_in_process()
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+
+    def line(payload: dict[str, object]) -> str:
+        return json.dumps(
+            payload,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ) + "\n"
+
+    with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(
+            line(
+                {
+                    "kind": "meta",
+                    "schema_version": _GUIDE_COMPACT_SCHEMA,
+                    "source_signature": _guide_compact_source_signature(GUIDES_DIR),
+                }
+            )
+        )
+        for guide in provider._guides:
+            entity_keys = {
+                entity_key
+                for entity_key, guides in provider._by_entity.items()
+                if any(candidate.id == guide.id for candidate in guides)
+            }
+            stream.write(
+                line(
+                    {
+                        "kind": "guide",
+                        "value": _summary_payload(guide, entity_keys),
+                    }
+                )
+            )
+    temporary.replace(path)
+    print(
+        json.dumps(
+            {"guide_count": len(provider._guides), "path": str(path)},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    )
+    return 0
+
+
 def _dump_compact_default_guides() -> int:
     provider = MemoryBoundGuideProvider(
         guides_dir=GUIDES_DIR,
@@ -548,8 +726,19 @@ def _dump_compact_default_guides() -> int:
     return 0
 
 
+if __name__ == "__main__" and _BUILD_COMPACT_CACHE_FLAG in sys.argv:
+    try:
+        guide_cache_path = Path(sys.argv[sys.argv.index(_BUILD_COMPACT_CACHE_FLAG) + 1])
+    except (ValueError, IndexError):
+        raise SystemExit(2)
+    raise SystemExit(_build_compact_guide_cache(guide_cache_path))
+
 if __name__ == "__main__" and _DUMP_COMPACT_FLAG in sys.argv:
     raise SystemExit(_dump_compact_default_guides())
 
 
-__all__ = ["MemoryBoundGuideProvider"]
+__all__ = [
+    "GUIDE_COMPACT_CACHE",
+    "MemoryBoundGuideProvider",
+    "ensure_guide_compact_cache",
+]
