@@ -23,6 +23,7 @@ from app.modules.encyclopedia.providers.achievement_provider import (
     AchievementProvider as BaseAchievementProvider,
     safe_int,
 )
+from app.quest_catalog import normalize_text
 from app.quest_source_index import JsonSourceMapping, QuestSources
 
 
@@ -465,11 +466,32 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 object.__setattr__(achievement, "description", "")
                 object.__setattr__(achievement, "objectives", ())
                 object.__setattr__(achievement, "rewards", ())
+                object.__setattr__(achievement, "objective_ids", ())
+                object.__setattr__(achievement, "reward_ids", ())
                 object.__setattr__(achievement, "linked_monsters", ())
                 object.__setattr__(achievement, "linked_dungeons", ())
                 object.__setattr__(achievement, "linked_achievements", ())
+                object.__setattr__(achievement, "resolved_linked_quests", ())
                 object.__setattr__(achievement, "resolved_linked_monsters", ())
                 object.__setattr__(achievement, "resolved_linked_dungeons", ())
+                object.__setattr__(achievement, "search_text", "")
+            else:
+                object.__setattr__(
+                    achievement,
+                    "search_text",
+                    normalize_text(
+                        " ".join(
+                            value
+                            for value in (
+                                achievement.name,
+                                achievement.category_name,
+                                achievement.subcategory_name,
+                                " ".join(ref.label for ref in achievement.linked_quests),
+                            )
+                            if value
+                        )
+                    ),
+                )
 
         self._linked_quests = {}
         self._linked_monsters = {}
