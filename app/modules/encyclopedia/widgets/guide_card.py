@@ -22,6 +22,8 @@ class GuideListModel(QAbstractListModel):
         self.guides: list[Guide] = []
         self.entries: list[Guide | str] = []
         self.progress_by_guide: dict[str, tuple[int, int, str]] = {}
+        self.title_overrides: dict[str, str] = {}
+        self.subtitle_overrides: dict[str, str] = {}
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self.entries)
@@ -41,9 +43,9 @@ class GuideListModel(QAbstractListModel):
         percent = int(round((done / total) * 100)) if total else 0
         if role == Qt.DisplayRole:
             levels = self._level_text(guide)
-            label = guide.category_label or guide.category
-            status = " • Partiel" if guide.completeness_status == "partial" else ""
-            return f"{guide.title}\n{label}{status}\n{levels}\n{done} / {total} {self._progress_word(guide, total)}                 {percent} %"
+            title = self.display_title(guide)
+            label = self.display_subtitle(guide)
+            return f"{title}\n{label}\n{levels}\n{done} / {total} {self._progress_word(guide, total)}                 {percent} %"
         if role == Qt.DecorationRole:
             if guide.image_path and Path(guide.image_path).exists():
                 return QIcon(guide.image_path)
@@ -86,6 +88,31 @@ class GuideListModel(QAbstractListModel):
                 return row
         return -1
 
+    def _emit_guide_changed(self, guide_id: str) -> None:
+        row = self.row_for_guide(guide_id)
+        if row >= 0:
+            index = self.index(row, 0)
+            self.dataChanged.emit(index, index, [Qt.DisplayRole])
+
+    def set_title_override(self, guide_id: str, title: str) -> None:
+        self.title_overrides[str(guide_id)] = str(title)
+        self._emit_guide_changed(str(guide_id))
+
+    def set_subtitle_override(self, guide_id: str, subtitle: str) -> None:
+        self.subtitle_overrides[str(guide_id)] = str(subtitle)
+        self._emit_guide_changed(str(guide_id))
+
+    def display_title(self, guide: Guide) -> str:
+        return self.title_overrides.get(guide.id, guide.title)
+
+    def display_subtitle(self, guide: Guide) -> str:
+        override = self.subtitle_overrides.get(guide.id)
+        if override is not None:
+            return override
+        label = guide.category_label or guide.category
+        status = " • Partiel" if guide.completeness_status == "partial" else ""
+        return f"{label}{status}"
+
     @staticmethod
     def _grouped_entries(guides: list[Guide]) -> list[Guide | str]:
         entries: list[Guide | str] = []
@@ -112,7 +139,7 @@ class GuideListModel(QAbstractListModel):
     @staticmethod
     def _progress_word(guide: Guide, total: int) -> str:
         required = list(guide.required_steps)
-        if total and required and all(step.step_type == "quest" for step in required):
+        if total and (not required or all(step.step_type == "quest" for step in required)):
             return "quête" if total == 1 else "quêtes"
         return "étape" if total == 1 else "étapes"
 
@@ -181,22 +208,27 @@ class GuideCardDelegate(QStyledItemDelegate):
         title_font.setPointSize(10)
         painter.setFont(title_font)
         painter.setPen(QColor(PALETTE["TEXT"]))
-        painter.drawText(text_left, y, text_right - text_left, 18, Qt.AlignLeft | Qt.AlignVCenter, guide.title)
+        model = index.model()
+        title = model.display_title(guide) if hasattr(model, "display_title") else guide.title
+        painter.drawText(text_left, y, text_right - text_left, 18, Qt.AlignLeft | Qt.AlignVCenter, title)
 
         meta_font = QFont(option.font)
         meta_font.setPointSize(8)
         painter.setFont(meta_font)
         painter.setPen(QColor(PALETTE["TEXT_MUTED"]))
         y += 18
-        label = guide.category_label or guide.category
-        status = " • Partiel" if guide.completeness_status == "partial" else ""
+        label = (
+            model.display_subtitle(guide)
+            if hasattr(model, "display_subtitle")
+            else (guide.category_label or guide.category)
+        )
         painter.drawText(
             text_left,
             y,
             text_right - text_left,
             16,
             Qt.AlignLeft | Qt.AlignVCenter,
-            f"{label}{status}",
+            label,
         )
 
         y += 15

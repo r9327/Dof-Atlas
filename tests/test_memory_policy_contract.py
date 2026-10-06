@@ -465,6 +465,32 @@ def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     assert "retained_only=True" in source
 
 
+def test_guide_home_uses_virtualized_delegate_instead_of_widget_forest() -> None:
+    source = (
+        ROOT / "app" / "modules" / "encyclopedia" / "views" / "guides_view.py"
+    ).read_text(encoding="utf-8")
+    home = source[
+        source.index("def build_home_page"):
+        source.index("def build_detail_page")
+    ]
+    refresh = source[
+        source.index("def _refresh_home_uncached"):
+        source.index("def _initial_home_progress_uncached")
+    ]
+    assert "QListView()" in home
+    assert "GuideCardDelegate" in home
+    assert "GuideHomeCard(" not in refresh
+
+    provider = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
+    assert "def get_guides_for_entity" in provider
+    install = provider[
+        provider.index("def _install_summaries"):
+        provider.index("def _summary_from_compact_row")
+    ]
+    assert "self._by_entity = defaultdict(list)" in install
+    assert "for entity_key, guide_ids in by_entity_ids.items()" not in install
+
+
 def test_guide_home_summary_stays_metadata_only() -> None:
     provider = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
     summary = provider[
@@ -532,6 +558,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
+        test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
         test_guide_home_summary_stays_metadata_only()
         test_guide_compact_worker_never_loads_dofus_item_corpus()
         test_dofus_item_worker_streams_monolithic_doduda_sources()

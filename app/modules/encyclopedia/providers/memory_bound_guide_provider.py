@@ -231,6 +231,62 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._ensure_loaded()
         return self._progress_quest_ids_by_guide.get(str(guide_id), ())
 
+    def get_guides_for_entity(self, entity_type: str, entity_id: int) -> list[Guide]:
+        self._ensure_loaded()
+        wanted_type = str(entity_type)
+        wanted_id = int(entity_id)
+
+        if _guide_compact_cache_valid(
+            GUIDE_COMPACT_CACHE,
+            guides_dir=self.guides_dir,
+        ):
+            matches: list[Guide] = []
+            with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                for raw_line in stream:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict) or row.get("kind") != "guide":
+                        continue
+                    value = row.get("value")
+                    if not isinstance(value, dict):
+                        continue
+                    raw_keys = value.get("entity_keys")
+                    if not isinstance(raw_keys, list):
+                        continue
+                    if not any(
+                        isinstance(raw_key, list)
+                        and len(raw_key) == 2
+                        and str(raw_key[0] or "") == wanted_type
+                        and safe_int(raw_key[1]) == wanted_id
+                        for raw_key in raw_keys
+                    ):
+                        continue
+                    guide = self._by_id.get(str(value.get("id") or ""))
+                    if guide is not None:
+                        matches.append(guide)
+            return sorted(
+                matches,
+                key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
+            )
+
+        matches: list[Guide] = []
+        for guide_id in tuple(self._by_id):
+            detail = self.get_by_id(guide_id)
+            if detail is None:
+                continue
+            if any(
+                ref.entity_type == wanted_type and int(ref.entity_id) == wanted_id
+                for ref in detail.linked_entities
+            ):
+                matches.append(self._by_id[guide_id])
+        self.release_detail_cache()
+        return sorted(
+            matches,
+            key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
+        )
+
     @staticmethod
     def _progress_quest_ids_from_row(row: dict[str, Any]) -> tuple[int, ...]:
         result: list[int] = []
@@ -273,7 +329,6 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             for order, (path, catalog_entry) in enumerate(entries)
         }
         summaries: list[Guide] = []
-        by_entity_ids: dict[tuple[str, int], set[str]] = defaultdict(set)
         self._detail_entries = {}
         self._progress_quest_ids_by_guide = {}
         with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
@@ -295,18 +350,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 summaries.append(guide)
                 self._detail_entries[guide.id] = entry
                 self._progress_quest_ids_by_guide[guide.id] = self._progress_quest_ids_from_row(value)
-                raw_entity_keys = value.get("entity_keys")
-                if isinstance(raw_entity_keys, list):
-                    for raw_key in raw_entity_keys:
-                        if not isinstance(raw_key, list) or len(raw_key) != 2:
-                            continue
-                        entity_type = str(raw_key[0] or "")
-                        entity_id = safe_int(raw_key[1])
-                        if entity_type and entity_id is not None:
-                            by_entity_ids[(entity_type, entity_id)].add(guide.id)
         if not summaries:
             raise RuntimeError("Cache compact Guide vide")
-        self._install_summaries(summaries, by_entity_ids)
+        self._install_summaries(summaries, {})
 
     def _load_from_compact_subprocess(self) -> None:
         # Reading guide_complet.json in Atlas temporarily creates a very large
@@ -334,7 +380,6 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             check=True,
         )
         summaries: list[Guide] = []
-        by_entity_ids: dict[tuple[str, int], set[str]] = defaultdict(set)
         self._detail_entries = {}
         self._progress_quest_ids_by_guide = {}
         for raw_line in completed.stdout.splitlines():
@@ -352,18 +397,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             summaries.append(guide)
             self._detail_entries[guide.id] = entry
             self._progress_quest_ids_by_guide[guide.id] = self._progress_quest_ids_from_row(row)
-            raw_entity_keys = row.get("entity_keys")
-            if isinstance(raw_entity_keys, list):
-                for raw_key in raw_entity_keys:
-                    if not isinstance(raw_key, list) or len(raw_key) != 2:
-                        continue
-                    entity_type = str(raw_key[0] or "")
-                    entity_id = safe_int(raw_key[1])
-                    if entity_type and entity_id is not None:
-                        by_entity_ids[(entity_type, entity_id)].add(guide.id)
         if not summaries:
             raise RuntimeError("L'extraction compacte des Guides n'a produit aucun résultat")
-        self._install_summaries(summaries, by_entity_ids)
+        self._install_summaries(summaries, {})
 
     def _load_in_process(self) -> None:
         entries = self._guide_entries()
@@ -430,17 +466,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 for category, values in by_category.items()
             },
         )
-        self._by_entity = defaultdict(
-            list,
-            {
-                entity_key: [
-                    self._by_id[guide_id]
-                    for guide_id in sorted(guide_ids)
-                    if guide_id in self._by_id
-                ]
-                for entity_key, guide_ids in by_entity_ids.items()
-            },
-        )
+        # Entity links are scanned from the compact cache on explicit
+        # navigation instead of retaining a global map on the Guide home.
+        self._by_entity = defaultdict(list)
 
     def _summary_from_compact_row(self, row: dict[str, Any]) -> Guide:
         # Guide home is metadata-only. Exact steps/entities/items are loaded by

@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLayout,
+    QListView,
     QProgressBar,
     QScrollArea,
     QSizePolicy,
@@ -53,7 +54,11 @@ from app.modules.encyclopedia.views.guide_home_image_cache import (
 )
 from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_state
 from app.modules.encyclopedia.widgets.dashboard import CollapsedColumnRail, FixedColumnSplitter
-from app.modules.encyclopedia.widgets.guide_card import GuideListModel
+from app.modules.encyclopedia.widgets.guide_card import (
+    GUIDE_ID_ROLE,
+    GuideCardDelegate,
+    GuideListModel,
+)
 from app.quest_catalog import normalize_text
 from app.storage import AtlasButton
 from app.ui.theme import PALETTE, render_theme_template
@@ -1272,15 +1277,29 @@ class GuidesView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
 
-        self.home_content = QWidget()
-        self.home_content.setObjectName("GuidesHomeContent")
-        self.home_content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.home_layout = QVBoxLayout(self.home_content)
-        self.home_layout.setContentsMargins(2, 2, 2, 2)
-        self.home_layout.setSpacing(8)
+        self.home_list = QListView()
+        self.home_list.setObjectName("GuidesHomeList")
+        self.home_list.setModel(self.result_model)
+        self.home_list.setItemDelegate(GuideCardDelegate(self.home_list))
+        self.home_list.setMouseTracking(True)
+        self.home_list.setUniformItemSizes(False)
+        self.home_list.clicked.connect(self._on_home_guide_clicked)
+        root.addWidget(self.home_list, 1)
 
-        root.addWidget(self.home_content, 1)
+        self.home_empty = QLabel("Aucun guide ne correspond à la recherche.")
+        self.home_empty.setObjectName("GuidesHomeEmptyText")
+        self.home_empty.setAlignment(Qt.AlignCenter)
+        self.home_empty.setVisible(False)
+        root.addWidget(self.home_empty, 1)
+
+        self.home_content = self.home_list
+        self.home_layout = root
         return page
+
+    def _on_home_guide_clicked(self, index) -> None:
+        guide_id = index.data(GUIDE_ID_ROLE)
+        if guide_id:
+            self.select_guide(str(guide_id))
 
     def build_detail_page(self) -> QWidget:
         from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
@@ -1463,25 +1482,15 @@ class GuidesView(QWidget):
             self.show_guide_overview(self.current_guide_id, preserve_scroll=True)
 
     def _refresh_home_uncached(self) -> None:
-        clear_layout(self.home_layout)
         self.visible_guides = self.provider.search(self.search_text)
         self.result_model.set_guides(self.visible_guides)
+
         if not self.visible_guides:
-            empty = QFrame()
-            empty.setObjectName("GuidesHomeEmpty")
-            empty_layout = QVBoxLayout(empty)
-            empty_layout.setContentsMargins(20, 30, 20, 30)
-            message = QLabel("Aucun guide ne correspond à la recherche.")
-            message.setObjectName("GuidesHomeEmptyText")
-            message.setAlignment(Qt.AlignCenter)
-            empty_layout.addWidget(message)
-            self.home_layout.addWidget(empty)
-            self.home_layout.addStretch(1)
+            self.result_model.set_progress({})
+            self.home_list.setVisible(False)
+            self.home_empty.setVisible(True)
             return
 
-        grouped: dict[str, list[Guide]] = {}
-        for guide in self.visible_guides:
-            grouped.setdefault(guide.category, []).append(guide)
         progress_by_guide = self.initial_home_progress()
         if progress_by_guide is None:
             progress_by_guide = {
@@ -1489,36 +1498,8 @@ class GuidesView(QWidget):
                 for guide in self.visible_guides
             }
         self.result_model.set_progress(progress_by_guide)
-
-        catalog = QFrame()
-        catalog.setObjectName("GuidesCatalogGrid")
-        catalog.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        catalog_layout = QGridLayout(catalog)
-        catalog_layout.setContentsMargins(0, 0, 0, 0)
-        catalog_layout.setHorizontalSpacing(8)
-        catalog_layout.setVerticalSpacing(8)
-        catalog_layout.setRowStretch(0, 1)
-
-        column = 0
-        if grouped.get("aventure") or grouped.get("alignements"):
-            catalog_layout.addWidget(self.build_progression_column(grouped, progress_by_guide), 0, column)
-            catalog_layout.setColumnMinimumWidth(column, HOME_GUIDE_LEFT_MIN_WIDTH)
-            catalog_layout.setColumnStretch(column, 0)
-            column += 1
-
-        dofus_guides = grouped.get("dofus", [])
-        if dofus_guides:
-            catalog_layout.addWidget(self.build_category_section("dofus", dofus_guides, progress_by_guide=progress_by_guide), 0, column)
-            catalog_layout.setColumnStretch(column, 1)
-            column += 1
-
-        for category, guides in grouped.items():
-            if category not in CATEGORY_ORDER:
-                catalog_layout.addWidget(self.build_category_section(category, guides, progress_by_guide=progress_by_guide), 0, column)
-                catalog_layout.setColumnStretch(column, 1)
-                column += 1
-
-        self.home_layout.addWidget(catalog, 1)
+        self.home_empty.setVisible(False)
+        self.home_list.setVisible(True)
 
     def _initial_home_progress_uncached(self) -> dict[str, tuple[int, int, str]] | None:
         if not self._initial_progress_by_guide:
@@ -3179,30 +3160,18 @@ class GuidesView(QWidget):
         return view
 
     def _refresh_guide_ultime_home_labels(self) -> None:
-        if not hasattr(self, "home_content"):
-            return
-        card = next(
-            (
-                candidate
-                for candidate in self.home_content.findChildren(GuideHomeCard)
-                if str(getattr(getattr(candidate, "guide", None), "id", ""))
-                == GUIDE_ULTIME_LEGACY_ID
-            ),
-            None,
+        self.result_model.set_title_override(
+            GUIDE_ULTIME_LEGACY_ID,
+            GUIDE_ULTIME_TITLE,
         )
-        if card is None:
-            return
-        title = card.findChild(QLabel, "GuideHomeCardTitle")
-        if title is not None:
-            title.setText(GUIDE_ULTIME_TITLE)
-        card.setToolTip(f"Ouvrir le guide {GUIDE_ULTIME_TITLE}")
         service = self.guide_ultime_service
         if service is None or not service.available:
             return
         completed, total = service.route_sheet_progress(self.current_character_key)
-        progress = card.findChild(QLabel, "GuideHomeProgress")
-        if progress is not None:
-            progress.setText(f"{completed} / {total} fiches")
+        self.result_model.set_subtitle_override(
+            GUIDE_ULTIME_LEGACY_ID,
+            f"{completed} / {total} fiches",
+        )
 
     def refresh_home(self) -> None:
         signature = self._current_home_render_signature()

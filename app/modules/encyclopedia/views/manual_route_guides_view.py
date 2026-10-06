@@ -2,14 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtWidgets import QLabel
-
 from app.modules.encyclopedia.services.guide_catalog_route_stats import (
     catalog_route_map_count_hint,
 )
 from app.modules.encyclopedia.views.guides_view import (
     GUIDE_ULTIME_LEGACY_ID,
-    GuideHomeCard,
     GuidesView as _BaseGuidesView,
 )
 
@@ -56,27 +53,15 @@ class ManualRouteGuidesView(_BaseGuidesView):
         return int(count)
 
     def _refresh_catalog_route_home_labels(self) -> None:
-        if not hasattr(self, "home_content"):
-            return
-        cards = self.home_content.findChildren(GuideHomeCard)
         for guide_id in CATALOG_MANUAL_GUIDE_IDS:
             count = self._catalog_route_map_count(guide_id)
             if count <= 0:
                 continue
-            card = next(
-                (
-                    candidate
-                    for candidate in cards
-                    if str(getattr(candidate.guide, "id", "")) == guide_id
-                ),
-                None,
+            suffix = "map" if count == 1 else "maps"
+            self.result_model.set_subtitle_override(
+                guide_id,
+                f"Parcours optimisé · {count} {suffix}",
             )
-            if card is None:
-                continue
-            meta = card.findChild(QLabel, "GuideHomeCardMeta")
-            if meta is not None:
-                suffix = "map" if count == 1 else "maps"
-                meta.setText(f"Parcours optimisé · {count} {suffix}")
 
     def refresh_home(self) -> None:
         super().refresh_home()
