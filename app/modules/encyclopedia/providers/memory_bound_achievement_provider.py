@@ -100,35 +100,54 @@ def _entity_ref_to_dict(ref: EntityRef) -> dict[str, object]:
     }
 
 
-def _compact_objective_dict(objective: AchievementObjective) -> dict[str, object]:
+def _progress_objective_row(objective: AchievementObjective) -> list[object]:
+    """Primitive auto-progress contract; rich objective text/entities stay off-heap."""
+
     objective_type = str(objective.objective_type or "")
     keep_text = objective_type.strip().casefold() == "critère pr"
-    return {
-        "id": int(objective.id),
-        "achievement_id": int(objective.achievement_id),
-        "text": str(objective.text or "") if keep_text else "",
-        "criterion": str(objective.criterion or ""),
-        "order": int(objective.order or 0),
-        "objective_type": objective_type,
-        "required_quantity": objective.required_quantity,
-        "entity_ref": (
-            {
-                "entity_type": str(objective.entity_ref.entity_type),
-                "entity_id": objective.entity_ref.entity_id,
-                "label": "",
-            }
-            if objective.entity_ref is not None
-            else None
-        ),
-        "entity_refs": [
-            {
-                "entity_type": str(ref.entity_type),
-                "entity_id": ref.entity_id,
-                "label": "",
-            }
+    return [
+        int(objective.id),
+        objective_type,
+        str(objective.criterion or ""),
+        str(objective.text or "") if keep_text else "",
+        [
+            [str(ref.entity_type), ref.entity_id]
             for ref in objective.entity_refs
         ],
-    }
+    ]
+
+
+def _progress_objectives_from_rows(values: object) -> tuple[tuple[object, ...], ...]:
+    if not isinstance(values, list):
+        return ()
+    output: list[tuple[object, ...]] = []
+    for raw in values:
+        if not isinstance(raw, list) or len(raw) != 5:
+            continue
+        try:
+            objective_id = int(raw[0])
+        except (TypeError, ValueError):
+            continue
+        refs: list[tuple[str, int]] = []
+        if isinstance(raw[4], list):
+            for raw_ref in raw[4]:
+                if not isinstance(raw_ref, list) or len(raw_ref) != 2:
+                    continue
+                try:
+                    entity_id = int(raw_ref[1])
+                except (TypeError, ValueError):
+                    continue
+                refs.append((str(raw_ref[0] or ""), entity_id))
+        output.append(
+            (
+                objective_id,
+                str(raw[1] or ""),
+                str(raw[2] or ""),
+                str(raw[3] or ""),
+                tuple(refs),
+            )
+        )
+    return tuple(output)
 
 
 def _compact_achievement_dict(achievement: Achievement) -> dict[str, object]:
@@ -150,8 +169,12 @@ def _compact_achievement_dict(achievement: Achievement) -> dict[str, object]:
         "order": int(achievement.order or 0),
         "objective_ids": list(achievement.objective_ids),
         "reward_ids": list(achievement.reward_ids),
-        "objectives": [
-            _compact_objective_dict(objective)
+        # Full objective models are detail-only. Auto-progress keeps a primitive
+        # contract beside the summaries so thousands of dataclass/ref objects
+        # never enter Atlas' long-lived heap.
+        "objectives": [],
+        "progress_objectives": [
+            _progress_objective_row(objective)
             for objective in achievement.objectives
         ],
         "rewards": [],
@@ -372,6 +395,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._catalog_loading = False
+        self._progress_objectives: dict[int, tuple[tuple[object, ...], ...]] = {}
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -399,6 +423,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._detail_cache_id = None
         self._detail_cache = None
         self._detail_sources_ready = False
+        self._progress_objectives = {}
         self._reset_sources()
 
     def _image_for_icon(self, icon_id: int | None, folders: tuple[str, ...]) -> str:
@@ -452,6 +477,17 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         finally:
             self._catalog_loading = False
         self._trim_catalogue_payload()
+        self._progress_objectives = {
+            int(achievement.id): tuple(
+                tuple(row)
+                for row in (
+                    _progress_objective_row(objective)
+                    for objective in achievement.objectives
+                )
+            )
+            for achievement in self._achievements
+            if achievement.objectives
+        }
         self._reset_sources()
 
     def _load_from_compact_subprocess(self) -> None:
@@ -471,6 +507,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         )
         categories: dict[int, AchievementCategory] = {}
         achievements: list[Achievement] = []
+        progress_objectives: dict[int, tuple[tuple[object, ...], ...]] = {}
         assert process.stdout is not None
         for raw_line in process.stdout:
             line = raw_line.strip()
@@ -495,7 +532,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 )
                 categories[category.id] = category
             elif kind == "achievement" and isinstance(value, dict):
-                achievements.append(_achievement_from_dict(value))
+                achievement = _achievement_from_dict(value)
+                achievements.append(achievement)
+                rows = _progress_objectives_from_rows(value.get("progress_objectives"))
+                if rows:
+                    progress_objectives[int(achievement.id)] = rows
 
         stderr = process.stderr.read() if process.stderr is not None else ""
         return_code = process.wait(timeout=10)
@@ -523,6 +564,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     continue
         self._by_category = defaultdict(list, by_category)
         self._by_quest = defaultdict(list, by_quest)
+        self._progress_objectives = progress_objectives
         self._linked_quests = {}
         self._linked_monsters = {}
         self._linked_dungeons = {}
@@ -543,6 +585,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         # Rich reward/document indexes are now detail-only and live in the
         # disposable detail subprocess for the default runtime.
         return list(self._achievements)
+
+    def progress_objectives_for(self, achievement_id: int) -> tuple[tuple[object, ...], ...]:
+        self._ensure_loaded()
+        return self._progress_objectives.get(int(achievement_id), ())
 
     def prepare_detail_sources(self) -> None:
         if self._detail_sources_ready:
