@@ -580,6 +580,25 @@ def test_memory_page_prefers_explicit_tab_over_hidden_current_tab() -> None:
     assert 'if label and label == self._memory_pending_tab_label:' in source
 
 
+def test_home_release_clears_loaded_manual_guide_bundle_cache_without_importing_it() -> None:
+    source = MEMORY_PAGE.read_text(encoding="utf-8")
+    helper = source[
+        source.index("def _clear_reconstructible_manual_guide_cache"):
+        source.index("def _release_runtime_providers")
+    ]
+    assert "sys.modules.get" in helper
+    assert "guide_ultime_manual_runtime_service" in helper
+    assert "guide_ultime_manual_runtime_core" in helper
+    assert "clear_manual_bundle_cache" in helper
+    assert "from app.modules.encyclopedia.services.guide_ultime" not in helper
+
+    release = source[
+        source.index("def _release_runtime_providers"):
+        source.index("def prepare_external_tab_navigation")
+    ]
+    assert "self._clear_reconstructible_manual_guide_cache()" in release
+
+
 def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     source = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
     assert '"objectives": []' in source
@@ -786,6 +805,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_background_related_preload_keeps_runtime_imports_out_of_parent()
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
+        test_home_release_clears_loaded_manual_guide_bundle_cache_without_importing_it()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
         test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
         test_guide_home_defers_quest_runtime_until_needed()
