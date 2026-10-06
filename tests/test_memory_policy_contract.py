@@ -129,6 +129,7 @@ def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> N
         "_hibernate_achievements",
         "_hibernate_guides",
         "_release_runtime_providers",
+        "_clear_reconstructible_image_cache",
         "prepare_external_tab_navigation",
         "_collect_achievement_runtime",
         "collect_related_preload",
@@ -144,6 +145,8 @@ def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> N
     assert "_guide_runtime_ready = False" in source
     assert "pending_encyclopedia_tab" in source
     assert "_memory_release_runtime_when_idle = False" in source
+    assert "ENCYCLOPEDIA_IMAGE_SERVICE" in source
+    assert 'sys.modules.get("app.modules.encyclopedia.services.image_service")' in source
     assert "deleteLater()" in source
 
 

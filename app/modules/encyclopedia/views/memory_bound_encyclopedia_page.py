@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 from PySide6.QtWidgets import QWidget
 
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
@@ -136,6 +138,18 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         if active_label != GUIDES_TAB:
             self._hibernate_guides()
 
+    @staticmethod
+    def _clear_reconstructible_image_cache() -> None:
+        """Release decoded Encyclopedia thumbnails when the whole page sleeps."""
+
+        module = sys.modules.get("app.modules.encyclopedia.services.image_service")
+        if module is None:
+            return
+        service = getattr(module, "ENCYCLOPEDIA_IMAGE_SERVICE", None)
+        clear = getattr(service, "clear", None)
+        if callable(clear):
+            clear()
+
     def _release_runtime_providers(self) -> bool:
         if bool(getattr(self, "_achievement_load_started", False)) or bool(
             getattr(self, "_related_preload_started", False)
@@ -160,6 +174,11 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         release_quests = getattr(self.quest_provider, "release_catalogue", None)
         if callable(release_quests):
             release_quests()
+
+        # Thumbnails are fully reconstructible. Keeping the shared Guide image
+        # LRU alive after Home pins several megabytes of QPixmap backing memory
+        # even though every Guide widget has already been hibernated.
+        self._clear_reconstructible_image_cache()
 
         self._achievement_ready = False
         self._guide_runtime_ready = False
