@@ -33,6 +33,7 @@ class RelatedEncyclopediaData:
     guide_provider: Any
     quest_graph: QuestGraphService
     warmed_source_count: int = 0
+    warmed_achievement_count: int = 0
     warmed_guide_file_count: int = 0
     warmed_guide_item_count: int = 0
 
@@ -101,6 +102,16 @@ def _warm_guide_files() -> int:
     return count
 
 
+def _warm_achievement_catalogue() -> int:
+    """Build retained Success summaries before the user opens the tab."""
+
+    from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+        ensure_achievement_compact_cache,
+    )
+
+    return ensure_achievement_compact_cache()
+
+
 def _warm_guide_items_index() -> int:
     """Build the compact Guide item store in preload, outside the UI path."""
 
@@ -127,6 +138,7 @@ def build_related_encyclopedia_data(catalog: QuestCatalog) -> RelatedEncyclopedi
 
         quest_provider = QuestProvider(catalog=catalog)
         warmed_source_count = _warm_achievement_source_indexes()
+        warmed_achievement_count = _warm_achievement_catalogue()
         warmed_guide_file_count = _warm_guide_files()
         warmed_guide_item_count = _warm_guide_items_index()
         data = RelatedEncyclopediaData(
@@ -134,6 +146,7 @@ def build_related_encyclopedia_data(catalog: QuestCatalog) -> RelatedEncyclopedi
             guide_provider=_EMPTY_GUIDE_PROVIDER,
             quest_graph=QuestGraphService(quest_provider),
             warmed_source_count=warmed_source_count,
+            warmed_achievement_count=warmed_achievement_count,
             warmed_guide_file_count=warmed_guide_file_count,
             warmed_guide_item_count=warmed_guide_item_count,
         )
