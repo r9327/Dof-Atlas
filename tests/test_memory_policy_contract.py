@@ -665,6 +665,11 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
     assert '"manual_stage_data": stage' in core_stage
     assert '"manual_chapter_preparation": chapter_preparation or []' in core_stage
     assert '"manual_stage_data": copy.deepcopy(stage)' not in core_stage
+    assert '"manual_lines": [] if self.compact_runtime else lines' in core_stage
+    assert '"manual_has_lines": bool(lines)' in core_stage
+    assert '"manual_search_text": manual_search_text' in core_stage
+
+    assert "compact_runtime=True" in runtime_open
 
     conditions_source = (
         ROOT
@@ -680,6 +685,14 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
     ]
     assert "compact_name_index" in success_index
     assert success_index.index("compact_name_index") < success_index.index("provider.load_all")
+
+    manual_lines = conditions_source[
+        conditions_source.index("def manual_lines_for_card"):
+        conditions_source.index("def card_automatic_values")
+    ]
+    assert "_manual_base_lines_cache" in manual_lines
+    assert "manual_has_lines" in manual_lines
+    assert "self._stage_lines(" in manual_lines
 
 
 def test_guide_auto_validation_uses_streamed_success_name_index_first() -> None:
