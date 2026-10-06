@@ -406,7 +406,8 @@ def measure() -> dict[str, Any]:
     _capture(app, stages, "craft_active")
     sampler.set_phase("craft_home")
     window.show_page("Home")
-    before_equipment = _capture(app, stages, "before_equipment_home", 0.35)
+    after_craft_home = _capture(app, stages, "after_craft_home", 0.75)
+    before_equipment = _capture(app, stages, "before_equipment_home", 0.05)
 
     sampler.set_phase("equipment_open")
     timings["equipment_open_ms"] = open_page(app, window, "Equipement", timeout=60.0)
@@ -433,6 +434,7 @@ def measure() -> dict[str, Any]:
     quests_home_tree = float(after_quests_home.get("tree_rss_mb") or 0.0)
     achievements_home_tree = float(after_achievements_home.get("tree_rss_mb") or 0.0)
     guide_home_tree = float(after_guide_home.get("tree_rss_mb") or 0.0)
+    craft_home_tree = float(after_craft_home.get("tree_rss_mb") or 0.0)
 
     return {
         "git_head": git_head(),
@@ -447,6 +449,10 @@ def measure() -> dict[str, Any]:
         ),
         "guide_retained_tree_delta_mb": round(
             guide_home_tree - quests_home_tree,
+            2,
+        ),
+        "craft_retained_tree_delta_mb": round(
+            craft_home_tree - guide_home_tree,
             2,
         ),
         "equipment_tree_delta_active_mb": round(active_tree - before_tree, 2),
