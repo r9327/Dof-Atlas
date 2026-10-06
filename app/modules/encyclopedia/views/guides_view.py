@@ -6,6 +6,7 @@ import logging
 import time
 import weakref
 from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
 from pathlib import Path
@@ -46,42 +47,103 @@ from app.modules.encyclopedia.services import (
     QuestGraphService,
     QuestProgressService,
 )
-from app.modules.encyclopedia.services.guide_auto_validation_contract import (
-    build_route_auto_validation_contract,
-)
-from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
-    GuideUltimeManualRuntimeService,
-)
-from app.modules.encyclopedia.services.guide_quest_view_model import (
-    DisplayItem,
-    DisplayReward,
-    DisplaySolutionBlock,
-    SolutionObjective,
-    activity_labels,
-    clean_text,
-    clean_requirement_line,
-    first_position_from_quest,
-    format_number,
-    guide_activities,
-    guide_items,
-    guide_rewards,
-    quest_rewards,
-    quest_solution_blocks,
-    quest_solution_steps,
-    reward_label,
-)
 from app.modules.encyclopedia.views.guide_home_image_cache import (
     get_cached_scaled_pixmap,
     store_scaled_pixmap,
 )
 from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_state
-from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
 from app.modules.encyclopedia.widgets.dashboard import CollapsedColumnRail, FixedColumnSplitter
 from app.modules.encyclopedia.widgets.guide_card import GuideListModel
-from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import normalize_text
 from app.storage import AtlasButton
 from app.ui.theme import PALETTE, render_theme_template
+
+if TYPE_CHECKING:
+    from app.modules.encyclopedia.services.guide_quest_view_model import (
+        DisplayItem,
+        DisplayReward,
+        DisplaySolutionBlock,
+        SolutionObjective,
+    )
+    from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+        GuideUltimeManualRuntimeService,
+    )
+    from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
+
+
+_GUIDE_QUEST_VM = None
+
+
+def _guide_quest_vm():
+    global _GUIDE_QUEST_VM
+    if _GUIDE_QUEST_VM is None:
+        from app.modules.encyclopedia.services import guide_quest_view_model
+
+        _GUIDE_QUEST_VM = guide_quest_view_model
+    return _GUIDE_QUEST_VM
+
+
+def _vm_call(name: str, *args, **kwargs):
+    return getattr(_guide_quest_vm(), name)(*args, **kwargs)
+
+
+def activity_labels(*args, **kwargs):
+    return _vm_call("activity_labels", *args, **kwargs)
+
+
+def clean_text(*args, **kwargs):
+    return _vm_call("clean_text", *args, **kwargs)
+
+
+def clean_requirement_line(*args, **kwargs):
+    return _vm_call("clean_requirement_line", *args, **kwargs)
+
+
+def first_position_from_quest(*args, **kwargs):
+    return _vm_call("first_position_from_quest", *args, **kwargs)
+
+
+def format_number(*args, **kwargs):
+    return _vm_call("format_number", *args, **kwargs)
+
+
+def guide_activities(*args, **kwargs):
+    return _vm_call("guide_activities", *args, **kwargs)
+
+
+def guide_items(*args, **kwargs):
+    return _vm_call("guide_items", *args, **kwargs)
+
+
+def guide_rewards(*args, **kwargs):
+    return _vm_call("guide_rewards", *args, **kwargs)
+
+
+def quest_rewards(*args, **kwargs):
+    return _vm_call("quest_rewards", *args, **kwargs)
+
+
+def quest_solution_blocks(*args, **kwargs):
+    return _vm_call("quest_solution_blocks", *args, **kwargs)
+
+
+def quest_solution_steps(*args, **kwargs):
+    return _vm_call("quest_solution_steps", *args, **kwargs)
+
+
+def reward_label(*args, **kwargs):
+    return _vm_call("reward_label", *args, **kwargs)
+
+
+def DisplaySolutionBlock(*args, **kwargs):  # noqa: N802 - compatibility constructor
+    return _vm_call("DisplaySolutionBlock", *args, **kwargs)
+
+
+def item_row(*args, **kwargs):
+    from app.modules.encyclopedia.widgets.quest_item_row import item_row as build_item_row
+
+    return build_item_row(*args, **kwargs)
+
 
 Navigator = Callable[..., bool]
 TravelLauncher = Callable[[str], None]
@@ -3051,6 +3113,16 @@ class GuidesView(QWidget):
     def ensure_guide_ultime_view(self) -> GuideUltimeManualView | None:
         if self.guide_ultime_view is not None:
             return self.guide_ultime_view
+
+        from app.modules.encyclopedia.services.guide_auto_validation_contract import (
+            build_route_auto_validation_contract,
+        )
+        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+            GuideUltimeManualRuntimeService,
+        )
+        from app.modules.encyclopedia.views.guide_ultime_manual_view import (
+            GuideUltimeManualView,
+        )
 
         service = self.guide_ultime_service
         if service is None:

@@ -1,27 +1,25 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from PySide6.QtWidgets import QLabel
 
-from app.modules.encyclopedia.services.guide_auto_validation_contract import (
-    build_route_auto_validation_contract,
-)
-from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
-    GuideCatalogManualRuntimeService,
-)
 from app.modules.encyclopedia.services.guide_catalog_route_stats import (
     catalog_route_map_count_hint,
-)
-from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
-    GuideUltimeManualRuntimeService,
 )
 from app.modules.encyclopedia.views.guides_view import (
     GUIDE_ULTIME_LEGACY_ID,
     GuideHomeCard,
     GuidesView as _BaseGuidesView,
 )
-from app.modules.encyclopedia.views.shared_manual_guide_view import (
-    SharedGuideManualView,
-)
+
+if TYPE_CHECKING:
+    from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+        GuideCatalogManualRuntimeService,
+    )
+    from app.modules.encyclopedia.views.shared_manual_guide_view import (
+        SharedGuideManualView,
+    )
 
 
 CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})
@@ -89,6 +87,16 @@ class ManualRouteGuidesView(_BaseGuidesView):
         if self.guide_ultime_view is not None:
             return self.guide_ultime_view  # type: ignore[return-value]
 
+        from app.modules.encyclopedia.services.guide_auto_validation_contract import (
+            build_route_auto_validation_contract,
+        )
+        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+            GuideUltimeManualRuntimeService,
+        )
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualView,
+        )
+
         service = self.guide_ultime_service
         if service is None:
             service = GuideUltimeManualRuntimeService(
@@ -124,6 +132,13 @@ class ManualRouteGuidesView(_BaseGuidesView):
         return view
 
     def ensure_catalog_manual_view(self, guide_id: str) -> SharedGuideManualView | None:
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            GuideCatalogManualRuntimeService,
+        )
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualView,
+        )
+
         guide_id = str(guide_id or "")
         existing = self._catalog_manual_views.get(guide_id)
         if existing is not None:

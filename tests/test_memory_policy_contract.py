@@ -116,6 +116,33 @@ def test_encyclopedia_quest_surface_defers_success_and_guide_widgets() -> None:
     assert "_resolve_progressive_quests_page_type" in source
 
 
+def test_guide_catalog_defers_detail_and_manual_engines() -> None:
+    guide_source = (
+        ROOT / "app" / "modules" / "encyclopedia" / "views" / "guides_view.py"
+    ).read_text(encoding="utf-8")
+    manual_source = (
+        ROOT / "app" / "modules" / "encyclopedia" / "views" / "manual_route_guides_view.py"
+    ).read_text(encoding="utf-8")
+    achievement_source = (
+        ROOT / "app" / "modules" / "encyclopedia" / "views" / "achievements_view.py"
+    ).read_text(encoding="utf-8")
+
+    guide_runtime_imports = guide_source.split("if TYPE_CHECKING:", 1)[0]
+    manual_runtime_imports = manual_source.split("if TYPE_CHECKING:", 1)[0]
+    assert "guide_quest_view_model import" not in guide_runtime_imports
+    assert "guide_ultime_manual_view import" not in guide_runtime_imports
+    assert "guide_ultime_manual_runtime_service import" not in guide_runtime_imports
+    assert "guide_auto_validation_contract import" not in guide_runtime_imports
+    assert "guide_catalog_manual_runtime_service import" not in manual_runtime_imports
+    assert "shared_manual_guide_view import" not in manual_runtime_imports
+    assert "achievement_detail_widget import" not in achievement_source.split(
+        "_achievement_detail_widget_type", 1
+    )[0]
+    assert "achievement_entity_section import" not in achievement_source.split(
+        "_achievement_entity_row_type", 1
+    )[0]
+
+
 def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> None:
     source = MEMORY_PAGE.read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -385,6 +412,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_encyclopedia_public_facade_routes_to_memory_bound_page()
         test_encyclopedia_runtime_constructs_provider_through_memory_facade()
         test_encyclopedia_quest_surface_defers_success_and_guide_widgets()
+        test_guide_catalog_defers_detail_and_manual_engines()
         test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime()
         test_achievement_provider_releases_reconstructible_source_maps()
         test_services_facade_keeps_progress_runtime_lazy()

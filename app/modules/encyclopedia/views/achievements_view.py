@@ -35,8 +35,6 @@ from app.modules.encyclopedia.achievement_catalog_policy import (
     ALIGNMENT_ORDER_ACHIEVEMENT_RANKS,
 )
 from app.modules.encyclopedia.services.guide_path_profiles import ORDER_QUEST_IDS
-from app.modules.encyclopedia.widgets.achievement_detail_widget import AchievementDetailWidget
-from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntityRow
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.quest_catalog import normalize_text
 from app.ui.components import AtlasButton
@@ -51,6 +49,18 @@ TOP_CATEGORY_ROLE = Qt.UserRole + 1
 COMPLETED_ROLE = Qt.UserRole + 2
 _SEARCH_DEBOUNCE_MS = 90
 _RESULT_BATCH_SIZE = 16
+
+
+def _achievement_detail_widget_type():
+    from app.modules.encyclopedia.widgets.achievement_detail_widget import AchievementDetailWidget
+
+    return AchievementDetailWidget
+
+
+def _achievement_entity_row_type():
+    from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntityRow
+
+    return AchievementEntityRow
 
 
 class AchievementListDelegate(QStyledItemDelegate):
@@ -391,7 +401,7 @@ class AchievementsView(QWidget):
         if achievement.id in ALIGNMENT_ORDER_ACHIEVEMENT_RANKS:
             self.detail_layout.addWidget(self.build_alignment_order_panel())
         self.detail_layout.addWidget(
-            AchievementDetailWidget(
+            _achievement_detail_widget_type()(
                 achievement,
                 self.progress_service,
                 self.character_key,
@@ -469,7 +479,7 @@ class AchievementsView(QWidget):
             completed = self.quest_progress_service.is_quest_completed(self.character_key, int(quest_id))
             done += int(completed)
             marker = "✓" if completed else "○"
-            link = AchievementEntityRow(EntityRef("quest", int(quest_id), f"{marker} Rang {rank} · {quest.name}"))
+            link = _achievement_entity_row_type()(EntityRef("quest", int(quest_id), f"{marker} Rang {rank} · {quest.name}"))
             link.entityActivated.connect(self.on_alignment_quest_activated)
             layout.addWidget(link)
         progress = QLabel(f"Progression de l'Ordre · {done} / 5 quêtes")
