@@ -539,6 +539,17 @@ class HomePage(QWidget):
         if context_changed or needs_service_rebuild:
             self.refresh_progress()
 
+    def release_encyclopedia_context(self, *, preserve_display: bool = True) -> None:
+        """Drop rich providers/catalogues; Home keeps only rendered/persisted state."""
+
+        self.catalog = None
+        self.guide_provider = None
+        self.achievement_provider = None
+        self.guide_ultime_service = None
+        self._last_progress_signature = None
+        if not preserve_display:
+            self.refresh_progress()
+
     def _on_network_progress_changed(self, character_key: str) -> None:
         if str(character_key or "") == self.character_key:
             self.refresh_progress()
