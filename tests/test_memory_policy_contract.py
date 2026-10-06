@@ -85,6 +85,7 @@ SERVICES_FACADE = (
 )
 CRAFT_PAGE = ROOT / "app" / "pages" / "craft_page.py"
 CRAFT_PRELOAD = ROOT / "app" / "craft_preload.py"
+QUESTS_PAGE_IMPL = ROOT / "app" / "pages" / "_quests_page_impl.py"
 
 
 def test_equipment_runtime_does_not_embed_qt_webengine() -> None:
@@ -122,6 +123,16 @@ def test_encyclopedia_quest_surface_defers_success_and_guide_widgets() -> None:
     assert "_resolve_achievements_view_type" in source
     assert "_resolve_guides_view_type" in source
     assert "_resolve_progressive_quests_page_type" in source
+
+
+def test_quests_surface_avoids_eager_widget_barrel_import() -> None:
+    source = QUESTS_PAGE_IMPL.read_text(encoding="utf-8")
+    runtime_imports = source.split("if TYPE_CHECKING:", 1)[0]
+    assert "from app.modules.encyclopedia.widgets import" not in runtime_imports
+    assert "widgets.dashboard import" in runtime_imports
+    assert "widgets.detail_panel import DetailPanel" in runtime_imports
+    assert "widgets.quest_widgets import QUEST_ID_ROLE, QuestListModel" in runtime_imports
+    assert "widgets.quest_detail_view import" not in runtime_imports
 
 
 def test_guide_catalog_surface_defers_rich_guide_module_until_selection() -> None:
@@ -949,6 +960,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_encyclopedia_public_facade_routes_to_memory_bound_page()
         test_encyclopedia_runtime_constructs_provider_through_memory_facade()
         test_encyclopedia_quest_surface_defers_success_and_guide_widgets()
+        test_quests_surface_avoids_eager_widget_barrel_import()
         test_guide_catalog_surface_defers_rich_guide_module_until_selection()
         test_quest_catalog_defers_rich_detail_view_until_selection()
         test_success_progress_sync_streams_compact_rows()
