@@ -680,9 +680,10 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _restore_route_lock_state(self) -> None:
         locked = False
-        if self.character_key:
+        manual_checked = getattr(self.service, "manual_checked", None)
+        if self.character_key and callable(manual_checked):
             locked = bool(
-                self.service.manual_checked(
+                manual_checked(
                     self.character_key,
                     self.ROUTE_LOCK_PROGRESS_KEY,
                 )
@@ -712,8 +713,9 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _route_lock_toggled(self, locked: bool) -> None:
         self._apply_route_lock_visual(bool(locked))
-        if self.character_key:
-            self.service.set_manual_checked(
+        set_manual_checked = getattr(self.service, "set_manual_checked", None)
+        if self.character_key and callable(set_manual_checked):
+            set_manual_checked(
                 self.character_key,
                 self.ROUTE_LOCK_PROGRESS_KEY,
                 bool(locked),
