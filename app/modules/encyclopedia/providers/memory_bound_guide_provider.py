@@ -25,7 +25,6 @@ from app.quest_catalog import normalize_text
 _DUMP_COMPACT_FLAG = "--dump-compact"
 _BUILD_COMPACT_CACHE_FLAG = "--build-compact-cache"
 _ENSURE_COMPACT_CACHE_FLAG = "--ensure-compact-cache"
-_ENSURE_COMPACT_CACHE_FLAG = "--ensure-compact-cache"
 GUIDE_COMPACT_CACHE = ROOT_DIR / ".cache" / "dofus_atlas" / "guide_catalogue_v1.jsonl"
 _GUIDE_COMPACT_SCHEMA = 1
 
@@ -706,22 +705,6 @@ def _build_compact_guide_cache(path: Path) -> int:
     return 0
 
 
-def _ensure_compact_cache_cli(path: Path) -> int:
-    path = Path(path)
-    if not _guide_compact_cache_valid(path, guides_dir=GUIDES_DIR):
-        _build_compact_guide_cache(path)
-    count = 0
-    try:
-        with path.open("r", encoding="utf-8") as stream:
-            for line in stream:
-                if '"kind":"guide"' in line:
-                    count += 1
-    except OSError:
-        count = 0
-    print(count)
-    return 0
-
-
 def _dump_compact_default_guides() -> int:
     provider = MemoryBoundGuideProvider(
         guides_dir=GUIDES_DIR,
@@ -759,13 +742,6 @@ def _ensure_compact_guide_cache_cli() -> int:
 if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:
     raise SystemExit(_ensure_compact_guide_cache_cli())
 
-
-if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:
-    try:
-        guide_cache_path = Path(sys.argv[sys.argv.index(_ENSURE_COMPACT_CACHE_FLAG) + 1])
-    except (ValueError, IndexError):
-        raise SystemExit(2)
-    raise SystemExit(_ensure_compact_cache_cli(guide_cache_path))
 
 if __name__ == "__main__" and _BUILD_COMPACT_CACHE_FLAG in sys.argv:
     try:
