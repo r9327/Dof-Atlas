@@ -555,10 +555,11 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "manual_success_names": self._string_list(stage.get("successes")),
             "manual_temporal_hooks": temporal_hooks,
             "manual_runtime_metadata": runtime_metadata,
-            # Keep the exact resolved canonical stage so future pods/profession/
-            # inventory logic never has to reverse-engineer player-facing text.
-            "manual_stage_data": copy.deepcopy(stage),
-            "manual_chapter_preparation": copy.deepcopy(chapter_preparation or []),
+            # The resolved stage/preparation objects are already owned by this
+            # one-shot composition. Reuse them instead of duplicating the heaviest
+            # per-card payload; runtime treats authored stage data as read-only.
+            "manual_stage_data": stage,
+            "manual_chapter_preparation": chapter_preparation or [],
             "a_prendre": [],
             "a_faire_ici": [],
             "progresse_aussi": {"quest_ids": quest_ids, "success_ids": []},
