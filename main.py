@@ -212,103 +212,46 @@ def _load_quest_characters(*args: Any, **kwargs: Any) -> list[Any]:
 
 
 def build_craft_preload() -> dict[str, Any]:
-    payload: dict[str, Any] = {
+    """Prepare small Craft metadata in a disposable worker.
+
+    Searchable item rows stay in SQLite and are queried only when the user types.
+    """
+
+    import json
+    import subprocess
+
+    fallback: dict[str, Any] = {
         "items": [],
         "items_by_name": {},
         "jobs": [],
-        "guides": read_json(LEVELING_FILE, {"source": "gamosaurus", "offline_runtime": True, "guides": {}}),
+        "guides": {},
         "selection": {},
         "lookup_items": [],
+        "_prepared": True,
+        "_lazy_items": True,
         "errors": [],
     }
     try:
-        # Opening the compatibility adapter is expensive even when the local
-        # catalogue is empty. The tiny SQLite probe keeps that cost strictly at
-        # click time on incomplete installations, where a preload cannot buy
-        # any usable result.
-        import sqlite3
-
-        database_path = DATA_DIR / "local" / "dofus_data.sqlite"
-        if not database_path.exists():
-            payload["_prepared"] = True
-            payload["_skipped_reason"] = "catalogue Craft local absent"
-            return payload
-        connection = sqlite3.connect(
-            f"file:{database_path.as_posix()}?mode=ro",
-            uri=True,
+        completed = subprocess.run(
+            [sys.executable, "-m", "app.craft_preload"],
+            cwd=Path(__file__).resolve().parent,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=90,
+            check=True,
         )
-        try:
-            item_count = int(connection.execute("SELECT COUNT(*) FROM items").fetchone()[0])
-        finally:
-            connection.close()
-        if item_count <= 0:
-            payload["_prepared"] = True
-            payload["_skipped_reason"] = "catalogue Craft local vide"
-            return payload
-
-        from app.pages.craft_page import craft_category_for_item
-        from local_dofus_data.compatibility_adapter import LocalCompatibilityAdapter
-
-        adapter = LocalCompatibilityAdapter()
-        try:
-            payload["items"] = [
-                dict(item)
-                for item in adapter.list_craft_items()
-                if isinstance(item, dict)
-            ]
-            for item in payload["items"]:
-                item["_search_name"] = normalize_key(item.get("name"))
-                item["_craft_category"] = craft_category_for_item(item)
-            payload["items_by_name"] = {
-                normalize_key(item.get("name")): item
-                for item in payload["items"]
-                if item.get("name")
-            }
-            payload["_prepared"] = True
-            payload["jobs"] = adapter.list_jobs()
-            resource_items = adapter.list_resources() if hasattr(adapter, "list_resources") else []
-            lookup_index = build_lookup_index([*payload["items"], *resource_items])
-            lookup_names = {"Ortie", "Frene", "Fer", "Ble", "Goujon", "Viande Fraiche"}
-            for resource_group in JOB_RESOURCE_GROUPS.values():
-                lookup_names.update(resource_name for resource_name, _tag in resource_group)
-            lookup_items = []
-            seen_lookup_ids = set()
-            for name in sorted(lookup_names, key=normalize_key):
-                item = find_lookup_item(name, lookup_index)
-                if item is None:
-                    try:
-                        results = adapter.search_items(name, limit=1)
-                    except Exception:
-                        results = []
-                    if not results:
-                        continue
-                    item = results[0]
-                ident = item_id(item) or item.get("name")
-                if ident in seen_lookup_ids:
-                    continue
-                seen_lookup_ids.add(ident)
-                lookup_items.append(item)
-            payload["lookup_items"] = lookup_items
-
-            selection_payload = read_json(CRAFT_SELECTION_FILE, {"items": []})
-            rows = selection_payload.get("items") if isinstance(selection_payload, dict) else []
-            selection: dict[int, dict[str, Any]] = {}
-            if isinstance(rows, list):
-                for row in rows:
-                    try:
-                        ident = int(row.get("ankama_id") or row.get("item_id"))
-                    except (AttributeError, TypeError, ValueError):
-                        continue
-                    item = adapter.get_item(ident)
-                    if item:
-                        selection[ident] = {"item": item, "quantity": max(1, int(row.get("quantity") or 1))}
-            payload["selection"] = selection
-        finally:
-            adapter.close()
+        lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+        if not lines:
+            raise RuntimeError("Le preload Craft compact n'a produit aucun résultat")
+        payload = json.loads(lines[-1])
+        if not isinstance(payload, dict):
+            raise RuntimeError("Résultat du preload Craft compact invalide")
+        return payload
     except Exception as exc:
-        payload["errors"].append(str(exc))
-    return payload
-
+        fallback["errors"].append(str(exc))
+        return fallback
 
 def build_quest_related_preload(catalog: Any | None = None) -> dict[str, Any]:
     from app.modules.encyclopedia.services import build_related_encyclopedia_data
@@ -1686,6 +1629,7 @@ class AtlasWindow(QMainWindow):
             release_context = getattr(self.home_page, "release_encyclopedia_context", None)
             if callable(release_context):
                 release_context(preserve_display=True)
+            self.release_reconstructible_page("Craft", self.create_craft_page)
             self.home_page.refresh_progress()
         elif name == "Quetes":
             page = self.page_widgets.get("Quetes")
@@ -1695,6 +1639,36 @@ class AtlasWindow(QMainWindow):
                 page.set_character_key(self.current_character_key)
             self._schedule_owned_callback(0, self.finish_pending_encyclopedia_tab)
             self._schedule_owned_callback(0, self.finish_pending_guide_target)
+
+    def release_reconstructible_page(
+        self,
+        name: str,
+        factory: Callable[[], QWidget],
+    ) -> None:
+        """Replace a loaded heavy page with its tiny lazy slot."""
+
+        if name in self.page_factories:
+            return
+        page = self.page_widgets.get(name)
+        if page is None or page is self.stack.currentWidget():
+            return
+        index = self.stack.indexOf(page)
+        if index < 0:
+            return
+        release = getattr(page, "release_runtime", None)
+        if callable(release):
+            release()
+        placeholder = self.loading_page(name)
+        self.stack.removeWidget(page)
+        self.stack.insertWidget(index, placeholder)
+        self.page_widgets[name] = placeholder
+        self.page_factories[name] = factory
+        self.pages = [
+            (page_name, placeholder if page_name == name else widget)
+            for page_name, widget in self.pages
+        ]
+        page.deleteLater()
+        self.rebuild_page_indexes()
 
     def ensure_pending_page_loaded(self, name: str) -> QWidget | None:
         if self.pending_page_name != name:
