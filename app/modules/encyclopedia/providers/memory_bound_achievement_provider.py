@@ -30,7 +30,6 @@ _DUMP_COMPACT_FLAG = "--dump-compact"
 _DUMP_DETAIL_FLAG = "--dump-detail"
 _BUILD_COMPACT_CACHE_FLAG = "--build-compact-cache"
 _ENSURE_COMPACT_CACHE_FLAG = "--ensure-compact-cache"
-_ENSURE_COMPACT_CACHE_FLAG = "--ensure-compact-cache"
 _SPACE_RE = re.compile(r"\s*")
 ACHIEVEMENT_COMPACT_CACHE = (
     ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_catalogue_v1.jsonl"
@@ -1167,19 +1166,6 @@ def _build_compact_cache(path: Path) -> int:
     return 0
 
 
-def _ensure_compact_cache_cli(path: Path) -> int:
-    path = Path(path)
-    if not _achievement_compact_cache_valid(path, data_dir=RAW_QUEST_DATA_DIR):
-        _build_compact_cache(path)
-    try:
-        payload = json.loads(_achievement_compact_index_path(path).read_text(encoding="utf-8"))
-        count = max(0, int(payload.get("achievement_count") or 0))
-    except (OSError, ValueError, TypeError, json.JSONDecodeError):
-        count = 0
-    print(count)
-    return 0
-
-
 def _dump_default_detail(achievement_id: int) -> int:
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
     provider._load_in_process()
@@ -1213,13 +1199,6 @@ def _ensure_compact_cache_cli() -> int:
 if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:
     raise SystemExit(_ensure_compact_cache_cli())
 
-
-if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:
-    try:
-        compact_path = Path(sys.argv[sys.argv.index(_ENSURE_COMPACT_CACHE_FLAG) + 1])
-    except (ValueError, IndexError):
-        raise SystemExit(2)
-    raise SystemExit(_ensure_compact_cache_cli(compact_path))
 
 if __name__ == "__main__" and _BUILD_COMPACT_CACHE_FLAG in sys.argv:
     try:
