@@ -427,6 +427,26 @@ class GuideUltimeManualConditionsMixin:
         if isinstance(cached, dict):
             return cached
         provider = getattr(self, "achievement_provider", None)
+        compact_name_index = getattr(provider, "compact_name_index", None)
+        if callable(compact_name_index):
+            try:
+                compact = compact_name_index()
+            except Exception:
+                compact = {}
+            if isinstance(compact, dict) and compact:
+                result = {
+                    str(key): int(value[0])
+                    for key, value in compact.items()
+                    if (
+                        str(key)
+                        and isinstance(value, tuple)
+                        and len(value) >= 1
+                        and self._as_int(value[0]) is not None
+                    )
+                }
+                self._manual_achievement_name_index_cache = result
+                return result
+
         grouped: dict[str, set[int]] = {}
         try:
             achievements = provider.load_all() if provider is not None else []
