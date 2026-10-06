@@ -242,7 +242,7 @@ def test_quest_preload_keeps_all_rich_catalogues_off_heap() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     preload = source[
         source.index("def build_quest_preload("):
-        source.index("def build_preload_payload()"),
+        source.index("def build_preload_payload()")
     ]
     assert "AchievementProvider(" not in preload
     assert "_resolve_quest_provider()" not in preload
