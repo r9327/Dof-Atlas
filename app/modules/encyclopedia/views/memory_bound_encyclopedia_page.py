@@ -150,6 +150,22 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         if callable(clear):
             clear()
 
+    @staticmethod
+    def _clear_reconstructible_manual_guide_cache() -> None:
+        """Drop Guide Succès' deep-copied route bundle only if it was actually used."""
+
+        for module_name in (
+            "app.modules.encyclopedia.services.guide_ultime_manual_runtime_service",
+            "app.modules.encyclopedia.services.guide_ultime_manual_runtime_core",
+        ):
+            module = sys.modules.get(module_name)
+            if module is None:
+                continue
+            clear = getattr(module, "clear_manual_bundle_cache", None)
+            if callable(clear):
+                clear()
+                return
+
     def _release_runtime_providers(self) -> bool:
         if bool(getattr(self, "_achievement_load_started", False)) or bool(
             getattr(self, "_related_preload_started", False)
@@ -179,6 +195,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         # LRU alive after Home pins several megabytes of QPixmap backing memory
         # even though every Guide widget has already been hibernated.
         self._clear_reconstructible_image_cache()
+        self._clear_reconstructible_manual_guide_cache()
 
         self._achievement_ready = False
         self._guide_runtime_ready = False
