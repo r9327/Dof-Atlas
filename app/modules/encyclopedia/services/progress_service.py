@@ -291,7 +291,7 @@ class AchievementProgressService:
             return value == target
 
         def ref_parts(ref: Any) -> tuple[str, int | None]:
-            if isinstance(ref, tuple) and len(ref) == 2:
+            if isinstance(ref, (tuple, list)) and len(ref) == 2:
                 try:
                     return str(ref[0] or ""), int(ref[1])
                 except (TypeError, ValueError):
