@@ -37,6 +37,17 @@ class QuestDetailsTests(unittest.TestCase):
             row.steps = [QuestStep(row.id * 10, 'Étape', 'Détail')]
         return QuestCatalog(records)
 
+    def test_runtime_details_reuse_preload_source_offset_namespace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cache_root = root / "cache"
+            catalog = self.build(root)
+            details = catalog.quests[0]._details
+            self.assertEqual(
+                details._sources.cache_root,
+                (root / "cache" / "source_offsets"),
+            )
+
     def test_index_does_not_compile_details_and_a_b_a_reuses_data(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(QuestCatalog, '_load_source', side_effect=self.compile) as load:
             catalog = self.build(Path(tmp))
