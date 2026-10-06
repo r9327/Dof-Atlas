@@ -206,7 +206,8 @@ def test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent() -> 
     assert "GUIDE_ITEMS_INDEX" in source
     get_by_id = source[source.index("def get_by_id"):source.index("def _guide_index_row")]
     assert "_guide_index_row" in get_by_id
-    assert "_load_one" not in get_by_id.split("else:", 1)[0]
+    assert "_load_in_process" not in get_by_id
+    assert "QuestSources(" not in get_by_id
     assert "gc.collect()" not in source
 
 
