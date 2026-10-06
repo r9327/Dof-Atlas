@@ -138,6 +138,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
             self.guide_progress_service,
             guide=guide,
             quest_provider=self.quest_provider,
+            compact_runtime=True,
         )
         if not service.available:
             return None
