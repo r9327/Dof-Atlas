@@ -211,6 +211,16 @@ def test_guide_provider_releases_reconstructible_catalogue() -> None:
     assert "_guide_compact_cache_valid" in load_method
 
 
+def test_quest_preload_keeps_success_provider_cold() -> None:
+    source = SHELL_MAIN.read_text(encoding="utf-8")
+    preload = source[
+        source.index("def build_quest_preload("):
+        source.index("def build_preload_payload()"),
+    ]
+    assert "AchievementProvider(" not in preload
+    assert 'payload["achievement_provider"] = None' in preload
+
+
 def test_shell_announces_explicit_encyclopedia_tab_before_showing_page() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     method = source[source.index("def open_encyclopedia_tab"):source.index("def finish_pending_encyclopedia_tab")]
@@ -269,6 +279,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent()
         test_guide_name_resolution_uses_prebuilt_index_without_nested_worker()
         test_guide_provider_releases_reconstructible_catalogue()
+        test_quest_preload_keeps_success_provider_cold()
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
