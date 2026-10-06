@@ -78,11 +78,9 @@ class EncyclopediaPage(BaseEncyclopediaPage):
     def _restore_quests_view(self):
         if self.quest_page is not None:
             return self.quest_page
-        # The resident QuestProvider keeps the SQLite-backed compact catalogue
-        # warm. Rebuild only the Qt representation; never reparse documentary
-        # quest sources just because the user comes back to the tab.
-        if getattr(self.quest_provider, "_catalog", None) is None:
-            return None
+        # The provider may have released its resident summaries while Home was
+        # visible. Rehydrate from the already-built SQLite store on demand.
+        self.quest_provider.get_catalog()
         page = self._build_quests_page_progressive()
         self.replace_tab_widget(QUESTS_TAB, page)
         if self._memory_restore_quest_series:
@@ -155,6 +153,13 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         if graph is not None:
             graph.achievement_provider = None
             graph.guide_provider = None
+            graph.catalog = None
+            graph.quest_provider = None
+        self._quest_graph = None
+
+        release_quests = getattr(self.quest_provider, "release_catalogue", None)
+        if callable(release_quests):
+            release_quests()
 
         self._achievement_ready = False
         self._guide_runtime_ready = False
