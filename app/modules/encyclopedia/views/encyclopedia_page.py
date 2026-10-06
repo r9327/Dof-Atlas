@@ -20,7 +20,6 @@ from app.modules.encyclopedia.services import (
     GUIDE_PROGRESS_FILE,
     AchievementProgressService,
     EncyclopediaService,
-    GuideProgressCalculator,
     GuideProgressService,
     QuestGraphService,
     QuestProgressService,
@@ -32,7 +31,7 @@ from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadState,
 )
 from app.pages.quest_character_cache import quest_character_source_signature
-from app.quest_catalog import QuestCatalog, QuestCharacter, load_quest_characters
+from app.quest_catalog import QuestCharacter, load_quest_characters
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.views.achievements_view import AchievementsView
@@ -111,7 +110,7 @@ class _QuestRuntimePayload:
 @dataclass(slots=True)
 class _GuideStagePayload:
     guide_provider: object
-    graph: QuestGraphService
+    graph: QuestGraphService | None
     progress_by_guide: dict[str, tuple[int, int, str]]
     character_key: str
 
@@ -605,21 +604,18 @@ class EncyclopediaPage(QWidget):
     @classmethod
     def _build_guide_progress_snapshot(
         cls,
-        catalog: QuestCatalog,
         guide_provider,
         character_key: str,
         quest_progress_path,
-        guide_progress_path,
-        achievement_progress_path,
     ) -> dict[str, tuple[int, int, str]]:
-        calculator = GuideProgressCalculator(
-            QuestProgressService(quest_progress_path),
-            GuideProgressService(guide_progress_path),
-            AchievementProgressService(achievement_progress_path),
-            catalog.by_id,
-        )
+        """Build Guide-home progress without materializing the Quest catalogue."""
+
+        completed_quest_ids = QuestProgressService(
+            quest_progress_path
+        ).completed_quest_ids(character_key)
         result: dict[str, tuple[int, int, str]] = {}
         compact_quest_ids = getattr(guide_provider, "progress_quest_ids_for", None)
+
         for guide in guide_provider.load_all():
             if guide.id == GUIDE_SUCCESS_CATALOG_ID:
                 # Building the manual route costs more than the Guide catalogue.
@@ -627,18 +623,32 @@ class EncyclopediaPage(QWidget):
                 # never while the player is only waiting for the Guide home.
                 result[guide.id] = (0, 0, "")
                 continue
-            if callable(compact_quest_ids):
-                progress = calculator.quest_ids_progress(
-                    guide.id,
-                    compact_quest_ids(guide.id),
-                    character_key,
-                )
-            else:
-                progress = calculator.guide_progress(guide, character_key)
+
+            raw_ids = (
+                compact_quest_ids(guide.id)
+                if callable(compact_quest_ids)
+                else getattr(guide, "quest_ids", ())
+            )
+            quest_ids: list[int] = []
+            seen: set[int] = set()
+            for raw_id in raw_ids or ():
+                try:
+                    quest_id = int(raw_id)
+                except (TypeError, ValueError):
+                    continue
+                if quest_id in seen:
+                    continue
+                seen.add(quest_id)
+                quest_ids.append(quest_id)
+
+            completed = sum(
+                1 for quest_id in quest_ids if quest_id in completed_quest_ids
+            )
+            total = len(quest_ids)
             result[guide.id] = (
-                progress.completed,
-                progress.total,
-                cls._guide_progress_state(progress.completed, progress.total),
+                completed,
+                total,
+                cls._guide_progress_state(completed, total),
             )
         return result
 
@@ -913,13 +923,11 @@ class EncyclopediaPage(QWidget):
         achievement_provider = self.service.achievement_provider
         character_key = str(self.current_character_key or "")
         quest_progress_path = self.quest_progress_path
-        guide_progress_path = self.guide_progress_service.path
-        achievement_progress_path = self.achievement_progress_service.path
+        existing_graph = self._quest_graph
 
         def worker() -> None:
             with background_io_priority():
                 try:
-                    catalog = quest_provider.get_catalog()
                     active_guide_provider = guide_provider
                     # IndexedGuideProvider resolves achievement link labels without
                     # forcing the rich AchievementProvider to materialize here.
@@ -957,26 +965,17 @@ class EncyclopediaPage(QWidget):
                         raise RuntimeError(
                             f"Aucun guide chargé depuis {catalog_path}{detail}"
                         )
-                    graph = QuestGraphService(
-                        quest_provider,
-                        guide_provider=active_guide_provider,
-                        achievement_provider=achievement_provider,
-                        eager=False,
-                    )
                     try:
                         progress = self._build_guide_progress_snapshot(
-                            catalog,
                             active_guide_provider,
                             character_key,
                             quest_progress_path,
-                            guide_progress_path,
-                            achievement_progress_path,
                         )
                     except Exception:
                         progress = {}
                     result: object = _GuideStagePayload(
                         active_guide_provider,
-                        graph,
+                        existing_graph,
                         progress,
                         character_key,
                     )
