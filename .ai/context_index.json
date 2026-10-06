@@ -82,7 +82,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "c056615d95d2f7abf5784e781005b66f88a477ae",
+      "sha": "6cecf8610726cf85f2fb68e84d6e802e68b853f6",
       "type": "tree"
     },
     "data": {
