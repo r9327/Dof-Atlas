@@ -541,6 +541,10 @@ class GuideUltimeManualConditionsMixin:
                 base = copy.deepcopy(stored)
             else:
                 stage = card.get("manual_stage_data")
+                if bool(card.get("manual_has_lines")) and not isinstance(stage, dict):
+                    hydrate = getattr(self, "_hydrate_manual_card_source", None)
+                    if callable(hydrate):
+                        stage = hydrate(card)
                 if bool(card.get("manual_has_lines")) and isinstance(stage, dict):
                     base = self._stage_lines(
                         stage,
@@ -732,6 +736,11 @@ class GuideUltimeManualConditionsMixin:
 
     def _append_ocre_policy_lines(self, result: list[dict[str, Any]], card: dict[str, Any]) -> None:
         stage = card.get("manual_stage_data") if isinstance(card.get("manual_stage_data"), dict) else {}
+        if not stage and bool(card.get("manual_capture_transition")):
+            hydrate = getattr(self, "_hydrate_manual_card_source", None)
+            if callable(hydrate):
+                hydrated = hydrate(card)
+                stage = hydrated if isinstance(hydrated, dict) else {}
         if not stage:
             return
         transition = stage.get("capture_transition")
@@ -768,8 +777,11 @@ class GuideUltimeManualConditionsMixin:
             for candidate in getattr(self, "cards", ()):
                 if not isinstance(candidate, dict):
                     continue
-                stage = candidate.get("manual_stage_data")
-                if not isinstance(stage, dict) or not stage.get("capture_transition"):
+                transition = bool(candidate.get("manual_capture_transition"))
+                if not transition:
+                    stage = candidate.get("manual_stage_data")
+                    transition = bool(isinstance(stage, dict) and stage.get("capture_transition"))
+                if not transition:
                     continue
                 unlock_index = self._as_int(candidate.get("index"))
                 break
