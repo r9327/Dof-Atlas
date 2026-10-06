@@ -296,6 +296,18 @@ def test_background_related_preload_keeps_runtime_imports_out_of_parent() -> Non
     assert 'release_reconstructible_page("Quetes"' in home_switch
 
 
+def test_shell_encyclopedia_factory_avoids_eager_related_type_imports() -> None:
+    source = SHELL_MAIN.read_text(encoding="utf-8")
+    factory = source[
+        source.index("def create_encyclopedia_page("):
+        source.index("def on_encyclopedia_related_data_ready(")
+    ]
+    assert "AchievementProvider" not in factory
+    assert "GuideProvider" not in factory
+    assert "QuestGraphService" not in factory
+    assert "QuestCatalog" not in factory
+
+
 def test_shell_announces_explicit_encyclopedia_tab_before_showing_page() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     method = source[source.index("def open_encyclopedia_tab"):source.index("def finish_pending_encyclopedia_tab")]
