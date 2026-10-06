@@ -64,14 +64,6 @@ print(json.dumps({
         build.assert_called_once_with(catalog)
 
     def test_related_data_cache_is_in_memory_only_and_reuses_same_catalog(self) -> None:
-        class FakeQuestProvider:
-            def __init__(self, *, catalog) -> None:
-                self.catalog = catalog
-
-        class FakeQuestGraphService:
-            def __init__(self, quest_provider) -> None:
-                self.quest_provider = quest_provider
-
         previous_catalog = related._CACHED_CATALOG
         previous_data = related._CACHED_DATA
         previous_count = related._BUILD_COUNT
@@ -81,10 +73,11 @@ print(json.dumps({
         catalog = object()
         try:
             with (
-                patch.object(related, "QuestProvider", FakeQuestProvider),
-                patch.object(related, "QuestGraphService", FakeQuestGraphService),
                 patch.object(related, "_warm_achievement_source_indexes", return_value=7) as warm_success,
+                patch.object(related, "_warm_achievement_catalogue", return_value=1418) as warm_achievement_catalogue,
                 patch.object(related, "_warm_guide_files", return_value=23) as warm_guides,
+                patch.object(related, "_warm_guide_catalogue", return_value=20) as warm_guide_catalogue,
+                patch.object(related, "_warm_guide_items_index", return_value=46) as warm_guide_items,
             ):
                 first = related.build_related_encyclopedia_data(catalog)
                 second = related.build_related_encyclopedia_data(catalog)
@@ -95,8 +88,15 @@ print(json.dumps({
             self.assertEqual(first.guide_provider.load_all(), [])
             self.assertEqual(first.warmed_source_count, 7)
             self.assertEqual(first.warmed_guide_file_count, 23)
+            self.assertEqual(first.warmed_achievement_count, 1418)
+            self.assertEqual(first.warmed_guide_count, 20)
+            self.assertEqual(first.warmed_guide_item_count, 46)
+            self.assertIsNone(first.quest_graph)
             warm_success.assert_called_once_with()
+            warm_achievement_catalogue.assert_called_once_with()
             warm_guides.assert_called_once_with()
+            warm_guide_catalogue.assert_called_once_with()
+            warm_guide_items.assert_called_once_with()
             self.assertFalse(hasattr(related, "_CACHE_PATH"))
         finally:
             related._CACHED_CATALOG = previous_catalog
