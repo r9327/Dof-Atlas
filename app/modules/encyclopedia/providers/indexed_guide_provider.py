@@ -81,7 +81,8 @@ class IndexedGuideProvider(GuideProvider):
         provider = self.achievement_provider
         if getattr(provider, "_loaded", False):
             achievement = provider.get_by_id(int(achievement_id))
-            return achievement.name if achievement is not None else None
+            if achievement is not None:
+                return achievement.name
         return _achievement_name_index(provider.data_dir).get(int(achievement_id))
 
     def _context_entities(
