@@ -284,6 +284,29 @@ class JsonSourceIndexTests(unittest.TestCase):
                 self.assertEqual(dict(mapping), values)
                 mapping.close()
 
+    def test_offset_index_build_never_reads_whole_source_bytes(self):
+        values = {
+            "1": {"text": "été", "nested": [1, {"x": True}]},
+            "2": {"text": "bonjour"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "source.json"
+            path.write_text(
+                json.dumps({"quests": values}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            with patch.object(
+                Path,
+                "read_bytes",
+                side_effect=AssertionError("monolithic source read forbidden"),
+            ):
+                mapping = JsonSourceMapping(path, root / "offsets", "quests")
+                try:
+                    self.assertEqual(dict(mapping), values)
+                finally:
+                    mapping.close()
+
     def test_doduda_reads_data_ids_without_confusing_nested_ids(self):
         rows = [{'data': {'nested': {'id': 999}, 'id': 7}}, {'data': {'id': 8}}, {'data': {'value': 3}}]
         with tempfile.TemporaryDirectory() as tmp:
