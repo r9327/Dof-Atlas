@@ -242,7 +242,7 @@ def test_quest_preload_keeps_all_rich_catalogues_off_heap() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     preload = source[
         source.index("def build_quest_preload("):
-        source.index("def build_preload_payload()"),
+        source.index("def build_preload_payload()")
     ]
     assert "AchievementProvider(" not in preload
     assert "_resolve_quest_provider()" not in preload
@@ -288,6 +288,11 @@ def test_background_related_preload_keeps_runtime_imports_out_of_parent() -> Non
         source.index("def merge_preload_result(")
     ]
     assert "from app.quest_catalog import QuestCatalog" not in collector
+    home_switch = source[
+        source.index('if name == "Home":'):
+        source.index('elif name == "Quetes":')
+    ]
+    assert 'release_reconstructible_page("Quetes"' in home_switch
 
 
 def test_shell_announces_explicit_encyclopedia_tab_before_showing_page() -> None:
