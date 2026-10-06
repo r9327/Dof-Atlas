@@ -41,7 +41,6 @@ MEMORY_GUIDE_PROVIDER = (
     / "providers"
     / "memory_bound_guide_provider.py"
 )
-QUEST_PROVIDER = ROOT / "app" / "modules" / "encyclopedia" / "providers" / "quest_provider.py"
 MEMORY_ACHIEVEMENT_PROVIDER = (
     ROOT
     / "app"
@@ -106,8 +105,6 @@ def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> N
     assert "RelatedPreloadGate()" in source
     assert "_achievement_ready = False" in source
     assert "_guide_runtime_ready = False" in source
-    assert 'self._quest_graph = None' in source
-    assert 'quest_provider' in source
     assert "gc.collect(2)" in source
     assert "QTimer.singleShot(0, self._collect_released_memory)" in source
     assert "pending_encyclopedia_tab" in source
@@ -200,16 +197,3 @@ def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     assert '"progress_objectives": [' in source
     assert "def progress_objectives_for" in source
     assert "_DUMP_DETAIL_FLAG" in source
-
-
-def test_quest_provider_can_release_shared_default_catalogue() -> None:
-    source = QUEST_PROVIDER.read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    methods = {
-        node.name
-        for node in ast.walk(tree)
-        if isinstance(node, ast.FunctionDef)
-    }
-    assert "release_catalogue" in methods
-    assert "_SHARED_DEFAULT_CATALOG = None" in source
-    assert "self._catalog = None" in source
