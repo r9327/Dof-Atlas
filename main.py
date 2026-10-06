@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import gc
 import os
 import sys
 from collections import deque
@@ -1684,6 +1685,12 @@ class AtlasWindow(QMainWindow):
             self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
             self.release_reconstructible_page("Craft", self.create_craft_page)
             self.release_reconstructible_page("Equipement", self.create_equipment_page)
+            # deleteLater() tears down the Qt side, but signal/layout cycles can
+            # keep Python wrappers alive until a generational GC eventually runs.
+            # Flush deferred deletes once Home is visible, then collect only the
+            # now-unreachable wrappers. This is lifecycle cleanup, not a working-
+            # set trim: live caches/providers have already been explicitly released.
+            self._schedule_owned_callback(0, self.collect_released_page_cycles)
             self.home_page.refresh_progress()
         elif name == "Quetes":
             page = self.page_widgets.get("Quetes")
@@ -1693,6 +1700,13 @@ class AtlasWindow(QMainWindow):
                 page.set_character_key(self.current_character_key)
             self._schedule_owned_callback(0, self.finish_pending_encyclopedia_tab)
             self._schedule_owned_callback(0, self.finish_pending_guide_target)
+
+    @staticmethod
+    def collect_released_page_cycles() -> None:
+        """Finalize deferred Qt deletion and reclaim unreachable wrapper cycles."""
+
+        QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        gc.collect()
 
     def release_reconstructible_page(
         self,

@@ -329,6 +329,23 @@ def test_craft_preload_and_runtime_are_sqlite_bounded() -> None:
     assert 'release_reconstructible_page("Craft"' in shell
 
 
+def test_home_release_collects_deleted_widget_cycles_without_working_set_trim() -> None:
+    source = SHELL_MAIN.read_text(encoding="utf-8")
+    assert "def collect_released_page_cycles" in source
+    cleanup = source[
+        source.index("def collect_released_page_cycles"):
+        source.index("def release_reconstructible_page"),
+    ]
+    assert "QApplication.sendPostedEvents(None, QEvent.DeferredDelete)" in cleanup
+    assert "gc.collect()" in cleanup
+    assert "SetProcessWorkingSetSize" not in cleanup
+    home_switch = source[
+        source.index('if name == "Home":'):
+        source.index('elif name == "Quetes":'),
+    ]
+    assert "self._schedule_owned_callback(0, self.collect_released_page_cycles)" in home_switch
+
+
 def test_background_related_preload_keeps_runtime_imports_out_of_parent() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     related = source[
@@ -434,6 +451,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_guide_provider_releases_reconstructible_catalogue()
         test_quest_preload_keeps_all_rich_catalogues_off_heap()
         test_craft_preload_and_runtime_are_sqlite_bounded()
+        test_home_release_collects_deleted_widget_cycles_without_working_set_trim()
         test_background_related_preload_keeps_runtime_imports_out_of_parent()
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
