@@ -195,3 +195,11 @@ def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     assert '"progress_objectives": [' in source
     assert "def progress_objectives_for" in source
     assert "_DUMP_DETAIL_FLAG" in source
+
+
+def test_guide_compact_worker_never_loads_dofus_item_corpus() -> None:
+    source = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
+    assert "class _CompactGuideNoopItemProvider" in source
+    assert "dofus_item_provider=_CompactGuideNoopItemProvider()" in source
+    dump = source[source.index("def _dump_compact_default_guides"):]
+    assert "DofusItemProvider(" not in dump
