@@ -236,9 +236,15 @@ class GuideUltimeManualCard(QFrame):
         if not callable(getter):
             return []
 
+        line_provider = getattr(self.service, "manual_lines_for_card", None)
+        card_lines = (
+            line_provider(self.character_key, self.card)
+            if callable(line_provider)
+            else self.card.get("manual_lines", []) or []
+        )
         card_text = " ".join(
             f"{row.get('position', '')} {row.get('text', '')}"
-            for row in self.card.get("manual_lines", []) or []
+            for row in card_lines
             if isinstance(row, dict)
         )
         normalized_card_text = normalize_text(card_text)
