@@ -302,6 +302,25 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             self._sources = QuestSources(cache_root)
             self._entries = None
 
+    def release_catalogue(self) -> None:
+        """Drop reconstructible Success runtime data while keeping the provider reusable."""
+
+        self._loaded = False
+        self._achievements = []
+        self._by_id = {}
+        self._categories = {}
+        self._by_category = defaultdict(list)
+        self._linked_quests = {}
+        self._linked_monsters = {}
+        self._linked_dungeons = {}
+        self._linked_achievements = {}
+        self._by_quest = defaultdict(list)
+        self._image_indexes.clear()
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._detail_sources_ready = False
+        self._reset_sources()
+
     def _image_for_icon(self, icon_id: int | None, folders: tuple[str, ...]) -> str:
         if self._catalog_loading:
             return ""
