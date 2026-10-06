@@ -230,6 +230,15 @@ def _achievement_index(achievement_provider: Any) -> dict[str, tuple[int, str]]:
     if achievement_provider is None:
         return {}
 
+    compact_name_index = getattr(achievement_provider, "compact_name_index", None)
+    if callable(compact_name_index):
+        try:
+            compact = compact_name_index()
+        except Exception:
+            compact = {}
+        if compact:
+            return compact
+
     # If the Successes module already paid the full provider load, reuse it.
     # Otherwise the Guide only needs names and ids: loading objectives, rewards,
     # monsters, dungeons, items, spells, titles, emotes, ornaments and alterations
