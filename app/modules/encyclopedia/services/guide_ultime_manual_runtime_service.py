@@ -50,7 +50,9 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
         *,
         chapter_preparation: Any = None,
     ) -> dict[str, Any]:
-        card = super()._stage_to_card(
+        # The core already owns the canonical stage/preparation snapshots.
+        # Copying them again here briefly doubles the heaviest per-card payload.
+        return super()._stage_to_card(
             chapter_id,
             chapter_meta,
             chapter,
@@ -58,13 +60,6 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
             index,
             chapter_preparation=chapter_preparation,
         )
-        card.update(
-            {
-                "manual_stage_data": copy.deepcopy(stage),
-                "manual_chapter_preparation": copy.deepcopy(chapter_preparation or []),
-            }
-        )
-        return card
 
     def _raw_stage_lines(
         self,
