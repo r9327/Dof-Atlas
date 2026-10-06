@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import unittest
 from pathlib import Path
 
 
@@ -212,3 +213,22 @@ def test_dofus_item_worker_streams_monolithic_doduda_sources() -> None:
     assert 'self._read_json(self.data_dir / "items.json"' not in source
     assert 'doduda_rows(self.data_dir / "item_types.json")' not in source
     assert 'doduda_rows(self.data_dir / "effects.json")' not in source
+
+
+class MemoryPolicyContractUnittest(unittest.TestCase):
+    """Expose pytest-style memory policy contracts to Doctor's unittest runner."""
+
+    def test_memory_policy_contracts(self) -> None:
+        test_equipment_runtime_does_not_embed_qt_webengine()
+        test_encyclopedia_public_facade_routes_to_memory_bound_page()
+        test_encyclopedia_runtime_constructs_provider_through_memory_facade()
+        test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime()
+        test_achievement_provider_releases_reconstructible_source_maps()
+        test_related_index_warmup_runs_outside_long_lived_atlas_process()
+        test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent()
+        test_guide_provider_releases_reconstructible_catalogue()
+        test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
+        test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
+        test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
+        test_guide_compact_worker_never_loads_dofus_item_corpus()
+        test_dofus_item_worker_streams_monolithic_doduda_sources()
