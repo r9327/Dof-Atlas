@@ -203,3 +203,12 @@ def test_guide_compact_worker_never_loads_dofus_item_corpus() -> None:
     assert "dofus_item_provider=_CompactGuideNoopItemProvider()" in source
     dump = source[source.index("def _dump_compact_default_guides"):]
     assert "DofusItemProvider(" not in dump
+
+
+def test_dofus_item_worker_streams_monolithic_doduda_sources() -> None:
+    source = DOFUS_ITEM_PROVIDER.read_text(encoding="utf-8")
+    assert "def _iter_doduda_refs" in source
+    assert '_iter_doduda_refs(items_path)' in source
+    assert 'self._read_json(self.data_dir / "items.json"' not in source
+    assert 'doduda_rows(self.data_dir / "item_types.json")' not in source
+    assert 'doduda_rows(self.data_dir / "effects.json")' not in source
