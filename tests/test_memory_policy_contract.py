@@ -155,6 +155,10 @@ def test_related_index_warmup_runs_outside_long_lived_atlas_process() -> None:
     assert "sys.executable" in source
     assert "QuestSources(" not in source
 
+    assert "ensure_achievement_compact_cache" in source
+    assert "ensure_guide_compact_cache" in source
+    assert "ensure_guide_items_index" in source
+
 
 
 def test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent() -> None:
@@ -168,6 +172,10 @@ def test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent() -> 
     assert {"_load", "_load_one", "_load_in_process", "_dump_compact_default_items"} <= method_names
     assert "QuestSources(" in source
     assert "while len(self._by_id) > 32" in source
+    assert "GUIDE_ITEMS_INDEX" in source
+    get_by_id = source[source.index("def get_by_id"):source.index("def _guide_index_row")]
+    assert "_guide_index_row" in get_by_id
+    assert "_load_one" not in get_by_id.split("else:", 1)[0]
     assert "gc.collect()" not in source
 
 
@@ -193,6 +201,11 @@ def test_guide_provider_releases_reconstructible_catalogue() -> None:
     assert "self._loaded = False" in source
     assert "self._detail_entries = {}" in source
 
+    assert "GUIDE_COMPACT_CACHE" in source
+    assert "def _load_from_compact_cache" in source
+    load_method = source[source.index("def _load(self)"):source.index("def _load_from_compact_cache")]
+    assert "_guide_compact_cache_valid" in load_method
+
 
 def test_shell_announces_explicit_encyclopedia_tab_before_showing_page() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
@@ -215,6 +228,11 @@ def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     assert '"progress_objectives": [' in source
     assert "def progress_objectives_for" in source
     assert "_DUMP_DETAIL_FLAG" in source
+
+    assert "ACHIEVEMENT_COMPACT_CACHE" in source
+    assert "external_start" in source
+    assert "def _load_from_compact_cache" in source
+    assert "retained_only=True" in source
 
 
 def test_guide_compact_worker_never_loads_dofus_item_corpus() -> None:
@@ -245,6 +263,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_achievement_provider_releases_reconstructible_source_maps()
         test_related_index_warmup_runs_outside_long_lived_atlas_process()
         test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent()
+        test_guide_name_resolution_uses_prebuilt_index_without_nested_worker()
         test_guide_provider_releases_reconstructible_catalogue()
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
