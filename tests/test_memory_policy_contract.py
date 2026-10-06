@@ -498,6 +498,14 @@ def test_guide_home_uses_virtualized_delegate_instead_of_widget_forest() -> None
     assert "for entity_key, guide_ids in by_entity_ids.items()" not in install
 
 
+def test_guide_home_thumbnails_use_bounded_encyclopedia_cache() -> None:
+    source = (
+        ROOT / "app" / "modules" / "encyclopedia" / "widgets" / "guide_card.py"
+    ).read_text(encoding="utf-8")
+    assert "ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled" in source
+    assert "QIcon(" not in source
+
+
 def test_guide_home_summary_stays_metadata_only() -> None:
     provider = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
     summary = provider[
@@ -566,6 +574,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
         test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
+        test_guide_home_thumbnails_use_bounded_encyclopedia_cache()
         test_guide_home_summary_stays_metadata_only()
         test_guide_compact_worker_never_loads_dofus_item_corpus()
         test_dofus_item_worker_streams_monolithic_doduda_sources()
