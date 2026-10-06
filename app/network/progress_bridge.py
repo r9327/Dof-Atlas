@@ -504,10 +504,16 @@ class NetworkProgressBridge:
         if achievement is None:
             return EventApplicationResult(False, False, "unknown_achievement", character_key)
         known_objectives = {
-            int(objective.id)
-            for objective in tuple(getattr(achievement, "objectives", ()) or ())
-            if self._positive_int(getattr(objective, "id", None)) is not None
+            int(value)
+            for value in tuple(getattr(achievement, "objective_ids", ()) or ())
+            if self._positive_int(value) is not None
         }
+        if not known_objectives:
+            known_objectives = {
+                int(objective.id)
+                for objective in tuple(getattr(achievement, "objectives", ()) or ())
+                if self._positive_int(getattr(objective, "id", None)) is not None
+            }
         if objective_id is None or objective_id not in known_objectives:
             return EventApplicationResult(False, False, "unknown_achievement_objective", character_key)
         changed = self.achievement_progress_service.set_objective_completed(

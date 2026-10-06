@@ -2482,6 +2482,25 @@ QLabel#GuideBreadcrumbCurrent {
     font-weight: 700;
 }
 
+QToolButton#GuideManualProgressLock {
+    background: transparent;
+    color: @TEXT_SOFT;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_XS;
+    padding: 0 7px;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+}
+
+QToolButton#GuideManualProgressLock:hover {
+    background: @PANEL_HOVER;
+    border-color: @BORDER_SOFT;
+}
+
+QToolButton#GuideManualProgressLock[state="locked"] {
+    color: @TEXT;
+}
+
 #GuideManualOrderChoice {
     background: @PANEL;
     border: 1px solid @GREEN_BORDER;

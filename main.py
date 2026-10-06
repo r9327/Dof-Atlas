@@ -1352,6 +1352,10 @@ class AtlasWindow(QMainWindow):
             self.page_nav_group["Quetes"] = "Bestiaire"
 
         self.pending_encyclopedia_tab = label
+        page = self.page_widgets.get("Quetes")
+        prepare_navigation = getattr(page, "prepare_external_tab_navigation", None)
+        if callable(prepare_navigation):
+            prepare_navigation(label)
         self.show_page("Quetes")
         self._schedule_owned_callback(0, self.finish_pending_encyclopedia_tab)
 

@@ -805,14 +805,17 @@ class HomePage(QWidget):
         self.continue_button.setEnabled(False)
 
     def _legacy_tracking_guide(self) -> Guide | None:
-        if self.guide_provider is None:
+        provider = self.guide_provider
+        if provider is None or not bool(getattr(provider, "_loaded", False)):
+            # Home must never warm a cold Guide catalogue. The canonical manual
+            # route and persisted progress remain sufficient for the dashboard.
             return None
-        guide = self.guide_provider.get_by_id(GUIDE_ULTIME_LEGACY_ID)
+        guide = provider.get_by_id(GUIDE_ULTIME_LEGACY_ID)
         if guide is not None:
             return guide
         guides = [
             candidate
-            for candidate in self.guide_provider.load_all()
+            for candidate in provider.load_all()
             if str(candidate.category or "").strip().casefold() == "aventure"
         ]
         return guides[0] if guides else None

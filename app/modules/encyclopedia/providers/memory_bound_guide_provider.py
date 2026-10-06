@@ -97,6 +97,18 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._detail_cache_id = ""
         self._detail_cache = None
 
+    def release_catalogue(self) -> None:
+        """Drop reconstructible Guide summaries/details while keeping the provider reusable."""
+
+        self.release_detail_cache()
+        self._loaded = False
+        self._guides = []
+        self._by_id = {}
+        self._by_category = defaultdict(list)
+        self._by_entity = defaultdict(list)
+        self._detail_entries = {}
+        self.validation_errors = []
+
     def reload(self) -> list[Guide]:
         self.release_detail_cache()
         self._detail_entries = {}

@@ -331,21 +331,21 @@ def measure() -> dict[str, Any]:
     _capture(app, stages, "quests_active")
     sampler.set_phase("quests_home")
     window.show_page("Home")
-    _capture(app, stages, "after_quests_home", 0.35)
+    after_quests_home = _capture(app, stages, "after_quests_home", 0.75)
 
     sampler.set_phase("achievements_open")
     timings["achievements_open_ms"] = open_encyclopedia(app, window, ACHIEVEMENTS_TAB)
     _capture(app, stages, "achievements_active")
     sampler.set_phase("achievements_home")
     window.show_page("Home")
-    _capture(app, stages, "after_achievements_home", 0.35)
+    after_achievements_home = _capture(app, stages, "after_achievements_home", 0.75)
 
     sampler.set_phase("guide_open")
     timings["guide_open_ms"] = _open_guide_with_probe(app, window, stages)
     _capture(app, stages, "guide_active")
     sampler.set_phase("guide_home")
     window.show_page("Home")
-    _capture(app, stages, "after_guide_home", 0.35)
+    after_guide_home = _capture(app, stages, "after_guide_home", 0.75)
 
     sampler.set_phase("craft_open")
     timings["craft_open_ms"] = open_page(app, window, "Craft")
@@ -376,6 +376,9 @@ def measure() -> dict[str, Any]:
     active_tree = float(equipment_active.get("tree_rss_mb") or 0.0)
     after_tree = float(after_equipment.get("tree_rss_mb") or 0.0)
     stable_tree = float(after_equipment_stable.get("tree_rss_mb") or 0.0)
+    quests_home_tree = float(after_quests_home.get("tree_rss_mb") or 0.0)
+    achievements_home_tree = float(after_achievements_home.get("tree_rss_mb") or 0.0)
+    guide_home_tree = float(after_guide_home.get("tree_rss_mb") or 0.0)
 
     return {
         "git_head": git_head(),
@@ -384,6 +387,14 @@ def measure() -> dict[str, Any]:
         "peak_process_rss_mb": round(sampler.peak_process_rss_mb, 2),
         "peak_tree_rss_mb": round(sampler.peak_tree_rss_mb, 2),
         "peak_tree_sample": sampler.peak_tree_sample,
+        "achievements_retained_tree_delta_mb": round(
+            achievements_home_tree - quests_home_tree,
+            2,
+        ),
+        "guide_retained_tree_delta_mb": round(
+            guide_home_tree - quests_home_tree,
+            2,
+        ),
         "equipment_tree_delta_active_mb": round(active_tree - before_tree, 2),
         "equipment_tree_delta_after_home_mb": round(after_tree - before_tree, 2),
         "equipment_tree_delta_stabilized_mb": round(stable_tree - before_tree, 2),

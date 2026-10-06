@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 from collections import defaultdict
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +27,7 @@ from app.quest_source_index import JsonSourceMapping, QuestSources
 
 
 _DUMP_COMPACT_FLAG = "--dump-compact"
+_DUMP_DETAIL_FLAG = "--dump-detail"
 _SPACE_RE = re.compile(r"\s*")
 
 
@@ -89,6 +90,120 @@ def _objective_from_dict(value: object) -> AchievementObjective | None:
         entity_ref=entity_ref,
         entity_refs=entity_refs,
     )
+
+
+def _entity_ref_to_dict(ref: EntityRef) -> dict[str, object]:
+    return {
+        "entity_type": str(ref.entity_type),
+        "entity_id": ref.entity_id,
+        "label": str(ref.label or ""),
+    }
+
+
+def _progress_objective_row(objective: AchievementObjective) -> list[object]:
+    """Primitive auto-progress contract; rich objective text/entities stay off-heap."""
+
+    objective_type = str(objective.objective_type or "")
+    keep_text = objective_type.strip().casefold() == "critère pr"
+    return [
+        int(objective.id),
+        objective_type,
+        str(objective.criterion or ""),
+        str(objective.text or "") if keep_text else "",
+        [
+            [str(ref.entity_type), ref.entity_id]
+            for ref in objective.entity_refs
+        ],
+    ]
+
+
+def _progress_objectives_from_rows(values: object) -> tuple[tuple[object, ...], ...]:
+    if not isinstance(values, list):
+        return ()
+    output: list[tuple[object, ...]] = []
+    for raw in values:
+        if not isinstance(raw, list) or len(raw) != 5:
+            continue
+        try:
+            objective_id = int(raw[0])
+        except (TypeError, ValueError):
+            continue
+        refs: list[tuple[str, int]] = []
+        if isinstance(raw[4], list):
+            for raw_ref in raw[4]:
+                if not isinstance(raw_ref, list) or len(raw_ref) != 2:
+                    continue
+                try:
+                    entity_id = int(raw_ref[1])
+                except (TypeError, ValueError):
+                    continue
+                refs.append((str(raw_ref[0] or ""), entity_id))
+        output.append(
+            (
+                objective_id,
+                str(raw[1] or ""),
+                str(raw[2] or ""),
+                str(raw[3] or ""),
+                tuple(refs),
+            )
+        )
+    return tuple(output)
+
+
+def _compact_achievement_dict(achievement: Achievement) -> dict[str, object]:
+    raw = achievement.raw if isinstance(achievement.raw, dict) else {}
+    source_category_id = raw.get("categoryId")
+    return {
+        "id": int(achievement.id),
+        "original_id": int(achievement.original_id),
+        "name": str(achievement.name or ""),
+        "description": "",
+        "category_id": int(achievement.category_id),
+        "category_name": str(achievement.category_name or ""),
+        "subcategory_id": achievement.subcategory_id,
+        "subcategory_name": str(achievement.subcategory_name or ""),
+        "level": achievement.level,
+        "points": int(achievement.points or 0),
+        "icon_id": achievement.icon_id,
+        "image_path": str(achievement.image_path or ""),
+        "order": int(achievement.order or 0),
+        "objective_ids": list(achievement.objective_ids),
+        "reward_ids": list(achievement.reward_ids),
+        # Full objective models are detail-only. Auto-progress keeps a primitive
+        # contract beside the summaries so thousands of dataclass/ref objects
+        # never enter Atlas' long-lived heap.
+        "objectives": [],
+        "progress_objectives": [
+            _progress_objective_row(objective)
+            for objective in achievement.objectives
+        ],
+        "rewards": [],
+        "linked_quests": [_entity_ref_to_dict(ref) for ref in achievement.linked_quests],
+        "linked_monsters": [_entity_ref_to_dict(ref) for ref in achievement.linked_monsters],
+        "linked_dungeons": [_entity_ref_to_dict(ref) for ref in achievement.linked_dungeons],
+        "linked_achievements": [_entity_ref_to_dict(ref) for ref in achievement.linked_achievements],
+        "resolved_linked_quests": (
+            [_entity_ref_to_dict(ref) for ref in achievement.resolved_linked_quests]
+            if int(achievement.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+            else []
+        ),
+        "resolved_linked_monsters": (
+            [_entity_ref_to_dict(ref) for ref in achievement.resolved_linked_monsters]
+            if int(achievement.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+            else []
+        ),
+        "resolved_linked_dungeons": (
+            [_entity_ref_to_dict(ref) for ref in achievement.resolved_linked_dungeons]
+            if int(achievement.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+            else []
+        ),
+        "search_text": str(achievement.search_text or ""),
+        "raw": (
+            {"categoryId": source_category_id}
+            if source_category_id is not None
+            else {}
+        ),
+    }
 
 
 def _achievement_from_dict(value: dict[str, Any]) -> Achievement:
@@ -292,6 +407,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._catalog_loading = False
+        self._progress_objectives: dict[int, str] = {}
+        self._compat_cache_id: int | None = None
+        self._compat_cache: Achievement | None = None
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -301,6 +419,28 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         finally:
             self._sources = QuestSources(cache_root)
             self._entries = None
+
+    def release_catalogue(self) -> None:
+        """Drop reconstructible Success runtime data while keeping the provider reusable."""
+
+        self._loaded = False
+        self._achievements = []
+        self._by_id = {}
+        self._categories = {}
+        self._by_category = defaultdict(list)
+        self._linked_quests = {}
+        self._linked_monsters = {}
+        self._linked_dungeons = {}
+        self._linked_achievements = {}
+        self._by_quest = defaultdict(list)
+        self._image_indexes.clear()
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._detail_sources_ready = False
+        self._progress_objectives = {}
+        self._compat_cache_id = None
+        self._compat_cache = None
+        self._reset_sources()
 
     def _image_for_icon(self, icon_id: int | None, folders: tuple[str, ...]) -> str:
         if self._catalog_loading:
@@ -353,6 +493,18 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         finally:
             self._catalog_loading = False
         self._trim_catalogue_payload()
+        self._progress_objectives = {
+            int(achievement.id): json.dumps(
+                [
+                    _progress_objective_row(objective)
+                    for objective in achievement.objectives
+                ],
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            for achievement in self._achievements
+            if achievement.objectives
+        }
         self._reset_sources()
 
     def _load_from_compact_subprocess(self) -> None:
@@ -372,6 +524,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         )
         categories: dict[int, AchievementCategory] = {}
         achievements: list[Achievement] = []
+        progress_objectives: dict[int, str] = {}
         assert process.stdout is not None
         for raw_line in process.stdout:
             line = raw_line.strip()
@@ -396,10 +549,22 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 )
                 categories[category.id] = category
             elif kind == "achievement" and isinstance(value, dict):
-                achievements.append(_achievement_from_dict(value))
+                achievement = _achievement_from_dict(value)
+                achievements.append(achievement)
+                raw_progress = value.get("progress_objectives")
+                if isinstance(raw_progress, list) and raw_progress:
+                    progress_objectives[int(achievement.id)] = json.dumps(
+                        raw_progress,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
 
         stderr = process.stderr.read() if process.stderr is not None else ""
         return_code = process.wait(timeout=10)
+        if process.stdout is not None:
+            process.stdout.close()
+        if process.stderr is not None:
+            process.stderr.close()
         if return_code != 0:
             raise RuntimeError(
                 "Extraction compacte des succès impossible"
@@ -424,6 +589,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     continue
         self._by_category = defaultdict(list, by_category)
         self._by_quest = defaultdict(list, by_quest)
+        self._progress_objectives = progress_objectives
         self._linked_quests = {}
         self._linked_monsters = {}
         self._linked_dungeons = {}
@@ -439,11 +605,113 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return
         self._load_from_compact_subprocess()
 
+    def load_runtime(self) -> None:
+        """Warm only the compact resident catalogue used by Atlas runtime."""
+
+        self._ensure_loaded()
+
+    def _compat_achievement(self, summary: Achievement) -> Achievement:
+        achievement_id = int(summary.id)
+        objectives: list[AchievementObjective] = []
+        for order, row in enumerate(self.progress_objectives_for(achievement_id), 1):
+            if len(row) != 5:
+                continue
+            objective_id, objective_type, criterion, text, raw_refs = row
+            refs = tuple(
+                EntityRef(str(entity_type or ""), int(entity_id), "")
+                for entity_type, entity_id in tuple(raw_refs or ())
+            )
+            objectives.append(
+                AchievementObjective(
+                    id=int(objective_id),
+                    achievement_id=achievement_id,
+                    text=str(text or ""),
+                    criterion=str(criterion or ""),
+                    order=order,
+                    objective_type=str(objective_type or ""),
+                    entity_ref=(refs[0] if refs else None),
+                    entity_refs=refs,
+                )
+            )
+        points_reward = Reward(
+            kind="achievement_points",
+            name="Points de succès",
+            quantity=max(0, int(summary.points or 0)),
+            source_id=achievement_id,
+        )
+        return replace(
+            summary,
+            objectives=tuple(objectives),
+            rewards=(points_reward,),
+        )
+
+    def load_all(self) -> list[Achievement]:
+        self._ensure_loaded()
+        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
+        current_data_dir = Path(self.data_dir).resolve(strict=False)
+        if bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir:
+            self.prepare_detail_sources()
+        return [self._compat_achievement(summary) for summary in self._achievements]
+
+    def progress_objectives_for(self, achievement_id: int) -> tuple[tuple[object, ...], ...]:
+        self._ensure_loaded()
+        encoded = self._progress_objectives.get(int(achievement_id), "")
+        if not encoded:
+            return ()
+        try:
+            payload = json.loads(encoded)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return ()
+        return _progress_objectives_from_rows(payload)
+
+    def get_by_id(self, achievement_id: int) -> Achievement | None:
+        """Return one lightweight compatibility object without warming rich sources."""
+
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        summary = self._by_id.get(achievement_id)
+        if summary is None:
+            return None
+        if self._compat_cache_id == achievement_id and self._compat_cache is not None:
+            return self._compat_cache
+        compatible = self._compat_achievement(summary)
+        self._compat_cache_id = achievement_id
+        self._compat_cache = compatible
+        return compatible
+
+    def is_retained(self, achievement_id: int) -> bool:
+        self._ensure_loaded()
+        summary = self._by_id.get(int(achievement_id))
+        return bool(
+            summary is not None
+            and int(summary.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+        )
+
     def prepare_detail_sources(self) -> None:
         if self._detail_sources_ready:
             return
         try:
             super().prepare_detail_sources()
+        finally:
+            self._reset_sources()
+
+    def _get_detail_in_process(self, achievement_id: int):
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        if self._detail_cache_id == achievement_id and self._detail_cache is not None:
+            return self._detail_cache
+        if not self._detail_sources_ready:
+            raise RuntimeError(
+                "Sources de détail Succès non préparées ; load_all() doit être exécuté "
+                "hors du thread UI avant l'ouverture d'un détail."
+            )
+        self._entries = self._sources.mapping(
+            self.data_dir / "languages" / "fr.json",
+            "entries",
+            required=True,
+        )
+        try:
+            return BaseAchievementProvider.get_detail_by_id(self, achievement_id)
         finally:
             self._reset_sources()
 
@@ -453,30 +721,60 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         if self._detail_cache_id == achievement_id and self._detail_cache is not None:
             return self._detail_cache
 
-        self._entries = self._sources.mapping(
-            self.data_dir / "languages" / "fr.json",
-            "entries",
-            required=True,
-        )
-        try:
-            return super().get_detail_by_id(achievement_id)
-        finally:
-            self._reset_sources()
+        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
+        current_data_dir = Path(self.data_dir).resolve(strict=False)
+        if (
+            not bool(getattr(sys, "frozen", False))
+            and current_data_dir == default_data_dir
+            and _DUMP_DETAIL_FLAG not in sys.argv
+        ):
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+                    _DUMP_DETAIL_FLAG,
+                    str(achievement_id),
+                ],
+                cwd=ROOT_DIR,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=90,
+                check=True,
+            )
+            lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+            if not lines:
+                return None
+            payload = json.loads(lines[-1])
+            if not isinstance(payload, dict):
+                return None
+            detail = _achievement_from_dict(payload)
+            self._detail_cache_id = achievement_id
+            self._detail_cache = detail
+            return detail
+
+        return self._get_detail_in_process(achievement_id)
 
     def get_linked_quests(self, achievement_id: int):
-        achievement = self.get_by_id(int(achievement_id))
+        self._ensure_loaded()
+        achievement = self._by_id.get(int(achievement_id))
         return list(achievement.linked_quests) if achievement is not None else []
 
     def get_linked_monsters(self, achievement_id: int):
-        achievement = self.get_by_id(int(achievement_id))
+        self._ensure_loaded()
+        achievement = self._by_id.get(int(achievement_id))
         return list(achievement.linked_monsters) if achievement is not None else []
 
     def get_linked_dungeons(self, achievement_id: int):
-        achievement = self.get_by_id(int(achievement_id))
+        self._ensure_loaded()
+        achievement = self._by_id.get(int(achievement_id))
         return list(achievement.linked_dungeons) if achievement is not None else []
 
     def get_linked_achievements(self, achievement_id: int):
-        achievement = self.get_by_id(int(achievement_id))
+        self._ensure_loaded()
+        achievement = self._by_id.get(int(achievement_id))
         return list(achievement.linked_achievements) if achievement is not None else []
 
 
@@ -494,7 +792,7 @@ def _dump_compact_default_catalogue() -> int:
     for achievement in provider._achievements:
         print(
             json.dumps(
-                {"kind": "achievement", "value": asdict(achievement)},
+                {"kind": "achievement", "value": _compact_achievement_dict(achievement)},
                 ensure_ascii=False,
                 separators=(",", ":"),
             )
@@ -502,8 +800,33 @@ def _dump_compact_default_catalogue() -> int:
     return 0
 
 
+def _dump_default_detail(achievement_id: int) -> int:
+    provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+    provider._load_in_process()
+    provider._loaded = True
+    provider.prepare_detail_sources()
+    detail = provider._get_detail_in_process(int(achievement_id))
+    if detail is None:
+        return 2
+    print(
+        json.dumps(
+            asdict(detail),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    )
+    return 0
+
+
 if __name__ == "__main__" and _DUMP_COMPACT_FLAG in sys.argv:
     raise SystemExit(_dump_compact_default_catalogue())
+
+if __name__ == "__main__" and _DUMP_DETAIL_FLAG in sys.argv:
+    try:
+        detail_id = int(sys.argv[sys.argv.index(_DUMP_DETAIL_FLAG) + 1])
+    except (ValueError, IndexError):
+        raise SystemExit(2)
+    raise SystemExit(_dump_default_detail(detail_id))
 
 
 __all__ = ["MemoryBoundAchievementProvider"]

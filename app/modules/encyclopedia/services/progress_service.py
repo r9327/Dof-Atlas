@@ -240,6 +240,7 @@ class AchievementProgressService:
 
         achievements = tuple(achievement_provider.load_retained())
         by_id = {int(achievement.id): achievement for achievement in achievements}
+        compact_objectives = getattr(achievement_provider, "progress_objectives_for", None)
         completed_quest_count = len(completed_quests)
         alignment_main = self._alignment_main_quest_ids(guide_provider)
         alignment_counts = {
@@ -289,23 +290,55 @@ class AchievementProgressService:
                 return value <= target
             return value == target
 
+        def ref_parts(ref: Any) -> tuple[str, int | None]:
+            if isinstance(ref, (tuple, list)) and len(ref) == 2:
+                try:
+                    return str(ref[0] or ""), int(ref[1])
+                except (TypeError, ValueError):
+                    return str(ref[0] or ""), None
+            try:
+                return str(getattr(ref, "entity_type", "") or ""), int(getattr(ref, "entity_id"))
+            except (TypeError, ValueError):
+                return str(getattr(ref, "entity_type", "") or ""), None
+
         def ref_group_done(refs: Iterable[Any], entity_type: str, criterion: str) -> bool | None:
-            matching = [ref for ref in refs if str(getattr(ref, "entity_type", "")) == entity_type]
+            matching = [
+                ref_parts(ref)[1]
+                for ref in refs
+                if ref_parts(ref)[0] == entity_type and ref_parts(ref)[1] is not None
+            ]
             if not matching:
                 return None
             values: list[bool] = []
-            for ref in matching:
-                entity_id = int(getattr(ref, "entity_id"))
+            for entity_id in matching:
+                assert entity_id is not None
                 if entity_type == "quest":
                     values.append(entity_id in completed_quests)
                 else:
                     values.append(resolve_achievement(entity_id, frozenset()))
             return any(values) if "|" in str(criterion or "") else all(values)
 
+        def objective_parts(objective: Any) -> tuple[int, str, str, str, tuple[Any, ...]]:
+            if isinstance(objective, tuple) and len(objective) == 5:
+                return (
+                    int(objective[0]),
+                    str(objective[1] or ""),
+                    str(objective[2] or ""),
+                    str(objective[3] or ""),
+                    tuple(objective[4] or ()),
+                )
+            return (
+                int(objective.id),
+                str(getattr(objective, "objective_type", "") or ""),
+                str(getattr(objective, "criterion", "") or ""),
+                str(getattr(objective, "text", "") or ""),
+                tuple(getattr(objective, "entity_refs", ()) or ()),
+            )
+
         def objective_done(achievement: Any, objective: Any, visiting: frozenset[int]) -> tuple[bool | None, bool]:
             aid = int(achievement.id)
-            oid = int(objective.id)
-            objective_type = str(getattr(objective, "objective_type", "") or "").strip().casefold()
+            oid, raw_type, criterion, objective_text, refs = objective_parts(objective)
+            objective_type = raw_type.strip().casefold()
             category_name = str(getattr(achievement, "category_name", "") or "").strip().casefold()
             if objective_type in {"critère pl", "critère ea"}:
                 return None, True
@@ -314,14 +347,18 @@ class AchievementProgressService:
             if oid in manual_objectives.get(aid, set()):
                 return True, False
 
-            refs = tuple(getattr(objective, "entity_refs", ()) or ())
-            criterion = str(getattr(objective, "criterion", "") or "")
             quest_value = ref_group_done(refs, "quest", criterion)
             if quest_value is not None:
                 return quest_value, False
-            achievement_refs = [ref for ref in refs if str(getattr(ref, "entity_type", "")) == "achievement"]
+            achievement_refs = [
+                entity_id
+                for ref in refs
+                if ref_parts(ref)[0] == "achievement"
+                for entity_id in (ref_parts(ref)[1],)
+                if entity_id is not None
+            ]
             if achievement_refs:
-                values = [resolve_achievement(int(getattr(ref, "entity_id")), visiting) for ref in achievement_refs]
+                values = [resolve_achievement(int(entity_id), visiting) for entity_id in achievement_refs]
                 return (any(values) if "|" in criterion else all(values)), False
 
             if objective_type == "critère qq":
@@ -331,7 +368,7 @@ class AchievementProgressService:
                 value = compare(alignment_count, criterion, "Pa")
                 return (bool(value), False) if value is not None else (False, False)
             if objective_type == "critère pr":
-                rank_match = re.search(r"\bRang\s+(\d+)\b", str(getattr(objective, "text", "") or ""), re.IGNORECASE)
+                rank_match = re.search(r"\bRang\s+(\d+)\b", objective_text, re.IGNORECASE)
                 choice = self.alignment_order_choice(key)
                 if rank_match is None or choice is None:
                     return False, False
@@ -358,14 +395,20 @@ class AchievementProgressService:
                 return False
             next_visiting = visiting | {aid}
             evaluated: list[bool] = []
-            for objective in tuple(getattr(achievement, "objectives", ()) or ()):
+            objectives = (
+                tuple(compact_objectives(aid))
+                if callable(compact_objectives)
+                else tuple(getattr(achievement, "objectives", ()) or ())
+            )
+            for objective in objectives:
                 value, ignored = objective_done(achievement, objective, next_visiting)
                 if ignored:
                     continue
                 done = bool(value)
                 evaluated.append(done)
-                if done and int(objective.id) not in manual_objectives.get(aid, set()):
-                    auto_objectives.setdefault(aid, set()).add(int(objective.id))
+                objective_id = objective_parts(objective)[0]
+                if done and objective_id not in manual_objectives.get(aid, set()):
+                    auto_objectives.setdefault(aid, set()).add(objective_id)
             result = bool(evaluated) and all(evaluated)
             memo[aid] = result
             return result

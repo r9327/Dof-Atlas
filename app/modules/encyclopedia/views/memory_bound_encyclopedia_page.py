@@ -4,15 +4,15 @@ from PySide6.QtWidgets import QWidget
 
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as BaseEncyclopediaPage
+from app.modules.encyclopedia.views.related_preload_state import RelatedPreloadGate
 
 
 class EncyclopediaPage(BaseEncyclopediaPage):
-    """Keep providers warm while releasing inactive heavy Qt view trees.
+    """Keep heavy runtime warm only while Encyclopedia is active.
 
-    The catalogue/runtime providers stay resident so reopening a tab does not
-    rebuild data from disk. Only the heavyweight widget representation is
-    hibernated when another Encyclopedia tab becomes active or the whole page
-    leaves the screen.
+    Heavy Qt view trees are hibernated between tabs. When the whole Encyclopedia
+    leaves the screen, reconstructible Success/Guide catalogues are released too;
+    the existing background stages rebuild them only when the player returns.
 
     The runtime class deliberately keeps the historical public type name
     ``EncyclopediaPage``. ``MemoryBoundEncyclopediaPage`` remains an alias for
@@ -30,6 +30,8 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self._memory_restore_quest_series = ""
         self._memory_restore_quest_search = ""
         self._memory_has_been_shown = False
+        self._memory_release_runtime_when_idle = False
+        self._memory_pending_tab_label = ""
         super().__init__(*args, **kwargs)
 
     def _replace_with_lazy_slot(self, label: str, widget: QWidget) -> None:
@@ -136,6 +138,46 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         if active_label != GUIDES_TAB:
             self._hibernate_guides()
 
+    def _release_runtime_providers(self) -> bool:
+        if bool(getattr(self, "_achievement_load_started", False)) or bool(
+            getattr(self, "_related_preload_started", False)
+        ):
+            return False
+
+        achievement_provider = getattr(getattr(self, "service", None), "achievement_provider", None)
+        guide_provider = getattr(getattr(self, "service", None), "guide_provider", None)
+        for provider in (achievement_provider, guide_provider):
+            release = getattr(provider, "release_catalogue", None)
+            if callable(release):
+                release()
+
+        graph = getattr(self, "_quest_graph", None)
+        if graph is not None:
+            graph.achievement_provider = None
+            graph.guide_provider = None
+
+        self._achievement_ready = False
+        self._guide_runtime_ready = False
+        self._related_ready = False
+        self._achievement_provider_supplied = False
+        self._guide_provider_supplied = False
+        self._catalog_context_published = False
+        self._full_guide_tab_requested = False
+        self._success_runtime_requested = False
+        self._pending_lazy_tab = ""
+        self._related_preload_gate = RelatedPreloadGate()
+        self._memory_release_runtime_when_idle = False
+        return True
+
+    def prepare_external_tab_navigation(self, label: str) -> None:
+        """Prioritize an explicit shell tab request over stale hidden-tab state."""
+
+        requested = str(label or "").strip()
+        self._memory_pending_tab_label = requested if requested in self.tab_labels() else ""
+        # A visible return cancels a deferred off-screen release request. A worker
+        # already running may finish, but its result must remain usable now.
+        self._memory_release_runtime_when_idle = False
+
     def hideEvent(self, event) -> None:  # noqa: N802 - Qt API
         # QStackedWidget can emit a hide event while a freshly-created page is
         # inserted behind the current page. That is construction, not a user
@@ -143,6 +185,8 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         # genuinely been shown at least once.
         if self._memory_has_been_shown:
             self.hibernate_heavy_views()
+            self._memory_release_runtime_when_idle = True
+            self._release_runtime_providers()
         super().hideEvent(event)
 
     def showEvent(self, event) -> None:  # noqa: N802 - Qt API
@@ -154,21 +198,39 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         """
 
         self._memory_has_been_shown = True
+        self._memory_release_runtime_when_idle = False
         super().showEvent(event)
+
+        # AtlasWindow sets pending_encyclopedia_tab before showing this page.
+        # Do not rebuild the previously active heavy tab just before the queued
+        # navigation switches to a different one.
+        owner = self.window()
+        pending_label = str(getattr(owner, "pending_encyclopedia_tab", "") or "")
+        if pending_label and pending_label in self.tab_labels():
+            return
+
         index = self.tabs.currentIndex()
         if index < 0:
             return
-        label = self.tabs.tabText(index)
+        label = self._memory_pending_tab_label or self.tabs.tabText(index)
         if label == QUESTS_TAB and self.quest_page is None:
             self._restore_quests_view()
-        elif label == ACHIEVEMENTS_TAB and self.get_achievements_view() is None:
-            self.ensure_achievements_view()
-        elif label == GUIDES_TAB and getattr(self, "guides_view", None) is None:
-            self.ensure_guides_view()
+        elif label == ACHIEVEMENTS_TAB:
+            if not bool(getattr(self, "_achievement_ready", False)):
+                self._start_full_achievement_runtime()
+            elif self.get_achievements_view() is None:
+                self.ensure_achievements_view()
+        elif label == GUIDES_TAB:
+            if not bool(getattr(self, "_guide_runtime_ready", False)):
+                self._start_full_guide_runtime()
+            elif getattr(self, "guides_view", None) is None:
+                self.ensure_guides_view()
         self.sync_character_to_children()
 
     def on_tab_changed(self, index: int) -> None:
         label = self.tabs.tabText(index) if index >= 0 else ""
+        if label and label == self._memory_pending_tab_label:
+            self._memory_pending_tab_label = ""
         self.hibernate_heavy_views(active_label=label)
         if label == QUESTS_TAB and self.quest_page is None:
             restored = self._restore_quests_view()
@@ -186,6 +248,18 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             if bool(getattr(self, "_achievement_ready", False)):
                 view.show_achievement(achievement_id)
         return view
+
+    def _collect_achievement_runtime(self, result: object) -> None:
+        super()._collect_achievement_runtime(result)
+        if self._memory_release_runtime_when_idle and not self.isVisible():
+            self.hibernate_heavy_views()
+            self._release_runtime_providers()
+
+    def collect_related_preload(self, result: object) -> None:
+        super().collect_related_preload(result)
+        if self._memory_release_runtime_when_idle and not self.isVisible():
+            self.hibernate_heavy_views()
+            self._release_runtime_providers()
 
     def ensure_guides_view(self):
         created = getattr(self, "guides_view", None) is None

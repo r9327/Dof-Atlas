@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SHELL_MAIN = ROOT / "main.py"
 EQUIPMENT = ROOT / "app" / "pages" / "equipment_page.py"
 ENCYCLOPEDIA_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "views" / "__init__.py"
 ENCYCLOPEDIA_SERVICE = (
@@ -31,6 +32,14 @@ MEMORY_PAGE = (
     / "encyclopedia"
     / "views"
     / "memory_bound_encyclopedia_page.py"
+)
+MEMORY_GUIDE_PROVIDER = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "providers"
+    / "memory_bound_guide_provider.py"
 )
 MEMORY_ACHIEVEMENT_PROVIDER = (
     ROOT
@@ -70,7 +79,7 @@ def test_encyclopedia_runtime_constructs_provider_through_memory_facade() -> Non
     assert "providers.achievement_provider import AchievementProvider" not in source
 
 
-def test_memory_bound_page_hibernates_only_widget_layer() -> None:
+def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> None:
     source = MEMORY_PAGE.read_text(encoding="utf-8")
     tree = ast.parse(source)
     method_names = {
@@ -82,13 +91,22 @@ def test_memory_bound_page_hibernates_only_widget_layer() -> None:
         "hibernate_heavy_views",
         "_hibernate_achievements",
         "_hibernate_guides",
+        "_release_runtime_providers",
+        "prepare_external_tab_navigation",
+        "_collect_achievement_runtime",
+        "collect_related_preload",
         "ensure_achievements_view",
         "ensure_guides_view",
         "hideEvent",
+        "showEvent",
         "on_tab_changed",
     } <= method_names
-    assert "service.achievement_provider" not in source
-    assert "service.guide_provider = None" not in source
+    assert "release_catalogue" in source
+    assert "RelatedPreloadGate()" in source
+    assert "_achievement_ready = False" in source
+    assert "_guide_runtime_ready = False" in source
+    assert "pending_encyclopedia_tab" in source
+    assert "_memory_release_runtime_when_idle = False" in source
     assert "deleteLater()" in source
 
 
@@ -105,6 +123,7 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     assert "MemoryBoundAchievementProvider as RealAchievementProvider" in facade
     assert {
         "_reset_sources",
+        "release_catalogue",
         "_trim_catalogue_payload",
         "_load",
         "prepare_detail_sources",
@@ -113,6 +132,10 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     assert "QuestSources(" in source
     assert "self._entries = None" in source
     assert "self._image_indexes.clear()" in source
+    assert "_compact_achievement_dict" in source
+    assert "_compact_objective_dict" in source
+    assert "_DUMP_DETAIL_FLAG" in source
+    assert "_dump_default_detail" in source
     assert '"raw"' in source
 
 
@@ -136,3 +159,39 @@ def test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent() -> 
     assert "subprocess.run" in source
     assert "--dump-compact" in source
     assert "sys.executable" in source
+
+
+def test_guide_provider_releases_reconstructible_catalogue() -> None:
+    source = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    method_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {"release_catalogue", "release_detail_cache", "_load"} <= method_names
+    assert "self._loaded = False" in source
+    assert "self._detail_entries = {}" in source
+
+
+def test_shell_announces_explicit_encyclopedia_tab_before_showing_page() -> None:
+    source = SHELL_MAIN.read_text(encoding="utf-8")
+    method = source[source.index("def open_encyclopedia_tab"):source.index("def finish_pending_encyclopedia_tab")]
+    prepare = method.index("prepare_external_tab_navigation")
+    show = method.index('self.show_page("Quetes")')
+    assert prepare < show
+    assert "prepare_navigation(label)" in method
+
+
+def test_memory_page_prefers_explicit_tab_over_hidden_current_tab() -> None:
+    source = MEMORY_PAGE.read_text(encoding="utf-8")
+    assert 'label = self._memory_pending_tab_label or self.tabs.tabText(index)' in source
+    assert 'if label and label == self._memory_pending_tab_label:' in source
+
+
+def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
+    source = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
+    assert '"objectives": []' in source
+    assert '"progress_objectives": [' in source
+    assert "def progress_objectives_for" in source
+    assert "_DUMP_DETAIL_FLAG" in source

@@ -128,6 +128,43 @@ jobs:
               row = by_label[label]
               if row.get("process_rss_mb") is None or row.get("tree_rss_mb") is None:
                   raise SystemExit(f"memory stage {label} has incomplete RSS evidence")
+
+          # Phase 8 certified memory budgets. These are intentionally above the
+          # measured candidate to absorb normal hosted-runner noise while still
+          # preventing a return to the former 125-130 MB retained plateau.
+          stage_budgets_mb = {
+              "after_preload": 95.0,
+              "after_quests_home": 105.0,
+              "after_achievements_home": 115.0,
+              "after_guide_home": 120.0,
+              "after_equipment_home_stabilized": 120.0,
+          }
+          for label, budget in stage_budgets_mb.items():
+              measured = float(by_label[label]["tree_rss_mb"])
+              if measured > budget:
+                  raise SystemExit(
+                      f"memory budget exceeded for {label}: {measured:.2f} MB > {budget:.2f} MB"
+                  )
+
+          peak_tree = float(metrics.get("peak_tree_rss_mb") or 0.0)
+          if peak_tree > 400.0:
+              raise SystemExit(
+                  f"process-tree peak budget exceeded: {peak_tree:.2f} MB > 400.00 MB"
+              )
+
+          retained_budgets_mb = {
+              "achievements_retained_tree_delta_mb": 15.0,
+              "guide_retained_tree_delta_mb": 20.0,
+              "equipment_tree_delta_stabilized_mb": 1.0,
+          }
+          for metric, budget in retained_budgets_mb.items():
+              measured = float(metrics.get(metric) or 0.0)
+              if measured > budget:
+                  raise SystemExit(
+                      f"retained memory budget exceeded for {metric}: "
+                      f"{measured:.2f} MB > {budget:.2f} MB"
+                  )
+
           print(json.dumps(metrics, ensure_ascii=False, indent=2))
           '@ | python -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -147,7 +184,9 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak app RSS: $($payload.metrics.peak_process_rss_mb) MB"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB (budget: 400 MB)"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Success retained tree delta after Home: $($payload.metrics.achievements_retained_tree_delta_mb) MB (budget: 15 MB)"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide retained tree delta after Home: $($payload.metrics.guide_retained_tree_delta_mb) MB (budget: 20 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment active tree delta: $($payload.metrics.equipment_tree_delta_active_mb) MB"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment retained tree delta after Home: $($payload.metrics.equipment_tree_delta_stabilized_mb) MB"
 
