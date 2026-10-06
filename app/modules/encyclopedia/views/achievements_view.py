@@ -49,6 +49,7 @@ TOP_CATEGORY_ROLE = Qt.UserRole + 1
 COMPLETED_ROLE = Qt.UserRole + 2
 _SEARCH_DEBOUNCE_MS = 90
 _RESULT_BATCH_SIZE = 16
+_INITIAL_RESULT_ROWS = 32
 
 
 def _achievement_detail_widget_type():
@@ -368,7 +369,17 @@ class AchievementsView(QWidget):
             self.search.clear()
         for row, candidate in enumerate(self.filtered):
             if candidate.id == achievement.id:
-                self.list_widget.setCurrentRow(row)
+                # Direct navigation may target a row outside the currently
+                # materialized viewport. Render only up to that target instead
+                # of eagerly building the whole category.
+                while (
+                    self.isVisible()
+                    and self.list_widget.count() <= row
+                    and self._achievement_pending_rows
+                ):
+                    self._render_next_achievement_batch()
+                if row < self.list_widget.count():
+                    self.list_widget.setCurrentRow(row)
                 self.show_achievement(achievement.id)
                 return True
         return False
@@ -675,6 +686,7 @@ class AchievementsView(QWidget):
         self._achievement_rows_dirty = False
         self._achievement_completed_ids: frozenset[int] = frozenset()
         self._achievement_batch_timer: QTimer | None = None
+        self._achievement_rendering_batch = False
         self._achievement_initializing = True
         self._initialize_achievements_view(*args, **kwargs)
         self._achievement_initializing = False
@@ -708,6 +720,9 @@ class AchievementsView(QWidget):
         batch_timer.setInterval(0)
         batch_timer.timeout.connect(self._render_next_achievement_batch)
         self._achievement_batch_timer = batch_timer
+        self.list_widget.verticalScrollBar().valueChanged.connect(
+            self._maybe_render_more_achievement_rows
+        )
         if self.isVisible() and self._achievement_rows_dirty:
             batch_timer.start()
 
@@ -799,53 +814,86 @@ class AchievementsView(QWidget):
         if timer is not None:
             timer.start()
 
+    def _apply_pending_achievement_selection(self) -> None:
+        selected_id = self._achievement_pending_selected_id
+        if selected_id is None:
+            return
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            if int(item.data(Qt.UserRole) or 0) == int(selected_id):
+                self.list_widget.setCurrentRow(row)
+                return
+
     def _render_next_achievement_batch(self) -> None:
-        if not self.isVisible() or not self._achievement_pending_rows:
+        if (
+            self._achievement_rendering_batch
+            or not self.isVisible()
+            or not self._achievement_pending_rows
+        ):
             self._achievement_rows_dirty = bool(self._achievement_pending_rows)
             return
 
-        generation = self._achievement_render_generation
-        batch = self._achievement_pending_rows[:_RESULT_BATCH_SIZE]
-        del self._achievement_pending_rows[:_RESULT_BATCH_SIZE]
-        done_color = self.palette().color(QPalette.Disabled, QPalette.Text)
-        todo_color = self.palette().color(QPalette.Active, QPalette.Text)
-
-        self.list_widget.blockSignals(True)
+        self._achievement_rendering_batch = True
         try:
-            for achievement_id, text, tooltip in batch:
-                if generation != self._achievement_render_generation:
-                    return
-                completed = achievement_id in self._achievement_completed_ids
-                item = QListWidgetItem(text)
-                item.setData(Qt.UserRole, achievement_id)
-                item.setToolTip(tooltip)
-                item.setForeground(done_color if completed else todo_color)
-                item.setData(COMPLETED_ROLE, completed)
-                self.list_widget.addItem(item)
+            generation = self._achievement_render_generation
+            batch = self._achievement_pending_rows[:_RESULT_BATCH_SIZE]
+            del self._achievement_pending_rows[:_RESULT_BATCH_SIZE]
+            done_color = self.palette().color(QPalette.Disabled, QPalette.Text)
+            todo_color = self.palette().color(QPalette.Active, QPalette.Text)
+
+            self.list_widget.blockSignals(True)
+            try:
+                for achievement_id, text, tooltip in batch:
+                    if generation != self._achievement_render_generation:
+                        return
+                    completed = achievement_id in self._achievement_completed_ids
+                    item = QListWidgetItem(text)
+                    item.setData(Qt.UserRole, achievement_id)
+                    item.setToolTip(tooltip)
+                    item.setForeground(done_color if completed else todo_color)
+                    item.setData(COMPLETED_ROLE, completed)
+                    self.list_widget.addItem(item)
+            finally:
+                self.list_widget.blockSignals(False)
+
+            if generation != self._achievement_render_generation:
+                return
+
+            self._apply_pending_achievement_selection()
+            self._achievement_rows_dirty = bool(self._achievement_pending_rows)
+            if self._achievement_pending_rows:
+                # The old timer chain eventually instantiated every success in
+                # the selected category. Keep only an initial viewport resident;
+                # the next batch is requested by scrolling or direct navigation.
+                if self.list_widget.count() < _INITIAL_RESULT_ROWS:
+                    timer = self._achievement_batch_timer
+                    if timer is not None:
+                        timer.start()
+                return
         finally:
-            self.list_widget.blockSignals(False)
+            self._achievement_rendering_batch = False
 
-        if generation != self._achievement_render_generation:
+    def _maybe_render_more_achievement_rows(self, value: int) -> None:
+        if (
+            self._achievement_rendering_batch
+            or not self._achievement_pending_rows
+            or not self.isVisible()
+        ):
             return
-        if self._achievement_pending_rows:
-            timer = self._achievement_batch_timer
-            if timer is not None:
-                timer.start()
-            return
-
-        self._achievement_rows_dirty = False
-        selected_id = self._achievement_pending_selected_id
-        if selected_id is not None:
-            for row in range(self.list_widget.count()):
-                item = self.list_widget.item(row)
-                if int(item.data(Qt.UserRole) or 0) == int(selected_id):
-                    self.list_widget.setCurrentRow(row)
-                    break
+        bar = self.list_widget.verticalScrollBar()
+        threshold = max(0, bar.maximum() - max(1, bar.pageStep() // 2))
+        if int(value) >= threshold:
+            self._render_next_achievement_batch()
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
         timer = self._achievement_batch_timer
-        if self._achievement_rows_dirty and timer is not None and not timer.isActive():
+        if (
+            self._achievement_rows_dirty
+            and self.list_widget.count() < _INITIAL_RESULT_ROWS
+            and timer is not None
+            and not timer.isActive()
+        ):
             timer.start()
 
     def refresh_completion_styles(self) -> None:
