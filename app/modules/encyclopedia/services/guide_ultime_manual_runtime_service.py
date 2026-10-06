@@ -107,9 +107,17 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
         """
         stage = card.get("manual_stage_data")
         if not isinstance(stage, dict):
+            hydrate = getattr(self, "_hydrate_manual_card_source", None)
+            if callable(hydrate):
+                hydrated = hydrate(card)
+                stage = hydrated if isinstance(hydrated, dict) else None
+        if not isinstance(stage, dict):
             return super().manual_sections_for_card(character_key, card)
 
-        source_card = copy.deepcopy(card)
+        # In compact runtime the visible authored stage can itself be large.
+        # A shallow card shell is enough: classification treats the stage as read-only
+        # and already deep-copies the emitted player lines.
+        source_card = dict(card) if self.compact_runtime else copy.deepcopy(card)
         source_card["manual_lines"] = self._raw_stage_lines(
             stage,
             [

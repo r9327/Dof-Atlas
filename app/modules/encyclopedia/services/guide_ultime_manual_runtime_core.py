@@ -394,24 +394,50 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                     f"Stage count canonique incohérent pour {chapter_id}: manifeste={declared}, résolu={len(stages)}"
                 )
 
-            chapter_preparation_schedule = self._chapter_preparation_schedule(chapter, stages)
+            # In compact runtime, do not build every full player card only to
+            # discard its authored source afterwards. That old path rendered all
+            # lines, built preparation schedules and allocated structured payloads
+            # for 267 sheets in Atlas' long-lived process. Keep a tiny route index
+            # instead; the visible sheet is hydrated from its source on demand.
+            chapter_preparation_schedule = (
+                {}
+                if self.compact_runtime
+                else self._chapter_preparation_schedule(chapter, stages)
+            )
             unsupported: set[str] = set()
             for stage_position, stage in enumerate(stages):
                 unsupported.update(str(key) for key in stage.keys() if str(key) not in _SUPPORTED_STAGE_FIELDS)
-                card = self._stage_to_card(
-                    chapter_id,
-                    chapter_meta,
-                    chapter,
-                    stage,
-                    index,
-                    chapter_preparation=chapter_preparation_schedule.get(stage_position, []),
-                )
+                if self.compact_runtime:
+                    card = self._stage_to_compact_card(
+                        chapter_id,
+                        chapter_meta,
+                        chapter,
+                        stage,
+                        index,
+                    )
+                else:
+                    card = self._stage_to_card(
+                        chapter_id,
+                        chapter_meta,
+                        chapter,
+                        stage,
+                        index,
+                        chapter_preparation=chapter_preparation_schedule.get(stage_position, []),
+                    )
+                card["manual_source_file"] = filename
+                card["manual_stage_position"] = int(stage_position)
+                card["manual_capture_transition"] = bool(stage.get("capture_transition"))
                 if not bool(card.get("manual_has_lines", card.get("manual_lines"))):
                     empty_cards.append(f"{chapter_id}:{card.get('manual_stage_id')}")
                 cards.append(card)
                 index += 1
             if unsupported:
                 unsupported_by_chapter[chapter_id] = sorted(unsupported)
+
+            # Drop the resolved dependency graph before opening the next chapter.
+            # This is ordinary ownership cleanup, not a memory trim: no runtime
+            # behavior depends on chapter_memo after the compact rows are built.
+            chapter_memo.clear()
 
         self._link_next_cards(cards)
 
@@ -475,6 +501,147 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
 
     def manual_audit(self) -> dict[str, Any]:
         return copy.deepcopy(self.manual_audit_data)
+
+    def _stage_to_compact_card(
+        self,
+        chapter_id: str,
+        chapter_meta: dict[str, Any],
+        chapter: dict[str, Any],
+        stage: dict[str, Any],
+        index: int,
+    ) -> dict[str, Any]:
+        """Build only the route/progress metadata required while a card is hidden."""
+
+        start = stage.get("start") if isinstance(stage.get("start"), dict) else {}
+        end = stage.get("end") if isinstance(stage.get("end"), dict) else {}
+        location = start if start else end
+        x = self._as_int(location.get("x"))
+        y = self._as_int(location.get("y"))
+
+        first_route_position = self._first_route_position(stage)
+        if x is None or y is None:
+            route_coords = self._coords_from_text(first_route_position)
+            if route_coords is not None:
+                x, y = route_coords
+
+        coverage = chapter.get("coverage") if isinstance(chapter.get("coverage"), dict) else {}
+        zone = str(
+            location.get("zone")
+            or location.get("label")
+            or coverage.get("chapter")
+            or chapter_meta.get("label")
+            or chapter_id.replace("_", " ").title()
+        ).strip()
+        destination = self._location_text(x, y, zone)
+        if not destination and first_route_position:
+            destination = first_route_position
+
+        quest_names = self._stage_quest_names(stage)
+        quest_ids = [
+            self._quest_name_to_id[name]
+            for name in quest_names
+            if name in self._quest_name_to_id
+        ]
+        temporal_hooks = self._string_list(stage.get("temporal_hooks"))
+        temporal_hooks.extend(self._string_list(stage.get("temporal_hook")))
+        temporal_hooks = list(dict.fromkeys(temporal_hooks))
+        success_names = self._string_list(stage.get("successes"))
+        resource_names = self._stage_resource_names(chapter, stage)
+
+        search_chunks = [
+            str(stage.get("title") or ""),
+            destination,
+            " ".join(quest_names),
+            " ".join(success_names),
+            " ".join(temporal_hooks),
+            " ".join(self._string_list(stage.get("route_hooks"))),
+        ]
+        manual_search_text = normalize_text(" ".join(value for value in search_chunks if value))
+        metadata_only = {
+            "id",
+            "title",
+            "expected_level",
+            "level",
+            "start",
+            "end",
+            "notes",
+            "note",
+        }
+        manual_has_lines = any(
+            value not in (None, "", [], {})
+            for key, value in stage.items()
+            if str(key) not in metadata_only
+        )
+
+        return {
+            "index": index,
+            "manual_source": True,
+            "_manual_route_cacheable": True,
+            "manual_chapter_id": chapter_id,
+            "manual_chapter_label": str(
+                chapter_meta.get("label")
+                or coverage.get("chapter")
+                or chapter_id.replace("_", " ").title()
+            ).strip(),
+            "manual_stage_id": str(stage.get("id") or f"{chapter_id}-{index}"),
+            "manual_title": str(stage.get("title") or zone or "Fiche de route").strip(),
+            "expected_level": str(stage.get("expected_level") or stage.get("level") or "").strip(),
+            "x": x,
+            "y": y,
+            "zone": zone,
+            "subzone": zone,
+            "destination": destination,
+            "manual_lines": [],
+            "manual_has_lines": bool(manual_has_lines),
+            "manual_search_text": manual_search_text,
+            "manual_quest_ids": quest_ids,
+            "manual_quest_names": quest_names,
+            "manual_resource_names": resource_names,
+            "manual_success_names": success_names,
+            "manual_temporal_hooks": temporal_hooks,
+            "a_prendre": [],
+            "a_faire_ici": [],
+            "progresse_aussi": {"quest_ids": quest_ids, "success_ids": []},
+            "a_preparer": [],
+            "hard_runtime_gates": [],
+            "profession_gates": [],
+            "avant_de_partir": [],
+            "succes_monstres_a_faire": [],
+            "succes_donjon_a_faire": [],
+            "ensuite": None,
+        }
+
+    def _hydrate_manual_card_source(self, card: dict[str, Any]) -> dict[str, Any] | None:
+        """Hydrate only the currently visible authored stage in compact runtime mode."""
+
+        stage = card.get("manual_stage_data")
+        if isinstance(stage, dict):
+            return stage
+        if not self.compact_runtime:
+            return None
+
+        filename = str(card.get("manual_source_file") or "").strip()
+        position = self._as_int(card.get("manual_stage_position"))
+        if not filename or position is None or position < 0:
+            return None
+
+        previous = getattr(self, "_manual_hydrated_card", None)
+        if isinstance(previous, dict) and previous is not card:
+            previous.pop("manual_stage_data", None)
+            previous.pop("manual_chapter_preparation", None)
+        self._manual_base_lines_cache = None
+
+        chapter_memo: dict[tuple[Path, bool], dict[str, Any]] = {}
+        chapter = load_manual_chapter(self.manual_dir / filename, _memo=chapter_memo)
+        stages = [row for row in chapter.get("stages", []) or [] if isinstance(row, dict)]
+        if position >= len(stages):
+            return None
+        stage = stages[position]
+        preparation = self._chapter_preparation_schedule(chapter, stages).get(position, [])
+        card["manual_stage_data"] = stage
+        card["manual_chapter_preparation"] = preparation
+        self._manual_hydrated_card = card
+        return stage
 
     def _stage_to_card(
         self,
