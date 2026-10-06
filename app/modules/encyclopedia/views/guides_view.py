@@ -1226,22 +1226,11 @@ class GuidesView(QWidget):
 
         if self._runtime_ready:
             return True
-        catalog = self.quest_provider.get_catalog()
         guides = self.provider.load_all()
         if not guides:
             raise RuntimeError("Aucun guide chargé depuis catalog.json")
-        self.quest_catalog = catalog
-        self.progress_calculator = GuideProgressCalculator(
-            self.quest_progress_service,
-            self.guide_progress_service,
-            self.achievement_progress_service,
-            catalog.by_id,
-        )
-        self.graph = graph or QuestGraphService(
-            self.quest_provider,
-            self.provider,
-            self.achievement_provider,
-        )
+        if graph is not None:
+            self.graph = graph
         self.guides = list(guides)
         self.visible_guides = list(guides)
         if initial_progress_by_guide is not None:
@@ -1255,10 +1244,36 @@ class GuidesView(QWidget):
         self.status_callback(f"{len(self.guides)} guide(s) chargés.")
         return True
 
+    def _ensure_progress_runtime(self) -> None:
+        """Materialize Quest data only when Guide progress really needs it."""
+
+        if self.quest_catalog is None:
+            self.quest_catalog = self.quest_provider.get_catalog()
+        if self.progress_calculator is None:
+            self.progress_calculator = GuideProgressCalculator(
+                self.quest_progress_service,
+                self.guide_progress_service,
+                self.achievement_progress_service,
+                self.quest_catalog.by_id,
+            )
+
+    def _ensure_detail_runtime(self) -> None:
+        """Keep the Guide catalogue light; hydrate detail dependencies on demand."""
+
+        self._ensure_progress_runtime()
+        if self.graph is None:
+            self.graph = QuestGraphService(
+                self.quest_provider,
+                self.provider,
+                self.achievement_provider,
+                eager=False,
+            )
+
     def _ensure_detail_page(self) -> QWidget:
         """Build the rich three-column Guide detail only on first navigation."""
 
         if self.detail_page is None:
+            self._ensure_detail_runtime()
             self.detail_page = self.build_detail_page()
             self.stack.addWidget(self.detail_page)
         return self.detail_page
@@ -2088,6 +2103,7 @@ class GuidesView(QWidget):
             self.show_guide_overview(self.current_guide_id, preserve_scroll=preserve_scroll)
 
     def _guide_progress_tuple_uncached(self, guide: Guide) -> tuple[int, int, str]:
+        self._ensure_progress_runtime()
         compact_quest_ids = getattr(self.provider, "progress_quest_ids_for", None)
         if callable(compact_quest_ids):
             progress = self.progress_calculator.quest_ids_progress(
