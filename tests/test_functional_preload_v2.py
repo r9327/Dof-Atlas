@@ -76,10 +76,9 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
             window.deleteLater()
             self.app.processEvents()
 
-    def test_related_warmup_reuses_quest_catalog_without_materializing_pages(self) -> None:
-        catalog = object()
+    def test_related_warmup_keeps_quest_catalog_off_heap_without_materializing_pages(self) -> None:
         with patch.object(main.AtlasWindow, "_schedule_owned_callback", return_value=None):
-            window = main.AtlasWindow(initial_preload={"quests": {"catalog": catalog}})
+            window = main.AtlasWindow(initial_preload={"quests": {"catalog": None, "catalog_count": 1976}})
         try:
             page_factories_before = set(window.page_factories)
             related_payload = {
@@ -103,7 +102,7 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
                 self.assertFalse(window.preload_queue.empty())
                 window.collect_preload_result()
 
-            build_related.assert_called_once_with(catalog)
+            build_related.assert_called_once_with(None)
             self.assertEqual(window.preload_states["encyclopedia"], main.PRELOAD_READY)
             self.assertIs(window.preload_results["quests"]["guide_provider"], related_payload["guide_provider"])
             self.assertEqual(set(window.page_factories), page_factories_before)
@@ -117,9 +116,8 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
             self.app.processEvents()
 
     def test_related_warmup_is_not_started_twice(self) -> None:
-        catalog = object()
         with patch.object(main.AtlasWindow, "_schedule_owned_callback", return_value=None):
-            window = main.AtlasWindow(initial_preload={"quests": {"catalog": catalog}})
+            window = main.AtlasWindow(initial_preload={"quests": {"catalog": None, "catalog_count": 1976}})
         try:
             gate_calls: list[object] = []
 
@@ -140,7 +138,7 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
                 self.assertFalse(window.preload_queue.empty())
                 window.collect_preload_result()
 
-            self.assertEqual(gate_calls, [catalog])
+            self.assertEqual(gate_calls, [None])
         finally:
             window.quit_requested = True
             window.close()
