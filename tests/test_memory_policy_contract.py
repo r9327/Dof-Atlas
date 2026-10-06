@@ -183,9 +183,10 @@ def test_related_index_warmup_runs_outside_long_lived_atlas_process() -> None:
     assert "quest_graph=None" in source
     assert "_CACHED_CATALOG = catalog_id" in source
 
-    assert "ensure_achievement_compact_cache" in source
-    assert "ensure_guide_compact_cache" in source
-    assert "ensure_guide_items_index" in source
+    assert "_run_compact_preload_worker" in source
+    assert "memory_bound_achievement_provider" in source
+    assert "memory_bound_guide_provider" in source
+    assert "dofus_item_provider" in source
 
 
 
@@ -211,7 +212,7 @@ def test_guide_name_resolution_uses_prebuilt_index_without_nested_worker() -> No
     source = INDEXED_GUIDE_PROVIDER.read_text(encoding="utf-8")
     resolver = source[
         source.index("def _achievement_name_index"):
-        source.index("def _drop_nested_raw"),
+        source.index("def _drop_nested_raw")
     ]
     assert "achievement_names.json" in source
     assert "subprocess.run" not in resolver

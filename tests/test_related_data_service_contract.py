@@ -38,17 +38,17 @@ class RelatedDataServiceContractTests(unittest.TestCase):
 
     def test_same_catalog_reuses_only_tiny_preload_metadata(self) -> None:
         catalog = object()
-        warm_source, warm_success, warm_files, warm_guides, warm_items = self._warm_patches()
+        warm_source_patch, warm_success_patch, warm_files_patch, warm_guides_patch, warm_items_patch = self._warm_patches()
 
         with (
             patch.object(related_data_service, "_CACHED_CATALOG", None),
             patch.object(related_data_service, "_CACHED_DATA", None),
             patch.object(related_data_service, "_BUILD_COUNT", 0),
-            warm_source,
-            warm_success,
-            warm_files,
-            warm_guides,
-            warm_items,
+            warm_source_patch as warm_source,
+            warm_success_patch as warm_success,
+            warm_files_patch as warm_files,
+            warm_guides_patch as warm_guides,
+            warm_items_patch as warm_items,
         ):
             first = related_data_service.build_related_encyclopedia_data(catalog)
             second = related_data_service.build_related_encyclopedia_data(catalog)
@@ -89,17 +89,17 @@ class RelatedDataServiceContractTests(unittest.TestCase):
     def test_new_catalog_rebuilds_tiny_metadata_without_retaining_graph(self) -> None:
         first_catalog = object()
         second_catalog = object()
-        warm_source, warm_success, warm_files, warm_guides, warm_items = self._warm_patches()
+        warm_source_patch, warm_success_patch, warm_files_patch, warm_guides_patch, warm_items_patch = self._warm_patches()
 
         with (
             patch.object(related_data_service, "_CACHED_CATALOG", None),
             patch.object(related_data_service, "_CACHED_DATA", None),
             patch.object(related_data_service, "_BUILD_COUNT", 0),
-            warm_source,
-            warm_success,
-            warm_files,
-            warm_guides,
-            warm_items,
+            warm_source_patch as warm_source,
+            warm_success_patch as warm_success,
+            warm_files_patch as warm_files,
+            warm_guides_patch as warm_guides,
+            warm_items_patch as warm_items,
         ):
             first = related_data_service.build_related_encyclopedia_data(first_catalog)
             second = related_data_service.build_related_encyclopedia_data(second_catalog)
