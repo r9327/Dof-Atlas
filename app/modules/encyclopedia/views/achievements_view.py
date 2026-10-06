@@ -38,7 +38,6 @@ from app.modules.encyclopedia.services.guide_path_profiles import ORDER_QUEST_ID
 from app.modules.encyclopedia.widgets.achievement_detail_widget import AchievementDetailWidget
 from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntityRow
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
-from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView, QuestViewContext
 from app.quest_catalog import normalize_text
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
@@ -180,32 +179,11 @@ class AchievementsView(QWidget):
         self.detail_layout.setSpacing(10)
         self.detail_scroll.setWidget(self.detail_content)
 
-        self.quest_detail_page = QWidget()
-        self.quest_detail_page.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
-        quest_page_layout = QVBoxLayout(self.quest_detail_page)
-        quest_page_layout.setContentsMargins(0, 0, 0, 0)
-        quest_page_layout.setSpacing(6)
-        self.back_to_achievement = AtlasButton("← Retour au succès")
-        self.back_to_achievement.setObjectName("GuideBreadcrumbButton")
-        self.back_to_achievement.clicked.connect(self.show_current_achievement)
-        quest_page_layout.addWidget(self.back_to_achievement, 0, Qt.AlignLeft)
-        self.quest_detail_view = QuestDetailView(
-            self.quest_provider,
-            self.quest_graph,
-            self.quest_progress_service,
-            achievement_provider=self.provider,
-            guide_provider=self.guide_provider,
-            character_key=self.character_key,
-            open_quest=self.show_quest,
-            open_prerequisite=self.open_prerequisite_in_quests,
-            navigate_entity=self.open_shared_entity,
-        )
-        self.quest_detail_view.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
-        quest_page_layout.addWidget(self.quest_detail_view, 1)
-        self.detail_stack.addWidget(self.quest_detail_page)
-        self.quest_detail_view.questProgressChanged.connect(
-            self.on_embedded_quest_progress_changed
-        )
+        # Linked quests now open in the shared Quêtes tab. The historical
+        # embedded QuestDetailView was never displayed by the current flow but
+        # still allocated a full quest-detail widget tree on every Success open.
+        self.quest_detail_page = None
+        self.quest_detail_view = None
 
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 0)
@@ -249,11 +227,12 @@ class AchievementsView(QWidget):
         self.achievements = list(achievements)
         if quest_graph is not None:
             self.quest_graph = quest_graph
-            self.quest_detail_view.update_related_context(
-                achievement_provider=self.provider,
-                guide_provider=self.guide_provider,
-                graph=quest_graph,
-            )
+            if self.quest_detail_view is not None:
+                self.quest_detail_view.update_related_context(
+                    achievement_provider=self.provider,
+                    guide_provider=self.guide_provider,
+                    graph=quest_graph,
+                )
         if not progress_synchronized:
             self.sync_automatic_progress()
         self._runtime_ready = True
@@ -318,13 +297,17 @@ class AchievementsView(QWidget):
     def set_character_key(self, character_key: str) -> None:
         self.character_key = character_key or ""
         if not self._runtime_ready:
-            self.quest_detail_view.set_character_key(self.character_key)
             return
         self.quest_progress_service.reload()
         self.sync_automatic_progress()
-        self.quest_detail_view.set_character_key(self.character_key)
+        if self.quest_detail_view is not None:
+            self.quest_detail_view.set_character_key(self.character_key)
         self.refresh_completion_styles()
-        if self.detail_stack.currentWidget() is self.quest_detail_page:
+        if (
+            self.quest_detail_view is not None
+            and self.quest_detail_page is not None
+            and self.detail_stack.currentWidget() is self.quest_detail_page
+        ):
             self.quest_detail_view.refresh()
         elif self._detail_open and self.current_achievement_id is not None:
             self.show_achievement(self.current_achievement_id)
@@ -906,7 +889,11 @@ class AchievementsView(QWidget):
         if quest_changed:
             self.sync_automatic_progress()
         self.refresh_completion_styles()
-        if self.detail_stack.currentWidget() is self.quest_detail_page:
+        if (
+            self.quest_detail_view is not None
+            and self.quest_detail_page is not None
+            and self.detail_stack.currentWidget() is self.quest_detail_page
+        ):
             self.quest_detail_view.refresh()
         elif self._detail_open and self.current_achievement_id is not None:
             self.show_achievement(self.current_achievement_id)
