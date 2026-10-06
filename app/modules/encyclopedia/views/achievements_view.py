@@ -65,9 +65,11 @@ def _order_quest_ids() -> dict[str, dict[str, tuple[int, ...]]]:
     # guide_path_profiles carries the whole Dofus route catalogue. The Success
     # catalogue only needs this tiny alignment table after an alignment detail
     # is explicitly opened, never for the normal Success list.
-    from app.modules.encyclopedia.services.guide_path_profiles import ORDER_QUEST_IDS
+    from app.modules.encyclopedia.achievement_catalog_policy import (
+        ALIGNMENT_ORDER_QUEST_IDS,
+    )
 
-    return ORDER_QUEST_IDS
+    return ALIGNMENT_ORDER_QUEST_IDS
 
 
 def _achievement_detail_widget_type():

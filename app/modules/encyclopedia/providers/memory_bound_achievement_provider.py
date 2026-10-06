@@ -981,6 +981,59 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 break
         return results
 
+    def iter_progress_achievement_ids(self):
+        """Iterate retained Success IDs without materializing catalogue rows."""
+
+        self._ensure_loaded()
+        if self._compact_retained_ids:
+            return iter(self._compact_retained_ids)
+        return iter(
+            int(achievement.id)
+            for achievement in self._achievements
+            if self.is_retained(int(achievement.id))
+        )
+
+    def progress_row_by_id(
+        self,
+        achievement_id: int,
+    ) -> tuple[int, str, tuple[tuple[object, ...], ...]] | None:
+        """Load one primitive progress row directly from the compact JSONL."""
+
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        if (
+            self._compact_retained_set
+            and achievement_id in self._compact_retained_set
+            and self._compact_external_index is not None
+        ):
+            span = self._compact_external_index.get(achievement_id)
+            if span is None:
+                return None
+            start, length = span
+            try:
+                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    stream.seek(start)
+                    payload = json.loads(stream.read(length))
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                return None
+            value = payload.get("value") if isinstance(payload, dict) else None
+            if not isinstance(value, dict):
+                return None
+            return (
+                achievement_id,
+                str(value.get("category_name") or ""),
+                _progress_objectives_from_rows(value.get("progress_objectives")),
+            )
+
+        summary = self.get_by_id(achievement_id)
+        if summary is None or not self.is_retained(achievement_id):
+            return None
+        return (
+            achievement_id,
+            str(summary.category_name or ""),
+            tuple(self.progress_objectives_for(achievement_id)),
+        )
+
     def progress_catalogue(self) -> tuple[tuple[int, str, tuple[tuple[object, ...], ...]], ...]:
         """Primitive progress rows; no Achievement graph enters the resident heap."""
 
