@@ -24,6 +24,7 @@ from app.modules.encyclopedia.providers.achievement_provider import (
     safe_int,
 )
 from app.quest_source_index import JsonSourceMapping, QuestSources
+from app.quest_catalog import normalize_text
 
 
 _DUMP_COMPACT_FLAG = "--dump-compact"
