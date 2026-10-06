@@ -272,6 +272,11 @@ class DofusItemProvider:
         if current_data_dir == default_data_dir:
             row = self._guide_index_row(item_id)
             item = self._item_from_compact_row(row) if row is not None else None
+            if item is None:
+                # The compact index is the normal fast path. If preload was
+                # skipped or the reconstructible index is stale, keep Guide
+                # functional through the bounded byte-offset reader.
+                item = self._load_one(item_id)
         else:
             # Focused tests/custom catalogues keep the generic indexed reader.
             item = self._load_one(item_id)
