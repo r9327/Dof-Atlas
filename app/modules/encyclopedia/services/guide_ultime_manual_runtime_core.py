@@ -284,9 +284,17 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
     kept only as an emergency fallback if the manual route cannot be resolved.
     """
 
-    def __init__(self, *args, quest_provider: Any = None, manual_dir: Path = MANUAL_DIR, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        quest_provider: Any = None,
+        manual_dir: Path = MANUAL_DIR,
+        cache_manual_bundle: bool = True,
+        **kwargs,
+    ) -> None:
         self.quest_provider = quest_provider
         self.manual_dir = Path(manual_dir)
+        self.cache_manual_bundle = bool(cache_manual_bundle)
         self.manual_preview_active = False
         self.manual_preview_error = ""
         self.manual_preview_chapters: tuple[str, ...] = ()
@@ -428,6 +436,10 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         self.manual_chapters = chapter_ids
 
     def _load_manual_preview(self) -> None:
+        if not self.cache_manual_bundle:
+            self._load_manual_preview_uncached()
+            return
+
         key = _manual_bundle_cache_key(self)
         with _MANUAL_BUNDLE_LOCK:
             cached = _MANUAL_BUNDLE_CACHE.get(key)
