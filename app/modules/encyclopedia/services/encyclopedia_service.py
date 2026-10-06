@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.providers.guide_provider import GuideProvider
-from app.modules.encyclopedia.providers.indexed_guide_provider import IndexedGuideProvider
-from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+from app.modules.encyclopedia.providers.memory_bound_guide_provider import MemoryBoundGuideProvider
 
 
 class EncyclopediaService:
@@ -15,7 +14,7 @@ class EncyclopediaService:
     ) -> None:
         self.quest_provider = quest_provider or QuestProvider()
         self.achievement_provider = achievement_provider or AchievementProvider(quest_provider=self.quest_provider)
-        self.guide_provider = guide_provider or IndexedGuideProvider(
+        self.guide_provider = guide_provider or MemoryBoundGuideProvider(
             quest_provider=self.quest_provider,
             achievement_provider=self.achievement_provider,
         )

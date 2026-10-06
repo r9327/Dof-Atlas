@@ -9,7 +9,7 @@ from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service impo
     GuideCatalogManualRuntimeService,
 )
 from app.modules.encyclopedia.services.guide_catalog_route_stats import (
-    catalog_route_map_count,
+    catalog_route_map_count_hint,
 )
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
     GuideUltimeManualRuntimeService,
@@ -46,12 +46,12 @@ class ManualRouteGuidesView(_BaseGuidesView):
         if service is not None and service.cards:
             count = len(service.cards)
         else:
-            provider = getattr(self, "provider", None)
-            quest_provider = getattr(self, "quest_provider", None)
-            guide = provider.get_by_id(guide_id) if provider is not None else None
-            if guide is None or quest_provider is None:
-                return 0
-            count = catalog_route_map_count(guide, quest_provider)
+            # The catalogue must stay metadata-only. Computing the count from
+            # quest solutions here materializes the entire Sylvestre route just
+            # to paint one subtitle and permanently inflates the process RSS.
+            # A certified compact hint is replaced by the exact service count on
+            # the first explicit open of that optimized guide.
+            count = catalog_route_map_count_hint(guide_id)
 
         if count > 0:
             self._catalog_route_map_counts[guide_id] = int(count)

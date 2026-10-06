@@ -18,7 +18,10 @@ from app.modules.encyclopedia.services import (
 from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
     GuideCatalogManualRuntimeService,
 )
-from app.modules.encyclopedia.services.guide_catalog_route_stats import catalog_route_map_count
+from app.modules.encyclopedia.services.guide_catalog_route_stats import (
+    catalog_route_map_count,
+    catalog_route_map_count_hint,
+)
 from app.modules.encyclopedia.views.deferred_achievement_guides_view import DeferredAchievementGuidesView
 from app.modules.encyclopedia.views.guides_view import GuideHomeCard
 
@@ -49,10 +52,10 @@ class LanyelHomeRouteMapCountTests(unittest.TestCase):
             GuideProgressService(guide_progress),
         )
 
-    def test_lightweight_map_count_matches_real_manual_route(self) -> None:
+    def test_exact_map_count_matches_real_manual_route(self) -> None:
         guide = self.guide_provider.get_by_id("dofus_sylvestre")
         self.assertIsNotNone(guide)
-        lightweight = catalog_route_map_count(guide, self.quest_provider)
+        exact = catalog_route_map_count(guide, self.quest_provider)
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -64,10 +67,10 @@ class LanyelHomeRouteMapCountTests(unittest.TestCase):
                 guide=guide,
                 quest_provider=self.quest_provider,
             )
-            self.assertGreater(lightweight, 0)
-            self.assertEqual(lightweight, len(runtime.cards))
+            self.assertGreater(exact, 0)
+            self.assertEqual(exact, len(runtime.cards))
 
-    def test_home_card_shows_optimized_route_map_count(self) -> None:
+    def test_home_card_shows_certified_lightweight_route_hint(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             quest_path, _quest_progress, achievement_progress, guide_progress = self._services(root)
@@ -91,10 +94,8 @@ class LanyelHomeRouteMapCountTests(unittest.TestCase):
             )
             meta = card.findChild(QLabel, "GuideHomeCardMeta")
             self.assertIsNotNone(meta)
-            count = catalog_route_map_count(
-                self.guide_provider.get_by_id("dofus_sylvestre"),
-                self.quest_provider,
-            )
+            count = catalog_route_map_count_hint("dofus_sylvestre")
+            self.assertEqual(count, 237)
             self.assertEqual(meta.text(), f"Parcours optimisé · {count} maps")
 
             view.deleteLater()

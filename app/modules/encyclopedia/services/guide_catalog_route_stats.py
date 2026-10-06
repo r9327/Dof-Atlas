@@ -11,6 +11,17 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 
 _COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 
+# Certified compact catalogue hints. They exist so rendering the Guide home never
+# loads every quest solution merely to display a route-sheet count. The real
+# GuideCatalogManualRuntimeService recomputes and replaces the hint on first open.
+_CATALOG_ROUTE_MAP_COUNT_HINTS = {
+    "dofus_sylvestre": 237,
+}
+
+
+def catalog_route_map_count_hint(guide_id: str) -> int:
+    return max(0, int(_CATALOG_ROUTE_MAP_COUNT_HINTS.get(str(guide_id or ""), 0)))
+
 
 def _position_key(value) -> str:
     match = _COORD_RE.search(str(value or ""))
@@ -20,12 +31,13 @@ def _position_key(value) -> str:
 
 
 def catalog_route_map_count(guide, quest_provider) -> int:
-    """Count optimized route sheets without materializing the full manual UI route.
+    """Compute the exact optimized route-sheet count on explicit route work.
 
     This mirrors GuideCatalogManualRuntimeService's segment splitting/merge rule:
     a sheet is created for the quest start, a new sheet starts only when a later
     objective moves to another explicit coordinate, and consecutive sheets on the
-    same coordinate are merged across quests.
+    same coordinate are merged across quests. This function intentionally remains
+    detail-heavy and must not be called by the Guide catalogue/home renderer.
     """
     raw_keys: list[str] = []
     seen_quests: set[int] = set()
@@ -84,4 +96,4 @@ def catalog_route_map_count(guide, quest_provider) -> int:
     return merged_count
 
 
-__all__ = ["catalog_route_map_count"]
+__all__ = ["catalog_route_map_count", "catalog_route_map_count_hint"]

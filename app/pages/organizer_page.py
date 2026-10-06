@@ -1,33 +1,47 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QPoint, Qt, QTimer, Signal
 from PySide6.QtWidgets import QLabel, QWidget
 
 from app.constants import (
+    CLIENT_INDEX_INI,
+    CLIENT_INDEX_JSON,
     KEY_CLICK_HOTKEY,
+    KEY_DEBUG_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
+    KEY_PRIMARY_WINDOW,
+    KEY_SCRIPT_SPEED,
+    KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
     KEY_SWITCH_MOVEMENT,
+    KEY_TRAVEL_TEXT,
     PROFILE_FILE,
 )
 from app.services.character_order_service import CharacterOrderService
-from app.storage import default_profiles
-from app.windows_embed import UnityWindowEventWatcher
+from app.services.profile_settings_service import ProfileSettingsService
+from app.storage import clean_auto_group_name, default_profiles, normalize_key, read_json
+from app.windows_embed import UnityWindowEventWatcher, scan_unity_sessions
 from app.pages.organizer.character_sessions import CharacterSessionsMixin
 from app.pages.organizer.common import (
     BUTTON_HEIGHT,
     CARD_PADDING,
     CARD_SPACING,
     CHARACTER_SLOT_HEIGHT,
+    CLASS_ICON_DIRS,
+    CLASS_ICON_EXTENSIONS,
+    DOFUS_CLASS_DEFINITIONS,
+    RELEASE_RETRY_DELAYS_MS,
     SESSION_SLOT_COUNT,
     WINDOW_EVENT_DEBOUNCE_MS,
     client_slot_hotkey_key,
+    dofus_class_key_from_window_name,
     empty_session_slot,
     session_hwnd,
     session_is_detected,
@@ -38,6 +52,61 @@ from app.pages.organizer.common import (
 from app.pages.organizer.organizer_drag_drop import OrganizerDragDropMixin
 from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
 from app.pages.organizer.organizer_ui import OrganizerUiMixin
+
+
+def dofus_class_key_for_character_name(value: Any) -> str | None:
+    """Resolve a character class through the compatibility index path."""
+
+    character_key = normalize_key(value)
+    if not character_key:
+        return None
+    payload = read_json(CLIENT_INDEX_JSON, {"clients": []})
+    clients = payload.get("clients", []) if isinstance(payload, dict) else []
+    if not isinstance(clients, list):
+        return None
+
+    matches: set[str] = set()
+    for client in clients:
+        if not isinstance(client, dict):
+            continue
+        if normalize_key(client.get("character_name")) != character_key:
+            continue
+        explicit_class = normalize_key(client.get("class_key"))
+        if explicit_class in DOFUS_CLASS_DEFINITIONS:
+            matches.add(explicit_class)
+            continue
+        inferred_class = dofus_class_key_from_window_name(client.get("name"))
+        if inferred_class:
+            matches.add(inferred_class)
+    return next(iter(matches)) if len(matches) == 1 else None
+
+
+def class_icon_candidates(class_key: str) -> list[Path]:
+    """Build class icon candidates from the public compatibility directories."""
+
+    definition = DOFUS_CLASS_DEFINITIONS.get(class_key)
+    if not definition:
+        return []
+    class_id = definition["id"]
+    stems: list[str] = []
+    for value in (class_key, definition["label"], *definition["aliases"]):
+        key = normalize_key(value)
+        if key and key not in stems:
+            stems.append(key)
+    stems.extend([f"symbol_{class_id}", f"logo_transparent_{class_id}", f"class_{class_key}"])
+    return [
+        directory / f"{stem}{extension}"
+        for directory in CLASS_ICON_DIRS
+        for stem in stems
+        for extension in CLASS_ICON_EXTENSIONS
+    ]
+
+
+def class_icon_path_for_window_name(value: Any) -> Path | None:
+    class_key = dofus_class_key_from_window_name(value) or dofus_class_key_for_character_name(value)
+    if not class_key:
+        return None
+    return next((path for path in class_icon_candidates(class_key) if path.exists()), None)
 
 
 class OrganizerPage(
@@ -77,7 +146,15 @@ class OrganizerPage(
         self._sessions_render_dirty = False
         self.release_retry_index = 0
 
-        self.character_order_service = CharacterOrderService(PROFILE_FILE)
+        # Keep runtime dependencies explicit while resolving the historical
+        # module-level scan hook at call time. Existing shell tests and tools
+        # patch organizer_page.scan_unity_sessions dynamically.
+        self.profile_file = PROFILE_FILE
+        self.client_index_json = CLIENT_INDEX_JSON
+        self.client_index_ini = CLIENT_INDEX_INI
+        self.scan_unity_sessions_callback = lambda: scan_unity_sessions()
+
+        self.character_order_service = CharacterOrderService(self.profile_file)
         self.profiles = self.load_profiles()
         self.sessions: list[dict[str, Any]] = self.build_session_slots(self.load_last_sessions())
         self.capture_target: dict[str, Any] | None = None
@@ -109,6 +186,41 @@ class OrganizerPage(
         self.export_client_index()
         self.request_sessions_render()
         self._start_session_runtime()
+
+    def load_profiles(self) -> dict[str, Any]:
+        """Compatibility facade kept on OrganizerPage for callers and AST contracts."""
+
+        payload = read_json(PROFILE_FILE, default_profiles())
+        if not isinstance(payload, dict):
+            payload = default_profiles()
+        merged = default_profiles()
+        merged.update(payload)
+        cleaned = self.sanitize_profiles(merged)
+        cleaned[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        self._profiles_baseline = dict(cleaned)
+        return cleaned
+
+    def save_profiles(self, payload: dict[str, Any]) -> None:
+        """Persist only the Organizer delta while preserving newer shared state."""
+
+        snapshot = dict(payload)
+        snapshot[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        baseline = dict(getattr(self, "_profiles_baseline", {}))
+        updates = {
+            key: value
+            for key, value in snapshot.items()
+            if key not in baseline or baseline.get(key) != value
+        }
+        removals = tuple(key for key in baseline if key not in snapshot)
+        persisted, _changed = ProfileSettingsService(PROFILE_FILE).update_values(
+            updates,
+            remove_keys=removals,
+            default=default_profiles(),
+        )
+        current = self.sanitize_profiles(persisted)
+        current[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        self.profiles = current
+        self._profiles_baseline = dict(current)
 
     def _connect_actions(self) -> None:
         self.click_button.clicked.connect(lambda: self.begin_capture("click"))
@@ -153,14 +265,32 @@ class OrganizerPage(
 
 __all__ = [
     "OrganizerPage",
+    "PROFILE_FILE",
+    "CLIENT_INDEX_JSON",
+    "CLIENT_INDEX_INI",
+    "KEY_DEBUG_MODE",
+    "KEY_PRIMARY_WINDOW",
+    "KEY_SCRIPT_SPEED",
+    "KEY_SESSION_ORDER",
+    "KEY_TRAVEL_TEXT",
+    "RELEASE_RETRY_DELAYS_MS",
     "SESSION_SLOT_COUNT",
     "BUTTON_HEIGHT",
     "CARD_PADDING",
     "CARD_SPACING",
     "CHARACTER_SLOT_HEIGHT",
+    "CLASS_ICON_DIRS",
+    "CLASS_ICON_EXTENSIONS",
+    "DOFUS_CLASS_DEFINITIONS",
     "client_slot_hotkey_key",
+    "clean_auto_group_name",
     "default_profiles",
+    "dofus_class_key_from_window_name",
+    "dofus_class_key_for_character_name",
+    "class_icon_candidates",
+    "class_icon_path_for_window_name",
     "empty_session_slot",
+    "scan_unity_sessions",
     "session_name",
     "session_hwnd",
     "session_pid",

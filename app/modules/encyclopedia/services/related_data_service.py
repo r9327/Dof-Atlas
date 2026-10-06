@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from threading import RLock
 from typing import Any
 
-from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
+from app.constants import DATA_DIR, ROOT_DIR
 from app.modules.encyclopedia.providers import QuestProvider
 from app.modules.encyclopedia.services.quest_graph_service import QuestGraphService
 from app.quest_catalog import QuestCatalog
-from app.quest_source_index import QuestSources
 
 
 class _EmptyGuideProvider:
@@ -41,30 +43,45 @@ _BUILD_COUNT = 0
 
 
 def _warm_achievement_source_indexes() -> int:
-    """Prepare reconstructible byte-offset indexes without retaining rich Success objects."""
+    """Build durable Success indexes without polluting Atlas' long-lived heap.
 
-    sources = QuestSources(
-        ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1"
+    The raw Dofus JSON files are large enough that building their byte-offset
+    indexes in a thread temporarily expands the process heap. CPython/Windows
+    can keep those arenas reserved long after the temporary strings disappear,
+    so Atlas looked as if preload permanently cost tens of megabytes. Build the
+    reconstructible indexes in a disposable Python process instead: the warm
+    disk indexes survive, while every temporary allocation returns to Windows
+    when the helper exits.
+    """
+
+    # A frozen executable would recursively launch itself rather than a Python
+    # helper. In that packaging mode keep the indexes click-lazy until a small
+    # dedicated helper executable exists.
+    if bool(getattr(sys, "frozen", False)):
+        return 0
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.modules.encyclopedia.services.achievement_index_warmup",
+        ],
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+        timeout=90,
+        check=True,
     )
-    mappings = (
-        sources.mapping(
-            RAW_QUEST_DATA_DIR / "languages" / "fr.json",
-            "entries",
-            required=True,
-        ),
-        sources.rows(RAW_QUEST_DATA_DIR / "achievements.json"),
-        sources.rows(RAW_QUEST_DATA_DIR / "achievement_categories.json"),
-        sources.rows(RAW_QUEST_DATA_DIR / "achievement_objectives.json"),
-        sources.rows(RAW_QUEST_DATA_DIR / "quests.json"),
-        sources.rows(RAW_QUEST_DATA_DIR / "monsters.json"),
-        sources.rows(RAW_QUEST_DATA_DIR / "dungeons.json"),
-    )
+    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise RuntimeError("Le warmup des index Succès n'a produit aucun résultat")
     try:
-        for mapping in mappings:
-            len(mapping)
-        return len(mappings)
-    finally:
-        sources.close()
+        payload = json.loads(lines[-1])
+        return max(0, int(payload.get("warmed_source_count") or 0))
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"Résultat du warmup des index Succès invalide: {lines[-1]!r}"
+        ) from exc
 
 
 def _warm_guide_files() -> int:
@@ -87,10 +104,9 @@ def build_related_encyclopedia_data(catalog: QuestCatalog) -> RelatedEncyclopedi
     """Warm reusable related data while keeping the heavy providers click-lazy.
 
     Phase 8 intentionally does not keep the fully materialized Success and Guide
-    providers alive in the background: that made first access very fast but kept
-    roughly another hundred megabytes resident after preload. The worker instead
-    prepares the durable byte-offset indexes and filesystem cache that make the
-    first real provider build cheaper, plus the compact quest dependency graph.
+    providers alive in the background. The worker prepares durable source indexes
+    and filesystem cache plus the compact quest dependency graph. Temporary raw
+    JSON allocations live in a disposable helper process, not Atlas itself.
     """
 
     global _BUILD_COUNT, _CACHED_CATALOG, _CACHED_DATA

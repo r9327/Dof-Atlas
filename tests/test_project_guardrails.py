@@ -244,13 +244,15 @@ class ProjectGuardrailsTests(unittest.TestCase):
                         )
         self.assertEqual([], violations, f"Callbacks rejoués après TypeError: {violations}")
 
-    def test_equipment_webview_restricts_main_frame_navigation(self) -> None:
+    def test_equipment_huzounet_stays_external_and_webengine_free(self) -> None:
         equipment = self._text("app/pages/equipment_page.py")
-        self.assertIn("acceptNavigationRequest", equipment)
-        self.assertIn("self.allowed_host", equipment)
-        self.assertIn("NavigationTypeLinkClicked", equipment)
         self.assertIn("QDesktopServices.openUrl", equipment)
-        self.assertIn("self.web.setPage(page_class(self.web))", equipment)
+        self.assertIn("HUZOUNET_URL", equipment)
+        self.assertIn("def set_section", equipment)
+        self.assertNotIn("QWebEngineView", equipment)
+        self.assertNotIn("QWebEnginePage", equipment)
+        self.assertNotIn("QtWebEngine", equipment)
+        self.assertNotIn("self.web", equipment)
 
     def test_cartography_recovery_never_uses_command_shell(self) -> None:
         recovery = self._text("app/services/maps/cartography_asset_recovery.py")
