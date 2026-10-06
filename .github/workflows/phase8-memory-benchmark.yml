@@ -116,6 +116,7 @@ jobs:
               "guide_active",
               "after_guide_home",
               "craft_active",
+              "after_craft_home",
               "before_equipment_home",
               "equipment_active",
               "after_equipment_home",
@@ -137,6 +138,7 @@ jobs:
               "after_quests_home": 100.0,
               "after_achievements_home": 100.0,
               "after_guide_home": 100.0,
+              "after_craft_home": 100.0,
               "after_equipment_home_stabilized": 100.0,
           }
           for label, budget in stage_budgets_mb.items():
@@ -161,6 +163,7 @@ jobs:
           retained_budgets_mb = {
               "achievements_retained_tree_delta_mb": 15.0,
               "guide_retained_tree_delta_mb": 20.0,
+              "craft_retained_tree_delta_mb": 2.0,
               "equipment_tree_delta_stabilized_mb": 1.0,
           }
           for metric, budget in retained_budgets_mb.items():
@@ -193,6 +196,7 @@ jobs:
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB (budget: 220 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Success retained tree delta after Home: $($payload.metrics.achievements_retained_tree_delta_mb) MB (budget: 15 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide retained tree delta after Home: $($payload.metrics.guide_retained_tree_delta_mb) MB (budget: 20 MB)"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Craft retained tree delta after Home: $($payload.metrics.craft_retained_tree_delta_mb) MB (budget: 2 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment active tree delta: $($payload.metrics.equipment_tree_delta_active_mb) MB"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment retained tree delta after Home: $($payload.metrics.equipment_tree_delta_stabilized_mb) MB"
 
