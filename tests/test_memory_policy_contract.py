@@ -165,14 +165,29 @@ def test_success_list_materializes_only_visible_batches() -> None:
     source = (
         ROOT / "app" / "modules" / "encyclopedia" / "views" / "achievements_view.py"
     ).read_text(encoding="utf-8")
+    provider = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
     assert "_INITIAL_RESULT_ROWS = 32" in source
     assert "verticalScrollBar().valueChanged.connect" in source
     assert "def _maybe_render_more_achievement_rows" in source
+    assert 'getattr(self.provider, "catalogue_ids", None)' in source
+    assert 'getattr(self.provider, "catalogue_row_by_id", None)' in source
+    assert "def catalogue_ids(" in provider
+    assert "def catalogue_row_by_id(" in provider
+
+    refresh = source[
+        source.index("def refresh(self)"):
+        source.index("def _apply_pending_achievement_selection")
+    ]
+    assert "self._achievement_pending_rows = [" in refresh
+    assert "int(achievement.id)" in refresh
+    assert "self.provider.get_by_category" not in refresh
+
     render = source[
         source.index("def _render_next_achievement_batch"):
         source.index("def _maybe_render_more_achievement_rows")
     ]
     assert "self.list_widget.count() < _INITIAL_RESULT_ROWS" in render
+    assert "catalogue_row_by_id" in render
 
 
 def test_guide_catalog_defers_detail_and_manual_engines() -> None:
