@@ -128,7 +128,7 @@ class _GuideStagePayload:
 @dataclass(slots=True)
 class _AchievementStagePayload:
     achievement_provider: object
-    graph: QuestGraphService
+    graph: QuestGraphService | None
     progress_synchronized: bool = False
 
 
@@ -1084,7 +1084,6 @@ class EncyclopediaPage(QWidget):
             return
 
         self._achievement_load_started = True
-        quest_provider = self.quest_provider
         achievement_provider = self.service.achievement_provider
         existing_graph = self._quest_graph
         character_key = str(self.current_character_key or "")
@@ -1097,7 +1096,6 @@ class EncyclopediaPage(QWidget):
         def worker() -> None:
             with background_io_priority():
                 try:
-                    quest_provider.get_catalog()
                     load_runtime = getattr(achievement_provider, "load_runtime", None)
                     if callable(load_runtime):
                         load_runtime()
@@ -1112,14 +1110,12 @@ class EncyclopediaPage(QWidget):
                             guide_provider,
                         )
                         progress_synchronized = True
-                    graph = existing_graph or QuestGraphService(
-                        quest_provider,
-                        achievement_provider=achievement_provider,
-                        eager=False,
-                    )
+                    # The Success catalogue does not consume QuestGraphService.
+                    # Keep Quests cold here; a graph is built only by a route/detail
+                    # that explicitly needs quest relations.
                     result: object = _AchievementStagePayload(
                         achievement_provider,
-                        graph,
+                        existing_graph,
                         progress_synchronized,
                     )
                 except Exception as exc:
