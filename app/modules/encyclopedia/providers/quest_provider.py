@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 from threading import Lock
+from weakref import ReferenceType, ref
 
 from app.constants import RAW_QUEST_DATA_DIR
 from app.quest_catalog import QuestCatalog, QuestRecord
 
 _DEFAULT_DATA_DIR = RAW_QUEST_DATA_DIR.resolve()
-_SHARED_DEFAULT_CATALOG: QuestCatalog | None = None
+_SHARED_DEFAULT_CATALOG: ReferenceType[QuestCatalog] | None = None
 _SHARED_DEFAULT_CATALOG_LOCK = Lock()
 
 
@@ -18,9 +19,11 @@ def _is_default_data_dir(data_dir: Path) -> bool:
 def _shared_default_catalog() -> QuestCatalog:
     global _SHARED_DEFAULT_CATALOG
     with _SHARED_DEFAULT_CATALOG_LOCK:
-        if _SHARED_DEFAULT_CATALOG is None:
-            _SHARED_DEFAULT_CATALOG = QuestCatalog.load(RAW_QUEST_DATA_DIR)
-        return _SHARED_DEFAULT_CATALOG
+        catalog = _SHARED_DEFAULT_CATALOG() if _SHARED_DEFAULT_CATALOG is not None else None
+        if catalog is None:
+            catalog = QuestCatalog.load(RAW_QUEST_DATA_DIR)
+            _SHARED_DEFAULT_CATALOG = ref(catalog)
+        return catalog
 
 
 class QuestProvider:
@@ -42,6 +45,11 @@ class QuestProvider:
         if self._catalog is None:
             self._catalog = _shared_default_catalog() if _is_default_data_dir(self.data_dir) else QuestCatalog.load(self.data_dir)
         return self._catalog
+
+    def release_catalogue(self) -> None:
+        """Drop the reconstructible Quest summary graph when Encyclopedia sleeps."""
+
+        self._catalog = None
 
     def list_quests(self) -> list[QuestRecord]:
         return self.get_catalog().quests
