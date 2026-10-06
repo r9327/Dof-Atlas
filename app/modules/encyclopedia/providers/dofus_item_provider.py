@@ -16,6 +16,84 @@ from app.quest_source_index import QuestSources
 
 DOFUS_TYPE_ID = 23
 DOFUS_UNKNOWN_ICON = DATA_DIR / "encyclopedia" / "images" / "guides" / "dofus_unknown.svg"
+def _iter_doduda_refs(path: Path):
+    """Yield one Doduda RefIds entry at a time without loading the source file."""
+
+    with path.open("r", encoding="utf-8") as stream:
+        prefix = ""
+        remainder = ""
+        while True:
+            chunk = stream.read(262144)
+            if not chunk:
+                return
+            prefix += chunk
+            marker = prefix.find('"RefIds"')
+            if marker < 0:
+                # RefIds lives near the header; keep only enough overlap for a
+                # split marker instead of retaining arbitrary source text.
+                prefix = prefix[-32:]
+                continue
+            array_start = prefix.find("[", marker)
+            if array_start < 0:
+                continue
+            remainder = prefix[array_start + 1 :]
+            break
+
+        depth = 0
+        in_string = False
+        escaped = False
+        current: list[str] = []
+
+        while True:
+            if not remainder:
+                remainder = stream.read(262144)
+                if not remainder:
+                    return
+            index = 0
+            length = len(remainder)
+            while index < length:
+                char = remainder[index]
+                index += 1
+
+                if depth == 0:
+                    if char in " \t\r\n,":
+                        continue
+                    if char == "]":
+                        return
+                    if char not in "[{":
+                        continue
+                    current = [char]
+                    depth = 1
+                    in_string = False
+                    escaped = False
+                    continue
+
+                current.append(char)
+                if in_string:
+                    if escaped:
+                        escaped = False
+                    elif char == "\\":
+                        escaped = True
+                    elif char == '"':
+                        in_string = False
+                    continue
+
+                if char == '"':
+                    in_string = True
+                elif char in "[{":
+                    depth += 1
+                elif char in "]}":
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            value = json.loads("".join(current))
+                        finally:
+                            current = []
+                        if isinstance(value, dict):
+                            yield value
+            remainder = ""
+
+
 EXCLUDED_DOFUS_ITEM_IDS = frozenset(
     {
         7113,   # Dofawa
@@ -121,20 +199,13 @@ class DofusItemProvider:
     def _load_in_process(self) -> None:
         """Extract Dofus rows while never retaining the large sources together."""
 
-        # items.json is the largest source used here. Keep only the handful of
-        # Dofus rows plus the effect-instance refs they actually reference, then
-        # release the monolithic payload before opening any other large source.
-        item_payload = self._read_json(self.data_dir / "items.json", {})
-        refs = (
-            item_payload.get("references", {}).get("RefIds", [])
-            if isinstance(item_payload, dict)
-            else []
-        )
+        # items.json is the largest source used here. Scan one RefIds entry at
+        # a time so neither Atlas nor its disposable worker holds the monolithic
+        # JSON text/object graph in memory.
+        items_path = self.data_dir / "items.json"
         dofus_rows: dict[int, dict[str, Any]] = {}
         effect_rids: set[int] = set()
-        for ref in refs if isinstance(refs, list) else ():
-            if not isinstance(ref, dict):
-                continue
+        for ref in _iter_doduda_refs(items_path):
             data = ref.get("data")
             if not isinstance(data, dict):
                 continue
@@ -153,9 +224,7 @@ class DofusItemProvider:
 
         effect_instances: dict[int, dict[str, Any]] = {}
         if effect_rids:
-            for ref in refs if isinstance(refs, list) else ():
-                if not isinstance(ref, dict):
-                    continue
+            for ref in _iter_doduda_refs(items_path):
                 rid = safe_int(ref.get("rid"))
                 if rid is None or int(rid) not in effect_rids:
                     continue
@@ -163,26 +232,31 @@ class DofusItemProvider:
                 if isinstance(data, dict):
                     effect_instances[int(rid)] = dict(data)
 
-        del refs, item_payload
-        gc.collect()
-
-        item_types = doduda_rows(self.data_dir / "item_types.json")
-        type_row = dict(item_types.get(DOFUS_TYPE_ID, {}))
-        del item_types
-        gc.collect()
+        type_row: dict[str, Any] = {}
+        for ref in _iter_doduda_refs(self.data_dir / "item_types.json"):
+            data = ref.get("data")
+            if not isinstance(data, dict):
+                continue
+            if safe_int(data.get("id")) == DOFUS_TYPE_ID:
+                type_row = dict(data)
+                break
 
         needed_effect_ids = {
             effect_id
             for effect in effect_instances.values()
             if (effect_id := safe_int(effect.get("effectId"))) is not None
         }
-        all_effect_rows = doduda_rows(self.data_dir / "effects.json")
-        effect_rows = {
-            int(effect_id): dict(all_effect_rows[effect_id])
-            for effect_id in needed_effect_ids
-            if effect_id in all_effect_rows
-        }
-        del all_effect_rows
+        effect_rows: dict[int, dict[str, Any]] = {}
+        if needed_effect_ids:
+            for ref in _iter_doduda_refs(self.data_dir / "effects.json"):
+                data = ref.get("data")
+                if not isinstance(data, dict):
+                    continue
+                effect_id = safe_int(data.get("id"))
+                if effect_id is not None and int(effect_id) in needed_effect_ids:
+                    effect_rows[int(effect_id)] = dict(data)
+                    if len(effect_rows) >= len(needed_effect_ids):
+                        break
         gc.collect()
 
         # Reuse the durable language byte-offset cache produced by preload and
