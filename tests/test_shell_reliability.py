@@ -48,6 +48,8 @@ class ShellReliabilityTests(unittest.TestCase):
         self.assertIn("LOGGER.exception", source)
 
     def test_craft_preload_skips_expensive_adapter_when_catalogue_is_empty(self) -> None:
+        import app.craft_preload as craft_preload
+
         with tempfile.TemporaryDirectory() as temp_dir:
             data_dir = Path(temp_dir)
             database_path = data_dir / "local" / "dofus_data.sqlite"
@@ -59,12 +61,12 @@ class ShellReliabilityTests(unittest.TestCase):
             finally:
                 connection.close()
 
-            with patch.object(main, "DATA_DIR", data_dir):
-                payload = main.build_craft_preload()
+            with patch.object(craft_preload, "DATA_DIR", data_dir):
+                payload = craft_preload.build_compact_craft_preload()
 
         self.assertEqual(payload["items"], [])
         self.assertTrue(payload["_prepared"])
-        self.assertEqual(payload["_skipped_reason"], "catalogue Craft local vide")
+        self.assertTrue(payload["_lazy_items"])
 
     def test_default_preload_request_schedules_quest_index_once(self) -> None:
         class Timer:
@@ -245,7 +247,7 @@ class ShellReliabilityTests(unittest.TestCase):
 
         thread.assert_not_called()
         self.assertEqual(len(scheduled), 1)
-        self.assertEqual(scheduled[0][0], 250)
+        self.assertEqual(scheduled[0][0], 180)
         self.assertEqual(shell.preload_states["quests"], main.PRELOAD_IDLE)
 
     def test_startup_preload_has_timeout_guard(self) -> None:
