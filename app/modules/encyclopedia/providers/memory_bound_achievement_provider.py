@@ -538,6 +538,12 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return
         self._load_from_compact_subprocess()
 
+    def load_all(self) -> list[Achievement]:
+        self._ensure_loaded()
+        # Rich reward/document indexes are now detail-only and live in the
+        # disposable detail subprocess for the default runtime.
+        return list(self._achievements)
+
     def prepare_detail_sources(self) -> None:
         if self._detail_sources_ready:
             return
