@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QWidget
 
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage as BaseEncyclopediaPage
+from app.modules.encyclopedia.views.related_preload_state import RelatedPreloadGate
 
 
 class EncyclopediaPage(BaseEncyclopediaPage):
@@ -30,6 +31,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self._memory_restore_quest_series = ""
         self._memory_restore_quest_search = ""
         self._memory_has_been_shown = False
+        self._memory_release_runtime_when_idle = False
         super().__init__(*args, **kwargs)
 
     def _replace_with_lazy_slot(self, label: str, widget: QWidget) -> None:
@@ -136,6 +138,37 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         if active_label != GUIDES_TAB:
             self._hibernate_guides()
 
+    def _release_runtime_providers(self) -> bool:
+        if bool(getattr(self, "_achievement_load_started", False)) or bool(
+            getattr(self, "_related_preload_started", False)
+        ):
+            return False
+
+        achievement_provider = getattr(getattr(self, "service", None), "achievement_provider", None)
+        guide_provider = getattr(getattr(self, "service", None), "guide_provider", None)
+        for provider in (achievement_provider, guide_provider):
+            release = getattr(provider, "release_catalogue", None)
+            if callable(release):
+                release()
+
+        graph = getattr(self, "_quest_graph", None)
+        if graph is not None:
+            graph.achievement_provider = None
+            graph.guide_provider = None
+
+        self._achievement_ready = False
+        self._guide_runtime_ready = False
+        self._related_ready = False
+        self._achievement_provider_supplied = False
+        self._guide_provider_supplied = False
+        self._catalog_context_published = False
+        self._full_guide_tab_requested = False
+        self._success_runtime_requested = False
+        self._pending_lazy_tab = ""
+        self._related_preload_gate = RelatedPreloadGate()
+        self._memory_release_runtime_when_idle = False
+        return True
+
     def hideEvent(self, event) -> None:  # noqa: N802 - Qt API
         # QStackedWidget can emit a hide event while a freshly-created page is
         # inserted behind the current page. That is construction, not a user
@@ -143,6 +176,8 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         # genuinely been shown at least once.
         if self._memory_has_been_shown:
             self.hibernate_heavy_views()
+            self._memory_release_runtime_when_idle = True
+            self._release_runtime_providers()
         super().hideEvent(event)
 
     def showEvent(self, event) -> None:  # noqa: N802 - Qt API
@@ -161,10 +196,16 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         label = self.tabs.tabText(index)
         if label == QUESTS_TAB and self.quest_page is None:
             self._restore_quests_view()
-        elif label == ACHIEVEMENTS_TAB and self.get_achievements_view() is None:
-            self.ensure_achievements_view()
-        elif label == GUIDES_TAB and getattr(self, "guides_view", None) is None:
-            self.ensure_guides_view()
+        elif label == ACHIEVEMENTS_TAB:
+            if not bool(getattr(self, "_achievement_ready", False)):
+                self._start_full_achievement_runtime()
+            elif self.get_achievements_view() is None:
+                self.ensure_achievements_view()
+        elif label == GUIDES_TAB:
+            if not bool(getattr(self, "_guide_runtime_ready", False)):
+                self._start_full_guide_runtime()
+            elif getattr(self, "guides_view", None) is None:
+                self.ensure_guides_view()
         self.sync_character_to_children()
 
     def on_tab_changed(self, index: int) -> None:
@@ -186,6 +227,18 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             if bool(getattr(self, "_achievement_ready", False)):
                 view.show_achievement(achievement_id)
         return view
+
+    def _collect_achievement_runtime(self, result: object) -> None:
+        super()._collect_achievement_runtime(result)
+        if self._memory_release_runtime_when_idle and not self.isVisible():
+            self.hibernate_heavy_views()
+            self._release_runtime_providers()
+
+    def collect_related_preload(self, result: object) -> None:
+        super().collect_related_preload(result)
+        if self._memory_release_runtime_when_idle and not self.isVisible():
+            self.hibernate_heavy_views()
+            self._release_runtime_providers()
 
     def ensure_guides_view(self):
         created = getattr(self, "guides_view", None) is None
