@@ -312,6 +312,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             self._memory_restore_guide_id = ""
             self._memory_restore_guide_quest_id = None
             self._memory_restore_guide_state = ""
+            view = super().ensure_full_guides_view()
             view.select_guide(guide_id)
             quest_detail_state = str(getattr(view, "QUEST_DETAIL", ""))
             if (
