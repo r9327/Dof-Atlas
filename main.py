@@ -798,6 +798,11 @@ class AtlasWindow(QMainWindow):
                 GLOBAL_QUEST_PRELOAD_DELAY_MS,
                 lambda: self.start_preload("quests"),
             )
+        if self.preload_states["encyclopedia"] == PRELOAD_IDLE and self.preload_states["quests"] == PRELOAD_READY:
+            self._schedule_owned_callback(
+                GLOBAL_QUEST_PRELOAD_DELAY_MS,
+                lambda: self.start_preload("encyclopedia"),
+            )
         if not self.preload_finished and self.preload_states["craft"] == PRELOAD_IDLE:
             self._schedule_owned_callback(
                 GLOBAL_CRAFT_PRELOAD_DELAY_MS,
@@ -1909,6 +1914,24 @@ class AtlasWindow(QMainWindow):
             target = "quests" if prefer_quests else "craft"
         task = str(target or "").strip().casefold()
         result_key = task
+
+        with self.preload_state_lock:
+            loading_tasks = [
+                key
+                for key, state in self.preload_states.items()
+                if state == PRELOAD_LOADING and key != task
+            ]
+        if loading_tasks:
+            if user_requested:
+                self.preload_user_tasks.add(task)
+            self._schedule_owned_callback(
+                180,
+                lambda target=task, priority=user_requested: self.start_preload(
+                    target,
+                    user_requested=priority,
+                ),
+            )
+            return
 
         if task == "encyclopedia":
             with self.preload_state_lock:
