@@ -169,7 +169,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
             self.assertNotIn("Quêtes", view.route_progress_label.text())
             self.assertNotIn("Donjons", view.route_progress_label.text())
-            self.assertEqual(view.route_lock_check.text(), "🔓")
+            self.assertEqual(view.route_lock_check.text(), "🔓 Déverrouillé")
             self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
         finally:
             view.close()
@@ -178,7 +178,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         service, view = self._view()
         try:
             view.route_lock_check.setChecked(True)
-            self.assertEqual(view.route_lock_check.text(), "🔒")
+            self.assertEqual(view.route_lock_check.text(), "🔒 Verrouillé")
             self.assertEqual(view.route_lock_check.accessibleName(), "Verrouillé")
             self.assertTrue(
                 service.manual_checked("character:1", SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY)
