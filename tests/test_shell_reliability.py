@@ -16,6 +16,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
 
 import main
+import app.craft_preload as craft_preload_module
 from app.preload import StartupPreloader
 from main import AtlasWindow
 
@@ -59,8 +60,8 @@ class ShellReliabilityTests(unittest.TestCase):
             finally:
                 connection.close()
 
-            with patch.object(main, "DATA_DIR", data_dir):
-                payload = main.build_craft_preload()
+            with patch.object(craft_preload_module, "DATA_DIR", data_dir):
+                payload = craft_preload_module.build_compact_craft_preload()
 
         self.assertEqual(payload["items"], [])
         self.assertTrue(payload["_prepared"])
@@ -245,7 +246,7 @@ class ShellReliabilityTests(unittest.TestCase):
 
         thread.assert_not_called()
         self.assertEqual(len(scheduled), 1)
-        self.assertEqual(scheduled[0][0], 250)
+        self.assertEqual(scheduled[0][0], 180)
         self.assertEqual(shell.preload_states["quests"], main.PRELOAD_IDLE)
 
     def test_startup_preload_has_timeout_guard(self) -> None:
