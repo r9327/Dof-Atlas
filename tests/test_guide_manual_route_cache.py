@@ -87,6 +87,36 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             self.assertIs(first, second)
             self.assertEqual(second["rows"], [1])
 
+    def test_copy_on_write_patch_does_not_mutate_memoized_base(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base = root / "base.json"
+            child = root / "child.json"
+            base.write_text(
+                '{"stages":[{"id":"A","quests":["Q1"],"meta":{"keep":true}}]}',
+                encoding="utf-8",
+            )
+            child.write_text(
+                '{"base_file":"base.json","stage_patches":{"A":{"append":{"quests":["Q2"]}}}}',
+                encoding="utf-8",
+            )
+            memo: dict[tuple[Path, bool], dict] = {}
+            resolved = guide_ultime_manual_route.load_manual_chapter(
+                child,
+                _seen={root / "parent.json"},
+                _expand_hooks=False,
+                _memo=memo,
+            )
+
+            memoized_base = memo[(base.resolve(), False)]
+            self.assertEqual(memoized_base["stages"][0]["quests"], ["Q1"])
+            self.assertEqual(resolved["stages"][0]["quests"], ["Q1", "Q2"])
+            self.assertIsNot(resolved["stages"][0], memoized_base["stages"][0])
+            self.assertIs(
+                resolved["stages"][0]["meta"],
+                memoized_base["stages"][0]["meta"],
+            )
+
     def test_shared_memo_does_not_mask_active_cycle(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             chapter = Path(tmp) / "chapter.json"
