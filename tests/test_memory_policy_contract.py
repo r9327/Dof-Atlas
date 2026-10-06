@@ -680,6 +680,47 @@ def test_guide_auto_validation_uses_streamed_success_name_index_first() -> None:
     assert compact_pos < raw_pos
 
 
+def test_guide_manual_runtime_uses_sqlite_quest_name_index_before_catalogue() -> None:
+    provider = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "providers"
+        / "quest_provider.py"
+    ).read_text(encoding="utf-8")
+    compact = provider[
+        provider.index("def compact_name_index"):
+        provider.index("def list_quests")
+    ]
+    assert "load_quest_name_index" in compact
+    assert "get_catalog()" not in compact
+
+    details = (ROOT / "app" / "quest_catalog_details.py").read_text(encoding="utf-8")
+    index = details[
+        details.index("def load_quest_name_index"):
+        details.index("class NetworkQuestRecord")
+    ]
+    assert 'SELECT id, name FROM quests ORDER BY id' in index
+    assert "load_lazy_catalog(" not in index
+
+    runtime = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_ultime_manual_runtime_core.py"
+    ).read_text(encoding="utf-8")
+    builder = runtime[
+        runtime.index("def _build_quest_name_index"):
+        runtime.index("def _load_manual_preview_uncached")
+    ]
+    compact_pos = builder.index("compact_name_index")
+    fallback_pos = builder.index("provider.list_quests()")
+    assert compact_pos < fallback_pos
+
+
 def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     source = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
     assert '"objectives": []' in source
@@ -889,6 +930,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_home_release_clears_loaded_manual_guide_bundle_cache_without_importing_it()
         test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots()
         test_guide_auto_validation_uses_streamed_success_name_index_first()
+        test_guide_manual_runtime_uses_sqlite_quest_name_index_before_catalogue()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
         test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
         test_guide_home_defers_quest_runtime_until_needed()
