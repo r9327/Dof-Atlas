@@ -53,3 +53,19 @@ def test_memory_workflow_publishes_and_uploads_evidence() -> None:
     assert "Publish memory summary" in source
     assert "Upload memory evidence" in source
     assert "phase8-memory-" in source
+
+
+def test_memory_workflow_enforces_phase8_budgets() -> None:
+    source = WORKFLOW.read_text(encoding="utf-8")
+    for label, budget in (
+        ("after_preload", "95.0"),
+        ("after_quests_home", "105.0"),
+        ("after_achievements_home", "115.0"),
+        ("after_guide_home", "120.0"),
+        ("after_equipment_home_stabilized", "120.0"),
+    ):
+        assert f'"{label}": {budget}' in source
+    assert "peak_tree > 400.0" in source
+    assert '"achievements_retained_tree_delta_mb": 15.0' in source
+    assert '"guide_retained_tree_delta_mb": 20.0' in source
+    assert '"equipment_tree_delta_stabilized_mb": 1.0' in source
