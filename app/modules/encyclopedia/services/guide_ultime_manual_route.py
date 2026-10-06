@@ -471,16 +471,19 @@ def load_manual_chapter(
     if _memo is not None:
         cached = _memo.get(memo_key)
         if cached is not None:
-            return copy.deepcopy(cached)
+            return cached
         result = _load_manual_chapter_uncached(
             resolved,
             _seen=_seen,
             _expand_hooks=_expand_hooks,
             _memo=_memo,
         )
-        frozen = copy.deepcopy(result)
-        _memo[memo_key] = frozen
-        return copy.deepcopy(frozen)
+        # _memo is an internal, one-composition cache. Recursive consumers treat
+        # resolved rows as immutable and explicitly deepcopy before patching or
+        # importing them, so duplicating the whole resolved graph on every cache
+        # store/hit only inflates the first-open memory peak.
+        _memo[memo_key] = result
+        return result
     if _seen is not None:
         return _load_manual_chapter_uncached(
             resolved,
