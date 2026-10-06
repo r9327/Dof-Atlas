@@ -31,6 +31,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self._memory_restore_quest_search = ""
         self._memory_has_been_shown = False
         self._memory_release_runtime_when_idle = False
+        self._memory_pending_tab_label = ""
         super().__init__(*args, **kwargs)
 
     def _replace_with_lazy_slot(self, label: str, widget: QWidget) -> None:
@@ -168,6 +169,15 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self._memory_release_runtime_when_idle = False
         return True
 
+    def prepare_external_tab_navigation(self, label: str) -> None:
+        """Prioritize an explicit shell tab request over stale hidden-tab state."""
+
+        requested = str(label or "").strip()
+        self._memory_pending_tab_label = requested if requested in self.tab_labels() else ""
+        # A visible return cancels a deferred off-screen release request. A worker
+        # already running may finish, but its result must remain usable now.
+        self._memory_release_runtime_when_idle = False
+
     def hideEvent(self, event) -> None:  # noqa: N802 - Qt API
         # QStackedWidget can emit a hide event while a freshly-created page is
         # inserted behind the current page. That is construction, not a user
@@ -202,7 +212,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         index = self.tabs.currentIndex()
         if index < 0:
             return
-        label = self.tabs.tabText(index)
+        label = self._memory_pending_tab_label or self.tabs.tabText(index)
         if label == QUESTS_TAB and self.quest_page is None:
             self._restore_quests_view()
         elif label == ACHIEVEMENTS_TAB:
@@ -219,6 +229,8 @@ class EncyclopediaPage(BaseEncyclopediaPage):
 
     def on_tab_changed(self, index: int) -> None:
         label = self.tabs.tabText(index) if index >= 0 else ""
+        if label and label == self._memory_pending_tab_label:
+            self._memory_pending_tab_label = ""
         self.hibernate_heavy_views(active_label=label)
         if label == QUESTS_TAB and self.quest_page is None:
             restored = self._restore_quests_view()
