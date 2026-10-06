@@ -858,20 +858,31 @@ def _dump_compact_home_rows() -> int:
             home = {key: value.get(key) for key in metadata_keys}
             seen: set[int] = set()
             quest_ids: list[int] = []
-            raw_steps = value.get("steps")
-            if isinstance(raw_steps, list):
-                for raw_step in raw_steps:
-                    if not isinstance(raw_step, dict):
-                        continue
-                    if str(raw_step.get("step_type") or "") != "quest":
-                        continue
-                    if bool(raw_step.get("optional", False)):
-                        continue
-                    quest_id = safe_int(raw_step.get("entity_id"))
+            compact_ids = value.get("progress_quest_ids")
+            if isinstance(compact_ids, list):
+                for raw_id in compact_ids:
+                    quest_id = safe_int(raw_id)
                     if quest_id is None or int(quest_id) in seen:
                         continue
                     seen.add(int(quest_id))
                     quest_ids.append(int(quest_id))
+            else:
+                # Schema-1 compatibility: only the disposable worker decodes
+                # the legacy step dictionaries.
+                raw_steps = value.get("steps")
+                if isinstance(raw_steps, list):
+                    for raw_step in raw_steps:
+                        if not isinstance(raw_step, dict):
+                            continue
+                        if str(raw_step.get("step_type") or "") != "quest":
+                            continue
+                        if bool(raw_step.get("optional", False)):
+                            continue
+                        quest_id = safe_int(raw_step.get("entity_id"))
+                        if quest_id is None or int(quest_id) in seen:
+                            continue
+                        seen.add(int(quest_id))
+                        quest_ids.append(int(quest_id))
             home["progress_quest_ids"] = quest_ids
             print(json.dumps(home, ensure_ascii=False, separators=(",", ":")))
     return 0
