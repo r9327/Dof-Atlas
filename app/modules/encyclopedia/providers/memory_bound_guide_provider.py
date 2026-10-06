@@ -75,7 +75,7 @@ def _summary_payload(guide: Guide, entity_keys: set[tuple[str, int]]) -> dict[st
                 "entity_id": step.entity_id,
                 "optional": step.optional,
             }
-            for step in guide.steps
+            for step in guide.required_steps
         ],
         "context_entities": [_entity_ref_payload(ref) for ref in guide.context_entities],
         "search_text": guide.search_text,
@@ -378,13 +378,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         catalog = self.quest_provider.get_catalog()
 
         for node in _walk_dicts(payload):
-            for key in _SEARCH_KEYS:
-                value = node.get(key)
-                if isinstance(value, str) and value.strip():
-                    normalized = normalize_text(value)
-                    if normalized:
-                        search_chunks.add(normalized)
-
+            # Keep the resident search index bounded to catalogue/progression
+            # labels. Full notes/content remain detail-only and are loaded when
+            # a Guide is actually opened.
             linked = node.get("linked_achievement_ids")
             if isinstance(linked, list):
                 for raw_id in linked:
