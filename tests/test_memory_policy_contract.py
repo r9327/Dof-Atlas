@@ -86,6 +86,7 @@ SERVICES_FACADE = (
 CRAFT_PAGE = ROOT / "app" / "pages" / "craft_page.py"
 CRAFT_PRELOAD = ROOT / "app" / "craft_preload.py"
 QUESTS_PAGE_IMPL = ROOT / "app" / "pages" / "_quests_page_impl.py"
+GUIDES_VIEW = ROOT / "app" / "modules" / "encyclopedia" / "views" / "guides_view.py"
 
 
 def test_equipment_runtime_does_not_embed_qt_webengine() -> None:
@@ -407,6 +408,30 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     assert "_DUMP_DETAIL_FLAG" in source
     assert "_dump_default_detail" in source
     assert '"raw"' in source
+
+
+def test_guide_navigation_materializes_only_one_chapter_at_a_time() -> None:
+    source = GUIDES_VIEW.read_text(encoding="utf-8")
+    initializer = source[
+        source.index("def _ensure_chapters_initialized"):
+        source.index("@staticmethod", source.index("def _ensure_chapters_initialized"))
+    ]
+    assert "self.expanded_chapters[guide.id] = {selected[1].id}" in initializer
+    assert "for chapter in part.chapters" in initializer
+    assert "self.expanded_chapters[guide.id] = (" in initializer
+
+    toggle = source[
+        source.index("def toggle_chapter"):
+        source.index("def step_for_quest", source.index("def toggle_chapter"))
+    ]
+    assert "opened.add(" not in toggle
+    assert "self.expanded_chapters[guide.id] = {str(chapter_id)}" in toggle
+
+    detail = source[
+        source.index("def show_quest_detail"):
+        source.index("def open_quest_from_guide", source.index("def show_quest_detail"))
+    ]
+    assert "self.expanded_chapters[guide.id] = {series_ref[1].id}" in detail
 
 
 def test_guide_manual_runtime_keeps_only_visible_authored_stage_hot() -> None:
