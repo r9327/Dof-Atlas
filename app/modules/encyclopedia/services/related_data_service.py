@@ -34,6 +34,7 @@ class RelatedEncyclopediaData:
     quest_graph: QuestGraphService
     warmed_source_count: int = 0
     warmed_guide_file_count: int = 0
+    warmed_guide_item_count: int = 0
 
 
 _CACHE_LOCK = RLock()
@@ -100,6 +101,16 @@ def _warm_guide_files() -> int:
     return count
 
 
+def _warm_guide_items_index() -> int:
+    """Build the compact Guide item store in preload, outside the UI path."""
+
+    from app.modules.encyclopedia.providers.dofus_item_provider import (
+        ensure_guide_items_index,
+    )
+
+    return ensure_guide_items_index()
+
+
 def build_related_encyclopedia_data(catalog: QuestCatalog) -> RelatedEncyclopediaData:
     """Warm reusable related data while keeping the heavy providers click-lazy.
 
@@ -117,12 +128,14 @@ def build_related_encyclopedia_data(catalog: QuestCatalog) -> RelatedEncyclopedi
         quest_provider = QuestProvider(catalog=catalog)
         warmed_source_count = _warm_achievement_source_indexes()
         warmed_guide_file_count = _warm_guide_files()
+        warmed_guide_item_count = _warm_guide_items_index()
         data = RelatedEncyclopediaData(
             achievement_provider=None,
             guide_provider=_EMPTY_GUIDE_PROVIDER,
             quest_graph=QuestGraphService(quest_provider),
             warmed_source_count=warmed_source_count,
             warmed_guide_file_count=warmed_guide_file_count,
+            warmed_guide_item_count=warmed_guide_item_count,
         )
         _CACHED_CATALOG = catalog
         _CACHED_DATA = data
