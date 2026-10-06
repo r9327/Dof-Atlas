@@ -132,6 +132,10 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     assert "QuestSources(" in source
     assert "self._entries = None" in source
     assert "self._image_indexes.clear()" in source
+    assert "_compact_achievement_dict" in source
+    assert "_compact_objective_dict" in source
+    assert "_DUMP_DETAIL_FLAG" in source
+    assert "_dump_default_detail" in source
     assert '"raw"' in source
 
 
