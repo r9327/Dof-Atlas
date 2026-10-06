@@ -728,6 +728,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         index = max(0, min(self.view_index, len(self.service.cards) - 1))
         card = self.service.cards[index]
+        visible_card = getattr(self.service, "visible_card", None)
+        if callable(visible_card):
+            materialized = visible_card(index)
+            if isinstance(materialized, dict) and materialized:
+                card = materialized
         self._add_manual_order_choice(card)
         widget = SharedGuideManualCard(
             self.service,
