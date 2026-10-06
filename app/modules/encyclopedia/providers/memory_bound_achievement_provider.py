@@ -561,6 +561,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
         stderr = process.stderr.read() if process.stderr is not None else ""
         return_code = process.wait(timeout=10)
+        if process.stdout is not None:
+            process.stdout.close()
+        if process.stderr is not None:
+            process.stderr.close()
         if return_code != 0:
             raise RuntimeError(
                 "Extraction compacte des succès impossible"
@@ -601,34 +605,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return
         self._load_from_compact_subprocess()
 
-    def load_all(self) -> list[Achievement]:
-        self._ensure_loaded()
-        # Rich reward/document indexes are now detail-only and live in the
-        # disposable detail subprocess for the default runtime.
-        return list(self._achievements)
-
-    def progress_objectives_for(self, achievement_id: int) -> tuple[tuple[object, ...], ...]:
-        self._ensure_loaded()
-        encoded = self._progress_objectives.get(int(achievement_id), "")
-        if not encoded:
-            return ()
-        try:
-            payload = json.loads(encoded)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            return ()
-        return _progress_objectives_from_rows(payload)
-
-    def get_by_id(self, achievement_id: int) -> Achievement | None:
-        """Return a lightweight compatibility detail without warming rich sources."""
+    def load_runtime(self) -> None:
+        """Warm only the compact resident catalogue used by Atlas runtime."""
 
         self._ensure_loaded()
-        achievement_id = int(achievement_id)
-        summary = self._by_id.get(achievement_id)
-        if summary is None:
-            return None
-        if self._compat_cache_id == achievement_id and self._compat_cache is not None:
-            return self._compat_cache
 
+    def _compat_achievement(self, summary: Achievement) -> Achievement:
+        achievement_id = int(summary.id)
         objectives: list[AchievementObjective] = []
         for order, row in enumerate(self.progress_objectives_for(achievement_id), 1):
             if len(row) != 5:
@@ -650,8 +633,48 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     entity_refs=refs,
                 )
             )
+        points_reward = Reward(
+            kind="achievement_points",
+            name="Points de succès",
+            quantity=max(0, int(summary.points or 0)),
+            source_id=achievement_id,
+        )
+        return replace(
+            summary,
+            objectives=tuple(objectives),
+            rewards=(points_reward,),
+        )
 
-        compatible = replace(summary, objectives=tuple(objectives))
+    def load_all(self) -> list[Achievement]:
+        self._ensure_loaded()
+        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
+        current_data_dir = Path(self.data_dir).resolve(strict=False)
+        if bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir:
+            self.prepare_detail_sources()
+        return [self._compat_achievement(summary) for summary in self._achievements]
+
+    def progress_objectives_for(self, achievement_id: int) -> tuple[tuple[object, ...], ...]:
+        self._ensure_loaded()
+        encoded = self._progress_objectives.get(int(achievement_id), "")
+        if not encoded:
+            return ()
+        try:
+            payload = json.loads(encoded)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return ()
+        return _progress_objectives_from_rows(payload)
+
+    def get_by_id(self, achievement_id: int) -> Achievement | None:
+        """Return one lightweight compatibility object without warming rich sources."""
+
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        summary = self._by_id.get(achievement_id)
+        if summary is None:
+            return None
+        if self._compat_cache_id == achievement_id and self._compat_cache is not None:
+            return self._compat_cache
+        compatible = self._compat_achievement(summary)
         self._compat_cache_id = achievement_id
         self._compat_cache = compatible
         return compatible
@@ -678,7 +701,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         if self._detail_cache_id == achievement_id and self._detail_cache is not None:
             return self._detail_cache
         if not self._detail_sources_ready:
-            self.prepare_detail_sources()
+            raise RuntimeError(
+                "Sources de détail Succès non préparées ; load_all() doit être exécuté "
+                "hors du thread UI avant l'ouverture d'un détail."
+            )
         self._entries = self._sources.mapping(
             self.data_dir / "languages" / "fr.json",
             "entries",
@@ -778,6 +804,7 @@ def _dump_default_detail(achievement_id: int) -> int:
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
     provider._load_in_process()
     provider._loaded = True
+    provider.prepare_detail_sources()
     detail = provider._get_detail_in_process(int(achievement_id))
     if detail is None:
         return 2
