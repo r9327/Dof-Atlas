@@ -21,7 +21,9 @@ def _shared_default_catalog() -> QuestCatalog:
     with _SHARED_DEFAULT_CATALOG_LOCK:
         catalog = _SHARED_DEFAULT_CATALOG() if _SHARED_DEFAULT_CATALOG is not None else None
         if catalog is None:
-            catalog = QuestCatalog.load(RAW_QUEST_DATA_DIR)
+            from app.quest_catalog_details import load_lazy_catalog
+
+            catalog = load_lazy_catalog(RAW_QUEST_DATA_DIR)
             _SHARED_DEFAULT_CATALOG = ref(catalog)
         return catalog
 

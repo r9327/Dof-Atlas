@@ -11,7 +11,7 @@ from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
 from app.modules.encyclopedia.models import DofusItem
 from app.modules.encyclopedia.providers.achievement_provider import safe_int
 from app.quest_catalog import array_value, localized_name, text_for
-from app.quest_source_index import QuestSources
+from app.quest_source_index import QuestSources, SelectedJsonValueMapping
 
 DOFUS_TYPE_ID = 23
 DOFUS_UNKNOWN_ICON = DATA_DIR / "encyclopedia" / "images" / "guides" / "dofus_unknown.svg"
@@ -528,21 +528,18 @@ class DofusItemProvider:
             if ident is not None:
                 needed_entry_ids.add(str(ident))
 
-        sources = QuestSources(ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1")
-        entries: dict[str, Any] = {}
-        try:
-            language_entries = sources.mapping(
-                self.data_dir / "languages" / "fr.json",
-                "entries",
-                required=True,
-            )
-            for ident in needed_entry_ids:
-                try:
-                    entries[ident] = language_entries[ident]
-                except KeyError:
-                    continue
-        finally:
-            sources.close()
+        language_entries = SelectedJsonValueMapping(
+            self.data_dir / "languages" / "fr.json",
+            "entries",
+            needed_entry_ids,
+            required=True,
+        )
+        entries: dict[str, Any] = {
+            ident: language_entries[ident]
+            for ident in needed_entry_ids
+            if ident in language_entries
+        }
+        language_entries.close()
 
         type_name = text_for(entries, type_row.get("nameId"), "Dofus")
         dofus_items: list[DofusItem] = []
@@ -636,45 +633,76 @@ def _build_guide_items_index(path: Path) -> int:
 
     requested = _collect_guide_item_ids() - set(items)
     if requested:
-        sources = QuestSources(ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1")
-        try:
-            item_rows = sources.rows(RAW_QUEST_DATA_DIR / "items.json")
-            type_rows = sources.rows(RAW_QUEST_DATA_DIR / "item_types.json")
-            entries = sources.mapping(
-                RAW_QUEST_DATA_DIR / "languages" / "fr.json",
-                "entries",
-                required=True,
+        requested_rows: dict[int, dict[str, Any]] = {}
+        for ref in _iter_doduda_refs(RAW_QUEST_DATA_DIR / "items.json"):
+            data = ref.get("data")
+            if not isinstance(data, dict):
+                continue
+            item_id = safe_int(data.get("id"))
+            if item_id is None or int(item_id) not in requested:
+                continue
+            requested_rows[int(item_id)] = dict(data)
+            if len(requested_rows) >= len(requested):
+                break
+
+        needed_type_ids = {
+            safe_int(row.get("typeId"), 0) or 0
+            for row in requested_rows.values()
+        }
+        type_rows: dict[int, dict[str, Any]] = {}
+        if needed_type_ids:
+            for ref in _iter_doduda_refs(RAW_QUEST_DATA_DIR / "item_types.json"):
+                data = ref.get("data")
+                if not isinstance(data, dict):
+                    continue
+                type_id = safe_int(data.get("id"))
+                if type_id is None or int(type_id) not in needed_type_ids:
+                    continue
+                type_rows[int(type_id)] = dict(data)
+                if len(type_rows) >= len(needed_type_ids):
+                    break
+
+        needed_entry_ids: set[str] = set()
+        for row in requested_rows.values():
+            for field in ("nameId", "descriptionId"):
+                ident = safe_int(row.get(field))
+                if ident is not None:
+                    needed_entry_ids.add(str(ident))
+        for row in type_rows.values():
+            ident = safe_int(row.get("nameId"))
+            if ident is not None:
+                needed_entry_ids.add(str(ident))
+
+        entries_mapping = SelectedJsonValueMapping(
+            RAW_QUEST_DATA_DIR / "languages" / "fr.json",
+            "entries",
+            needed_entry_ids,
+            required=True,
+        )
+        entries = {
+            ident: entries_mapping[ident]
+            for ident in needed_entry_ids
+            if ident in entries_mapping
+        }
+        entries_mapping.close()
+
+        for item_id, row in sorted(requested_rows.items()):
+            type_id = safe_int(row.get("typeId"), 0) or 0
+            type_row = type_rows.get(type_id, {})
+            icon_id = safe_int(row.get("iconId"))
+            items[item_id] = DofusItem(
+                id=item_id,
+                original_id=item_id,
+                name=localized_name(row, entries, f"Objet {item_id}"),
+                level=safe_int(row.get("level")),
+                type_id=type_id,
+                type_name=text_for(entries, type_row.get("nameId"), ""),
+                description=text_for(entries, row.get("descriptionId"), ""),
+                icon_id=icon_id,
+                image_path=provider._image_for_icon(icon_id),
+                effects=(),
+                raw={"id": item_id, "typeId": type_id},
             )
-            for item_id in sorted(requested):
-                try:
-                    row = item_rows[item_id]
-                except KeyError:
-                    continue
-                if not isinstance(row, dict):
-                    continue
-                type_id = safe_int(row.get("typeId"), 0) or 0
-                try:
-                    type_row = type_rows[type_id]
-                except KeyError:
-                    type_row = {}
-                if not isinstance(type_row, dict):
-                    type_row = {}
-                icon_id = safe_int(row.get("iconId"))
-                items[item_id] = DofusItem(
-                    id=item_id,
-                    original_id=item_id,
-                    name=localized_name(row, entries, f"Objet {item_id}"),
-                    level=safe_int(row.get("level")),
-                    type_id=type_id,
-                    type_name=text_for(entries, type_row.get("nameId"), ""),
-                    description=text_for(entries, row.get("descriptionId"), ""),
-                    icon_id=icon_id,
-                    image_path=provider._image_for_icon(icon_id),
-                    effects=(),
-                    raw={"id": item_id, "typeId": type_id},
-                )
-        finally:
-            sources.close()
 
     payload = {
         "schema_version": _GUIDE_ITEMS_INDEX_SCHEMA,

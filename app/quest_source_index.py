@@ -25,6 +25,151 @@ _OPTIONAL_SOURCE_FIELDS = frozenset({("quests_enriched.json", "quests")})
 class QuestSourceError(RuntimeError):
     """Raised when a required quest business source cannot be read safely."""
 
+_JSON_OBJECT_MEMBER_RE = re.compile(
+    rb'(?<!\\\\)"((?:\\\\.|[^"\\\\])*)"\\s*:\\s*'
+)
+
+
+def read_selected_json_object_values(
+    path: Path,
+    field: str,
+    selected_keys: set[str] | frozenset[str],
+    *,
+    required: bool = True,
+) -> dict[str, object]:
+    """Read selected members from a large JSON object with bounded memory.
+
+    The source is scanned in fixed-size chunks and only requested values are
+    decoded. This prevents compact-cache workers from retaining the monolithic
+    localization JSON or a full offset dictionary.
+    """
+
+    wanted = {str(key) for key in selected_keys}
+    if not wanted:
+        return {}
+    path = Path(path)
+    if not path.is_file():
+        if required:
+            raise QuestSourceError(f"fichier indisponible: {path}")
+        return {}
+
+    field_marker = json.dumps(str(field), ensure_ascii=False).encode("utf-8")
+    field_pattern = re.compile(re.escape(field_marker) + rb"\s*:\s*\{")
+    chunk_size = 256 * 1024
+    overlap_size = 1024
+
+    with path.open("rb") as scan, path.open("rb") as values:
+        tail = b""
+        container_start: int | None = None
+        while True:
+            chunk = scan.read(chunk_size)
+            if not chunk:
+                break
+            data = tail + chunk
+            base = scan.tell() - len(chunk) - len(tail)
+            match = field_pattern.search(data)
+            if match is not None:
+                container_start = base + match.end()
+                break
+            tail = data[-overlap_size:]
+
+        if container_start is None:
+            if required:
+                raise QuestSourceError(f"champ requis absent ({field}): {path}")
+            return {}
+
+        result: dict[str, object] = {}
+        scan.seek(container_start)
+        tail = b""
+        emit_from = container_start
+        decoder = json.JSONDecoder()
+
+        while wanted:
+            chunk = scan.read(chunk_size)
+            eof = not chunk
+            data = tail + chunk
+            if not data:
+                break
+            base = scan.tell() - len(chunk) - len(tail)
+            safe_limit = len(data) if eof else max(0, len(data) - overlap_size)
+
+            for match in _JSON_OBJECT_MEMBER_RE.finditer(data):
+                absolute_match = base + match.start()
+                if absolute_match < emit_from:
+                    continue
+                if not eof and match.start() >= safe_limit:
+                    break
+                try:
+                    key = str(json.loads(b'"' + match.group(1) + b'"'))
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    continue
+                if key not in wanted:
+                    continue
+
+                value_start = base + match.end()
+                values.seek(value_start)
+                payload = bytearray()
+                parsed = False
+                for _ in range(64):
+                    part = values.read(64 * 1024)
+                    if not part:
+                        break
+                    payload.extend(part)
+                    try:
+                        text = bytes(payload).decode("utf-8")
+                        value, _end = decoder.raw_decode(text.lstrip())
+                    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+                        continue
+                    result[key] = value
+                    wanted.remove(key)
+                    parsed = True
+                    break
+                if not parsed and required:
+                    raise QuestSourceError(
+                        f"valeur JSON illisible pour {key}: {path}"
+                    )
+                if not wanted:
+                    break
+
+            if eof:
+                break
+            emit_from = base + safe_limit
+            tail = data[safe_limit:]
+
+    return result
+
+
+class SelectedJsonValueMapping(Mapping):
+    """Small read-only mapping backed by a bounded scan of one JSON object."""
+
+    def __init__(
+        self,
+        path: Path,
+        field: str,
+        selected_keys: set[str] | frozenset[str],
+        *,
+        required: bool = True,
+    ) -> None:
+        self._values = read_selected_json_object_values(
+            path,
+            field,
+            selected_keys,
+            required=required,
+        )
+
+    def __getitem__(self, key):
+        return self._values[str(key)]
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self):
+        return len(self._values)
+
+    def close(self) -> None:
+        self._values.clear()
+
+
 
 def build_image_index(images_root: Path) -> dict[str, str]:
     """Index documentary images without importing the Quest catalogue."""

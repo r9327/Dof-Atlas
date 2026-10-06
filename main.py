@@ -284,13 +284,13 @@ def _warm_encyclopedia_compact_stores() -> None:
     """Prepare Guide/Success indexes entirely in disposable child processes."""
 
     _run_preload_module_json(
-        "app.modules.encyclopedia.services.achievement_index_warmup",
-        result_key="warmed_source_count",
-    )
-    _run_preload_module_json(
         "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
         "--ensure-compact-cache",
         result_key="achievement_count",
+    )
+    _run_preload_module_json(
+        "app.modules.encyclopedia.services.achievement_index_warmup",
+        result_key="achievement_name_count",
     )
     _run_preload_module_json(
         "app.modules.encyclopedia.providers.memory_bound_guide_provider",
@@ -1683,6 +1683,7 @@ class AtlasWindow(QMainWindow):
             # whole page on Home instead of retaining its Qt/runtime shell.
             self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
             self.release_reconstructible_page("Craft", self.create_craft_page)
+            self.release_reconstructible_page("Equipement", self.create_equipment_page)
             self.home_page.refresh_progress()
         elif name == "Quetes":
             page = self.page_widgets.get("Quetes")

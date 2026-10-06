@@ -23,7 +23,7 @@ from app.modules.encyclopedia.providers.achievement_provider import (
     AchievementProvider as BaseAchievementProvider,
     safe_int,
 )
-from app.quest_source_index import JsonSourceMapping, QuestSources
+from app.quest_source_index import QuestSources, SelectedJsonValueMapping
 from app.quest_catalog import normalize_text
 
 
@@ -357,65 +357,6 @@ def _achievement_from_dict(value: dict[str, Any]) -> Achievement:
     )
 
 
-class _SelectedEntriesMapping(JsonSourceMapping):
-    """Offset mapping for only the localization IDs used by the compact catalogue."""
-
-    def __init__(self, path: Path, cache_root: Path, selected_keys: set[str]) -> None:
-        self._selected_keys = frozenset(str(key) for key in selected_keys)
-        key_digest = hashlib.sha256(
-            "\0".join(sorted(self._selected_keys)).encode("utf-8")
-        ).hexdigest()
-        super().__init__(
-            path,
-            cache_root,
-            f"entries:selected:{key_digest}",
-            doduda=False,
-            required=True,
-        )
-
-    def _build_offsets(self, _field):
-        if not self._selected_keys:
-            return {}
-
-        data = self.path.read_bytes().decode("utf-8")
-        marker = re.search(r'"entries"\s*:\s*\{', data)
-        if marker is None:
-            self._source_failure("champ requis absent (entries)")
-            return {}
-
-        decoder = json.JSONDecoder()
-        cursor = marker.end()
-        byte_cursor = len(data[:cursor].encode("utf-8"))
-        previous = cursor
-        offsets: dict[str, tuple[int, int]] = {}
-        remaining = set(self._selected_keys)
-
-        while remaining:
-            cursor = _SPACE_RE.match(data, cursor).end()
-            if data[cursor:cursor + 1] == "}":
-                break
-            key, cursor = decoder.raw_decode(data, cursor)
-            cursor = _SPACE_RE.match(data, cursor).end()
-            if data[cursor:cursor + 1] != ":":
-                raise ValueError("Missing JSON member separator")
-            cursor = _SPACE_RE.match(data, cursor + 1).end()
-            byte_cursor += len(data[previous:cursor].encode("utf-8"))
-            start = byte_cursor
-            _value, value_end = decoder.raw_decode(data, cursor)
-            byte_cursor += len(data[cursor:value_end].encode("utf-8"))
-            key_text = str(key)
-            if key_text in remaining:
-                offsets[key_text] = (start, byte_cursor)
-                remaining.remove(key_text)
-            previous = value_end
-            cursor = _SPACE_RE.match(data, value_end).end()
-            if data[cursor:cursor + 1] == ",":
-                cursor += 1
-            elif data[cursor:cursor + 1] != "}":
-                raise ValueError("Missing JSON member delimiter")
-        return offsets
-
-
 class _CompactAchievementSources(QuestSources):
     def __init__(
         self,
@@ -438,10 +379,11 @@ class _CompactAchievementSources(QuestSources):
                 required = True
             key = (path, field, doduda, bool(required))
             if key not in self._mappings:
-                self._mappings[key] = _SelectedEntriesMapping(
+                self._mappings[key] = SelectedJsonValueMapping(
                     path,
-                    self.cache_root,
+                    "entries",
                     self._selected_text_ids,
+                    required=bool(required),
                 )
             return self._mappings[key]
         return super().mapping(path, field, doduda=doduda, required=required)

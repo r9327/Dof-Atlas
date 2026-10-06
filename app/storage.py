@@ -11,7 +11,7 @@ from threading import local
 from typing import Any, Callable
 
 from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, QUrl
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QKeySequence, QPainter, QPen, QPixmap
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImageReader, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QAbstractItemView,
@@ -950,16 +950,36 @@ class IconCache:
             return self.cache[key]
         if not path.exists():
             return fallback or QIcon()
-        pixmap = QPixmap(key)
-        if pixmap.isNull():
+        reader = QImageReader(key)
+        source_size = reader.size()
+        if source_size.isValid():
+            reader.setScaledSize(
+                source_size.scaled(
+                    QSize(self.size, self.size),
+                    Qt.KeepAspectRatio,
+                )
+            )
+        image = reader.read()
+        if image.isNull():
             return fallback or QIcon()
-        icon = QIcon(pixmap.scaled(self.size, self.size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        if image.width() > self.size or image.height() > self.size:
+            image = image.scaled(
+                self.size,
+                self.size,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+        icon = QIcon(QPixmap.fromImage(image))
         self.cache[key] = icon
         self.order.append(key)
         while len(self.order) > self.max_items:
             old = self.order.pop(0)
             self.cache.pop(old, None)
         return icon
+
+    def clear(self) -> None:
+        self.cache.clear()
+        self.order.clear()
 
 
 def lock_icon(locked: bool) -> QIcon:

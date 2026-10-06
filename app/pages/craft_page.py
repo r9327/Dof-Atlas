@@ -633,6 +633,9 @@ class CraftPage(QWidget):
         self.items.clear()
         self.items_by_name.clear()
         self.item_lookup_cache.clear()
+        clear_icons = getattr(self.icon_cache, "clear", None)
+        if callable(clear_icons):
+            clear_icons()
         self.selection.clear()
         self.jobs.clear()
         self._pending_result_items.clear()
