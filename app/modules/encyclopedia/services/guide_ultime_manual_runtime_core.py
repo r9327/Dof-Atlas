@@ -406,6 +406,14 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                     index,
                     chapter_preparation=chapter_preparation_schedule.get(stage_position, []),
                 )
+                # Compact runtime keeps the source coordinates for lazy hydration
+                # instead of retaining all resolved authored stage trees at once.
+                card["manual_source_file"] = filename
+                card["manual_stage_position"] = int(stage_position)
+                card["manual_capture_transition"] = bool(stage.get("capture_transition"))
+                if self.compact_runtime:
+                    card.pop("manual_stage_data", None)
+                    card.pop("manual_chapter_preparation", None)
                 if not bool(card.get("manual_has_lines", card.get("manual_lines"))):
                     empty_cards.append(f"{chapter_id}:{card.get('manual_stage_id')}")
                 cards.append(card)
@@ -475,6 +483,38 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
 
     def manual_audit(self) -> dict[str, Any]:
         return copy.deepcopy(self.manual_audit_data)
+
+    def _hydrate_manual_card_source(self, card: dict[str, Any]) -> dict[str, Any] | None:
+        """Hydrate only the currently visible authored stage in compact runtime mode."""
+
+        stage = card.get("manual_stage_data")
+        if isinstance(stage, dict):
+            return stage
+        if not self.compact_runtime:
+            return None
+
+        filename = str(card.get("manual_source_file") or "").strip()
+        position = self._as_int(card.get("manual_stage_position"))
+        if not filename or position is None or position < 0:
+            return None
+
+        previous = getattr(self, "_manual_hydrated_card", None)
+        if isinstance(previous, dict) and previous is not card:
+            previous.pop("manual_stage_data", None)
+            previous.pop("manual_chapter_preparation", None)
+        self._manual_base_lines_cache = None
+
+        chapter_memo: dict[tuple[Path, bool], dict[str, Any]] = {}
+        chapter = load_manual_chapter(self.manual_dir / filename, _memo=chapter_memo)
+        stages = [row for row in chapter.get("stages", []) or [] if isinstance(row, dict)]
+        if position >= len(stages):
+            return None
+        stage = stages[position]
+        preparation = self._chapter_preparation_schedule(chapter, stages).get(position, [])
+        card["manual_stage_data"] = stage
+        card["manual_chapter_preparation"] = preparation
+        self._manual_hydrated_card = card
+        return stage
 
     def _stage_to_card(
         self,
