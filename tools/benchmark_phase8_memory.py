@@ -320,20 +320,49 @@ def _open_rich_guide_with_probe(
     navigate = getattr(page, "navigate_to_guide", None) if page is not None else None
     if not callable(navigate):
         raise RuntimeError("Encyclopedia Guide navigation is unavailable")
-    if not bool(navigate(str(guide_id))):
-        raise RuntimeError(f"Guide navigation rejected: {guide_id}")
+    manual_core = None
+    original_manual_loader = None
+    try:
+        import importlib
 
-    deadline = started + max(1.0, float(timeout))
-    while time.perf_counter() < deadline:
-        app.processEvents()
-        page = getattr(window, "page_widgets", {}).get("Quetes")
-        view = getattr(page, "guides_view", None) if page is not None else None
-        if str(getattr(view, "current_guide_id", "") or "") == str(guide_id):
-            stages.append(memory_snapshot("guide_detail_ready"))
-            return round((time.perf_counter() - started) * 1000.0, 2)
-        time.sleep(0.005)
+        manual_core = importlib.import_module(
+            "app.modules.encyclopedia.services.guide_ultime_manual_runtime_core"
+        )
+        original_manual_loader = getattr(manual_core, "load_manual_chapter", None)
+        if callable(original_manual_loader):
+            probe_count = 0
 
-    raise RuntimeError(f"Timeout while opening rich Guide detail {guide_id} ({timeout:.1f}s).")
+            def probed_manual_loader(path, *args, **kwargs):
+                nonlocal probe_count
+                result = original_manual_loader(path, *args, **kwargs)
+                probe_count += 1
+                name = Path(path).stem.replace(" ", "_")
+                stages.append(
+                    memory_snapshot(
+                        f"guide_manual_chapter_{probe_count:02d}_{name}"[:120]
+                    )
+                )
+                return result
+
+            manual_core.load_manual_chapter = probed_manual_loader
+
+        if not bool(navigate(str(guide_id))):
+            raise RuntimeError(f"Guide navigation rejected: {guide_id}")
+
+        deadline = started + max(1.0, float(timeout))
+        while time.perf_counter() < deadline:
+            app.processEvents()
+            page = getattr(window, "page_widgets", {}).get("Quetes")
+            view = getattr(page, "guides_view", None) if page is not None else None
+            if str(getattr(view, "current_guide_id", "") or "") == str(guide_id):
+                stages.append(memory_snapshot("guide_detail_ready"))
+                return round((time.perf_counter() - started) * 1000.0, 2)
+            time.sleep(0.005)
+
+        raise RuntimeError(f"Timeout while opening rich Guide detail {guide_id} ({timeout:.1f}s).")
+    finally:
+        if manual_core is not None and callable(original_manual_loader):
+            manual_core.load_manual_chapter = original_manual_loader
 
 
 def measure() -> dict[str, Any]:
