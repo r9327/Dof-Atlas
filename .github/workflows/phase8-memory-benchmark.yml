@@ -147,9 +147,9 @@ jobs:
                   )
 
           peak_tree = float(metrics.get("peak_tree_rss_mb") or 0.0)
-          if peak_tree > 400.0:
+          if peak_tree > 250.0:
               raise SystemExit(
-                  f"process-tree peak budget exceeded: {peak_tree:.2f} MB > 400.00 MB"
+                  f"process-tree peak budget exceeded: {peak_tree:.2f} MB > 250.00 MB"
               )
 
           retained_budgets_mb = {
@@ -184,7 +184,7 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak app RSS: $($payload.metrics.peak_process_rss_mb) MB"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB (budget: 400 MB)"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB (budget: 250 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Success retained tree delta after Home: $($payload.metrics.achievements_retained_tree_delta_mb) MB (budget: 15 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide retained tree delta after Home: $($payload.metrics.guide_retained_tree_delta_mb) MB (budget: 20 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment active tree delta: $($payload.metrics.equipment_tree_delta_active_mb) MB"
