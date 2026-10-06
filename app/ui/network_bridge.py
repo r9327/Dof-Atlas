@@ -75,6 +75,26 @@ class NetworkUiBridge(QObject):
         self._context_signature = signature
         return True
 
+    def configure_compact_context(self) -> bool:
+        """Configure network validation without retaining Encyclopedia catalogues."""
+
+        if self._stopped:
+            return False
+        from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
+        from app.quest_catalog_details import load_network_catalog
+
+        quest_catalog = load_network_catalog()
+        achievement_provider = AchievementProvider()
+        guide_provider = GuideProvider()
+        signature = (id(quest_catalog), id(achievement_provider), id(guide_provider))
+        self.coordinator.configure_context(
+            quest_catalog=quest_catalog,
+            achievement_provider=achievement_provider,
+            guide_provider=guide_provider,
+        )
+        self._context_signature = signature
+        return True
+
     def request_calibration(self) -> bool:
         if self._stopped:
             return False
