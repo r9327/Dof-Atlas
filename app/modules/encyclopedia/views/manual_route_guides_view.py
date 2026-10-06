@@ -72,9 +72,6 @@ class ManualRouteGuidesView(_BaseGuidesView):
         if self.guide_ultime_view is not None:
             return self.guide_ultime_view  # type: ignore[return-value]
 
-        from app.modules.encyclopedia.services.guide_auto_validation_contract import (
-            build_route_auto_validation_contract,
-        )
         from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
             GuideUltimeManualRuntimeService,
         )
@@ -95,10 +92,10 @@ class ManualRouteGuidesView(_BaseGuidesView):
             if not service.available:
                 service.load()
             service.achievement_provider = self.achievement_provider
-            service.auto_validation_contract = build_route_auto_validation_contract(
-                service.cards,
-                achievement_provider=self.achievement_provider,
-            )
+            # The player renders one sheet at a time. A full 267-card validation
+            # contract duplicates route data and creates a large first-open peak.
+            # Per-card Success resolution remains lazy through the compact index.
+            service.auto_validation_contract = None
             self.guide_ultime_service = service
 
         if not service.available:
