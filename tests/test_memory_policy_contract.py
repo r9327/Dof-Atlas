@@ -506,6 +506,30 @@ def test_guide_home_thumbnails_use_bounded_encyclopedia_cache() -> None:
     assert "QIcon(" not in source
 
 
+def test_guide_home_parses_full_compact_rows_only_in_disposable_worker() -> None:
+    provider = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
+    loader = provider[
+        provider.index("def _load(self)"):
+        provider.index("def _load_home_from_compact_subprocess")
+    ]
+    assert "_load_home_from_compact_subprocess()" in loader
+    assert "_load_from_compact_cache()" not in loader
+
+    home_loader = provider[
+        provider.index("def _load_home_from_compact_subprocess"):
+        provider.index("def _load_from_compact_cache")
+    ]
+    assert "_DUMP_HOME_FLAG" in home_loader
+    assert "progress_quest_ids" in home_loader
+
+    home_dump = provider[
+        provider.index("def _dump_compact_home_rows"):
+        provider.index("def _dump_compact_default_guides")
+    ]
+    assert 'value.get("steps")' in home_dump
+    assert 'home["progress_quest_ids"]' in home_dump
+
+
 def test_guide_home_summary_stays_metadata_only() -> None:
     provider = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
     summary = provider[
@@ -575,6 +599,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
         test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
         test_guide_home_thumbnails_use_bounded_encyclopedia_cache()
+        test_guide_home_parses_full_compact_rows_only_in_disposable_worker()
         test_guide_home_summary_stays_metadata_only()
         test_guide_compact_worker_never_loads_dofus_item_corpus()
         test_dofus_item_worker_streams_monolithic_doduda_sources()

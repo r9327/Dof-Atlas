@@ -23,6 +23,7 @@ from app.quest_catalog import normalize_text
 
 
 _DUMP_COMPACT_FLAG = "--dump-compact"
+_DUMP_HOME_FLAG = "--dump-home"
 _BUILD_COMPACT_CACHE_FLAG = "--build-compact-cache"
 _ENSURE_COMPACT_CACHE_FLAG = "--ensure-compact-cache"
 GUIDE_COMPACT_CACHE = ROOT_DIR / ".cache" / "dofus_atlas" / "guide_catalogue_v1.jsonl"
@@ -318,9 +319,60 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             GUIDE_COMPACT_CACHE,
             guides_dir=self.guides_dir,
         ):
-            self._load_from_compact_cache()
+            self._load_home_from_compact_subprocess()
             return
         self._load_from_compact_subprocess()
+
+    def _load_home_from_compact_subprocess(self) -> None:
+        """Read large compact rows outside Atlas and import only tiny home rows."""
+
+        entries = self._guide_entries()
+        entry_by_file = {
+            path.name: (path, order, dict(catalog_entry))
+            for order, (path, catalog_entry) in enumerate(entries)
+        }
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+                _DUMP_HOME_FLAG,
+            ],
+            cwd=ROOT_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=90,
+            check=True,
+        )
+        summaries: list[Guide] = []
+        self._detail_entries = {}
+        self._progress_quest_ids_by_guide = {}
+        for raw_line in completed.stdout.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if not isinstance(row, dict):
+                continue
+            guide = self._summary_from_compact_row(row)
+            source_file = str(row.get("source_file") or "")
+            entry = entry_by_file.get(source_file)
+            if entry is None:
+                continue
+            summaries.append(guide)
+            self._detail_entries[guide.id] = entry
+            raw_ids = row.get("progress_quest_ids")
+            if isinstance(raw_ids, list):
+                self._progress_quest_ids_by_guide[guide.id] = tuple(
+                    int(value) for value in raw_ids if safe_int(value) is not None
+                )
+            else:
+                self._progress_quest_ids_by_guide[guide.id] = ()
+        if not summaries:
+            raise RuntimeError("Extraction Guide home compacte vide")
+        self._install_summaries(summaries, {})
 
     def _load_from_compact_cache(self) -> None:
         entries = self._guide_entries()
@@ -720,6 +772,51 @@ def _build_compact_guide_cache(path: Path) -> int:
     return 0
 
 
+def _dump_compact_home_rows() -> int:
+    """Emit metadata-only rows while full compact JSON stays in a child process."""
+
+    if not _guide_compact_cache_valid(GUIDE_COMPACT_CACHE, guides_dir=GUIDES_DIR):
+        return 1
+    metadata_keys = (
+        "id", "title", "category", "category_label", "description",
+        "recommended_level_min", "recommended_level_max", "reward_item_id",
+        "illustration_item_id", "image_path", "order", "completeness_status",
+        "verified_steps", "total_steps", "validation_warnings",
+        "generation_source", "search_text", "source_file",
+    )
+    with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+        for raw_line in stream:
+            line = raw_line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if not isinstance(row, dict) or row.get("kind") != "guide":
+                continue
+            value = row.get("value")
+            if not isinstance(value, dict):
+                continue
+            home = {key: value.get(key) for key in metadata_keys}
+            seen: set[int] = set()
+            quest_ids: list[int] = []
+            raw_steps = value.get("steps")
+            if isinstance(raw_steps, list):
+                for raw_step in raw_steps:
+                    if not isinstance(raw_step, dict):
+                        continue
+                    if str(raw_step.get("step_type") or "") != "quest":
+                        continue
+                    if bool(raw_step.get("optional", False)):
+                        continue
+                    quest_id = safe_int(raw_step.get("entity_id"))
+                    if quest_id is None or int(quest_id) in seen:
+                        continue
+                    seen.add(int(quest_id))
+                    quest_ids.append(int(quest_id))
+            home["progress_quest_ids"] = quest_ids
+            print(json.dumps(home, ensure_ascii=False, separators=(",", ":")))
+    return 0
+
+
 def _dump_compact_default_guides() -> int:
     provider = MemoryBoundGuideProvider(
         guides_dir=GUIDES_DIR,
@@ -764,6 +861,10 @@ if __name__ == "__main__" and _BUILD_COMPACT_CACHE_FLAG in sys.argv:
     except (ValueError, IndexError):
         raise SystemExit(2)
     raise SystemExit(_build_compact_guide_cache(guide_cache_path))
+
+if __name__ == "__main__" and _DUMP_HOME_FLAG in sys.argv:
+    raise SystemExit(_dump_compact_home_rows())
+
 
 if __name__ == "__main__" and _DUMP_COMPACT_FLAG in sys.argv:
     raise SystemExit(_dump_compact_default_guides())
