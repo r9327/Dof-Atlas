@@ -129,27 +129,33 @@ jobs:
               if row.get("process_rss_mb") is None or row.get("tree_rss_mb") is None:
                   raise SystemExit(f"memory stage {label} has incomplete RSS evidence")
 
-          # Phase 8 certified memory budgets. These are intentionally above the
-          # measured candidate to absorb normal hosted-runner noise while still
-          # preventing a return to the former 125-130 MB retained plateau.
+          # Phase 8 user budgets: long-lived Home memory must stay strictly
+          # below 100 MB after every heavy module, and total process-tree peak
+          # must never exceed 250 MB.
           stage_budgets_mb = {
               "after_preload": 95.0,
-              "after_quests_home": 105.0,
-              "after_achievements_home": 115.0,
-              "after_guide_home": 120.0,
-              "after_equipment_home_stabilized": 120.0,
+              "after_quests_home": 100.0,
+              "after_achievements_home": 100.0,
+              "after_guide_home": 100.0,
+              "after_equipment_home_stabilized": 100.0,
           }
           for label, budget in stage_budgets_mb.items():
               measured = float(by_label[label]["tree_rss_mb"])
-              if measured > budget:
+              if label == "after_preload":
+                  exceeded = measured > budget
+              else:
+                  exceeded = measured >= budget
+              if exceeded:
+                  operator = ">=" if label != "after_preload" else ">"
                   raise SystemExit(
-                      f"memory budget exceeded for {label}: {measured:.2f} MB > {budget:.2f} MB"
+                      f"memory budget exceeded for {label}: "
+                      f"{measured:.2f} MB {operator} {budget:.2f} MB"
                   )
 
           peak_tree = float(metrics.get("peak_tree_rss_mb") or 0.0)
-          if peak_tree > 400.0:
+          if peak_tree > 250.0:
               raise SystemExit(
-                  f"process-tree peak budget exceeded: {peak_tree:.2f} MB > 400.00 MB"
+                  f"process-tree peak budget exceeded: {peak_tree:.2f} MB > 250.00 MB"
               )
 
           retained_budgets_mb = {
@@ -184,7 +190,7 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak app RSS: $($payload.metrics.peak_process_rss_mb) MB"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB (budget: 400 MB)"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB (budget: 250 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Success retained tree delta after Home: $($payload.metrics.achievements_retained_tree_delta_mb) MB (budget: 15 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide retained tree delta after Home: $($payload.metrics.guide_retained_tree_delta_mb) MB (budget: 20 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment active tree delta: $($payload.metrics.equipment_tree_delta_active_mb) MB"
