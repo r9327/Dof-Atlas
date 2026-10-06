@@ -67,6 +67,7 @@ class ShellReliabilityTests(unittest.TestCase):
         self.assertEqual(payload["items"], [])
         self.assertTrue(payload["_prepared"])
         self.assertTrue(payload["_lazy_items"])
+        self.assertEqual(payload.get("_skipped_reason"), "catalogue Craft local vide")
 
     def test_default_preload_request_schedules_quest_index_once(self) -> None:
         class Timer:
