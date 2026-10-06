@@ -62,7 +62,16 @@ class CharacterSessionsMixin:
         return getattr(self, "client_index_ini", CLIENT_INDEX_INI)
 
     def _scan_unity_sessions(self) -> list[dict[str, Any]]:
-        scanner = getattr(self, "scan_unity_sessions_callback", scan_unity_sessions)
+        scanner = getattr(self, "scan_unity_sessions_callback", None)
+        if callable(scanner):
+            return scanner()
+
+        # Keep compatibility with callers/tests that patch the historical
+        # organizer_page.scan_unity_sessions symbol after the mixin split.
+        import sys
+
+        owner_module = sys.modules.get("app.pages.organizer_page")
+        scanner = getattr(owner_module, "scan_unity_sessions", scan_unity_sessions)
         return scanner()
 
     def load_profiles(self) -> dict[str, Any]:
@@ -335,7 +344,9 @@ class CharacterSessionsMixin:
             return
         previous_signature = self.session_identity_signature()
         self.profiles = self.load_profiles()
-        self.sessions = self.build_session_slots(self._scan_unity_sessions())
+        self.sessions = self.build_session_slots(
+            CharacterSessionsMixin._scan_unity_sessions(self)
+        )
         changed = self.session_identity_signature() != previous_signature
         if changed:
             self.export_client_index()
@@ -361,7 +372,9 @@ class CharacterSessionsMixin:
         if os.name != "nt" or not self.sessions_have_generic_names():
             return
         previous_signature = self.session_identity_signature()
-        self.sessions = self.build_session_slots(self._scan_unity_sessions())
+        self.sessions = self.build_session_slots(
+            CharacterSessionsMixin._scan_unity_sessions(self)
+        )
         changed = self.session_identity_signature() != previous_signature
         if changed:
             self.export_client_index()
