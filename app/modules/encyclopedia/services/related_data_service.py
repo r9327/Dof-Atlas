@@ -9,8 +9,6 @@ from threading import RLock
 from typing import Any
 
 from app.constants import DATA_DIR, ROOT_DIR
-from app.modules.encyclopedia.providers import QuestProvider
-from app.modules.encyclopedia.services.quest_graph_service import QuestGraphService
 from app.quest_catalog import QuestCatalog
 
 
@@ -31,7 +29,7 @@ _EMPTY_GUIDE_PROVIDER = _EmptyGuideProvider()
 class RelatedEncyclopediaData:
     achievement_provider: Any | None
     guide_provider: Any
-    quest_graph: QuestGraphService
+    quest_graph: Any | None
     warmed_source_count: int = 0
     warmed_achievement_count: int = 0
     warmed_guide_file_count: int = 0
@@ -40,7 +38,7 @@ class RelatedEncyclopediaData:
 
 
 _CACHE_LOCK = RLock()
-_CACHED_CATALOG: QuestCatalog | None = None
+_CACHED_CATALOG: int | None = None
 _CACHED_DATA: RelatedEncyclopediaData | None = None
 _BUILD_COUNT = 0
 
@@ -165,20 +163,21 @@ def _warm_guide_items_index() -> int:
 
 
 def build_related_encyclopedia_data(catalog: QuestCatalog) -> RelatedEncyclopediaData:
-    """Warm reusable related data while keeping the heavy providers click-lazy.
+    """Warm only durable compact artefacts; keep all rich runtime graphs cold.
 
-    Phase 8 intentionally does not keep the fully materialized Success and Guide
-    providers alive in the background. The worker prepares durable source indexes
-    and filesystem cache plus the compact quest dependency graph. Temporary raw
-    JSON allocations live in a disposable helper process, not Atlas itself.
+    The Quest catalogue is already the startup payload. Building and retaining a
+    QuestGraphService here duplicated a large reconstructible graph for the whole
+    Atlas session, even while Home was visible. Phase 8 preload therefore keeps
+    only tiny counters/adapters resident; Quests/Guide/Success construct the
+    graph they need when the corresponding UI is actually opened.
     """
 
     global _BUILD_COUNT, _CACHED_CATALOG, _CACHED_DATA
+    catalog_id = id(catalog)
     with _CACHE_LOCK:
-        if _CACHED_CATALOG is catalog and _CACHED_DATA is not None:
+        if _CACHED_CATALOG == catalog_id and _CACHED_DATA is not None:
             return _CACHED_DATA
 
-        quest_provider = QuestProvider(catalog=catalog)
         warmed_source_count = _warm_achievement_source_indexes()
         warmed_achievement_count = _warm_achievement_catalogue()
         warmed_guide_file_count = _warm_guide_files()
@@ -187,14 +186,16 @@ def build_related_encyclopedia_data(catalog: QuestCatalog) -> RelatedEncyclopedi
         data = RelatedEncyclopediaData(
             achievement_provider=None,
             guide_provider=_EMPTY_GUIDE_PROVIDER,
-            quest_graph=QuestGraphService(quest_provider),
+            quest_graph=None,
             warmed_source_count=warmed_source_count,
             warmed_achievement_count=warmed_achievement_count,
             warmed_guide_file_count=warmed_guide_file_count,
             warmed_guide_count=warmed_guide_count,
             warmed_guide_item_count=warmed_guide_item_count,
         )
-        _CACHED_CATALOG = catalog
+        # Cache only the identity integer + tiny result. Never pin the catalogue
+        # or a reconstructed dependency graph through the preload service.
+        _CACHED_CATALOG = catalog_id
         _CACHED_DATA = data
         _BUILD_COUNT += 1
         return data
