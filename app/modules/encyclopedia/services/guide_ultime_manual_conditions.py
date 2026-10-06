@@ -183,7 +183,15 @@ class GuideUltimeManualConditionsMixin:
         card_names = {normalize_text(value) for value in card.get("manual_quest_names", []) or [] if normalize_text(value)}
         if start_key and end_key and start_key in card_names and end_key in card_names:
             return gate
-        text = normalize_text(" ".join(str(row.get("text") or "") for row in card.get("manual_lines", []) or [] if isinstance(row, dict)))
+        text = str(card.get("manual_search_text") or "")
+        if not text:
+            text = normalize_text(
+                " ".join(
+                    str(row.get("text") or "")
+                    for row in card.get("manual_lines", []) or []
+                    if isinstance(row, dict)
+                )
+            )
         if normalize_text(gate.get("file")) in text:
             return gate
         return None
@@ -467,10 +475,19 @@ class GuideUltimeManualConditionsMixin:
             qid for qid in (self._as_int(value) for value in card.get("manual_quest_ids", []) or [])
             if qid is not None
         }
-        text = normalize_text(" ".join([
-            str(card.get("manual_title") or ""),
-            *(str(row.get("text") or "") for row in card.get("manual_lines", []) or [] if isinstance(row, dict)),
-        ]))
+        search_text = str(card.get("manual_search_text") or "")
+        text = normalize_text(
+            " ".join(
+                value
+                for value in (str(card.get("manual_title") or ""), search_text)
+                if value
+            )
+        )
+        if not search_text:
+            text = normalize_text(" ".join([
+                str(card.get("manual_title") or ""),
+                *(str(row.get("text") or "") for row in card.get("manual_lines", []) or [] if isinstance(row, dict)),
+            ]))
         for gate in self._manual_order_routes():
             qid = self._quest_id_for_name(gate.get("required_quest"))
             if qid is not None and qid in card_ids:
@@ -510,7 +527,36 @@ class GuideUltimeManualConditionsMixin:
         return self.bonta_order_names() if gate and self._as_int(gate.get("rank")) == 20 else ()
 
     def manual_lines_for_card(self, character_key: str, card: dict[str, Any]) -> list[dict[str, Any]]:
-        base = copy.deepcopy([row for row in card.get("manual_lines", []) or [] if isinstance(row, dict)])
+        card_key = _manual_card_static_key(card)
+        cached = getattr(self, "_manual_base_lines_cache", None)
+        if isinstance(cached, tuple) and len(cached) == 2 and cached[0] == card_key:
+            base = copy.deepcopy(cached[1])
+        else:
+            stored = [
+                row
+                for row in card.get("manual_lines", []) or []
+                if isinstance(row, dict)
+            ]
+            if stored:
+                base = copy.deepcopy(stored)
+            else:
+                stage = card.get("manual_stage_data")
+                if bool(card.get("manual_has_lines")) and isinstance(stage, dict):
+                    base = self._stage_lines(
+                        stage,
+                        [
+                            str(value)
+                            for value in card.get("manual_quest_names", []) or []
+                            if str(value).strip()
+                        ],
+                        chapter_preparation=card.get("manual_chapter_preparation"),
+                    )
+                else:
+                    base = []
+            # Keep one visible sheet only. Returning a copy prevents character-
+            # specific class/Order/Ocre policy from mutating the cached base.
+            self._manual_base_lines_cache = (card_key, copy.deepcopy(base))
+
         class_gate = self.manual_class_gate_for_card(card)
         if class_gate:
             class_lines = self._manual_class_branch_lines(character_key, class_gate)
