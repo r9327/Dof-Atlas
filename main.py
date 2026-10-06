@@ -1679,6 +1679,9 @@ class AtlasWindow(QMainWindow):
             release_context = getattr(self.home_page, "release_encyclopedia_context", None)
             if callable(release_context):
                 release_context(preserve_display=True)
+            # Encyclopedia is reconstructible from compact stores. Destroy the
+            # whole page on Home instead of retaining its Qt/runtime shell.
+            self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
             self.release_reconstructible_page("Craft", self.create_craft_page)
             self.home_page.refresh_progress()
         elif name == "Quetes":
@@ -2033,7 +2036,6 @@ class AtlasWindow(QMainWindow):
         completed_tasks: list[str] = []
         fatal_error = ""
         errors: list[str] = []
-        from app.quest_catalog import QuestCatalog
 
         while True:
             try:
