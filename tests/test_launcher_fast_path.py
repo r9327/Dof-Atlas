@@ -43,6 +43,37 @@ class LauncherFastPathTests(unittest.TestCase):
         self.assertIn('ok=sys.version_info[0] == 3 and sys.version_info[1] == 13', self.launcher)
         self.assertIn('start "" "%PYTHONW_EXE%" "%APP_SCRIPT%"', self.launcher)
 
+    def test_launcher_hides_only_root_technical_entries_after_app_launch(self) -> None:
+        self.assertIn("call :tidy_root_view", self.launcher)
+        self.assertIn(":tidy_root_view", self.launcher)
+        self.assertGreater(
+            self.launcher.index("call :tidy_root_view"),
+            self.launcher.index('start "" "%PYTHONW_EXE%" "%APP_SCRIPT%"'),
+        )
+        for entry in (
+            "AGENTS.md",
+            "AI_CONTEXT.md",
+            "DEVELOPMENT_GUARDRAILS.md",
+            "GRAPHIFY.md",
+            "PHASE_CERTIFICATION.md",
+            "ROAD_IA.md",
+            "launch.py",
+            "main.py",
+            "requirements-pyside.txt",
+            "sitecustomize.py",
+        ):
+            self.assertIn(f'"{entry}"', self.launcher)
+        for directory in (".ai", ".githooks", ".github"):
+            self.assertIn(f'"{directory}"', self.launcher)
+        self.assertIn('attrib +h "%ROOT%%%~F"', self.launcher)
+        self.assertIn('attrib +h "%ROOT%%%~D"', self.launcher)
+        self.assertIn('attrib -h "%ROOT%DOFUS.bat"', self.launcher)
+
+    def test_root_cleanup_preserves_canonical_root_paths(self) -> None:
+        self.assertIn('set "APP_SCRIPT=%ROOT%launch.py"', self.launcher)
+        self.assertNotIn("move ", self.launcher.casefold())
+        self.assertNotIn("ren ", self.launcher.casefold())
+
 
 if __name__ == "__main__":
     unittest.main()
