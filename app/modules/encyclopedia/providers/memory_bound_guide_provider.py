@@ -179,6 +179,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._detail_entries: dict[str, tuple[Path, int, dict[str, Any]]] = {}
+        self._progress_quest_ids_by_guide: dict[str, tuple[int, ...]] = {}
         self._detail_cache_id = ""
         self._detail_cache: Guide | None = None
 
@@ -196,11 +197,13 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._by_category = defaultdict(list)
         self._by_entity = defaultdict(list)
         self._detail_entries = {}
+        self._progress_quest_ids_by_guide = {}
         self.validation_errors = []
 
     def reload(self) -> list[Guide]:
         self.release_detail_cache()
         self._detail_entries = {}
+        self._progress_quest_ids_by_guide = {}
         return super().reload()
 
     def get_by_id(self, guide_id: str) -> Guide | None:
@@ -223,6 +226,31 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
     def get_summary_by_id(self, guide_id: str) -> Guide | None:
         self._ensure_loaded()
         return self._by_id.get(str(guide_id))
+
+    def progress_quest_ids_for(self, guide_id: str) -> tuple[int, ...]:
+        self._ensure_loaded()
+        return self._progress_quest_ids_by_guide.get(str(guide_id), ())
+
+    @staticmethod
+    def _progress_quest_ids_from_row(row: dict[str, Any]) -> tuple[int, ...]:
+        result: list[int] = []
+        seen: set[int] = set()
+        raw_steps = row.get("steps")
+        if not isinstance(raw_steps, list):
+            return ()
+        for raw_step in raw_steps:
+            if not isinstance(raw_step, dict):
+                continue
+            if str(raw_step.get("step_type") or "") != "quest":
+                continue
+            if bool(raw_step.get("optional", False)):
+                continue
+            quest_id = safe_int(raw_step.get("entity_id"))
+            if quest_id is None or int(quest_id) in seen:
+                continue
+            seen.add(int(quest_id))
+            result.append(int(quest_id))
+        return tuple(result)
 
     def _load(self) -> None:
         default_guides_dir = Path(GUIDES_DIR).resolve(strict=False)
@@ -247,6 +275,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         summaries: list[Guide] = []
         by_entity_ids: dict[tuple[str, int], set[str]] = defaultdict(set)
         self._detail_entries = {}
+        self._progress_quest_ids_by_guide = {}
         with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
             for raw_line in stream:
                 line = raw_line.strip()
@@ -265,6 +294,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                     continue
                 summaries.append(guide)
                 self._detail_entries[guide.id] = entry
+                self._progress_quest_ids_by_guide[guide.id] = self._progress_quest_ids_from_row(value)
                 raw_entity_keys = value.get("entity_keys")
                 if isinstance(raw_entity_keys, list):
                     for raw_key in raw_entity_keys:
@@ -306,6 +336,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         summaries: list[Guide] = []
         by_entity_ids: dict[tuple[str, int], set[str]] = defaultdict(set)
         self._detail_entries = {}
+        self._progress_quest_ids_by_guide = {}
         for raw_line in completed.stdout.splitlines():
             line = raw_line.strip()
             if not line:
@@ -320,6 +351,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 continue
             summaries.append(guide)
             self._detail_entries[guide.id] = entry
+            self._progress_quest_ids_by_guide[guide.id] = self._progress_quest_ids_from_row(row)
             raw_entity_keys = row.get("entity_keys")
             if isinstance(raw_entity_keys, list):
                 for raw_key in raw_entity_keys:
@@ -339,6 +371,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         by_entity_ids: dict[tuple[str, int], set[str]] = defaultdict(set)
         seen_ids: set[str] = set()
         self._detail_entries = {}
+        self._progress_quest_ids_by_guide = {}
 
         for order, (path, catalog_entry) in enumerate(entries):
             payload = self._read_json(path, None)
@@ -362,6 +395,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             seen_ids.add(guide_id)
             summaries.append(summary)
             self._detail_entries[guide_id] = (path, order, dict(catalog_entry))
+            self._progress_quest_ids_by_guide[guide_id] = tuple(summary.quest_ids)
             for entity_key in entity_keys:
                 by_entity_ids[entity_key].add(guide_id)
 
@@ -409,51 +443,8 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         )
 
     def _summary_from_compact_row(self, row: dict[str, Any]) -> Guide:
-        reward_item_id = safe_int(row.get("reward_item_id"))
-        illustration_item_id = safe_int(row.get("illustration_item_id"))
-        reward_item = self.dofus_item_provider.get_by_id(reward_item_id)
-        illustration_item = self.dofus_item_provider.get_by_id(illustration_item_id)
-
-        steps: list[GuideStep] = []
-        raw_steps = row.get("steps")
-        if isinstance(raw_steps, list):
-            for raw_step in raw_steps:
-                if not isinstance(raw_step, dict):
-                    continue
-                steps.append(
-                    GuideStep(
-                        id=str(raw_step.get("id") or ""),
-                        step_type=str(raw_step.get("step_type") or "info"),
-                        order=int(raw_step.get("order") or len(steps) + 1),
-                        title=str(raw_step.get("title") or ""),
-                        entity_id=safe_int(raw_step.get("entity_id")),
-                        optional=bool(raw_step.get("optional", False)),
-                    )
-                )
-        refs: list[EntityRef] = []
-        raw_refs = row.get("context_entities")
-        if isinstance(raw_refs, list):
-            for raw_ref in raw_refs:
-                if not isinstance(raw_ref, dict):
-                    continue
-                entity_id = raw_ref.get("entity_id")
-                if entity_id is None:
-                    continue
-                refs.append(
-                    EntityRef(
-                        str(raw_ref.get("entity_type") or ""),
-                        entity_id,
-                        str(raw_ref.get("label") or ""),
-                    )
-                )
-        sections = (
-            GuideSection(
-                id=f"{row.get('id')}__summary",
-                title="",
-                order=0,
-                steps=tuple(steps),
-            ),
-        ) if steps else ()
+        # Guide home is metadata-only. Exact steps/entities/items are loaded by
+        # get_by_id() after the player explicitly opens one guide.
         return Guide(
             id=str(row.get("id") or ""),
             title=str(row.get("title") or ""),
@@ -462,10 +453,8 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             description=str(row.get("description") or ""),
             recommended_level_min=safe_int(row.get("recommended_level_min")),
             recommended_level_max=safe_int(row.get("recommended_level_max")),
-            reward_item_id=reward_item_id,
-            illustration_item_id=illustration_item_id,
-            reward_item=reward_item,
-            illustration_item=illustration_item,
+            reward_item_id=safe_int(row.get("reward_item_id")),
+            illustration_item_id=safe_int(row.get("illustration_item_id")),
             image_path=str(row.get("image_path") or ""),
             order=int(row.get("order") or 0),
             completeness_status=str(row.get("completeness_status") or "complete"),
@@ -473,8 +462,6 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             total_steps=safe_int(row.get("total_steps")),
             validation_warnings=tuple(str(value) for value in row.get("validation_warnings", [])),
             generation_source=str(row.get("generation_source") or ""),
-            sections=sections,
-            context_entities=tuple(refs),
             search_text=str(row.get("search_text") or ""),
             raw={"source_file": str(row.get("source_file") or "")},
         )

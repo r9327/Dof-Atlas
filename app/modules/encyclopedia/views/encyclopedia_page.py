@@ -619,6 +619,7 @@ class EncyclopediaPage(QWidget):
             catalog.by_id,
         )
         result: dict[str, tuple[int, int, str]] = {}
+        compact_quest_ids = getattr(guide_provider, "progress_quest_ids_for", None)
         for guide in guide_provider.load_all():
             if guide.id == GUIDE_SUCCESS_CATALOG_ID:
                 # Building the manual route costs more than the Guide catalogue.
@@ -626,7 +627,14 @@ class EncyclopediaPage(QWidget):
                 # never while the player is only waiting for the Guide home.
                 result[guide.id] = (0, 0, "")
                 continue
-            progress = calculator.guide_progress(guide, character_key)
+            if callable(compact_quest_ids):
+                progress = calculator.quest_ids_progress(
+                    guide.id,
+                    compact_quest_ids(guide.id),
+                    character_key,
+                )
+            else:
+                progress = calculator.guide_progress(guide, character_key)
             result[guide.id] = (
                 progress.completed,
                 progress.total,

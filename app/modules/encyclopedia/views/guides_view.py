@@ -2114,7 +2114,18 @@ class GuidesView(QWidget):
             self.show_guide_overview(self.current_guide_id, preserve_scroll=preserve_scroll)
 
     def _guide_progress_tuple_uncached(self, guide: Guide) -> tuple[int, int, str]:
-        progress = self.progress_calculator.guide_progress(guide, self.current_character_key)
+        compact_quest_ids = getattr(self.provider, "progress_quest_ids_for", None)
+        if callable(compact_quest_ids):
+            progress = self.progress_calculator.quest_ids_progress(
+                guide.id,
+                compact_quest_ids(guide.id),
+                self.current_character_key,
+            )
+        else:
+            progress = self.progress_calculator.guide_progress(
+                guide,
+                self.current_character_key,
+            )
         return progress.completed, progress.total, self._state(progress.completed, progress.total)
 
     def guide_state(self, guide: Guide) -> str:

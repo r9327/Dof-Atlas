@@ -382,14 +382,14 @@ def test_home_release_collects_deleted_widget_cycles_without_working_set_trim() 
     assert "def collect_released_page_cycles" in source
     cleanup = source[
         source.index("def collect_released_page_cycles"):
-        source.index("def release_reconstructible_page"),
+        source.index("def release_reconstructible_page")
     ]
     assert "QApplication.sendPostedEvents(None, QEvent.DeferredDelete)" in cleanup
     assert "gc.collect()" in cleanup
     assert "SetProcessWorkingSetSize" not in cleanup
     home_switch = source[
         source.index('if name == "Home":'):
-        source.index('elif name == "Quetes":'),
+        source.index('elif name == "Quetes":')
     ]
     assert "self._schedule_owned_callback(0, self.collect_released_page_cycles)" in home_switch
 
@@ -465,6 +465,29 @@ def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     assert "retained_only=True" in source
 
 
+def test_guide_home_summary_stays_metadata_only() -> None:
+    provider = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
+    summary = provider[
+        provider.index("def _summary_from_compact_row"):
+        provider.index("def _summary_from_payload")
+    ]
+    assert "GuideStep(" not in summary
+    assert "GuideSection(" not in summary
+    assert "EntityRef(" not in summary
+    assert "dofus_item_provider.get_by_id" not in summary
+    assert "def progress_quest_ids_for" in provider
+
+    calculator = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_progress_calculator.py"
+    ).read_text(encoding="utf-8")
+    assert "def quest_ids_progress" in calculator
+
+
 def test_guide_compact_worker_never_loads_dofus_item_corpus() -> None:
     source = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
     assert "class _CompactGuideNoopItemProvider" in source
@@ -509,5 +532,6 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
+        test_guide_home_summary_stays_metadata_only()
         test_guide_compact_worker_never_loads_dofus_item_corpus()
         test_dofus_item_worker_streams_monolithic_doduda_sources()

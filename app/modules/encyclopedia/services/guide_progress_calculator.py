@@ -72,6 +72,39 @@ class GuideProgressCalculator:
         )
         return ProgressCount(completed, len(quest_steps))
 
+    def quest_ids_progress(
+        self,
+        guide_id: str,
+        quest_ids: Iterable[int],
+        character_key: str,
+    ) -> ProgressCount:
+        """Count unique quest progress without materializing GuideStep objects."""
+
+        ids: list[int] = []
+        seen: set[int] = set()
+        for raw_id in quest_ids:
+            quest_id = int(raw_id)
+            if quest_id in seen:
+                continue
+            seen.add(quest_id)
+            ids.append(quest_id)
+
+        completed_quest_ids = self.quest_progress_service.completed_quest_ids(character_key)
+        completed = 0
+        for quest_id in ids:
+            if quest_id in completed_quest_ids:
+                completed += 1
+                continue
+            quest = self.quest_by_id.get(quest_id)
+            if quest is None:
+                continue
+            if not self._objective_details_available(quest):
+                if not self.quest_progress_service.completed_objectives(character_key, quest_id):
+                    continue
+            if self.quest_progress(quest, character_key, quest_completed=False).is_complete:
+                completed += 1
+        return ProgressCount(completed, len(ids))
+
     def steps_progress(self, guide: Guide, steps: Iterable[GuideStep], character_key: str) -> ProgressCount:
         required = [step for step in steps if step.counts_for_completion]
         completed_quest_ids = self.quest_progress_service.completed_quest_ids(character_key)
