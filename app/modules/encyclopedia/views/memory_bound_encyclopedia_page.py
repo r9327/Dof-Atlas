@@ -8,12 +8,11 @@ from app.modules.encyclopedia.views.related_preload_state import RelatedPreloadG
 
 
 class EncyclopediaPage(BaseEncyclopediaPage):
-    """Keep providers warm while releasing inactive heavy Qt view trees.
+    """Keep heavy runtime warm only while Encyclopedia is active.
 
-    The catalogue/runtime providers stay resident so reopening a tab does not
-    rebuild data from disk. Only the heavyweight widget representation is
-    hibernated when another Encyclopedia tab becomes active or the whole page
-    leaves the screen.
+    Heavy Qt view trees are hibernated between tabs. When the whole Encyclopedia
+    leaves the screen, reconstructible Success/Guide catalogues are released too;
+    the existing background stages rebuild them only when the player returns.
 
     The runtime class deliberately keeps the historical public type name
     ``EncyclopediaPage``. ``MemoryBoundEncyclopediaPage`` remains an alias for
@@ -189,7 +188,17 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         """
 
         self._memory_has_been_shown = True
+        self._memory_release_runtime_when_idle = False
         super().showEvent(event)
+
+        # AtlasWindow sets pending_encyclopedia_tab before showing this page.
+        # Do not rebuild the previously active heavy tab just before the queued
+        # navigation switches to a different one.
+        owner = self.window()
+        pending_label = str(getattr(owner, "pending_encyclopedia_tab", "") or "")
+        if pending_label and pending_label in self.tab_labels():
+            return
+
         index = self.tabs.currentIndex()
         if index < 0:
             return
