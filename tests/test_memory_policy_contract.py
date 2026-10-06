@@ -220,11 +220,11 @@ def test_success_runtime_keeps_quest_catalogue_and_graph_cold() -> None:
 
     stage = page_source[
         page_source.index("def _start_achievement_stage"):
-        page_source.index("def _collect_achievement_runtime"),
+        page_source.index("def _collect_achievement_runtime")
     ]
     worker = stage[
         stage.index("def worker()"):
-        stage.index("self.achievementRuntimeFinished.emit"),
+        stage.index("self.achievementRuntimeFinished.emit")
     ]
     assert "quest_provider.get_catalog()" not in worker
     assert "QuestGraphService(" not in worker
@@ -232,7 +232,7 @@ def test_success_runtime_keeps_quest_catalogue_and_graph_cold() -> None:
 
     hydrate = success_source[
         success_source.index("def hydrate_runtime"):
-        success_source.index("def _panel"),
+        success_source.index("def _panel")
     ]
     assert "QuestGraphService(" not in hydrate
 
