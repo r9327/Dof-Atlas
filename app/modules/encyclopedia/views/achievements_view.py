@@ -268,12 +268,6 @@ class AchievementsView(QWidget):
             self.achievements = list(achievements)
         if quest_graph is not None:
             self.quest_graph = quest_graph
-        elif self.quest_graph is None:
-            self.quest_graph = QuestGraphService(
-                self.quest_provider,
-                self.guide_provider,
-                self.provider,
-            )
         if not progress_synchronized:
             self.sync_automatic_progress()
         self._runtime_ready = True
