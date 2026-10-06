@@ -35,6 +35,7 @@ class NetworkUiBridge(QObject):
 
         self.coordinator = NetworkApplicationCoordinator(self._window_handles)
         self._context_signature: tuple[int, int, int] | None = None
+        self._compact_context_ready = False
         self._last_status = self.coordinator.latest_status()
         self._stopped = False
         self._pending_progress_characters: set[str] = set()
@@ -80,6 +81,8 @@ class NetworkUiBridge(QObject):
 
         if self._stopped:
             return False
+        if self._compact_context_ready:
+            return True
         from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
         from app.quest_catalog_details import load_network_catalog
 
@@ -93,6 +96,7 @@ class NetworkUiBridge(QObject):
             guide_provider=guide_provider,
         )
         self._context_signature = signature
+        self._compact_context_ready = True
         return True
 
     def request_calibration(self) -> bool:
