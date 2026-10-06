@@ -40,6 +40,14 @@ def _walk_dicts(value: object) -> Iterable[dict[str, Any]]:
             yield from _walk_dicts(child)
 
 
+class _CompactGuideNoopItemProvider:
+    """Compact worker does not need Dofus item rows; the parent resolves IDs."""
+
+    @staticmethod
+    def get_by_id(_item_id: int | None):
+        return None
+
+
 def _entity_ref_payload(ref: EntityRef) -> dict[str, object]:
     return {
         "entity_type": ref.entity_type,
@@ -519,7 +527,10 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
 
 
 def _dump_compact_default_guides() -> int:
-    provider = MemoryBoundGuideProvider(guides_dir=GUIDES_DIR)
+    provider = MemoryBoundGuideProvider(
+        guides_dir=GUIDES_DIR,
+        dofus_item_provider=_CompactGuideNoopItemProvider(),
+    )
     provider._load_in_process()
     for guide in provider._guides:
         entity_keys = {
