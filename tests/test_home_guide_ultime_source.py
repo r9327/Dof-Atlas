@@ -28,6 +28,8 @@ class _FakeManualService:
 
 
 class _FakeGuideProvider:
+    _loaded = True
+
     def get_by_id(self, _guide_id: str):
         return None
 
@@ -122,6 +124,23 @@ class HomeGuideUltimeSourceTests(unittest.TestCase):
         quest_provider.assert_not_called()
         self.assertIsNone(page.guide_ultime_service)
         refresh_progress.assert_called_once_with()
+        page.deleteLater()
+
+
+    def test_home_never_reloads_a_cold_guide_provider(self) -> None:
+        page = HomePage()
+        page.catalog = object()
+        page.guide_ultime_service = _FakeManualService()
+        cold = Mock()
+        cold._loaded = False
+        page.guide_provider = cold
+
+        page.refresh_progress()
+
+        cold.get_by_id.assert_not_called()
+        cold.load_all.assert_not_called()
+        self.assertEqual(page.progress_bar.value(), 30)
+        self.assertEqual(page.chapter_value.text(), "Astrub")
         page.deleteLater()
 
     def test_rich_progress_does_not_write_a_secondary_home_cache(self) -> None:
