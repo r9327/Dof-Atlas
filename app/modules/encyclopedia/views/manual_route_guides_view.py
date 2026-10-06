@@ -88,6 +88,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
                 quest_provider=self.quest_provider,
                 autoload=False,
                 cache_manual_bundle=False,
+                compact_runtime=True,
             )
             if not service.available:
                 service.load()
