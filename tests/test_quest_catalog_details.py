@@ -236,7 +236,7 @@ class SelectedJsonValueTests(unittest.TestCase):
             "entries": {
                 "101": "Quêtes",
                 "102": "Donjons",
-                "103": "Texte avec \\"guillemets\\" et été",
+                "103": "Texte avec \"guillemets\" et été",
                 "104": {"nested": [1, True, None]},
             },
         }
@@ -255,7 +255,7 @@ class SelectedJsonValueTests(unittest.TestCase):
             selected,
             {
                 "101": "Quêtes",
-                "103": "Texte avec \\"guillemets\\" et été",
+                "103": "Texte avec \"guillemets\" et été",
                 "104": {"nested": [1, True, None]},
             },
         )
