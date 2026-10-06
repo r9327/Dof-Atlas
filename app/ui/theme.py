@@ -2482,6 +2482,27 @@ QLabel#GuideBreadcrumbCurrent {
     font-weight: 700;
 }
 
+#GuideManualProgressLock {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+    padding: 0 8px;
+}
+
+#GuideManualProgressLock:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+#GuideManualProgressLock[state="locked"] {
+    border-color: @GREEN_BORDER;
+    color: @TEXT_SOFT;
+}
+
 #GuideManualOrderChoice {
     background: @PANEL;
     border: 1px solid @GREEN_BORDER;
