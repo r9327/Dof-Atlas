@@ -258,7 +258,7 @@ def test_craft_preload_and_runtime_are_sqlite_bounded() -> None:
 
     builder = shell[
         shell.index("def build_craft_preload("):
-        shell.index("def build_quest_related_preload("),
+        shell.index("def build_quest_related_preload(")
     ]
     assert '"app.craft_preload"' in builder
     assert "list_craft_items" not in builder
