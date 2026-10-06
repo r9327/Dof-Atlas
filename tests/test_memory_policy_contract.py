@@ -116,6 +116,17 @@ def test_encyclopedia_quest_surface_defers_success_and_guide_widgets() -> None:
     assert "_resolve_progressive_quests_page_type" in source
 
 
+def test_quest_catalog_defers_rich_detail_view_until_selection() -> None:
+    base = (ROOT / "app" / "pages" / "_quests_page_impl.py").read_text(encoding="utf-8")
+    canonical = (ROOT / "app" / "pages" / "quests_page.py").read_text(encoding="utf-8")
+    runtime_imports = base.split("if TYPE_CHECKING:", 1)[0]
+    assert "widgets.quest_detail_view import QuestDetailView" not in runtime_imports
+    assert "guide_quest_view_model import" not in runtime_imports
+    assert 'kwargs.setdefault("defer_detail_view", True)' in canonical
+    assert "def _ensure_quest_detail_view" in base
+    assert "QuestDetailDeferred" in base
+
+
 def test_guide_catalog_defers_detail_and_manual_engines() -> None:
     guide_source = (
         ROOT / "app" / "modules" / "encyclopedia" / "views" / "guides_view.py"
@@ -412,6 +423,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_encyclopedia_public_facade_routes_to_memory_bound_page()
         test_encyclopedia_runtime_constructs_provider_through_memory_facade()
         test_encyclopedia_quest_surface_defers_success_and_guide_widgets()
+        test_quest_catalog_defers_rich_detail_view_until_selection()
         test_guide_catalog_defers_detail_and_manual_engines()
         test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime()
         test_achievement_provider_releases_reconstructible_source_maps()

@@ -90,6 +90,7 @@ class QuestsPage(_EagerQuestsPage):
     def __init__(self, *args, **kwargs) -> None:
         self._quest_search_text_cache: dict[int, str] = {}
         self._owned_items_file_signature: tuple[int, int] | None = None
+        kwargs.setdefault("defer_detail_view", True)
         super().__init__(*args, **kwargs)
 
         old_detail = self.detail
@@ -397,9 +398,10 @@ class QuestsPage(_EagerQuestsPage):
                 achievement_state,
             )
         )
-        self.quest_detail_view.set_character_key(self.current_character_key)
+        view = self._ensure_quest_detail_view()
+        view.set_character_key(self.current_character_key)
         active_series = self.hierarchy.series_by_id.get(self.active_series_id)
-        self.quest_detail_view.show_quest(
+        view.show_quest(
             int(quest.id),
             QuestViewContext(
                 host="quests",
