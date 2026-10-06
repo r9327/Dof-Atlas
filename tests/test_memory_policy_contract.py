@@ -530,6 +530,34 @@ def test_guide_home_parses_full_compact_rows_only_in_disposable_worker() -> None
     assert 'home["progress_quest_ids"]' in home_dump
 
 
+def test_guide_compact_home_rows_skip_rich_entity_decode() -> None:
+    source = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
+    assert "_GUIDE_COMPACT_SCHEMA = 2" in source
+
+    summary = source[
+        source.index("def _summary_payload"):
+        source.index("def _entity_index_payload")
+    ]
+    assert '"progress_quest_ids"' in summary
+    assert '"steps": [' not in summary
+    assert '"entity_keys"' not in summary
+
+    loader = source[
+        source.index("def _load_from_compact_cache"):
+        source.index("def _load_from_compact_subprocess")
+    ]
+    filter_pos = loader.index('\'"kind":"guide"\' not in line')
+    decode_pos = loader.index("row = json.loads(line)")
+    assert filter_pos < decode_pos
+
+    entity_lookup = source[
+        source.index("def get_guides_for_entity"):
+        source.index("def _progress_quest_ids_from_row")
+    ]
+    assert '\'"kind":"entity_index"\' not in line' in entity_lookup
+    assert 'row.get("kind") != "entity_index"' in entity_lookup
+
+
 def test_guide_home_summary_stays_metadata_only() -> None:
     provider = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
     summary = provider[
