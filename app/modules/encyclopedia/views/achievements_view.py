@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from PySide6.QtCore import QTimer, Qt
@@ -45,6 +46,11 @@ COMPLETED_ROLE = Qt.UserRole + 2
 _SEARCH_DEBOUNCE_MS = 90
 _RESULT_BATCH_SIZE = 16
 _INITIAL_RESULT_ROWS = 32
+
+
+@dataclass(frozen=True, slots=True)
+class _AchievementListRef:
+    id: int
 
 
 def _alignment_order_achievement_ranks() -> dict[int, int]:
@@ -151,7 +157,7 @@ class AchievementsView(QWidget):
         self.achievements = [] if defer_runtime else provider.load_retained()
         if not defer_runtime:
             self.sync_automatic_progress()
-        self.filtered: list[Achievement] = []
+        self.filtered: list[_AchievementListRef] = []
         self.current_achievement_id: int | None = None
         self.selected_category_id: int | None = None
         self._tree_items: dict[int, QTreeWidgetItem] = {}
@@ -712,7 +718,7 @@ class AchievementsView(QWidget):
     def __init__(self, *args, **kwargs) -> None:
         self._catalog_refresh_signature: tuple[object, ...] | None = None
         self._achievement_render_generation = 0
-        self._achievement_pending_rows: list[tuple[int, str, str]] = []
+        self._achievement_pending_rows: list[int] = []
         self._achievement_pending_selected_id: int | None = None
         self._achievement_rows_dirty = False
         self._achievement_completed_ids: frozenset[int] = frozenset()
@@ -765,6 +771,19 @@ class AchievementsView(QWidget):
     def _filtered_achievements(self):
         query = normalize_text(self.search.text())
         tokens = [token for token in query.split("_") if token]
+
+        catalogue_ids = getattr(self.provider, "catalogue_ids", None)
+        if not tokens and callable(catalogue_ids):
+            category_id = (
+                int(self.selected_category_id)
+                if self.selected_category_id is not None
+                else None
+            )
+            return [
+                _AchievementListRef(int(achievement_id))
+                for achievement_id in catalogue_ids(category_id)
+            ], tokens
+
         if tokens:
             candidates = self.provider.search(self.search.text())
         elif self.selected_category_id is not None:
@@ -772,7 +791,7 @@ class AchievementsView(QWidget):
         else:
             candidates = self.provider.load_retained()
         filtered = [
-            achievement
+            _AchievementListRef(int(achievement.id))
             for achievement in candidates
             if self.provider.is_retained(achievement.id)
             and (not tokens or all(token in achievement.search_text for token in tokens))
@@ -780,13 +799,13 @@ class AchievementsView(QWidget):
         return filtered, tokens
 
     @staticmethod
-    def _achievement_row_text(achievement) -> str:
+    def _achievement_row_text(name: str, level: int | None, points: int) -> str:
         meta: list[str] = []
-        if achievement.level is not None:
-            meta.append(f"Niveau {achievement.level}")
-        if achievement.points:
-            meta.append(f"{achievement.points} pt{'s' if achievement.points > 1 else ''}")
-        text = achievement.name
+        if level is not None:
+            meta.append(f"Niveau {level}")
+        if points:
+            meta.append(f"{points} pt{'s' if points > 1 else ''}")
+        text = str(name or "")
         if meta:
             text = f"{text}\n{'  ·  '.join(meta)}"
         return text
@@ -817,7 +836,7 @@ class AchievementsView(QWidget):
             int(value) for value in self.progress_service.state_for(self.character_key).completed_achievements
         )
         self._achievement_pending_rows = [
-            (int(achievement.id), self._achievement_row_text(achievement), achievement.name)
+            int(achievement.id)
             for achievement in filtered
         ]
         self._achievement_rows_dirty = bool(self._achievement_pending_rows)
@@ -874,13 +893,26 @@ class AchievementsView(QWidget):
 
             self.list_widget.blockSignals(True)
             try:
-                for achievement_id, text, tooltip in batch:
+                row_loader = getattr(self.provider, "catalogue_row_by_id", None)
+                for achievement_id in batch:
                     if generation != self._achievement_render_generation:
                         return
+                    payload = row_loader(achievement_id) if callable(row_loader) else None
+                    if payload is None:
+                        achievement = self.provider.get_by_id(int(achievement_id))
+                        if achievement is None:
+                            continue
+                        name = str(achievement.name or "")
+                        level = achievement.level
+                        points = int(achievement.points or 0)
+                    else:
+                        _row_id, name, level, points = payload
                     completed = achievement_id in self._achievement_completed_ids
-                    item = QListWidgetItem(text)
+                    item = QListWidgetItem(
+                        self._achievement_row_text(str(name), level, int(points))
+                    )
                     item.setData(Qt.UserRole, achievement_id)
-                    item.setToolTip(tooltip)
+                    item.setToolTip(str(name))
                     item.setForeground(done_color if completed else todo_color)
                     item.setData(COMPLETED_ROLE, completed)
                     self.list_widget.addItem(item)
