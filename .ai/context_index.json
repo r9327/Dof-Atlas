@@ -42,7 +42,7 @@
     },
     "DOFUS.bat": {
       "mode": "100644",
-      "sha": "6c91cb67128d610e3c99ceb4edad10a7df733960",
+      "sha": "ce4b054dcddf15ab79d15d5f3846a3e5847085c0",
       "type": "blob"
     },
     "GITHUB_PROTECTION.md": {
@@ -127,7 +127,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "7fcd0f22bdc888699335489e12976bdec87679d0",
+      "sha": "f5e9e4f1c61d474f351d6a85e2768d8296c3b1be",
       "type": "tree"
     },
     "tools": {
