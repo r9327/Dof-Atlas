@@ -44,6 +44,10 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         super().__init__(*args, quest_provider=quest_provider, **kwargs)
 
     def _load_manual_preview(self) -> None:
+        if self.compact_runtime:
+            self._load_compact_manual_preview()
+            return
+
         quest_count = 0
         raw_segments: list[dict[str, Any]] = []
         seen_quests: set[int] = set()
@@ -110,6 +114,171 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         self.manual_manifest_active = False
         self.manual_chapters = (self.guide_id,)
         self.manual_preview_error = ""
+
+    def _load_compact_manual_preview(self) -> None:
+        """Build Lanyel as a compact ordered map index and keep one map hot."""
+
+        quest_count = 0
+        raw_segment_count = 0
+        seen_quests: set[int] = set()
+        cards: list[dict[str, Any]] = []
+        pending: dict[str, Any] | None = None
+
+        for step in sorted(
+            getattr(self.catalog_guide, "required_steps", ()) or (),
+            key=lambda row: int(getattr(row, "order", 0) or 0),
+        ):
+            if str(getattr(step, "step_type", "")) != "quest":
+                continue
+            try:
+                quest_id = int(getattr(step, "entity_id", None))
+            except (TypeError, ValueError):
+                continue
+            if quest_id in seen_quests:
+                continue
+
+            quest = self.quest_provider.get_quest(quest_id)
+            if quest is None:
+                continue
+            seen_quests.add(quest_id)
+            quest_count += 1
+
+            quest_segments = self._quest_segments(step, quest)
+            for local_index, segment in enumerate(quest_segments):
+                raw_segment_count += 1
+                segment["_catalog_source_refs"] = [(quest_id, local_index)]
+                key = self._position_key(segment.get("position"))
+                pending_key = (
+                    self._position_key(pending.get("position"))
+                    if isinstance(pending, dict)
+                    else ""
+                )
+                if pending is not None and key and key == pending_key:
+                    self._merge_segment(pending, segment)
+                    continue
+                if pending is not None:
+                    cards.append(
+                        self._segment_to_compact_card(
+                            pending,
+                            len(cards),
+                        )
+                    )
+                pending = segment
+
+        if pending is not None:
+            cards.append(
+                self._segment_to_compact_card(
+                    pending,
+                    len(cards),
+                )
+            )
+
+        if not cards:
+            raise ValueError(f"Aucune fiche route exploitable pour {self.guide_id}")
+
+        self._link_next_cards(cards)
+        self.route = {
+            "schema_version": 5,
+            "id": f"catalog_manual_{self.guide_id}",
+            "source": f"data/encyclopedia/guides/{self.guide_id}.json+quest_catalog",
+            "manual_preview": False,
+            "manual_manifest": False,
+            "manual_chapters": [self.guide_id],
+            "route_model": "map_segments",
+            "universal_route": {
+                "common_route_quest_count": quest_count,
+                "qq_required_count": 0,
+            },
+            "conditional_branches": {},
+            "full_success_cards": {},
+            "steps": cards,
+        }
+        self.cards = cards
+        self._common_quest_ids = tuple(sorted(seen_quests))
+        self._full_success_ids = ()
+        self.manual_audit_data = {
+            "source": self.route["source"],
+            "guide_id": self.guide_id,
+            "route_model": "map_segments",
+            "card_count": len(cards),
+            "raw_segment_count": raw_segment_count,
+            "quest_count": quest_count,
+            "merged_segment_count": max(0, raw_segment_count - len(cards)),
+            "compact_runtime": True,
+        }
+        self.manual_preview_active = True
+        self.manual_preview_chapters = (self.guide_id,)
+        self.manual_manifest_active = False
+        self.manual_chapters = (self.guide_id,)
+        self.manual_preview_error = ""
+
+    def _guide_step_for_quest_id(self, quest_id: int):
+        for step in getattr(self.catalog_guide, "required_steps", ()) or ():
+            if str(getattr(step, "step_type", "")) != "quest":
+                continue
+            try:
+                candidate = int(getattr(step, "entity_id", None))
+            except (TypeError, ValueError):
+                continue
+            if candidate == int(quest_id):
+                return step
+        return None
+
+    def _materialize_catalog_card(self, card: dict[str, Any]) -> dict[str, Any]:
+        if not self.compact_runtime or "manual_sections" in card:
+            return card
+
+        card_key = str(card.get("manual_stage_id") or "")
+        cached = getattr(self, "_catalog_visible_card_cache", None)
+        if (
+            isinstance(cached, tuple)
+            and len(cached) == 2
+            and cached[0] == card_key
+            and isinstance(cached[1], dict)
+        ):
+            return cached[1]
+
+        merged: dict[str, Any] | None = None
+        for raw_ref in card.get("_catalog_source_refs", ()) or ():
+            if not isinstance(raw_ref, (list, tuple)) or len(raw_ref) != 2:
+                continue
+            try:
+                quest_id = int(raw_ref[0])
+                segment_index = int(raw_ref[1])
+            except (TypeError, ValueError):
+                continue
+            step = self._guide_step_for_quest_id(quest_id)
+            if step is None:
+                continue
+            quest = self.quest_provider.get_quest(quest_id)
+            if quest is None:
+                continue
+            segments = self._quest_segments(step, quest)
+            if segment_index < 0 or segment_index >= len(segments):
+                continue
+            segment = segments[segment_index]
+            if merged is None:
+                merged = segment
+            else:
+                self._merge_segment(merged, segment)
+
+        if merged is None:
+            return card
+
+        index = max(0, int(card.get("index") or 1) - 1)
+        hydrated = self._segment_to_card(merged, index)
+        hydrated["ensuite"] = card.get("ensuite")
+        hydrated["_catalog_source_refs"] = list(
+            card.get("_catalog_source_refs", ()) or ()
+        )
+        self._catalog_visible_card_cache = (card_key, hydrated)
+        return hydrated
+
+    def visible_card(self, index: int) -> dict[str, Any]:
+        if not self.cards:
+            return {}
+        index = max(0, min(int(index), len(self.cards) - 1))
+        return self._materialize_catalog_card(self.cards[index])
 
     def _quest_segments(self, guide_step, quest) -> list[dict[str, Any]]:
         quest_id = int(quest.id)
@@ -299,9 +468,14 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         source: dict[str, Any],
     ) -> None:
         for field in ("guide_step_ids", "quest_ids", "quest_names", "resource_names"):
+            target.setdefault(field, [])
             for value in source.get(field, ()) or ():
                 if value not in target[field]:
                     target[field].append(value)
+        target.setdefault("_catalog_source_refs", [])
+        for value in source.get("_catalog_source_refs", ()) or ():
+            if value not in target["_catalog_source_refs"]:
+                target["_catalog_source_refs"].append(value)
         target["structured_preparation"].extend(
             copy.deepcopy(source.get("structured_preparation", ()))
         )
@@ -377,15 +551,74 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             "ensuite": None,
         }
 
+    def _segment_to_compact_card(
+        self,
+        segment: dict[str, Any],
+        index: int,
+    ) -> dict[str, Any]:
+        """Keep only route/progress metadata for a hidden Lanyel map."""
+
+        full = self._segment_to_card(segment, index)
+        return {
+            "index": full["index"],
+            "manual_source": True,
+            "_manual_route_cacheable": True,
+            "manual_chapter_id": full["manual_chapter_id"],
+            "manual_chapter_label": full["manual_chapter_label"],
+            "manual_stage_id": full["manual_stage_id"],
+            "manual_title": full["manual_title"],
+            "manual_route_position": full["manual_route_position"],
+            "expected_level": full["expected_level"],
+            "x": full["x"],
+            "y": full["y"],
+            "zone": full["zone"],
+            "subzone": full["subzone"],
+            "destination": full["destination"],
+            "manual_lines": [],
+            "manual_has_lines": True,
+            "manual_search_text": normalize_text(
+                " ".join(
+                    [
+                        str(full["manual_title"]),
+                        str(full["destination"]),
+                        *[str(value) for value in full["manual_quest_names"]],
+                    ]
+                )
+            ),
+            "manual_quest_ids": list(full["manual_quest_ids"]),
+            "manual_quest_names": list(full["manual_quest_names"]),
+            "manual_resource_names": list(full["manual_resource_names"]),
+            "manual_success_names": [],
+            "manual_temporal_hooks": [],
+            "manual_capture_transition": False,
+            "_catalog_source_refs": list(
+                segment.get("_catalog_source_refs", ()) or ()
+            ),
+            "a_prendre": [],
+            "a_faire_ici": [],
+            "progresse_aussi": {
+                "quest_ids": list(full["manual_quest_ids"]),
+                "success_ids": [],
+            },
+            "a_preparer": [],
+            "hard_runtime_gates": [],
+            "profession_gates": [],
+            "avant_de_partir": [],
+            "succes_monstres_a_faire": [],
+            "succes_donjon_a_faire": [],
+            "ensuite": None,
+        }
+
     def manual_lines_for_card(
         self,
         character_key: str,
         card: dict[str, Any],
     ) -> list[dict[str, Any]]:
         del character_key
+        source = self._materialize_catalog_card(card)
         return [
             copy.deepcopy(row)
-            for row in card.get("manual_lines", ())
+            for row in source.get("manual_lines", ())
             if isinstance(row, dict)
         ]
 
@@ -395,9 +628,10 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         card: dict[str, Any],
     ) -> dict[str, list[dict[str, Any]]]:
         del character_key
+        materialized = self._materialize_catalog_card(card)
         source = (
-            card.get("manual_sections")
-            if isinstance(card.get("manual_sections"), dict)
+            materialized.get("manual_sections")
+            if isinstance(materialized.get("manual_sections"), dict)
             else {}
         )
         return {
