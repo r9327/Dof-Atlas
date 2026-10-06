@@ -68,9 +68,46 @@ call :step "Lancement de Dofus Atlas"
 
 start "" "%PYTHONW_EXE%" "%APP_SCRIPT%"
 
+call :tidy_root_view
+
 call :ok "Dofus Atlas demarre"
 >> "%LOG_FILE%" echo APP_START_SENT %date% %time%
 endlocal
+exit /b 0
+
+
+:tidy_root_view
+rem Keep developer/runtime contracts at the repository root while hiding
+rem technical entries from the default Windows Explorer view.
+for %%F in (
+    ".gitattributes"
+    ".gitignore"
+    ".graphifyignore"
+    "AGENTS.md"
+    "AI_CONTEXT.md"
+    "DEVELOPMENT_GUARDRAILS.md"
+    "GITHUB_PROTECTION.md"
+    "GRAPHIFY.md"
+    "GUIDE_ULTIME_STATUS.md"
+    "PERFORMANCE_GUARDRAILS.md"
+    "PHASE_CERTIFICATION.md"
+    "ROAD_IA.md"
+    "ZERO_TRUST_RULES.md"
+    "launch.py"
+    "main.py"
+    "requirements-pyside.txt"
+    "sitecustomize.py"
+) do (
+    if exist "%ROOT%%%~F" attrib +h "%ROOT%%%~F" >nul 2>&1
+)
+for %%D in (
+    ".ai"
+    ".githooks"
+    ".github"
+) do (
+    if exist "%ROOT%%%~D" attrib +h "%ROOT%%%~D" >nul 2>&1
+)
+if exist "%ROOT%DOFUS.bat" attrib -h "%ROOT%DOFUS.bat" >nul 2>&1
 exit /b 0
 
 
