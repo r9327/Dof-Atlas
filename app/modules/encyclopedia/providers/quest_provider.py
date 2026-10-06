@@ -51,15 +51,3 @@ class QuestProvider:
 
     def count(self) -> int:
         return len(self.list_quests())
-
-    def release_catalogue(self) -> None:
-        """Release the shared compact quest catalogue when Encyclopedia is cold."""
-
-        global _SHARED_DEFAULT_CATALOG
-        current = self._catalog
-        self._catalog = None
-        if not _is_default_data_dir(self.data_dir):
-            return
-        with _SHARED_DEFAULT_CATALOG_LOCK:
-            if current is None or _SHARED_DEFAULT_CATALOG is current:
-                _SHARED_DEFAULT_CATALOG = None
