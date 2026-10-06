@@ -11,7 +11,7 @@ from typing import Any
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
 from app.modules.encyclopedia.models import DofusItem
 from app.modules.encyclopedia.providers.achievement_provider import safe_int
-from app.quest_catalog import array_value, doduda_rows, localized_name, text_for
+from app.quest_catalog import array_value, localized_name, text_for
 from app.quest_source_index import QuestSources
 
 DOFUS_TYPE_ID = 23
