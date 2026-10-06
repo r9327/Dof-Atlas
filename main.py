@@ -1678,6 +1678,9 @@ class AtlasWindow(QMainWindow):
         group = self.page_nav_group.get(name, "")
         self.refresh_nav_selection(group)
         if name == "Home":
+            release_context = getattr(self.home_page, "release_encyclopedia_context", None)
+            if callable(release_context):
+                release_context(preserve_display=True)
             self.home_page.refresh_progress()
         elif name == "Quetes":
             page = self.page_widgets.get("Quetes")
@@ -1858,19 +1861,19 @@ class AtlasWindow(QMainWindow):
         achievement_provider: Any,
         guide_provider: Any,
     ) -> None:
-        from app.quest_catalog import QuestCatalog
-
-        quests = self.preload_results.get("quests")
-        catalog = quests.get("catalog") if isinstance(quests, dict) else None
-        if not isinstance(catalog, QuestCatalog):
-            page = self.page_widgets.get("Quetes")
-            if isinstance(page, _resolve_encyclopedia_page()):
-                catalog = page.quest_provider.get_catalog()
-        self.home_page.apply_encyclopedia_context(
-            catalog=catalog if isinstance(catalog, QuestCatalog) else None,
-            achievement_provider=achievement_provider,
-            guide_provider=guide_provider,
-        )
+        # Home no longer owns the rich Encyclopedia runtime. Network validation
+        # gets its own tiny SQLite-backed Quest context and cold compact
+        # providers, so returning Home can release the UI/runtime graphs fully.
+        bridge = getattr(self.home_page, "network_bridge", None)
+        configure_compact = getattr(bridge, "configure_compact_context", None)
+        if callable(configure_compact):
+            try:
+                configure_compact()
+            except Exception:
+                LOGGER.exception("Compact network Encyclopedia context unavailable.")
+        release_context = getattr(self.home_page, "release_encyclopedia_context", None)
+        if callable(release_context):
+            release_context(preserve_display=True)
 
     def hydrate_preloaded_pages(self) -> None:
         quests = self.preload_results.get("quests")
