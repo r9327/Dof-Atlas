@@ -103,34 +103,65 @@ def _warm_guide_files() -> int:
     return count
 
 
-def _warm_achievement_catalogue() -> int:
-    """Build retained Success summaries before the user opens the tab."""
+def _run_compact_preload_builder(code: str, label: str) -> int:
+    """Run compact-store validation/building without importing heavy providers in Atlas."""
 
-    from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
-        ensure_achievement_compact_cache,
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=90,
+        check=True,
     )
+    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise RuntimeError(f"{label} n'a produit aucun résultat")
+    try:
+        return max(0, int(lines[-1]))
+    except ValueError as exc:
+        raise RuntimeError(f"Résultat {label} invalide: {lines[-1]!r}") from exc
 
-    return ensure_achievement_compact_cache()
+
+def _warm_achievement_catalogue() -> int:
+    """Build retained Success summaries while keeping the provider module out of Atlas."""
+
+    return _run_compact_preload_builder(
+        (
+            "from app.modules.encyclopedia.providers.memory_bound_achievement_provider "
+            "import ensure_achievement_compact_cache; "
+            "print(ensure_achievement_compact_cache())"
+        ),
+        "du cache compact Succès",
+    )
 
 
 def _warm_guide_catalogue() -> int:
-    """Build compact Guide summaries before the Guide tab can be opened."""
+    """Build compact Guide summaries without importing the Guide provider in Atlas."""
 
-    from app.modules.encyclopedia.providers.memory_bound_guide_provider import (
-        ensure_guide_compact_cache,
+    return _run_compact_preload_builder(
+        (
+            "from app.modules.encyclopedia.providers.memory_bound_guide_provider "
+            "import ensure_guide_compact_cache; "
+            "print(ensure_guide_compact_cache())"
+        ),
+        "du cache compact Guide",
     )
-
-    return ensure_guide_compact_cache()
 
 
 def _warm_guide_items_index() -> int:
-    """Build the compact Guide item store in preload, outside the UI path."""
+    """Build the Guide item index without importing the item provider in Atlas."""
 
-    from app.modules.encyclopedia.providers.dofus_item_provider import (
-        ensure_guide_items_index,
+    return _run_compact_preload_builder(
+        (
+            "from app.modules.encyclopedia.providers.dofus_item_provider "
+            "import ensure_guide_items_index; "
+            "print(ensure_guide_items_index())"
+        ),
+        "de guide_items_index",
     )
-
-    return ensure_guide_items_index()
 
 
 def build_related_encyclopedia_data(catalog: QuestCatalog) -> RelatedEncyclopediaData:
