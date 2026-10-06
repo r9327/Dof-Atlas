@@ -46,6 +46,7 @@ LOGGER = logging.getLogger(__name__)
 GUIDE_SUCCESS_CATALOG_ID = "guide_complet"
 
 _ACHIEVEMENTS_VIEW_TYPE: type | None = None
+_GUIDE_CATALOG_VIEW_TYPE: type | None = None
 _GUIDES_VIEW_TYPE: type | None = None
 _PROGRESSIVE_QUESTS_PAGE_TYPE: type | None = None
 
@@ -57,6 +58,15 @@ def _resolve_achievements_view_type() -> type:
 
         _ACHIEVEMENTS_VIEW_TYPE = AchievementsView
     return _ACHIEVEMENTS_VIEW_TYPE
+
+
+def _resolve_guide_catalog_view_type() -> type:
+    global _GUIDE_CATALOG_VIEW_TYPE
+    if _GUIDE_CATALOG_VIEW_TYPE is None:
+        from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+
+        _GUIDE_CATALOG_VIEW_TYPE = GuideCatalogView
+    return _GUIDE_CATALOG_VIEW_TYPE
 
 
 def _resolve_guides_view_type() -> type:
@@ -89,7 +99,7 @@ def _is_achievements_view(widget: object) -> bool:
 
 
 def _is_guides_view(widget: object) -> bool:
-    return type(widget).__name__ == "DeferredAchievementGuidesView"
+    return type(widget).__name__ in {"GuideCatalogView", "DeferredAchievementGuidesView"}
 
 
 def _has_embedded_search(widget: object) -> bool:
@@ -167,7 +177,7 @@ class EncyclopediaPage(QWidget):
         self._initializing = True
         self._initial_tab = initial_tab if initial_tab in ENCYCLOPEDIA_TABS else DEFAULT_TAB
         self.quest_page: QuestsPage | None = None
-        self.guides_view: DeferredAchievementGuidesView | None = None
+        self.guides_view: QWidget | None = None
         self._achievement_provider_supplied = achievement_provider is not None
         self._guide_provider_supplied = guide_provider is not None
         self._owned_items = owned_items
@@ -500,7 +510,7 @@ class EncyclopediaPage(QWidget):
         if self.quest_provider.get_quest(quest_id) is None:
             return False
         if source == "guide":
-            guides_view = self.ensure_guides_view()
+            guides_view = self.ensure_full_guides_view()
             guide_id = str(context.get("guide_id") or "")
             if guide_id and guides_view.current_guide_id != guide_id and not guides_view.select_guide(guide_id):
                 return False
@@ -1228,30 +1238,64 @@ class EncyclopediaPage(QWidget):
             self.service.guide_provider,
         )
 
-    def ensure_guides_view(self) -> DeferredAchievementGuidesView:
-        guides_view_type = _resolve_guides_view_type()
+    def ensure_guides_view(self):
+        guide_catalog_type = _resolve_guide_catalog_view_type()
         if self.guides_view is None:
-            self.guides_view = guides_view_type(
+            self.guides_view = guide_catalog_type(
                 self.status_callback,
                 provider=self.service.guide_provider,
-                quest_provider=self.service.quest_provider,
                 achievement_provider=self.service.achievement_provider,
-                achievement_progress_service=self.achievement_progress_service,
-                guide_progress_service=self.guide_progress_service,
                 quest_progress_path=self.quest_progress_path,
-                navigate_callback=self.navigate_to_entity,
-                launch_travel_callback=self._launch_travel_callback,
                 character_key=self.current_character_key,
                 graph=self._quest_graph,
                 initial_progress_by_guide=self._guide_progress_by_guide,
                 initial_progress_character_key=self._guide_progress_character_key,
                 defer_runtime=True,
             )
-            self.guides_view.achievementRuntimeRequested.connect(
-                self.request_achievement_warmup
-            )
+            self.guides_view.guideRequested.connect(self.navigate_to_guide)
             self.replace_tab_widget(GUIDES_TAB, self.guides_view)
         return self.guides_view
+
+    def ensure_full_guides_view(self):
+        guides_view_type = _resolve_guides_view_type()
+        current = self.guides_view
+        if isinstance(current, guides_view_type):
+            return current
+
+        search_text = str(getattr(current, "search_text", "") or "")
+        view = guides_view_type(
+            self.status_callback,
+            provider=self.service.guide_provider,
+            quest_provider=self.service.quest_provider,
+            achievement_provider=self.service.achievement_provider,
+            achievement_progress_service=self.achievement_progress_service,
+            guide_progress_service=self.guide_progress_service,
+            quest_progress_path=self.quest_progress_path,
+            navigate_callback=self.navigate_to_entity,
+            launch_travel_callback=self._launch_travel_callback,
+            character_key=self.current_character_key,
+            graph=self._quest_graph,
+            initial_progress_by_guide=self._guide_progress_by_guide,
+            initial_progress_character_key=self._guide_progress_character_key,
+            defer_runtime=not self._guide_runtime_ready,
+        )
+        view.achievementRuntimeRequested.connect(self.request_achievement_warmup)
+        self.guides_view = view
+        self.replace_tab_widget(GUIDES_TAB, view)
+
+        if self._guide_runtime_ready and not bool(getattr(view, "_runtime_ready", False)):
+            view.hydrate_runtime(
+                graph=self._quest_graph,
+                initial_progress_by_guide=self._guide_progress_by_guide,
+                initial_progress_character_key=self._guide_progress_character_key,
+            )
+        if search_text:
+            view.set_search_text(search_text)
+        if self._achievement_ready:
+            apply_runtime = getattr(view, "apply_achievement_runtime", None)
+            if callable(apply_runtime):
+                apply_runtime()
+        return view
 
     def open_pending_lazy_tab(self) -> None:
         label = str(self._pending_lazy_tab or "")
@@ -1266,7 +1310,15 @@ class EncyclopediaPage(QWidget):
 
         self._pending_lazy_tab = ""
         if label == GUIDES_TAB:
-            view = self.ensure_guides_view()
+            needs_detail = bool(self._pending_guide_id) or (
+                self._pending_achievement_context_id is not None
+                and self._achievement_ready
+            )
+            view = (
+                self.ensure_full_guides_view()
+                if needs_detail
+                else self.ensure_guides_view()
+            )
             if self._pending_guide_id:
                 guide_id = self._pending_guide_id
                 self._pending_guide_id = ""
