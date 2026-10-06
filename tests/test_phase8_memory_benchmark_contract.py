@@ -65,7 +65,7 @@ def test_memory_workflow_enforces_phase8_budgets() -> None:
         ("after_equipment_home_stabilized", "100.0"),
     ):
         assert f'"{label}": {budget}' in source
-    assert "peak_tree > 250.0" in source
+    assert "peak_tree > 220.0" in source
     assert '"achievements_retained_tree_delta_mb": 15.0' in source
     assert '"guide_retained_tree_delta_mb": 20.0' in source
     assert '"equipment_tree_delta_stabilized_mb": 1.0' in source
