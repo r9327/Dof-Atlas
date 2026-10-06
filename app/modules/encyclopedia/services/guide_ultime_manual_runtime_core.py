@@ -290,11 +290,13 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         quest_provider: Any = None,
         manual_dir: Path = MANUAL_DIR,
         cache_manual_bundle: bool = True,
+        compact_runtime: bool = False,
         **kwargs,
     ) -> None:
         self.quest_provider = quest_provider
         self.manual_dir = Path(manual_dir)
         self.cache_manual_bundle = bool(cache_manual_bundle)
+        self.compact_runtime = bool(compact_runtime)
         self.manual_preview_active = False
         self.manual_preview_error = ""
         self.manual_preview_chapters: tuple[str, ...] = ()
@@ -404,7 +406,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                     index,
                     chapter_preparation=chapter_preparation_schedule.get(stage_position, []),
                 )
-                if not card.get("manual_lines"):
+                if not bool(card.get("manual_has_lines", card.get("manual_lines"))):
                     empty_cards.append(f"{chapter_id}:{card.get('manual_stage_id')}")
                 cards.append(card)
                 index += 1
@@ -511,6 +513,13 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         quest_names = self._stage_quest_names(stage)
         quest_ids = [self._quest_name_to_id[name] for name in quest_names if name in self._quest_name_to_id]
         lines = self._stage_lines(stage, quest_names, chapter_preparation=chapter_preparation)
+        manual_search_text = normalize_text(
+            " ".join(
+                f"{row.get('position', '')} {row.get('text', '')}"
+                for row in lines
+                if isinstance(row, dict)
+            )
+        )
         structured_runtime_lines = self._stage_structured_runtime_lines(stage)
         resource_names = self._stage_resource_names(chapter, stage)
         temporal_hooks = self._string_list(stage.get("temporal_hooks")) + self._string_list(stage.get("temporal_hook"))
@@ -547,7 +556,12 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "zone": zone,
             "subzone": zone,
             "destination": destination,
-            "manual_lines": lines,
+            # Atlas renders one sheet at a time. In compact runtime mode, keep
+            # only a tiny search fingerprint and rebuild the visible sheet lines
+            # from the authored stage instead of retaining 267 rendered lists.
+            "manual_lines": [] if self.compact_runtime else lines,
+            "manual_has_lines": bool(lines),
+            "manual_search_text": manual_search_text,
             "structured_runtime_lines": structured_runtime_lines,
             "manual_quest_ids": quest_ids,
             "manual_quest_names": quest_names,
