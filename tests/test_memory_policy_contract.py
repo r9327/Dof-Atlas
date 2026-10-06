@@ -187,3 +187,11 @@ def test_memory_page_prefers_explicit_tab_over_hidden_current_tab() -> None:
     source = MEMORY_PAGE.read_text(encoding="utf-8")
     assert 'label = self._memory_pending_tab_label or self.tabs.tabText(index)' in source
     assert 'if label and label == self._memory_pending_tab_label:' in source
+
+
+def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
+    source = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
+    assert '"objectives": []' in source
+    assert '"progress_objectives": [' in source
+    assert "def progress_objectives_for" in source
+    assert "_DUMP_DETAIL_FLAG" in source
