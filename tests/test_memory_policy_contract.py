@@ -480,6 +480,13 @@ def test_guide_home_uses_virtualized_delegate_instead_of_widget_forest() -> None
     assert "QListView()" in home
     assert "GuideCardDelegate" in home
     assert "GuideHomeCard(" not in refresh
+    loading = source[
+        source.index("def _show_runtime_loading"):
+        source.index("def hydrate_runtime")
+    ]
+    assert "clear_layout(self.home_layout)" not in loading
+    assert "self.home_list.setVisible(False)" in loading
+    assert "self.home_empty.setVisible(True)" in loading
 
     provider = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
     assert "def get_guides_for_entity" in provider
