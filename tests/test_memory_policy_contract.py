@@ -197,3 +197,12 @@ def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     assert '"progress_objectives": [' in source
     assert "def progress_objectives_for" in source
     assert "_DUMP_DETAIL_FLAG" in source
+
+
+def test_resident_success_and_guide_indexes_drop_documentary_payload() -> None:
+    success_source = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
+    guide_source = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
+    assert 'object.__setattr__(achievement, "search_text", "")' in success_source
+    assert 'object.__setattr__(achievement, "resolved_linked_quests", ())' in success_source
+    assert "for step in guide.required_steps" in guide_source
+    assert "Full notes/content remain detail-only" in guide_source
