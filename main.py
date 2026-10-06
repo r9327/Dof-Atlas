@@ -386,8 +386,6 @@ def build_quest_preload(
     owned_items: dict[int, dict[str, Any]] | None = None,
     include_related: bool = True,
 ) -> dict[str, Any]:
-    from app.modules.encyclopedia.providers import AchievementProvider
-
     quest_provider_type = _resolve_quest_provider()
     payload: dict[str, Any] = {
         "catalog": None,
@@ -405,9 +403,10 @@ def build_quest_preload(
         # reuse the same catalog instead of starting duplicate work.
         catalog = quest_provider_type().get_catalog()
         payload["catalog"] = catalog
-        payload["achievement_provider"] = AchievementProvider(
-            quest_provider=quest_provider_type(catalog=catalog)
-        )
+        # Do not instantiate a cold Success provider during Quest preload.
+        # The concrete provider module is intentionally imported only when the
+        # user actually opens Success/Guide.
+        payload["achievement_provider"] = None
         if include_related:
             related = build_quest_related_preload(catalog)
             payload.update({key: value for key, value in related.items() if key != "errors"})
