@@ -90,6 +90,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
                 self.guide_progress_service,
                 quest_provider=self.quest_provider,
                 autoload=False,
+                cache_manual_bundle=False,
             )
             if not service.available:
                 service.load()
