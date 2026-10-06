@@ -32,6 +32,16 @@ def search_items(query: str, limit: int = 50) -> list[dict[str, Any]]:
     return _compatibility_adapter().search_items(query, limit)
 
 
+def search_craft_items(query: str, limit: int = 80) -> list[dict[str, Any]]:
+    return _compatibility_adapter().search_craft_items(query, limit)
+
+
+def release_adapter() -> None:
+    release = getattr(_compatibility_adapter(), "release_adapter", None)
+    if callable(release):
+        release()
+
+
 def get_item(item_id: int) -> dict[str, Any] | None:
     return _compatibility_adapter().get_item(item_id)
 
