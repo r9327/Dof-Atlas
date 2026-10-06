@@ -318,12 +318,27 @@ def measure() -> dict[str, Any]:
     _capture(app, stages, "startup_stabilized", 0.25)
 
     sampler.set_phase("preload")
-    wait_until(
-        app,
-        lambda: preload_terminal(window),
-        timeout=90.0,
-        label="functional preload",
-    )
+    preload_deadline = time.perf_counter() + 90.0
+    preload_seen: set[str] = set()
+    while not preload_terminal(window):
+        app.processEvents()
+        states = getattr(window, "preload_states", {})
+        if isinstance(states, dict):
+            for task in ("quests", "encyclopedia", "craft"):
+                state = str(states.get(task, "") or "")
+                if task not in preload_seen and state in {"READY", "FAILED"}:
+                    stages.append(memory_snapshot(f"preload_{task}_ready"))
+                    preload_seen.add(task)
+        if time.perf_counter() >= preload_deadline:
+            raise RuntimeError("Timeout while waiting for functional preload (90.0s).")
+        time.sleep(0.005)
+    states = getattr(window, "preload_states", {})
+    if isinstance(states, dict):
+        for task in ("quests", "encyclopedia", "craft"):
+            state = str(states.get(task, "") or "")
+            if task not in preload_seen and state in {"READY", "FAILED"}:
+                stages.append(memory_snapshot(f"preload_{task}_ready"))
+                preload_seen.add(task)
     _capture(app, stages, "after_preload")
 
     sampler.set_phase("quests_open")
