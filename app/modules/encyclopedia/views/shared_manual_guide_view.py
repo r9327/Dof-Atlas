@@ -661,13 +661,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.route_lock_check.setObjectName("GuideManualProgressLock")
         self.route_lock_check.setCheckable(True)
         self.route_lock_check.setAutoRaise(True)
-        self.route_lock_check.setFixedSize(26, 26)
+        self.route_lock_check.setMinimumWidth(116)
+        self.route_lock_check.setFixedHeight(26)
         self.route_lock_check.setCursor(Qt.PointingHandCursor)
-        self.route_lock_check.setStyleSheet(
-            "QToolButton#GuideManualProgressLock {"
-            "background: transparent; border: none; padding: 0;"
-            "}"
-        )
         self.route_lock_check.toggled.connect(self._route_lock_toggled)
         strip_layout.addWidget(self.route_lock_check)
 
@@ -694,8 +690,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._apply_route_lock_visual(locked)
 
     def _apply_route_lock_visual(self, locked: bool) -> None:
-        self.route_lock_check.setText("🔒" if locked else "🔓")
-        self.route_lock_check.setAccessibleName("Verrouillé" if locked else "Déverrouillé")
+        state_label = "Verrouillé" if locked else "Déverrouillé"
+        self.route_lock_check.setText(f"{'🔒' if locked else '🔓'} {state_label}")
+        self.route_lock_check.setAccessibleName(state_label)
         self.route_lock_check.setProperty("state", "locked" if locked else "unlocked")
         self.route_lock_check.style().unpolish(self.route_lock_check)
         self.route_lock_check.style().polish(self.route_lock_check)
