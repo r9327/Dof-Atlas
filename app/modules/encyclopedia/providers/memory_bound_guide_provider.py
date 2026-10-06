@@ -48,6 +48,30 @@ class _CompactGuideNoopItemProvider:
         return None
 
 
+class _CompactGuideAchievement:
+    __slots__ = ("name",)
+
+    def __init__(self, name: str) -> None:
+        self.name = str(name)
+
+
+class _CompactGuideAchievementProvider:
+    """Resolve only Success names inside the disposable Guide worker."""
+
+    _loaded = True
+
+    def __init__(self) -> None:
+        from app.modules.encyclopedia.services.achievement_index_warmup import (
+            achievement_name_index,
+        )
+
+        self._names = achievement_name_index()
+
+    def get_by_id(self, achievement_id: int):
+        name = self._names.get(int(achievement_id))
+        return _CompactGuideAchievement(name) if name else None
+
+
 def _entity_ref_payload(ref: EntityRef) -> dict[str, object]:
     return {
         "entity_type": ref.entity_type,
@@ -529,6 +553,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
 def _dump_compact_default_guides() -> int:
     provider = MemoryBoundGuideProvider(
         guides_dir=GUIDES_DIR,
+        achievement_provider=_CompactGuideAchievementProvider(),
         dofus_item_provider=_CompactGuideNoopItemProvider(),
     )
     provider._load_in_process()
