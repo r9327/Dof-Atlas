@@ -424,7 +424,9 @@ def test_guide_manual_runtime_keeps_only_visible_authored_stage_hot() -> None:
         / "guide_ultime_manual_runtime_service.py"
     ).read_text(encoding="utf-8")
 
-    assert 'card.pop("manual_stage_data", None)' in core
+    assert "def _stage_to_compact_card" in core
+    assert "card = self._stage_to_compact_card(" in core
+    assert "if self.compact_runtime" in core
     assert 'card["manual_source_file"] = filename' in core
     assert 'card["manual_stage_position"] = int(stage_position)' in core
     assert "def _hydrate_manual_card_source" in core
