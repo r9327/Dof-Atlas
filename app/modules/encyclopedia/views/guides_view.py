@@ -1652,8 +1652,8 @@ class GuidesView(QWidget):
         self.current_guide_id = guide.id
         self.current_quest_id = None
         self.state = self.GUIDE_OVERVIEW
-        self._ensure_chapters_initialized(guide)
         self._ensure_selected_series(guide)
+        self._ensure_chapters_initialized(guide)
         self._configure_detail_layout(guide, False)
         self.detail_header.setVisible(True)
         self._render_header(guide)
@@ -1687,10 +1687,12 @@ class GuidesView(QWidget):
         previous_left = self.quest_nav_scroll_positions.get(guide.id, 0) if preserve_scroll else self.left_scroll.verticalScrollBar().value()
         self.current_quest_id = quest.id
         self.state = self.QUEST_DETAIL
-        self._ensure_chapters_initialized(guide)
         series_ref = self._series_ref_for_quest(guide, quest.id)
         if series_ref is not None:
             self.current_series_by_guide[guide.id] = series_ref[2].id
+            self.expanded_chapters[guide.id] = {series_ref[1].id}
+        else:
+            self._ensure_chapters_initialized(guide)
         self._configure_detail_layout(guide, True)
         self._render_header(guide)
         self.detail_header.setVisible(True)
@@ -2127,7 +2129,11 @@ class GuidesView(QWidget):
             return
         if self._series_ref_by_id(guide, str(series_id)) is None:
             return
+        ref = self._series_ref_by_id(guide, str(series_id))
+        if ref is None:
+            return
         self.current_series_by_guide[guide.id] = str(series_id)
+        self.expanded_chapters[guide.id] = {ref[1].id}
         self.show_guide_overview(guide.id, preserve_scroll=False)
 
     def _configure_detail_layout(self, guide: Guide, quest_detail: bool) -> None:
@@ -2996,9 +3002,9 @@ class GuidesView(QWidget):
             return
         opened = self.expanded_chapters.setdefault(guide.id, set())
         if chapter_id in opened:
-            opened.remove(chapter_id)
+            opened.clear()
         else:
-            opened.add(chapter_id)
+            self.expanded_chapters[guide.id] = {str(chapter_id)}
         if self.state == self.QUEST_DETAIL and self.current_quest_id is not None:
             self.show_quest_detail(self.current_quest_id, preserve_scroll=True)
         else:
@@ -3023,11 +3029,23 @@ class GuidesView(QWidget):
     def _ensure_chapters_initialized(self, guide: Guide) -> None:
         if guide.id in self.expanded_chapters:
             return
-        self.expanded_chapters[guide.id] = {
-            chapter.id
-            for part in guide.parts
-            for chapter in part.chapters
-        }
+        selected = self._selected_series_ref(guide)
+        if selected is not None:
+            self.expanded_chapters[guide.id] = {selected[1].id}
+            return
+        first_chapter = next(
+            (
+                chapter
+                for part in guide.parts
+                for chapter in part.chapters
+            ),
+            None,
+        )
+        self.expanded_chapters[guide.id] = (
+            {first_chapter.id}
+            if first_chapter is not None
+            else set()
+        )
 
     @staticmethod
     def _series_title_useful(part: GuidePart, chapter: GuideChapter, series: GuideSeries) -> bool:
