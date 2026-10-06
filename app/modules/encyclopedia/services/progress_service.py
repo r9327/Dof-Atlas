@@ -511,8 +511,21 @@ class AchievementProgressService:
             from app.modules.encyclopedia.achievement_catalog_policy import ALIGNMENT_GUIDE_IDS
         except Exception:
             return {}
+
+        compact_ids = getattr(guide_provider, "progress_quest_ids_for", None)
         result: dict[str, tuple[int, ...]] = {}
         for side, guide_id in ALIGNMENT_GUIDE_IDS.items():
+            if callable(compact_ids):
+                try:
+                    quest_ids = tuple(
+                        dict.fromkeys(int(value) for value in compact_ids(guide_id))
+                    )
+                except (TypeError, ValueError):
+                    quest_ids = ()
+                if quest_ids:
+                    result[str(side)] = quest_ids
+                    continue
+
             try:
                 guide = guide_provider.get_by_id(guide_id)
             except Exception:
