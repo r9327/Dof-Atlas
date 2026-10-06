@@ -27,6 +27,7 @@ from app.quest_source_index import JsonSourceMapping, QuestSources
 
 
 _DUMP_COMPACT_FLAG = "--dump-compact"
+_DUMP_DETAIL_FLAG = "--dump-detail"
 _SPACE_RE = re.compile(r"\s*")
 
 
@@ -89,6 +90,85 @@ def _objective_from_dict(value: object) -> AchievementObjective | None:
         entity_ref=entity_ref,
         entity_refs=entity_refs,
     )
+
+
+def _entity_ref_to_dict(ref: EntityRef) -> dict[str, object]:
+    return {
+        "entity_type": str(ref.entity_type),
+        "entity_id": ref.entity_id,
+        "label": str(ref.label or ""),
+    }
+
+
+def _compact_objective_dict(objective: AchievementObjective) -> dict[str, object]:
+    objective_type = str(objective.objective_type or "")
+    keep_text = objective_type.strip().casefold() == "critère pr"
+    return {
+        "id": int(objective.id),
+        "achievement_id": int(objective.achievement_id),
+        "text": str(objective.text or "") if keep_text else "",
+        "criterion": str(objective.criterion or ""),
+        "order": int(objective.order or 0),
+        "objective_type": objective_type,
+        "required_quantity": objective.required_quantity,
+        "entity_ref": (
+            {
+                "entity_type": str(objective.entity_ref.entity_type),
+                "entity_id": objective.entity_ref.entity_id,
+                "label": "",
+            }
+            if objective.entity_ref is not None
+            else None
+        ),
+        "entity_refs": [
+            {
+                "entity_type": str(ref.entity_type),
+                "entity_id": ref.entity_id,
+                "label": "",
+            }
+            for ref in objective.entity_refs
+        ],
+    }
+
+
+def _compact_achievement_dict(achievement: Achievement) -> dict[str, object]:
+    raw = achievement.raw if isinstance(achievement.raw, dict) else {}
+    source_category_id = raw.get("categoryId")
+    return {
+        "id": int(achievement.id),
+        "original_id": int(achievement.original_id),
+        "name": str(achievement.name or ""),
+        "description": "",
+        "category_id": int(achievement.category_id),
+        "category_name": str(achievement.category_name or ""),
+        "subcategory_id": achievement.subcategory_id,
+        "subcategory_name": str(achievement.subcategory_name or ""),
+        "level": achievement.level,
+        "points": int(achievement.points or 0),
+        "icon_id": achievement.icon_id,
+        "image_path": str(achievement.image_path or ""),
+        "order": int(achievement.order or 0),
+        "objective_ids": list(achievement.objective_ids),
+        "reward_ids": list(achievement.reward_ids),
+        "objectives": [
+            _compact_objective_dict(objective)
+            for objective in achievement.objectives
+        ],
+        "rewards": [],
+        "linked_quests": [_entity_ref_to_dict(ref) for ref in achievement.linked_quests],
+        "linked_monsters": [],
+        "linked_dungeons": [],
+        "linked_achievements": [],
+        "resolved_linked_quests": [],
+        "resolved_linked_monsters": [],
+        "resolved_linked_dungeons": [],
+        "search_text": str(achievement.search_text or ""),
+        "raw": (
+            {"categoryId": source_category_id}
+            if source_category_id is not None
+            else {}
+        ),
+    }
 
 
 def _achievement_from_dict(value: dict[str, Any]) -> Achievement:
@@ -466,21 +546,64 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         finally:
             self._reset_sources()
 
-    def get_detail_by_id(self, achievement_id: int):
+    def _get_detail_in_process(self, achievement_id: int):
         self._ensure_loaded()
         achievement_id = int(achievement_id)
         if self._detail_cache_id == achievement_id and self._detail_cache is not None:
             return self._detail_cache
-
+        if not self._detail_sources_ready:
+            self.prepare_detail_sources()
         self._entries = self._sources.mapping(
             self.data_dir / "languages" / "fr.json",
             "entries",
             required=True,
         )
         try:
-            return super().get_detail_by_id(achievement_id)
+            return BaseAchievementProvider.get_detail_by_id(self, achievement_id)
         finally:
             self._reset_sources()
+
+    def get_detail_by_id(self, achievement_id: int):
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        if self._detail_cache_id == achievement_id and self._detail_cache is not None:
+            return self._detail_cache
+
+        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
+        current_data_dir = Path(self.data_dir).resolve(strict=False)
+        if (
+            not bool(getattr(sys, "frozen", False))
+            and current_data_dir == default_data_dir
+            and _DUMP_DETAIL_FLAG not in sys.argv
+        ):
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+                    _DUMP_DETAIL_FLAG,
+                    str(achievement_id),
+                ],
+                cwd=ROOT_DIR,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=90,
+                check=True,
+            )
+            lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+            if not lines:
+                return None
+            payload = json.loads(lines[-1])
+            if not isinstance(payload, dict):
+                return None
+            detail = _achievement_from_dict(payload)
+            self._detail_cache_id = achievement_id
+            self._detail_cache = detail
+            return detail
+
+        return self._get_detail_in_process(achievement_id)
 
     def get_linked_quests(self, achievement_id: int):
         achievement = self.get_by_id(int(achievement_id))
@@ -513,7 +636,7 @@ def _dump_compact_default_catalogue() -> int:
     for achievement in provider._achievements:
         print(
             json.dumps(
-                {"kind": "achievement", "value": asdict(achievement)},
+                {"kind": "achievement", "value": _compact_achievement_dict(achievement)},
                 ensure_ascii=False,
                 separators=(",", ":"),
             )
@@ -521,8 +644,32 @@ def _dump_compact_default_catalogue() -> int:
     return 0
 
 
+def _dump_default_detail(achievement_id: int) -> int:
+    provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+    provider._load_in_process()
+    provider._loaded = True
+    detail = provider._get_detail_in_process(int(achievement_id))
+    if detail is None:
+        return 2
+    print(
+        json.dumps(
+            asdict(detail),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    )
+    return 0
+
+
 if __name__ == "__main__" and _DUMP_COMPACT_FLAG in sys.argv:
     raise SystemExit(_dump_compact_default_catalogue())
+
+if __name__ == "__main__" and _DUMP_DETAIL_FLAG in sys.argv:
+    try:
+        detail_id = int(sys.argv[sys.argv.index(_DUMP_DETAIL_FLAG) + 1])
+    except (ValueError, IndexError):
+        raise SystemExit(2)
+    raise SystemExit(_dump_default_detail(detail_id))
 
 
 __all__ = ["MemoryBoundAchievementProvider"]
