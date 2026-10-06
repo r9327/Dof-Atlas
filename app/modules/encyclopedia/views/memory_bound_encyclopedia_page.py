@@ -82,8 +82,9 @@ class EncyclopediaPage(BaseEncyclopediaPage):
     def _restore_quests_view(self):
         if self.quest_page is not None:
             return self.quest_page
-        # The quest catalogue is intentionally cold after leaving Encyclopedia.
-        # Its worker rebuilds it off the Qt thread when the user comes back.
+        # The resident QuestProvider keeps the SQLite-backed compact catalogue
+        # warm. Rebuild only the Qt representation; never reparse documentary
+        # quest sources just because the user comes back to the tab.
         if getattr(self.quest_provider, "_catalog", None) is None:
             return None
         page = self._build_quests_page_progressive()
@@ -147,18 +148,17 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         ):
             return False
 
-        service = getattr(self, "service", None)
-        achievement_provider = getattr(service, "achievement_provider", None)
-        guide_provider = getattr(service, "guide_provider", None)
-        quest_provider = getattr(self, "quest_provider", None)
-        for provider in (achievement_provider, guide_provider, quest_provider):
+        achievement_provider = getattr(getattr(self, "service", None), "achievement_provider", None)
+        guide_provider = getattr(getattr(self, "service", None), "guide_provider", None)
+        for provider in (achievement_provider, guide_provider):
             release = getattr(provider, "release_catalogue", None)
             if callable(release):
                 release()
 
-        # The quest graph pins catalogue records and adjacency maps. Once the
-        # whole Encyclopedia is hidden there is no useful warm consumer left.
-        self._quest_graph = None
+        graph = getattr(self, "_quest_graph", None)
+        if graph is not None:
+            graph.achievement_provider = None
+            graph.guide_provider = None
 
         self._achievement_ready = False
         self._guide_runtime_ready = False
@@ -181,9 +181,6 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         if self._memory_gc_scheduled:
             return
         self._memory_gc_scheduled = True
-        # Deferred Qt deletes must run first; collect Python cycles on the next
-        # event-loop turn. This releases genuinely unreachable objects and does
-        # not trim or disguise the Windows working set.
         QTimer.singleShot(0, self._collect_released_memory)
 
     def prepare_external_tab_navigation(self, label: str) -> None:
@@ -232,8 +229,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             return
         label = self._memory_pending_tab_label or self.tabs.tabText(index)
         if label == QUESTS_TAB and self.quest_page is None:
-            if self._restore_quests_view() is None:
-                self.request_quest_runtime()
+            self._restore_quests_view()
         elif label == ACHIEVEMENTS_TAB:
             if not bool(getattr(self, "_achievement_ready", False)):
                 self._start_full_achievement_runtime()
@@ -256,8 +252,6 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             if restored is not None:
                 labels = self.tab_labels()
                 index = labels.index(QUESTS_TAB)
-            elif getattr(self.quest_provider, "_catalog", None) is None:
-                self.request_quest_runtime()
         super().on_tab_changed(index)
 
     def ensure_achievements_view(self):
