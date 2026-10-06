@@ -297,16 +297,14 @@ class PySideShellTests(unittest.TestCase):
         self.assertTrue(any(quest.name and quest.steps for quest in catalog.quests))
         self.assertTrue(any(quest.achievements for quest in catalog.quests))
 
-    def test_quest_preload_builds_catalog(self):
+    def test_quest_preload_warms_disk_cache_without_retaining_catalog(self):
         preload = build_quest_preload(include_related=False)
-        catalog = preload.get("catalog")
 
         self.assertEqual(preload.get("errors"), [])
-        self.assertIsInstance(catalog, QuestCatalog)
-        self.assertGreaterEqual(len(catalog.quests), 1900)
-        achievement_provider = preload.get("achievement_provider")
-        self.assertIsInstance(achievement_provider, AchievementProvider)
-        self.assertFalse(achievement_provider._loaded)
+        self.assertIsNone(preload.get("catalog"))
+        self.assertGreaterEqual(int(preload.get("catalog_count") or 0), 1900)
+        self.assertIsNone(preload.get("achievement_provider"))
+        self.assertIsNone(preload.get("guide_provider"))
 
     def test_quests_page_tracks_progress_per_character(self):
         app = QApplication.instance() or QApplication([])
