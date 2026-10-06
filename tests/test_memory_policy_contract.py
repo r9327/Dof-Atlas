@@ -209,6 +209,38 @@ def test_achievement_sync_uses_compact_alignment_guide_ids() -> None:
     assert compact_pos < detail_pos
 
 
+def test_guide_home_worker_keeps_quest_catalogue_and_graph_cold() -> None:
+    source = ENCYCLOPEDIA_PAGE.read_text(encoding="utf-8")
+
+    request = source[
+        source.index("def request_related_preload"):
+        source.index("def collect_related_preload")
+    ]
+    worker = request[
+        request.index("def worker()"):
+        request.index("self.guideRuntimeFinished.emit")
+    ]
+    assert "quest_provider.get_catalog()" not in worker
+    assert "QuestGraphService(" not in worker
+    assert "_build_guide_progress_snapshot(" in worker
+
+    snapshot = source[
+        source.index("def _build_guide_progress_snapshot"):
+        source.index("def _build_quests_page_progressive")
+    ]
+    assert 'getattr(guide_provider, "progress_quest_ids_for", None)' in snapshot
+    assert "QuestProgressService(" in snapshot
+    assert "completed_quest_ids(" in snapshot
+    assert "GuideProgressCalculator(" not in snapshot
+    assert "QuestCatalog" not in snapshot
+
+    payload = source[
+        source.index("class _GuideStagePayload"):
+        source.index("class _AchievementStagePayload")
+    ]
+    assert "QuestGraphService | None" in payload
+
+
 def test_guide_catalog_defers_detail_and_manual_engines() -> None:
     guide_source = (
         ROOT / "app" / "modules" / "encyclopedia" / "views" / "guides_view.py"
@@ -665,6 +697,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_success_catalog_keeps_alignment_route_profiles_cold()
         test_success_list_materializes_only_visible_batches()
         test_achievement_sync_uses_compact_alignment_guide_ids()
+        test_guide_home_worker_keeps_quest_catalogue_and_graph_cold()
         test_guide_catalog_defers_detail_and_manual_engines()
         test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime()
         test_achievement_provider_releases_reconstructible_source_maps()
