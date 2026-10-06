@@ -36,7 +36,9 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def _apply_stage_patch(row: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
-    result = copy.deepcopy(row)
+    """Apply one stage patch without cloning untouched nested payloads."""
+
+    result = dict(row)
     for key, value in (patch.get("replace") or {}).items():
         result[key] = copy.deepcopy(value)
     for key, values in (patch.get("append") or {}).items():
@@ -47,7 +49,6 @@ def _apply_stage_patch(row: dict[str, Any], patch: dict[str, Any]) -> dict[str, 
         current = list(result.get(key, []) or [])
         result[key] = copy.deepcopy(list(values or [])) + current
     return result
-
 
 def _insert_anchored_stage(stages: list[dict[str, Any]], insertion: dict[str, Any], new_stage: dict[str, Any], *, source_name: str) -> None:
     new_id = str(new_stage.get("id") or "").strip()
@@ -63,7 +64,7 @@ def _insert_anchored_stage(stages: list[dict[str, Any]], insertion: dict[str, An
     anchor_index = next((i for i, row in enumerate(stages) if str(row.get("id") or "") == anchor), None)
     if anchor_index is None:
         raise KeyError(f"Ancre d'insertion absente {anchor!r} pour {new_id}")
-    stages.insert(anchor_index + 1 if after else anchor_index, copy.deepcopy(new_stage))
+    stages.insert(anchor_index + 1 if after else anchor_index, dict(new_stage))
 
 
 def _stable_key(value: Any) -> str:
@@ -144,17 +145,17 @@ def _expand_route_hooks(
     field; both are explicit declarations and therefore safe to resolve.
     """
 
-    stages = [copy.deepcopy(row) for row in payload.get("stages", []) if isinstance(row, dict)]
+    stages = [row for row in payload.get("stages", []) if isinstance(row, dict)]
     referenced = {hook for stage in stages for hook in _route_hook_ids(stage)}
     if not referenced:
-        result = copy.deepcopy(payload)
+        result = dict(payload)
         result["stages"] = stages
         return result
 
     route_level_hooks = {hook for hook in referenced if _route_file_path(path, hook) is not None}
     stage_references = referenced - route_level_hooks
     if not stage_references:
-        result = copy.deepcopy(payload)
+        result = dict(payload)
         result["stages"] = stages
         return result
 
@@ -240,14 +241,18 @@ def _expand_route_hooks(
         "hard_gates",
     )
 
-    for stage in stages:
+    for stage_index, stage in enumerate(stages):
         hook_ids = _route_hook_ids(stage)
         if not hook_ids:
             continue
+        # Only hook-bearing stages are mutable in this expansion. Keep every
+        # untouched stage structurally shared with the resolved base.
+        stage = dict(stage)
+        stages[stage_index] = stage
         for hook_id in hook_ids:
             if hook_id in route_level_hooks:
                 continue
-            hook = copy.deepcopy(dependency_rows[hook_id][0])
+            hook = dependency_rows[hook_id][0]
             for field in prerequisite_fields:
                 if hook.get(field) in (None, "", []):
                     continue
@@ -280,7 +285,7 @@ def _expand_route_hooks(
                     plural = f"{field}s"
                     stage[plural] = _merge_sequence(stage.get(plural), [hook[field], stage[field]], prepend=True)
 
-    result = copy.deepcopy(payload)
+    result = dict(payload)
     result["stages"] = stages
     return result
 
@@ -314,15 +319,20 @@ def _load_manual_chapter_uncached(
     source = _read_json(path)
     base_name = str(source.get("base_file") or "").strip()
     if not base_name:
-        result = copy.deepcopy(source)
+        # _read_json() already returned a private object graph for this call.
+        # Keep it as the owned base instead of duplicating the whole chapter.
+        result = source
         result["_resolved_from"] = [path.name]
         return _expand_route_hooks(result, path, seen, _memo=_memo) if _expand_hooks else result
 
     base_path = path.parent / base_name
     if not base_path.is_file():
         raise FileNotFoundError(f"Base de route manuelle absente: {base_path}")
-    result = load_manual_chapter(base_path, _seen=seen, _expand_hooks=False, _memo=_memo)
-    result = copy.deepcopy(result)
+    base_result = load_manual_chapter(base_path, _seen=seen, _expand_hooks=False, _memo=_memo)
+    # Copy-on-write: the memoized base is immutable. Clone only the top-level
+    # mapping/list shell and replace individual stages when a patch actually
+    # touches them.
+    result = dict(base_result)
 
     reserved = {
         "base_file",
@@ -334,9 +344,11 @@ def _load_manual_chapter_uncached(
     }
     for key, value in source.items():
         if key not in reserved:
-            result[key] = copy.deepcopy(value)
+            # source is private to this composition, so sharing its nested value
+            # inside the new result is safe until a later patch replaces it.
+            result[key] = value
 
-    stages = [copy.deepcopy(row) for row in result.get("stages", []) if isinstance(row, dict)]
+    stages = [row for row in result.get("stages", []) if isinstance(row, dict)]
     by_id = {str(row.get("id") or ""): index for index, row in enumerate(stages)}
 
     for stage_id, patch in (source.get("stage_patches") or {}).items():
@@ -387,7 +399,7 @@ def _load_manual_chapter_uncached(
         )
         if imported_stage is None:
             raise KeyError(f"Étape importée absente {stage_id!r} dans {filename}")
-        new_stage = copy.deepcopy(imported_stage)
+        new_stage = dict(imported_stage)
         new_id = str(entry.get("new_id") or "").strip()
         if new_id:
             new_stage["id"] = new_id
@@ -397,7 +409,7 @@ def _load_manual_chapter_uncached(
     for insertion in source.get("insertions", []) or []:
         if not isinstance(insertion, dict) or not isinstance(insertion.get("stage"), dict):
             raise ValueError(f"Insertion invalide dans {path.name}: {insertion!r}")
-        structural_ops.append(("insertion", insertion, copy.deepcopy(insertion["stage"]), None))
+        structural_ops.append(("insertion", insertion, dict(insertion["stage"]), None))
 
     imported_sources: list[str] = []
     pending = list(structural_ops)
