@@ -32,6 +32,14 @@ MEMORY_PAGE = (
     / "views"
     / "memory_bound_encyclopedia_page.py"
 )
+MEMORY_GUIDE_PROVIDER = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "providers"
+    / "memory_bound_guide_provider.py"
+)
 MEMORY_ACHIEVEMENT_PROVIDER = (
     ROOT
     / "app"
@@ -70,7 +78,7 @@ def test_encyclopedia_runtime_constructs_provider_through_memory_facade() -> Non
     assert "providers.achievement_provider import AchievementProvider" not in source
 
 
-def test_memory_bound_page_hibernates_only_widget_layer() -> None:
+def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> None:
     source = MEMORY_PAGE.read_text(encoding="utf-8")
     tree = ast.parse(source)
     method_names = {
@@ -82,13 +90,19 @@ def test_memory_bound_page_hibernates_only_widget_layer() -> None:
         "hibernate_heavy_views",
         "_hibernate_achievements",
         "_hibernate_guides",
+        "_release_runtime_providers",
+        "_collect_achievement_runtime",
+        "collect_related_preload",
         "ensure_achievements_view",
         "ensure_guides_view",
         "hideEvent",
+        "showEvent",
         "on_tab_changed",
     } <= method_names
-    assert "service.achievement_provider" not in source
-    assert "service.guide_provider = None" not in source
+    assert "release_catalogue" in source
+    assert "RelatedPreloadGate()" in source
+    assert "_achievement_ready = False" in source
+    assert "_guide_runtime_ready = False" in source
     assert "deleteLater()" in source
 
 
@@ -105,6 +119,7 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     assert "MemoryBoundAchievementProvider as RealAchievementProvider" in facade
     assert {
         "_reset_sources",
+        "release_catalogue",
         "_trim_catalogue_payload",
         "_load",
         "prepare_detail_sources",
@@ -136,3 +151,16 @@ def test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent() -> 
     assert "subprocess.run" in source
     assert "--dump-compact" in source
     assert "sys.executable" in source
+
+
+def test_guide_provider_releases_reconstructible_catalogue() -> None:
+    source = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    method_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {"release_catalogue", "release_detail_cache", "_load"} <= method_names
+    assert "self._loaded = False" in source
+    assert "self._detail_entries = {}" in source
