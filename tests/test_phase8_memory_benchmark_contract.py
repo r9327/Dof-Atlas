@@ -47,6 +47,22 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "equipment_tree_delta_stabilized_mb" in source
 
 
+def test_memory_benchmark_opens_real_guide_detail_before_home() -> None:
+    source = BENCHMARK.read_text(encoding="utf-8")
+    assert 'GUIDE_DETAIL_BENCHMARK_ID = "guide_complet"' in source
+    helper = source[
+        source.index("def _open_rich_guide_with_probe"):
+        source.index("def measure")
+    ]
+    assert "navigate_to_guide" in helper
+    assert '"guide_detail_ready"' in helper
+
+    flow = source[source.index('sampler.set_phase("guide_catalogue_open")'):]
+    detail = flow.index("_open_rich_guide_with_probe(")
+    home = flow.index('window.show_page("Home")')
+    assert detail < home
+
+
 def test_memory_workflow_publishes_and_uploads_evidence() -> None:
     source = WORKFLOW.read_text(encoding="utf-8")
     assert "tools/benchmark_phase8_memory.py" in source
