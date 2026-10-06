@@ -75,6 +75,28 @@ class LightweightRelatedPreloadTests(unittest.TestCase):
             related_data_service._CACHED_DATA = None
             related_data_service._BUILD_COUNT = 0
 
+    def test_zero_guide_progress_preload_returns_before_progress_imports(self) -> None:
+        import sys
+        import main
+
+        class EmptyGuideProvider:
+            @staticmethod
+            def load_all():
+                return []
+
+        watched = (
+            "app.modules.encyclopedia.services.guide_progress_calculator",
+            "app.modules.encyclopedia.services.memory_bound_achievement_progress_service",
+        )
+        before = {name: sys.modules.get(name) for name in watched}
+        self.assertEqual(
+            main.build_guide_progress_preload(object(), EmptyGuideProvider()),
+            ({}, ""),
+        )
+        for name in watched:
+            self.assertIs(sys.modules.get(name), before[name])
+
+
     def test_related_preload_keeps_all_rich_runtime_graphs_cold(self) -> None:
         catalog = object()
         with (

@@ -66,6 +66,14 @@ RELATED_DATA = (
     / "services"
     / "related_data_service.py"
 )
+SERVICES_FACADE = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "services"
+    / "__init__.py"
+)
 
 
 def test_equipment_runtime_does_not_embed_qt_webengine() -> None:
@@ -148,12 +156,28 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     assert '"raw"' in source
 
 
+def test_services_facade_keeps_progress_runtime_lazy() -> None:
+    source = SERVICES_FACADE.read_text(encoding="utf-8")
+    assert "from app.modules.encyclopedia.services.guide_progress_service import" not in source
+    assert "from app.modules.encyclopedia.services.guide_progress_calculator import" not in source
+    assert "from app.modules.encyclopedia.services.memory_bound_achievement_progress_service import" not in source
+    assert "from app.modules.encyclopedia.services.quest_progress_service import" not in source
+    assert '"AchievementProgressService": (' in source
+    assert '"GuideProgressCalculator": (' in source
+    assert '"GuideProgressService": (' in source
+    assert '"QuestProgressService": (' in source
+
+
 def test_related_index_warmup_runs_outside_long_lived_atlas_process() -> None:
     source = RELATED_DATA.read_text(encoding="utf-8")
     assert "subprocess.run" in source
     assert "achievement_index_warmup" in source
     assert "sys.executable" in source
     assert "QuestSources(" not in source
+    assert ".read_bytes()" not in source
+    assert 'sys.executable, "-c"' not in source
+    assert '"--ensure-compact-cache"' in source
+    assert '"--ensure-guide-index"' in source
     assert "QuestGraphService(" not in source
     assert "QuestProvider(catalog=" not in source
     assert "quest_graph=None" in source
@@ -275,6 +299,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_encyclopedia_runtime_constructs_provider_through_memory_facade()
         test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime()
         test_achievement_provider_releases_reconstructible_source_maps()
+        test_services_facade_keeps_progress_runtime_lazy()
         test_related_index_warmup_runs_outside_long_lived_atlas_process()
         test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent()
         test_guide_name_resolution_uses_prebuilt_index_without_nested_worker()

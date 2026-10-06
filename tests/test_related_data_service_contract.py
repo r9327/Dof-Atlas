@@ -71,6 +71,21 @@ class RelatedDataServiceContractTests(unittest.TestCase):
             warm_guides.assert_called_once_with()
             warm_items.assert_called_once_with()
 
+    def test_compact_preload_worker_is_single_process_boundary(self) -> None:
+        with patch.object(related_data_service, "subprocess") as subprocess:
+            subprocess.run.return_value.stdout = '{"achievement_count":1418}\n'
+            self.assertEqual(related_data_service._warm_achievement_catalogue(), 1418)
+            command = subprocess.run.call_args.args[0]
+            self.assertEqual(command[0], related_data_service.sys.executable)
+            self.assertEqual(command[1], "-m")
+            self.assertIn(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+                command,
+            )
+            self.assertIn("--ensure-compact-cache", command)
+            self.assertNotIn("-c", command)
+
+
     def test_new_catalog_rebuilds_tiny_metadata_without_retaining_graph(self) -> None:
         first_catalog = object()
         second_catalog = object()
