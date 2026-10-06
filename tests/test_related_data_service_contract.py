@@ -1,41 +1,54 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from app.modules.encyclopedia.services import related_data_service
 
 
 class RelatedDataServiceContractTests(unittest.TestCase):
-    def test_same_catalog_reuses_one_canonical_related_data_bundle(self) -> None:
+    def _warm_patches(self):
+        return (
+            patch.object(
+                related_data_service,
+                "_warm_achievement_source_indexes",
+                return_value=7,
+            ),
+            patch.object(
+                related_data_service,
+                "_warm_achievement_catalogue",
+                return_value=1418,
+            ),
+            patch.object(
+                related_data_service,
+                "_warm_guide_files",
+                return_value=3,
+            ),
+            patch.object(
+                related_data_service,
+                "_warm_guide_catalogue",
+                return_value=20,
+            ),
+            patch.object(
+                related_data_service,
+                "_warm_guide_items_index",
+                return_value=6,
+            ),
+        )
+
+    def test_same_catalog_reuses_only_tiny_preload_metadata(self) -> None:
         catalog = object()
-        quest_provider = MagicMock(name="quest_provider")
-        quest_graph = MagicMock(name="quest_graph")
+        warm_source, warm_success, warm_files, warm_guides, warm_items = self._warm_patches()
 
         with (
             patch.object(related_data_service, "_CACHED_CATALOG", None),
             patch.object(related_data_service, "_CACHED_DATA", None),
             patch.object(related_data_service, "_BUILD_COUNT", 0),
-            patch.object(
-                related_data_service,
-                "QuestProvider",
-                return_value=quest_provider,
-            ) as quest_provider_cls,
-            patch.object(
-                related_data_service,
-                "_warm_achievement_source_indexes",
-                return_value=7,
-            ) as warm_achievement_indexes,
-            patch.object(
-                related_data_service,
-                "_warm_guide_files",
-                return_value=3,
-            ) as warm_guide_files,
-            patch.object(
-                related_data_service,
-                "QuestGraphService",
-                return_value=quest_graph,
-            ) as quest_graph_cls,
+            warm_source,
+            warm_success,
+            warm_files,
+            warm_guides,
+            warm_items,
         ):
             first = related_data_service.build_related_encyclopedia_data(catalog)
             second = related_data_service.build_related_encyclopedia_data(catalog)
@@ -43,46 +56,48 @@ class RelatedDataServiceContractTests(unittest.TestCase):
             self.assertIs(first, second)
             self.assertIsNone(first.achievement_provider)
             self.assertIs(first.guide_provider, related_data_service._EMPTY_GUIDE_PROVIDER)
-            self.assertIs(first.quest_graph, quest_graph)
+            self.assertIsNone(first.quest_graph)
             self.assertEqual(first.warmed_source_count, 7)
+            self.assertEqual(first.warmed_achievement_count, 1418)
             self.assertEqual(first.warmed_guide_file_count, 3)
+            self.assertEqual(first.warmed_guide_count, 20)
+            self.assertEqual(first.warmed_guide_item_count, 6)
             self.assertEqual(related_data_service.related_data_build_count(), 1)
+            self.assertEqual(related_data_service._CACHED_CATALOG, id(catalog))
 
-            quest_provider_cls.assert_called_once_with(catalog=catalog)
-            warm_achievement_indexes.assert_called_once_with()
-            warm_guide_files.assert_called_once_with()
-            quest_graph_cls.assert_called_once_with(quest_provider)
+            warm_source.assert_called_once_with()
+            warm_success.assert_called_once_with()
+            warm_files.assert_called_once_with()
+            warm_guides.assert_called_once_with()
+            warm_items.assert_called_once_with()
 
-    def test_new_catalog_replaces_the_active_canonical_bundle(self) -> None:
+    def test_new_catalog_rebuilds_tiny_metadata_without_retaining_graph(self) -> None:
         first_catalog = object()
         second_catalog = object()
+        warm_source, warm_success, warm_files, warm_guides, warm_items = self._warm_patches()
 
         with (
             patch.object(related_data_service, "_CACHED_CATALOG", None),
             patch.object(related_data_service, "_CACHED_DATA", None),
             patch.object(related_data_service, "_BUILD_COUNT", 0),
-            patch.object(related_data_service, "QuestProvider") as quest_provider_cls,
-            patch.object(
-                related_data_service,
-                "_warm_achievement_source_indexes",
-                return_value=7,
-            ) as warm_achievement_indexes,
-            patch.object(
-                related_data_service,
-                "_warm_guide_files",
-                return_value=3,
-            ) as warm_guide_files,
-            patch.object(related_data_service, "QuestGraphService") as quest_graph_cls,
+            warm_source,
+            warm_success,
+            warm_files,
+            warm_guides,
+            warm_items,
         ):
             first = related_data_service.build_related_encyclopedia_data(first_catalog)
             second = related_data_service.build_related_encyclopedia_data(second_catalog)
 
             self.assertIsNot(first, second)
+            self.assertIsNone(first.quest_graph)
+            self.assertIsNone(second.quest_graph)
             self.assertEqual(related_data_service.related_data_build_count(), 2)
-            self.assertEqual(quest_provider_cls.call_count, 2)
-            self.assertEqual(warm_achievement_indexes.call_count, 2)
-            self.assertEqual(warm_guide_files.call_count, 2)
-            self.assertEqual(quest_graph_cls.call_count, 2)
+            self.assertEqual(warm_source.call_count, 2)
+            self.assertEqual(warm_success.call_count, 2)
+            self.assertEqual(warm_files.call_count, 2)
+            self.assertEqual(warm_guides.call_count, 2)
+            self.assertEqual(warm_items.call_count, 2)
 
 
 if __name__ == "__main__":
