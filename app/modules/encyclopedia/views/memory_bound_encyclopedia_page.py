@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gc
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QCoreApplication, QEvent, QTimer
 from PySide6.QtWidgets import QWidget
 
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
@@ -63,6 +63,9 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self._lazy_slots[label] = slot
         widget.setParent(None)
         widget.deleteLater()
+        # Flush only this retired widget's DeferredDelete event. This makes Qt
+        # release the actual C++ tree now, without a global processEvents loop.
+        QCoreApplication.sendPostedEvents(widget, QEvent.DeferredDelete)
 
     def _hibernate_quests(self) -> None:
         page = getattr(self, "quest_page", None)
