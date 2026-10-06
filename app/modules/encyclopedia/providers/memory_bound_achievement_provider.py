@@ -478,12 +478,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             self._catalog_loading = False
         self._trim_catalogue_payload()
         self._progress_objectives = {
-            int(achievement.id): tuple(
-                tuple(row)
-                for row in (
+            int(achievement.id): _progress_objectives_from_rows(
+                [
                     _progress_objective_row(objective)
                     for objective in achievement.objectives
-                )
+                ]
             )
             for achievement in self._achievements
             if achievement.objectives
