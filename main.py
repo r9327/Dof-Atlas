@@ -1831,10 +1831,6 @@ class AtlasWindow(QMainWindow):
         return _resolve_equipment_page()(self.set_status)
 
     def create_encyclopedia_page(self) -> QWidget | None:
-        from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
-        from app.modules.encyclopedia.services import QuestGraphService
-        from app.quest_catalog import QuestCatalog
-
         start_preload = getattr(self, "start_preload", None)
         if callable(start_preload):
             start_preload("quests", user_requested=True)
@@ -1853,7 +1849,13 @@ class AtlasWindow(QMainWindow):
         quest_graph = preload.get("quest_graph") if isinstance(preload, dict) else None
         guide_progress_by_guide = preload.get("guide_progress_by_guide") if isinstance(preload, dict) else None
         guide_progress_character_key = preload.get("guide_progress_character_key") if isinstance(preload, dict) else ""
-        resolved_catalog = catalog if isinstance(catalog, QuestCatalog) else None
+        resolved_catalog = (
+            catalog
+            if catalog is not None
+            and hasattr(catalog, "quests")
+            and hasattr(catalog, "by_id")
+            else None
+        )
         quest_provider = (
             quest_provider_type(catalog=resolved_catalog)
             if resolved_catalog is not None
@@ -1861,17 +1863,17 @@ class AtlasWindow(QMainWindow):
         )
         resolved_achievement = (
             achievement_provider
-            if isinstance(achievement_provider, AchievementProvider)
+            if achievement_provider is not None
             and bool(getattr(achievement_provider, "_loaded", False))
             else None
         )
         resolved_guide = (
             guide_provider
-            if isinstance(guide_provider, GuideProvider)
+            if guide_provider is not None
             and bool(getattr(guide_provider, "_loaded", False))
             else None
         )
-        resolved_graph = quest_graph if isinstance(quest_graph, QuestGraphService) else None
+        resolved_graph = quest_graph
         page = encyclopedia_page_type(
             self.set_status,
             quest_provider=quest_provider,
