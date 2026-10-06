@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SHELL_MAIN = ROOT / "main.py"
 EQUIPMENT = ROOT / "app" / "pages" / "equipment_page.py"
 ENCYCLOPEDIA_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "views" / "__init__.py"
 ENCYCLOPEDIA_SERVICE = (
@@ -91,6 +92,7 @@ def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> N
         "_hibernate_achievements",
         "_hibernate_guides",
         "_release_runtime_providers",
+        "prepare_external_tab_navigation",
         "_collect_achievement_runtime",
         "collect_related_preload",
         "ensure_achievements_view",
@@ -166,3 +168,18 @@ def test_guide_provider_releases_reconstructible_catalogue() -> None:
     assert {"release_catalogue", "release_detail_cache", "_load"} <= method_names
     assert "self._loaded = False" in source
     assert "self._detail_entries = {}" in source
+
+
+def test_shell_announces_explicit_encyclopedia_tab_before_showing_page() -> None:
+    source = SHELL_MAIN.read_text(encoding="utf-8")
+    method = source[source.index("def open_encyclopedia_tab"):source.index("def finish_pending_encyclopedia_tab")]
+    prepare = method.index("prepare_external_tab_navigation")
+    show = method.index('self.show_page("Quetes")')
+    assert prepare < show
+    assert "prepare_navigation(label)" in method
+
+
+def test_memory_page_prefers_explicit_tab_over_hidden_current_tab() -> None:
+    source = MEMORY_PAGE.read_text(encoding="utf-8")
+    assert 'label = self._memory_pending_tab_label or self.tabs.tabText(index)' in source
+    assert 'if label and label == self._memory_pending_tab_label:' in source
