@@ -595,7 +595,13 @@ def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     assert "ACHIEVEMENT_COMPACT_CACHE" in source
     assert "external_start" in source
     assert "def _load_from_compact_cache" in source
-    assert "retained_only=True" in source
+    compact_load = source[
+        source.index("def _load_from_compact_cache"):
+        source.index("def _load_from_compact_subprocess")
+    ]
+    assert "self._achievements = []" in compact_load
+    assert "self._compact_retained_ids = retained_ids" in compact_load
+    assert "self._compact_external_index = offsets" in compact_load
 
 
 def test_guide_home_uses_virtualized_delegate_instead_of_widget_forest() -> None:
