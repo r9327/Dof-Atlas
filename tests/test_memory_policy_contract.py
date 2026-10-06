@@ -105,6 +105,8 @@ def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> N
     assert "RelatedPreloadGate()" in source
     assert "_achievement_ready = False" in source
     assert "_guide_runtime_ready = False" in source
+    assert "gc.collect(2)" in source
+    assert "QTimer.singleShot(0, self._collect_released_memory)" in source
     assert "pending_encyclopedia_tab" in source
     assert "_memory_release_runtime_when_idle = False" in source
     assert "deleteLater()" in source
