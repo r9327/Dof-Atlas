@@ -152,19 +152,29 @@ class EncyclopediaPage(BaseEncyclopediaPage):
 
     @staticmethod
     def _clear_reconstructible_manual_guide_cache() -> None:
-        """Drop Guide Succès' deep-copied route bundle only if it was actually used."""
+        """Drop reconstructible manual-route caches without importing cold modules."""
 
-        for module_name in (
-            "app.modules.encyclopedia.services.guide_ultime_manual_runtime_service",
-            "app.modules.encyclopedia.services.guide_ultime_manual_runtime_core",
-        ):
+        cache_clearers = (
+            (
+                "app.modules.encyclopedia.services.guide_ultime_manual_runtime_core",
+                "clear_manual_bundle_cache",
+            ),
+            (
+                "app.modules.encyclopedia.services.guide_ultime_manual_route",
+                "clear_manual_route_cache",
+            ),
+            (
+                "app.modules.encyclopedia.services.guide_auto_validation_contract",
+                "clear_auto_validation_contract_cache",
+            ),
+        )
+        for module_name, clear_name in cache_clearers:
             module = sys.modules.get(module_name)
             if module is None:
                 continue
-            clear = getattr(module, "clear_manual_bundle_cache", None)
+            clear = getattr(module, clear_name, None)
             if callable(clear):
                 clear()
-                return
 
     def _release_runtime_providers(self) -> bool:
         if bool(getattr(self, "_achievement_load_started", False)) or bool(
