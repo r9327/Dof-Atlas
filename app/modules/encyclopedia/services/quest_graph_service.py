@@ -101,6 +101,8 @@ class QuestGraphService:
         quest_provider: QuestProvider,
         guide_provider: GuideProvider | None = None,
         achievement_provider: AchievementProvider | None = None,
+        *,
+        eager: bool = True,
     ) -> None:
         self.quest_provider = quest_provider
         self.guide_provider = guide_provider
@@ -115,16 +117,47 @@ class QuestGraphService:
         self.alternative_previous_by_quest: dict[int, set[int]] = defaultdict(set)
         self.guide_ids_by_quest: dict[int, set[str]] = defaultdict(set)
         self.achievement_names_by_quest: dict[int, set[str]] = defaultdict(set)
-        self._build()
+        self._built = False
+        if eager:
+            self._build()
+            self._built = True
 
     def previous_ids(self, quest_id: int) -> list[int]:
-        return sorted(self.previous_by_quest.get(int(quest_id), set()))
+        quest_id = int(quest_id)
+        if self._built:
+            return sorted(self.previous_by_quest.get(quest_id, set()))
+        quest = self.catalog.by_id.get(quest_id)
+        if quest is None:
+            return []
+        return sorted(
+            previous
+            for previous in self.criterion_references(quest.start_criterion).mandatory_hard_quests
+            if previous in self.catalog.by_id and previous != quest_id
+        )
 
     def next_ids(self, quest_id: int) -> list[int]:
-        return sorted(self.next_by_quest.get(int(quest_id), set()))
+        quest_id = int(quest_id)
+        if self._built:
+            return sorted(self.next_by_quest.get(quest_id, set()))
+        return sorted(
+            int(quest.id)
+            for quest in self.catalog.quests
+            if int(quest.id) != quest_id
+            and quest_id in self.criterion_references(quest.start_criterion).mandatory_hard_quests
+        )
 
     def context_previous_ids(self, quest_id: int) -> list[int]:
-        return sorted(self.context_previous_by_quest.get(int(quest_id), set()))
+        quest_id = int(quest_id)
+        if self._built:
+            return sorted(self.context_previous_by_quest.get(quest_id, set()))
+        quest = self.catalog.by_id.get(quest_id)
+        if quest is None:
+            return []
+        return sorted(
+            previous
+            for previous in self.criterion_references(quest.start_criterion).mandatory_context_quests
+            if previous in self.catalog.by_id and previous != quest_id
+        )
 
     def reliable_neighbors(self, quest_id: int, guide_id: str = "") -> tuple[int | None, int | None]:
         """Return navigation only when its provenance is explicit.
@@ -147,8 +180,8 @@ class QuestGraphService:
                     following = ordered[index + 1] if index + 1 < len(ordered) else None
                     return previous, following
 
-        previous_rows = self.criterion_previous_by_quest.get(quest_id, set())
-        next_rows = self.criterion_next_by_quest.get(quest_id, set())
+        previous_rows = set(self.previous_ids(quest_id))
+        next_rows = set(self.next_ids(quest_id))
         previous = next(iter(previous_rows)) if len(previous_rows) == 1 else None
         following = next(iter(next_rows)) if len(next_rows) == 1 else None
         return previous, following
@@ -157,20 +190,50 @@ class QuestGraphService:
         """Order a known group from explicit Qf dependencies, then stable local data."""
 
         ids = {int(quest_id) for quest_id in quest_ids if int(quest_id) in self.catalog.by_id}
-        edges = {
-            (previous, quest_id)
-            for quest_id in ids
-            for previous in self.criterion_previous_by_quest.get(quest_id, set())
-            if previous in ids
-        }
+        if self._built:
+            edges = {
+                (previous, quest_id)
+                for quest_id in ids
+                for previous in self.criterion_previous_by_quest.get(quest_id, set())
+                if previous in ids
+            }
+        else:
+            edges = {
+                (previous, quest_id)
+                for quest_id in ids
+                for previous in self.criterion_references(
+                    self.catalog.by_id[quest_id].start_criterion
+                ).mandatory_hard_quests
+                if previous in ids
+            }
         ordered, _cycles = self._topological_order(ids, edges)
         return ordered
 
     def guide_ids(self, quest_id: int) -> list[str]:
-        return sorted(self.guide_ids_by_quest.get(int(quest_id), set()))
+        quest_id = int(quest_id)
+        if self._built:
+            return sorted(self.guide_ids_by_quest.get(quest_id, set()))
+        if self.guide_provider is None:
+            return []
+        getter = getattr(self.guide_provider, "get_guides_for_entity", None)
+        if callable(getter):
+            return sorted(
+                str(guide.id)
+                for guide in getter("quest", quest_id)
+                if getattr(guide, "id", None)
+            )
+        return []
 
     def achievement_names(self, quest_id: int) -> list[str]:
-        return sorted(self.achievement_names_by_quest.get(int(quest_id), set()), key=normalize_text)
+        if self._built:
+            return sorted(
+                self.achievement_names_by_quest.get(int(quest_id), set()),
+                key=normalize_text,
+            )
+        quest = self.catalog.by_id.get(int(quest_id))
+        if quest is None:
+            return []
+        return sorted((str(name) for name in quest.achievements), key=normalize_text)
 
     def is_repeatable(self, quest: QuestRecord) -> bool:
         text = normalize_text(" ".join([quest.category, quest.start_criterion, *quest.info]))

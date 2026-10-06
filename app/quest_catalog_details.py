@@ -20,6 +20,7 @@ from app import quest_catalog as qc
 from app.quest_source_index import QuestSources
 
 _DETAIL_FIELDS = frozenset({"steps", "source_solution_steps", "solution_blocks", "source_info", "rewards"})
+_SUMMARY_FIELDS = {"achievements": 0, "prerequisites": 1, "info": 2}
 _CACHE_ROOT = qc.ROOT_DIR / ".cache" / "dofus_atlas" / "quest_details_v1"
 
 
@@ -27,6 +28,14 @@ class DeferredQuestRecord(qc.QuestRecord):
     __slots__ = ("_details",)
 
     def __getattribute__(self, name):
+        summary_index = _SUMMARY_FIELDS.get(name)
+        if summary_index is not None:
+            try:
+                details = object.__getattribute__(self, "_details")
+            except AttributeError:
+                details = None
+            if details is not None:
+                return details.summary_fields(object.__getattribute__(self, "id"))[summary_index]
         if name in _DETAIL_FIELDS:
             try:
                 details = object.__getattribute__(self, "_details")
@@ -45,7 +54,40 @@ class QuestDetails:
         self._load_lock = RLock()
         self._sources = QuestSources(path.parent)
         self._records: OrderedDict[int, qc.QuestRecord] = OrderedDict()
+        self._summaries: OrderedDict[
+            int,
+            tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]],
+        ] = OrderedDict()
         self.loads = self.hits = 0
+
+    def summary_fields(
+        self,
+        quest_id: int,
+    ) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
+        quest_id = int(quest_id)
+        with self._lock:
+            cached = self._summaries.get(quest_id)
+            if cached is not None:
+                self._summaries.move_to_end(quest_id)
+                return cached
+        with _connect(self.path) as connection:
+            row = connection.execute(
+                "SELECT achievements, prerequisites, info FROM quests WHERE id=?",
+                (quest_id,),
+            ).fetchone()
+        if row is None:
+            return (), (), ()
+        result = (
+            tuple(str(value) for value in json.loads(row[0] or "[]")),
+            tuple(str(value) for value in json.loads(row[1] or "[]")),
+            tuple(str(value) for value in json.loads(row[2] or "[]")),
+        )
+        with self._lock:
+            self._summaries[quest_id] = result
+            self._summaries.move_to_end(quest_id)
+            while len(self._summaries) > self.limit:
+                self._summaries.popitem(last=False)
+        return result
 
     def cached(self, quest_id: int) -> bool:
         with self._lock:
@@ -250,8 +292,8 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
     empty: tuple = ()
     with _connect(path) as connection:
         cursor = connection.execute(
-            "SELECT id, name, category, level_min, level_max, start_criterion, "
-            "achievements, prerequisites, info FROM quests ORDER BY name COLLATE NOCASE"
+            "SELECT id, name, category, level_min, level_max, start_criterion "
+            "FROM quests ORDER BY name COLLATE NOCASE"
         )
         for (
             quest_id,
@@ -260,9 +302,6 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
             level_min,
             level_max,
             start_criterion,
-            achievements,
-            prerequisites,
-            info,
         ) in cursor:
             record = DeferredQuestRecord(
                 id=int(quest_id),
@@ -272,9 +311,9 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
                 level_max=int(level_max or 0),
                 start_criterion=str(start_criterion or ""),
                 zones=empty,
-                achievements=tuple(json.loads(achievements or "[]")),
-                prerequisites=tuple(json.loads(prerequisites or "[]")),
-                info=tuple(json.loads(info or "[]")),
+                achievements=empty,
+                prerequisites=empty,
+                info=empty,
                 steps=empty,
                 source_solution_steps=empty,
                 solution_blocks=empty,

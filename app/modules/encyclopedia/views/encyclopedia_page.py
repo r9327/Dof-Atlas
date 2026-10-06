@@ -121,6 +121,7 @@ class EncyclopediaPage(QWidget):
                 self.quest_provider,
                 guide_provider=guide_provider,
                 achievement_provider=achievement_provider,
+                eager=False,
             )
         self._guide_progress_by_guide = guide_progress_by_guide or {}
         self._guide_progress_character_key = guide_progress_character_key or ""
@@ -579,7 +580,10 @@ class EncyclopediaPage(QWidget):
         return result
 
     def _build_quests_page_progressive(self) -> ProgressiveQuestsPage:
-        lightweight_graph = self._quest_graph or QuestGraphService(self.quest_provider)
+        lightweight_graph = self._quest_graph or QuestGraphService(
+            self.quest_provider,
+            eager=False,
+        )
         page = ProgressiveQuestsPage(
             self.status_callback,
             catalog=self.quest_provider.get_catalog(),
@@ -645,7 +649,7 @@ class EncyclopediaPage(QWidget):
             with background_io_priority():
                 try:
                     provider.get_catalog()
-                    graph = QuestGraphService(provider)
+                    graph = QuestGraphService(provider, eager=False)
                     result: object = _QuestRuntimePayload(graph)
                 except Exception as exc:
                     result = exc
@@ -892,6 +896,7 @@ class EncyclopediaPage(QWidget):
                         quest_provider,
                         guide_provider=active_guide_provider,
                         achievement_provider=achievement_provider,
+                        eager=False,
                     )
                     try:
                         progress = self._build_guide_progress_snapshot(
@@ -1036,6 +1041,7 @@ class EncyclopediaPage(QWidget):
                     graph = existing_graph or QuestGraphService(
                         quest_provider,
                         achievement_provider=achievement_provider,
+                        eager=False,
                     )
                     result: object = _AchievementStagePayload(
                         achievement_provider,

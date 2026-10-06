@@ -103,7 +103,7 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
                 self.assertFalse(window.preload_queue.empty())
                 window.collect_preload_result()
 
-            build_related.assert_called_once_with(catalog)
+            build_related.assert_called_once_with(None)
             self.assertEqual(window.preload_states["encyclopedia"], main.PRELOAD_READY)
             self.assertIs(window.preload_results["quests"]["guide_provider"], related_payload["guide_provider"])
             self.assertEqual(set(window.page_factories), page_factories_before)
@@ -140,7 +140,7 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
                 self.assertFalse(window.preload_queue.empty())
                 window.collect_preload_result()
 
-            self.assertEqual(gate_calls, [catalog])
+            self.assertEqual(gate_calls, [None])
         finally:
             window.quit_requested = True
             window.close()
