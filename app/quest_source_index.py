@@ -268,45 +268,188 @@ class JsonSourceMapping(Mapping):
         self._offsets = {int(key) if self.doduda else key: tuple(span) for key, span in offsets.items()}
 
     def _build_offsets(self, field):
-        # Decode one raw JSON member at a time with CPython's JSON parser.
-        # The source text is temporary; only byte spans survive this pass.
-        # Never construct the full source dictionary or rich quest records.
-        data = self.path.read_bytes().decode('utf-8')
-        marker = re.search(r'"' + re.escape(field) + r'"\s*:\s*([\[{])', data)
-        if marker is None:
+        """Build byte spans without decoding the monolithic source as one string."""
+
+        field_marker = json.dumps(str(field), ensure_ascii=False).encode("utf-8")
+        field_pattern = re.compile(re.escape(field_marker) + rb"\\s*:\\s*([\\[{])")
+        chunk_size = 256 * 1024
+        overlap_size = 1024
+        container_start: int | None = None
+        container_open: int | None = None
+
+        with self.path.open("rb") as stream:
+            tail = b""
+            while True:
+                chunk = stream.read(chunk_size)
+                if not chunk:
+                    break
+                data = tail + chunk
+                base = stream.tell() - len(chunk) - len(tail)
+                match = field_pattern.search(data)
+                if match is not None:
+                    container_open = match.group(1)[0]
+                    container_start = base + match.end()
+                    break
+                tail = data[-overlap_size:]
+
+        if container_start is None or container_open is None:
             self._source_failure(f"champ requis absent ({field})")
             return {}
-        decoder = json.JSONDecoder()
-        cursor = marker.end()
-        byte_cursor = len(data[:cursor].encode('utf-8'))
-        previous = cursor
-        offsets = {}
-        end = ']' if self.doduda else '}'
-        while True:
-            cursor = _SPACE.match(data, cursor).end()
-            if data[cursor:cursor + 1] == end:
-                break
-            if not self.doduda:
-                key, cursor = decoder.raw_decode(data, cursor)
-                cursor = _SPACE.match(data, cursor).end()
-                if data[cursor:cursor + 1] != ':':
-                    raise ValueError("Missing JSON member separator")
-                cursor = _SPACE.match(data, cursor + 1).end()
-            byte_cursor += len(data[previous:cursor].encode('utf-8'))
-            start = byte_cursor
-            value, value_end = decoder.raw_decode(data, cursor)
-            byte_cursor += len(data[cursor:value_end].encode('utf-8'))
-            if self.doduda:
-                row = value.get('data') if isinstance(value, dict) else None
-                key = row.get('id') if isinstance(row, dict) else None
-            if key is not None:
-                offsets[str(key)] = (start, byte_cursor)
-            previous = value_end
-            cursor = _SPACE.match(data, value_end).end()
-            if data[cursor:cursor + 1] == ',':
-                cursor += 1
-            elif data[cursor:cursor + 1] != end:
-                raise ValueError("Missing JSON member delimiter")
+
+        class _Reader:
+            def __init__(self, path: Path, position: int) -> None:
+                self.stream = path.open("rb")
+                self.stream.seek(position)
+                self.buffer = b""
+                self.index = 0
+                self.base = position
+
+            def close(self) -> None:
+                self.stream.close()
+
+            def _fill(self) -> bool:
+                if self.index < len(self.buffer):
+                    return True
+                self.base += len(self.buffer)
+                self.buffer = self.stream.read(64 * 1024)
+                self.index = 0
+                return bool(self.buffer)
+
+            def tell(self) -> int:
+                return self.base + self.index
+
+            def peek(self) -> int | None:
+                return self.buffer[self.index] if self._fill() else None
+
+            def get(self) -> int | None:
+                value = self.peek()
+                if value is not None:
+                    self.index += 1
+                return value
+
+        whitespace = {9, 10, 13, 32}
+        closing = ord("}") if container_open == ord("{") else ord("]")
+        reader = _Reader(self.path, container_start)
+        values = self.path.open("rb")
+
+        def read_span(start_pos: int, end_pos: int) -> bytes:
+            values.seek(start_pos)
+            return values.read(max(0, end_pos - start_pos))
+
+        def skip_space() -> None:
+            while reader.peek() in whitespace:
+                reader.get()
+
+        def read_string_span() -> tuple[int, int]:
+            start_pos = reader.tell()
+            if reader.get() != ord('"'):
+                raise ValueError("Expected JSON string")
+            escaped = False
+            while True:
+                value = reader.get()
+                if value is None:
+                    raise ValueError("Unterminated JSON string")
+                if escaped:
+                    escaped = False
+                    continue
+                if value == ord("\\"):
+                    escaped = True
+                    continue
+                if value == ord('"'):
+                    return start_pos, reader.tell()
+
+        def read_value_span() -> tuple[int, int]:
+            skip_space()
+            start_pos = reader.tell()
+            first = reader.peek()
+            if first is None:
+                raise ValueError("Missing JSON value")
+
+            if first == ord('"'):
+                return read_string_span()
+
+            if first in {ord("{"), ord("[")}:
+                stack: list[int] = []
+                in_string = False
+                escaped = False
+                while True:
+                    value = reader.get()
+                    if value is None:
+                        raise ValueError("Unterminated JSON value")
+                    if in_string:
+                        if escaped:
+                            escaped = False
+                        elif value == ord("\\"):
+                            escaped = True
+                        elif value == ord('"'):
+                            in_string = False
+                        continue
+                    if value == ord('"'):
+                        in_string = True
+                        continue
+                    if value in {ord("{"), ord("[")}:
+                        stack.append(value)
+                        continue
+                    if value in {ord("}"), ord("]")}:
+                        if not stack:
+                            raise ValueError("Unexpected JSON closing delimiter")
+                        opened = stack.pop()
+                        if (
+                            (opened == ord("{") and value != ord("}"))
+                            or (opened == ord("[") and value != ord("]"))
+                        ):
+                            raise ValueError("Mismatched JSON delimiters")
+                        if not stack:
+                            return start_pos, reader.tell()
+
+            last_non_space = start_pos
+            while True:
+                value = reader.peek()
+                if value is None or value in {ord(","), closing}:
+                    return start_pos, last_non_space
+                value = reader.get()
+                if value not in whitespace:
+                    last_non_space = reader.tell()
+
+        offsets: dict[str, tuple[int, int]] = {}
+        try:
+            while True:
+                skip_space()
+                value = reader.peek()
+                if value is None or value == closing:
+                    break
+                if value == ord(","):
+                    reader.get()
+                    continue
+
+                key = None
+                if not self.doduda:
+                    key_start, key_end = read_string_span()
+                    key = json.loads(read_span(key_start, key_end))
+                    skip_space()
+                    if reader.get() != ord(":"):
+                        raise ValueError("Missing JSON member separator")
+                    skip_space()
+
+                value_start, value_end = read_value_span()
+                if self.doduda:
+                    raw_value = json.loads(read_span(value_start, value_end))
+                    row = raw_value.get("data") if isinstance(raw_value, dict) else None
+                    key = row.get("id") if isinstance(row, dict) else None
+                if key is not None:
+                    offsets[str(key)] = (value_start, value_end)
+
+                skip_space()
+                delimiter = reader.peek()
+                if delimiter == ord(","):
+                    reader.get()
+                elif delimiter == closing:
+                    break
+                elif delimiter is not None:
+                    raise ValueError("Missing JSON member delimiter")
+        finally:
+            reader.close()
+            values.close()
         return offsets
 
     def __getitem__(self, key):
