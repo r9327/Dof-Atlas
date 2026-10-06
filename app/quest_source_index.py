@@ -26,7 +26,7 @@ class QuestSourceError(RuntimeError):
     """Raised when a required quest business source cannot be read safely."""
 
 _JSON_OBJECT_MEMBER_RE = re.compile(
-    rb'(?<!\\\\)"((?:\\\\.|[^"\\\\])*)"\\s*:\\s*'
+    rb'(?<!\\)"((?:\\.|[^"\\])*)"\s*:\s*'
 )
 
 

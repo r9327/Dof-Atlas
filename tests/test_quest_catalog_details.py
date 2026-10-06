@@ -12,7 +12,11 @@ from unittest.mock import patch
 from app import quest_catalog as qc
 from app.quest_catalog import QuestCatalog, QuestRecord, QuestStep
 from app.quest_catalog_details import load_lazy_catalog
-from app.quest_source_index import JsonSourceMapping, QuestSources
+from app.quest_source_index import (
+    JsonSourceMapping,
+    QuestSources,
+    read_selected_json_object_values,
+)
 
 
 def record(quest_id):
@@ -223,6 +227,38 @@ class DeferredQuestUiTests(unittest.TestCase):
                     page._detail_worker.join(4)
                 page.deleteLater()
                 app.processEvents()
+
+
+class SelectedJsonValueTests(unittest.TestCase):
+    def test_selected_object_values_preserve_localized_text(self):
+        payload = {
+            "metadata": {"entries": {"999": "nested decoy"}},
+            "entries": {
+                "101": "Quêtes",
+                "102": "Donjons",
+                "103": "Texte avec \\"guillemets\\" et été",
+                "104": {"nested": [1, True, None]},
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "fr.json"
+            path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            selected = read_selected_json_object_values(
+                path,
+                "entries",
+                {"101", "103", "104"},
+            )
+        self.assertEqual(
+            selected,
+            {
+                "101": "Quêtes",
+                "103": "Texte avec \\"guillemets\\" et été",
+                "104": {"nested": [1, True, None]},
+            },
+        )
 
 
 class JsonSourceIndexTests(unittest.TestCase):

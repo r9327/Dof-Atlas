@@ -108,7 +108,7 @@ def test_encyclopedia_quest_surface_defers_success_and_guide_widgets() -> None:
     assert "pages.progressive_quests_page import ProgressiveQuestsPage" not in runtime_imports
     loader = facade[
         facade.index("def _load_encyclopedia_page_class"):
-        facade.index("class _LazyEncyclopediaPageMeta"),
+        facade.index("class _LazyEncyclopediaPageMeta")
     ]
     assert "_ensure_guide_view_loaded()" not in loader
     assert "_resolve_achievements_view_type" in source
