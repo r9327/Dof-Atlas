@@ -513,6 +513,39 @@ def test_guide_home_uses_virtualized_delegate_instead_of_widget_forest() -> None
     assert "for entity_key, guide_ids in by_entity_ids.items()" not in install
 
 
+def test_guide_home_defers_quest_runtime_until_needed() -> None:
+    source = (
+        ROOT / "app" / "modules" / "encyclopedia" / "views" / "guides_view.py"
+    ).read_text(encoding="utf-8")
+
+    hydrate = source[
+        source.index("def hydrate_runtime"):
+        source.index("def _ensure_progress_runtime")
+    ]
+    assert "self.quest_provider.get_catalog()" not in hydrate
+    assert "QuestGraphService(" not in hydrate
+
+    progress_runtime = source[
+        source.index("def _ensure_progress_runtime"):
+        source.index("def _ensure_detail_runtime")
+    ]
+    assert "self.quest_provider.get_catalog()" in progress_runtime
+    assert "GuideProgressCalculator(" in progress_runtime
+
+    detail_runtime = source[
+        source.index("def _ensure_detail_runtime"):
+        source.index("def _ensure_detail_page")
+    ]
+    assert "QuestGraphService(" in detail_runtime
+    assert "eager=False" in detail_runtime
+
+    detail_page = source[
+        source.index("def _ensure_detail_page"):
+        source.index("def build_home_page")
+    ]
+    assert "self._ensure_detail_runtime()" in detail_page
+
+
 def test_guide_home_thumbnails_use_bounded_encyclopedia_cache() -> None:
     source = (
         ROOT / "app" / "modules" / "encyclopedia" / "widgets" / "guide_card.py"
@@ -628,6 +661,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
         test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
+        test_guide_home_defers_quest_runtime_until_needed()
         test_guide_home_thumbnails_use_bounded_encyclopedia_cache()
         test_guide_home_reads_sparse_compact_rows_without_runtime_worker()
         test_guide_compact_home_rows_skip_rich_entity_decode()
