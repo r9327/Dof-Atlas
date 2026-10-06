@@ -5,7 +5,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.modules.encyclopedia.services import guide_ultime_manual_route
+from app.modules.encyclopedia.services import (
+    guide_ultime_manual_route,
+    guide_ultime_manual_runtime_core,
+)
 
 
 class GuideManualRouteCacheTests(unittest.TestCase):
@@ -93,6 +96,56 @@ class GuideManualRouteCacheTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "Cycle de composition"):
                 guide_ultime_manual_route.load_manual_chapter(chapter, _seen={resolved}, _memo=memo)
+
+    def test_compact_runtime_hydrates_only_current_manual_stage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            service = object.__new__(
+                guide_ultime_manual_runtime_core.GuideUltimeManualRuntimeService
+            )
+            service.compact_runtime = True
+            service.manual_dir = Path(tmp)
+            service._manual_base_lines_cache = ("old", [{"text": "old"}])
+
+            previous = {
+                "manual_stage_data": {"id": "previous"},
+                "manual_chapter_preparation": [{"name": "old"}],
+            }
+            service._manual_hydrated_card = previous
+            card = {
+                "manual_source_file": "chapter.json",
+                "manual_stage_position": 1,
+            }
+            chapter = {
+                "stages": [
+                    {"id": "first"},
+                    {"id": "visible", "instructions": ["Do it"]},
+                ]
+            }
+
+            with (
+                patch.object(
+                    guide_ultime_manual_runtime_core,
+                    "load_manual_chapter",
+                    return_value=chapter,
+                ),
+                patch.object(
+                    service,
+                    "_chapter_preparation_schedule",
+                    return_value={1: [{"name": "needed"}]},
+                ),
+            ):
+                stage = service._hydrate_manual_card_source(card)
+
+            self.assertIs(stage, chapter["stages"][1])
+            self.assertIs(card["manual_stage_data"], chapter["stages"][1])
+            self.assertEqual(
+                card["manual_chapter_preparation"],
+                [{"name": "needed"}],
+            )
+            self.assertNotIn("manual_stage_data", previous)
+            self.assertNotIn("manual_chapter_preparation", previous)
+            self.assertIs(service._manual_hydrated_card, card)
+            self.assertIsNone(service._manual_base_lines_cache)
 
     def test_recursive_resolution_bypasses_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
