@@ -212,6 +212,31 @@ def test_success_progress_sync_streams_compact_rows() -> None:
     assert "with ACHIEVEMENT_COMPACT_CACHE.open(\"rb\") as stream:" in provider_source
 
 
+def test_success_runtime_keeps_quest_catalogue_and_graph_cold() -> None:
+    page_source = ENCYCLOPEDIA_PAGE.read_text(encoding="utf-8")
+    success_source = (
+        ROOT / "app" / "modules" / "encyclopedia" / "views" / "achievements_view.py"
+    ).read_text(encoding="utf-8")
+
+    stage = page_source[
+        page_source.index("def _start_achievement_stage"):
+        page_source.index("def _collect_achievement_runtime"),
+    ]
+    worker = stage[
+        stage.index("def worker()"):
+        stage.index("self.achievementRuntimeFinished.emit"),
+    ]
+    assert "quest_provider.get_catalog()" not in worker
+    assert "QuestGraphService(" not in worker
+    assert "existing_graph" in worker
+
+    hydrate = success_source[
+        success_source.index("def hydrate_runtime"):
+        success_source.index("def _panel"),
+    ]
+    assert "QuestGraphService(" not in hydrate
+
+
 def test_success_catalog_keeps_alignment_route_profiles_cold() -> None:
     source = (
         ROOT / "app" / "modules" / "encyclopedia" / "views" / "achievements_view.py"
