@@ -10,6 +10,14 @@ SHELL_MAIN = ROOT / "main.py"
 EQUIPMENT = ROOT / "app" / "pages" / "equipment_page.py"
 ENCYCLOPEDIA_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "views" / "__init__.py"
 ENCYCLOPEDIA_PAGE = ROOT / "app" / "modules" / "encyclopedia" / "views" / "encyclopedia_page.py"
+GUIDE_CATALOG_VIEW = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "views"
+    / "guide_catalog_view.py"
+)
 ENCYCLOPEDIA_SERVICE = (
     ROOT
     / "app"
@@ -114,6 +122,42 @@ def test_encyclopedia_quest_surface_defers_success_and_guide_widgets() -> None:
     assert "_resolve_achievements_view_type" in source
     assert "_resolve_guides_view_type" in source
     assert "_resolve_progressive_quests_page_type" in source
+
+
+def test_guide_catalog_surface_defers_rich_guide_module_until_selection() -> None:
+    catalog_source = GUIDE_CATALOG_VIEW.read_text(encoding="utf-8")
+    assert "views.guides_view" not in catalog_source
+    assert "manual_route_guides_view" not in catalog_source
+    assert "deferred_achievement_guides_view" not in catalog_source
+    assert "GuideListModel" in catalog_source
+    assert "GuideCardDelegate" in catalog_source
+    assert "guideRequested = Signal(str)" in catalog_source
+
+    page_source = ENCYCLOPEDIA_PAGE.read_text(encoding="utf-8")
+    catalog_resolver = page_source[
+        page_source.index("def _resolve_guide_catalog_view_type"):
+        page_source.index("def _resolve_guides_view_type")
+    ]
+    assert "guide_catalog_view import GuideCatalogView" in catalog_resolver
+    assert "_ensure_guide_view_loaded" not in catalog_resolver
+
+    catalogue_factory = page_source[
+        page_source.index("def ensure_guides_view"):
+        page_source.index("def ensure_full_guides_view")
+    ]
+    assert "_resolve_guide_catalog_view_type()" in catalogue_factory
+    assert "_resolve_guides_view_type()" not in catalogue_factory
+    assert "guideRequested.connect(self.navigate_to_guide)" in catalogue_factory
+
+    full_factory = page_source[
+        page_source.index("def ensure_full_guides_view"):
+        page_source.index("def open_pending_lazy_tab")
+    ]
+    assert "_resolve_guides_view_type()" in full_factory
+    assert "defer_runtime=not self._guide_runtime_ready" in full_factory
+
+    restore_source = MEMORY_PAGE.read_text(encoding="utf-8")
+    assert "super().ensure_full_guides_view()" in restore_source
 
 
 def test_quest_catalog_defers_rich_detail_view_until_selection() -> None:
@@ -692,6 +736,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_encyclopedia_public_facade_routes_to_memory_bound_page()
         test_encyclopedia_runtime_constructs_provider_through_memory_facade()
         test_encyclopedia_quest_surface_defers_success_and_guide_widgets()
+        test_guide_catalog_surface_defers_rich_guide_module_until_selection()
         test_quest_catalog_defers_rich_detail_view_until_selection()
         test_success_progress_sync_streams_compact_rows()
         test_success_catalog_keeps_alignment_route_profiles_cold()
