@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QLabel, QListView, QVBoxLayout, QWidget
 
-from app.modules.encyclopedia.services.guide_catalog_route_stats import (
+from app.modules.encyclopedia.services.guide_catalog_hints import (
     catalog_route_map_count_hint,
 )
 from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
