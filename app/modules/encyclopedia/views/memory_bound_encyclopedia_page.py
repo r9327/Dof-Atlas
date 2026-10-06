@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import gc
+
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QWidget
 
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
@@ -32,6 +35,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self._memory_has_been_shown = False
         self._memory_release_runtime_when_idle = False
         self._memory_pending_tab_label = ""
+        self._memory_gc_scheduled = False
         super().__init__(*args, **kwargs)
 
     def _replace_with_lazy_slot(self, label: str, widget: QWidget) -> None:
@@ -169,6 +173,19 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self._memory_release_runtime_when_idle = False
         return True
 
+    def _collect_released_memory(self) -> None:
+        self._memory_gc_scheduled = False
+        gc.collect(2)
+
+    def _schedule_memory_collection(self) -> None:
+        if self._memory_gc_scheduled:
+            return
+        self._memory_gc_scheduled = True
+        # Deferred Qt deletes must run first; collect Python cycles on the next
+        # event-loop turn. This releases genuinely unreachable objects and does
+        # not trim or disguise the Windows working set.
+        QTimer.singleShot(0, self._collect_released_memory)
+
     def prepare_external_tab_navigation(self, label: str) -> None:
         """Prioritize an explicit shell tab request over stale hidden-tab state."""
 
@@ -187,6 +204,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             self.hibernate_heavy_views()
             self._memory_release_runtime_when_idle = True
             self._release_runtime_providers()
+            self._schedule_memory_collection()
         super().hideEvent(event)
 
     def showEvent(self, event) -> None:  # noqa: N802 - Qt API
@@ -254,12 +272,14 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         if self._memory_release_runtime_when_idle and not self.isVisible():
             self.hibernate_heavy_views()
             self._release_runtime_providers()
+            self._schedule_memory_collection()
 
     def collect_related_preload(self, result: object) -> None:
         super().collect_related_preload(result)
         if self._memory_release_runtime_when_idle and not self.isVisible():
             self.hibernate_heavy_views()
             self._release_runtime_providers()
+            self._schedule_memory_collection()
 
     def ensure_guides_view(self):
         created = getattr(self, "guides_view", None) is None
