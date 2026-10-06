@@ -3,11 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QAbstractListModel, QModelIndex, QSize, Qt
-from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen
+from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QStyle, QStyledItemDelegate
 
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
 
 GUIDE_ID_ROLE = Qt.UserRole + 11
@@ -47,10 +48,9 @@ class GuideListModel(QAbstractListModel):
             label = self.display_subtitle(guide)
             return f"{title}\n{label}\n{levels}\n{done} / {total} {self._progress_word(guide, total)}                 {percent} %"
         if role == Qt.DecorationRole:
-            if guide.image_path and Path(guide.image_path).exists():
-                return QIcon(guide.image_path)
-            if DOFUS_UNKNOWN_ICON.exists():
-                return QIcon(str(DOFUS_UNKNOWN_ICON))
+            image_path = Path(guide.image_path) if guide.image_path else DOFUS_UNKNOWN_ICON
+            if image_path.exists():
+                return ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(48, 48))
         if role == Qt.ToolTipRole:
             return guide.description or guide.title
         if role == GUIDE_ID_ROLE:
@@ -196,9 +196,9 @@ class GuideCardDelegate(QStyledItemDelegate):
         icon_rect = rect.adjusted(10, 15, 0, 0)
         icon_rect.setWidth(48)
         icon_rect.setHeight(48)
-        icon = index.data(Qt.DecorationRole)
-        if isinstance(icon, QIcon):
-            painter.drawPixmap(icon_rect, icon.pixmap(48, 48))
+        pixmap = index.data(Qt.DecorationRole)
+        if isinstance(pixmap, QPixmap) and not pixmap.isNull():
+            painter.drawPixmap(icon_rect, pixmap)
 
         text_left = icon_rect.right() + 10
         text_right = rect.right() - 10
