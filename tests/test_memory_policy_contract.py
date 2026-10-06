@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SHELL_MAIN = ROOT / "main.py"
 EQUIPMENT = ROOT / "app" / "pages" / "equipment_page.py"
 ENCYCLOPEDIA_FACADE = ROOT / "app" / "modules" / "encyclopedia" / "views" / "__init__.py"
+ENCYCLOPEDIA_PAGE = ROOT / "app" / "modules" / "encyclopedia" / "views" / "encyclopedia_page.py"
 ENCYCLOPEDIA_SERVICE = (
     ROOT
     / "app"
@@ -96,6 +97,23 @@ def test_encyclopedia_runtime_constructs_provider_through_memory_facade() -> Non
     source = ENCYCLOPEDIA_SERVICE.read_text(encoding="utf-8")
     assert "from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider" in source
     assert "providers.achievement_provider import AchievementProvider" not in source
+
+
+def test_encyclopedia_quest_surface_defers_success_and_guide_widgets() -> None:
+    source = ENCYCLOPEDIA_PAGE.read_text(encoding="utf-8")
+    facade = ENCYCLOPEDIA_FACADE.read_text(encoding="utf-8")
+    runtime_imports = source.split("if TYPE_CHECKING:", 1)[0]
+    assert "views.achievements_view import AchievementsView" not in runtime_imports
+    assert "views.deferred_achievement_guides_view import" not in runtime_imports
+    assert "pages.progressive_quests_page import ProgressiveQuestsPage" not in runtime_imports
+    loader = facade[
+        facade.index("def _load_encyclopedia_page_class"):
+        facade.index("class _LazyEncyclopediaPageMeta"),
+    ]
+    assert "_ensure_guide_view_loaded()" not in loader
+    assert "_resolve_achievements_view_type" in source
+    assert "_resolve_guides_view_type" in source
+    assert "_resolve_progressive_quests_page_type" in source
 
 
 def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> None:
@@ -363,6 +381,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_equipment_runtime_does_not_embed_qt_webengine()
         test_encyclopedia_public_facade_routes_to_memory_bound_page()
         test_encyclopedia_runtime_constructs_provider_through_memory_facade()
+        test_encyclopedia_quest_surface_defers_success_and_guide_widgets()
         test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime()
         test_achievement_provider_releases_reconstructible_source_maps()
         test_services_facade_keeps_progress_runtime_lazy()

@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QLineEdit, QTabWidget, QVBoxLayout, QWidget
@@ -26,23 +26,81 @@ from app.modules.encyclopedia.services import (
     QuestProgressService,
     build_related_encyclopedia_data,
 )
-from app.modules.encyclopedia.views.achievements_view import AchievementsView
 from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView
-from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
-    DeferredAchievementGuidesView,
-)
 from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadGate,
     RelatedPreloadState,
 )
-from app.pages.progressive_quests_page import ProgressiveQuestsPage
 from app.pages.quest_character_cache import quest_character_source_signature
-from app.pages.quests_page import QuestsPage
 from app.quest_catalog import QuestCatalog, QuestCharacter, load_quest_characters
+
+if TYPE_CHECKING:
+    from app.modules.encyclopedia.views.achievements_view import AchievementsView
+    from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
+        DeferredAchievementGuidesView,
+    )
+    from app.pages.progressive_quests_page import ProgressiveQuestsPage
+    from app.pages.quests_page import QuestsPage
 
 
 LOGGER = logging.getLogger(__name__)
 GUIDE_SUCCESS_CATALOG_ID = "guide_complet"
+
+_ACHIEVEMENTS_VIEW_TYPE: type | None = None
+_GUIDES_VIEW_TYPE: type | None = None
+_PROGRESSIVE_QUESTS_PAGE_TYPE: type | None = None
+
+
+def _resolve_achievements_view_type() -> type:
+    global _ACHIEVEMENTS_VIEW_TYPE
+    if _ACHIEVEMENTS_VIEW_TYPE is None:
+        from app.modules.encyclopedia.views.achievements_view import AchievementsView
+
+        _ACHIEVEMENTS_VIEW_TYPE = AchievementsView
+    return _ACHIEVEMENTS_VIEW_TYPE
+
+
+def _resolve_guides_view_type() -> type:
+    global _GUIDES_VIEW_TYPE
+    if _GUIDES_VIEW_TYPE is None:
+        # Install the Guide image policy only when Guide is actually requested.
+        # Loading Encyclopedia/Quests must not import the full Guide widget tree.
+        from app.modules.encyclopedia.views import _ensure_guide_view_loaded
+
+        _ensure_guide_view_loaded()
+        from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
+            DeferredAchievementGuidesView,
+        )
+
+        _GUIDES_VIEW_TYPE = DeferredAchievementGuidesView
+    return _GUIDES_VIEW_TYPE
+
+
+def _resolve_progressive_quests_page_type() -> type:
+    global _PROGRESSIVE_QUESTS_PAGE_TYPE
+    if _PROGRESSIVE_QUESTS_PAGE_TYPE is None:
+        from app.pages.progressive_quests_page import ProgressiveQuestsPage
+
+        _PROGRESSIVE_QUESTS_PAGE_TYPE = ProgressiveQuestsPage
+    return _PROGRESSIVE_QUESTS_PAGE_TYPE
+
+
+def _is_achievements_view(widget: object) -> bool:
+    return type(widget).__name__ == "AchievementsView"
+
+
+def _is_guides_view(widget: object) -> bool:
+    return type(widget).__name__ == "DeferredAchievementGuidesView"
+
+
+def _has_embedded_search(widget: object) -> bool:
+    return type(widget).__name__ in {
+        "AchievementsView",
+        "DeferredAchievementGuidesView",
+        "LazyQuestsPage",
+        "ProgressiveQuestsPage",
+        "QuestsPage",
+    }
 
 
 @dataclass(slots=True)
@@ -377,7 +435,7 @@ class EncyclopediaPage(QWidget):
 
     def on_search_changed(self, text: str) -> None:
         widget = self.tabs.currentWidget()
-        if isinstance(widget, DeferredAchievementGuidesView):
+        if _is_guides_view(widget):
             widget.set_search_text(text)
 
     def _on_tab_changed_base(self, index: int) -> None:
@@ -422,10 +480,7 @@ class EncyclopediaPage(QWidget):
 
     def _sync_search_visibility_base(self) -> None:
         widget = self.tabs.currentWidget()
-        embedded_search_active = isinstance(
-            widget,
-            (DeferredAchievementGuidesView, QuestsPage, AchievementsView),
-        )
+        embedded_search_active = _has_embedded_search(widget)
         self.search.setVisible(not embedded_search_active)
         self.search.setEnabled(not embedded_search_active)
         if embedded_search_active and self.search.text():
@@ -472,7 +527,7 @@ class EncyclopediaPage(QWidget):
     def get_achievements_view(self) -> AchievementsView | None:
         for index in range(self.tabs.count()):
             widget = self.tabs.widget(index)
-            if isinstance(widget, AchievementsView):
+            if _is_achievements_view(widget):
                 return widget
         return None
 
@@ -580,11 +635,12 @@ class EncyclopediaPage(QWidget):
         return result
 
     def _build_quests_page_progressive(self) -> ProgressiveQuestsPage:
+        progressive_quests_page_type = _resolve_progressive_quests_page_type()
         lightweight_graph = self._quest_graph or QuestGraphService(
             self.quest_provider,
             eager=False,
         )
-        page = ProgressiveQuestsPage(
+        page = progressive_quests_page_type(
             self.status_callback,
             catalog=self.quest_provider.get_catalog(),
             quest_provider=self.quest_provider,
@@ -681,11 +737,12 @@ class EncyclopediaPage(QWidget):
             self._activate_loaded_tab(QUESTS_TAB)
 
     def ensure_achievements_view(self) -> AchievementsView:
+        achievements_view_type = _resolve_achievements_view_type()
         view = self.get_achievements_view()
-        if isinstance(view, AchievementsView):
+        if isinstance(view, achievements_view_type):
             return view
         guide_provider = self.service.guide_provider if self._guide_provider_supplied else None
-        view = AchievementsView(
+        view = achievements_view_type(
             self.status_callback,
             provider=self.service.achievement_provider,
             progress_service=self.achievement_progress_service,
@@ -1165,8 +1222,9 @@ class EncyclopediaPage(QWidget):
         )
 
     def ensure_guides_view(self) -> DeferredAchievementGuidesView:
+        guides_view_type = _resolve_guides_view_type()
         if self.guides_view is None:
-            self.guides_view = DeferredAchievementGuidesView(
+            self.guides_view = guides_view_type(
                 self.status_callback,
                 provider=self.service.guide_provider,
                 quest_provider=self.service.quest_provider,
