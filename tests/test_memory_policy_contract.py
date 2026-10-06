@@ -621,6 +621,14 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
         / "services"
         / "guide_ultime_manual_runtime_core.py"
     ).read_text(encoding="utf-8")
+    uncached_load = core_source[
+        core_source.index("def _load_manual_preview_uncached"):
+        core_source.index("def _load_manual_preview(self)")
+    ]
+    chapter_loop = uncached_load.index("for chapter_meta in chapters:")
+    chapter_memo = uncached_load.index("chapter_memo:")
+    assert chapter_loop < chapter_memo
+
     load = core_source[
         core_source.index("def _load_manual_preview(self)"):
         core_source.index("def manual_audit")
