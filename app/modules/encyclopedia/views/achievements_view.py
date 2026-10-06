@@ -215,10 +215,16 @@ class AchievementsView(QWidget):
     ) -> bool:
         if self._runtime_ready:
             return True
-        achievements = self.provider.load_retained()
-        if not achievements:
-            raise RuntimeError("Aucun succès conservé chargé")
-        self.achievements = list(achievements)
+        retained_count = getattr(self.provider, "retained_count", None)
+        if callable(retained_count):
+            if int(retained_count()) <= 0:
+                raise RuntimeError("Aucun succès conservé chargé")
+            self.achievements = []
+        else:
+            achievements = self.provider.load_retained()
+            if not achievements:
+                raise RuntimeError("Aucun succès conservé chargé")
+            self.achievements = list(achievements)
         if quest_graph is not None:
             self.quest_graph = quest_graph
         if not progress_synchronized:
@@ -247,8 +253,14 @@ class AchievementsView(QWidget):
         self.category_tree.clear()
         self._tree_items.clear()
         first_item: QTreeWidgetItem | None = None
+        count_by_category = getattr(self.provider, "count_by_category", None)
         for category in self.provider.get_retained_categories():
-            top_item = QTreeWidgetItem([f"{category.name}  ({len(self.provider.get_by_category(category.id))})"])
+            top_count = (
+                int(count_by_category(category.id))
+                if callable(count_by_category)
+                else len(self.provider.get_by_category(category.id))
+            )
+            top_item = QTreeWidgetItem([f"{category.name}  ({top_count})"])
             top_font = top_item.font(0)
             top_font.setBold(True)
             top_item.setFont(0, top_font)
@@ -260,7 +272,12 @@ class AchievementsView(QWidget):
             if first_item is None:
                 first_item = top_item
             for subcategory in self.provider.get_subcategories(category.id):
-                child = QTreeWidgetItem([f"{subcategory.name}  ({len(self.provider.get_by_category(subcategory.id))})"])
+                child_count = (
+                    int(count_by_category(subcategory.id))
+                    if callable(count_by_category)
+                    else len(self.provider.get_by_category(subcategory.id))
+                )
+                child = QTreeWidgetItem([f"{subcategory.name}  ({child_count})"])
                 child.setToolTip(0, subcategory.name)
                 child.setData(0, CATEGORY_ROLE, subcategory.id)
                 child.setData(0, TOP_CATEGORY_ROLE, category.id)
@@ -693,11 +710,11 @@ class AchievementsView(QWidget):
         query = normalize_text(self.search.text())
         tokens = [token for token in query.split("_") if token]
         if tokens:
-            candidates = self.achievements
+            candidates = self.provider.search(self.search.text())
         elif self.selected_category_id is not None:
             candidates = self.provider.get_by_category(self.selected_category_id)
         else:
-            candidates = self.achievements
+            candidates = self.provider.load_retained()
         filtered = [
             achievement
             for achievement in candidates

@@ -238,9 +238,39 @@ class AchievementProgressService:
         if self._automatic_sync_cache.get(key) == sync_signature:
             return False
 
-        achievements = tuple(achievement_provider.load_retained())
-        by_id = {int(achievement.id): achievement for achievement in achievements}
+        progress_catalogue = getattr(achievement_provider, "progress_catalogue", None)
+        if callable(progress_catalogue):
+            primitive_rows = tuple(progress_catalogue())
+        else:
+            primitive_rows = ()
+        achievements = (
+            primitive_rows
+            if primitive_rows
+            else tuple(achievement_provider.load_retained())
+        )
         compact_objectives = getattr(achievement_provider, "progress_objectives_for", None)
+
+        def achievement_id(achievement: Any) -> int:
+            if isinstance(achievement, tuple) and len(achievement) == 3:
+                return int(achievement[0])
+            return int(achievement.id)
+
+        def achievement_category_name(achievement: Any) -> str:
+            if isinstance(achievement, tuple) and len(achievement) == 3:
+                return str(achievement[1] or "")
+            return str(getattr(achievement, "category_name", "") or "")
+
+        def achievement_objectives(achievement: Any) -> tuple[Any, ...]:
+            if isinstance(achievement, tuple) and len(achievement) == 3:
+                return tuple(achievement[2] or ())
+            aid = achievement_id(achievement)
+            return (
+                tuple(compact_objectives(aid))
+                if callable(compact_objectives)
+                else tuple(getattr(achievement, "objectives", ()) or ())
+            )
+
+        by_id = {achievement_id(achievement): achievement for achievement in achievements}
         completed_quest_count = len(completed_quests)
         alignment_main = self._alignment_main_quest_ids(guide_provider)
         alignment_counts = {
@@ -336,10 +366,10 @@ class AchievementProgressService:
             )
 
         def objective_done(achievement: Any, objective: Any, visiting: frozenset[int]) -> tuple[bool | None, bool]:
-            aid = int(achievement.id)
+            aid = achievement_id(achievement)
             oid, raw_type, criterion, objective_text, refs = objective_parts(objective)
             objective_type = raw_type.strip().casefold()
-            category_name = str(getattr(achievement, "category_name", "") or "").strip().casefold()
+            category_name = achievement_category_name(achievement).strip().casefold()
             if objective_type in {"critère pl", "critère ea"}:
                 return None, True
             if objective_type == "critère bi" and category_name == "quêtes":
@@ -395,11 +425,7 @@ class AchievementProgressService:
                 return False
             next_visiting = visiting | {aid}
             evaluated: list[bool] = []
-            objectives = (
-                tuple(compact_objectives(aid))
-                if callable(compact_objectives)
-                else tuple(getattr(achievement, "objectives", ()) or ())
-            )
+            objectives = achievement_objectives(achievement)
             for objective in objectives:
                 value, ignored = objective_done(achievement, objective, next_visiting)
                 if ignored:
@@ -414,10 +440,10 @@ class AchievementProgressService:
             return result
 
         auto_achievements = {
-            int(achievement.id)
+            achievement_id(achievement)
             for achievement in achievements
-            if int(achievement.id) not in manual_achievements
-            and resolve_achievement(int(achievement.id), frozenset())
+            if achievement_id(achievement) not in manual_achievements
+            and resolve_achievement(achievement_id(achievement), frozenset())
         }
         serialized_objectives = {
             str(aid): sorted(values)

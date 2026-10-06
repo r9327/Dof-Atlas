@@ -328,6 +328,9 @@ def test_success_catalogue_keeps_rich_objectives_out_of_resident_rows() -> None:
     assert '"objectives": []' in source
     assert '"progress_objectives": [' in source
     assert "def progress_objectives_for" in source
+    assert "def progress_catalogue" in source
+    assert "def count_by_category" in source
+    assert "while len(self._compact_summary_cache) > 32" in source
     assert "_DUMP_DETAIL_FLAG" in source
 
     assert "ACHIEVEMENT_COMPACT_CACHE" in source

@@ -5,7 +5,7 @@ import json
 import re
 import subprocess
 import sys
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
@@ -34,7 +34,7 @@ _SPACE_RE = re.compile(r"\s*")
 ACHIEVEMENT_COMPACT_CACHE = (
     ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_catalogue_v1.jsonl"
 )
-_ACHIEVEMENT_COMPACT_SCHEMA = 1
+_ACHIEVEMENT_COMPACT_SCHEMA = 2
 _ACHIEVEMENT_COMPACT_SOURCES = (
     "achievements.json",
     "achievement_categories.json",
@@ -516,6 +516,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compat_cache_id: int | None = None
         self._compat_cache: Achievement | None = None
         self._compact_external_index: dict[int, tuple[int, int]] | None = None
+        self._compact_retained_ids: tuple[int, ...] = ()
+        self._compact_retained_set: frozenset[int] = frozenset()
+        self._compact_category_ids: dict[int, tuple[int, ...]] = {}
+        self._compact_quest_ids: dict[int, tuple[int, ...]] = {}
+        self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -547,6 +552,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compat_cache_id = None
         self._compat_cache = None
         self._compact_external_index = None
+        self._compact_retained_ids = ()
+        self._compact_retained_set = frozenset()
+        self._compact_category_ids = {}
+        self._compact_quest_ids = {}
+        self._compact_summary_cache.clear()
         self._reset_sources()
 
     def _image_for_icon(self, icon_id: int | None, folders: tuple[str, ...]) -> str:
@@ -693,9 +703,14 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         ):
             raise RuntimeError("Cache compact Succès absent ou périmé")
 
+        try:
+            index_payload = json.loads(
+                _achievement_compact_index_path().read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Index compact Succès absent ou invalide") from exc
+
         categories: dict[int, AchievementCategory] = {}
-        achievements: list[Achievement] = []
-        progress_objectives: dict[int, str] = {}
         with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
             for raw_line in stream:
                 line = raw_line.strip()
@@ -704,19 +719,82 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 row = json.loads(line)
                 if not isinstance(row, dict):
                     continue
-                if row.get("kind") == "meta":
-                    continue
-                if not self._consume_compact_row(
-                    row,
-                    categories,
-                    achievements,
-                    progress_objectives,
-                    retained_only=True,
-                ):
+                kind = str(row.get("kind") or "")
+                if kind == "achievement":
                     break
-        if not achievements:
-            raise RuntimeError("Cache compact Succès vide")
-        self._install_compact_rows(categories, achievements, progress_objectives)
+                value = row.get("value")
+                if kind != "category" or not isinstance(value, dict):
+                    continue
+                category = AchievementCategory(
+                    id=int(value["id"]),
+                    name=str(value.get("name") or ""),
+                    parent_id=int(value.get("parent_id") or 0),
+                    order=int(value.get("order") or 0),
+                    achievement_ids=tuple(
+                        int(item)
+                        for item in value.get("achievement_ids", [])
+                        if isinstance(item, int)
+                    ),
+                )
+                categories[category.id] = category
+
+        raw_offsets = index_payload.get("offsets") if isinstance(index_payload, dict) else {}
+        offsets: dict[int, tuple[int, int]] = {}
+        if isinstance(raw_offsets, dict):
+            for raw_id, span in raw_offsets.items():
+                if not isinstance(span, list) or len(span) != 2:
+                    continue
+                try:
+                    offsets[int(raw_id)] = (int(span[0]), int(span[1]))
+                except (TypeError, ValueError):
+                    continue
+
+        def id_tuple_map(value: object) -> dict[int, tuple[int, ...]]:
+            output: dict[int, tuple[int, ...]] = {}
+            if not isinstance(value, dict):
+                return output
+            for raw_key, raw_ids in value.items():
+                if not isinstance(raw_ids, list):
+                    continue
+                try:
+                    key = int(raw_key)
+                except (TypeError, ValueError):
+                    continue
+                ids: list[int] = []
+                for raw_id in raw_ids:
+                    try:
+                        ids.append(int(raw_id))
+                    except (TypeError, ValueError):
+                        continue
+                output[key] = tuple(ids)
+            return output
+
+        retained_ids = tuple(
+            int(value)
+            for value in (index_payload.get("retained_ids") or ())
+            if isinstance(value, int)
+        )
+        if not categories or not retained_ids:
+            raise RuntimeError("Index compact Succès incomplet")
+
+        self._categories = categories
+        self._achievements = []
+        self._by_id = {}
+        self._by_category = defaultdict(list)
+        self._by_quest = defaultdict(list)
+        self._linked_quests = {}
+        self._linked_monsters = {}
+        self._linked_dungeons = {}
+        self._linked_achievements = {}
+        self._progress_objectives = {}
+        self._compact_external_index = offsets
+        self._compact_retained_ids = retained_ids
+        self._compact_retained_set = frozenset(retained_ids)
+        self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
+        self._compact_quest_ids = id_tuple_map(index_payload.get("by_quest"))
+        self._compact_summary_cache.clear()
+        self._image_indexes.clear()
+        self._reset_sources()
 
     def _load_from_compact_subprocess(self) -> None:
         """Compatibility fallback used only when controlled preload did not build the cache."""
@@ -805,7 +883,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return
         self._load_from_compact_subprocess()
 
-    def _load_external_summary(self, achievement_id: int) -> Achievement | None:
+    def _compact_value_by_id(self, achievement_id: int) -> dict[str, object] | None:
         if self._compact_external_index is None:
             try:
                 payload = json.loads(
@@ -836,7 +914,134 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             return None
         value = row.get("value") if isinstance(row, dict) else None
-        return _achievement_from_dict(value) if isinstance(value, dict) else None
+        return value if isinstance(value, dict) else None
+
+    def _load_external_summary(self, achievement_id: int) -> Achievement | None:
+        value = self._compact_value_by_id(int(achievement_id))
+        return _achievement_from_dict(value) if value is not None else None
+
+    def _summary_by_id(self, achievement_id: int) -> Achievement | None:
+        achievement_id = int(achievement_id)
+        summary = self._by_id.get(achievement_id)
+        if summary is not None:
+            return summary
+        cached = self._compact_summary_cache.get(achievement_id)
+        if cached is not None:
+            self._compact_summary_cache.move_to_end(achievement_id)
+            return cached
+        summary = self._load_external_summary(achievement_id)
+        if summary is None:
+            return None
+        self._compact_summary_cache[achievement_id] = summary
+        self._compact_summary_cache.move_to_end(achievement_id)
+        while len(self._compact_summary_cache) > 32:
+            self._compact_summary_cache.popitem(last=False)
+        return summary
+
+    def retained_count(self) -> int:
+        self._ensure_loaded()
+        if self._compact_retained_ids:
+            return len(self._compact_retained_ids)
+        return sum(
+            1
+            for achievement in self._achievements
+            if int(achievement.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+        )
+
+    def count_by_category(self, category_id: int) -> int:
+        self._ensure_loaded()
+        if self._compact_category_ids:
+            return len(self._compact_category_ids.get(int(category_id), ()))
+        return len(self._by_category.get(int(category_id), ()))
+
+    def load_retained(self) -> list[Achievement]:
+        self._ensure_loaded()
+        if self._compact_retained_ids:
+            return [
+                summary
+                for achievement_id in self._compact_retained_ids
+                for summary in (self._summary_by_id(achievement_id),)
+                if summary is not None
+            ]
+        return super().load_retained()
+
+    def get_by_category(self, category_id: int) -> list[Achievement]:
+        self._ensure_loaded()
+        if self._compact_category_ids:
+            return [
+                summary
+                for achievement_id in self._compact_category_ids.get(int(category_id), ())
+                for summary in (self._summary_by_id(achievement_id),)
+                if summary is not None
+            ]
+        return list(self._by_category.get(int(category_id), ()))
+
+    def get_by_quest(self, quest_id: int) -> list[Achievement]:
+        self._ensure_loaded()
+        if self._compact_quest_ids:
+            return [
+                summary
+                for achievement_id in self._compact_quest_ids.get(int(quest_id), ())
+                for summary in (self._summary_by_id(achievement_id),)
+                if summary is not None
+            ]
+        return list(self._by_quest.get(int(quest_id), ()))
+
+    def search(self, query: str, limit: int | None = None) -> list[Achievement]:
+        self._ensure_loaded()
+        if not self._compact_retained_ids:
+            return super().search(query, limit=limit)
+        needle = normalize_text(query)
+        tokens = [token for token in needle.split("_") if token]
+        results: list[Achievement] = []
+        for achievement_id in self._compact_retained_ids:
+            summary = self._summary_by_id(achievement_id)
+            if summary is None:
+                continue
+            if tokens and not all(token in summary.search_text for token in tokens):
+                continue
+            results.append(summary)
+            if limit is not None and len(results) >= int(limit):
+                break
+        return results
+
+    def progress_catalogue(self) -> tuple[tuple[int, str, tuple[tuple[object, ...], ...]], ...]:
+        """Primitive progress rows; no Achievement graph enters the resident heap."""
+
+        self._ensure_loaded()
+        if not self._compact_retained_ids or self._compact_external_index is None:
+            return tuple(
+                (
+                    int(achievement.id),
+                    str(achievement.category_name or ""),
+                    tuple(self.progress_objectives_for(int(achievement.id))),
+                )
+                for achievement in self.load_retained()
+            )
+
+        rows: list[tuple[int, str, tuple[tuple[object, ...], ...]]] = []
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                for achievement_id in self._compact_retained_ids:
+                    span = self._compact_external_index.get(int(achievement_id))
+                    if span is None:
+                        continue
+                    start, length = span
+                    stream.seek(start)
+                    payload = json.loads(stream.read(length))
+                    value = payload.get("value") if isinstance(payload, dict) else None
+                    if not isinstance(value, dict):
+                        continue
+                    rows.append(
+                        (
+                            int(achievement_id),
+                            str(value.get("category_name") or ""),
+                            _progress_objectives_from_rows(value.get("progress_objectives")),
+                        )
+                    )
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            return ()
+        return tuple(rows)
 
     def load_runtime(self) -> None:
         """Warm only the compact resident catalogue used by Atlas runtime."""
@@ -926,24 +1131,25 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
     def progress_objectives_for(self, achievement_id: int) -> tuple[tuple[object, ...], ...]:
         self._ensure_loaded()
         encoded = self._progress_objectives.get(int(achievement_id), "")
-        if not encoded:
+        if encoded:
+            try:
+                payload = json.loads(encoded)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                return ()
+            return _progress_objectives_from_rows(payload)
+        value = self._compact_value_by_id(int(achievement_id))
+        if value is None:
             return ()
-        try:
-            payload = json.loads(encoded)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            return ()
-        return _progress_objectives_from_rows(payload)
+        return _progress_objectives_from_rows(value.get("progress_objectives"))
 
     def get_by_id(self, achievement_id: int) -> Achievement | None:
         """Return one lightweight compatibility object without warming rich sources."""
 
         self._ensure_loaded()
         achievement_id = int(achievement_id)
-        summary = self._by_id.get(achievement_id)
+        summary = self._summary_by_id(achievement_id)
         if summary is None:
-            summary = self._load_external_summary(achievement_id)
-            if summary is None:
-                return None
+            return None
         if self._compat_cache_id == achievement_id and self._compat_cache is not None:
             return self._compat_cache
         compatible = self._compat_achievement(summary)
@@ -953,7 +1159,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def is_retained(self, achievement_id: int) -> bool:
         self._ensure_loaded()
-        summary = self._by_id.get(int(achievement_id))
+        achievement_id = int(achievement_id)
+        if self._compact_retained_set:
+            return achievement_id in self._compact_retained_set
+        summary = self._by_id.get(achievement_id)
         return bool(
             summary is not None
             and int(summary.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
@@ -1031,22 +1240,22 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def get_linked_quests(self, achievement_id: int):
         self._ensure_loaded()
-        achievement = self._by_id.get(int(achievement_id))
+        achievement = self._summary_by_id(int(achievement_id))
         return list(achievement.linked_quests) if achievement is not None else []
 
     def get_linked_monsters(self, achievement_id: int):
         self._ensure_loaded()
-        achievement = self._by_id.get(int(achievement_id))
+        achievement = self._summary_by_id(int(achievement_id))
         return list(achievement.linked_monsters) if achievement is not None else []
 
     def get_linked_dungeons(self, achievement_id: int):
         self._ensure_loaded()
-        achievement = self._by_id.get(int(achievement_id))
+        achievement = self._summary_by_id(int(achievement_id))
         return list(achievement.linked_dungeons) if achievement is not None else []
 
     def get_linked_achievements(self, achievement_id: int):
         self._ensure_loaded()
-        achievement = self._by_id.get(int(achievement_id))
+        achievement = self._summary_by_id(int(achievement_id))
         return list(achievement.linked_achievements) if achievement is not None else []
 
 
@@ -1115,6 +1324,17 @@ def _build_compact_cache(path: Path) -> int:
             for achievement in provider._achievements
             if int(achievement.category_id) not in retained_ids
         ]
+        by_category_ids: dict[int, list[int]] = defaultdict(list)
+        by_quest_ids: dict[int, list[int]] = defaultdict(list)
+        for achievement in retained:
+            by_category_ids[int(achievement.category_id)].append(int(achievement.id))
+            if achievement.subcategory_id is not None:
+                by_category_ids[int(achievement.subcategory_id)].append(int(achievement.id))
+            for ref in achievement.linked_quests:
+                try:
+                    by_quest_ids[int(ref.entity_id)].append(int(achievement.id))
+                except (TypeError, ValueError):
+                    continue
         for achievement in retained:
             payload = {
                 "kind": "achievement",
@@ -1142,6 +1362,15 @@ def _build_compact_cache(path: Path) -> int:
                 "schema_version": _ACHIEVEMENT_COMPACT_SCHEMA,
                 "achievement_count": len(provider._achievements),
                 "retained_count": len(retained),
+                "retained_ids": [int(achievement.id) for achievement in retained],
+                "by_category": {
+                    str(category_id): sorted(set(achievement_ids))
+                    for category_id, achievement_ids in sorted(by_category_ids.items())
+                },
+                "by_quest": {
+                    str(quest_id): sorted(set(achievement_ids))
+                    for quest_id, achievement_ids in sorted(by_quest_ids.items())
+                },
                 "offsets": offsets,
             },
             ensure_ascii=False,
