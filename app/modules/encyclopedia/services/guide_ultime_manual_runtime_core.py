@@ -313,6 +313,21 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         provider = self.quest_provider
         if provider is None:
             return
+
+        compact_name_index = getattr(provider, "compact_name_index", None)
+        if callable(compact_name_index):
+            try:
+                compact = compact_name_index()
+            except Exception:
+                compact = {}
+            if isinstance(compact, dict) and compact:
+                self._quest_name_to_id = {
+                    str(name): int(quest_id)
+                    for name, quest_id in compact.items()
+                    if str(name)
+                }
+                return
+
         try:
             quests = provider.list_quests()
         except Exception:
