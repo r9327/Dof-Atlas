@@ -53,6 +53,16 @@ class QuestProvider:
 
         self._catalog = None
 
+    def compact_name_index(self) -> dict[str, int]:
+        """Return normalized quest names without materializing the Quest catalogue."""
+
+        try:
+            from app.quest_catalog_details import load_quest_name_index
+
+            return load_quest_name_index(self.data_dir)
+        except Exception:
+            return {}
+
     def list_quests(self) -> list[QuestRecord]:
         return self.get_catalog().quests
 
