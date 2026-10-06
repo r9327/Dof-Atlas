@@ -409,6 +409,43 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     assert '"raw"' in source
 
 
+def test_guide_manual_runtime_keeps_only_visible_authored_stage_hot() -> None:
+    core = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_ultime_manual_runtime_core.py"
+    ).read_text(encoding="utf-8")
+    conditions = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_ultime_manual_conditions.py"
+    ).read_text(encoding="utf-8")
+    runtime = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_ultime_manual_runtime_service.py"
+    ).read_text(encoding="utf-8")
+
+    assert "def _stage_to_compact_card" in core
+    assert "card = self._stage_to_compact_card(" in core
+    assert "if self.compact_runtime" in core
+    assert 'card["manual_source_file"] = filename' in core
+    assert 'card["manual_stage_position"] = int(stage_position)' in core
+    assert "def _hydrate_manual_card_source" in core
+    assert 'previous.pop("manual_stage_data", None)' in core
+    assert '"_hydrate_manual_card_source"' in conditions
+    assert "dict(card) if self.compact_runtime else copy.deepcopy(card)" in runtime
+
+
 def test_services_facade_keeps_progress_runtime_lazy() -> None:
     source = SERVICES_FACADE.read_text(encoding="utf-8")
     assert "from app.modules.encyclopedia.services.guide_progress_service import" not in source
