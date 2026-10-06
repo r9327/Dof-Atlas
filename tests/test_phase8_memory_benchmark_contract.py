@@ -41,6 +41,8 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "tree_rss_mb" in source
     assert "child_rss_mb" in source
     assert "peak_tree_rss_mb" in source
+    assert "achievements_retained_tree_delta_mb" in source
+    assert "guide_retained_tree_delta_mb" in source
     assert "equipment_tree_delta_active_mb" in source
     assert "equipment_tree_delta_stabilized_mb" in source
 
