@@ -27,6 +27,7 @@ def test_memory_benchmark_keeps_required_stage_labels() -> None:
         "guide_active",
         "after_guide_home",
         "craft_active",
+        "after_craft_home",
         "before_equipment_home",
         "equipment_active",
         "after_equipment_home",
@@ -43,6 +44,7 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "peak_tree_rss_mb" in source
     assert "achievements_retained_tree_delta_mb" in source
     assert "guide_retained_tree_delta_mb" in source
+    assert "craft_retained_tree_delta_mb" in source
     assert "equipment_tree_delta_active_mb" in source
     assert "equipment_tree_delta_stabilized_mb" in source
 
@@ -78,10 +80,12 @@ def test_memory_workflow_enforces_phase8_budgets() -> None:
         ("after_quests_home", "100.0"),
         ("after_achievements_home", "100.0"),
         ("after_guide_home", "100.0"),
+        ("after_craft_home", "100.0"),
         ("after_equipment_home_stabilized", "100.0"),
     ):
         assert f'"{label}": {budget}' in source
     assert "peak_tree > 220.0" in source
     assert '"achievements_retained_tree_delta_mb": 15.0' in source
     assert '"guide_retained_tree_delta_mb": 20.0' in source
+    assert '"craft_retained_tree_delta_mb": 2.0' in source
     assert '"equipment_tree_delta_stabilized_mb": 1.0' in source
