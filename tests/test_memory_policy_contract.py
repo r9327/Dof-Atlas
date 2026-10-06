@@ -190,6 +190,25 @@ def test_success_list_materializes_only_visible_batches() -> None:
     assert "catalogue_row_by_id" in render
 
 
+def test_achievement_sync_uses_compact_alignment_guide_ids() -> None:
+    source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "progress_service.py"
+    ).read_text(encoding="utf-8")
+    helper = source[
+        source.index("def _alignment_main_quest_ids"):
+        source.index("def save", source.index("def _alignment_main_quest_ids"))
+    ]
+    assert 'getattr(guide_provider, "progress_quest_ids_for", None)' in helper
+    compact_pos = helper.index("compact_ids(guide_id)")
+    detail_pos = helper.index("guide_provider.get_by_id(guide_id)")
+    assert compact_pos < detail_pos
+
+
 def test_guide_catalog_defers_detail_and_manual_engines() -> None:
     guide_source = (
         ROOT / "app" / "modules" / "encyclopedia" / "views" / "guides_view.py"
@@ -645,6 +664,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_success_progress_sync_streams_compact_rows()
         test_success_catalog_keeps_alignment_route_profiles_cold()
         test_success_list_materializes_only_visible_batches()
+        test_achievement_sync_uses_compact_alignment_guide_ids()
         test_guide_catalog_defers_detail_and_manual_engines()
         test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime()
         test_achievement_provider_releases_reconstructible_source_maps()
