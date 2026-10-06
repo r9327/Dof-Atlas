@@ -37,6 +37,7 @@ from benchmark_phase8_preload import (
 )
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 
+GUIDE_DETAIL_BENCHMARK_ID = "guide_complet"
 _MB = 1024.0 * 1024.0
 
 
@@ -304,6 +305,37 @@ def _open_guide_with_probe(
     raise RuntimeError(f"Timeout while waiting for Encyclopedia {GUIDES_TAB} ({timeout:.1f}s).")
 
 
+def _open_rich_guide_with_probe(
+    app: QApplication,
+    window: Any,
+    stages: list[dict[str, Any]],
+    *,
+    guide_id: str = GUIDE_DETAIL_BENCHMARK_ID,
+    timeout: float = 90.0,
+) -> float:
+    """Open one real Guide detail so the benchmark cannot pass on catalogue-only residency."""
+
+    started = time.perf_counter()
+    page = getattr(window, "page_widgets", {}).get("Quetes")
+    navigate = getattr(page, "navigate_to_guide", None) if page is not None else None
+    if not callable(navigate):
+        raise RuntimeError("Encyclopedia Guide navigation is unavailable")
+    if not bool(navigate(str(guide_id))):
+        raise RuntimeError(f"Guide navigation rejected: {guide_id}")
+
+    deadline = started + max(1.0, float(timeout))
+    while time.perf_counter() < deadline:
+        app.processEvents()
+        page = getattr(window, "page_widgets", {}).get("Quetes")
+        view = getattr(page, "guides_view", None) if page is not None else None
+        if str(getattr(view, "current_guide_id", "") or "") == str(guide_id):
+            stages.append(memory_snapshot("guide_detail_ready"))
+            return round((time.perf_counter() - started) * 1000.0, 2)
+        time.sleep(0.005)
+
+    raise RuntimeError(f"Timeout while opening rich Guide detail {guide_id} ({timeout:.1f}s).")
+
+
 def measure() -> dict[str, Any]:
     app = QApplication.instance() or QApplication([])
     stages: list[dict[str, Any]] = []
@@ -355,8 +387,15 @@ def measure() -> dict[str, Any]:
     window.show_page("Home")
     after_achievements_home = _capture(app, stages, "after_achievements_home", 0.75)
 
-    sampler.set_phase("guide_open")
+    sampler.set_phase("guide_catalogue_open")
     timings["guide_open_ms"] = _open_guide_with_probe(app, window, stages)
+    _capture(app, stages, "guide_catalogue_active")
+    sampler.set_phase("guide_detail_open")
+    timings["guide_detail_open_ms"] = _open_rich_guide_with_probe(
+        app,
+        window,
+        stages,
+    )
     _capture(app, stages, "guide_active")
     sampler.set_phase("guide_home")
     window.show_page("Home")
