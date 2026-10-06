@@ -6,8 +6,8 @@ from PySide6.QtCore import QAbstractListModel, QModelIndex, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QStyle, QStyledItemDelegate
 
+from app.constants import DATA_DIR
 from app.modules.encyclopedia.models import Guide
-from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
 
@@ -15,6 +15,7 @@ GUIDE_ID_ROLE = Qt.UserRole + 11
 GUIDE_ROLE = Qt.UserRole + 12
 GUIDE_PROGRESS_ROLE = Qt.UserRole + 13
 GUIDE_GROUP_ROLE = Qt.UserRole + 14
+DOFUS_UNKNOWN_ICON = DATA_DIR / "encyclopedia" / "images" / "guides" / "dofus_unknown.svg"
 
 
 class GuideListModel(QAbstractListModel):
