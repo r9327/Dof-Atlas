@@ -1019,7 +1019,11 @@ class EncyclopediaPage(QWidget):
             with background_io_priority():
                 try:
                     quest_provider.get_catalog()
-                    achievement_provider.load_all()
+                    load_runtime = getattr(achievement_provider, "load_runtime", None)
+                    if callable(load_runtime):
+                        load_runtime()
+                    else:
+                        achievement_provider.load_all()
                     progress_synchronized = False
                     if is_character_key(character_key):
                         achievement_progress_service.sync_from_quest_progress(
