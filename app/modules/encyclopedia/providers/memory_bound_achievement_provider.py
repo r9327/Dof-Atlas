@@ -914,6 +914,36 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             self._compact_summary_cache.popitem(last=False)
         return summary
 
+    def compact_name_index(self) -> dict[str, tuple[int, str]]:
+        """Stream the compact Success catalogue into a tiny normalized name/id index."""
+
+        if not _achievement_compact_cache_valid(
+            ACHIEVEMENT_COMPACT_CACHE,
+            data_dir=self.data_dir,
+        ):
+            return {}
+        result: dict[str, tuple[int, str]] = {}
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                for raw_line in stream:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict) or row.get("kind") != "achievement":
+                        continue
+                    value = row.get("value")
+                    if not isinstance(value, dict):
+                        continue
+                    achievement_id = safe_int(value.get("id"))
+                    name = str(value.get("name") or "").strip()
+                    key = normalize_text(name)
+                    if achievement_id is not None and key and key not in result:
+                        result[key] = (int(achievement_id), name)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            return {}
+        return result
+
     def retained_count(self) -> int:
         self._ensure_loaded()
         if self._compact_retained_ids:
