@@ -206,3 +206,10 @@ def test_resident_success_and_guide_indexes_drop_documentary_payload() -> None:
     assert 'object.__setattr__(achievement, "resolved_linked_quests", ())' in success_source
     assert "for step in guide.required_steps" in guide_source
     assert "Full notes/content remain detail-only" in guide_source
+
+
+def test_success_view_does_not_build_dead_embedded_quest_detail_tree() -> None:
+    source = ACHIEVEMENTS_VIEW.read_text(encoding="utf-8")
+    assert "QuestDetailView(" not in source
+    assert "self.quest_detail_view = None" in source
+    assert "shared Quêtes tab" in source
