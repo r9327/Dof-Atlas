@@ -651,6 +651,36 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
     assert "copy.deepcopy(stage)" not in stage
     assert "copy.deepcopy(chapter_preparation" not in stage
 
+    runtime_open = view_source[
+        view_source.index("def ensure_guide_ultime_view"):
+        view_source.index("def ensure_catalog_manual_view")
+    ]
+    assert "build_route_auto_validation_contract" not in runtime_open
+    assert "service.auto_validation_contract = None" in runtime_open
+
+    core_stage = core_source[
+        core_source.index("def _stage_to_card"):
+        core_source.index("def manual_sections_for_card")
+    ]
+    assert '"manual_stage_data": stage' in core_stage
+    assert '"manual_chapter_preparation": chapter_preparation or []' in core_stage
+    assert '"manual_stage_data": copy.deepcopy(stage)' not in core_stage
+
+    conditions_source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_ultime_manual_conditions.py"
+    ).read_text(encoding="utf-8")
+    success_index = conditions_source[
+        conditions_source.index("def _manual_achievement_name_index"):
+        conditions_source.index("def _manual_order_gate_for_card_uncached")
+    ]
+    assert "compact_name_index" in success_index
+    assert success_index.index("compact_name_index") < success_index.index("provider.load_all")
+
 
 def test_guide_auto_validation_uses_streamed_success_name_index_first() -> None:
     provider = MEMORY_ACHIEVEMENT_PROVIDER.read_text(encoding="utf-8")
