@@ -2127,8 +2127,6 @@ class GuidesView(QWidget):
         guide = self.current_guide()
         if guide is None:
             return
-        if self._series_ref_by_id(guide, str(series_id)) is None:
-            return
         ref = self._series_ref_by_id(guide, str(series_id))
         if ref is None:
             return
