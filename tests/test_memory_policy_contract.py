@@ -506,29 +506,15 @@ def test_guide_home_thumbnails_use_bounded_encyclopedia_cache() -> None:
     assert "QIcon(" not in source
 
 
-def test_guide_home_parses_full_compact_rows_only_in_disposable_worker() -> None:
+def test_guide_home_reads_sparse_compact_rows_without_runtime_worker() -> None:
     provider = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
     loader = provider[
         provider.index("def _load(self)"):
-        provider.index("def _load_home_from_compact_subprocess")
-    ]
-    assert "_load_home_from_compact_subprocess()" in loader
-    assert "_load_from_compact_cache()" not in loader
-
-    home_loader = provider[
-        provider.index("def _load_home_from_compact_subprocess"):
         provider.index("def _load_from_compact_cache")
     ]
-    assert "_DUMP_HOME_FLAG" in home_loader
-    assert "progress_quest_ids" in home_loader
-
-    home_dump = provider[
-        provider.index("def _dump_compact_home_rows"):
-        provider.index("def _dump_compact_default_guides")
-    ]
-    assert 'compact_ids = value.get("progress_quest_ids")' in home_dump
-    assert 'value.get("steps")' in home_dump
-    assert 'home["progress_quest_ids"]' in home_dump
+    assert "_load_from_compact_cache()" in loader
+    assert "_DUMP_HOME_FLAG" not in provider
+    assert "_load_home_from_compact_subprocess" not in provider
 
 
 def test_guide_compact_home_rows_skip_rich_entity_decode() -> None:
@@ -628,7 +614,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
         test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
         test_guide_home_thumbnails_use_bounded_encyclopedia_cache()
-        test_guide_home_parses_full_compact_rows_only_in_disposable_worker()
+        test_guide_home_reads_sparse_compact_rows_without_runtime_worker()
         test_guide_compact_home_rows_skip_rich_entity_decode()
         test_guide_home_summary_stays_metadata_only()
         test_guide_compact_worker_never_loads_dofus_item_corpus()
