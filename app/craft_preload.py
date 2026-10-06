@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 
 from app.constants import (
     CRAFT_SELECTION_FILE,
@@ -32,6 +33,16 @@ def build_compact_craft_preload() -> dict[str, object]:
     database_path = DATA_DIR / "local" / "dofus_data.sqlite"
     if not database_path.exists():
         payload["_skipped_reason"] = "catalogue Craft local absent"
+        return payload
+
+    try:
+        with sqlite3.connect(database_path) as connection:
+            has_items = connection.execute("SELECT 1 FROM items LIMIT 1").fetchone() is not None
+    except sqlite3.Error as exc:
+        payload["errors"].append(str(exc))
+        return payload
+    if not has_items:
+        payload["_skipped_reason"] = "catalogue Craft local vide"
         return payload
 
     from local_dofus_data.compatibility_adapter import LocalCompatibilityAdapter
