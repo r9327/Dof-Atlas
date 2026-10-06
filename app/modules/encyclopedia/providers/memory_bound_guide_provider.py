@@ -27,7 +27,7 @@ _DUMP_HOME_FLAG = "--dump-home"
 _BUILD_COMPACT_CACHE_FLAG = "--build-compact-cache"
 _ENSURE_COMPACT_CACHE_FLAG = "--ensure-compact-cache"
 GUIDE_COMPACT_CACHE = ROOT_DIR / ".cache" / "dofus_atlas" / "guide_catalogue_v1.jsonl"
-_GUIDE_COMPACT_SCHEMA = 1
+_GUIDE_COMPACT_SCHEMA = 2
 
 
 def _guide_compact_source_signature(guides_dir: Path = GUIDES_DIR) -> list[list[object]]:
@@ -138,7 +138,28 @@ def _entity_ref_payload(ref: EntityRef) -> dict[str, object]:
     }
 
 
-def _summary_payload(guide: Guide, entity_keys: set[tuple[str, int]]) -> dict[str, object]:
+def _summary_progress_quest_ids(guide: Guide) -> list[int]:
+    result: list[int] = []
+    seen: set[int] = set()
+    for step in guide.steps:
+        if step.step_type != "quest" or step.optional or step.entity_id is None:
+            continue
+        quest_id = int(step.entity_id)
+        if quest_id in seen:
+            continue
+        seen.add(quest_id)
+        result.append(quest_id)
+    return result
+
+
+def _summary_payload(guide: Guide) -> dict[str, object]:
+    """Serialize only metadata needed by the Guide home.
+
+    Rich step/entity indexes stay on separate cache rows so opening the Guide
+    catalogue never asks json.loads() to materialize those temporary graphs in
+    Atlas' long-lived process.
+    """
+
     return {
         "id": guide.id,
         "title": guide.title,
@@ -156,21 +177,22 @@ def _summary_payload(guide: Guide, entity_keys: set[tuple[str, int]]) -> dict[st
         "total_steps": guide.total_steps,
         "validation_warnings": list(guide.validation_warnings),
         "generation_source": guide.generation_source,
-        "steps": [
-            {
-                "id": step.id,
-                "step_type": step.step_type,
-                "order": step.order,
-                "title": step.title,
-                "entity_id": step.entity_id,
-                "optional": step.optional,
-            }
-            for step in guide.steps
-        ],
-        "context_entities": [_entity_ref_payload(ref) for ref in guide.context_entities],
+        "progress_quest_ids": _summary_progress_quest_ids(guide),
         "search_text": guide.search_text,
         "source_file": str(guide.raw.get("source_file") or ""),
-        "entity_keys": [[entity_type, entity_id] for entity_type, entity_id in sorted(entity_keys)],
+    }
+
+
+def _entity_index_payload(
+    guide_id: str,
+    entity_keys: set[tuple[str, int]],
+) -> dict[str, object]:
+    return {
+        "guide_id": str(guide_id),
+        "entity_keys": [
+            [entity_type, entity_id]
+            for entity_type, entity_id in sorted(entity_keys)
+        ],
     }
 
 
@@ -245,10 +267,12 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
                 for raw_line in stream:
                     line = raw_line.strip()
-                    if not line:
+                    # Entity rows can be much richer than the Guide home rows.
+                    # Do not even json-decode them until an entity navigation asks.
+                    if not line or '"kind":"entity_index"' not in line:
                         continue
                     row = json.loads(line)
-                    if not isinstance(row, dict) or row.get("kind") != "guide":
+                    if not isinstance(row, dict) or row.get("kind") != "entity_index":
                         continue
                     value = row.get("value")
                     if not isinstance(value, dict):
@@ -264,7 +288,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                         for raw_key in raw_keys
                     ):
                         continue
-                    guide = self._by_id.get(str(value.get("id") or ""))
+                    guide = self._by_id.get(str(value.get("guide_id") or ""))
                     if guide is not None:
                         matches.append(guide)
             return sorted(
@@ -292,6 +316,17 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
     def _progress_quest_ids_from_row(row: dict[str, Any]) -> tuple[int, ...]:
         result: list[int] = []
         seen: set[int] = set()
+        compact_ids = row.get("progress_quest_ids")
+        if isinstance(compact_ids, list):
+            for raw_id in compact_ids:
+                quest_id = safe_int(raw_id)
+                if quest_id is None or int(quest_id) in seen:
+                    continue
+                seen.add(int(quest_id))
+                result.append(int(quest_id))
+            return tuple(result)
+
+        # Backward-compatible fallback for transient schema-1 subprocess rows.
         raw_steps = row.get("steps")
         if not isinstance(raw_steps, list):
             return ()
@@ -386,7 +421,10 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
             for raw_line in stream:
                 line = raw_line.strip()
-                if not line:
+                # Cache schema 2 keeps heavy entity indexes on separate lines.
+                # Filter textually before json.loads() so Guide home never
+                # materializes those temporary Python objects.
+                if not line or '"kind":"guide"' not in line:
                     continue
                 row = json.loads(line)
                 if not isinstance(row, dict) or row.get("kind") != "guide":
@@ -488,6 +526,18 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 by_entity_ids[entity_key].add(guide_id)
 
         self._install_summaries(summaries, by_entity_ids)
+        if bool(getattr(self, "_building_compact_cache", False)):
+            self._by_entity = defaultdict(
+                list,
+                {
+                    entity_key: [
+                        self._by_id[guide_id]
+                        for guide_id in sorted(guide_ids)
+                        if guide_id in self._by_id
+                    ]
+                    for entity_key, guide_ids in by_entity_ids.items()
+                },
+            )
 
     def _install_summaries(
         self,
@@ -725,6 +775,7 @@ def _build_compact_guide_cache(path: Path) -> int:
         guides_dir=GUIDES_DIR,
         dofus_item_provider=_CompactGuideNoopItemProvider(),
     )
+    provider._building_compact_cache = True
     provider._load_in_process()
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -757,10 +808,19 @@ def _build_compact_guide_cache(path: Path) -> int:
                 line(
                     {
                         "kind": "guide",
-                        "value": _summary_payload(guide, entity_keys),
+                        "value": _summary_payload(guide),
                     }
                 )
             )
+            if entity_keys:
+                stream.write(
+                    line(
+                        {
+                            "kind": "entity_index",
+                            "value": _entity_index_payload(guide.id, entity_keys),
+                        }
+                    )
+                )
     temporary.replace(path)
     print(
         json.dumps(
@@ -831,7 +891,7 @@ def _dump_compact_default_guides() -> int:
         }
         print(
             json.dumps(
-                _summary_payload(guide, entity_keys),
+                _summary_payload(guide),
                 ensure_ascii=False,
                 separators=(",", ":"),
             )
