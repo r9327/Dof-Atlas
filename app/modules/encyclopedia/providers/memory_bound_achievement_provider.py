@@ -100,20 +100,33 @@ def _entity_ref_to_dict(ref: EntityRef) -> dict[str, object]:
     }
 
 
-def _progress_objective_row(objective: AchievementObjective) -> list[object]:
-    """Primitive auto-progress contract; rich objective text/entities stay off-heap."""
+def _compact_objective_dict(objective: AchievementObjective) -> dict[str, object]:
+    """Compact one objective before it enters the resident progress contract."""
 
     objective_type = str(objective.objective_type or "")
     keep_text = objective_type.strip().casefold() == "critère pr"
-    return [
-        int(objective.id),
-        objective_type,
-        str(objective.criterion or ""),
-        str(objective.text or "") if keep_text else "",
-        [
+    return {
+        "id": int(objective.id),
+        "type": objective_type,
+        "criterion": str(objective.criterion or ""),
+        "text": str(objective.text or "") if keep_text else "",
+        "refs": [
             [str(ref.entity_type), ref.entity_id]
             for ref in objective.entity_refs
         ],
+    }
+
+
+def _progress_objective_row(objective: AchievementObjective) -> list[object]:
+    """Primitive auto-progress contract; rich objective models stay off-heap."""
+
+    compact = _compact_objective_dict(objective)
+    return [
+        compact["id"],
+        compact["type"],
+        compact["criterion"],
+        compact["text"],
+        compact["refs"],
     ]
 
 
