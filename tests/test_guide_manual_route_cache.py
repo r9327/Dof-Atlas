@@ -97,6 +97,49 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Cycle de composition"):
                 guide_ultime_manual_route.load_manual_chapter(chapter, _seen={resolved}, _memo=memo)
 
+    def test_compact_runtime_builds_hidden_cards_without_full_render_payload(self) -> None:
+        service = object.__new__(
+            guide_ultime_manual_runtime_core.GuideUltimeManualRuntimeService
+        )
+        service._quest_name_to_id = {"quest_a": 42}
+
+        chapter = {
+            "coverage": {"chapter": "Astrub"},
+            "preparation": [{"name": "Potion de rappel"}],
+        }
+        stage = {
+            "id": "AST-1",
+            "title": "Départ",
+            "start": {"x": 4, "y": -19, "zone": "Astrub"},
+            "quests": ["Quest A"],
+            "instructions": ["Parler au PNJ."],
+            "successes": ["Succès A"],
+            "temporal_hooks": ["window-a"],
+        }
+
+        with patch.object(
+            service,
+            "_stage_lines",
+            side_effect=AssertionError("hidden compact cards must not render lines"),
+        ):
+            card = service._stage_to_compact_card(
+                "astrub",
+                {"label": "Astrub"},
+                chapter,
+                stage,
+                1,
+            )
+
+        self.assertEqual(card["manual_stage_id"], "AST-1")
+        self.assertEqual(card["manual_quest_ids"], [42])
+        self.assertEqual(card["manual_quest_names"], ["quest_a"])
+        self.assertTrue(card["manual_has_lines"])
+        self.assertEqual(card["manual_lines"], [])
+        self.assertNotIn("manual_stage_data", card)
+        self.assertNotIn("manual_chapter_preparation", card)
+        self.assertNotIn("structured_runtime_lines", card)
+        self.assertNotIn("manual_runtime_metadata", card)
+
     def test_compact_runtime_hydrates_only_current_manual_stage(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = object.__new__(
