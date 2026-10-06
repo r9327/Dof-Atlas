@@ -395,7 +395,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._catalog_loading = False
-        self._progress_objectives: dict[int, tuple[tuple[object, ...], ...]] = {}
+        self._progress_objectives: dict[int, str] = {}
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -478,11 +478,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             self._catalog_loading = False
         self._trim_catalogue_payload()
         self._progress_objectives = {
-            int(achievement.id): _progress_objectives_from_rows(
+            int(achievement.id): json.dumps(
                 [
                     _progress_objective_row(objective)
                     for objective in achievement.objectives
-                ]
+                ],
+                ensure_ascii=False,
+                separators=(",", ":"),
             )
             for achievement in self._achievements
             if achievement.objectives
@@ -506,7 +508,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         )
         categories: dict[int, AchievementCategory] = {}
         achievements: list[Achievement] = []
-        progress_objectives: dict[int, tuple[tuple[object, ...], ...]] = {}
+        progress_objectives: dict[int, str] = {}
         assert process.stdout is not None
         for raw_line in process.stdout:
             line = raw_line.strip()
@@ -533,9 +535,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             elif kind == "achievement" and isinstance(value, dict):
                 achievement = _achievement_from_dict(value)
                 achievements.append(achievement)
-                rows = _progress_objectives_from_rows(value.get("progress_objectives"))
-                if rows:
-                    progress_objectives[int(achievement.id)] = rows
+                raw_progress = value.get("progress_objectives")
+                if isinstance(raw_progress, list) and raw_progress:
+                    progress_objectives[int(achievement.id)] = json.dumps(
+                        raw_progress,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
 
         stderr = process.stderr.read() if process.stderr is not None else ""
         return_code = process.wait(timeout=10)
@@ -587,7 +593,14 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def progress_objectives_for(self, achievement_id: int) -> tuple[tuple[object, ...], ...]:
         self._ensure_loaded()
-        return self._progress_objectives.get(int(achievement_id), ())
+        encoded = self._progress_objectives.get(int(achievement_id), "")
+        if not encoded:
+            return ()
+        try:
+            payload = json.loads(encoded)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return ()
+        return _progress_objectives_from_rows(payload)
 
     def prepare_detail_sources(self) -> None:
         if self._detail_sources_ready:
