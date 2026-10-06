@@ -35,15 +35,14 @@ from app.modules.encyclopedia.services import (
     QuestHierarchyService,
     QuestProgressService,
 )
-from app.modules.encyclopedia.widgets import (
+from app.modules.encyclopedia.widgets.dashboard import (
     CollapsedColumnRail,
-    DetailPanel,
     EncyclopediaPanel,
     FixedColumnSplitter,
     HideCompletedButton,
-    QUEST_ID_ROLE,
-    QuestListModel,
 )
+from app.modules.encyclopedia.widgets.detail_panel import DetailPanel
+from app.modules.encyclopedia.widgets.quest_widgets import QUEST_ID_ROLE, QuestListModel
 from app.quest_catalog import (
     QuestCatalog,
     QuestCharacter,
