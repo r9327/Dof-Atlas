@@ -220,6 +220,61 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         self._memory_release_runtime_when_idle = False
         return True
 
+    def release_runtime(self) -> None:
+        """Tear down reconstructible UI/runtime before the shell deletes the page.
+
+        Home owns only the tiny compact context. Heavy widgets, providers and
+        signal connections are explicitly released here so memory recovery does
+        not depend on a forced Python garbage collection pass.
+        """
+
+        self._memory_release_runtime_when_idle = True
+        self.hibernate_heavy_views()
+        self._release_runtime_providers()
+
+        timer = getattr(self, "_quest_load_timer", None)
+        if timer is not None:
+            timer.stop()
+
+        disconnects = (
+            (getattr(self, "guideRuntimeFinished", None), self.collect_related_preload),
+            (
+                getattr(self, "achievementRuntimeFinished", None),
+                self._collect_achievement_runtime,
+            ),
+            (getattr(self.tabs, "currentChanged", None), self.on_tab_changed),
+            (getattr(self.search, "textChanged", None), self.on_search_changed),
+            (
+                getattr(self.character_combo, "currentIndexChanged", None),
+                self.on_global_character_changed,
+            ),
+        )
+        for signal, slot in disconnects:
+            if signal is None:
+                continue
+            try:
+                signal.disconnect(slot)
+            except (RuntimeError, TypeError):
+                pass
+
+        for view in tuple(getattr(self, "_warmup_views", {}).values()):
+            if view is None:
+                continue
+            index = self.tabs.indexOf(view)
+            if index >= 0:
+                label = self.tabs.tabText(index)
+                self._replace_with_lazy_slot(label, view)
+            else:
+                view.setParent(None)
+                view.deleteLater()
+        self._warmup_views.clear()
+
+        self._guide_progress_by_guide.clear()
+        self._owned_items = None
+        self.characters = []
+        self._related_data_ready_callback = None
+        self._launch_travel_callback = None
+
     def prepare_external_tab_navigation(self, label: str) -> None:
         """Prioritize an explicit shell tab request over stale hidden-tab state."""
 
