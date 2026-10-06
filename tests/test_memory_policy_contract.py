@@ -127,6 +127,22 @@ def test_quest_catalog_defers_rich_detail_view_until_selection() -> None:
     assert "QuestDetailDeferred" in base
 
 
+def test_success_catalog_keeps_alignment_route_profiles_cold() -> None:
+    source = (
+        ROOT / "app" / "modules" / "encyclopedia" / "views" / "achievements_view.py"
+    ).read_text(encoding="utf-8")
+    runtime_imports = source.split("def _alignment_order_achievement_ranks", 1)[0]
+    assert "guide_path_profiles import ORDER_QUEST_IDS" not in runtime_imports
+    assert "achievement_catalog_policy import (" not in runtime_imports
+    assert "def _order_quest_ids" in source
+    initializer = source[
+        source.index("def _initialize_achievements_view"):
+        source.index("def show_runtime_loading")
+    ]
+    assert "if defer_runtime" in initializer
+    assert "quest_graph or QuestGraphService" in initializer
+
+
 def test_success_list_materializes_only_visible_batches() -> None:
     source = (
         ROOT / "app" / "modules" / "encyclopedia" / "views" / "achievements_view.py"
@@ -455,6 +471,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_encyclopedia_runtime_constructs_provider_through_memory_facade()
         test_encyclopedia_quest_surface_defers_success_and_guide_widgets()
         test_quest_catalog_defers_rich_detail_view_until_selection()
+        test_success_catalog_keeps_alignment_route_profiles_cold()
         test_success_list_materializes_only_visible_batches()
         test_guide_catalog_defers_detail_and_manual_engines()
         test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime()
