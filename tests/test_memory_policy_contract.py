@@ -154,6 +154,10 @@ def test_related_index_warmup_runs_outside_long_lived_atlas_process() -> None:
     assert "achievement_index_warmup" in source
     assert "sys.executable" in source
     assert "QuestSources(" not in source
+    assert "QuestGraphService(" not in source
+    assert "QuestProvider(catalog=" not in source
+    assert "quest_graph=None" in source
+    assert "_CACHED_CATALOG = catalog_id" in source
 
     assert "ensure_achievement_compact_cache" in source
     assert "ensure_guide_compact_cache" in source
