@@ -310,7 +310,7 @@ def build_craft_preload() -> dict[str, Any]:
     return payload
 
 
-def build_quest_related_preload(catalog: Any | None) -> dict[str, Any]:
+def build_quest_related_preload(catalog: Any | None = None) -> dict[str, Any]:
     from app.modules.encyclopedia.services import build_related_encyclopedia_data
     from app.quest_catalog import QuestCatalog
 
@@ -322,18 +322,20 @@ def build_quest_related_preload(catalog: Any | None) -> dict[str, Any]:
         "guide_progress_character_key": "",
         "errors": [],
     }
-    if not isinstance(catalog, QuestCatalog):
-        return payload
     try:
+        # Phase 8 preload prepares only reconstructible compact stores. It does
+        # not need a resident QuestCatalog and must never create one just to warm
+        # Guide/Success data.
         related = build_related_encyclopedia_data(catalog)
         achievement_provider = related.achievement_provider
         guide_provider = related.guide_provider
         payload["quest_graph"] = related.quest_graph
         payload["achievement_provider"] = achievement_provider
         payload["guide_provider"] = guide_provider
-        guide_progress, character_key = build_guide_progress_preload(catalog, guide_provider)
-        payload["guide_progress_by_guide"] = guide_progress
-        payload["guide_progress_character_key"] = character_key
+        if isinstance(catalog, QuestCatalog):
+            guide_progress, character_key = build_guide_progress_preload(catalog, guide_provider)
+            payload["guide_progress_by_guide"] = guide_progress
+            payload["guide_progress_character_key"] = character_key
     except Exception as exc:
         payload["errors"].append(str(exc))
     return payload
@@ -387,13 +389,36 @@ def guide_progress_state(completed: int, total: int) -> str:
     return "Non commencé"
 
 
+def _warm_quest_catalogue() -> int:
+    """Build/validate the Quest SQLite store in one disposable child process."""
+
+    import subprocess
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "app.quest_catalog_details", "--ensure-cache"],
+        cwd=Path(__file__).resolve().parent,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=90,
+        check=True,
+    )
+    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise RuntimeError("Le cache compact Quêtes n'a produit aucun résultat")
+    return max(0, int(lines[-1]))
+
+
 def build_quest_preload(
     owned_items: dict[int, dict[str, Any]] | None = None,
     include_related: bool = True,
 ) -> dict[str, Any]:
-    quest_provider_type = _resolve_quest_provider()
     payload: dict[str, Any] = {
+        # Preload owns disk artefacts only. A live QuestCatalog is created on
+        # explicit Encyclopedia use and released again when the page sleeps.
         "catalog": None,
+        "catalog_count": 0,
         "owned_items": owned_items or {},
         "achievement_provider": None,
         "guide_provider": None,
@@ -403,17 +428,9 @@ def build_quest_preload(
         "errors": [],
     }
     try:
-        # QuestProvider owns the process-wide default-catalog lock. A preload
-        # racing an explicit click therefore parses once and both consumers
-        # reuse the same catalog instead of starting duplicate work.
-        catalog = quest_provider_type().get_catalog()
-        payload["catalog"] = catalog
-        # Do not instantiate a cold Success provider during Quest preload.
-        # The concrete provider module is intentionally imported only when the
-        # user actually opens Success/Guide.
-        payload["achievement_provider"] = None
+        payload["catalog_count"] = _warm_quest_catalogue()
         if include_related:
-            related = build_quest_related_preload(catalog)
+            related = build_quest_related_preload(None)
             payload.update({key: value for key, value in related.items() if key != "errors"})
             payload["errors"].extend(related.get("errors") or [])
     except Exception as exc:
@@ -1891,21 +1908,11 @@ class AtlasWindow(QMainWindow):
         result_key = task
 
         if task == "encyclopedia":
-            quests = self.preload_results.get("quests")
-            catalog = quests.get("catalog") if isinstance(quests, dict) else None
-            if catalog is None:
-                with self.preload_state_lock:
-                    quest_state = self.preload_states.get("quests", PRELOAD_IDLE)
-                    if quest_state in {PRELOAD_READY, PRELOAD_FAILED}:
-                        self.preload_states[task] = PRELOAD_FAILED
-                        self.preload_user_tasks.discard(task)
-                        self.preload_finished = all(
-                            state in {PRELOAD_READY, PRELOAD_FAILED}
-                            for state in self.preload_states.values()
-                        )
-                        self.refresh_preload_popup()
-                        return
-                self.start_preload("quests", user_requested=user_requested)
+            with self.preload_state_lock:
+                quest_state = self.preload_states.get("quests", PRELOAD_IDLE)
+            if quest_state in {PRELOAD_IDLE, PRELOAD_LOADING}:
+                if quest_state == PRELOAD_IDLE:
+                    self.start_preload("quests", user_requested=user_requested)
                 self._schedule_owned_callback(
                     180,
                     lambda: self.start_preload(
@@ -1914,9 +1921,9 @@ class AtlasWindow(QMainWindow):
                     ),
                 )
                 return
-            builder: Callable[[], dict[str, Any]] = (
-                lambda catalog=catalog: build_quest_related_preload(catalog)
-            )
+            # Serialize heavyweight cache builders: Encyclopedia warmup starts
+            # only after the Quest disk cache worker has exited.
+            builder = lambda: build_quest_related_preload(None)
             result_key = "quests"
         else:
             builders: dict[str, Callable[[], dict[str, Any]]] = {
@@ -2019,9 +2026,7 @@ class AtlasWindow(QMainWindow):
                 errors.extend(result_quests.get("errors") or [])
 
             if task == "quests" and not task_failed:
-                current_quests = self.preload_results.get("quests")
-                catalog = current_quests.get("catalog") if isinstance(current_quests, dict) else None
-                if catalog is not None and self.preload_states.get("encyclopedia") == PRELOAD_IDLE:
+                if self.preload_states.get("encyclopedia") == PRELOAD_IDLE:
                     user_waiting = (
                         self.pending_page_name == "Quetes"
                         or self.active_page_name() == "Quetes"
@@ -2059,6 +2064,8 @@ class AtlasWindow(QMainWindow):
             merged_quests = self.preload_results.get("quests")
             quest_catalog = merged_quests.get("catalog") if isinstance(merged_quests, dict) else None
             quest_count = len(quest_catalog.quests) if isinstance(quest_catalog, QuestCatalog) else 0
+            if quest_count == 0 and isinstance(merged_quests, dict):
+                quest_count = max(0, int(merged_quests.get("catalog_count") or 0))
             page = self.page_widgets.get("Quetes")
             if (
                 quest_count == 0
