@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import sys
 from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import asdict
@@ -140,11 +141,21 @@ def _signature(data_dir):
             qc._path_signature("source_index", Path(__file__).with_name("quest_source_index.py")))
 
 
-def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.QuestCatalog:
+def _cache_identity(data_dir: Path, cache_root: Path) -> tuple[tuple, Path]:
     signature = _signature(data_dir)
     digest = hashlib.sha256(_json(signature).encode()).hexdigest()
     cache_root.mkdir(parents=True, exist_ok=True)
-    path = cache_root / f"{digest}.sqlite3"
+    return signature, cache_root / f"{digest}.sqlite3"
+
+
+def ensure_lazy_catalog_cache(
+    data_dir: Path = qc.RAW_QUEST_DATA_DIR,
+    *,
+    cache_root: Path = _CACHE_ROOT,
+) -> int:
+    """Materialize the reconstructible Quest SQLite store without retaining rows."""
+
+    signature, path = _cache_identity(data_dir, cache_root)
     with _connect(path) as connection:
         connection.execute("PRAGMA journal_mode=WAL")
         connection.execute("CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
@@ -155,11 +166,67 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
             records, series = _source_index(data_dir)
             if _signature(data_dir) != signature:
                 raise RuntimeError("Les sources Quêtes ont changé pendant l'indexation.")
-            connection.executemany("INSERT OR REPLACE INTO quests VALUES (?, ?, NULL)",
-                                   ((record.id, _json(asdict(record))) for record in records))
-            connection.execute("INSERT OR REPLACE INTO metadata VALUES ('series', ?)",
-                               (_json([asdict(item) for item in series]),))
+            connection.executemany(
+                "INSERT OR REPLACE INTO quests VALUES (?, ?, NULL)",
+                ((record.id, _json(asdict(record))) for record in records),
+            )
+            connection.execute(
+                "INSERT OR REPLACE INTO metadata VALUES ('series', ?)",
+                (_json([asdict(item) for item in series]),),
+            )
             connection.execute("INSERT OR REPLACE INTO metadata VALUES ('ready', '1')")
+        row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
+        return max(0, int(row[0] if row else 0))
+
+
+class NetworkQuestRecord:
+    """Tiny network-only row; rich Quest details stay SQLite-backed."""
+
+    __slots__ = ("id", "name", "_details")
+
+    def __init__(self, quest_id: int, name: str, details: QuestDetails) -> None:
+        self.id = int(quest_id)
+        self.name = str(name or f"Quete {quest_id}")
+        self._details = details
+
+    @property
+    def steps(self):
+        return self._details.get(self.id).steps
+
+
+def load_network_catalog(
+    data_dir: Path = qc.RAW_QUEST_DATA_DIR,
+    *,
+    cache_root: Path = _CACHE_ROOT,
+) -> qc.QuestCatalog:
+    """Return the minimal QuestCatalog contract required by network validation."""
+
+    ensure_lazy_catalog_cache(data_dir, cache_root=cache_root)
+    signature, path = _cache_identity(data_dir, cache_root)
+    details = QuestDetails(data_dir, path, signature, limit=8)
+    records: list[NetworkQuestRecord] = []
+    with _connect(path) as connection:
+        for quest_id, raw_summary in connection.execute("SELECT id, summary FROM quests ORDER BY id"):
+            name = ""
+            try:
+                payload = json.loads(raw_summary)
+                if isinstance(payload, dict):
+                    name = str(payload.get("name") or "")
+            except (TypeError, ValueError, json.JSONDecodeError):
+                pass
+            records.append(NetworkQuestRecord(int(quest_id), name, details))
+    catalog = qc.QuestCatalog(records, data_dir, achievement_series=())
+    catalog.get_detail = details.get
+    catalog.is_detail_cached = details.cached
+    catalog.detail_cache_info = details.info
+    catalog.deferred_details = True
+    return catalog
+
+
+def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.QuestCatalog:
+    ensure_lazy_catalog_cache(data_dir, cache_root=cache_root)
+    signature, path = _cache_identity(data_dir, cache_root)
+    with _connect(path) as connection:
         rows = [json.loads(row[0]) for row in connection.execute("SELECT summary FROM quests")]
         series = tuple(qc._series_from_cache(row) for row in json.loads(
             connection.execute("SELECT value FROM metadata WHERE key='series'").fetchone()[0]))
@@ -248,3 +315,7 @@ def _source_index(data_dir):
         return records, series
     finally:
         sources.close()
+
+
+if __name__ == "__main__" and "--ensure-cache" in sys.argv:
+    print(ensure_lazy_catalog_cache())
