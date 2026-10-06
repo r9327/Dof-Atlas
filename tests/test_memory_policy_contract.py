@@ -129,6 +129,8 @@ def test_guide_catalog_surface_defers_rich_guide_module_until_selection() -> Non
     assert "views.guides_view" not in catalog_source
     assert "manual_route_guides_view" not in catalog_source
     assert "deferred_achievement_guides_view" not in catalog_source
+    assert "guide_catalog_route_stats" not in catalog_source
+    assert "guide_catalog_hints" in catalog_source
     assert "GuideListModel" in catalog_source
     assert "GuideCardDelegate" in catalog_source
     assert "guideRequested = Signal(str)" in catalog_source
@@ -158,6 +160,27 @@ def test_guide_catalog_surface_defers_rich_guide_module_until_selection() -> Non
 
     restore_source = MEMORY_PAGE.read_text(encoding="utf-8")
     assert "super().ensure_full_guides_view()" in restore_source
+
+    guide_card_source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "widgets"
+        / "guide_card.py"
+    ).read_text(encoding="utf-8")
+    assert "dofus_item_provider" not in guide_card_source
+
+    hint_source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "guide_catalog_hints.py"
+    ).read_text(encoding="utf-8")
+    assert "guide_quest_view_model" not in hint_source
+    assert '"dofus_sylvestre": 237' in hint_source
 
 
 def test_quest_catalog_defers_rich_detail_view_until_selection() -> None:
