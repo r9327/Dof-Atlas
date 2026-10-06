@@ -349,6 +349,7 @@ def test_memory_bound_page_hibernates_widgets_and_reconstructible_runtime() -> N
         "_hibernate_guides",
         "_release_runtime_providers",
         "_clear_reconstructible_image_cache",
+        "release_runtime",
         "prepare_external_tab_navigation",
         "_collect_achievement_runtime",
         "collect_related_preload",
@@ -510,7 +511,7 @@ def test_craft_preload_and_runtime_are_sqlite_bounded() -> None:
     assert 'release_reconstructible_page("Craft"' in shell
 
 
-def test_home_release_collects_deleted_widget_cycles_without_working_set_trim() -> None:
+def test_home_release_flushes_deleted_widgets_without_forced_gc_or_working_set_trim() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     assert "def collect_released_page_cycles" in source
     cleanup = source[
@@ -518,13 +519,28 @@ def test_home_release_collects_deleted_widget_cycles_without_working_set_trim() 
         source.index("def release_reconstructible_page")
     ]
     assert "QApplication.sendPostedEvents(None, QEvent.DeferredDelete)" in cleanup
-    assert "gc.collect()" in cleanup
+    assert "gc.collect()" not in cleanup
     assert "SetProcessWorkingSetSize" not in cleanup
     home_switch = source[
         source.index('if name == "Home":'):
         source.index('elif name == "Quetes":')
     ]
     assert "self._schedule_owned_callback(0, self.collect_released_page_cycles)" in home_switch
+
+
+def test_memory_bound_page_explicitly_severs_runtime_signal_cycles() -> None:
+    source = MEMORY_PAGE.read_text(encoding="utf-8")
+    release = source[
+        source.index("def release_runtime"):
+        source.index("def prepare_external_tab_navigation")
+    ]
+    assert "hibernate_heavy_views()" in release
+    assert "_release_runtime_providers()" in release
+    assert "_quest_load_timer" in release
+    assert "signal.disconnect(slot)" in release
+    assert "_warmup_views.clear()" in release
+    assert "_related_data_ready_callback = None" in release
+    assert "_launch_travel_callback = None" in release
 
 
 def test_background_related_preload_keeps_runtime_imports_out_of_parent() -> None:
