@@ -107,6 +107,11 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
         """
         stage = card.get("manual_stage_data")
         if not isinstance(stage, dict):
+            hydrate = getattr(self, "_hydrate_manual_card_source", None)
+            if callable(hydrate):
+                hydrated = hydrate(card)
+                stage = hydrated if isinstance(hydrated, dict) else None
+        if not isinstance(stage, dict):
             return super().manual_sections_for_card(character_key, card)
 
         source_card = copy.deepcopy(card)
