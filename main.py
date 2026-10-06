@@ -253,10 +253,58 @@ def build_craft_preload() -> dict[str, Any]:
         fallback["errors"].append(str(exc))
         return fallback
 
-def build_quest_related_preload(catalog: Any | None = None) -> dict[str, Any]:
-    from app.modules.encyclopedia.services import build_related_encyclopedia_data
-    from app.quest_catalog import QuestCatalog
+def _run_preload_module_json(
+    module: str,
+    *arguments: str,
+    result_key: str,
+) -> int:
+    """Run one compact-store builder without importing its runtime in Atlas."""
 
+    import json
+    import subprocess
+
+    completed = subprocess.run(
+        [sys.executable, "-m", module, *arguments],
+        cwd=Path(__file__).resolve().parent,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=90,
+        check=True,
+    )
+    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise RuntimeError(f"Worker preload vide: {module}")
+    payload = json.loads(lines[-1])
+    return max(0, int(payload.get(result_key) or 0))
+
+
+def _warm_encyclopedia_compact_stores() -> None:
+    """Prepare Guide/Success indexes entirely in disposable child processes."""
+
+    _run_preload_module_json(
+        "app.modules.encyclopedia.services.achievement_index_warmup",
+        result_key="warmed_source_count",
+    )
+    _run_preload_module_json(
+        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+        "--ensure-compact-cache",
+        result_key="achievement_count",
+    )
+    _run_preload_module_json(
+        "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+        "--ensure-compact-cache",
+        result_key="guide_count",
+    )
+    _run_preload_module_json(
+        "app.modules.encyclopedia.providers.dofus_item_provider",
+        "--ensure-guide-index",
+        result_key="item_count",
+    )
+
+
+def build_quest_related_preload(catalog: Any | None = None) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "achievement_provider": None,
         "guide_provider": None,
@@ -266,9 +314,11 @@ def build_quest_related_preload(catalog: Any | None = None) -> dict[str, Any]:
         "errors": [],
     }
     try:
-        # Phase 8 preload prepares only reconstructible compact stores. It does
-        # not need a resident QuestCatalog and must never create one just to warm
-        # Guide/Success data.
+        if catalog is None:
+            _warm_encyclopedia_compact_stores()
+            return payload
+
+        from app.modules.encyclopedia.services import build_related_encyclopedia_data
         related = build_related_encyclopedia_data(catalog)
         achievement_provider = related.achievement_provider
         guide_provider = related.guide_provider
@@ -2063,7 +2113,8 @@ class AtlasWindow(QMainWindow):
             craft_count = len(merged_craft.get("items", [])) if isinstance(merged_craft, dict) else 0
             merged_quests = self.preload_results.get("quests")
             quest_catalog = merged_quests.get("catalog") if isinstance(merged_quests, dict) else None
-            quest_count = len(quest_catalog.quests) if isinstance(quest_catalog, QuestCatalog) else 0
+            quest_rows = getattr(quest_catalog, "quests", ()) if quest_catalog is not None else ()
+            quest_count = len(quest_rows or ())
             if quest_count == 0 and isinstance(merged_quests, dict):
                 quest_count = max(0, int(merged_quests.get("catalog_count") or 0))
             page = self.page_widgets.get("Quetes")

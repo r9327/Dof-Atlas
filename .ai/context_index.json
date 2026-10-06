@@ -82,7 +82,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "661c3a961e8f40700c82c5850c2f4427378f37fa",
+      "sha": "0f1a59ac92debe0414f76cd655b3108986c26a2b",
       "type": "tree"
     },
     "data": {
@@ -102,12 +102,12 @@
     },
     "local_dofus_data": {
       "mode": "040000",
-      "sha": "a9aef8772f6d2d48c5253095f3ee24278d68fe7e",
+      "sha": "27688df053959990c215d33a85613abf8413c929",
       "type": "tree"
     },
     "main.py": {
       "mode": "100644",
-      "sha": "8ff567ac23d93e6c9258cb223bfe3064b6d0b22d",
+      "sha": "d2f0a3f1cee2395aa212feedaeaf3db74bf410ab",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -127,7 +127,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "02b511f40f0f4d4c9cd859c9e7d9d0b4afb7eb15",
+      "sha": "55c7f55ebfd26794f092f7b5807a6d442de80ad8",
       "type": "tree"
     },
     "tools": {

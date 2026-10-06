@@ -269,6 +269,27 @@ def test_craft_preload_and_runtime_are_sqlite_bounded() -> None:
     assert 'release_reconstructible_page("Craft"' in shell
 
 
+def test_background_related_preload_keeps_runtime_imports_out_of_parent() -> None:
+    source = SHELL_MAIN.read_text(encoding="utf-8")
+    related = source[
+        source.index("def build_quest_related_preload("):
+        source.index("def build_guide_progress_preload(")
+    ]
+    cold_start = related.index("if catalog is None:")
+    runtime_import = related.index(
+        "from app.modules.encyclopedia.services import build_related_encyclopedia_data"
+    )
+    cold_path = related[cold_start:runtime_import]
+    assert "_warm_encyclopedia_compact_stores()" in cold_path
+    assert "return payload" in cold_path
+
+    collector = source[
+        source.index("def collect_preload_result("):
+        source.index("def merge_preload_result(")
+    ]
+    assert "from app.quest_catalog import QuestCatalog" not in collector
+
+
 def test_shell_announces_explicit_encyclopedia_tab_before_showing_page() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     method = source[source.index("def open_encyclopedia_tab"):source.index("def finish_pending_encyclopedia_tab")]
@@ -330,6 +351,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_guide_provider_releases_reconstructible_catalogue()
         test_quest_preload_keeps_all_rich_catalogues_off_heap()
         test_craft_preload_and_runtime_are_sqlite_bounded()
+        test_background_related_preload_keeps_runtime_imports_out_of_parent()
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
         test_success_catalogue_keeps_rich_objectives_out_of_resident_rows()
