@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import gc
 import json
 import subprocess
 import sys
@@ -121,10 +120,68 @@ class DofusItemProvider:
         return list(self._items)
 
     def get_by_id(self, item_id: int | None) -> DofusItem | None:
+        """Resolve one Guide item without loading the complete Doduda catalogue."""
+
         if item_id is None:
             return None
-        self._ensure_loaded()
-        return self._by_id.get(int(item_id))
+        item_id = int(item_id)
+        cached = self._by_id.get(item_id)
+        if cached is not None:
+            return cached
+        if self._loaded:
+            return None
+        item = self._load_one(item_id)
+        if item is None:
+            return None
+        self._by_id[item_id] = item
+        while len(self._by_id) > 32:
+            oldest_id = next(iter(self._by_id))
+            self._by_id.pop(oldest_id, None)
+        return item
+
+    def _load_one(self, item_id: int) -> DofusItem | None:
+        """Read one item through byte-offset indexes prepared by preload."""
+
+        sources = QuestSources(ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1")
+        try:
+            items = sources.rows(self.data_dir / "items.json")
+            try:
+                row = items[int(item_id)]
+            except KeyError:
+                return None
+            if not isinstance(row, dict):
+                return None
+
+            type_id = safe_int(row.get("typeId"), 0) or 0
+            type_row: dict[str, Any] = {}
+            try:
+                candidate = sources.rows(self.data_dir / "item_types.json")[type_id]
+                if isinstance(candidate, dict):
+                    type_row = candidate
+            except KeyError:
+                pass
+
+            entries = sources.mapping(
+                self.data_dir / "languages" / "fr.json",
+                "entries",
+                required=True,
+            )
+            icon_id = safe_int(row.get("iconId"))
+            return DofusItem(
+                id=int(item_id),
+                original_id=int(item_id),
+                name=localized_name(row, entries, f"Objet {item_id}"),
+                level=safe_int(row.get("level")),
+                type_id=type_id,
+                type_name=text_for(entries, type_row.get("nameId"), ""),
+                description=text_for(entries, row.get("descriptionId"), ""),
+                icon_id=icon_id,
+                image_path=self._image_for_icon(icon_id),
+                effects=(),
+                raw={"id": int(item_id), "typeId": type_id},
+            )
+        finally:
+            sources.close()
 
     def _ensure_loaded(self) -> None:
         if self._loaded:
@@ -257,8 +314,6 @@ class DofusItemProvider:
                     effect_rows[int(effect_id)] = dict(data)
                     if len(effect_rows) >= len(needed_effect_ids):
                         break
-        gc.collect()
-
         # Reuse the durable language byte-offset cache produced by preload and
         # decode only translations referenced by the selected Dofus/effects.
         needed_entry_ids: set[str] = set()

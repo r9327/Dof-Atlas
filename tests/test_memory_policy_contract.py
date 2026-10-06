@@ -26,6 +26,14 @@ DOFUS_ITEM_PROVIDER = (
     / "providers"
     / "dofus_item_provider.py"
 )
+INDEXED_GUIDE_PROVIDER = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "providers"
+    / "indexed_guide_provider.py"
+)
 MEMORY_PAGE = (
     ROOT
     / "app"
@@ -148,6 +156,7 @@ def test_related_index_warmup_runs_outside_long_lived_atlas_process() -> None:
     assert "QuestSources(" not in source
 
 
+
 def test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent() -> None:
     source = DOFUS_ITEM_PROVIDER.read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -156,11 +165,21 @@ def test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent() -> 
         for node in ast.walk(tree)
         if isinstance(node, ast.FunctionDef)
     }
-    assert {"_load", "_load_in_process", "_dump_compact_default_items"} <= method_names
-    assert "subprocess.run" in source
-    assert "--dump-compact" in source
-    assert "sys.executable" in source
+    assert {"_load", "_load_one", "_load_in_process", "_dump_compact_default_items"} <= method_names
+    assert "QuestSources(" in source
+    assert "while len(self._by_id) > 32" in source
+    assert "gc.collect()" not in source
 
+
+def test_guide_name_resolution_uses_prebuilt_index_without_nested_worker() -> None:
+    source = INDEXED_GUIDE_PROVIDER.read_text(encoding="utf-8")
+    resolver = source[
+        source.index("def _achievement_name_index"):
+        source.index("def _drop_nested_raw"),
+    ]
+    assert "achievement_names.json" in source
+    assert "subprocess.run" not in resolver
+    assert "achievement_index_warmup" not in resolver
 
 def test_guide_provider_releases_reconstructible_catalogue() -> None:
     source = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")

@@ -17,6 +17,7 @@ _SOURCE_SPECS = (
     ("rows", "dungeons.json", "", True),
     ("rows", "achievement_rewards.json", "", False),
     ("rows", "items.json", "", False),
+    ("rows", "item_types.json", "", False),
     ("rows", "spells.json", "", False),
     ("rows", "titles.json", "", False),
     ("rows", "emoticons.json", "", False),
@@ -25,6 +26,7 @@ _SOURCE_SPECS = (
 )
 
 _CACHE_ROOT = ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1"
+_ACHIEVEMENT_NAMES_FILE = _CACHE_ROOT / "achievement_names.json"
 
 
 def warm_achievement_source_indexes() -> int:
@@ -79,14 +81,36 @@ def achievement_name_index() -> dict[int, str]:
         sources.close()
 
 
+
+def write_achievement_name_index() -> int:
+    """Persist the small id/name map consumed by Guide workers at runtime."""
+
+    names = achievement_name_index()
+    _ACHIEVEMENT_NAMES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temporary = _ACHIEVEMENT_NAMES_FILE.with_suffix(".tmp")
+    temporary.write_text(
+        json.dumps(names, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    temporary.replace(_ACHIEVEMENT_NAMES_FILE)
+    return len(names)
+
+
 def main() -> int:
     if "--names" in sys.argv:
         print(json.dumps(achievement_name_index(), ensure_ascii=False, separators=(",", ":")))
         return 0
     count = warm_achievement_source_indexes()
-    print(json.dumps({"warmed_source_count": count}))
+    name_count = write_achievement_name_index()
+    print(
+        json.dumps(
+            {
+                "warmed_source_count": count,
+                "achievement_name_count": name_count,
+            }
+        )
+    )
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
