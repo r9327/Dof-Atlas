@@ -526,6 +526,7 @@ def test_guide_home_parses_full_compact_rows_only_in_disposable_worker() -> None
         provider.index("def _dump_compact_home_rows"):
         provider.index("def _dump_compact_default_guides")
     ]
+    assert 'compact_ids = value.get("progress_quest_ids")' in home_dump
     assert 'value.get("steps")' in home_dump
     assert 'home["progress_quest_ids"]' in home_dump
 
@@ -628,6 +629,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_guide_home_uses_virtualized_delegate_instead_of_widget_forest()
         test_guide_home_thumbnails_use_bounded_encyclopedia_cache()
         test_guide_home_parses_full_compact_rows_only_in_disposable_worker()
+        test_guide_compact_home_rows_skip_rich_entity_decode()
         test_guide_home_summary_stays_metadata_only()
         test_guide_compact_worker_never_loads_dofus_item_corpus()
         test_dofus_item_worker_streams_monolithic_doduda_sources()
