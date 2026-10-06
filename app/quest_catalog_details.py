@@ -52,7 +52,11 @@ class QuestDetails:
         self.limit = max(1, int(limit))
         self._lock = RLock()
         self._load_lock = RLock()
-        self._sources = QuestSources(path.parent)
+        # Reuse the canonical byte-offset indexes prepared by preload.
+        # Using the SQLite parent directly created a second offset-cache namespace,
+        # so the first rich Quest detail rebuilt indexes from monolithic JSON in
+        # Atlas' long-lived process and caused the Guide memory spike.
+        self._sources = QuestSources(path.parent / "source_offsets")
         self._records: OrderedDict[int, qc.QuestRecord] = OrderedDict()
         self._summaries: OrderedDict[
             int,
