@@ -116,7 +116,41 @@ jobs:
           if (Test-Path -LiteralPath $warmupResult) {
             Write-Host "Startup cache warmup result:"
             Get-Content -LiteralPath $warmupResult
+            Copy-Item -LiteralPath $warmupResult -Destination "artifacts/phase8_memory/warmup.cold.json" -Force
           }
+
+          # Run the same warmup once more after the measured app process is gone.
+          # Every reconstructible domain must hit the manifest fast path; this
+          # proves the optimization removes work instead of deferring it.
+          $hotToken = [guid]::NewGuid().ToString("N")
+          $hotOut = "artifacts/phase8_memory/warmup.hot.stdout.log"
+          $hotErr = "artifacts/phase8_memory/warmup.hot.stderr.log"
+          $hot = Start-Process -FilePath $python -ArgumentList @(
+            "-m",
+            "app.startup_cache_warmup",
+            "--token",
+            $hotToken
+          ) -PassThru -Wait -NoNewWindow -RedirectStandardOutput $hotOut -RedirectStandardError $hotErr
+          if ($hot.ExitCode -ne 0) {
+            if (Test-Path -LiteralPath $hotOut) { Get-Content -LiteralPath $hotOut }
+            if (Test-Path -LiteralPath $hotErr) { Get-Content -LiteralPath $hotErr }
+            throw "Hot startup cache warmup failed with code $($hot.ExitCode)."
+          }
+          if (-not (Test-Path -LiteralPath $warmupResult)) {
+            throw "Hot startup cache warmup produced no result."
+          }
+          Copy-Item -LiteralPath $warmupResult -Destination "artifacts/phase8_memory/warmup.hot.json" -Force
+          $hotPayload = Get-Content -LiteralPath $warmupResult -Raw | ConvertFrom-Json
+          foreach ($domain in @("guide", "quest", "success")) {
+            if ($hotPayload.domains.$domain.mode -ne "reused") {
+              throw "Hot startup cache warmup rebuilt $domain instead of reusing it."
+            }
+          }
+          if ([double]$hotPayload.elapsed_ms -gt 5000.0) {
+            throw "Hot startup cache warmup exceeded 5 s: $($hotPayload.elapsed_ms) ms."
+          }
+          Write-Host "Hot startup cache warmup result:"
+          Get-Content -LiteralPath $warmupResult
 
           if (-not (Test-Path -LiteralPath "artifacts/phase8_memory/memory.json")) {
             exit $code
