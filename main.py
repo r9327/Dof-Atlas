@@ -326,19 +326,33 @@ def _startup_cache_warmup_payload() -> dict[str, Any]:
     return payload
 
 
+def _startup_cache_warmup_stamp() -> tuple[int, int] | None:
+    """Return a cheap change token so polling does not reparse stable JSON."""
+
+    try:
+        stat = STARTUP_CACHE_WARMUP_RESULT.stat()
+    except OSError:
+        return None
+    return int(stat.st_mtime_ns), int(stat.st_size)
+
+
 def _await_startup_cache_warmup(timeout_seconds: float = 75.0) -> dict[str, Any]:
     """Wait from a preload worker for the disposable sibling warmup, never the UI."""
 
     if not os.environ.get(STARTUP_CACHE_WARMUP_TOKEN_ENV, "").strip():
         return {}
     deadline = monotonic() + max(0.0, float(timeout_seconds))
+    last_stamp: tuple[int, int] | None = None
     while True:
-        payload = _startup_cache_warmup_payload()
-        if str(payload.get("status") or "") in {"ready", "failed"}:
-            return payload
+        stamp = _startup_cache_warmup_stamp()
+        if stamp is not None and stamp != last_stamp:
+            last_stamp = stamp
+            payload = _startup_cache_warmup_payload()
+            if str(payload.get("status") or "") in {"ready", "failed"}:
+                return payload
         if monotonic() >= deadline:
             return {}
-        sleep(0.10)
+        sleep(0.25)
 
 
 def _warm_encyclopedia_compact_stores() -> None:
@@ -2139,6 +2153,11 @@ class AtlasWindow(QMainWindow):
         self.preload_poll_timer.start()
 
     def collect_preload_result(self) -> None:
+        # The poll timer fires while long-running external warmup work is still
+        # pending. Avoid allocating/catching Queue.Empty on every idle tick.
+        if self.preload_queue.empty():
+            return
+
         handled = False
         completed_tasks: list[str] = []
         fatal_error = ""

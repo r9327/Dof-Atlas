@@ -674,8 +674,17 @@ def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> N
         in shell
     )
     assert "def _startup_cache_warmup_payload" in shell
+    assert "def _startup_cache_warmup_stamp" in shell
     assert "def _await_startup_cache_warmup" in shell
-    assert 'in {"ready", "failed"}' in shell
+    awaiter = shell[
+        shell.index("def _await_startup_cache_warmup"):
+        shell.index("def _warm_encyclopedia_compact_stores")
+    ]
+    assert "_startup_cache_warmup_stamp()" in awaiter
+    assert "stamp != last_stamp" in awaiter
+    assert awaiter.count("_startup_cache_warmup_payload()") == 1
+    assert "sleep(0.25)" in awaiter
+    assert 'in {"ready", "failed"}' in awaiter
     quest_warmup = shell[
         shell.index("def _warm_quest_catalogue"):
         shell.index("def build_quest_preload")
@@ -839,6 +848,13 @@ def test_preload_retry_reuses_one_qtimer_per_task() -> None:
     ]
     assert preload.count("self._schedule_preload_retry(") >= 3
     assert "lambda target=task, priority=user_requested: self.start_preload(" not in preload
+
+    collector = source[
+        source.index("def collect_preload_result("):
+        source.index("def merge_preload_result(")
+    ]
+    assert "if self.preload_queue.empty():" in collector
+    assert collector.index("if self.preload_queue.empty():") < collector.index("while True:")
 
 
 def test_background_related_preload_keeps_runtime_imports_out_of_parent() -> None:
