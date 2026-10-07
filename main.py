@@ -325,6 +325,7 @@ def _warm_encyclopedia_compact_stores() -> None:
         "app.modules.encyclopedia.providers.dofus_item_provider",
         "--ensure-guide-index",
     )
+    _run_preload_module_status("app.guide_manual_preload")
 
 
 def build_quest_related_preload(catalog: Any | None = None) -> dict[str, Any]:

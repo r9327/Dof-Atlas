@@ -20,6 +20,10 @@ from app.quest_catalog import normalize_text
 ROOT = Path(__file__).resolve().parents[4]
 MANUAL_DIR = ROOT / "data" / "routes" / "guide_ultime_manual"
 MANIFEST_PATH = MANUAL_DIR / "manifest_v1.json"
+MANUAL_RUNTIME_COMPACT_CACHE = (
+    ROOT / ".cache" / "dofus_atlas" / "guide_ultime_manual_runtime_v1.json"
+)
+_MANUAL_RUNTIME_COMPACT_SCHEMA = 1
 _MANUAL_BUNDLE_LOCK = RLock()
 _MANUAL_BUNDLE_CACHE: dict[tuple[object, ...], dict[str, Any]] = {}
 _MAX_MANUAL_BUNDLE_CACHE_ENTRIES = 4
@@ -93,6 +97,158 @@ def _restore_manual_bundle(service: Any, bundle: dict[str, Any]) -> None:
 def clear_manual_bundle_cache() -> None:
     with _MANUAL_BUNDLE_LOCK:
         _MANUAL_BUNDLE_CACHE.clear()
+
+def _manual_runtime_quest_signature(service: Any) -> int:
+    mapping = getattr(service, "_quest_name_to_id", {})
+    if not isinstance(mapping, dict):
+        return 0
+    payload = json.dumps(
+        sorted((str(name), int(quest_id)) for name, quest_id in mapping.items()),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return int(zlib.crc32(payload) & 0xFFFFFFFF)
+
+
+def _manual_runtime_json_encode(value: Any) -> Any:
+    if isinstance(value, (bytes, bytearray)):
+        return {"__atlas_bytes_hex__": bytes(value).hex()}
+    if isinstance(value, dict):
+        return {
+            str(key): _manual_runtime_json_encode(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [_manual_runtime_json_encode(item) for item in value]
+    return value
+
+
+def _manual_runtime_json_decode(value: Any) -> Any:
+    if isinstance(value, dict):
+        if set(value) == {"__atlas_bytes_hex__"}:
+            raw = value.get("__atlas_bytes_hex__")
+            if isinstance(raw, str):
+                try:
+                    return bytes.fromhex(raw)
+                except ValueError:
+                    return b""
+        return {
+            str(key): _manual_runtime_json_decode(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_manual_runtime_json_decode(item) for item in value]
+    return value
+
+
+def write_manual_runtime_compact_cache(
+    service: Any,
+    path: Path = MANUAL_RUNTIME_COMPACT_CACHE,
+) -> int:
+    """Persist the already-composed compact manual route outside Atlas' heap."""
+
+    cards = list(getattr(service, "cards", ()) or ())
+    if not cards:
+        raise RuntimeError("Route manuelle compacte vide")
+    route = dict(getattr(service, "route", {}) or {})
+    route.pop("steps", None)
+    payload = {
+        "schema_version": _MANUAL_RUNTIME_COMPACT_SCHEMA,
+        "source_signature": [
+            list(row) for row in _manual_tree_signature(Path(service.manual_dir))
+        ],
+        "quest_signature": _manual_runtime_quest_signature(service),
+        "route": _manual_runtime_json_encode(route),
+        "cards": _manual_runtime_json_encode(cards),
+        "manual_audit_data": _manual_runtime_json_encode(
+            getattr(service, "manual_audit_data", {}) or {}
+        ),
+        "manual_preview_active": bool(
+            getattr(service, "manual_preview_active", False)
+        ),
+        "manual_preview_chapters": list(
+            getattr(service, "manual_preview_chapters", ()) or ()
+        ),
+        "manual_manifest_active": bool(
+            getattr(service, "manual_manifest_active", False)
+        ),
+        "manual_chapters": list(
+            getattr(service, "manual_chapters", ()) or ()
+        ),
+        "common_quest_ids": [
+            int(value)
+            for value in getattr(service, "_common_quest_ids", ()) or ()
+        ],
+        "full_success_ids": [
+            int(value)
+            for value in getattr(service, "_full_success_ids", ()) or ()
+        ],
+    }
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+    return len(cards)
+
+
+def restore_manual_runtime_compact_cache(
+    service: Any,
+    path: Path = MANUAL_RUNTIME_COMPACT_CACHE,
+) -> bool:
+    """Restore one verified compact manual route without composing chapters."""
+
+    path = Path(path)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    if int(payload.get("schema_version") or 0) != _MANUAL_RUNTIME_COMPACT_SCHEMA:
+        return False
+    expected_source = [
+        list(row) for row in _manual_tree_signature(Path(service.manual_dir))
+    ]
+    if payload.get("source_signature") != expected_source:
+        return False
+    if int(payload.get("quest_signature") or 0) != _manual_runtime_quest_signature(service):
+        return False
+
+    decoded_cards = _manual_runtime_json_decode(payload.get("cards"))
+    decoded_route = _manual_runtime_json_decode(payload.get("route"))
+    decoded_audit = _manual_runtime_json_decode(payload.get("manual_audit_data"))
+    if not isinstance(decoded_cards, list) or not decoded_cards:
+        return False
+    if not all(isinstance(card, dict) for card in decoded_cards):
+        return False
+    if not isinstance(decoded_route, dict) or not isinstance(decoded_audit, dict):
+        return False
+
+    decoded_route["steps"] = decoded_cards
+    service.route = decoded_route
+    service.cards = decoded_cards
+    service.manual_audit_data = decoded_audit
+    service.manual_preview_active = bool(payload.get("manual_preview_active"))
+    service.manual_preview_chapters = tuple(
+        str(value) for value in payload.get("manual_preview_chapters", []) or []
+    )
+    service.manual_manifest_active = bool(payload.get("manual_manifest_active"))
+    service.manual_chapters = tuple(
+        str(value) for value in payload.get("manual_chapters", []) or []
+    )
+    service._common_quest_ids = tuple(
+        int(value) for value in payload.get("common_quest_ids", []) or []
+    )
+    service._full_success_ids = tuple(
+        int(value) for value in payload.get("full_success_ids", []) or []
+    )
+    service.manual_preview_error = ""
+    return True
+
 
 _META_INSTRUCTION_TOKENS = (
     "ne créer aucune étape",
@@ -292,12 +448,14 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         manual_dir: Path = MANUAL_DIR,
         cache_manual_bundle: bool = True,
         compact_runtime: bool = False,
+        use_disk_cache: bool = True,
         **kwargs,
     ) -> None:
         self.quest_provider = quest_provider
         self.manual_dir = Path(manual_dir)
         self.cache_manual_bundle = bool(cache_manual_bundle)
         self.compact_runtime = bool(compact_runtime)
+        self.use_disk_cache = bool(use_disk_cache)
         self.manual_preview_active = False
         self.manual_preview_error = ""
         self.manual_preview_chapters: tuple[str, ...] = ()
@@ -308,7 +466,13 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         super().__init__(*args, **kwargs)
         self._build_quest_name_index()
         try:
-            self._load_manual_preview()
+            restored = (
+                self.compact_runtime
+                and self.use_disk_cache
+                and restore_manual_runtime_compact_cache(self)
+            )
+            if not restored:
+                self._load_manual_preview()
         except Exception as exc:
             self.manual_preview_error = f"{type(exc).__name__}: {exc}"
 

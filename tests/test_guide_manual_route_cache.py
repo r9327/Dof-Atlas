@@ -286,6 +286,61 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             self.assertEqual((first["call"], second["call"]), (1, 2))
             self.assertEqual(calls, 2)
 
+    def test_compact_runtime_disk_cache_roundtrips_bytes_and_rejects_stale_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "chapter.json"
+            source.write_text("{}", encoding="utf-8")
+            cache = root / "runtime.json"
+
+            class Service:
+                manual_dir = root
+                _quest_name_to_id = {"quete_test": 42}
+                route = {"id": "manual", "steps": []}
+                cards = [
+                    {
+                        "manual_stage_id": "s1",
+                        "_manual_stage_payload": b"abc",
+                    }
+                ]
+                manual_audit_data = {"card_count": 1}
+                manual_preview_active = True
+                manual_preview_chapters = ("c1",)
+                manual_manifest_active = True
+                manual_chapters = ("c1",)
+                _common_quest_ids = (42,)
+                _full_success_ids = ()
+
+            guide_ultime_manual_runtime_core.write_manual_runtime_compact_cache(
+                Service,
+                cache,
+            )
+
+            target = Service()
+            target.route = {}
+            target.cards = []
+            target.manual_audit_data = {}
+            self.assertTrue(
+                guide_ultime_manual_runtime_core.restore_manual_runtime_compact_cache(
+                    target,
+                    cache,
+                )
+            )
+            self.assertEqual(target.cards[0]["_manual_stage_payload"], b"abc")
+            self.assertEqual(target._common_quest_ids, (42,))
+
+            source.write_text('{"changed":true}', encoding="utf-8")
+            stale = Service()
+            stale.route = {}
+            stale.cards = []
+            self.assertFalse(
+                guide_ultime_manual_runtime_core.restore_manual_runtime_compact_cache(
+                    stale,
+                    cache,
+                )
+            )
+
+
 
 if __name__ == "__main__":
     unittest.main()

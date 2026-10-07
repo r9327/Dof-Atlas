@@ -87,6 +87,15 @@ CRAFT_PAGE = ROOT / "app" / "pages" / "craft_page.py"
 CRAFT_PRELOAD = ROOT / "app" / "craft_preload.py"
 QUESTS_PAGE_IMPL = ROOT / "app" / "pages" / "_quests_page_impl.py"
 GUIDES_VIEW = ROOT / "app" / "modules" / "encyclopedia" / "views" / "guides_view.py"
+GUIDE_MANUAL_CORE = (
+    ROOT
+    / "app"
+    / "modules"
+    / "encyclopedia"
+    / "services"
+    / "guide_ultime_manual_runtime_core.py"
+)
+GUIDE_MANUAL_PRELOAD = ROOT / "app" / "guide_manual_preload.py"
 
 
 def test_equipment_runtime_does_not_embed_qt_webengine() -> None:
@@ -650,6 +659,19 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     assert "_run_preload_module_result(" in quest_warmup
     assert "_run_preload_module_result(" in craft_builder
     assert runner.count("_run_preload_module_status(") >= 5
+
+
+def test_manual_guide_route_is_precompiled_outside_long_lived_atlas() -> None:
+    shell = SHELL_MAIN.read_text(encoding="utf-8")
+    core = GUIDE_MANUAL_CORE.read_text(encoding="utf-8")
+    worker = GUIDE_MANUAL_PRELOAD.read_text(encoding="utf-8")
+
+    assert '_run_preload_module_status("app.guide_manual_preload")' in shell
+    assert "MANUAL_RUNTIME_COMPACT_CACHE" in core
+    assert "restore_manual_runtime_compact_cache(self)" in core
+    assert "write_manual_runtime_compact_cache(service)" in worker
+    assert "compact_runtime=True" in worker
+    assert "use_disk_cache=False" in worker
 
 
 def test_disk_only_preload_does_not_import_home_encyclopedia_runtime() -> None:
