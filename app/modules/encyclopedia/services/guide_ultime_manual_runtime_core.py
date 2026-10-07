@@ -959,11 +959,11 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "manual_success_names": self._string_list(stage.get("successes")),
             "manual_temporal_hooks": temporal_hooks,
             "manual_runtime_metadata": runtime_metadata,
-            # The resolved stage/preparation objects are already owned by this
-            # one-shot composition. Reuse them instead of duplicating the heaviest
-            # per-card payload; runtime treats authored stage data as read-only.
-            "manual_stage_data": stage,
-            "manual_chapter_preparation": chapter_preparation or [],
+            # Non-compact callers keep an independent snapshot: tests/tools may
+            # mutate their authored input after card construction. Production
+            # compact runtime does not retain this rich payload at all.
+            "manual_stage_data": copy.deepcopy(stage),
+            "manual_chapter_preparation": copy.deepcopy(chapter_preparation or []),
             "a_prendre": [],
             "a_faire_ici": [],
             "progresse_aussi": {"quest_ids": quest_ids, "success_ids": []},
