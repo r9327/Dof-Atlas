@@ -19,6 +19,7 @@ class GuideUltimeManualStructuredDomainTests(unittest.TestCase):
         service = object.__new__(GuideUltimeManualRuntimeService)
         service.quest_provider = None
         service._quest_name_to_id = {}
+        service.compact_runtime = False
         return service
 
     @staticmethod

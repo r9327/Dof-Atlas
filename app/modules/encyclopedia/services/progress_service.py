@@ -238,19 +238,23 @@ class AchievementProgressService:
         if self._automatic_sync_cache.get(key) == sync_signature:
             return False
 
-        progress_id_iter = getattr(
-            achievement_provider,
-            "iter_progress_achievement_ids",
-            None,
-        )
-        progress_row_by_id = getattr(
-            achievement_provider,
-            "progress_row_by_id",
-            None,
-        )
-        streaming_progress = callable(progress_id_iter) and callable(progress_row_by_id)
+        def explicit_provider_callable(name: str):
+            method = getattr(achievement_provider, name, None)
+            if not callable(method):
+                return None
+            provider_dict = getattr(achievement_provider, "__dict__", {})
+            declared = callable(getattr(type(achievement_provider), name, None))
+            if not declared and (
+                not isinstance(provider_dict, dict) or name not in provider_dict
+            ):
+                return None
+            return method
 
-        progress_catalogue = getattr(achievement_provider, "progress_catalogue", None)
+        progress_id_iter = explicit_provider_callable("iter_progress_achievement_ids")
+        progress_row_by_id = explicit_provider_callable("progress_row_by_id")
+        streaming_progress = progress_id_iter is not None and progress_row_by_id is not None
+
+        progress_catalogue = explicit_provider_callable("progress_catalogue")
         if streaming_progress:
             achievements = ()
         else:
@@ -264,7 +268,7 @@ class AchievementProgressService:
                 if primitive_rows
                 else tuple(achievement_provider.load_retained())
             )
-        compact_objectives = getattr(achievement_provider, "progress_objectives_for", None)
+        compact_objectives = explicit_provider_callable("progress_objectives_for")
 
         def achievement_id(achievement: Any) -> int:
             if isinstance(achievement, tuple) and len(achievement) == 3:
