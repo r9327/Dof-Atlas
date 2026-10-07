@@ -257,8 +257,9 @@ class AchievementsView(QWidget):
         if self._runtime_ready:
             return True
         retained_count = getattr(self.provider, "retained_count", None)
-        if callable(retained_count):
-            if int(retained_count()) <= 0:
+        retained_value = retained_count() if callable(retained_count) else None
+        if isinstance(retained_value, int):
+            if retained_value <= 0:
                 raise RuntimeError("Aucun succès conservé chargé")
             self.achievements = []
         else:
@@ -302,9 +303,10 @@ class AchievementsView(QWidget):
         first_item: QTreeWidgetItem | None = None
         count_by_category = getattr(self.provider, "count_by_category", None)
         for category in self.provider.get_retained_categories():
+            top_value = count_by_category(category.id) if callable(count_by_category) else None
             top_count = (
-                int(count_by_category(category.id))
-                if callable(count_by_category)
+                top_value
+                if isinstance(top_value, int)
                 else len(self.provider.get_by_category(category.id))
             )
             top_item = QTreeWidgetItem([f"{category.name}  ({top_count})"])
@@ -319,9 +321,14 @@ class AchievementsView(QWidget):
             if first_item is None:
                 first_item = top_item
             for subcategory in self.provider.get_subcategories(category.id):
-                child_count = (
-                    int(count_by_category(subcategory.id))
+                child_value = (
+                    count_by_category(subcategory.id)
                     if callable(count_by_category)
+                    else None
+                )
+                child_count = (
+                    child_value
+                    if isinstance(child_value, int)
                     else len(self.provider.get_by_category(subcategory.id))
                 )
                 child = QTreeWidgetItem([f"{subcategory.name}  ({child_count})"])

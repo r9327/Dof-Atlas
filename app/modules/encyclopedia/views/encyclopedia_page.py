@@ -510,7 +510,8 @@ class EncyclopediaPage(QWidget):
         if self.quest_provider.get_quest(quest_id) is None:
             return False
         if source == "guide":
-            guides_view = self.ensure_full_guides_view()
+            ensure_full = getattr(self, "ensure_full_guides_view", None)
+            guides_view = ensure_full() if callable(ensure_full) else self.ensure_guides_view()
             guide_id = str(context.get("guide_id") or "")
             if guide_id and guides_view.current_guide_id != guide_id and not guides_view.select_guide(guide_id):
                 return False
