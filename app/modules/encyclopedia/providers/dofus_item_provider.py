@@ -467,10 +467,25 @@ class DofusItemProvider:
         extra_rows: dict[int, dict[str, Any]] = {}
         dofus_rows: dict[int, dict[str, Any]] = {}
         effect_rids: set[int] = set()
+        # Effect instances live in the same RefIds stream as items. Keep only
+        # four scalar fields per candidate so one bounded pass can serve both
+        # item discovery and later Dofus effect rendering.
+        effect_candidates: dict[int, tuple[int, int, int, int]] = {}
         for ref in _iter_doduda_refs(items_path):
             data = ref.get("data")
             if not isinstance(data, dict):
                 continue
+
+            rid = safe_int(ref.get("rid"))
+            effect_id = safe_int(data.get("effectId"))
+            if rid is not None and effect_id is not None:
+                effect_candidates[int(rid)] = (
+                    int(effect_id),
+                    safe_int(data.get("diceNum"), 0) or 0,
+                    safe_int(data.get("diceSide"), 0) or 0,
+                    safe_int(data.get("value"), 0) or 0,
+                )
+
             item_id = safe_int(data.get("id"))
             if item_id is None:
                 continue
@@ -485,21 +500,23 @@ class DofusItemProvider:
             for effect_ref in array_value(data.get("possibleEffects")):
                 if not isinstance(effect_ref, dict):
                     continue
-                rid = safe_int(effect_ref.get("rid"))
-                if rid is not None:
-                    effect_rids.add(int(rid))
+                effect_rid = safe_int(effect_ref.get("rid"))
+                if effect_rid is not None:
+                    effect_rids.add(int(effect_rid))
 
         effect_instances: dict[int, dict[str, Any]] = {}
-        if effect_rids:
-            for ref in _iter_doduda_refs(items_path):
-                rid = safe_int(ref.get("rid"))
-                if rid is None or int(rid) not in effect_rids:
-                    continue
-                data = ref.get("data")
-                if isinstance(data, dict):
-                    effect_instances[int(rid)] = dict(data)
-                    if len(effect_instances) >= len(effect_rids):
-                        break
+        for rid in effect_rids:
+            compact = effect_candidates.get(int(rid))
+            if compact is None:
+                continue
+            effect_id, dice_num, dice_side, value = compact
+            effect_instances[int(rid)] = {
+                "effectId": effect_id,
+                "diceNum": dice_num,
+                "diceSide": dice_side,
+                "value": value,
+            }
+        del effect_candidates
 
         needed_type_ids = {DOFUS_TYPE_ID}
         needed_type_ids.update(
