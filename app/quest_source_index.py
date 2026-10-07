@@ -327,11 +327,13 @@ class JsonSourceMapping(Mapping):
                     exc,
                 )
                 offsets = None
-        metadata: dict[str, object] = {}
         capture_doduda_metadata = self.doduda and path.name == "items.json"
         if offsets is None:
             try:
-                offsets = self._build_offsets(field, metadata=metadata)
+                # Primary source indexing stays generic.  Secondary type/rid
+                # metadata is built only when the Guide item worker requests it,
+                # so no other preload path can hide or absorb that cost.
+                offsets = self._build_offsets(field)
             except (OSError, UnicodeError, ValueError, TypeError, KeyError) as exc:
                 self._source_failure("lecture/parsing impossible", exc)
                 return
@@ -344,12 +346,6 @@ class JsonSourceMapping(Mapping):
                 temp_path.replace(cache)
             finally:
                 temp_path.unlink(missing_ok=True)
-            if capture_doduda_metadata:
-                self._write_doduda_metadata(
-                    metadata_cache,
-                    metadata.get("rid_offsets", {}),
-                    metadata.get("ids_by_type", {}),
-                )
         self._offsets = {int(key) if self.doduda else key: tuple(span) for key, span in offsets.items()}
         if capture_doduda_metadata:
             if not self._load_doduda_metadata(metadata_cache, stat.st_size):
