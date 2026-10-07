@@ -959,11 +959,11 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "manual_success_names": self._string_list(stage.get("successes")),
             "manual_temporal_hooks": temporal_hooks,
             "manual_runtime_metadata": runtime_metadata,
-            # Non-compact callers keep an independent snapshot: tests/tools may
-            # mutate their authored input after card construction. Production
-            # compact runtime does not retain this rich payload at all.
-            "manual_stage_data": copy.deepcopy(stage),
-            "manual_chapter_preparation": copy.deepcopy(chapter_preparation or []),
+            # Non-compact callers retain the authored structured values directly.
+            # Compact runtime hydrates only the visible sheet and releases it again,
+            # so this rich payload does not stay resident across the whole route.
+            "manual_stage_data": stage,
+            "manual_chapter_preparation": chapter_preparation or [],
             "a_prendre": [],
             "a_faire_ici": [],
             "progresse_aussi": {"quest_ids": quest_ids, "success_ids": []},
