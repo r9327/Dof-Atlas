@@ -3,7 +3,6 @@ from __future__ import annotations
 import ctypes
 import gc
 import os
-import subprocess
 import sys
 from collections import deque
 from contextlib import nullcontext
@@ -243,39 +242,44 @@ def build_craft_preload() -> dict[str, Any]:
         return fallback
 
 def _run_preload_module_status(module: str, *arguments: str) -> None:
-    """Run one disposable cache builder without parent-side capture pipes."""
+    """Run one disposable cache builder through Qt's native process wrapper."""
+
+    from PySide6.QtCore import QProcess, QProcessEnvironment
 
     root = Path(__file__).resolve().parent
-    environment = dict(os.environ)
-    current_pythonpath = str(environment.get("PYTHONPATH") or "")
-    environment["PYTHONPATH"] = (
+    environment = QProcessEnvironment.systemEnvironment()
+    current_pythonpath = environment.value("PYTHONPATH")
+    environment.insert(
+        "PYTHONPATH",
         str(root)
         if not current_pythonpath
-        else str(root) + os.pathsep + current_pythonpath
+        else str(root) + os.pathsep + current_pythonpath,
     )
-    options: dict[str, Any] = {
-        "cwd": root,
-        "env": environment,
-        "stdin": subprocess.DEVNULL,
-        "stdout": subprocess.DEVNULL,
-        "stderr": subprocess.DEVNULL,
-    }
-    if os.name == "nt":
-        options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
-    process = subprocess.Popen(
-        [sys.executable, "-m", module, *arguments],
-        **options,
-    )
-    try:
-        exit_code = process.wait(timeout=90)
-    except subprocess.TimeoutExpired as exc:
-        process.kill()
-        process.wait()
-        raise RuntimeError(f"Worker preload expiré: {module}") from exc
-    if int(exit_code) != 0:
+    process = QProcess()
+    process.setWorkingDirectory(str(root))
+    process.setProcessEnvironment(environment)
+    process.setProgram(sys.executable)
+    process.setArguments(["-m", module, *arguments])
+    null_device = QProcess.nullDevice()
+    process.setStandardOutputFile(null_device)
+    process.setStandardErrorFile(null_device)
+    process.start()
+    if not process.waitForStarted(10_000):
         raise RuntimeError(
-            f"Worker preload en échec: {module} (code {int(exit_code)})"
+            f"Worker preload impossible à démarrer: {module} ({process.errorString()})"
+        )
+    if not process.waitForFinished(90_000):
+        process.kill()
+        process.waitForFinished(5_000)
+        raise RuntimeError(f"Worker preload expiré: {module}")
+
+    exit_code = int(process.exitCode())
+    normal_exit = process.exitStatus() == QProcess.ExitStatus.NormalExit
+    process.close()
+    if not normal_exit or exit_code != 0:
+        raise RuntimeError(
+            f"Worker preload en échec: {module} (code {exit_code})"
         )
 
 

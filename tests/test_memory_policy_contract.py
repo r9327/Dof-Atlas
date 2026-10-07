@@ -638,9 +638,10 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
         source.index("def build_craft_preload("):
         source.index("def _run_preload_module_status(")
     ]
-    assert "subprocess.Popen(" in runner
-    assert "subprocess.DEVNULL" in runner
-    assert "process.wait(timeout=90)" in runner
+    assert "QProcess()" in runner
+    assert "QProcessEnvironment.systemEnvironment()" in runner
+    assert "process.waitForFinished(90_000)" in runner
+    assert "QProcess.nullDevice()" in runner
     assert "PYTHONPATH" in runner
     assert "--result-file" in runner
     assert "capture_output=True" not in runner
