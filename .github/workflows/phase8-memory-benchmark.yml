@@ -82,6 +82,12 @@ jobs:
           '@ | python -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Prewarm reconstructible caches outside Atlas
+        run: |
+          python -m app.startup_cache_warmup
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "DOFUS_ATLAS_CACHES_PREWARMED=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Measure staged process and process-tree memory
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts/phase8_memory" | Out-Null
