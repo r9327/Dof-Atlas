@@ -241,46 +241,129 @@ def build_craft_preload() -> dict[str, Any]:
         fallback["errors"].append(str(exc))
         return fallback
 
-def _run_preload_module_status(module: str, *arguments: str) -> None:
-    """Run one disposable cache builder through Qt's native process wrapper."""
+def _quote_windows_process_arg(value: object) -> str:
+    """Quote one Windows argv value without importing subprocess in Atlas."""
 
-    from PySide6.QtCore import QProcess, QProcessEnvironment
+    text = str(value)
+    if text and not any(char in text for char in ' \t\n\v"'):
+        return text
+    output = ['"']
+    backslashes = 0
+    for char in text:
+        if char == "\\":
+            backslashes += 1
+            continue
+        if char == '"':
+            output.append("\\" * (backslashes * 2 + 1))
+            output.append('"')
+            backslashes = 0
+            continue
+        if backslashes:
+            output.append("\\" * backslashes)
+            backslashes = 0
+        output.append(char)
+    if backslashes:
+        output.append("\\" * (backslashes * 2))
+    output.append('"')
+    return "".join(output)
+
+
+def _run_preload_module_status(module: str, *arguments: str) -> None:
+    """Run one disposable cache builder without Python process wrappers."""
 
     root = Path(__file__).resolve().parent
-    environment = QProcessEnvironment.systemEnvironment()
-    current_pythonpath = environment.value("PYTHONPATH")
-    environment.insert(
-        "PYTHONPATH",
-        str(root)
-        if not current_pythonpath
-        else str(root) + os.pathsep + current_pythonpath,
-    )
+    argv = ["-m", module, *arguments]
 
-    process = QProcess()
-    process.setWorkingDirectory(str(root))
-    process.setProcessEnvironment(environment)
-    process.setProgram(sys.executable)
-    process.setArguments(["-m", module, *arguments])
-    null_device = QProcess.nullDevice()
-    process.setStandardOutputFile(null_device)
-    process.setStandardErrorFile(null_device)
-    process.start()
-    if not process.waitForStarted(10_000):
-        raise RuntimeError(
-            f"Worker preload impossible à démarrer: {module} ({process.errorString()})"
+    if os.name != "nt":
+        environment = dict(os.environ)
+        current_pythonpath = str(environment.get("PYTHONPATH") or "")
+        environment["PYTHONPATH"] = (
+            str(root)
+            if not current_pythonpath
+            else str(root) + os.pathsep + current_pythonpath
         )
-    if not process.waitForFinished(90_000):
-        process.kill()
-        process.waitForFinished(5_000)
-        raise RuntimeError(f"Worker preload expiré: {module}")
+        exit_code = os.spawnve(
+            os.P_WAIT,
+            sys.executable,
+            [sys.executable, *argv],
+            environment,
+        )
+        if int(exit_code) != 0:
+            raise RuntimeError(
+                f"Worker preload en échec: {module} (code {int(exit_code)})"
+            )
+        return
 
-    exit_code = int(process.exitCode())
-    normal_exit = process.exitStatus() == QProcess.ExitStatus.NormalExit
-    process.close()
-    if not normal_exit or exit_code != 0:
-        raise RuntimeError(
-            f"Worker preload en échec: {module} (code {exit_code})"
-        )
+    from ctypes import wintypes
+
+    class _ShellExecuteInfoW(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", wintypes.DWORD),
+            ("fMask", ctypes.c_ulong),
+            ("hwnd", wintypes.HWND),
+            ("lpVerb", wintypes.LPCWSTR),
+            ("lpFile", wintypes.LPCWSTR),
+            ("lpParameters", wintypes.LPCWSTR),
+            ("lpDirectory", wintypes.LPCWSTR),
+            ("nShow", ctypes.c_int),
+            ("hInstApp", wintypes.HINSTANCE),
+            ("lpIDList", ctypes.c_void_p),
+            ("lpClass", wintypes.LPCWSTR),
+            ("hkeyClass", wintypes.HKEY),
+            ("dwHotKey", wintypes.DWORD),
+            ("hIcon", wintypes.HANDLE),
+            ("hProcess", wintypes.HANDLE),
+        ]
+
+    shell_execute = ctypes.windll.shell32.ShellExecuteExW
+    shell_execute.argtypes = [ctypes.POINTER(_ShellExecuteInfoW)]
+    shell_execute.restype = wintypes.BOOL
+
+    kernel32 = ctypes.windll.kernel32
+    kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    kernel32.WaitForSingleObject.restype = wintypes.DWORD
+    kernel32.GetExitCodeProcess.argtypes = [
+        wintypes.HANDLE,
+        ctypes.POINTER(wintypes.DWORD),
+    ]
+    kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+    kernel32.TerminateProcess.argtypes = [wintypes.HANDLE, wintypes.UINT]
+    kernel32.TerminateProcess.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+
+    parameters = " ".join(_quote_windows_process_arg(value) for value in argv)
+    info = _ShellExecuteInfoW()
+    info.cbSize = ctypes.sizeof(_ShellExecuteInfoW)
+    info.fMask = 0x00000040 | 0x00000400  # SEE_MASK_NOCLOSEPROCESS | NO_UI
+    info.lpFile = sys.executable
+    info.lpParameters = parameters
+    info.lpDirectory = str(root)
+    info.nShow = 0  # SW_HIDE
+
+    if not shell_execute(ctypes.byref(info)) or not info.hProcess:
+        raise ctypes.WinError()
+
+    wait_object_0 = 0x00000000
+    wait_timeout = 0x00000102
+    try:
+        wait_result = int(kernel32.WaitForSingleObject(info.hProcess, 90_000))
+        if wait_result == wait_timeout:
+            kernel32.TerminateProcess(info.hProcess, 124)
+            kernel32.WaitForSingleObject(info.hProcess, 5_000)
+            raise RuntimeError(f"Worker preload expiré: {module}")
+        if wait_result != wait_object_0:
+            raise ctypes.WinError()
+
+        exit_code = wintypes.DWORD()
+        if not kernel32.GetExitCodeProcess(info.hProcess, ctypes.byref(exit_code)):
+            raise ctypes.WinError()
+        if int(exit_code.value) != 0:
+            raise RuntimeError(
+                f"Worker preload en échec: {module} (code {int(exit_code.value)})"
+            )
+    finally:
+        kernel32.CloseHandle(info.hProcess)
 
 
 def _run_preload_module_result(module: str, *arguments: str) -> str:
