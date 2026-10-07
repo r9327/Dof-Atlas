@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import subprocess
@@ -102,8 +103,23 @@ def _write_result(payload: dict[str, object]) -> None:
     temporary.replace(RESULT_PATH)
 
 
-def main() -> int:
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Disposable Dofus Atlas cache warmup")
+    parser.add_argument("--token", default="")
+    return parser.parse_args(argv)
+
+
+def run_warmup(token: str = "") -> dict[str, object]:
     started = perf_counter()
+    token = str(token or "").strip()
+    _write_result(
+        {
+            "schema_version": SCHEMA_VERSION,
+            "token": token,
+            "status": "running",
+        }
+    )
+
     quest_output = _run_module("app.quest_catalog_details", "--ensure-cache")
     try:
         quest_count = max(0, int(quest_output.splitlines()[-1].strip()))
@@ -114,13 +130,35 @@ def main() -> int:
     for label, task in _TASKS:
         task_results[label] = _last_json_line(_run_module(task[0], *task[1:]))
 
-    payload: dict[str, object] = {
+    return {
         "schema_version": SCHEMA_VERSION,
+        "token": token,
+        "status": "ready",
         "quest_count": quest_count,
         "encyclopedia_ready": True,
         "tasks": task_results,
         "elapsed_ms": round((perf_counter() - started) * 1000.0, 2),
     }
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv)
+    token = str(args.token or "").strip()
+    started = perf_counter()
+    try:
+        payload = run_warmup(token)
+    except Exception as exc:
+        payload = {
+            "schema_version": SCHEMA_VERSION,
+            "token": token,
+            "status": "failed",
+            "error": f"{type(exc).__name__}: {exc}",
+            "elapsed_ms": round((perf_counter() - started) * 1000.0, 2),
+        }
+        _write_result(payload)
+        print(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), file=sys.stderr)
+        return 1
+
     _write_result(payload)
     print(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
     return 0
