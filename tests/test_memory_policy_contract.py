@@ -430,6 +430,8 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
         "_reset_sources",
         "release_catalogue",
         "_trim_catalogue_payload",
+        "_finish_in_process_catalogue",
+        "_load_disposable_worker_fast",
         "_load",
         "prepare_detail_sources",
         "get_detail_by_id",
@@ -442,6 +444,12 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     assert "_DUMP_DETAIL_FLAG" in source
     assert "_dump_default_detail" in source
     assert '"raw"' in source
+    compact_builder = source[
+        source.index("def _build_compact_cache("):
+        source.index("def _dump_default_detail(")
+    ]
+    assert "provider._load_disposable_worker_fast()" in compact_builder
+    assert "provider._load_in_process()" not in compact_builder
 
 
 def test_guide_same_character_assignment_does_not_rerender_route() -> None:
