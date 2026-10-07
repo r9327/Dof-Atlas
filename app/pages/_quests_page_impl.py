@@ -28,12 +28,14 @@ from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE,
 from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
-    ACHIEVEMENT_PROGRESS_FILE,
-    AchievementProgressService,
     QuestGraphService,
     QuestHierarchyPath,
     QuestHierarchyService,
     QuestProgressService,
+)
+from app.modules.encyclopedia.services.lazy_progress_service import (
+    ACHIEVEMENT_PROGRESS_FILE,
+    lazy_achievement_progress_service,
 )
 from app.modules.encyclopedia.widgets.dashboard import (
     CollapsedColumnRail,
@@ -183,7 +185,7 @@ class QuestsPage(QWidget):
         owned_items_path: Path = CRAFT_SELECTION_FILE,
         guide_provider: Any = None,
         achievement_provider: AchievementProvider | None = None,
-        achievement_progress_service: AchievementProgressService | None = None,
+        achievement_progress_service: Any = None,
         achievement_progress_path: Path = ACHIEVEMENT_PROGRESS_FILE,
         graph: QuestGraphService | None = None,
         navigate_callback: Callable[[str, int | str], bool] | None = None,
@@ -198,7 +200,10 @@ class QuestsPage(QWidget):
         self.owned_items_path = owned_items_path
         self.guide_provider = guide_provider
         self.achievement_provider = achievement_provider
-        self.achievement_progress_service = achievement_progress_service or AchievementProgressService(achievement_progress_path)
+        self.achievement_progress_service = (
+            achievement_progress_service
+            or lazy_achievement_progress_service(achievement_progress_path)
+        )
         self.navigate_callback = navigate_callback
         self._defer_detail_view = bool(defer_detail_view)
         self.quest_detail_view: QuestDetailView | None = None

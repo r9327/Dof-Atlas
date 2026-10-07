@@ -802,16 +802,67 @@ def _dump_compact_default_guides() -> int:
     return 0
 
 
+def _build_manual_runtime_compact_cache_in_worker() -> int:
+    """Build the manual Guide sidecar inside this already-disposable worker."""
+
+    from app.modules.encyclopedia.providers import QuestProvider
+    from app.modules.encyclopedia.services.guide_ultime_manual_runtime_core import (
+        write_manual_runtime_compact_cache,
+    )
+    from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+        GuideUltimeManualRuntimeService,
+    )
+
+    class _ColdProgressService:
+        pass
+
+    progress = _ColdProgressService()
+    service = GuideUltimeManualRuntimeService(
+        progress,
+        progress,
+        progress,
+        quest_provider=QuestProvider(),
+        autoload=False,
+        cache_manual_bundle=False,
+        compact_runtime=True,
+        use_disk_cache=False,
+    )
+    if not service.available or not service.cards:
+        raise RuntimeError("Route manuelle compacte Guide indisponible")
+    return write_manual_runtime_compact_cache(service)
+
+
 def _ensure_compact_guide_cache_cli() -> int:
+    count = 0
     if _guide_compact_cache_valid(GUIDE_COMPACT_CACHE, guides_dir=GUIDES_DIR):
         try:
             with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
                 count = sum(1 for line in stream if '"kind":"guide"' in line)
         except OSError:
             count = 0
-        print(json.dumps({"guide_count": count, "path": str(GUIDE_COMPACT_CACHE)}, ensure_ascii=False, separators=(",", ":")))
-        return 0
-    return _build_compact_guide_cache(GUIDE_COMPACT_CACHE)
+    else:
+        build_code = _build_compact_guide_cache(GUIDE_COMPACT_CACHE)
+        if int(build_code) != 0:
+            return int(build_code)
+        try:
+            with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                count = sum(1 for line in stream if '"kind":"guide"' in line)
+        except OSError:
+            count = 0
+
+    manual_count = _build_manual_runtime_compact_cache_in_worker()
+    print(
+        json.dumps(
+            {
+                "guide_count": count,
+                "manual_card_count": manual_count,
+                "path": str(GUIDE_COMPACT_CACHE),
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    )
+    return 0
 
 
 if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:

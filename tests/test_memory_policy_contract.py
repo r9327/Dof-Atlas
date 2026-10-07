@@ -95,7 +95,6 @@ GUIDE_MANUAL_CORE = (
     / "services"
     / "guide_ultime_manual_runtime_core.py"
 )
-GUIDE_MANUAL_PRELOAD = ROOT / "app" / "guide_manual_preload.py"
 
 
 def test_equipment_runtime_does_not_embed_qt_webengine() -> None:
@@ -658,20 +657,34 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     assert "_run_preload_module_json" not in runner
     assert "_run_preload_module_result(" in quest_warmup
     assert "_run_preload_module_result(" in craft_builder
-    assert runner.count("_run_preload_module_status(") >= 5
+    assert runner.count("_run_preload_module_status(") >= 4
 
 
-def test_manual_guide_route_is_precompiled_outside_long_lived_atlas() -> None:
+def test_manual_guide_route_is_precompiled_inside_existing_guide_worker() -> None:
     shell = SHELL_MAIN.read_text(encoding="utf-8")
     core = GUIDE_MANUAL_CORE.read_text(encoding="utf-8")
-    worker = GUIDE_MANUAL_PRELOAD.read_text(encoding="utf-8")
+    worker = MEMORY_GUIDE_PROVIDER.read_text(encoding="utf-8")
 
-    assert '_run_preload_module_status("app.guide_manual_preload")' in shell
+    assert 'app.guide_manual_preload' not in shell
     assert "MANUAL_RUNTIME_COMPACT_CACHE" in core
     assert "restore_manual_runtime_compact_cache(self)" in core
+    assert "_build_manual_runtime_compact_cache_in_worker" in worker
     assert "write_manual_runtime_compact_cache(service)" in worker
     assert "compact_runtime=True" in worker
     assert "use_disk_cache=False" in worker
+
+
+def test_quests_keep_success_and_guide_progress_engines_lazy() -> None:
+    shell = ENCYCLOPEDIA_PAGE.read_text(encoding="utf-8")
+    quests = QUESTS_PAGE_IMPL.read_text(encoding="utf-8")
+
+    runtime_imports = shell.split("if TYPE_CHECKING:", 1)[0]
+    assert "AchievementProgressService," not in runtime_imports
+    assert "GuideProgressService," not in runtime_imports
+    assert "lazy_achievement_progress_service" in shell
+    assert "lazy_guide_progress_service" in shell
+    assert "AchievementProgressService," not in quests.split("if TYPE_CHECKING:", 1)[0]
+    assert "lazy_achievement_progress_service" in quests
 
 
 def test_disk_only_preload_does_not_import_home_encyclopedia_runtime() -> None:

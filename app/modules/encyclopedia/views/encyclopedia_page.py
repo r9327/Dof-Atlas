@@ -16,14 +16,16 @@ from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE,
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, DEFAULT_TAB, ENCYCLOPEDIA_TABS, GUIDES_TAB, QUESTS_TAB
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
-    ACHIEVEMENT_PROGRESS_FILE,
-    GUIDE_PROGRESS_FILE,
-    AchievementProgressService,
     EncyclopediaService,
-    GuideProgressService,
     QuestGraphService,
     QuestProgressService,
     build_related_encyclopedia_data,
+)
+from app.modules.encyclopedia.services.lazy_progress_service import (
+    ACHIEVEMENT_PROGRESS_FILE,
+    GUIDE_PROGRESS_FILE,
+    lazy_achievement_progress_service,
+    lazy_guide_progress_service,
 )
 from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView
 from app.modules.encyclopedia.views.related_preload_state import (
@@ -166,8 +168,12 @@ class EncyclopediaPage(QWidget):
             achievement_provider=achievement_provider,
             guide_provider=guide_provider,
         )
-        self.achievement_progress_service = AchievementProgressService(achievement_progress_path)
-        self.guide_progress_service = GuideProgressService(guide_progress_path)
+        self.achievement_progress_service = lazy_achievement_progress_service(
+            achievement_progress_path
+        )
+        self.guide_progress_service = lazy_guide_progress_service(
+            guide_progress_path
+        )
         self.quest_progress_path = progress_path
         self.profile_path = profile_path
         self.client_index_path = client_index_path
