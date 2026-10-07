@@ -205,9 +205,6 @@ class JsonSourceMapping(Mapping):
         self._offsets = None
         self._cache_root, self._field = cache_root, field
         self._stream = None
-        self._rid_offsets: dict[int, tuple[int, int]] | None = None
-        self._ids_by_type: dict[int, tuple[int, ...]] | None = None
-        self._metadata_cache: Path | None = None
 
     def _source_failure(self, message: str, exc: BaseException | None = None):
         detail = f"{message}: {self.path}"
@@ -218,78 +215,6 @@ class JsonSourceMapping(Mapping):
             raise error
         LOGGER.warning("Source JSON Quêtes optionnelle ignorée: %s", detail)
         self._offsets = {}
-
-    @staticmethod
-    def _valid_span_map(value, source_size: int) -> bool:
-        return isinstance(value, dict) and all(
-            isinstance(span, list) and len(span) == 2
-            and all(isinstance(item, int) for item in span)
-            and 0 <= span[0] < span[1] <= source_size
-            for span in value.values()
-        )
-
-    @staticmethod
-    def _valid_type_map(value) -> bool:
-        return isinstance(value, dict) and all(
-            isinstance(ids, list) and all(isinstance(item, int) for item in ids)
-            for ids in value.values()
-        )
-
-    def _load_doduda_metadata(self, path: Path, source_size: int) -> bool:
-        if not self.doduda or not path.exists():
-            return False
-        try:
-            with gzip.open(path, "rt", encoding="utf-8") as stream:
-                payload = json.load(stream)
-        except (ValueError, OSError):
-            return False
-        if not isinstance(payload, dict):
-            return False
-        rid_offsets = payload.get("rid_offsets")
-        ids_by_type = payload.get("ids_by_type")
-        if not self._valid_span_map(rid_offsets, source_size) or not self._valid_type_map(ids_by_type):
-            return False
-        self._rid_offsets = {
-            int(key): tuple(span)
-            for key, span in rid_offsets.items()
-        }
-        self._ids_by_type = {
-            int(key): tuple(int(item) for item in ids)
-            for key, ids in ids_by_type.items()
-        }
-        return True
-
-    def _write_doduda_metadata(
-        self,
-        path: Path,
-        rid_offsets: dict[str, tuple[int, int]],
-        ids_by_type: dict[str, list[int]],
-    ) -> None:
-        if not self.doduda or self.path.name != "items.json":
-            return
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with tempfile.NamedTemporaryFile(dir=path.parent, suffix=".tmp", delete=False) as temp:
-            temp_path = Path(temp.name)
-        try:
-            with gzip.open(temp_path, "wt", encoding="utf-8", compresslevel=1) as stream:
-                stream.write(
-                    json.dumps(
-                        {
-                            "rid_offsets": {
-                                str(key): [int(span[0]), int(span[1])]
-                                for key, span in rid_offsets.items()
-                            },
-                            "ids_by_type": {
-                                str(key): [int(item) for item in ids]
-                                for key, ids in ids_by_type.items()
-                            },
-                        },
-                        separators=(",", ":"),
-                    )
-                )
-            temp_path.replace(path)
-        finally:
-            temp_path.unlink(missing_ok=True)
 
     def _ensure(self):
         if self._offsets is not None:
@@ -304,8 +229,6 @@ class JsonSourceMapping(Mapping):
         signature = [str(path.resolve()), *self._stamp, field, self.doduda, 1]
         digest = hashlib.sha256(json.dumps(signature).encode()).hexdigest()
         cache = cache_root / f"source_{digest}.json.gz"
-        metadata_cache = cache_root / f"source_{digest}_doduda_meta.json.gz"
-        self._metadata_cache = metadata_cache
         offsets = None
         if cache.exists():
             try:
@@ -327,12 +250,8 @@ class JsonSourceMapping(Mapping):
                     exc,
                 )
                 offsets = None
-        capture_doduda_metadata = self.doduda and path.name == "items.json"
         if offsets is None:
             try:
-                # Primary source indexing stays generic.  Secondary type/rid
-                # metadata is built only when the Guide item worker requests it,
-                # so no other preload path can hide or absorb that cost.
                 offsets = self._build_offsets(field)
             except (OSError, UnicodeError, ValueError, TypeError, KeyError) as exc:
                 self._source_failure("lecture/parsing impossible", exc)
@@ -347,15 +266,8 @@ class JsonSourceMapping(Mapping):
             finally:
                 temp_path.unlink(missing_ok=True)
         self._offsets = {int(key) if self.doduda else key: tuple(span) for key, span in offsets.items()}
-        if capture_doduda_metadata:
-            if not self._load_doduda_metadata(metadata_cache, stat.st_size):
-                self._rid_offsets = {}
-                self._ids_by_type = {}
-        elif self.doduda:
-            self._rid_offsets = {}
-            self._ids_by_type = {}
 
-    def _build_offsets(self, field, *, metadata: dict[str, object] | None = None):
+    def _build_offsets(self, field):
         """Build byte spans without decoding the monolithic source as one string."""
 
         field_marker = json.dumps(str(field), ensure_ascii=False).encode("utf-8")
@@ -500,8 +412,6 @@ class JsonSourceMapping(Mapping):
                     last_non_space = reader.tell()
 
         offsets: dict[str, tuple[int, int]] = {}
-        rid_offsets: dict[str, tuple[int, int]] = {}
-        ids_by_type: dict[str, list[int]] = defaultdict(list)
         try:
             while True:
                 skip_space()
@@ -526,16 +436,6 @@ class JsonSourceMapping(Mapping):
                     raw_value = json.loads(read_span(value_start, value_end))
                     row = raw_value.get("data") if isinstance(raw_value, dict) else None
                     key = row.get("id") if isinstance(row, dict) else None
-                    if metadata is not None and self.path.name == "items.json":
-                        rid = raw_value.get("rid") if isinstance(raw_value, dict) else None
-                        if rid is not None:
-                            rid_offsets[str(rid)] = (value_start, value_end)
-                        type_id = row.get("typeId") if isinstance(row, dict) else None
-                        if key is not None and type_id is not None:
-                            try:
-                                ids_by_type[str(int(type_id))].append(int(key))
-                            except (TypeError, ValueError):
-                                pass
                 if key is not None:
                     offsets[str(key)] = (value_start, value_end)
 
@@ -550,50 +450,7 @@ class JsonSourceMapping(Mapping):
         finally:
             reader.close()
             values.close()
-        if metadata is not None and self.doduda:
-            metadata["rid_offsets"] = rid_offsets
-            metadata["ids_by_type"] = dict(ids_by_type)
         return offsets
-
-    def _ensure_doduda_metadata(self) -> None:
-        self._ensure()
-        if not self.doduda:
-            return
-        if self._rid_offsets or self._ids_by_type:
-            return
-        try:
-            stat = self.path.stat()
-        except OSError:
-            return
-        metadata: dict[str, object] = {}
-        # Legacy offset caches predate the metadata sidecar. Upgrade them once,
-        # still with one bounded source scan, then reuse the sidecar thereafter.
-        self._build_offsets(self._field, metadata=metadata)
-        rid_offsets = metadata.get("rid_offsets", {})
-        ids_by_type = metadata.get("ids_by_type", {})
-        if self._metadata_cache is not None:
-            self._write_doduda_metadata(self._metadata_cache, rid_offsets, ids_by_type)
-            self._load_doduda_metadata(self._metadata_cache, stat.st_size)
-
-    def ids_for_type(self, type_id: int) -> tuple[int, ...]:
-        self._ensure_doduda_metadata()
-        return tuple((self._ids_by_type or {}).get(int(type_id), ()))
-
-    def data_by_rid(self, rid: int):
-        self._ensure_doduda_metadata()
-        span = (self._rid_offsets or {}).get(int(rid))
-        if span is None:
-            raise KeyError(rid)
-        start, end = span
-        with self.path.open("rb") as stream:
-            stream.seek(start)
-            value = json.loads(stream.read(end - start))
-        if not isinstance(value, dict):
-            raise KeyError(rid)
-        data = value.get("data")
-        if not isinstance(data, dict):
-            raise KeyError(rid)
-        return data
 
     def __getitem__(self, key):
         with self._lock:
@@ -654,12 +511,6 @@ class QuestSources:
 
     def rows(self, path):
         return self.mapping(path, 'RefIds', doduda=True, required=True)
-
-    def row_ids_for_type(self, path, type_id):
-        return self.rows(path).ids_for_type(int(type_id))
-
-    def row_by_rid(self, path, rid):
-        return self.rows(path).data_by_rid(int(rid))
 
     def objectives_for_steps(self, path, step_ids):
         rows = self.rows(path)

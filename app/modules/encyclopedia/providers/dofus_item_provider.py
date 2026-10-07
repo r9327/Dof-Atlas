@@ -456,87 +456,85 @@ class DofusItemProvider:
         *,
         extra_item_ids: set[int] | None = None,
     ) -> dict[int, DofusItem]:
-        """Extract only Dofus/Guide rows through durable source offsets."""
+        """Extract Dofus rows and optional Guide items in the same source pass."""
 
-        # The Quest/Guide warmup has already indexed Doduda sources by byte span.
-        # The items index also persists tiny typeId/rid sidecars, so this worker
-        # decodes only the Dofus rows, explicit Guide items and referenced effect
-        # instances instead of rescanning the monolithic items.json.
+        # items.json is the largest source used here. Scan one RefIds entry at
+        # a time so neither Atlas nor its disposable worker holds the monolithic
+        # JSON text/object graph in memory. Guide warmup can request its handful
+        # of extra items here so it never scans the source a third time.
         items_path = self.data_dir / "items.json"
-        source_offsets = (
-            ROOT_DIR / ".cache" / "dofus_atlas" / "quest_details_v1" / "source_offsets"
-        )
-        sources = QuestSources(source_offsets)
         extra_ids = {int(value) for value in (extra_item_ids or ())}
         extra_rows: dict[int, dict[str, Any]] = {}
         dofus_rows: dict[int, dict[str, Any]] = {}
-        effect_instances: dict[int, dict[str, Any]] = {}
-        type_rows: dict[int, dict[str, Any]] = {}
-        effect_rows: dict[int, dict[str, Any]] = {}
-        try:
-            item_rows = sources.rows(items_path)
-            dofus_ids = {
-                int(value)
-                for value in sources.row_ids_for_type(items_path, DOFUS_TYPE_ID)
-                if int(value) not in EXCLUDED_DOFUS_ITEM_IDS
-            }
-            for item_id in sorted(dofus_ids | extra_ids):
-                try:
-                    data = item_rows[int(item_id)]
-                except KeyError:
+        effect_rids: set[int] = set()
+        for ref in _iter_doduda_refs(items_path):
+            data = ref.get("data")
+            if not isinstance(data, dict):
+                continue
+            item_id = safe_int(data.get("id"))
+            if item_id is None:
+                continue
+            item_id = int(item_id)
+            if item_id in extra_ids:
+                extra_rows[item_id] = dict(data)
+            if safe_int(data.get("typeId")) != DOFUS_TYPE_ID:
+                continue
+            if item_id in EXCLUDED_DOFUS_ITEM_IDS:
+                continue
+            dofus_rows[item_id] = dict(data)
+            for effect_ref in array_value(data.get("possibleEffects")):
+                if not isinstance(effect_ref, dict):
                     continue
-                if not isinstance(data, dict):
-                    continue
-                if int(item_id) in dofus_ids:
-                    dofus_rows[int(item_id)] = dict(data)
-                if int(item_id) in extra_ids:
-                    extra_rows[int(item_id)] = dict(data)
+                rid = safe_int(effect_ref.get("rid"))
+                if rid is not None:
+                    effect_rids.add(int(rid))
 
-            effect_rids = {
-                int(rid)
-                for row in dofus_rows.values()
-                for effect_ref in array_value(row.get("possibleEffects"))
-                if isinstance(effect_ref, dict)
-                and (rid := safe_int(effect_ref.get("rid"))) is not None
-            }
-            for rid in sorted(effect_rids):
-                try:
-                    data = sources.row_by_rid(items_path, rid)
-                except KeyError:
+        effect_instances: dict[int, dict[str, Any]] = {}
+        if effect_rids:
+            for ref in _iter_doduda_refs(items_path):
+                rid = safe_int(ref.get("rid"))
+                if rid is None or int(rid) not in effect_rids:
                     continue
+                data = ref.get("data")
                 if isinstance(data, dict):
                     effect_instances[int(rid)] = dict(data)
+                    if len(effect_instances) >= len(effect_rids):
+                        break
 
-            needed_type_ids = {DOFUS_TYPE_ID}
-            needed_type_ids.update(
-                safe_int(row.get("typeId"), 0) or 0
-                for row in extra_rows.values()
-            )
-            type_mapping = sources.rows(self.data_dir / "item_types.json")
-            for type_id in sorted(needed_type_ids):
-                try:
-                    data = type_mapping[int(type_id)]
-                except KeyError:
-                    continue
-                if isinstance(data, dict):
-                    type_rows[int(type_id)] = dict(data)
-            type_row = type_rows.get(DOFUS_TYPE_ID, {})
+        needed_type_ids = {DOFUS_TYPE_ID}
+        needed_type_ids.update(
+            safe_int(row.get("typeId"), 0) or 0
+            for row in extra_rows.values()
+        )
+        type_rows: dict[int, dict[str, Any]] = {}
+        for ref in _iter_doduda_refs(self.data_dir / "item_types.json"):
+            data = ref.get("data")
+            if not isinstance(data, dict):
+                continue
+            type_id = safe_int(data.get("id"))
+            if type_id is None or int(type_id) not in needed_type_ids:
+                continue
+            type_rows[int(type_id)] = dict(data)
+            if len(type_rows) >= len(needed_type_ids):
+                break
+        type_row = type_rows.get(DOFUS_TYPE_ID, {})
 
-            needed_effect_ids = {
-                int(effect_id)
-                for effect in effect_instances.values()
-                if (effect_id := safe_int(effect.get("effectId"))) is not None
-            }
-            effect_mapping = sources.rows(self.data_dir / "effects.json")
-            for effect_id in sorted(needed_effect_ids):
-                try:
-                    data = effect_mapping[int(effect_id)]
-                except KeyError:
+        needed_effect_ids = {
+            effect_id
+            for effect in effect_instances.values()
+            if (effect_id := safe_int(effect.get("effectId"))) is not None
+        }
+        effect_rows: dict[int, dict[str, Any]] = {}
+        if needed_effect_ids:
+            for ref in _iter_doduda_refs(self.data_dir / "effects.json"):
+                data = ref.get("data")
+                if not isinstance(data, dict):
                     continue
-                if isinstance(data, dict):
+                effect_id = safe_int(data.get("id"))
+                if effect_id is not None and int(effect_id) in needed_effect_ids:
                     effect_rows[int(effect_id)] = dict(data)
-        finally:
-            sources.close()
+                    if len(effect_rows) >= len(needed_effect_ids):
+                        break
         # Reuse the durable language byte-offset cache produced by preload and
         # decode only translations referenced by the selected Dofus/effects.
         needed_entry_ids: set[str] = set()

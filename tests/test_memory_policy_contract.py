@@ -1344,6 +1344,7 @@ def test_guide_compact_worker_never_loads_dofus_item_corpus() -> None:
 def test_dofus_item_worker_streams_monolithic_doduda_sources() -> None:
     source = DOFUS_ITEM_PROVIDER.read_text(encoding="utf-8")
     assert "def _iter_doduda_refs" in source
+    assert '_iter_doduda_refs(items_path)' in source
     assert 'self._read_json(self.data_dir / "items.json"' not in source
     assert 'doduda_rows(self.data_dir / "item_types.json")' not in source
     assert 'doduda_rows(self.data_dir / "effects.json")' not in source
@@ -1353,10 +1354,6 @@ def test_dofus_item_worker_streams_monolithic_doduda_sources() -> None:
     ]
     assert "extra_item_ids" in load_in_process
     assert "extra_rows" in load_in_process
-    assert "_iter_doduda_refs(" not in load_in_process
-    assert "QuestSources(source_offsets)" in load_in_process
-    assert "row_ids_for_type(items_path, DOFUS_TYPE_ID)" in load_in_process
-    assert "row_by_rid(items_path, rid)" in load_in_process
     guide_builder = source[
         source.index("def _build_guide_items_index("):
         source.index("def _ensure_guide_items_index_cli(")

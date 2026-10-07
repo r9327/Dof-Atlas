@@ -355,36 +355,6 @@ class JsonSourceIndexTests(unittest.TestCase):
             self.assertEqual(dict(mapping), {7: rows[0]['data'], 8: rows[1]['data']})
             mapping.close()
 
-    def test_doduda_item_metadata_reuses_type_and_rid_offsets(self):
-        rows = [
-            {"rid": 1001, "data": {"id": 7, "typeId": 23, "name": "Dofus"}},
-            {"rid": 1002, "data": {"id": 8, "typeId": 99, "name": "Autre"}},
-            {"rid": 2001, "data": {"effectId": 42, "diceNum": 1}},
-        ]
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            path = root / "items.json"
-            path.write_text(
-                json.dumps({"references": {"RefIds": rows}}, ensure_ascii=False),
-                encoding="utf-8",
-            )
-            cache = root / "offsets"
-
-            first = JsonSourceMapping(path, cache, "RefIds", doduda=True)
-            self.assertEqual(first.ids_for_type(23), (7,))
-            self.assertEqual(first.data_by_rid(2001)["effectId"], 42)
-            first.close()
-
-            second = JsonSourceMapping(path, cache, "RefIds", doduda=True)
-            with patch.object(
-                second,
-                "_build_offsets",
-                side_effect=AssertionError("metadata sidecar should be reused"),
-            ):
-                self.assertEqual(second.ids_for_type(23), (7,))
-                self.assertEqual(second.data_by_rid(2001)["diceNum"], 1)
-            second.close()
-
 
 if __name__ == '__main__':
     unittest.main()
