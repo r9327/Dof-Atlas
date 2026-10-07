@@ -271,7 +271,7 @@ class GuideUltimeManualCard(QFrame):
                         if isinstance(objective, dict)
                     ]
 
-            if not combat_rows and callable(get_quest):
+            if not callable(evidence) and callable(get_quest):
                 try:
                     quest = get_quest(quest_id)
                 except (KeyError, LookupError, TypeError, ValueError):
