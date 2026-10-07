@@ -21,6 +21,10 @@ class ModernCharacterPageTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_legacy_character_page_shim_stays_retired(self) -> None:
+        self.assertFalse(Path("app/pages/character_page_modern.py").exists())
+        self.assertEqual(CharacterPage.__module__, "app.pages.character_page")
+
     def test_identity_equipment_and_stats_have_the_requested_layout(self) -> None:
         self.assertEqual(CharacterPage.__module__, "app.pages.character_page")
 
