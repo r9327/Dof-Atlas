@@ -815,6 +815,32 @@ def test_home_release_collects_deleted_widget_cycles_without_working_set_trim() 
     assert "self._schedule_owned_callback(0, self.collect_released_page_cycles)" in home_switch
 
 
+def test_preload_retry_reuses_one_qtimer_per_task() -> None:
+    source = SHELL_MAIN.read_text(encoding="utf-8")
+    init = source[
+        source.index("self.preload_state_lock = Lock()"):
+        source.index("self.pending_page_name =")
+    ]
+    assert "self.preload_retry_timers: dict[str, QTimer] = {}" in init
+    assert "self.preload_retry_priority: dict[str, bool] = {}" in init
+
+    helper = source[
+        source.index("def _schedule_preload_retry("):
+        source.index("def build_top_nav(")
+    ]
+    assert "self.preload_retry_timers.get(key)" in helper
+    assert "self.preload_retry_timers[key] = timer" in helper
+    assert "if not timer.isActive()" in helper
+    assert "timer.deleteLater" not in helper
+
+    preload = source[
+        source.index("def start_preload("):
+        source.index("def collect_preload_result(")
+    ]
+    assert preload.count("self._schedule_preload_retry(") >= 3
+    assert "lambda target=task, priority=user_requested: self.start_preload(" not in preload
+
+
 def test_background_related_preload_keeps_runtime_imports_out_of_parent() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     related = source[
@@ -1259,6 +1285,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_quest_preload_keeps_all_rich_catalogues_off_heap()
         test_craft_preload_and_runtime_are_sqlite_bounded()
         test_home_release_collects_deleted_widget_cycles_without_working_set_trim()
+        test_preload_retry_reuses_one_qtimer_per_task()
         test_background_related_preload_keeps_runtime_imports_out_of_parent()
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()

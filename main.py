@@ -767,6 +767,8 @@ class AtlasWindow(QMainWindow):
         }
         self.preload_state_lock = Lock()
         self.preload_user_tasks: set[str] = set()
+        self.preload_retry_timers: dict[str, QTimer] = {}
+        self.preload_retry_priority: dict[str, bool] = {}
         self.pending_page_name = ""
         self.pending_encyclopedia_tab = ""
         self.pending_guide_target: tuple[str, int | None] | None = None
@@ -870,6 +872,36 @@ class AtlasWindow(QMainWindow):
         timer.timeout.connect(callback)
         timer.timeout.connect(timer.deleteLater)
         timer.start(max(0, int(delay_ms)))
+
+    def _schedule_preload_retry(
+        self,
+        task: str,
+        *,
+        user_requested: bool,
+        delay_ms: int,
+    ) -> None:
+        """Reuse one timer per preload task while another stage owns the worker."""
+
+        key = str(task or "").strip().casefold()
+        if not key:
+            return
+        self.preload_retry_priority[key] = bool(
+            self.preload_retry_priority.get(key, False) or user_requested
+        )
+        timer = self.preload_retry_timers.get(key)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(
+                lambda target=key: self._run_preload_retry(target)
+            )
+            self.preload_retry_timers[key] = timer
+        if not timer.isActive():
+            timer.start(max(0, int(delay_ms)))
+
+    def _run_preload_retry(self, task: str) -> None:
+        priority = bool(self.preload_retry_priority.pop(task, False))
+        self.start_preload(task, user_requested=priority)
 
     def build_top_nav(self) -> QFrame:
         nav = QFrame()
@@ -2029,12 +2061,10 @@ class AtlasWindow(QMainWindow):
         if loading_tasks:
             if user_requested:
                 self.preload_user_tasks.add(task)
-            self._schedule_owned_callback(
-                180,
-                lambda target=task, priority=user_requested: self.start_preload(
-                    target,
-                    user_requested=priority,
-                ),
+            self._schedule_preload_retry(
+                task,
+                user_requested=user_requested,
+                delay_ms=180,
             )
             return
 
@@ -2044,12 +2074,10 @@ class AtlasWindow(QMainWindow):
             if quest_state in {PRELOAD_IDLE, PRELOAD_LOADING}:
                 if quest_state == PRELOAD_IDLE:
                     self.start_preload("quests", user_requested=user_requested)
-                self._schedule_owned_callback(
-                    180,
-                    lambda: self.start_preload(
-                        "encyclopedia",
-                        user_requested=user_requested,
-                    ),
+                self._schedule_preload_retry(
+                    "encyclopedia",
+                    user_requested=user_requested,
+                    delay_ms=180,
                 )
                 return
             # Serialize heavyweight cache builders: Encyclopedia warmup starts
@@ -2071,9 +2099,10 @@ class AtlasWindow(QMainWindow):
                     self.preload_user_tasks.add(task)
                 return
             if not user_requested and self.preload_user_tasks:
-                self._schedule_owned_callback(
-                    250,
-                    lambda target=task: self.start_preload(target),
+                self._schedule_preload_retry(
+                    task,
+                    user_requested=False,
+                    delay_ms=250,
                 )
                 return
             self.preload_states[task] = PRELOAD_LOADING
