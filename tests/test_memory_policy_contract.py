@@ -109,6 +109,26 @@ def test_encyclopedia_runtime_constructs_provider_through_memory_facade() -> Non
     assert "providers.achievement_provider import AchievementProvider" not in source
 
 
+def test_encyclopedia_service_keeps_success_and_guide_providers_cold() -> None:
+    source = ENCYCLOPEDIA_SERVICE.read_text(encoding="utf-8")
+    runtime_imports = source.split("if TYPE_CHECKING:", 1)[0]
+    assert "providers.memory_bound_guide_provider import" not in runtime_imports
+    assert "providers.guide_provider import" not in runtime_imports
+    assert "self._achievement_provider = achievement_provider" in source
+    assert "self._guide_provider = guide_provider" in source
+    assert "def peek_achievement_provider" in source
+    assert "def peek_guide_provider" in source
+    assert "AchievementProvider(quest_provider=self.quest_provider)" in source
+
+
+def test_quest_graph_does_not_import_success_provider_for_safe_int() -> None:
+    source = (
+        ROOT / "app" / "modules" / "encyclopedia" / "services" / "quest_graph_service.py"
+    ).read_text(encoding="utf-8")
+    assert "providers.achievement_provider import safe_int" not in source
+    assert "def safe_int(" in source
+
+
 def test_encyclopedia_quest_surface_defers_success_and_guide_widgets() -> None:
     source = ENCYCLOPEDIA_PAGE.read_text(encoding="utf-8")
     facade = ENCYCLOPEDIA_FACADE.read_text(encoding="utf-8")

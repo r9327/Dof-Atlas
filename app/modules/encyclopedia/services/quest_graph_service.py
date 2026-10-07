@@ -7,8 +7,14 @@ from itertools import product
 from typing import Any, Iterable
 
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
-from app.modules.encyclopedia.providers.achievement_provider import safe_int
 from app.quest_catalog import QuestRecord, normalize_text
+
+
+def safe_int(value: Any, default: int | None = None) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 _REFERENCE_RE = re.compile(r"\b(Qf|Qa|Sc|OA)\s*(?:==|=)\s*(\d+)\b", re.IGNORECASE)

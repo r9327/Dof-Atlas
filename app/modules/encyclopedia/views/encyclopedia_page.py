@@ -715,9 +715,11 @@ class EncyclopediaPage(QWidget):
         if not callable(callback):
             return
         if achievement_provider is None:
-            achievement_provider = self.service.achievement_provider
-        # The callback accepts an optional Guide provider at runtime; None is
-        # deliberate until Guide has genuinely been requested.
+            peek = getattr(self.service, "peek_achievement_provider", None)
+            achievement_provider = peek() if callable(peek) else None
+        if guide_provider is None:
+            peek = getattr(self.service, "peek_guide_provider", None)
+            guide_provider = peek() if callable(peek) else None
         callback(achievement_provider, guide_provider)
         self._catalog_context_published = True
 
@@ -761,7 +763,7 @@ class EncyclopediaPage(QWidget):
             page = self._build_quests_page_progressive()
             self.replace_tab_widget(QUESTS_TAB, page)
         if not self._catalog_context_published:
-            self._publish_catalog_context(self.service.achievement_provider, None)
+            self._publish_catalog_context(None, None)
         if self.current_tab_label() == QUESTS_TAB:
             self._activate_loaded_tab(QUESTS_TAB)
 

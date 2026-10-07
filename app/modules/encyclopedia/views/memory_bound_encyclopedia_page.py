@@ -182,8 +182,13 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         ):
             return False
 
-        achievement_provider = getattr(getattr(self, "service", None), "achievement_provider", None)
-        guide_provider = getattr(getattr(self, "service", None), "guide_provider", None)
+        service = getattr(self, "service", None)
+        peek_achievement = getattr(service, "peek_achievement_provider", None)
+        peek_guide = getattr(service, "peek_guide_provider", None)
+        achievement_provider = (
+            peek_achievement() if callable(peek_achievement) else None
+        )
+        guide_provider = peek_guide() if callable(peek_guide) else None
         for provider in (achievement_provider, guide_provider):
             release = getattr(provider, "release_catalogue", None)
             if callable(release):
