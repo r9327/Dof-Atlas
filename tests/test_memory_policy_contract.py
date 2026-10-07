@@ -669,18 +669,25 @@ def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> N
     launcher = WINDOWS_LAUNCHER.read_text(encoding="utf-8")
     workflow = PHASE8_MEMORY_WORKFLOW.read_text(encoding="utf-8")
 
-    assert 'STARTUP_CACHE_WARMUP_ENV = "DOFUS_ATLAS_CACHES_PREWARMED"' in shell
+    assert (
+        'STARTUP_CACHE_WARMUP_TOKEN_ENV = "DOFUS_ATLAS_CACHE_WARMUP_TOKEN"'
+        in shell
+    )
     assert "def _startup_cache_warmup_payload" in shell
+    assert "def _await_startup_cache_warmup" in shell
+    assert 'in {"ready", "failed"}' in shell
     quest_warmup = shell[
         shell.index("def _warm_quest_catalogue"):
         shell.index("def build_quest_preload")
     ]
-    assert "_startup_cache_warmup_payload()" in quest_warmup
+    assert "_await_startup_cache_warmup()" in quest_warmup
+    assert 'prewarmed.get("status") or "") == "ready"' in quest_warmup
     assert "prewarmed_count > 0" in quest_warmup
     encyclopedia_warmup = shell[
         shell.index("def _warm_encyclopedia_compact_stores"):
         shell.index("def build_quest_related_preload")
     ]
+    assert "_await_startup_cache_warmup()" in encyclopedia_warmup
     assert 'prewarmed.get("encyclopedia_ready")' in encyclopedia_warmup
     assert "_run_preload_module_status(" in encyclopedia_warmup
 
@@ -690,12 +697,17 @@ def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> N
     assert "memory_bound_guide_provider" in warmup
     assert "dofus_item_provider" in warmup
     assert '"encyclopedia_ready": True' in warmup
+    assert '"status": "running"' in warmup
+    assert '"status": "ready"' in warmup
+    assert '"status": "failed"' in warmup
     assert "startup_cache_warmup_v1.json" in warmup
 
-    assert '"%PYTHON_EXE%" -m app.startup_cache_warmup' in launcher
-    assert 'set "DOFUS_ATLAS_CACHES_PREWARMED=1"' in launcher
-    assert "python -m app.startup_cache_warmup" in workflow
-    assert "DOFUS_ATLAS_CACHES_PREWARMED=1" in workflow
+    assert "DOFUS_ATLAS_CACHE_WARMUP_TOKEN" in launcher
+    assert "-m app.startup_cache_warmup --token" in launcher
+    assert "start \"\" /b" in launcher
+    assert "DOFUS_ATLAS_CACHE_WARMUP_TOKEN" in workflow
+    assert "Start-Process" in workflow
+    assert "app.startup_cache_warmup" in workflow
 
 
 def test_manual_guide_route_is_precompiled_inside_existing_guide_worker() -> None:
