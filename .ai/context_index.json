@@ -12,7 +12,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "100232e8a95acdf25ef9c7e90498053406f99c35",
+      "sha": "ad3419e2b862dd4d0f8d229f2df944722f959b2a",
       "type": "tree"
     },
     ".gitignore": {
@@ -42,7 +42,7 @@
     },
     "DOFUS.bat": {
       "mode": "100644",
-      "sha": "ce4b054dcddf15ab79d15d5f3846a3e5847085c0",
+      "sha": "77bb682149e884b167ab3c1720ef52dd3902e01e",
       "type": "blob"
     },
     "GITHUB_PROTECTION.md": {
@@ -82,7 +82,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "cf5238dfd7848f5f3257689983676245e86ac668",
+      "sha": "9f76da54839152a5d8155951088b77bc4e6e126f",
       "type": "tree"
     },
     "data": {
@@ -107,7 +107,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "c560673228bbdb9baf228f9907d10136ba213a2a",
+      "sha": "866b652ee5c320347fc21070262ab68e885a2cef",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -127,7 +127,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "859d3bf7a12347a5f142187dd503e8aeb81bb75c",
+      "sha": "549af14f726aa2bcd451d498e1590ca1bd50b3a7",
       "type": "tree"
     },
     "tools": {
