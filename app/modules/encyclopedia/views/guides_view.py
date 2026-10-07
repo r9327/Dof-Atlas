@@ -1149,6 +1149,10 @@ class GuidesView(QWidget):
             quest_provider=self.quest_provider,
             achievement_provider=self.achievement_provider,
         )
+        self._compact_catalog_home = bool(
+            callable(getattr(self.provider, "get_summary_by_id", None))
+            and callable(getattr(self.provider, "progress_quest_ids_for", None))
+        )
         self.quest_progress_path = quest_progress_path
         self.achievement_progress_service = achievement_progress_service or AchievementProgressService(achievement_progress_path)
         self.guide_progress_service = guide_progress_service or GuideProgressService(guide_progress_path)
@@ -1204,6 +1208,12 @@ class GuidesView(QWidget):
             )
 
     def _show_runtime_loading(self) -> None:
+        if self._compact_catalog_home:
+            self.home_list.setVisible(False)
+            self.home_empty.setText("Chargement des guides…")
+            self.home_empty.setWordWrap(False)
+            self.home_empty.setVisible(True)
+            return
         clear_layout(self.home_layout)
         loading = QLabel("Chargement des guides…")
         loading.setObjectName("GuidesHomeEmptyText")
@@ -1213,6 +1223,12 @@ class GuidesView(QWidget):
         self.home_layout.addStretch(1)
 
     def show_runtime_error(self, message: str) -> None:
+        if self._compact_catalog_home:
+            self.home_list.setVisible(False)
+            self.home_empty.setText(str(message or "Chargement des guides impossible."))
+            self.home_empty.setWordWrap(True)
+            self.home_empty.setVisible(True)
+            return
         clear_layout(self.home_layout)
         error = QLabel(str(message or "Chargement des guides impossible."))
         error.setObjectName("GuidesHomeEmptyText")
@@ -1292,13 +1308,31 @@ class GuidesView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
 
+        if self._compact_catalog_home:
+            self.home_list = QListView()
+            self.home_list.setObjectName("GuidesHomeList")
+            self.home_list.setModel(self.result_model)
+            self.home_list.setItemDelegate(GuideCardDelegate(self.home_list))
+            self.home_list.setMouseTracking(True)
+            self.home_list.setUniformItemSizes(False)
+            self.home_list.clicked.connect(self._on_home_guide_clicked)
+            root.addWidget(self.home_list, 1)
+
+            self.home_empty = QLabel("Aucun guide ne correspond à la recherche.")
+            self.home_empty.setObjectName("GuidesHomeEmptyText")
+            self.home_empty.setAlignment(Qt.AlignCenter)
+            self.home_empty.setVisible(False)
+            root.addWidget(self.home_empty, 1)
+            self.home_content = self.home_list
+            self.home_layout = root
+            return page
+
         self.home_content = QWidget()
         self.home_content.setObjectName("GuidesHomeContent")
         self.home_content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.home_layout = QVBoxLayout(self.home_content)
         self.home_layout.setContentsMargins(2, 2, 2, 2)
         self.home_layout.setSpacing(8)
-
         root.addWidget(self.home_content, 1)
         return page
 
@@ -1488,9 +1522,28 @@ class GuidesView(QWidget):
             self.show_guide_overview(self.current_guide_id, preserve_scroll=True)
 
     def _refresh_home_uncached(self) -> None:
-        clear_layout(self.home_layout)
         self.visible_guides = self.provider.search(self.search_text)
         self.result_model.set_guides(self.visible_guides)
+
+        if self._compact_catalog_home:
+            if not self.visible_guides:
+                self.result_model.set_progress({})
+                self.home_list.setVisible(False)
+                self.home_empty.setText("Aucun guide ne correspond à la recherche.")
+                self.home_empty.setVisible(True)
+                return
+            progress_by_guide = self.initial_home_progress()
+            if progress_by_guide is None:
+                progress_by_guide = {
+                    guide.id: self.guide_progress_tuple(guide)
+                    for guide in self.visible_guides
+                }
+            self.result_model.set_progress(progress_by_guide)
+            self.home_empty.setVisible(False)
+            self.home_list.setVisible(True)
+            return
+
+        clear_layout(self.home_layout)
         if not self.visible_guides:
             empty = QFrame()
             empty.setObjectName("GuidesHomeEmpty")
