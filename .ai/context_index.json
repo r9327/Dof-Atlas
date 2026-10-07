@@ -35,25 +35,10 @@
       "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
       "type": "blob"
     },
-    "app": {
-      "mode": "040000",
-      "sha": "dfaa3fcd5fd333d7aae0cd7fed0d2cdd44c9e204",
-      "type": "tree"
-    },
-    "data": {
-      "mode": "040000",
-      "sha": "c40e9ba47d87f8a17bf55e799937d72b05412a6f",
-      "type": "tree"
-    },
     "DEVELOPMENT_GUARDRAILS.md": {
       "mode": "100644",
       "sha": "39c4bdfaee0d29728e2abfc1069a0426a42ff73f",
       "type": "blob"
-    },
-    "docs": {
-      "mode": "040000",
-      "sha": "e8fcafd6aabafafd6ec7fb7aae2b6ef5d2385bc4",
-      "type": "tree"
     },
     "DOFUS.bat": {
       "mode": "100644",
@@ -75,6 +60,41 @@
       "sha": "9ad2c1c5f039c7a34c31621ac59dc405590de13f",
       "type": "blob"
     },
+    "PERFORMANCE_GUARDRAILS.md": {
+      "mode": "100644",
+      "sha": "dc57372db669fa795a18a610d4f0e7e15876194f",
+      "type": "blob"
+    },
+    "PHASE_CERTIFICATION.md": {
+      "mode": "100644",
+      "sha": "1b954a4e8d4bd530393464b149f8452cea0c92c9",
+      "type": "blob"
+    },
+    "ROAD_IA.md": {
+      "mode": "100644",
+      "sha": "7bec21d161e3680967f120d3a17313ed4f7d5a71",
+      "type": "blob"
+    },
+    "ZERO_TRUST_RULES.md": {
+      "mode": "100644",
+      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a",
+      "type": "blob"
+    },
+    "app": {
+      "mode": "040000",
+      "sha": "dfaa3fcd5fd333d7aae0cd7fed0d2cdd44c9e204",
+      "type": "tree"
+    },
+    "data": {
+      "mode": "040000",
+      "sha": "c40e9ba47d87f8a17bf55e799937d72b05412a6f",
+      "type": "tree"
+    },
+    "docs": {
+      "mode": "040000",
+      "sha": "e8fcafd6aabafafd6ec7fb7aae2b6ef5d2385bc4",
+      "type": "tree"
+    },
     "launch.py": {
       "mode": "100644",
       "sha": "a127fed88dbae20e129d3a1ee4b168fb9cf08068",
@@ -90,24 +110,9 @@
       "sha": "e1ec52cd7a4e08d06f2f7d3939a18655dc15de94",
       "type": "blob"
     },
-    "PERFORMANCE_GUARDRAILS.md": {
-      "mode": "100644",
-      "sha": "dc57372db669fa795a18a610d4f0e7e15876194f",
-      "type": "blob"
-    },
-    "PHASE_CERTIFICATION.md": {
-      "mode": "100644",
-      "sha": "1b954a4e8d4bd530393464b149f8452cea0c92c9",
-      "type": "blob"
-    },
     "requirements-pyside.txt": {
       "mode": "100644",
       "sha": "0f49f9c7bc1d01fd0d7bac24d5c12c868df8f81c",
-      "type": "blob"
-    },
-    "ROAD_IA.md": {
-      "mode": "100644",
-      "sha": "7bec21d161e3680967f120d3a17313ed4f7d5a71",
       "type": "blob"
     },
     "scripts": {
@@ -129,11 +134,6 @@
       "mode": "040000",
       "sha": "8abcf6dba7de4d519d8b573c613228779382949b",
       "type": "tree"
-    },
-    "ZERO_TRUST_RULES.md": {
-      "mode": "100644",
-      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a",
-      "type": "blob"
     }
   },
   "excluded_top_level": [
