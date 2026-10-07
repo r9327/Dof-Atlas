@@ -626,10 +626,6 @@ def test_guide_provider_releases_reconstructible_catalogue() -> None:
 
 def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
-    broker = source[
-        source.index("class _PreloadProcessBroker"):
-        source.index("def _run_preload_module_status(")
-    ]
     runner = source[
         source.index("def _run_preload_module_status("):
         source.index("def build_quest_related_preload(")
@@ -640,24 +636,21 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     ]
     craft_builder = source[
         source.index("def build_craft_preload("):
-        source.index("class _PreloadProcessRequest")
+        source.index("def _run_preload_module_status(")
     ]
-    assert "QProcess(self)" in broker
-    assert "processRequested = Signal(object)" in broker
-    assert "setStandardOutputFile(null_device)" in broker
-    assert "setStandardErrorFile(null_device)" in broker
-    assert "capture_output" not in broker
-    assert "subprocess.PIPE" not in broker
-    assert "_active_preload_process_broker()" in runner
-    assert "broker.run(module, *arguments)" in runner
-    assert "os.spawnve(" in runner
-    assert "os.P_WAIT" in runner
+    assert "QProcess" not in runner
+    assert "subprocess.run(" in runner
+    assert "subprocess.DEVNULL" in runner
     assert "capture_output=True" not in runner
     assert "subprocess.PIPE" not in runner
+    assert "os.spawnve(" not in runner
+    assert '"creationflags"' in runner
+    assert "CREATE_NO_WINDOW" in runner
     assert "_run_preload_module_json" not in runner
     assert "_run_preload_module_result(" in quest_warmup
     assert "_run_preload_module_result(" in craft_builder
     assert runner.count("_run_preload_module_status(") >= 5
+
 
 def test_disk_only_preload_does_not_import_home_encyclopedia_runtime() -> None:
     shell = SHELL_MAIN.read_text(encoding="utf-8")

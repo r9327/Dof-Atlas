@@ -82,7 +82,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "be55c8f94fc14f548afc068f2ea7d10c3b380f0d",
+      "sha": "44f361b5dc2ca140002a229ccf0c5f6ef113431f",
       "type": "tree"
     },
     "data": {
@@ -107,7 +107,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "3d5d31be2250b86bc3c08db3de9af5d8dc2b6ed8",
+      "sha": "c560673228bbdb9baf228f9907d10136ba213a2a",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -127,7 +127,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "3ae3d38782cce5d5d37ab748d812c288b9186702",
+      "sha": "091c52f38ce7e153fddb15544bae5efbfeadd3ca",
       "type": "tree"
     },
     "tools": {

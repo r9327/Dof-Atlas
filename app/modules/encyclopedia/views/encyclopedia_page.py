@@ -936,7 +936,7 @@ class EncyclopediaPage(QWidget):
         achievement_provider = self.service.achievement_provider
         character_key = str(self.current_character_key or "")
         quest_progress_path = self.quest_progress_path
-        existing_graph = self._quest_graph
+        existing_graph = getattr(self, "_quest_graph", None)
 
         def worker() -> None:
             with background_io_priority():
@@ -1089,7 +1089,7 @@ class EncyclopediaPage(QWidget):
         self._achievement_load_started = True
         quest_provider = self.quest_provider
         achievement_provider = self.service.achievement_provider
-        existing_graph = self._quest_graph
+        existing_graph = getattr(self, "_quest_graph", None)
         character_key = str(self.current_character_key or "")
         achievement_progress_service = self.achievement_progress_service
         quest_progress_path = self.quest_progress_path
