@@ -638,12 +638,9 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
         source.index("def build_craft_preload("):
         source.index("def _run_preload_module_status(")
     ]
-    assert "ShellExecuteExW" in runner
-    assert "WaitForSingleObject" in runner
-    assert "GetExitCodeProcess" in runner
-    assert "_quote_windows_process_arg" in source
-    assert "subprocess.Popen(" not in runner
-    assert "QProcess()" not in runner
+    assert "os.spawnve(" in runner
+    assert "os.P_WAIT" in runner
+    assert "PYTHONPATH" in runner
     assert "--result-file" in runner
     assert "capture_output=True" not in runner
     assert "_run_preload_module_json" not in runner
@@ -652,21 +649,7 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     assert "subprocess.run" not in craft_builder
     assert "_run_preload_module_result(" in quest_warmup
     assert "_run_preload_module_result(" in craft_builder
-    assert '_run_preload_module_status("app.encyclopedia_preload")' in runner
-    assert "memory_bound_achievement_provider" not in runner
-    assert "memory_bound_guide_provider" not in runner
-
-    supervisor = (ROOT / "app" / "encyclopedia_preload.py").read_text(
-        encoding="utf-8"
-    )
-    for module in (
-        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
-        "app.modules.encyclopedia.services.achievement_index_warmup",
-        "app.modules.encyclopedia.providers.memory_bound_guide_provider",
-        "app.modules.encyclopedia.providers.dofus_item_provider",
-    ):
-        assert module in supervisor
-    assert "subprocess.run(" in supervisor
+    assert runner.count("_run_preload_module_status(") >= 5
 
 
 def test_disk_only_preload_does_not_import_home_encyclopedia_runtime() -> None:

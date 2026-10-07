@@ -241,129 +241,27 @@ def build_craft_preload() -> dict[str, Any]:
         fallback["errors"].append(str(exc))
         return fallback
 
-def _quote_windows_process_arg(value: object) -> str:
-    """Quote one Windows argv value without importing subprocess in Atlas."""
-
-    text = str(value)
-    if text and not any(char in text for char in ' \t\n\v"'):
-        return text
-    output = ['"']
-    backslashes = 0
-    for char in text:
-        if char == "\\":
-            backslashes += 1
-            continue
-        if char == '"':
-            output.append("\\" * (backslashes * 2 + 1))
-            output.append('"')
-            backslashes = 0
-            continue
-        if backslashes:
-            output.append("\\" * backslashes)
-            backslashes = 0
-        output.append(char)
-    if backslashes:
-        output.append("\\" * (backslashes * 2))
-    output.append('"')
-    return "".join(output)
-
-
 def _run_preload_module_status(module: str, *arguments: str) -> None:
-    """Run one disposable cache builder without Python process wrappers."""
+    """Run one disposable cache builder without parent-side pipes or payloads."""
 
-    root = Path(__file__).resolve().parent
-    argv = ["-m", module, *arguments]
-
-    if os.name != "nt":
-        environment = dict(os.environ)
-        current_pythonpath = str(environment.get("PYTHONPATH") or "")
-        environment["PYTHONPATH"] = (
-            str(root)
-            if not current_pythonpath
-            else str(root) + os.pathsep + current_pythonpath
+    root = str(Path(__file__).resolve().parent)
+    environment = dict(os.environ)
+    current_pythonpath = str(environment.get("PYTHONPATH") or "")
+    environment["PYTHONPATH"] = (
+        root
+        if not current_pythonpath
+        else root + os.pathsep + current_pythonpath
+    )
+    exit_code = os.spawnve(
+        os.P_WAIT,
+        sys.executable,
+        [sys.executable, "-m", module, *arguments],
+        environment,
+    )
+    if int(exit_code) != 0:
+        raise RuntimeError(
+            f"Worker preload en échec: {module} (code {int(exit_code)})"
         )
-        exit_code = os.spawnve(
-            os.P_WAIT,
-            sys.executable,
-            [sys.executable, *argv],
-            environment,
-        )
-        if int(exit_code) != 0:
-            raise RuntimeError(
-                f"Worker preload en échec: {module} (code {int(exit_code)})"
-            )
-        return
-
-    from ctypes import wintypes
-
-    class _ShellExecuteInfoW(ctypes.Structure):
-        _fields_ = [
-            ("cbSize", wintypes.DWORD),
-            ("fMask", ctypes.c_ulong),
-            ("hwnd", wintypes.HWND),
-            ("lpVerb", wintypes.LPCWSTR),
-            ("lpFile", wintypes.LPCWSTR),
-            ("lpParameters", wintypes.LPCWSTR),
-            ("lpDirectory", wintypes.LPCWSTR),
-            ("nShow", ctypes.c_int),
-            ("hInstApp", wintypes.HINSTANCE),
-            ("lpIDList", ctypes.c_void_p),
-            ("lpClass", wintypes.LPCWSTR),
-            ("hkeyClass", wintypes.HKEY),
-            ("dwHotKey", wintypes.DWORD),
-            ("hIcon", wintypes.HANDLE),
-            ("hProcess", wintypes.HANDLE),
-        ]
-
-    shell_execute = ctypes.windll.shell32.ShellExecuteExW
-    shell_execute.argtypes = [ctypes.POINTER(_ShellExecuteInfoW)]
-    shell_execute.restype = wintypes.BOOL
-
-    kernel32 = ctypes.windll.kernel32
-    kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
-    kernel32.WaitForSingleObject.restype = wintypes.DWORD
-    kernel32.GetExitCodeProcess.argtypes = [
-        wintypes.HANDLE,
-        ctypes.POINTER(wintypes.DWORD),
-    ]
-    kernel32.GetExitCodeProcess.restype = wintypes.BOOL
-    kernel32.TerminateProcess.argtypes = [wintypes.HANDLE, wintypes.UINT]
-    kernel32.TerminateProcess.restype = wintypes.BOOL
-    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-    kernel32.CloseHandle.restype = wintypes.BOOL
-
-    parameters = " ".join(_quote_windows_process_arg(value) for value in argv)
-    info = _ShellExecuteInfoW()
-    info.cbSize = ctypes.sizeof(_ShellExecuteInfoW)
-    info.fMask = 0x00000040 | 0x00000400  # SEE_MASK_NOCLOSEPROCESS | NO_UI
-    info.lpFile = sys.executable
-    info.lpParameters = parameters
-    info.lpDirectory = str(root)
-    info.nShow = 0  # SW_HIDE
-
-    if not shell_execute(ctypes.byref(info)) or not info.hProcess:
-        raise ctypes.WinError()
-
-    wait_object_0 = 0x00000000
-    wait_timeout = 0x00000102
-    try:
-        wait_result = int(kernel32.WaitForSingleObject(info.hProcess, 90_000))
-        if wait_result == wait_timeout:
-            kernel32.TerminateProcess(info.hProcess, 124)
-            kernel32.WaitForSingleObject(info.hProcess, 5_000)
-            raise RuntimeError(f"Worker preload expiré: {module}")
-        if wait_result != wait_object_0:
-            raise ctypes.WinError()
-
-        exit_code = wintypes.DWORD()
-        if not kernel32.GetExitCodeProcess(info.hProcess, ctypes.byref(exit_code)):
-            raise ctypes.WinError()
-        if int(exit_code.value) != 0:
-            raise RuntimeError(
-                f"Worker preload en échec: {module} (code {int(exit_code.value)})"
-            )
-    finally:
-        kernel32.CloseHandle(info.hProcess)
 
 
 def _run_preload_module_result(module: str, *arguments: str) -> str:
@@ -391,13 +289,27 @@ def _run_preload_module_result(module: str, *arguments: str) -> str:
 
 
 def _warm_encyclopedia_compact_stores() -> None:
-    """Prepare all Encyclopedia stores behind one disposable supervisor."""
+    """Prepare Guide/Success indexes entirely in disposable child processes."""
 
-    # Atlas must spawn only once here. The supervisor serializes the existing
-    # cache builders in its own disposable process; any allocator high-water
-    # from creating those workers dies with the supervisor instead of becoming
-    # permanent RSS in the long-lived UI process.
-    _run_preload_module_status("app.encyclopedia_preload")
+    # These workers persist reconstructible artefacts to disk; Atlas needs only
+    # their exit status. Avoid four subprocess.Popen capture pipes in the
+    # long-lived process: their transient Windows allocations raised the parent
+    # working-set watermark even though no catalogue payload was retained.
+    _run_preload_module_status(
+        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+        "--ensure-compact-cache",
+    )
+    _run_preload_module_status(
+        "app.modules.encyclopedia.services.achievement_index_warmup",
+    )
+    _run_preload_module_status(
+        "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+        "--ensure-compact-cache",
+    )
+    _run_preload_module_status(
+        "app.modules.encyclopedia.providers.dofus_item_provider",
+        "--ensure-guide-index",
+    )
 
 
 def build_quest_related_preload(catalog: Any | None = None) -> dict[str, Any]:
