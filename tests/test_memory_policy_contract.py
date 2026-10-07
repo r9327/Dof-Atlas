@@ -859,6 +859,26 @@ def test_preload_retry_reuses_one_qtimer_per_task() -> None:
     assert collector.index("if self.preload_queue.empty():") < collector.index("while True:")
 
 
+def test_idle_shell_keeps_macro_runtime_cold_without_clients() -> None:
+    source = SHELL_MAIN.read_text(encoding="utf-8")
+
+    start = source[
+        source.index("def start_runtime"):
+        source.index("def stop_runtime")
+    ]
+    cold_gate = "if not self._runtime_client_mapping_signature():"
+    assert cold_gate in start
+    assert start.index(cold_gate) < start.index("self._ensure_runtime().start()")
+
+    refresh = source[
+        source.index("def _refresh_runtime_hotkeys_for_client_mapping"):
+        source.index("def open_encyclopedia_tab")
+    ]
+    assert "if runtime is None:" in refresh
+    assert "if not desired:" in refresh
+    assert "runtime = self._ensure_runtime()" in refresh
+
+
 def test_idle_network_poll_does_not_drain_empty_queues() -> None:
     bridge = NETWORK_BRIDGE.read_text(encoding="utf-8")
     coordinator = NETWORK_COORDINATOR.read_text(encoding="utf-8")
@@ -1325,6 +1345,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_craft_preload_and_runtime_are_sqlite_bounded()
         test_home_release_collects_deleted_widget_cycles_without_working_set_trim()
         test_preload_retry_reuses_one_qtimer_per_task()
+        test_idle_shell_keeps_macro_runtime_cold_without_clients()
         test_idle_network_poll_does_not_drain_empty_queues()
         test_background_related_preload_keeps_runtime_imports_out_of_parent()
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()

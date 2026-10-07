@@ -1417,6 +1417,14 @@ class AtlasWindow(QMainWindow):
             return False
         runtime = getattr(self, "runtime", None)
         if runtime is None:
+            if not desired:
+                return False
+            runtime = self._ensure_runtime()
+            self._atlas_runtime_client_mapping_signature = desired
+            start = getattr(runtime, "start", None)
+            if callable(start):
+                start()
+                return True
             return False
 
         marker_name = "_atlas_runtime_client_mapping_signature"
@@ -2465,6 +2473,11 @@ class AtlasWindow(QMainWindow):
             user_load_in_progress = bool(self.preload_user_tasks)
         if user_load_in_progress:
             self._schedule_owned_callback(250, self.start_runtime)
+            return
+        if not self._runtime_client_mapping_signature():
+            # No Dofus client can consume macros yet. Keep the hook/runtime
+            # graph cold; refresh_global_characters() starts it as soon as a
+            # client mapping appears.
             return
         self._ensure_runtime().start()
 
