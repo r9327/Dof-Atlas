@@ -1348,6 +1348,19 @@ def test_dofus_item_worker_streams_monolithic_doduda_sources() -> None:
     assert 'self._read_json(self.data_dir / "items.json"' not in source
     assert 'doduda_rows(self.data_dir / "item_types.json")' not in source
     assert 'doduda_rows(self.data_dir / "effects.json")' not in source
+    load_in_process = source[
+        source.index("def _load_in_process("):
+        source.index("def _effect_label(")
+    ]
+    assert "extra_item_ids" in load_in_process
+    assert "extra_rows" in load_in_process
+    guide_builder = source[
+        source.index("def _build_guide_items_index("):
+        source.index("def _ensure_guide_items_index_cli(")
+    ]
+    assert "_load_in_process(extra_item_ids=requested)" in guide_builder
+    assert "_iter_doduda_refs" not in guide_builder
+    assert "SelectedJsonValueMapping" not in guide_builder
 
 
 class MemoryPolicyContractUnittest(unittest.TestCase):
