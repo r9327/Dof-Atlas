@@ -222,6 +222,9 @@ class QuestsPage(QWidget):
         self.category_items: dict[str, QTreeWidgetItem] = {}
         self.series_items: dict[str, QTreeWidgetItem] = {}
         self.quest_tree_items: dict[int, list[QTreeWidgetItem]] = {}
+        self._loaded_category_names: set[str] = set()
+        self._loaded_series_ids: set[str] = set()
+        self._hierarchy_completed_quest_ids: frozenset[int] = frozenset()
         self.current_mode = "TOUTES"
         self.refreshing = False
         self.object_rows_refreshing = False
@@ -396,6 +399,7 @@ class QuestsPage(QWidget):
         self.hierarchy_tree.setUniformRowHeights(True)
         self.hierarchy_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.hierarchy_tree.itemClicked.connect(self.on_hierarchy_item_clicked)
+        self.hierarchy_tree.itemExpanded.connect(self.on_hierarchy_item_expanded)
         hierarchy_content_layout.addWidget(self.hierarchy_tree, 1)
         self.hierarchy_panel.root.addWidget(self.hierarchy_content, 1)
         self.hierarchy_collapsed_rail = CollapsedColumnRail("Afficher les catégories et suites")
@@ -472,6 +476,70 @@ class QuestsPage(QWidget):
         self.hierarchy = QuestHierarchyService(self.catalog, self.graph).build()
         self.rebuild_hierarchy()
 
+    @staticmethod
+    def _hierarchy_placeholder() -> QTreeWidgetItem:
+        item = QTreeWidgetItem([""])
+        item.setData(0, HIERARCHY_KIND_ROLE, "placeholder")
+        item.setFlags(Qt.NoItemFlags)
+        return item
+
+    def _hierarchy_category(self, name: str):
+        return next(
+            (category for category in self.hierarchy.categories if category.name == name),
+            None,
+        )
+
+    def _materialize_hierarchy_category(self, item: QTreeWidgetItem) -> None:
+        name = str(item.data(0, HIERARCHY_ID_ROLE) or "")
+        if not name or name in self._loaded_category_names:
+            return
+        category = self._hierarchy_category(name)
+        if category is None:
+            return
+
+        item.takeChildren()
+        for series in category.series:
+            series_item = QTreeWidgetItem([series.name])
+            series_item.setData(0, HIERARCHY_KIND_ROLE, "series")
+            series_item.setData(0, HIERARCHY_ID_ROLE, series.id)
+            series_item.setToolTip(0, f"{len(series.quest_ids)} quêtes")
+            if series.quest_ids:
+                series_item.addChild(self._hierarchy_placeholder())
+            item.addChild(series_item)
+            self.series_items[series.id] = series_item
+        self._loaded_category_names.add(name)
+
+    def _materialize_hierarchy_series(self, item: QTreeWidgetItem) -> None:
+        series_id = str(item.data(0, HIERARCHY_ID_ROLE) or "")
+        if not series_id or series_id in self._loaded_series_ids:
+            return
+        series = self.hierarchy.series_by_id.get(series_id)
+        if series is None:
+            return
+
+        item.takeChildren()
+        completed_quest_ids = self._hierarchy_completed_quest_ids
+        for quest_id in series.quest_ids:
+            quest = self.catalog.by_id.get(int(quest_id))
+            if quest is None:
+                continue
+            quest_item = QTreeWidgetItem(
+                [self.hierarchy_quest_label(quest, set(completed_quest_ids))]
+            )
+            quest_item.setData(0, HIERARCHY_KIND_ROLE, "quest")
+            quest_item.setData(0, HIERARCHY_ID_ROLE, int(quest.id))
+            quest_item.setToolTip(0, quest.name)
+            item.addChild(quest_item)
+            self.quest_tree_items.setdefault(int(quest.id), []).append(quest_item)
+        self._loaded_series_ids.add(series_id)
+
+    def on_hierarchy_item_expanded(self, item: QTreeWidgetItem) -> None:
+        kind = str(item.data(0, HIERARCHY_KIND_ROLE) or "")
+        if kind == "category":
+            self._materialize_hierarchy_category(item)
+        elif kind == "series":
+            self._materialize_hierarchy_series(item)
+
     def rebuild_hierarchy(self) -> None:
         selected_id = self.selected_quest_id
         preferred_series = self.active_series_id
@@ -480,6 +548,9 @@ class QuestsPage(QWidget):
             if self.current_character_key
             else set()
         )
+        self._hierarchy_completed_quest_ids = frozenset(
+            int(value) for value in completed_quest_ids
+        )
         self.hierarchy_tree.blockSignals(True)
         self.hierarchy_tree.setUpdatesEnabled(False)
         try:
@@ -487,30 +558,16 @@ class QuestsPage(QWidget):
             self.category_items.clear()
             self.series_items.clear()
             self.quest_tree_items.clear()
+            self._loaded_category_names.clear()
+            self._loaded_series_ids.clear()
             for category in self.hierarchy.categories:
                 category_item = QTreeWidgetItem([category.name])
                 category_item.setData(0, HIERARCHY_KIND_ROLE, "category")
                 category_item.setData(0, HIERARCHY_ID_ROLE, category.name)
                 category_item.setToolTip(0, f"{len(category.series)} suites")
+                category_item.addChild(self._hierarchy_placeholder())
                 self.hierarchy_tree.addTopLevelItem(category_item)
                 self.category_items[category.name] = category_item
-                for series in category.series:
-                    series_item = QTreeWidgetItem([series.name])
-                    series_item.setData(0, HIERARCHY_KIND_ROLE, "series")
-                    series_item.setData(0, HIERARCHY_ID_ROLE, series.id)
-                    series_item.setToolTip(0, f"{len(series.quest_ids)} quêtes")
-                    category_item.addChild(series_item)
-                    self.series_items[series.id] = series_item
-                    for quest_id in series.quest_ids:
-                        quest = self.catalog.by_id.get(int(quest_id))
-                        if quest is None:
-                            continue
-                        quest_item = QTreeWidgetItem([self.hierarchy_quest_label(quest, completed_quest_ids)])
-                        quest_item.setData(0, HIERARCHY_KIND_ROLE, "quest")
-                        quest_item.setData(0, HIERARCHY_ID_ROLE, int(quest.id))
-                        quest_item.setToolTip(0, quest.name)
-                        series_item.addChild(quest_item)
-                        self.quest_tree_items.setdefault(int(quest.id), []).append(quest_item)
         finally:
             self.hierarchy_tree.blockSignals(False)
             self.hierarchy_tree.setUpdatesEnabled(True)
@@ -540,11 +597,19 @@ class QuestsPage(QWidget):
         if path is None:
             self.active_series_id = ""
             return None
+
         self.active_series_id = path.series.id
+        category_item = self.category_items.get(path.category.name)
+        if category_item is None:
+            return path
+        self._materialize_hierarchy_category(category_item)
+
         series_item = self.series_items.get(path.series.id)
         if series_item is None:
             return path
-        series_item.parent().setExpanded(True)
+        self._materialize_hierarchy_series(series_item)
+
+        category_item.setExpanded(True)
         series_item.setExpanded(True)
         quest_item = next(
             (
