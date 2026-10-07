@@ -303,7 +303,7 @@ def _run_preload_module_result(module: str, *arguments: str) -> str:
         result_path.unlink(missing_ok=True)
 
 
-STARTUP_CACHE_WARMUP_ENV = "DOFUS_ATLAS_CACHES_PREWARMED"
+STARTUP_CACHE_WARMUP_TOKEN_ENV = "DOFUS_ATLAS_CACHE_WARMUP_TOKEN"
 STARTUP_CACHE_WARMUP_RESULT = (
     Path(__file__).resolve().parent
     / ".cache"
@@ -313,21 +313,41 @@ STARTUP_CACHE_WARMUP_RESULT = (
 
 
 def _startup_cache_warmup_payload() -> dict[str, Any]:
-    """Read the disposable-launcher warmup proof only for this process launch."""
+    """Read only the result produced for this exact launcher invocation."""
 
-    if os.environ.get(STARTUP_CACHE_WARMUP_ENV, "").strip() != "1":
+    token = os.environ.get(STARTUP_CACHE_WARMUP_TOKEN_ENV, "").strip()
+    if not token:
         return {}
     payload = read_json(STARTUP_CACHE_WARMUP_RESULT, {})
     if not isinstance(payload, dict) or int(payload.get("schema_version") or 0) != 1:
         return {}
+    if str(payload.get("token") or "") != token:
+        return {}
     return payload
+
+
+def _await_startup_cache_warmup(timeout_seconds: float = 75.0) -> dict[str, Any]:
+    """Wait from a preload worker for the disposable sibling warmup, never the UI."""
+
+    if not os.environ.get(STARTUP_CACHE_WARMUP_TOKEN_ENV, "").strip():
+        return {}
+    deadline = monotonic() + max(0.0, float(timeout_seconds))
+    while True:
+        payload = _startup_cache_warmup_payload()
+        if str(payload.get("status") or "") in {"ready", "failed"}:
+            return payload
+        if monotonic() >= deadline:
+            return {}
+        sleep(0.10)
 
 
 def _warm_encyclopedia_compact_stores() -> None:
     """Prepare Guide/Success indexes outside the long-lived Atlas process."""
 
-    prewarmed = _startup_cache_warmup_payload()
-    if bool(prewarmed.get("encyclopedia_ready")):
+    prewarmed = _await_startup_cache_warmup()
+    if str(prewarmed.get("status") or "") == "ready" and bool(
+        prewarmed.get("encyclopedia_ready")
+    ):
         return
 
     # Direct/dev launches retain the safe fallback. Normal DOFUS.bat launches
@@ -430,12 +450,12 @@ def guide_progress_state(completed: int, total: int) -> str:
 def _warm_quest_catalogue() -> int:
     """Build/validate the Quest SQLite store outside the long-lived Atlas process."""
 
-    prewarmed = _startup_cache_warmup_payload()
+    prewarmed = _await_startup_cache_warmup()
     try:
         prewarmed_count = int(prewarmed.get("quest_count") or 0)
     except (TypeError, ValueError):
         prewarmed_count = 0
-    if prewarmed_count > 0:
+    if str(prewarmed.get("status") or "") == "ready" and prewarmed_count > 0:
         return prewarmed_count
 
     raw = _run_preload_module_result(
