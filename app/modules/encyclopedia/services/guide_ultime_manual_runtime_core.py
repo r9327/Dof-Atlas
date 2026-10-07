@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 import re
+import zlib
 from pathlib import Path
 from threading import RLock
 from typing import Any
@@ -399,11 +400,11 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             # lines, built preparation schedules and allocated structured payloads
             # for 267 sheets in Atlas' long-lived process. Keep a tiny route index
             # instead; the visible sheet is hydrated from its source on demand.
-            chapter_preparation_schedule = (
-                {}
-                if self.compact_runtime
-                else self._chapter_preparation_schedule(chapter, stages)
-            )
+            # Resolve chapter-level preparation once while the already-resolved
+            # chapter is in hand. Compact cards keep only their own compressed
+            # preparation rows, so visible-card hydration never has to rebuild the
+            # complete chapter dependency graph later.
+            chapter_preparation_schedule = self._chapter_preparation_schedule(chapter, stages)
             unsupported: set[str] = set()
             for stage_position, stage in enumerate(stages):
                 unsupported.update(str(key) for key in stage.keys() if str(key) not in _SUPPORTED_STAGE_FIELDS)
@@ -415,6 +416,27 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                         stage,
                         index,
                     )
+                    # Persist only the resolved source for this one sheet. Bytes
+                    # are immutable/compact and survive route navigation without
+                    # retaining a Python object graph for all 267 authored stages.
+                    card["_manual_stage_payload"] = zlib.compress(
+                        json.dumps(
+                            stage,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        ).encode("utf-8"),
+                        1,
+                    )
+                    preparation = chapter_preparation_schedule.get(stage_position, [])
+                    if preparation:
+                        card["_manual_chapter_preparation_payload"] = zlib.compress(
+                            json.dumps(
+                                preparation,
+                                ensure_ascii=False,
+                                separators=(",", ":"),
+                            ).encode("utf-8"),
+                            1,
+                        )
                 else:
                     card = self._stage_to_card(
                         chapter_id,
@@ -631,6 +653,36 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             previous.pop("manual_chapter_preparation", None)
         self._manual_base_lines_cache = None
 
+        # Normal compact path: decode only the already-resolved sheet selected by
+        # the player. This avoids resolving an entire canonical chapter (and its
+        # base/import graph) again in Atlas' long-lived process.
+        payload = card.get("_manual_stage_payload")
+        if isinstance(payload, (bytes, bytearray)):
+            try:
+                decoded = json.loads(zlib.decompress(bytes(payload)).decode("utf-8"))
+            except (OSError, UnicodeError, ValueError, TypeError):
+                decoded = None
+            if isinstance(decoded, dict):
+                preparation: list[dict[str, Any]] = []
+                preparation_payload = card.get("_manual_chapter_preparation_payload")
+                if isinstance(preparation_payload, (bytes, bytearray)):
+                    try:
+                        prepared = json.loads(
+                            zlib.decompress(bytes(preparation_payload)).decode("utf-8")
+                        )
+                    except (OSError, UnicodeError, ValueError, TypeError):
+                        prepared = []
+                    if isinstance(prepared, list):
+                        preparation = [
+                            row for row in prepared if isinstance(row, dict)
+                        ]
+                card["manual_stage_data"] = decoded
+                card["manual_chapter_preparation"] = preparation
+                self._manual_hydrated_card = card
+                return decoded
+
+        # Compatibility fallback for old/manual cards that predate the compact
+        # per-sheet payload. New canonical cards should never take this branch.
         chapter_memo: dict[tuple[Path, bool], dict[str, Any]] = {}
         chapter = load_manual_chapter(self.manual_dir / filename, _memo=chapter_memo)
         stages = [row for row in chapter.get("stages", []) or [] if isinstance(row, dict)]

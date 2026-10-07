@@ -220,6 +220,42 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             self.assertIs(service._manual_hydrated_card, card)
             self.assertIsNone(service._manual_base_lines_cache)
 
+    def test_compact_runtime_hydrates_resolved_sheet_without_reloading_chapter(self) -> None:
+        service = object.__new__(
+            guide_ultime_manual_runtime_core.GuideUltimeManualRuntimeService
+        )
+        service.compact_runtime = True
+        service.manual_dir = Path(".")
+        service._manual_base_lines_cache = None
+        service._manual_hydrated_card = None
+
+        stage = {"id": "visible", "instructions": ["Do it"], "quests": ["Quest A"]}
+        preparation = [{"name": "Potion de rappel"}]
+        card = {
+            "manual_source_file": "chapter.json",
+            "manual_stage_position": 0,
+            "_manual_stage_payload": __import__("zlib").compress(
+                json.dumps(stage, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+                1,
+            ),
+            "_manual_chapter_preparation_payload": __import__("zlib").compress(
+                json.dumps(preparation, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+                1,
+            ),
+        }
+
+        with patch.object(
+            guide_ultime_manual_runtime_core,
+            "load_manual_chapter",
+            side_effect=AssertionError("visible compact sheet must not reload chapter"),
+        ):
+            hydrated = service._hydrate_manual_card_source(card)
+
+        self.assertEqual(hydrated, stage)
+        self.assertEqual(card["manual_stage_data"], stage)
+        self.assertEqual(card["manual_chapter_preparation"], preparation)
+        self.assertIs(service._manual_hydrated_card, card)
+
     def test_recursive_resolution_bypasses_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             chapter = Path(tmp) / "chapter.json"
