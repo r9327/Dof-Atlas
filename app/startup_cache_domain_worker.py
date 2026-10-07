@@ -27,7 +27,6 @@ def _relative(path: Path) -> str:
 
 
 def _guide_domain() -> dict[str, object]:
-    from app.modules.encyclopedia.providers import dofus_item_provider as item_provider
     from app.modules.encyclopedia.providers import memory_bound_guide_provider as guide_provider
     from app.modules.encyclopedia.services.guide_ultime_manual_runtime_core import (
         MANUAL_RUNTIME_COMPACT_CACHE,
@@ -61,6 +60,10 @@ def _guide_domain() -> dict[str, object]:
     )
     gc.collect()
 
+    # Import the item stack only after the Guide graph is released so the fused
+    # worker saves process startup without stacking both heavy heaps.
+    from app.modules.encyclopedia.providers import dofus_item_provider as item_provider
+
     cached_items = item_provider._read_guide_items_index(
         data_dir=item_provider.RAW_QUEST_DATA_DIR,
         path=item_provider.GUIDE_ITEMS_INDEX,
@@ -75,13 +78,18 @@ def _guide_domain() -> dict[str, object]:
         )
         if code != 0:
             raise RuntimeError(f"Guide item index build failed with code {code}")
-        cached_items = item_provider._read_guide_items_index(
-            data_dir=item_provider.RAW_QUEST_DATA_DIR,
-            path=item_provider.GUIDE_ITEMS_INDEX,
-        )
-    if cached_items is None:
-        raise RuntimeError("Guide item index unavailable after build")
-    item_count = len(cached_items)
+        try:
+            built_payload = json.loads(
+                item_provider.GUIDE_ITEMS_INDEX.read_text(encoding="utf-8")
+            )
+        except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Guide item index unavailable after build") from exc
+        built_items = built_payload.get("items") if isinstance(built_payload, dict) else None
+        if not isinstance(built_items, dict):
+            raise RuntimeError("Guide item index unavailable after build")
+        item_count = len(built_items)
+    else:
+        item_count = len(cached_items)
 
     return {
         "domain": "guide",
