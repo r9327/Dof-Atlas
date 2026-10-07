@@ -745,6 +745,10 @@ def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> N
     assert "DOFUS_ATLAS_CACHE_WARMUP_TOKEN" in workflow
     assert "Start-Process" in workflow
     assert "app.startup_cache_warmup" in workflow
+    assert "warmup.cold.json" in workflow
+    assert "warmup.hot.json" in workflow
+    assert '$hotPayload.domains.$domain.mode -ne "reused"' in workflow
+    assert "$hotPayload.elapsed_ms -gt 5000.0" in workflow
 
 
 def test_manual_guide_route_is_precompiled_inside_existing_guide_worker() -> None:
