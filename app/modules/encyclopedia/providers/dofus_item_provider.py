@@ -451,13 +451,20 @@ class DofusItemProvider:
         self._items = sorted(items, key=lambda item: (item.level or 0, item.name, item.id))
         self._by_id = {item.id: item for item in self._items}
 
-    def _load_in_process(self) -> None:
-        """Extract Dofus rows while never retaining the large sources together."""
+    def _load_in_process(
+        self,
+        *,
+        extra_item_ids: set[int] | None = None,
+    ) -> dict[int, DofusItem]:
+        """Extract Dofus rows and optional Guide items in the same source pass."""
 
         # items.json is the largest source used here. Scan one RefIds entry at
         # a time so neither Atlas nor its disposable worker holds the monolithic
-        # JSON text/object graph in memory.
+        # JSON text/object graph in memory. Guide warmup can request its handful
+        # of extra items here so it never scans the source a third time.
         items_path = self.data_dir / "items.json"
+        extra_ids = {int(value) for value in (extra_item_ids or ())}
+        extra_rows: dict[int, dict[str, Any]] = {}
         dofus_rows: dict[int, dict[str, Any]] = {}
         effect_rids: set[int] = set()
         for ref in _iter_doduda_refs(items_path):
@@ -465,11 +472,16 @@ class DofusItemProvider:
             if not isinstance(data, dict):
                 continue
             item_id = safe_int(data.get("id"))
-            if item_id is None or safe_int(data.get("typeId")) != DOFUS_TYPE_ID:
+            if item_id is None:
+                continue
+            item_id = int(item_id)
+            if item_id in extra_ids:
+                extra_rows[item_id] = dict(data)
+            if safe_int(data.get("typeId")) != DOFUS_TYPE_ID:
                 continue
             if item_id in EXCLUDED_DOFUS_ITEM_IDS:
                 continue
-            dofus_rows[int(item_id)] = dict(data)
+            dofus_rows[item_id] = dict(data)
             for effect_ref in array_value(data.get("possibleEffects")):
                 if not isinstance(effect_ref, dict):
                     continue
@@ -486,15 +498,26 @@ class DofusItemProvider:
                 data = ref.get("data")
                 if isinstance(data, dict):
                     effect_instances[int(rid)] = dict(data)
+                    if len(effect_instances) >= len(effect_rids):
+                        break
 
-        type_row: dict[str, Any] = {}
+        needed_type_ids = {DOFUS_TYPE_ID}
+        needed_type_ids.update(
+            safe_int(row.get("typeId"), 0) or 0
+            for row in extra_rows.values()
+        )
+        type_rows: dict[int, dict[str, Any]] = {}
         for ref in _iter_doduda_refs(self.data_dir / "item_types.json"):
             data = ref.get("data")
             if not isinstance(data, dict):
                 continue
-            if safe_int(data.get("id")) == DOFUS_TYPE_ID:
-                type_row = dict(data)
+            type_id = safe_int(data.get("id"))
+            if type_id is None or int(type_id) not in needed_type_ids:
+                continue
+            type_rows[int(type_id)] = dict(data)
+            if len(type_rows) >= len(needed_type_ids):
                 break
+        type_row = type_rows.get(DOFUS_TYPE_ID, {})
 
         needed_effect_ids = {
             effect_id
@@ -515,14 +538,15 @@ class DofusItemProvider:
         # Reuse the durable language byte-offset cache produced by preload and
         # decode only translations referenced by the selected Dofus/effects.
         needed_entry_ids: set[str] = set()
-        for row in dofus_rows.values():
+        for row in (*dofus_rows.values(), *extra_rows.values()):
             for field in ("nameId", "descriptionId"):
                 ident = safe_int(row.get(field))
                 if ident is not None:
                     needed_entry_ids.add(str(ident))
-        type_name_id = safe_int(type_row.get("nameId"))
-        if type_name_id is not None:
-            needed_entry_ids.add(str(type_name_id))
+        for row in type_rows.values():
+            type_name_id = safe_int(row.get("nameId"))
+            if type_name_id is not None:
+                needed_entry_ids.add(str(type_name_id))
         for row in effect_rows.values():
             ident = safe_int(row.get("descriptionId"))
             if ident is not None:
@@ -574,6 +598,28 @@ class DofusItemProvider:
             )
         self._items = sorted(dofus_items, key=lambda item: (item.level or 0, item.name, item.id))
         self._by_id = {item.id: item for item in self._items}
+
+        extra_items: dict[int, DofusItem] = {}
+        for item_id, row in extra_rows.items():
+            if item_id in dofus_rows:
+                continue
+            type_id = safe_int(row.get("typeId"), 0) or 0
+            type_data = type_rows.get(type_id, {})
+            icon_id = safe_int(row.get("iconId"))
+            extra_items[item_id] = DofusItem(
+                id=item_id,
+                original_id=item_id,
+                name=localized_name(row, entries, f"Objet {item_id}"),
+                level=safe_int(row.get("level")),
+                type_id=type_id,
+                type_name=text_for(entries, type_data.get("nameId"), ""),
+                description=text_for(entries, row.get("descriptionId"), ""),
+                icon_id=icon_id,
+                image_path=self._image_for_icon(icon_id),
+                effects=(),
+                raw={"id": item_id, "typeId": type_id},
+            )
+        return extra_items
 
     def _effect_label(
         self,
@@ -628,81 +674,10 @@ def _dump_compact_default_items() -> int:
 
 def _build_guide_items_index(path: Path) -> int:
     provider = DofusItemProvider(RAW_QUEST_DATA_DIR)
-    provider._load_in_process()
+    requested = _collect_guide_item_ids()
+    extra_items = provider._load_in_process(extra_item_ids=requested)
     items: dict[int, DofusItem] = {item.id: item for item in provider._items}
-
-    requested = _collect_guide_item_ids() - set(items)
-    if requested:
-        requested_rows: dict[int, dict[str, Any]] = {}
-        for ref in _iter_doduda_refs(RAW_QUEST_DATA_DIR / "items.json"):
-            data = ref.get("data")
-            if not isinstance(data, dict):
-                continue
-            item_id = safe_int(data.get("id"))
-            if item_id is None or int(item_id) not in requested:
-                continue
-            requested_rows[int(item_id)] = dict(data)
-            if len(requested_rows) >= len(requested):
-                break
-
-        needed_type_ids = {
-            safe_int(row.get("typeId"), 0) or 0
-            for row in requested_rows.values()
-        }
-        type_rows: dict[int, dict[str, Any]] = {}
-        if needed_type_ids:
-            for ref in _iter_doduda_refs(RAW_QUEST_DATA_DIR / "item_types.json"):
-                data = ref.get("data")
-                if not isinstance(data, dict):
-                    continue
-                type_id = safe_int(data.get("id"))
-                if type_id is None or int(type_id) not in needed_type_ids:
-                    continue
-                type_rows[int(type_id)] = dict(data)
-                if len(type_rows) >= len(needed_type_ids):
-                    break
-
-        needed_entry_ids: set[str] = set()
-        for row in requested_rows.values():
-            for field in ("nameId", "descriptionId"):
-                ident = safe_int(row.get(field))
-                if ident is not None:
-                    needed_entry_ids.add(str(ident))
-        for row in type_rows.values():
-            ident = safe_int(row.get("nameId"))
-            if ident is not None:
-                needed_entry_ids.add(str(ident))
-
-        entries_mapping = SelectedJsonValueMapping(
-            RAW_QUEST_DATA_DIR / "languages" / "fr.json",
-            "entries",
-            needed_entry_ids,
-            required=True,
-        )
-        entries = {
-            ident: entries_mapping[ident]
-            for ident in needed_entry_ids
-            if ident in entries_mapping
-        }
-        entries_mapping.close()
-
-        for item_id, row in sorted(requested_rows.items()):
-            type_id = safe_int(row.get("typeId"), 0) or 0
-            type_row = type_rows.get(type_id, {})
-            icon_id = safe_int(row.get("iconId"))
-            items[item_id] = DofusItem(
-                id=item_id,
-                original_id=item_id,
-                name=localized_name(row, entries, f"Objet {item_id}"),
-                level=safe_int(row.get("level")),
-                type_id=type_id,
-                type_name=text_for(entries, type_row.get("nameId"), ""),
-                description=text_for(entries, row.get("descriptionId"), ""),
-                icon_id=icon_id,
-                image_path=provider._image_for_icon(icon_id),
-                effects=(),
-                raw={"id": item_id, "typeId": type_id},
-            )
+    items.update(extra_items)
 
     payload = {
         "schema_version": _GUIDE_ITEMS_INDEX_SCHEMA,
