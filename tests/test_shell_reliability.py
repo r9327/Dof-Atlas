@@ -224,7 +224,7 @@ class ShellReliabilityTests(unittest.TestCase):
         )
 
     def test_background_preload_defers_while_a_user_requested_task_is_loading(self) -> None:
-        scheduled: list[tuple[int, object]] = []
+        scheduled: list[tuple[str, bool, int]] = []
         shell = type(
             "Shell",
             (),
@@ -237,8 +237,8 @@ class ShellReliabilityTests(unittest.TestCase):
                 },
                 "preload_state_lock": Lock(),
                 "preload_user_tasks": {"craft"},
-                "_schedule_owned_callback": lambda self, delay, callback: scheduled.append(
-                    (delay, callback)
+                "_schedule_preload_retry": lambda self, task, *, user_requested, delay_ms: scheduled.append(
+                    (task, user_requested, delay_ms)
                 ),
             },
         )()
@@ -247,8 +247,7 @@ class ShellReliabilityTests(unittest.TestCase):
             AtlasWindow.start_preload(shell, "quests")
 
         thread.assert_not_called()
-        self.assertEqual(len(scheduled), 1)
-        self.assertEqual(scheduled[0][0], 180)
+        self.assertEqual(scheduled, [("quests", False, 180)])
         self.assertEqual(shell.preload_states["quests"], main.PRELOAD_IDLE)
 
     def test_startup_preload_has_timeout_guard(self) -> None:
