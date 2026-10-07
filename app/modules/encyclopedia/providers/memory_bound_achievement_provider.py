@@ -579,6 +579,14 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         achievement/quest/monster sources once just to discover text IDs.
         """
 
+        # Guide/Quest warmup runs first and has already prepared the canonical
+        # byte-offset source indexes. Reuse that disposable cache namespace
+        # instead of rebuilding the same offsets under achievement_sources_v1.
+        shared_source_offsets = (
+            ROOT_DIR / ".cache" / "dofus_atlas" / "quest_details_v1" / "source_offsets"
+        )
+        self._sources.close()
+        self._sources = QuestSources(shared_source_offsets)
         self._entries = None
         self._catalog_loading = True
         try:
