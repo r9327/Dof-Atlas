@@ -303,13 +303,35 @@ def _run_preload_module_result(module: str, *arguments: str) -> str:
         result_path.unlink(missing_ok=True)
 
 
-def _warm_encyclopedia_compact_stores() -> None:
-    """Prepare Guide/Success indexes entirely in disposable child processes."""
+STARTUP_CACHE_WARMUP_ENV = "DOFUS_ATLAS_CACHES_PREWARMED"
+STARTUP_CACHE_WARMUP_RESULT = (
+    Path(__file__).resolve().parent
+    / ".cache"
+    / "dofus_atlas"
+    / "startup_cache_warmup_v1.json"
+)
 
-    # These workers persist reconstructible artefacts to disk; Atlas needs only
-    # their exit status. Avoid four subprocess.Popen capture pipes in the
-    # long-lived process: their transient Windows allocations raised the parent
-    # working-set watermark even though no catalogue payload was retained.
+
+def _startup_cache_warmup_payload() -> dict[str, Any]:
+    """Read the disposable-launcher warmup proof only for this process launch."""
+
+    if os.environ.get(STARTUP_CACHE_WARMUP_ENV, "").strip() != "1":
+        return {}
+    payload = read_json(STARTUP_CACHE_WARMUP_RESULT, {})
+    if not isinstance(payload, dict) or int(payload.get("schema_version") or 0) != 1:
+        return {}
+    return payload
+
+
+def _warm_encyclopedia_compact_stores() -> None:
+    """Prepare Guide/Success indexes outside the long-lived Atlas process."""
+
+    prewarmed = _startup_cache_warmup_payload()
+    if bool(prewarmed.get("encyclopedia_ready")):
+        return
+
+    # Direct/dev launches retain the safe fallback. Normal DOFUS.bat launches
+    # arrive here only if the disposable startup warmup did not complete.
     _run_preload_module_status(
         "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
         "--ensure-compact-cache",
@@ -406,7 +428,15 @@ def guide_progress_state(completed: int, total: int) -> str:
 
 
 def _warm_quest_catalogue() -> int:
-    """Build/validate the Quest SQLite store in one disposable child process."""
+    """Build/validate the Quest SQLite store outside the long-lived Atlas process."""
+
+    prewarmed = _startup_cache_warmup_payload()
+    try:
+        prewarmed_count = int(prewarmed.get("quest_count") or 0)
+    except (TypeError, ValueError):
+        prewarmed_count = 0
+    if prewarmed_count > 0:
+        return prewarmed_count
 
     raw = _run_preload_module_result(
         "app.quest_catalog_details",
