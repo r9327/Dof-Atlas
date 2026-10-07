@@ -14,18 +14,7 @@ RESULT_PATH = ROOT / ".cache" / "dofus_atlas" / "startup_cache_warmup_v1.json"
 SCHEMA_VERSION = 1
 
 
-_TASKS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    (
-        "success",
-        (
-            "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
-            "--ensure-compact-cache",
-        ),
-    ),
-    (
-        "success_names",
-        ("app.modules.encyclopedia.services.achievement_index_warmup",),
-    ),
+_GUIDE_TASKS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "guide",
         (
@@ -39,6 +28,20 @@ _TASKS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "app.modules.encyclopedia.providers.dofus_item_provider",
             "--ensure-guide-index",
         ),
+    ),
+)
+
+_SUCCESS_TASKS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "success",
+        (
+            "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+            "--ensure-compact-cache",
+        ),
+    ),
+    (
+        "success_names",
+        ("app.modules.encyclopedia.services.achievement_index_warmup",),
     ),
 )
 
@@ -120,14 +123,18 @@ def run_warmup(token: str = "") -> dict[str, object]:
         }
     )
 
+    # Prioritize the heaviest user-facing path: Guide is ready first.
+    task_results: dict[str, dict[str, object]] = {}
+    for label, task in _GUIDE_TASKS:
+        task_results[label] = _last_json_line(_run_module(task[0], *task[1:]))
+
     quest_output = _run_module("app.quest_catalog_details", "--ensure-cache")
     try:
         quest_count = max(0, int(quest_output.splitlines()[-1].strip()))
     except (IndexError, TypeError, ValueError) as exc:
         raise RuntimeError("startup Quest cache warmup returned no count") from exc
 
-    task_results: dict[str, dict[str, object]] = {}
-    for label, task in _TASKS:
+    for label, task in _SUCCESS_TASKS:
         task_results[label] = _last_json_line(_run_module(task[0], *task[1:]))
 
     return {
