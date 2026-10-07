@@ -649,7 +649,21 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     assert "subprocess.run" not in craft_builder
     assert "_run_preload_module_result(" in quest_warmup
     assert "_run_preload_module_result(" in craft_builder
-    assert runner.count("_run_preload_module_status(") >= 5
+    assert '_run_preload_module_status("app.encyclopedia_preload")' in runner
+    assert "memory_bound_achievement_provider" not in runner
+    assert "memory_bound_guide_provider" not in runner
+
+    supervisor = (ROOT / "app" / "encyclopedia_preload.py").read_text(
+        encoding="utf-8"
+    )
+    for module in (
+        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+        "app.modules.encyclopedia.services.achievement_index_warmup",
+        "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+        "app.modules.encyclopedia.providers.dofus_item_provider",
+    ):
+        assert module in supervisor
+    assert "subprocess.run(" in supervisor
 
 
 def test_disk_only_preload_does_not_import_home_encyclopedia_runtime() -> None:
