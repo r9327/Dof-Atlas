@@ -624,6 +624,20 @@ def test_guide_provider_releases_reconstructible_catalogue() -> None:
     assert "_guide_compact_cache_valid" in load_method
 
 
+def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
+    source = SHELL_MAIN.read_text(encoding="utf-8")
+    runner = source[
+        source.index("def _run_preload_module_status("):
+        source.index("def build_quest_related_preload(")
+    ]
+    assert "os.spawnve(" in runner
+    assert "os.P_WAIT" in runner
+    assert "PYTHONPATH" in runner
+    assert "capture_output=True" not in runner
+    assert "_run_preload_module_json" not in runner
+    assert runner.count("_run_preload_module_status(") >= 5
+
+
 def test_quest_preload_keeps_all_rich_catalogues_off_heap() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     preload = source[
@@ -1110,6 +1124,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_dofus_item_extraction_does_not_parse_monolithic_sources_in_parent()
         test_guide_name_resolution_uses_prebuilt_index_without_nested_worker()
         test_guide_provider_releases_reconstructible_catalogue()
+        test_encyclopedia_preload_workers_do_not_capture_parent_payloads()
         test_quest_preload_keeps_all_rich_catalogues_off_heap()
         test_craft_preload_and_runtime_are_sqlite_bounded()
         test_home_release_collects_deleted_widget_cycles_without_working_set_trim()

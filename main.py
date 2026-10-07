@@ -254,54 +254,50 @@ def build_craft_preload() -> dict[str, Any]:
         fallback["errors"].append(str(exc))
         return fallback
 
-def _run_preload_module_json(
-    module: str,
-    *arguments: str,
-    result_key: str,
-) -> int:
-    """Run one compact-store builder without importing its runtime in Atlas."""
+def _run_preload_module_status(module: str, *arguments: str) -> None:
+    """Run one disposable cache builder without parent-side pipes or payloads."""
 
-    import json
-    import subprocess
-
-    completed = subprocess.run(
-        [sys.executable, "-m", module, *arguments],
-        cwd=Path(__file__).resolve().parent,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=90,
-        check=True,
+    root = str(Path(__file__).resolve().parent)
+    environment = dict(os.environ)
+    current_pythonpath = str(environment.get("PYTHONPATH") or "")
+    environment["PYTHONPATH"] = (
+        root
+        if not current_pythonpath
+        else root + os.pathsep + current_pythonpath
     )
-    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
-    if not lines:
-        raise RuntimeError(f"Worker preload vide: {module}")
-    payload = json.loads(lines[-1])
-    return max(0, int(payload.get(result_key) or 0))
+    exit_code = os.spawnve(
+        os.P_WAIT,
+        sys.executable,
+        [sys.executable, "-m", module, *arguments],
+        environment,
+    )
+    if int(exit_code) != 0:
+        raise RuntimeError(
+            f"Worker preload en échec: {module} (code {int(exit_code)})"
+        )
 
 
 def _warm_encyclopedia_compact_stores() -> None:
     """Prepare Guide/Success indexes entirely in disposable child processes."""
 
-    _run_preload_module_json(
+    # These workers persist reconstructible artefacts to disk; Atlas needs only
+    # their exit status. Avoid four subprocess.Popen capture pipes in the
+    # long-lived process: their transient Windows allocations raised the parent
+    # working-set watermark even though no catalogue payload was retained.
+    _run_preload_module_status(
         "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
         "--ensure-compact-cache",
-        result_key="achievement_count",
     )
-    _run_preload_module_json(
+    _run_preload_module_status(
         "app.modules.encyclopedia.services.achievement_index_warmup",
-        result_key="achievement_name_count",
     )
-    _run_preload_module_json(
+    _run_preload_module_status(
         "app.modules.encyclopedia.providers.memory_bound_guide_provider",
         "--ensure-compact-cache",
-        result_key="guide_count",
     )
-    _run_preload_module_json(
+    _run_preload_module_status(
         "app.modules.encyclopedia.providers.dofus_item_provider",
         "--ensure-guide-index",
-        result_key="item_count",
     )
 
 
