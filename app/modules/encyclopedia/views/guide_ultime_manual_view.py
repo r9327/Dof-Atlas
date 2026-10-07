@@ -230,63 +230,62 @@ class GuideUltimeManualCard(QFrame):
             )
             row_layout.addWidget(button, 0, Qt.AlignTop)
 
-    def _quest_combat_targets(self) -> list[dict[str, Any]]:
+    def _quest_combat_targets(
+        self,
+        sections: dict[str, list[dict[str, Any]]] | None = None,
+    ) -> list[dict[str, Any]]:
         provider = getattr(self.service, "quest_provider", None)
-        getter = getattr(provider, "get_quest", None)
-        if not callable(getter):
+        evidence = getattr(provider, "guide_evidence", None)
+        if not callable(evidence):
             return []
 
-        line_provider = getattr(self.service, "manual_lines_for_card", None)
-        card_lines = (
-            line_provider(self.character_key, self.card)
-            if callable(line_provider)
-            else self.card.get("manual_lines", []) or []
-        )
-        card_text = " ".join(
-            f"{row.get('position', '')} {row.get('text', '')}"
-            for row in card_lines
+        rows = [
+            row
+            for section_rows in (sections or {}).values()
+            for row in section_rows or []
             if isinstance(row, dict)
+        ]
+        card_text = " ".join(
+            f"{row.get('position', '')} {row.get('text', '')}" for row in rows
         )
         normalized_card_text = normalize_text(card_text)
-        card_coords = set(_COORD_RE.findall(card_text))
         result: list[dict[str, Any]] = []
         seen: set[tuple[int, int]] = set()
+        names = {quest_id: name for quest_id, name in self._quest_rows}
+
         for raw in self.card.get("manual_quest_ids", []) or []:
             try:
                 quest_id = int(raw)
-                quest = getter(quest_id)
+                payload = evidence(quest_id)
             except (KeyError, LookupError, TypeError, ValueError):
                 continue
-            quest_name = str(getattr(quest, "name", "") or "").strip()
-            for step in getattr(quest, "steps", ()) or ():
-                for objective in getattr(step, "objectives", ()) or ():
-                    objective_id = self._safe_positive_int(getattr(objective, "id", None))
-                    type_id = self._safe_positive_int(getattr(objective, "type_id", None))
-                    is_combat = bool(getattr(objective, "is_combat", False))
-                    if objective_id is None or not (is_combat or type_id in COMBAT_OBJECTIVE_TYPES):
-                        continue
-                    objective_text = str(getattr(objective, "text", "") or "").strip()
-                    monster = str(getattr(objective, "image_label", "") or objective_text or "").strip()
-                    objective_coords = set(_COORD_RE.findall(str(getattr(objective, "map_label", "") or "")))
-                    if not monster or not (
-                        normalize_text(monster) in normalized_card_text
-                        or bool(card_coords & objective_coords)
-                    ):
-                        continue
-                    key = (quest_id, objective_id)
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    result.append(
-                        {
-                            "quest_id": quest_id,
-                            "objective_id": objective_id,
-                            "quest_name": quest_name,
-                            "monster": monster,
-                            "quantity": self._combat_quantity(objective, objective_text),
-                        }
-                    )
+            for objective in payload.get("combats", []) if isinstance(payload, dict) else []:
+                if not isinstance(objective, dict):
+                    continue
+                objective_id = self._safe_positive_int(objective.get("objective_id"))
+                monster = str(objective.get("monster") or "").strip()
+                if objective_id is None or not monster:
+                    continue
+                if normalized_card_text and normalize_text(monster) not in normalized_card_text:
+                    continue
+                key = (quest_id, objective_id)
+                if key in seen:
+                    continue
+                seen.add(key)
+                result.append(
+                    {
+                        "quest_id": quest_id,
+                        "objective_id": objective_id,
+                        "quest_name": names.get(quest_id, f"Quête #{quest_id}"),
+                        "monster": monster,
+                        "quantity": max(
+                            1,
+                            int(self._safe_positive_int(objective.get("quantity")) or 1),
+                        ),
+                    }
+                )
         return result
+
 
     @classmethod
     def _combat_quantity(cls, objective: Any, objective_text: str) -> int:
@@ -328,22 +327,18 @@ class GuideUltimeManualCard(QFrame):
             if str(value).strip()
         ]
         provider = getattr(service, "quest_provider", None)
-        getter = getattr(provider, "get_quest", None)
-        if callable(getter):
+        evidence = getattr(provider, "guide_evidence", None)
+        if callable(evidence):
             for raw in card.get("manual_quest_ids", []) or []:
                 try:
-                    quest_id = int(raw)
-                    quest = getter(quest_id)
+                    payload = evidence(int(raw))
                 except (KeyError, LookupError, TypeError, ValueError):
                     continue
-                try:
-                    items = quest_items_from_objectives(quest)
-                except (AttributeError, TypeError, ValueError):
-                    continue
-                for item in items:
-                    name = str(getattr(item, "name", "") or "").strip()
-                    if name:
-                        names.append(name)
+                for item in payload.get("items", []) if isinstance(payload, dict) else []:
+                    if isinstance(item, dict):
+                        name = str(item.get("name") or "").strip()
+                        if name:
+                            names.append(name)
 
         result: list[str] = []
         seen: set[str] = set()
@@ -354,12 +349,6 @@ class GuideUltimeManualCard(QFrame):
                 result.append(name)
         return sorted(result, key=len, reverse=True)
 
-    def _set_clickable_text(self, label: QLabel, rendered: str) -> None:
-        label.setTextFormat(Qt.RichText)
-        label.setText(rendered)
-        label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
-        label.setOpenExternalLinks(False)
-        label.linkActivated.connect(self._copy_link_target)
 
     @staticmethod
     def _copy_text_for_link(href: str) -> str | None:

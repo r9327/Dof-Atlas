@@ -59,7 +59,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self._quest_rows = self._canonical_quest_rows()
         self._shown_quest_map_links: set[tuple[int, str]] = set()
         self._resource_names = self._clickable_resource_names(service, card)
-        self._combat_targets = self._quest_combat_targets()
+        self._combat_targets: list[dict[str, Any]] = []
         self._rendered_combat_keys: set[tuple[int, int]] = set()
         self._combat_evidence_cache: dict[tuple[int, int], tuple[str, str]] = {}
         self._last_route_position_key = ""
@@ -103,6 +103,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 )
             sections = {"now": manual_lines}
         sections = self._without_prepare_duplicates(sections)
+        self._combat_targets = self._quest_combat_targets(sections)
 
         self._add_line_section(
             root,

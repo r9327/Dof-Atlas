@@ -93,6 +93,22 @@ class QuestDetails:
                 self._summaries.popitem(last=False)
         return result
 
+    def guide_evidence(self, quest_id: int) -> dict[str, object]:
+        """Return tiny Guide-only item/combat evidence without hydrating Quest details."""
+
+        with _connect(self.path) as connection:
+            row = connection.execute(
+                "SELECT guide_evidence FROM quests WHERE id=?",
+                (int(quest_id),),
+            ).fetchone()
+        if row is None:
+            return {}
+        try:
+            payload = json.loads(row[0] or "{}")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
     def cached(self, quest_id: int) -> bool:
         with self._lock:
             return int(quest_id) in self._records
@@ -216,6 +232,7 @@ def ensure_lazy_catalog_cache(
             "achievements TEXT NOT NULL, "
             "prerequisites TEXT NOT NULL, "
             "info TEXT NOT NULL, "
+            "guide_evidence TEXT NOT NULL DEFAULT '{}', "
             "detail TEXT"
             ")"
         )
@@ -223,10 +240,11 @@ def ensure_lazy_catalog_cache(
         ready = connection.execute("SELECT value FROM metadata WHERE key='ready'").fetchone()
         if ready is None:
             records, series = _source_index(data_dir)
+            guide_evidence = _guide_evidence_index(data_dir)
             if _signature(data_dir) != signature:
                 raise RuntimeError("Les sources Quêtes ont changé pendant l'indexation.")
             connection.executemany(
-                "INSERT OR REPLACE INTO quests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)",
+                "INSERT OR REPLACE INTO quests VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)",
                 (
                     (
                         int(record.id),
@@ -238,6 +256,7 @@ def ensure_lazy_catalog_cache(
                         _json(record.achievements),
                         _json(record.prerequisites),
                         _json(record.info),
+                        _json(guide_evidence.get(int(record.id), {})),
                     )
                     for record in records
                 ),
@@ -355,11 +374,107 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
     catalog.get_detail = details.get
     catalog.is_detail_cached = details.cached
     catalog.detail_cache_info = details.info
+    catalog.guide_evidence = details.guide_evidence
     catalog.load_search_documents = lambda: details.search_documents(catalog.by_id)
     # Rich search is populated only by an explicit search; graph/list prewarm
     # must never enumerate documentary attributes of these records.
     catalog.deferred_details = True
     return catalog
+
+
+def _guide_evidence_index(data_dir: Path) -> dict[int, dict[str, object]]:
+    """Build tiny Guide item/combat evidence from raw Quest objectives."""
+
+    required = (
+        data_dir / "quests.json",
+        data_dir / "quest_objectives.json",
+        data_dir / "items.json",
+        data_dir / "monsters.json",
+        data_dir / "languages" / "fr.json",
+    )
+    if any(not path.exists() for path in required):
+        return {}
+
+    sources = QuestSources(_CACHE_ROOT / "source_offsets")
+    try:
+        entries = sources.mapping(data_dir / "languages/fr.json", "entries")
+        quests = sources.rows(data_dir / "quests.json")
+        items = sources.rows(data_dir / "items.json")
+        monsters = sources.rows(data_dir / "monsters.json")
+        objective_path = data_dir / "quest_objectives.json"
+        result: dict[int, dict[str, object]] = {}
+
+        for quest_id, quest in quests.items():
+            step_ids = [
+                int(value)
+                for value in qc.array_value(quest.get("stepIds"))
+                if qc.safe_int(value) is not None
+            ]
+            if not step_ids:
+                continue
+
+            item_rows: list[dict[str, object]] = []
+            combat_rows: list[dict[str, object]] = []
+            seen_items: set[tuple[int, int]] = set()
+            seen_combats: set[int] = set()
+
+            for objective in sources.objectives_for_steps(objective_path, step_ids):
+                if not isinstance(objective, dict):
+                    continue
+                type_id = qc.safe_int(objective.get("typeId")) or 0
+                objective_id = qc.safe_int(objective.get("id")) or 0
+                params = objective.get("parameters") if isinstance(objective.get("parameters"), dict) else {}
+                values = [params.get(f"parameter{index}", 0) for index in range(5)]
+
+                item_id = None
+                quantity = 1
+                if type_id in {2, 3}:
+                    item_id = qc.safe_int(values[1])
+                    quantity = qc.safe_int(values[2]) or 1
+                elif type_id == 8:
+                    item_id = qc.safe_int(values[0])
+                elif type_id == 17:
+                    item_id = qc.safe_int(values[0])
+                    quantity = qc.safe_int(values[1]) or 1
+
+                if item_id is not None:
+                    item_key = (int(item_id), int(quantity))
+                    if item_key not in seen_items:
+                        seen_items.add(item_key)
+                        item_rows.append(
+                            {
+                                "item_id": int(item_id),
+                                "name": qc.localized_name(
+                                    items.get(int(item_id)),
+                                    entries,
+                                    f"Objet {item_id}",
+                                ),
+                                "quantity": max(1, int(quantity)),
+                            }
+                        )
+
+                if type_id in qc.COMBAT_OBJECTIVE_TYPES and objective_id > 0:
+                    if objective_id in seen_combats:
+                        continue
+                    seen_combats.add(objective_id)
+                    monster_id = qc.safe_int(values[0])
+                    combat_rows.append(
+                        {
+                            "objective_id": int(objective_id),
+                            "monster": qc.localized_name(
+                                monsters.get(monster_id or -1),
+                                entries,
+                                f"Monstre {monster_id}" if monster_id is not None else "",
+                            ),
+                            "quantity": max(1, int(qc.safe_int(values[1]) or 1)),
+                        }
+                    )
+
+            if item_rows or combat_rows:
+                result[int(quest_id)] = {"items": item_rows, "combats": combat_rows}
+        return result
+    finally:
+        sources.close()
 
 
 def _source_index(data_dir):

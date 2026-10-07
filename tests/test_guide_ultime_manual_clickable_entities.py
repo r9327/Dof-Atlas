@@ -8,18 +8,19 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeM
 
 
 class _QuestProvider:
-    def get_quest(self, quest_id: int):
-        if quest_id != 42:
-            raise KeyError(quest_id)
-        return SimpleNamespace(
-            steps=[],
-            source_info={
-                "required_items": [
-                    {"item_id": 123, "name": "Bière du Chabrulé", "quantity": 1},
-                    {"item_id": 456, "name": "Breuvage d'Erazal", "quantity": 3},
-                ]
-            },
-        )
+    def guide_evidence(self, quest_id: int):
+        if int(quest_id) != 42:
+            return {}
+        return {
+            "items": [
+                {"item_id": 123, "name": "Bière du Chabrulé", "quantity": 1},
+                {"item_id": 456, "name": "Breuvage d'Erazal", "quantity": 3},
+            ],
+            "combats": [],
+        }
+
+    def get_quest(self, _quest_id: int):
+        raise AssertionError("Guide rendering must not hydrate rich Quest details")
 
 
 class GuideUltimeManualClickableEntityTests(unittest.TestCase):

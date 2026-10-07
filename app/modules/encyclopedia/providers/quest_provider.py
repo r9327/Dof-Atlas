@@ -69,5 +69,14 @@ class QuestProvider:
     def get_quest(self, quest_id: int) -> QuestRecord | None:
         return self.get_catalog().by_id.get(int(quest_id))
 
+    def guide_evidence(self, quest_id: int) -> dict[str, object]:
+        """Return compact Guide evidence without materializing rich Quest details."""
+
+        getter = getattr(self.get_catalog(), "guide_evidence", None)
+        if not callable(getter):
+            return {}
+        payload = getter(int(quest_id))
+        return payload if isinstance(payload, dict) else {}
+
     def count(self) -> int:
         return len(self.list_quests())

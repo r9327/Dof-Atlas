@@ -447,6 +447,22 @@ def test_guide_same_character_assignment_does_not_rerender_route() -> None:
     assert "return" in setter
 
 
+def test_guide_render_uses_compact_quest_evidence_not_rich_steps() -> None:
+    provider = (
+        ROOT / "app" / "modules" / "encyclopedia" / "providers" / "quest_provider.py"
+    ).read_text(encoding="utf-8")
+    manual = (
+        ROOT / "app" / "modules" / "encyclopedia" / "views" / "guide_ultime_manual_view.py"
+    ).read_text(encoding="utf-8")
+    assert "def guide_evidence" in provider
+    resource_start = manual.index("def _clickable_resource_names")
+    combat_start = manual.index("def _quest_combat_targets", resource_start)
+    assert "quest_items_from_objectives" not in manual[resource_start:combat_start]
+    combat_end = manual.index("@classmethod", combat_start)
+    assert ".steps" not in manual[combat_start:combat_end]
+    assert 'evidence = getattr(provider, "guide_evidence"' in manual
+
+
 def test_shared_manual_card_does_not_materialize_lines_before_sections() -> None:
     source = (
         ROOT

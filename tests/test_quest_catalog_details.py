@@ -37,6 +37,44 @@ class QuestDetailsTests(unittest.TestCase):
             row.steps = [QuestStep(row.id * 10, 'Étape', 'Détail')]
         return QuestCatalog(records)
 
+    def test_guide_evidence_reads_sqlite_without_hydrating_detail(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cache_root = root / "cache"
+
+            def write_rows(name, rows):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps({"references": {"RefIds": [
+                    {"rid": row["id"], "data": row} for row in rows
+                ]}}, ensure_ascii=False), encoding="utf-8")
+
+            language = root / "languages/fr.json"
+            language.parent.mkdir(parents=True)
+            language.write_text(json.dumps({"entries": {
+                "101": "Quête", "110": "Catégorie",
+                "201": "Objet compact", "301": "Monstre compact",
+            }}, ensure_ascii=False), encoding="utf-8")
+            write_rows("quests.json", [{"id": 1, "nameId": 101, "categoryId": 10, "stepIds": {"Array": [10]}}])
+            write_rows("quest_categories.json", [{"id": 10, "nameId": 110}])
+            write_rows("achievements.json", [])
+            write_rows("achievement_objectives.json", [])
+            write_rows("achievement_categories.json", [])
+            write_rows("items.json", [{"id": 20, "nameId": 201}])
+            write_rows("monsters.json", [{"id": 30, "nameId": 301}])
+            write_rows("quest_objectives.json", [
+                {"id": 40, "stepId": 10, "typeId": 17, "parameters": {"parameter0": 20, "parameter1": 3}},
+                {"id": 41, "stepId": 10, "typeId": 6, "parameters": {"parameter0": 30, "parameter1": 2}},
+            ])
+
+            catalog = load_lazy_catalog(root, cache_root=cache_root)
+            evidence = catalog.guide_evidence(1)
+
+            self.assertEqual(evidence["items"][0]["name"], "Objet compact")
+            self.assertEqual(evidence["items"][0]["quantity"], 3)
+            self.assertEqual(evidence["combats"][0]["monster"], "Monstre compact")
+            self.assertEqual(evidence["combats"][0]["objective_id"], 41)
+
     def test_runtime_details_reuse_preload_source_offset_namespace(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
