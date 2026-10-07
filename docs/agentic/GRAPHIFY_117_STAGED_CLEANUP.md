@@ -56,6 +56,32 @@ Classify every item as one of:
 
 Only actionable items are changed. Legitimate isolation is documented and retained.
 
+### 117.1 classification baseline
+
+The Graphify report at the baseline SHA reports exactly these 15 weakly connected symbols:
+
+| Symbol | Source | Classification | Action |
+| --- | --- | --- | --- |
+| `PathProfile` | `guide_path_profiles.py` | active Guide model; Graphify misses constructor usage | keep |
+| `_PcapInterface` | `npcap_capture.py` | ctypes/Npcap ABI structure | keep |
+| `_PcapPacketHeader` | `npcap_capture.py` | ctypes/Npcap ABI structure | keep |
+| `_Sockaddr` | `npcap_capture.py` | ctypes socket ABI structure | keep |
+| `_SockaddrIn` | `npcap_capture.py` | ctypes socket ABI structure | keep |
+| `_Timeval` | `npcap_capture.py` | ctypes/Npcap ABI structure | keep |
+| `ScopeResult` | `tools/guide_ultime_scope_v4.py` | dead tool model; definition had no consumer | remove in 117.1 |
+| `_MibTcpRowOwnerPid` | `windows_tcp.py` | ctypes Windows TCP ABI structure | keep |
+| `_HotkeyWindowMixin` | `test_character_hotkey_mapping.py` | test-only mixin used by local fake windows | keep |
+| `KBDLLHOOKSTRUCT` | `hotkeys.py` | ctypes Win32 keyboard hook ABI structure | keep |
+| `MouseClick` | `input_state.py` | dead model; definition had no consumer | remove in 117.1 |
+| `MSLLHOOKSTRUCT` | `mouse_hooks.py` | ctypes Win32 mouse hook ABI structure | keep |
+| `POINT` | `mouse_hooks.py` | ctypes Win32 mouse ABI structure | keep |
+| `guides` | `data/encyclopedia/guides/manifest.json` | canonical manifest data key, not a code symbol | keep |
+| `schema_version` | `data/encyclopedia/guides/manifest.json` | canonical manifest version key, not a code symbol | keep |
+
+Evidence used for the keep decisions is direct runtime/source usage: `PathProfile` is instantiated throughout `PROFILES`; the Npcap/Win32 structures are consumed through `ctypes.POINTER`, `ctypes.cast`, `sizeof`, or `from_buffer_copy`; and `_HotkeyWindowMixin` is inherited by the test fake windows. Those dynamic/native relationships are expected to be under-represented by an AST graph.
+
+The two removals are intentionally limited to definitions with no extracted graph edge beyond their containing file and no local consumer. No replacement abstraction is introduced.
+
 Exit criteria:
 
 - every reported isolated symbol is classified;
