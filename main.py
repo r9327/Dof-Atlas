@@ -2173,6 +2173,15 @@ class AtlasWindow(QMainWindow):
         page.show_runtime_error(message)
 
     def apply_home_preload_update(self, quests: dict[str, Any]) -> None:
+        # Disk-only preload payloads deliberately carry no live Encyclopedia
+        # objects. Do not call into Home for an all-None update: that path would
+        # import the complete provider/catalogue runtime into Atlas merely to
+        # discover that there is no context to apply.
+        if not any(
+            quests.get(key) is not None
+            for key in ("catalog", "guide_provider", "achievement_provider")
+        ):
+            return
         self.home_page.apply_encyclopedia_context(
             catalog=quests.get("catalog"),
             guide_provider=quests.get("guide_provider"),

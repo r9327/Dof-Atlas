@@ -652,6 +652,36 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     assert runner.count("_run_preload_module_status(") >= 5
 
 
+def test_disk_only_preload_does_not_import_home_encyclopedia_runtime() -> None:
+    shell = SHELL_MAIN.read_text(encoding="utf-8")
+    home = (
+        ROOT / "app" / "pages" / "home_page.py"
+    ).read_text(encoding="utf-8")
+
+    apply_home = shell[
+        shell.index("def apply_home_preload_update"):
+        shell.index("def apply_encyclopedia_preload_update")
+    ]
+    assert "if not any(" in apply_home
+    assert '("catalog", "guide_provider", "achievement_provider")' in apply_home
+    assert apply_home.index("if not any(") < apply_home.index(
+        "self.home_page.apply_encyclopedia_context"
+    )
+
+    apply_context = home[
+        home.index("def apply_encyclopedia_context"):
+        home.index("def release_encyclopedia_context")
+    ]
+    early_return = (
+        "if catalog is None and guide_provider is None and "
+        "achievement_provider is None:"
+    )
+    assert early_return in apply_context
+    assert apply_context.index(early_return) < apply_context.index(
+        "from app.modules.encyclopedia.providers import"
+    )
+
+
 def test_quest_preload_keeps_all_rich_catalogues_off_heap() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     preload = source[
@@ -1139,6 +1169,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_guide_name_resolution_uses_prebuilt_index_without_nested_worker()
         test_guide_provider_releases_reconstructible_catalogue()
         test_encyclopedia_preload_workers_do_not_capture_parent_payloads()
+        test_disk_only_preload_does_not_import_home_encyclopedia_runtime()
         test_quest_preload_keeps_all_rich_catalogues_off_heap()
         test_craft_preload_and_runtime_are_sqlite_bounded()
         test_home_release_collects_deleted_widget_cycles_without_working_set_trim()

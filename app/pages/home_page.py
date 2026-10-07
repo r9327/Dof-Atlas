@@ -509,6 +509,11 @@ class HomePage(QWidget):
         guide_provider: GuideProvider | None = None,
         achievement_provider: AchievementProvider | None = None,
     ) -> None:
+        # A disk-only preload has no live context. Return before the lazy imports
+        # so startup warmup cannot permanently raise the parent RSS watermark.
+        if catalog is None and guide_provider is None and achievement_provider is None:
+            return
+
         from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
         from app.quest_catalog import QuestCatalog
 
