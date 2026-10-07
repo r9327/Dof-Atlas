@@ -537,6 +537,22 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._linked_achievements = {}
         self._image_indexes.clear()
 
+    def _finish_in_process_catalogue(self) -> None:
+        self._trim_catalogue_payload()
+        self._progress_objectives = {
+            int(achievement.id): json.dumps(
+                [
+                    _progress_objective_row(objective)
+                    for objective in achievement.objectives
+                ],
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            for achievement in self._achievements
+            if achievement.objectives
+        }
+        self._reset_sources()
+
     def _load_in_process(self) -> None:
         cache_root = self._sources.cache_root
         selected_text_ids = _collect_compact_text_ids(self.data_dir, cache_root)
@@ -552,20 +568,24 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             super()._load()
         finally:
             self._catalog_loading = False
-        self._trim_catalogue_payload()
-        self._progress_objectives = {
-            int(achievement.id): json.dumps(
-                [
-                    _progress_objective_row(objective)
-                    for objective in achievement.objectives
-                ],
-                ensure_ascii=False,
-                separators=(",", ":"),
-            )
-            for achievement in self._achievements
-            if achievement.objectives
-        }
-        self._reset_sources()
+        self._finish_in_process_catalogue()
+
+    def _load_disposable_worker_fast(self) -> None:
+        """Build compact Success data with one source pass in a disposable process.
+
+        The long-lived Atlas path still uses selected localization values to keep
+        its allocator high-water low.  A startup worker can instead keep the
+        language byte-offset table for its short lifetime and avoid scanning the
+        achievement/quest/monster sources once just to discover text IDs.
+        """
+
+        self._entries = None
+        self._catalog_loading = True
+        try:
+            super()._load()
+        finally:
+            self._catalog_loading = False
+        self._finish_in_process_catalogue()
 
     def _install_compact_rows(
         self,
@@ -1455,7 +1475,7 @@ def _dump_compact_default_catalogue() -> int:
 
 def _build_compact_cache(path: Path) -> int:
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
-    provider._load_in_process()
+    provider._load_disposable_worker_fast()
     retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
     path = Path(path)
     index_path = _achievement_compact_index_path(path)
