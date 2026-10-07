@@ -524,7 +524,7 @@ class QuestsPage(QWidget):
             if quest is None:
                 continue
             quest_item = QTreeWidgetItem(
-                [self.hierarchy_quest_label(quest, set(completed_quest_ids))]
+                [self.hierarchy_quest_label(quest, completed_quest_ids)]
             )
             quest_item.setData(0, HIERARCHY_KIND_ROLE, "quest")
             quest_item.setData(0, HIERARCHY_ID_ROLE, int(quest.id))
@@ -575,7 +575,11 @@ class QuestsPage(QWidget):
             self.sync_hierarchy_selection(selected_id, preferred_series)
         self.render_breadcrumb()
 
-    def hierarchy_quest_label(self, quest: QuestRecord, completed_quest_ids: set[int] | None = None) -> str:
+    def hierarchy_quest_label(
+        self,
+        quest: QuestRecord,
+        completed_quest_ids: set[int] | frozenset[int] | None = None,
+    ) -> str:
         if completed_quest_ids is None:
             completed = bool(self.current_character_key and self.is_quest_done(int(quest.id)))
         else:
