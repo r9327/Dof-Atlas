@@ -12,6 +12,7 @@ class GuideToolsNoVersionedWrappersTests(unittest.TestCase):
         self.assertFalse((ROOT / "tools/audit_guide_ultime_route_forensic_v2.py").exists())
         self.assertFalse((ROOT / "tools/run_guide_ultime_v5.ps1").exists())
         self.assertFalse((ROOT / "tools/validate_guide_ultime_manual_transversals_v15.py").exists())
+        self.assertFalse((ROOT / "app/ui/styles/guide_v5.py").exists())
 
 
 if __name__ == "__main__":
