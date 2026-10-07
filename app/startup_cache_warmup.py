@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -252,7 +253,26 @@ def _safe_artifact_path(raw_path: object) -> Path | None:
     return resolved
 
 
-def _artifact_stamp(cache_files: object) -> list[list[object]]:
+def _quest_artifact_stamp(path: Path) -> list[object]:
+    label = _path_label(path)
+    try:
+        if not path.is_file() or path.stat().st_size <= 0:
+            return [label, -1, 0]
+        connection = sqlite3.connect(path, timeout=1)
+        try:
+            ready = connection.execute(
+                "SELECT value FROM metadata WHERE key='ready'"
+            ).fetchone()
+            count_row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
+        finally:
+            connection.close()
+    except (OSError, sqlite3.Error):
+        return [label, -1, 0]
+    count = max(0, int(count_row[0] if count_row else 0))
+    return [label, count, 1 if ready is not None else 0]
+
+
+def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
     if not isinstance(cache_files, list):
         return []
     rows: list[list[object]] = []
@@ -260,6 +280,9 @@ def _artifact_stamp(cache_files: object) -> list[list[object]]:
         path = _safe_artifact_path(raw_path)
         if path is None:
             return []
+        if domain == "quest":
+            rows.append(_quest_artifact_stamp(path))
+            continue
         label = _path_label(path)
         try:
             stat = path.stat()
@@ -287,7 +310,7 @@ def _cached_domain_result(
         return None
     if entry.get("source_stamp") != source_stamp:
         return None
-    current_artifacts = _artifact_stamp(result.get("cache_files"))
+    current_artifacts = _artifact_stamp(domain, result.get("cache_files"))
     if not current_artifacts or current_artifacts != expected_artifacts:
         return None
     if any(int(row[1]) <= 0 for row in current_artifacts):
@@ -322,7 +345,7 @@ def _run_or_reuse_domain(
         return cached, "reused", round((perf_counter() - started) * 1000.0, 2)
 
     payload = _run_domain(domain)
-    artifact_stamp = _artifact_stamp(payload.get("cache_files"))
+    artifact_stamp = _artifact_stamp(domain, payload.get("cache_files"))
     if not artifact_stamp or any(int(row[1]) <= 0 for row in artifact_stamp):
         raise RuntimeError(f"startup cache domain artifacts invalid: {domain}")
 
