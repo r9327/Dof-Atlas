@@ -82,6 +82,8 @@ Evidence used for the keep decisions is direct runtime/source usage: `PathProfil
 
 The two removals are intentionally limited to definitions with no extracted graph edge beyond their containing file and no local consumer. No replacement abstraction is introduced.
 
+117.1 measured result on `a627aee1e24fe1acd9a71791c6695d1d8dfd0160`: 11,146 nodes, 32,753 relationships, 421 communities, 13 Graphify weakly connected symbols, 173 thin communities, 1,825 inferred edges, and 0 import cycles. AI Context and Graphify are green.
+
 Exit criteria:
 
 - every reported isolated symbol is classified;
@@ -103,6 +105,33 @@ Do not process all 173 as one refactor. Split them into buckets first:
 - generated or deliberately standalone entrypoints.
 
 Only active-runtime and proven legacy/duplicate buckets are actionable.
+
+### 117.2 triage result
+
+The post-117.1 graph still reports 173 thin communities. They are classified before any merge/refactor:
+
+| Bucket | Count | Disposition |
+| --- | ---: | --- |
+| structural/file-only Graphify clusters | 73 | keep; graph structure/no production refactor |
+| tests only | 83 | keep unless a later test cleanup has independent evidence |
+| tools/scripts/hooks | 4 | inspect only for explicit legacy/consumer evidence |
+| active `app/` runtime | 9 | reviewed individually; thinness alone is not actionable |
+| mixed app + test | 1 | keep; active network status contract plus its test |
+| `local_dofus_data` | 1 | keep; active Validator boundary |
+| standalone entrypoint | 1 | keep; lifecycle cleanup in `main.py` |
+| data manifest | 1 | keep; canonical Guide manifest keys |
+
+The nine active-runtime thin communities are `GuideUltimeUniversalView`,
+`ManualRouteGuidesView`, `_LazyCompatQuestDetailPanel`, `NetworkDebugGate`,
+`WorldMenuScrollArea`, `QuestsPage`, the lazy `app.pages` package boundary,
+`travel_command_from_url()`, and the `app.modules` package boundary. Their graph
+nodes all have live runtime/test/native edges or intentionally lazy/package semantics;
+none is merged merely to reduce the community count.
+
+117.2 therefore performs **no production refactor**. The first proven legacy candidate
+for the next Guide lot is the separate zero-degree file node
+`tools/run_guide_ultime_v5.ps1`: the existing legacy-consumer contract already proves
+it has no live consumers and marks it as deferred legacy.
 
 Exit criteria:
 
