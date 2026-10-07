@@ -36,8 +36,11 @@ def build_compact_craft_preload() -> dict[str, object]:
         return payload
 
     try:
-        with sqlite3.connect(database_path) as connection:
+        connection = sqlite3.connect(database_path)
+        try:
             has_items = connection.execute("SELECT 1 FROM items LIMIT 1").fetchone() is not None
+        finally:
+            connection.close()
     except sqlite3.Error as exc:
         payload["errors"].append(str(exc))
         return payload
