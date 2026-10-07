@@ -18,6 +18,7 @@ RETIRED_TOOLS = (
     "tools/run_guide_ultime_v5.ps1",
     "tools/build_guide_ultime_final.py",
     "tools/guide_ultime_scope_v4.py",
+    "tools/validate_guide_ultime_manual_transversals_v15.py",
 )
 DEFERRED_LEGACY = (
     "tools/build_guide_ultime_gps_route.py",
