@@ -126,6 +126,8 @@ class NetworkUiBridge(QObject):
     def _poll(self) -> None:
         if self._stopped:
             return
+        if not self.coordinator.has_pending_ui_events():
+            return
         statuses = self.coordinator.drain_statuses(50)
         if statuses:
             self._last_status = statuses[-1]

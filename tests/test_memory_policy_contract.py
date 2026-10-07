@@ -86,6 +86,8 @@ SERVICES_FACADE = (
 CRAFT_PAGE = ROOT / "app" / "pages" / "craft_page.py"
 CRAFT_PRELOAD = ROOT / "app" / "craft_preload.py"
 STARTUP_CACHE_WARMUP = ROOT / "app" / "startup_cache_warmup.py"
+NETWORK_BRIDGE = ROOT / "app" / "ui" / "network_bridge.py"
+NETWORK_COORDINATOR = ROOT / "app" / "network" / "application_coordinator.py"
 WINDOWS_LAUNCHER = ROOT / "DOFUS.bat"
 PHASE8_MEMORY_WORKFLOW = ROOT / ".github" / "workflows" / "phase8-memory-benchmark.yml"
 QUESTS_PAGE_IMPL = ROOT / "app" / "pages" / "_quests_page_impl.py"
@@ -857,6 +859,27 @@ def test_preload_retry_reuses_one_qtimer_per_task() -> None:
     assert collector.index("if self.preload_queue.empty():") < collector.index("while True:")
 
 
+def test_idle_network_poll_does_not_drain_empty_queues() -> None:
+    bridge = NETWORK_BRIDGE.read_text(encoding="utf-8")
+    coordinator = NETWORK_COORDINATOR.read_text(encoding="utf-8")
+
+    poll = bridge[
+        bridge.index("def _poll(self)"):
+        bridge.index("def _emit_pending_progress")
+    ]
+    assert "if not self.coordinator.has_pending_ui_events():" in poll
+    assert poll.index("has_pending_ui_events") < poll.index("drain_statuses")
+
+    gate = coordinator[
+        coordinator.index("def has_pending_ui_events"):
+        coordinator.index("def stop(")
+    ]
+    assert "not self._statuses.empty()" in gate
+    assert "not self._results.empty()" in gate
+    assert "if self._statuses.empty():" in gate
+    assert "if self._results.empty():" in gate
+
+
 def test_background_related_preload_keeps_runtime_imports_out_of_parent() -> None:
     source = SHELL_MAIN.read_text(encoding="utf-8")
     related = source[
@@ -1302,6 +1325,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_craft_preload_and_runtime_are_sqlite_bounded()
         test_home_release_collects_deleted_widget_cycles_without_working_set_trim()
         test_preload_retry_reuses_one_qtimer_per_task()
+        test_idle_network_poll_does_not_drain_empty_queues()
         test_background_related_preload_keeps_runtime_imports_out_of_parent()
         test_shell_announces_explicit_encyclopedia_tab_before_showing_page()
         test_memory_page_prefers_explicit_tab_over_hidden_current_tab()
