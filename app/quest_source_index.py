@@ -265,7 +265,7 @@ class JsonSourceMapping(Mapping):
         rid_offsets: dict[str, tuple[int, int]],
         ids_by_type: dict[str, list[int]],
     ) -> None:
-        if not self.doduda:
+        if not self.doduda or self.path.name != "items.json":
             return
         path.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(dir=path.parent, suffix=".tmp", delete=False) as temp:
@@ -328,6 +328,7 @@ class JsonSourceMapping(Mapping):
                 )
                 offsets = None
         metadata: dict[str, object] = {}
+        capture_doduda_metadata = self.doduda and path.name == "items.json"
         if offsets is None:
             try:
                 offsets = self._build_offsets(field, metadata=metadata)
@@ -343,14 +344,18 @@ class JsonSourceMapping(Mapping):
                 temp_path.replace(cache)
             finally:
                 temp_path.unlink(missing_ok=True)
-            if self.doduda:
+            if capture_doduda_metadata:
                 self._write_doduda_metadata(
                     metadata_cache,
                     metadata.get("rid_offsets", {}),
                     metadata.get("ids_by_type", {}),
                 )
         self._offsets = {int(key) if self.doduda else key: tuple(span) for key, span in offsets.items()}
-        if self.doduda and not self._load_doduda_metadata(metadata_cache, stat.st_size):
+        if capture_doduda_metadata:
+            if not self._load_doduda_metadata(metadata_cache, stat.st_size):
+                self._rid_offsets = {}
+                self._ids_by_type = {}
+        elif self.doduda:
             self._rid_offsets = {}
             self._ids_by_type = {}
 
@@ -525,15 +530,16 @@ class JsonSourceMapping(Mapping):
                     raw_value = json.loads(read_span(value_start, value_end))
                     row = raw_value.get("data") if isinstance(raw_value, dict) else None
                     key = row.get("id") if isinstance(row, dict) else None
-                    rid = raw_value.get("rid") if isinstance(raw_value, dict) else None
-                    if rid is not None:
-                        rid_offsets[str(rid)] = (value_start, value_end)
-                    type_id = row.get("typeId") if isinstance(row, dict) else None
-                    if key is not None and type_id is not None:
-                        try:
-                            ids_by_type[str(int(type_id))].append(int(key))
-                        except (TypeError, ValueError):
-                            pass
+                    if metadata is not None and self.path.name == "items.json":
+                        rid = raw_value.get("rid") if isinstance(raw_value, dict) else None
+                        if rid is not None:
+                            rid_offsets[str(rid)] = (value_start, value_end)
+                        type_id = row.get("typeId") if isinstance(row, dict) else None
+                        if key is not None and type_id is not None:
+                            try:
+                                ids_by_type[str(int(type_id))].append(int(key))
+                            except (TypeError, ValueError):
+                                pass
                 if key is not None:
                     offsets[str(key)] = (value_start, value_end)
 
