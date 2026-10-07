@@ -35,7 +35,7 @@ _SPACE_RE = re.compile(r"\s*")
 ACHIEVEMENT_COMPACT_CACHE = (
     ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_catalogue_v1.jsonl"
 )
-_ACHIEVEMENT_COMPACT_SCHEMA = 3
+_ACHIEVEMENT_COMPACT_SCHEMA = 4
 _ACHIEVEMENT_COMPACT_SOURCES = (
     "achievements.json",
     "achievement_categories.json",
@@ -462,7 +462,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids: tuple[int, ...] = ()
         self._compact_retained_set: frozenset[int] = frozenset()
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
-        self._compact_quest_ids: dict[int, tuple[int, ...]] = {}
+        self._compact_quest_link_cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
         self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
         super().__init__(*args, **kwargs)
 
@@ -498,7 +498,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids = ()
         self._compact_retained_set = frozenset()
         self._compact_category_ids = {}
-        self._compact_quest_ids = {}
+        self._compact_quest_link_cache.clear()
         self._compact_summary_cache.clear()
         self._reset_sources()
 
@@ -734,7 +734,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids = retained_ids
         self._compact_retained_set = frozenset(retained_ids)
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
-        self._compact_quest_ids = id_tuple_map(index_payload.get("by_quest"))
+        self._compact_quest_link_cache.clear()
         self._compact_summary_cache.clear()
         self._image_indexes.clear()
         self._reset_sources()
@@ -1043,12 +1043,64 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             ]
         return list(self._by_category.get(int(category_id), ()))
 
+    def _compact_achievement_ids_for_quest(self, quest_id: int) -> tuple[int, ...]:
+        quest_id = int(quest_id)
+        cached = self._compact_quest_link_cache.get(quest_id)
+        if cached is not None:
+            self._compact_quest_link_cache.move_to_end(quest_id)
+            return cached
+
+        matches: list[int] = []
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                for raw_line in stream:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict):
+                        continue
+                    kind = str(row.get("kind") or "")
+                    if kind == "external_start":
+                        break
+                    if kind != "achievement":
+                        continue
+                    value = row.get("value")
+                    if not isinstance(value, dict):
+                        continue
+                    linked = value.get("linked_quests")
+                    if not isinstance(linked, list):
+                        continue
+                    linked_ids: set[int] = set()
+                    for ref in linked:
+                        if not isinstance(ref, dict):
+                            continue
+                        try:
+                            linked_ids.add(int(ref.get("entity_id")))
+                        except (TypeError, ValueError):
+                            continue
+                    if quest_id not in linked_ids:
+                        continue
+                    try:
+                        matches.append(int(value.get("id")))
+                    except (TypeError, ValueError):
+                        continue
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            matches = []
+
+        result = tuple(dict.fromkeys(matches))
+        self._compact_quest_link_cache[quest_id] = result
+        self._compact_quest_link_cache.move_to_end(quest_id)
+        while len(self._compact_quest_link_cache) > 24:
+            self._compact_quest_link_cache.popitem(last=False)
+        return result
+
     def get_by_quest(self, quest_id: int) -> list[Achievement]:
         self._ensure_loaded()
-        if self._compact_quest_ids:
+        if self._compact_retained_ids:
             return [
                 summary
-                for achievement_id in self._compact_quest_ids.get(int(quest_id), ())
+                for achievement_id in self._compact_achievement_ids_for_quest(int(quest_id))
                 for summary in (self._summary_by_id(achievement_id),)
                 if summary is not None
             ]
@@ -1445,16 +1497,10 @@ def _build_compact_cache(path: Path) -> int:
             if int(achievement.category_id) not in retained_ids
         ]
         by_category_ids: dict[int, list[int]] = defaultdict(list)
-        by_quest_ids: dict[int, list[int]] = defaultdict(list)
         for achievement in retained:
             by_category_ids[int(achievement.category_id)].append(int(achievement.id))
             if achievement.subcategory_id is not None:
                 by_category_ids[int(achievement.subcategory_id)].append(int(achievement.id))
-            for ref in achievement.linked_quests:
-                try:
-                    by_quest_ids[int(ref.entity_id)].append(int(achievement.id))
-                except (TypeError, ValueError):
-                    continue
         for achievement in retained:
             payload = {
                 "kind": "achievement",
@@ -1487,10 +1533,6 @@ def _build_compact_cache(path: Path) -> int:
                 "by_category": {
                     str(category_id): sorted(set(achievement_ids))
                     for category_id, achievement_ids in sorted(by_category_ids.items())
-                },
-                "by_quest": {
-                    str(quest_id): sorted(set(achievement_ids))
-                    for quest_id, achievement_ids in sorted(by_quest_ids.items())
                 },
                 "offsets": offsets,
             },
