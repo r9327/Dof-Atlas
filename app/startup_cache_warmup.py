@@ -392,6 +392,9 @@ def run_warmup(token: str = "") -> dict[str, object]:
             "mode": mode,
             "elapsed_ms": elapsed_ms,
             "worker_elapsed_ms": float(payload.get("elapsed_ms") or 0.0),
+            "timings_ms": dict(payload.get("timings_ms") or {})
+            if isinstance(payload.get("timings_ms"), dict)
+            else {},
         }
 
     tasks: dict[str, dict[str, object]] = {}
