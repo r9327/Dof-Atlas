@@ -350,6 +350,13 @@ class GuideUltimeManualCard(QFrame):
         return sorted(result, key=len, reverse=True)
 
 
+    def _set_clickable_text(self, label: QLabel, rendered: str) -> None:
+        label.setTextFormat(Qt.RichText)
+        label.setText(rendered)
+        label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
+        label.setOpenExternalLinks(False)
+        label.linkActivated.connect(self._copy_link_target)
+
     @staticmethod
     def _copy_text_for_link(href: str) -> str | None:
         value = str(href or "")
