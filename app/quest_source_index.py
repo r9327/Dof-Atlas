@@ -271,7 +271,7 @@ class JsonSourceMapping(Mapping):
         """Build byte spans without decoding the monolithic source as one string."""
 
         field_marker = json.dumps(str(field), ensure_ascii=False).encode("utf-8")
-        field_pattern = re.compile(re.escape(field_marker) + rb"\\s*:\\s*([\\[{])")
+        field_pattern = re.compile(re.escape(field_marker) + rb"\s*:\s*([\[{])")
         chunk_size = 256 * 1024
         overlap_size = 1024
         container_start: int | None = None
