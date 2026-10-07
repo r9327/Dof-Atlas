@@ -1204,16 +1204,23 @@ class GuidesView(QWidget):
             )
 
     def _show_runtime_loading(self) -> None:
-        self.home_list.setVisible(False)
-        self.home_empty.setText("Chargement des guides…")
-        self.home_empty.setWordWrap(False)
-        self.home_empty.setVisible(True)
+        clear_layout(self.home_layout)
+        loading = QLabel("Chargement des guides…")
+        loading.setObjectName("GuidesHomeEmptyText")
+        loading.setAlignment(Qt.AlignCenter)
+        self.home_layout.addStretch(1)
+        self.home_layout.addWidget(loading)
+        self.home_layout.addStretch(1)
 
     def show_runtime_error(self, message: str) -> None:
-        self.home_list.setVisible(False)
-        self.home_empty.setText(str(message or "Chargement des guides impossible."))
-        self.home_empty.setWordWrap(True)
-        self.home_empty.setVisible(True)
+        clear_layout(self.home_layout)
+        error = QLabel(str(message or "Chargement des guides impossible."))
+        error.setObjectName("GuidesHomeEmptyText")
+        error.setAlignment(Qt.AlignCenter)
+        error.setWordWrap(True)
+        self.home_layout.addStretch(1)
+        self.home_layout.addWidget(error)
+        self.home_layout.addStretch(1)
 
     def hydrate_runtime(
         self,
