@@ -474,7 +474,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         self._build_quest_name_index()
         try:
             restored = (
-                self.compact_runtime
+                bool(getattr(self, "compact_runtime", False))
                 and self.use_disk_cache
                 and restore_manual_runtime_compact_cache(self)
             )
@@ -579,7 +579,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             unsupported: set[str] = set()
             for stage_position, stage in enumerate(stages):
                 unsupported.update(str(key) for key in stage.keys() if str(key) not in _SUPPORTED_STAGE_FIELDS)
-                if self.compact_runtime:
+                if bool(getattr(self, "compact_runtime", False)):
                     card = self._stage_to_compact_card(
                         chapter_id,
                         chapter_meta,
@@ -810,7 +810,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         stage = card.get("manual_stage_data")
         if isinstance(stage, dict):
             return stage
-        if not self.compact_runtime:
+        if not bool(getattr(self, "compact_runtime", False)):
             return None
 
         filename = str(card.get("manual_source_file") or "").strip()
@@ -949,7 +949,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             # Atlas renders one sheet at a time. In compact runtime mode, keep
             # only a tiny search fingerprint and rebuild the visible sheet lines
             # from the authored stage instead of retaining 267 rendered lists.
-            "manual_lines": [] if self.compact_runtime else lines,
+            "manual_lines": [] if bool(getattr(self, "compact_runtime", False)) else lines,
             "manual_has_lines": bool(lines),
             "manual_search_text": manual_search_text,
             "structured_runtime_lines": structured_runtime_lines,
