@@ -6,7 +6,7 @@ This module deliberately has no Dofus Atlas imports so the hard selection policy
 can be unit-tested without the game data bundle.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Iterable
 import re
 
@@ -25,20 +25,6 @@ class ProfileKey:
     @property
     def id(self) -> str:
         return f"{self.alignment}|{self.order}|{self.character_class}"
-
-
-@dataclass
-class ScopeResult:
-    profile: ProfileKey
-    selected_ids: set[int] = field(default_factory=set)
-    seed_ids: set[int] = field(default_factory=set)
-    prerequisite_ids: set[int] = field(default_factory=set)
-    qq_filler_ids: set[int] = field(default_factory=set)
-    choice_selections: dict[str, int] = field(default_factory=dict)
-    conflicts: list[dict[str, Any]] = field(default_factory=list)
-    qq_required_count: int = 0
-    count_before_qq_fill: int = 0
-    count_after_qq_fill: int = 0
 
 
 def positive_qf_ids(criterion: str) -> set[int]:
