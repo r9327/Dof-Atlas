@@ -3,6 +3,7 @@ from __future__ import annotations
 import ctypes
 import gc
 import os
+import subprocess
 import sys
 from collections import deque
 from contextlib import nullcontext
@@ -242,22 +243,36 @@ def build_craft_preload() -> dict[str, Any]:
         return fallback
 
 def _run_preload_module_status(module: str, *arguments: str) -> None:
-    """Run one disposable cache builder without parent-side pipes or payloads."""
+    """Run one disposable cache builder without parent-side capture pipes."""
 
-    root = str(Path(__file__).resolve().parent)
+    root = Path(__file__).resolve().parent
     environment = dict(os.environ)
     current_pythonpath = str(environment.get("PYTHONPATH") or "")
     environment["PYTHONPATH"] = (
-        root
+        str(root)
         if not current_pythonpath
-        else root + os.pathsep + current_pythonpath
+        else str(root) + os.pathsep + current_pythonpath
     )
-    exit_code = os.spawnve(
-        os.P_WAIT,
-        sys.executable,
+    options: dict[str, Any] = {
+        "cwd": root,
+        "env": environment,
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+    }
+    if os.name == "nt":
+        options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+    process = subprocess.Popen(
         [sys.executable, "-m", module, *arguments],
-        environment,
+        **options,
     )
+    try:
+        exit_code = process.wait(timeout=90)
+    except subprocess.TimeoutExpired as exc:
+        process.kill()
+        process.wait()
+        raise RuntimeError(f"Worker preload expiré: {module}") from exc
     if int(exit_code) != 0:
         raise RuntimeError(
             f"Worker preload en échec: {module} (code {int(exit_code)})"
