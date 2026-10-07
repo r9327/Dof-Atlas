@@ -82,17 +82,42 @@ jobs:
           '@ | python -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Prewarm reconstructible caches outside Atlas
-        run: |
-          python -m app.startup_cache_warmup
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "DOFUS_ATLAS_CACHES_PREWARMED=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Measure staged process and process-tree memory
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts/phase8_memory" | Out-Null
+          $token = [guid]::NewGuid().ToString("N")
+          $env:DOFUS_ATLAS_CACHE_WARMUP_TOKEN = $token
+          $warmupOut = "artifacts/phase8_memory/warmup.stdout.log"
+          $warmupErr = "artifacts/phase8_memory/warmup.stderr.log"
+          $python = (Get-Command python).Source
+          $warmup = Start-Process -FilePath $python -ArgumentList @(
+            "-m",
+            "app.startup_cache_warmup",
+            "--token",
+            $token
+          ) -PassThru -NoNewWindow -RedirectStandardOutput $warmupOut -RedirectStandardError $warmupErr
+
           python -X faulthandler tools/benchmark_phase8_memory.py --output artifacts/phase8_memory/memory.json
           $code = $LASTEXITCODE
+
+          if (-not $warmup.HasExited) {
+            $finished = $warmup.WaitForExit(120000)
+            if (-not $finished) {
+              Stop-Process -Id $warmup.Id -Force
+              throw "Startup cache warmup did not finish within 120 seconds."
+            }
+          }
+          if ($warmup.ExitCode -ne 0) {
+            if (Test-Path -LiteralPath $warmupOut) { Get-Content -LiteralPath $warmupOut }
+            if (Test-Path -LiteralPath $warmupErr) { Get-Content -LiteralPath $warmupErr }
+            throw "Startup cache warmup failed with code $($warmup.ExitCode)."
+          }
+          $warmupResult = ".cache/dofus_atlas/startup_cache_warmup_v1.json"
+          if (Test-Path -LiteralPath $warmupResult) {
+            Write-Host "Startup cache warmup result:"
+            Get-Content -LiteralPath $warmupResult
+          }
+
           if (-not (Test-Path -LiteralPath "artifacts/phase8_memory/memory.json")) {
             exit $code
           }
