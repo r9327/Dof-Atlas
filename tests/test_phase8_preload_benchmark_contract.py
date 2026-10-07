@@ -25,3 +25,13 @@ def test_functional_preload_uses_low_churn_poll_interval() -> None:
         source.index("preload_completed_from_constructor_ms"),
     ]
     assert "poll_seconds=0.02" in measurement
+
+WORKFLOW = ROOT / ".github" / "workflows" / "phase8-preload-benchmark.yml"
+
+
+def test_preload_workflow_enforces_phase8_memory_budget() -> None:
+    source = WORKFLOW.read_text(encoding="utf-8")
+    assert "rss_after_preload > 95.0" in source
+    assert "rss_after_preload - startup_rss > 20.0" in source
+    assert "130.00 MB" not in source
+    assert "+60.00 MB" not in source
