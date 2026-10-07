@@ -710,6 +710,8 @@ def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> N
     assert "startup_cache_manifest_v1.json" in warmup
     assert "def _source_stamp(" in warmup
     assert "def _artifact_stamp(" in warmup
+    assert "def _quest_artifact_stamp(" in warmup
+    assert "sqlite3.connect(" in warmup
     assert "def _cached_domain_result(" in warmup
     assert '"mode": mode' in warmup
     assert '"encyclopedia_ready": encyclopedia_ready' in warmup
