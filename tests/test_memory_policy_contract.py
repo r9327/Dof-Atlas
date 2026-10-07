@@ -85,6 +85,9 @@ SERVICES_FACADE = (
 )
 CRAFT_PAGE = ROOT / "app" / "pages" / "craft_page.py"
 CRAFT_PRELOAD = ROOT / "app" / "craft_preload.py"
+STARTUP_CACHE_WARMUP = ROOT / "app" / "startup_cache_warmup.py"
+WINDOWS_LAUNCHER = ROOT / "DOFUS.bat"
+PHASE8_MEMORY_WORKFLOW = ROOT / ".github" / "workflows" / "phase8-memory-benchmark.yml"
 QUESTS_PAGE_IMPL = ROOT / "app" / "pages" / "_quests_page_impl.py"
 GUIDES_VIEW = ROOT / "app" / "modules" / "encyclopedia" / "views" / "guides_view.py"
 GUIDE_MANUAL_CORE = (
@@ -660,6 +663,41 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     assert runner.count("_run_preload_module_status(") >= 4
 
 
+def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> None:
+    shell = SHELL_MAIN.read_text(encoding="utf-8")
+    warmup = STARTUP_CACHE_WARMUP.read_text(encoding="utf-8")
+    launcher = WINDOWS_LAUNCHER.read_text(encoding="utf-8")
+    workflow = PHASE8_MEMORY_WORKFLOW.read_text(encoding="utf-8")
+
+    assert 'STARTUP_CACHE_WARMUP_ENV = "DOFUS_ATLAS_CACHES_PREWARMED"' in shell
+    assert "def _startup_cache_warmup_payload" in shell
+    quest_warmup = shell[
+        shell.index("def _warm_quest_catalogue"):
+        shell.index("def build_quest_preload")
+    ]
+    assert "_startup_cache_warmup_payload()" in quest_warmup
+    assert "prewarmed_count > 0" in quest_warmup
+    encyclopedia_warmup = shell[
+        shell.index("def _warm_encyclopedia_compact_stores"):
+        shell.index("def build_quest_related_preload")
+    ]
+    assert 'prewarmed.get("encyclopedia_ready")' in encyclopedia_warmup
+    assert "_run_preload_module_status(" in encyclopedia_warmup
+
+    assert '"app.quest_catalog_details", "--ensure-cache"' in warmup
+    assert "memory_bound_achievement_provider" in warmup
+    assert "achievement_index_warmup" in warmup
+    assert "memory_bound_guide_provider" in warmup
+    assert "dofus_item_provider" in warmup
+    assert '"encyclopedia_ready": True' in warmup
+    assert "startup_cache_warmup_v1.json" in warmup
+
+    assert '"%PYTHON_EXE%" -m app.startup_cache_warmup' in launcher
+    assert 'set "DOFUS_ATLAS_CACHES_PREWARMED=1"' in launcher
+    assert "python -m app.startup_cache_warmup" in workflow
+    assert "DOFUS_ATLAS_CACHES_PREWARMED=1" in workflow
+
+
 def test_manual_guide_route_is_precompiled_inside_existing_guide_worker() -> None:
     shell = SHELL_MAIN.read_text(encoding="utf-8")
     core = GUIDE_MANUAL_CORE.read_text(encoding="utf-8")
@@ -1204,6 +1242,7 @@ class MemoryPolicyContractUnittest(unittest.TestCase):
         test_guide_name_resolution_uses_prebuilt_index_without_nested_worker()
         test_guide_provider_releases_reconstructible_catalogue()
         test_encyclopedia_preload_workers_do_not_capture_parent_payloads()
+        test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas()
         test_disk_only_preload_does_not_import_home_encyclopedia_runtime()
         test_quest_preload_keeps_all_rich_catalogues_off_heap()
         test_craft_preload_and_runtime_are_sqlite_bounded()
