@@ -117,7 +117,7 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
         # In compact runtime the visible authored stage can itself be large.
         # A shallow card shell is enough: classification treats the stage as read-only
         # and already deep-copies the emitted player lines.
-        source_card = dict(card) if self.compact_runtime else copy.deepcopy(card)
+        source_card = dict(card) if bool(getattr(self, "compact_runtime", False)) else copy.deepcopy(card)
         source_card["manual_lines"] = self._raw_stage_lines(
             stage,
             [

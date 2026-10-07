@@ -1285,23 +1285,14 @@ class GuidesView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
 
-        self.home_list = QListView()
-        self.home_list.setObjectName("GuidesHomeList")
-        self.home_list.setModel(self.result_model)
-        self.home_list.setItemDelegate(GuideCardDelegate(self.home_list))
-        self.home_list.setMouseTracking(True)
-        self.home_list.setUniformItemSizes(False)
-        self.home_list.clicked.connect(self._on_home_guide_clicked)
-        root.addWidget(self.home_list, 1)
+        self.home_content = QWidget()
+        self.home_content.setObjectName("GuidesHomeContent")
+        self.home_content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.home_layout = QVBoxLayout(self.home_content)
+        self.home_layout.setContentsMargins(2, 2, 2, 2)
+        self.home_layout.setSpacing(8)
 
-        self.home_empty = QLabel("Aucun guide ne correspond à la recherche.")
-        self.home_empty.setObjectName("GuidesHomeEmptyText")
-        self.home_empty.setAlignment(Qt.AlignCenter)
-        self.home_empty.setVisible(False)
-        root.addWidget(self.home_empty, 1)
-
-        self.home_content = self.home_list
-        self.home_layout = root
+        root.addWidget(self.home_content, 1)
         return page
 
     def _on_home_guide_clicked(self, index) -> None:
@@ -1490,15 +1481,25 @@ class GuidesView(QWidget):
             self.show_guide_overview(self.current_guide_id, preserve_scroll=True)
 
     def _refresh_home_uncached(self) -> None:
+        clear_layout(self.home_layout)
         self.visible_guides = self.provider.search(self.search_text)
         self.result_model.set_guides(self.visible_guides)
-
         if not self.visible_guides:
-            self.result_model.set_progress({})
-            self.home_list.setVisible(False)
-            self.home_empty.setVisible(True)
+            empty = QFrame()
+            empty.setObjectName("GuidesHomeEmpty")
+            empty_layout = QVBoxLayout(empty)
+            empty_layout.setContentsMargins(20, 30, 20, 30)
+            message = QLabel("Aucun guide ne correspond à la recherche.")
+            message.setObjectName("GuidesHomeEmptyText")
+            message.setAlignment(Qt.AlignCenter)
+            empty_layout.addWidget(message)
+            self.home_layout.addWidget(empty)
+            self.home_layout.addStretch(1)
             return
 
+        grouped: dict[str, list[Guide]] = {}
+        for guide in self.visible_guides:
+            grouped.setdefault(guide.category, []).append(guide)
         progress_by_guide = self.initial_home_progress()
         if progress_by_guide is None:
             progress_by_guide = {
@@ -1506,8 +1507,56 @@ class GuidesView(QWidget):
                 for guide in self.visible_guides
             }
         self.result_model.set_progress(progress_by_guide)
-        self.home_empty.setVisible(False)
-        self.home_list.setVisible(True)
+
+        catalog = QFrame()
+        catalog.setObjectName("GuidesCatalogGrid")
+        catalog.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        catalog_layout = QGridLayout(catalog)
+        catalog_layout.setContentsMargins(0, 0, 0, 0)
+        catalog_layout.setHorizontalSpacing(8)
+        catalog_layout.setVerticalSpacing(8)
+        catalog_layout.setRowStretch(0, 1)
+
+        column = 0
+        if grouped.get("aventure") or grouped.get("alignements"):
+            catalog_layout.addWidget(
+                self.build_progression_column(grouped, progress_by_guide),
+                0,
+                column,
+            )
+            catalog_layout.setColumnMinimumWidth(column, HOME_GUIDE_LEFT_MIN_WIDTH)
+            catalog_layout.setColumnStretch(column, 0)
+            column += 1
+
+        dofus_guides = grouped.get("dofus", [])
+        if dofus_guides:
+            catalog_layout.addWidget(
+                self.build_category_section(
+                    "dofus",
+                    dofus_guides,
+                    progress_by_guide=progress_by_guide,
+                ),
+                0,
+                column,
+            )
+            catalog_layout.setColumnStretch(column, 1)
+            column += 1
+
+        for category, guides in grouped.items():
+            if category not in CATEGORY_ORDER:
+                catalog_layout.addWidget(
+                    self.build_category_section(
+                        category,
+                        guides,
+                        progress_by_guide=progress_by_guide,
+                    ),
+                    0,
+                    column,
+                )
+                catalog_layout.setColumnStretch(column, 1)
+                column += 1
+
+        self.home_layout.addWidget(catalog, 1)
 
     def _initial_home_progress_uncached(self) -> dict[str, tuple[int, int, str]] | None:
         if not self._initial_progress_by_guide:

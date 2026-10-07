@@ -236,8 +236,7 @@ class GuideUltimeManualCard(QFrame):
     ) -> list[dict[str, Any]]:
         provider = getattr(self.service, "quest_provider", None)
         evidence = getattr(provider, "guide_evidence", None)
-        if not callable(evidence):
-            return []
+        get_quest = getattr(provider, "get_quest", None)
 
         rows = [
             row
@@ -256,12 +255,45 @@ class GuideUltimeManualCard(QFrame):
         for raw in self.card.get("manual_quest_ids", []) or []:
             try:
                 quest_id = int(raw)
-                payload = evidence(quest_id)
-            except (KeyError, LookupError, TypeError, ValueError):
+            except (TypeError, ValueError):
                 continue
-            for objective in payload.get("combats", []) if isinstance(payload, dict) else []:
-                if not isinstance(objective, dict):
-                    continue
+
+            combat_rows: list[dict[str, Any]] = []
+            if callable(evidence):
+                try:
+                    payload = evidence(quest_id)
+                except (KeyError, LookupError, TypeError, ValueError):
+                    payload = None
+                if isinstance(payload, dict):
+                    combat_rows = [
+                        objective
+                        for objective in payload.get("combats", []) or []
+                        if isinstance(objective, dict)
+                    ]
+
+            if not combat_rows and callable(get_quest):
+                try:
+                    quest = get_quest(quest_id)
+                except (KeyError, LookupError, TypeError, ValueError):
+                    quest = None
+                for step in getattr(quest, "steps", ()) or ():
+                    for objective in getattr(step, "objectives", ()) or ():
+                        if not bool(getattr(objective, "is_combat", False)):
+                            continue
+                        objective_text = str(getattr(objective, "text", "") or "")
+                        monster = str(getattr(objective, "image_label", "") or "").strip()
+                        objective_id = self._safe_positive_int(getattr(objective, "id", None))
+                        if objective_id is None or not monster:
+                            continue
+                        combat_rows.append(
+                            {
+                                "objective_id": objective_id,
+                                "monster": monster,
+                                "quantity": self._combat_quantity(objective, objective_text),
+                            }
+                        )
+
+            for objective in combat_rows:
                 objective_id = self._safe_positive_int(objective.get("objective_id"))
                 monster = str(objective.get("monster") or "").strip()
                 if objective_id is None or not monster:
@@ -285,7 +317,6 @@ class GuideUltimeManualCard(QFrame):
                     }
                 )
         return result
-
 
     @classmethod
     def _combat_quantity(cls, objective: Any, objective_text: str) -> int:

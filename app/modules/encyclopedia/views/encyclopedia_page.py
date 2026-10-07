@@ -1254,6 +1254,7 @@ class EncyclopediaPage(QWidget):
                 self.status_callback,
                 provider=self.service.guide_provider,
                 achievement_provider=self.service.achievement_provider,
+                quest_provider=self.quest_provider,
                 quest_progress_path=self.quest_progress_path,
                 character_key=self.current_character_key,
                 graph=self._quest_graph,

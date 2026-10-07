@@ -416,7 +416,9 @@ class JsonSourceMapping(Mapping):
             while True:
                 skip_space()
                 value = reader.peek()
-                if value is None or value == closing:
+                if value is None:
+                    raise ValueError("Unterminated JSON container")
+                if value == closing:
                     break
                 if value == ord(","):
                     reader.get()
@@ -445,7 +447,9 @@ class JsonSourceMapping(Mapping):
                     reader.get()
                 elif delimiter == closing:
                     break
-                elif delimiter is not None:
+                elif delimiter is None:
+                    raise ValueError("Unterminated JSON container")
+                else:
                     raise ValueError("Missing JSON member delimiter")
         finally:
             reader.close()
