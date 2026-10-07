@@ -425,7 +425,16 @@ def measure() -> dict[str, Any]:
     timings: dict[str, float] = {}
     sampler = PeakTreeSampler()
     sampler.set_phase("startup")
-    sampler.start()
+    # Production launches build caches in a sibling process. Scanning the full
+    # Windows process tree every 50 ms for the ~50 s sibling warmup creates a
+    # large observer-effect heap inside the process being measured. Defer the
+    # tree sampler until Atlas can actually spawn its own preload children; the
+    # OS-reported PeakWorkingSetSize still preserves the parent startup peak.
+    defer_tree_sampler = bool(
+        os.environ.get("DOFUS_ATLAS_CACHE_WARMUP_TOKEN", "").strip()
+    )
+    if not defer_tree_sampler:
+        sampler.start()
 
     window = app_main.AtlasWindow()
     window.show()
@@ -433,6 +442,23 @@ def measure() -> dict[str, Any]:
     startup_stage = _capture(app, stages, "startup_stabilized", 0.25)
     module_baseline = set(sys.modules)
     startup_stage["runtime_diagnostics"] = _parent_runtime_diagnostics(window)
+    if defer_tree_sampler:
+        startup_peak = float(
+            startup_stage.get("process_peak_rss_mb")
+            or startup_stage.get("process_rss_mb")
+            or 0.0
+        )
+        sampler.peak_process_rss_mb = max(
+            sampler.peak_process_rss_mb,
+            startup_peak,
+        )
+        if startup_peak > sampler.peak_tree_rss_mb:
+            sampler.peak_tree_rss_mb = startup_peak
+            sampler.peak_tree_sample = {
+                **startup_stage,
+                "tree_rss_mb": round(startup_peak, 2),
+                "phase": "startup",
+            }
 
     sampler.set_phase("preload")
     preload_deadline = time.perf_counter() + 90.0
@@ -451,9 +477,39 @@ def measure() -> dict[str, Any]:
                     )
                     stages.append(ready_stage)
                     preload_seen.add(task)
+                    if task == "quests" and defer_tree_sampler:
+                        # The external cache warmup is a launcher sibling, not
+                        # part of Atlas' process tree. Once Quest preload is
+                        # terminal, Atlas may start its own short-lived workers,
+                        # so tree sampling becomes meaningful again.
+                        parent_peak = float(
+                            ready_stage.get("process_peak_rss_mb")
+                            or ready_stage.get("process_rss_mb")
+                            or 0.0
+                        )
+                        sampler.peak_process_rss_mb = max(
+                            sampler.peak_process_rss_mb,
+                            parent_peak,
+                        )
+                        if parent_peak > sampler.peak_tree_rss_mb:
+                            sampler.peak_tree_rss_mb = parent_peak
+                            sampler.peak_tree_sample = {
+                                **ready_stage,
+                                "tree_rss_mb": round(parent_peak, 2),
+                                "phase": "preload_parent",
+                            }
+                        sampler.start()
+                        defer_tree_sampler = False
         if time.perf_counter() >= preload_deadline:
             raise RuntimeError("Timeout while waiting for functional preload (90.0s).")
-        time.sleep(0.005)
+        # 50 Hz is ample for Qt/preload state transitions and avoids turning
+        # the benchmark's own Python pump into a long-lived allocator stressor.
+        time.sleep(0.02)
+    if defer_tree_sampler:
+        # Defensive fallback for already-terminal/failed preload state.
+        sampler.start()
+        defer_tree_sampler = False
+
     states = getattr(window, "preload_states", {})
     if isinstance(states, dict):
         for task in ("quests", "encyclopedia", "craft"):

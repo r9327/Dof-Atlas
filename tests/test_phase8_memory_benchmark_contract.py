@@ -49,6 +49,15 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "equipment_tree_delta_stabilized_mb" in source
 
 
+def test_memory_benchmark_avoids_sampler_observer_effect_during_external_warmup() -> None:
+    source = BENCHMARK.read_text(encoding="utf-8")
+    assert 'os.environ.get("DOFUS_ATLAS_CACHE_WARMUP_TOKEN", "").strip()' in source
+    assert "defer_tree_sampler" in source
+    assert 'if task == "quests" and defer_tree_sampler:' in source
+    assert "sampler.start()" in source
+    assert "time.sleep(0.02)" in source
+
+
 def test_memory_benchmark_opens_real_guide_detail_before_home() -> None:
     source = BENCHMARK.read_text(encoding="utf-8")
     assert 'GUIDE_DETAIL_BENCHMARK_ID = "guide_complet"' in source
