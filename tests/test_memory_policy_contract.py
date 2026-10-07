@@ -450,6 +450,12 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     ]
     assert "provider._load_disposable_worker_fast()" in compact_builder
     assert "provider._load_in_process()" not in compact_builder
+    fast_loader = source[
+        source.index("def _load_disposable_worker_fast("):
+        source.index("def _install_compact_rows(")
+    ]
+    assert '"quest_details_v1" / "source_offsets"' in fast_loader
+    assert "self._sources = QuestSources(shared_source_offsets)" in fast_loader
 
 
 def test_guide_same_character_assignment_does_not_rerender_route() -> None:
