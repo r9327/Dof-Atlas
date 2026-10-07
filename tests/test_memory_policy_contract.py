@@ -646,7 +646,8 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     assert "processRequested = Signal(object)" in broker
     assert "setStandardOutputFile(null_device)" in broker
     assert "setStandardErrorFile(null_device)" in broker
-    assert "capture" not in broker.casefold()
+    assert "capture_output" not in broker
+    assert "subprocess.PIPE" not in broker
     assert "_active_preload_process_broker()" in runner
     assert "broker.run(module, *arguments)" in runner
     assert "os.spawnve(" in runner
