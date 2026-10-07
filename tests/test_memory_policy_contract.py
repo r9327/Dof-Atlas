@@ -1354,6 +1354,9 @@ def test_dofus_item_worker_streams_monolithic_doduda_sources() -> None:
     ]
     assert "extra_item_ids" in load_in_process
     assert "extra_rows" in load_in_process
+    assert load_in_process.count("_iter_doduda_refs(items_path)") == 1
+    assert "effect_candidates" in load_in_process
+    assert "del effect_candidates" in load_in_process
     guide_builder = source[
         source.index("def _build_guide_items_index("):
         source.index("def _ensure_guide_items_index_cli(")
