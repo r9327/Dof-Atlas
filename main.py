@@ -3,6 +3,7 @@ from __future__ import annotations
 import ctypes
 import gc
 import os
+import subprocess
 import sys
 from collections import deque
 from contextlib import nullcontext
@@ -252,15 +253,24 @@ def _run_preload_module_status(module: str, *arguments: str) -> None:
         if not current_pythonpath
         else root + os.pathsep + current_pythonpath
     )
-    exit_code = os.spawnve(
-        os.P_WAIT,
-        sys.executable,
+    options: dict[str, Any] = {
+        "cwd": root,
+        "env": environment,
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+        "check": False,
+    }
+    if os.name == "nt":
+        options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    completed = subprocess.run(
         [sys.executable, "-m", module, *arguments],
-        environment,
+        **options,
     )
-    if int(exit_code) != 0:
+    exit_code = int(completed.returncode)
+    if exit_code != 0:
         raise RuntimeError(
-            f"Worker preload en échec: {module} (code {int(exit_code)})"
+            f"Worker preload en échec: {module} (code {exit_code})"
         )
 
 
