@@ -947,7 +947,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "subzone": zone,
             "destination": destination,
             # Atlas renders one sheet at a time. In compact runtime mode, keep
-            # only a tiny search fingerprint and rebuild the visible sheet lines
+            # only the compact search fingerprint and rebuild the visible sheet lines
             # from the authored stage instead of retaining 267 rendered lists.
             "manual_lines": [] if self.compact_runtime else lines,
             "manual_has_lines": bool(lines),
