@@ -3,18 +3,17 @@ from __future__ import annotations
 import ctypes
 import gc
 import os
-import subprocess
 import sys
 from collections import deque
 from contextlib import nullcontext
 from pathlib import Path
 from queue import Empty, Queue
-from threading import Lock, Thread
+from threading import Event, Lock, Thread
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Callable
-from weakref import WeakSet
+from weakref import WeakSet, ref
 
-from PySide6.QtCore import QEvent, QPoint, QSize, Qt, QTimer
+from PySide6.QtCore import QObject, QEvent, QPoint, QProcess, QSize, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -242,37 +241,126 @@ def build_craft_preload() -> dict[str, Any]:
         fallback["errors"].append(str(exc))
         return fallback
 
+class _PreloadProcessRequest:
+    __slots__ = ("module", "arguments", "done", "returncode", "error")
+
+    def __init__(self, module: str, arguments: tuple[str, ...]) -> None:
+        self.module = str(module)
+        self.arguments = tuple(str(value) for value in arguments)
+        self.done = Event()
+        self.returncode: int | None = None
+        self.error = ""
+
+
+class _PreloadProcessBroker(QObject):
+    """Create preload workers on the Qt/main thread without capture pipes."""
+
+    processRequested = Signal(object)
+
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._active: dict[QProcess, _PreloadProcessRequest] = {}
+        self.processRequested.connect(self._start_process)
+
+    def run(self, module: str, *arguments: str) -> int:
+        request = _PreloadProcessRequest(module, tuple(arguments))
+        self.processRequested.emit(request)
+        if not request.done.wait(180.0):
+            raise TimeoutError(f"Worker preload expiré: {module}")
+        if request.error:
+            raise RuntimeError(request.error)
+        return int(request.returncode or 0)
+
+    @Slot(object)
+    def _start_process(self, request: object) -> None:
+        if not isinstance(request, _PreloadProcessRequest):
+            return
+        process = QProcess(self)
+        process.setProgram(sys.executable)
+        process.setArguments(["-m", request.module, *request.arguments])
+        process.setWorkingDirectory(str(Path(__file__).resolve().parent))
+        null_device = QProcess.nullDevice()
+        process.setStandardOutputFile(null_device)
+        process.setStandardErrorFile(null_device)
+        self._active[process] = request
+
+        def finish(exit_code: int, _status: QProcess.ExitStatus) -> None:
+            if not request.done.is_set():
+                request.returncode = int(exit_code)
+                request.done.set()
+            self._active.pop(process, None)
+            process.deleteLater()
+
+        def fail(_error: QProcess.ProcessError) -> None:
+            if process.state() == QProcess.NotRunning and not request.done.is_set():
+                request.error = (
+                    f"Worker preload impossible: {request.module}: "
+                    f"{process.errorString()}"
+                )
+                request.returncode = -1
+                request.done.set()
+                self._active.pop(process, None)
+                process.deleteLater()
+
+        process.finished.connect(finish)
+        process.errorOccurred.connect(fail)
+        process.start()
+
+    def shutdown(self) -> None:
+        for process, request in list(self._active.items()):
+            if not request.done.is_set():
+                request.error = f"Worker preload interrompu: {request.module}"
+                request.returncode = -1
+                request.done.set()
+            if process.state() != QProcess.NotRunning:
+                process.kill()
+            process.deleteLater()
+        self._active.clear()
+
+
+_PRELOAD_PROCESS_BROKER_REF = None
+
+
+def _set_preload_process_broker(broker: _PreloadProcessBroker | None) -> None:
+    global _PRELOAD_PROCESS_BROKER_REF
+    _PRELOAD_PROCESS_BROKER_REF = ref(broker) if broker is not None else None
+
+
+def _active_preload_process_broker() -> _PreloadProcessBroker | None:
+    broker_ref = _PRELOAD_PROCESS_BROKER_REF
+    if broker_ref is None:
+        return None
+    broker = broker_ref()
+    return broker if isinstance(broker, _PreloadProcessBroker) else None
+
+
 def _run_preload_module_status(module: str, *arguments: str) -> None:
     """Run one disposable cache builder without parent-side pipes or payloads."""
 
-    root = str(Path(__file__).resolve().parent)
-    environment = dict(os.environ)
-    current_pythonpath = str(environment.get("PYTHONPATH") or "")
-    environment["PYTHONPATH"] = (
-        root
-        if not current_pythonpath
-        else root + os.pathsep + current_pythonpath
-    )
-    options: dict[str, Any] = {
-        "cwd": root,
-        "env": environment,
-        "stdin": subprocess.DEVNULL,
-        "stdout": subprocess.DEVNULL,
-        "stderr": subprocess.DEVNULL,
-        "check": False,
-    }
-    if os.name == "nt":
-        options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-    completed = subprocess.run(
-        [sys.executable, "-m", module, *arguments],
-        **options,
-    )
-    exit_code = int(completed.returncode)
-    if exit_code != 0:
-        raise RuntimeError(
-            f"Worker preload en échec: {module} (code {exit_code})"
+    broker = _active_preload_process_broker()
+    if broker is not None:
+        exit_code = broker.run(module, *arguments)
+    else:
+        # Direct/unit-test callers have no AtlasWindow event loop. They run on
+        # the invoking thread, where the low-overhead CRT spawn path is safe.
+        root = str(Path(__file__).resolve().parent)
+        environment = dict(os.environ)
+        current_pythonpath = str(environment.get("PYTHONPATH") or "")
+        environment["PYTHONPATH"] = (
+            root
+            if not current_pythonpath
+            else root + os.pathsep + current_pythonpath
         )
-
+        exit_code = os.spawnve(
+            os.P_WAIT,
+            sys.executable,
+            [sys.executable, "-m", module, *arguments],
+            environment,
+        )
+    if int(exit_code) != 0:
+        raise RuntimeError(
+            f"Worker preload en échec: {module} (code {int(exit_code)})"
+        )
 
 def _run_preload_module_result(module: str, *arguments: str) -> str:
     """Run a worker through a tiny result file instead of parent-side pipes."""
@@ -716,6 +804,8 @@ class AtlasWindow(QMainWindow):
         self.pending_encyclopedia_tab = ""
         self.pending_guide_target: tuple[str, int | None] | None = None
         self.preload_queue: Queue[dict[str, Any]] = Queue(maxsize=8)
+        self._preload_process_broker = _PreloadProcessBroker(self)
+        _set_preload_process_broker(self._preload_process_broker)
         self.preload_poll_timer = QTimer(self)
         self.preload_poll_timer.setInterval(120)
         self.preload_poll_timer.timeout.connect(self.collect_preload_result)
@@ -2411,6 +2501,12 @@ class AtlasWindow(QMainWindow):
             return
         self._background_services_stopped = True
         self.quit_requested = True
+
+        broker = getattr(self, "_preload_process_broker", None)
+        if isinstance(broker, _PreloadProcessBroker):
+            broker.shutdown()
+            if _active_preload_process_broker() is broker:
+                _set_preload_process_broker(None)
 
         organizer = self.page_widgets.get("Organizer") if hasattr(self, "page_widgets") else None
         stop_watcher = getattr(organizer, "stop_session_event_watcher", None)

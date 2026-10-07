@@ -107,7 +107,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "32226c5163378b6d3438eb96d5f1f4cc0d093377",
+      "sha": "3d5d31be2250b86bc3c08db3de9af5d8dc2b6ed8",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -127,7 +127,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "b7b3fbecf9a79a401df9afc0ab67b922f8b34eb8",
+      "sha": "d6e42ff40f7f7df7f660546bb08b6ac7af565ade",
       "type": "tree"
     },
     "tools": {
