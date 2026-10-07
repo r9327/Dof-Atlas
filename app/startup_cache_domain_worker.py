@@ -28,6 +28,9 @@ def _relative(path: Path) -> str:
 
 def _guide_domain() -> dict[str, object]:
     from app.modules.encyclopedia.providers import memory_bound_guide_provider as guide_provider
+
+    timings: dict[str, float] = {}
+    guide_started = perf_counter()
     from app.modules.encyclopedia.services.guide_ultime_manual_runtime_core import (
         MANUAL_RUNTIME_COMPACT_CACHE,
     )
@@ -54,11 +57,17 @@ def _guide_domain() -> dict[str, object]:
         with guide_provider.GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
             guide_count = sum(1 for line in stream if '"kind":"guide"' in line)
 
+    timings["catalogue"] = round((perf_counter() - guide_started) * 1000.0, 2)
+
+    manual_started = perf_counter()
     manual_count = int(
         guide_provider._build_manual_runtime_compact_cache_in_worker()
         or 0
     )
+    timings["manual_route"] = round((perf_counter() - manual_started) * 1000.0, 2)
     gc.collect()
+
+    items_started = perf_counter()
 
     # Import the item stack only after the Guide graph is released so the fused
     # worker saves process startup without stacking both heavy heaps.
@@ -90,9 +99,11 @@ def _guide_domain() -> dict[str, object]:
         item_count = len(built_items)
     else:
         item_count = len(cached_items)
+    timings["items"] = round((perf_counter() - items_started) * 1000.0, 2)
 
     return {
         "domain": "guide",
+        "timings_ms": timings,
         "tasks": {
             "guide": {
                 "guide_count": int(guide_count),
@@ -133,6 +144,8 @@ def _success_domain() -> dict[str, object]:
     )
     from app.modules.encyclopedia.services import achievement_index_warmup
 
+    timings: dict[str, float] = {}
+    compact_started = perf_counter()
     cache_path = achievement_provider.ACHIEVEMENT_COMPACT_CACHE
     index_path = achievement_provider._achievement_compact_index_path(cache_path)
 
@@ -157,11 +170,16 @@ def _success_domain() -> dict[str, object]:
 
     achievement_count = max(0, int(index_payload.get("achievement_count") or 0))
     retained_count = max(0, int(index_payload.get("retained_count") or 0))
+    timings["catalogue"] = round((perf_counter() - compact_started) * 1000.0, 2)
+
+    names_started = perf_counter()
     name_count = int(achievement_index_warmup.write_achievement_name_index() or 0)
+    timings["names"] = round((perf_counter() - names_started) * 1000.0, 2)
     gc.collect()
 
     return {
         "domain": "success",
+        "timings_ms": timings,
         "tasks": {
             "success": {
                 "achievement_count": achievement_count,
