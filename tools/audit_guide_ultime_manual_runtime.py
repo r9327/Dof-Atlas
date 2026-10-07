@@ -39,6 +39,9 @@ def audit() -> dict:
     service = object.__new__(GuideUltimeManualRuntimeService)
     service.quest_provider = None
     service._quest_name_to_id = {}
+    # The audit exercises the full authored-card contract directly instead of
+    # the UI's compact runtime path, so initialize that mode explicitly.
+    service.compact_runtime = False
 
     empty_cards: list[str] = []
     count_mismatches: list[dict] = []
