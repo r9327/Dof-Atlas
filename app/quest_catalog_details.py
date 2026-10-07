@@ -547,4 +547,13 @@ def _source_index(data_dir):
 
 
 if __name__ == "__main__" and "--ensure-cache" in sys.argv:
-    print(ensure_lazy_catalog_cache())
+    count = ensure_lazy_catalog_cache()
+    if "--result-file" in sys.argv:
+        try:
+            result_path = Path(sys.argv[sys.argv.index("--result-file") + 1])
+        except (ValueError, IndexError):
+            raise SystemExit(2)
+        result_path.parent.mkdir(parents=True, exist_ok=True)
+        result_path.write_text(str(count), encoding="utf-8")
+    else:
+        print(count)

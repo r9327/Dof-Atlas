@@ -630,11 +630,25 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
         source.index("def _run_preload_module_status("):
         source.index("def build_quest_related_preload(")
     ]
+    quest_warmup = source[
+        source.index("def _warm_quest_catalogue("):
+        source.index("def build_quest_preload(")
+    ]
+    craft_builder = source[
+        source.index("def build_craft_preload("):
+        source.index("def _run_preload_module_status(")
+    ]
     assert "os.spawnve(" in runner
     assert "os.P_WAIT" in runner
     assert "PYTHONPATH" in runner
+    assert "--result-file" in runner
     assert "capture_output=True" not in runner
     assert "_run_preload_module_json" not in runner
+    assert "subprocess.run" not in runner
+    assert "subprocess.run" not in quest_warmup
+    assert "subprocess.run" not in craft_builder
+    assert "_run_preload_module_result(" in quest_warmup
+    assert "_run_preload_module_result(" in craft_builder
     assert runner.count("_run_preload_module_status(") >= 5
 
 

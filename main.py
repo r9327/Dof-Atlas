@@ -219,7 +219,6 @@ def build_craft_preload() -> dict[str, Any]:
     """
 
     import json
-    import subprocess
 
     fallback: dict[str, Any] = {
         "items": [],
@@ -233,20 +232,8 @@ def build_craft_preload() -> dict[str, Any]:
         "errors": [],
     }
     try:
-        completed = subprocess.run(
-            [sys.executable, "-m", "app.craft_preload"],
-            cwd=Path(__file__).resolve().parent,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=90,
-            check=True,
-        )
-        lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
-        if not lines:
-            raise RuntimeError("Le preload Craft compact n'a produit aucun résultat")
-        payload = json.loads(lines[-1])
+        raw = _run_preload_module_result("app.craft_preload")
+        payload = json.loads(raw)
         if not isinstance(payload, dict):
             raise RuntimeError("Résultat du preload Craft compact invalide")
         return payload
@@ -275,6 +262,30 @@ def _run_preload_module_status(module: str, *arguments: str) -> None:
         raise RuntimeError(
             f"Worker preload en échec: {module} (code {int(exit_code)})"
         )
+
+
+def _run_preload_module_result(module: str, *arguments: str) -> str:
+    """Run a worker through a tiny result file instead of parent-side pipes."""
+
+    root = Path(__file__).resolve().parent
+    result_dir = root / ".cache" / "dofus_atlas" / "preload_results"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = module.replace(".", "_").replace("/", "_")
+    result_path = result_dir / f"{os.getpid()}_{safe_name}.txt"
+    try:
+        result_path.unlink(missing_ok=True)
+        _run_preload_module_status(
+            module,
+            *arguments,
+            "--result-file",
+            str(result_path),
+        )
+        raw = result_path.read_text(encoding="utf-8").strip()
+        if not raw:
+            raise RuntimeError(f"Worker preload vide: {module}")
+        return raw
+    finally:
+        result_path.unlink(missing_ok=True)
 
 
 def _warm_encyclopedia_compact_stores() -> None:
@@ -382,22 +393,11 @@ def guide_progress_state(completed: int, total: int) -> str:
 def _warm_quest_catalogue() -> int:
     """Build/validate the Quest SQLite store in one disposable child process."""
 
-    import subprocess
-
-    completed = subprocess.run(
-        [sys.executable, "-m", "app.quest_catalog_details", "--ensure-cache"],
-        cwd=Path(__file__).resolve().parent,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=90,
-        check=True,
+    raw = _run_preload_module_result(
+        "app.quest_catalog_details",
+        "--ensure-cache",
     )
-    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
-    if not lines:
-        raise RuntimeError("Le cache compact Quêtes n'a produit aucun résultat")
-    return max(0, int(lines[-1]))
+    return max(0, int(raw))
 
 
 def build_quest_preload(

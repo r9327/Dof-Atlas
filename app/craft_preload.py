@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import sys
+from pathlib import Path
 
 from app.constants import (
     CRAFT_SELECTION_FILE,
@@ -101,13 +103,20 @@ def build_compact_craft_preload() -> dict[str, object]:
 
 
 def main() -> int:
-    print(
-        json.dumps(
-            build_compact_craft_preload(),
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
+    payload = json.dumps(
+        build_compact_craft_preload(),
+        ensure_ascii=False,
+        separators=(",", ":"),
     )
+    if "--result-file" in sys.argv:
+        try:
+            result_path = Path(sys.argv[sys.argv.index("--result-file") + 1])
+        except (ValueError, IndexError):
+            return 2
+        result_path.parent.mkdir(parents=True, exist_ok=True)
+        result_path.write_text(payload, encoding="utf-8")
+    else:
+        print(payload)
     return 0
 
 

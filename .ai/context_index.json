@@ -82,7 +82,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "c95e21ca0ea1f0dfa007ae35bb27323a7449c6c2",
+      "sha": "36ce58043d856ba96534e7c44ac0dd92b5a1e9c0",
       "type": "tree"
     },
     "data": {
@@ -127,7 +127,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "1a2fc6b96e650ec063f8c1cffc5b8aca0f85628e",
+      "sha": "72cdf720f8d17e5b7f9b727665ef8684ae84333a",
       "type": "tree"
     },
     "tools": {
