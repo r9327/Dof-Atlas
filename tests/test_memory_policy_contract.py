@@ -86,6 +86,7 @@ SERVICES_FACADE = (
 CRAFT_PAGE = ROOT / "app" / "pages" / "craft_page.py"
 CRAFT_PRELOAD = ROOT / "app" / "craft_preload.py"
 STARTUP_CACHE_WARMUP = ROOT / "app" / "startup_cache_warmup.py"
+STARTUP_CACHE_DOMAIN_WORKER = ROOT / "app" / "startup_cache_domain_worker.py"
 NETWORK_BRIDGE = ROOT / "app" / "ui" / "network_bridge.py"
 NETWORK_COORDINATOR = ROOT / "app" / "network" / "application_coordinator.py"
 WINDOWS_LAUNCHER = ROOT / "DOFUS.bat"
@@ -668,6 +669,7 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
 def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> None:
     shell = SHELL_MAIN.read_text(encoding="utf-8")
     warmup = STARTUP_CACHE_WARMUP.read_text(encoding="utf-8")
+    domain_worker = STARTUP_CACHE_DOMAIN_WORKER.read_text(encoding="utf-8")
     launcher = WINDOWS_LAUNCHER.read_text(encoding="utf-8")
     workflow = PHASE8_MEMORY_WORKFLOW.read_text(encoding="utf-8")
 
@@ -702,16 +704,30 @@ def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> N
     assert 'prewarmed.get("encyclopedia_ready")' in encyclopedia_warmup
     assert "_run_preload_module_status(" in encyclopedia_warmup
 
-    assert '"app.quest_catalog_details", "--ensure-cache"' in warmup
-    assert "memory_bound_achievement_provider" in warmup
-    assert "achievement_index_warmup" in warmup
-    assert "memory_bound_guide_provider" in warmup
-    assert "dofus_item_provider" in warmup
-    assert '"encyclopedia_ready": True' in warmup
+    assert '_DOMAIN_ORDER = ("guide", "quest", "success")' in warmup
+    assert '"app.startup_cache_domain_worker"' in warmup
+    assert "STARTUP_CACHE_MANIFEST" in warmup
+    assert "startup_cache_manifest_v1.json" in warmup
+    assert "def _source_stamp(" in warmup
+    assert "def _artifact_stamp(" in warmup
+    assert "def _cached_domain_result(" in warmup
+    assert '"mode": mode' in warmup
+    assert '"encyclopedia_ready": encyclopedia_ready' in warmup
     assert '"status": "running"' in warmup
     assert '"status": "ready"' in warmup
     assert '"status": "failed"' in warmup
     assert "startup_cache_warmup_v1.json" in warmup
+
+    assert '"guide": _guide_domain' in domain_worker
+    assert '"quest": _quest_domain' in domain_worker
+    assert '"success": _success_domain' in domain_worker
+    assert "_build_compact_guide_cache" in domain_worker
+    assert "_build_manual_runtime_compact_cache_in_worker" in domain_worker
+    assert "_build_guide_items_index" in domain_worker
+    assert "ensure_lazy_catalog_cache()" in domain_worker
+    assert "_build_compact_cache" in domain_worker
+    assert "write_achievement_name_index()" in domain_worker
+    assert "subprocess.run(" not in domain_worker
 
     assert "DOFUS_ATLAS_CACHE_WARMUP_TOKEN" in launcher
     assert "-m app.startup_cache_warmup --token" in launcher
