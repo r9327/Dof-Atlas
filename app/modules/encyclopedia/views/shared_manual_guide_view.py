@@ -79,19 +79,28 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             title.setWordWrap(True)
             root.addWidget(title)
 
-        line_provider = getattr(service, "manual_lines_for_card", None)
-        manual_lines = (
-            line_provider(character_key, card)
-            if callable(line_provider)
-            else card.get("manual_lines", []) or []
-        )
         section_provider = getattr(service, "manual_sections_for_card", None)
-        sections = (
-            section_provider(character_key, card)
-            if callable(section_provider)
-            else {"now": manual_lines}
-        )
+        if callable(section_provider):
+            sections = section_provider(character_key, card)
+            # The section provider already owns line materialization. Do not call
+            # manual_lines_for_card first and build the same visible sheet twice.
+            manual_lines = []
+        else:
+            line_provider = getattr(service, "manual_lines_for_card", None)
+            manual_lines = (
+                line_provider(character_key, card)
+                if callable(line_provider)
+                else card.get("manual_lines", []) or []
+            )
+            sections = {"now": manual_lines}
         if not isinstance(sections, dict) or not any(sections.values()):
+            if not manual_lines:
+                line_provider = getattr(service, "manual_lines_for_card", None)
+                manual_lines = (
+                    line_provider(character_key, card)
+                    if callable(line_provider)
+                    else card.get("manual_lines", []) or []
+                )
             sections = {"now": manual_lines}
         sections = self._without_prepare_duplicates(sections)
 

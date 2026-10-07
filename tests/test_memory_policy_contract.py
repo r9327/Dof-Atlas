@@ -430,6 +430,42 @@ def test_achievement_provider_releases_reconstructible_source_maps() -> None:
     assert '"raw"' in source
 
 
+def test_guide_same_character_assignment_does_not_rerender_route() -> None:
+    source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "views"
+        / "guide_ultime_generated_view.py"
+    ).read_text(encoding="utf-8")
+    setter = source[
+        source.index("def set_character_key"):
+        source.index("def refresh_external_progress", source.index("def set_character_key"))
+    ]
+    assert "if normalized == self.character_key" in setter
+    assert "return" in setter
+
+
+def test_shared_manual_card_does_not_materialize_lines_before_sections() -> None:
+    source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "views"
+        / "shared_manual_guide_view.py"
+    ).read_text(encoding="utf-8")
+    constructor = source[
+        source.index("class SharedGuideManualCard"):
+        source.index("def _render_window", source.index("class SharedGuideManualCard"))
+    ]
+    section_pos = constructor.index('section_provider = getattr(service, "manual_sections_for_card"')
+    line_pos = constructor.index('line_provider = getattr(service, "manual_lines_for_card"')
+    assert section_pos < line_pos
+    assert "Do not call" in constructor
+
+
 def test_guide_navigation_materializes_only_one_chapter_at_a_time() -> None:
     source = GUIDES_VIEW.read_text(encoding="utf-8")
     initializer = source[
