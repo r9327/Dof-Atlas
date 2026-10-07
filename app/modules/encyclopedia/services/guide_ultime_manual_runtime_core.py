@@ -141,6 +141,17 @@ def _manual_runtime_json_decode(value: Any) -> Any:
     return value
 
 
+def _manual_runtime_source_signature(service: Any, cache_path: Path) -> list[list[object]]:
+    """Fingerprint authored JSON only, never the generated runtime cache itself."""
+
+    manual_dir = Path(service.manual_dir).resolve()
+    cache_path = Path(cache_path).resolve()
+    rows = _manual_tree_signature(manual_dir)
+    if cache_path.parent == manual_dir:
+        rows = tuple(row for row in rows if row[0] != cache_path.name)
+    return [list(row) for row in rows]
+
+
 def write_manual_runtime_compact_cache(
     service: Any,
     path: Path = MANUAL_RUNTIME_COMPACT_CACHE,
@@ -154,9 +165,7 @@ def write_manual_runtime_compact_cache(
     route.pop("steps", None)
     payload = {
         "schema_version": _MANUAL_RUNTIME_COMPACT_SCHEMA,
-        "source_signature": [
-            list(row) for row in _manual_tree_signature(Path(service.manual_dir))
-        ],
+        "source_signature": _manual_runtime_source_signature(service, path),
         "quest_signature": _manual_runtime_quest_signature(service),
         "route": _manual_runtime_json_encode(route),
         "cards": _manual_runtime_json_encode(cards),
@@ -210,9 +219,7 @@ def restore_manual_runtime_compact_cache(
         return False
     if int(payload.get("schema_version") or 0) != _MANUAL_RUNTIME_COMPACT_SCHEMA:
         return False
-    expected_source = [
-        list(row) for row in _manual_tree_signature(Path(service.manual_dir))
-    ]
+    expected_source = _manual_runtime_source_signature(service, path)
     if payload.get("source_signature") != expected_source:
         return False
     if int(payload.get("quest_signature") or 0) != _manual_runtime_quest_signature(service):

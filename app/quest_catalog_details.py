@@ -288,6 +288,213 @@ def load_quest_name_index(
     return result
 
 
+class _QuestSummaryStore:
+    """SQLite-backed Quest summaries with only a tiny hot-row cache."""
+
+    def __init__(
+        self,
+        data_dir: Path,
+        path: Path,
+        details: QuestDetails,
+        *,
+        cache_limit: int = 24,
+    ) -> None:
+        self.data_dir = Path(data_dir)
+        self.path = Path(path)
+        self.details = details
+        self.cache_limit = max(1, int(cache_limit))
+        self._lock = RLock()
+        self._records: OrderedDict[int, DeferredQuestRecord] = OrderedDict()
+        with _connect(self.path) as connection:
+            row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
+        self.count = max(0, int(row[0] if row else 0))
+
+    def _record_from_row(self, row) -> DeferredQuestRecord:
+        (
+            quest_id,
+            name,
+            category,
+            level_min,
+            level_max,
+            start_criterion,
+        ) = row
+        empty: tuple = ()
+        record = DeferredQuestRecord(
+            id=int(quest_id),
+            name=str(name or ""),
+            category=str(category or ""),
+            level_min=int(level_min or 0),
+            level_max=int(level_max or 0),
+            start_criterion=str(start_criterion or ""),
+            zones=empty,
+            achievements=empty,
+            prerequisites=empty,
+            info=empty,
+            steps=empty,
+            source_solution_steps=empty,
+            solution_blocks=empty,
+            source_info=None,
+            rewards=empty,
+        )
+        record._details = self.details
+        return record
+
+    def get(self, quest_id: int) -> DeferredQuestRecord | None:
+        quest_id = int(quest_id)
+        with self._lock:
+            cached = self._records.get(quest_id)
+            if cached is not None:
+                self._records.move_to_end(quest_id)
+                return cached
+        with _connect(self.path) as connection:
+            row = connection.execute(
+                "SELECT id, name, category, level_min, level_max, start_criterion "
+                "FROM quests WHERE id=?",
+                (quest_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        record = self._record_from_row(row)
+        with self._lock:
+            self._records[quest_id] = record
+            self._records.move_to_end(quest_id)
+            while len(self._records) > self.cache_limit:
+                self._records.popitem(last=False)
+        return record
+
+    def contains(self, quest_id: int) -> bool:
+        quest_id = int(quest_id)
+        with self._lock:
+            if quest_id in self._records:
+                return True
+        with _connect(self.path) as connection:
+            row = connection.execute(
+                "SELECT 1 FROM quests WHERE id=?",
+                (quest_id,),
+            ).fetchone()
+        return row is not None
+
+    def iter_records(self):
+        with _connect(self.path) as connection:
+            cursor = connection.execute(
+                "SELECT id, name, category, level_min, level_max, start_criterion "
+                "FROM quests ORDER BY name COLLATE NOCASE"
+            )
+            for row in cursor:
+                # Do not fill the hot-row cache while scanning the catalogue.
+                # Hierarchy construction consumes one summary at a time.
+                yield self._record_from_row(row)
+
+    def iter_ids(self):
+        with _connect(self.path) as connection:
+            for row in connection.execute("SELECT id FROM quests ORDER BY id"):
+                yield int(row[0])
+
+    def at(self, index: int) -> DeferredQuestRecord:
+        index = int(index)
+        if index < 0:
+            index += self.count
+        if index < 0 or index >= self.count:
+            raise IndexError(index)
+        with _connect(self.path) as connection:
+            row = connection.execute(
+                "SELECT id, name, category, level_min, level_max, start_criterion "
+                "FROM quests ORDER BY name COLLATE NOCASE LIMIT 1 OFFSET ?",
+                (index,),
+            ).fetchone()
+        if row is None:
+            raise IndexError(index)
+        return self._record_from_row(row)
+
+
+class _DiskQuestSequence:
+    def __init__(self, store: _QuestSummaryStore) -> None:
+        self._store = store
+
+    def __len__(self) -> int:
+        return self._store.count
+
+    def __iter__(self):
+        return self._store.iter_records()
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            start, stop, step = index.indices(len(self))
+            return [self._store.at(offset) for offset in range(start, stop, step)]
+        return self._store.at(int(index))
+
+
+class _DiskQuestMapping:
+    def __init__(self, store: _QuestSummaryStore) -> None:
+        self._store = store
+
+    def __len__(self) -> int:
+        return self._store.count
+
+    def __iter__(self):
+        return self._store.iter_ids()
+
+    def __contains__(self, quest_id: object) -> bool:
+        try:
+            return self._store.contains(int(quest_id))
+        except (TypeError, ValueError, OverflowError):
+            return False
+
+    def __getitem__(self, quest_id: int) -> DeferredQuestRecord:
+        record = self._store.get(int(quest_id))
+        if record is None:
+            raise KeyError(int(quest_id))
+        return record
+
+    def get(self, quest_id: int, default=None):
+        try:
+            record = self._store.get(int(quest_id))
+        except (TypeError, ValueError, OverflowError):
+            return default
+        return record if record is not None else default
+
+    def keys(self):
+        return self._store.iter_ids()
+
+
+class _DiskBackedQuestCatalog(qc.QuestCatalog):
+    """QuestCatalog contract backed by SQLite summary rows and bounded details."""
+
+    def __init__(
+        self,
+        data_dir: Path,
+        path: Path,
+        signature: tuple,
+        achievement_series: tuple,
+        *,
+        detail_limit: int = 32,
+        summary_limit: int = 24,
+    ) -> None:
+        self.loaded_from = Path(data_dir)
+        self.errors = []
+        self.achievement_series = tuple(achievement_series)
+        details = QuestDetails(
+            data_dir,
+            path,
+            signature,
+            limit=detail_limit,
+        )
+        summaries = _QuestSummaryStore(
+            data_dir,
+            path,
+            details,
+            cache_limit=summary_limit,
+        )
+        self.quests = _DiskQuestSequence(summaries)
+        self.by_id = _DiskQuestMapping(summaries)
+        self.get_detail = details.get
+        self.is_detail_cached = details.cached
+        self.detail_cache_info = details.info
+        self.guide_evidence = details.guide_evidence
+        self.load_search_documents = lambda: details.search_documents(self.by_id)
+        self.deferred_details = True
+
+
 class NetworkQuestRecord:
     """Tiny network-only row; rich Quest details stay SQLite-backed."""
 
@@ -308,61 +515,31 @@ def load_network_catalog(
     *,
     cache_root: Path = _CACHE_ROOT,
 ) -> qc.QuestCatalog:
-    """Return the minimal QuestCatalog contract required by network validation."""
+    """Return a disk-backed QuestCatalog for network validation.
+
+    The coordinator keeps this context alive for the whole session, so retaining
+    one Python object per Quest here would permanently consume the exact memory
+    Phase 8 is trying to release after Encyclopedia closes.
+    """
 
     ensure_lazy_catalog_cache(data_dir, cache_root=cache_root)
     signature, path = _cache_identity(data_dir, cache_root)
-    details = QuestDetails(data_dir, path, signature, limit=8)
-    records: list[NetworkQuestRecord] = []
-    with _connect(path) as connection:
-        for quest_id, name in connection.execute("SELECT id, name FROM quests ORDER BY id"):
-            records.append(NetworkQuestRecord(int(quest_id), str(name or ""), details))
-    catalog = qc.QuestCatalog(records, data_dir, achievement_series=())
-    catalog.get_detail = details.get
-    catalog.is_detail_cached = details.cached
-    catalog.detail_cache_info = details.info
-    catalog.deferred_details = True
-    return catalog
+    return _DiskBackedQuestCatalog(
+        data_dir,
+        path,
+        signature,
+        (),
+        detail_limit=8,
+        summary_limit=8,
+    )
 
 
 def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.QuestCatalog:
+    """Open the Quest catalogue without retaining every summary row in Python."""
+
     ensure_lazy_catalog_cache(data_dir, cache_root=cache_root)
     signature, path = _cache_identity(data_dir, cache_root)
-    details = QuestDetails(data_dir, path, signature)
-    records: list[DeferredQuestRecord] = []
-    empty: tuple = ()
     with _connect(path) as connection:
-        cursor = connection.execute(
-            "SELECT id, name, category, level_min, level_max, start_criterion "
-            "FROM quests ORDER BY name COLLATE NOCASE"
-        )
-        for (
-            quest_id,
-            name,
-            category,
-            level_min,
-            level_max,
-            start_criterion,
-        ) in cursor:
-            record = DeferredQuestRecord(
-                id=int(quest_id),
-                name=str(name or ""),
-                category=str(category or ""),
-                level_min=int(level_min or 0),
-                level_max=int(level_max or 0),
-                start_criterion=str(start_criterion or ""),
-                zones=empty,
-                achievements=empty,
-                prerequisites=empty,
-                info=empty,
-                steps=empty,
-                source_solution_steps=empty,
-                solution_blocks=empty,
-                source_info=None,
-                rewards=empty,
-            )
-            record._details = details
-            records.append(record)
         series_row = connection.execute(
             "SELECT value FROM metadata WHERE key='series'"
         ).fetchone()
@@ -370,16 +547,14 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
             qc._series_from_cache(row)
             for row in json.loads(series_row[0] if series_row else "[]")
         )
-    catalog = qc.QuestCatalog(records, data_dir, achievement_series=series)
-    catalog.get_detail = details.get
-    catalog.is_detail_cached = details.cached
-    catalog.detail_cache_info = details.info
-    catalog.guide_evidence = details.guide_evidence
-    catalog.load_search_documents = lambda: details.search_documents(catalog.by_id)
-    # Rich search is populated only by an explicit search; graph/list prewarm
-    # must never enumerate documentary attributes of these records.
-    catalog.deferred_details = True
-    return catalog
+    return _DiskBackedQuestCatalog(
+        data_dir,
+        path,
+        signature,
+        series,
+        detail_limit=32,
+        summary_limit=24,
+    )
 
 
 def _guide_evidence_index(data_dir: Path) -> dict[int, dict[str, object]]:
