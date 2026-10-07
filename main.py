@@ -304,13 +304,27 @@ def _run_preload_module_result(module: str, *arguments: str) -> str:
 
 
 def _warm_encyclopedia_compact_stores() -> None:
-    """Prepare every Encyclopedia disk cache behind one disposable boundary."""
+    """Prepare Guide/Success indexes entirely in disposable child processes."""
 
-    # Repeated heavyweight child creation from the long-lived Atlas process
-    # faults Windows pages into its working set even when every child exits.
-    # Keep Atlas responsible for one tiny orchestrator only; that disposable
-    # process owns the four heavyweight builders and their transient imports.
-    _run_preload_module_status("app.encyclopedia_preload")
+    # These workers persist reconstructible artefacts to disk; Atlas needs only
+    # their exit status. Avoid four subprocess.Popen capture pipes in the
+    # long-lived process: their transient Windows allocations raised the parent
+    # working-set watermark even though no catalogue payload was retained.
+    _run_preload_module_status(
+        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+        "--ensure-compact-cache",
+    )
+    _run_preload_module_status(
+        "app.modules.encyclopedia.services.achievement_index_warmup",
+    )
+    _run_preload_module_status(
+        "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+        "--ensure-compact-cache",
+    )
+    _run_preload_module_status(
+        "app.modules.encyclopedia.providers.dofus_item_provider",
+        "--ensure-guide-index",
+    )
 
 
 def build_quest_related_preload(catalog: Any | None = None) -> dict[str, Any]:

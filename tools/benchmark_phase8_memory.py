@@ -220,6 +220,60 @@ def memory_snapshot(label: str) -> dict[str, Any]:
     return payload
 
 
+def _parent_runtime_diagnostics(
+    window: Any,
+    *,
+    baseline_modules: set[str] | None = None,
+) -> dict[str, Any]:
+    """Trace parent residency without importing or activating cold runtime code."""
+
+    runtime = getattr(window, "runtime", None)
+    registry = getattr(runtime, "registry", None) if runtime is not None else None
+    mouse_hook = getattr(runtime, "mouse_hook", None) if runtime is not None else None
+    settings = getattr(runtime, "_settings", None) if runtime is not None else None
+    clients = getattr(settings, "clients", ()) if settings is not None else ()
+
+    loaded_modules = set(sys.modules)
+    new_modules = loaded_modules - (baseline_modules or set())
+    return {
+        "thread_names": sorted(
+            str(thread.name or "")
+            for thread in threading.enumerate()
+            if thread.is_alive()
+        ),
+        "runtime_exists": runtime is not None,
+        "runtime_running": bool(getattr(runtime, "_running", False))
+        if runtime is not None
+        else False,
+        "runtime_starting": bool(getattr(runtime, "_starting", False))
+        if runtime is not None
+        else False,
+        "runtime_bindings_available": bool(
+            getattr(runtime, "_runtime_bindings_available", False)
+        )
+        if runtime is not None
+        else False,
+        "runtime_settings_loaded": settings is not None,
+        "runtime_client_count": len(clients or ()),
+        "hotkey_backend_loaded": bool(getattr(registry, "_backend", None) is not None),
+        "mouse_backend_loaded": bool(getattr(mouse_hook, "_backend", None) is not None),
+        "loaded_module_count": len(loaded_modules),
+        "loaded_app_module_count": sum(
+            1
+            for name in loaded_modules
+            if name.startswith("app.") or name.startswith("local_dofus_data.")
+        ),
+        "new_relevant_modules": sorted(
+            name
+            for name in new_modules
+            if name.startswith("app.")
+            or name.startswith("local_dofus_data.")
+            or name.startswith("win32")
+            or name in {"pythoncom", "pywintypes"}
+        ),
+    }
+
+
 class PeakTreeSampler:
     def __init__(self, interval_seconds: float = 0.05) -> None:
         self.interval_seconds = max(0.02, float(interval_seconds))
@@ -376,7 +430,9 @@ def measure() -> dict[str, Any]:
     window = app_main.AtlasWindow()
     window.show()
     app.processEvents()
-    _capture(app, stages, "startup_stabilized", 0.25)
+    startup_stage = _capture(app, stages, "startup_stabilized", 0.25)
+    module_baseline = set(sys.modules)
+    startup_stage["runtime_diagnostics"] = _parent_runtime_diagnostics(window)
 
     sampler.set_phase("preload")
     preload_deadline = time.perf_counter() + 90.0
@@ -388,7 +444,12 @@ def measure() -> dict[str, Any]:
             for task in ("quests", "encyclopedia", "craft"):
                 state = str(states.get(task, "") or "")
                 if task not in preload_seen and state in {"READY", "FAILED"}:
-                    stages.append(memory_snapshot(f"preload_{task}_ready"))
+                    ready_stage = memory_snapshot(f"preload_{task}_ready")
+                    ready_stage["runtime_diagnostics"] = _parent_runtime_diagnostics(
+                        window,
+                        baseline_modules=module_baseline,
+                    )
+                    stages.append(ready_stage)
                     preload_seen.add(task)
         if time.perf_counter() >= preload_deadline:
             raise RuntimeError("Timeout while waiting for functional preload (90.0s).")
@@ -400,7 +461,11 @@ def measure() -> dict[str, Any]:
             if task not in preload_seen and state in {"READY", "FAILED"}:
                 stages.append(memory_snapshot(f"preload_{task}_ready"))
                 preload_seen.add(task)
-    _capture(app, stages, "after_preload")
+    after_preload_stage = _capture(app, stages, "after_preload")
+    after_preload_stage["runtime_diagnostics"] = _parent_runtime_diagnostics(
+        window,
+        baseline_modules=module_baseline,
+    )
 
     sampler.set_phase("quests_open")
     timings["quests_open_ms"] = open_encyclopedia(app, window, QUESTS_TAB)

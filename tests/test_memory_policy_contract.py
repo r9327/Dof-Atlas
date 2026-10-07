@@ -657,9 +657,7 @@ def test_encyclopedia_preload_workers_do_not_capture_parent_payloads() -> None:
     assert "_run_preload_module_json" not in runner
     assert "_run_preload_module_result(" in quest_warmup
     assert "_run_preload_module_result(" in craft_builder
-    assert '_run_preload_module_status("app.encyclopedia_preload")' in runner
-    assert "memory_bound_achievement_provider" not in runner
-    assert "memory_bound_guide_provider" not in runner
+    assert runner.count("_run_preload_module_status(") >= 4
 
 
 def test_manual_guide_route_is_precompiled_inside_existing_guide_worker() -> None:
