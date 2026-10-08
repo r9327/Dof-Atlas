@@ -29,8 +29,24 @@ def simulate_refactor(
             raise ValueError(f"Not an existing Python module: {item}")
         normalized.append(target.relative_to(root).as_posix())
     if action != "remove":
-        if not replacement or Path(replacement).is_absolute() or ".." in Path(replacement).parts:
+        if not replacement:
             raise ValueError("New relative destination path required")
+        destination = Path(replacement.replace("\\\\", "/"))
+        if (destination.is_absolute() or ".." in destination.parts
+                or ":" in destination.parts[0] or destination.suffix != ".py"):
+            raise ValueError("New repository-relative Python destination required")
+        resolved = (root / destination).resolve()
+        if not resolved.is_relative_to(root) or resolved.is_symlink():
+            raise ValueError("Destination escapes repository or is a symlink")
+        replacement = resolved.relative_to(root).as_posix()
+        if replacement in normalized:
+            raise ValueError("Destination cannot overwrite a source under review")
+        if action == "move" and len(normalized) != 1:
+            raise ValueError("Moving multiple files to one destination is ambiguous")
+        if action == "move" and resolved.exists():
+            raise ValueError("Move destination already exists")
+        if action == "consolidate" and resolved.exists() and not resolved.is_file():
+            raise ValueError("Consolidation destination is not a file")
     else:
         replacement = None
     impact = agent.reverse_impact_payload(root, normalized, depth=depth)

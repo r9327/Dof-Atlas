@@ -43,6 +43,25 @@ class RefactorSimulationTests(unittest.TestCase):
         self.assertFalse((self.root / "app/new.py").exists())
         self.assertFalse(result["tests_executed"])
 
+    def test_move_rejects_ambiguous_or_clobbering_destination(self):
+        (self.root / "app/existing.py").write_text("pass\\n")
+        (self.root / "app/second.py").write_text("pass\\n")
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            simulate_refactor(self.root, ["app/mod.py"],
+                              action="move", replacement="app/existing.py")
+        with self.assertRaisesRegex(ValueError, "cannot overwrite"):
+            simulate_refactor(self.root, ["app/mod.py"],
+                              action="move", replacement="app/mod.py")
+        with self.assertRaisesRegex(ValueError, "multiple files"):
+            simulate_refactor(self.root, ["app/mod.py", "app/second.py"],
+                              action="move", replacement="app/new.py")
+        with self.assertRaises(ValueError):
+            simulate_refactor(self.root, ["app/mod.py"],
+                              action="move", replacement="../outside.py")
+        with self.assertRaises(ValueError):
+            simulate_refactor(self.root, ["app/mod.py"],
+                              action="move", replacement="app/not_python.json")
+
     def test_paths_and_operations_must_be_bounded(self):
         with self.assertRaises(ValueError):
             simulate_refactor(self.root, ["../bad.py"])
