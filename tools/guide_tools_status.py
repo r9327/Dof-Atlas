@@ -15,6 +15,7 @@ STATUS = {
         "tools.audit_guide_ultime_route_forensic_v2",
         "tools.build_guide_ultime_final",
         "tools.guide_ultime_scope_v4",
+        "tools.validate_guide_ultime_manual_transversals_v15",
         "tools.validate_guide_ultime_manual_transversals_v16",
     ],
 }
