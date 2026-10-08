@@ -145,6 +145,18 @@ def command_change_plan(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_graph_ui(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph
+    payload = export_interactive_graph(root)
+    if payload.get("status") == "PASS" and args.open:
+        import webbrowser
+        webbrowser.open(Path(payload["path"]).as_uri())
+    if not args.json:
+        print(f"Doctor interactive Graphify: {payload['status']}")
+        print(payload.get("path", payload.get("reason", "")))
+    return payload
+
+
 def command_runtime_trace(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.runtime_observation import run_traced_module
     target = root / ".ai/runtime/atlas_doctor/traces" / (args.module.replace(".", "_") + ".json")
@@ -414,6 +426,8 @@ def build_parser() -> argparse.ArgumentParser:
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
     ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
+    gu = sub.add_parser('graph-ui', help='Exporter Graphify interactif local avec diagnostics Doctor.')
+    gu.add_argument('--open', action='store_true', help='Ouvrir le rapport HTML dans le navigateur.')
     rt = sub.add_parser('runtime-trace', help='Tracer explicitement les appels Python d un module (mode instrumente).')
     rt.add_argument('--module', required=True, help='Module de scenario de test a executer.')
     rt.add_argument('--max-events', type=int, default=5000)
@@ -542,6 +556,7 @@ def main(argv: list[str] | None = None) -> int:
         'change-plan': command_change_plan,
         'code-inspect': command_code_inspect,
         'runtime-trace': command_runtime_trace,
+        'graph-ui': command_graph_ui,
         'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
         'audit': command_audit,
@@ -568,6 +583,8 @@ def main(argv: list[str] | None = None) -> int:
         # architectural audit (e.g. a source-confirmed app -> tools inversion).
         graph_audit = payload.get("graph_audit") or {}
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
+    if args.command == 'graph-ui':
+        return 0 if payload['status'] == 'PASS' else 2
     if args.command == 'runtime-trace':
         return 0 if payload['status'] == 'RECORDED' else 1
     if args.command == 'code-inspect':
