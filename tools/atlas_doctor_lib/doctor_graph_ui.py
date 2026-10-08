@@ -115,7 +115,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <input id="search" type="search" placeholder="Chercher symbole ou fichier" aria-label="Rechercher">
 <select id="domain" aria-label="Domaine"><option value="">Tous les domaines</option></select>
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
-<button id="reset">Recentrer</button><small id="summary"></small><small id="liveStatus">Graphe statique</small></header>
+<button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button><small id="summary"></small><small id="liveStatus">Graphe statique</small></header>
 <main><canvas id="map" aria-label="Graphe interactif, zoom molette, déplacement souris"></canvas>
 <aside><h2>Inspection du code</h2><div id="nodeDetails">Clique sur un nœud pour voir les dépendances, les preuves et les raisons d'examen.</div>
 <hr><small id="limits"></small></aside></main>
@@ -145,6 +145,7 @@ const positions=nodes.map(n=>{
 });
 let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[];
 let changedFiles=new Set();
+let lastRefresh=0,refreshInFlight=false,lastLabel='';
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
 function filter(){const needle=search.value.toLowerCase().trim(),group=domain.value;
 visible=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
@@ -192,21 +193,34 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.
 [search,domain,flagged].forEach(el=>el.addEventListener('input',filter));
 document.getElementById('reset').addEventListener('click',()=>{scale=.36;panX=0;panY=0;render()});
 document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées. '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
-async function refreshLive(){
+async function refreshLive(force=false){
+ if(document.hidden||refreshInFlight||(!force&&Date.now()-lastRefresh<1500))return;
+ lastRefresh=Date.now();
+ refreshInFlight=true;
  const label=document.getElementById('liveStatus');
  try{
   const response=await fetch('/api/live',{cache:'no-store'});
   if(!response.ok)throw new Error('status '+response.status);
   const live=await response.json();
-  changedFiles=new Set(live.changed_files||[]);
-  const unknown=[...changedFiles].filter(path=>!nodes.some(n=>n.file===path)).length;
-  label.textContent=live.graph_stale?'Graphe figé · '+live.changed_count+' fichiers modifiés · '+unknown+' hors graphe':'Suivi Git actif · graphe inchangé';
-  if(live.truncated)label.textContent+=' (liste partielle)';
-  render();
+  const next=new Set(live.changed_files||[]);
+  const changed=next.size!==changedFiles.size||[...next].some(path=>!changedFiles.has(path));
+  changedFiles=next;
+  const filesShown=new Set(nodes.map(n=>n.file));
+  const unknown=[...changedFiles].filter(path=>!filesShown.has(path)).length;
+  let caption=live.graph_stale?'Graphe figé · '+live.changed_count+' fichiers modifiés · '+unknown+' hors graphe':'Graphe inchangé · suivi à la demande';
+  if(live.truncated)caption+=' (liste partielle)';
+  label.textContent=caption;
+  if(changed)render();
  }catch(error){label.textContent='Suivi Git indisponible · graphe figé';}
+ finally{refreshInFlight=false;}
 }
 if(location.hostname==='127.0.0.1'||location.hostname==='localhost'){
- refreshLive();setInterval(refreshLive,2500);
+ document.getElementById('refreshGit').addEventListener('click',()=>refreshLive(true));
+ window.addEventListener('focus',()=>refreshLive());
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshLive()});
+ // Heartbeat keeps the *local* viewer alive while visible; it never invokes Git.
+ setInterval(()=>{if(!document.hidden)fetch('/api/ping',{cache:'no-store'}).catch(()=>{})},60000);
+ refreshLive(true);
 }
 window.addEventListener('resize',fit);fit();
 })();

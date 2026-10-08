@@ -8,6 +8,7 @@ No watcher thread, Qt import, rebuild, or full test suite in Atlas itself.
 import json
 import re
 import subprocess
+import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -61,7 +62,7 @@ def change_snapshot(root: Path, graph_sha: str) -> dict[str, Any]:
     }
 
 
-def handler_factory(html: str, provider: Callable[[], dict[str, Any]]):
+def handler_factory(html: str, provider: Callable[[], dict[str, Any]], touch: Callable[[], None] | None = None):
     """No arbitrary file serving or external interface exposure."""
     encoded = html.encode("utf-8")
 
@@ -72,8 +73,12 @@ def handler_factory(html: str, provider: Callable[[], dict[str, Any]]):
                 self.send_error(403, "Loopback host only")
                 return
             path = self.path.split("?", 1)[0]
+            if touch is not None and path in {"/", "/api/live", "/api/ping"}:
+                touch()
             if path == "/":
                 body, media, status = encoded, "text/html; charset=utf-8", 200
+            elif path == "/api/ping":
+                body, media, status = b'{"status":"ALIVE"}', "application/json; charset=utf-8", 200
             elif path == "/api/live":
                 try:
                     snapshot = provider()
@@ -115,14 +120,20 @@ def serve_graph_live(root: Path, *, port: int = 8765,
     candidate = graph["candidate_sha"]
     html = Path(graph["path"]).read_text(encoding="utf-8")
     provider = lambda: change_snapshot(root, candidate)
-    with ThreadingHTTPServer(("127.0.0.1", port), handler_factory(html, provider)) as server:
+    last_seen = [time.monotonic()]
+    def touch() -> None:
+        last_seen[0] = time.monotonic()
+
+    with ThreadingHTTPServer(("127.0.0.1", port), handler_factory(html, provider, touch)) as server:
         server.daemon_threads = True
+        server.timeout = 10
         url = f"http://127.0.0.1:{server.server_port}/"
-        print(f"Doctor Graphify LIVE: {url}  (Ctrl+C to stop)", flush=True)
+        print(f"Doctor Graphify LIVE (on-focus): {url} (Ctrl+C or 180s idle to stop)", flush=True)
         if open_browser:
             webbrowser.open(url)
         try:
-            server.serve_forever(poll_interval=0.5)
+            while time.monotonic() - last_seen[0] < 180:
+                server.handle_request()
         except KeyboardInterrupt:
             pass
     return {"status": "STOPPED", "graph_commit": candidate, "graph_rebuilt": False}

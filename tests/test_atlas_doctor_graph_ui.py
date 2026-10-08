@@ -39,6 +39,14 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(compact_graph(graph, {}, trace)["trace_status"], "STALE_OR_INCOMPLETE")
         self.assertEqual(compact_graph(graph, {}, trace)["edges"], [])
 
+    def test_live_uses_focus_events_not_periodic_git_polling(self):
+        html = render_html(compact_graph({"nodes": [], "links": []}, {}))
+        self.assertIn("addEventListener('focus'", html)
+        self.assertIn("visibilitychange", html)
+        self.assertIn('id="refreshGit"', html)
+        self.assertNotIn("setInterval(refreshLive,2500)", html)
+        self.assertIn("/api/ping", html)
+
     def test_labels_cannot_escape_json_script(self):
         graph = {"nodes": [{"id": 1, "label": "</script><img src=x onerror=alert(1)>",
                             "source_file": "app/x.py"}], "links": []}

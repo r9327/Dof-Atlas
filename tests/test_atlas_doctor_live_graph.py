@@ -71,6 +71,23 @@ class LiveGraphTests(unittest.TestCase):
                 server.shutdown()
                 thread.join(timeout=3)
 
+    def test_ping_does_not_scan_git_or_invoke_provider(self):
+        calls = []
+        def provider():
+            calls.append("git")
+            raise AssertionError("heartbeat must not scan the repo")
+        with ThreadingHTTPServer(("127.0.0.1", 0), handler_factory("<html>Atlas</html>",provider)) as server:
+            server.daemon_threads = True
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                with urlopen(f"http://127.0.0.1:{server.server_port}/api/ping", timeout=5) as response:
+                    self.assertEqual(json.load(response)["status"], "ALIVE")
+                self.assertEqual(calls, [])
+            finally:
+                server.shutdown()
+                thread.join(timeout=3)
+
     def test_once_accepts_stale_graph_to_report_changes(self):
         from argparse import Namespace
         from unittest.mock import patch
