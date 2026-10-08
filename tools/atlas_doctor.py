@@ -134,6 +134,16 @@ def command_graph_audit(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_file_coverage(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.file_coverage import file_coverage
+    result = file_coverage(root)
+    if not args.json:
+        print(f"Doctor Graphify coverage: {result['status']}")
+        print(f"Tracked Python: {result['tracked_python_files']} | represented: {result['represented_files']}")
+        print("Graph node presence never proves a runtime consumer or dead code.")
+    return result
+
+
 def command_change_plan(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.change_intelligence import build_change_plan
     result = build_change_plan(root, base_ref=args.base_ref)
@@ -459,6 +469,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest='command')
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
+    sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
     ch = sub.add_parser('change-plan', help='Plan diff Git + consommateurs Graphify + tests cibles; aucun test execute.')
     ch.add_argument('--base-ref', required=True, help='Ref Git explicite pour la comparaison.')
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
@@ -606,6 +617,7 @@ def main(argv: list[str] | None = None) -> int:
         'graph': command_graph,
         'graph-audit': command_graph_audit,
         'change-plan': command_change_plan,
+        'file-coverage': command_file_coverage,
         'code-inspect': command_code_inspect,
         'runtime-trace': command_runtime_trace,
         'graph-ui': command_graph_ui,
@@ -649,6 +661,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'runtime-trace':
         return 0 if payload['status'] == 'RECORDED' else 1
     if args.command == 'code-inspect':
+        return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
+    if args.command == 'file-coverage':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command == 'change-plan':
         return {'READY': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
