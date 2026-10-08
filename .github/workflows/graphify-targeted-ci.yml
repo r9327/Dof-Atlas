@@ -75,3 +75,51 @@ jobs:
           python -m unittest discover -s tests -p "test_guide_ultime_v5_scope.py" -v
           python -m unittest discover -s tests -p "test_guide_tools_status.py" -v
           python -m unittest discover -s tests -p "test_guide_tools_no_versioned_wrappers.py" -v
+
+      - name: Install pinned Graphify
+        shell: bash
+        run: python -m pip install --disable-pip-version-check "graphifyy==0.9.72"
+
+      - name: Rebuild exact-SHA Graphify through Doctor
+        shell: bash
+        run: python -m tools.atlas_doctor graph --rebuild --json > graphify-focused-doctor.json
+
+      - name: Validate graph and reject runtime-to-tools import inversions
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          graph = json.loads(Path("graphify-out/graph.json").read_text(encoding="utf-8"))
+          nodes = {node["id"]: node for node in graph.get("nodes", ())}
+          links = graph.get("links", ())
+          if not nodes or not links:
+              raise SystemExit("Graphify output is empty")
+
+          violations = []
+          for link in links:
+              if link.get("relation") not in {"imports", "imports_from"}:
+                  continue
+              source = nodes.get(link.get("source"), {}).get("source_file", "")
+              target = nodes.get(link.get("target"), {}).get("source_file", "")
+              if source.startswith("app/") and target.startswith("tools/"):
+                  violations.append(f"{source} -> {target} ({link['relation']})")
+
+          print(f"Graphify exact SHA: {graph.get('built_at_commit')}")
+          print(f"Graph nodes: {len(nodes)}, relations: {len(links)}")
+          if violations:
+              raise SystemExit("Runtime-to-tools import inversions: " + "; ".join(sorted(set(violations))))
+          print("Runtime-to-tools static import inversions: 0")
+          PY
+
+      - name: Upload focused Graphify proof
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: graphify-focused-${{ env.CANDIDATE_SHA }}
+          path: |
+            graphify-focused-doctor.json
+            graphify-out/graph.json
+            graphify-out/GRAPH_REPORT.md
+          if-no-files-found: error
+          retention-days: 4
