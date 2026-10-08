@@ -253,6 +253,14 @@ The Graphify branch now contains a two-parent integration commit `a803425e`, com
 
 **Verification required:** `tests/test_guide_criterion_scope_boundary.py` proves the compatibility identities and Qf AND/OR semantics; existing `tests/test_guide_ultime_v5_scope.py` and adventure route tests must remain green. Graphify must report **no** `app/` → `tools/` import on the new exact SHA, with zero import cycles. No runtime benchmark result is implied by the import direction cleanup, and RAM/Guide gates must be replayed before merge.
 
+### 117.5-D — Remove heavy Craft preload import of Zaap storage
+
+The standalone `app/craft_preload.py` worker previously imported `item_id`, `normalize_key`, and `read_json` via `app.storage`, an application/UI module that imports Qt widgets and Zaap UI. This eager import is unnecessary to compute a compact Craft preload payload.
+
+Move the original `item_id` implementation verbatim to the lightweight `app.core.item_identity` module and re-export it from `app.storage`. The Craft preload imports `normalize_key` from its existing canonical `app.core.text` and uses `app.core.json_store.read_json_resilient` for the **non-profile** Craft files, which is the same underlying read operation as `app.storage.read_json` in this code path. No shared profile mutation semantics are changed.
+
+A focused test guards identical ID precedence, missing/invalid IDs, the absence of direct storage/Qt dependencies, and continued legacy import compatibility. **Potential benefit:** less eager Qt/Zaap import overhead in the Craft worker; **measured RAM/performance benefit: NOT YET ESTABLISHED**. Phase 8 exact-SHA preload and memory benchmarks must validate this before merging.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:

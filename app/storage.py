@@ -64,6 +64,7 @@ from app.constants import (
     ZAAP_FAVORITES_KEY,
     ZAAP_SHORTCUTS_FILE,
 )
+from app.core.item_identity import item_id
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.text import clean_auto_group_name, normalize_key, strip_accents
 from app.services.profile_settings_service import ProfileSettingsService
@@ -886,14 +887,6 @@ def load_zaap_index(path: Path = ZAAPS_FILE) -> list[dict[str, Any]]:
         zaaps.append(item)
         seen.add(key)
     return sorted(zaaps, key=lambda entry: normalize_key(entry.get("label")))
-
-
-def item_id(item: dict[str, Any]) -> int | None:
-    value = item.get("id_dofus") or item.get("ankama_id") or item.get("id")
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def local_image_path(item: dict[str, Any]) -> Path | None:

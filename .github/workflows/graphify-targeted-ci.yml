@@ -60,6 +60,8 @@ jobs:
         run: |
           python -m compileall -q \
             app/modules/encyclopedia/services/guide_criterion_scope.py \
+            app/craft_preload.py \
+            app/core/item_identity.py \
             app/modules/encyclopedia/services/adventure_route_adapter.py \
             app/modules/encyclopedia/views/guides_view.py \
             app/modules/encyclopedia/widgets \
@@ -71,6 +73,7 @@ jobs:
         shell: bash
         run: |
           python -m unittest discover -s tests -p "test_guide_canonical_button_imports.py" -v
+          python -m unittest discover -s tests -p "test_craft_lightweight_import_boundary.py" -v
           python -m unittest discover -s tests -p "test_guide_criterion_scope_boundary.py" -v
           python -m unittest discover -s tests -p "test_guide_ultime_v5_scope.py" -v
           python -m unittest discover -s tests -p "test_guide_tools_status.py" -v
