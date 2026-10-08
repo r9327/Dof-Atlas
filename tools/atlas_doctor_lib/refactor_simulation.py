@@ -35,9 +35,12 @@ def simulate_refactor(
         if (destination.is_absolute() or ".." in destination.parts
                 or ":" in destination.parts[0] or destination.suffix != ".py"):
             raise ValueError("New repository-relative Python destination required")
-        resolved = (root / destination).resolve()
-        if not resolved.is_relative_to(root) or resolved.is_symlink():
-            raise ValueError("Destination escapes repository or is a symlink")
+        unresolved = root / destination
+        if unresolved.is_symlink():
+            raise ValueError("Destination is a symlink")
+        resolved = unresolved.resolve()
+        if not resolved.is_relative_to(root):
+            raise ValueError("Destination escapes repository")
         replacement = resolved.relative_to(root).as_posix()
         if replacement in normalized:
             raise ValueError("Destination cannot overwrite a source under review")

@@ -52,6 +52,10 @@ class RefactorSimulationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cannot overwrite"):
             simulate_refactor(self.root, ["app/mod.py"],
                               action="move", replacement="app/mod.py")
+        (self.root / "app/alias.py").symlink_to(self.root / "app/existing.py")
+        with self.assertRaisesRegex(ValueError, "symlink"):
+            simulate_refactor(self.root, ["app/mod.py"],
+                              action="consolidate", replacement="app/alias.py")
         with self.assertRaisesRegex(ValueError, "multiple files"):
             simulate_refactor(self.root, ["app/mod.py", "app/second.py"],
                               action="move", replacement="app/new.py")
