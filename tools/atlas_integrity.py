@@ -284,22 +284,61 @@ def _changed_test_modules(root: Path, paths: Iterable[str]) -> list[str]:
     return sorted(set(modules))
 
 
-def _critical_inventory_modules(root: Path) -> list[str]:
+def _critical_inventory_test_ids(root: Path) -> list[str]:
+    """Execute the inventory's exact protections, not entire test modules.
+
+    The full suite still checks every test; META_INTEGRITY separately checks
+    the inventory's protected methods for real assertions and skip markers.
+    Missing, invalid or duplicate owner metadata must never silently pass.
+    """
     path = root / "tests/critical_regression_inventory.json"
     try:
         payload = json.loads(path.read_text(encoding="utf-8-sig"))
         protections = payload["protections"]
-    except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError) as exc:
         raise IntegrityConfigError(f"critical inventory unavailable: {exc}") from exc
-    modules: set[str] = set()
+    if not isinstance(protections, list):
+        raise IntegrityConfigError("critical inventory protections must be a list")
+
+    expected: list[str] = []
     for protection in protections:
-        owner = protection.get("owner", {}) if isinstance(protection, dict) else {}
-        relative = owner.get("path")
-        if owner.get("kind") == "python_test" and isinstance(relative, str) and relative.endswith(".py"):
-            modules.add(relative[:-3].replace("/", ".").replace("\\", "."))
-    if not modules:
-        raise IntegrityConfigError("critical inventory contains no executable Python test owner")
-    return sorted(modules)
+        if not isinstance(protection, dict):
+            raise IntegrityConfigError("critical inventory contains invalid protection")
+        owner = protection.get("owner")
+        if not isinstance(owner, dict):
+            raise IntegrityConfigError("critical inventory protection has no owner")
+        if owner.get("kind") != "python_test":
+            continue
+        relative, symbol = owner.get("path"), owner.get("symbol")
+        if not isinstance(relative, str) or re.fullmatch(r"tests/test_[A-Za-z0-9_]+\.py", relative) is None:
+            raise IntegrityConfigError(f"critical inventory invalid test path: {relative!r}")
+        if not isinstance(symbol, str) or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*\.test_[A-Za-z0-9_]+", symbol) is None:
+            raise IntegrityConfigError(f"critical inventory invalid test symbol: {symbol!r}")
+        expected.append(relative[:-3].replace("/", ".") + "." + symbol)
+    if not expected or len(expected) != len(set(expected)):
+        raise IntegrityConfigError("critical inventory requires unique executable test IDs")
+    return sorted(expected)
+
+
+def _critical_inventory_modules(root: Path) -> list[str]:
+    """Compatibility/introspection helper: module owners, not execution scope."""
+    return sorted({".".join(test_id.split(".")[:2]) for test_id in _critical_inventory_test_ids(root)})
+
+
+def _critical_execution_issues(output: str, expected: list[str]) -> list[str]:
+    """Require every precise owner to have executed successfully, not skipped."""
+    issues: list[str] = []
+    if _test_count(output) != len(expected):
+        issues.append(f"critical test count differs from inventory: expected {len(expected)}")
+    lines = [line.strip() for line in output.splitlines()]
+    for identifier in expected:
+        method = identifier.rsplit(".", 1)[1]
+        successful = f"{method} ({identifier}) ... ok"
+        if lines.count(successful) != 1:
+            issues.append(f"missing successful critical protection: {identifier}")
+    return issues
+
+
 
 
 def _command_for_group(
@@ -374,7 +413,7 @@ def _command_for_group(
             "-m",
             "unittest",
             "-v",
-            *_critical_inventory_modules(root),
+            *_critical_inventory_test_ids(root),
         ]
     if runner == "changed_tests":
         modules = _changed_test_modules(root, changed)
@@ -497,8 +536,10 @@ def _group_test_modules(
         return [str(value) for value in config.get("modules", [])]
     if runner == "changed_tests":
         return _changed_test_modules(root, changed)
+    # Do not reuse arbitrary successful module tests as proof that exact
+    # critical inventory methods ran: always execute those methods directly.
     if runner == "critical_inventory":
-        return _critical_inventory_modules(root)
+        return []
     return []
 
 
@@ -612,6 +653,20 @@ def execute_gate(
         if not isinstance(result, dict) or "exit_code" not in result:
             raise IntegrityConfigError(f"{name}: command executor returned an invalid result")
         output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
+        if name == "TEST_INTEGRITY" and int(result["exit_code"]) == 0:
+            # unittest exits zero for skips. Treat skipped, missing, aliased or
+            # otherwise unproven critical methods as a hard validation failure.
+            evidence_issues = _critical_execution_issues(
+                output, _critical_inventory_test_ids(root)
+            )
+            if evidence_issues:
+                result = {
+                    **result,
+                    "exit_code": 1,
+                    "stderr": str(result.get("stderr", ""))
+                    + "\n" + "\n".join(evidence_issues),
+                }
+                output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
         if name == "FULL_SUITE" and int(result["exit_code"]) == 0:
             suite_cases = _full_suite_case_counts(output)
         command_report = {

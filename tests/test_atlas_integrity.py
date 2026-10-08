@@ -25,6 +25,15 @@ class FakeExecutor:
         self.commands.append(command)
         exit_code = 1 if self.failing_token and self.failing_token in " ".join(command) else 0
         stdout = "Ran 3 tests in 0.001s\nOK\n" if "unittest" in command else ""
+        exact_ids = [
+            token for token in command
+            if token.startswith("tests.test_") and token.count(".") == 3
+        ]
+        if exact_ids:
+            rows = [
+                f"{name.rsplit('.', 1)[1]} ({name}) ... ok" for name in exact_ids
+            ]
+            stdout = "\n".join([*rows, f"Ran {len(rows)} tests in 0.001s", "OK"])
         if "tools.atlas_meta_integrity" in command:
             stdout = json.dumps(
                 {
@@ -292,6 +301,78 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         assert command is not None
         self.assertIn("tests.test_kept", command)
         self.assertNotIn("tests.test_deleted", command)
+
+    def test_inventory_executes_only_exact_protected_methods(self) -> None:
+        with self._temporary_root() as directory:
+            root = Path(directory)
+            ids = atlas_integrity._critical_inventory_test_ids(root)
+            command = atlas_integrity._command_for_group(
+                "TEST_INTEGRITY",
+                self.policy["groups"]["TEST_INTEGRITY"],
+                root=root,
+                base_ref="base",
+                changed=["tools/atlas_integrity.py"],
+            )
+        self.assertEqual(len(ids), 25)
+        self.assertEqual(command[-len(ids):], ids)
+        self.assertTrue(all(name.count(".") == 3 for name in ids))
+        self.assertLess(len(atlas_integrity._critical_inventory_modules(ROOT)), len(ids))
+
+    def test_missing_skipped_or_unproven_critical_protection_blocks(self) -> None:
+        ids = [
+            "tests.test_alpha.AlphaTests.test_alpha",
+            "tests.test_beta.BetaTests.test_beta",
+        ]
+        partial = (
+            "test_alpha (tests.test_alpha.AlphaTests.test_alpha) ... ok\n"
+            "test_beta (tests.test_beta.BetaTests.test_beta) ... skipped 'reason'\n"
+            "Ran 2 tests in 0.001s\nOK (skipped=1)"
+        )
+        self.assertTrue(atlas_integrity._critical_execution_issues(partial, ids))
+        good = (
+            "test_alpha (tests.test_alpha.AlphaTests.test_alpha) ... ok\n"
+            "test_beta (tests.test_beta.BetaTests.test_beta) ... ok\n"
+            "Ran 2 tests in 0.001s\nOK"
+        )
+        self.assertEqual(atlas_integrity._critical_execution_issues(good, ids), [])
+        self.assertTrue(atlas_integrity._critical_execution_issues(good.replace("Ran 2", "Ran 3"), ids))
+
+    def test_inventory_invalid_owner_metadata_fails_closed(self) -> None:
+        with self._temporary_root() as directory:
+            root = Path(directory)
+            path = root / "tests/critical_regression_inventory.json"
+            bad = {"schema_version": 1, "protections": [
+                {"id": "invalid", "owner": {"kind": "python_test", "path": "tests/test_good.py", "symbol": "ClassName.test_not_safe;exit"}}
+            ]}
+            path.write_text(json.dumps(bad), encoding="utf-8")
+            with self.assertRaises(atlas_integrity.IntegrityConfigError):
+                atlas_integrity._critical_inventory_test_ids(root)
+            bad["protections"] = [{
+                "id": "duplicate",
+                "owner": {"kind": "python_test", "path": "tests/test_good.py", "symbol": "ClassName.test_valid"}
+            }] * 2
+            path.write_text(json.dumps(bad), encoding="utf-8")
+            with self.assertRaises(atlas_integrity.IntegrityConfigError):
+                atlas_integrity._critical_inventory_test_ids(root)
+
+    def test_full_runs_exact_critical_inventory_even_with_module_proof(self) -> None:
+        class EvidenceExecutor(FakeExecutor):
+            def run(self, command: list[str], cwd: Path) -> dict[str, object]:
+                result = super().run(command, cwd)
+                if "discover" in command:
+                    result["stdout"] = (
+                        "test_any (test_atlas_integrity.Sample.test_any) ... ok\n"
+                        "Ran 1 tests in 0.001s\nOK"
+                    )
+                return result
+
+        report, fake = self._run("full", ["docs/readme.md"], executor=EvidenceExecutor())
+        self.assertEqual(report["groups"]["TEST_INTEGRITY"]["status"], "PASS")
+        self.assertNotIn("evidence_reused_from", report["groups"]["TEST_INTEGRITY"]["commands"][0])
+        self.assertTrue(any(
+            "tests.test_architecture_debt_baseline.ArchitectureDebtBaselineTests."
+            in " ".join(command) for command in fake.commands
+        ))
 
     def test_full_executes_canonical_full_discovery(self) -> None:
         _, fake = self._run("full", ["docs/validation.md"])
