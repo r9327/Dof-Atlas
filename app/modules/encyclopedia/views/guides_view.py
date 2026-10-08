@@ -60,7 +60,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideListModel,
 )
 from app.quest_catalog import normalize_text
-from app.storage import AtlasButton
+from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE, render_theme_template
 
 if TYPE_CHECKING:

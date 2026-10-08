@@ -237,6 +237,14 @@ The Graphify branch now contains a two-parent integration commit `a803425e`, com
 
 **Important:** resolving Git conflicts and checking the tree are *not* runtime or CI certification. Before merge, build Graphify from the **actual new HEAD**, run targeted and FULL/required Windows CI, and re-run RAM/preload tests from the integrated candidate. If #116 moves or merges, recheck ancestry/compare to the final new base.
 
+### 117.5-B — Remove unnecessary Guide → Zaap storage import boundary
+
+**Confirmed issue (Graphify artifact `9183a934`):** six Guide source files import `AtlasButton` from `app.storage`. `app.storage` owns Zaap UI, profile/storage helpers and Windows dependencies, but only **re-exports** the same `AtlasButton` object defined in `app.ui.components`. Graphify records six `imports_from` edges into `app/storage.py` from Guide UI files. This is unnecessary architectural coupling; the class identity and visual API remain unchanged when consumers import the canonical definition directly.
+
+**Micro-lot:** change only the six Guide imports to `from app.ui.components import AtlasButton` (one view and five widgets); keep `app.storage` untouched for unrelated callers. Add `tests/test_guide_canonical_button_imports.py` to enforce direct ownership and preserve the legacy re-export contract. No changes to persistence, data, cache, workers, UI behavior or memory budgets.
+
+**Gate:** run targeted Guide tests, Graphify on candidate SHA, Public PR CI and Phase 8 memory/preload benchmarks when available. Verify that the affected Guide imports no longer point into `app.storage` and that there are no new cycles. This refactor is **not** a measured RAM/performance win without comparable runtime tests.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:
