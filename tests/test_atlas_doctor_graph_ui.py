@@ -23,6 +23,22 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertTrue(data["nodes"][1]["reasons"])
         self.assertFalse(data["truncated"])
 
+    def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
+        graph = {"built_at_commit": "a" * 40,
+                 "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}
+        audit = {"remediation_plan": {"tasks": [
+            {"priority": "P3", "kind": "HIGH_FANOUT_REVIEW",
+             "paths": ["app/a.py"], "action": "Review coupling"},
+            {"priority": "P0", "kind": "PROVEN_IMPORT_INVERSION",
+             "paths": ["app/a.py"], "action": "Fix verified inverted import"},
+        ]}}
+        report = compact_graph(graph, audit)
+        self.assertEqual(report["nodes"][0]["doctor_task"]["priority"], "P0")
+        self.assertIn("Fix verified inverted import", report["nodes"][0]["doctor_task"]["action"])
+        html = render_html(report)
+        self.assertIn('id="priority"', html)
+        self.assertIn("correction automatique", html)
+
     def test_matching_runtime_trace_adds_observed_calls_without_faking_imports(self):
         sha = "a" * 40
         graph = {"nodes": [{"id": 1, "source_file": "app/a.py"},

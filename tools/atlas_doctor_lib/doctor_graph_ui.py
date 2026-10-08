@@ -51,6 +51,23 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             values = file_reasons.setdefault(path, [])
             if reason not in values:
                 values.append(reason)
+    # Expose Doctor's existing prioritized remediation plan in the graph
+    # inspector, without promoting speculative candidate findings to P0.
+    priority_rank = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
+    file_actions: dict[str, dict[str, str]] = {}
+    for task in (audit.get("remediation_plan") or {}).get("tasks", []):
+        level = task.get("priority")
+        if level not in priority_rank:
+            continue
+        for source_path in task.get("paths", [])[:20]:
+            if not isinstance(source_path, str):
+                continue
+            before = file_actions.get(source_path)
+            if before is None or priority_rank[level] < priority_rank[before["priority"]]:
+                file_actions[source_path] = {
+                    "priority": level, "kind": str(task.get("kind") or ""),
+                    "action": str(task.get("action") or ""),
+                }
     trace_status = "NOT_PROVIDED"
     runtime_pairs: set[tuple[str, str]] = set()
     if trace is not None:
@@ -106,6 +123,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "file": file, "domain": _domain(file), "community": item.get("community"),
             "line": str(item.get("source_location") or ""),
             "reasons": file_reasons.get(file, []),
+            "doctor_task": file_actions.get(file),
             "runtime_observed": file in observed_files,
             "qt_call_site_observed": file in qt_sites,
             "qt_connection_observed": file in qt_files,
@@ -161,6 +179,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <header><h1>Doctor Atlas × Graphify</h1>
 <input id="search" type="search" placeholder="Chercher symbole ou fichier" aria-label="Rechercher">
 <select id="domain" aria-label="Domaine"><option value="">Tous les domaines</option></select>
+<select id="priority" aria-label="Priorité Doctor"><option value="">Toutes priorités</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
 <button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button><small id="summary"></small><small id="liveStatus">Graphe statique</small></header>
 <main><canvas id="map" aria-label="Graphe interactif, zoom molette, déplacement souris"></canvas>
@@ -173,6 +192,7 @@ const data=JSON.parse(document.getElementById('doctor-data').textContent);
 const canvas=document.getElementById('map'),ctx=canvas.getContext('2d');
 const search=document.getElementById('search'),domain=document.getElementById('domain');
 const flagged=document.getElementById('flagged'),details=document.getElementById('nodeDetails');
+const priority=document.getElementById('priority');
 const inventory=data.file_coverage;
 if(inventory){
  const section=document.getElementById('coverageDetails');
@@ -217,9 +237,11 @@ let changedFiles=new Set();
 let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
-function filter(){const needle=search.value.toLowerCase().trim(),group=domain.value;
+function filter(){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value;
 visible=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
- (!flagged.checked||n.reasons.length)&&(!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
+ (!level||(n.doctor_task&&n.doctor_task.priority===level))&&
+ (!flagged.checked||n.reasons.length||n.doctor_task)&&
+ (!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
 document.getElementById('summary').textContent=visible.length+' / '+nodes.length+' nœuds · '+(visible.length>3500?'relations masquées en vue globale':'relations visibles');render()}
 function screen(p){return {x:canvas.width/2+(p.x+panX)*scale*devicePixelRatio,
 y:canvas.height/2+(p.y+panY)*scale*devicePixelRatio}}
@@ -263,6 +285,11 @@ if(symbolCalls.length){
 }
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
 if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ; exécution du récepteur non prouvée.');
+if(n.doctor_task){
+ line('h4','Priorité Doctor : '+n.doctor_task.priority);
+ line('p',n.doctor_task.kind+' · '+n.doctor_task.action);
+ line('p','Proposition à vérifier dans le code et les tests, jamais correction automatique.');
+}
 if(n.reasons.length){line('h4','Pourquoi Doctor signale ce nœud');n.reasons.forEach(v=>line('p','• '+v))}
 else line('p','Aucun signal prioritaire dans cet extrait de diagnostic.');
 const link=document.createElement('a');link.href='https://github.com/r9327/Dof-Atlas/blob/'+encodeURIComponent(data.candidate_sha||'main')+'/'+n.file.split('/').map(encodeURIComponent).join('/');
@@ -276,7 +303,7 @@ if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;panX=drag.px+dx;panY=drag.py+dy;r
 canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;
 if(!moved){const r=canvas.getBoundingClientRect();const found=pick((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio);if(found>=0)show(found)}});
 canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.min(3,scale*(e.deltaY>0?.84:1.16)));render()},{passive:false});
-[search,domain,flagged].forEach(el=>el.addEventListener('input',filter));
+[search,domain,priority,flagged].forEach(el=>el.addEventListener('input',filter));
 document.getElementById('reset').addEventListener('click',()=>{scale=.36;panX=0;panY=0;render()});
 document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées. '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
 async function refreshLive(force=false){
