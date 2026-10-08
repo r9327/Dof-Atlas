@@ -78,3 +78,7 @@ Le workflow lourd `Graphify Code Map` est déclenché explicitement (`workflow_d
 ### Enquête groupée sur les nœuds isolés
 
 `python -m tools.atlas_doctor isolate-triage --limit 5 --json` réutilise `graph_audit.inspect_graph` et les recherches de consommateurs existantes. Le lot ne dépasse jamais 10 fichiers source et refuse un graphe périmé. Les résultats distinguent imports statiques confirmés, indices dynamiques et absence de preuves ; ils ne concluent **jamais** qu'un fichier est supprimable automatiquement. Pas de FULL_SUITE ni rebuild dans la commande.
+
+### Pagination nœuds faibles et communautés
+
+`python -m tools.atlas_doctor isolate-triage --kind weak --offset 0 --limit 5 --json` inspecte uniquement les premiers candidats de ce volet, fournit `next_offset`, puis reprend les suivants sans lancer de tests. Les catégories `orphan` et `community` sont disponibles séparément. La pagination concerne les candidats remontés par Graphify, non une preuve exhaustive de code mort ; `safe_to_remove` reste faux.

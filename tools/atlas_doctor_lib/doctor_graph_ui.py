@@ -10,8 +10,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-MAX_NODES = 8000
-MAX_LINKS = 25000
+MAX_NODES = 15000
+MAX_LINKS = 50000
 
 
 def _domain(path: str) -> str:
@@ -153,7 +153,7 @@ function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1
 function filter(){const needle=search.value.toLowerCase().trim(),group=domain.value;
 visible=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
  (!flagged.checked||n.reasons.length)&&(!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
-document.getElementById('summary').textContent=visible.length+' / '+nodes.length+' nœuds';render()}
+document.getElementById('summary').textContent=visible.length+' / '+nodes.length+' nœuds · '+(visible.length>3500?'relations masquées en vue globale':'relations visibles');render()}
 function screen(p){return {x:canvas.width/2+(p.x+panX)*scale*devicePixelRatio,
 y:canvas.height/2+(p.y+panY)*scale*devicePixelRatio}}
 function render(){

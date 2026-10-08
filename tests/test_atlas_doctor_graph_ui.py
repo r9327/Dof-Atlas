@@ -79,6 +79,17 @@ class DoctorGraphUiTests(unittest.TestCase):
             self.assertEqual(result["graph_status"], "STALE")
             self.assertTrue((folder / "doctor_graph.html").is_file())
 
+    def test_full_real_graph_budget_keeps_all_11366_nodes_and_33269_edges(self):
+        from tools.atlas_doctor_lib.doctor_graph_ui import MAX_NODES, MAX_LINKS
+        self.assertGreaterEqual(MAX_NODES, 11366)
+        self.assertGreaterEqual(MAX_LINKS, 33269)
+        nodes = [{"id": i, "source_file": "app/ui/sample.py"} for i in range(11366)]
+        links = [{"source": i, "target": i+1, "relation": "uses"} for i in range(11365)]
+        payload = compact_graph({"nodes": nodes, "links": links}, {})
+        self.assertFalse(payload["truncated"])
+        self.assertEqual(len(payload["nodes"]), 11366)
+        self.assertEqual(len(payload["edges"]), 11365)
+
     def test_labels_cannot_escape_json_script(self):
         graph = {"nodes": [{"id": 1, "label": "</script><img src=x onerror=alert(1)>",
                             "source_file": "app/x.py"}], "links": []}
