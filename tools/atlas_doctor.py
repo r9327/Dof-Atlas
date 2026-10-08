@@ -156,6 +156,15 @@ def command_refactor_preview(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_dev_event(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.dev_events import dev_event
+    result = dev_event(root, args.event, paths=args.paths, base_ref=args.base_ref)
+    if not args.json:
+        print(f"Doctor development event: {result['status']} ({result['changed_count']} files)")
+        print(f"Selected test modules (not executed): {len(result['recommended_tests'])}")
+    return result
+
+
 def command_graph_live(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.live_graph import change_snapshot, serve_graph_live
     if args.once:
@@ -460,6 +469,10 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument('--action', choices=('remove', 'move', 'consolidate'), default='remove')
     rp.add_argument('--to', help='Chemin relatif cible pour move/consolidate.')
     rp.add_argument('--depth', type=int, choices=(1, 2), default=2)
+    ev = sub.add_parser('dev-event', help='Analyse evenementielle code: save, pre-commit, push (lecture seule).')
+    ev.add_argument('--event', choices=('save', 'pre-commit', 'push'), required=True)
+    ev.add_argument('paths', nargs='*')
+    ev.add_argument('--base-ref', help='Reference de comparaison explicite pour push.')
     gl = sub.add_parser('graph-live', help='Suivi Git temps reel dans Graphify Web local, sans rebuilder.')
     gl.add_argument('--port', type=int, default=8765)
     gl.add_argument('--open', action='store_true')
@@ -597,6 +610,7 @@ def main(argv: list[str] | None = None) -> int:
         'runtime-trace': command_runtime_trace,
         'graph-ui': command_graph_ui,
         'graph-live': command_graph_live,
+        'dev-event': command_dev_event,
         'refactor-preview': command_refactor_preview,
         'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
@@ -626,6 +640,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
     if args.command == 'refactor-preview':
         return 2 if payload['status'] == 'BLOCKED' else 1
+    if args.command == 'dev-event':
+        return 0
     if args.command == 'graph-live':
         return 2 if payload['status'] == 'BLOCKED' else 0
     if args.command == 'graph-ui':

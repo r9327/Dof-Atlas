@@ -54,3 +54,7 @@ Etat : fondations fonctionnelles dans les cinq moteurs, capacités avancées enc
 ### Mode événementiel — priorité aux sessions de code
 
 Graphify LIVE ne lance plus un `git diff` toutes les 2,5 secondes. La page active réactualise l'état Git à l'ouverture, au retour du focus et via « Actualiser Git » ; un battement local toutes les 60 secondes maintient uniquement le serveur (sans lire le dépôt), qui s'arrête après 180 secondes sans présence du navigateur. Aucun moniteur n'est embarqué dans Dofus Atlas. Hooks éditeur sur sauvegarde et CI sur push pourront déclencher ensuite les analyses ciblées ; ce ne sont pas encore des actions automatiques incluses dans cette version.
+
+### Déclenchement par événements de développement
+
+Le hook Git pré-commit existant ajoute désormais un **indice Doctor non bloquant**, limité aux fichiers réellement indexés : aucune exécution de tests supplémentaire et aucun rebuild Graphify. La CI sur push reste l'autorité de validation ciblée. Pour un éditeur, un événement `save` peut être appelé explicitement, sans installer de watcher permanent : `python -m tools.atlas_doctor dev-event --event save app/ui/components.py --json`. Pour contrôler un lot avant push : `python -m tools.atlas_doctor dev-event --event push --base-ref origin/main --json`. Les tests sont suggérés, pas exécutés. Le gate de validation Atlas Integrity conserve son autorité.
