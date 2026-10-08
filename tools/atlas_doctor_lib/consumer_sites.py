@@ -23,7 +23,7 @@ def _candidate_files(root: Path, leaf: str) -> list[str]:
         return []
     if result.returncode:
         raise RuntimeError("Consumer prefilter failed")
-    candidates = {b.decode("utf-8", errors="replace") for b in result.stdout.split(b"\\0") if b}
+    candidates = {b.decode("utf-8", errors="replace") for b in result.stdout.split(b"\0") if b}
     # Target-specific references must not be starved by generic dynamic calls.
     try:
         direct = subprocess.run(
@@ -35,7 +35,7 @@ def _candidate_files(root: Path, leaf: str) -> list[str]:
     if direct.returncode not in {0, 1}:
         raise RuntimeError("Consumer prefilter failed")
     prioritized = sorted({b.decode("utf-8", errors="replace")
-                          for b in direct.stdout.split(b"\\0") if b})
+                          for b in direct.stdout.split(b"\0") if b})
     return prioritized + sorted(candidates.difference(prioritized))
 
 
