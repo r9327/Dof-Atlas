@@ -517,32 +517,48 @@ def _required_groups(policy: dict[str, Any], mode: str, classification: dict[str
 
 
 def _full_suite_case_counts(output: str) -> dict[str, int]:
-    """Return explicit successful unittest module evidence, or fail closed."""
+    """Recover reusable module proofs from a complete, successful unittest run.
+
+    A verbose test result can span multiple lines because of the test's
+    docstring or application logging. Only exact test identifiers followed by
+    a terminal successful status count; skipped/expected-failure modules are
+    never reused. Any unaccounted-for test disables all reuse.
+    """
     reported = _test_count(output)
     if not reported:
         return {}
+    test_header = re.compile(
+        r"(?m)^test_[^\r\n]*?\(((?:tests\.)?test_[A-Za-z0-9_]+)\.[^)\r\n]+\)(?=\s|$)"
+    )
+    records = list(test_header.finditer(output))
+    if len(records) != reported:
+        return {}
     counts: dict[str, int] = {}
     unproven: set[str] = set()
-    matched = 0
-    expression = re.compile(
-        r"^test_[^\r\n]*?\(((?:tests\.)?test_[A-Za-z0-9_]+)\.[^)]+\)\s+\.\.\.\s+"
-        r"(ok|skipped(?:\s+.+)?|expected failure)\s*$"
-    )
-    for line in output.splitlines():
-        match = expression.match(line.strip())
-        if match is None:
-            continue
-        name, outcome = match.groups()
+    for index, record in enumerate(records):
+        name = record.group(1)
         module = name if name.startswith("tests.") else "tests." + name
-        matched += 1
-        if outcome == "ok":
+        next_start = records[index + 1].start() if index + 1 < len(records) else len(output)
+        body = output[record.end():next_start]
+        # Never mistake the global unittest OK summary for one test's result.
+        body = re.split(r"(?m)^-{10,}\s*$|^Ran\s+\d+\s+tests?", body, maxsplit=1)[0]
+        tail = body.strip()
+        if not tail:
+            return {}
+        if re.search(r"(?:\.\.\.\s*ok|(?:^|\n)\s*ok)\s*$", tail):
+            # A logging line might contain status words. Fail closed when an
+            # earlier explicit unsuccessful unittest outcome is also present.
+            if re.search(
+                r"\.\.\.\s*(?:skipped|expected failure|unexpected success|FAIL|ERROR)\b",
+                tail,
+                flags=re.IGNORECASE,
+            ):
+                return {}
             counts[module] = counts.get(module, 0) + 1
-        else:
-            # An expected failure or a skip is not a successful execution
-            # of the test's assertions. Never reuse that module as proof.
+        elif re.search(r"\b(?:skipped|expected failure|unexpected success)\b", tail):
             unproven.add(module)
-    if matched != reported:
-        return {}
+        else:
+            return {}
     return {module: count for module, count in counts.items() if module not in unproven}
 
 

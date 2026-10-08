@@ -221,6 +221,37 @@ class AtlasIntegrityGateTests(unittest.TestCase):
             self.assertEqual(started, finished)
             self.assertIn("META_INTEGRITY", started)
 
+    def test_full_suite_multiline_output_reuses_only_proven_modules(self) -> None:
+        output = (
+            "test_one (test_cached.FirstTests.test_one)\n"
+            "Docstring shown on its own line. ... ok\n"
+            "test_two (test_cached.FirstTests.test_two) ... a diagnostic from the application\n"
+            "ok\n"
+            "test_three (test_skipped.OtherTests.test_three) ... skipped 'not supported'\n"
+            "test_four (test_independent.OtherTests.test_four) ... expected failure\n"
+            "----------------------------------------------------------------------\n"
+            "Ran 4 tests in 0.1s\nOK (skipped=1, expected failures=1)"
+        )
+        self.assertEqual(
+            atlas_integrity._full_suite_case_counts(output),
+            {"tests.test_cached": 2},
+        )
+        self.assertEqual(
+            atlas_integrity._full_suite_case_counts(
+                output.replace("Ran 4 tests", "Ran 5 tests")
+            ), {},
+        )
+        self.assertEqual(
+            atlas_integrity._full_suite_case_counts(
+                output.replace("test_two (test_cached.FirstTests.test_two)", "unknown")
+            ), {},
+        )
+        self.assertEqual(
+            atlas_integrity._full_suite_case_counts(
+                output.replace("Docstring shown on its own line. ... ok", "Docstring shown but status unknown")
+            ), {},
+        )
+
     def test_incomplete_suite_evidence_does_not_bypass_group_execution(self) -> None:
         self.assertEqual(
             atlas_integrity._full_suite_case_counts(
