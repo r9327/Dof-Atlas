@@ -297,7 +297,7 @@ A targeted test protects the compatibility identity, representative normalized k
 
 ### One Graphify build per candidate
 
-The focused Graphify workflow performs only Python compilation and targeted module/compatibility tests. The canonical `Graphify Code Map` workflow runs the **single** exact-SHA graph rebuild and enforces `app/` → `tools/` import-direction invariants before exporting the graph. The additional branch-push trigger was removed from focused validation, avoiding duplicate CI runs when PR synchronize events are already present.
+The focused Graphify workflow performs only Python compilation and targeted module/compatibility tests. The canonical `Graphify Code Map` workflow runs the **single** exact-SHA graph rebuild and enforces `app/` → `tools/` import-direction invariants before exporting the graph. For the staged Graphify branch, both workflows use the **push event** so a GitHub Git-data update always gets checked. The Graphify PR event is excluded from the canonical job for this same head branch to prevent duplicate builds; regular PRs against `main` retain their pull-request triggers.
 
 This retains executable architecture contracts while eliminating an unnecessary second full Graphify build on each SHA.
 

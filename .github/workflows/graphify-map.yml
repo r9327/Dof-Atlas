@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - phase8/graphify-staged-cleanup-v1
 
 permissions:
   contents: read
@@ -19,6 +20,7 @@ env:
 
 jobs:
   graphify:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.ref != 'phase8/graphify-staged-cleanup-v1'
     name: Graphify / AST Code Map
     runs-on: ubuntu-latest
     timeout-minutes: 20

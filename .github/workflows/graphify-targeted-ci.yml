@@ -3,7 +3,6 @@ name: Graphify Focused Architecture
 on:
   pull_request:
     branches:
-      - phase8/peak250-guide-worker-v1
       - main
     paths:
       - "app/**"
@@ -11,6 +10,9 @@ on:
       - "tests/**"
       - ".ai/context_index.json"
       - ".github/workflows/graphify-targeted-ci.yml"
+  push:
+    branches:
+      - phase8/graphify-staged-cleanup-v1
   workflow_dispatch:
 
 permissions:
