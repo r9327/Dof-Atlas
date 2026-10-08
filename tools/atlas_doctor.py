@@ -50,7 +50,7 @@ def _audit(
         requested = integrity_mode.upper() if integrity_mode else None
         if ranks.get(cached_mode, 0) >= ranks.get(requested, 0):
             return cached or {}
-    return run_audit(root, integrity_mode=integrity_mode)
+    return run_audit(root, integrity_mode=integrity_mode, state=state)
 
 
 def _summary(payload: dict[str, Any]) -> None:
@@ -427,6 +427,7 @@ def command_verify(root: Path, args) -> dict[str, Any]:
     payload = {
         'schema_version': 1, 'kind': 'verification', 'status': status,
         'base_ref': base_ref, 'audit': summary, 'integrity': integrity,
+        'timings_ms': current.get('timings_ms', {}),
         'comparison': comparison, 'primary_cause': reason,
         'reproduction_command': integrity.get('command'),
         'next_action': 'Inspect the recorded blockers and reproduction command.' if status != 'PASS' else None,

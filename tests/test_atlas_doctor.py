@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import hashlib
 import subprocess
@@ -8,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from tools.atlas_doctor_lib.audit import run_audit
+from tools.atlas_doctor_lib.audit import _blocking_function_names, _scan_python, run_audit
 from tools.atlas_doctor_lib.core import cache_matches_git, git_state, load_json, write_json
 from tools.atlas_doctor_lib.live import _sample_tree, inspect_live
 from tools.atlas_doctor_lib.perf import profile_data_files
@@ -50,10 +51,117 @@ class AtlasDoctorTests(unittest.TestCase):
             })
             rules = {item['rule'] for item in payload['issues']}
             self.assertIn('silent_exception', rules)
+            self.assertTrue({'git_and_inventory', 'ast_scan', 'cross_file_analysis', 'integrity_gate'} <= set(payload['timings_ms']))
+            self.assertEqual(payload['timings_ms']['integrity_gate'], 0.0)
             cached = load_json(root, 'latest_audit')
             self.assertEqual(cached['git']['head'], git_state(root)['head'])
         finally:
             directory.cleanup()
+
+    def test_ast_cache_preserves_exact_findings_and_invalidates_single_changed_file(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            target = root / "app" / "warnings.py"
+            target.write_text(
+                "def something():\n    try:\n        1 / 0\n    except Exception:\n        pass\n",
+                encoding="utf-8",
+            )
+            _git(root, "add", "-A")
+            _git(root, "commit", "-m", "cache fixture")
+            first = run_audit(root)
+            self.assertEqual(first["timings_ms"]["ast_cache_hits"], 0)
+            self.assertGreaterEqual(first["timings_ms"]["ast_cache_misses"], 2)
+            second = run_audit(root)
+            self.assertEqual(second["timings_ms"]["ast_cache_misses"], 0)
+            self.assertEqual(
+                second["timings_ms"]["ast_cache_hits"],
+                first["timings_ms"]["ast_cache_misses"],
+            )
+            self.assertEqual(first["issues"], second["issues"])
+            target.write_text(
+                "def something():\n    try:\n        1 / 0\n    except Exception:\n        print('handled')\n",
+                encoding="utf-8",
+            )
+            updated = run_audit(root)
+            self.assertEqual(updated["timings_ms"]["ast_cache_misses"], 1)
+            self.assertNotIn("silent_exception", {issue["rule"] for issue in updated["issues"]})
+        finally:
+            directory.cleanup()
+
+    def test_corrupt_ast_cache_falls_back_to_full_detection(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            source = root / "app" / "bad.py"
+            source.write_text("from math import *\n", encoding="utf-8")
+            _git(root, "add", "-A")
+            _git(root, "commit", "-m", "cache corruption")
+            first = run_audit(root)
+            self.assertIn("import_star", {issue["rule"] for issue in first["issues"]})
+            cache_file = root / ".ai/runtime/atlas_doctor/ast_facts_v1.json"
+            cache_file.write_text('{"schema_version":1,"files":{"app/bad.py":{}}}', encoding="utf-8")
+            recovered = run_audit(root)
+            self.assertEqual(recovered["timings_ms"]["ast_cache_hits"], 0)
+            self.assertEqual(first["issues"], recovered["issues"])
+        finally:
+            directory.cleanup()
+
+    def test_cached_unmodified_sources_are_not_parsed_again(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            run_audit(root)
+            with patch("tools.atlas_doctor_lib.audit.ast.parse", side_effect=AssertionError("AST reparsed")):
+                result = run_audit(root)
+            self.assertEqual(result["timings_ms"]["ast_cache_misses"], 0)
+            self.assertGreater(result["timings_ms"]["ast_cache_hits"], 0)
+        finally:
+            directory.cleanup()
+
+    def test_deep_blocking_call_chain_is_detected_with_one_walk_per_function(self) -> None:
+        source = "import time\n"
+        source += "def f0():\n    time.sleep(0)\n"
+        for depth in range(1, 55):
+            source += f"def f{depth}():\n    f{depth-1}()\n"
+        tree = ast.parse(source)
+        original_walk = ast.walk
+        traversed_functions = []
+
+        def tracking_walk(node):
+            if isinstance(node, ast.FunctionDef):
+                traversed_functions.append(node.name)
+            return original_walk(node)
+
+        with patch("tools.atlas_doctor_lib.audit.ast.walk", side_effect=tracking_walk):
+            blocking = _blocking_function_names(tree)
+        self.assertEqual(len(blocking), 55)
+        self.assertIn("f54", blocking)
+        self.assertEqual(len(traversed_functions), 55)
+
+    def test_python_scan_walks_root_ast_once_without_losing_findings(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "check.py"
+            path.write_text(
+                "from math import *\n"
+                "def bad():\n"
+                "    try:\n        1 / 0\n"
+                "    except Exception:\n        pass\n",
+                encoding="utf-8",
+            )
+            root_walks = []
+            original_walk = ast.walk
+
+            def tracking_walk(node):
+                if isinstance(node, ast.Module):
+                    root_walks.append(node)
+                return original_walk(node)
+
+            with patch("tools.atlas_doctor_lib.audit.ast.walk", side_effect=tracking_walk):
+                tree, findings = _scan_python("app/check.py", path)
+            self.assertIsNotNone(tree)
+            self.assertEqual(len(root_walks), 1)
+            self.assertTrue({"import_star", "silent_exception"} <= {issue.rule for issue in findings})
 
     def test_cache_invalidates_when_worktree_content_changes(self) -> None:
         directory = self.make_repo()

@@ -284,22 +284,83 @@ def _changed_test_modules(root: Path, paths: Iterable[str]) -> list[str]:
     return sorted(set(modules))
 
 
-def _critical_inventory_modules(root: Path) -> list[str]:
+def _critical_inventory_test_ids(root: Path) -> list[str]:
+    """Execute the inventory's exact protections, not entire test modules.
+
+    The full suite still checks every test; META_INTEGRITY separately checks
+    the inventory's protected methods for real assertions and skip markers.
+    Missing, invalid or duplicate owner metadata must never silently pass.
+    """
     path = root / "tests/critical_regression_inventory.json"
     try:
         payload = json.loads(path.read_text(encoding="utf-8-sig"))
         protections = payload["protections"]
-    except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError) as exc:
         raise IntegrityConfigError(f"critical inventory unavailable: {exc}") from exc
-    modules: set[str] = set()
+    if not isinstance(protections, list):
+        raise IntegrityConfigError("critical inventory protections must be a list")
+
+    expected: list[str] = []
     for protection in protections:
-        owner = protection.get("owner", {}) if isinstance(protection, dict) else {}
-        relative = owner.get("path")
-        if owner.get("kind") == "python_test" and isinstance(relative, str) and relative.endswith(".py"):
-            modules.add(relative[:-3].replace("/", ".").replace("\\", "."))
-    if not modules:
-        raise IntegrityConfigError("critical inventory contains no executable Python test owner")
-    return sorted(modules)
+        if not isinstance(protection, dict):
+            raise IntegrityConfigError("critical inventory contains invalid protection")
+        owner = protection.get("owner")
+        if not isinstance(owner, dict):
+            raise IntegrityConfigError("critical inventory protection has no owner")
+        if owner.get("kind") != "python_test":
+            continue
+        relative, symbol = owner.get("path"), owner.get("symbol")
+        if not isinstance(relative, str) or re.fullmatch(r"tests/test_[A-Za-z0-9_]+\.py", relative) is None:
+            raise IntegrityConfigError(f"critical inventory invalid test path: {relative!r}")
+        if not isinstance(symbol, str) or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*\.test_[A-Za-z0-9_]+", symbol) is None:
+            raise IntegrityConfigError(f"critical inventory invalid test symbol: {symbol!r}")
+        expected.append(relative[:-3].replace("/", ".") + "." + symbol)
+    if not expected or len(expected) != len(set(expected)):
+        raise IntegrityConfigError("critical inventory requires unique executable test IDs")
+    return sorted(expected)
+
+
+def _critical_inventory_modules(root: Path) -> list[str]:
+    """Compatibility/introspection helper: module owners, not execution scope."""
+    return sorted({".".join(test_id.split(".")[:2]) for test_id in _critical_inventory_test_ids(root)})
+
+
+def _critical_execution_issues(output: str, expected: list[str]) -> list[str]:
+    """Require exact successful critical IDs, tolerating noisy unittest output.
+
+    unittest descriptions and captured application logging may occur between
+    a test ID and its terminal 'ok'. An exit-code-zero suite does not prove
+    that each registered protection ran: skips and missing IDs still block.
+    """
+    issues: list[str] = []
+    if _test_count(output) != len(expected):
+        issues.append(f"critical test count differs from inventory: expected {len(expected)}")
+    records: list[tuple[int, int, str]] = []
+    for identifier in expected:
+        method = identifier.rsplit(".", 1)[1]
+        marker = f"{method} ({identifier})"
+        matches = list(re.finditer(re.escape(marker) + r"(?=\s|$)", output))
+        if len(matches) != 1:
+            issues.append(f"missing successful critical protection: {identifier}")
+        else:
+            records.append((matches[0].start(), matches[0].end(), identifier))
+
+    records.sort()
+    for index, (_, end, identifier) in enumerate(records):
+        next_start = records[index + 1][0] if index + 1 < len(records) else len(output)
+        portion = output[end:next_start]
+        # The final record is followed by unittest's summary; never interpret
+        # the global "OK" as the outcome of the final individual test.
+        portion = re.split(r"(?m)^-{10,}\s*$|^Ran\s+\d+\s+tests?", portion, maxsplit=1)[0]
+        if (
+            re.search(r"\b(?:skipped|expected failure|unexpected success)\b", portion, re.I)
+            or re.search(r"\.\.\.\s+(?:FAIL|ERROR)\b", portion)
+            or not re.search(r"(?:\.\.\.\s*)?\bok\s*$", portion.strip())
+        ):
+            issues.append(f"missing successful critical protection: {identifier}")
+    return issues
+
+
 
 
 def _command_for_group(
@@ -374,7 +435,7 @@ def _command_for_group(
             "-m",
             "unittest",
             "-v",
-            *_critical_inventory_modules(root),
+            *_critical_inventory_test_ids(root),
         ]
     if runner == "changed_tests":
         modules = _changed_test_modules(root, changed)
@@ -456,32 +517,48 @@ def _required_groups(policy: dict[str, Any], mode: str, classification: dict[str
 
 
 def _full_suite_case_counts(output: str) -> dict[str, int]:
-    """Return explicit successful unittest module evidence, or fail closed."""
+    """Recover reusable module proofs from a complete, successful unittest run.
+
+    A verbose test result can span multiple lines because of the test's
+    docstring or application logging. Only exact test identifiers followed by
+    a terminal successful status count; skipped/expected-failure modules are
+    never reused. Any unaccounted-for test disables all reuse.
+    """
     reported = _test_count(output)
     if not reported:
         return {}
+    test_header = re.compile(
+        r"(?m)^test_[^\r\n]*?\(((?:tests\.)?test_[A-Za-z0-9_]+)\.[^)\r\n]+\)(?=\s|$)"
+    )
+    records = list(test_header.finditer(output))
+    if len(records) != reported:
+        return {}
     counts: dict[str, int] = {}
     unproven: set[str] = set()
-    matched = 0
-    expression = re.compile(
-        r"^test_[^\r\n]*?\(((?:tests\.)?test_[A-Za-z0-9_]+)\.[^)]+\)\s+\.\.\.\s+"
-        r"(ok|skipped(?:\s+.+)?|expected failure)\s*$"
-    )
-    for line in output.splitlines():
-        match = expression.match(line.strip())
-        if match is None:
-            continue
-        name, outcome = match.groups()
+    for index, record in enumerate(records):
+        name = record.group(1)
         module = name if name.startswith("tests.") else "tests." + name
-        matched += 1
-        if outcome == "ok":
+        next_start = records[index + 1].start() if index + 1 < len(records) else len(output)
+        body = output[record.end():next_start]
+        # Never mistake the global unittest OK summary for one test's result.
+        body = re.split(r"(?m)^-{10,}\s*$|^Ran\s+\d+\s+tests?", body, maxsplit=1)[0]
+        tail = body.strip()
+        if not tail:
+            return {}
+        if re.search(r"(?:\.\.\.\s*ok|(?:^|\n)\s*ok)\s*$", tail):
+            # A logging line might contain status words. Fail closed when an
+            # earlier explicit unsuccessful unittest outcome is also present.
+            if re.search(
+                r"\.\.\.\s*(?:skipped|expected failure|unexpected success|FAIL|ERROR)\b",
+                tail,
+                flags=re.IGNORECASE,
+            ):
+                return {}
             counts[module] = counts.get(module, 0) + 1
-        else:
-            # An expected failure or a skip is not a successful execution
-            # of the test's assertions. Never reuse that module as proof.
+        elif re.search(r"\b(?:skipped|expected failure|unexpected success)\b", tail):
             unproven.add(module)
-    if matched != reported:
-        return {}
+        else:
+            return {}
     return {module: count for module, count in counts.items() if module not in unproven}
 
 
@@ -497,8 +574,10 @@ def _group_test_modules(
         return [str(value) for value in config.get("modules", [])]
     if runner == "changed_tests":
         return _changed_test_modules(root, changed)
+    # Do not reuse arbitrary successful module tests as proof that exact
+    # critical inventory methods ran: always execute those methods directly.
     if runner == "critical_inventory":
-        return _critical_inventory_modules(root)
+        return []
     return []
 
 
@@ -612,6 +691,20 @@ def execute_gate(
         if not isinstance(result, dict) or "exit_code" not in result:
             raise IntegrityConfigError(f"{name}: command executor returned an invalid result")
         output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
+        if name == "TEST_INTEGRITY" and int(result["exit_code"]) == 0:
+            # unittest exits zero for skips. Treat skipped, missing, aliased or
+            # otherwise unproven critical methods as a hard validation failure.
+            evidence_issues = _critical_execution_issues(
+                output, _critical_inventory_test_ids(root)
+            )
+            if evidence_issues:
+                result = {
+                    **result,
+                    "exit_code": 1,
+                    "stderr": str(result.get("stderr", ""))
+                    + "\n" + "\n".join(evidence_issues),
+                }
+                output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
         if name == "FULL_SUITE" and int(result["exit_code"]) == 0:
             suite_cases = _full_suite_case_counts(output)
         command_report = {
