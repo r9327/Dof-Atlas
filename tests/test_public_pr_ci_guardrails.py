@@ -115,6 +115,12 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", certification)
         self.assertIn("name: Phase Certification / Full Validation", certification)
 
+    def test_phase_changed_tests_are_never_omitted_from_full_certification(self) -> None:
+        cert = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        self.assertIn("tools.atlas_integrity full", cert)
+        self.assertIn("name: Phase Certification / Full Validation", cert)
+        self.assertIn("changed-test DIFF_TARGETS are deferred", self.source)
+
     def test_dependency_review_failure_is_deferred_but_never_swallowed(self) -> None:
         self.assertEqual(self.source.count("continue-on-error: true"), 1)
         self.assertIn("id: dependency_review", self.source)

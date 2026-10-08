@@ -261,6 +261,14 @@ Move the original `item_id` implementation verbatim to the lightweight `app.core
 
 A focused test guards identical ID precedence, missing/invalid IDs, the absence of direct storage/Qt dependencies, and continued legacy import compatibility. **Potential benefit:** less eager Qt/Zaap import overhead in the Craft worker; **measured RAM/performance benefit: NOT YET ESTABLISHED**. Phase 8 exact-SHA preload and memory benchmarks must validate this before merging.
 
+### Phase 8 reconciliation update — 8 October 2026
+
+After the initial `d16ca717` RAM integration, the current Phase 8 HEAD became `a31366f3`. Compared with the integrated RAM ancestor, the Phase 8 follow-up changes seven paths: the Public CI workflow, targeted Doctor gate/integrity tests, the Doctor gate implementation, Atlas Integrity, and the AI Context root index. **No application production file is changed by this follow-up RAM delta.**
+
+The Graphify reconciliation reuses RAM blobs **verbatim** for the six non-index files and rebuilds `.ai/context_index.json` from the resulting combined Git trees. The only overlap is the generated AI Context index. A two-parent commit records both Graphify and RAM histories, rather than overwriting either branch.
+
+**This is source-level convergence, NOT runtime certification.** Re-run Graphify, focused Guide/Craft tests, Public CI, Doctor, and Phase 8 memory/preload on the exact resulting candidate SHA before calling the change mergeable. Do not treat #116 test results as proof that this Graphify candidate meets RAM budgets.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:

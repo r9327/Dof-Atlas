@@ -109,9 +109,14 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         self.assertEqual(result["root_of_trust"]["modified"], ["tools/atlas_meta_integrity.py"])
 
     def test_high_risk_imposes_sensitive_validations(self) -> None:
-        report, _ = self._run(
-            "fast", ["app/modules/encyclopedia/services/quest_progress_service.py"]
-        )
+        # CI intentionally enables a limited FAST profile only for Phase PRs.
+        # Exercise the standard (non-Phase) risk policy independently of CI's
+        # inherited environment so we cannot accidentally weaken ordinary PRs.
+        with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "0"}):
+            report, _ = self._run(
+                "fast", ["app/modules/encyclopedia/services/quest_progress_service.py"]
+            )
+        self.assertEqual(report["validation_profile"], "STANDARD")
         self.assertTrue(
             {"PERSISTENCE", "STARTUP", "LAZY_LOADING", "ASYNC_LIFECYCLE"}.issubset(
                 report["validations_required"]
@@ -125,7 +130,10 @@ class AtlasIntegrityGateTests(unittest.TestCase):
             full, _ = self._run("full", paths)
         self.assertEqual(fast["validation_profile"], "PHASE_PR_PREFLIGHT")
         self.assertNotIn("PERSISTENCE", fast["validations_required"])
-        self.assertTrue({"IDENTITY", "DIFF_TARGETS"} <= set(fast["validations_required"]))
+        self.assertIn("IDENTITY", fast["validations_required"])
+        self.assertNotIn("DIFF_TARGETS", fast["validations_required"])
+        self.assertIn("DIFF_TARGETS", fast["deferred_to_full"])
+        self.assertIn("DIFF_TARGETS", full["validations_required"])
         self.assertIn("PERSISTENCE", full["validations_required"])
         self.assertIn("FULL_SUITE", full["validations_required"])
         self.assertEqual(full["validation_profile"], "STANDARD")
@@ -134,9 +142,11 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "1"}):
             fast, _ = self._run("fast", ["tools/atlas_integrity.py"])
         self.assertTrue(
-            {"META_INTEGRITY", "TEST_INTEGRITY", "CI_INTEGRITY", "DIFF_TARGETS"}
+            {"META_INTEGRITY", "TEST_INTEGRITY", "CI_INTEGRITY", "IDENTITY"}
             <= set(fast["validations_required"])
         )
+        self.assertNotIn("DIFF_TARGETS", fast["validations_required"])
+        self.assertIn("DIFF_TARGETS", fast["deferred_to_full"])
 
     def test_full_suite_evidence_reuses_complete_successful_module_group(self) -> None:
         modules = self.policy["groups"]["ARCHITECTURE"]["modules"]
@@ -157,9 +167,42 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         self.assertEqual(proof["evidence_reused_from"], "FULL_SUITE")
         self.assertEqual(set(proof["evidence_test_cases"]), set(modules))
         self.assertEqual(report["verdict"], "PASS")
-        self.assertFalse(
+        # The standalone ARCHITECTURE command is redundant and must not run.
+        # Other mandatory groups (notably TEST_INTEGRITY) may legitimately
+        # include the same module, and must not be silently removed.
+        architecture_command = atlas_integrity._command_for_group(
+            "ARCHITECTURE",
+            self.policy["groups"]["ARCHITECTURE"],
+            root=ROOT,
+            base_ref="base",
+            changed=["docs/readme.md"],
+        )
+        self.assertIsNotNone(architecture_command)
+        self.assertNotIn(architecture_command, executor.commands)
+        self.assertTrue(
             any("tests.test_architecture_debt_baseline" in cmd for cmd in executor.commands)
         )
+
+    def test_full_suite_skip_or_expected_failure_is_not_reusable_evidence(self) -> None:
+        cases = [
+            "test_ok (test_foo.Examples.test_ok) ... ok",
+            "test_not_run (test_bar.Examples.test_not_run) ... skipped 'unsupported'",
+            "test_expected (test_baz.Examples.test_expected) ... expected failure",
+        ]
+        output = "\n".join([*cases, "Ran 3 tests in 0.01s", "OK (skipped=1, expected failures=1)"])
+        self.assertEqual(atlas_integrity._full_suite_case_counts(output), {"tests.test_foo": 1})
+
+    def test_integrity_progress_writes_start_and_end_events(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "progress.jsonl"
+            with patch.dict("os.environ", {"ATLAS_INTEGRITY_PROGRESS_PATH": str(output)}):
+                report, _ = self._run("fast", ["docs/readme.md"])
+            rows = [json.loads(row) for row in output.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(report["verdict"], "PASS")
+            started = [row["group"] for row in rows if row["event"] == "STARTED"]
+            finished = [row["group"] for row in rows if row["event"] == "FINISHED"]
+            self.assertEqual(started, finished)
+            self.assertIn("META_INTEGRITY", started)
 
     def test_incomplete_suite_evidence_does_not_bypass_group_execution(self) -> None:
         self.assertEqual(
@@ -169,6 +212,20 @@ class AtlasIntegrityGateTests(unittest.TestCase):
             ),
             {},
         )
+
+    def test_normal_fast_keeps_changed_tests_blocking(self) -> None:
+        # A standalone Doctor FAST run and any ordinary PR must still execute
+        # changed modules even if another job happens to run in parallel.
+        with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "0"}):
+            standard, _ = self._run("fast", ["tests/test_atlas_integrity.py"])
+        self.assertIn("DIFF_TARGETS", standard["validations_required"])
+        self.assertEqual(standard["deferred_to_full"], [])
+
+    def test_full_never_delegates_difftargets_to_another_job(self) -> None:
+        with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "1"}):
+            full, _ = self._run("full", ["tests/test_atlas_integrity.py"])
+        self.assertIn("DIFF_TARGETS", full["validations_required"])
+        self.assertEqual(full["deferred_to_full"], [])
 
     def test_critical_failure_blocks_verdict(self) -> None:
         report, _ = self._run(
