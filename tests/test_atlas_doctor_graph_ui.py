@@ -103,6 +103,17 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertNotIn("app/<missing>.py", html)
         self.assertIn("app/\\u003cmissing\\u003e.py", html)
 
+    def test_community_island_marks_files_without_claiming_dead_code(self):
+        graph = {"nodes": [{"id": 1, "source_file": "app/widget.py", "label": "Widget"}],
+                 "links": []}
+        report = {"isolated_communities": [{
+            "sample_source_files": ["app/widget.py"],
+            "sample_linked_production_files": ["app/widget.py"],
+        }]}
+        data = compact_graph(graph, report)
+        self.assertIn("file linked elsewhere", data["nodes"][0]["reasons"][0])
+        self.assertIn("not proof of dead code", data["disclaimer"])
+
     def test_labels_cannot_escape_json_script(self):
         graph = {"nodes": [{"id": 1, "label": "</script><img src=x onerror=alert(1)>",
                             "source_file": "app/x.py"}], "links": []}

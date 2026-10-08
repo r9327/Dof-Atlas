@@ -38,6 +38,19 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                 values = file_reasons.setdefault(path, [])
                 if reason not in values:
                     values.append(reason)
+    for community in audit.get("isolated_communities", []):
+        # A disconnected community does not imply its containing Python file
+        # lacks imports/calls from other communities. Make this explicit.
+        linked = set(community.get("sample_linked_production_files", []))
+        for path in community.get("sample_source_files", [])[:8]:
+            if not isinstance(path, str) or not path.startswith("app/"):
+                continue
+            reason = ("Graphify subcommunity isolated; file linked elsewhere"
+                      if path in linked else
+                      "Graphify subcommunity isolated; file reachability unproven")
+            values = file_reasons.setdefault(path, [])
+            if reason not in values:
+                values.append(reason)
     trace_status = "NOT_PROVIDED"
     runtime_pairs: set[tuple[str, str]] = set()
     if trace is not None:
