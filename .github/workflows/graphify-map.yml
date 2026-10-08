@@ -103,13 +103,13 @@ jobs:
               raise SystemExit("Graphify produced a graph with no relationships")
           import subprocess
           tracked = {
-              value.decode("utf-8", errors="replace").replace("\\\\", "/")
+              value.decode("utf-8", errors="replace").replace(chr(92), "/")
               for value in subprocess.check_output(
                   ["git", "ls-files", "-z", "--", "*.py"]
-              ).split(b"\\0") if value
+              ).split(bytes([0])) if value
           }
           represented = {
-              node["source_file"].replace("\\\\", "/")
+              node["source_file"].replace(chr(92), "/")
               for node in nodes
               if isinstance(node.get("source_file"), str)
               and node["source_file"].endswith(".py")
