@@ -91,9 +91,11 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
         and len({(x["path"], x["line"]) for x in rows}) > 1
     ]
     duplicates.sort(key=lambda item: (-len(item["occurrences"]), item["occurrences"][0]["path"]))
-    truncated = len(selected) > MAX_FILES or function_cap_reached
+    truncated = (len(selected) > MAX_FILES or function_cap_reached or bool(errors)
+                 or len(duplicates) > MAX_FINDINGS
+                 or len(silent) > MAX_FINDINGS or len(lineage) > MAX_FINDINGS)
     return {
-        "status": "REVIEW" if truncated or errors else "PASS",
+        "status": "REVIEW" if truncated else "PASS",
         "paths_inspected": inspected, "requested_count": len(requested),
         "parse_errors": errors[:MAX_FINDINGS], "duplicate_bodies": duplicates[:MAX_FINDINGS],
         "silent_exceptions": silent[:MAX_FINDINGS],
@@ -101,8 +103,7 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
         "counts": {"functions": function_count,
                    "duplicate_groups": len(duplicates), "silent_exceptions": len(silent),
                    "literal_json_references": len(lineage)},
-        "truncated": truncated or bool(errors) or len(duplicates) > MAX_FINDINGS
-        or len(silent) > MAX_FINDINGS or len(lineage) > MAX_FINDINGS,
+        "truncated": truncated,
         "budgets": {"max_files": MAX_FILES, "max_source_bytes": MAX_SOURCE_BYTES,
                     "max_function_bodies": MAX_FUNCTIONS, "function_limit_reached": function_cap_reached},
         "limits": "Bounded AST only; oversized and unreadable sources are explicit REVIEW, never scanned as complete.",

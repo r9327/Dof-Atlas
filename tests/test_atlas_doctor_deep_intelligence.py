@@ -46,6 +46,19 @@ class DeepIntelligenceTests(unittest.TestCase):
             self.assertEqual(report["parse_errors"][0]["reason"], "SOURCE_SIZE_BUDGET_EXCEEDED")
             self.assertEqual(report["budgets"]["max_source_bytes"], MAX_SOURCE_BYTES)
 
+    def test_result_cap_does_not_report_pass_on_incomplete_findings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "catalog.py"
+            source.write_text("\n".join(
+                f"item_{i} = 'data/{i}.json'" for i in range(95)
+            ) + "\n")
+            report = scan_sources(root, ["catalog.py"])
+            self.assertEqual(report["status"], "REVIEW")
+            self.assertTrue(report["truncated"])
+            self.assertEqual(report["counts"]["literal_json_references"], 95)
+            self.assertEqual(len(report["data_lineage_candidates"]), 80)
+
     def test_symlink_sources_are_rejected_before_resolution(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
