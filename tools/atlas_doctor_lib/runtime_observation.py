@@ -159,6 +159,30 @@ class RuntimeObserver:
         finally:
             self._busy = False
 
+    def connect_qt_signal(self, signal: Any, callback: Any) -> Any:
+        """Explicit Qt scenario wrapper; no global monkeypatch or auto-attach.
+
+        A successful connect call proves only that registration was attempted
+        without raising; it does not prove future slot delivery or ownership.
+        """
+        if not self._active:
+            raise RuntimeError("Qt connection capture requires an active observer")
+        caller = self._path(sys._getframe(1).f_code.co_filename)
+        method = getattr(callback, "__func__", callback)
+        code = getattr(method, "__code__", None)
+        receiver_file = self._path(code.co_filename) if code is not None else None
+        result = signal.connect(callback)
+        if caller:
+            entry = {
+                "type": "qt_signal_connect_returned",
+                "source": caller,
+                "confidence": "CONNECT_RETURNED_NOT_CALLBACK_INVOKED",
+            }
+            if receiver_file:
+                entry["target"] = receiver_file
+            self._record(entry)
+        return result
+
     def watch(self, obj: Any, *, label: str, kind: str = "object") -> bool:
         """Explicit, non-owning watch for Qt workers, timers or cache holders."""
         try:
@@ -228,7 +252,7 @@ class RuntimeObserver:
             "events": self.events, "events_captured": len(self.events),
             "truncated": self._overflow, "object_watches": watched,
             "limits": [
-                "Opt-in Python tracing only: native Qt/C++ signals and memory ownership not inferred.",
+                "Qt connections require explicit connect_qt_signal instrumentation; callback execution and native ownership remain unknown.",
                 "Still referenced objects may be intentionally retained; not a proof of a memory leak.",
                 "No arguments, variable values or outside-repository paths collected.",
             ],

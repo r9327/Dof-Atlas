@@ -55,6 +55,25 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(result["trace_status"], "STALE_OR_INCOMPLETE")
         self.assertEqual(result["observed_runtime_file_pairs"], 0)
 
+    def test_instrumented_qt_connection_has_separate_non_invocation_edge(self):
+        sha = "d" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "app/signal.py"},
+                           {"id": 2, "source_file": "app/slot.py"}],
+                 "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "events": [{
+            "type": "qt_signal_connect_returned", "source": "app/signal.py",
+            "target": "app/slot.py",
+            "confidence": "CONNECT_RETURNED_NOT_CALLBACK_INVOKED",
+        }]}
+        payload = compact_graph(graph, {}, trace)
+        self.assertEqual(payload["trace_status"], "MATCHED")
+        self.assertEqual(payload["edges"][0]["relation"], "QT_CONNECT_RETURNED")
+        self.assertTrue(payload["nodes"][1]["qt_connection_observed"])
+        self.assertFalse(payload["nodes"][1]["runtime_observed"])
+        trace["worktree_clean"] = False
+        self.assertEqual(compact_graph(graph, {}, trace)["edges"], [])
+
     def test_live_uses_focus_events_not_periodic_git_polling(self):
         html = render_html(compact_graph({"nodes": [], "links": []}, {}))
         self.assertIn("addEventListener('focus'", html)

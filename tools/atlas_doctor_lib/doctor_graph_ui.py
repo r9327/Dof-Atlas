@@ -70,7 +70,17 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             }
         else:
             trace_status = "STALE_OR_INCOMPLETE"
+    qt_pairs: set[tuple[str, str]] = set()
+    if trace_status == "MATCHED" and trace is not None:
+        qt_pairs = {
+            (row["source"], row["target"])
+            for row in trace.get("events", [])
+            if row.get("type") == "qt_signal_connect_returned"
+            and isinstance(row.get("source"), str)
+            and isinstance(row.get("target"), str)
+        }
     observed_files = {file for pair in runtime_pairs for file in pair}
+    qt_files = {file for pair in qt_pairs for file in pair}
     qt_sites: set[str] = set()
     if trace_status == "MATCHED" and trace is not None:
         qt_sites = {row["source"] for row in trace.get("events", [])
@@ -86,6 +96,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "reasons": file_reasons.get(file, []),
             "runtime_observed": file in observed_files,
             "qt_call_site_observed": file in qt_sites,
+            "qt_connection_observed": file in qt_files,
         })
     edges = []
     for link in graph.get("links", []):
@@ -104,6 +115,12 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         if a in first_by_file and b in first_by_file:
             edges.append({"a": first_by_file[a], "b": first_by_file[b],
                           "relation": "OBSERVED_PYTHON_CALL", "observed": True})
+    for a, b in sorted(qt_pairs):
+        if len(edges) >= MAX_LINKS:
+            break
+        if a in first_by_file and b in first_by_file:
+            edges.append({"a": first_by_file[a], "b": first_by_file[b],
+                          "relation": "QT_CONNECT_RETURNED", "observed": True})
     return {
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
@@ -224,6 +241,7 @@ if(importErrors.has(n.file))line('p','Inspection AST incomplète : '+importError
 line('p','Communauté Graphify : '+String(n.community??'non déterminée'));
 if(n.runtime_observed)line('p','Appel Python observé dans une trace opt-in correspondant au SHA.');
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
+if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ; exécution du récepteur non prouvée.');
 if(n.reasons.length){line('h4','Pourquoi Doctor signale ce nœud');n.reasons.forEach(v=>line('p','• '+v))}
 else line('p','Aucun signal prioritaire dans cet extrait de diagnostic.');
 const link=document.createElement('a');link.href='https://github.com/r9327/Dof-Atlas/blob/'+encodeURIComponent(data.candidate_sha||'main')+'/'+n.file.split('/').map(encodeURIComponent).join('/');

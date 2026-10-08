@@ -44,6 +44,39 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertEqual(len(result["candidate_sha"]), 40)
             self.assertFalse(result["worktree_clean"])
 
+    def test_explicit_qt_signal_registration_records_callback_source(self):
+        import runpy
+
+        class Signal:
+            def __init__(self):
+                self.callbacks = []
+
+            def connect(self, callback):
+                self.callbacks.append(callback)
+                return "registered"
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            script = root / "window.py"
+            script.write_text(
+                "def slot():\n    return None\n"
+                "connection = observer.connect_qt_signal(signal, slot)\n"
+            )
+            observer = RuntimeObserver(root)
+            signal = Signal()
+            with observer:
+                scope = runpy.run_path(str(script), init_globals={
+                    "observer": observer, "signal": signal,
+                })
+            self.assertEqual(scope["connection"], "registered")
+            self.assertEqual(len(signal.callbacks), 1)
+            rows = [event for event in observer.report()["events"]
+                    if event["type"] == "qt_signal_connect_returned"]
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source"], "window.py")
+            self.assertEqual(rows[0]["target"], "window.py")
+            self.assertEqual(rows[0]["confidence"], "CONNECT_RETURNED_NOT_CALLBACK_INVOKED")
+
     def test_no_sensitive_outside_paths_or_arguments(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
