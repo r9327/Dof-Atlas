@@ -64,6 +64,18 @@ class IsolateTriageTests(unittest.TestCase):
             self.assertIsNone(c["next_offset"])
             self.assertFalse(any(e["safe_to_remove"] for e in a["findings"]))
 
+    def test_communities_can_be_paged_beyond_first_30(self):
+        from tools.atlas_doctor_lib.graph_audit import inspect_graph
+        graph={"nodes":[{"id":str(i),"source_file":f"app/feature_{i}.py",
+                         "file_type":"code","community":i}
+                         for i in range(37)],"links":[]}
+        first=inspect_graph(graph,community_offset=0)
+        second=inspect_graph(graph,community_offset=30)
+        self.assertEqual(len(first["isolated_communities"]),30)
+        self.assertEqual(len(second["isolated_communities"]),7)
+        self.assertEqual(second["limits"]["community_total"],37)
+        self.assertEqual(second["limits"]["unreported_communities"],0)
+
     def test_scan_budget_rejects_excessive_work(self):
         with self.assertRaises(ValueError):
             triage_isolates(Path("."),limit=100)

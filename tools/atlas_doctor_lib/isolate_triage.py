@@ -34,7 +34,8 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
         if hashlib.sha256(raw_bytes).hexdigest() != graph["graph_signature"]:
             raise ValueError("Graph fingerprint changed; no stale evidence.")
         raw = json.loads(raw_bytes)
-        audit = inspect_graph(raw, root=root, weak_offset=offset if kind == 'weak' else 0)
+        audit = inspect_graph(raw, root=root, weak_offset=offset if kind == 'weak' else 0,
+                              community_offset=offset if kind == 'community' else 0)
     except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
         return {**result, "status": "BLOCKED", "reason": str(exc)}
     picked: list[tuple[str, str]] = []
@@ -46,7 +47,7 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
     if kind in {"mixed", "weak"}:
         groups.append(("WEAK_NODE", audit["weak_production_candidates"]))
     if kind == "community":
-        groups.append(("ISOLATED_COMMUNITY", audit["isolated_communities"][offset:]))
+        groups.append(("ISOLATED_COMMUNITY", audit["isolated_communities"]))
     for classification, candidates in groups:
         for row in candidates:
             if len(picked) >= limit:
@@ -65,7 +66,7 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
             break
     raw_total = ((audit.get("limits") or {}).get("weak_total") if kind == "weak"
                  else len(audit["orphan_nodes"]) if kind == "orphan"
-                 else len(audit["isolated_communities"]) if kind == "community"
+                 else (audit.get("limits") or {}).get("community_total", len(audit["isolated_communities"])) if kind == "community"
                  else None)
     next_offset = (offset + inspected_rows if isinstance(raw_total, int)
                    and offset + inspected_rows < raw_total and inspected_rows > 0 else None)
