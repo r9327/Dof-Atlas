@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from tools import atlas_doctor
 from tools.atlas_doctor_lib.graph_audit import audit_current_graph, inspect_graph
 from tools.atlas_doctor_lib.report import build_ai_report
 
@@ -72,6 +75,15 @@ class DoctorGraphAuditTests(unittest.TestCase):
         self.assertGreaterEqual(report["high_fanout_files"][0]["runtime_neighbor_files"], 20)
         self.assertTrue(report["cross_community_bridges"][0]["sample_extracted_import_file_pairs"])
         self.assertTrue(report["isolated_communities"] == [])
+
+    def test_graph_cli_rejects_proven_architecture_failure(self):
+        with tempfile.TemporaryDirectory() as d, patch.object(
+            atlas_doctor, "project_root", return_value=Path(d)
+        ), patch.object(
+            atlas_doctor, "command_graph",
+            return_value={"status": "PASS", "graph_audit": {"status": "FAIL"}},
+        ), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(atlas_doctor.main(["graph", "--json"]), 2)
 
     def test_source_confirmed_import_is_a_real_blocker(self):
         with tempfile.TemporaryDirectory() as d:

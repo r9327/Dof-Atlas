@@ -476,7 +476,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'ponytail':
         return {'PASS': 0, 'REVIEW': 1, 'FAIL': 2, 'UNAVAILABLE': 2}.get(payload.get('status'), 2)
     if args.command == 'graph':
-        return 0 if payload['status'] == 'PASS' else 1
+        if payload.get("status") != "PASS":
+            return 1
+        # The graph visualization passing does not override a failed Doctor
+        # architectural audit (e.g. a source-confirmed app -> tools inversion).
+        graph_audit = payload.get("graph_audit") or {}
+        return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
     if args.command == 'graph-audit':
         return 0 if payload['status'] in {'PASS', 'REVIEW'} else 2
     if args.command in {'audit', 'quick'}:
