@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 MAX_FILES = 150
+MAX_SOURCE_BYTES = 512 * 1024
 MAX_FUNCTIONS = 4000
 MAX_FINDINGS = 80
 
@@ -19,7 +20,10 @@ def _relative(root: Path, value: str) -> str | None:
     if path.is_absolute() or ".." in path.parts:
         return None
     try:
-        resolved = (root / path).resolve()
+        requested = root / path
+        if requested.is_symlink():
+            return None
+        resolved = requested.resolve()
         relative = resolved.relative_to(root).as_posix()
     except (OSError, ValueError):
         return None
@@ -38,15 +42,25 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
         return {"status": "BLOCKED", "reason": "Invalid or missing Python paths", "paths": invalid[:10]}
     selected = [path for path in selected if path is not None]
     inspected, errors, functions, silent, lineage = [], [], defaultdict(list), [], []
+    function_count = 0
+    function_cap_reached = False
     for path in selected[:MAX_FILES]:
         try:
-            tree = ast.parse((root / path).read_text(encoding="utf-8-sig"), filename=path)
+            candidate = root / path
+            if candidate.stat().st_size > MAX_SOURCE_BYTES:
+                errors.append({"path": path, "reason": "SOURCE_SIZE_BUDGET_EXCEEDED"})
+                continue
+            tree = ast.parse(candidate.read_text(encoding="utf-8-sig"), filename=path)
         except (OSError, UnicodeError, SyntaxError) as exc:
-            errors.append({"path": path, "reason": str(exc)})
+            errors.append({"path": path, "reason": type(exc).__name__})
             continue
         inspected.append(path)
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if function_count >= MAX_FUNCTIONS:
+                    function_cap_reached = True
+                    continue
+                function_count += 1
                 # Canonical AST ignores local variable spelling/formatting only where
                 # syntax itself is identical. Near-duplicates need human review.
                 body = ast.Module(body=node.body, type_ignores=[])
@@ -77,19 +91,21 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
         and len({(x["path"], x["line"]) for x in rows}) > 1
     ]
     duplicates.sort(key=lambda item: (-len(item["occurrences"]), item["occurrences"][0]["path"]))
-    truncated = len(selected) > MAX_FILES or len(functions) > MAX_FUNCTIONS
+    truncated = len(selected) > MAX_FILES or function_cap_reached
     return {
         "status": "REVIEW" if truncated or errors else "PASS",
         "paths_inspected": inspected, "requested_count": len(requested),
         "parse_errors": errors[:MAX_FINDINGS], "duplicate_bodies": duplicates[:MAX_FINDINGS],
         "silent_exceptions": silent[:MAX_FINDINGS],
         "data_lineage_candidates": lineage[:MAX_FINDINGS],
-        "counts": {"functions": sum(len(x) for x in functions.values()),
+        "counts": {"functions": function_count,
                    "duplicate_groups": len(duplicates), "silent_exceptions": len(silent),
                    "literal_json_references": len(lineage)},
-        "truncated": truncated or len(duplicates) > MAX_FINDINGS
+        "truncated": truncated or bool(errors) or len(duplicates) > MAX_FINDINGS
         or len(silent) > MAX_FINDINGS or len(lineage) > MAX_FINDINGS,
-        "limits": "AST-only, literal JSON strings are leads not confirmed data flows; no automatic edits.",
+        "budgets": {"max_files": MAX_FILES, "max_source_bytes": MAX_SOURCE_BYTES,
+                    "max_function_bodies": MAX_FUNCTIONS, "function_limit_reached": function_cap_reached},
+        "limits": "Bounded AST only; oversized and unreadable sources are explicit REVIEW, never scanned as complete.",
     }
 
 

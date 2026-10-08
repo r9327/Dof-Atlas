@@ -33,6 +33,30 @@ class DeepIntelligenceTests(unittest.TestCase):
             root = Path(directory)
             self.assertEqual(scan_sources(root, ["../out.py"])["status"], "BLOCKED")
 
+    def test_source_size_cap_is_explicit_not_a_false_pass(self):
+        from tools.atlas_doctor_lib.deep_intelligence import MAX_SOURCE_BYTES
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "large.py"
+            source.write_bytes(b"#" + b" " * MAX_SOURCE_BYTES)
+            report = scan_sources(root, ["large.py"])
+            self.assertEqual(report["status"], "REVIEW")
+            self.assertTrue(report["truncated"])
+            self.assertEqual(report["paths_inspected"], [])
+            self.assertEqual(report["parse_errors"][0]["reason"], "SOURCE_SIZE_BUDGET_EXCEEDED")
+            self.assertEqual(report["budgets"]["max_source_bytes"], MAX_SOURCE_BYTES)
+
+    def test_symlink_sources_are_rejected_before_resolution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "real.py").write_text("pass\n")
+            try:
+                (root / "alias.py").symlink_to(root / "real.py")
+            except (OSError, NotImplementedError):
+                self.skipTest("Symlinks not supported on this test platform")
+            report = scan_sources(root, ["alias.py"])
+            self.assertEqual(report["status"], "BLOCKED")
+
     def test_reachability_labels_unobserved_not_dead(self):
         graph = {"nodes": [
             {"id": "a", "source_file": "main.py"},
