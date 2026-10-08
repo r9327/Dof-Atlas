@@ -675,7 +675,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         self.manual_chapters = chapter_ids
 
     def _load_manual_preview(self) -> None:
-        if not self.cache_manual_bundle:
+        if not bool(getattr(self, "cache_manual_bundle", True)):
             self._load_manual_preview_uncached()
             return
 

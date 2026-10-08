@@ -63,7 +63,9 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
         page._related_ready = page._guide_runtime_ready
         if page._guide_runtime_ready:
             page._related_preload_gate.mark_ready()
-        return view
+        # These suites validate the historical rich Guide dashboard. The Phase 8
+        # catalogue is intentionally lightweight and upgrades only on selection.
+        return page.ensure_full_guides_view()
 
     def test_guide_catalog_is_local_and_covers_required_routes(self):
         catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
