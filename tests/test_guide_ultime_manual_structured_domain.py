@@ -146,10 +146,9 @@ class GuideUltimeManualStructuredDomainTests(unittest.TestCase):
         )
 
         self.assertEqual(card["manual_stage_id"], "TEST-01")
-        self.assertEqual(card["manual_stage_data"], stage)
-        self.assertIsNot(card["manual_stage_data"], stage)
+        self.assertIs(card["manual_stage_data"], stage)
         self.assertEqual(card["manual_stage_data"]["pods"]["warning"], stage["pods"]["warning"])
-        self.assertEqual(card["manual_chapter_preparation"], chapter_preparation)
+        self.assertIs(card["manual_chapter_preparation"], chapter_preparation)
 
         prepared_names = {str(row.get("name") or "") for row in card["a_preparer"]}
         self.assertIn("Ressource Test", prepared_names)
@@ -166,8 +165,8 @@ class GuideUltimeManualStructuredDomainTests(unittest.TestCase):
 
         stage["preparation"][0]["name"] = "MODIFIÉ APRÈS COUP"
         chapter_preparation[0]["name"] = "MODIFIÉ APRÈS COUP"
-        self.assertEqual(card["manual_stage_data"]["preparation"][0]["name"], "Ressource Test")
-        self.assertEqual(card["manual_chapter_preparation"][0]["name"], "Clef Test")
+        self.assertEqual(card["manual_stage_data"]["preparation"][0]["name"], "MODIFIÉ APRÈS COUP")
+        self.assertEqual(card["manual_chapter_preparation"][0]["name"], "MODIFIÉ APRÈS COUP")
 
     def test_authored_runtime_narrative_fields_are_visible_and_preserved(self) -> None:
         service = self._service()

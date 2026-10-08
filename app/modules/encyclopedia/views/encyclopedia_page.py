@@ -859,6 +859,21 @@ class EncyclopediaPage(QWidget):
         if self._initializing:
             self._on_tab_changed_indexed(index)
             return
+
+        # A background Success/Guide load must never steal focus back after the
+        # player explicitly switches to another Encyclopedia tab.
+        if label != ACHIEVEMENTS_TAB and self._pending_lazy_tab == ACHIEVEMENTS_TAB:
+            self._pending_lazy_tab = ""
+            self._success_runtime_requested = False
+        if (
+            label != GUIDES_TAB
+            and self._pending_lazy_tab == GUIDES_TAB
+            and not self._pending_guide_id
+            and self._pending_achievement_context_id is None
+        ):
+            self._pending_lazy_tab = ""
+            self._full_guide_tab_requested = False
+
         if label == GUIDES_TAB:
             if self.guides_view is not None:
                 self._activate_loaded_tab(GUIDES_TAB)
