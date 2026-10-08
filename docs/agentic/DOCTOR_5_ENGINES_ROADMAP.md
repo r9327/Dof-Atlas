@@ -82,3 +82,11 @@ Le workflow lourd `Graphify Code Map` est déclenché explicitement (`workflow_d
 ### Pagination nœuds faibles et communautés
 
 `python -m tools.atlas_doctor isolate-triage --kind weak --offset 0 --limit 5 --json` inspecte uniquement les premiers candidats de ce volet, fournit `next_offset`, puis reprend les suivants sans lancer de tests. Les catégories `orphan` et `community` sont disponibles séparément. La pagination concerne les candidats remontés par Graphify, non une preuve exhaustive de code mort ; `safe_to_remove` reste faux.
+
+## Vérification Graphify — inventaire réel et pagination
+
+L'artefact du commit `db88754a6679bf08c9596a1daf9ef8ec1308eed9` contient 11 366 nœuds, 33 269 relations et exactement 797 fichiers Python distincts. L'inventaire Git du même commit contient également 797 fichiers Python avec les mêmes chemins (contrôle des dénombrements par racine et empreinte calculée sur les chemins). Cela prouve une représentation complète des *fichiers* pour ce SHA, pas une couverture fonctionnelle ni l'absence de code mort. Le rapport signale 6 nœuds isolés, 334 nœuds faiblement connectés, 90 communautés isolées (6 avec du code applicatif) et aucune inversion `app → tools` confirmée.
+
+L'interface Graphify accepte maintenant 15 000 nœuds / 50 000 arêtes sans troncature de cet artefact ; les arêtes restent masquées lorsque plus de 3 500 nœuds sont affichés à la fois afin de limiter le coût du rendu global. Les commandes `isolate-triage --kind weak --offset <N>` et `--kind community --offset <N>` paginent les examens par petits lots (max. 10 fichiers par exécution), avec `next_offset` comme prochain curseur. Aucun examen limité par fenêtre ne doit être présenté comme exhaustif et aucun candidat ne doit être supprimé sans preuve indépendante.
+
+Ce constat concerne le SHA de l'artefact, non les commits postérieurs de la PR. Le dernier SHA candidat nécessite ses propres contrôles ciblés ; la certification complète reste distincte.
