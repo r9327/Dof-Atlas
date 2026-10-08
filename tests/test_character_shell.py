@@ -102,6 +102,20 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                     self.quit_requested = False
                     self._background_services_stopped = False
                     self.runtime = None
+                    self.runtime_start_calls = 0
+
+                def _ensure_runtime(self):
+                    # This isolated shell fixture must model the actual lazy
+                    # runtime activation without starting native Windows hooks.
+                    class RuntimeStub:
+                        _running = False
+
+                        def start(_runtime):
+                            _runtime._running = True
+                            self.runtime_start_calls += 1
+
+                    self.runtime = RuntimeStub()
+                    return self.runtime
 
                 open_character_selector = app_main.AtlasWindow.open_character_selector
                 refresh_global_characters = app_main.AtlasWindow.refresh_global_characters
@@ -176,6 +190,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                 self.assertIs(DummyWindow.open_character_selector, original_selector)
                 window = DummyWindow()
                 window.refresh_global_characters()
+                self.assertEqual(window.runtime_start_calls, 1)
 
                 self.assertEqual(
                     [window.character_combo.itemText(index) for index in range(window.character_combo.count())],

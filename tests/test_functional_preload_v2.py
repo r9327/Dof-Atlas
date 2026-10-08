@@ -34,7 +34,7 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
                 }
             )
             self.assertEqual(popup.progress.value(), 1)
-            self.assertIn("Guides", popup.status_label.text())
+            self.assertIn("Guides", popup.current_label.text())
         finally:
             popup.close()
             popup.deleteLater()
@@ -68,7 +68,7 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
             self.assertEqual(window.preload_states["craft"], main.PRELOAD_FAILED)
             self.assertTrue(window.preload_finished)
             self.assertEqual(window.preload_popup.progress.value(), len(PRELOAD_TASK_ORDER))
-            self.assertIn("erreur", window.preload_popup.status_label.text().casefold())
+            self.assertIn("erreur", window.preload_popup.current_label.text().casefold())
             self.assertIn("partiel", window.last_status_text.casefold())
         finally:
             window.quit_requested = True
