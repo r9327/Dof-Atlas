@@ -101,6 +101,27 @@ jobs:
               raise SystemExit("Graphify produced an empty graph")
           if not links:
               raise SystemExit("Graphify produced a graph with no relationships")
+          import subprocess
+          tracked = {
+              value.decode("utf-8", errors="replace").replace("\\\\", "/")
+              for value in subprocess.check_output(
+                  ["git", "ls-files", "-z", "--", "*.py"]
+              ).split(b"\\0") if value
+          }
+          represented = {
+              node["source_file"].replace("\\\\", "/")
+              for node in nodes
+              if isinstance(node.get("source_file"), str)
+              and node["source_file"].endswith(".py")
+          }
+          missing = sorted(tracked - represented)
+          if not tracked or missing:
+              raise SystemExit(
+                  f"Graphify Python file coverage incomplete: "
+                  f"{len(tracked) - len(missing)}/{len(tracked)}; "
+                  f"missing={missing[:20]}"
+              )
+          print(f"Graphify tracked Python file coverage: {len(tracked)}/{len(tracked)}")
           print(f"Graphify graph ready: {len(nodes)} nodes, {len(links)} relationships")
           if graph.get("built_at_commit") != os.environ.get("CANDIDATE_SHA"):
               raise SystemExit("Graphify output does not match the checkout SHA")
@@ -126,6 +147,9 @@ jobs:
           metrics = {
               "candidate_sha": os.environ["CANDIDATE_SHA"],
               "node_count": len(nodes),
+              "tracked_python_files": len(tracked),
+              "represented_tracked_python_files": len(tracked),
+              "missing_tracked_python_files": 0,
               "relation_count": len(links),
               "raw_community_count": len(community_sizes),
               "raw_small_communities_lt3_nodes": raw_thin,
