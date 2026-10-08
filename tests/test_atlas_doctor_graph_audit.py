@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tools.atlas_doctor_lib.graph_audit import audit_current_graph, inspect_graph
+from tools.atlas_doctor_lib.report import build_ai_report
 
 
 def fixture():
@@ -115,6 +116,35 @@ class DoctorGraphAuditTests(unittest.TestCase):
                 report = audit_current_graph(Path(d))
         self.assertEqual(report["status"], "BLOCKED")
         self.assertIn("rebuild", report["rebuild_command"])
+
+    def test_agent_report_exposes_graph_triage_only_for_current_graph(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            with patch("tools.atlas_doctor_lib.architecture.graph_status", return_value={
+                "status": "MISSING", "reason": "no graph",
+            }):
+                payload = build_ai_report(root)
+            self.assertEqual(payload["architecture_graph_triage"]["status"], "UNAVAILABLE")
+            self.assertIn("rebuild", payload["architecture_graph_triage"]["next_action"])
+
+    def test_graph_audit_reuses_validated_evidence_without_recomputing_status(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            content = json.dumps(fixture()).encode("utf-8")
+            graph_path = root / "graph.json"
+            graph_path.write_bytes(content)
+            validated = {
+                "status": "PASS",
+                "graph": str(graph_path),
+                "graph_signature": hashlib.sha256(content).hexdigest(),
+                "git": {"head": "f" * 40},
+                "tool": {"version": "0.9.72"},
+            }
+            with patch("tools.atlas_doctor_lib.graph_audit.graph_status", side_effect=AssertionError("unexpected status call")):
+                result = audit_current_graph(root, graph_evidence=validated)
+            self.assertEqual(result["status"], "REVIEW")
+            self.assertEqual(result["candidate_sha"], "f" * 40)
 
     def test_hub_and_community_bridge_are_advisory(self):
         graph = {"nodes": [], "links": []}

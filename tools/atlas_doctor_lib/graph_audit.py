@@ -247,10 +247,12 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[st
     }
 
 
-def audit_current_graph(root: Path) -> dict[str, Any]:
-    """Refuse stale graphs; always attach exact HEAD and signature to findings."""
+def audit_current_graph(
+    root: Path, *, graph_evidence: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Refuse stale graphs; reuse a validated status to avoid repeat Git work."""
     root = root.resolve()
-    status = graph_status(root)
+    status = graph_evidence if graph_evidence is not None else graph_status(root)
     if status["status"] != "PASS":
         return {"schema_version": 1, "kind": "graph_architecture_audit",
                 "status": "BLOCKED", "graph_status": status["status"],

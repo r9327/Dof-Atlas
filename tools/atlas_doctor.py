@@ -78,6 +78,9 @@ def command_graph(root: Path, args) -> dict[str, Any]:
                 print(result.get("reason"))
             return result
     payload = architecture(root, rebuild=args.rebuild or args.install)
+    if payload.get("status") == "PASS":
+        from tools.atlas_doctor_lib.graph_audit import audit_current_graph
+        payload["graph_audit"] = audit_current_graph(root, graph_evidence=payload)
     if not args.json:
         print(f"Architecture : {payload['status']}")
         print(payload.get("reason", ""))
@@ -87,6 +90,11 @@ def command_graph(root: Path, args) -> dict[str, Any]:
             print(f"Noeuds : {summary['node_count']} | Relations : {summary['link_count']}")
             for row in summary["most_connected_files"][:5]:
                 print(f"  {row['path']} : {row['neighbor_file_count']} fichiers voisins")
+        graph_triage = payload.get("graph_audit") or {}
+        if graph_triage:
+            metrics = graph_triage.get("metrics") or {}
+            print(f"Audit des nœuds : {graph_triage.get('status')} | code peu lié : {metrics.get('weak_production_nodes_degree1', 0)}")
+            print(f"Couplages à revoir : {metrics.get('high_fanout_app_files', 0)} | inversions confirmées : {metrics.get('confirmed_runtime_to_tools_imports', 0)}")
         print(f"HTML : {payload.get('html', root / 'graphify-out/graph.html')}")
         print(f"Rapport : {payload.get('report', root / 'graphify-out/GRAPH_REPORT.md')}")
         if payload["status"] != "PASS":
