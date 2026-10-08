@@ -281,6 +281,12 @@ Confirmed identical function bodies on the Graphify branch: `app.quest_catalog.n
 
 A targeted test protects the compatibility identity, representative normalized keys and the import boundary. No changed data layout, progress state, cache policy or memory thresholds. The import-only optimization does **not** constitute proof of runtime performance gains; compare exact-SHA tests, Graphify and RAM/preload results. Preserve unrelated Quest catalogue functionality intact.
 
+### One Graphify build per candidate
+
+The focused Graphify workflow performs only Python compilation and targeted module/compatibility tests. The canonical `Graphify Code Map` workflow runs the **single** exact-SHA graph rebuild and enforces `app/` → `tools/` import-direction invariants before exporting the graph. The additional branch-push trigger was removed from focused validation, avoiding duplicate CI runs when PR synchronize events are already present.
+
+This retains executable architecture contracts while eliminating an unnecessary second full Graphify build on each SHA.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:

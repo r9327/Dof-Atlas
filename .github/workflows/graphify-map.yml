@@ -59,6 +59,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
 
           graph_path = Path("graphify-out/graph.json")
@@ -77,6 +78,20 @@ jobs:
           if not links:
               raise SystemExit("Graphify produced a graph with no relationships")
           print(f"Graphify graph ready: {len(nodes)} nodes, {len(links)} relationships")
+          if graph.get("built_at_commit") != os.environ.get("CANDIDATE_SHA"):
+              raise SystemExit("Graphify output does not match the checkout SHA")
+          node_index = {node["id"]: node for node in nodes}
+          inversions = []
+          for link in links:
+              if link.get("relation") not in {"imports", "imports_from"}:
+                  continue
+              source = node_index.get(link.get("source"), {}).get("source_file", "")
+              target = node_index.get(link.get("target"), {}).get("source_file", "")
+              if source.startswith("app/") and target.startswith("tools/"):
+                  inversions.append(f"{source} -> {target}")
+          if inversions:
+              raise SystemExit("app-to-tools imports: " + "; ".join(sorted(set(inversions))))
+          print("Graphify runtime-to-tools import inversions: 0")
           PY
 
       - name: Upload visual map and graph
