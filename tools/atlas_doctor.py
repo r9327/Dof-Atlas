@@ -158,7 +158,7 @@ def command_refactor_preview(root: Path, args) -> dict[str, Any]:
 
 def command_graph_ui(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph
-    payload = export_interactive_graph(root)
+    payload = export_interactive_graph(root, trace_path=args.trace)
     if payload.get("status") == "PASS" and args.open:
         import webbrowser
         webbrowser.open(Path(payload["path"]).as_uri())
@@ -444,6 +444,7 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument('--depth', type=int, choices=(1, 2), default=2)
     gu = sub.add_parser('graph-ui', help='Exporter Graphify interactif local avec diagnostics Doctor.')
     gu.add_argument('--open', action='store_true', help='Ouvrir le rapport HTML dans le navigateur.')
+    gu.add_argument('--trace', type=Path, help='Trace runtime JSON dans .ai/runtime pour enrichir les liens.')
     rt = sub.add_parser('runtime-trace', help='Tracer explicitement les appels Python d un module (mode instrumente).')
     rt.add_argument('--module', required=True, help='Module de scenario de test a executer.')
     rt.add_argument('--max-events', type=int, default=5000)

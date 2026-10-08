@@ -23,6 +23,22 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertTrue(data["nodes"][1]["reasons"])
         self.assertFalse(data["truncated"])
 
+    def test_matching_runtime_trace_adds_observed_calls_without_faking_imports(self):
+        sha = "a" * 40
+        graph = {"nodes": [{"id": 1, "source_file": "app/a.py"},
+                           {"id": 2, "source_file": "app/b.py"}],
+                 "links": [], "built_at_commit": sha}
+        trace = {"candidate_sha": sha, "events": [
+            {"type": "python_call_edge", "source": "app/a.py", "target": "app/b.py"}
+        ]}
+        payload = compact_graph(graph, {}, trace)
+        self.assertEqual(payload["trace_status"], "MATCHED")
+        self.assertEqual(payload["edges"][0]["relation"], "OBSERVED_PYTHON_CALL")
+        self.assertTrue(payload["nodes"][0]["runtime_observed"])
+        trace["candidate_sha"] = "b" * 40
+        self.assertEqual(compact_graph(graph, {}, trace)["trace_status"], "STALE_OR_INCOMPLETE")
+        self.assertEqual(compact_graph(graph, {}, trace)["edges"], [])
+
     def test_labels_cannot_escape_json_script(self):
         graph = {"nodes": [{"id": 1, "label": "</script><img src=x onerror=alert(1)>",
                             "source_file": "app/x.py"}], "links": []}

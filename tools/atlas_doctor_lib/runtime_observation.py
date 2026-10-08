@@ -10,6 +10,7 @@ import argparse
 import gc
 import json
 import runpy
+import subprocess
 import sys
 import threading
 import time
@@ -23,6 +24,14 @@ class RuntimeObserver:
         if not 1 <= max_events <= 50000:
             raise ValueError("max_events must be 1..50000")
         self.root = root.resolve()
+        try:
+            commit = subprocess.run(
+                ["git", "rev-parse", "--verify", "HEAD"], cwd=self.root,
+                text=True, capture_output=True, timeout=5, check=False,
+            )
+            self.candidate_sha = commit.stdout.strip() if commit.returncode == 0 else None
+        except (OSError, subprocess.TimeoutExpired):
+            self.candidate_sha = None
         self.max_events = max_events
         self.events: list[dict[str, Any]] = []
         self._edges: set[tuple[str, str]] = set()
@@ -150,6 +159,7 @@ class RuntimeObserver:
                    for label, kind, ref in self._watched]
         return {
             "schema_version": 1, "kind": "doctor_runtime_observation",
+            "candidate_sha": self.candidate_sha,
             "root": str(self.root), "duration_ms": round((time.monotonic_ns() - self.started_ns) / 1e6, 3)
             if self.started_ns else 0.0,
             "status": "TRUNCATED" if self._overflow else "RECORDED",

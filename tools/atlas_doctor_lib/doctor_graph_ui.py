@@ -19,7 +19,8 @@ def _domain(path: str) -> str:
     return "/".join(parts[:2]) if len(parts) > 1 else path
 
 
-def compact_graph(graph: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any]:
+def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
+                  trace: dict[str, Any] | None = None) -> dict[str, Any]:
     nodes = graph.get("nodes", [])[:MAX_NODES]
     indexed = {item["id"]: number for number, item in enumerate(nodes)}
     file_reasons: dict[str, list[str]] = {}
@@ -35,6 +36,25 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any
                 values = file_reasons.setdefault(path, [])
                 if reason not in values:
                     values.append(reason)
+    trace_status = "NOT_PROVIDED"
+    runtime_pairs: set[tuple[str, str]] = set()
+    if trace is not None:
+        trace_sha = trace.get("candidate_sha")
+        graph_sha = graph.get("built_at_commit")
+        if (isinstance(trace_sha, str) and isinstance(graph_sha, str)
+                and len(graph_sha) >= 7 and trace_sha.startswith(graph_sha)
+                and not trace.get("truncated")):
+            trace_status = "MATCHED"
+            runtime_pairs = {
+                (row["source"], row["target"])
+                for row in trace.get("events", [])
+                if row.get("type") == "python_call_edge"
+                and isinstance(row.get("source"), str)
+                and isinstance(row.get("target"), str)
+            }
+        else:
+            trace_status = "STALE_OR_INCOMPLETE"
+    observed_files = {file for pair in runtime_pairs for file in pair}
     selected = []
     for item in nodes:
         file = item.get("source_file") or ""
@@ -43,6 +63,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any
             "file": file, "domain": _domain(file), "community": item.get("community"),
             "line": str(item.get("source_location") or ""),
             "reasons": file_reasons.get(file, []),
+            "runtime_observed": file in observed_files,
         })
     edges = []
     for link in graph.get("links", []):
@@ -51,8 +72,19 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any
         a, b = indexed.get(link.get("source")), indexed.get(link.get("target"))
         if a is not None and b is not None:
             edges.append({"a": a, "b": b, "relation": str(link.get("relation") or "")})
+    # Runtime calls are separate edges; they do not fabricate static imports.
+    first_by_file: dict[str, int] = {}
+    for number, row in enumerate(selected):
+        first_by_file.setdefault(row["file"], number)
+    for a, b in sorted(runtime_pairs):
+        if len(edges) >= MAX_LINKS:
+            break
+        if a in first_by_file and b in first_by_file:
+            edges.append({"a": first_by_file[a], "b": first_by_file[b],
+                          "relation": "OBSERVED_PYTHON_CALL", "observed": True})
     return {
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
+        "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
         "raw_nodes": len(graph.get("nodes", [])), "raw_links": len(graph.get("links", [])),
         "truncated": len(graph.get("nodes", [])) > MAX_NODES or len(graph.get("links", [])) > MAX_LINKS,
         "disclaimer": "A flagged node is not proof of dead code; native runtime connections require trace evidence.",
@@ -124,7 +156,7 @@ function render(){
  for(const i of visible){const p=screen(positions[i]),n=nodes[i];
  if(p.x < -10||p.x>canvas.width+10||p.y < -10||p.y>canvas.height+10)continue;
  ctx.beginPath();ctx.arc(p.x,p.y,i===selected?6:3,0,2*Math.PI);
- ctx.fillStyle=i===selected?'#ffdf86':n.reasons.length?'#ff8d7d':'#70b9e9';ctx.fill()}
+ ctx.fillStyle=i===selected?'#ffdf86':n.reasons.length?'#ff8d7d':n.runtime_observed?'#b39cf5':'#70b9e9';ctx.fill()}
 }
 function pick(x,y){let best=-1,distance=100;for(const i of visible){
  const p=screen(positions[i]),d=(p.x-x)**2+(p.y-y)**2;
@@ -133,6 +165,7 @@ function show(i){selected=i;const n=nodes[i];details.replaceChildren();
 function line(tag,text){const el=document.createElement(tag);el.textContent=text;details.appendChild(el);return el}
 line('h3',n.label||n.file);line('p',n.file+(n.line?' · '+n.line:''));
 line('p','Communauté Graphify : '+String(n.community??'non déterminée'));
+if(n.runtime_observed)line('p','Appel Python observé dans une trace opt-in correspondant au SHA.');
 if(n.reasons.length){line('h4','Pourquoi Doctor signale ce nœud');n.reasons.forEach(v=>line('p','• '+v))}
 else line('p','Aucun signal prioritaire dans cet extrait de diagnostic.');
 const link=document.createElement('a');link.href='https://github.com/r9327/Dof-Atlas/blob/'+encodeURIComponent(data.candidate_sha||'main')+'/'+n.file.split('/').map(encodeURIComponent).join('/');
@@ -148,7 +181,7 @@ if(!moved){const r=canvas.getBoundingClientRect();const found=pick((e.clientX-r.
 canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.min(3,scale*(e.deltaY>0?.84:1.16)));render()},{passive:false});
 [search,domain,flagged].forEach(el=>el.addEventListener('input',filter));
 document.getElementById('reset').addEventListener('click',()=>{scale=.36;panX=0;panY=0;render()});
-document.getElementById('limits').textContent=data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
+document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées. '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
 window.addEventListener('resize',fit);fit();filter();
 })();
 </script></body></html>"""
@@ -161,7 +194,7 @@ def render_html(payload: dict[str, Any]) -> str:
     return HTML.replace("__GRAPH_DATA__", encoded)
 
 
-def export_interactive_graph(root: Path) -> dict[str, Any]:
+def export_interactive_graph(root: Path, *, trace_path: Path | None = None) -> dict[str, Any]:
     from .architecture import graph_status
     from .graph_audit import audit_current_graph
     root = root.resolve()
@@ -169,17 +202,30 @@ def export_interactive_graph(root: Path) -> dict[str, Any]:
     if status.get("status") != "PASS":
         return {"status": "BLOCKED", "reason": status.get("reason"), "graph_status": status.get("status")}
     graph = json.loads(Path(status["graph"]).read_text(encoding="utf-8"))
-    if graph.get("built_at_commit") != status["git"]["head"]:
-        return {"status": "BLOCKED", "reason": "Exact candidate SHA is required for visual diagnosis."}
+    built_at = graph.get("built_at_commit")
+    if not isinstance(built_at, str) or not status["git"]["head"].startswith(built_at) or len(built_at) < 7:
+        return {"status": "BLOCKED", "reason": "Exact resolved candidate SHA is required."}
     audit = audit_current_graph(root, graph_evidence=status)
     if audit["status"] not in {"PASS", "REVIEW"}:
         return {"status": "BLOCKED", "reason": "Doctor graph audit is not valid."}
-    payload = compact_graph(graph, audit)
+    trace = None
+    if trace_path is not None:
+        selected_path = trace_path.resolve()
+        if not selected_path.is_relative_to(root / ".ai" / "runtime") or not selected_path.is_file():
+            return {"status": "BLOCKED", "reason": "Trace must exist in .ai/runtime."}
+        if selected_path.stat().st_size > 10_000_000:
+            return {"status": "BLOCKED", "reason": "Trace too large; bounded trace required."}
+        try:
+            trace = json.loads(selected_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError) as exc:
+            return {"status": "BLOCKED", "reason": str(exc)}
+    payload = compact_graph(graph, audit, trace=trace)
     destination = root / "graphify-out" / "doctor_graph.html"
     destination.write_text(render_html(payload), encoding="utf-8")
     return {
         "status": "PASS", "candidate_sha": status["git"]["head"],
-        "path": str(destination), "nodes_shown": len(payload["nodes"]),
+        "path": str(destination), "trace_status": payload["trace_status"],
+        "nodes_shown": len(payload["nodes"]),
         "links_shown": len(payload["edges"]), "truncated": payload["truncated"],
         "tests_executed": False, "graph_rebuilt": False,
     }
