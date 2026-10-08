@@ -54,6 +54,50 @@ class GraphIntelligenceTests(unittest.TestCase):
             (path / "b.py").write_text("print('no import')\n", encoding="utf-8")
             self.assertEqual(inspect_import_cycles(fixture(), root)["source_confirmed_cycles"], 0)
 
+    def test_source_cycle_survives_one_stale_edge_inside_graph_component(self):
+        graph = fixture()
+        graph["nodes"].append({
+            "id": "d", "source_file": "app/core/d.py",
+            "file_type": "code", "label": "Delta", "community": 3, "_origin": "ast",
+        })
+        graph["links"].extend([
+            {"source": "b", "target": "d", "relation": "imports",
+             "confidence": "EXTRACTED", "_origin": "ast"},
+            {"source": "d", "target": "a", "relation": "imports",
+             "confidence": "EXTRACTED", "_origin": "ast"},
+        ])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            p = root / "app/core"
+            p.mkdir(parents=True)
+            (p / "a.py").write_text("from app.core import b\n", encoding="utf-8")
+            (p / "b.py").write_text("from app.core import a, d\n", encoding="utf-8")
+            (p / "d.py").write_text("pass\n", encoding="utf-8")
+            report = inspect_import_cycles(graph, root=root)
+        self.assertEqual(report["suspected_cycles"], 1)
+        self.assertEqual(report["source_confirmed_cycles"], 1)
+        self.assertEqual(report["cycles"][0]["source_confirmed_subcycles"], 1)
+        self.assertEqual(report["cycles"][0]["confirmed_cycle_samples"], [["app/core/a.py", "app/core/b.py"]])
+
+    def test_graph_comparison_checks_cycles_past_display_limit(self):
+        def many(n, sha):
+            nodes, links = [], []
+            for i in range(n):
+                for letter in ("a", "b"):
+                    nodes.append({"id": f"{letter}{i}", "source_file": f"app/z{i}/{letter}.py",
+                                  "file_type": "code", "label": f"{letter}{i}",
+                                  "_origin": "ast", "community": i})
+                for a, b in (("a", "b"), ("b", "a")):
+                    links.append({"source": f"{a}{i}", "target": f"{b}{i}",
+                                  "relation": "imports", "confidence": "EXTRACTED", "_origin": "ast"})
+            return {"nodes": nodes, "links": links, "built_at_commit": sha}
+        before = many(35, "a" * 40)
+        after = many(36, "b" * 40)
+        report = compare_graphs(before, after)
+        self.assertEqual(len(report["new_candidate_import_cycles"]), 1)
+        self.assertEqual(report["new_candidate_import_cycles"][0], ["app/z35/a.py", "app/z35/b.py"])
+        self.assertEqual(report["status"], "REVIEW")
+
     def test_baseline_diff_ignores_arbitrary_community_numbers(self):
         original = fixture("a" * 40)
         now = fixture("b" * 40)

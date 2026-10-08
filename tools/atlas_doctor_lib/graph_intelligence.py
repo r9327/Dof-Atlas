@@ -150,6 +150,7 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
         adjacency.setdefault(target, set())
     components = _components(adjacency)
     cache: dict[str, set[str] | None] = {}
+    source_confirmed_pairs: set[tuple[str, str]] = set()
     cycles = []
     for members in components:
         group = set(members)
@@ -158,20 +159,35 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
         for source, target in edges:
             proof = root is not None and _source_proves_import(root, source, target, cache)
             checked.append({"source": source, "target": target, "source_confirmed": proof})
-        confirmed = bool(root is not None and checked and all(edge["source_confirmed"] for edge in checked))
+            if proof:
+                source_confirmed_pairs.add((source, target))
         cycles.append({
             "files": members, "import_file_edges": len(edges),
             "source_confirmed_edges": sum(x["source_confirmed"] for x in checked),
-            "confidence": "CURRENT_SOURCE_IMPORT_CYCLE" if confirmed else "GRAPH_CYCLE_NEEDS_SOURCE_REVIEW",
+            "confidence": "GRAPH_CYCLE_NEEDS_SOURCE_REVIEW",
             "blocking": False, "review_required": True,
             "reason": "A cycle in import dependencies does not prove a runtime error or a new regression.",
             "sample_edges": checked[:10],
         })
+    # A source-confirmed cycle can survive even when *other* edges in the
+    # same Graphify SCC are stale. Compute SCCs again using only proven edges.
+    confirmed_adjacency: dict[str, set[str]] = defaultdict(set)
+    for source, target in source_confirmed_pairs:
+        confirmed_adjacency[source].add(target)
+        confirmed_adjacency.setdefault(target, set())
+    confirmed_components = _components(confirmed_adjacency)
+    for candidate in cycles:
+        members = set(candidate["files"])
+        confirmed_inside = [c for c in confirmed_components if set(c) <= members]
+        if confirmed_inside:
+            candidate["confidence"] = "CURRENT_SOURCE_IMPORT_CYCLE"
+        candidate["source_confirmed_subcycles"] = len(confirmed_inside)
+        candidate["confirmed_cycle_samples"] = confirmed_inside[:3]
     return {
         "status": "REVIEW" if cycles else "PASS",
         "directed_extracted_import_pairs": len(pairs),
         "suspected_cycles": len(cycles),
-        "source_confirmed_cycles": sum(c["confidence"] == "CURRENT_SOURCE_IMPORT_CYCLE" for c in cycles),
+        "source_confirmed_cycles": len(confirmed_components),
         "cycles": cycles[:MAX_REVIEW],
         "truncated": len(cycles) > MAX_REVIEW,
         "scope": "Extracted directed runtime Python file imports only; dynamic imports can be missed.",
@@ -211,8 +227,16 @@ def compare_graphs(before: dict[str, Any], after: dict[str, Any]) -> dict[str, A
     new_weak = sorted(k for k, value in new_nodes.items() if value == 1 and old_nodes.get(k, -1) > 1)
     removed_imports = sorted(old_links - new_links)
     added_imports = sorted(new_links - old_links)
-    old_cycles = {tuple(item["files"]) for item in inspect_import_cycles(before)["cycles"]}
-    new_cycles = {tuple(item["files"]) for item in inspect_import_cycles(after)["cycles"]}
+    # Compare *all* cycles. The display report caps at MAX_REVIEW entries,
+    # which must never hide regression number 31 and later.
+    def complete_cycles(graph: dict[str, Any]) -> set[tuple[str, ...]]:
+        adjacency: dict[str, set[str]] = defaultdict(set)
+        for source, target in _import_pairs(graph):
+            adjacency[source].add(target)
+            adjacency.setdefault(target, set())
+        return {tuple(group) for group in _components(adjacency)}
+    old_cycles = complete_cycles(before)
+    new_cycles = complete_cycles(after)
     return {
         "schema_version": 1, "kind": "graph_architecture_comparison",
         "status": "REVIEW" if new_orphans or new_weak or new_cycles - old_cycles or added_imports else "PASS",
