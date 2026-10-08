@@ -145,6 +145,24 @@ def command_change_plan(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_code_inspect(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.deep_intelligence import inspect_code
+    from tools import atlas_integrity
+    paths = list(args.paths)
+    if args.base_ref:
+        paths.extend(atlas_integrity.changed_files(root, args.base_ref))
+    paths = sorted({p for p in paths if p.endswith(".py") and (root / p).is_file()})
+    payload = inspect_code(root, paths=paths, entrypoints=args.entrypoint,
+                           baseline=args.baseline)
+    if not args.json:
+        summary = payload.get("source") or {}
+        print(f"Doctor code-inspect: {payload['status']} | {len(summary.get('paths_inspected', []))} Python files")
+        print(f"Duplicates: {(summary.get('counts') or {}).get('duplicate_groups', 0)} | "
+              f"Silent error candidates: {(summary.get('counts') or {}).get('silent_exceptions', 0)}")
+        print("No tests executed; Graphify is never rebuilt implicitly.")
+    return payload
+
+
 def command_graph_compare(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.architecture import graph_status
     from tools.atlas_doctor_lib.graph_intelligence import compare_graphs
@@ -385,6 +403,11 @@ def build_parser() -> argparse.ArgumentParser:
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
     ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
+    ci = sub.add_parser('code-inspect', help='Inspecter AST, doublons, accessibilite et gardes architectures, sans tests.')
+    ci.add_argument('paths', nargs='*', help='Fichiers Python explicitement cibles.')
+    ci.add_argument('--base-ref', help='Inclure les fichiers modifies depuis la reference.')
+    ci.add_argument('--entrypoint', action='append', help='Point entree connu (plusieurs possibles).')
+    ci.add_argument('--baseline', type=Path, help='Ancien Graphify graph.json pour comparaison.')
     gc = sub.add_parser('graph-compare', help='Comparer l’ancien graph.json à celui du HEAD actuel.')
     gc.add_argument('--baseline', required=True, type=Path)
     graph = sub.add_parser('graph', help='Architecture Graphify; lecture du graph par defaut.')
@@ -503,6 +526,7 @@ def main(argv: list[str] | None = None) -> int:
         'graph': command_graph,
         'graph-audit': command_graph_audit,
         'change-plan': command_change_plan,
+        'code-inspect': command_code_inspect,
         'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
         'audit': command_audit,
@@ -529,6 +553,8 @@ def main(argv: list[str] | None = None) -> int:
         # architectural audit (e.g. a source-confirmed app -> tools inversion).
         graph_audit = payload.get("graph_audit") or {}
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
+    if args.command == 'code-inspect':
+        return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command == 'change-plan':
         return {'READY': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command in {'graph-audit', 'graph-compare'}:
