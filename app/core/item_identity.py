@@ -11,5 +11,3 @@ def item_id(item: dict[str, Any]) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
-
-

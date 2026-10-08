@@ -181,5 +181,3 @@ def residual_qf_alternatives(expression: str) -> tuple[frozenset[int], ...]:
     if any(not row for row in residual):
         return tuple()
     return tuple(residual) if len(residual) > 1 else tuple()
-
-
