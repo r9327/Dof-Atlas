@@ -19,6 +19,19 @@ from pathlib import Path
 from typing import Any
 
 
+# CPython audit hooks cannot be unregistered. Install one dispatcher for the
+# process, and point it at at most one opt-in observer using a weak reference.
+_AUDIT_HOOK_INSTALLED = False
+_ACTIVE_AUDIT_REF: weakref.ReferenceType | None = None
+
+
+def _audit_dispatch(event: str, args: tuple[Any, ...]) -> None:
+    reference = _ACTIVE_AUDIT_REF
+    observer = reference() if reference else None
+    if observer is not None:
+        observer._audit_event(event, args)
+
+
 class RuntimeObserver:
     def __init__(self, root: Path, *, max_events: int = 5000):
         if not 1 <= max_events <= 50000:
@@ -141,26 +154,38 @@ class RuntimeObserver:
             self._record({"type": kind, "source": a, **({"target": b} if b else {})})
 
     def __enter__(self) -> "RuntimeObserver":
+        global _AUDIT_HOOK_INSTALLED, _ACTIVE_AUDIT_REF
         if self._active:
             raise RuntimeError("observer already started")
+        active = _ACTIVE_AUDIT_REF() if _ACTIVE_AUDIT_REF else None
+        if active is not None and active._active:
+            raise RuntimeError("another observer is already recording")
+        if not _AUDIT_HOOK_INSTALLED:
+            sys.addaudithook(_audit_dispatch)
+            _AUDIT_HOOK_INSTALLED = True
         self.started_ns = time.monotonic_ns()
         self._old_profile = sys.getprofile()
         self._old_thread_profile = threading.getprofile()
+        _ACTIVE_AUDIT_REF = weakref.ref(self)
         self._active = True
-        ref = weakref.ref(self)
-        def audit(event: str, args: tuple[Any, ...]) -> None:
-            observer = ref()
-            if observer is not None:
-                observer._audit_event(event, args)
-        sys.addaudithook(audit)
-        sys.setprofile(self._profile)
-        threading.setprofile(self._profile)
+        try:
+            sys.setprofile(self._profile)
+            threading.setprofile(self._profile)
+        except BaseException:
+            sys.setprofile(self._old_profile)
+            threading.setprofile(self._old_thread_profile)
+            self._active = False
+            _ACTIVE_AUDIT_REF = None
+            raise
         return self
 
     def __exit__(self, *_errors: Any) -> None:
+        global _ACTIVE_AUDIT_REF
         self._active = False
         sys.setprofile(self._old_profile)
         threading.setprofile(self._old_thread_profile)
+        if _ACTIVE_AUDIT_REF is not None and _ACTIVE_AUDIT_REF() is self:
+            _ACTIVE_AUDIT_REF = None
 
     def report(self, *, collect: bool = False) -> dict[str, Any]:
         if collect:

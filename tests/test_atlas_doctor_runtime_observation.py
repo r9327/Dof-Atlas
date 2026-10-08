@@ -70,6 +70,21 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertEqual(rows[-1]["confidence"], "CALL_SITE_ONLY")
             self.assertNotIn("receiver", rows[-1])
 
+    def test_repeated_sessions_reuse_single_audit_dispatcher(self):
+        from tools.atlas_doctor_lib import runtime_observation as module
+        with tempfile.TemporaryDirectory() as directory:
+            first = RuntimeObserver(Path(directory))
+            second = RuntimeObserver(Path(directory))
+            with first:
+                self.assertIs(module._ACTIVE_AUDIT_REF(), first)
+                with self.assertRaises(RuntimeError):
+                    second.__enter__()
+            self.assertIsNone(module._ACTIVE_AUDIT_REF)
+            with second:
+                self.assertIs(module._ACTIVE_AUDIT_REF(), second)
+            self.assertTrue(module._AUDIT_HOOK_INSTALLED)
+            self.assertIsNone(module._ACTIVE_AUDIT_REF)
+
     def test_bound_enforced_and_bad_markers_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(ValueError):

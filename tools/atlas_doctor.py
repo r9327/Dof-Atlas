@@ -159,12 +159,15 @@ def command_refactor_preview(root: Path, args) -> dict[str, Any]:
 def command_graph_live(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.live_graph import change_snapshot, serve_graph_live
     if args.once:
+        import json
         from tools.atlas_doctor_lib.architecture import graph_status
         graph = graph_status(root)
-        if graph.get("status") != "PASS":
+        if graph.get("status") not in {"PASS", "STALE"}:
             result = {"status": "BLOCKED", "reason": graph.get("reason")}
         else:
-            result = change_snapshot(root, graph["git"]["head"])
+            data = json.loads(Path(graph["graph"]).read_text(encoding="utf-8"))
+            result = change_snapshot(root, data.get("built_at_commit"))
+            result["graph_validation"] = graph["status"]
         if not args.json:
             print(f"Doctor Graphify LIVE status: {result['status']}")
         return result

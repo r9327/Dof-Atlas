@@ -71,6 +71,19 @@ class LiveGraphTests(unittest.TestCase):
                 server.shutdown()
                 thread.join(timeout=3)
 
+    def test_once_accepts_stale_graph_to_report_changes(self):
+        from argparse import Namespace
+        from unittest.mock import patch
+        from tools.atlas_doctor import command_graph_live
+        (self.root / "graphify-out").mkdir()
+        (self.root / "graphify-out/graph.json").write_text(json.dumps({"built_at_commit": self.sha}))
+        self.path.write_text("x = 44\n")
+        with patch("tools.atlas_doctor_lib.architecture.graph_status", return_value={
+                "status": "STALE", "graph": str(self.root / "graphify-out/graph.json")}):
+            result = command_graph_live(self.root, Namespace(once=True, json=True))
+        self.assertEqual(result["status"], "CHANGED")
+        self.assertEqual(result["graph_validation"], "STALE")
+
     def test_rejects_untrusted_git_sha(self):
         self.assertEqual(change_snapshot(self.root, "HEAD;rm -rf .")["status"], "BLOCKED")
 
