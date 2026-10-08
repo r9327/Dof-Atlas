@@ -174,7 +174,7 @@ def _iter_doduda_refs(path: Path):
 
         offset = 0
         while True:
-            while offset < len(buffer) and buffer[offset] in " \\t\\r\\n,":
+            while offset < len(buffer) and buffer[offset] in " \t\r\n,":
                 offset += 1
             if offset >= len(buffer):
                 buffer = stream.read(262144)
