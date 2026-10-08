@@ -275,6 +275,12 @@ The existing Public PR CI and Phase 8 RAM / comparable preload workflows normall
 
 This validation rule is a temporary branch-specific route, **not a replacement** for final Phase 8 certification on `main`. Keep #123 in draft if a workflow fails or a result is absent.
 
+### 117.5-E — Unify identical Quest/Guide normalization
+
+Confirmed identical function bodies on the Graphify branch: `app.quest_catalog.normalize_text` and `app.core.text.normalize_key` previously duplicated the same NFKD / diacritics / ASCII-key normalization. Retain `app.quest_catalog.normalize_text` as a **direct compatibility alias** of the lightweight canonical core function (no extra call overhead). Route `GuidesView` to the core definition directly, avoiding its normalization-only dependency on the full Quest catalogue module.
+
+A targeted test protects the compatibility identity, representative normalized keys and the import boundary. No changed data layout, progress state, cache policy or memory thresholds. The import-only optimization does **not** constitute proof of runtime performance gains; compare exact-SHA tests, Graphify and RAM/preload results. Preserve unrelated Quest catalogue functionality intact.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:

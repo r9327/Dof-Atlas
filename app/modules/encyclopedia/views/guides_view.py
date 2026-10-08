@@ -59,7 +59,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideCardDelegate,
     GuideListModel,
 )
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE, render_theme_template
 
