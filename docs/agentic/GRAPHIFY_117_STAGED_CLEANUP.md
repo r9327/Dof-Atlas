@@ -207,6 +207,36 @@ Revue de code réalisée sur le HEAD initial de la PR #123 `375d5d6d`, **distinc
 
 **Blocage de certification à résoudre après #116 :** la comparaison Git des deux HEAD initiaux indique une divergence depuis `f40b6069` : #116 possède **32 commits** non repris par #123, et #123 **57 commits** non repris par #116. Ne pas merger, rebaser ou écraser les branches à l'aveugle. Rejouer les contrats/Graphify sur le HEAD de convergence réel et vérifier spécifiquement `encyclopedia_page.py`, `progress_service.py`, Guide et preload. Les seuls checks Graphify/AI Context sur l'ancien SHA ne valident **pas** les tests globaux ni le budget mémoire final.
 
+### 117.5 — Hub triage across all nine declared hubs (8 October 2026)
+
+This is a **read-only classification** based on the two available real Graphify artifacts and directly inspected repository code. It is not a new Graphify build for the merged SHA.
+
+Evidence: exact-SHA Graphify artifacts of `d16ca717` (Phase 8) and `375d5d6d` (Graphify); inspected files on the reconciled candidate `a803425e`. The link counts below are **undirected adjacency counts from Graphify**, not distinct source dependencies, errors, or reasons to split classes.
+
+| Canonical hub | Phase 8 links | Graphify links | Decision / source evidence |
+| --- | ---: | ---: | --- |
+| `normalize_text()` | 272 | 271 | KEEP: pure shared text normalization in `app/quest_catalog.py:62`; many legitimate app/tool/test consumers |
+| `QuestCatalog` | 182 | 182 | KEEP: `app/quest_catalog.py:247`; lazy catalogue and short-lived provider references preserve Phase 8 RAM behavior |
+| `QuestRecord` | 174 | 174 | KEEP: `app/quest_catalog.py:199`; canonical record model, not a duplicated progress authority |
+| `load_manual_chapter()` | 158 | 158 | KEEP with performance watch: `guide_ultime_manual_route.py:470-533` has bounded cache / deepcopy / invalidation; changing it needs same-runner RAM, Guide detail and composition tests |
+| `QuestProgressService` | 157 | 157 | KEEP: `quest_progress_service.py:49+` uses path-scoped coordinator, generation and reloading to protect cross-widget persistence |
+| `AtlasWindow` | 137 | 136 | KEEP: `main.py:738+`; high-degree shell orchestrator with deferred factories, no proven cheap low-risk split |
+| `GuidesView` | 135 | 135 | KEEP for this PR: `guides_view.py:1106+` is large but asynchronous image paths / lazy detail ownership are memory-sensitive; a split based only on source length is unjustified |
+| `Guide` | 111 | 111 | KEEP: immutable dataclass in `app/modules/encyclopedia/models/guide.py:13`; required_steps and linked_entities are canonical computed views |
+| `DataStore` | 100 | 100 | KEEP: `local_dofus_data/data_store.py:26` owns SQLite WAL connection/transactions/migrations; do not change schema or lifecycle merely to reduce graph degree |
+
+**Result:** all nine hubs reviewed; **zero evidence-backed hub refactors warranted for this PR**. Any future performance- or bug-proven hotspot belongs in its own bounded PR with benchmarks, not speculative architecture cleanup. Inferred Graphify edges are leads, not consumer proof.
+
+**Orphan triage:** Phase 8 Graphify reports 7 zero-degree graph nodes. The earlier Graphify candidate has 6: `run_guide_ultime_v5.ps1` has been retired; `graphify.ps1`, `install_git_hooks.ps1`, `pre_commit.ps1`, `pre_push.ps1` are external/PowerShell or hook entry points; the two `__init__.py` nodes are package boundaries. No further deletion solely from zero degree.
+
+**Community/cycle evidence:** the Phase 8 artifact records **11,181 nodes / 32,818 relationships / 424 communities / 171 thin**, with **zero detected import cycles**. The Graphify pre-reconciliation artifact records **11,060 / 32,488 / 417 / 177 thin**, with **zero detected import cycles**. These are **different SHAs and code baselines**, so their difference is **not** a valid before/after score for the merged candidate.
+
+### Reconciliation against Phase 8 (PR #116)
+
+The Graphify branch now contains a two-parent integration commit `a803425e`, combining the Graphify head `84d795e` and RAM head `d16ca717`. The root tree was based on the RAM candidate with Graphify's proven changes overlaid; the only overlapping production file, `encyclopedia_page.py`, preserves the RAM-side changes while migrating `ProgressiveQuestsPage` consumers to `LazyQuestsPage`. AI Context fingerprints were regenerated from the combined Git trees.
+
+**Important:** resolving Git conflicts and checking the tree are *not* runtime or CI certification. Before merge, build Graphify from the **actual new HEAD**, run targeted and FULL/required Windows CI, and re-run RAM/preload tests from the integrated candidate. If #116 moves or merges, recheck ancestry/compare to the final new base.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:
