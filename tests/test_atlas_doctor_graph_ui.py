@@ -47,6 +47,38 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertNotIn("setInterval(refreshLive,2500)", html)
         self.assertIn("/api/ping", html)
 
+    def test_can_open_historical_graph_read_only_without_source_confirmed_findings(self):
+        import json
+        import subprocess
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "Atlas"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "doctor@example.invalid"], cwd=root, check=True)
+            (root / "main.py").write_text("pass\n")
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "initial"], cwd=root, check=True)
+            sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+            folder = root / "graphify-out"
+            folder.mkdir()
+            path = folder / "graph.json"
+            path.write_text(json.dumps({
+                "nodes": [{"id": "a", "source_file": "main.py", "label": "main", "community": 0}],
+                "links": [], "built_at_commit": sha,
+            }))
+            evidence = {"status": "STALE", "graph": str(path), "git": {"head": sha}}
+            with patch("tools.atlas_doctor_lib.architecture.graph_status", return_value=evidence):
+                self.assertEqual(export_interactive_graph(root)["status"], "BLOCKED")
+                result = export_interactive_graph(root, allow_stale=True)
+            self.assertEqual(result["status"], "REVIEW")
+            self.assertEqual(result["candidate_sha"], sha)
+            self.assertEqual(result["graph_status"], "STALE")
+            self.assertTrue((folder / "doctor_graph.html").is_file())
+
     def test_labels_cannot_escape_json_script(self):
         graph = {"nodes": [{"id": 1, "label": "</script><img src=x onerror=alert(1)>",
                             "source_file": "app/x.py"}], "links": []}

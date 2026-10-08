@@ -5,6 +5,8 @@ from __future__ import annotations
 An independent local HTML viewer; no server, CDN, Qt runtime or graph rebuild.
 """
 import json
+import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -251,20 +253,40 @@ def render_html(payload: dict[str, Any]) -> str:
     return HTML.replace("__GRAPH_DATA__", encoded)
 
 
-def export_interactive_graph(root: Path, *, trace_path: Path | None = None) -> dict[str, Any]:
+def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
+                             allow_stale: bool = False) -> dict[str, Any]:
     from .architecture import graph_status
-    from .graph_audit import audit_current_graph
+    from .graph_audit import audit_current_graph, inspect_graph
     root = root.resolve()
     status = graph_status(root)
-    if status.get("status") != "PASS":
+    stale = status.get("status") == "STALE"
+    if status.get("status") != "PASS" and not (allow_stale and stale):
         return {"status": "BLOCKED", "reason": status.get("reason"), "graph_status": status.get("status")}
-    graph = json.loads(Path(status["graph"]).read_text(encoding="utf-8"))
+    try:
+        graph = json.loads(Path(status["graph"]).read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeError) as exc:
+        return {"status": "BLOCKED", "reason": str(exc)}
     built_at = graph.get("built_at_commit")
-    if not isinstance(built_at, str) or not status["git"]["head"].startswith(built_at) or len(built_at) < 7:
-        return {"status": "BLOCKED", "reason": "Exact resolved candidate SHA is required."}
-    audit = audit_current_graph(root, graph_evidence=status)
-    if audit["status"] not in {"PASS", "REVIEW"}:
-        return {"status": "BLOCKED", "reason": "Doctor graph audit is not valid."}
+    if not isinstance(built_at, str) or not re.fullmatch(r"[0-9a-fA-F]{7,40}", built_at):
+        return {"status": "BLOCKED", "reason": "Graphify source commit provenance missing."}
+    resolved = subprocess.run(
+        ["git", "rev-parse", "--verify", built_at + "^{commit}"],
+        cwd=root, text=True, capture_output=True, timeout=10, check=False,
+    )
+    if resolved.returncode != 0 or len(resolved.stdout.strip()) != 40:
+        return {"status": "BLOCKED", "reason": "Graphify source commit could not be resolved."}
+    snapshot_commit = resolved.stdout.strip()
+    if not stale and status["git"]["head"] != snapshot_commit:
+        return {"status": "BLOCKED", "reason": "Graphify source commit disagrees with current HEAD."}
+    if stale:
+        # Never validate a historical graph against today's changed source.
+        # Show structural candidates only; no historical graph == current proof.
+        audit = inspect_graph(graph, root=None)
+    else:
+        audit = audit_current_graph(root, graph_evidence=status)
+        if audit["status"] not in {"PASS", "REVIEW"}:
+            return {"status": "BLOCKED", "reason": "Doctor graph audit is not valid."}
+    graph["built_at_commit"] = snapshot_commit
     trace = None
     if trace_path is not None:
         selected_path = trace_path.resolve()
@@ -280,7 +302,8 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None) -> d
     destination = root / "graphify-out" / "doctor_graph.html"
     destination.write_text(render_html(payload), encoding="utf-8")
     return {
-        "status": "PASS", "candidate_sha": status["git"]["head"],
+        "status": "REVIEW" if stale else "PASS",
+        "candidate_sha": snapshot_commit, "graph_status": status["status"],
         "path": str(destination), "trace_status": payload["trace_status"],
         "nodes_shown": len(payload["nodes"]),
         "links_shown": len(payload["edges"]), "truncated": payload["truncated"],

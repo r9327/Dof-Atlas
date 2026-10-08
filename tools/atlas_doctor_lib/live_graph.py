@@ -202,8 +202,8 @@ def serve_graph_live(root: Path, *, port: int = 8765,
     if not 0 <= port <= 65535:
         raise ValueError("Invalid port")
     root = root.resolve()
-    graph = export_interactive_graph(root)
-    if graph.get("status") != "PASS":
+    graph = export_interactive_graph(root, allow_stale=True)
+    if graph.get("status") not in {"PASS", "REVIEW"}:
         return graph
     candidate = graph["candidate_sha"]
     html = Path(graph["path"]).read_text(encoding="utf-8")

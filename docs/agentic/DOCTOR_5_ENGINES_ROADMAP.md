@@ -62,3 +62,7 @@ Le hook Git pré-commit existant ajoute désormais un **indice Doctor non bloqua
 ### Véritable inspection AST différentielle sur événement
 
 L'API locale `graph-live` compare maintenant les imports AST **des fichiers Python modifiés seulement** au contenu exact du commit Graphify ; 12 fichiers, 256 Kio par fichier, 32 imports par sens au maximum. Le panneau du nœud affiche les imports ajoutés/supprimés et leurs lignes ; les erreurs et troncatures sont explicitement signalées. Le graphe statique reste figé jusqu'au rebuild. Aucun cycle de scan permanent ni instrumentation runtime n'est lancé par cette action.
+
+### Graphify LIVE sur worktree déjà modifié
+
+Si la carte Graphify précédente est périmée mais syntaxiquement valide et rattachée à un commit Git existant, **seul le mode LIVE** peut l'afficher comme un instantané `REVIEW` avec les imports AST courants comparés au commit de l'ancien graphe. Les audits Doctor `graph-audit` et `graph-ui` ordinaires conservent la règle stricte `PASS` exact-SHA : aucun résultat historique n'est présenté comme diagnostic source validé sur le code courant.
