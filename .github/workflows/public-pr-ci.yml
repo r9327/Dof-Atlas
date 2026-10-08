@@ -188,6 +188,7 @@ jobs:
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Candidate SHA: ``$env:CANDIDATE_SHA``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Doctor risk: ``${{ steps.doctor_risk.outputs.risk }}``"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Required merge gate: ``Atlas Doctor FAST`` through ``Public PR / Safe Validation``."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Internal Phase PR: changed-test DIFF_TARGETS are deferred to the independent exact-SHA FULL certification, never skipped from certification."
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- MEDIUM/HIGH materialize only the QuestCatalog required by Golden Flows; CRITICAL additionally materializes heavy image fixtures."
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- This workflow is **NOT PHASE CERTIFICATION**."
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- A phase can be declared **CERTIFIED** only after ``Phase Certification / Full Validation`` succeeds on the exact candidate SHA."

@@ -438,6 +438,10 @@ def _required_groups(policy: dict[str, Any], mode: str, classification: dict[str
         mode == "FAST" and os.environ.get("ATLAS_PHASE_PR_PREFLIGHT") == "1"
     )
     if phase_preflight:
+        # This exact-SHA Phase PR must also pass a mandatory FULL certification.
+        # Avoid rerunning every modified test in the preflight: FULL_SUITE and
+        # DIFF_TARGETS in the FULL gate retain exhaustive, blocking coverage.
+        requested.discard("DIFF_TARGETS")
         if classification["risk"] == "CRITICAL":
             requested.update(("TEST_INTEGRITY", "CI_INTEGRITY"))
         if "CI_INTEGRITY" in classification["affected_groups"]:
@@ -726,6 +730,20 @@ def execute_gate(
             "PHASE_PR_PREFLIGHT" if mode == "FAST"
             and os.environ.get("ATLAS_PHASE_PR_PREFLIGHT") == "1"
             else "STANDARD"
+        ),
+        "deferred_to_full": (
+            ["DIFF_TARGETS", *[
+                name for name in policy["groups"]
+                if name not in required
+                and name in {
+                    *policy["risk_requirements"][classification["risk"]],
+                    *classification["affected_groups"],
+                }
+                and name not in {"FULL_SUITE", "DATA_INTEGRITY", "DIFF_TARGETS"}
+            ]]
+            if mode == "FAST"
+            and os.environ.get("ATLAS_PHASE_PR_PREFLIGHT") == "1"
+            else []
         ),
         "evidence_reused_groups": [
             name for name in required

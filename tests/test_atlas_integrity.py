@@ -130,7 +130,10 @@ class AtlasIntegrityGateTests(unittest.TestCase):
             full, _ = self._run("full", paths)
         self.assertEqual(fast["validation_profile"], "PHASE_PR_PREFLIGHT")
         self.assertNotIn("PERSISTENCE", fast["validations_required"])
-        self.assertTrue({"IDENTITY", "DIFF_TARGETS"} <= set(fast["validations_required"]))
+        self.assertIn("IDENTITY", fast["validations_required"])
+        self.assertNotIn("DIFF_TARGETS", fast["validations_required"])
+        self.assertIn("DIFF_TARGETS", fast["deferred_to_full"])
+        self.assertIn("DIFF_TARGETS", full["validations_required"])
         self.assertIn("PERSISTENCE", full["validations_required"])
         self.assertIn("FULL_SUITE", full["validations_required"])
         self.assertEqual(full["validation_profile"], "STANDARD")
@@ -139,9 +142,11 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "1"}):
             fast, _ = self._run("fast", ["tools/atlas_integrity.py"])
         self.assertTrue(
-            {"META_INTEGRITY", "TEST_INTEGRITY", "CI_INTEGRITY", "DIFF_TARGETS"}
+            {"META_INTEGRITY", "TEST_INTEGRITY", "CI_INTEGRITY", "IDENTITY"}
             <= set(fast["validations_required"])
         )
+        self.assertNotIn("DIFF_TARGETS", fast["validations_required"])
+        self.assertIn("DIFF_TARGETS", fast["deferred_to_full"])
 
     def test_full_suite_evidence_reuses_complete_successful_module_group(self) -> None:
         modules = self.policy["groups"]["ARCHITECTURE"]["modules"]
@@ -207,6 +212,20 @@ class AtlasIntegrityGateTests(unittest.TestCase):
             ),
             {},
         )
+
+    def test_normal_fast_keeps_changed_tests_blocking(self) -> None:
+        # A standalone Doctor FAST run and any ordinary PR must still execute
+        # changed modules even if another job happens to run in parallel.
+        with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "0"}):
+            standard, _ = self._run("fast", ["tests/test_atlas_integrity.py"])
+        self.assertIn("DIFF_TARGETS", standard["validations_required"])
+        self.assertEqual(standard["deferred_to_full"], [])
+
+    def test_full_never_delegates_difftargets_to_another_job(self) -> None:
+        with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "1"}):
+            full, _ = self._run("full", ["tests/test_atlas_integrity.py"])
+        self.assertIn("DIFF_TARGETS", full["validations_required"])
+        self.assertEqual(full["deferred_to_full"], [])
 
     def test_critical_failure_blocks_verdict(self) -> None:
         report, _ = self._run(
