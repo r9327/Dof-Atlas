@@ -153,7 +153,7 @@ def find_lookup_item(name: str, index: dict[str, dict[str, Any]]) -> dict[str, A
 def _resolve_character_page() -> type:
     global CharacterPage
     if CharacterPage is None:
-        from app.pages.character_page_modern import CharacterPage as resolved
+        from app.pages.character_page import CharacterPage as resolved
 
         CharacterPage = resolved
     return CharacterPage
