@@ -287,6 +287,14 @@ The focused Graphify workflow performs only Python compilation and targeted modu
 
 This retains executable architecture contracts while eliminating an unnecessary second full Graphify build on each SHA.
 
+### 117.5-F — Decouple Zaap macro from Qt-heavy storage
+
+The Zaap macro imported `read_zaap_button_ratios` directly from `app.storage`, an unrelated UI/Zaap dashboard module that eagerly imports PySide6 widgets. This made an operational macro depend on dashboard/UI implementation for a plain JSON settings read.
+
+Extract the original `parse_unit_ratio` **verbatim** into lightweight `app.core.zaap_shortcuts` and share a single ratio extraction function. Macro reads via `app.core.zaap_shortcuts.read_zaap_button_ratios`, which calls the same resilient JSON reader for the non-profile shortcut path. The existing `app.storage.read_zaap_button_ratios` remains a compatibility wrapper invoking the same parser but keeping its original `read_zaap_shortcuts` dependency and injectable payload behavior.
+
+Targeted tests cover valid/invalid ratios, legacy/core parity, JSON file reading and absence of a direct macro → storage import. RAM or startup improvements are **not asserted** without benchmarks. No macro click, focus, hotkey or persistence writing policy changed.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:

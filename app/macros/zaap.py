@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.macros.input_tools import clipboard_text, press_hotkey, press_key
-from app.storage import read_zaap_button_ratios
+from app.core.zaap_shortcuts import read_zaap_button_ratios
 from app.windows.clicks import send_client_click
 from app.windows.focus import activate_window
 from app.windows.unity_windows import client_point_from_ratio, client_to_screen, is_unity_window
