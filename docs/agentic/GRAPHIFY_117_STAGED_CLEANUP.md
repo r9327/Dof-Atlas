@@ -189,6 +189,24 @@ avoidable imports, or duplicated adapters. High degree alone is not a defect.
 
 Each hub remediation is its own small PR/lot when production behavior changes.
 
+### 117.5 — Première revue ciblée des hubs (8 octobre 2026)
+
+Revue de code réalisée sur le HEAD initial de la PR #123 `375d5d6d`, **distinct** du HEAD RAM #116 `6c2f6b9a`. Il s'agit d'une première classification, **pas** d'une certification exhaustive Graphify 117.5.
+
+| Hub / domaine | Indices vérifiés dans le code #123 | Décision à ce stade |
+| --- | --- | --- |
+| `normalize_text()` | fonction pure `app/quest_catalog.py:62`, utilisée par `guides_view.py` ; normalisation fonctionnelle métier | **KEEP**, aucun split cosmétique |
+| `QuestCatalog` / `QuestRecord` | modèles `app/quest_catalog.py:199,247`, catalogue lazy branché depuis `quest_provider.py:19-51` | **KEEP**, chargement à la demande et références faibles critiques RAM |
+| `load_manual_chapter()` | `guide_ultime_manual_route.py:470-533`, copie défensive, invalidation des signatures, limite de cache 96 entrées | **REVIEW**, ne pas changer le cache sans mesure process-tree/Guide et contrats de composition |
+| `GuidesView` | `guides_view.py:1106`, même module `~4100` lignes, helpers VM tardifs et chargement images asynchrone | **REVIEW**, séparation éventuelle par responsabilité uniquement après preuve des consommateurs et comparaison RAM |
+| `AtlasWindow` | `main.py:738`, factories différées `main.py:153-206`, pilotage lifecycle/preload | **KEEP provisoire**, aucune extraction avant stabilisation et replay des benchmarks RAM #116 |
+| Progression Quêtes/Succès | `progress_service.py:207-260,549-588`, synchro dérivée, caches invalidés lors de sauvegarde | **REVIEW**, protéger la source de vérité et l'atomicité ; pas de fusion de services sans preuve |
+| `DataStore`, `Guide`, autres hubs | chemins et consommateurs non établis lors de cette passe | **NOT REVIEWED**, à tracer dans le graphe exact-SHA et les sources avant verdict |
+
+**Lot 117.5-A effectué en parallèle :** registre `tools/guide_tools_status.py` complété pour inclure l'ancien module `validate_guide_ultime_manual_transversals_v15` ; `tests/test_guide_tools_status.py` couvre désormais l'existence des modules canoniques et l'absence des outils déclarés retirés. Ce correctif ne modifie **aucun runtime / cache / preload**.
+
+**Blocage de certification à résoudre après #116 :** la comparaison Git des deux HEAD initiaux indique une divergence depuis `f40b6069` : #116 possède **32 commits** non repris par #123, et #123 **57 commits** non repris par #116. Ne pas merger, rebaser ou écraser les branches à l'aveugle. Rejouer les contrats/Graphify sur le HEAD de convergence réel et vérifier spécifiquement `encyclopedia_page.py`, `progress_service.py`, Guide et preload. Les seuls checks Graphify/AI Context sur l'ancien SHA ne valident **pas** les tests globaux ni le budget mémoire final.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:
