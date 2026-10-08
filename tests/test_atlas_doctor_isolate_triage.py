@@ -76,6 +76,42 @@ class IsolateTriageTests(unittest.TestCase):
         self.assertEqual(second["limits"]["community_total"],37)
         self.assertEqual(second["limits"]["unreported_communities"],0)
 
+
+    def test_orphan_nodes_and_triage_page_beyond_first_30(self):
+        import hashlib
+        from tools.atlas_doctor_lib.graph_audit import inspect_graph
+        graph = {"nodes": [{"id": str(i), "source_file": f"app/orphan_{i:02d}.py",
+                            "file_type": "code", "community": i} for i in range(37)],
+                 "links": []}
+        first = inspect_graph(graph, orphan_offset=0)
+        second = inspect_graph(graph, orphan_offset=30)
+        self.assertEqual(len(first["orphan_nodes"]), 30)
+        self.assertEqual(len(second["orphan_nodes"]), 7)
+        self.assertEqual(second["limits"]["orphan_total"], 37)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            output = root / "graph.json"
+            output.write_text(json.dumps(graph), encoding="utf-8")
+            signature = hashlib.sha256(output.read_bytes()).hexdigest()
+            evidence = {"status": "PASS", "graph": str(output),
+                        "graph_signature": signature}
+            review = {"static_confirmed_count": 0, "dynamic_lead_count": 0,
+                      "candidate_files": 0, "truncated": False, "source_errors": []}
+            rows = []
+            cursor = 0
+            with patch("tools.atlas_doctor_lib.architecture.graph_status", return_value=evidence), \\
+                 patch("tools.atlas_doctor_lib.consumer_sites.inspect_consumer_sites", return_value=review):
+                while True:
+                    page = triage_isolates(root, kind="orphan", limit=10, offset=cursor)
+                    rows.extend(row["file"] for row in page["findings"])
+                    if page["next_offset"] is None:
+                        break
+                    self.assertGreater(page["next_offset"], cursor)
+                    cursor = page["next_offset"]
+            self.assertEqual(len(rows), 37)
+            self.assertEqual(len(set(rows)), 37)
+            self.assertFalse(page["dead_code_proven"])
+
     def test_scan_budget_rejects_excessive_work(self):
         with self.assertRaises(ValueError):
             triage_isolates(Path("."),limit=100)

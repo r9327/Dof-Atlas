@@ -61,8 +61,8 @@ def _confirm_import(root: Path, source: str, target: str) -> bool:
     return False
 
 
-def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offset: int = 0, community_offset: int = 0) -> dict[str, Any]:
-    if weak_offset < 0 or community_offset < 0:
+def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offset: int = 0, community_offset: int = 0, orphan_offset: int = 0) -> dict[str, Any]:
+    if weak_offset < 0 or community_offset < 0 or orphan_offset < 0:
         raise ValueError("Candidate offsets must be nonnegative")
     """Bounded O(nodes + links) architectural diagnosis with explicit evidence."""
     basic = summarize_graph(graph)  # strict missing/duplicate nodes and dangling links
@@ -235,13 +235,15 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offse
             "cross_community_pairs": len(cross_communities), "high_fanout_app_files": len(hubs),
             "confirmed_runtime_to_tools_imports": len(confirmed),
         },
-        "orphan_nodes": orphan[:MAX_CANDIDATES], "isolated_communities": standalone[community_offset:community_offset+MAX_CANDIDATES],
+        "orphan_nodes": orphan[orphan_offset:orphan_offset + MAX_CANDIDATES], "isolated_communities": standalone[community_offset:community_offset+MAX_CANDIDATES],
         "weak_production_candidates": weak[weak_offset:weak_offset + MAX_CANDIDATES],
         "high_fanout_files": hubs[:MAX_CANDIDATES], "cross_community_bridges": bridges[:MAX_CANDIDATES],
         "limits": {
             "max_candidates_per_section": MAX_CANDIDATES,
             "unreported_weak_nodes": max(0, len(weak) - weak_offset - MAX_CANDIDATES),
             "weak_offset": weak_offset, "weak_total": len(weak),
+            "orphan_offset": orphan_offset, "orphan_total": len(orphan),
+            "unreported_orphan_nodes": max(0, len(orphan) - orphan_offset - MAX_CANDIDATES),
             "community_total": len(standalone), "community_offset": community_offset,
             "unreported_communities": max(0, len(standalone)-community_offset-MAX_CANDIDATES),
             "no_automatic_deletion_or_merge": True,

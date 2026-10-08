@@ -34,7 +34,9 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
         if hashlib.sha256(raw_bytes).hexdigest() != graph["graph_signature"]:
             raise ValueError("Graph fingerprint changed; no stale evidence.")
         raw = json.loads(raw_bytes)
-        if kind == 'weak':
+        if kind == 'orphan':
+            audit = inspect_graph(raw, root=root, orphan_offset=offset)
+        elif kind == 'weak':
             audit = inspect_graph(raw, root=root, weak_offset=offset)
         elif kind == 'community':
             audit = inspect_graph(raw, root=root, community_offset=offset)
@@ -47,7 +49,7 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
     inspected_rows = 0
     groups: list[tuple[str, list[dict[str, Any]]]] = []
     if kind in {"mixed", "orphan"}:
-        groups.append(("ISOLATED_NODE", audit["orphan_nodes"][offset:] if kind == "orphan" else audit["orphan_nodes"]))
+        groups.append(("ISOLATED_NODE", audit["orphan_nodes"]))
     if kind in {"mixed", "weak"}:
         groups.append(("WEAK_NODE", audit["weak_production_candidates"]))
     if kind == "community":
@@ -69,7 +71,7 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
         if len(picked) >= limit:
             break
     raw_total = ((audit.get("limits") or {}).get("weak_total") if kind == "weak"
-                 else len(audit["orphan_nodes"]) if kind == "orphan"
+                 else (audit.get("limits") or {}).get("orphan_total", len(audit["orphan_nodes"])) if kind == "orphan"
                  else (audit.get("limits") or {}).get("community_total", len(audit["isolated_communities"])) if kind == "community"
                  else None)
     next_offset = (offset + inspected_rows if isinstance(raw_total, int)
@@ -95,5 +97,5 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
         "truncated": bool(next_offset) or (kind == "mixed" and (inspected_rows < len(audit["orphan_nodes"]) + len(audit["weak_production_candidates"]) or bool((audit.get("limits") or {}).get("unreported_weak_nodes")))),
         "findings": entries, "next_offset": next_offset, "candidate_total_raw": raw_total,
         "next_action": "Inspect tests, plugin entries, Qt signal bindings and runtime traces before any deletion.",
-        "coverage": "Bounded 30-item candidate window; --kind weak --offset paginates raw nodes. Not proof of dead code.",
+        "coverage": "Bounded 30-item candidate window; --kind orphan/weak/community --offset pages raw candidates. Not proof of dead code.",
     }
