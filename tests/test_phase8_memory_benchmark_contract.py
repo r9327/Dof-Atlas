@@ -58,6 +58,18 @@ def test_memory_benchmark_avoids_sampler_observer_effect_during_external_warmup(
     assert "time.sleep(0.02)" in source
 
 
+def test_memory_benchmark_counts_external_warmup_process_tree() -> None:
+    benchmark = BENCHMARK.read_text(encoding="utf-8")
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    assert 'DOFUS_ATLAS_WARMUP_PID' in benchmark
+    assert 'DOFUS_ATLAS_WARMUP_PID' in workflow
+    assert '_descendant_rows(warmup_pid, rows)' in benchmark
+    assert 'counted_pids.add(row.pid)' in benchmark
+    assert 'child_mb + warmup_mb' in benchmark
+    assert 'and not bool(os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip())' in benchmark
+
+
+
 def test_memory_benchmark_opens_real_guide_detail_before_home() -> None:
     source = BENCHMARK.read_text(encoding="utf-8")
     assert 'GUIDE_DETAIL_BENCHMARK_ID = "guide_complet"' in source

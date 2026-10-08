@@ -189,6 +189,8 @@ def memory_snapshot(label: str) -> dict[str, Any]:
         "child_rss_mb": 0.0,
         "child_count": 0,
         "children": [],
+        "warmup_rss_mb": 0.0,
+        "warmup_process_count": 0,
     }
     if os.name != "nt":
         return payload
@@ -215,8 +217,38 @@ def memory_snapshot(label: str) -> dict[str, Any]:
     payload["child_count"] = len(child_rows)
     payload["child_rss_mb"] = child_mb
     payload["children"] = child_rows[:12]
+
+    # Production's cache warmer is launched by the wrapper, so it is a
+    # sibling of Atlas, not a descendant. Include its live process tree while
+    # both are running or the startup peak would be systematically hidden.
+    raw_warmup_pid = os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip()
+    warmup_pid = int(raw_warmup_pid) if raw_warmup_pid.isdecimal() else 0
+    warmup_total = 0
+    warmup_count = 0
+    if warmup_pid > 0:
+        root_row = next(
+            (
+                row for row in rows
+                if row.pid == warmup_pid and row.name.lower().startswith("python")
+            ),
+            None,
+        )
+        if root_row is not None:
+            counted_pids = {os.getpid(), *(row.pid for row in descendants)}
+            for row in (root_row, *_descendant_rows(warmup_pid, rows)):
+                if row.pid in counted_pids:
+                    continue
+                counted_pids.add(row.pid)
+                rss = _windows_process_rss_bytes(row.pid)
+                if rss is None:
+                    continue
+                warmup_total += rss
+                warmup_count += 1
+    warmup_mb = round(warmup_total / _MB, 2)
+    payload["warmup_rss_mb"] = warmup_mb
+    payload["warmup_process_count"] = warmup_count
     if process_rss_mb is not None:
-        payload["tree_rss_mb"] = round(float(process_rss_mb) + child_mb, 2)
+        payload["tree_rss_mb"] = round(float(process_rss_mb) + child_mb + warmup_mb, 2)
     return payload
 
 
@@ -430,9 +462,12 @@ def measure() -> dict[str, Any]:
     # large observer-effect heap inside the process being measured. Defer the
     # tree sampler until Atlas can actually spawn its own preload children; the
     # OS-reported PeakWorkingSetSize still preserves the parent startup peak.
+    # CI supplies a verified warmup PID: sample from startup to include the
+    # concurrent sibling. Legacy token-only sessions keep the old lazy sampler
+    # to avoid observer overhead when the external process cannot be tracked.
     defer_tree_sampler = bool(
         os.environ.get("DOFUS_ATLAS_CACHE_WARMUP_TOKEN", "").strip()
-    )
+    ) and not bool(os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip())
     if not defer_tree_sampler:
         sampler.start()
 
