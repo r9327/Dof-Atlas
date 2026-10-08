@@ -61,7 +61,9 @@ def _confirm_import(root: Path, source: str, target: str) -> bool:
     return False
 
 
-def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[str, Any]:
+def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offset: int = 0) -> dict[str, Any]:
+    if weak_offset < 0:
+        raise ValueError("weak_offset must be nonnegative")
     """Bounded O(nodes + links) architectural diagnosis with explicit evidence."""
     basic = summarize_graph(graph)  # strict missing/duplicate nodes and dangling links
     nodes = {node["id"]: node for node in graph["nodes"]}
@@ -234,11 +236,12 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[st
             "confirmed_runtime_to_tools_imports": len(confirmed),
         },
         "orphan_nodes": orphan[:MAX_CANDIDATES], "isolated_communities": standalone[:MAX_CANDIDATES],
-        "weak_production_candidates": weak[:MAX_CANDIDATES],
+        "weak_production_candidates": weak[weak_offset:weak_offset + MAX_CANDIDATES],
         "high_fanout_files": hubs[:MAX_CANDIDATES], "cross_community_bridges": bridges[:MAX_CANDIDATES],
         "limits": {
             "max_candidates_per_section": MAX_CANDIDATES,
-            "unreported_weak_nodes": max(0, len(weak) - MAX_CANDIDATES),
+            "unreported_weak_nodes": max(0, len(weak) - weak_offset - MAX_CANDIDATES),
+            "weak_offset": weak_offset, "weak_total": len(weak),
             "no_automatic_deletion_or_merge": True,
             "undirected_graph_cycles": "NOT_COMPUTED",
             "community_report_omissions_are_not_raw_small_communities": True,
@@ -248,7 +251,8 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[st
 
 
 def audit_current_graph(
-    root: Path, *, graph_evidence: dict[str, Any] | None = None, deep: bool = False
+    root: Path, *, graph_evidence: dict[str, Any] | None = None,
+    deep: bool = False, weak_offset: int = 0
 ) -> dict[str, Any]:
     """Refuse stale graphs; reuse a validated status to avoid repeat Git work."""
     root = root.resolve()
@@ -263,7 +267,7 @@ def audit_current_graph(
         if hashlib.sha256(content).hexdigest() != status["graph_signature"]:
             raise ValueError("Graph changed during audit; rebuild/retry required.")
         raw = json.loads(content)
-        result = inspect_graph(raw, root=root)
+        result = inspect_graph(raw, root=root, weak_offset=weak_offset)
         from .graph_intelligence import (
             inspect_import_cycles, analyze_community_boundaries,
             inspect_consumers, correlate_performance, remediation_plan,

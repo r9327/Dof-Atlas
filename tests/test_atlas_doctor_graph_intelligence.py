@@ -106,6 +106,22 @@ class GraphIntelligenceTests(unittest.TestCase):
             self.assertEqual(none["reviewed"][0]["classification"], "NO_EXTERNAL_TEXT_MATCH_UNPROVEN")
             self.assertFalse(none["reviewed"][0]["confirmed_dead_code"])
 
+    def test_graphify_method_labels_are_searched_without_claiming_binding(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            path = root / "app/core"
+            path.mkdir(parents=True)
+            (path / "owner.py").write_text("def publish_status(): pass\n", encoding="utf-8")
+            (path / "user.py").write_text("obj.publish_status()\n", encoding="utf-8")
+            subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+            scan = inspect_consumers(root, [{"file": "app/core/owner.py", "symbol": ".publish_status()"}])
+            self.assertEqual(len(scan["reviewed"]), 1)
+            item = scan["reviewed"][0]
+            self.assertEqual(item["normalized_symbol"], "publish_status")
+            self.assertEqual(item["classification"], "POSSIBLE_EXTERNAL_CONSUMER")
+            self.assertFalse(item["confirmed_dead_code"])
+
     def test_missing_memory_metrics_are_explicitly_unavailable(self):
         with tempfile.TemporaryDirectory() as folder:
             self.assertEqual(correlate_performance(Path(folder), "a" * 40)["status"], "UNAVAILABLE")

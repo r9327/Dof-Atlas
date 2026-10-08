@@ -234,13 +234,23 @@ def compare_graphs(before: dict[str, Any], after: dict[str, Any]) -> dict[str, A
     }
 
 
+def _candidate_symbol(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    # Graphify emits Python method labels as ".publish_status()" rather than
+    # identifiers. Use only names for searching; a name match is not binding proof.
+    token = value.strip().removeprefix(".").removesuffix("()")
+    generic = {"init", "__init__", "run", "start", "end", "wait", "ok", "open", "close", "get", "set"}
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{3,}", token) or token in generic:
+        return None
+    return token
+
+
 def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: int = 20) -> dict[str, Any]:
     """Bounded full tracked-source name sweep; no negative proof of dead code."""
     subset = [
-        row for row in candidates
-        if _production(_path(row.get("file"))) and isinstance(row.get("symbol"), str)
-        and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{4,}", row["symbol"])
-        and not row["symbol"].endswith(".py")
+        (row, _candidate_symbol(row.get("symbol"))) for row in candidates
+        if _production(_path(row.get("file"))) and _candidate_symbol(row.get("symbol"))
     ][:limit]
     if not subset:
         return {"status": "PASS", "reviewed": [], "files_checked": 0, "scan_complete": True}
@@ -254,7 +264,7 @@ def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: in
     if completed.returncode != 0:
         return {"status": "BLOCKED", "reason": completed.stderr.decode(errors="replace")[-500:], "reviewed": [], "scan_complete": False}
     tracked = sorted(p.decode("utf-8", errors="replace") for p in completed.stdout.split(b"\0") if p)
-    names = sorted({row["symbol"] for row in subset}, key=len, reverse=True)
+    names = sorted({name for _, name in subset}, key=len, reverse=True)
     pattern = re.compile(r"\b(?:" + "|".join(re.escape(name) for name in names) + r")\b")
     findings: dict[str, list[dict[str, Any]]] = {name: [] for name in names}
     errors = []
@@ -281,19 +291,19 @@ def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: in
             if len(findings[name]) >= 8:
                 continue
             rows = [
-                (index, line.strip()[:150]) for index, line in enumerate(source.splitlines(), 1)
+                index for index, line in enumerate(source.splitlines(), 1)
                 if re.search(r"\b" + re.escape(name) + r"\b", line)
             ]
-            for line, excerpt in rows[:max(0, 8 - len(findings[name]))]:
+            for line in rows[:max(0, 8 - len(findings[name]))]:
                 findings[name].append({
                     "file": safe, "line": line,
                     "kind": "SOURCE_TEXT_MATCH_UNVERIFIED_BINDING",
                 })
     reviewed = []
-    for row in subset:
-        references = [item for item in findings[row["symbol"]] if item["file"] != row["file"]]
+    for row, name in subset:
+        references = [item for item in findings[name] if item["file"] != row["file"]]
         reviewed.append({
-            "file": row["file"], "symbol": row["symbol"],
+            "file": row["file"], "symbol": row["symbol"], "normalized_symbol": name,
             "classification": "POSSIBLE_EXTERNAL_CONSUMER" if references else "NO_EXTERNAL_TEXT_MATCH_UNPROVEN",
             "references": references[:8], "confirmed_dead_code": False,
             "next_action": "Verify dynamic Qt callbacks, entry points, native code and external consumers before removal.",
@@ -301,6 +311,7 @@ def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: in
     return {
         "status": "REVIEW" if reviewed else "PASS",
         "reviewed": reviewed, "files_checked": count,
+        "candidate_limit": limit, "eligible_candidates": len(subset),
         "scan_complete": not errors,
         "unreadable_or_skipped": errors[:10],
         "scope": "Tracked Python, PowerShell and batch source text. Text matches do not prove symbol binding; absence never proves dead code.",

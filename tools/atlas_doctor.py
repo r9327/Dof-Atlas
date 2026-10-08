@@ -115,7 +115,9 @@ def command_graph(root: Path, args) -> dict[str, Any]:
 
 def command_graph_audit(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.graph_audit import audit_current_graph
-    result = audit_current_graph(root, deep=getattr(args, "deep", False))
+    result = audit_current_graph(
+        root, deep=getattr(args, "deep", False), weak_offset=getattr(args, "offset", 0)
+    )
     if not args.json:
         metrics = result.get("metrics") or {}
         print(f"Doctor + Graphify audit : {result['status']}")
@@ -369,6 +371,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
+    ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
     gc = sub.add_parser('graph-compare', help='Comparer l’ancien graph.json à celui du HEAD actuel.')
     gc.add_argument('--baseline', required=True, type=Path)
     graph = sub.add_parser('graph', help='Architecture Graphify; lecture du graph par defaut.')
