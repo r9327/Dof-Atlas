@@ -15,6 +15,24 @@ MAX_FUNCTIONS = 4000
 MAX_FINDINGS = 80
 
 
+def _shape(node: Any) -> Any:
+    """Similar syntax is a review lead, never equivalent behavior."""
+    if isinstance(node, ast.Name):
+        return ("Name", type(node.ctx).__name__)
+    if isinstance(node, ast.arg):
+        return ("arg",)
+    if isinstance(node, ast.Constant):
+        return ("Constant", type(node.value).__name__)
+    if isinstance(node, ast.AST):
+        return (type(node).__name__, tuple(
+            (field, _shape(value)) for field, value in ast.iter_fields(node)
+        ))
+    if isinstance(node, list):
+        return tuple(_shape(item) for item in node)
+    return node
+
+
+
 def _relative(root: Path, value: str) -> str | None:
     path = Path(value.replace("\\", "/"))
     if path.is_absolute() or ".." in path.parts:
@@ -42,6 +60,7 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
         return {"status": "BLOCKED", "reason": "Invalid or missing Python paths", "paths": invalid[:10]}
     selected = [path for path in selected if path is not None]
     inspected, errors, functions, silent, lineage = [], [], defaultdict(list), [], []
+    similar: dict[str, list[dict[str, Any]]] = defaultdict(list)
     function_count = 0
     function_cap_reached = False
     for path in selected[:MAX_FILES]:
@@ -65,7 +84,11 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
                 # syntax itself is identical. Near-duplicates need human review.
                 body = ast.Module(body=node.body, type_ignores=[])
                 fingerprint = hashlib.sha256(ast.dump(body, include_attributes=False).encode()).hexdigest()
-                functions[fingerprint].append({"path": path, "line": node.lineno, "symbol": node.name})
+                item = {"path": path, "line": node.lineno, "symbol": node.name}
+                functions[fingerprint].append(item)
+                if len(node.body) >= 3 and sum(1 for _ in ast.walk(body)) >= 18:
+                    shape_key = hashlib.sha256(repr(_shape(body)).encode()).hexdigest()
+                    similar[shape_key].append({**item, "exact": fingerprint})
             if isinstance(node, ast.ExceptHandler):
                 content = [item for item in node.body if not (
                     isinstance(item, ast.Expr) and isinstance(item.value, ast.Constant)
@@ -91,26 +114,37 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
         and len({(x["path"], x["line"]) for x in rows}) > 1
     ]
     duplicates.sort(key=lambda item: (-len(item["occurrences"]), item["occurrences"][0]["path"]))
+    near = [
+        {"kind": "SIMILAR_AST_SHAPE", "occurrences": [
+            {k: row[k] for k in ("path", "line", "symbol")} for row in rows
+        ], "review_only": True, "semantic_equivalence_proven": False}
+        for rows in similar.values() if len(rows) > 1
+        and len({row["exact"] for row in rows}) > 1
+    ]
+    near.sort(key=lambda x: (-len(x["occurrences"]), x["occurrences"][0]["path"]))
     truncated = (len(selected) > MAX_FILES or function_cap_reached or bool(errors)
-                 or len(duplicates) > MAX_FINDINGS
+                 or len(duplicates) > MAX_FINDINGS or len(near) > MAX_FINDINGS
                  or len(silent) > MAX_FINDINGS or len(lineage) > MAX_FINDINGS)
     return {
         "status": "REVIEW" if truncated else "PASS",
         "paths_inspected": inspected, "requested_count": len(requested),
         "parse_errors": errors[:MAX_FINDINGS], "duplicate_bodies": duplicates[:MAX_FINDINGS],
+        "near_duplicate_candidates": near[:MAX_FINDINGS],
         "silent_exceptions": silent[:MAX_FINDINGS],
         "data_lineage_candidates": lineage[:MAX_FINDINGS],
         "counts": {"functions": function_count,
-                   "duplicate_groups": len(duplicates), "silent_exceptions": len(silent),
+                   "duplicate_groups": len(duplicates), "near_duplicate_groups": len(near),
+                   "silent_exceptions": len(silent),
                    "literal_json_references": len(lineage)},
         "truncated": truncated,
         "budgets": {"max_files": MAX_FILES, "max_source_bytes": MAX_SOURCE_BYTES,
                     "max_function_bodies": MAX_FUNCTIONS, "function_limit_reached": function_cap_reached},
-        "limits": "Bounded AST only; oversized and unreadable sources are explicit REVIEW, never scanned as complete.",
+        "limits": "Bounded AST only; oversized sources are REVIEW; near duplicates are review leads, not safe automatic edits.",
     }
 
 
-def graph_reachability(graph: dict[str, Any], entrypoints: list[str]) -> dict[str, Any]:
+def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
+                       trace: dict[str, Any] | None = None) -> dict[str, Any]:
     """Conservative reachability over extracted import edges in Graphify data."""
     nodes = {item["id"]: item for item in graph.get("nodes", [])}
     files = {item.get("source_file") for item in nodes.values()
@@ -127,6 +161,30 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str]) -> dict[st
         source, target = first.get("source_file"), second.get("source_file")
         if isinstance(source, str) and isinstance(target, str) and source != target:
             adjacency[source].add(target)
+    trace_sha, graph_sha = ((trace or {}).get("candidate_sha"),
+                            graph.get("built_at_commit"))
+    events = (trace or {}).get("events", [])
+    valid_trace = (trace is not None and isinstance(graph_sha, str)
+                   and len(graph_sha) == 40 and trace_sha == graph_sha
+                   and trace.get("worktree_clean") is True
+                   and trace.get("truncated") is False
+                   and isinstance(events, list) and len(events) <= 50000)
+    runtime_pairs: set[tuple[str, str]] = set()
+    qt_registered: set[str] = set()
+    if valid_trace:
+        for item in events:
+            if not isinstance(item, dict):
+                continue
+            source, target = item.get("source"), item.get("target")
+            if not isinstance(source, str) or not isinstance(target, str):
+                continue
+            if source not in files or target not in files or source == target:
+                continue
+            if item.get("type") == "python_call_edge":
+                adjacency[source].add(target)
+                runtime_pairs.add((source, target))
+            elif item.get("type") == "qt_signal_connect_returned":
+                qt_registered.add(target)
     known = sorted(set(entrypoints) & files)
     visited = set(known)
     frontier = deque(known)
@@ -137,13 +195,17 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str]) -> dict[st
                 frontier.append(target)
     missing = sorted(set(entrypoints) - files)
     return {
-        "status": "REVIEW" if missing else "PASS",
+        "status": "REVIEW" if missing or (trace is not None and not valid_trace) else "PASS",
         "entrypoints_found": known, "entrypoints_missing_from_graph": missing,
         "reachable_files": len(visited), "graph_files": len(files),
         "unreached_candidates": sorted(files - visited)[:MAX_FINDINGS],
         "unreached_total": len(files - visited),
+        "runtime_trace_status": ("NOT_PROVIDED" if trace is None else
+                                 "MATCHED" if valid_trace else "STALE_OR_INCOMPLETE"),
+        "observed_python_call_edges": len(runtime_pairs),
+        "qt_registered_but_not_invoked_candidates": sorted(qt_registered)[:MAX_FINDINGS],
         "proof_of_dead_code": False,
-        "coverage": "Extracted static imports only; dynamic imports, Qt callbacks and entrypoints not listed remain unknown.",
+        "coverage": "Static imports and opt-in exact-SHA observed Python calls; Qt registration is not invocation. Unobserved never means dead.",
     }
 
 
@@ -177,7 +239,8 @@ def architectural_guardrails(
 
 def inspect_code(root: Path, *, paths: list[str],
                  entrypoints: list[str] | None = None,
-                 baseline: Path | None = None) -> dict[str, Any]:
+                 baseline: Path | None = None,
+                 trace_path: Path | None = None) -> dict[str, Any]:
     from .architecture import graph_status
     root = root.resolve()
     source = scan_sources(root, paths)
@@ -188,7 +251,19 @@ def inspect_code(root: Path, *, paths: list[str],
         try:
             graph = json.loads(Path(graph_evidence["graph"]).read_text(encoding="utf-8"))
             old = json.loads(baseline.read_text(encoding="utf-8")) if baseline else None
-            reach = graph_reachability(graph, entrypoints or ["main.py", "tools/atlas_doctor.py"])
+            trace = None
+            if trace_path is not None:
+                selected = trace_path.resolve()
+                if not selected.is_relative_to(root / ".ai" / "runtime"):
+                    raise ValueError("Runtime trace must stay in .ai/runtime")
+                if not selected.is_file() or selected.stat().st_size > 10_000_000:
+                    raise ValueError("Runtime trace missing or exceeds 10 MB")
+                trace = json.loads(selected.read_text(encoding="utf-8"))
+                if not isinstance(trace, dict):
+                    raise ValueError("Invalid runtime trace JSON")
+            reach = graph_reachability(
+                graph, entrypoints or ["main.py", "tools/atlas_doctor.py"], trace=trace
+            )
             rules = architectural_guardrails(graph, old)
             # Source confirmation already exists in graph_audit, do not duplicate it.
             from .graph_audit import inspect_graph

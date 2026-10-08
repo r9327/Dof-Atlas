@@ -84,6 +84,54 @@ class DeepIntelligenceTests(unittest.TestCase):
         self.assertFalse(report["proof_of_dead_code"])
         self.assertEqual(report["status"], "REVIEW")
 
+    def test_near_duplicates_are_not_semantically_proven(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "a.py").write_text(
+                "def price(items):\n    subtotal = 0\n"
+                "    for item in items:\n        subtotal += item\n    return subtotal\n")
+            (root / "b.py").write_text(
+                "def total(values):\n    amount = 0\n"
+                "    for value in values:\n        amount += value\n    return amount\n")
+            report = scan_sources(root, ["a.py", "b.py"])
+            self.assertEqual(report["counts"]["duplicate_groups"], 0)
+            self.assertEqual(report["counts"]["near_duplicate_groups"], 1)
+            self.assertTrue(report["near_duplicate_candidates"][0]["review_only"])
+            self.assertFalse(report["near_duplicate_candidates"][0]["semantic_equivalence_proven"])
+
+    def test_runtime_reachability_requires_valid_provenance(self):
+        sha = "a" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "main.py"},
+                           {"id": 2, "source_file": "app/first.py"},
+                           {"id": 3, "source_file": "app/dynamic.py"}],
+                 "links": [{"source": 1, "target": 2, "relation": "imports",
+                            "confidence": "EXTRACTED", "_origin": "ast"}]}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [{"type": "python_call_edge", "source": "app/first.py",
+                             "target": "app/dynamic.py"}]}
+        actual = graph_reachability(graph, ["main.py"], trace=trace)
+        self.assertEqual(actual["runtime_trace_status"], "MATCHED")
+        self.assertEqual(actual["observed_python_call_edges"], 1)
+        self.assertEqual(actual["unreached_total"], 0)
+        trace["worktree_clean"] = False
+        stale = graph_reachability(graph, ["main.py"], trace=trace)
+        self.assertEqual(stale["status"], "REVIEW")
+        self.assertEqual(stale["unreached_candidates"], ["app/dynamic.py"])
+        self.assertFalse(stale["proof_of_dead_code"])
+
+    def test_qt_connect_is_not_callback_execution(self):
+        sha = "b" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "main.py"},
+                           {"id": 2, "source_file": "app/slot.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [{"type": "qt_signal_connect_returned", "source": "main.py",
+                             "target": "app/slot.py"}]}
+        result = graph_reachability(graph, ["main.py"], trace=trace)
+        self.assertEqual(result["unreached_candidates"], ["app/slot.py"])
+        self.assertEqual(result["qt_registered_but_not_invoked_candidates"], ["app/slot.py"])
+
     def test_old_architecture_debt_is_separate(self):
         g = {"nodes": [
             {"id": "a", "source_file": "app/a.py"},

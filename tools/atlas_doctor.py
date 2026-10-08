@@ -244,11 +244,12 @@ def command_code_inspect(root: Path, args) -> dict[str, Any]:
         paths.extend(atlas_integrity.changed_files(root, args.base_ref))
     paths = sorted({p for p in paths if p.endswith(".py") and (root / p).is_file()})
     payload = inspect_code(root, paths=paths, entrypoints=args.entrypoint,
-                           baseline=args.baseline)
+                           baseline=args.baseline, trace_path=args.trace)
     if not args.json:
         summary = payload.get("source") or {}
         print(f"Doctor code-inspect: {payload['status']} | {len(summary.get('paths_inspected', []))} Python files")
-        print(f"Duplicates: {(summary.get('counts') or {}).get('duplicate_groups', 0)} | "
+        print(f"Exact duplicates: {(summary.get('counts') or {}).get('duplicate_groups', 0)} | "
+              f"Near-duplicate review: {(summary.get('counts') or {}).get('near_duplicate_groups', 0)} | "
               f"Silent error candidates: {(summary.get('counts') or {}).get('silent_exceptions', 0)}")
         print("No tests executed; Graphify is never rebuilt implicitly.")
     return payload
@@ -526,6 +527,7 @@ def build_parser() -> argparse.ArgumentParser:
     ci.add_argument('--base-ref', help='Inclure les fichiers modifies depuis la reference.')
     ci.add_argument('--entrypoint', action='append', help='Point entree connu (plusieurs possibles).')
     ci.add_argument('--baseline', type=Path, help='Ancien Graphify graph.json pour comparaison.')
+    ci.add_argument('--trace', type=Path, help='Trace opt-in .ai/runtime du même commit.')
     gc = sub.add_parser('graph-compare', help='Comparer l’ancien graph.json à celui du HEAD actuel.')
     gc.add_argument('--baseline', required=True, type=Path)
     graph = sub.add_parser('graph', help='Architecture Graphify; lecture du graph par defaut.')
