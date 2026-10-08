@@ -245,6 +245,14 @@ The Graphify branch now contains a two-parent integration commit `a803425e`, com
 
 **Gate:** run targeted Guide tests, Graphify on candidate SHA, Public PR CI and Phase 8 memory/preload benchmarks when available. Verify that the affected Guide imports no longer point into `app.storage` and that there are no new cycles. This refactor is **not** a measured RAM/performance win without comparable runtime tests.
 
+### 117.5-C — Restore runtime → tools dependency direction
+
+**Proven inversion:** the exact-SHA Graphify graph has only one explicit `app/` → `tools/` import boundary: `app/modules/encyclopedia/services/adventure_route_adapter.py` importing `mandatory_qf_ids` and `residual_qf_alternatives` from `tools.guide_ultime_scope_v5`. This makes an application service depend on a maintenance namespace.
+
+**Fix:** move the existing pure criterion parser logic and its data classes verbatim into `app/modules/encyclopedia/services/guide_criterion_scope.py`. The runtime adapter imports directly from the service module. The old `tools.guide_ultime_scope_v5` retains its public and private parser names by importing them from the canonical implementation, so Guide audit scripts and existing unit tests keep their import surface. The remaining tool-only closure/QQ helpers are left in place; no duplicate parser is created.
+
+**Verification required:** `tests/test_guide_criterion_scope_boundary.py` proves the compatibility identities and Qf AND/OR semantics; existing `tests/test_guide_ultime_v5_scope.py` and adventure route tests must remain green. Graphify must report **no** `app/` → `tools/` import on the new exact SHA, with zero import cycles. No runtime benchmark result is implied by the import direction cleanup, and RAM/Guide gates must be replayed before merge.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:
