@@ -14,7 +14,7 @@ MAX_ROWS = 100
 def _candidate_files(root: Path, leaf: str) -> list[str]:
     try:
         result = subprocess.run(
-            ["git", "grep", "-l", "-z", "-F", "-e", leaf, "-e", "import_module(", "-e", "__import__(", "-e", ".connect(", "-e", "getattr(", "--", "*.py"],
+            ["git", "grep", "-l", "-z", "-F", "-e", leaf, "-e", "import_module", "-e", "__import__(", "-e", ".connect(", "-e", "getattr(", "--", "*.py"],
             cwd=root, capture_output=True, check=False, timeout=12,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -23,7 +23,35 @@ def _candidate_files(root: Path, leaf: str) -> list[str]:
         return []
     if result.returncode:
         raise RuntimeError("Consumer prefilter failed")
-    return sorted({b.decode("utf-8", errors="replace") for b in result.stdout.split(b"\0") if b})
+    candidates = {b.decode("utf-8", errors="replace") for b in result.stdout.split(b"\\0") if b}
+    # Target-specific references must not be starved by generic dynamic calls.
+    try:
+        direct = subprocess.run(
+            ["git", "grep", "-l", "-z", "-F", "-e", leaf, "--", "*.py"],
+            cwd=root, capture_output=True, check=False, timeout=12,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError("Consumer prefilter unavailable") from exc
+    if direct.returncode not in {0, 1}:
+        raise RuntimeError("Consumer prefilter failed")
+    prioritized = sorted({b.decode("utf-8", errors="replace")
+                          for b in direct.stdout.split(b"\\0") if b})
+    return prioritized + sorted(candidates.difference(prioritized))
+
+
+def _literal_string(node: ast.AST | None) -> str | None:
+    """Fold only constant strings, without executing project code."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left, right = _literal_string(node.left), _literal_string(node.right)
+        if left is not None and right is not None:
+            return left + right
+    if isinstance(node, ast.JoinedStr):
+        parts = [_literal_string(value) for value in node.values]
+        if all(value is not None for value in parts):
+            return "".join(parts)
+    return None
 
 
 def inspect_consumer_sites(root: Path, target: str) -> dict[str, Any]:
@@ -51,16 +79,25 @@ def inspect_consumer_sites(root: Path, target: str) -> dict[str, Any]:
         except (OSError, UnicodeError, SyntaxError) as exc:
             errors.append({"path": name, "reason": type(exc).__name__})
             continue
+        import_aliases = {
+            alias.asname or alias.name
+            for statement in ast.walk(tree)
+            if isinstance(statement, ast.ImportFrom) and statement.module == "importlib"
+            for alias in statement.names if alias.name == "import_module"
+        }
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
             func = node.func
             name_called = func.id if isinstance(func, ast.Name) else (
                 func.attr if isinstance(func, ast.Attribute) else "")
-            first = node.args[0] if node.args else None
-            if name_called in {"import_module", "__import__"}:
-                if isinstance(first, ast.Constant) and isinstance(first.value, str):
-                    if first.value == module or first.value.startswith(module + "."):
+            first = node.args[0] if node.args else next(
+                (kw.value for kw in node.keywords if kw.arg == "name"), None
+            )
+            if name_called in {"import_module", "__import__"} or name_called in import_aliases:
+                literal = _literal_string(first)
+                if literal is not None:
+                    if literal == module or literal.startswith(module + "."):
                         leads.append({"source": name, "line": node.lineno, "kind": "LITERAL_IMPORT",
                                       "confidence": "SOURCE_PATTERN_NOT_EXECUTED"})
                 elif first is not None:

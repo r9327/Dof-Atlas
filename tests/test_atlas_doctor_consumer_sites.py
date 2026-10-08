@@ -49,6 +49,42 @@ class DoctorConsumerSiteTests(unittest.TestCase):
         self.assertIn('DYNAMIC_IMPORT_UNRESOLVED',
                       [item['kind'] for item in report['dynamic_leads']])
         self.assertTrue(report['candidate_scan_complete'])
+    def test_importlib_alias_and_keyword_name_are_visible(self):
+        (self.root / "app/caller.py").write_text(
+            "from importlib import import_module as load\n"
+            "a = load(prefix + suffix)\n"
+            "b = load(name='app.' + 'target')\n"
+        )
+        with patch("tools.agent.reverse_impact_payload", return_value={
+                "status": "PASS", "confirmed_relationships": []}):
+            report = inspect_consumer_sites(self.root, "app/target.py")
+        kinds = {item["kind"] for item in report["dynamic_leads"]}
+        self.assertIn("DYNAMIC_IMPORT_UNRESOLVED", kinds)
+        self.assertIn("LITERAL_IMPORT", kinds)
+        self.assertFalse(report["safe_to_delete"])
+
+    def test_exact_mentions_take_priority_over_generic_candidate_cap(self):
+        for index in range(125):
+            (self.root / "app" / f"aaa_{index:03d}.py").write_text(
+                "from importlib import import_module\n"
+                "load = import_module(variable)\n"
+            )
+        (self.root / "app" / "zzz_consumer.py").write_text(
+            "from importlib import import_module\n"
+            "load = import_module('app.target')\n"
+        )
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        with patch("tools.agent.reverse_impact_payload", return_value={
+                "status": "PASS", "confirmed_relationships": []}):
+            report = inspect_consumer_sites(self.root, "app/target.py")
+        self.assertTrue(report["truncated"])
+        self.assertFalse(report["candidate_scan_complete"])
+        self.assertIn("app/zzz_consumer.py", [
+            row["source"] for row in report["dynamic_leads"]
+            if row["kind"] == "LITERAL_IMPORT"
+        ])
+        self.assertFalse(report["dead_code_proven"])
+
     def test_traversal_is_rejected(self):
         with self.assertRaises(ValueError):
             inspect_consumer_sites(self.root,"../outside.py")
