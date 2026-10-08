@@ -110,3 +110,12 @@ def test_memory_workflow_enforces_phase8_budgets() -> None:
     assert '"guide_retained_tree_delta_mb": 20.0' in source
     assert '"craft_retained_tree_delta_mb": 2.0' in source
     assert '"equipment_tree_delta_stabilized_mb": 1.0' in source
+
+
+def test_windows_rss_sampler_reuses_native_bindings() -> None:
+    source = BENCHMARK.read_text(encoding="utf-8")
+    assert "@lru_cache(maxsize=1)" in source
+    assert "def _windows_api_dlls():" in source
+    assert "class _ProcessEntry32W(ctypes.Structure):" in source
+    assert "class _ProcessMemoryCounters(ctypes.Structure):" in source
+    assert "kernel32, psapi = _windows_api_dlls()" in source

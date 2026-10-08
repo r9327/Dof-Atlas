@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+from ctypes import wintypes
 import json
 import os
 import sys
 import threading
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -47,40 +49,64 @@ class ProcessRow:
     parent_pid: int
     name: str
 
+_WIN32_MAX_PATH = 260
+
+
+class _ProcessEntry32W(ctypes.Structure):
+    _fields_ = [
+        ("dwSize", wintypes.DWORD),
+        ("cntUsage", wintypes.DWORD),
+        ("th32ProcessID", wintypes.DWORD),
+        ("th32DefaultHeapID", ctypes.c_size_t),
+        ("th32ModuleID", wintypes.DWORD),
+        ("cntThreads", wintypes.DWORD),
+        ("th32ParentProcessID", wintypes.DWORD),
+        ("pcPriClassBase", wintypes.LONG),
+        ("dwFlags", wintypes.DWORD),
+        ("szExeFile", wintypes.WCHAR * _WIN32_MAX_PATH),
+    ]
+
+
+class _ProcessMemoryCounters(ctypes.Structure):
+    _fields_ = [
+        ("cb", wintypes.DWORD),
+        ("PageFaultCount", wintypes.DWORD),
+        ("PeakWorkingSetSize", ctypes.c_size_t),
+        ("WorkingSetSize", ctypes.c_size_t),
+        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+        ("PagefileUsage", ctypes.c_size_t),
+        ("PeakPagefileUsage", ctypes.c_size_t),
+    ]
+
+
+@lru_cache(maxsize=1)
+def _windows_api_dlls():
+    """Reuse native DLL bindings; the sampler must not grow Atlas' RSS."""
+    return (
+        ctypes.WinDLL("kernel32", use_last_error=True),
+        ctypes.WinDLL("psapi", use_last_error=True),
+    )
+
 
 def _windows_process_rows() -> list[ProcessRow]:
     if os.name != "nt":
         return []
 
-    from ctypes import wintypes
-
     TH32CS_SNAPPROCESS = 0x00000002
     INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
-    MAX_PATH = 260
+    kernel32, _psapi = _windows_api_dlls()
 
-    class PROCESSENTRY32W(ctypes.Structure):
-        _fields_ = [
-            ("dwSize", wintypes.DWORD),
-            ("cntUsage", wintypes.DWORD),
-            ("th32ProcessID", wintypes.DWORD),
-            ("th32DefaultHeapID", ctypes.c_size_t),
-            ("th32ModuleID", wintypes.DWORD),
-            ("cntThreads", wintypes.DWORD),
-            ("th32ParentProcessID", wintypes.DWORD),
-            ("pcPriClassBase", wintypes.LONG),
-            ("dwFlags", wintypes.DWORD),
-            ("szExeFile", wintypes.WCHAR * MAX_PATH),
-        ]
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     snapshot_fn = kernel32.CreateToolhelp32Snapshot
     snapshot_fn.argtypes = [wintypes.DWORD, wintypes.DWORD]
     snapshot_fn.restype = wintypes.HANDLE
     first_fn = kernel32.Process32FirstW
-    first_fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESSENTRY32W)]
+    first_fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(_ProcessEntry32W)]
     first_fn.restype = wintypes.BOOL
     next_fn = kernel32.Process32NextW
-    next_fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESSENTRY32W)]
+    next_fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(_ProcessEntry32W)]
     next_fn.restype = wintypes.BOOL
     close_fn = kernel32.CloseHandle
     close_fn.argtypes = [wintypes.HANDLE]
@@ -92,7 +118,7 @@ def _windows_process_rows() -> list[ProcessRow]:
 
     rows: list[ProcessRow] = []
     try:
-        entry = PROCESSENTRY32W()
+        entry = _ProcessEntry32W()
         entry.dwSize = ctypes.sizeof(entry)
         if not first_fn(handle, ctypes.byref(entry)):
             return []
@@ -116,27 +142,10 @@ def _windows_process_rss_bytes(pid: int) -> int | None:
     if os.name != "nt":
         return None
 
-    from ctypes import wintypes
-
     PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
     PROCESS_VM_READ = 0x0010
+    kernel32, psapi = _windows_api_dlls()
 
-    class ProcessMemoryCounters(ctypes.Structure):
-        _fields_ = [
-            ("cb", wintypes.DWORD),
-            ("PageFaultCount", wintypes.DWORD),
-            ("PeakWorkingSetSize", ctypes.c_size_t),
-            ("WorkingSetSize", ctypes.c_size_t),
-            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
-            ("QuotaPagedPoolUsage", ctypes.c_size_t),
-            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
-            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-            ("PagefileUsage", ctypes.c_size_t),
-            ("PeakPagefileUsage", ctypes.c_size_t),
-        ]
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    psapi = ctypes.WinDLL("psapi", use_last_error=True)
     open_process = kernel32.OpenProcess
     open_process.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
     open_process.restype = wintypes.HANDLE
@@ -144,7 +153,7 @@ def _windows_process_rss_bytes(pid: int) -> int | None:
     close_handle.argtypes = [wintypes.HANDLE]
     close_handle.restype = wintypes.BOOL
     get_memory = psapi.GetProcessMemoryInfo
-    get_memory.argtypes = [wintypes.HANDLE, ctypes.POINTER(ProcessMemoryCounters), wintypes.DWORD]
+    get_memory.argtypes = [wintypes.HANDLE, ctypes.POINTER(_ProcessMemoryCounters), wintypes.DWORD]
     get_memory.restype = wintypes.BOOL
 
     handle = open_process(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, False, int(pid))
@@ -153,7 +162,7 @@ def _windows_process_rss_bytes(pid: int) -> int | None:
     if not handle:
         return None
     try:
-        counters = ProcessMemoryCounters()
+        counters = _ProcessMemoryCounters()
         counters.cb = ctypes.sizeof(counters)
         if not get_memory(handle, ctypes.byref(counters), counters.cb):
             return None
