@@ -284,7 +284,7 @@ def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: in
             ]
             for line, excerpt in rows[:max(0, 8 - len(findings[name]))]:
                 findings[name].append({
-                    "file": safe, "line": line, "excerpt": excerpt,
+                    "file": safe, "line": line,
                     "kind": "SOURCE_TEXT_MATCH_UNVERIFIED_BINDING",
                 })
     reviewed = []

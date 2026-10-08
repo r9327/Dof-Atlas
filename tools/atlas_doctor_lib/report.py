@@ -200,6 +200,18 @@ def build_ai_report(root) -> dict[str, Any]:
             "candidate_sha": triage.get("candidate_sha"),
             "graph_signature": triage.get("graph_signature"),
             "metrics": triage.get("metrics", {}),
+            "import_cycles": triage.get("import_cycles"),
+            "community_cohesion": {
+                "status": (triage.get("community_cohesion") or {}).get("status"),
+                "candidate_count": (triage.get("community_cohesion") or {}).get("candidate_count"),
+                "candidates": (triage.get("community_cohesion") or {}).get("candidates", [])[:6],
+            },
+            "performance_correlation": triage.get("performance_correlation"),
+            "remediation_plan": {
+                "status": (triage.get("remediation_plan") or {}).get("status"),
+                "task_count": (triage.get("remediation_plan") or {}).get("task_count"),
+                "tasks": (triage.get("remediation_plan") or {}).get("tasks", [])[:8],
+            },
             "blocking_findings": triage.get("blocking_findings", []),
             "unconfirmed_import_candidates": triage.get("unconfirmed_import_candidates", [])[:8],
             "orphan_nodes": triage.get("orphan_nodes", [])[:8],

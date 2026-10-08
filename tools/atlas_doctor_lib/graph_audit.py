@@ -248,7 +248,7 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[st
 
 
 def audit_current_graph(
-    root: Path, *, graph_evidence: dict[str, Any] | None = None
+    root: Path, *, graph_evidence: dict[str, Any] | None = None, deep: bool = False
 ) -> dict[str, Any]:
     """Refuse stale graphs; reuse a validated status to avoid repeat Git work."""
     root = root.resolve()
@@ -262,7 +262,32 @@ def audit_current_graph(
         content = Path(status["graph"]).read_bytes()
         if hashlib.sha256(content).hexdigest() != status["graph_signature"]:
             raise ValueError("Graph changed during audit; rebuild/retry required.")
-        result = inspect_graph(json.loads(content), root=root)
+        raw = json.loads(content)
+        result = inspect_graph(raw, root=root)
+        from .graph_intelligence import (
+            inspect_import_cycles, analyze_community_boundaries,
+            inspect_consumers, correlate_performance, remediation_plan,
+        )
+        cycles = inspect_import_cycles(raw, root=root)
+        cohesion = analyze_community_boundaries(raw)
+        source_review = inspect_consumers(
+            root, [*result["orphan_nodes"], *result["weak_production_candidates"]]
+        ) if deep else {"status": "NOT_RUN", "reason": "Use --deep for tracked-source review."}
+        perf = correlate_performance(root, status["git"]["head"])
+        result.update(
+            import_cycles=cycles, community_cohesion=cohesion,
+            source_consumer_review=source_review,
+            performance_correlation=perf,
+            remediation_plan=remediation_plan(
+                result, cycles, cohesion, source_review=source_review, performance=perf
+            ),
+        )
+        if cycles["source_confirmed_cycles"]:
+            result["status"] = "FAIL"
+        elif source_review["status"] == "BLOCKED":
+            result["status"] = "BLOCKED"
+        elif cycles["suspected_cycles"] or cohesion["candidate_count"]:
+            result["status"] = "REVIEW"
     except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
         return {"schema_version": 1, "kind": "graph_architecture_audit",
                 "status": "BLOCKED", "reason": str(exc)}

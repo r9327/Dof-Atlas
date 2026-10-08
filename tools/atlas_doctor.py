@@ -115,16 +115,42 @@ def command_graph(root: Path, args) -> dict[str, Any]:
 
 def command_graph_audit(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.graph_audit import audit_current_graph
-    result = audit_current_graph(root)
+    result = audit_current_graph(root, deep=getattr(args, "deep", False))
     if not args.json:
         metrics = result.get("metrics") or {}
         print(f"Doctor + Graphify audit : {result['status']}")
         print(f"SHA : {result.get('candidate_sha', 'UNVERIFIED')} | nœuds : {metrics.get('node_count', 0)}")
         print(f"Isolés : {metrics.get('isolated_nodes', 0)} | communautés isolées : {metrics.get('isolated_communities', 0)}")
         print(f"Hubs : {metrics.get('high_fanout_app_files', 0)} | imports app->tools prouvés : {metrics.get('confirmed_runtime_to_tools_imports', 0)}")
+        cycles = result.get("import_cycles") or {}
+        plan = result.get("remediation_plan") or {}
+        print(f"Cycles suspects : {cycles.get('suspected_cycles', 0)} | confirmés : {cycles.get('source_confirmed_cycles', 0)}")
+        print(f"Corrections proposées : {plan.get('task_count', 0)}")
         print("Les nœuds isolés et communautés candidates ne prouvent pas du code mort.")
         if result.get("reason"):
             print(result["reason"])
+    return result
+
+
+def command_graph_compare(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.architecture import graph_status
+    from tools.atlas_doctor_lib.graph_intelligence import compare_graphs
+    evidence = graph_status(root)
+    if evidence.get("status") != "PASS":
+        return {"status": "BLOCKED", "reason": evidence.get("reason", "Current graph required."),
+                "rebuild_command": "python -m tools.atlas_doctor graph --rebuild"}
+    try:
+        baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
+        candidate = json.loads(Path(evidence["graph"]).read_text(encoding="utf-8"))
+        result = compare_graphs(baseline, candidate)
+        if result["candidate_sha"] != evidence["git"]["head"]:
+            raise ValueError("Candidate graph SHA differs from current checkout.")
+    except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
+        return {"status": "BLOCKED", "reason": str(exc)}
+    if not args.json:
+        print(f"Graphify {result['baseline_sha']} -> {result['candidate_sha']}")
+        print(f"Nouveaux orphelins : {len(result['new_orphan_symbols'])} | nouveaux cycles : {len(result['new_candidate_import_cycles'])}")
+        print("Les différences structurelles sont des pistes, pas des défauts confirmés.")
     return result
 
 
@@ -341,7 +367,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest='command')
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
-    sub.add_parser('graph-audit', help='Auditer les nœuds, communautés, couplages et imports depuis le Graphify exact HEAD; lecture seule.')
+    ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
+    ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
+    gc = sub.add_parser('graph-compare', help='Comparer l’ancien graph.json à celui du HEAD actuel.')
+    gc.add_argument('--baseline', required=True, type=Path)
     graph = sub.add_parser('graph', help='Architecture Graphify; lecture du graph par defaut.')
     graph.add_argument('--rebuild', action='store_true', help='Generer explicitement le graph AST, clustering et HTML.')
     graph.add_argument('--install', action='store_true', help='Installer explicitement Graphify pinne via uv puis generer.')
@@ -457,6 +486,7 @@ def main(argv: list[str] | None = None) -> int:
         'quick': command_quick,
         'graph': command_graph,
         'graph-audit': command_graph_audit,
+        'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
         'audit': command_audit,
         'live': command_live,
@@ -482,7 +512,7 @@ def main(argv: list[str] | None = None) -> int:
         # architectural audit (e.g. a source-confirmed app -> tools inversion).
         graph_audit = payload.get("graph_audit") or {}
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
-    if args.command == 'graph-audit':
+    if args.command in {'graph-audit', 'graph-compare'}:
         return 0 if payload['status'] in {'PASS', 'REVIEW'} else 2
     if args.command in {'audit', 'quick'}:
         verdict = (payload.get('summary') or {}).get('verdict')

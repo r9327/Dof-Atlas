@@ -123,7 +123,7 @@ jobs:
       - name: Doctor audit of exact SHA Graphify nodes and communities
         shell: bash
         run: |
-          python -m tools.atlas_doctor graph-audit --json > graphify-out/doctor_graph_audit.json
+          python -m tools.atlas_doctor graph-audit --deep --json > graphify-out/doctor_graph_audit.json
           python - <<'PY'
           import json
           from pathlib import Path
