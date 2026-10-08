@@ -112,6 +112,20 @@ class IsolateTriageTests(unittest.TestCase):
             self.assertEqual(len(set(rows)), 37)
             self.assertFalse(page["dead_code_proven"])
 
+    def test_community_island_does_not_imply_file_isolation(self):
+        from tools.atlas_doctor_lib.graph_audit import inspect_graph
+        graph = {"nodes": [
+            {"id": "a", "source_file": "app/widget.py", "file_type": "code", "community": 0},
+            {"id": "b", "source_file": "app/widget.py", "file_type": "code", "community": 1},
+            {"id": "c", "source_file": "app/caller.py", "file_type": "code", "community": 1},
+        ], "links": [{"source": "b", "target": "c", "relation": "imports", "confidence": "EXTRACTED"}]}
+        report = inspect_graph(graph)
+        island = next(row for row in report["isolated_communities"] if row["community"] == 0)
+        self.assertEqual(island["production_files_linked_elsewhere"], 1)
+        self.assertEqual(island["sample_linked_production_files"], ["app/widget.py"])
+        self.assertEqual(island["classification"], "ISOLATED_SUBCOMMUNITY_IN_CONNECTED_FILES")
+        self.assertFalse(island["whole_files_proven_unreachable"])
+
     def test_scan_budget_rejects_excessive_work(self):
         with self.assertRaises(ValueError):
             triage_isolates(Path("."),limit=100)

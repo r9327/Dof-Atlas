@@ -209,12 +209,17 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offse
             path for path in files if path.startswith("app/")
             and path.endswith(".py") and not path.endswith("/__init__.py")
         ]
+        connected_elsewhere = sorted(p for p in production if neighbors.get(p))
         standalone.append({
             "community": key, "raw_nodes": size,
             "production_source_files": len(production),
+            "production_files_linked_elsewhere": len(connected_elsewhere),
+            "sample_linked_production_files": connected_elsewhere[:8],
+            "whole_files_proven_unreachable": False,
             "sample_source_files": files[:8],
             "classification": (
-                "PRODUCTION_GRAPH_ISLAND_REVIEW" if production
+                "ISOLATED_SUBCOMMUNITY_IN_CONNECTED_FILES" if connected_elsewhere
+                else "PRODUCTION_GRAPH_ISLAND_REVIEW" if production
                 else "NON_RUNTIME_OR_PACKAGE_BOUNDARY_CANDIDATE"
             ),
         })
