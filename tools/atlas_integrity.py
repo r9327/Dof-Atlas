@@ -326,15 +326,37 @@ def _critical_inventory_modules(root: Path) -> list[str]:
 
 
 def _critical_execution_issues(output: str, expected: list[str]) -> list[str]:
-    """Require every precise owner to have executed successfully, not skipped."""
+    """Require exact successful critical IDs, tolerating noisy unittest output.
+
+    unittest descriptions and captured application logging may occur between
+    a test ID and its terminal 'ok'. An exit-code-zero suite does not prove
+    that each registered protection ran: skips and missing IDs still block.
+    """
     issues: list[str] = []
     if _test_count(output) != len(expected):
         issues.append(f"critical test count differs from inventory: expected {len(expected)}")
-    lines = [line.strip() for line in output.splitlines()]
+    records: list[tuple[int, int, str]] = []
     for identifier in expected:
         method = identifier.rsplit(".", 1)[1]
-        successful = f"{method} ({identifier}) ... ok"
-        if lines.count(successful) != 1:
+        marker = f"{method} ({identifier})"
+        matches = list(re.finditer(re.escape(marker) + r"(?=\s|$)", output))
+        if len(matches) != 1:
+            issues.append(f"missing successful critical protection: {identifier}")
+        else:
+            records.append((matches[0].start(), matches[0].end(), identifier))
+
+    records.sort()
+    for index, (_, end, identifier) in enumerate(records):
+        next_start = records[index + 1][0] if index + 1 < len(records) else len(output)
+        portion = output[end:next_start]
+        # The final record is followed by unittest's summary; never interpret
+        # the global "OK" as the outcome of the final individual test.
+        portion = re.split(r"(?m)^-{10,}\s*$|^Ran\s+\d+\s+tests?", portion, maxsplit=1)[0]
+        if (
+            re.search(r"\b(?:skipped|expected failure|unexpected success)\b", portion, re.I)
+            or re.search(r"\.\.\.\s+(?:FAIL|ERROR)\b", portion)
+            or not re.search(r"(?:\.\.\.\s*)?\bok\s*$", portion.strip())
+        ):
             issues.append(f"missing successful critical protection: {identifier}")
     return issues
 

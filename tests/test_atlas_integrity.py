@@ -337,6 +337,42 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         self.assertEqual(atlas_integrity._critical_execution_issues(good, ids), [])
         self.assertTrue(atlas_integrity._critical_execution_issues(good.replace("Ran 2", "Ran 3"), ids))
 
+    def test_critical_proof_tolerates_docstrings_and_noisy_multiline_output(self) -> None:
+        ids = [
+            "tests.test_alpha.AlphaTests.test_alpha",
+            "tests.test_beta.BetaTests.test_beta",
+        ]
+        mixed = (
+            "test_alpha (tests.test_alpha.AlphaTests.test_alpha)\n"
+            "Protect the application identity contract. ... ok\n"
+            "test_beta (tests.test_beta.BetaTests.test_beta) ... JSON invalid in fixture\n"
+            "ok\n"
+            "----------------------------------------------------------------------\n"
+            "Ran 2 tests in 0.01s\nOK"
+        )
+        self.assertEqual(atlas_integrity._critical_execution_issues(mixed, ids), [])
+        self.assertTrue(atlas_integrity._critical_execution_issues(
+            mixed.replace("ok\n----------------------------------------------------------------------", "skipped 'not available'\n----------------------------------------------------------------------"),
+            ids,
+        ))
+        self.assertTrue(atlas_integrity._critical_execution_issues(
+            mixed.replace("test_beta (tests.test_beta.BetaTests.test_beta)", "different_test"),
+            ids,
+        ))
+        self.assertTrue(atlas_integrity._critical_execution_issues(
+            mixed.replace("Ran 2 tests", "Ran 3 tests"),
+            ids,
+        ))
+
+    def test_critical_proof_rejects_duplicate_test_markers(self) -> None:
+        test_id = "tests.test_alpha.AlphaTests.test_alpha"
+        source = (
+            f"test_alpha ({test_id}) ... ok\n"
+            f"test_alpha ({test_id}) ... ok\n"
+            "Ran 1 test in 0.01s\nOK"
+        )
+        self.assertTrue(atlas_integrity._critical_execution_issues(source, [test_id]))
+
     def test_inventory_invalid_owner_metadata_fails_closed(self) -> None:
         with self._temporary_root() as directory:
             root = Path(directory)

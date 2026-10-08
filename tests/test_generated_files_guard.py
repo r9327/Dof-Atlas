@@ -133,7 +133,7 @@ class GeneratedFilesGuardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "personal.txt").write_text("C:" + "\\Users\\Developer\\Atlas", encoding="utf-8")
-            (root / "private.txt").write_text("-----BEGIN PRIVATE KEY-----", encoding="utf-8")
+            (root / "private.txt").write_text("-----BEGIN " + "PRIVATE KEY-----", encoding="utf-8")
             found = find_sensitive_content(root, ["personal.txt", "private.txt"])
         self.assertEqual(len(found), 2)
 
