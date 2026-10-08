@@ -145,6 +145,17 @@ def command_change_plan(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_refactor_preview(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.refactor_simulation import simulate_refactor
+    result = simulate_refactor(root, args.paths, action=args.action,
+                               replacement=args.to, depth=args.depth)
+    if not args.json:
+        print(f"Doctor refactor preview: {result['status']}")
+        print(f"Consumer files: {len(result.get('consumer_files', []))} | no edits or tests executed")
+        print(result.get("reason", ""))
+    return result
+
+
 def command_graph_ui(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph
     payload = export_interactive_graph(root)
@@ -426,6 +437,11 @@ def build_parser() -> argparse.ArgumentParser:
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
     ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
+    rp = sub.add_parser('refactor-preview', help='Simuler impact et tests requis sans modifier le code.')
+    rp.add_argument('paths', nargs='+')
+    rp.add_argument('--action', choices=('remove', 'move', 'consolidate'), default='remove')
+    rp.add_argument('--to', help='Chemin relatif cible pour move/consolidate.')
+    rp.add_argument('--depth', type=int, choices=(1, 2), default=2)
     gu = sub.add_parser('graph-ui', help='Exporter Graphify interactif local avec diagnostics Doctor.')
     gu.add_argument('--open', action='store_true', help='Ouvrir le rapport HTML dans le navigateur.')
     rt = sub.add_parser('runtime-trace', help='Tracer explicitement les appels Python d un module (mode instrumente).')
@@ -557,6 +573,7 @@ def main(argv: list[str] | None = None) -> int:
         'code-inspect': command_code_inspect,
         'runtime-trace': command_runtime_trace,
         'graph-ui': command_graph_ui,
+        'refactor-preview': command_refactor_preview,
         'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
         'audit': command_audit,
@@ -583,6 +600,8 @@ def main(argv: list[str] | None = None) -> int:
         # architectural audit (e.g. a source-confirmed app -> tools inversion).
         graph_audit = payload.get("graph_audit") or {}
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
+    if args.command == 'refactor-preview':
+        return 2 if payload['status'] == 'BLOCKED' else 1
     if args.command == 'graph-ui':
         return 0 if payload['status'] == 'PASS' else 2
     if args.command == 'runtime-trace':
