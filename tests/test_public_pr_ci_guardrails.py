@@ -107,6 +107,14 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             r"(?s)Doctor returned REVIEW.*?\n\s+}\s*\n\s+.*REVIEW has been explicitly accepted.*?\n\s+exit 0",
         )
 
+    def test_phase_preflight_is_bound_to_full_certification_trigger(self) -> None:
+        self.assertIn("ATLAS_PHASE_PR_PREFLIGHT:", self.source)
+        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", self.source)
+        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", self.source)
+        certification = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", certification)
+        self.assertIn("name: Phase Certification / Full Validation", certification)
+
     def test_dependency_review_failure_is_deferred_but_never_swallowed(self) -> None:
         self.assertEqual(self.source.count("continue-on-error: true"), 1)
         self.assertIn("id: dependency_review", self.source)

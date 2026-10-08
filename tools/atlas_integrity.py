@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import re
 import subprocess
 import sys
@@ -429,12 +430,66 @@ def _guide_details(root: Path, config: dict[str, Any]) -> tuple[list[str], int |
 
 def _required_groups(policy: dict[str, Any], mode: str, classification: dict[str, Any]) -> list[str]:
     requested = set(policy["modes"][mode])
-    requested.update(policy["risk_requirements"][classification["risk"]])
-    requested.update(classification["affected_groups"])
+    # For internal Phase PRs, an independently required exact-SHA FULL gate
+    # owns the expensive risk-expanded suites. The early preflight keeps all
+    # changed-test modules, identity, syntax, and critical CI protections.
+    # Ordinary PRs retain the original risk-expanded FAST verification.
+    phase_preflight = (
+        mode == "FAST" and os.environ.get("ATLAS_PHASE_PR_PREFLIGHT") == "1"
+    )
+    if phase_preflight:
+        if classification["risk"] == "CRITICAL":
+            requested.update(("TEST_INTEGRITY", "CI_INTEGRITY"))
+        if "CI_INTEGRITY" in classification["affected_groups"]:
+            requested.add("CI_INTEGRITY")
+    else:
+        requested.update(policy["risk_requirements"][classification["risk"]])
+        requested.update(classification["affected_groups"])
     if mode not in {"FULL", "DEEP"}:
         requested.discard("FULL_SUITE")
         requested.discard("DATA_INTEGRITY")
     return [name for name in policy["groups"] if name in requested]
+
+
+def _full_suite_case_counts(output: str) -> dict[str, int]:
+    """Return explicit successful unittest module evidence, or fail closed."""
+    reported = _test_count(output)
+    if not reported:
+        return {}
+    counts: dict[str, int] = {}
+    matched = 0
+    expression = re.compile(
+        r"^test_[^\r\n]*?\(((?:tests\.)?test_[A-Za-z0-9_]+)\.[^)]+\)\s+\.\.\.\s+"
+        r"(?:ok|skipped(?:\s+.+)?|expected failure)\s*$"
+    )
+    for line in output.splitlines():
+        match = expression.match(line.strip())
+        if match is None:
+            continue
+        name = match.group(1)
+        module = name if name.startswith("tests.") else "tests." + name
+        counts[module] = counts.get(module, 0) + 1
+        matched += 1
+    return counts if matched == reported else {}
+
+
+def _group_test_modules(
+    name: str,
+    config: dict[str, Any],
+    *,
+    root: Path,
+    changed: list[str],
+) -> list[str]:
+    runner = config.get("runner")
+    if runner == "unittest_modules":
+        return [str(value) for value in config.get("modules", [])]
+    if runner == "changed_tests":
+        return _changed_test_modules(root, changed)
+    if runner == "critical_inventory":
+        return _critical_inventory_modules(root)
+    return []
+
+
 
 
 def verdict_from_groups(groups: dict[str, dict[str, Any]], required: Iterable[str]) -> tuple[str, list[str]]:
@@ -494,17 +549,41 @@ def execute_gate(
     guardrail_counts: dict[str, int | None] = {}
     protections_missing: list[str] = []
 
-    for name in required:
+    # FULL_SUITE already executes every discovered module: prove each group
+    # with the exact successful test IDs instead of rerunning it in isolation.
+    # If proof is partial or ambiguous, execute the independent group normally.
+    order = (
+        ["FULL_SUITE", *(name for name in required if name != "FULL_SUITE")]
+        if mode == "FULL" and "FULL_SUITE" in required else required
+    )
+    suite_cases: dict[str, int] = {}
+    for name in order:
         config = policy["groups"][name]
         command = _command_for_group(name, config, root=root, base_ref=base_ref, changed=changed)
         if command is None:
             groups[name]["status"] = "PASS"
             groups[name]["tests"] = 0
             continue
-        result = executor.run(command, root)
+        candidate_modules = (
+            _group_test_modules(name, config, root=root, changed=changed)
+            if suite_cases and name != "FULL_SUITE" else []
+        )
+        reused = bool(candidate_modules) and all(
+            suite_cases.get(module, 0) > 0 for module in candidate_modules
+        )
+        if reused:
+            result = {
+                "command": command, "exit_code": 0, "stderr": "",
+                "stdout": f"Ran {sum(suite_cases[m] for m in candidate_modules)} tests in FULL_SUITE",
+                "duration_seconds": 0.0,
+            }
+        else:
+            result = executor.run(command, root)
         if not isinstance(result, dict) or "exit_code" not in result:
             raise IntegrityConfigError(f"{name}: command executor returned an invalid result")
         output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
+        if name == "FULL_SUITE" and int(result["exit_code"]) == 0:
+            suite_cases = _full_suite_case_counts(output)
         command_report = {
             "group": name,
             "command": result.get("command", command),
@@ -512,6 +591,11 @@ def execute_gate(
             "duration_seconds": float(result.get("duration_seconds", 0.0)),
             "tests": _test_count(output),
         }
+        if reused:
+            command_report["evidence_reused_from"] = "FULL_SUITE"
+            command_report["evidence_test_cases"] = {
+                module: suite_cases[module] for module in candidate_modules
+            }
         if int(result["exit_code"]) != 0:
             command_report["output_tail"] = "\n".join(output.strip().splitlines()[-40:])
         commands.append(command_report)
@@ -607,6 +691,15 @@ def execute_gate(
         "risk_reasons": classification["reasons"],
         "diff_report": build_diff_report(changed, classification),
         "validations_required": required,
+        "validation_profile": (
+            "PHASE_PR_PREFLIGHT" if mode == "FAST"
+            and os.environ.get("ATLAS_PHASE_PR_PREFLIGHT") == "1"
+            else "STANDARD"
+        ),
+        "evidence_reused_groups": [
+            name for name in required
+            if any("evidence_reused_from" in row for row in groups[name]["commands"])
+        ],
         "validations_executed": [name for name in required if groups[name]["status"] != "NOT_RUN"],
         "validations_not_run": [name for name in policy["groups"] if groups[name]["status"] == "NOT_RUN"],
         "performance": {

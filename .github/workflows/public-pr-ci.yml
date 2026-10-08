@@ -117,6 +117,10 @@ jobs:
       - name: Run canonical Doctor FAST merge gate
         id: doctor
         shell: pwsh
+        # The independent exact-SHA FULL certification covers risk-expanded
+        # groups on Phase PRs. Ordinary PRs retain their full FAST scope.
+        env:
+          ATLAS_PHASE_PR_PREFLIGHT: ${{ startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository && '1' || '0' }}
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts/pr_doctor" | Out-Null
           $report = "artifacts/pr_doctor/doctor-fast.json"
@@ -133,6 +137,7 @@ jobs:
           $criticalCount = [int]$payload.audit.severity.CRITICAL
 
           Write-Host "Doctor status: $($payload.status)"
+          Write-Host "Doctor validation profile: $($payload.integrity.report.validation_profile)"
           Write-Host "Atlas Integrity FAST status: $integrityStatus"
           Write-Host "Doctor CRITICAL findings: $criticalCount"
 
