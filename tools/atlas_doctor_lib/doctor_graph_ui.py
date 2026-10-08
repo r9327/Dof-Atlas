@@ -119,7 +119,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
 <button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button><small id="summary"></small><small id="liveStatus">Graphe statique</small></header>
 <main><canvas id="map" aria-label="Graphe interactif, zoom molette, déplacement souris"></canvas>
-<aside><h2>Inspection du code</h2><div id="nodeDetails">Clique sur un nœud pour voir les dépendances, les preuves et les raisons d'examen.</div>
+<aside><h2>Inspection du code</h2><div id="coverageDetails"></div><div id="nodeDetails">Clique sur un nœud pour voir les dépendances, les preuves et les raisons d'examen.</div>
 <hr><small id="limits"></small></aside></main>
 <script id="doctor-data" type="application/json">__GRAPH_DATA__</script>
 <script>
@@ -128,6 +128,28 @@ const data=JSON.parse(document.getElementById('doctor-data').textContent);
 const canvas=document.getElementById('map'),ctx=canvas.getContext('2d');
 const search=document.getElementById('search'),domain=document.getElementById('domain');
 const flagged=document.getElementById('flagged'),details=document.getElementById('nodeDetails');
+const inventory=data.file_coverage;
+if(inventory){
+ const section=document.getElementById('coverageDetails');
+ const heading=document.createElement('h3');heading.textContent='Fichiers Python couverts';section.appendChild(heading);
+ const count=document.createElement('p');
+ count.textContent=inventory.represented+'/'+inventory.tracked+' représentés dans le graphe';
+ section.appendChild(count);
+ const status=document.createElement('small');
+ status.textContent=inventory.status+' · Pas une preuve de code utilisé ou mort';
+ section.appendChild(status);
+ if(inventory.missing_total){
+  const details=document.createElement('details');
+  const summary=document.createElement('summary');
+  summary.textContent=inventory.missing_total+' fichiers absents du graphe';
+  details.appendChild(summary);
+  inventory.missing_examples.forEach(path=>{
+   const p=document.createElement('p');p.textContent=path;details.appendChild(p);
+  });
+  section.appendChild(details);
+ }
+ section.appendChild(document.createElement('hr'));
+}
 const neighbors=new Map(), nodes=data.nodes;data.edges.forEach(e=>{
   if(!neighbors.has(e.a))neighbors.set(e.a,[]);
   if(!neighbors.has(e.b))neighbors.set(e.b,[]);
@@ -299,6 +321,18 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         except (OSError, UnicodeError, ValueError) as exc:
             return {"status": "BLOCKED", "reason": str(exc)}
     payload = compact_graph(graph, audit, trace=trace)
+    from .file_coverage import tracked_python
+    inventory = tracked_python(root)
+    graph_files = {row.get("source_file") for row in graph["nodes"]
+                   if isinstance(row.get("source_file"), str)}
+    missing = sorted(set(inventory) - graph_files)
+    payload["file_coverage"] = {
+        "tracked": len(inventory), "represented": len(inventory) - len(missing),
+        "missing_total": len(missing), "missing_examples": missing[:60],
+        "truncated": len(missing) > 60,
+        "status": "HISTORICAL" if stale else "CURRENT_SNAPSHOT",
+        "runtime_proof": False,
+    }
     destination = root / "graphify-out" / "doctor_graph.html"
     destination.write_text(render_html(payload), encoding="utf-8")
     return {

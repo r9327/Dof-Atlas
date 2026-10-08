@@ -90,6 +90,19 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(len(payload["nodes"]), 11366)
         self.assertEqual(len(payload["edges"]), 11365)
 
+    def test_file_coverage_panel_is_read_only_and_escapes_file_names(self):
+        from tools.atlas_doctor_lib.doctor_graph_ui import render_html
+        graph = {"nodes": [], "edges": [], "candidate_sha": "a" * 40,
+                 "file_coverage": {"tracked": 2, "represented": 1, "missing_total": 1,
+                                   "missing_examples": ["app/<missing>.py"],
+                                   "status": "HISTORICAL", "runtime_proof": False}}
+        html = render_html(graph)
+        self.assertIn("coverageDetails", html)
+        self.assertIn("Fichiers Python couverts", html)
+        self.assertIn("Pas une preuve de code utilisé ou mort", html)
+        self.assertNotIn("app/<missing>.py", html)
+        self.assertIn("app/\\u003cmissing\\u003e.py", html)
+
     def test_labels_cannot_escape_json_script(self):
         graph = {"nodes": [{"id": 1, "label": "</script><img src=x onerror=alert(1)>",
                             "source_file": "app/x.py"}], "links": []}
