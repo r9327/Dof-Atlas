@@ -84,12 +84,24 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertFalse(observer.report(collect=True)["object_watches"][0]["still_referenced"])
 
     def test_runtime_graph_overlap_is_not_completeness(self):
-        trace = {"events": [{"type": "python_call_edge", "source": "a.py", "target": "b.py"}]}
-        graph = {"nodes": [{"id": 1, "source_file": "a.py"}, {"id": 2, "source_file": "b.py"}],
+        sha = "a" * 40
+        trace = {"candidate_sha": sha, "worktree_clean": True,
+                 "events": [{"type": "python_call_edge", "source": "a.py", "target": "b.py"}]}
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "a.py"}, {"id": 2, "source_file": "b.py"}],
                  "links": [{"source": 1, "target": 2}]}
         result = compare_runtime_to_graph(trace, graph)
+        self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["static_edges_with_runtime_evidence"], 1)
         self.assertFalse(result["static_coverage_claim"])
+        trace["worktree_clean"] = False
+        stale = compare_runtime_to_graph(trace, graph)
+        self.assertEqual(stale["status"], "REVIEW")
+        self.assertFalse(stale["runtime_evidence_valid"])
+        self.assertEqual(stale["static_edges_with_runtime_evidence"], 0)
+        trace["worktree_clean"] = True
+        graph["built_at_commit"] = "b" * 40
+        self.assertEqual(compare_runtime_to_graph(trace, graph)["status"], "REVIEW")
 
     def test_qt_call_site_does_not_claim_a_receiver(self):
         import sys

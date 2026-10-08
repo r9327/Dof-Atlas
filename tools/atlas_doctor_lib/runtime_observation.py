@@ -244,16 +244,27 @@ def compare_runtime_to_graph(trace: dict[str, Any], graph: dict[str, Any]) -> di
             a, b = source.get("source_file"), target.get("source_file")
             if isinstance(a, str) and isinstance(b, str):
                 known.add((a, b))
+    trace_sha, graph_sha = trace.get("candidate_sha"), graph.get("built_at_commit")
+    trusted = (
+        isinstance(trace_sha, str) and isinstance(graph_sha, str)
+        and len(graph_sha) >= 7 and trace_sha.startswith(graph_sha)
+        and trace.get("worktree_clean") is True and not trace.get("truncated")
+    )
+    # Retain raw observations for forensic review, but never call unverified
+    # traces proof of actual current static relationships.
     observed = {(e["source"], e["target"]) for e in trace.get("events", [])
-                if e.get("type") == "python_call_edge"}
+                if e.get("type") == "python_call_edge"
+                and isinstance(e.get("source"), str) and isinstance(e.get("target"), str)}
+    verified = observed if trusted else set()
     return {
-        "status": "REVIEW" if trace.get("truncated") else "PASS",
+        "status": "PASS" if trusted else "REVIEW",
+        "runtime_evidence_valid": trusted,
         "observed_runtime_edges": len(observed),
-        "static_edges_with_runtime_evidence": len(observed & known),
+        "static_edges_with_runtime_evidence": len(verified & known),
         "observed_unmapped_edges": [{"source": a, "target": b}
-                                    for a, b in sorted(observed - known)[:50]],
+                                    for a, b in sorted(verified - known)[:50]],
         "static_coverage_claim": False,
-        "notes": "Observed Python calls are not necessarily static import relationships; no runtime event means unobserved, not unused.",
+        "notes": "An exact commit and clean worktree are required to validate runtime edges. No event never proves dead code.",
     }
 
 
