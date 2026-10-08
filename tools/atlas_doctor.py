@@ -50,7 +50,7 @@ def _audit(
         requested = integrity_mode.upper() if integrity_mode else None
         if ranks.get(cached_mode, 0) >= ranks.get(requested, 0):
             return cached or {}
-    return run_audit(root, integrity_mode=integrity_mode)
+    return run_audit(root, integrity_mode=integrity_mode, state=state)
 
 
 def _summary(payload: dict[str, Any]) -> None:
