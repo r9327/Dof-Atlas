@@ -72,12 +72,17 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[st
     cross_communities: Counter[tuple[Any, Any]] = Counter()
     community_file_pairs: dict[tuple[Any, Any], set[tuple[str, str]]] = defaultdict(set)
     community_neighbors: dict[Any, set[Any]] = defaultdict(set)
+    community_files: dict[Any, set[str]] = defaultdict(set)
+    edge_examples: dict[Any, list[dict[str, Any]]] = defaultdict(list)
     inversions: dict[tuple[str, str], dict[str, Any]] = {}
     inferred: Counter[str] = Counter()
     for node in nodes.values():
         community = node.get("community")
         if isinstance(community, (int, str)) and not isinstance(community, bool):
             communities[community] += 1
+            source_file = _path(node.get("source_file"))
+            if source_file:
+                community_files[community].add(source_file)
 
     for edge in graph["links"]:
         source = nodes[edge["source"]]
@@ -85,6 +90,18 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[st
         degree[edge["source"]] += 1
         degree[edge["target"]] += 1
         incoming[edge["target"]] += 1
+        if len(edge_examples[edge["source"]]) < 2:
+            edge_examples[edge["source"]].append({
+                "direction": "outgoing", "relation": edge.get("relation"),
+                "confidence": edge.get("confidence"), "neighbor": str(target.get("label") or ""),
+                "neighbor_file": _path(target.get("source_file")),
+            })
+        if edge["source"] != edge["target"] and len(edge_examples[edge["target"]]) < 2:
+            edge_examples[edge["target"]].append({
+                "direction": "incoming", "relation": edge.get("relation"),
+                "confidence": edge.get("confidence"), "neighbor": str(source.get("label") or ""),
+                "neighbor_file": _path(source.get("source_file")),
+            })
         sf, tf = _path(source.get("source_file")), _path(target.get("source_file"))
         relation = edge.get("relation")
         if edge.get("confidence") == "INFERRED":
@@ -122,6 +139,7 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[st
 
     orphan: list[dict[str, Any]] = []
     weak: list[dict[str, Any]] = []
+    noncode_weak = 0
     for node_id, node in nodes.items():
         source = _path(node.get("source_file"))
         if not source or node.get("file_type") == "external":
@@ -142,30 +160,63 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[st
                 else "UNPROVEN_ISOLATION_REVIEW"
             ), "proof_of_dead_code": False})
         elif degree[node_id] == 1 and source.startswith("app/") and source.endswith(".py"):
-            weak.append({**value, "classification": "LOW_GRAPH_DEGREE_REVIEW",
-                         "proof_of_dead_code": False})
+            # Graphify also emits docstring/rationale nodes. Those are NOT
+            # runnable symbols and must never dominate dead-code candidates.
+            if node.get("file_type") != "code":
+                noncode_weak += 1
+                continue
+            priority = 2 if incoming[node_id] == 0 else 1
+            weak.append({
+                **value, "classification": "LOW_GRAPH_DEGREE_REVIEW",
+                "review_priority": priority, "edge_evidence": edge_examples[node_id],
+                "proof_of_dead_code": False,
+            })
 
     orphan.sort(key=lambda x: (x["file"], x["symbol"]))
-    weak.sort(key=lambda x: (x["file"], x["symbol"]))
-    hubs = [
-        {"file": file, "neighbor_files": len(others), "domains": sorted({_domain(p) for p in others}),
-         "sample_neighbors": sorted(others)[:8], "classification": "COUPLING_REVIEW_NOT_DEFECT"}
-        for file, others in neighbors.items()
-        if file.startswith("app/") and len(others) >= 20
-    ]
-    hubs.sort(key=lambda x: (-x["neighbor_files"], x["file"]))
+    weak.sort(key=lambda x: (-x["review_priority"], x["file"], x["symbol"]))
+    hubs = []
+    for file, others in neighbors.items():
+        if not file.startswith("app/") or len(others) < 20:
+            continue
+        runtime = sorted(other for other in others if other.startswith("app/") or other == "main.py")
+        test_neighbors = sorted(other for other in others if other.startswith("tests/"))
+        domains = sorted({_domain(other) for other in runtime})
+        hubs.append({
+            "file": file, "neighbor_files": len(others),
+            "runtime_neighbor_files": len(runtime), "test_neighbor_files": len(test_neighbors),
+            "runtime_domains": domains[:10], "total_runtime_domains": len(domains),
+            "sample_runtime_neighbors": runtime[:8], "sample_test_neighbors": test_neighbors[:3],
+            "classification": "COUPLING_REVIEW_NOT_DEFECT",
+        })
+    hubs.sort(key=lambda x: (-x["runtime_neighbor_files"], -x["neighbor_files"], x["file"]))
     bridges = [
-        {"communities": list(key), "graph_links": count, "distinct_extracted_import_file_pairs": len(community_file_pairs[key]),
+        {"communities": list(key), "graph_links": count,
+         "distinct_extracted_import_file_pairs": len(community_file_pairs[key]),
+         "sample_extracted_import_file_pairs": [list(value) for value in sorted(community_file_pairs[key])[:8]],
          "classification": "CROSS_COMMUNITY_COUPLING_REVIEW_NOT_MERGE_PROOF"}
         for key, count in cross_communities.items()
         if len(community_file_pairs[key]) >= 3
     ]
     bridges.sort(key=lambda x: (-x["distinct_extracted_import_file_pairs"], -x["graph_links"], str(x["communities"])))
-    standalone = [
-        {"community": key, "raw_nodes": value, "classification": "ISOLATED_COMMUNITY_REVIEW_NOT_DEAD_CODE"}
-        for key, value in communities.items() if not community_neighbors[key]
-    ]
-    standalone.sort(key=lambda x: (x["raw_nodes"], str(x["community"])))
+    standalone = []
+    for key, size in communities.items():
+        if community_neighbors[key]:
+            continue
+        files = sorted(community_files[key])
+        production = [
+            path for path in files if path.startswith("app/")
+            and path.endswith(".py") and not path.endswith("/__init__.py")
+        ]
+        standalone.append({
+            "community": key, "raw_nodes": size,
+            "production_source_files": len(production),
+            "sample_source_files": files[:8],
+            "classification": (
+                "PRODUCTION_GRAPH_ISLAND_REVIEW" if production
+                else "NON_RUNTIME_OR_PACKAGE_BOUNDARY_CANDIDATE"
+            ),
+        })
+    standalone.sort(key=lambda x: (-int(x["production_source_files"] > 0), -x["raw_nodes"], str(x["community"])))
     return {
         "schema_version": 1, "kind": "graph_architecture_audit",
         "status": "FAIL" if confirmed else "REVIEW" if orphan or weak or hubs or bridges or unconfirmed else "PASS",
@@ -175,7 +226,9 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None) -> dict[st
             "raw_community_count": len(communities),
             "raw_communities_lt3_nodes": sum(count < 3 for count in communities.values()),
             "isolated_communities": len(standalone),
+            "isolated_communities_with_production_files": sum(x["production_source_files"] > 0 for x in standalone),
             "isolated_nodes": len(orphan), "weak_production_nodes_degree1": len(weak),
+            "excluded_noncode_weak_nodes": noncode_weak,
             "inferred_edges": sum(inferred.values()), "inferred_relation_counts": dict(sorted(inferred.items())),
             "cross_community_pairs": len(cross_communities), "high_fanout_app_files": len(hubs),
             "confirmed_runtime_to_tools_imports": len(confirmed),

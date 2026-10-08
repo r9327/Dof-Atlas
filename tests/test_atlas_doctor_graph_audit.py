@@ -36,6 +36,42 @@ class DoctorGraphAuditTests(unittest.TestCase):
         self.assertEqual(report["metrics"]["confirmed_runtime_to_tools_imports"], 0)
         self.assertFalse(report["unconfirmed_import_candidates"][0]["blocking"])
 
+    def test_rationale_nodes_cannot_be_flagged_as_unreferenced_code(self):
+        graph = fixture()
+        graph["nodes"].extend([
+            {"id": "r", "label": "An explanatory note", "source_file": "app/views/page.py",
+             "file_type": "rationale", "community": 2},
+            {"id": "s", "label": "actual_helper", "source_file": "app/core/service.py",
+             "file_type": "code", "community": 2},
+        ])
+        graph["links"].extend([
+            {"source": "r", "target": "a", "relation": "rationale_for", "confidence": "EXTRACTED"},
+            {"source": "s", "target": "b", "relation": "calls", "confidence": "EXTRACTED"},
+        ])
+        report = inspect_graph(graph)
+        self.assertEqual(report["metrics"]["excluded_noncode_weak_nodes"], 1)
+        self.assertIn("s", {x["id"] for x in report["weak_production_candidates"]})
+        self.assertNotIn("r", {x["id"] for x in report["weak_production_candidates"]})
+        weak = next(x for x in report["weak_production_candidates"] if x["id"] == "s")
+        self.assertTrue(weak["edge_evidence"])
+
+    def test_hubs_and_community_report_supply_file_evidence(self):
+        graph = {"nodes": [], "links": []}
+        for i in range(23):
+            graph["nodes"].append({
+                "id": i, "source_file": "app/core/hub.py" if i == 0 else f"app/views/v{i}.py",
+                "file_type": "code", "community": 0 if i == 0 else 1,
+            })
+            if i:
+                graph["links"].append({
+                    "source": i, "target": 0,
+                    "relation": "imports", "confidence": "EXTRACTED",
+                })
+        report = inspect_graph(graph)
+        self.assertGreaterEqual(report["high_fanout_files"][0]["runtime_neighbor_files"], 20)
+        self.assertTrue(report["cross_community_bridges"][0]["sample_extracted_import_file_pairs"])
+        self.assertTrue(report["isolated_communities"] == [])
+
     def test_source_confirmed_import_is_a_real_blocker(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
