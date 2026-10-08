@@ -65,10 +65,20 @@ class RuntimeObserver:
         self.events.append(event)
 
     def _profile(self, frame: Any, event: str, arg: Any) -> None:
-        if not self._active or self._busy or event != "call":
+        if not self._active or self._busy or event not in {"call", "c_call"}:
             return
         self._busy = True
         try:
+            if event == "c_call":
+                caller = self._path(frame.f_code.co_filename)
+                name = getattr(arg, "__name__", None)
+                module = type(getattr(arg, "__self__", None)).__module__
+                if (caller and caller.endswith(".py") and
+                        (module.startswith("PySide6.") or module.startswith("shiboken6")) and
+                        name in {"connect", "disconnect", "start", "stop"}):
+                    self._record({"type": "qt_c_call_site", "source": caller,
+                                  "action": name, "confidence": "CALL_SITE_ONLY"})
+                return
             target = self._path(frame.f_code.co_filename)
             caller = self._path(frame.f_back.f_code.co_filename) if frame.f_back else None
             if target and caller and target.endswith(".py") and caller.endswith(".py"):

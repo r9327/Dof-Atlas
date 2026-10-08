@@ -52,6 +52,24 @@ class RuntimeObservationTests(unittest.TestCase):
         self.assertEqual(result["static_edges_with_runtime_evidence"], 1)
         self.assertFalse(result["static_coverage_claim"])
 
+    def test_qt_call_site_does_not_claim_a_receiver(self):
+        import sys
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            observer = RuntimeObserver(Path(directory))
+            signal = type("SignalInstance", (), {"__module__": "PySide6.QtCore"})()
+            callback = SimpleNamespace(__name__="connect", __self__=signal)
+            with observer:
+                original = observer._path
+                observer._path = lambda path: "app/view.py"
+                try:
+                    observer._profile(sys._getframe(), "c_call", callback)
+                finally:
+                    observer._path = original
+            rows = [e for e in observer.report()["events"] if e["type"] == "qt_c_call_site"]
+            self.assertEqual(rows[-1]["confidence"], "CALL_SITE_ONLY")
+            self.assertNotIn("receiver", rows[-1])
+
     def test_bound_enforced_and_bad_markers_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(ValueError):

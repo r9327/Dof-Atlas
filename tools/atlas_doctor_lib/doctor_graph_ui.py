@@ -55,6 +55,11 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         else:
             trace_status = "STALE_OR_INCOMPLETE"
     observed_files = {file for pair in runtime_pairs for file in pair}
+    qt_sites: set[str] = set()
+    if trace_status == "MATCHED" and trace is not None:
+        qt_sites = {row["source"] for row in trace.get("events", [])
+                    if row.get("type") == "qt_c_call_site"
+                    and isinstance(row.get("source"), str)}
     selected = []
     for item in nodes:
         file = item.get("source_file") or ""
@@ -64,6 +69,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "line": str(item.get("source_location") or ""),
             "reasons": file_reasons.get(file, []),
             "runtime_observed": file in observed_files,
+            "qt_call_site_observed": file in qt_sites,
         })
     edges = []
     for link in graph.get("links", []):
@@ -85,6 +91,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     return {
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
+        "qt_call_site_files": len(qt_sites),
         "raw_nodes": len(graph.get("nodes", [])), "raw_links": len(graph.get("links", [])),
         "truncated": len(graph.get("nodes", [])) > MAX_NODES or len(graph.get("links", [])) > MAX_LINKS,
         "disclaimer": "A flagged node is not proof of dead code; native runtime connections require trace evidence.",
@@ -156,7 +163,7 @@ function render(){
  for(const i of visible){const p=screen(positions[i]),n=nodes[i];
  if(p.x < -10||p.x>canvas.width+10||p.y < -10||p.y>canvas.height+10)continue;
  ctx.beginPath();ctx.arc(p.x,p.y,i===selected?6:3,0,2*Math.PI);
- ctx.fillStyle=i===selected?'#ffdf86':n.reasons.length?'#ff8d7d':n.runtime_observed?'#b39cf5':'#70b9e9';ctx.fill()}
+ ctx.fillStyle=i===selected?'#ffdf86':n.reasons.length?'#ff8d7d':(n.runtime_observed||n.qt_call_site_observed)?'#b39cf5':'#70b9e9';ctx.fill()}
 }
 function pick(x,y){let best=-1,distance=100;for(const i of visible){
  const p=screen(positions[i]),d=(p.x-x)**2+(p.y-y)**2;
@@ -166,6 +173,7 @@ function line(tag,text){const el=document.createElement(tag);el.textContent=text
 line('h3',n.label||n.file);line('p',n.file+(n.line?' · '+n.line:''));
 line('p','Communauté Graphify : '+String(n.community??'non déterminée'));
 if(n.runtime_observed)line('p','Appel Python observé dans une trace opt-in correspondant au SHA.');
+if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
 if(n.reasons.length){line('h4','Pourquoi Doctor signale ce nœud');n.reasons.forEach(v=>line('p','• '+v))}
 else line('p','Aucun signal prioritaire dans cet extrait de diagnostic.');
 const link=document.createElement('a');link.href='https://github.com/r9327/Dof-Atlas/blob/'+encodeURIComponent(data.candidate_sha||'main')+'/'+n.file.split('/').map(encodeURIComponent).join('/');
