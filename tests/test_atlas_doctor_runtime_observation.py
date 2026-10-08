@@ -25,6 +25,25 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertTrue(any(e["type"] == "python_call_edge" for e in report["events"]))
             self.assertFalse(watcher._active)
 
+    def test_runtime_provenance_rejects_dirty_source_even_with_same_sha(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "Atlas"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "doctor@example.invalid"], cwd=root, check=True)
+            source = root / "source.py"
+            source.write_text("pass\\n")
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "initial"], cwd=root, check=True)
+            observer = RuntimeObserver(root)
+            self.assertTrue(observer.worktree_clean)
+            with observer:
+                source.write_text("changed = True\\n")
+            result = observer.report()
+            self.assertEqual(len(result["candidate_sha"]), 40)
+            self.assertFalse(result["worktree_clean"])
+
     def test_no_sensitive_outside_paths_or_arguments(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -45,6 +45,8 @@ class RuntimeObserver:
             self.candidate_sha = commit.stdout.strip() if commit.returncode == 0 else None
         except (OSError, subprocess.TimeoutExpired):
             self.candidate_sha = None
+        self.worktree_clean_before = self._clean_worktree()
+        self.worktree_clean = self.worktree_clean_before
         self.max_events = max_events
         self.events: list[dict[str, Any]] = []
         self._edges: set[tuple[str, str]] = set()
@@ -55,6 +57,17 @@ class RuntimeObserver:
         self._old_profile = None
         self._old_thread_profile = None
         self.started_ns = 0
+
+    def _clean_worktree(self) -> bool:
+        """Unknown Git state fails closed; ignored runtime output is not source."""
+        try:
+            result = subprocess.run(
+                ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+                cwd=self.root, text=True, capture_output=True, check=False, timeout=8,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        return result.returncode == 0 and not result.stdout.strip()
 
     def _path(self, value: Any) -> str | None:
         if not isinstance(value, (str, bytes)):
@@ -197,6 +210,8 @@ class RuntimeObserver:
         threading.setprofile(self._old_thread_profile)
         if _ACTIVE_AUDIT_REF is not None and _ACTIVE_AUDIT_REF() is self:
             _ACTIVE_AUDIT_REF = None
+        # A trace made while editing files must never appear exact-SHA.
+        self.worktree_clean = self.worktree_clean_before and self._clean_worktree()
 
     def report(self, *, collect: bool = False) -> dict[str, Any]:
         if collect:
@@ -206,6 +221,7 @@ class RuntimeObserver:
         return {
             "schema_version": 1, "kind": "doctor_runtime_observation",
             "candidate_sha": self.candidate_sha,
+            "worktree_clean": self.worktree_clean,
             "root": str(self.root), "duration_ms": round((time.monotonic_ns() - self.started_ns) / 1e6, 3)
             if self.started_ns else 0.0,
             "status": "TRUNCATED" if self._overflow else "RECORDED",

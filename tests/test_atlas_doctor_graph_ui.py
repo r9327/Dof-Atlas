@@ -28,16 +28,32 @@ class DoctorGraphUiTests(unittest.TestCase):
         graph = {"nodes": [{"id": 1, "source_file": "app/a.py"},
                            {"id": 2, "source_file": "app/b.py"}],
                  "links": [], "built_at_commit": sha}
-        trace = {"candidate_sha": sha, "events": [
+        trace = {"candidate_sha": sha, "worktree_clean": True, "events": [
             {"type": "python_call_edge", "source": "app/a.py", "target": "app/b.py"}
         ]}
         payload = compact_graph(graph, {}, trace)
         self.assertEqual(payload["trace_status"], "MATCHED")
         self.assertEqual(payload["edges"][0]["relation"], "OBSERVED_PYTHON_CALL")
         self.assertTrue(payload["nodes"][0]["runtime_observed"])
+        trace["worktree_clean"] = False
+        self.assertEqual(compact_graph(graph, {}, trace)["trace_status"], "STALE_OR_INCOMPLETE")
+        self.assertEqual(compact_graph(graph, {}, trace)["edges"], [])
+        trace["worktree_clean"] = True
         trace["candidate_sha"] = "b" * 40
         self.assertEqual(compact_graph(graph, {}, trace)["trace_status"], "STALE_OR_INCOMPLETE")
         self.assertEqual(compact_graph(graph, {}, trace)["edges"], [])
+
+    def test_legacy_runtime_trace_without_cleanliness_is_not_trusted(self):
+        sha = "c" * 40
+        graph = {"nodes": [{"id": 1, "source_file": "app/a.py"},
+                           {"id": 2, "source_file": "app/b.py"}],
+                 "links": [], "built_at_commit": sha}
+        trace = {"candidate_sha": sha, "events": [
+            {"type": "python_call_edge", "source": "app/a.py", "target": "app/b.py"}
+        ]}
+        result = compact_graph(graph, {}, trace)
+        self.assertEqual(result["trace_status"], "STALE_OR_INCOMPLETE")
+        self.assertEqual(result["observed_runtime_file_pairs"], 0)
 
     def test_live_uses_focus_events_not_periodic_git_polling(self):
         html = render_html(compact_graph({"nodes": [], "links": []}, {}))

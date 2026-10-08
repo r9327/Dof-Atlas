@@ -58,6 +58,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         graph_sha = graph.get("built_at_commit")
         if (isinstance(trace_sha, str) and isinstance(graph_sha, str)
                 and len(graph_sha) >= 7 and trace_sha.startswith(graph_sha)
+                and trace.get("worktree_clean") is True
                 and not trace.get("truncated")):
             trace_status = "MATCHED"
             runtime_pairs = {
