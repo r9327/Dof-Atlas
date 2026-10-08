@@ -151,11 +151,11 @@ def _collect_guide_item_ids() -> set[int]:
     return result
 
 def _iter_doduda_refs(path: Path):
-    """Yield one Doduda RefIds entry at a time without loading the source file."""
+    """Yield bounded Doduda RefIds rows without a Python character-by-character scan."""
 
+    decoder = json.JSONDecoder()
     with path.open("r", encoding="utf-8") as stream:
         prefix = ""
-        remainder = ""
         while True:
             chunk = stream.read(262144)
             if not chunk:
@@ -163,69 +163,45 @@ def _iter_doduda_refs(path: Path):
             prefix += chunk
             marker = prefix.find('"RefIds"')
             if marker < 0:
-                # RefIds lives near the header; keep only enough overlap for a
-                # split marker instead of retaining arbitrary source text.
+                # RefIds lives near the header. Retain overlap for split keys.
                 prefix = prefix[-32:]
                 continue
             array_start = prefix.find("[", marker)
             if array_start < 0:
                 continue
-            remainder = prefix[array_start + 1 :]
+            buffer = prefix[array_start + 1 :]
             break
 
-        depth = 0
-        in_string = False
-        escaped = False
-        current: list[str] = []
-
+        offset = 0
         while True:
-            if not remainder:
-                remainder = stream.read(262144)
-                if not remainder:
+            while offset < len(buffer) and buffer[offset] in " \\t\\r\\n,":
+                offset += 1
+            if offset >= len(buffer):
+                buffer = stream.read(262144)
+                offset = 0
+                if not buffer:
                     return
-            index = 0
-            length = len(remainder)
-            while index < length:
-                char = remainder[index]
-                index += 1
+                continue
+            if buffer[offset] == "]":
+                return
 
-                if depth == 0:
-                    if char in " \t\r\n,":
-                        continue
-                    if char == "]":
-                        return
-                    if char not in "[{":
-                        continue
-                    current = [char]
-                    depth = 1
-                    in_string = False
-                    escaped = False
-                    continue
+            try:
+                # CPython's native JSON scanner decodes a single entry at once.
+                # Unlike json.load, this never holds the full RefIds array.
+                value, offset = decoder.raw_decode(buffer, offset)
+            except json.JSONDecodeError as exc:
+                chunk = stream.read(262144)
+                if not chunk:
+                    raise ValueError("Incomplete Doduda RefIds entry") from exc
+                buffer = buffer[offset:] + chunk
+                offset = 0
+                continue
 
-                current.append(char)
-                if in_string:
-                    if escaped:
-                        escaped = False
-                    elif char == "\\":
-                        escaped = True
-                    elif char == '"':
-                        in_string = False
-                    continue
-
-                if char == '"':
-                    in_string = True
-                elif char in "[{":
-                    depth += 1
-                elif char in "]}":
-                    depth -= 1
-                    if depth == 0:
-                        try:
-                            value = json.loads("".join(current))
-                        finally:
-                            current = []
-                        if isinstance(value, dict):
-                            yield value
-            remainder = ""
+            if offset >= 262144:
+                buffer = buffer[offset:]
+                offset = 0
+            if isinstance(value, dict):
+                yield value
 
 
 EXCLUDED_DOFUS_ITEM_IDS = frozenset(
