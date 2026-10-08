@@ -220,6 +220,37 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertTrue(module._AUDIT_HOOK_INSTALLED)
             self.assertIsNone(module._ACTIVE_AUDIT_REF)
 
+    def test_worker_created_during_trace_drops_profile_after_exit(self):
+        import sys
+        import threading
+        with tempfile.TemporaryDirectory() as directory:
+            observer = RuntimeObserver(Path(directory), max_events=1000)
+            old_thread_profile = threading.getprofile()
+            started = threading.Event()
+            resume = threading.Event()
+            seen = []
+
+            def worker():
+                started.set()
+                resume.wait(3)
+                def get_profile():
+                    return sys.getprofile()
+                seen.append(get_profile())
+
+            with observer:
+                thread = threading.Thread(target=worker, daemon=True)
+                thread.start()
+                self.assertTrue(started.wait(3))
+            try:
+                resume.set()
+                thread.join(timeout=4)
+                self.assertFalse(thread.is_alive())
+                self.assertEqual(seen, [old_thread_profile])
+                self.assertIs(threading.getprofile(), old_thread_profile)
+            finally:
+                resume.set()
+                thread.join(timeout=2)
+
     def test_bound_enforced_and_bad_markers_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(ValueError):

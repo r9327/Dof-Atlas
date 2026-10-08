@@ -94,7 +94,17 @@ class RuntimeObserver:
         self.events.append(event)
 
     def _profile(self, frame: Any, event: str, arg: Any) -> None:
-        if not self._active or self._busy or event not in {"call", "c_call"}:
+        if not self._active:
+            # threading.setprofile controls *future* threads; a worker created
+            # during tracing keeps its thread-local hook after context exit.
+            # Remove that residual hook on its next event, restoring exactly
+            # the previous thread-default profile without any background timer.
+            current = sys.getprofile()
+            if (getattr(current, "__self__", None) is self
+                    and getattr(current, "__func__", None) is RuntimeObserver._profile):
+                sys.setprofile(self._old_thread_profile)
+            return
+        if self._busy or event not in {"call", "c_call"}:
             return
         self._busy = True
         try:
