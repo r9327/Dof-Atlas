@@ -70,3 +70,7 @@ Si la carte Graphify précédente est périmée mais syntaxiquement valide et ra
 ### Budget CI Graphify
 
 Le workflow lourd `Graphify Code Map` est déclenché explicitement (`workflow_dispatch`) ou automatiquement lors de changements structurels sélectionnés (code applicatif / moteur Graphify / analyses de graphe) et de PR structurelles vers main. Les changements UI Doctor, docs et hooks seuls ne déclenchent plus sa reconstruction à chaque push. `Graphify Focused Architecture` reste automatique sur chaque push de #123. **Une reconstruction Graphify exacte-SHA finale reste nécessaire avant toute fusion**, ainsi que les gates RAM et FULL de Phase 8 ; aucun PASS par omission.
+
+### Consommateurs dynamiques candidats
+
+`python -m tools.atlas_doctor consumer-sites app/pages/character_page.py --json` : inspecte les consommateurs statiques prouvés par l'outil Agent existant et un nombre borné de fichiers contenant des mentions du module. Les appels `import_module` littéraux, imports non littéraux, lieux `signal.connect` et attributs réflexifs sont classés comme **pistes**, jamais comme preuves d'exécution ou de code mort. Les noms construits sans le nom du module peuvent échapper à la recherche textuelle ; `safe_to_delete` reste faux. Aucun graphe reconstruit, aucune suite lancée.

@@ -134,6 +134,16 @@ def command_graph_audit(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_consumer_sites(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.consumer_sites import inspect_consumer_sites
+    result = inspect_consumer_sites(root, args.path)
+    if not args.json:
+        print(f"Doctor consumers: {result['status']} | {result['target']}")
+        print(f"Confirmed static: {result['static_confirmed_count']} | dynamic leads: {result['dynamic_lead_count']}")
+        print("Dynamic candidates are not a proof of dead code.")
+    return result
+
+
 def command_file_coverage(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.file_coverage import file_coverage
     result = file_coverage(root)
@@ -470,6 +480,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
     sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
+    cs = sub.add_parser('consumer-sites', help='Analyser les consommateurs statiques et dynamiques candidats.')
+    cs.add_argument('path', help='Fichier Python cible relatif au depot.')
     ch = sub.add_parser('change-plan', help='Plan diff Git + consommateurs Graphify + tests cibles; aucun test execute.')
     ch.add_argument('--base-ref', required=True, help='Ref Git explicite pour la comparaison.')
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
@@ -618,6 +630,7 @@ def main(argv: list[str] | None = None) -> int:
         'graph-audit': command_graph_audit,
         'change-plan': command_change_plan,
         'file-coverage': command_file_coverage,
+        'consumer-sites': command_consumer_sites,
         'code-inspect': command_code_inspect,
         'runtime-trace': command_runtime_trace,
         'graph-ui': command_graph_ui,
@@ -662,6 +675,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if payload['status'] == 'RECORDED' else 1
     if args.command == 'code-inspect':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
+    if args.command == 'consumer-sites':
+        return 0
     if args.command == 'file-coverage':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command == 'change-plan':
