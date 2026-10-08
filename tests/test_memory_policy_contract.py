@@ -1042,7 +1042,7 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
         core_source.index("def _load_manual_preview(self)"):
         core_source.index("def manual_audit")
     ]
-    assert "if not self.cache_manual_bundle:" in load
+    assert 'if not bool(getattr(self, "cache_manual_bundle", True)):' in load
     assert "self._load_manual_preview_uncached()" in load
 
     wrapper_source = (

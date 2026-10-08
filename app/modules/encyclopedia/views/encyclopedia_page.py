@@ -444,7 +444,9 @@ class EncyclopediaPage(QWidget):
         self.quest_page.progress = self.quest_page.quest_progress_service.reload()
         self.quest_page.rebuild_hierarchy()
         self.quest_page.refresh_quests()
-        self.quest_page.quest_detail_view.set_character_key(self.current_character_key)
+        detail_view = self.quest_page.quest_detail_view
+        if detail_view is not None:
+            detail_view.set_character_key(self.current_character_key)
         if self.quest_page.selected_quest_id is not None:
             self.quest_page.show_quest_detail(self.quest_page.selected_quest_id)
 
