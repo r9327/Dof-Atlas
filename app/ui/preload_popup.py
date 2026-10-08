@@ -126,6 +126,7 @@ class PreloadProgressPopup(QDialog):
 
         self._has_started = False
         self._started_at: float | None = None
+        self._finished = False
         self._hide_generation = 0
         self._elapsed_timer = QTimer(self)
         self._elapsed_timer.setInterval(200)
@@ -203,9 +204,10 @@ class PreloadProgressPopup(QDialog):
                 f"Prochaine étape · {PRELOAD_TASK_LABELS[pending]}"
             )
 
+        self._finished = completed == len(PRELOAD_TASK_ORDER)
         self._hide_generation += 1
         generation = self._hide_generation
-        if completed == len(PRELOAD_TASK_ORDER):
+        if self._finished:
             self._elapsed_timer.stop()
             self._refresh_elapsed()
             delay_ms = 500 if failed == 0 else 1800
@@ -234,6 +236,18 @@ class PreloadProgressPopup(QDialog):
             )
         self.show()
         self.raise_()
+
+    def reject(self) -> None:
+        # A real startup preload screen must not be bypassable with Escape.
+        # Once every real task is terminal, the normal QDialog behavior is safe.
+        if self._finished:
+            super().reject()
+
+    def closeEvent(self, event) -> None:
+        if self._finished:
+            event.accept()
+            return
+        event.ignore()
 
     def _hide_if_current(self, generation: int) -> None:
         if generation != self._hide_generation:
