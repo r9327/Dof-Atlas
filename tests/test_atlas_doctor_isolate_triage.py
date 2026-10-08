@@ -99,8 +99,8 @@ class IsolateTriageTests(unittest.TestCase):
                       "candidate_files": 0, "truncated": False, "source_errors": []}
             rows = []
             cursor = 0
-            with patch("tools.atlas_doctor_lib.architecture.graph_status", return_value=evidence), \\
-                 patch("tools.atlas_doctor_lib.consumer_sites.inspect_consumer_sites", return_value=review):
+            with (patch("tools.atlas_doctor_lib.architecture.graph_status", return_value=evidence),
+                 patch("tools.atlas_doctor_lib.consumer_sites.inspect_consumer_sites", return_value=review)):
                 while True:
                     page = triage_isolates(root, kind="orphan", limit=10, offset=cursor)
                     rows.extend(row["file"] for row in page["findings"])
