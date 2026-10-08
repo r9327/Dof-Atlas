@@ -134,6 +134,17 @@ def command_graph_audit(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_change_plan(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.change_intelligence import build_change_plan
+    result = build_change_plan(root, base_ref=args.base_ref)
+    if not args.json:
+        print(f"Doctor change-plan: {result['status']} | {len(result['paths'])} chemins")
+        print(f"Imports casses confirmes : {len(result.get('structural_findings', []))}")
+        print(f"Tests proposes : {len(result.get('targeted_tests', []))} | executes : non")
+        print(result.get('reason', ''))
+    return result
+
+
 def command_graph_compare(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.architecture import graph_status
     from tools.atlas_doctor_lib.graph_intelligence import compare_graphs
@@ -369,6 +380,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest='command')
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
+    ch = sub.add_parser('change-plan', help='Plan diff Git + consommateurs Graphify + tests cibles; aucun test execute.')
+    ch.add_argument('--base-ref', required=True, help='Ref Git explicite pour la comparaison.')
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
     ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
@@ -489,6 +502,7 @@ def main(argv: list[str] | None = None) -> int:
         'quick': command_quick,
         'graph': command_graph,
         'graph-audit': command_graph_audit,
+        'change-plan': command_change_plan,
         'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
         'audit': command_audit,
@@ -515,6 +529,8 @@ def main(argv: list[str] | None = None) -> int:
         # architectural audit (e.g. a source-confirmed app -> tools inversion).
         graph_audit = payload.get("graph_audit") or {}
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
+    if args.command == 'change-plan':
+        return {'READY': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command in {'graph-audit', 'graph-compare'}:
         return 0 if payload['status'] in {'PASS', 'REVIEW'} else 2
     if args.command in {'audit', 'quick'}:
