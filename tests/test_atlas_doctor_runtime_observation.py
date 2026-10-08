@@ -77,6 +77,57 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertEqual(rows[0]["target"], "window.py")
             self.assertEqual(rows[0]["confidence"], "CONNECT_RETURNED_NOT_CALLBACK_INVOKED")
 
+    def test_real_cross_file_function_call_is_recorded_by_symbol(self):
+        import runpy
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target.py"
+            caller = root / "caller.py"
+            namespace = {}
+            exec(compile("def invoked():\n    return 42\n", str(target), "exec"), namespace)
+            caller.write_text("def launch():\n    return invoked()\nlaunch()\n")
+            watcher = RuntimeObserver(root, max_events=1000)
+            with watcher:
+                runpy.run_path(str(caller), init_globals={"invoked": namespace["invoked"]})
+            result = watcher.report()
+            matches = [e for e in result["events"]
+                       if e["type"] == "python_symbol_call"
+                       and e["source"] == "caller.py" and e["target"] == "target.py"]
+            self.assertEqual(len(matches), 1)
+            self.assertEqual(matches[0]["caller_symbol"], "launch")
+            self.assertEqual(matches[0]["callee_symbol"], "invoked")
+            self.assertEqual(matches[0]["callee_line"], 1)
+            self.assertEqual(matches[0]["confidence"], "OBSERVED_CALL_ENTRY")
+            self.assertFalse(result["symbol_edges_truncated"])
+            self.assertFalse(watcher._active)
+
+    def test_symbol_recording_has_explicit_independent_budget(self):
+        from tools.atlas_doctor_lib.runtime_observation import MAX_SYMBOL_EDGES
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            observer = RuntimeObserver(root, max_events=MAX_SYMBOL_EDGES + 100)
+            observer._active = True
+            observer._symbol_edges = {
+                ("a.py", "caller", i, "b.py", "callee") for i in range(MAX_SYMBOL_EDGES)
+            }
+            # The next observation must never increase the symbol-edge budget.
+            import types
+            source = compile(
+                "def fresh():\n    observer._profile(__import__('sys')._getframe(), 'call', None)\n",
+                str(root / "a.py"), "exec",
+            )
+            namespace = {"observer": observer}
+            exec(source, namespace)
+            original = observer._path
+            observer._path = lambda value: "a.py" if "a.py" in str(value) else "b.py"
+            try:
+                namespace["fresh"]()
+            finally:
+                observer._path = original
+                observer._active = False
+            self.assertEqual(len(observer._symbol_edges), MAX_SYMBOL_EDGES)
+            self.assertTrue(observer._symbol_overflow)
+
     def test_no_sensitive_outside_paths_or_arguments(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -74,6 +74,24 @@ class DoctorGraphUiTests(unittest.TestCase):
         trace["worktree_clean"] = False
         self.assertEqual(compact_graph(graph, {}, trace)["edges"], [])
 
+    def test_symbol_observations_are_opt_in_positive_evidence_only(self):
+        sha = "f" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "app/a.py"},
+                           {"id": 2, "source_file": "app/b.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "events": [{
+            "type": "python_symbol_call", "source": "app/a.py",
+            "target": "app/b.py", "caller_symbol": "send",
+            "callee_symbol": "receive", "caller_line": 10, "callee_line": 30,
+            "confidence": "OBSERVED_CALL_ENTRY",
+        }]}
+        result = compact_graph(graph, {}, trace)
+        self.assertEqual(len(result["observed_symbol_calls"]), 1)
+        self.assertEqual(result["observed_symbol_calls"][0]["callee_symbol"], "receive")
+        self.assertIn("Appels de fonctions observés", render_html(result))
+        trace["worktree_clean"] = False
+        self.assertEqual(compact_graph(graph, {}, trace)["observed_symbol_calls"], [])
+
     def test_live_uses_focus_events_not_periodic_git_polling(self):
         html = render_html(compact_graph({"nodes": [], "links": []}, {}))
         self.assertIn("addEventListener('focus'", html)

@@ -79,6 +79,18 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             and isinstance(row.get("source"), str)
             and isinstance(row.get("target"), str)
         }
+    symbol_calls: list[dict[str, Any]] = []
+    if trace_status == "MATCHED" and trace is not None:
+        symbol_calls = [
+            {field: row[field] for field in (
+                "source", "target", "caller_symbol", "callee_symbol",
+                "caller_line", "callee_line", "confidence",
+            ) if field in row}
+            for row in trace.get("events", [])
+            if row.get("type") == "python_symbol_call"
+            and isinstance(row.get("source"), str)
+            and isinstance(row.get("target"), str)
+        ][:384]
     observed_files = {file for pair in runtime_pairs for file in pair}
     qt_files = {file for pair in qt_pairs for file in pair}
     qt_sites: set[str] = set()
@@ -124,6 +136,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     return {
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
+        "observed_symbol_calls": symbol_calls,
+        "symbol_calls_bounded": bool(trace and trace.get("symbol_edges_truncated")),
         "qt_call_site_files": len(qt_sites),
         "raw_nodes": len(graph.get("nodes", [])), "raw_links": len(graph.get("links", [])),
         "truncated": len(graph.get("nodes", [])) > MAX_NODES or len(graph.get("links", [])) > MAX_LINKS,
@@ -240,6 +254,13 @@ if(importChanges.has(n.file)){
 if(importErrors.has(n.file))line('p','Inspection AST incomplète : '+importErrors.get(n.file));
 line('p','Communauté Graphify : '+String(n.community??'non déterminée'));
 if(n.runtime_observed)line('p','Appel Python observé dans une trace opt-in correspondant au SHA.');
+const symbolCalls=(data.observed_symbol_calls||[]).filter(e=>e.source===n.file||e.target===n.file);
+if(symbolCalls.length){
+ line('h4','Appels de fonctions observés (scénario opt-in)');
+ symbolCalls.slice(0,20).forEach(e=>line('p',
+  e.source+':'+e.caller_line+' '+e.caller_symbol+' → '+e.target+':'+e.callee_line+' '+e.callee_symbol));
+ if(symbolCalls.length>20||data.symbol_calls_bounded)line('p','Observations partielles : aucune conclusion sur les fonctions non vues.');
+}
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
 if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ; exécution du récepteur non prouvée.');
 if(n.reasons.length){line('h4','Pourquoi Doctor signale ce nœud');n.reasons.forEach(v=>line('p','• '+v))}

@@ -21,6 +21,7 @@ from typing import Any
 
 # CPython audit hooks cannot be unregistered. Install one dispatcher for the
 # process, and point it at at most one opt-in observer using a weak reference.
+MAX_SYMBOL_EDGES = 384
 _AUDIT_HOOK_INSTALLED = False
 _ACTIVE_AUDIT_REF: weakref.ReferenceType | None = None
 
@@ -50,6 +51,8 @@ class RuntimeObserver:
         self.max_events = max_events
         self.events: list[dict[str, Any]] = []
         self._edges: set[tuple[str, str]] = set()
+        self._symbol_edges: set[tuple[str, str, int, str, str]] = set()
+        self._symbol_overflow = False
         self._watched: list[tuple[str, str, weakref.ReferenceType]] = []
         self._overflow = False
         self._active = False
@@ -112,6 +115,26 @@ class RuntimeObserver:
                 if key not in self._edges:
                     self._edges.add(key)
                     self._record({"type": "python_call_edge", "source": caller, "target": target})
+                previous = frame.f_back
+                origin_name = previous.f_code.co_qualname if previous else "<unknown>"
+                destination_name = frame.f_code.co_qualname
+                origin_line = previous.f_lineno if previous else 0
+                symbol_key = (caller, origin_name, origin_line, target, destination_name)
+                if symbol_key not in self._symbol_edges:
+                    if len(self._symbol_edges) >= MAX_SYMBOL_EDGES:
+                        self._symbol_overflow = True
+                    elif len(self.events) < self.max_events:
+                        self._symbol_edges.add(symbol_key)
+                        self._record({
+                            "type": "python_symbol_call",
+                            "source": caller, "caller_symbol": origin_name,
+                            "caller_line": origin_line, "target": target,
+                            "callee_symbol": destination_name,
+                            "callee_line": frame.f_code.co_firstlineno,
+                            "confidence": "OBSERVED_CALL_ENTRY",
+                        })
+                    else:
+                        self._overflow = True
         finally:
             self._busy = False
 
@@ -250,11 +273,14 @@ class RuntimeObserver:
             if self.started_ns else 0.0,
             "status": "TRUNCATED" if self._overflow else "RECORDED",
             "events": self.events, "events_captured": len(self.events),
-            "truncated": self._overflow, "object_watches": watched,
+            "truncated": self._overflow, "symbol_edges_truncated": self._symbol_overflow,
+            "symbol_edges_recorded": len(self._symbol_edges),
+            "object_watches": watched,
             "limits": [
                 "Qt connections require explicit connect_qt_signal instrumentation; callback execution and native ownership remain unknown.",
                 "Still referenced objects may be intentionally retained; not a proof of a memory leak.",
                 "No arguments, variable values or outside-repository paths collected.",
+                "Symbol call sites are bounded, observed positives only; no negative reachability proof.",
             ],
         }
 
