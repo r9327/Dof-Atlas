@@ -68,33 +68,35 @@ def _direct_blocking_call(name: str) -> bool:
 
 
 def _blocking_function_names(tree: ast.AST) -> set[str]:
-    """Return local functions that transitively perform a blocking operation."""
+    """Find transitive blocking dependencies without repeatedly walking call trees.
 
+    Preserve the conservative convention: both direct and dotted local
+    function names can propagate blocking through top-level functions.
+    """
     functions = {
         node.name: node
         for node in getattr(tree, 'body', [])
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
-    blocking = {
-        name
-        for name, function in functions.items()
-        if any(
-            isinstance(child, ast.Call) and _direct_blocking_call(_call_name(child))
+    callers: dict[str, set[str]] = defaultdict(set)
+    blocking: set[str] = set()
+    for name, function in functions.items():
+        callees = {
+            _call_name(child)
             for child in ast.walk(function)
-        )
-    }
-    changed = True
-    while changed:
-        changed = False
-        for name, function in functions.items():
-            if name in blocking:
-                continue
-            if any(
-                isinstance(child, ast.Call) and _call_name(child).split('.')[-1] in blocking
-                for child in ast.walk(function)
-            ):
-                blocking.add(name)
-                changed = True
+            if isinstance(child, ast.Call)
+        }
+        if any(_direct_blocking_call(callee) for callee in callees):
+            blocking.add(name)
+        for callee in callees:
+            if callee:
+                callers[callee.rsplit('.', 1)[-1]].add(name)
+    pending = list(blocking)
+    while pending:
+        for caller in callers.get(pending.pop(), ()):
+            if caller not in blocking:
+                blocking.add(caller)
+                pending.append(caller)
     return blocking
 
 
@@ -107,26 +109,29 @@ def _contains_blocking_call(node: ast.While, blocking_functions: set[str]) -> bo
     return False
 
 
-def _submitted_function_node_ids(tree: ast.AST) -> set[int]:
+def _submitted_function_node_ids(tree: ast.AST, nodes: list[ast.AST] | None = None) -> set[int]:
+    nodes = list(ast.walk(tree)) if nodes is None else nodes
     submitted_names: set[str] = set()
-    for node in ast.walk(tree):
+    for node in nodes:
         if not isinstance(node, ast.Call) or not _call_name(node).endswith('.submit') or not node.args:
             continue
         callback = node.args[0]
         if isinstance(callback, ast.Name):
             submitted_names.add(callback.id)
     background_nodes: set[int] = set()
-    for node in ast.walk(tree):
+    for node in nodes:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in submitted_names:
             background_nodes.update(id(child) for child in ast.walk(node))
     return background_nodes
 
 
-def _single_load_cached_function_node_ids(tree: ast.AST) -> set[int]:
+def _single_load_cached_function_node_ids(tree: ast.AST, nodes: list[ast.AST] | None = None) -> set[int]:
     """Return nodes in zero-argument functions cached to a single result."""
 
+    nodes = list(ast.walk(tree)) if nodes is None else nodes
+
     cached_nodes: set[int] = set()
-    for node in ast.walk(tree):
+    for node in nodes:
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         args = node.args
@@ -165,12 +170,14 @@ def _expression_key(node: ast.AST) -> str:
         return ''
 
 
-def _managed_worker_call_ids(tree: ast.AST) -> set[int]:
+def _managed_worker_call_ids(tree: ast.AST, nodes: list[ast.AST] | None = None) -> set[int]:
     """Prove common deterministic worker ownership patterns statically."""
+
+    nodes = list(ast.walk(tree)) if nodes is None else nodes
 
     managed: set[int] = set()
     terminal_owners: set[str] = set()
-    for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
+    for call in (node for node in nodes if isinstance(node, ast.Call)):
         if isinstance(call.func, ast.Attribute) and call.func.attr in {
             'join', 'shutdown', 'quit', 'wait', 'cancel'
         }:
@@ -187,7 +194,7 @@ def _managed_worker_call_ids(tree: ast.AST) -> set[int]:
                     terminal_owners.add(owner)
 
     assignments: list[tuple[ast.Call, list[str]]] = []
-    for statement in ast.walk(tree):
+    for statement in nodes:
         if isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Call):
             names = [_expression_key(target) for target in statement.targets]
             assignments.append((statement.value, names))
@@ -197,7 +204,7 @@ def _managed_worker_call_ids(tree: ast.AST) -> set[int]:
         if _call_name(call) in THREAD_CALLS and any(owner in terminal_owners for owner in owners):
             managed.add(id(call))
 
-    for with_node in (node for node in ast.walk(tree) if isinstance(node, (ast.With, ast.AsyncWith))):
+    for with_node in (node for node in nodes if isinstance(node, (ast.With, ast.AsyncWith))):
         for item in with_node.items:
             for call in (node for node in ast.walk(item.context_expr) if isinstance(node, ast.Call)):
                 if _call_name(call) in THREAD_CALLS:
@@ -205,7 +212,7 @@ def _managed_worker_call_ids(tree: ast.AST) -> set[int]:
 
     bounded_targets: set[str] = set()
     for function in (
-        node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        node for node in nodes if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     ):
         has_unbounded_loop = any(
             isinstance(child, ast.While)
@@ -215,7 +222,7 @@ def _managed_worker_call_ids(tree: ast.AST) -> set[int]:
         )
         if not has_unbounded_loop:
             bounded_targets.add(function.name)
-    for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
+    for call in (node for node in nodes if isinstance(node, ast.Call)):
         if _call_name(call) not in THREAD_CALLS:
             continue
         daemon = any(
@@ -230,7 +237,7 @@ def _managed_worker_call_ids(tree: ast.AST) -> set[int]:
 
     has_message_hook_stop = any(
         isinstance(node, ast.Call) and _call_name(node).endswith('stop_message_hook')
-        for node in ast.walk(tree)
+        for node in nodes
     )
     if has_message_hook_stop:
         for call, owners in assignments:
@@ -309,15 +316,18 @@ def _dynamic_import_targets(tree: ast.AST) -> set[str]:
     return resolved
 
 
-def _controlled_exec_call_ids(tree: ast.AST) -> set[int]:
+def _controlled_exec_call_ids(tree: ast.AST, nodes: list[ast.AST] | None = None) -> set[int]:
     """Recognize compile(..., filename, 'exec') in an explicit isolated namespace."""
 
+    nodes = list(ast.walk(tree)) if nodes is None else nodes
+
     controlled: set[int] = set()
-    for function in ast.walk(tree):
+    for function in nodes:
         if not isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         isolated_namespaces: set[str] = set()
-        for statement in ast.walk(function):
+        function_nodes = list(ast.walk(function))
+        for statement in function_nodes:
             if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
                 continue
             target = statement.target if isinstance(statement, ast.AnnAssign) else (
@@ -334,7 +344,7 @@ def _controlled_exec_call_ids(tree: ast.AST) -> set[int]:
                 '__file__', '__name__', '__package__', '__builtins__'
             }:
                 isolated_namespaces.add(target.id)
-        for call in ast.walk(function):
+        for call in function_nodes:
             if not isinstance(call, ast.Call) or _call_name(call) not in {'exec', 'builtins.exec'}:
                 continue
             if len(call.args) != 2 or call.keywords or not isinstance(call.args[1], ast.Name):
@@ -473,13 +483,15 @@ def _scan_python(path: str, full: Path) -> tuple[ast.AST | None, list[Issue]]:
         issues.append(Issue('python_syntax_error', 'code', 'CRITICAL', 'confirmed', path, exc.lineno, 'Erreur de syntaxe Python', exc.msg, 'Corriger la syntaxe avant toute autre validation.'))
         return None, issues
 
+    # A single root walk feeds all independent rule families.
+    nodes = list(ast.walk(tree))
     blocking_functions = _blocking_function_names(tree)
-    background_nodes = _submitted_function_node_ids(tree)
-    single_load_cached_nodes = _single_load_cached_function_node_ids(tree)
-    managed_worker_calls = _managed_worker_call_ids(tree)
-    controlled_execs = _controlled_exec_call_ids(tree)
+    background_nodes = _submitted_function_node_ids(tree, nodes)
+    single_load_cached_nodes = _single_load_cached_function_node_ids(tree, nodes)
+    managed_worker_calls = _managed_worker_call_ids(tree, nodes)
+    controlled_execs = _controlled_exec_call_ids(tree, nodes)
 
-    for node in ast.walk(tree):
+    for node in nodes:
         if isinstance(node, ast.ImportFrom) and any(alias.name == '*' for alias in node.names):
             issues.append(Issue('import_star', 'architecture', 'HIGH', 'confirmed', path, _line(node), 'Import wildcard interdit', ast.unparse(node), 'Remplacer par des imports explicites pour garder les dependances auditables.'))
 
@@ -542,6 +554,8 @@ def run_audit(
     state = git_state(root)
     files = tracked_files(root)
     large_file_contracts, contract_errors = _validated_large_file_contracts(root)
+    inventory_ms = milliseconds(started)
+    scan_started = time.perf_counter()
     issues: list[Issue] = []
     for error in contract_errors:
         issues.append(Issue('invalid_large_file_contract', 'git', 'HIGH', 'confirmed', LARGE_FILE_CONTRACT_PATH.as_posix(), None, 'Contrat de gros fichier invalide', error, 'Corriger le hash, le role, le generateur ou les consommateurs prouves.'))
@@ -583,6 +597,8 @@ def run_audit(
                 module_to_path[module] = path
                 imports_by_file[path] = _collect_imports(tree, module)
 
+    scan_ms = milliseconds(scan_started)
+    relations_started = time.perf_counter()
     imported: Counter[str] = Counter()
     for names in imports_by_file.values():
         for name in names:
@@ -640,6 +656,8 @@ def run_audit(
         if len(unique) >= 4:
             issues.append(Issue('repeated_symbol_name', 'architecture', 'INFO', 'confirmed', unique[0], None, f'Nom de symbole courant dans plusieurs modules', ', '.join(unique[:8]), 'Observation uniquement: un nom repete ne prouve ni dependance ni duplication de responsabilite.'))
 
+    relations_ms = milliseconds(relations_started)
+    gate_started = time.perf_counter()
     integrity: dict[str, Any] | None = None
     if integrity_mode:
         integrity = run_integrity_gate(root, integrity_mode, base_ref=base_ref)
@@ -689,6 +707,7 @@ def run_audit(
                 'Executer Atlas Integrity separement et corriger l erreur de configuration/execution.',
             ))
 
+    gate_ms = milliseconds(gate_started) if integrity_mode else 0.0
     issue_dicts = [issue.to_dict() for issue in issues]
     issue_dicts.sort(key=lambda item: ({'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3, 'INFO': 4}.get(item['severity'], 9), item['path'], item.get('line') or 0, item['rule']))
     counts = severity_counts(issue_dicts)
@@ -712,6 +731,12 @@ def run_audit(
             'atlas_integrity': bool(integrity_mode),
         },
         'duration_ms': milliseconds(started),
+        'timings_ms': {
+            'git_and_inventory': inventory_ms,
+            'ast_scan': scan_ms,
+            'cross_file_analysis': relations_ms,
+            'integrity_gate': gate_ms,
+        },
         'summary': {
             'verdict': verdict,
             'tracked_files': len(files),

@@ -254,6 +254,7 @@ def command_verify(root: Path, args) -> dict[str, Any]:
     payload = {
         'schema_version': 1, 'kind': 'verification', 'status': status,
         'base_ref': base_ref, 'audit': summary, 'integrity': integrity,
+        'timings_ms': current.get('timings_ms', {}),
         'comparison': comparison, 'primary_cause': reason,
         'reproduction_command': integrity.get('command'),
         'next_action': 'Inspect the recorded blockers and reproduction command.' if status != 'PASS' else None,

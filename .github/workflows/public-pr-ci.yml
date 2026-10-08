@@ -137,6 +137,10 @@ jobs:
           $criticalCount = [int]$payload.audit.severity.CRITICAL
 
           Write-Host "Doctor status: $($payload.status)"
+          Write-Host "Doctor engine Git/inventory: $($payload.timings_ms.git_and_inventory) ms"
+          Write-Host "Doctor engine AST scan: $($payload.timings_ms.ast_scan) ms"
+          Write-Host "Doctor engine cross-file analysis: $($payload.timings_ms.cross_file_analysis) ms"
+          Write-Host "Doctor integration gate: $($payload.timings_ms.integrity_gate) ms"
           Write-Host "Doctor validation profile: $($payload.integrity.report.validation_profile)"
           Write-Host "Atlas Integrity FAST status: $integrityStatus"
           Write-Host "Doctor CRITICAL findings: $criticalCount"
