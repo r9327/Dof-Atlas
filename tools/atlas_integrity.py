@@ -457,20 +457,28 @@ def _full_suite_case_counts(output: str) -> dict[str, int]:
     if not reported:
         return {}
     counts: dict[str, int] = {}
+    unproven: set[str] = set()
     matched = 0
     expression = re.compile(
         r"^test_[^\r\n]*?\(((?:tests\.)?test_[A-Za-z0-9_]+)\.[^)]+\)\s+\.\.\.\s+"
-        r"(?:ok|skipped(?:\s+.+)?|expected failure)\s*$"
+        r"(ok|skipped(?:\s+.+)?|expected failure)\s*$"
     )
     for line in output.splitlines():
         match = expression.match(line.strip())
         if match is None:
             continue
-        name = match.group(1)
+        name, outcome = match.groups()
         module = name if name.startswith("tests.") else "tests." + name
-        counts[module] = counts.get(module, 0) + 1
         matched += 1
-    return counts if matched == reported else {}
+        if outcome == "ok":
+            counts[module] = counts.get(module, 0) + 1
+        else:
+            # An expected failure or a skip is not a successful execution
+            # of the test's assertions. Never reuse that module as proof.
+            unproven.add(module)
+    if matched != reported:
+        return {}
+    return {module: count for module, count in counts.items() if module not in unproven}
 
 
 def _group_test_modules(
@@ -513,6 +521,22 @@ def exit_code_for_report(report: dict[str, Any]) -> int:
     if report.get("verdict") == "BLOCKED":
         return 1
     return 2
+
+
+def _record_gate_progress(group: str, event: str, *, seconds: float | None = None) -> None:
+    """Emit lightweight, append-only breadcrumbs for diagnosing a killed gate."""
+    target = os.environ.get("ATLAS_INTEGRITY_PROGRESS_PATH", "").strip()
+    if not target:
+        return
+    payload: dict[str, Any] = {"group": group, "event": event}
+    if seconds is not None:
+        payload["duration_seconds"] = round(seconds, 3)
+    try:
+        with Path(target).open("a", encoding="utf-8") as output:
+            output.write(json.dumps(payload, ensure_ascii=True, separators=(",", ":")) + "\n")
+    except OSError:
+        # Diagnostic output must never replace or downgrade a validation verdict.
+        pass
 
 
 def execute_gate(
@@ -559,10 +583,12 @@ def execute_gate(
     suite_cases: dict[str, int] = {}
     for name in order:
         config = policy["groups"][name]
+        _record_gate_progress(name, "STARTED")
         command = _command_for_group(name, config, root=root, base_ref=base_ref, changed=changed)
         if command is None:
             groups[name]["status"] = "PASS"
             groups[name]["tests"] = 0
+            _record_gate_progress(name, "FINISHED", seconds=0.0)
             continue
         candidate_modules = (
             _group_test_modules(name, config, root=root, changed=changed)
@@ -606,6 +632,11 @@ def execute_gate(
         else:
             status = "BLOCKED" if config.get("blocking", True) else "MEASURED_ONLY_FAILED"
         groups[name]["status"] = status
+        _record_gate_progress(
+            name,
+            "FINISHED" if status in {"PASS", "MEASURED_ONLY"} else "FAILED",
+            seconds=command_report["duration_seconds"],
+        )
 
         group_blockers: list[str] = []
         if name == "META_INTEGRITY":

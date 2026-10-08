@@ -178,6 +178,27 @@ class AtlasIntegrityGateTests(unittest.TestCase):
             any("tests.test_architecture_debt_baseline" in cmd for cmd in executor.commands)
         )
 
+    def test_full_suite_skip_or_expected_failure_is_not_reusable_evidence(self) -> None:
+        cases = [
+            "test_ok (test_foo.Examples.test_ok) ... ok",
+            "test_not_run (test_bar.Examples.test_not_run) ... skipped 'unsupported'",
+            "test_expected (test_baz.Examples.test_expected) ... expected failure",
+        ]
+        output = "\n".join([*cases, "Ran 3 tests in 0.01s", "OK (skipped=1, expected failures=1)"])
+        self.assertEqual(atlas_integrity._full_suite_case_counts(output), {"tests.test_foo": 1})
+
+    def test_integrity_progress_writes_start_and_end_events(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "progress.jsonl"
+            with patch.dict("os.environ", {"ATLAS_INTEGRITY_PROGRESS_PATH": str(output)}):
+                report, _ = self._run("fast", ["docs/readme.md"])
+            rows = [json.loads(row) for row in output.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(report["verdict"], "PASS")
+            started = [row["group"] for row in rows if row["event"] == "STARTED"]
+            finished = [row["group"] for row in rows if row["event"] == "FINISHED"]
+            self.assertEqual(started, finished)
+            self.assertIn("META_INTEGRITY", started)
+
     def test_incomplete_suite_evidence_does_not_bypass_group_execution(self) -> None:
         self.assertEqual(
             atlas_integrity._full_suite_case_counts(
