@@ -59,6 +59,26 @@ class DeepIntelligenceTests(unittest.TestCase):
         self.assertEqual(architectural_guardrails(g, g)["new_candidate_violations"], [])
         self.assertEqual(architectural_guardrails(g)["status"], "REVIEW")
 
+    def test_old_debt_does_not_block_when_exact_baseline_contains_it(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "main.py").write_text("pass\n")
+            graph = {"nodes": [{"id": "a", "source_file": "main.py"},
+                               {"id": "b", "source_file": "app/x.py"},
+                               {"id": "c", "source_file": "tools/y.py"}],
+                     "links": [{"source": "b", "target": "c", "relation": "imports",
+                                "confidence": "EXTRACTED", "_origin": "ast"}]}
+            baseline = root / "before.json"
+            baseline.write_text(json.dumps(graph))
+            evidence = {"status": "PASS", "graph": str(baseline)}
+            confirmed = {"blocking_findings": [{"source": "app/x.py", "target": "tools/y.py"}]}
+            with patch("tools.atlas_doctor_lib.architecture.graph_status", return_value=evidence), \
+                 patch("tools.atlas_doctor_lib.graph_audit.inspect_graph", return_value=confirmed):
+                report = inspect_code(root, paths=["main.py"], baseline=baseline)
+            self.assertEqual(report["architectural_rules"]["confirmed_blockers"], [])
+            self.assertEqual(report["architectural_rules"]["historical_candidates"], 1)
+
     def test_missing_graph_does_not_claim_reachability(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

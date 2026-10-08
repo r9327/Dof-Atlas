@@ -176,9 +176,24 @@ def inspect_code(root: Path, *, paths: list[str],
             # Source confirmation already exists in graph_audit, do not duplicate it.
             from .graph_audit import inspect_graph
             findings = inspect_graph(graph, root=root)
-            rules["confirmed_blockers"] = findings.get("blocking_findings", [])
+            confirmed = findings.get("blocking_findings", [])
+            new_edges = {
+                (row["source"], row["target"])
+                for row in rules.get("new_candidate_violations", [])
+            }
+            # Without a baseline, a source-confirmed forbidden edge is real
+            # but its introduction date is unknown: REVIEW rather than CI FAIL.
+            rules["confirmed_blockers"] = [
+                row for row in confirmed
+                if old is not None and (row.get("source"), row.get("target")) in new_edges
+            ]
+            rules["historical_or_unbased_confirmed"] = [
+                row for row in confirmed if row not in rules["confirmed_blockers"]
+            ][:MAX_FINDINGS]
             if rules["confirmed_blockers"]:
                 rules["status"] = "BLOCKED"
+            elif rules["historical_or_unbased_confirmed"] and old is None:
+                rules["status"] = "REVIEW"
         except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
             reach = {"status": "UNAVAILABLE", "reason": str(exc)}
             rules = {"status": "UNAVAILABLE", "reason": str(exc)}
