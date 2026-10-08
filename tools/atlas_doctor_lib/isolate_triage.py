@@ -34,8 +34,12 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
         if hashlib.sha256(raw_bytes).hexdigest() != graph["graph_signature"]:
             raise ValueError("Graph fingerprint changed; no stale evidence.")
         raw = json.loads(raw_bytes)
-        audit = inspect_graph(raw, root=root, weak_offset=offset if kind == 'weak' else 0,
-                              community_offset=offset if kind == 'community' else 0)
+        if kind == 'weak':
+            audit = inspect_graph(raw, root=root, weak_offset=offset)
+        elif kind == 'community':
+            audit = inspect_graph(raw, root=root, community_offset=offset)
+        else:
+            audit = inspect_graph(raw, root=root)
     except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
         return {**result, "status": "BLOCKED", "reason": str(exc)}
     picked: list[tuple[str, str]] = []
