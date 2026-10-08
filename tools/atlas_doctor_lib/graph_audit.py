@@ -282,11 +282,12 @@ def audit_current_graph(
                 result, cycles, cohesion, source_review=source_review, performance=perf
             ),
         )
-        if cycles["source_confirmed_cycles"]:
-            result["status"] = "FAIL"
-        elif source_review["status"] == "BLOCKED":
+        # Existing source-level import cycles are architecture debt, not proof
+        # of a newly introduced or runtime-failing circular import. A concrete
+        # forbidden app->tools import retains FAIL precedence above.
+        if source_review["status"] == "BLOCKED":
             result["status"] = "BLOCKED"
-        elif cycles["suspected_cycles"] or cohesion["candidate_count"]:
+        elif result["status"] == "PASS" and (cycles["suspected_cycles"] or cohesion["candidate_count"]):
             result["status"] = "REVIEW"
     except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
         return {"schema_version": 1, "kind": "graph_architecture_audit",

@@ -345,3 +345,28 @@ The report has exact HEAD SHA, graph signature and bounded evidence, never
 infers dead code from isolation and never merges communities automatically.
 Missing, invalid, stale or changed graphs produce BLOCKED rather than a
 misleading clean bill of health.
+
+
+### 117.7 — Source-confirmed import cycles are tracked architectural debt
+
+The earlier exact-SHA graph artifact from \`fff63b3bcd51a7c95f9251b26c57ad328ff47cd1\`
+already had four directed extracted Python import SCCs: the \`runtime_state.py\` ↔
+Macros group; \`guide_ultime_manual_view.py\` ↔ \`shared_manual_guide_view.py\`;
+\`guides_view.py\` ↔ \`quest_detail_view.py\`; and
+\`quest_catalog.py\` ↔ \`quest_catalog_details.py\`.
+
+Doctor checks the edges against current Python source. Existing cycles are marked
+source-confirmed **P1 REVIEW**, not automatically FAIL: lazy or function-scoped
+imports can be intentional, and a cycle alone does not prove runtime failure.
+A brand-new cycle is reported by \`graph-compare --baseline <previous graph.json>\`;
+its introduction and impact require review and tests. The earlier Graphify
+GRAPH_REPORT.md "0 detected cycles" referred to that report's own limited
+cycle analysis, not to an independently verified Python file-import SCC scan.
+
+Commands after rebuilding Graphify:
+- \`python -m tools.atlas_doctor graph-audit --deep --json\`
+- \`python -m tools.atlas_doctor graph-compare --baseline PATH_TO_OLD_GRAPH_JSON --json\`
+
+Doctor emits a prioritized, read-only remediation plan and attaches same-SHA
+performance data only when available. No automatic code deletion, community
+merging, or claims of module-level memory savings.

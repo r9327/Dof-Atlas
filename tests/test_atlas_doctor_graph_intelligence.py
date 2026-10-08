@@ -46,7 +46,11 @@ class GraphIntelligenceTests(unittest.TestCase):
             path.mkdir(parents=True)
             (path / "a.py").write_text("from app.core import b\n", encoding="utf-8")
             (path / "b.py").write_text("from app.core import a\n", encoding="utf-8")
-            self.assertEqual(inspect_import_cycles(fixture(), root)["source_confirmed_cycles"], 1)
+            report = inspect_import_cycles(fixture(), root)
+            self.assertEqual(report["source_confirmed_cycles"], 1)
+            self.assertFalse(report["cycles"][0]["blocking"])
+            plan = remediation_plan({}, report, {"candidates": []})
+            self.assertEqual(plan["tasks"][0]["priority"], "P1")
             (path / "b.py").write_text("print('no import')\n", encoding="utf-8")
             self.assertEqual(inspect_import_cycles(fixture(), root)["source_confirmed_cycles"], 0)
 

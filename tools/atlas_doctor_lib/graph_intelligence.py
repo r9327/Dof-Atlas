@@ -163,7 +163,9 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
             "files": members, "import_file_edges": len(edges),
             "source_confirmed_edges": sum(x["source_confirmed"] for x in checked),
             "confidence": "CURRENT_SOURCE_IMPORT_CYCLE" if confirmed else "GRAPH_CYCLE_NEEDS_SOURCE_REVIEW",
-            "blocking": confirmed, "sample_edges": checked[:10],
+            "blocking": False, "review_required": True,
+            "reason": "A cycle in import dependencies does not prove a runtime error or a new regression.",
+            "sample_edges": checked[:10],
         })
     return {
         "status": "REVIEW" if cycles else "PASS",
@@ -363,7 +365,7 @@ def remediation_plan(
         })
     for cycle in cycles.get("cycles", [])[:MAX_REVIEW]:
         tasks.append({
-            "priority": "P1" if cycle["blocking"] else "P2", "kind": "IMPORT_CYCLE",
+            "priority": "P1" if cycle["confidence"] == "CURRENT_SOURCE_IMPORT_CYCLE" else "P2", "kind": "IMPORT_CYCLE",
             "paths": cycle["files"], "evidence": cycle["confidence"],
             "action": "Review dependency direction and relocate shared interfaces only if source and tests confirm.",
             "require_tests": ["affected unit tests", "Graphify exact SHA", "Doctor FAST"],
