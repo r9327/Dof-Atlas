@@ -120,6 +120,24 @@ jobs:
               print("Note: report omissions are not literal raw-graph thin communities")
           PY
 
+      - name: Doctor audit of exact SHA Graphify nodes and communities
+        shell: bash
+        run: |
+          python -m tools.atlas_doctor graph-audit --json > graphify-out/doctor_graph_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("graphify-out/doctor_graph_audit.json").read_text(encoding="utf-8"))
+          if report["status"] not in {"PASS", "REVIEW"}:
+              raise SystemExit("Doctor Graphify audit did not validate exact SHA.")
+          if report["blocking_findings"]:
+              raise SystemExit("Source-confirmed architecture inversion: " + str(report["blocking_findings"]))
+          metrics = report["metrics"]
+          print(f"Doctor graph audit: {report['status']}; raw small communities: {metrics['raw_communities_lt3_nodes']}")
+          print(f"Orphan graph nodes: {metrics['isolated_nodes']}; candidate high-fanout app files: {metrics['high_fanout_app_files']}")
+          print("Advisory candidates require source-level proof before deletion or merge.")
+          PY
+
       - name: Upload visual map and graph
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

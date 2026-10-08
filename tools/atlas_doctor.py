@@ -105,6 +105,21 @@ def command_graph(root: Path, args) -> dict[str, Any]:
     return payload
 
 
+def command_graph_audit(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.graph_audit import audit_current_graph
+    result = audit_current_graph(root)
+    if not args.json:
+        metrics = result.get("metrics") or {}
+        print(f"Doctor + Graphify audit : {result['status']}")
+        print(f"SHA : {result.get('candidate_sha', 'UNVERIFIED')} | nœuds : {metrics.get('node_count', 0)}")
+        print(f"Isolés : {metrics.get('isolated_nodes', 0)} | communautés isolées : {metrics.get('isolated_communities', 0)}")
+        print(f"Hubs : {metrics.get('high_fanout_app_files', 0)} | imports app->tools prouvés : {metrics.get('confirmed_runtime_to_tools_imports', 0)}")
+        print("Les nœuds isolés et communautés candidates ne prouvent pas du code mort.")
+        if result.get("reason"):
+            print(result["reason"])
+    return result
+
+
 def command_ponytail(root: Path, args) -> dict[str, Any]:
     payload = evaluate_ponytail(root, base_ref=args.base_ref, required=True)
     if not args.json:
@@ -137,7 +152,9 @@ def menu_diagnostics(root: Path) -> dict[str, Any]:
 
 def menu_graph(root: Path) -> dict[str, Any]:
     payload = command_graph(root, argparse.Namespace(json=False, rebuild=False, install=False, open=False))
-    choice = input("R : reconstruire | I : installer Graphify puis generer | O : ouvrir HTML | Entree : retour\n").strip().casefold()
+    choice = input("R : reconstruire | I : installer Graphify puis generer | A : auditer graphe | O : ouvrir HTML | Entree : retour\n").strip().casefold()
+    if choice == "a":
+        return command_graph_audit(root, argparse.Namespace(json=False))
     if choice in {"r", "i", "o"}:
         payload = command_graph(root, argparse.Namespace(
             json=False, rebuild=choice == "r", install=choice == "i", open=choice == "o",
@@ -316,6 +333,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest='command')
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
+    sub.add_parser('graph-audit', help='Auditer les nœuds, communautés, couplages et imports depuis le Graphify exact HEAD; lecture seule.')
     graph = sub.add_parser('graph', help='Architecture Graphify; lecture du graph par defaut.')
     graph.add_argument('--rebuild', action='store_true', help='Generer explicitement le graph AST, clustering et HTML.')
     graph.add_argument('--install', action='store_true', help='Installer explicitement Graphify pinne via uv puis generer.')
@@ -430,6 +448,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {
         'quick': command_quick,
         'graph': command_graph,
+        'graph-audit': command_graph_audit,
         'ponytail': command_ponytail,
         'audit': command_audit,
         'live': command_live,
@@ -450,6 +469,8 @@ def main(argv: list[str] | None = None) -> int:
         return {'PASS': 0, 'REVIEW': 1, 'FAIL': 2, 'UNAVAILABLE': 2}.get(payload.get('status'), 2)
     if args.command == 'graph':
         return 0 if payload['status'] == 'PASS' else 1
+    if args.command == 'graph-audit':
+        return 0 if payload['status'] in {'PASS', 'REVIEW'} else 2
     if args.command in {'audit', 'quick'}:
         verdict = (payload.get('summary') or {}).get('verdict')
         return 2 if verdict == 'FAIL' else (1 if verdict == 'WARN' else 0)

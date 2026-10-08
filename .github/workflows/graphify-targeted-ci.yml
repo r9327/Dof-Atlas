@@ -65,6 +65,7 @@ jobs:
       - name: Run focused architecture and compatibility tests
         shell: bash
         run: |
+          python -m unittest -v tests.test_atlas_doctor_graph_audit
           python -m unittest discover -s tests -p "test_guide_canonical_button_imports.py" -v
           python -m unittest discover -s tests -p "test_craft_lightweight_import_boundary.py" -v
           python -m unittest discover -s tests -p "test_guide_criterion_scope_boundary.py" -v

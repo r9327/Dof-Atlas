@@ -326,3 +326,22 @@ Final acceptance after all chosen cleanup lots:
 The final comparison must report both the baseline and final Graphify metrics. A lower
 community count is a useful signal only when the removed boundaries were genuinely
 duplicate or obsolete.
+
+
+### Doctor × Graphify exact-SHA audit (117.6)
+
+Run `python -m tools.atlas_doctor graph --rebuild` and then
+`python -m tools.atlas_doctor graph-audit --json`.
+The canonical Graphify workflow performs both steps and uploads
+`graphify-out/doctor_graph_audit.json` alongside the map.
+
+Doctor distinguishes raw graph communities (<3 **actual nodes**) from
+report-omitted sections. It inventories verified zero-degree nodes, weak
+degree-1 application nodes, source/target file fanout, cross-community
+extracted-import bridges and possible runtime→tools import inversions.
+Only a direct import confirmed by parsing the **current source file** can
+be a blocking inversion; every other candidate is explicitly advisory.
+The report has exact HEAD SHA, graph signature and bounded evidence, never
+infers dead code from isolation and never merges communities automatically.
+Missing, invalid, stale or changed graphs produce BLOCKED rather than a
+misleading clean bill of health.
