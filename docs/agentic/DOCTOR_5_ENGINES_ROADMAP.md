@@ -74,3 +74,7 @@ Le workflow lourd `Graphify Code Map` est déclenché explicitement (`workflow_d
 ### Consommateurs dynamiques candidats
 
 `python -m tools.atlas_doctor consumer-sites app/pages/character_page.py --json` : inspecte les consommateurs statiques prouvés par l'outil Agent existant et un nombre borné de fichiers contenant des mentions du module. Les appels `import_module` littéraux, imports non littéraux, lieux `signal.connect` et attributs réflexifs sont classés comme **pistes**, jamais comme preuves d'exécution ou de code mort. Les noms construits sans le nom du module peuvent échapper à la recherche textuelle ; `safe_to_delete` reste faux. Aucun graphe reconstruit, aucune suite lancée.
+
+### Enquête groupée sur les nœuds isolés
+
+`python -m tools.atlas_doctor isolate-triage --limit 5 --json` réutilise `graph_audit.inspect_graph` et les recherches de consommateurs existantes. Le lot ne dépasse jamais 10 fichiers source et refuse un graphe périmé. Les résultats distinguent imports statiques confirmés, indices dynamiques et absence de preuves ; ils ne concluent **jamais** qu'un fichier est supprimable automatiquement. Pas de FULL_SUITE ni rebuild dans la commande.

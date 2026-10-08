@@ -134,6 +134,16 @@ def command_graph_audit(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_isolate_triage(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.isolate_triage import triage_isolates
+    result = triage_isolates(root, limit=args.limit)
+    if not args.json:
+        print(f"Doctor orphan triage: {result['status']}")
+        print(f"Candidates checked: {result.get('candidates_inspected', 0)}")
+        print("Isolation is not proof of unused code.")
+    return result
+
+
 def command_consumer_sites(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.consumer_sites import inspect_consumer_sites
     result = inspect_consumer_sites(root, args.path)
@@ -480,6 +490,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
     sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
+    it = sub.add_parser('isolate-triage', help='Investiguer jusqu a 10 fichiers isoles en preservant leurs consommateurs.')
+    it.add_argument('--limit', type=int, default=5)
     cs = sub.add_parser('consumer-sites', help='Analyser les consommateurs statiques et dynamiques candidats.')
     cs.add_argument('path', help='Fichier Python cible relatif au depot.')
     ch = sub.add_parser('change-plan', help='Plan diff Git + consommateurs Graphify + tests cibles; aucun test execute.')
@@ -631,6 +643,7 @@ def main(argv: list[str] | None = None) -> int:
         'change-plan': command_change_plan,
         'file-coverage': command_file_coverage,
         'consumer-sites': command_consumer_sites,
+        'isolate-triage': command_isolate_triage,
         'code-inspect': command_code_inspect,
         'runtime-trace': command_runtime_trace,
         'graph-ui': command_graph_ui,
@@ -675,6 +688,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if payload['status'] == 'RECORDED' else 1
     if args.command == 'code-inspect':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
+    if args.command == 'isolate-triage':
+        return 2 if payload['status'] == 'BLOCKED' else 0
     if args.command == 'consumer-sites':
         return 0
     if args.command == 'file-coverage':
