@@ -127,12 +127,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "2af861a81d3c55298a34ada2fc675e457e5f0070",
+      "sha": "347b1f1231dfbe4760247ac2d79d173786fee92c",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "00acc28a30c3511ce7b5e6ae8c23fcdfb0117182",
+      "sha": "3c1dd5d69a3dd1eab6f93b8b2af5149ec93a0582",
       "type": "tree"
     }
   },
