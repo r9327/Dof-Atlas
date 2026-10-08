@@ -10,6 +10,10 @@ For every non-trivial structural task, Graphify is mandatory before modifying co
 
 Read `ZERO_TRUST_RULES.md` for the permanent short contribution contract.
 
+## Library documentation (Context7)
+
+When an external library or API detail matters, use Context7 MCP (if available) for up-to-date, version-specific documentation before changing code. For example, verify PySide6 / QtWebEngine usage against the relevant version. Prefer focused documentation queries; cross-check the current code and tests. Context7 never overrides Atlas guardrails or becomes a source of Dofus game data. Never send secrets, personal data, or proprietary source to external documentation services. If Context7 is unavailable, use official docs instead; do not block runtime or CI.
+
 ## Mandatory project contract
 
 Before any non-trivial modification, read and follow:

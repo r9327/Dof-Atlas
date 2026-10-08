@@ -1,0 +1,4 @@
+# Context7 MCP: documentation tool for Codex in trusted project workspaces.
+# No runtime dependency, npm installation or API secret is committed here.
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
