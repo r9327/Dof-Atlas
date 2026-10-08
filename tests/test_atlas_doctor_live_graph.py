@@ -1,0 +1,79 @@
+from __future__ import annotations
+
+import json
+import subprocess
+import tempfile
+import threading
+import unittest
+from http.server import ThreadingHTTPServer
+from pathlib import Path
+from urllib.error import HTTPError
+from urllib.request import urlopen
+
+from tools.atlas_doctor_lib.live_graph import change_snapshot, handler_factory
+
+
+class LiveGraphTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.git("init", "-q")
+        self.git("config", "user.name", "Doctor")
+        self.git("config", "user.email", "doctor@example.invalid")
+        self.path = self.root / "app" / "file.py"
+        self.path.parent.mkdir()
+        self.path.write_text("x = 1\n")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "base")
+        self.sha = self.git("rev-parse", "HEAD")
+
+    def git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.root, check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+    def test_tracks_dirty_files_without_rebuilding(self):
+        clean = change_snapshot(self.root, self.sha)
+        self.assertEqual(clean["status"], "CLEAN")
+        self.path.write_text("x = 2\n")
+        changed = change_snapshot(self.root, self.sha)
+        self.assertEqual(changed["changed_files"], ["app/file.py"])
+        self.assertTrue(changed["graph_stale"])
+        self.assertFalse(changed["graph_rebuilt"])
+        self.assertFalse(changed["tests_executed"])
+
+    def test_follows_new_commits_and_new_untracked_python_files(self):
+        self.path.write_text("x = 3\n")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "change")
+        other = self.root / "app" / "new.py"
+        other.write_text("pass\n")
+        result = change_snapshot(self.root, self.sha)
+        self.assertEqual(result["changed_files"], ["app/file.py", "app/new.py"])
+        self.assertNotEqual(result["current_commit"], self.sha)
+
+    def test_loopback_api_only_and_404(self):
+        with ThreadingHTTPServer(("127.0.0.1", 0), handler_factory("<html>Atlas</html>",
+                                            lambda: change_snapshot(self.root, self.sha))) as server:
+            server.daemon_threads = True
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                base = f"http://127.0.0.1:{server.server_port}"
+                with urlopen(base + "/api/live", timeout=5) as response:
+                    body = json.load(response)
+                    self.assertEqual(body["status"], "CLEAN")
+                    self.assertEqual(response.headers["Cache-Control"], "no-store")
+                with self.assertRaises(HTTPError) as err:
+                    urlopen(base + "/../../.git/config", timeout=5)
+                self.assertEqual(err.exception.code, 404)
+            finally:
+                server.shutdown()
+                thread.join(timeout=3)
+
+    def test_rejects_untrusted_git_sha(self):
+        self.assertEqual(change_snapshot(self.root, "HEAD;rm -rf .")["status"], "BLOCKED")
+
+
+if __name__ == "__main__":
+    unittest.main()

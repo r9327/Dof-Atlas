@@ -156,6 +156,21 @@ def command_refactor_preview(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_graph_live(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.live_graph import change_snapshot, serve_graph_live
+    if args.once:
+        from tools.atlas_doctor_lib.architecture import graph_status
+        graph = graph_status(root)
+        if graph.get("status") != "PASS":
+            result = {"status": "BLOCKED", "reason": graph.get("reason")}
+        else:
+            result = change_snapshot(root, graph["git"]["head"])
+        if not args.json:
+            print(f"Doctor Graphify LIVE status: {result['status']}")
+        return result
+    return serve_graph_live(root, port=args.port, open_browser=args.open)
+
+
 def command_graph_ui(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph
     payload = export_interactive_graph(root, trace_path=args.trace)
@@ -442,6 +457,10 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument('--action', choices=('remove', 'move', 'consolidate'), default='remove')
     rp.add_argument('--to', help='Chemin relatif cible pour move/consolidate.')
     rp.add_argument('--depth', type=int, choices=(1, 2), default=2)
+    gl = sub.add_parser('graph-live', help='Suivi Git temps reel dans Graphify Web local, sans rebuilder.')
+    gl.add_argument('--port', type=int, default=8765)
+    gl.add_argument('--open', action='store_true')
+    gl.add_argument('--once', action='store_true', help='Retourner seulement les changements courants.')
     gu = sub.add_parser('graph-ui', help='Exporter Graphify interactif local avec diagnostics Doctor.')
     gu.add_argument('--open', action='store_true', help='Ouvrir le rapport HTML dans le navigateur.')
     gu.add_argument('--trace', type=Path, help='Trace runtime JSON dans .ai/runtime pour enrichir les liens.')
@@ -574,6 +593,7 @@ def main(argv: list[str] | None = None) -> int:
         'code-inspect': command_code_inspect,
         'runtime-trace': command_runtime_trace,
         'graph-ui': command_graph_ui,
+        'graph-live': command_graph_live,
         'refactor-preview': command_refactor_preview,
         'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
@@ -603,6 +623,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
     if args.command == 'refactor-preview':
         return 2 if payload['status'] == 'BLOCKED' else 1
+    if args.command == 'graph-live':
+        return 2 if payload['status'] == 'BLOCKED' else 0
     if args.command == 'graph-ui':
         return 0 if payload['status'] == 'PASS' else 2
     if args.command == 'runtime-trace':

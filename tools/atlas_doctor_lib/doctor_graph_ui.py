@@ -115,7 +115,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <input id="search" type="search" placeholder="Chercher symbole ou fichier" aria-label="Rechercher">
 <select id="domain" aria-label="Domaine"><option value="">Tous les domaines</option></select>
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
-<button id="reset">Recentrer</button><small id="summary"></small></header>
+<button id="reset">Recentrer</button><small id="summary"></small><small id="liveStatus">Graphe statique</small></header>
 <main><canvas id="map" aria-label="Graphe interactif, zoom molette, déplacement souris"></canvas>
 <aside><h2>Inspection du code</h2><div id="nodeDetails">Clique sur un nœud pour voir les dépendances, les preuves et les raisons d'examen.</div>
 <hr><small id="limits"></small></aside></main>
@@ -144,6 +144,7 @@ const positions=nodes.map(n=>{
           y:Math.sin(groupAngle)*outer+Math.sin(angle)*small};
 });
 let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[];
+let changedFiles=new Set();
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
 function filter(){const needle=search.value.toLowerCase().trim(),group=domain.value;
 visible=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
@@ -163,7 +164,7 @@ function render(){
  for(const i of visible){const p=screen(positions[i]),n=nodes[i];
  if(p.x < -10||p.x>canvas.width+10||p.y < -10||p.y>canvas.height+10)continue;
  ctx.beginPath();ctx.arc(p.x,p.y,i===selected?6:3,0,2*Math.PI);
- ctx.fillStyle=i===selected?'#ffdf86':n.reasons.length?'#ff8d7d':(n.runtime_observed||n.qt_call_site_observed)?'#b39cf5':'#70b9e9';ctx.fill()}
+ ctx.fillStyle=i===selected?'#ffdf86':changedFiles.has(n.file)?'#f9b454':n.reasons.length?'#ff8d7d':(n.runtime_observed||n.qt_call_site_observed)?'#b39cf5':'#70b9e9';ctx.fill()}
 }
 function pick(x,y){let best=-1,distance=100;for(const i of visible){
  const p=screen(positions[i]),d=(p.x-x)**2+(p.y-y)**2;
@@ -171,6 +172,7 @@ function pick(x,y){let best=-1,distance=100;for(const i of visible){
 function show(i){selected=i;const n=nodes[i];details.replaceChildren();
 function line(tag,text){const el=document.createElement(tag);el.textContent=text;details.appendChild(el);return el}
 line('h3',n.label||n.file);line('p',n.file+(n.line?' · '+n.line:''));
+if(changedFiles.has(n.file))line('p','Fichier modifié depuis le graphe : dépendances statiques potentiellement périmées.');
 line('p','Communauté Graphify : '+String(n.community??'non déterminée'));
 if(n.runtime_observed)line('p','Appel Python observé dans une trace opt-in correspondant au SHA.');
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
@@ -190,7 +192,23 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.
 [search,domain,flagged].forEach(el=>el.addEventListener('input',filter));
 document.getElementById('reset').addEventListener('click',()=>{scale=.36;panX=0;panY=0;render()});
 document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées. '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
-window.addEventListener('resize',fit);fit();filter();
+async function refreshLive(){
+ const label=document.getElementById('liveStatus');
+ try{
+  const response=await fetch('/api/live',{cache:'no-store'});
+  if(!response.ok)throw new Error('status '+response.status);
+  const live=await response.json();
+  changedFiles=new Set(live.changed_files||[]);
+  const unknown=[...changedFiles].filter(path=>!nodes.some(n=>n.file===path)).length;
+  label.textContent=live.graph_stale?'Graphe figé · '+live.changed_count+' fichiers modifiés · '+unknown+' hors graphe':'Suivi Git actif · graphe inchangé';
+  if(live.truncated)label.textContent+=' (liste partielle)';
+  render();
+ }catch(error){label.textContent='Suivi Git indisponible · graphe figé';}
+}
+if(location.hostname==='127.0.0.1'||location.hostname==='localhost'){
+ refreshLive();setInterval(refreshLive,2500);
+}
+window.addEventListener('resize',fit);fit();
 })();
 </script></body></html>"""
 

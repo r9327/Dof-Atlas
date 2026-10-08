@@ -46,3 +46,7 @@ Ce fichier décrit une trajectoire, pas une certification complète.
 5. PR #123 reste draft jusqu'à la convergence avec #116 et certification exacte-SHA.
 
 Etat : fondations fonctionnelles dans les cinq moteurs, capacités avancées encore partielles.
+
+## Suivi Git interactif et léger
+
+`python -m tools.atlas_doctor graph-live --open` lance un serveur strictement local (`127.0.0.1`), avec un écran interactif et une lecture du diff Git toutes les 2,5 secondes. La carte AST est figée tant que `graph --rebuild` n'est pas exécuté explicitement. Les fichiers modifiés sont surlignés et l'interface annonce les chemins non représentés. `graph-live --once --json` affiche le même état sans serveur. Aucun test ni benchmark n'est lancé par le mode live. Ctrl+C arrête le serveur.
