@@ -188,9 +188,17 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         )
         self.assertIsNotNone(architecture_command)
         self.assertNotIn(architecture_command, executor.commands)
-        self.assertTrue(
-            any("tests.test_architecture_debt_baseline" in cmd for cmd in executor.commands)
+        # Every critical owner still runs through its exact inventory command,
+        # which now lists fully qualified *test IDs*, not module names.
+        critical_command = atlas_integrity._command_for_group(
+            "TEST_INTEGRITY",
+            self.policy["groups"]["TEST_INTEGRITY"],
+            root=ROOT,
+            base_ref="base",
+            changed=["docs/readme.md"],
         )
+        self.assertIsNotNone(critical_command)
+        self.assertIn(critical_command, executor.commands)
 
     def test_full_suite_skip_or_expected_failure_is_not_reusable_evidence(self) -> None:
         cases = [
