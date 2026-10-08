@@ -171,7 +171,7 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
         "status": "REVIEW" if cycles else "PASS",
         "directed_extracted_import_pairs": len(pairs),
         "suspected_cycles": len(cycles),
-        "source_confirmed_cycles": sum(c["blocking"] for c in cycles),
+        "source_confirmed_cycles": sum(c["confidence"] == "CURRENT_SOURCE_IMPORT_CYCLE" for c in cycles),
         "cycles": cycles[:MAX_REVIEW],
         "truncated": len(cycles) > MAX_REVIEW,
         "scope": "Extracted directed runtime Python file imports only; dynamic imports can be missed.",
