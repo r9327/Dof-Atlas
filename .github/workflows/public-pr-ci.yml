@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - phase8/peak250-guide-worker-v1
 
 permissions:
   contents: read

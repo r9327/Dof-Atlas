@@ -269,6 +269,12 @@ The Graphify reconciliation reuses RAM blobs **verbatim** for the six non-index 
 
 **This is source-level convergence, NOT runtime certification.** Re-run Graphify, focused Guide/Craft tests, Public CI, Doctor, and Phase 8 memory/preload on the exact resulting candidate SHA before calling the change mergeable. Do not treat #116 test results as proof that this Graphify candidate meets RAM budgets.
 
+### Exact-SHA Windows gates for the staged Graphify branch
+
+The existing Public PR CI and Phase 8 RAM / comparable preload workflows normally run only for PRs against `main`; this PR currently targets `phase8/peak250-guide-worker-v1`. Enable these **existing** workflows for that base and selectively admit only head `phase8/graphify-staged-cleanup-v1` in the Phase 8 benchmark jobs. The original memory thresholds, data preparation, runner and test scripts remain unchanged. This avoids a duplicate benchmark implementation and creates direct proof on the integrated Graphify HEAD.
+
+This validation rule is a temporary branch-specific route, **not a replacement** for final Phase 8 certification on `main`. Keep #123 in draft if a workflow fails or a result is absent.
+
 ## 117.6 — Final graph certification
 
 Final acceptance after all chosen cleanup lots:
