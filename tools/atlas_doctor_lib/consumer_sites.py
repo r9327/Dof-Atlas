@@ -14,7 +14,7 @@ MAX_ROWS = 100
 def _candidate_files(root: Path, leaf: str) -> list[str]:
     try:
         result = subprocess.run(
-            ["git", "grep", "-l", "-z", "-F", "-e", leaf, "--", "*.py"],
+            ["git", "grep", "-l", "-z", "-F", "-e", leaf, "-e", "import_module(", "-e", "__import__(", "-e", ".connect(", "-e", "getattr(", "--", "*.py"],
             cwd=root, capture_output=True, check=False, timeout=12,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -90,6 +90,7 @@ def inspect_consumer_sites(root: Path, target: str) -> dict[str, Any]:
         "dynamic_leads": leads[:MAX_ROWS], "dynamic_lead_count": len(leads),
         "candidate_files": len(candidates),
         "truncated": len(candidates) > MAX_FILES or len(leads) > MAX_ROWS,
+        "candidate_scan_complete": len(candidates) <= MAX_FILES and not errors,
         "source_errors": errors[:MAX_ROWS],
         "safe_to_delete": False, "dead_code_proven": False,
         "tests_executed": False, "graph_rebuilt": False,

@@ -39,6 +39,16 @@ class DoctorConsumerSiteTests(unittest.TestCase):
             report=inspect_consumer_sites(self.root,"app/target.py")
         self.assertIn("DYNAMIC_IMPORT_UNRESOLVED",[x["kind"] for x in report["dynamic_leads"]])
 
+    def test_dynamic_import_without_literal_target_name_is_flagged(self):
+        (self.root/'app/caller.py').write_text(
+            "from importlib import import_module\n"
+            "target = import_module(prefix + suffix)\n")
+        with patch('tools.agent.reverse_impact_payload', return_value={
+                'status': 'PASS', 'confirmed_relationships': []}):
+            report = inspect_consumer_sites(self.root, 'app/target.py')
+        self.assertIn('DYNAMIC_IMPORT_UNRESOLVED',
+                      [item['kind'] for item in report['dynamic_leads']])
+        self.assertTrue(report['candidate_scan_complete'])
     def test_traversal_is_rejected(self):
         with self.assertRaises(ValueError):
             inspect_consumer_sites(self.root,"../outside.py")
