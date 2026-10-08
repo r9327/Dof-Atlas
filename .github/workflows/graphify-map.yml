@@ -1,12 +1,32 @@
 name: Graphify Code Map
 
 on:
+  # Manual exact-SHA certification of Graphify/Doctor after the structural
+  # batches converge. Keep the expensive rebuild away from routine pushes.
   workflow_dispatch:
   pull_request:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "tools/graphify.py"
+      - "tools/agent_graph.py"
+      - "tools/atlas_doctor_lib/graph_audit.py"
+      - "tools/atlas_doctor_lib/graph_intelligence.py"
+      - ".graphifyignore"
+      - ".github/workflows/graphify-map.yml"
   push:
     branches:
       - main
       - phase8/graphify-staged-cleanup-v1
+    paths:
+      - "app/**"
+      - "tools/graphify.py"
+      - "tools/agent_graph.py"
+      - "tools/atlas_doctor_lib/graph_audit.py"
+      - "tools/atlas_doctor_lib/graph_intelligence.py"
+      - ".graphifyignore"
+      - ".github/workflows/graphify-map.yml"
 
 permissions:
   contents: read

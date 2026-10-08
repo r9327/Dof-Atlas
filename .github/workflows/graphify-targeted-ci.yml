@@ -73,6 +73,7 @@ jobs:
           python -m unittest discover -s tests -p "test_atlas_doctor_graph_ui.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_live_graph.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_dev_events.py" -v
+          python -m unittest discover -s tests -p "test_graphify_workflow_budget.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_refactor_simulation.py" -v
           python -m unittest discover -s tests -p "test_guide_canonical_button_imports.py" -v
           python -m unittest discover -s tests -p "test_craft_lightweight_import_boundary.py" -v

@@ -66,3 +66,7 @@ L'API locale `graph-live` compare maintenant les imports AST **des fichiers Pyth
 ### Graphify LIVE sur worktree déjà modifié
 
 Si la carte Graphify précédente est périmée mais syntaxiquement valide et rattachée à un commit Git existant, **seul le mode LIVE** peut l'afficher comme un instantané `REVIEW` avec les imports AST courants comparés au commit de l'ancien graphe. Les audits Doctor `graph-audit` et `graph-ui` ordinaires conservent la règle stricte `PASS` exact-SHA : aucun résultat historique n'est présenté comme diagnostic source validé sur le code courant.
+
+### Budget CI Graphify
+
+Le workflow lourd `Graphify Code Map` est déclenché explicitement (`workflow_dispatch`) ou automatiquement lors de changements structurels sélectionnés (code applicatif / moteur Graphify / analyses de graphe) et de PR structurelles vers main. Les changements UI Doctor, docs et hooks seuls ne déclenchent plus sa reconstruction à chaque push. `Graphify Focused Architecture` reste automatique sur chaque push de #123. **Une reconstruction Graphify exacte-SHA finale reste nécessaire avant toute fusion**, ainsi que les gates RAM et FULL de Phase 8 ; aucun PASS par omission.
