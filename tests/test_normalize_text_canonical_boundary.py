@@ -28,25 +28,35 @@ class NormalizeTextCanonicalBoundaryTests(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertEqual(normalize_text(value), expected)
 
-    def test_guide_import_avoids_quest_catalog_dependency(self) -> None:
-        path = ROOT / "app/modules/encyclopedia/views/guides_view.py"
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        imports = [node for node in tree.body if isinstance(node, ast.ImportFrom)]
-        self.assertFalse(
-            any(
-                node.module == "app.quest_catalog"
-                and any(alias.name == "normalize_text" for alias in node.names)
-                for node in imports
-            )
+    def test_encyclopedia_views_import_core_normalizer_directly(self) -> None:
+        view_paths = (
+            "app/modules/encyclopedia/views/guides_view.py",
+            "app/modules/encyclopedia/views/achievements_view.py",
+            "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
+            "app/modules/encyclopedia/views/guide_ultime_walkthrough_card.py",
+            "app/modules/encyclopedia/views/shared_manual_guide_view.py",
         )
-        self.assertTrue(
-            any(
-                node.module == "app.core.text"
-                and any(alias.name == "normalize_key" and alias.asname == "normalize_text" for alias in node.names)
-                for node in imports
-            )
-        )
-
+        for relative in view_paths:
+            with self.subTest(module=relative):
+                tree = ast.parse((ROOT / relative).read_text(encoding="utf-8"))
+                imports = [node for node in tree.body if isinstance(node, ast.ImportFrom)]
+                self.assertFalse(
+                    any(
+                        node.module == "app.quest_catalog"
+                        and any(alias.name == "normalize_text" for alias in node.names)
+                        for node in imports
+                    )
+                )
+                self.assertTrue(
+                    any(
+                        node.module == "app.core.text"
+                        and any(
+                            alias.name == "normalize_key" and alias.asname == "normalize_text"
+                            for alias in node.names
+                        )
+                        for node in imports
+                    )
+                )
 
 if __name__ == "__main__":
     unittest.main()
