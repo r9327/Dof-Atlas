@@ -1,5 +1,10 @@
 {
   "entries": {
+    ".agents": {
+      "mode": "040000",
+      "sha": "454e04ad8dff45963215ee4ca0d8400fc4de529e",
+      "type": "tree"
+    },
     ".codex": {
       "mode": "040000",
       "sha": "9d1a91cf04dbd57611db7d0c710671e502b3984f",
@@ -32,7 +37,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "3e79952484fb35316dadfabb99571777b5860540",
+      "sha": "fc26dd6714b198c9081abbb71c422edcc0887659",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -132,12 +137,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "a0ec2b2e197a5595e32166bb53b8bbd604b0fe91",
+      "sha": "3a429feb580539bff6939d86aede7b3464704427",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "0a72bac52f30f7a083fe0d634e002be12eb02981",
+      "sha": "0cf3a9f22d10297bad3f8e64487c6e238d4ac9c8",
       "type": "tree"
     }
   },

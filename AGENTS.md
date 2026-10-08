@@ -12,7 +12,7 @@ Read `ZERO_TRUST_RULES.md` for the permanent short contribution contract.
 
 ## Library documentation (Context7)
 
-When an external library or API detail matters, use Context7 MCP (if available) for up-to-date, version-specific documentation before changing code. For example, verify PySide6 / QtWebEngine usage against the relevant version. Prefer focused documentation queries; cross-check the current code and tests. Context7 never overrides Atlas guardrails or becomes a source of Dofus game data. Never send secrets, personal data, or proprietary source to external documentation services. If Context7 is unavailable, use official docs instead; do not block runtime or CI.
+When an external library or API detail matters, prefer Context7 MCP (if available) for up-to-date, version-specific documentation before changing code. If MCP is unavailable, Codex can use the repository-scoped `.agents/skills/find-docs/SKILL.md` with the `npx ctx7@latest` CLI (Node.js 18+ required). Do not query both modes for the same answer. For example, verify PySide6 / QtWebEngine usage against the relevant version. Prefer focused documentation queries; cross-check the current code and tests. Context7 never overrides Atlas guardrails or becomes a source of Dofus game data. Never send secrets, personal data, or proprietary source to external documentation services. If neither Context7 mode is available, use official docs; do not block runtime or CI.
 
 ## Mandatory project contract
 
