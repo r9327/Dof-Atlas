@@ -14,7 +14,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
     GuideUltimeManualRuntimeService,
 )
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 
 _COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")

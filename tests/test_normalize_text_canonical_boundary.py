@@ -28,13 +28,16 @@ class NormalizeTextCanonicalBoundaryTests(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertEqual(normalize_text(value), expected)
 
-    def test_encyclopedia_views_import_core_normalizer_directly(self) -> None:
+    def test_encyclopedia_normalization_only_consumers_import_core_directly(self) -> None:
         view_paths = (
             "app/modules/encyclopedia/views/guides_view.py",
             "app/modules/encyclopedia/views/achievements_view.py",
             "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
             "app/modules/encyclopedia/views/guide_ultime_walkthrough_card.py",
             "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+            "app/modules/encyclopedia/services/guide_catalog_manual_runtime_service.py",
+            "app/modules/encyclopedia/services/guide_ultime_ocre_registry.py",
+            "app/modules/encyclopedia/services/guide_path_profiles.py",
         )
         for relative in view_paths:
             with self.subTest(module=relative):
