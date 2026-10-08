@@ -96,6 +96,9 @@ jobs:
             "--token",
             $token
           ) -PassThru -NoNewWindow -RedirectStandardOutput $warmupOut -RedirectStandardError $warmupErr
+          # Track the warmer AND its temporary child workers alongside Atlas;
+          # both run concurrently and must count towards the same peak budget.
+          $env:DOFUS_ATLAS_WARMUP_PID = [string]$warmup.Id
 
           python -X faulthandler tools/benchmark_phase8_memory.py --output artifacts/phase8_memory/memory.json
           $code = $LASTEXITCODE

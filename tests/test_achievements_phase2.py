@@ -16,7 +16,7 @@ from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, ENCYCLOPEDIA_TA
 from app.modules.encyclopedia.models import Achievement
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import AchievementProgressService
-from app.modules.encyclopedia.views import EncyclopediaPage, GuidesView
+from app.modules.encyclopedia.views import EncyclopediaPage
 from app.modules.encyclopedia.widgets import AchievementDetailWidget
 from app.quest_catalog import QuestCatalog, QuestCharacter, QuestRecord, QuestStep
 
@@ -200,7 +200,7 @@ class AchievementContextPhase2Tests(unittest.TestCase):
             app.processEvents()
             guide_tab = page.tabs.widget(page.tab_labels().index("GUIDES"))
             self.assertIsNot(guide_tab, guide_slot)
-            self.assertIsInstance(guide_tab, GuidesView)
+            self.assertEqual(type(guide_tab).__name__, "GuideCatalogView")
             self.assertIs(guide_tab, page.guides_view)
             page.tabs.setCurrentIndex(page.tab_labels().index(QUESTS_TAB))
             app.processEvents()

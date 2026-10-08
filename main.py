@@ -854,6 +854,7 @@ class AtlasWindow(QMainWindow):
 
         self.apply_style()
         self.preload_popup = PreloadProgressPopup(self)
+        self._schedule_owned_callback(0, self.start_startup_preload_sequence)
         self._schedule_owned_callback(POST_RENDER_TRAY_DELAY_MS, self.setup_tray)
         self.update_topmost_button()
         self.refresh_nav_selection("")
@@ -864,21 +865,6 @@ class AtlasWindow(QMainWindow):
             self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
         if EQUIPMENT_PRELOAD_DELAY_MS > 0:
             self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
-        if not self.preload_finished and self.preload_states["quests"] == PRELOAD_IDLE:
-            self._schedule_owned_callback(
-                GLOBAL_QUEST_PRELOAD_DELAY_MS,
-                lambda: self.start_preload("quests"),
-            )
-        if self.preload_states["encyclopedia"] == PRELOAD_IDLE and self.preload_states["quests"] == PRELOAD_READY:
-            self._schedule_owned_callback(
-                GLOBAL_QUEST_PRELOAD_DELAY_MS,
-                lambda: self.start_preload("encyclopedia"),
-            )
-        if not self.preload_finished and self.preload_states["craft"] == PRELOAD_IDLE:
-            self._schedule_owned_callback(
-                GLOBAL_CRAFT_PRELOAD_DELAY_MS,
-                lambda: self.start_preload("craft"),
-            )
 
     def _schedule_owned_callback(self, delay_ms: int, callback: Callable[[], None]) -> None:
         timer = QTimer(self)
@@ -2057,6 +2043,27 @@ class AtlasWindow(QMainWindow):
             for page_name, widget in self.page_widgets.items()
         }
 
+    def start_startup_preload_sequence(self) -> None:
+        """Run the visible startup preload in deterministic module order."""
+
+        popup = getattr(self, "preload_popup", None)
+        if popup is not None:
+            popup.begin(dict(self.preload_states))
+
+        with self.preload_state_lock:
+            states = dict(self.preload_states)
+
+        if states.get("quests") == PRELOAD_IDLE:
+            self.start_preload("quests")
+            return
+        if states.get("encyclopedia") == PRELOAD_IDLE:
+            self.start_preload("encyclopedia")
+            return
+        if states.get("craft") == PRELOAD_IDLE:
+            self.start_preload("craft")
+            return
+        self.refresh_preload_popup()
+
     def refresh_preload_popup(self) -> None:
         popup = getattr(self, "preload_popup", None)
         if popup is not None:
@@ -2211,7 +2218,7 @@ class AtlasWindow(QMainWindow):
             if isinstance(result_quests, dict):
                 errors.extend(result_quests.get("errors") or [])
 
-            if task == "quests" and not task_failed:
+            if task == "quests":
                 if self.preload_states.get("encyclopedia") == PRELOAD_IDLE:
                     user_waiting = (
                         self.pending_page_name == "Quetes"
@@ -2221,6 +2228,19 @@ class AtlasWindow(QMainWindow):
                         0,
                         lambda priority=user_waiting: self.start_preload(
                             "encyclopedia",
+                            user_requested=priority,
+                        ),
+                    )
+            elif task == "encyclopedia":
+                if self.preload_states.get("craft") == PRELOAD_IDLE:
+                    user_waiting = (
+                        self.pending_page_name == "Craft"
+                        or self.active_page_name() == "Craft"
+                    )
+                    self._schedule_owned_callback(
+                        0,
+                        lambda priority=user_waiting: self.start_preload(
+                            "craft",
                             user_requested=priority,
                         ),
                     )

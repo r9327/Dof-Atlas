@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from copy import deepcopy
+from unittest.mock import patch
 from pathlib import Path
 
 from tools import atlas_integrity
@@ -115,6 +116,58 @@ class AtlasIntegrityGateTests(unittest.TestCase):
             {"PERSISTENCE", "STARTUP", "LAZY_LOADING", "ASYNC_LIFECYCLE"}.issubset(
                 report["validations_required"]
             )
+        )
+
+    def test_phase_fast_preflight_defers_heavy_groups_to_full(self) -> None:
+        paths = ["app/modules/encyclopedia/services/quest_progress_service.py"]
+        with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "1"}):
+            fast, _ = self._run("fast", paths)
+            full, _ = self._run("full", paths)
+        self.assertEqual(fast["validation_profile"], "PHASE_PR_PREFLIGHT")
+        self.assertNotIn("PERSISTENCE", fast["validations_required"])
+        self.assertTrue({"IDENTITY", "DIFF_TARGETS"} <= set(fast["validations_required"]))
+        self.assertIn("PERSISTENCE", full["validations_required"])
+        self.assertIn("FULL_SUITE", full["validations_required"])
+        self.assertEqual(full["validation_profile"], "STANDARD")
+
+    def test_phase_critical_preflight_still_enforces_ci_and_inventory(self) -> None:
+        with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "1"}):
+            fast, _ = self._run("fast", ["tools/atlas_integrity.py"])
+        self.assertTrue(
+            {"META_INTEGRITY", "TEST_INTEGRITY", "CI_INTEGRITY", "DIFF_TARGETS"}
+            <= set(fast["validations_required"])
+        )
+
+    def test_full_suite_evidence_reuses_complete_successful_module_group(self) -> None:
+        modules = self.policy["groups"]["ARCHITECTURE"]["modules"]
+
+        class EvidenceExecutor(FakeExecutor):
+            def run(self, command: list[str], cwd: Path) -> dict[str, object]:
+                result = super().run(command, cwd)
+                if "discover" in command:
+                    lines = [
+                        f"test_example ({module.removeprefix('tests.')}.Cases.test_example) ... ok"
+                        for module in modules
+                    ]
+                    result["stdout"] = "\n".join(lines) + f"\nRan {len(lines)} tests in 0.001s\nOK"
+                return result
+
+        report, executor = self._run("full", ["docs/readme.md"], executor=EvidenceExecutor())
+        proof = report["groups"]["ARCHITECTURE"]["commands"][0]
+        self.assertEqual(proof["evidence_reused_from"], "FULL_SUITE")
+        self.assertEqual(set(proof["evidence_test_cases"]), set(modules))
+        self.assertEqual(report["verdict"], "PASS")
+        self.assertFalse(
+            any("tests.test_architecture_debt_baseline" in cmd for cmd in executor.commands)
+        )
+
+    def test_incomplete_suite_evidence_does_not_bypass_group_execution(self) -> None:
+        self.assertEqual(
+            atlas_integrity._full_suite_case_counts(
+                "test_one (test_architecture_debt_baseline.Cases.test_one) ... ok\n"
+                "Ran 2 tests in 0.001s\nOK"
+            ),
+            {},
         )
 
     def test_critical_failure_blocks_verdict(self) -> None:

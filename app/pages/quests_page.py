@@ -89,7 +89,16 @@ class QuestsPage(_EagerQuestsPage):
     def __init__(self, *args, **kwargs) -> None:
         self._quest_search_text_cache: dict[int, str] = {}
         self._owned_items_file_signature: tuple[int, int] | None = None
+        detail_view_defaulted = "defer_detail_view" not in kwargs
         kwargs.setdefault("defer_detail_view", True)
+        if detail_view_defaulted:
+            candidate_catalog = kwargs.get("catalog")
+            if candidate_catalog is None:
+                provider = kwargs.get("quest_provider")
+                candidate_catalog = getattr(provider, "_catalog", None)
+            quest_count = len(getattr(candidate_catalog, "quests", ()) or ())
+            if candidate_catalog is not None and quest_count < _MIN_LAZY_QUESTS:
+                kwargs["defer_detail_view"] = False
         super().__init__(*args, **kwargs)
 
         old_detail = self.detail

@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+from ctypes import wintypes
 import json
 import os
 import sys
 import threading
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -47,40 +49,64 @@ class ProcessRow:
     parent_pid: int
     name: str
 
+_WIN32_MAX_PATH = 260
+
+
+class _ProcessEntry32W(ctypes.Structure):
+    _fields_ = [
+        ("dwSize", wintypes.DWORD),
+        ("cntUsage", wintypes.DWORD),
+        ("th32ProcessID", wintypes.DWORD),
+        ("th32DefaultHeapID", ctypes.c_size_t),
+        ("th32ModuleID", wintypes.DWORD),
+        ("cntThreads", wintypes.DWORD),
+        ("th32ParentProcessID", wintypes.DWORD),
+        ("pcPriClassBase", wintypes.LONG),
+        ("dwFlags", wintypes.DWORD),
+        ("szExeFile", wintypes.WCHAR * _WIN32_MAX_PATH),
+    ]
+
+
+class _ProcessMemoryCounters(ctypes.Structure):
+    _fields_ = [
+        ("cb", wintypes.DWORD),
+        ("PageFaultCount", wintypes.DWORD),
+        ("PeakWorkingSetSize", ctypes.c_size_t),
+        ("WorkingSetSize", ctypes.c_size_t),
+        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+        ("PagefileUsage", ctypes.c_size_t),
+        ("PeakPagefileUsage", ctypes.c_size_t),
+    ]
+
+
+@lru_cache(maxsize=1)
+def _windows_api_dlls():
+    """Reuse native DLL bindings; the sampler must not grow Atlas' RSS."""
+    return (
+        ctypes.WinDLL("kernel32", use_last_error=True),
+        ctypes.WinDLL("psapi", use_last_error=True),
+    )
+
 
 def _windows_process_rows() -> list[ProcessRow]:
     if os.name != "nt":
         return []
 
-    from ctypes import wintypes
-
     TH32CS_SNAPPROCESS = 0x00000002
     INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
-    MAX_PATH = 260
+    kernel32, _psapi = _windows_api_dlls()
 
-    class PROCESSENTRY32W(ctypes.Structure):
-        _fields_ = [
-            ("dwSize", wintypes.DWORD),
-            ("cntUsage", wintypes.DWORD),
-            ("th32ProcessID", wintypes.DWORD),
-            ("th32DefaultHeapID", ctypes.c_size_t),
-            ("th32ModuleID", wintypes.DWORD),
-            ("cntThreads", wintypes.DWORD),
-            ("th32ParentProcessID", wintypes.DWORD),
-            ("pcPriClassBase", wintypes.LONG),
-            ("dwFlags", wintypes.DWORD),
-            ("szExeFile", wintypes.WCHAR * MAX_PATH),
-        ]
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     snapshot_fn = kernel32.CreateToolhelp32Snapshot
     snapshot_fn.argtypes = [wintypes.DWORD, wintypes.DWORD]
     snapshot_fn.restype = wintypes.HANDLE
     first_fn = kernel32.Process32FirstW
-    first_fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESSENTRY32W)]
+    first_fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(_ProcessEntry32W)]
     first_fn.restype = wintypes.BOOL
     next_fn = kernel32.Process32NextW
-    next_fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESSENTRY32W)]
+    next_fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(_ProcessEntry32W)]
     next_fn.restype = wintypes.BOOL
     close_fn = kernel32.CloseHandle
     close_fn.argtypes = [wintypes.HANDLE]
@@ -92,7 +118,7 @@ def _windows_process_rows() -> list[ProcessRow]:
 
     rows: list[ProcessRow] = []
     try:
-        entry = PROCESSENTRY32W()
+        entry = _ProcessEntry32W()
         entry.dwSize = ctypes.sizeof(entry)
         if not first_fn(handle, ctypes.byref(entry)):
             return []
@@ -116,27 +142,10 @@ def _windows_process_rss_bytes(pid: int) -> int | None:
     if os.name != "nt":
         return None
 
-    from ctypes import wintypes
-
     PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
     PROCESS_VM_READ = 0x0010
+    kernel32, psapi = _windows_api_dlls()
 
-    class ProcessMemoryCounters(ctypes.Structure):
-        _fields_ = [
-            ("cb", wintypes.DWORD),
-            ("PageFaultCount", wintypes.DWORD),
-            ("PeakWorkingSetSize", ctypes.c_size_t),
-            ("WorkingSetSize", ctypes.c_size_t),
-            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
-            ("QuotaPagedPoolUsage", ctypes.c_size_t),
-            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
-            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-            ("PagefileUsage", ctypes.c_size_t),
-            ("PeakPagefileUsage", ctypes.c_size_t),
-        ]
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    psapi = ctypes.WinDLL("psapi", use_last_error=True)
     open_process = kernel32.OpenProcess
     open_process.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
     open_process.restype = wintypes.HANDLE
@@ -144,7 +153,7 @@ def _windows_process_rss_bytes(pid: int) -> int | None:
     close_handle.argtypes = [wintypes.HANDLE]
     close_handle.restype = wintypes.BOOL
     get_memory = psapi.GetProcessMemoryInfo
-    get_memory.argtypes = [wintypes.HANDLE, ctypes.POINTER(ProcessMemoryCounters), wintypes.DWORD]
+    get_memory.argtypes = [wintypes.HANDLE, ctypes.POINTER(_ProcessMemoryCounters), wintypes.DWORD]
     get_memory.restype = wintypes.BOOL
 
     handle = open_process(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, False, int(pid))
@@ -153,7 +162,7 @@ def _windows_process_rss_bytes(pid: int) -> int | None:
     if not handle:
         return None
     try:
-        counters = ProcessMemoryCounters()
+        counters = _ProcessMemoryCounters()
         counters.cb = ctypes.sizeof(counters)
         if not get_memory(handle, ctypes.byref(counters), counters.cb):
             return None
@@ -189,6 +198,8 @@ def memory_snapshot(label: str) -> dict[str, Any]:
         "child_rss_mb": 0.0,
         "child_count": 0,
         "children": [],
+        "warmup_rss_mb": 0.0,
+        "warmup_process_count": 0,
     }
     if os.name != "nt":
         return payload
@@ -215,8 +226,38 @@ def memory_snapshot(label: str) -> dict[str, Any]:
     payload["child_count"] = len(child_rows)
     payload["child_rss_mb"] = child_mb
     payload["children"] = child_rows[:12]
+
+    # Production's cache warmer is launched by the wrapper, so it is a
+    # sibling of Atlas, not a descendant. Include its live process tree while
+    # both are running or the startup peak would be systematically hidden.
+    raw_warmup_pid = os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip()
+    warmup_pid = int(raw_warmup_pid) if raw_warmup_pid.isdecimal() else 0
+    warmup_total = 0
+    warmup_count = 0
+    if warmup_pid > 0:
+        root_row = next(
+            (
+                row for row in rows
+                if row.pid == warmup_pid and row.name.lower().startswith("python")
+            ),
+            None,
+        )
+        if root_row is not None:
+            counted_pids = {os.getpid(), *(row.pid for row in descendants)}
+            for row in (root_row, *_descendant_rows(warmup_pid, rows)):
+                if row.pid in counted_pids:
+                    continue
+                counted_pids.add(row.pid)
+                rss = _windows_process_rss_bytes(row.pid)
+                if rss is None:
+                    continue
+                warmup_total += rss
+                warmup_count += 1
+    warmup_mb = round(warmup_total / _MB, 2)
+    payload["warmup_rss_mb"] = warmup_mb
+    payload["warmup_process_count"] = warmup_count
     if process_rss_mb is not None:
-        payload["tree_rss_mb"] = round(float(process_rss_mb) + child_mb, 2)
+        payload["tree_rss_mb"] = round(float(process_rss_mb) + child_mb + warmup_mb, 2)
     return payload
 
 
@@ -430,9 +471,12 @@ def measure() -> dict[str, Any]:
     # large observer-effect heap inside the process being measured. Defer the
     # tree sampler until Atlas can actually spawn its own preload children; the
     # OS-reported PeakWorkingSetSize still preserves the parent startup peak.
+    # CI supplies a verified warmup PID: sample from startup to include the
+    # concurrent sibling. Legacy token-only sessions keep the old lazy sampler
+    # to avoid observer overhead when the external process cannot be tracked.
     defer_tree_sampler = bool(
         os.environ.get("DOFUS_ATLAS_CACHE_WARMUP_TOKEN", "").strip()
-    )
+    ) and not bool(os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip())
     if not defer_tree_sampler:
         sampler.start()
 

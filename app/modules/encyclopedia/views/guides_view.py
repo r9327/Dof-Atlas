@@ -1206,13 +1206,11 @@ class GuidesView(QWidget):
     def _show_runtime_loading(self) -> None:
         self.home_list.setVisible(False)
         self.home_empty.setText("Chargement des guides…")
-        self.home_empty.setWordWrap(False)
         self.home_empty.setVisible(True)
 
     def show_runtime_error(self, message: str) -> None:
         self.home_list.setVisible(False)
         self.home_empty.setText(str(message or "Chargement des guides impossible."))
-        self.home_empty.setWordWrap(True)
         self.home_empty.setVisible(True)
 
     def hydrate_runtime(
@@ -1285,23 +1283,35 @@ class GuidesView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
 
+        self.home_content = QWidget()
+        self.home_content.setObjectName("GuidesHomeContent")
+        self.home_content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.home_layout = QVBoxLayout(self.home_content)
+        self.home_layout.setContentsMargins(2, 2, 2, 2)
+        self.home_layout.setSpacing(8)
+
+        # One model + delegate keeps the Guide catalogue virtualized. Rich card
+        # widgets are detail-only helpers and must never form a Home widget forest.
         self.home_list = QListView()
         self.home_list.setObjectName("GuidesHomeList")
         self.home_list.setModel(self.result_model)
         self.home_list.setItemDelegate(GuideCardDelegate(self.home_list))
+        self.home_list.setFrameShape(QFrame.NoFrame)
+        self.home_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.home_list.setMouseTracking(True)
-        self.home_list.setUniformItemSizes(False)
+        self.home_list.setSpacing(4)
         self.home_list.clicked.connect(self._on_home_guide_clicked)
-        root.addWidget(self.home_list, 1)
+        self.home_list.activated.connect(self._on_home_guide_clicked)
+        self.home_layout.addWidget(self.home_list, 1)
 
-        self.home_empty = QLabel("Aucun guide ne correspond à la recherche.")
+        self.home_empty = QLabel()
         self.home_empty.setObjectName("GuidesHomeEmptyText")
         self.home_empty.setAlignment(Qt.AlignCenter)
+        self.home_empty.setWordWrap(True)
         self.home_empty.setVisible(False)
-        root.addWidget(self.home_empty, 1)
+        self.home_layout.addWidget(self.home_empty, 1)
 
-        self.home_content = self.home_list
-        self.home_layout = root
+        root.addWidget(self.home_content, 1)
         return page
 
     def _on_home_guide_clicked(self, index) -> None:
@@ -1494,8 +1504,8 @@ class GuidesView(QWidget):
         self.result_model.set_guides(self.visible_guides)
 
         if not self.visible_guides:
-            self.result_model.set_progress({})
             self.home_list.setVisible(False)
+            self.home_empty.setText("Aucun guide ne correspond à la recherche.")
             self.home_empty.setVisible(True)
             return
 

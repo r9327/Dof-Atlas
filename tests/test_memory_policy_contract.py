@@ -1042,7 +1042,7 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
         core_source.index("def _load_manual_preview(self)"):
         core_source.index("def manual_audit")
     ]
-    assert "if not self.cache_manual_bundle:" in load
+    assert 'if not bool(getattr(self, "cache_manual_bundle", True)):' in load
     assert "self._load_manual_preview_uncached()" in load
 
     wrapper_source = (
@@ -1074,7 +1074,7 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
     assert '"manual_stage_data": stage' in core_stage
     assert '"manual_chapter_preparation": chapter_preparation or []' in core_stage
     assert '"manual_stage_data": copy.deepcopy(stage)' not in core_stage
-    assert '"manual_lines": [] if self.compact_runtime else lines' in core_stage
+    assert '"manual_lines": [] if bool(getattr(self, "compact_runtime", False)) else lines' in core_stage
     assert '"manual_has_lines": bool(lines)' in core_stage
     assert '"manual_search_text": manual_search_text' in core_stage
 

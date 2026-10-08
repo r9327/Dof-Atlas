@@ -443,7 +443,9 @@ class EncyclopediaPage(QWidget):
         self.quest_page.progress = self.quest_page.quest_progress_service.reload()
         self.quest_page.rebuild_hierarchy()
         self.quest_page.refresh_quests()
-        self.quest_page.quest_detail_view.set_character_key(self.current_character_key)
+        detail_view = self.quest_page.quest_detail_view
+        if detail_view is not None:
+            detail_view.set_character_key(self.current_character_key)
         if self.quest_page.selected_quest_id is not None:
             self.quest_page.show_quest_detail(self.quest_page.selected_quest_id)
 
@@ -858,6 +860,21 @@ class EncyclopediaPage(QWidget):
         if self._initializing:
             self._on_tab_changed_indexed(index)
             return
+
+        # A background Success/Guide load must never steal focus back after the
+        # player explicitly switches to another Encyclopedia tab.
+        if label != ACHIEVEMENTS_TAB and self._pending_lazy_tab == ACHIEVEMENTS_TAB:
+            self._pending_lazy_tab = ""
+            self._success_runtime_requested = False
+        if (
+            label != GUIDES_TAB
+            and self._pending_lazy_tab == GUIDES_TAB
+            and not self._pending_guide_id
+            and self._pending_achievement_context_id is None
+        ):
+            self._pending_lazy_tab = ""
+            self._full_guide_tab_requested = False
+
         if label == GUIDES_TAB:
             if self.guides_view is not None:
                 self._activate_loaded_tab(GUIDES_TAB)
@@ -1253,6 +1270,7 @@ class EncyclopediaPage(QWidget):
                 self.status_callback,
                 provider=self.service.guide_provider,
                 achievement_provider=self.service.achievement_provider,
+                quest_provider=self.quest_provider,
                 quest_progress_path=self.quest_progress_path,
                 character_key=self.current_character_key,
                 graph=self._quest_graph,

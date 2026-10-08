@@ -474,7 +474,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         self._build_quest_name_index()
         try:
             restored = (
-                self.compact_runtime
+                bool(getattr(self, "compact_runtime", False))
                 and self.use_disk_cache
                 and restore_manual_runtime_compact_cache(self)
             )
@@ -579,7 +579,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             unsupported: set[str] = set()
             for stage_position, stage in enumerate(stages):
                 unsupported.update(str(key) for key in stage.keys() if str(key) not in _SUPPORTED_STAGE_FIELDS)
-                if self.compact_runtime:
+                if bool(getattr(self, "compact_runtime", False)):
                     card = self._stage_to_compact_card(
                         chapter_id,
                         chapter_meta,
@@ -675,7 +675,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         self.manual_chapters = chapter_ids
 
     def _load_manual_preview(self) -> None:
-        if not self.cache_manual_bundle:
+        if not bool(getattr(self, "cache_manual_bundle", True)):
             self._load_manual_preview_uncached()
             return
 
@@ -810,7 +810,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         stage = card.get("manual_stage_data")
         if isinstance(stage, dict):
             return stage
-        if not self.compact_runtime:
+        if not bool(getattr(self, "compact_runtime", False)):
             return None
 
         filename = str(card.get("manual_source_file") or "").strip()
@@ -947,9 +947,9 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "subzone": zone,
             "destination": destination,
             # Atlas renders one sheet at a time. In compact runtime mode, keep
-            # only a tiny search fingerprint and rebuild the visible sheet lines
+            # only the compact search fingerprint and rebuild the visible sheet lines
             # from the authored stage instead of retaining 267 rendered lists.
-            "manual_lines": [] if self.compact_runtime else lines,
+            "manual_lines": [] if bool(getattr(self, "compact_runtime", False)) else lines,
             "manual_has_lines": bool(lines),
             "manual_search_text": manual_search_text,
             "structured_runtime_lines": structured_runtime_lines,
@@ -959,9 +959,9 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "manual_success_names": self._string_list(stage.get("successes")),
             "manual_temporal_hooks": temporal_hooks,
             "manual_runtime_metadata": runtime_metadata,
-            # The resolved stage/preparation objects are already owned by this
-            # one-shot composition. Reuse them instead of duplicating the heaviest
-            # per-card payload; runtime treats authored stage data as read-only.
+            # Non-compact callers retain the authored structured values directly.
+            # Compact runtime hydrates only the visible sheet and releases it again,
+            # so this rich payload does not stay resident across the whole route.
             "manual_stage_data": stage,
             "manual_chapter_preparation": chapter_preparation or [],
             "a_prendre": [],

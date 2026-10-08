@@ -58,6 +58,18 @@ def test_memory_benchmark_avoids_sampler_observer_effect_during_external_warmup(
     assert "time.sleep(0.02)" in source
 
 
+def test_memory_benchmark_counts_external_warmup_process_tree() -> None:
+    benchmark = BENCHMARK.read_text(encoding="utf-8")
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    assert 'DOFUS_ATLAS_WARMUP_PID' in benchmark
+    assert 'DOFUS_ATLAS_WARMUP_PID' in workflow
+    assert '_descendant_rows(warmup_pid, rows)' in benchmark
+    assert 'counted_pids.add(row.pid)' in benchmark
+    assert 'child_mb + warmup_mb' in benchmark
+    assert 'and not bool(os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip())' in benchmark
+
+
+
 def test_memory_benchmark_opens_real_guide_detail_before_home() -> None:
     source = BENCHMARK.read_text(encoding="utf-8")
     assert 'GUIDE_DETAIL_BENCHMARK_ID = "guide_complet"' in source
@@ -98,3 +110,12 @@ def test_memory_workflow_enforces_phase8_budgets() -> None:
     assert '"guide_retained_tree_delta_mb": 20.0' in source
     assert '"craft_retained_tree_delta_mb": 2.0' in source
     assert '"equipment_tree_delta_stabilized_mb": 1.0' in source
+
+
+def test_windows_rss_sampler_reuses_native_bindings() -> None:
+    source = BENCHMARK.read_text(encoding="utf-8")
+    assert "@lru_cache(maxsize=1)" in source
+    assert "def _windows_api_dlls():" in source
+    assert "class _ProcessEntry32W(ctypes.Structure):" in source
+    assert "class _ProcessMemoryCounters(ctypes.Structure):" in source
+    assert "kernel32, psapi = _windows_api_dlls()" in source

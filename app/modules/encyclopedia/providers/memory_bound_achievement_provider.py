@@ -35,7 +35,7 @@ _SPACE_RE = re.compile(r"\s*")
 ACHIEVEMENT_COMPACT_CACHE = (
     ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_catalogue_v1.jsonl"
 )
-_ACHIEVEMENT_COMPACT_SCHEMA = 4
+_ACHIEVEMENT_COMPACT_SCHEMA = 5
 _ACHIEVEMENT_COMPACT_SOURCES = (
     "achievements.json",
     "achievement_categories.json",
@@ -1559,7 +1559,7 @@ def _build_compact_cache(path: Path) -> int:
                 "retained_count": len(retained),
                 "retained_ids": [int(achievement.id) for achievement in retained],
                 "by_category": {
-                    str(category_id): sorted(set(achievement_ids))
+                    str(category_id): list(dict.fromkeys(achievement_ids))
                     for category_id, achievement_ids in sorted(by_category_ids.items())
                 },
                 "offsets": offsets,

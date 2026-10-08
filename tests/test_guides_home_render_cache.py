@@ -9,7 +9,6 @@ from unittest.mock import patch
 from app.modules.encyclopedia.views.guides_view import (
     GUIDE_ULTIME_LEGACY_ID,
     GUIDE_ULTIME_TITLE,
-    GuideHomeCard,
     GuidesView,
 )
 
@@ -77,32 +76,19 @@ class GuidesHomeRenderCacheTests(unittest.TestCase):
                 self.assertEqual(base_progress.call_count, 2)
 
     def test_guide_ultime_card_is_selected_by_stable_id(self) -> None:
-        class _Label:
-            def __init__(self, text: str) -> None:
-                self.value = text
+        class _Model:
+            def __init__(self) -> None:
+                self.title_overrides: dict[str, str] = {}
+                self.subtitle_overrides: dict[str, str] = {}
 
-            def setText(self, text: str) -> None:
-                self.value = text
+            def set_title_override(self, guide_id: str, title: str) -> None:
+                self.title_overrides[str(guide_id)] = str(title)
 
-        class _Card:
-            def __init__(self, guide_id: str, title: str) -> None:
-                self.guide = SimpleNamespace(id=guide_id)
-                self.title = _Label(title)
-                self.progress = _Label("legacy")
-                self.tooltip = ""
+            def set_subtitle_override(self, guide_id: str, subtitle: str) -> None:
+                self.subtitle_overrides[str(guide_id)] = str(subtitle)
 
-            def findChild(self, _kind, name: str):
-                return self.title if name == "GuideHomeCardTitle" else self.progress
-
-            def setToolTip(self, text: str) -> None:
-                self.tooltip = text
-
-        canonical = _Card(GUIDE_ULTIME_LEGACY_ID, "Titre catalogue libre")
-        decoy = _Card("autre-guide", "Aventure de zéro")
         view = _GuidesCacheHarness()
-        view.home_content = SimpleNamespace(
-            findChildren=lambda kind: [canonical, decoy] if kind is GuideHomeCard else []
-        )
+        view.result_model = _Model()
         view.guide_ultime_service = SimpleNamespace(
             available=True,
             route_sheet_progress=lambda _character: (12, 34),
@@ -111,11 +97,14 @@ class GuidesHomeRenderCacheTests(unittest.TestCase):
 
         view._refresh_guide_ultime_home_labels()
 
-        self.assertEqual(canonical.title.value, GUIDE_ULTIME_TITLE)
-        self.assertEqual(canonical.progress.value, "12 / 34 fiches")
-        self.assertIn(GUIDE_ULTIME_TITLE, canonical.tooltip)
-        self.assertEqual(decoy.title.value, "Aventure de zéro")
-        self.assertEqual(decoy.progress.value, "legacy")
+        self.assertEqual(
+            view.result_model.title_overrides,
+            {GUIDE_ULTIME_LEGACY_ID: GUIDE_ULTIME_TITLE},
+        )
+        self.assertEqual(
+            view.result_model.subtitle_overrides,
+            {GUIDE_ULTIME_LEGACY_ID: "12 / 34 fiches"},
+        )
 
 
 if __name__ == "__main__":

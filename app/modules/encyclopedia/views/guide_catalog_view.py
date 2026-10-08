@@ -38,6 +38,7 @@ class GuideCatalogView(QWidget):
         initial_progress_character_key: str = "",
         graph=None,
         achievement_provider=None,
+        quest_provider=None,
         defer_runtime: bool = False,
         **_kwargs,
     ) -> None:
@@ -52,6 +53,7 @@ class GuideCatalogView(QWidget):
         self.state = self.CATALOG
         self.graph = graph
         self.achievement_provider = achievement_provider
+        self.quest_provider = quest_provider
         self._runtime_ready = False
         self.search_text = ""
         self.guides = []
