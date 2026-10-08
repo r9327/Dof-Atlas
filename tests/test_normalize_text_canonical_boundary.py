@@ -38,6 +38,9 @@ class NormalizeTextCanonicalBoundaryTests(unittest.TestCase):
             "app/modules/encyclopedia/services/guide_catalog_manual_runtime_service.py",
             "app/modules/encyclopedia/services/guide_ultime_ocre_registry.py",
             "app/modules/encyclopedia/services/guide_path_profiles.py",
+            "app/modules/encyclopedia/providers/guide_provider.py",
+            "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py",
+            "app/modules/encyclopedia/providers/memory_bound_guide_provider.py",
         )
         for relative in view_paths:
             with self.subTest(module=relative):
