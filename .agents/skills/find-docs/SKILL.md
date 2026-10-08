@@ -7,18 +7,18 @@ description: Retrieve up-to-date, version-specific public library documentation 
 
 Use the Context7 MCP tools first when connected. Use this CLI fallback only when MCP is unavailable; never duplicate the same documentation lookup through both.
 
-Prerequisite: Node.js 18+ and npm/npx on the developer machine. Nothing is installed into the Dofus Atlas Python environment. `npx` downloads the CLI on demand and may ask for confirmation.
+Prerequisite: Node.js 18+ and npm/npx on the developer machine. Nothing is installed into the Dofus Atlas Python environment. `npx` downloads the CLI on demand and may ask for confirmation: do not bypass that prompt or execute a new package without the user's approval.
 
 1. Resolve the exact library ID for the current question:
 
    ```powershell
-   npx --yes ctx7@latest library "PySide6" "QWebEngineView signals and cleanup"
+   npx ctx7@latest library "PySide6" "QWebEngineView signals and cleanup"
    ```
 
 2. Use an ID returned by the previous command to query one specific documentation topic:
 
    ```powershell
-   npx --yes ctx7@latest docs /ORG/PROJECT "QWebEngineView signal lifetime and cleanup"
+   npx ctx7@latest docs /ORG/PROJECT "QWebEngineView signal lifetime and cleanup"
    ```
 
    Replace `/ORG/PROJECT` with the actual result; never assume a library ID. Include a version when the task requires one. Keep requests short, public and specific. Never send private code, user data, credentials or API keys in a query.
@@ -30,7 +30,7 @@ If Node/npx, Context7 or the quota is unavailable, use official library document
 Optional authentication for higher limits (developer machine only, no committed keys):
 
 ```powershell
-npx --yes ctx7@latest login
+npx ctx7@latest login
 ```
 
 Official documentation: https://context7.com/docs/clients/cli

@@ -2,7 +2,7 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "sha": "454e04ad8dff45963215ee4ca0d8400fc4de529e",
+      "sha": "a41129145d8bd5c5b307d2b463e4641e16870c8b",
       "type": "tree"
     },
     ".codex": {
