@@ -38,11 +38,12 @@ def _direct_imports(contents: bytes, filename: str) -> dict[str, int]:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                found.setdefault("import " + alias.name, node.lineno)
+                found.setdefault("import " + alias.name + (" as " + alias.asname if alias.asname else ""), node.lineno)
         elif isinstance(node, ast.ImportFrom):
             prefix = "." * node.level + (node.module or "")
             for alias in node.names:
-                found.setdefault("from " + prefix + " import " + alias.name, node.lineno)
+                found.setdefault("from " + prefix + " import " + alias.name +
+                                 (" as " + alias.asname if alias.asname else ""), node.lineno)
     return found
 
 

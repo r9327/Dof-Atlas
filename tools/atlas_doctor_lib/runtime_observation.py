@@ -114,11 +114,22 @@ class RuntimeObserver:
             return
         self._busy = True
         try:
+            # Audit callback stack: _audit_event <- _audit_dispatch <- source.
+            # Avoid attributing every import/open to Doctor's dispatcher itself.
+            caller = None
             try:
-                caller = self._path(sys._getframe(1).f_code.co_filename)
+                frame = sys._getframe(2)
             except ValueError:
-                caller = None
-            if not caller or not caller.endswith(".py"):
+                frame = None
+            for _ in range(12):
+                if frame is None:
+                    break
+                current = self._path(frame.f_code.co_filename)
+                if current and current.endswith(".py") and current != "tools/atlas_doctor_lib/runtime_observation.py":
+                    caller = current
+                    break
+                frame = frame.f_back
+            if caller is None:
                 return
             if event in {"open", "os.remove", "os.rename"}:
                 target = self._path(args[0]) if args else None

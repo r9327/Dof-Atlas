@@ -32,6 +32,26 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertIsNone(observer._path("/home/somewhere/private.txt"))
             self.assertIsNone(observer._path(root / ".ai/runtime/secret.json"))
 
+    def test_real_source_file_open_is_attributed_to_test_script(self):
+        import runpy
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sample = root / "sample.py"
+            sample.write_text("with open('sample.py', 'r', encoding='utf-8') as stream:\n    stream.read()\n")
+            observer = RuntimeObserver(root, max_events=2000)
+            import os
+            before = os.getcwd()
+            try:
+                os.chdir(root)
+                with observer:
+                    runpy.run_path(str(sample))
+            finally:
+                os.chdir(before)
+            found = [row for row in observer.report()["events"]
+                     if row["type"] == "file_open" and row["target"] == "sample.py"]
+            self.assertTrue(found, "Python audit events should be captured for the originating script")
+            self.assertEqual(found[0]["source"], "sample.py")
+
     def test_explicit_lifecycle_uses_non_owning_refs(self):
         class Target:
             pass

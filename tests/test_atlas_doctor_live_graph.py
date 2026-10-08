@@ -110,6 +110,14 @@ class LiveGraphTests(unittest.TestCase):
                          ["from collections import deque", "import json"])
         self.assertEqual(result["source_import_delta"]["status"], "COMPLETE")
 
+    def test_import_alias_change_is_visible_in_live_delta(self):
+        self.path.write_text("import json as printer\n")
+        report = change_snapshot(self.root, self.sha)["source_import_delta"]
+        self.assertEqual(report["changes"][0]["added_imports"][0]["statement"], "import json as printer")
+        self.path.write_text("import json as parser\n")
+        report2 = change_snapshot(self.root, self.sha)["source_import_delta"]
+        self.assertEqual(report2["changes"][0]["added_imports"][0]["statement"], "import json as parser")
+
     def test_implicit_dynamic_import_not_claimed(self):
         self.path.write_text('name = "app.some_module"\n')
         self.assertEqual(change_snapshot(self.root, self.sha)["source_import_delta"]["changes"], [])
