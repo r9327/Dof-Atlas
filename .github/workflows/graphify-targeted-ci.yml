@@ -1,0 +1,77 @@
+name: Graphify Focused Architecture
+
+on:
+  pull_request:
+    branches:
+      - phase8/peak250-guide-worker-v1
+      - main
+    paths:
+      - "app/**"
+      - "tools/**"
+      - "tests/**"
+      - ".ai/context_index.json"
+      - ".github/workflows/graphify-targeted-ci.yml"
+  push:
+    branches:
+      - phase8/graphify-staged-cleanup-v1
+    paths:
+      - "app/**"
+      - "tools/**"
+      - "tests/**"
+      - ".ai/context_index.json"
+      - ".github/workflows/graphify-targeted-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: graphify-focused-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  targeted-contracts:
+    name: Graphify / Focused Code Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Verify SHA
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Compile touched architecture files
+        shell: bash
+        run: |
+          python -m compileall -q \
+            app/modules/encyclopedia/services/guide_criterion_scope.py \
+            app/modules/encyclopedia/services/adventure_route_adapter.py \
+            app/modules/encyclopedia/views/guides_view.py \
+            app/modules/encyclopedia/widgets \
+            tools/guide_ultime_scope_v5.py \
+            tests/test_guide_canonical_button_imports.py \
+            tests/test_guide_criterion_scope_boundary.py
+
+      - name: Run focused architecture and compatibility tests
+        shell: bash
+        run: |
+          python -m unittest discover -s tests -p "test_guide_canonical_button_imports.py" -v
+          python -m unittest discover -s tests -p "test_guide_criterion_scope_boundary.py" -v
+          python -m unittest discover -s tests -p "test_guide_ultime_v5_scope.py" -v
+          python -m unittest discover -s tests -p "test_guide_tools_status.py" -v
+          python -m unittest discover -s tests -p "test_guide_tools_no_versioned_wrappers.py" -v
