@@ -60,6 +60,8 @@ jobs:
           python - <<'PY'
           import json
           import os
+          import re
+          from collections import Counter
           from pathlib import Path
 
           graph_path = Path("graphify-out/graph.json")
@@ -92,6 +94,28 @@ jobs:
           if inversions:
               raise SystemExit("app-to-tools imports: " + "; ".join(sorted(set(inversions))))
           print("Graphify runtime-to-tools import inversions: 0")
+          community_sizes = Counter(
+              node["community"] for node in nodes if node.get("community") is not None
+          )
+          raw_thin = sum(size < 3 for size in community_sizes.values())
+          text_report = report_path.read_text(encoding="utf-8")
+          omitted_match = re.search(r"(\d+)\s+thin communities.*omitted", text_report)
+          reported_omissions = int(omitted_match.group(1)) if omitted_match else None
+          metrics = {
+              "candidate_sha": os.environ["CANDIDATE_SHA"],
+              "node_count": len(nodes),
+              "relation_count": len(links),
+              "raw_community_count": len(community_sizes),
+              "raw_small_communities_lt3_nodes": raw_thin,
+              "report_omitted_community_sections": reported_omissions,
+              "runtime_to_tools_import_inversions": 0,
+          }
+          Path("graphify-out/atlas_graph_metrics.json").write_text(
+              json.dumps(metrics, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          print(f"Raw communities <3 nodes: {raw_thin}; report omitted sections: {reported_omissions}")
+          if reported_omissions is not None and reported_omissions != raw_thin:
+              print("Note: report omissions are not literal raw-graph thin communities")
           PY
 
       - name: Upload visual map and graph

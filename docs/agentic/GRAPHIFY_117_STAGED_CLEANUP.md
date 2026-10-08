@@ -11,7 +11,7 @@ Reference graph: commit `f40b60690b8c05885e52e906f2b28f81ff621b7f`.
 - 11,148 nodes
 - 32,756 relationships
 - 438 communities
-- 173 thin communities with fewer than 3 nodes omitted from the standard report
+- 173 community sections omitted by GRAPH_REPORT (labelled 'thin <3' by the report; not a verified raw-graph size count)
 - 15 weakly connected symbols reported by Graphify
 - 0 detected import cycles
 - extraction: 94% extracted / 6% inferred
@@ -93,7 +93,7 @@ Exit criteria:
 
 ## 117.2 — Thin-community triage
 
-Scope: the 173 communities with fewer than 3 nodes.
+Scope: the 173 community sections omitted by the baseline Graphify report; do not assume every omitted section has fewer than 3 raw graph nodes.
 
 Do not process all 173 as one refactor. Split them into buckets first:
 
@@ -108,7 +108,7 @@ Only active-runtime and proven legacy/duplicate buckets are actionable.
 
 ### 117.2 triage result
 
-The post-117.1 graph still reports 173 thin communities. They are classified before any merge/refactor:
+The post-117.1 report omits 173 community sections. The following classifications describe these omitted sections (not necessarily literal <3-node communities):
 
 | Bucket | Count | Disposition |
 | --- | ---: | --- |
@@ -138,6 +138,20 @@ Exit criteria:
 - actionable thin communities have an owner/domain and disposition;
 - no merge is performed only to reduce the community count;
 - no cross-domain coupling is introduced.
+
+### 117.2 metric correction — independent graph.json evidence
+
+Graphify `GRAPH_REPORT.md` labels omitted sections `thin communities (<3 nodes) omitted`, but **the count is not the number of communities with fewer than three nodes in the actual `graph.json` data**. The distinction was verified by grouping all graph nodes on their `community` ID:
+
+| Graph SHA | All graph communities | Sections omitted in GRAPH_REPORT | Actual raw communities with <3 nodes |
+| --- | ---: | ---: | ---: |
+| `d16ca717` | 424 | 171 | 13 |
+| `44bf58d7` | 406 | 162 | 16 |
+| `9256978e` | 427 | 170 | 11 |
+
+Some omitted report sections contain tens of nodes (up to 55 in the observed `9256978e` graph), confirming the report omission counter is a **presentation/reporting metric**, not a dependable structural-defect count. The prior triage table must be understood as a review of report omissions, not as 173 separate genuine <3-node communities.
+
+The canonical Graphify workflow now saves **`graphify-out/atlas_graph_metrics.json`** with the exact SHA, raw group-size counts, and separately labelled display omissions. Do not use either count alone to infer dead code or justify merging domains.
 
 ## 117.3 — Guide legacy and duplicate boundaries
 
