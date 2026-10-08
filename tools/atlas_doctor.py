@@ -145,6 +145,17 @@ def command_change_plan(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_runtime_trace(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.runtime_observation import run_traced_module
+    target = root / ".ai/runtime/atlas_doctor/traces" / (args.module.replace(".", "_") + ".json")
+    payload = run_traced_module(root, args.module, target, max_events=args.max_events)
+    if not args.json:
+        print(f"Doctor runtime trace: {payload['status']} | {payload['events_captured']} events")
+        print(f"Trace output: {target}")
+    return {"status": payload["status"], "events_captured": payload["events_captured"],
+            "truncated": payload["truncated"], "trace_path": str(target)}
+
+
 def command_code_inspect(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.deep_intelligence import inspect_code
     from tools import atlas_integrity
@@ -403,6 +414,9 @@ def build_parser() -> argparse.ArgumentParser:
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
     ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
+    rt = sub.add_parser('runtime-trace', help='Tracer explicitement les appels Python d un module (mode instrumente).')
+    rt.add_argument('--module', required=True, help='Module de scenario de test a executer.')
+    rt.add_argument('--max-events', type=int, default=5000)
     ci = sub.add_parser('code-inspect', help='Inspecter AST, doublons, accessibilite et gardes architectures, sans tests.')
     ci.add_argument('paths', nargs='*', help='Fichiers Python explicitement cibles.')
     ci.add_argument('--base-ref', help='Inclure les fichiers modifies depuis la reference.')
@@ -527,6 +541,7 @@ def main(argv: list[str] | None = None) -> int:
         'graph-audit': command_graph_audit,
         'change-plan': command_change_plan,
         'code-inspect': command_code_inspect,
+        'runtime-trace': command_runtime_trace,
         'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
         'audit': command_audit,
@@ -553,6 +568,8 @@ def main(argv: list[str] | None = None) -> int:
         # architectural audit (e.g. a source-confirmed app -> tools inversion).
         graph_audit = payload.get("graph_audit") or {}
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
+    if args.command == 'runtime-trace':
+        return 0 if payload['status'] == 'RECORDED' else 1
     if args.command == 'code-inspect':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command == 'change-plan':
