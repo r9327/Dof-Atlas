@@ -101,6 +101,26 @@ class LiveGraphTests(unittest.TestCase):
         self.assertEqual(result["status"], "CHANGED")
         self.assertEqual(result["graph_validation"], "STALE")
 
+    def test_ast_imports_changed_since_graph_snapshot(self):
+        self.path.write_text("import json\nfrom collections import deque\n")
+        result = change_snapshot(self.root, self.sha)
+        change = result["source_import_delta"]["changes"][0]
+        self.assertEqual(change["path"], "app/file.py")
+        self.assertEqual([row["statement"] for row in change["added_imports"]],
+                         ["from collections import deque", "import json"])
+        self.assertEqual(result["source_import_delta"]["status"], "COMPLETE")
+
+    def test_implicit_dynamic_import_not_claimed(self):
+        self.path.write_text('name = "app.some_module"\n')
+        self.assertEqual(change_snapshot(self.root, self.sha)["source_import_delta"]["changes"], [])
+
+    def test_syntax_error_is_reported_without_false_pass(self):
+        self.path.write_text("def bad(\\n")
+        result = change_snapshot(self.root, self.sha)["source_import_delta"]
+        self.assertEqual(result["status"], "PARTIAL")
+        self.assertEqual(result["changes"], [])
+        self.assertEqual(result["errors"][0]["path"], "app/file.py")
+
     def test_rejects_untrusted_git_sha(self):
         self.assertEqual(change_snapshot(self.root, "HEAD;rm -rf .")["status"], "BLOCKED")
 

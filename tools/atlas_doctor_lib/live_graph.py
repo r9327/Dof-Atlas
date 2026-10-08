@@ -5,6 +5,7 @@ from __future__ import annotations
 Updates tracked/untracked changed-file highlighting, NOT Graphify's AST edges.
 No watcher thread, Qt import, rebuild, or full test suite in Atlas itself.
 """
+import ast
 import json
 import re
 import subprocess
@@ -15,6 +16,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 MAX_PATHS = 200
+MAX_PYTHON_FILES = 12
+MAX_SOURCE_BYTES = 256 * 1024
+MAX_IMPORT_ROWS = 32
 _SHA = re.compile(r"^[0-9a-f]{7,40}$")
 
 
@@ -26,6 +30,86 @@ def _git(root: Path, *args: str) -> bytes:
     if run.returncode:
         raise RuntimeError(f"Git status unavailable: {run.returncode}")
     return run.stdout
+
+
+def _direct_imports(contents: bytes, filename: str) -> dict[str, int]:
+    tree = ast.parse(contents.decode("utf-8-sig"), filename=filename)
+    found: dict[str, int] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                found.setdefault("import " + alias.name, node.lineno)
+        elif isinstance(node, ast.ImportFrom):
+            prefix = "." * node.level + (node.module or "")
+            for alias in node.names:
+                found.setdefault("from " + prefix + " import " + alias.name, node.lineno)
+    return found
+
+
+def changed_imports(root: Path, commit_sha: str, paths: list[str]) -> dict[str, Any]:
+    """Read only small changed Python sources and their Git baseline versions."""
+    candidates = [path for path in paths if path.endswith(".py")]
+    out: list[dict[str, Any]] = []
+    errors: list[dict[str, str]] = []
+    for path in candidates[:MAX_PYTHON_FILES]:
+        relative = Path(path)
+        target = (root / relative).resolve()
+        if (relative.is_absolute() or ".." in relative.parts or
+                not target.is_relative_to(root) or not target.is_file() or target.is_symlink()):
+            errors.append({"path": path, "reason": "Deleted, missing or unsafe Python source."})
+            continue
+        try:
+            if target.stat().st_size > MAX_SOURCE_BYTES:
+                errors.append({"path": path, "reason": "Source exceeds local scan budget."})
+                continue
+            current = _direct_imports(target.read_bytes(), path)
+        except (OSError, UnicodeError, SyntaxError, ValueError) as exc:
+            errors.append({"path": path, "reason": f"Current source could not be parsed: {type(exc).__name__}"})
+            continue
+        try:
+            old = subprocess.run(
+                ["git", "show", f"{commit_sha}:{path}"],
+                cwd=root, capture_output=True, timeout=8, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            errors.append({"path": path, "reason": "Baseline Git source could not be read."})
+            continue
+        if old.returncode == 0:
+            if len(old.stdout) > MAX_SOURCE_BYTES:
+                errors.append({"path": path, "reason": "Baseline source exceeds scan budget."})
+                continue
+            try:
+                previous = _direct_imports(old.stdout, path)
+            except (UnicodeError, SyntaxError, ValueError) as exc:
+                errors.append({"path": path, "reason": f"Baseline source could not be parsed: {type(exc).__name__}"})
+                continue
+            baseline_absent = False
+        else:
+            previous = {}
+            baseline_absent = True
+        added = sorted(set(current) - set(previous))
+        removed = sorted(set(previous) - set(current))
+        if added or removed or baseline_absent:
+            out.append({
+                "path": path,
+                "baseline_absent": baseline_absent,
+                "added_imports": [{"statement": key, "line": current[key]}
+                                  for key in added[:MAX_IMPORT_ROWS]],
+                "removed_imports": [{"statement": key, "baseline_line": previous[key]}
+                                    for key in removed[:MAX_IMPORT_ROWS]],
+                "imports_truncated": len(added) > MAX_IMPORT_ROWS or len(removed) > MAX_IMPORT_ROWS,
+                "evidence": "CURRENT_AST_VS_BASELINE_AST",
+            })
+    return {
+        "status": "PARTIAL" if len(candidates) > MAX_PYTHON_FILES or errors or
+        any(row["imports_truncated"] for row in out) else "COMPLETE",
+        "inspected_count": min(len(candidates), MAX_PYTHON_FILES),
+        "python_file_count": len(candidates),
+        "changes": out,
+        "errors": errors[:MAX_PYTHON_FILES],
+        "truncated": len(candidates) > MAX_PYTHON_FILES,
+        "limits": "Direct AST imports only. No dynamic Qt/reflective consumer proof or graph rebuild.",
+    }
 
 
 def change_snapshot(root: Path, graph_sha: str) -> dict[str, Any]:
@@ -46,9 +130,12 @@ def change_snapshot(root: Path, graph_sha: str) -> dict[str, Any]:
         raw.decode("utf-8", errors="replace").replace("\\", "/")
         for raw in [*changed, *untracked] if raw
     })
+    # Compare direct source imports only for a bounded number of changed Python files.
+    imports = changed_imports(root, baseline, paths)
     # Always disclose how many files are not displayed. No false absence claim.
     return {
         "status": "CHANGED" if paths else "CLEAN",
+        "source_import_delta": imports,
         "graph_commit": baseline,
         "current_commit": head,
         "graph_stale": bool(paths),

@@ -58,3 +58,7 @@ Graphify LIVE ne lance plus un `git diff` toutes les 2,5 secondes. La page activ
 ### Déclenchement par événements de développement
 
 Le hook Git pré-commit existant ajoute désormais un **indice Doctor non bloquant**, limité aux fichiers réellement indexés : aucune exécution de tests supplémentaire et aucun rebuild Graphify. La CI sur push reste l'autorité de validation ciblée. Pour un éditeur, un événement `save` peut être appelé explicitement, sans installer de watcher permanent : `python -m tools.atlas_doctor dev-event --event save app/ui/components.py --json`. Pour contrôler un lot avant push : `python -m tools.atlas_doctor dev-event --event push --base-ref origin/main --json`. Les tests sont suggérés, pas exécutés. Le gate de validation Atlas Integrity conserve son autorité.
+
+### Véritable inspection AST différentielle sur événement
+
+L'API locale `graph-live` compare maintenant les imports AST **des fichiers Python modifiés seulement** au contenu exact du commit Graphify ; 12 fichiers, 256 Kio par fichier, 32 imports par sens au maximum. Le panneau du nœud affiche les imports ajoutés/supprimés et leurs lignes ; les erreurs et troncatures sont explicitement signalées. Le graphe statique reste figé jusqu'au rebuild. Aucun cycle de scan permanent ni instrumentation runtime n'est lancé par cette action.

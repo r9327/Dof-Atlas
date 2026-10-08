@@ -145,6 +145,7 @@ const positions=nodes.map(n=>{
 });
 let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[];
 let changedFiles=new Set();
+let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
 function filter(){const needle=search.value.toLowerCase().trim(),group=domain.value;
@@ -174,6 +175,14 @@ function show(i){selected=i;const n=nodes[i];details.replaceChildren();
 function line(tag,text){const el=document.createElement(tag);el.textContent=text;details.appendChild(el);return el}
 line('h3',n.label||n.file);line('p',n.file+(n.line?' · '+n.line:''));
 if(changedFiles.has(n.file))line('p','Fichier modifié depuis le graphe : dépendances statiques potentiellement périmées.');
+if(importChanges.has(n.file)){
+ const delta=importChanges.get(n.file);
+ line('h4','Imports Python modifiés (AST courant versus commit du graphe)');
+ delta.added_imports.forEach(x=>line('p','+ L'+x.line+' '+x.statement));
+ delta.removed_imports.forEach(x=>line('p','− ancienne L'+x.baseline_line+' '+x.statement));
+ if(delta.imports_truncated)line('p','Détails tronqués : analyse ciblée nécessaire.');
+}
+if(importErrors.has(n.file))line('p','Inspection AST incomplète : '+importErrors.get(n.file));
 line('p','Communauté Graphify : '+String(n.community??'non déterminée'));
 if(n.runtime_observed)line('p','Appel Python observé dans une trace opt-in correspondant au SHA.');
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
@@ -203,14 +212,22 @@ async function refreshLive(force=false){
   if(!response.ok)throw new Error('status '+response.status);
   const live=await response.json();
   const next=new Set(live.changed_files||[]);
-  const changed=next.size!==changedFiles.size||[...next].some(path=>!changedFiles.has(path));
+  const importData=live.source_import_delta||{};
+  const nextImportChanges=new Map((importData.changes||[]).map(row=>[row.path,row]));
+  const nextImportErrors=new Map((importData.errors||[]).map(row=>[row.path,row.reason]));
+  const before=JSON.stringify([...importChanges,...importErrors]);
+  const after=JSON.stringify([...nextImportChanges,...nextImportErrors]);
+  const changed=next.size!==changedFiles.size||[...next].some(path=>!changedFiles.has(path))||before!==after;
   changedFiles=next;
+  importChanges=nextImportChanges;
+  importErrors=nextImportErrors;
+  importStatus=importData.status||'UNKNOWN';
   const filesShown=new Set(nodes.map(n=>n.file));
   const unknown=[...changedFiles].filter(path=>!filesShown.has(path)).length;
   let caption=live.graph_stale?'Graphe figé · '+live.changed_count+' fichiers modifiés · '+unknown+' hors graphe':'Graphe inchangé · suivi à la demande';
   if(live.truncated)caption+=' (liste partielle)';
-  label.textContent=caption;
-  if(changed)render();
+  label.textContent=caption+' · imports '+importStatus;
+  if(changed){if(selected>=0)show(selected);else render();}
  }catch(error){label.textContent='Suivi Git indisponible · graphe figé';}
  finally{refreshInFlight=false;}
 }
