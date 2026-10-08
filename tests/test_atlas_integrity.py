@@ -109,9 +109,14 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         self.assertEqual(result["root_of_trust"]["modified"], ["tools/atlas_meta_integrity.py"])
 
     def test_high_risk_imposes_sensitive_validations(self) -> None:
-        report, _ = self._run(
-            "fast", ["app/modules/encyclopedia/services/quest_progress_service.py"]
-        )
+        # CI intentionally enables a limited FAST profile only for Phase PRs.
+        # Exercise the standard (non-Phase) risk policy independently of CI's
+        # inherited environment so we cannot accidentally weaken ordinary PRs.
+        with patch.dict("os.environ", {"ATLAS_PHASE_PR_PREFLIGHT": "0"}):
+            report, _ = self._run(
+                "fast", ["app/modules/encyclopedia/services/quest_progress_service.py"]
+            )
+        self.assertEqual(report["validation_profile"], "STANDARD")
         self.assertTrue(
             {"PERSISTENCE", "STARTUP", "LAZY_LOADING", "ASYNC_LIFECYCLE"}.issubset(
                 report["validations_required"]
@@ -157,7 +162,19 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         self.assertEqual(proof["evidence_reused_from"], "FULL_SUITE")
         self.assertEqual(set(proof["evidence_test_cases"]), set(modules))
         self.assertEqual(report["verdict"], "PASS")
-        self.assertFalse(
+        # The standalone ARCHITECTURE command is redundant and must not run.
+        # Other mandatory groups (notably TEST_INTEGRITY) may legitimately
+        # include the same module, and must not be silently removed.
+        architecture_command = atlas_integrity._command_for_group(
+            "ARCHITECTURE",
+            self.policy["groups"]["ARCHITECTURE"],
+            root=ROOT,
+            base_ref="base",
+            changed=["docs/readme.md"],
+        )
+        self.assertIsNotNone(architecture_command)
+        self.assertNotIn(architecture_command, executor.commands)
+        self.assertTrue(
             any("tests.test_architecture_debt_baseline" in cmd for cmd in executor.commands)
         )
 
