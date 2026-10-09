@@ -90,3 +90,7 @@ L'artefact du commit `db88754a6679bf08c9596a1daf9ef8ec1308eed9` contient 11 366 
 L'interface Graphify accepte maintenant 15 000 nœuds / 50 000 arêtes sans troncature de cet artefact ; les arêtes restent masquées lorsque plus de 3 500 nœuds sont affichés à la fois afin de limiter le coût du rendu global. Les commandes `isolate-triage --kind weak --offset <N>` et `--kind community --offset <N>` paginent les examens par petits lots (max. 10 fichiers par exécution), avec `next_offset` comme prochain curseur. Aucun examen limité par fenêtre ne doit être présenté comme exhaustif et aucun candidat ne doit être supprimé sans preuve indépendante.
 
 Ce constat concerne le SHA de l'artefact, non les commits postérieurs de la PR. Le dernier SHA candidat nécessite ses propres contrôles ciblés ; la certification complète reste distincte.
+
+### Indices AST sur les nœuds Graphify
+
+Le mode `graph-ui` inspecte explicitement **au maximum 16 fichiers Python signalés** (erreurs d'import, exceptions avalées, références JSON littérales, structures proches), en respectant les bornes de `scan_sources`. Les indices sont visibles dans la fiche du nœud avec leurs lignes, sans être convertis en preuve de code mort ni en statut critique. Le graphe historique ne déclenche aucune inspection de sources actuelles. Aucune surveillance périodique ou exécution de tests n'est ajoutée à l'application.

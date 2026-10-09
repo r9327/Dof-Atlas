@@ -39,6 +39,40 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn('id="priority"', html)
         self.assertIn("correction automatique", html)
 
+    def test_source_inspection_overlays_real_bounded_ast_findings(self):
+        graph = {"nodes": [
+            {"id": 1, "source_file": "app/core/catalog.py"},
+            {"id": 2, "source_file": "app/pages/home.py"},
+        ], "links": [], "built_at_commit": "a" * 40}
+        inspection = {
+            "status": "REVIEW", "paths_inspected": ["app/core/catalog.py"],
+            "missing_internal_import_candidates": [
+                {"path": "app/core/catalog.py", "line": 8,
+                 "module": "app.core.progress_coordinator"},
+            ],
+            "data_lineage_candidates": [
+                {"path": "app/core/catalog.py", "line": 10,
+                 "data_reference": "data/catalog.json"},
+            ],
+            "silent_exceptions": [], "near_duplicate_candidates": [],
+        }
+        result = compact_graph(graph, {}, inspection=inspection)
+        evidence = result["nodes"][0]["source_evidence"]
+        self.assertEqual(len(evidence), 2)
+        self.assertEqual(evidence[0]["subject"], "app.core.progress_coordinator")
+        self.assertEqual(evidence[1]["kind"], "Literal JSON string reference")
+        self.assertEqual(result["nodes"][1]["source_evidence"], [])
+        self.assertEqual(result["source_inspection_status"], "REVIEW")
+        self.assertEqual(result["source_inspection_files"], 1)
+        self.assertIn("Indices AST du fichier", render_html(result))
+        self.assertIn("n.source_evidence.length", render_html(result))
+
+    def test_unscanned_graph_nodes_do_not_inherit_ast_findings(self):
+        graph = {"nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}
+        result = compact_graph(graph, {})
+        self.assertEqual(result["source_inspection_status"], "NOT_RUN")
+        self.assertEqual(result["nodes"][0]["source_evidence"], [])
+
     def test_matching_runtime_trace_adds_observed_calls_without_faking_imports(self):
         sha = "a" * 40
         graph = {"nodes": [{"id": 1, "source_file": "app/a.py"},

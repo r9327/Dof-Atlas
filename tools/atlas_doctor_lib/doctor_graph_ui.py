@@ -12,6 +12,8 @@ from typing import Any
 
 MAX_NODES = 15000
 MAX_LINKS = 50000
+MAX_SOURCE_INSPECTION_FILES = 16
+MAX_SOURCE_SIGNALS_PER_FILE = 6
 
 
 def _domain(path: str) -> str:
@@ -22,7 +24,8 @@ def _domain(path: str) -> str:
 
 
 def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
-                  trace: dict[str, Any] | None = None) -> dict[str, Any]:
+                  trace: dict[str, Any] | None = None,
+                  inspection: dict[str, Any] | None = None) -> dict[str, Any]:
     nodes = graph.get("nodes", [])[:MAX_NODES]
     indexed = {item["id"]: number for number, item in enumerate(nodes)}
     file_reasons: dict[str, list[str]] = {}
@@ -68,6 +71,33 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                     "priority": level, "kind": str(task.get("kind") or ""),
                     "action": str(task.get("action") or ""),
                 }
+    # Read-only AST source evidence is separate from Graphify predictions and
+    # runtime observations. Only explicitly scanned files can show findings.
+    source_evidence: dict[str, list[dict[str, Any]]] = {}
+    if isinstance(inspection, dict):
+        def add(path: Any, line: Any, kind: str, subject: Any) -> None:
+            if not isinstance(path, str):
+                return
+            bucket = source_evidence.setdefault(path, [])
+            if len(bucket) < MAX_SOURCE_SIGNALS_PER_FILE:
+                bucket.append({"line": str(line or ""), "kind": kind,
+                               "subject": str(subject or "")[:180],
+                               "confidence": "STATIC_SOURCE_REVIEW_ONLY"})
+        for key, kind in (
+            ("missing_internal_import_candidates", "Missing internal import candidate"),
+            ("silent_exceptions", "Swallowed exception pattern"),
+            ("data_lineage_candidates", "Literal JSON string reference"),
+        ):
+            for item in inspection.get(key, [])[:80]:
+                if isinstance(item, dict):
+                    add(item.get("path"), item.get("line"), kind,
+                        item.get("module") or item.get("data_reference") or "")
+        for group in inspection.get("near_duplicate_candidates", [])[:80]:
+            if isinstance(group, dict):
+                for item in group.get("occurrences", [])[:16]:
+                    if isinstance(item, dict):
+                        add(item.get("path"), item.get("line"),
+                            "Similar AST shape (not semantic equality)", item.get("symbol"))
     trace_status = "NOT_PROVIDED"
     runtime_pairs: set[tuple[str, str]] = set()
     if trace is not None:
@@ -123,6 +153,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "file": file, "domain": _domain(file), "community": item.get("community"),
             "line": str(item.get("source_location") or ""),
             "reasons": file_reasons.get(file, []),
+            "source_evidence": source_evidence.get(file, []),
             "doctor_task": file_actions.get(file),
             "runtime_observed": file in observed_files,
             "qt_call_site_observed": file in qt_sites,
@@ -155,6 +186,9 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
         "observed_symbol_calls": symbol_calls,
+        "source_inspection_status": (inspection or {}).get("status", "NOT_RUN"),
+        "source_inspection_files": len((inspection or {}).get("paths_inspected", [])),
+        "source_inspection_truncated": bool((inspection or {}).get("truncated")),
         "symbol_calls_bounded": bool(trace and trace.get("symbol_edges_truncated")),
         "qt_call_site_files": len(qt_sites),
         "raw_nodes": len(graph.get("nodes", [])), "raw_links": len(graph.get("links", [])),
@@ -240,7 +274,7 @@ function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1
 function filter(){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value;
 visible=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
  (!level||(n.doctor_task&&n.doctor_task.priority===level))&&
- (!flagged.checked||n.reasons.length||n.doctor_task)&&
+ (!flagged.checked||n.reasons.length||n.doctor_task||n.source_evidence.length)&&
  (!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
 document.getElementById('summary').textContent=visible.length+' / '+nodes.length+' nœuds · '+(visible.length>3500?'relations masquées en vue globale':'relations visibles');render()}
 function screen(p){return {x:canvas.width/2+(p.x+panX)*scale*devicePixelRatio,
@@ -289,6 +323,10 @@ if(n.doctor_task){
  line('h4','Priorité Doctor : '+n.doctor_task.priority);
  line('p',n.doctor_task.kind+' · '+n.doctor_task.action);
  line('p','Proposition à vérifier dans le code et les tests, jamais correction automatique.');
+}
+if(n.source_evidence.length){
+ line('h4','Indices AST du fichier (examen nécessaire)');
+ n.source_evidence.forEach(e=>line('p',e.kind+(e.line?' · L'+e.line:'')+(e.subject?' · '+e.subject:'')));
 }
 if(n.reasons.length){line('h4','Pourquoi Doctor signale ce nœud');n.reasons.forEach(v=>line('p','• '+v))}
 else line('p','Aucun signal prioritaire dans cet extrait de diagnostic.');
@@ -400,7 +438,31 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
             trace = json.loads(selected_path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, ValueError) as exc:
             return {"status": "BLOCKED", "reason": str(exc)}
-    payload = compact_graph(graph, audit, trace=trace)
+    # Explicit graph-ui action only: inspect at most 16 flagged Python files.
+    # Never scan the repository periodically or certify historical graph data.
+    inspection: dict[str, Any] | None = None
+    source_scan_truncated = False
+    if not stale:
+        selected: list[str] = []
+        seen: set[str] = set()
+        for kind in ("blocking_findings", "orphan_nodes",
+                     "weak_production_candidates", "high_fanout_files"):
+            for row in audit.get(kind, []):
+                if not isinstance(row, dict):
+                    continue
+                path = row.get("file") or row.get("path") or row.get("source")
+                if (isinstance(path, str) and path.startswith(("app/", "tools/"))
+                        and path.endswith(".py") and path not in seen):
+                    seen.add(path)
+                    selected.append(path)
+        source_scan_truncated = len(selected) > MAX_SOURCE_INSPECTION_FILES
+        source_paths = [x for x in selected[:MAX_SOURCE_INSPECTION_FILES] if
+                        (root / x).is_file() and not (root / x).is_symlink()]
+        if source_paths:
+            from .deep_intelligence import scan_sources
+            inspection = scan_sources(root, source_paths)
+    payload = compact_graph(graph, audit, trace=trace, inspection=inspection)
+    payload["source_scan_selection_truncated"] = source_scan_truncated
     from .file_coverage import tracked_python
     inventory = tracked_python(root)
     graph_files = {row.get("source_file") for row in graph["nodes"]
@@ -421,5 +483,8 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         "path": str(destination), "trace_status": payload["trace_status"],
         "nodes_shown": len(payload["nodes"]),
         "links_shown": len(payload["edges"]), "truncated": payload["truncated"],
+        "source_inspection": payload["source_inspection_status"],
+        "source_scan_files": payload["source_inspection_files"],
+        "source_scan_truncated": source_scan_truncated or payload["source_inspection_truncated"],
         "tests_executed": False, "graph_rebuilt": False,
     }
