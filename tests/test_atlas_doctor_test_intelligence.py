@@ -66,6 +66,29 @@ class TestCostEvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             test_cost_report(self.root, [Path("missing")] * 9)
 
+    def test_advisory_order_keeps_all_required_groups_and_full_suite(self):
+        from tools.atlas_doctor_lib.test_intelligence import suggest_targeted_test_order
+        evidence = {"status": "PASS", "groups": [
+            {"group": "SLOW", "median_seconds": 3600, "samples": 3},
+            {"group": "QUICK", "median_seconds": 5, "samples": 2},
+        ]}
+        result = suggest_targeted_test_order(
+            ["FULL_SUITE", "SLOW", "QUICK", "SLOW", "UNKNOWN"], evidence)
+        self.assertEqual(result["suggested_order"],
+                         ["QUICK", "SLOW", "FULL_SUITE", "UNKNOWN"])
+        self.assertEqual(result["unknown_cost_groups"], ["FULL_SUITE", "UNKNOWN"])
+        self.assertFalse(result["full_suite_waived"])
+        self.assertFalse(result["tests_executed"])
+        self.assertEqual(result["historically_measured_groups"], 2)
+
+    def test_missing_cost_data_is_not_misrepresented_as_measured(self):
+        from tools.atlas_doctor_lib.test_intelligence import suggest_targeted_test_order
+        result = suggest_targeted_test_order(["A", "B"], {"status": "REVIEW", "groups": []})
+        self.assertEqual(result["status"], "INSUFFICIENT_COST_EVIDENCE")
+        self.assertEqual(result["suggested_order"], ["A", "B"])
+        with self.assertRaises(ValueError):
+            suggest_targeted_test_order(["X"] * 65, {"groups": []})
+
 
 if __name__ == "__main__":
     unittest.main()

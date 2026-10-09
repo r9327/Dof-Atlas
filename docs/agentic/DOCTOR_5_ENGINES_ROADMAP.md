@@ -252,3 +252,23 @@ Dans `graph-ui`, un filtre « Scénario runtime » permet de retrouver les nœud
 ### Capture guidée des scénarios Qt réels
 
 `QT_QPA_PLATFORM=offscreen python -m tools.atlas_doctor capture-ui encyclopedia --json` lance **uniquement sur demande** le scénario offscreen prévu pour Guide/Quêtes/Succès. Les variantes `capture-ui equipment` et `capture-ui qt` sont également disponibles ; les noms sont limités à une liste de trois modules validés, pas de lancement libre de `main.py`. La commande range sa trace dans `.ai/runtime/atlas_doctor/traces/atlas_ui_<scenario>.json`, sans création de watcher permanent, sans exécuter la FULL_SUITE et sans benchmark RAM/preload. La fonctionnalité n'est pas exécutée lors des builds normaux et n'installe aucun hook applicatif. Le JSON des preuves se combine ensuite explicitement via `graph-ui --trace ... --extra-trace ...`.
+
+
+### Intégration opérationnelle Doctor : enquêtes Graphify et coût des tests
+
+`isolate-triage --kind weak --limit 5 --trace .ai/runtime/<trace1>.json --trace .ai/runtime/<trace2>.json --json`
+conserve les contrôles du graphe et des consommateurs source tout en recoupant, à la demande,
+les appels Python réellement entrés et callbacks Qt explicitement observés.
+Les traces doivent être complètes, sous `.ai/runtime`, issues d'un worktree propre,
+et correspondre exactement au SHA du graphe courant (maximum huit traces, 50k événements combinés).
+Les preuves positives `RUNTIME_OBSERVED` sont conservées, mais un fichier non observé reste
+`NOT_OBSERVED_NOT_DEAD_CODE` et `safe_to_remove=false`. Les tentatives d'import sont
+des pistes séparées des appels réellement exécutés. Aucun observateur permanent.
+
+`change-plan --base-ref origin/main --cost-report .ai/runtime/<integrity-report>.json --json`
+présente désormais un ordre *conseillé* des groupes déjà requis par le plan Agent/Integrity,
+du groupe historiquement le plus rapide au plus lent. Les durées sont lues uniquement
+dans des rapports de validations **réellement exécutées** ; les coûts inconnus restent explicites.
+Les groupes obligatoires sont conservés, aucun FULL_SUITE/DEEP gate n'est supprimé,
+et l'ordre n'est ni une prévision de durée ni une certification. Cette consultation ne lance
+aucun test, benchmark ou reconstruction du graphe. La PR reste DRAFT et non fusionnée.

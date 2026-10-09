@@ -113,7 +113,8 @@ def stale_removed_imports(root: Path, old_paths: list[str]) -> dict[str, Any]:
             "limits": "Literal imports only. Runtime plugin discovery and reflective consumers require runtime evidence."}
 
 
-def build_change_plan(root: Path, *, base_ref: str) -> dict[str, Any]:
+def build_change_plan(root: Path, *, base_ref: str,
+                      cost_reports: list[Path] | None = None) -> dict[str, Any]:
     """Compose existing Agent/Graphify engines without spawning validation suites."""
     from tools import agent, atlas_integrity
     from tools.atlas_doctor_lib.architecture import graph_status
@@ -192,4 +193,10 @@ def build_change_plan(root: Path, *, base_ref: str) -> dict[str, Any]:
         limitations=["Graph edges require current AST import confirmation; reflective/Qt consumers are not yet fully observable.",
                      "No test result, measured speedup or runtime dependency is claimed by this plan."],
     )
+    if cost_reports:
+        from .test_intelligence import suggest_targeted_test_order, test_cost_report
+        costs = test_cost_report(root, cost_reports)
+        payload["historical_test_costs"] = costs
+        payload["test_execution_order_advice"] = suggest_targeted_test_order(
+            list(plan.get("required_groups") or []), costs)
     return payload

@@ -166,7 +166,8 @@ def command_file_coverage(root: Path, args) -> dict[str, Any]:
 
 def command_change_plan(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.change_intelligence import build_change_plan
-    result = build_change_plan(root, base_ref=args.base_ref)
+    result = build_change_plan(root, base_ref=args.base_ref,
+                               cost_reports=getattr(args, "cost_report", []))
     if not args.json:
         print(f"Doctor change-plan: {result['status']} | {len(result['paths'])} chemins")
         print(f"Imports casses confirmes : {len(result.get('structural_findings', []))}")
@@ -571,6 +572,8 @@ def build_parser() -> argparse.ArgumentParser:
     cs.add_argument('path', help='Fichier Python cible relatif au depot.')
     ch = sub.add_parser('change-plan', help='Plan diff Git + consommateurs Graphify + tests cibles; aucun test execute.')
     ch.add_argument('--base-ref', required=True, help='Ref Git explicite pour la comparaison.')
+    ch.add_argument('--cost-report', type=Path, action='append', default=[],
+                    help='Rapport Integrity historique pour ordre conseillé (aucune suite lancée).')
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
     ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')

@@ -81,6 +81,28 @@ class ChangeIntelligenceTests(unittest.TestCase):
         self.assertEqual(len(result["structural_findings"]), 1)
         self.assertEqual(result["full_suite"]["status"], "DEFERRED_NOT_WAIVED")
 
+    def test_historical_cost_order_never_replaces_integrity_test_floor(self):
+        self.write("app/pages/consumer.py", "print('modified')\n")
+        plan = {"status": "READY", "architecture_preflight": {},
+                "integrity_mode": "FULL", "execution_tests": ["tests.test_fast"],
+                "required_groups": ["FULL_SUITE", "FAST", "UI"]}
+        evidence = {"status": "PASS", "groups": [
+            {"group": "UI", "median_seconds": 7, "samples": 2},
+            {"group": "FAST", "median_seconds": 3, "samples": 3}]}
+        with patch("tools.agent.plan_payload", return_value=plan), \
+             patch("tools.atlas_doctor_lib.architecture.graph_status",
+                   return_value={"status": "STALE"}), \
+             patch("tools.atlas_doctor_lib.test_intelligence.test_cost_report",
+                   return_value=evidence):
+            result = build_change_plan(self.root, base_ref=self.base,
+                                       cost_reports=[Path(".ai/runtime/previous.json")])
+        self.assertEqual(result["test_execution_order_advice"]["suggested_order"],
+                         ["FAST", "UI", "FULL_SUITE"])
+        self.assertEqual(result["required_groups"], ["FULL_SUITE", "FAST", "UI"])
+        self.assertEqual(result["full_suite"]["status"], "DEFERRED_NOT_WAIVED")
+        self.assertFalse(result["tests_executed"])
+
+
 
 if __name__ == "__main__":
     unittest.main()
