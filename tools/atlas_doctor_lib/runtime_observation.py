@@ -34,6 +34,13 @@ def _audit_dispatch(event: str, args: tuple[Any, ...]) -> None:
         observer._audit_event(event, args)
 
 
+def active_observer() -> RuntimeObserver | None:
+    """Return the opt-in recorder only while an explicit trace is running."""
+    ref = _ACTIVE_AUDIT_REF
+    current = ref() if ref else None
+    return current if current is not None and current._active else None
+
+
 class RuntimeObserver:
     def __init__(self, root: Path, *, max_events: int = 5000):
         if not 1 <= max_events <= 50000:
@@ -218,11 +225,18 @@ class RuntimeObserver:
         method = callback
         # functools.partial is common for Qt bindings; unwrap without
         # invoking the callback, and cap pathological nested partials.
-        for _ in range(6):
+        for _ in range(8):
             if isinstance(method, partial):
                 method = method.func
                 continue
-            method = getattr(method, "__func__", method)
+            wrapped = getattr(method, "__wrapped__", None)
+            if wrapped is not None and wrapped is not method:
+                method = wrapped
+                continue
+            original = getattr(method, "__func__", None)
+            if original is not None and original is not method:
+                method = original
+                continue
             break
         code = getattr(method, "__code__", None)
         receiver_file = self._path(code.co_filename) if code is not None else None

@@ -121,3 +121,7 @@ L'inspecteur de nœud et l'export JSON intègrent désormais, depuis une trace o
 ### Destruction explicite QObject, sans faux diagnostic de fuite
 
 En scénario opt-in, `observer.watch_qt_destroyed(obj, label='guide_view')` raccorde un callback faible au signal `QObject.destroyed`, sans capturer l'objet et sans instrumentation permanente de Dofus Atlas. La trace et l'inspecteur Graphify indiquent uniquement la **réception du signal**, sous provenance exacte-SHA. Ce n'est pas une preuve de collecte du wrapper Python, de libération native WebEngine ni d'absence de fuite RAM. Aucun benchmark n'est déclenché.
+
+### Scénario PySide6 réel, lancé uniquement sur demande
+
+`python -m tools.atlas_doctor runtime-trace --module tools.atlas_doctor_lib.qt_smoke_scenario --json` exécute un mini-scénario avec un vrai `QCoreApplication`, un signal Qt réel, un slot Python instrumenté et le signal `QObject.destroyed` lors d'une destruction explicite. Le scénario ne démarre jamais automatiquement avec Dofus Atlas et exige PySide6/shiboken6 installés. Un test ciblé l'exécute seulement quand Qt est disponible ; un SKIP n'est pas une certification Qt. Correction associée : `connect_qt_signal` suit `__wrapped__` pour identifier la source réelle d'un callback enveloppé, et non le fichier de l'instrumenteur.

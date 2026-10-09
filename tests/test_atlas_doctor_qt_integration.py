@@ -46,5 +46,26 @@ class DoctorRealQtSignalTests(unittest.TestCase):
         self.assertTrue(app)
 
 
+    def test_real_qt_smoke_scenario_observes_callback_and_object_destruction(self):
+        import runpy
+
+        root = Path(__file__).resolve().parents[1]
+        observer = RuntimeObserver(root, max_events=3000)
+        with observer:
+            runpy.run_module("tools.atlas_doctor_lib.qt_smoke_scenario",
+                             run_name="__main__", alter_sys=True)
+        events = observer.report()["events"]
+        scenario = "tools/atlas_doctor_lib/qt_smoke_scenario.py"
+        for kind in ("qt_signal_connect_returned", "qt_callback_invoked",
+                     "qt_destroyed_observed"):
+            matched = [event for event in events
+                       if event.get("type") == kind and event.get("source") == scenario]
+            self.assertTrue(matched, f"missing {kind} in the real PySide6 scenario")
+        callbacks = [event for event in events if event["type"] == "qt_callback_invoked"]
+        self.assertTrue(any(row.get("target") == scenario for row in callbacks))
+        self.assertIn(scenario, observer.report()["lifecycle"]["qt_destroyed_sources"])
+
+
+
 if __name__ == "__main__":
     unittest.main()

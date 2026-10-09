@@ -422,6 +422,46 @@ class RuntimeObservationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "active observer"):
                 watcher.watch_qt_destroyed(obj, label="late")
 
+
+    def test_active_observer_only_available_during_opt_in_session(self):
+        from tools.atlas_doctor_lib.runtime_observation import active_observer
+        with tempfile.TemporaryDirectory() as directory:
+            watcher = RuntimeObserver(Path(directory))
+            self.assertIsNone(active_observer())
+            with watcher:
+                self.assertIs(active_observer(), watcher)
+            self.assertIsNone(active_observer())
+
+    def test_qt_connection_unwraps_instrumentation_to_real_callback_file(self):
+        import runpy
+
+        class Signal:
+            def connect(self, callback):
+                self.callback = callback
+                return "registered"
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            file = root / "window.py"
+            file.write_text(
+                "def slot():\n    return 73\n"
+                "wrapped = watcher.wrap_qt_slot(slot)\n"
+                "connected = watcher.connect_qt_signal(signal, wrapped)\n"
+                "answer = wrapped()\n", encoding="utf-8")
+            watcher, signal = RuntimeObserver(root, max_events=500), Signal()
+            with watcher:
+                scope = runpy.run_path(str(file), init_globals={
+                    "watcher": watcher, "signal": signal})
+            self.assertEqual(scope["connected"], "registered")
+            self.assertEqual(scope["answer"], 73)
+            rows = [row for row in watcher.report()["events"]
+                    if row["type"] == "qt_signal_connect_returned"]
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["source"], "window.py")
+            self.assertEqual(rows[0]["target"], "window.py")
+            self.assertEqual([row["target"] for row in watcher.report()["events"]
+                              if row["type"] == "qt_callback_invoked"], ["window.py"])
+
     def test_wrapped_qt_slot_records_actual_entry_and_preserves_result(self):
         import runpy
         with tempfile.TemporaryDirectory() as folder:
