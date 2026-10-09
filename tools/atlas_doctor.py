@@ -281,6 +281,16 @@ def command_graph_compare(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_scenario_diff(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.trace_regressions import load_historical_scenario_diff
+    result = load_historical_scenario_diff(root, args.before, args.after)
+    if not args.json:
+        print(f"Doctor scenario-diff: {result['status']} | "
+              f"{result.get('lost_total', 0)} previously seen edges not observed now")
+        print("Observation changes are not confirmed functional regressions; no tests run.")
+    return result
+
+
 def command_scenario_coverage(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.scenario_coverage import load_scenario_coverage
     result = load_scenario_coverage(root, args.trace,
@@ -539,6 +549,9 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument('--to', help='Chemin relatif cible pour move/consolidate.')
     rp.add_argument('--depth', type=int, choices=(1, 2), default=2)
     rp.add_argument('--trace', type=Path, help='Trace runtime .ai/runtime du HEAD exact (optionnelle).')
+    sd = sub.add_parser('scenario-diff', help='Comparer deux traces historiques du même scénario sans exécution.')
+    sd.add_argument('--before', required=True, type=Path)
+    sd.add_argument('--after', required=True, type=Path)
     sc = sub.add_parser('scenario-coverage', help='Comparer les preuves de plusieurs traces exact-SHA, sans exécuter de scénario.')
     sc.add_argument('--trace', action='append', type=Path, required=True,
                     help='Trace Doctor existante dans .ai/runtime, maximum 12.')
@@ -691,6 +704,7 @@ def main(argv: list[str] | None = None) -> int:
         'graph-audit': command_graph_audit,
         'test-costs': command_test_costs,
         'scenario-coverage': command_scenario_coverage,
+        'scenario-diff': command_scenario_diff,
         'change-plan': command_change_plan,
         'file-coverage': command_file_coverage,
         'consumer-sites': command_consumer_sites,
@@ -745,6 +759,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == 'file-coverage':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
+    if args.command == 'scenario-diff':
+        return 0 if payload['status'] == 'NO_OBSERVATION_DROP' else 1
     if args.command == 'scenario-coverage':
         return 0 if payload['status'] == 'OBSERVED' else 1
     if args.command == 'test-costs':

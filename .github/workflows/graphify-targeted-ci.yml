@@ -72,6 +72,7 @@ jobs:
           python -m unittest discover -s tests -p "test_atlas_doctor_runtime_observation.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_test_intelligence.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_scenario_coverage.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_trace_regressions.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_boundary_intelligence.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_qt_integration.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_graph_ui.py" -v

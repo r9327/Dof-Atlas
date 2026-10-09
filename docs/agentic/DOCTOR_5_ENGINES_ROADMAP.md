@@ -192,3 +192,12 @@ des scénarios réels et valider les garde-fous de comportement, puis figer le
 HEAD pour les suites de certification finale. Tant que ces scénarios et les
 checks obligatoires ne sont pas validés : **DRAFT, non certified, no merge**.
 Aucune relance répétée des benchmarks RAM/preload pendant le développement.
+
+
+### Scénario réel Équipement, sans navigateur et sans benchmark
+
+`python -m tools.atlas_doctor runtime-trace --module tools.atlas_doctor_lib.app_ui_smoke_scenario --max-events 50000 --json` exerce un vrai `EquipmentPage` sous `QApplication` (PySide6 offscreen) : construction du widget, changement de section, observation faible, réception `QObject.destroyed`, destruction C++ explicite. Le scénario ne montre aucune fenêtre, n'ouvre pas Huzounet et n'importe pas Chromium. À lancer **manuellement** avec `QT_QPA_PLATFORM=offscreen`; il ne prouve ni le Guide/Succès ni le fonctionnement du navigateur externe. Test ciblé disponible dans `tests/test_atlas_doctor_app_ui_smoke.py` (SKIP lorsque Qt/offscreen n'est pas configuré).
+
+### Comparaison de scénarios historiques sans fausse régression
+
+Les traces lancées par `runtime-trace` incluent leur nom de module `scenario_module`. La commande `python -m tools.atlas_doctor scenario-diff --before .ai/runtime/atlas_doctor/traces/before.json --after .ai/runtime/atlas_doctor/traces/after.json --json` compare uniquement deux **mêmes scénarios**, complets et datés par SHA, en classant les relations Python/Qt observées qui disparaissent comme `REVIEW`. Un appel non observé dans une nouvelle exécution n'est pas une preuve de bug, de code mort ni de suppression sûre. Aucun scénario, test, graph rebuild ou benchmark n'est lancé pendant la comparaison.

@@ -615,7 +615,9 @@ def run_traced_module(root: Path, module: str, output: Path, *, max_events: int 
         with observer:
             runpy.run_module(module, run_name="__main__", alter_sys=True)
     finally:
+        payload = observer.report()
+        payload["scenario_module"] = module
         output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(json.dumps(observer.report(), indent=2, ensure_ascii=False) + "\n",
+        output.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
                           encoding="utf-8")
-    return observer.report()
+    return payload
