@@ -39,10 +39,10 @@ class DoctorGraphUiTests(unittest.TestCase):
         for marker in (
             'id="graphPrev"', 'id="graphNext"', 'id="graphPage"',
             "const PAGE_SIZE=1200", "matches=nodes.map", "matches.slice(",
-            "Math.floor(offset/PAGE_SIZE)", "filter(false);show(e.n)",
+            "Math.floor(offset/PAGE_SIZE)", "filter(false);focusNode(e.n)",
             "button.addEventListener('click'", "relations de la page uniquement",
         ):
-            self.assertIn(marker, html)
+            self.assertTrue(marker in html, f"Expected Graphify UI marker: {marker}")
         self.assertIn("Page précédente du graphe", html)
         self.assertIn("Page suivante du graphe", html)
 
