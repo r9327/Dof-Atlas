@@ -44,6 +44,21 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("Page précédente du graphe", html)
         self.assertIn("Page suivante du graphe", html)
 
+    def test_search_enter_and_neighbor_jump_center_the_real_selected_node(self):
+        graph = {"built_at_commit": "a" * 40,
+                 "nodes": [{"id": 1, "label": "node", "source_file": "app/a.py",
+                            "source_location": "app/a.py:42:0"},
+                           {"id": 2, "source_file": "app/b.py"}],
+                 "links": [{"source": 1, "target": 2, "relation": "imports"}]}
+        page = render_html(compact_graph(graph, {}))
+        self.assertIn("function focusNode(i)", page)
+        self.assertIn("panX=-loc.x;panY=-loc.y", page)
+        self.assertIn("filter(false);focusNode(e.n)", page)
+        self.assertIn("event.key==='Enter'", page)
+        self.assertIn("focusNode(matches[0])", page)
+        self.assertIn("const lineAnchor=locationMatch?'#L'", page)
+        self.assertIn("app/a.py:42:0", page)
+
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
                  "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}

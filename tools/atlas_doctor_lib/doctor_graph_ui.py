@@ -387,7 +387,10 @@ if(n.source_evidence.length){
 }
 if(n.reasons.length){line('h4','Pourquoi Doctor signale ce nœud');n.reasons.forEach(v=>line('p','• '+v))}
 else line('p','Aucun signal prioritaire dans cet extrait de diagnostic.');
-const link=document.createElement('a');link.href='https://github.com/r9327/Dof-Atlas/blob/'+encodeURIComponent(data.candidate_sha||'main')+'/'+n.file.split('/').map(encodeURIComponent).join('/');
+const link=document.createElement('a');
+const locationMatch=String(n.line||'').match(/(?:^|:)([0-9]+)(?::[0-9]+)?$/);
+const lineAnchor=locationMatch?'#L'+locationMatch[1]:'';
+link.href='https://github.com/r9327/Dof-Atlas/blob/'+encodeURIComponent(data.candidate_sha||'main')+'/'+n.file.split('/').map(encodeURIComponent).join('/')+lineAnchor;
 link.target='_blank';link.rel='noopener noreferrer';link.textContent='Voir le code sur GitHub';details.appendChild(link);
 const adj=neighbors.get(i)||[];line('h4','Voisins du graphe ('+adj.length+')');
 adj.slice(0,40).forEach(e=>{
@@ -399,12 +402,19 @@ adj.slice(0,40).forEach(e=>{
    search.value='';domain.value='';priority.value='';flagged.checked=false;
    filter(true);offset=matches.indexOf(e.n);
   }
-  if(offset>=0){pageIndex=Math.floor(offset/PAGE_SIZE);filter(false);show(e.n)}
+  if(offset>=0){pageIndex=Math.floor(offset/PAGE_SIZE);filter(false);focusNode(e.n)}
  });
  details.appendChild(button);
 });
 if(adj.length>40)line('small','Liste limitée à 40 voisins, sans supprimer les relations du graphe.');
 render()}
+function focusNode(i){
+ const loc=positions[i];
+ if(!loc)return;
+ panX=-loc.x;panY=-loc.y;
+ scale=Math.max(scale,.55);
+ show(i);
+}
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,px:panX,py:panY,moved:false}});
 canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=(e.clientX-drag.x)/scale,dy=(e.clientY-drag.y)/scale;
 if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;panX=drag.px+dx;panY=drag.py+dy;render()});
@@ -414,6 +424,9 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.
 [search,domain,priority,flagged].forEach(el=>el.addEventListener('input',()=>filter(true)));
 document.getElementById('graphPrev').addEventListener('click',()=>{pageIndex--;filter(false)});
 document.getElementById('graphNext').addEventListener('click',()=>{pageIndex++;filter(false)});
+search.addEventListener('keydown',event=>{
+ if(event.key==='Enter'&&matches.length){event.preventDefault();pageIndex=0;filter(false);focusNode(matches[0])}
+});
 document.getElementById('reset').addEventListener('click',()=>{scale=.36;panX=0;panY=0;render()});
 document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées. '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
 async function refreshLive(force=false){
