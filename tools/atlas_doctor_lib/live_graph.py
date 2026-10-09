@@ -73,9 +73,19 @@ def _resolved_file_imports(contents: bytes, path: str,
                 origin = []
             if node.module:
                 origin += node.module.split(".")
-            groups = [origin]
-            groups.extend(origin + [alias.name] for alias in node.names
-                          if alias.name != "*" and alias.name.isidentifier())
+            # Prefer actual imported submodules when resolvable. Treat a
+            # package __init__ as the target only for imported attributes
+            # that have no matching local module; do not invent a second
+            # parent-package edge for "from . import helper".
+            groups = []
+            for alias in node.names:
+                if alias.name == "*" or not alias.name.isidentifier():
+                    groups.append(origin)
+                    continue
+                child = [*origin, alias.name]
+                groups.append(child if _module_source(child, known) else origin)
+            if not groups:
+                groups = [origin]
         else:
             continue
         for group in groups:
