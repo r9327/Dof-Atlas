@@ -420,3 +420,8 @@ La validation focalisée inclut désormais les contrats du scanner de ressources
 ### Accessibilité via imports dynamiques réussis — distincte de l'exécution
 
 `graph_reachability` raccorde désormais les événements `module_import_returned` issus de scénarios opt-in exact-SHA aux relations d'accessibilité **positive** : un importlib ayant retourné un module local constitue une preuve de résolution, même s'il vient du cache. Les tentatives `import_attempt` restent exclues. `compare_runtime_to_graph` distingue séparément le nombre de résolutions dynamiques réussies, de correspondances Graphify statiques et d'appels Python réellement exécutés. Les imports retournés ne deviennent jamais une preuve d'exécution fraîche ni un feu vert de suppression. Traces incomplètes/périmées refusées. Pas de tests ni de benchmarks pendant l'intégration.
+
+
+### Couverture fonctionnelle par symbole réellement entré (Test Intelligence)
+
+La commande `scenario-coverage --trace ... --require-symbol app/pages/guide.py::GuidesView.refresh` sait désormais chercher des **entrées de fonctions/méthodes**, en plus des fichiers. Les événements `python_symbol_call` exigent la provenance `OBSERVED_CALL_ENTRY`; les callbacks Qt enveloppés demandent `WRAPPED_PYTHON_CALLBACK_ENTERED` et exposent maintenant leur `callee_symbol`. Les seules inscriptions de slots, tentatives d'imports, résolutions de modules déjà en cache ou chaînes de texte ne constituent jamais une couverture. Au maximum 256 symboles exigés et 12 traces exact-SHA. Une fonction non entrée dans ces scénarios reste **non observée**, jamais déclarée morte. Aucun test ni application lancée par la commande de consultation.

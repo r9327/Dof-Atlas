@@ -291,6 +291,7 @@ class RuntimeObserver:
                 observer._record({
                     "type": "qt_callback_invoked", "source": source,
                     "target": target, "confidence": "WRAPPED_PYTHON_CALLBACK_ENTERED",
+                    "callee_symbol": code.co_qualname if code is not None else None,
                 })
             return callback(*args, **kwargs)
 

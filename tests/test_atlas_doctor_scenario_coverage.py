@@ -74,6 +74,43 @@ class ScenarioCoverageTests(unittest.TestCase):
         self.assertEqual(report["unobserved_required_files"], ["app/not_executed.py"])
         self.assertFalse(report["safe_to_delete_unobserved"])
 
+    def test_exact_sha_symbol_entries_and_qt_callbacks_are_distinguished(self):
+        events = [
+            {"type": "python_symbol_call", "source": "app/start.py",
+             "target": "app/services/search.py", "callee_symbol": "Finder.run",
+             "confidence": "OBSERVED_CALL_ENTRY"},
+            {"type": "qt_callback_invoked", "source": "app/pages/guide.py",
+             "target": "app/pages/guide.py", "callee_symbol": "GuidesView.refresh",
+             "confidence": "WRAPPED_PYTHON_CALLBACK_ENTERED"},
+            {"type": "qt_signal_connect_returned", "source": "app/pages/guide.py",
+             "target": "app/pages/guide.py", "callee_symbol": "GuidesView.never_entered"},
+            {"type": "module_import_returned", "source": "app/start.py",
+             "target": "app/services/search.py", "callee_symbol": "Finder.not_entered",
+             "confidence": "IMPORTLIB_RETURNED_REPOSITORY_MODULE"},
+        ]
+        required = ["app/services/search.py::Finder.run",
+                    "app/pages/guide.py::GuidesView.refresh",
+                    "app/services/search.py::Finder.not_entered"]
+        report = summarize_scenarios([self.scenario(events)], expected_sha=self.SHA,
+                                     required_symbols=required)
+        self.assertEqual(report["entered_symbols_count"], 2)
+        self.assertEqual(report["unobserved_required_symbols"],
+                         ["app/services/search.py::Finder.not_entered"])
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertFalse(report["safe_to_delete_unobserved"])
+
+    def test_symbol_coverage_does_not_trust_stale_traces(self):
+        event = {"type": "python_symbol_call", "source": "app/runner.py",
+                 "target": "app/core/catalog.py", "callee_symbol": "read",
+                 "confidence": "OBSERVED_CALL_ENTRY"}
+        stale = self.scenario([event], sha="b" * 40)
+        report = summarize_scenarios([stale], expected_sha=self.SHA,
+             required_symbols=["app/core/catalog.py::read"])
+        self.assertEqual(report["entered_symbols_count"], 0)
+        with self.assertRaises(ValueError):
+            summarize_scenarios([self.scenario([])], expected_sha=self.SHA,
+                 required_symbols=["../../outside.py::run"])
+
     def test_bounds_and_invalid_events_do_not_prove_coverage(self):
         trace = self.scenario([None])
         report = summarize_scenarios([trace], expected_sha=self.SHA)

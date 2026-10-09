@@ -358,7 +358,8 @@ def command_scenario_trend(root: Path, args) -> dict[str, Any]:
 def command_scenario_coverage(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.scenario_coverage import load_scenario_coverage
     result = load_scenario_coverage(root, args.trace,
-                                    required_files=args.require_file)
+                                    required_files=args.require_file,
+                                    required_symbols=args.require_symbol)
     if not args.json:
         print(f"Doctor scenario coverage: {result['status']} | "
               f"{result['traces_checked']} traces | "
@@ -366,6 +367,9 @@ def command_scenario_coverage(root: Path, args) -> dict[str, Any]:
         if result["unobserved_required_files"]:
             print("Not observed in supplied scenarios (NOT proof of dead code): "
                   + ", ".join(result["unobserved_required_files"]))
+        if result["unobserved_required_symbols"]:
+            print("Symbols not observed entering (NOT proof of dead code): "
+                  + ", ".join(result["unobserved_required_symbols"][:12]))
         print("No scenarios, tests, benchmarks or graph rebuild executed.")
     return result
 
@@ -629,6 +633,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help='Trace Doctor existante dans .ai/runtime, maximum 12.')
     sc.add_argument('--require-file', action='append', default=[],
                     help='Fichier Python à rechercher parmi les traces sans déduire un code mort.')
+    sc.add_argument('--require-symbol', action='append', default=[],
+                    help='Fonction path.py::qualified_name a retrouver parmi les entrees observees.')
     tc = sub.add_parser('test-costs', help='Coût des groupes réels depuis rapports Atlas Integrity existants; aucun test exécuté.')
     tc.add_argument('--report', action='append', type=Path, required=True,
                     help='Rapport JSON sous .ai/runtime (max 8, plusieurs --report possibles).')
