@@ -410,3 +410,8 @@ Le scanner de couches résout maintenant `from .module import name`, `from ..vie
 ### Résolution précise des constructeurs Qt
 
 Doctor ne signale désormais les créations `QTimer`, `QThread`, `QWebEnginePage/View/Profile`, `QNetworkAccessManager` que lorsque le constructeur peut être relié à un import PySide6/PyQt6 réel (import direct, alias ou module qualifié). Un symbole non lié nommé `QTimer` n’est plus un faux positif. Les constructeurs recevant des arguments positionnels sont distingués de ceux qui ne spécifient pas de parent ; aucune ownership native n’est déduite de leur présence.
+
+
+### Préparation de la certification ciblée finale (sans déclencher de suite pendant le développement)
+
+La validation focalisée inclut désormais les contrats du scanner de ressources Qt, les imports relatifs entre couches et les régressions de Graphify interactif. Les scénarios offscreen optionnels vérifient explicitement l’attribution JSON → vues Guides/Quêtes/Succès, les vrais signaux Qt et les imports dynamiques réussis. Les résultats ne sont pas présumés PASS tant que les workflows et les scénarios exact-SHA ne sont pas réellement exécutés. Les checkpoints RAM/preload lourds restent réservés à la certification finale de la phase.

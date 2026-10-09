@@ -63,6 +63,10 @@ class DoctorRealQtSignalTests(unittest.TestCase):
             self.assertTrue(matched, f"missing {kind} in the real PySide6 scenario")
         callbacks = [event for event in events if event["type"] == "qt_callback_invoked"]
         self.assertTrue(any(row.get("target") == scenario for row in callbacks))
+        self.assertTrue(any(row.get("type") == "module_import_returned"
+                            and row.get("target") == "tools/atlas_doctor_lib/resource_lifecycle.py"
+                            for row in events))
+        self.assertEqual(observer.report()["lifecycle"]["qt_destroy_watches_pending_count"], 0)
         self.assertIn(scenario, observer.report()["lifecycle"]["qt_destroyed_sources"])
         self.assertEqual(observer.report()["lifecycle"]["qt_worker_unpaired"], [])
 

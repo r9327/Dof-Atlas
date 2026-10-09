@@ -29,6 +29,17 @@ class DeferredEncyclopediaSmokeTests(unittest.TestCase):
         destroyed = {event.get("label") for event in result["events"]
                      if event.get("type") == "qt_destroyed_observed"}
         self.assertTrue({"guides-deferred", "success-deferred", "quests-empty"}.issubset(destroyed))
+        json_ui_bound = {
+            event.get("source") for event in result["events"]
+            if event.get("type") == "json_ui_bound"
+            and event.get("confidence") == "EXPLICIT_QT_LABEL_SETTEXT_RETURNED"
+        }
+        self.assertTrue({
+            "app/modules/encyclopedia/views/guides_view.py",
+            "app/modules/encyclopedia/views/achievements_view.py",
+            "app/pages/quests_page.py",
+        }.issubset(json_ui_bound), json_ui_bound)
+        self.assertTrue(any(e.get("type") == "json_decoded" for e in result["events"]))
         seen = {event.get("target") for event in result["events"]
                 if event.get("type") == "python_call_edge"}
         self.assertIn("app/modules/encyclopedia/views/guides_view.py", seen)
