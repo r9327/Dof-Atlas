@@ -30,7 +30,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                   trace: dict[str, Any] | None = None,
                   inspection: dict[str, Any] | None = None,
                   lineage: dict[str, Any] | None = None,
-                  comparison: dict[str, Any] | None = None) -> dict[str, Any]:
+                  comparison: dict[str, Any] | None = None,
+                  historical_trend: dict[str, Any] | None = None) -> dict[str, Any]:
     nodes = graph.get("nodes", [])[:MAX_NODES]
     indexed = {item["id"]: number for number, item in enumerate(nodes)}
     # Stable source-file comparisons, never match ephemeral Leiden community IDs.
@@ -57,6 +58,22 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                     change(item["path"])[kind] = True
     file_reasons: dict[str, list[str]] = {}
     review_by_file: dict[str, set[str]] = {}
+    if isinstance(historical_trend, dict):
+        # These are historical observations from the same scenario, NOT proof
+        # of a regression in the current Git tree.
+        for finding in historical_trend.get("candidates", [])[:80]:
+            if not isinstance(finding, dict):
+                continue
+            for path in (finding.get("source"), finding.get("target")):
+                if not isinstance(path, str) or not path.endswith(".py"):
+                    continue
+                reason = ("Repeated historical absence; scenario review needed"
+                          if finding.get("classification") == "REPEATED_ABSENCE_REVIEW"
+                          else "Historical observation difference; not proven regression")
+                reasons = file_reasons.setdefault(path, [])
+                if reason not in reasons:
+                    reasons.append(reason)
+                review_by_file.setdefault(path, set()).add("history")
     for field, reason, category in (
 
         ("orphan_nodes", "Isolated Graphify node; not proof of dead code", "orphan"),
@@ -404,6 +421,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     return {
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
         "snapshot_diff": comparison,
+        "historical_scenario_trend": historical_trend,
         "community_review_candidates": community_reviews,
         "community_review_total": int(cohesion.get("candidate_count") or 0)
         if isinstance(cohesion, dict) else 0,
@@ -560,6 +578,19 @@ if(qtSnapshots.length){
  caveat.textContent='Observation QObject.parent()/shiboken, sans preuve de fuite, de propriété Chromium ni de couverture complète.';
  section.appendChild(caveat);section.appendChild(document.createElement('hr'));
 }
+const historicalTrend=data.historical_scenario_trend;
+if(historicalTrend && historicalTrend.status!=='UNAVAILABLE'){
+ const section=document.getElementById('coverageDetails');
+ const title=document.createElement('h3');title.textContent='Historique du scénario';section.appendChild(title);
+ const p=document.createElement('p');
+ p.textContent=String(historicalTrend.scenario_module||'')+' · '+
+  String(historicalTrend.run_count||0)+' traces · '+
+  String(historicalTrend.repeated_absence_candidates||0)+' absences répétées candidates';
+ section.appendChild(p);
+ const note=document.createElement('small');
+ note.textContent='Différences historiques, non preuve de régression ni de code mort. Vérifier les scénarios réels.';
+ section.appendChild(note);section.appendChild(document.createElement('hr'));
+}
 const neighbors=new Map(), nodes=data.nodes;
 const relationCounts=new Map();
 // File-level import consumers are derived once from the existing static graph.
@@ -595,7 +626,7 @@ scenario.disabled=!(data.scenarios_merged>0);
 const communityReview=new Map((data.community_review_candidates||[]).map(row=>[String(row.community),row]));
 // All counts are bounded by the already-loaded Graphify node payload.
 const reviewLabels={orphan:'Nœuds isolés',weak:'Connexions faibles',fanout:'Couplage élevé',
- forbidden:'Imports interdits confirmés',island:'Communautés isolées',
+ forbidden:'Imports interdits confirmés',island:'Communautés isolées',history:'Écarts historiques à examiner',
  ast:'Indices AST / JSON',doctor:'Actions Doctor',worker:'Workers à vérifier'};
 const reviewCounts=new Map();
 nodes.forEach(n=>(n.review_categories||[]).forEach(kind=>
@@ -1141,7 +1172,8 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
                              baseline_path: Path | None = None,
                              save_snapshot: bool = False,
                              ide_links: bool = False,
-                             extra_trace_paths: list[Path] | None = None) -> dict[str, Any]:
+                             extra_trace_paths: list[Path] | None = None,
+                             scenario_trend_paths: list[Path] | None = None) -> dict[str, Any]:
     from .architecture import graph_status
     from .graph_audit import audit_current_graph, inspect_graph
     root = root.resolve()
@@ -1238,8 +1270,18 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
             comparison = load_snapshot_comparison(root, graph, baseline_path)
         except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
             return {"status": "BLOCKED", "reason": f"Baseline graph: {exc}"}
+    historical_trend = None
+    if scenario_trend_paths:
+        from .scenario_trends import load_scenario_trend
+        try:
+            historical_trend = load_scenario_trend(root, scenario_trend_paths)
+        except (OSError, UnicodeError, ValueError) as exc:
+            return {"status": "BLOCKED", "reason": f"Historical scenario: {exc}"}
+        if historical_trend["status"] == "UNAVAILABLE":
+            return {"status": "BLOCKED", "reason": historical_trend["reason"]}
     payload = compact_graph(graph, audit, trace=trace, inspection=inspection,
-                            lineage=lineage, comparison=comparison)
+                            lineage=lineage, comparison=comparison,
+                            historical_trend=historical_trend)
     payload["source_scan_selection_truncated"] = source_scan_truncated
     if ide_links:
         payload["local_ide_root"] = root.as_posix()
@@ -1278,6 +1320,7 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         "baseline_sha": comparison["baseline_sha"] if comparison else None,
         "snapshot_comparison_status": comparison["status"] if comparison else "NOT_PROVIDED",
         "saved_snapshot": saved_snapshot,
+        "historical_trend_status": historical_trend["status"] if historical_trend else "NOT_PROVIDED",
         "source_scan_truncated": source_scan_truncated or payload["source_inspection_truncated"],
         "tests_executed": False, "graph_rebuilt": False,
     }

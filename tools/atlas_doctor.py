@@ -231,7 +231,8 @@ def command_graph_ui(root: Path, args) -> dict[str, Any]:
                                        baseline_path=getattr(args, "baseline_graph", None),
                                        save_snapshot=getattr(args, "save_snapshot", False),
                                        ide_links=getattr(args, "ide_links", False),
-                                       extra_trace_paths=getattr(args, "extra_trace", None))
+                                       extra_trace_paths=getattr(args, "extra_trace", None,
+                                       scenario_trend_paths=getattr(args, "scenario_trend", None))
     if payload.get("status") == "PASS" and args.open:
         import webbrowser
         webbrowser.open(Path(payload["path"]).as_uri())
@@ -636,6 +637,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help='Ajouter une autre trace complète du même SHA (max 8 au total).')
     gu.add_argument('--baseline-graph', type=Path,
                     help='Comparer un ancien graph.json sous graphify-out (lecture seule).')
+    gu.add_argument('--scenario-trend', type=Path, action='append', default=[],
+                    help='Historique de 2 a 8 traces du meme scenario, lecture seule.')
     gu.add_argument('--save-snapshot', action='store_true',
                     help='Conserver le graphe actuel dans graphify-out/history/<sha>.json (sans rebuild).')
     capture = sub.add_parser('capture-ui', help='Tracer un vrai scenario Qt offscreen explicitement, sans chargement complet.')

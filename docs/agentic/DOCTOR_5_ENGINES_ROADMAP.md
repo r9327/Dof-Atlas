@@ -358,3 +358,8 @@ Doctor source-impact app/pages/character_page.py --depth 2 --json établit les i
 ### Change-plan avec secours AST lorsque Graphify n'est pas à jour
 
 La consultation change-plan intègre désormais la remontée de consommateurs à deux niveaux sur les fichiers Python modifiés (12 au maximum pour conserver une exécution légère). Les relations AST et les lignes proviennent de la source Git courante; elles restent distinctes des arêtes historiques Graphify et des consommateurs dynamiques non encore observés. Les résultats incomplets restent REVIEW et n'autorisent aucune suppression automatique. Il n'y a aucun rebuild ni test implicite.
+
+
+### Historique des scénarios dans Graphify
+
+Le mode graph-ui --scenario-trend .ai/runtime/avant.json --scenario-trend .ai/runtime/apres.json affiche désormais dans le graphe les fichiers concernés par les pertes d'observations (catégorie « Écarts historiques à examiner »). Avec quatre traces ou plus, les absences répétées sont distinguées des variations ponctuelles. Toutes les données sont rattachées aux SHA et au scénario, sans conclure à une régression fonctionnelle ni un fichier mort; les fichiers absents de la carte actuelle ne sont pas inventés. Aucun scénario n'est lancé par cette option.
