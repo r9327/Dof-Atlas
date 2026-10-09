@@ -316,7 +316,7 @@ def compare_runtime_to_graph(trace: dict[str, Any], graph: dict[str, Any]) -> di
     trace_sha, graph_sha = trace.get("candidate_sha"), graph.get("built_at_commit")
     trusted = (
         isinstance(trace_sha, str) and isinstance(graph_sha, str)
-        and len(graph_sha) >= 7 and trace_sha.startswith(graph_sha)
+        and len(graph_sha) == 40 and trace_sha == graph_sha
         and trace.get("worktree_clean") is True and not trace.get("truncated")
     )
     # Retain raw observations for forensic review, but never call unverified

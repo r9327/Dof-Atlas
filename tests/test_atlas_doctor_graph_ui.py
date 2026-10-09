@@ -108,6 +108,17 @@ class DoctorGraphUiTests(unittest.TestCase):
         trace["worktree_clean"] = False
         self.assertEqual(compact_graph(graph, {}, trace)["observed_symbol_calls"], [])
 
+    def test_abbreviated_graph_sha_cannot_certify_runtime_edges(self):
+        graph = {"nodes": [{"id": 1, "source_file": "app/a.py"},
+                           {"id": 2, "source_file": "app/b.py"}],
+                 "links": [], "built_at_commit": "a" * 7}
+        trace = {"candidate_sha": "a" * 40, "worktree_clean": True, "events": [
+            {"type": "python_call_edge", "source": "app/a.py", "target": "app/b.py"}
+        ]}
+        result = compact_graph(graph, {}, trace)
+        self.assertEqual(result["trace_status"], "STALE_OR_INCOMPLETE")
+        self.assertEqual(result["edges"], [])
+
     def test_live_uses_focus_events_not_periodic_git_polling(self):
         html = render_html(compact_graph({"nodes": [], "links": []}, {}))
         self.assertIn("addEventListener('focus'", html)

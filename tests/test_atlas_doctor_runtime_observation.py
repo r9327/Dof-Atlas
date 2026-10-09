@@ -44,6 +44,20 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertEqual(len(result["candidate_sha"]), 40)
             self.assertFalse(result["worktree_clean"])
 
+    def test_short_sha_prefix_cannot_validate_runtime_comparison(self):
+        sha = "a" * 40
+        graph = {"built_at_commit": sha[:7], "nodes": [
+            {"id": 1, "source_file": "app/a.py"},
+            {"id": 2, "source_file": "app/b.py"},
+        ], "links": [{"source": 1, "target": 2}]}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [{"type": "python_call_edge",
+                             "source": "app/a.py", "target": "app/b.py"}]}
+        report = compare_runtime_to_graph(trace, graph)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["static_edges_with_runtime_evidence"], 0)
+        self.assertFalse(report["runtime_evidence_valid"])
+
     def test_explicit_qt_signal_registration_records_callback_source(self):
         import runpy
 
