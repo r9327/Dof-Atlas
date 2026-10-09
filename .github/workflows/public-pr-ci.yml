@@ -126,6 +126,27 @@ jobs:
           git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude=""
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Fail fast on Doctor Guide and unittest module imports
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v `
+            tests.test_atlas_doctor_development_preflight `
+            tests.test_atlas_doctor_capture_ui `
+            tests.test_guide_ultime_route_sheet_ui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          @'
+          import unittest
+          loader = unittest.TestLoader()
+          suite = loader.discover("tests", pattern="test_*.py", top_level_dir=".")
+          print(f"Discovered {suite.countTestCases()} cases without running tests")
+          if loader.errors:
+              for error in loader.errors:
+                  print(error)
+              raise SystemExit(f"{len(loader.errors)} broken test-module imports")
+          '@ | python -X faulthandler -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Run canonical Doctor FAST merge gate
         # PR #123 changes Doctor itself: use independent focused contracts and
         # standalone merge-safety tests instead. All other PRs keep Doctor FAST.
@@ -192,14 +213,6 @@ jobs:
             tests.test_repository_git_hooks `
             tests.test_public_pr_ci_guardrails `
             tests.test_security_hardening_guardrails
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Reproduce FULL failures using only Doctor and Guide contracts
-        shell: pwsh
-        run: |
-          python -X faulthandler -m unittest -v `
-            tests.test_atlas_doctor_development_preflight `
-            tests.test_guide_ultime_route_sheet_ui
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Doctor merge evidence
