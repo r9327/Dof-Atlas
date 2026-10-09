@@ -129,3 +129,7 @@ En scénario opt-in, `observer.watch_qt_destroyed(obj, label='guide_view')` racc
 ### Tentatives d’import Python observées dans Graphify
 
 Les événements Python `import_attempt` (issus d’imports statiques ou dynamiques, sans distinction certaine) enregistrés par un scénario opt-in créent des relations `RUNTIME_IMPORT_ATTEMPT` distinctes des imports AST et des appels de fonctions. La conversion module→fichier est limitée aux fichiers Python présents dans le graphe exact-SHA et à 256 paires au maximum ; la trace doit être complète et le worktree propre. L'interface et l'export de preuves les affichent comme tentatives et **jamais comme succès d'import ou preuve de code mort**.
+
+### Test Intelligence : coûts historiques sans exécuter de suite
+
+`python -m tools.atlas_doctor test-costs --report .ai/runtime/<rapport_integrity>.json --json` lit jusqu'à huit rapports Atlas Integrity locaux déjà produits. Médiane/min/max des durées de groupes réellement exécutés avec succès ; réutilisations `FULL_SUITE` à 0 seconde, échecs, durées incomplètes et NaN exclus. Les données restent historiques, pas des prévisions ni une preuve de couverture. Aucun test, benchmark, Graphify rebuild ou watcher lancé. Les fichiers restent confinés à `.ai/runtime`.

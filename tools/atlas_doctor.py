@@ -280,6 +280,17 @@ def command_graph_compare(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_test_costs(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.test_intelligence import test_cost_report
+    result = test_cost_report(root, args.report)
+    if not args.json:
+        print(f"Doctor test-costs: {result['status']} | {len(result['reports'])} existing reports")
+        for group in result["groups"][:20]:
+            print(f"{group['group']}: median {group['median_seconds']}s ({group['samples']} samples)")
+        print("No tests, benchmarks or graph rebuild executed.")
+    return result
+
+
 def command_ponytail(root: Path, args) -> dict[str, Any]:
     payload = evaluate_ponytail(root, base_ref=args.base_ref, required=True)
     if not args.json:
@@ -512,6 +523,9 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument('--to', help='Chemin relatif cible pour move/consolidate.')
     rp.add_argument('--depth', type=int, choices=(1, 2), default=2)
     rp.add_argument('--trace', type=Path, help='Trace runtime .ai/runtime du HEAD exact (optionnelle).')
+    tc = sub.add_parser('test-costs', help='Coût des groupes réels depuis rapports Atlas Integrity existants; aucun test exécuté.')
+    tc.add_argument('--report', action='append', type=Path, required=True,
+                    help='Rapport JSON sous .ai/runtime (max 8, plusieurs --report possibles).')
     ev = sub.add_parser('dev-event', help='Analyse evenementielle code: save, pre-commit, push (lecture seule).')
     ev.add_argument('--event', choices=('save', 'pre-commit', 'push'), required=True)
     ev.add_argument('paths', nargs='*')
@@ -653,6 +667,7 @@ def main(argv: list[str] | None = None) -> int:
         'quick': command_quick,
         'graph': command_graph,
         'graph-audit': command_graph_audit,
+        'test-costs': command_test_costs,
         'change-plan': command_change_plan,
         'file-coverage': command_file_coverage,
         'consumer-sites': command_consumer_sites,
@@ -707,6 +722,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == 'file-coverage':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
+    if args.command == 'test-costs':
+        return 0 if payload['status'] == 'PASS' else 1
     if args.command == 'change-plan':
         return {'READY': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command in {'graph-audit', 'graph-compare'}:
