@@ -31,7 +31,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                   inspection: dict[str, Any] | None = None,
                   lineage: dict[str, Any] | None = None,
                   comparison: dict[str, Any] | None = None,
-                  historical_trend: dict[str, Any] | None = None) -> dict[str, Any]:
+                  historical_trend: dict[str, Any] | None = None,
+                  focused_impact: dict[str, Any] | None = None) -> dict[str, Any]:
     nodes = graph.get("nodes", [])[:MAX_NODES]
     indexed = {item["id"]: number for number, item in enumerate(nodes)}
     # Stable source-file comparisons, never match ephemeral Leiden community IDs.
@@ -102,6 +103,34 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             if reason not in values:
                 values.append(reason)
             review_by_file.setdefault(path, set()).add("island")
+    # Show exact source-file consumers only when a developer explicitly
+    # requests focused analysis. Runtime imports remain review leads.
+    focus_consumers: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    if isinstance(focused_impact, dict):
+        for target in focused_impact.get("changed_files", [])[:8]:
+            review_by_file.setdefault(target, set()).add("focus")
+            reasons = file_reasons.setdefault(target, [])
+            reasons.append("Explicit source impact investigation (not proof of dead code)")
+        for edge in focused_impact.get("import_evidence", [])[:160]:
+            if not isinstance(edge, dict):
+                continue
+            target, importer = edge.get("imported"), edge.get("importer")
+            if isinstance(target, str) and isinstance(importer, str):
+                review_by_file.setdefault(importer, set()).add("consumer")
+                focus_consumers[target].append({
+                    "path": importer, "line": edge.get("line"),
+                    "depth": edge.get("depth"), "kind": "SOURCE_STATIC_IMPORT",
+                })
+        for edge in focused_impact.get("literal_dynamic_import_candidates", [])[:160]:
+            if not isinstance(edge, dict):
+                continue
+            target, importer = edge.get("imported"), edge.get("importer")
+            if isinstance(target, str) and isinstance(importer, str):
+                review_by_file.setdefault(importer, set()).add("dynamic")
+                focus_consumers[target].append({
+                    "path": importer, "line": edge.get("line"),
+                    "depth": 1, "kind": "LITERAL_IMPORT_CALL_UNEXECUTED",
+                })
     # Expose Doctor's existing prioritized remediation plan in the graph
     # inspector, without promoting speculative candidate findings to P0.
     priority_rank = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
@@ -369,6 +398,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "source_evidence": source_evidence.get(file, []),
             "snapshot_changes": source_changes.get(file),
             "doctor_task": file_actions.get(file),
+            "focused_source_consumers": focus_consumers.get(file, [])[:80],
             "runtime_observed": file in observed_files,
             "qt_call_site_observed": file in qt_sites,
             "qt_connection_observed": file in qt_files,
@@ -422,6 +452,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
         "snapshot_diff": comparison,
         "historical_scenario_trend": historical_trend,
+        "focused_source_impact": focused_impact,
         "community_review_candidates": community_reviews,
         "community_review_total": int(cohesion.get("candidate_count") or 0)
         if isinstance(cohesion, dict) else 0,
@@ -591,6 +622,21 @@ if(historicalTrend && historicalTrend.status!=='UNAVAILABLE'){
  note.textContent='Différences historiques, non preuve de régression ni de code mort. Vérifier les scénarios réels.';
  section.appendChild(note);section.appendChild(document.createElement('hr'));
 }
+const focusImpact=data.focused_source_impact;
+if(focusImpact){
+ const section=document.getElementById('coverageDetails');
+ const heading=document.createElement('h3');heading.textContent='Impact source ciblé';
+ section.appendChild(heading);
+ const paragraph=document.createElement('p');
+ paragraph.textContent=(focusImpact.changed_files||[]).join(', ')+
+  ' · '+String(focusImpact.direct_consumers||0)+' directs · '+
+  String(focusImpact.indirect_consumers||0)+' indirects';
+ section.appendChild(paragraph);
+ const note=document.createElement('small');
+ note.textContent=(focusImpact.truncated?'Inspection incomplète · ':'')+
+  'Import AST confirmé ≠ usage runtime; piste d’import dynamique ≠ exécution.';
+ section.appendChild(note);section.appendChild(document.createElement('hr'));
+}
 const neighbors=new Map(), nodes=data.nodes;
 const relationCounts=new Map();
 // File-level import consumers are derived once from the existing static graph.
@@ -625,7 +671,7 @@ groups.forEach(g=>{let opt=document.createElement('option');opt.value=g;opt.text
 scenario.disabled=!(data.scenarios_merged>0);
 const communityReview=new Map((data.community_review_candidates||[]).map(row=>[String(row.community),row]));
 // All counts are bounded by the already-loaded Graphify node payload.
-const reviewLabels={orphan:'Nœuds isolés',weak:'Connexions faibles',fanout:'Couplage élevé',
+const reviewLabels={focus:'Fichier ciblé',consumer:'Consommateur AST',dynamic:'Import dynamique candidat',orphan:'Nœuds isolés',weak:'Connexions faibles',fanout:'Couplage élevé',
  forbidden:'Imports interdits confirmés',island:'Communautés isolées',history:'Écarts historiques à examiner',
  ast:'Indices AST / JSON',doctor:'Actions Doctor',worker:'Workers à vérifier'};
 const reviewCounts=new Map();
@@ -736,6 +782,18 @@ if(boundary){
  line('p',boundary.production_files+' fichiers de production · '+boundary.internal_extracted_edges+
  ' liens internes extraits · '+boundary.external_extracted_edges+' liens externes extraits.');
  line('p','Cohésion faible selon le graphe statique : ni fusion ni suppression automatique. Vérifier responsabilités, imports et appels réels.');
+}
+if((n.focused_source_consumers||[]).length){
+ line('h4','Consommateurs confirmés dans la source et pistes dynamiques');
+ n.focused_source_consumers.slice(0,32).forEach(lead=>{
+  const text=lead.path+' · profondeur '+lead.depth+' · '+lead.kind+
+   (lead.line?' (ligne '+lead.line+')':'');
+  const index=firstNodeByFile.get(lead.path);
+  if(index==null){line('p',text+' · fichier non représenté dans ce graphe');return}
+  const button=line('button',text+' · ouvrir');
+  button.type='button';button.addEventListener('click',()=>revealNode(index));
+ });
+ if(n.focused_source_consumers.length>32)line('p','Résultats paginés/tronqués; inspecter les sources pour la suite.');
 }
 if(n.runtime_observed)line('p','Appel Python observé dans une trace opt-in correspondant au SHA.');
 if((n.runtime_scenarios||[]).length)line('p','Scénarios observés : '+n.runtime_scenarios.join(', '));
@@ -1173,7 +1231,8 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
                              save_snapshot: bool = False,
                              ide_links: bool = False,
                              extra_trace_paths: list[Path] | None = None,
-                             scenario_trend_paths: list[Path] | None = None) -> dict[str, Any]:
+                             scenario_trend_paths: list[Path] | None = None,
+                             inspect_files: list[str] | None = None) -> dict[str, Any]:
     from .architecture import graph_status
     from .graph_audit import audit_current_graph, inspect_graph
     root = root.resolve()
@@ -1206,6 +1265,24 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         if audit["status"] not in {"PASS", "REVIEW"}:
             return {"status": "BLOCKED", "reason": "Doctor graph audit is not valid."}
     graph["built_at_commit"] = snapshot_commit
+    focused = list(dict.fromkeys(inspect_files or []))
+    if len(focused) > 8:
+        return {"status": "BLOCKED", "reason": "No more than eight focused Python files."}
+    if focused and stale:
+        return {"status": "BLOCKED", "reason": "Focused source impact requires a current exact-SHA Graphify graph."}
+    if focused:
+        inventory_files = {row.get("source_file") for row in graph.get("nodes", [])
+                           if isinstance(row, dict)}
+        for value in focused:
+            relative = Path(value)
+            target = root / relative
+            if (relative.is_absolute() or ".." in relative.parts or
+                    "\\" in value or relative.suffix != ".py" or
+                    not str(value).startswith(("app/", "tools/")) or
+                    target.is_symlink() or not target.is_file() or
+                    not target.resolve().is_relative_to(root) or value not in inventory_files):
+                return {"status": "BLOCKED",
+                        "reason": "Focused file must be a represented, existing app/tools Python source."}
     trace = None
     trace_files = ([trace_path] if trace_path is not None else []) + list(extra_trace_paths or [])
     if len(trace_files) > 8 or (extra_trace_paths and trace_path is None):
@@ -1240,8 +1317,8 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
     inspection: dict[str, Any] | None = None
     source_scan_truncated = False
     if not stale:
-        selected: list[str] = []
-        seen: set[str] = set()
+        selected: list[str] = list(focused)
+        seen: set[str] = set(focused)
         for kind in ("blocking_findings", "orphan_nodes",
                      "weak_production_candidates", "high_fanout_files"):
             for row in audit.get(kind, []):
@@ -1279,9 +1356,19 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
             return {"status": "BLOCKED", "reason": f"Historical scenario: {exc}"}
         if historical_trend["status"] == "UNAVAILABLE":
             return {"status": "BLOCKED", "reason": historical_trend["reason"]}
+    focused_impact = None
+    if focused:
+        from .source_impact import source_reverse_impact
+        try:
+            focused_impact = source_reverse_impact(root, focused, depth=2)
+        except (OSError, RuntimeError, ValueError) as exc:
+            return {"status": "BLOCKED", "reason": f"Focused AST impact: {type(exc).__name__}"}
+        if focused_impact.get("status") not in {"SOURCE_CONFIRMED", "REVIEW"}:
+            return {"status": "BLOCKED", "reason": focused_impact.get("reason", "Source impact unavailable.")}
     payload = compact_graph(graph, audit, trace=trace, inspection=inspection,
                             lineage=lineage, comparison=comparison,
-                            historical_trend=historical_trend)
+                            historical_trend=historical_trend,
+                            focused_impact=focused_impact)
     payload["source_scan_selection_truncated"] = source_scan_truncated
     if ide_links:
         payload["local_ide_root"] = root.as_posix()
@@ -1316,6 +1403,8 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         "links_shown": len(payload["edges"]), "truncated": payload["truncated"],
         "source_inspection": payload["source_inspection_status"],
         "source_scan_files": payload["source_inspection_files"],
+        "focused_impact_status": focused_impact["status"] if focused_impact else "NOT_REQUESTED",
+        "focused_consumer_count": focused_impact["direct_consumers"] + focused_impact["indirect_consumers"] if focused_impact else 0,
         "json_lineage_review_leads": payload["json_lineage_review_leads"],
         "baseline_sha": comparison["baseline_sha"] if comparison else None,
         "snapshot_comparison_status": comparison["status"] if comparison else "NOT_PROVIDED",
