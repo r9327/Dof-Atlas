@@ -4,6 +4,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import re
 import subprocess
 from collections import defaultdict, deque
 from pathlib import Path
@@ -143,6 +144,43 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
     }
 
 
+def launcher_entrypoints(root: Path) -> dict[str, Any]:
+    """Read only literal DOFUS.bat startup declarations (never execute BAT)."""
+    launcher = root / "DOFUS.bat"
+    if launcher.is_symlink() or not launcher.is_file():
+        return {"status": "REVIEW", "entrypoints": ["main.py"],
+                "source": "DOFUS.bat", "reason": "Launcher unavailable"}
+    try:
+        if launcher.stat().st_size > 65536:
+            raise ValueError("Batch launcher exceeds 64 KiB")
+        lines = launcher.read_text(encoding="utf-8-sig").splitlines()
+    except (OSError, UnicodeError, ValueError) as exc:
+        return {"status": "REVIEW", "entrypoints": ["main.py"],
+                "source": "DOFUS.bat", "reason": type(exc).__name__}
+    declared: set[str] = set()
+    for line in lines:
+        line = line.strip()
+        if not line or line.lower().startswith(("rem ", "::")):
+            continue
+        match = re.fullmatch(
+            r'set\s+"APP_SCRIPT=%ROOT%([a-zA-Z0-9_./\\-]+\.py)"',
+            line, flags=re.IGNORECASE,
+        )
+        if match:
+            declared.add(match.group(1).replace("\\", "/"))
+        for module in re.findall(r'(?:^|\s)-m\s+([a-zA-Z_][a-zA-Z0-9_.]*)', line):
+            declared.add(module.replace(".", "/") + ".py")
+    found = sorted(path for path in declared if _relative(root, path) is not None)
+    missing = sorted(declared.difference(found))
+    return {
+        "status": "PASS" if found and not missing else "REVIEW",
+        "entrypoints": found or ["main.py"], "source": "DOFUS.bat",
+        "unresolved_declarations": missing[:10],
+        "execution_proven": False,
+        "scope": "Static launcher declarations only, no process was launched.",
+    }
+
+
 def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
                        trace: dict[str, Any] | None = None) -> dict[str, Any]:
     """Conservative reachability over extracted import edges in Graphify data."""
@@ -261,9 +299,14 @@ def inspect_code(root: Path, *, paths: list[str],
                 trace = json.loads(selected.read_text(encoding="utf-8"))
                 if not isinstance(trace, dict):
                     raise ValueError("Invalid runtime trace JSON")
-            reach = graph_reachability(
-                graph, entrypoints or ["main.py", "tools/atlas_doctor.py"], trace=trace
+            launcher = (
+                {"status": "PASS", "source": "explicit CLI", "entrypoints": list(entrypoints)}
+                if entrypoints else launcher_entrypoints(root)
             )
+            reach = graph_reachability(graph, launcher["entrypoints"], trace=trace)
+            reach["entrypoint_discovery"] = launcher
+            if launcher["status"] != "PASS":
+                reach["status"] = "REVIEW"
             rules = architectural_guardrails(graph, old)
             # Source confirmation already exists in graph_audit, do not duplicate it.
             from .graph_audit import inspect_graph

@@ -132,6 +132,39 @@ class DeepIntelligenceTests(unittest.TestCase):
         self.assertEqual(result["unreached_candidates"], ["app/slot.py"])
         self.assertEqual(result["qt_registered_but_not_invoked_candidates"], ["app/slot.py"])
 
+    def test_launcher_entrypoints_include_worker_and_preflight(self):
+        from tools.atlas_doctor_lib.deep_intelligence import launcher_entrypoints
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "app").mkdir()
+            for name in ("launch.py", "app/startup_preflight.py",
+                         "app/startup_cache_warmup.py"):
+                (root / name).write_text("pass\n")
+            (root / "DOFUS.bat").write_text(
+                'set "APP_SCRIPT=%ROOT%launch.py"\n'
+                '"%PYTHON_EXE%" -m app.startup_preflight "%APP_SCRIPT%"\n'
+                'start "" /b "%PYTHONW_EXE%" -m app.startup_cache_warmup\n'
+            )
+            report = launcher_entrypoints(root)
+            self.assertEqual(report["status"], "PASS")
+            self.assertEqual(report["entrypoints"], [
+                "app/startup_cache_warmup.py", "app/startup_preflight.py",
+                "launch.py",
+            ])
+            self.assertFalse(report["execution_proven"])
+
+    def test_undocumented_or_missing_launcher_cannot_prove_accessibility(self):
+        from tools.atlas_doctor_lib.deep_intelligence import launcher_entrypoints
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.assertEqual(launcher_entrypoints(root)["status"], "REVIEW")
+            (root / "DOFUS.bat").write_text(
+                'set "APP_SCRIPT=%ROOT%missing.py"\n'
+            )
+            report = launcher_entrypoints(root)
+            self.assertEqual(report["status"], "REVIEW")
+            self.assertEqual(report["unresolved_declarations"], ["missing.py"])
+
     def test_old_architecture_debt_is_separate(self):
         g = {"nodes": [
             {"id": "a", "source_file": "app/a.py"},
