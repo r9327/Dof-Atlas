@@ -1007,6 +1007,7 @@ class EncyclopediaPage(QWidget):
                             quest_progress_path,
                         )
                     except Exception:
+                        LOGGER.exception("Guide progress snapshot failed; using empty fallback.")
                         progress = {}
                     result: object = _GuideStagePayload(
                         active_guide_provider,
