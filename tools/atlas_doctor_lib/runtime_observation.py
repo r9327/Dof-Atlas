@@ -61,6 +61,7 @@ class RuntimeObserver:
         self._json_read_tokens: set[str] = set()
         self._json_serial = 0
         self._qt_thread_serial = 0
+        self._qt_destroy_serial = 0
         self._overflow = False
         self._active = False
         self._busy = False
@@ -301,6 +302,8 @@ class RuntimeObserver:
         """
         if not self._active:
             raise RuntimeError("Qt destruction watch requires an active observer")
+        if self._qt_destroy_serial >= MAX_WEAK_WATCHES:
+            return False
         source = self._path(sys._getframe(1).f_code.co_filename)
         signal = getattr(obj, "destroyed", None)
         connect = getattr(signal, "connect", None)
@@ -308,19 +311,25 @@ class RuntimeObserver:
             return False
         reference = weakref.ref(self)
         safe_label = str(label)[:100]
+        self._qt_destroy_serial += 1
+        token = f"qt-destroy-{self._qt_destroy_serial}"
 
         def destroyed(*_args: Any) -> None:
             observer = reference()
             if observer is not None and observer._active:
                 observer._record({
                     "type": "qt_destroyed_observed", "source": source,
-                    "label": safe_label, "confidence": "QT_DESTROYED_SIGNAL_DELIVERED",
+                    "label": safe_label, "qt_watch_token": token,
+                    "confidence": "QT_DESTROYED_SIGNAL_DELIVERED",
                 })
 
         try:
             connect(destroyed)
         except (TypeError, RuntimeError):
             return False
+        self._record({"type": "qt_destroy_watch_registered", "source": source,
+                      "label": safe_label, "qt_watch_token": token,
+                      "confidence": "QT_DESTROYED_SIGNAL_CONNECTED"})
         return True
 
     def watch_qt_thread(self, thread: Any, *, label: str) -> bool:
@@ -754,6 +763,8 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
     releases: set[str] = set()
     destroyed_sources: set[str] = set()
     destroyed_count = 0
+    qt_watch_registered: dict[tuple[int, str, str], str] = {}
+    qt_watch_completed: set[tuple[int, str, str]] = set()
     started = stopped = unmatched = 0
     for event in events:
         if not isinstance(event, dict):
@@ -775,14 +786,26 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
                     "native_invalid_wrappers": event.get("native_invalid_wrappers"),
                 })
             continue
-        if kind not in {"worker_start", "worker_stop", "cache_release", "qt_destroyed_observed",
-                        "qt_worker_started", "qt_worker_finished"}:
+        if kind not in {"worker_start", "worker_stop", "cache_release", "qt_destroy_watch_registered",
+                        "qt_destroyed_observed", "qt_worker_started", "qt_worker_finished"}:
             continue
         source = event.get("source")
         target = event.get("target") or ""
         if not isinstance(source, str) or not isinstance(target, str):
             continue
-        if kind == "qt_destroyed_observed":
+        if kind in {"qt_destroy_watch_registered", "qt_destroyed_observed"}:
+            token, group = event.get("qt_watch_token"), event.get("_trace_group", 0)
+            key = (group, source, token) if (
+                isinstance(group, int) and not isinstance(group, bool)
+                and 0 <= group < 8 and isinstance(token, str)
+                and re.fullmatch(r"qt-destroy-[1-9][0-9]{0,6}", token)
+            ) else None
+            if kind == "qt_destroy_watch_registered":
+                if key is not None and event.get("confidence") == "QT_DESTROYED_SIGNAL_CONNECTED":
+                    qt_watch_registered[key] = str(event.get("label", ""))[:100]
+                continue
+            if key is not None and event.get("confidence") == "QT_DESTROYED_SIGNAL_DELIVERED":
+                qt_watch_completed.add(key)
             if event.get("confidence") == "QT_DESTROYED_SIGNAL_DELIVERED":
                 destroyed_count += 1
                 destroyed_sources.add(source)
@@ -828,8 +851,14 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
          "unpaired_starts": count}
         for (group, source, token), count in sorted(qt_pending.items()) if count > 0
     ]
+    qt_unpaired_destroy = [
+        {"trace_group": group, "source": source, "qt_watch_token": token,
+         "label": label, "destruction_not_observed": True}
+        for (group, source, token), label in sorted(qt_watch_registered.items())
+        if (group, source, token) not in qt_watch_completed
+    ]
     return {
-        "status": "REVIEW" if trace.get("truncated") or open_workers or unmatched or qt_open or qt_unmatched else "OBSERVED",
+        "status": "REVIEW" if trace.get("truncated") or open_workers or unmatched or qt_open or qt_unmatched or qt_unpaired_destroy else "OBSERVED",
         "qt_worker_started_events": qt_started, "qt_worker_finished_events": qt_finished,
         "qt_worker_unmatched_finished": qt_unmatched,
         "qt_worker_unpaired": qt_open[:80],
@@ -839,10 +868,14 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
         "cache_release_sources": sorted(releases)[:80],
         "qt_destroyed_sources": sorted(destroyed_sources)[:80],
         "qt_destroyed_events": destroyed_count,
+        "qt_destroy_watches_registered": len(qt_watch_registered),
+        "qt_destroy_watches_delivered": len(qt_watch_completed & set(qt_watch_registered)),
+        "qt_destroy_watches_pending": qt_unpaired_destroy[:80],
+        "qt_destroy_watches_pending_count": len(qt_unpaired_destroy),
         "qt_parent_snapshots": qt_parent_snapshots,
         "parent_is_not_full_ownership_proof": True,
         "truncated": bool(trace.get("truncated") or len(open_workers) > 80 or len(qt_open) > 80
-                          or len(releases) > 80),
+                          or len(qt_unpaired_destroy) > 80 or len(releases) > 80),
         "qt_destroyed_is_not_ownership_proof": True,
         "proof_of_memory_leak": False,
         "limits": "Markers are explicit and opt-in; an open worker at trace end may be intentional. Native Qt ownership and memory remain unproven.",

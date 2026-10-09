@@ -375,3 +375,8 @@ La dernière étape de certification devra inclure les suites `test_atlas_doctor
 ### Inspection à la demande d’un nœud dans Graphify
 
 `python -m tools.atlas_doctor graph-ui --inspect-file app/pages/equipment_page.py --open` charge explicitement l’AST de ce fichier et produit une enquête à deux niveaux des consommateurs dans les sources courantes (jusqu’à huit fichiers ciblés). La carte HTML distingue consommateur confirmé par `import`/`from` et appel littéral d’import dynamique non exécuté; l'inspecteur du fichier propose de naviguer directement vers les fichiers consommateurs, même lorsqu’ils sont sur une autre page des 1 200 nœuds. La carte doit correspondre au SHA courant; sinon l’inspection est bloquée plutôt que présentée comme une preuve actuelle. Aucune surveillance, import applicatif, suppression de code, reconstruction du graphe ou lancement de test n’est effectué pendant cette consultation.
+
+
+### Observations Qt par objet plutôt que simples compteurs
+
+Les connexions `watch_qt_destroyed` reçoivent désormais un jeton unique et émettent un événement d’enregistrement distinct du vrai signal `QObject.destroyed`. `summarize_runtime_lifecycle` rapproche les deux uniquement dans le même scénario et remonte les watches qui n’ont pas reçu le signal pendant la capture. Graphify les indique sur le fichier concerné, sans les convertir en diagnostic de fuite native, car Qt peut différer la destruction jusqu’à un prochain tour de boucle. Les objets sont observés par référence faible; le mécanisme reste explicitement opt-in et plafonné à 128 connexions.

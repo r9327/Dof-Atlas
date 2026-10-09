@@ -300,6 +300,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     open_qt_worker_files = {row["source"] for row in observed_lifecycle.get("qt_worker_unpaired", [])}
     cache_released_files = set(observed_lifecycle.get("cache_release_sources", []))
     qt_destroyed_files = set(observed_lifecycle.get("qt_destroyed_sources", []))
+    qt_pending_destroy_files = {row["source"] for row in observed_lifecycle.get("qt_destroy_watches_pending", [])}
     runtime_scenarios_by_file: dict[str, set[str]] = defaultdict(set)
     scenario_names: list[str] = []
     if trace_status == "MATCHED" and isinstance(trace, dict):
@@ -394,6 +395,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                 | ({"ast"} if source_evidence.get(file) else set())
                 | ({"doctor"} if file_actions.get(file) else set())
                 | ({"worker"} if file in open_worker_files or file in open_qt_worker_files else set())
+                | ({"lifecycle"} if file in qt_pending_destroy_files else set())
             ),
             "source_evidence": source_evidence.get(file, []),
             "snapshot_changes": source_changes.get(file),
@@ -410,6 +412,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "qt_worker_unpaired_at_trace_end": file in open_qt_worker_files,
             "cache_release_observed": file in cache_released_files,
             "qt_destroyed_observed": file in qt_destroyed_files,
+            "qt_destroy_pending_at_trace_end": file in qt_pending_destroy_files,
             "runtime_scenarios": sorted(runtime_scenarios_by_file.get(file, set())),
             "qt_native_invalid_wrappers_observed": native_invalid_by_file.get(file, 0),
         })
@@ -609,6 +612,19 @@ if(qtSnapshots.length){
  caveat.textContent='Observation QObject.parent()/shiboken, sans preuve de fuite, de propriété Chromium ni de couverture complète.';
  section.appendChild(caveat);section.appendChild(document.createElement('hr'));
 }
+const qtLifetime=data.observed_lifecycle;
+if(qtLifetime&&qtLifetime.qt_destroy_watches_registered>0){
+ const section=document.getElementById('coverageDetails');
+ const title=document.createElement('h3');title.textContent='Destruction Qt dans les scénarios';section.appendChild(title);
+ const p=document.createElement('p');
+ p.textContent=qtLifetime.qt_destroy_watches_delivered+' signaux reçus / '+
+ qtLifetime.qt_destroy_watches_registered+' connexions enregistrées ; '+
+ qtLifetime.qt_destroy_watches_pending_count+' sans destruction observée';
+ section.appendChild(p);
+ const note=document.createElement('small');
+ note.textContent='Une destruction non observée peut être différée, et ne prouve pas une fuite native.';
+ section.appendChild(note);section.appendChild(document.createElement('hr'));
+}
 const historicalTrend=data.historical_scenario_trend;
 if(historicalTrend && historicalTrend.status!=='UNAVAILABLE'){
  const section=document.getElementById('coverageDetails');
@@ -672,7 +688,7 @@ scenario.disabled=!(data.scenarios_merged>0);
 const communityReview=new Map((data.community_review_candidates||[]).map(row=>[String(row.community),row]));
 // All counts are bounded by the already-loaded Graphify node payload.
 const reviewLabels={focus:'Fichier ciblé',consumer:'Consommateur AST',dynamic:'Import dynamique candidat',orphan:'Nœuds isolés',weak:'Connexions faibles',fanout:'Couplage élevé',
- forbidden:'Imports interdits confirmés',island:'Communautés isolées',history:'Écarts historiques à examiner',
+ forbidden:'Imports interdits confirmés',island:'Communautés isolées',lifecycle:'Destruction Qt non observée',history:'Écarts historiques à examiner',
  ast:'Indices AST / JSON',doctor:'Actions Doctor',worker:'Workers à vérifier'};
 const reviewCounts=new Map();
 nodes.forEach(n=>(n.review_categories||[]).forEach(kind=>
@@ -804,6 +820,8 @@ if(symbolCalls.length){
   e.source+':'+e.caller_line+' '+e.caller_symbol+' → '+e.target+':'+e.callee_line+' '+e.callee_symbol));
  if(symbolCalls.length>20||data.symbol_calls_bounded)line('p','Observations partielles : aucune conclusion sur les fonctions non vues.');
 }
+if(n.qt_destroy_pending_at_trace_end)line('p',
+ 'Signal de destruction Qt connecté mais non reçu pendant la trace. À examiner, pas une preuve de fuite.');
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
 if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ; exécution du récepteur non prouvée.');
  if(n.qt_callback_invoked_observed)line('p','Callback Python Qt entré pendant ce scénario opt-in ; ownership natif non prouvé.');
