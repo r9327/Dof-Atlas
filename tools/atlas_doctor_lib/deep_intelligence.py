@@ -501,6 +501,7 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
     qt_registered: set[str] = set()
     qt_invoked: set[str] = set()
     import_attempts: set[tuple[str, str]] = set()
+    returned_imports: set[tuple[str, str]] = set()
     if valid_trace:
         for item in events:
             if not isinstance(item, dict):
@@ -521,7 +522,13 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
                 continue
             if source not in files or target not in files or source == target:
                 continue
-            if item.get("type") == "python_call_edge":
+            if (item.get("type") == "module_import_returned"
+                    and item.get("confidence") == "IMPORTLIB_RETURNED_REPOSITORY_MODULE"):
+                # Successful resolution is positive reachability, NOT proof of
+                # new Python execution (the module might already be cached).
+                adjacency[source].add(target)
+                returned_imports.add((source, target))
+            elif item.get("type") == "python_call_edge":
                 adjacency[source].add(target)
                 runtime_pairs.add((source, target))
             elif item.get("type") == "qt_signal_connect_returned":
@@ -548,6 +555,9 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
         "unreached_total": len(unreachable),
         "unreached_with_runtime_import_attempt": attempted_only[:MAX_FINDINGS],
         "runtime_import_attempt_pairs": len(import_attempts),
+        "runtime_import_returned_pairs": len(returned_imports),
+        "runtime_import_returned_targets": sorted({b for _, b in returned_imports})[:MAX_FINDINGS],
+        "returned_module_is_not_new_execution_proof": True,
         "static_or_observed_reachable_files": len(visited),
         "runtime_trace_status": ("NOT_PROVIDED" if trace is None else
                                  "MATCHED" if valid_trace else "STALE_OR_INCOMPLETE"),
@@ -556,7 +566,7 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
         "observed_qt_callback_targets": sorted(qt_invoked)[:MAX_FINDINGS],
         "observed_qt_callback_target_count": len(qt_invoked),
         "proof_of_dead_code": False,
-        "coverage": "Static imports, observed Python calls and explicitly wrapped Python callback entries; import attempts reported separately. No native ownership or negative reachability proof.",
+        "coverage": "Static imports, observed Python calls and explicitly wrapped Qt callback entries, plus successful opt-in importlib module resolution. Import attempts separate; returned cached modules do not prove new execution or absence of dead code.",
     }
 
 

@@ -103,6 +103,27 @@ class RuntimeObservationTests(unittest.TestCase):
         self.assertEqual(report["static_edges_with_runtime_evidence"], 0)
         self.assertFalse(report["runtime_evidence_valid"])
 
+    def test_successful_import_is_not_folded_into_executed_call_edges(self):
+        sha = "d" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "app/a.py"},
+                           {"id": 2, "source_file": "app/b.py"}],
+                 "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True,
+                 "truncated": False, "events": [{
+                     "type": "module_import_returned",
+                     "source": "app/a.py", "target": "app/b.py",
+                     "confidence": "IMPORTLIB_RETURNED_REPOSITORY_MODULE",
+                 }]}
+        result = compare_runtime_to_graph(trace, graph)
+        self.assertEqual(result["observed_runtime_edges"], 0)
+        self.assertEqual(result["observed_successful_module_import_pairs"], 1)
+        self.assertEqual(result["successful_import_pairs_trusted"], 1)
+        self.assertTrue(result["returned_module_is_not_new_execution_proof"])
+        trace["truncated"] = True
+        self.assertEqual(compare_runtime_to_graph(trace, graph)[
+            "successful_import_pairs_trusted"], 0)
+
     def test_lifecycle_marker_pairing_is_bounded_and_not_leak_proof(self):
         from tools.atlas_doctor_lib.runtime_observation import summarize_runtime_lifecycle
         trace = {"events": [

@@ -944,14 +944,32 @@ def compare_runtime_to_graph(trace: dict[str, Any], graph: dict[str, Any]) -> di
     )
     # Retain raw observations for forensic review, but never call unverified
     # traces proof of actual current static relationships.
-    observed = {(e["source"], e["target"]) for e in trace.get("events", [])
+    events = trace.get("events", [])
+    trusted = trusted and isinstance(events, list) and len(events) <= 50000 and all(isinstance(e, dict) for e in events)
+    if not isinstance(events, list):
+        events = []
+    observed = {(e["source"], e["target"]) for e in events
                 if e.get("type") == "python_call_edge"
                 and isinstance(e.get("source"), str) and isinstance(e.get("target"), str)}
+    # Positive importlib return: stronger than an import attempt, weaker than
+    # a function call. Never merge these counts with executed Python edges.
+    returned = {(e["source"], e["target"]) for e in events
+                if isinstance(e, dict)
+                and e.get("type") == "module_import_returned"
+                and e.get("confidence") == "IMPORTLIB_RETURNED_REPOSITORY_MODULE"
+                and isinstance(e.get("source"), str) and isinstance(e.get("target"), str)}
     verified = observed if trusted else set()
+    verified_imports = returned if trusted else set()
     return {
         "status": "PASS" if trusted else "REVIEW",
         "runtime_evidence_valid": trusted,
         "observed_runtime_edges": len(observed),
+        "observed_successful_module_import_pairs": len(returned),
+        "successful_import_pairs_trusted": len(verified_imports),
+        "successful_import_pairs_in_static_graph": len(verified_imports & known),
+        "successful_import_unmapped_examples": [{"source": source, "target": target}
+                                               for source, target in sorted(verified_imports - known)[:50]],
+        "returned_module_is_not_new_execution_proof": True,
         "static_edges_with_runtime_evidence": len(verified & known),
         "observed_unmapped_edges": [{"source": a, "target": b}
                                     for a, b in sorted(verified - known)[:50]],

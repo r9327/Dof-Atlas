@@ -415,3 +415,8 @@ Doctor ne signale désormais les créations `QTimer`, `QThread`, `QWebEnginePage
 ### Préparation de la certification ciblée finale (sans déclencher de suite pendant le développement)
 
 La validation focalisée inclut désormais les contrats du scanner de ressources Qt, les imports relatifs entre couches et les régressions de Graphify interactif. Les scénarios offscreen optionnels vérifient explicitement l’attribution JSON → vues Guides/Quêtes/Succès, les vrais signaux Qt et les imports dynamiques réussis. Les résultats ne sont pas présumés PASS tant que les workflows et les scénarios exact-SHA ne sont pas réellement exécutés. Les checkpoints RAM/preload lourds restent réservés à la certification finale de la phase.
+
+
+### Accessibilité via imports dynamiques réussis — distincte de l'exécution
+
+`graph_reachability` raccorde désormais les événements `module_import_returned` issus de scénarios opt-in exact-SHA aux relations d'accessibilité **positive** : un importlib ayant retourné un module local constitue une preuve de résolution, même s'il vient du cache. Les tentatives `import_attempt` restent exclues. `compare_runtime_to_graph` distingue séparément le nombre de résolutions dynamiques réussies, de correspondances Graphify statiques et d'appels Python réellement exécutés. Les imports retournés ne deviennent jamais une preuve d'exécution fraîche ni un feu vert de suppression. Traces incomplètes/périmées refusées. Pas de tests ni de benchmarks pendant l'intégration.

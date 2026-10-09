@@ -476,6 +476,31 @@ class DeepIntelligenceTests(unittest.TestCase):
         self.assertEqual(result["json_opens_observed"], 1)
         self.assertEqual(result["references"][0]["ui_callers_in_same_trace"], [])
 
+    def test_returned_module_adds_reachability_without_claiming_execution(self):
+        sha = "c" * 40
+        graph = {
+            "built_at_commit": sha,
+            "nodes": [{"id": 1, "source_file": "main.py"},
+                      {"id": 2, "source_file": "app/plugin.py"}],
+            "links": [],
+        }
+        event = {
+            "type": "module_import_returned", "source": "main.py",
+            "target": "app/plugin.py",
+            "confidence": "IMPORTLIB_RETURNED_REPOSITORY_MODULE",
+        }
+        trace = {"candidate_sha": sha, "worktree_clean": True,
+                 "truncated": False, "events": [event]}
+        result = graph_reachability(graph, ["main.py"], trace=trace)
+        self.assertEqual(result["unreached_total"], 0)
+        self.assertEqual(result["runtime_import_returned_pairs"], 1)
+        self.assertEqual(result["observed_python_call_edges"], 0)
+        self.assertTrue(result["returned_module_is_not_new_execution_proof"])
+        trace["worktree_clean"] = False
+        stale = graph_reachability(graph, ["main.py"], trace=trace)
+        self.assertEqual(stale["unreached_candidates"], ["app/plugin.py"])
+        self.assertEqual(stale["runtime_import_returned_pairs"], 0)
+
     def test_import_attempt_does_not_promote_failed_import_to_reachable(self):
         graph = {"built_at_commit": "f" * 40,
                  "nodes": [{"id": 1, "source_file": "main.py"},
