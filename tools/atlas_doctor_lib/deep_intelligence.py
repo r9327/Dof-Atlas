@@ -597,6 +597,8 @@ def inspect_code(root: Path, *, paths: list[str],
     source = scan_sources(root, paths)
     from .boundary_intelligence import layer_boundary_review
     layer_boundaries = layer_boundary_review(root, source.get("paths_inspected", [])[:16])
+    from .resource_lifecycle import inspect_resource_lifecycle
+    resource_lifecycle = inspect_resource_lifecycle(root, source.get("paths_inspected", [])[:16])
     if len(source.get("paths_inspected", [])) > 16:
         layer_boundaries["truncated"] = True
         layer_boundaries["status"] = "REVIEW"
@@ -675,6 +677,7 @@ def inspect_code(root: Path, *, paths: list[str],
         "source": source, "graph_status": graph_evidence["status"],
         "reachability": reach, "architectural_rules": rules,
         "layer_boundaries": layer_boundaries,
+        "resource_lifecycle": resource_lifecycle,
         "data_lineage_to_ui": lineage,
         "observed_json_to_ui": runtime_lineage,
         "explicit_json_bindings": explicit_bindings,

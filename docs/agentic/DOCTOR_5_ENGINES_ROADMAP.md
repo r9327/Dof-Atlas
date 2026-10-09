@@ -316,3 +316,10 @@ Le scénario réel `tools.atlas_doctor_lib.qt_smoke_scenario` comprend un
 strictement opt-in, sans travail de fond dans Dofus Atlas. Sa vérification
 Qt n'est pas considérée PASS si PySide6 est absent et que le test est SKIP.
 Aucun benchmark RAM/preload ni certification finale n'est lancé dans ce lot.
+
+
+### Doctor — audit Qt/WebEngine/caches et frontières privées
+
+La commande code-inspect expose désormais resource_lifecycle : revue AST bornée des constructions QWebEngineView/Page/Profile, QThread, QTimer, QNetworkAccessManager, des arguments parent=, des appels de nettoyage et des caches Python sans limite explicite. layer_boundaries détecte aussi les imports vers les vues/widgets privés d'un autre domaine. Ces signaux servent à prioriser les scénarios réels : absence de parent explicite n'est pas une fuite prouvée, et une référence Python ne prouve jamais la propriété C++ d'un QObject.
+
+Mode consultation uniquement : aucun test, benchmark, import applicatif ni reconstruction Graphify implicite. Les scénarios Qt réels et la certification finale restent nécessaires avant merge.

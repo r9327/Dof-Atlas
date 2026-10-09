@@ -83,11 +83,30 @@ def layer_boundary_review(root: Path, paths: list[str]) -> dict[str, Any]:
                     # An unproven imported symbol is not automatically a module.
                     continue
                 destination = _layer(resolved_modules[0].relative_to(root).as_posix())
+                target_relative = resolved_modules[0].relative_to(root).as_posix()
                 rule = None
                 if current in {"core", "service"} and destination == "ui":
                     rule = "LOWER_LAYER_IMPORTS_UI"
                 elif current in {"app_other", "core", "service", "ui"} and destination == "tools":
                     rule = "APP_IMPORTS_TOOLS"
+                # Cross-domain dependencies on private UI widgets are review leads.
+                source_parts = relative.split("/")
+                target_parts = target_relative.split("/")
+                if (len(source_parts) > 3 and len(target_parts) > 3
+                        and source_parts[:2] == ["app", "modules"]
+                        and target_parts[:2] == ["app", "modules"]
+                        and source_parts[2] != target_parts[2]
+                        and ("views" in target_parts[3:]
+                             or "widgets" in target_parts[3:])):
+                    issues.append({
+                        "source": relative, "line": node.lineno,
+                        "target_file": target_relative,
+                        "source_domain": source_parts[2],
+                        "target_domain": target_parts[2],
+                        "rule": "CROSS_DOMAIN_PRIVATE_UI_IMPORT",
+                        "confidence": "CURRENT_SOURCE_STATIC_IMPORT",
+                        "review_only": True,
+                    })
                 if not rule:
                     continue
                 issues.append({"source": relative, "line": node.lineno,
