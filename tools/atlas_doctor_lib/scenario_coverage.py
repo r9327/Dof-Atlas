@@ -53,8 +53,19 @@ def summarize_scenarios(
             if not isinstance(kind, str) or len(kind) > 80:
                 continue
             event_counts[kind] = event_counts.get(kind, 0) + 1
-            for key in ("source", "target"):
-                path = row.get(key)
+            # The producer source is executing code; a target is *not*
+            # necessarily executing. E.g. file_open can merely read a .py
+            # file and qt_signal_connect_returned only registers a callback.
+            executable_targets = {
+                "python_call_edge", "python_symbol_call",
+            }
+            if (kind == "qt_callback_invoked" and
+                    row.get("confidence") == "WRAPPED_PYTHON_CALLBACK_ENTERED"):
+                executable_targets.add(kind)
+            candidates = [row.get("source")]
+            if kind in executable_targets:
+                candidates.append(row.get("target"))
+            for path in candidates:
                 if (isinstance(path, str) and path.endswith(".py")
                         and not path.startswith("/") and "\\" not in path
                         and all(part not in {"", ".", ".."} for part in path.split("/"))):
@@ -78,7 +89,7 @@ def summarize_scenarios(
         "truncated": len(confirmed) > MAX_FILES,
         "safe_to_delete_unobserved": False,
         "tests_executed": False, "benchmarks_executed": False,
-        "limits": "Trace observations are scenario-specific; unobserved files are not dead code. No full app coverage, RAM measurement or test run is implied.",
+        "limits": "Scenario-specific executed source sites and positive callback entries only; merely opened Python files or registered Qt receivers are not execution coverage. No negative code-death proof or full-app certification.",
     }
 
 
