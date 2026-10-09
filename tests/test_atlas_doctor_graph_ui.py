@@ -276,13 +276,12 @@ class DoctorGraphUiTests(unittest.TestCase):
                       {"id": 2, "source_file": "app/b.py"}],
             "links": [],
         }, {}))
-        self.assertIn("let pageEdges=[],livePageEdges=[];", html)
+        self.assertIn("let pageEdges=[],livePageEdges=[],liveRemovedPageEdges=[];", html)
         self.assertIn("relation:'LIVE_AST_ADDED'", html)
         self.assertIn("relation:'LIVE_AST_REMOVED'", html)
         self.assertIn("liveRemovedPageEdges", html)
         self.assertIn("ctx.setLineDash([5,4])", html)
         self.assertIn("rebuildPageEdges();", html)
-        self.assertIn("aucun", "aucun")  # No assertion of runtime proof.
 
     def test_canvas_caches_only_current_page_edges_before_painting(self):
         page = render_html(compact_graph({
@@ -291,7 +290,7 @@ class DoctorGraphUiTests(unittest.TestCase):
                       {"id": 2, "source_file": "app/b.py"}],
             "links": [{"source": 1, "target": 2, "relation": "imports"}],
         }, {}))
-        self.assertIn("let pageEdges=[];", page)
+        self.assertIn("let pageEdges=[],livePageEdges=[],liveRemovedPageEdges=[];", page)
         self.assertIn("function rebuildPageEdges()", page)
         self.assertIn("pageEdges=data.edges.filter", page)
         self.assertIn("for(const e of pageEdges)", page)
