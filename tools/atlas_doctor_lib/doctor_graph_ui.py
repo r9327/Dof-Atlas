@@ -249,6 +249,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <header><h1>Doctor Atlas × Graphify</h1>
 <input id="search" type="search" placeholder="Chercher symbole ou fichier" aria-label="Rechercher">
 <select id="domain" aria-label="Domaine"><option value="">Tous les domaines</option></select>
+<select id="community" aria-label="Communauté Graphify"><option value="">Toutes les communautés</option></select>
 <select id="priority" aria-label="Priorité Doctor"><option value="">Toutes priorités</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
 <button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button>
@@ -265,6 +266,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 const data=JSON.parse(document.getElementById('doctor-data').textContent);
 const canvas=document.getElementById('map'),ctx=canvas.getContext('2d');
 const search=document.getElementById('search'),domain=document.getElementById('domain');
+const community=document.getElementById('community');
 const flagged=document.getElementById('flagged'),details=document.getElementById('nodeDetails');
 const priority=document.getElementById('priority');
 const inventory=data.file_coverage;
@@ -297,6 +299,17 @@ const neighbors=new Map(), nodes=data.nodes;data.edges.forEach(e=>{
 });
 const groups=[...new Set(nodes.map(n=>n.domain))].sort();
 groups.forEach(g=>{let opt=document.createElement('option');opt.value=g;opt.textContent=g;domain.appendChild(opt)});
+const communityCounts=new Map();
+nodes.forEach(n=>{
+ if(n.community===null||n.community===undefined)return;
+ const id=String(n.community);
+ communityCounts.set(id,(communityCounts.get(id)||0)+1);
+});
+[...communityCounts].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})).forEach(([id,count])=>{
+ const option=document.createElement('option');option.value=id;
+ option.textContent='Communauté '+id+' ('+count+' nœuds)';
+ community.appendChild(option);
+});
 function hash(s){let n=2166136261;for(let i=0;i<s.length;i++)n=Math.imul(n^s.charCodeAt(i),16777619);return n>>>0}
 const offsets=new Map(groups.map((g,i)=>[g,i]));
 const positions=nodes.map(n=>{
@@ -312,8 +325,9 @@ let changedFiles=new Set();
 let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
-function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value;
+function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value,cluster=community.value;
 matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
+ (!cluster||String(n.community)===cluster)&&
  (!level||(n.doctor_task&&n.doctor_task.priority===level))&&
  (!flagged.checked||n.reasons.length||n.doctor_task||n.source_evidence.length||n.worker_start_unpaired_at_trace_end)&&
  (!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
@@ -399,7 +413,7 @@ adj.slice(0,40).forEach(e=>{
  button.addEventListener('click',()=>{
   let offset=matches.indexOf(e.n);
   if(offset<0){
-   search.value='';domain.value='';priority.value='';flagged.checked=false;
+   search.value='';domain.value='';community.value='';priority.value='';flagged.checked=false;
    filter(true);offset=matches.indexOf(e.n);
   }
   if(offset>=0){pageIndex=Math.floor(offset/PAGE_SIZE);filter(false);focusNode(e.n)}
@@ -421,7 +435,7 @@ if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;panX=drag.px+dx;panY=drag.py+dy;r
 canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;
 if(!moved){const r=canvas.getBoundingClientRect();const found=pick((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio);if(found>=0)show(found)}});
 canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.min(3,scale*(e.deltaY>0?.84:1.16)));render()},{passive:false});
-[search,domain,priority,flagged].forEach(el=>el.addEventListener('input',()=>filter(true)));
+[search,domain,community,priority,flagged].forEach(el=>el.addEventListener('input',()=>filter(true)));
 document.getElementById('graphPrev').addEventListener('click',()=>{pageIndex--;filter(false)});
 document.getElementById('graphNext').addEventListener('click',()=>{pageIndex++;filter(false)});
 search.addEventListener('keydown',event=>{

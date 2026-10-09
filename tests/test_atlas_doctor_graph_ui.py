@@ -73,6 +73,24 @@ class DoctorGraphUiTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_community_navigation_filters_global_nodes_without_deleting_them(self):
+        graph = {
+            "built_at_commit": "f" * 40,
+            "nodes": [{"id": 1, "source_file": "app/a.py", "community": 2},
+                      {"id": 2, "source_file": "app/b.py", "community": 200},
+                      {"id": 3, "source_file": "app/c.py", "community": 2}],
+            "links": [{"source": 1, "target": 2, "relation": "imports"}],
+        }
+        report = compact_graph(graph, {})
+        page = render_html(report)
+        self.assertEqual(len(report["nodes"]), 3)
+        self.assertEqual(len(report["edges"]), 1)
+        for fragment in ('id="community"', "communityCounts=new Map()",
+                         "String(n.community)===cluster", "community.value=''",
+                         "community.appendChild(option)", "numeric:true"):
+            self.assertIn(fragment, page)
+        self.assertNotIn('selectedCommunity = "', page)
+
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
                  "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}
