@@ -264,6 +264,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <input id="search" type="search" placeholder="Chercher symbole ou fichier" aria-label="Rechercher">
 <select id="domain" aria-label="Domaine"><option value="">Tous les domaines</option></select>
 <select id="community" aria-label="Communauté Graphify"><option value="">Toutes les communautés</option></select>
+<select id="relation" aria-label="Relation du graphe"><option value="">Toutes les relations</option></select>
 <select id="priority" aria-label="Priorité Doctor"><option value="">Toutes priorités</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
 <button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button>
@@ -281,6 +282,7 @@ const data=JSON.parse(document.getElementById('doctor-data').textContent);
 const canvas=document.getElementById('map'),ctx=canvas.getContext('2d');
 const search=document.getElementById('search'),domain=document.getElementById('domain');
 const community=document.getElementById('community');
+const relation=document.getElementById('relation');
 const flagged=document.getElementById('flagged'),details=document.getElementById('nodeDetails');
 const priority=document.getElementById('priority');
 const inventory=data.file_coverage;
@@ -305,11 +307,19 @@ if(inventory){
  }
  section.appendChild(document.createElement('hr'));
 }
-const neighbors=new Map(), nodes=data.nodes;data.edges.forEach(e=>{
+const neighbors=new Map(), nodes=data.nodes;
+const relationCounts=new Map();
+data.edges.forEach(e=>{
+  const kind=String(e.relation||'non typée');
+  relationCounts.set(kind,(relationCounts.get(kind)||0)+1);
   if(!neighbors.has(e.a))neighbors.set(e.a,[]);
   if(!neighbors.has(e.b))neighbors.set(e.b,[]);
   neighbors.get(e.a).push({n:e.b,relation:e.relation,direction:'out'});
   neighbors.get(e.b).push({n:e.a,relation:e.relation,direction:'in'});
+});
+[...relationCounts].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([kind,count])=>{
+ const option=document.createElement('option');option.value=kind;
+ option.textContent=kind+' ('+count+')';relation.appendChild(option);
 });
 const groups=[...new Set(nodes.map(n=>n.domain))].sort();
 groups.forEach(g=>{let opt=document.createElement('option');opt.value=g;opt.textContent=g;domain.appendChild(opt)});
@@ -335,7 +345,7 @@ const positions=nodes.map(n=>{
           y:Math.sin(groupAngle)*outer+Math.sin(angle)*small};
 });
 const PAGE_SIZE=1200;
-let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[],matches=[],pageIndex=0;
+let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[],matches=[],pageIndex=0,pathStart=-1;
 let changedFiles=new Set();
 let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
@@ -369,6 +379,7 @@ function paint(){
  const subset=new Set(visible);ctx.strokeStyle='#2b4259';ctx.lineWidth=1;
  if(visible.length<=3500){for(const e of data.edges){
  if(!subset.has(e.a)||!subset.has(e.b))continue;
+ if(relation.value && e.relation!==relation.value)continue;
  let a=screen(positions[e.a]),b=screen(positions[e.b]);
  ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
  }}
@@ -428,21 +439,27 @@ const locationMatch=String(n.line||'').match(/(?:^|:)([0-9]+)(?::[0-9]+)?$/);
 const lineAnchor=locationMatch?'#L'+locationMatch[1]:'';
 link.href='https://github.com/r9327/Dof-Atlas/blob/'+encodeURIComponent(data.candidate_sha||'main')+'/'+n.file.split('/').map(encodeURIComponent).join('/')+lineAnchor;
 link.target='_blank';link.rel='noopener noreferrer';link.textContent='Voir le code sur GitHub';details.appendChild(link);
-const adj=neighbors.get(i)||[];line('h4','Voisins du graphe ('+adj.length+')');
-adj.slice(0,40).forEach(e=>{
+const adj=neighbors.get(i)||[];
+const shownAdj=adj.filter(e=>!relation.value||e.relation===relation.value);
+line('h4','Voisins du graphe ('+shownAdj.length+' / '+adj.length+' avec ce filtre)');
+shownAdj.slice(0,40).forEach(e=>{
  const button=document.createElement('button');button.type='button';
  button.textContent=(e.direction==='out'?'→ ':'← ')+nodes[e.n].file+' · '+e.relation;
- button.addEventListener('click',()=>{
-  let offset=matches.indexOf(e.n);
-  if(offset<0){
-   search.value='';domain.value='';community.value='';priority.value='';flagged.checked=false;
-   filter(true);offset=matches.indexOf(e.n);
-  }
-  if(offset>=0){pageIndex=Math.floor(offset/PAGE_SIZE);filter(false);focusNode(e.n)}
- });
+ button.addEventListener('click',()=>revealNode(e.n));
  details.appendChild(button);
 });
-if(adj.length>40)line('small','Liste limitée à 40 voisins, sans supprimer les relations du graphe.');
+if(shownAdj.length>40)line('small','Liste limitée à 40 voisins, sans supprimer les relations du graphe.');
+const startButton=document.createElement('button');startButton.type='button';
+startButton.textContent=pathStart===i?'Départ sélectionné':'Définir comme départ du chemin';
+startButton.addEventListener('click',()=>{pathStart=i;show(i)});
+details.appendChild(startButton);
+if(pathStart>=0&&pathStart!==i){
+ const pathButton=document.createElement('button');pathButton.type='button';
+ pathButton.textContent='Chercher les dépendances depuis '+nodes[pathStart].file;
+ pathButton.addEventListener('click',()=>showGraphPath(pathStart,i));
+ details.appendChild(pathButton);
+}
+if(pathStart===i)line('p','Choisis un autre nœud puis cherche son chemin de dépendances.');
 render()}
 function focusNode(i){
  const loc=positions[i];
@@ -451,6 +468,53 @@ function focusNode(i){
  scale=Math.max(scale,.55);
  show(i);
 }
+function revealNode(i){
+ let offset=matches.indexOf(i);
+ if(offset<0){
+  search.value='';domain.value='';community.value='';priority.value='';flagged.checked=false;
+  filter(true);offset=matches.indexOf(i);
+ }
+ if(offset>=0){pageIndex=Math.floor(offset/PAGE_SIZE);filter(false);focusNode(i)}
+}
+function showGraphPath(from,to){
+ // On-demand, directional Graphify relationships only; never a runtime proof.
+ const queue=[from], depth=new Map([[from,0]]), previous=new Map();
+ let cursor=0,complete=true,found=from===to;
+ while(cursor<queue.length&&!found){
+  const here=queue[cursor++],distance=depth.get(here);
+  if(distance>=8){complete=false;continue}
+  for(const edge of neighbors.get(here)||[]){
+   if(edge.direction!=='out'||(relation.value&&edge.relation!==relation.value))continue;
+   if(depth.has(edge.n))continue;
+   if(depth.size>=4000){complete=false;break}
+   depth.set(edge.n,distance+1);previous.set(edge.n,{from:here,relation:edge.relation});
+   queue.push(edge.n);
+   if(edge.n===to){found=true;break}
+  }
+  if(depth.size>=4000&&!found)break;
+ }
+ const section=document.createElement('section');
+ const heading=document.createElement('h4');heading.textContent='Chemin de relations Graphify';section.appendChild(heading);
+ if(!found){
+  const note=document.createElement('p');
+  note.textContent=(complete?'Aucun chemin orienté trouvé dans ce graphe extrait.':'Recherche partielle (8 sauts ou 4 000 nœuds). Chemin non établi.')+' Ce résultat ne prouve jamais du code mort.';
+  section.appendChild(note);
+ }else{
+  const chain=[to];let next=to;
+  while(next!==from){next=previous.get(next).from;chain.unshift(next)}
+  const note=document.createElement('small');
+  note.textContent=(chain.length-1)+' relation(s) extraites/observées ; ce chemin ne prouve pas une exécution.';
+  section.appendChild(note);
+  chain.forEach((nodeIndex,index)=>{
+   const button=document.createElement('button');button.type='button';
+   const parent=index?previous.get(nodeIndex):null;
+   button.textContent=(parent?'→ '+parent.relation+' → ':'Départ : ')+nodes[nodeIndex].file;
+   button.addEventListener('click',()=>revealNode(nodeIndex));
+   section.appendChild(button);
+  });
+ }
+ details.appendChild(section);
+}
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,px:panX,py:panY,moved:false}});
 canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=(e.clientX-drag.x)/scale,dy=(e.clientY-drag.y)/scale;
 if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;panX=drag.px+dx;panY=drag.py+dy;render()});
@@ -458,6 +522,7 @@ canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;d
 if(!moved){const r=canvas.getBoundingClientRect();const found=pick((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio);if(found>=0)show(found)}});
 canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.min(3,scale*(e.deltaY>0?.84:1.16)));render()},{passive:false});
 [search,domain,community,priority,flagged].forEach(el=>el.addEventListener('input',()=>filter(true)));
+relation.addEventListener('change',()=>{if(selected>=0)show(selected);else render()});
 document.getElementById('graphPrev').addEventListener('click',()=>{pageIndex--;filter(false)});
 document.getElementById('graphNext').addEventListener('click',()=>{pageIndex++;filter(false)});
 search.addEventListener('keydown',event=>{

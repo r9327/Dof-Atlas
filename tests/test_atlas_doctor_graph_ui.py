@@ -114,6 +114,35 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("communityReview.has(id)", page)
         self.assertIn("ni fusion ni suppression automatique", page)
 
+    def test_relation_filter_and_bounded_directed_dependency_path_are_interactive(self):
+        graph = {"built_at_commit": "e" * 40,
+                 "nodes": [{"id": "a", "source_file": "app/a.py"},
+                           {"id": "b", "source_file": "app/b.py"},
+                           {"id": "c", "source_file": "app/c.py"}],
+                 "links": [{"source": "a", "target": "b", "relation": "imports"},
+                           {"source": "b", "target": "c", "relation": "imports"}]}
+        payload = compact_graph(graph, {})
+        self.assertEqual(len(payload["nodes"]), 3)
+        self.assertEqual(len(payload["edges"]), 2)
+        html = render_html(payload)
+        for marker in (
+            'id="relation"', "const relationCounts=new Map()",
+            "relation.value && e.relation!==relation.value",
+            "edge.direction!=='out'", "function showGraphPath(from,to)",
+            "depth.size>=4000", "distance>=8",
+            "function revealNode(i)", "Définir comme départ du chemin",
+            "Chercher les dépendances depuis", "Chemin de relations Graphify",
+            "ce chemin ne prouve pas une exécution",
+        ):
+            self.assertIn(marker, html)
+
+    def test_relation_filter_preserves_uncertainty_on_missing_paths(self):
+        html = render_html(compact_graph({"nodes": [], "links": []}, {}))
+        self.assertIn("Aucun chemin orienté trouvé dans ce graphe extrait", html)
+        self.assertIn("Ce résultat ne prouve jamais du code mort", html)
+        self.assertIn("Recherche partielle (8 sauts ou 4 000 nœuds)", html)
+        self.assertIn("relation.addEventListener('change'", html)
+
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
                  "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}
