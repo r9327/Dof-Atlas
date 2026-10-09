@@ -105,3 +105,7 @@ Le plan non mutatif combine les consommateurs Graphify confirmés avec les **app
 ### Lignage JSON observé (Doctor code-inspect)
 
 `python -m tools.atlas_doctor code-inspect app/core/catalog.py --trace .ai/runtime/atlas_doctor/traces/scenario.json --json` joint les tentatives d'ouverture de JSON réellement observées dans ce scénario avec les arêtes d'appels Python également observées vers les fichiers de vue. Le résultat `observed_json_to_ui` est borné (50 000 événements, 80 ouvertures, quatre sauts, 512 fichiers) et exige SHA exact, worktree propre et trace complète. Le diagnostic reste `REVIEW` : ouverture du JSON ≠ lecture effective; coexistence d'appels ≠ transfert de données ni rendu visuel. La recherche statique préexistante `data_lineage_to_ui` est conservée séparément. Aucun hook permanent ni benchmark.
+
+### Événement d'entrée callback Qt, observation opt-in
+
+`wrapped = observer.wrap_qt_slot(slot)` puis enregistrement explicite du callable `wrapped` dans un scénario Qt. L'événement `qt_callback_invoked` est émis seulement à l'entrée de la fonction Python sous trace active; retour et exceptions inchangés, sans interception des connexions de l'application. `code-inspect` et `refactor-preview --trace` séparent cet événement du simple retour de `signal.connect`. Les signatures Qt natives doivent être validées scénario par scénario; aucun ownership C++, fuite mémoire ni couverture totale ne sont présumés.

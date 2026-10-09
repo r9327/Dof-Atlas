@@ -373,6 +373,25 @@ class DeepIntelligenceTests(unittest.TestCase):
         result = trace_observed_json_to_ui(graph, trace)
         self.assertEqual(result["json_opens_observed"], 0)
         self.assertFalse(result["ui_render_proven"])
+    def test_qt_callback_observation_is_distinct_from_registration(self):
+        sha = "b" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "main.py"},
+                           {"id": 2, "source_file": "app/slot.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                     {"type": "qt_signal_connect_returned",
+                      "source": "main.py", "target": "app/slot.py"},
+                     {"type": "qt_callback_invoked", "source": "main.py",
+                      "target": "app/slot.py", "confidence": "WRAPPED_PYTHON_CALLBACK_ENTERED"},
+                 ]}
+        report = graph_reachability(graph, ["main.py"], trace=trace)
+        self.assertEqual(report["unreached_total"], 0)
+        self.assertEqual(report["observed_qt_callback_targets"], ["app/slot.py"])
+        self.assertEqual(report["qt_registered_but_not_invoked_candidates"], [])
+        trace["worktree_clean"] = False
+        self.assertEqual(graph_reachability(graph, ["main.py"], trace=trace)["unreached_total"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

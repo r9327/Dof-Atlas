@@ -383,6 +383,39 @@ class RuntimeObservationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 observer.mark("arbitrary", source="a.py")
 
+    def test_wrapped_qt_slot_records_actual_entry_and_preserves_result(self):
+        import runpy
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            script = root / "qt_window.py"
+            script.write_text("def slot(value):\n    return value * 2\n"
+                              "wrapped = observer.wrap_qt_slot(slot)\n"
+                              "answer = wrapped(21)\n", encoding="utf-8")
+            observer = RuntimeObserver(root, max_events=400)
+            with observer:
+                result = runpy.run_path(str(script), init_globals={"observer": observer})
+            self.assertEqual(result["answer"], 42)
+            entries = [row for row in observer.report()["events"]
+                       if row["type"] == "qt_callback_invoked"]
+            self.assertEqual(len(entries), 1)
+            self.assertEqual(entries[0]["target"], "qt_window.py")
+            self.assertEqual(entries[0]["confidence"], "WRAPPED_PYTHON_CALLBACK_ENTERED")
+            self.assertEqual(result["wrapped"](5), 10)
+            self.assertEqual(len([row for row in observer.report()["events"]
+                                  if row["type"] == "qt_callback_invoked"]), 1)
+
+    def test_wrapped_slot_preserves_exception_and_requires_opt_in(self):
+        with tempfile.TemporaryDirectory() as folder:
+            watcher = RuntimeObserver(Path(folder))
+            def broken():
+                raise RuntimeError("slot failed")
+            with watcher:
+                slot = watcher.wrap_qt_slot(broken)
+                with self.assertRaisesRegex(RuntimeError, "slot failed"):
+                    slot()
+            with self.assertRaisesRegex(RuntimeError, "active observer"):
+                watcher.wrap_qt_slot(broken)
+
 
 if __name__ == "__main__":
     unittest.main()

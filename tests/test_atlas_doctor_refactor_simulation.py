@@ -183,5 +183,23 @@ class RefactorSimulationTests(unittest.TestCase):
         self.assertEqual(preview["runtime_evidence"]["status"], "UNAVAILABLE")
         self.assertEqual(preview["consumer_files"], [])
 
+    def test_callback_observation_is_visible_in_refactor_preview(self):
+        (self.root / "app/use.py").write_text("pass\n")
+        trace = self._write_trace(events=[
+            {"type": "qt_callback_invoked", "source": "app/use.py",
+             "target": "app/mod.py", "confidence": "WRAPPED_PYTHON_CALLBACK_ENTERED"},
+        ])
+        impact, plan = self._preview_mocks()
+        with patch("tools.agent.reverse_impact_payload", return_value=impact), \
+             patch("tools.agent.plan_payload", return_value=plan), \
+             patch("tools.atlas_doctor_lib.refactor_simulation.subprocess.run",
+                   side_effect=[SimpleNamespace(returncode=0, stdout="a" * 40),
+                                SimpleNamespace(returncode=0, stdout="")]):
+            preview = simulate_refactor(self.root, ["app/mod.py"], trace_path=trace)
+        self.assertEqual(preview["consumer_files"], ["app/use.py"])
+        self.assertEqual(len(preview["runtime_evidence"]["qt_callback_invocations"]), 1)
+        self.assertEqual(preview["runtime_evidence"]["qt_registration_sites"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -9,7 +9,7 @@ explicit test instrumentation or separate platform profilers.
 import argparse
 import gc
 import json
-from functools import partial
+from functools import partial, wraps
 import runpy
 import subprocess
 import sys
@@ -237,6 +237,41 @@ class RuntimeObserver:
                 entry["target"] = receiver_file
             self._record(entry)
         return result
+
+
+    def wrap_qt_slot(self, callback: Any) -> Any:
+        """Opt-in scenario wrapper: prove entry of a Python callback, not Qt ownership.
+
+        Register the returned callable explicitly; no existing connection is
+        monkeypatched. Native Qt signal signatures must be checked per scenario.
+        """
+        if not self._active:
+            raise RuntimeError("Qt slot instrumentation requires an active observer")
+        if not callable(callback):
+            raise TypeError("Qt slot must be callable")
+        source = self._path(sys._getframe(1).f_code.co_filename)
+        function = callback
+        for _ in range(6):
+            if isinstance(function, partial):
+                function = function.func
+                continue
+            function = getattr(function, "__func__", function)
+            break
+        code = getattr(function, "__code__", None)
+        target = self._path(code.co_filename) if code is not None else None
+        reference = weakref.ref(self)
+
+        @wraps(callback)
+        def observed_slot(*args: Any, **kwargs: Any) -> Any:
+            observer = reference()
+            if observer is not None and observer._active and source and target:
+                observer._record({
+                    "type": "qt_callback_invoked", "source": source,
+                    "target": target, "confidence": "WRAPPED_PYTHON_CALLBACK_ENTERED",
+                })
+            return callback(*args, **kwargs)
+
+        return observed_slot
 
     def watch(self, obj: Any, *, label: str, kind: str = "object") -> bool:
         """Explicit, non-owning watch for Qt workers, timers or cache holders."""

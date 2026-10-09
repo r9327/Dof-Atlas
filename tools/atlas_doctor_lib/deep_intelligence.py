@@ -421,6 +421,7 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
                    and isinstance(events, list) and len(events) <= 50000)
     runtime_pairs: set[tuple[str, str]] = set()
     qt_registered: set[str] = set()
+    qt_invoked: set[str] = set()
     if valid_trace:
         for item in events:
             if not isinstance(item, dict):
@@ -435,6 +436,9 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
                 runtime_pairs.add((source, target))
             elif item.get("type") == "qt_signal_connect_returned":
                 qt_registered.add(target)
+            elif item.get("type") == "qt_callback_invoked" and item.get("confidence") == "WRAPPED_PYTHON_CALLBACK_ENTERED":
+                adjacency[source].add(target)
+                qt_invoked.add(target)
     known = sorted(set(entrypoints) & files)
     visited = set(known)
     frontier = deque(known)
@@ -453,9 +457,11 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
         "runtime_trace_status": ("NOT_PROVIDED" if trace is None else
                                  "MATCHED" if valid_trace else "STALE_OR_INCOMPLETE"),
         "observed_python_call_edges": len(runtime_pairs),
-        "qt_registered_but_not_invoked_candidates": sorted(qt_registered)[:MAX_FINDINGS],
+        "qt_registered_but_not_invoked_candidates": sorted(qt_registered - qt_invoked)[:MAX_FINDINGS],
+        "observed_qt_callback_targets": sorted(qt_invoked)[:MAX_FINDINGS],
+        "observed_qt_callback_target_count": len(qt_invoked),
         "proof_of_dead_code": False,
-        "coverage": "Static imports and opt-in exact-SHA observed Python calls; Qt registration is not invocation. Unobserved never means dead.",
+        "coverage": "Static imports, observed Python calls and explicitly wrapped Python callback entries; no native ownership or negative reachability proof.",
     }
 
 

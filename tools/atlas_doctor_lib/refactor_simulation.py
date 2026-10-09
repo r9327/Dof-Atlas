@@ -33,6 +33,7 @@ def _runtime_consumer_evidence(
         "status": "NOT_PROVIDED" if trace_path is None else "UNAVAILABLE",
         "observed_python_consumers": [],
         "qt_registration_sites": [],
+        "qt_callback_invocations": [],
         "events_examined": 0,
         "truncated": False,
         "absence_proves_unused": False,
@@ -74,9 +75,10 @@ def _runtime_consumer_evidence(
                     "events_examined": len(events)}
         python_rows: set[tuple[str, str]] = set()
         qt_rows: set[tuple[str, str]] = set()
+        qt_callback_rows: set[tuple[str, str]] = set()
         for event in events:
             kind = event.get("type")
-            if kind not in {"python_call_edge", "python_symbol_call", "qt_signal_connect_returned"}:
+            if kind not in {"python_call_edge", "python_symbol_call", "qt_signal_connect_returned", "qt_callback_invoked"}:
                 continue
             source, target = event.get("source"), event.get("target")
             if not isinstance(source, str) or not isinstance(target, str) or target not in targets:
@@ -88,6 +90,9 @@ def _runtime_consumer_evidence(
                 continue
             if kind == "qt_signal_connect_returned":
                 qt_rows.add((source, target))
+            elif kind == "qt_callback_invoked":
+                if event.get("confidence") == "WRAPPED_PYTHON_CALLBACK_ENTERED":
+                    qt_callback_rows.add((source, target))
             else:
                 python_rows.add((source, target))
         python_sorted, qt_sorted = sorted(python_rows), sorted(qt_rows)
@@ -102,8 +107,13 @@ def _runtime_consumer_evidence(
                  "confidence": "CONNECT_RETURNED_NOT_CALLBACK_INVOKED"}
                 for source, target in qt_sorted[:MAX_RUNTIME_CONSUMERS]
             ],
+            "qt_callback_invocations": [
+                {"source": source, "target": target, "confidence": "WRAPPED_PYTHON_CALLBACK_ENTERED"}
+                for source, target in sorted(qt_callback_rows)[:MAX_RUNTIME_CONSUMERS]
+            ],
             "events_examined": len(events),
-            "truncated": (len(python_rows) > MAX_RUNTIME_CONSUMERS
+            "truncated": (len(qt_callback_rows) > MAX_RUNTIME_CONSUMERS
+                          or len(python_rows) > MAX_RUNTIME_CONSUMERS
                           or len(qt_rows) > MAX_RUNTIME_CONSUMERS
                           or trace.get("symbol_edges_truncated") is True),
             "absence_proves_unused": False,
@@ -176,7 +186,7 @@ def simulate_refactor(
             "source_errors": impact.get("source_errors", []),
         },
         "consumer_files": sorted((set(impact.get("impacted_files", [])) | (
-            {row["source"] for kind in ("observed_python_consumers", "qt_registration_sites")
+            {row["source"] for kind in ("observed_python_consumers", "qt_registration_sites", "qt_callback_invocations")
              for row in runtime[kind]} if runtime["status"] == "MATCHED" else set()
         )) - set(normalized)),
         "runtime_evidence": runtime,
@@ -184,7 +194,7 @@ def simulate_refactor(
             "Graph-derived relations are confirmed against literal Python imports, not arbitrary runtime callbacks.",
             "A preview cannot prove absence of dynamic consumers or that consolidation preserves behavior.",
             "No file will be modified without a reviewed implementation plan.",
-            "Observed Python calls and Qt registrations are positive scenario-specific evidence, not complete coverage.",
+            "Observed Python calls, Qt registrations and explicitly wrapped callback entries are scenario-specific positives, not complete coverage.",
         ],
     }
     if impact.get("status") not in {"PASS", "REVIEW"} or (impact.get("graph") or {}).get("status") != "PASS":
