@@ -17,9 +17,11 @@ def _observed_edges(trace: dict[str, Any]) -> set[tuple[str, str, str]]:
     rows: set[tuple[str, str, str]] = set()
     for event in trace["events"]:
         kind = event.get("type")
-        if kind not in {"python_call_edge", "qt_callback_invoked"}:
+        if kind not in {"python_call_edge", "qt_callback_invoked", "module_import_returned"}:
             continue
         if kind == "qt_callback_invoked" and event.get("confidence") != "WRAPPED_PYTHON_CALLBACK_ENTERED":
+            continue
+        if kind == "module_import_returned" and event.get("confidence") != "IMPORTLIB_RETURNED_REPOSITORY_MODULE":
             continue
         source, target = event.get("source"), event.get("target")
         if (isinstance(source, str) and isinstance(target, str)

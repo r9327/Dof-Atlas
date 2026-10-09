@@ -201,6 +201,25 @@ class RefactorSimulationTests(unittest.TestCase):
         self.assertEqual(preview["runtime_evidence"]["qt_registration_sites"], [])
 
 
+    def test_returned_dynamic_import_is_positive_consumer_not_implicit_execution(self):
+        (self.root / "app/use.py").write_text("pass\n")
+        trace = self._write_trace(events=[
+            {"type": "module_import_returned", "source": "app/use.py",
+             "target": "app/mod.py",
+             "confidence": "IMPORTLIB_RETURNED_REPOSITORY_MODULE"},
+        ])
+        impact, plan = self._preview_mocks()
+        with patch("tools.agent.reverse_impact_payload", return_value=impact), \
+             patch("tools.agent.plan_payload", return_value=plan), \
+             patch("tools.atlas_doctor_lib.refactor_simulation.subprocess.run",
+                   side_effect=[SimpleNamespace(returncode=0, stdout="a" * 40),
+                                SimpleNamespace(returncode=0, stdout="")]):
+            result = simulate_refactor(self.root, ["app/mod.py"], trace_path=trace)
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertEqual(result["consumer_files"], ["app/use.py"])
+        self.assertEqual(len(result["runtime_evidence"]["observed_dynamic_imports"]), 1)
+        self.assertFalse(result["runtime_evidence"]["observed_dynamic_imports"][0]["not_new_execution_proof"] is False)
+
     def test_consolidation_shows_exact_ast_without_auto_merge(self):
         (self.root / "app/second.py").write_text("def other():\n    return 7\n")
         (self.root / "app/mod.py").write_text("def old():\n    return 7\n")

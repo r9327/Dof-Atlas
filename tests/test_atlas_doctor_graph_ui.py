@@ -82,6 +82,24 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("revealNode(index)", html)
         self.assertIn("Import AST confirmé ≠ usage runtime", html)
 
+    def test_importlib_returned_module_renders_separate_runtime_edge(self):
+        sha = "b" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "app/pages/guide.py"},
+                           {"id": 2, "source_file": "app/core/catalog.py"}],
+                 "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True,
+                 "truncated": False, "events": [
+                     {"type": "module_import_returned",
+                      "source": "app/pages/guide.py", "target": "app/core/catalog.py",
+                      "confidence": "IMPORTLIB_RETURNED_REPOSITORY_MODULE"},
+                 ]}
+        report = compact_graph(graph, {}, trace=trace)
+        self.assertEqual(report["observed_module_import_returned_pairs"], 1)
+        self.assertEqual(report["edges"][0]["relation"], "RUNTIME_IMPORT_RETURNED")
+        self.assertTrue(report["edges"][0]["observed"])
+        self.assertFalse(any(e["relation"] == "imports" for e in report["edges"]))
+
     def test_snapshot_saves_exact_graph_without_rebuild_or_overwrite(self):
         import tempfile
         from pathlib import Path

@@ -570,6 +570,39 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertEqual(scope["after"]["alive"], 0)
             self.assertEqual(len([e for e in observer.report()["events"]
                                   if e["type"] == "weak_watch_snapshot"]), 2)
+    def test_dynamic_module_import_records_return_but_not_failed_import(self):
+        import runpy
+        import sys
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            module_name = "atlas_doctor_runtime_fixture_123"
+            (root / f"{module_name}.py").write_text("NUMBER = 81\n", encoding="utf-8")
+            script = root / "scenario.py"
+            script.write_text(
+                "module = observer.import_module('" + module_name + "')\n"
+                "try:\n"
+                "    observer.import_module('atlas_doctor_missing_fixture_987')\n"
+                "except ModuleNotFoundError:\n"
+                "    pass\n",
+                encoding="utf-8",
+            )
+            observer = RuntimeObserver(root, max_events=500)
+            sys.path.insert(0, str(root))
+            try:
+                with observer:
+                    result = runpy.run_path(str(script), init_globals={"observer": observer})
+            finally:
+                sys.path.remove(str(root))
+                sys.modules.pop(module_name, None)
+            self.assertEqual(result["module"].NUMBER, 81)
+            imports = [row for row in observer.report()["events"]
+                       if row.get("type") == "module_import_returned"]
+            self.assertEqual(len(imports), 1)
+            self.assertEqual(imports[0]["source"], "scenario.py")
+            self.assertEqual(imports[0]["target"], module_name + ".py")
+            self.assertTrue(imports[0]["not_new_execution_proof"])
+
     def test_process_tree_sample_is_opt_in_and_does_not_claim_ownership(self):
         from types import SimpleNamespace
         from unittest.mock import patch

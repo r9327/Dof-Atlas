@@ -24,6 +24,12 @@ def main() -> None:
         def receive(self, value: int) -> None:
             self.received.append(value)
 
+    # Explicit successful dynamic import: this is an internal lightweight
+    # Doctor source, not a production catalog or application launcher.
+    module = observer.import_module("tools.atlas_doctor_lib.resource_lifecycle")
+    if not callable(getattr(module, "inspect_resource_lifecycle", None)):
+        raise AssertionError("Dynamic Doctor source import did not return the module")
+
     app = QCoreApplication.instance() or QCoreApplication([])
     sender = Sender()
     receiver = Receiver()
