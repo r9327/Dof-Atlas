@@ -539,6 +539,27 @@ if(perf && perf.samples && perf.samples.length){
  limits.textContent='Instantanés opt-in, pas le pic RAM ni un benchmark certifié ; aucun ownership WebEngine prouvé.';
  section.appendChild(limits);section.appendChild(document.createElement('hr'));
 }
+// Native Qt parent relationship is visible only for explicitly watched
+// wrappers in exact-SHA opt-in traces. Do not infer native WebEngine memory.
+const qtSnapshots=(data.observed_lifecycle||{}).qt_parent_snapshots||[];
+if(qtSnapshots.length){
+ const section=document.getElementById('coverageDetails');
+ const title=document.createElement('h3');
+ title.textContent='Qt natif · relations parent (scénarios)';section.appendChild(title);
+ qtSnapshots.slice(0,16).forEach(sample=>{
+  const p=document.createElement('p');
+  const number=v=>Number.isInteger(v)&&v>=0?String(v):'?';
+  p.textContent=String(sample.label||'snapshot')+' : '+
+   number(sample.parent_present_native_valid)+' avec parent Qt · '+
+   number(sample.parent_absent_at_snapshot)+' sans parent Qt · '+
+   number(sample.native_invalid_wrappers)+' wrappers natifs invalides · '+
+   number(sample.webengine_wrappers_sampled)+' wrappers WebEngine';
+  section.appendChild(p);
+ });
+ const caveat=document.createElement('small');
+ caveat.textContent='Observation QObject.parent()/shiboken, sans preuve de fuite, de propriété Chromium ni de couverture complète.';
+ section.appendChild(caveat);section.appendChild(document.createElement('hr'));
+}
 const neighbors=new Map(), nodes=data.nodes;
 const relationCounts=new Map();
 // File-level import consumers are derived once from the existing static graph.

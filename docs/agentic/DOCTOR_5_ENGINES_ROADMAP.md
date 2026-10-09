@@ -343,3 +343,8 @@ La commande scenario-trend --trace A --trace B [--trace C ...] lit entre 2 et 8 
 ### Graphify affiche les pistes WebEngine et caches
 
 Les diagnostics source de cycle de vie Qt/WebEngine et de caches non bornés sont désormais directement associés aux nœuds des fichiers concernés dans l'inspecteur du graphe et son filtre par catégorie Doctor. Ils sont calculés seulement sur les 16 fichiers explicitement sélectionnés pour le diagnostic courant ; un graphe historique ne relit jamais des sources modernes. Tous les avertissements restent candidats à vérifier, sans suppression automatique ni déduction de fuite.
+
+
+### Parent QObject dans le graphe interactif
+
+Une trace runtime exacte-SHA peut désormais présenter dans Graphify les compteurs de parenté native Qt par snapshot, y compris les wrappers WebEngine observés. Ce panneau est indépendant des métriques RSS/CPU et ne compare pas des processus différents comme s'il s'agissait d'une preuve de libération mémoire. Toutes les données restent limitées aux observations explicitement demandées et ne déclenchent aucun scénario.
