@@ -230,6 +230,36 @@ def command_graph_ui(root: Path, args) -> dict[str, Any]:
     return payload
 
 
+UI_SCENARIOS = {
+    "qt": "tools.atlas_doctor_lib.qt_smoke_scenario",
+    "equipment": "tools.atlas_doctor_lib.app_ui_smoke_scenario",
+    "encyclopedia": "tools.atlas_doctor_lib.encyclopedia_deferred_smoke",
+}
+
+
+def command_capture_ui(root: Path, args) -> dict[str, Any]:
+    """Manually run one vetted offscreen Qt scenario; no normal app hooks."""
+    if os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen":
+        return {"status": "BLOCKED",
+                "reason": "Set QT_QPA_PLATFORM=offscreen before explicitly running Qt UI capture.",
+                "tests_executed": False, "benchmarks_executed": False}
+    from tools.atlas_doctor_lib.runtime_observation import run_traced_module
+    module = UI_SCENARIOS[args.scenario]
+    output = root / ".ai/runtime/atlas_doctor/traces" / (
+        "atlas_ui_" + args.scenario + ".json"
+    )
+    result = run_traced_module(root, module, output, max_events=args.max_events)
+    if not args.json:
+        print(f"Doctor UI capture: {args.scenario} · {result['status']} · "
+              f"{result['events_captured']} events")
+        print(f"Trace: {output}")
+    return {"status": result["status"], "scenario": args.scenario,
+            "scenario_module": module, "trace_path": str(output),
+            "events_captured": result["events_captured"],
+            "truncated": result["truncated"],
+            "benchmarks_executed": False, "normal_app_instrumented": False}
+
+
 def command_runtime_trace(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.runtime_observation import run_traced_module
     target = root / ".ai/runtime/atlas_doctor/traces" / (args.module.replace(".", "_") + ".json")
@@ -579,6 +609,9 @@ def build_parser() -> argparse.ArgumentParser:
                     help='Comparer un ancien graph.json sous graphify-out (lecture seule).')
     gu.add_argument('--save-snapshot', action='store_true',
                     help='Conserver le graphe actuel dans graphify-out/history/<sha>.json (sans rebuild).')
+    capture = sub.add_parser('capture-ui', help='Tracer un vrai scenario Qt offscreen explicitement, sans chargement complet.')
+    capture.add_argument('scenario', choices=tuple(UI_SCENARIOS))
+    capture.add_argument('--max-events', type=int, default=50000)
     rt = sub.add_parser('runtime-trace', help='Tracer explicitement les appels Python d un module (mode instrumente).')
     rt.add_argument('--module', required=True, help='Module de scenario de test a executer.')
     rt.add_argument('--max-events', type=int, default=5000)
@@ -714,6 +747,7 @@ def main(argv: list[str] | None = None) -> int:
         'isolate-triage': command_isolate_triage,
         'code-inspect': command_code_inspect,
         'runtime-trace': command_runtime_trace,
+        'capture-ui': command_capture_ui,
         'graph-ui': command_graph_ui,
         'graph-live': command_graph_live,
         'dev-event': command_dev_event,
@@ -752,6 +786,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2 if payload['status'] == 'BLOCKED' else 0
     if args.command == 'graph-ui':
         return 0 if payload['status'] == 'PASS' else 2
+    if args.command == 'capture-ui':
+        return 0 if payload['status'] == 'RECORDED' else 1
     if args.command == 'runtime-trace':
         return 0 if payload['status'] == 'RECORDED' else 1
     if args.command == 'code-inspect':

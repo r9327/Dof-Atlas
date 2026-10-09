@@ -247,3 +247,8 @@ Les événements sont rattachés explicitement à leur scénario (`_trace_group`
 `code-inspect` sépare désormais les modules atteints par les imports AST ou les appels Python/Qt réellement observés, et les *tentatives* d'imports Python vers des modules du dépôt. Un import déclenché par l'audit hook peut échouer : ces cibles apparaissent dans `unreached_with_runtime_import_attempt`, et ne deviennent jamais « atteintes » ou « supprimables » par ce seul événement. Les traces malformées/incomplètes sont refusées.
 
 Dans `graph-ui`, un filtre « Scénario runtime » permet de retrouver les nœuds rencontrés pendant chaque trace du lot agrégé, avec provenance exact-SHA. Un nom de scénario peut se répéter sans confusion : la sélection repose sur son rang dans le lot, pas sur une égalité de noms. Les traces séparées ne sont pas recollées en flux de données artificiel. Aucun watcher ni test lancé à l'ouverture du graphe.
+
+
+### Capture guidée des scénarios Qt réels
+
+`QT_QPA_PLATFORM=offscreen python -m tools.atlas_doctor capture-ui encyclopedia --json` lance **uniquement sur demande** le scénario offscreen prévu pour Guide/Quêtes/Succès. Les variantes `capture-ui equipment` et `capture-ui qt` sont également disponibles ; les noms sont limités à une liste de trois modules validés, pas de lancement libre de `main.py`. La commande range sa trace dans `.ai/runtime/atlas_doctor/traces/atlas_ui_<scenario>.json`, sans création de watcher permanent, sans exécuter la FULL_SUITE et sans benchmark RAM/preload. La fonctionnalité n'est pas exécutée lors des builds normaux et n'installe aucun hook applicatif. Le JSON des preuves se combine ensuite explicitement via `graph-ui --trace ... --extra-trace ...`.
