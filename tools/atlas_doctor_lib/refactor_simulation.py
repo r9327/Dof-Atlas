@@ -172,6 +172,14 @@ def simulate_refactor(
     else:
         replacement = None
     impact = agent.reverse_impact_payload(root, normalized, depth=depth)
+    # Independent current-source AST evidence remains visible if Graphify is
+    # stale. Never use it to override a blocked graph certification gate.
+    from .source_impact import source_reverse_impact
+    try:
+        source_impact = source_reverse_impact(root, normalized, depth=depth)
+    except (OSError, RuntimeError, ValueError) as exc:
+        source_impact = {"status": "REVIEW", "reason": type(exc).__name__,
+                         "consumer_files": [], "safe_to_delete": False}
     runtime = _runtime_consumer_evidence(root, normalized, trace_path)
     consolidation_similarity: dict[str, Any] | None = None
     if action == "consolidate":
@@ -199,14 +207,18 @@ def simulate_refactor(
             "truncated": impact.get("truncated", False),
             "source_errors": impact.get("source_errors", []),
         },
-        "consumer_files": sorted((set(impact.get("impacted_files", [])) | (
+        "consumer_files": sorted((set(impact.get("impacted_files", []))
+            | {row["path"] for row in source_impact.get("consumer_files", [])}
+            | (
             {row["source"] for kind in ("observed_python_consumers", "qt_registration_sites", "qt_callback_invocations")
              for row in runtime[kind]} if runtime["status"] == "MATCHED" else set()
         )) - set(normalized)),
         "runtime_evidence": runtime,
+        "source_confirmed_impact": source_impact,
         "consolidation_similarity": consolidation_similarity,
         "limitations": [
             "Graph-derived relations are confirmed against literal Python imports, not arbitrary runtime callbacks.",
+            "Current-source reverse consumers are AST-proven but do not cover dynamic imports or native Qt registrations.",
             "A preview cannot prove absence of dynamic consumers or that consolidation preserves behavior.",
             "No file will be modified without a reviewed implementation plan.",
             "Observed Python calls, Qt registrations and explicitly wrapped callback entries are scenario-specific positives, not complete coverage.",
