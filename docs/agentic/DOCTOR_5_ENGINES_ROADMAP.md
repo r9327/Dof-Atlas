@@ -109,3 +109,7 @@ Le plan non mutatif combine les consommateurs Graphify confirmés avec les **app
 ### Événement d'entrée callback Qt, observation opt-in
 
 `wrapped = observer.wrap_qt_slot(slot)` puis enregistrement explicite du callable `wrapped` dans un scénario Qt. L'événement `qt_callback_invoked` est émis seulement à l'entrée de la fonction Python sous trace active; retour et exceptions inchangés, sans interception des connexions de l'application. `code-inspect` et `refactor-preview --trace` séparent cet événement du simple retour de `signal.connect`. Les signatures Qt natives doivent être validées scénario par scénario; aucun ownership C++, fuite mémoire ni couverture totale ne sont présumés.
+
+### Graphify : callbacks Qt exécutés dans le Canvas
+
+Le graphe interactif et l'export de preuves par nœud distinguent désormais `QT_CONNECT_RETURNED` (enregistrement du signal) de `QT_CALLBACK_INVOKED` (entrée observée d'un callback Python explicitement instrumenté). Aucune arête d'exécution n'est affichée sans trace correspondant au SHA exact et à un worktree propre ; les callbacks non observés et l'ownership C++ restent non prouvés.

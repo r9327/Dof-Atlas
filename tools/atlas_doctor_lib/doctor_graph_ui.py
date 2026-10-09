@@ -184,6 +184,16 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             and isinstance(row.get("source"), str)
             and isinstance(row.get("target"), str)
         }
+    invoked_qt_pairs: set[tuple[str, str]] = set()
+    if trace_status == "MATCHED" and trace is not None:
+        invoked_qt_pairs = {
+            (row["source"], row["target"])
+            for row in trace.get("events", [])
+            if row.get("type") == "qt_callback_invoked"
+            and row.get("confidence") == "WRAPPED_PYTHON_CALLBACK_ENTERED"
+            and isinstance(row.get("source"), str)
+            and isinstance(row.get("target"), str)
+        }
     symbol_calls: list[dict[str, Any]] = []
     if trace_status == "MATCHED" and trace is not None:
         symbol_calls = [
@@ -200,6 +210,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     cache_released_files = set(observed_lifecycle.get("cache_release_sources", []))
     observed_files = {file for pair in runtime_pairs for file in pair}
     qt_files = {file for pair in qt_pairs for file in pair}
+    qt_invoked_files = {file for pair in invoked_qt_pairs for file in pair}
     qt_sites: set[str] = set()
     if trace_status == "MATCHED" and trace is not None:
         qt_sites = {row["source"] for row in trace.get("events", [])
@@ -236,6 +247,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "runtime_observed": file in observed_files,
             "qt_call_site_observed": file in qt_sites,
             "qt_connection_observed": file in qt_files,
+            "qt_callback_invoked_observed": file in qt_invoked_files,
             "worker_start_unpaired_at_trace_end": file in open_worker_files,
             "cache_release_observed": file in cache_released_files,
         })
@@ -262,6 +274,12 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         if a in first_by_file and b in first_by_file:
             edges.append({"a": first_by_file[a], "b": first_by_file[b],
                           "relation": "QT_CONNECT_RETURNED", "observed": True})
+    for a, b in sorted(invoked_qt_pairs):
+        if len(edges) >= MAX_LINKS:
+            break
+        if a in first_by_file and b in first_by_file:
+            edges.append({"a": first_by_file[a], "b": first_by_file[b],
+                          "relation": "QT_CALLBACK_INVOKED", "observed": True})
     return {
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
         "snapshot_diff": comparison,
@@ -269,6 +287,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "community_review_total": int(cohesion.get("candidate_count") or 0)
         if isinstance(cohesion, dict) else 0,
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
+        "observed_qt_callback_file_pairs": len(invoked_qt_pairs),
         "observed_lifecycle": observed_lifecycle,
         "observed_symbol_calls": symbol_calls,
         "source_inspection_status": (inspection or {}).get("status", "NOT_RUN"),
@@ -515,6 +534,7 @@ if(symbolCalls.length){
 }
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
 if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ; exécution du récepteur non prouvée.');
+ if(n.qt_callback_invoked_observed)line('p','Callback Python Qt entré pendant ce scénario opt-in ; ownership natif non prouvé.');
 if(n.worker_start_unpaired_at_trace_end)line('p','Worker démarré sans arrêt observé avant la fin de cette trace ; une activité en cours est possible, ce n’est pas une fuite mémoire prouvée.');
 if(n.cache_release_observed)line('p','Libération de cache explicitement marquée dans le scénario runtime.');
 if(n.doctor_task){
@@ -587,6 +607,7 @@ function buildNodeEvidence(i){
    snapshot_changes:n.snapshot_changes||null},
   runtime:{python_call_observed:!!n.runtime_observed,
    qt_connection_observed:!!n.qt_connection_observed,
+   qt_callback_invoked_observed:!!n.qt_callback_invoked_observed,
    qt_call_site_observed:!!n.qt_call_site_observed,
    unpaired_worker_at_trace_end:!!n.worker_start_unpaired_at_trace_end,
    cache_release_marked:!!n.cache_release_observed,
@@ -761,7 +782,7 @@ search.addEventListener('keydown',event=>{
  if(event.key==='Enter'&&matches.length){event.preventDefault();pageIndex=0;filter(false);focusNode(matches[0])}
 });
 document.getElementById('reset').addEventListener('click',()=>{scale=.36;panX=0;panY=0;render()});
-document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées. '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
+document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées, '+(data.observed_qt_callback_file_pairs||0)+' callbacks Qt exécutés. '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
 async function refreshLive(force=false){
  if(document.hidden||refreshInFlight||(!force&&Date.now()-lastRefresh<1500))return;
  lastRefresh=Date.now();

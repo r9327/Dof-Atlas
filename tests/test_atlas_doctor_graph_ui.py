@@ -510,6 +510,45 @@ class DoctorGraphUiTests(unittest.TestCase):
         trace["worktree_clean"] = False
         self.assertEqual(compact_graph(graph, {}, trace)["edges"], [])
 
+
+    def test_qt_invocations_have_distinct_graph_edges_and_export_evidence(self):
+        sha = "e" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "app/signal.py"},
+                           {"id": 2, "source_file": "app/slot.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                     {"type": "qt_signal_connect_returned",
+                      "source": "app/signal.py", "target": "app/slot.py"},
+                     {"type": "qt_callback_invoked", "source": "app/signal.py",
+                      "target": "app/slot.py", "confidence": "WRAPPED_PYTHON_CALLBACK_ENTERED"},
+                 ]}
+        data = compact_graph(graph, {}, trace)
+        self.assertEqual(data["observed_qt_callback_file_pairs"], 1)
+        self.assertTrue(data["nodes"][1]["qt_callback_invoked_observed"])
+        self.assertEqual([x["relation"] for x in data["edges"]],
+                         ["QT_CONNECT_RETURNED", "QT_CALLBACK_INVOKED"])
+        html = render_html(data)
+        self.assertIn("Callback Python Qt entré", html)
+        self.assertIn("qt_callback_invoked_observed:!!n.qt_callback_invoked_observed", html)
+        trace["worktree_clean"] = False
+        stale = compact_graph(graph, {}, trace)
+        self.assertEqual(stale["observed_qt_callback_file_pairs"], 0)
+        self.assertEqual(stale["edges"], [])
+
+    def test_qt_callback_without_provenance_is_not_graph_evidence(self):
+        sha = "f" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "app/a.py"},
+                           {"id": 2, "source_file": "app/b.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "events": [
+            {"type": "qt_callback_invoked", "source": "app/a.py",
+             "target": "app/b.py", "confidence": "CALL_SITE_ONLY"}
+        ]}
+        data = compact_graph(graph, {}, trace)
+        self.assertEqual(data["observed_qt_callback_file_pairs"], 0)
+        self.assertEqual(data["edges"], [])
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,
