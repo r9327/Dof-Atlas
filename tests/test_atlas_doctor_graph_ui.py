@@ -47,9 +47,12 @@ class DoctorGraphUiTests(unittest.TestCase):
             output.mkdir()
             prior = output / "previous.json"
             graph = {"built_at_commit": "b" * 40,
-                     "nodes": [], "links": []}
+                     "nodes": [{"id": 1, "source_file": "app/main.py", "label": "main"}],
+                     "links": []}
             prior.write_text(json.dumps({"built_at_commit": "a" * 40,
-                                         "nodes": [], "links": []}), encoding="utf-8")
+                                         "nodes": [{"id": 1, "source_file": "app/main.py",
+                                                    "label": "main"}], "links": []}),
+                             encoding="utf-8")
             report = load_snapshot_comparison(root, graph, prior)
             self.assertEqual(report["baseline_sha"], "a" * 40)
             self.assertEqual(report["candidate_sha"], "b" * 40)
