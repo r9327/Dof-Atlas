@@ -194,6 +194,14 @@ jobs:
             tests.test_security_hardening_guardrails
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Reproduce FULL failures using only Doctor and Guide contracts
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v `
+            tests.test_atlas_doctor_development_preflight `
+            tests.test_guide_ultime_route_sheet_ui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload Doctor merge evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
