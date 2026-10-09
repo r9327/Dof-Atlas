@@ -39,7 +39,7 @@ class DoctorGraphUiTests(unittest.TestCase):
         for marker in (
             'id="graphPrev"', 'id="graphNext"', 'id="graphPage"',
             "const PAGE_SIZE=1200", "matches=nodes.map", "matches.slice(",
-            "Math.floor(offset/PAGE_SIZE)", "filter(false);focusNode(e.n)",
+            "Math.floor(offset/PAGE_SIZE)", "button.addEventListener('click',()=>revealNode(e.n))",
             "button.addEventListener('click'", "relations de la page uniquement",
         ):
             self.assertTrue(marker in html, f"Expected Graphify UI marker: {marker}")
@@ -55,7 +55,7 @@ class DoctorGraphUiTests(unittest.TestCase):
         page = render_html(compact_graph(graph, {}))
         self.assertIn("function focusNode(i)", page)
         self.assertIn("panX=-loc.x;panY=-loc.y", page)
-        self.assertIn("filter(false);focusNode(e.n)", page)
+        self.assertIn("button.addEventListener('click',()=>revealNode(e.n))", page)
         self.assertIn("event.key==='Enter'", page)
         self.assertIn("focusNode(matches[0])", page)
         self.assertIn("const lineAnchor=locationMatch?'#L'", page)
