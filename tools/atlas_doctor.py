@@ -235,6 +235,19 @@ def command_dev_event(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_dev_check(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.development_preflight import development_preflight
+    result = development_preflight(
+        root, base_ref=args.base_ref, run_tests=args.run_tests,
+        max_tests=args.max_tests, timeout_seconds=args.timeout_seconds)
+    if not args.json:
+        print(f"Doctor development check: {result['status']}")
+        print(f"Changed: {result.get('changed_count', 0)} | "
+              f"Focused tests: {result.get('targeted_test_execution', {}).get('status', 'NOT_RUN')}")
+        print("Not an Atlas Integrity, merge, RAM or preload certification.")
+    return result
+
+
 def command_graph_live(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.live_graph import change_snapshot, serve_graph_live
     if args.once:
@@ -670,6 +683,11 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument('--event', choices=('save', 'pre-commit', 'push'), required=True)
     ev.add_argument('paths', nargs='*')
     ev.add_argument('--base-ref', help='Reference de comparaison explicite pour push.')
+    dc = sub.add_parser('dev-check', help='Precontrole Git/AST borne, tests cibles opt-in; jamais un gate de merge.')
+    dc.add_argument('--base-ref', required=True, help='Reference Git explicite de comparaison.')
+    dc.add_argument('--run-tests', action='store_true', help='Lancer les seuls tests modules selectionnes (budget).')
+    dc.add_argument('--max-tests', type=int, default=8, help='Maximum 1..8 modules selectionnes.')
+    dc.add_argument('--timeout-seconds', type=int, default=90, help='Budget total pour les tests cibles (10..180s).')
     gl = sub.add_parser('graph-live', help='Suivi Git temps reel dans Graphify Web local, sans rebuilder.')
     gl.add_argument('--port', type=int, default=8765)
     gl.add_argument('--open', action='store_true')
@@ -832,6 +850,7 @@ def main(argv: list[str] | None = None) -> int:
         'graph-ui': command_graph_ui,
         'graph-live': command_graph_live,
         'dev-event': command_dev_event,
+        'dev-check': command_dev_check,
         'refactor-preview': command_refactor_preview,
         'source-impact': command_source_impact,
         'file-audit': command_file_audit,
@@ -871,6 +890,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2 if payload['status'] == 'BLOCKED' else 1
     if args.command == 'dev-event':
         return 0
+    if args.command == 'dev-check':
+        return 2 if payload['status'] in {'FAIL', 'BLOCKED'} else 1 if payload['status'] == 'PARTIAL_REVIEW' else 0
     if args.command == 'graph-live':
         return 2 if payload['status'] == 'BLOCKED' else 0
     if args.command == 'graph-ui':

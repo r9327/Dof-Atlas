@@ -70,5 +70,83 @@ class DevEventTests(unittest.TestCase):
         self.assertEqual(changes[1]["status"], "M")
 
 
+class DevelopmentPreflightTests(unittest.TestCase):
+    def test_scope_is_bounded_and_never_certified(self):
+        from unittest.mock import patch
+        from tools.atlas_doctor_lib.development_preflight import development_preflight
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "app").mkdir()
+            (root / "app/item.py").write_text("value = 1\n", encoding="utf-8")
+            with patch("tools.atlas_integrity.resolve_base_ref"), \
+                 patch("tools.atlas_integrity.changed_files", return_value=["app/item.py"]), \
+                 patch("tools.atlas_integrity.repository_head", return_value="a" * 40), \
+                 patch("tools.atlas_integrity.load_policy", return_value={
+                     "modes": {"FAST": ["ARCHITECTURE"]},
+                     "risk_requirements": {"LOW": [], "MEDIUM": [], "HIGH": [], "CRITICAL": []},
+                     "groups": {"ARCHITECTURE": {}}}), \
+                 patch("tools.ai_context.recommended_tests", return_value=[]):
+                report = development_preflight(root, base_ref="main")
+            self.assertEqual(report["status"], "PLANNED")
+            self.assertEqual(report["syntax"]["checked"], 1)
+            self.assertEqual(report["deferred_integrity_groups"], ["ARCHITECTURE"])
+            self.assertFalse(report["integrity_executed"])
+            self.assertFalse(report["merge_gate_satisfied"])
+            self.assertFalse(report["certified"])
+            self.assertFalse(report["tests_executed"])
+
+    def test_bad_ast_fails_without_launching_tests(self):
+        from unittest.mock import patch
+        from tools.atlas_doctor_lib.development_preflight import development_preflight
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "app").mkdir()
+            (root / "app/broken.py").write_text("def broken(\n", encoding="utf-8")
+            with patch("tools.atlas_integrity.resolve_base_ref"), \
+                 patch("tools.atlas_integrity.changed_files", return_value=["app/broken.py"]), \
+                 patch("tools.atlas_integrity.repository_head", return_value="a" * 40), \
+                 patch("tools.ai_context.recommended_tests", return_value=[]):
+                report = development_preflight(root, base_ref="main")
+            self.assertEqual(report["status"], "FAIL")
+            self.assertEqual(report["syntax"]["errors"][0]["reason"], "SyntaxError")
+            self.assertFalse(report["tests_executed"])
+
+    def test_optional_tests_are_bounded_and_never_count_as_full_gate(self):
+        from unittest.mock import patch
+        from tools.atlas_doctor_lib.development_preflight import development_preflight
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            folder_tests = root / "tests"
+            folder_tests.mkdir()
+            (folder_tests / "test_example.py").write_text(
+                "import unittest\nclass Smoke(unittest.TestCase):\n"
+                "    def test_ok(self): self.assertEqual(2, 2)\n", encoding="utf-8")
+            with patch("tools.atlas_integrity.resolve_base_ref"), \
+                 patch("tools.atlas_integrity.changed_files", return_value=["tests/test_example.py"]), \
+                 patch("tools.atlas_integrity.repository_head", return_value="a" * 40), \
+                 patch("tools.ai_context.recommended_tests", return_value=["tests.test_example"]), \
+                 patch("tools.atlas_doctor_lib.development_preflight._run_focused_tests",
+                       return_value={"status": "PASS", "modules": ["tests.test_example"],
+                                     "tests_executed": True, "duration_seconds": 0.1}):
+                report = development_preflight(root, base_ref="main", run_tests=True)
+            self.assertEqual(report["status"], "FOCUSED_CHECKED")
+            self.assertEqual(report["targeted_test_selection"]["selected"], ["tests.test_example"])
+            self.assertFalse(report["full_suite_waived"])
+            self.assertFalse(report["merge_gate_satisfied"])
+
+    def test_missing_deleted_sources_force_review(self):
+        from unittest.mock import patch
+        from tools.atlas_doctor_lib.development_preflight import development_preflight
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            with patch("tools.atlas_integrity.resolve_base_ref"), \
+                 patch("tools.atlas_integrity.changed_files", return_value=["app/deleted.py"]), \
+                 patch("tools.atlas_integrity.repository_head", return_value="a" * 40), \
+                 patch("tools.ai_context.recommended_tests", return_value=[]):
+                report = development_preflight(root, base_ref="main")
+            self.assertEqual(report["status"], "FAIL")
+            self.assertFalse(report["certified"])
+
+
 if __name__ == "__main__":
     unittest.main()

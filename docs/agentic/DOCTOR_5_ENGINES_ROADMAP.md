@@ -485,3 +485,17 @@ L’inventaire `capabilities` vérifie maintenant pour chacune des 18 capacités
 ### Inspection graphique accessible depuis l'enquête Doctor
 
 `file-audit app/pages/quests_page.py --graph-ui` produit maintenant **sur demande explicite** la vue interactive Graphify focalisée sur ce fichier, et retourne le chemin local du rapport HTML. Cette action ne se déclenche que si la provenance du graphe source est exacte-SHA ; avec un graphe périmé, le diagnostic AST reste accessible, mais aucune vue d'arêtes actuelles non validée n'est produite. En présence de `--trace`, la même trace est transmise au panneau d'inspection Graphify. Sans `--graph-ui`, la consultation n'écrit aucun artefact de visualisation. Pas de test, benchmark, merge ou reconstruction Graphify en arrière-plan.
+
+
+## Doctor développement rapide : ne pas réexécuter Atlas Integrity FAST sur chaque itération
+
+Diagnostic : le dernier gate Doctor FAST a passé **~323 s** dans Atlas Integrity, contre ~11 s dans le scan AST Doctor et <1 s dans ses relations Git/imports. Le profil FAST historique suit le risque du *diff entier* : sur une PR classée CRITICAL, les suites Qt/lifecycle, Golden Flows et les tests modifiés représentent plusieurs minutes. Ces vérifications sont légitimes pour une certification, mais **pas pour chaque cycle de développement**.
+
+Nouveau circuit rapide explicite :
+
+- `python -m tools.atlas_doctor dev-check --base-ref origin/main --json` : Git diff actuel + risque canonique + AST des **16 premiers fichiers Python modifiés**, tests recommandés (max 8 modules), aucune validation/lancement Qt/Graphify, aucun benchmark.
+- `python -m tools.atlas_doctor dev-check --base-ref origin/main --run-tests --timeout-seconds 90 --json` : exécute facultativement **les seuls modules ciblés** sous un plafond de 90 secondes total. Budget permis 10..180 s ; échec ou dépassement signalé comme FAIL.
+- Plus de 80 chemins, 16 sources Python, 8 modules, fichier trop gros, fichier supprimé ou anomalie AST : jamais de PASS trompeur, état PARTIAL_REVIEW ou FAIL. Les changements structurels exigent une investigation dédiée.
+- Les groupes obligatoires FAST restent explicitement listés dans `deferred_integrity_groups` et `certified=false`, `merge_gate_satisfied=false`. Aucune preuve de test ciblé ne peut être utilisée pour contourner le gate canonique de merge ou la certification FULL. Le mode `verify --gate fast` conserve intégralement sa politique originale.
+
+À long terme, un cache AST de contenu existe déjà dans `run_audit`, mais les attestations de tests / gates ne sont **jamais réutilisées entre SHA ni d’après un rapport incomplet**. Sur le quotidien, préférer le nouveau profil explicite ; réserver le FAST de conformité aux étapes de validation qui l’exigent. Le chantier RAM/preload est indépendant.
