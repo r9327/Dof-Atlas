@@ -324,6 +324,31 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("Simuler l’impact du retrait de ce fichier", html)
         self.assertNotIn("safe_to_delete", html)
 
+    def test_node_evidence_can_be_downloaded_without_refactor_or_graph_rebuild(self):
+        graph = {
+            "built_at_commit": "d" * 40,
+            "nodes": [{"id": 1, "label": "source", "source_file": "app/ui/source.py"},
+                      {"id": 2, "label": "target", "source_file": "app/core/target.py"}],
+            "links": [{"source": 1, "target": 2, "relation": "imports"}],
+        }
+        payload = compact_graph(graph, {})
+        self.assertEqual(len(payload["edges"]), 1)
+        html = render_html(payload)
+        for snippet in (
+            "Exporter les preuves Doctor de ce nœud (JSON)",
+            "function buildNodeEvidence(i)", "function downloadNodeEvidence(i)",
+            "schema_version:1,kind:'doctor_graph_node_evidence'",
+            "relationships:{shown:direct,total:",
+            "runtime_trace_status:data.trace_status",
+            "limitations:[",
+            "not proof of dead code or safe deletion",
+            "const blob=new Blob([JSON.stringify(report,null,2)",
+            "element.download='doctor-evidence-'",
+            "URL.revokeObjectURL(url)",
+        ):
+            self.assertIn(snippet, html)
+        self.assertNotIn("graph --rebuild", html)
+
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
                  "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}

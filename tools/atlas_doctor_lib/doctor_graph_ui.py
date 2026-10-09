@@ -562,7 +562,57 @@ const previewButton=document.createElement('button');previewButton.type='button'
 previewButton.textContent='Simuler l’impact du retrait de ce fichier (sans modification)';
 previewButton.addEventListener('click',()=>showFileRemovalPreview(n.file));
 details.appendChild(previewButton);
+const evidenceButton=document.createElement('button');evidenceButton.type='button';
+evidenceButton.textContent='Exporter les preuves Doctor de ce nœud (JSON)';
+evidenceButton.addEventListener('click',()=>downloadNodeEvidence(i));
+details.appendChild(evidenceButton);
 render()}
+function buildNodeEvidence(i){
+ const n=nodes[i];
+ const direct=(neighbors.get(i)||[]).slice(0,80).map(edge=>({
+  direction:edge.direction,relation:edge.relation,
+  file:nodes[edge.n].file,source_location:nodes[edge.n].line,
+ }));
+ const calls=(data.observed_symbol_calls||[])
+  .filter(e=>e.source===n.file||e.target===n.file).slice(0,20);
+ return {
+  schema_version:1,kind:'doctor_graph_node_evidence',
+  candidate_sha:data.candidate_sha,
+  static_graph_truncated:!!data.truncated,
+  runtime_trace_status:data.trace_status,
+  source_inspection_status:data.source_inspection_status,
+  source:{file:n.file,symbol:n.label,line:n.line,community:n.community},
+  review:{categories:n.review_categories||[],reasons:n.reasons||[],
+   doctor_task:n.doctor_task||null,source_evidence:(n.source_evidence||[]).slice(0,20),
+   snapshot_changes:n.snapshot_changes||null},
+  runtime:{python_call_observed:!!n.runtime_observed,
+   qt_connection_observed:!!n.qt_connection_observed,
+   qt_call_site_observed:!!n.qt_call_site_observed,
+   unpaired_worker_at_trace_end:!!n.worker_start_unpaired_at_trace_end,
+   cache_release_marked:!!n.cache_release_observed,
+   symbol_calls:calls,partial_symbol_calls:!!data.symbol_calls_bounded},
+  relationships:{shown:direct,total:(neighbors.get(i)||[]).length,
+   truncated:(neighbors.get(i)||[]).length>80},
+  limitations:[
+   'Review evidence only; not proof of dead code or safe deletion.',
+   'Static relations do not prove runtime calls.',
+   'An unobserved Qt callback is not proof that it never executes.',
+   'The exported subset and current Graphify snapshot may be incomplete.',
+  ],
+  code_changed_since_graph:changedFiles.has(n.file),
+ };
+}
+function downloadNodeEvidence(i){
+ const report=buildNodeEvidence(i);
+ const blob=new Blob([JSON.stringify(report,null,2)+'\n'],{type:'application/json'});
+ const url=URL.createObjectURL(blob);
+ const element=document.createElement('a');
+ const safe=String(report.source.file||'node').replace(/[^a-zA-Z0-9_.-]/g,'_').slice(0,72);
+ element.download='doctor-evidence-'+safe+'-'+String(report.candidate_sha||'unknown').slice(0,9)+'.json';
+ element.href=url;document.body.appendChild(element);
+ element.click();element.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 function focusNode(i){
  const loc=positions[i];
  if(!loc)return;
