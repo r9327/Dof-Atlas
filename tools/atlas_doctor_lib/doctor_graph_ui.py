@@ -25,7 +25,8 @@ def _domain(path: str) -> str:
 
 def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                   trace: dict[str, Any] | None = None,
-                  inspection: dict[str, Any] | None = None) -> dict[str, Any]:
+                  inspection: dict[str, Any] | None = None,
+                  lineage: dict[str, Any] | None = None) -> dict[str, Any]:
     nodes = graph.get("nodes", [])[:MAX_NODES]
     indexed = {item["id"]: number for number, item in enumerate(nodes)}
     file_reasons: dict[str, list[str]] = {}
@@ -98,6 +99,26 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                     if isinstance(item, dict):
                         add(item.get("path"), item.get("line"),
                             "Similar AST shape (not semantic equality)", item.get("symbol"))
+    if isinstance(lineage, dict):
+        for entry in lineage.get("references", [])[:80]:
+            if not isinstance(entry, dict):
+                continue
+            path = entry.get("source")
+            label = entry.get("data_reference")
+            for ui in entry.get("possible_ui_importers", [])[:8]:
+                if not isinstance(ui, dict):
+                    continue
+                ui_path = ui.get("path")
+                if not isinstance(ui_path, str):
+                    continue
+                existing = source_evidence.setdefault(ui_path, [])
+                if len(existing) >= MAX_SOURCE_SIGNALS_PER_FILE:
+                    continue
+                existing.append({
+                    "line": "", "kind": "Possible JSON reference via import chain",
+                    "subject": f"{path} : {label}"[:180],
+                    "confidence": "STATIC_IMPORT_PATH_NOT_RUNTIME_FLOW",
+                })
     trace_status = "NOT_PROVIDED"
     runtime_pairs: set[tuple[str, str]] = set()
     if trace is not None:
@@ -187,6 +208,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
         "observed_symbol_calls": symbol_calls,
         "source_inspection_status": (inspection or {}).get("status", "NOT_RUN"),
+        "json_lineage_review_leads": (lineage or {}).get("references_with_ui_importers", 0),
+        "json_lineage_runtime_proven": False,
         "source_inspection_files": len((inspection or {}).get("paths_inspected", [])),
         "source_inspection_truncated": bool((inspection or {}).get("truncated")),
         "symbol_calls_bounded": bool(trace and trace.get("symbol_edges_truncated")),
@@ -461,7 +484,11 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         if source_paths:
             from .deep_intelligence import scan_sources
             inspection = scan_sources(root, source_paths)
-    payload = compact_graph(graph, audit, trace=trace, inspection=inspection)
+    lineage = None
+    if inspection is not None and inspection.get("data_lineage_candidates"):
+        from .deep_intelligence import trace_literal_json_to_ui
+        lineage = trace_literal_json_to_ui(graph, inspection["data_lineage_candidates"])
+    payload = compact_graph(graph, audit, trace=trace, inspection=inspection, lineage=lineage)
     payload["source_scan_selection_truncated"] = source_scan_truncated
     from .file_coverage import tracked_python
     inventory = tracked_python(root)
@@ -485,6 +512,7 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         "links_shown": len(payload["edges"]), "truncated": payload["truncated"],
         "source_inspection": payload["source_inspection_status"],
         "source_scan_files": payload["source_inspection_files"],
+        "json_lineage_review_leads": payload["json_lineage_review_leads"],
         "source_scan_truncated": source_scan_truncated or payload["source_inspection_truncated"],
         "tests_executed": False, "graph_rebuilt": False,
     }

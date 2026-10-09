@@ -67,6 +67,23 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("Indices AST du fichier", render_html(result))
         self.assertIn("n.source_evidence.length", render_html(result))
 
+    def test_json_to_ui_review_evidence_is_visible_on_candidate_view_node(self):
+        graph = {"nodes": [
+            {"id": 1, "source_file": "app/core/catalog.py"},
+            {"id": 2, "source_file": "app/pages/catalog_page.py"},
+        ], "links": [], "built_at_commit": "a" * 40}
+        lineage = {"references_with_ui_importers": 1, "references": [{
+            "source": "app/core/catalog.py", "data_reference": "data/catalog.json",
+            "possible_ui_importers": [{"path": "app/pages/catalog_page.py",
+                                       "import_hops": 1}],
+        }]}
+        report = compact_graph(graph, {}, lineage=lineage)
+        self.assertEqual(report["json_lineage_review_leads"], 1)
+        self.assertFalse(report["json_lineage_runtime_proven"])
+        self.assertEqual(report["nodes"][1]["source_evidence"][0]["kind"],
+                         "Possible JSON reference via import chain")
+        self.assertEqual(report["nodes"][0]["source_evidence"], [])
+
     def test_unscanned_graph_nodes_do_not_inherit_ast_findings(self):
         graph = {"nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}
         result = compact_graph(graph, {})
