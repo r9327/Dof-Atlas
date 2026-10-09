@@ -25,6 +25,7 @@ MODULE_RE = re.compile(r"tests\.test_[a-zA-Z0-9_]+$")
 
 
 def _review_python_sources(root: Path, changed: list[str]) -> dict[str, Any]:
+    trusted_root = root.resolve()
     sources = [path for path in changed if path.endswith(".py")]
     errors: list[dict[str, str]] = []
     checked = 0
@@ -35,7 +36,7 @@ def _review_python_sources(root: Path, changed: list[str]) -> dict[str, Any]:
                 or any(part in {".", "..", ""} for part in relative.parts)
                 or selected.is_symlink()
                 or not selected.is_file()
-                or not selected.resolve().is_relative_to(root)):
+                or not selected.resolve().is_relative_to(trusted_root)):
             errors.append({"path": name, "reason": "UNSAFE_OR_MISSING_SOURCE"})
             continue
         try:
@@ -56,6 +57,7 @@ def _review_python_sources(root: Path, changed: list[str]) -> dict[str, Any]:
 
 
 def _select_modules(root: Path, changed: list[str], limit: int) -> dict[str, Any]:
+    trusted_root = root.resolve()
     # Explicit edited tests first. Domain recommendations follow, preserving
     # the existing AI context mapper but never importing application modules.
     direct = [
@@ -73,7 +75,7 @@ def _select_modules(root: Path, changed: list[str], limit: int) -> dict[str, Any
             continue
         source = root / (module.replace(".", "/") + ".py")
         if (not source.is_file() or source.is_symlink()
-                or not source.resolve().is_relative_to(root)):
+                or not source.resolve().is_relative_to(trusted_root)):
             rejected.append(module)
             continue
         verified.append(module)

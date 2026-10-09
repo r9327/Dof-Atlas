@@ -47,6 +47,27 @@ class DevelopmentPreflightContracts(unittest.TestCase):
             self.assertEqual(report["selected"], ["tests.test_a"])
             self.assertEqual(report["status"], "REVIEW")
 
+    def test_resolved_root_alias_is_trusted_but_only_for_its_own_files(self):
+        # On Windows, tempfile paths may resolve from RUNNER~1 to their long
+        # canonical form. A caller-provided root alias is still the same root.
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            alias = root / "alias"
+            try:
+                alias.symlink_to(root, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("Directory symlinks not permitted on this runner")
+            (root / "app").mkdir()
+            (root / "app" / "valid.py").write_text("x = 1\n")
+            (root / "tests").mkdir()
+            (root / "tests" / "test_a.py").write_text("pass\n")
+            syntax = _review_python_sources(alias, ["app/valid.py"])
+            self.assertEqual(syntax["status"], "PASS")
+            self.assertEqual(syntax["checked"], 1)
+            with patch("tools.ai_context.recommended_tests", return_value=["tests.test_a"]):
+                selection = _select_modules(alias, [], 8)
+            self.assertEqual(selection["selected"], ["tests.test_a"])
+
     def test_actual_test_runner_success_and_failure_propagate(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
