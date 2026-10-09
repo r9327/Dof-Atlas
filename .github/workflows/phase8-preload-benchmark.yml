@@ -191,15 +191,15 @@ jobs:
               raise SystemExit(f"candidate preload did not reach terminal states: {states!r}")
 
           rss_after_preload = float(after_metrics["rss_after_preload_mb"])
-          if rss_after_preload > 130.0:
+          if rss_after_preload > 95.0:
               raise SystemExit(
-                  f"candidate preload RAM budget exceeded: {rss_after_preload:.2f} MB > 130.00 MB"
+                  f"candidate preload RAM budget exceeded: {rss_after_preload:.2f} MB > 95.00 MB"
               )
           startup_rss = float(after_metrics["startup_stabilized_rss_mb"])
-          if rss_after_preload - startup_rss > 60.0:
+          if rss_after_preload - startup_rss > 20.0:
               raise SystemExit(
                   "candidate preload retained too much memory: "
-                  f"+{rss_after_preload - startup_rss:.2f} MB > +60.00 MB"
+                  f"+{rss_after_preload - startup_rss:.2f} MB > +20.00 MB"
               )
           before_peak = float(before_metrics.get("peak_rss_mb") or 0.0)
           after_peak = float(after_metrics["peak_rss_mb"])

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 from PySide6.QtWidgets import QWidget
 
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
@@ -78,11 +80,9 @@ class EncyclopediaPage(BaseEncyclopediaPage):
     def _restore_quests_view(self):
         if self.quest_page is not None:
             return self.quest_page
-        # The resident QuestProvider keeps the SQLite-backed compact catalogue
-        # warm. Rebuild only the Qt representation; never reparse documentary
-        # quest sources just because the user comes back to the tab.
-        if getattr(self.quest_provider, "_catalog", None) is None:
-            return None
+        # The provider may have released its resident summaries while Home was
+        # visible. Rehydrate from the already-built SQLite store on demand.
+        self.quest_provider.get_catalog()
         page = self._build_quests_page_progressive()
         self.replace_tab_widget(QUESTS_TAB, page)
         if self._memory_restore_quest_series:
@@ -138,14 +138,57 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         if active_label != GUIDES_TAB:
             self._hibernate_guides()
 
+    @staticmethod
+    def _clear_reconstructible_image_cache() -> None:
+        """Release decoded Encyclopedia thumbnails when the whole page sleeps."""
+
+        module = sys.modules.get("app.modules.encyclopedia.services.image_service")
+        if module is None:
+            return
+        service = getattr(module, "ENCYCLOPEDIA_IMAGE_SERVICE", None)
+        clear = getattr(service, "clear", None)
+        if callable(clear):
+            clear()
+
+    @staticmethod
+    def _clear_reconstructible_manual_guide_cache() -> None:
+        """Drop reconstructible manual-route caches without importing cold modules."""
+
+        cache_clearers = (
+            (
+                "app.modules.encyclopedia.services.guide_ultime_manual_runtime_core",
+                "clear_manual_bundle_cache",
+            ),
+            (
+                "app.modules.encyclopedia.services.guide_ultime_manual_route",
+                "clear_manual_route_cache",
+            ),
+            (
+                "app.modules.encyclopedia.services.guide_auto_validation_contract",
+                "clear_auto_validation_contract_cache",
+            ),
+        )
+        for module_name, clear_name in cache_clearers:
+            module = sys.modules.get(module_name)
+            if module is None:
+                continue
+            clear = getattr(module, clear_name, None)
+            if callable(clear):
+                clear()
+
     def _release_runtime_providers(self) -> bool:
         if bool(getattr(self, "_achievement_load_started", False)) or bool(
             getattr(self, "_related_preload_started", False)
         ):
             return False
 
-        achievement_provider = getattr(getattr(self, "service", None), "achievement_provider", None)
-        guide_provider = getattr(getattr(self, "service", None), "guide_provider", None)
+        service = getattr(self, "service", None)
+        peek_achievement = getattr(service, "peek_achievement_provider", None)
+        peek_guide = getattr(service, "peek_guide_provider", None)
+        achievement_provider = (
+            peek_achievement() if callable(peek_achievement) else None
+        )
+        guide_provider = peek_guide() if callable(peek_guide) else None
         for provider in (achievement_provider, guide_provider):
             release = getattr(provider, "release_catalogue", None)
             if callable(release):
@@ -155,6 +198,19 @@ class EncyclopediaPage(BaseEncyclopediaPage):
         if graph is not None:
             graph.achievement_provider = None
             graph.guide_provider = None
+            graph.catalog = None
+            graph.quest_provider = None
+        self._quest_graph = None
+
+        release_quests = getattr(self.quest_provider, "release_catalogue", None)
+        if callable(release_quests):
+            release_quests()
+
+        # Thumbnails are fully reconstructible. Keeping the shared Guide image
+        # LRU alive after Home pins several megabytes of QPixmap backing memory
+        # even though every Guide widget has already been hibernated.
+        self._clear_reconstructible_image_cache()
+        self._clear_reconstructible_manual_guide_cache()
 
         self._achievement_ready = False
         self._guide_runtime_ready = False
@@ -288,6 +344,7 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             self._memory_restore_guide_id = ""
             self._memory_restore_guide_quest_id = None
             self._memory_restore_guide_state = ""
+            view = super().ensure_full_guides_view()
             view.select_guide(guide_id)
             quest_detail_state = str(getattr(view, "QUEST_DETAIL", ""))
             if (

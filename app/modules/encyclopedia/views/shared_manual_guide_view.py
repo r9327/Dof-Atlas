@@ -59,7 +59,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self._quest_rows = self._canonical_quest_rows()
         self._shown_quest_map_links: set[tuple[int, str]] = set()
         self._resource_names = self._clickable_resource_names(service, card)
-        self._combat_targets = self._quest_combat_targets()
+        self._combat_targets: list[dict[str, Any]] = []
         self._rendered_combat_keys: set[tuple[int, int]] = set()
         self._combat_evidence_cache: dict[tuple[int, int], tuple[str, str]] = {}
         self._last_route_position_key = ""
@@ -79,21 +79,31 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             title.setWordWrap(True)
             root.addWidget(title)
 
-        line_provider = getattr(service, "manual_lines_for_card", None)
-        manual_lines = (
-            line_provider(character_key, card)
-            if callable(line_provider)
-            else card.get("manual_lines", []) or []
-        )
         section_provider = getattr(service, "manual_sections_for_card", None)
-        sections = (
-            section_provider(character_key, card)
-            if callable(section_provider)
-            else {"now": manual_lines}
-        )
+        if callable(section_provider):
+            sections = section_provider(character_key, card)
+            # The section provider already owns line materialization. Do not call
+            # manual_lines_for_card first and build the same visible sheet twice.
+            manual_lines = []
+        else:
+            line_provider = getattr(service, "manual_lines_for_card", None)
+            manual_lines = (
+                line_provider(character_key, card)
+                if callable(line_provider)
+                else card.get("manual_lines", []) or []
+            )
+            sections = {"now": manual_lines}
         if not isinstance(sections, dict) or not any(sections.values()):
+            if not manual_lines:
+                line_provider = getattr(service, "manual_lines_for_card", None)
+                manual_lines = (
+                    line_provider(character_key, card)
+                    if callable(line_provider)
+                    else card.get("manual_lines", []) or []
+                )
             sections = {"now": manual_lines}
         sections = self._without_prepare_duplicates(sections)
+        self._combat_targets = self._quest_combat_targets(sections)
 
         self._add_line_section(
             root,

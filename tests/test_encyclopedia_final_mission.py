@@ -63,7 +63,9 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
         page._related_ready = page._guide_runtime_ready
         if page._guide_runtime_ready:
             page._related_preload_gate.mark_ready()
-        return view
+        # These suites validate the historical rich Guide dashboard. The Phase 8
+        # catalogue is intentionally lightweight and upgrades only on selection.
+        return page.ensure_full_guides_view()
 
     def test_guide_catalog_is_local_and_covers_required_routes(self):
         catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
@@ -96,8 +98,8 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
             self.assertEqual(view.splitter.handleWidth(), 0)
             self.assertFalse(hasattr(view, "category_buttons"))
             page.tabs.setCurrentIndex(page.tab_labels().index("QUÊTES"))
-            self.assertEqual(page.quest_page.splitter.count(), 2)
-            self.assertEqual(page.quest_page.splitter.handleWidth(), 0)
+            self.assertEqual(page.quest_page.body_splitter.count(), 2)
+            self.assertEqual(page.quest_page.body_splitter.handleWidth(), 0)
             self.assertEqual(page.quest_page.MODES, ("PARCOURS", "DOFUS", "SUCCÈS LIÉS", "ZONES", "TOUTES"))
             self.assertEqual(page.tab_labels(), list(ENCYCLOPEDIA_TABS))
             self.assertIn(ACHIEVEMENTS_TAB, page.tab_labels())

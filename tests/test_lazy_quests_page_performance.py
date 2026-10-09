@@ -27,6 +27,11 @@ from app.modules.encyclopedia.constants import (
     GUIDES_TAB,
     QUESTS_TAB,
 )
+from app.modules.encyclopedia.services.quest_hierarchy_service import (
+    QuestCategoryGroup,
+    QuestHierarchy,
+    QuestSeries,
+)
 from app.pages.lazy_quests_page import LazyQuestsPage
 from app.pages.quests_page import HIERARCHY_ID_ROLE, HIERARCHY_KIND_ROLE
 from app.quest_catalog import QuestAchievementSeries, QuestCatalog, QuestRecord
@@ -57,6 +62,52 @@ def catalog_fixture() -> QuestCatalog:
             QuestAchievementSeries(20, "Suite B", "Zone test", 1, (3, 4)),
         ),
     )
+
+
+class QuestHierarchyMemoryTests(unittest.TestCase):
+    def test_paths_are_materialized_only_for_selected_quest(self) -> None:
+        first = QuestSeries(
+            id="achievement:1",
+            name="Courte",
+            category="Zone",
+            quest_ids=(1, 2),
+            order=0,
+            source="achievement",
+        )
+        second = QuestSeries(
+            id="fallback:zone",
+            name="Longue",
+            category="Zone",
+            quest_ids=(2, 3, 4),
+            order=100,
+            source="fallback",
+        )
+        hierarchy = QuestHierarchy(
+            (QuestCategoryGroup(name="Zone", series=(first, second)),)
+        )
+
+        self.assertFalse(hasattr(hierarchy, "paths_by_quest"))
+        self.assertIsNone(hierarchy._path_cache_key)
+        self.assertEqual(hierarchy._path_cache, ())
+
+        preferred = hierarchy.path_for(2, "fallback:zone")
+        self.assertIsNotNone(preferred)
+        self.assertEqual(preferred.series.id, "fallback:zone")
+        self.assertEqual(hierarchy._path_cache_key, 2)
+        self.assertEqual(
+            {path.series.id for path in hierarchy._path_cache},
+            {"achievement:1", "fallback:zone"},
+        )
+
+        default = hierarchy.path_for(2)
+        self.assertIsNotNone(default)
+        self.assertEqual(default.series.id, "achievement:1")
+
+        other = hierarchy.path_for(4)
+        self.assertIsNotNone(other)
+        self.assertEqual(other.series.id, "fallback:zone")
+        self.assertEqual(hierarchy._path_cache_key, 4)
+        self.assertEqual(len(hierarchy._path_cache), 1)
 
 
 class LazyQuestsPagePerformanceTests(unittest.TestCase):

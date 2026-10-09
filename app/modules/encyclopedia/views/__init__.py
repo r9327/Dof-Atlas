@@ -33,7 +33,6 @@ def _load_encyclopedia_page_class() -> type:
         MemoryBoundEncyclopediaPage as RealEncyclopediaPage,
     )
 
-    _ensure_guide_view_loaded()
     _REAL_ENCYCLOPEDIA_PAGE = RealEncyclopediaPage
     return RealEncyclopediaPage
 

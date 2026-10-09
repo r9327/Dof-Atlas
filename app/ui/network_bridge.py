@@ -35,6 +35,7 @@ class NetworkUiBridge(QObject):
 
         self.coordinator = NetworkApplicationCoordinator(self._window_handles)
         self._context_signature: tuple[int, int, int] | None = None
+        self._compact_context_ready = False
         self._last_status = self.coordinator.latest_status()
         self._stopped = False
         self._pending_progress_characters: set[str] = set()
@@ -75,6 +76,29 @@ class NetworkUiBridge(QObject):
         self._context_signature = signature
         return True
 
+    def configure_compact_context(self) -> bool:
+        """Configure network validation without retaining Encyclopedia catalogues."""
+
+        if self._stopped:
+            return False
+        if self._compact_context_ready:
+            return True
+        from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
+        from app.quest_catalog_details import load_network_catalog
+
+        quest_catalog = load_network_catalog()
+        achievement_provider = AchievementProvider()
+        guide_provider = GuideProvider()
+        signature = (id(quest_catalog), id(achievement_provider), id(guide_provider))
+        self.coordinator.configure_context(
+            quest_catalog=quest_catalog,
+            achievement_provider=achievement_provider,
+            guide_provider=guide_provider,
+        )
+        self._context_signature = signature
+        self._compact_context_ready = True
+        return True
+
     def request_calibration(self) -> bool:
         if self._stopped:
             return False
@@ -101,6 +125,8 @@ class NetworkUiBridge(QObject):
 
     def _poll(self) -> None:
         if self._stopped:
+            return
+        if not self.coordinator.has_pending_ui_events():
             return
         statuses = self.coordinator.drain_statuses(50)
         if statuses:

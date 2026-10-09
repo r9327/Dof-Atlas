@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -15,10 +13,16 @@ from app.modules.encyclopedia.providers.guide_provider import GuideProvider
 
 _ACHIEVEMENT_NAME_CACHE: dict[str, dict[int, str]] = {}
 _ACHIEVEMENT_NAME_LOCK = Lock()
+_ACHIEVEMENT_NAMES_FILE = (
+    ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1" / "achievement_names.json"
+)
+
 
 
 def _achievement_name_index(data_dir: Path) -> dict[int, str]:
-    """Resolve Guide labels through a compact disposable helper."""
+    """Read the compact name index prepared by preload; never start a runtime worker."""
+
+    from app.constants import RAW_QUEST_DATA_DIR
 
     root = Path(data_dir)
     key = str(root.resolve(strict=False))
@@ -30,32 +34,21 @@ def _achievement_name_index(data_dir: Path) -> dict[int, str]:
         cached = _ACHIEVEMENT_NAME_CACHE.get(key)
         if cached is not None:
             return cached
-
-        if bool(getattr(sys, "frozen", False)):
+        if root.resolve(strict=False) != Path(RAW_QUEST_DATA_DIR).resolve(strict=False):
             return {}
-        completed = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "app.modules.encyclopedia.services.achievement_index_warmup",
-                "--names",
-            ],
-            cwd=ROOT_DIR,
-            capture_output=True,
-            text=True,
-            timeout=90,
-            check=True,
-        )
-        lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
-        if not lines:
-            raise RuntimeError("L'index des noms de succès n'a produit aucun résultat")
-        payload = json.loads(lines[-1])
+        try:
+            payload = json.loads(_ACHIEVEMENT_NAMES_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            return {}
         if not isinstance(payload, dict):
-            raise RuntimeError("Index des noms de succès invalide")
-        names = {int(achievement_id): str(name) for achievement_id, name in payload.items()}
+            return {}
+        names = {
+            int(achievement_id): str(name)
+            for achievement_id, name in payload.items()
+            if str(achievement_id).lstrip("-").isdigit()
+        }
         _ACHIEVEMENT_NAME_CACHE[key] = names
         return names
-
 
 def _drop_nested_raw(value: object, *keys: str) -> dict[str, object]:
     if not isinstance(value, dict):
@@ -88,7 +81,8 @@ class IndexedGuideProvider(GuideProvider):
         provider = self.achievement_provider
         if getattr(provider, "_loaded", False):
             achievement = provider.get_by_id(int(achievement_id))
-            return achievement.name if achievement is not None else None
+            if achievement is not None:
+                return achievement.name
         return _achievement_name_index(provider.data_dir).get(int(achievement_id))
 
     def _context_entities(

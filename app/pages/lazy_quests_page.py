@@ -133,11 +133,11 @@ class LazyQuestsPage(QuestsPage):
         signature = self._quest_detail_signature(quest_id)
         if (
             signature == self._last_quest_detail_signature
-            and self.quest_detail_view.current_quest_id == quest_id
+            and getattr(self.quest_detail_view, "current_quest_id", None) == quest_id
         ):
             return
         QuestsPage.show_quest_detail(self, quest_id)
-        if self.quest_detail_view.current_quest_id == quest_id:
+        if getattr(self.quest_detail_view, "current_quest_id", None) == quest_id:
             self._last_quest_detail_signature = self._quest_detail_signature(quest_id)
         else:
             self._last_quest_detail_signature = None

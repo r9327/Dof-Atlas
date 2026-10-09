@@ -48,6 +48,8 @@ class ShellReliabilityTests(unittest.TestCase):
         self.assertIn("LOGGER.exception", source)
 
     def test_craft_preload_skips_expensive_adapter_when_catalogue_is_empty(self) -> None:
+        import app.craft_preload as craft_preload
+
         with tempfile.TemporaryDirectory() as temp_dir:
             data_dir = Path(temp_dir)
             database_path = data_dir / "local" / "dofus_data.sqlite"
@@ -59,12 +61,13 @@ class ShellReliabilityTests(unittest.TestCase):
             finally:
                 connection.close()
 
-            with patch.object(main, "DATA_DIR", data_dir):
-                payload = main.build_craft_preload()
+            with patch.object(craft_preload, "DATA_DIR", data_dir):
+                payload = craft_preload.build_compact_craft_preload()
 
         self.assertEqual(payload["items"], [])
         self.assertTrue(payload["_prepared"])
-        self.assertEqual(payload["_skipped_reason"], "catalogue Craft local vide")
+        self.assertTrue(payload["_lazy_items"])
+        self.assertEqual(payload.get("_skipped_reason"), "catalogue Craft local vide")
 
     def test_default_preload_request_schedules_quest_index_once(self) -> None:
         class Timer:
@@ -221,7 +224,7 @@ class ShellReliabilityTests(unittest.TestCase):
         )
 
     def test_background_preload_defers_while_a_user_requested_task_is_loading(self) -> None:
-        scheduled: list[tuple[int, object]] = []
+        scheduled: list[tuple[str, bool, int]] = []
         shell = type(
             "Shell",
             (),
@@ -234,8 +237,8 @@ class ShellReliabilityTests(unittest.TestCase):
                 },
                 "preload_state_lock": Lock(),
                 "preload_user_tasks": {"craft"},
-                "_schedule_owned_callback": lambda self, delay, callback: scheduled.append(
-                    (delay, callback)
+                "_schedule_preload_retry": lambda self, task, *, user_requested, delay_ms: scheduled.append(
+                    (task, user_requested, delay_ms)
                 ),
             },
         )()
@@ -244,8 +247,7 @@ class ShellReliabilityTests(unittest.TestCase):
             AtlasWindow.start_preload(shell, "quests")
 
         thread.assert_not_called()
-        self.assertEqual(len(scheduled), 1)
-        self.assertEqual(scheduled[0][0], 250)
+        self.assertEqual(scheduled, [("quests", False, 180)])
         self.assertEqual(shell.preload_states["quests"], main.PRELOAD_IDLE)
 
     def test_startup_preload_has_timeout_guard(self) -> None:

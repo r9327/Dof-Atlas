@@ -509,6 +509,11 @@ class HomePage(QWidget):
         guide_provider: GuideProvider | None = None,
         achievement_provider: AchievementProvider | None = None,
     ) -> None:
+        # A disk-only preload has no live context. Return before the lazy imports
+        # so startup warmup cannot permanently raise the parent RSS watermark.
+        if catalog is None and guide_provider is None and achievement_provider is None:
+            return
+
         from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
         from app.quest_catalog import QuestCatalog
 
@@ -537,6 +542,17 @@ class HomePage(QWidget):
                 guide_provider=self.guide_provider,
             )
         if context_changed or needs_service_rebuild:
+            self.refresh_progress()
+
+    def release_encyclopedia_context(self, *, preserve_display: bool = True) -> None:
+        """Drop rich providers/catalogues; Home keeps only rendered/persisted state."""
+
+        self.catalog = None
+        self.guide_provider = None
+        self.achievement_provider = None
+        self.guide_ultime_service = None
+        self._last_progress_signature = None
+        if not preserve_display:
             self.refresh_progress()
 
     def _on_network_progress_changed(self, character_key: str) -> None:

@@ -108,6 +108,35 @@ class ItemRepository(BaseRepository):
     def search_legacy(self, query: str, limit: int = 50) -> list[dict[str, Any]]:
         return [item for item in (_legacy_item(row, self.config) for row in self.search_by_name(query, limit)) if item]
 
+    def search_craft_legacy(self, query: str, limit: int = 80) -> list[dict[str, Any]]:
+        """Search only recipe outputs without materializing the Craft catalogue."""
+
+        needle = normalize_text(query)
+        if not needle:
+            return []
+        rows = self.store.query_all(
+            """
+            SELECT DISTINCT i.*
+            FROM items i
+            JOIN recipes r ON r.result_ankama_id = i.ankama_id
+            WHERE i.name_fr LIKE ? OR i.name_en LIKE ?
+            ORDER BY i.level IS NULL, i.level, i.name_fr
+            LIMIT ?
+            """,
+            (f"%{query}%", f"%{query}%", max(int(limit) * 4, int(limit))),
+        )
+        result: list[dict[str, Any]] = []
+        for row in rows:
+            haystack = normalize_text(f"{row.get('name_fr', '')} {row.get('name_en', '')}")
+            if needle not in haystack:
+                continue
+            item = _legacy_item(row, self.config)
+            if item:
+                result.append(item)
+            if len(result) >= int(limit):
+                break
+        return result
+
 
 class ResourceRepository(BaseRepository):
     table = "resources"

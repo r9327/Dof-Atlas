@@ -57,3 +57,18 @@ ALIGNMENT_GUIDE_IDS = {
     "bonta": "alignement_bonta",
     "brakmar": "alignement_brakmar",
 }
+
+# Small runtime-only alignment table. Keep it here rather than importing the
+# complete Guide route profile catalogue just to resolve five Order ranks.
+ALIGNMENT_ORDER_QUEST_IDS: dict[str, dict[str, tuple[int, ...]]] = {
+    "bonta": {
+        "Ordre du Cœur Vaillant": (433, 109, 120, 421, 1916),
+        "Ordre de l'Esprit Salvateur": (434, 111, 121, 423, 1917),
+        "Ordre de l'Œil Attentif": (435, 110, 122, 425, 1918),
+    },
+    "brakmar": {
+        "Ordre du Cœur Saignant": (436, 112, 123, 422, 1919),
+        "Ordre de l'Esprit Malsain": (437, 114, 124, 424, 1920),
+        "Ordre de l'Œil Putride": (438, 113, 125, 426, 1921),
+    },
+}

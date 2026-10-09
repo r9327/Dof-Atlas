@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import gc
 import os
 import sys
 from collections import deque
@@ -12,7 +13,7 @@ from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Callable
 from weakref import WeakSet
 
-from PySide6.QtCore import QEvent, QPoint, QSize, Qt, QTimer
+from PySide6.QtCore import QObject, QEvent, QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -212,108 +213,177 @@ def _load_quest_characters(*args: Any, **kwargs: Any) -> list[Any]:
 
 
 def build_craft_preload() -> dict[str, Any]:
-    payload: dict[str, Any] = {
+    """Prepare small Craft metadata in a disposable worker.
+
+    Searchable item rows stay in SQLite and are queried only when the user types.
+    """
+
+    import json
+
+    fallback: dict[str, Any] = {
         "items": [],
         "items_by_name": {},
         "jobs": [],
-        "guides": read_json(LEVELING_FILE, {"source": "gamosaurus", "offline_runtime": True, "guides": {}}),
+        "guides": {},
         "selection": {},
         "lookup_items": [],
+        "_prepared": True,
+        "_lazy_items": True,
         "errors": [],
     }
     try:
-        # Opening the compatibility adapter is expensive even when the local
-        # catalogue is empty. The tiny SQLite probe keeps that cost strictly at
-        # click time on incomplete installations, where a preload cannot buy
-        # any usable result.
-        import sqlite3
-
-        database_path = DATA_DIR / "local" / "dofus_data.sqlite"
-        if not database_path.exists():
-            payload["_prepared"] = True
-            payload["_skipped_reason"] = "catalogue Craft local absent"
-            return payload
-        connection = sqlite3.connect(
-            f"file:{database_path.as_posix()}?mode=ro",
-            uri=True,
-        )
-        try:
-            item_count = int(connection.execute("SELECT COUNT(*) FROM items").fetchone()[0])
-        finally:
-            connection.close()
-        if item_count <= 0:
-            payload["_prepared"] = True
-            payload["_skipped_reason"] = "catalogue Craft local vide"
-            return payload
-
-        from app.pages.craft_page import craft_category_for_item
-        from local_dofus_data.compatibility_adapter import LocalCompatibilityAdapter
-
-        adapter = LocalCompatibilityAdapter()
-        try:
-            payload["items"] = [
-                dict(item)
-                for item in adapter.list_craft_items()
-                if isinstance(item, dict)
-            ]
-            for item in payload["items"]:
-                item["_search_name"] = normalize_key(item.get("name"))
-                item["_craft_category"] = craft_category_for_item(item)
-            payload["items_by_name"] = {
-                normalize_key(item.get("name")): item
-                for item in payload["items"]
-                if item.get("name")
-            }
-            payload["_prepared"] = True
-            payload["jobs"] = adapter.list_jobs()
-            resource_items = adapter.list_resources() if hasattr(adapter, "list_resources") else []
-            lookup_index = build_lookup_index([*payload["items"], *resource_items])
-            lookup_names = {"Ortie", "Frene", "Fer", "Ble", "Goujon", "Viande Fraiche"}
-            for resource_group in JOB_RESOURCE_GROUPS.values():
-                lookup_names.update(resource_name for resource_name, _tag in resource_group)
-            lookup_items = []
-            seen_lookup_ids = set()
-            for name in sorted(lookup_names, key=normalize_key):
-                item = find_lookup_item(name, lookup_index)
-                if item is None:
-                    try:
-                        results = adapter.search_items(name, limit=1)
-                    except Exception:
-                        results = []
-                    if not results:
-                        continue
-                    item = results[0]
-                ident = item_id(item) or item.get("name")
-                if ident in seen_lookup_ids:
-                    continue
-                seen_lookup_ids.add(ident)
-                lookup_items.append(item)
-            payload["lookup_items"] = lookup_items
-
-            selection_payload = read_json(CRAFT_SELECTION_FILE, {"items": []})
-            rows = selection_payload.get("items") if isinstance(selection_payload, dict) else []
-            selection: dict[int, dict[str, Any]] = {}
-            if isinstance(rows, list):
-                for row in rows:
-                    try:
-                        ident = int(row.get("ankama_id") or row.get("item_id"))
-                    except (AttributeError, TypeError, ValueError):
-                        continue
-                    item = adapter.get_item(ident)
-                    if item:
-                        selection[ident] = {"item": item, "quantity": max(1, int(row.get("quantity") or 1))}
-            payload["selection"] = selection
-        finally:
-            adapter.close()
+        raw = _run_preload_module_result("app.craft_preload")
+        payload = json.loads(raw)
+        if not isinstance(payload, dict):
+            raise RuntimeError("Résultat du preload Craft compact invalide")
+        return payload
     except Exception as exc:
-        payload["errors"].append(str(exc))
+        fallback["errors"].append(str(exc))
+        return fallback
+
+def _run_preload_module_status(module: str, *arguments: str) -> None:
+    """Run one disposable cache builder without Qt process objects or pipes."""
+
+    # subprocess.run/CreateProcess is safe from the preload worker threads.
+    # DEVNULL avoids parent-side capture buffers, while keeping every rich
+    # catalogue/cache build inside the disposable child process.
+    import subprocess
+
+    root = str(Path(__file__).resolve().parent)
+    environment = dict(os.environ)
+    current_pythonpath = str(environment.get("PYTHONPATH") or "")
+    environment["PYTHONPATH"] = (
+        root
+        if not current_pythonpath
+        else root + os.pathsep + current_pythonpath
+    )
+    options: dict[str, Any] = {
+        "cwd": root,
+        "env": environment,
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+        "check": False,
+    }
+    if os.name == "nt":
+        options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+    completed = subprocess.run(
+        [sys.executable, "-m", module, *arguments],
+        **options,
+    )
+    exit_code = int(completed.returncode)
+    if exit_code != 0:
+        raise RuntimeError(
+            f"Worker preload en échec: {module} (code {exit_code})"
+        )
+
+
+def _run_preload_module_result(module: str, *arguments: str) -> str:
+    """Run a worker through a tiny result file instead of parent-side pipes."""
+
+    root = Path(__file__).resolve().parent
+    result_dir = root / ".cache" / "dofus_atlas" / "preload_results"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = module.replace(".", "_").replace("/", "_")
+    result_path = result_dir / f"{os.getpid()}_{safe_name}.txt"
+    try:
+        result_path.unlink(missing_ok=True)
+        _run_preload_module_status(
+            module,
+            *arguments,
+            "--result-file",
+            str(result_path),
+        )
+        raw = result_path.read_text(encoding="utf-8").strip()
+        if not raw:
+            raise RuntimeError(f"Worker preload vide: {module}")
+        return raw
+    finally:
+        result_path.unlink(missing_ok=True)
+
+
+STARTUP_CACHE_WARMUP_TOKEN_ENV = "DOFUS_ATLAS_CACHE_WARMUP_TOKEN"
+STARTUP_CACHE_WARMUP_RESULT = (
+    Path(__file__).resolve().parent
+    / ".cache"
+    / "dofus_atlas"
+    / "startup_cache_warmup_v1.json"
+)
+
+
+def _startup_cache_warmup_payload() -> dict[str, Any]:
+    """Read only the result produced for this exact launcher invocation."""
+
+    token = os.environ.get(STARTUP_CACHE_WARMUP_TOKEN_ENV, "").strip()
+    if not token:
+        return {}
+    payload = read_json(STARTUP_CACHE_WARMUP_RESULT, {})
+    if not isinstance(payload, dict) or int(payload.get("schema_version") or 0) != 1:
+        return {}
+    if str(payload.get("token") or "") != token:
+        return {}
     return payload
 
 
-def build_quest_related_preload(catalog: Any | None) -> dict[str, Any]:
-    from app.modules.encyclopedia.services import build_related_encyclopedia_data
-    from app.quest_catalog import QuestCatalog
+def _startup_cache_warmup_stamp() -> tuple[int, int] | None:
+    """Return a cheap change token so polling does not reparse stable JSON."""
 
+    try:
+        stat = STARTUP_CACHE_WARMUP_RESULT.stat()
+    except OSError:
+        return None
+    return int(stat.st_mtime_ns), int(stat.st_size)
+
+
+def _await_startup_cache_warmup(timeout_seconds: float = 75.0) -> dict[str, Any]:
+    """Wait from a preload worker for the disposable sibling warmup, never the UI."""
+
+    if not os.environ.get(STARTUP_CACHE_WARMUP_TOKEN_ENV, "").strip():
+        return {}
+    deadline = monotonic() + max(0.0, float(timeout_seconds))
+    last_stamp: tuple[int, int] | None = None
+    while True:
+        stamp = _startup_cache_warmup_stamp()
+        if stamp is not None and stamp != last_stamp:
+            last_stamp = stamp
+            payload = _startup_cache_warmup_payload()
+            if str(payload.get("status") or "") in {"ready", "failed"}:
+                return payload
+        if monotonic() >= deadline:
+            return {}
+        sleep(0.25)
+
+
+def _warm_encyclopedia_compact_stores() -> None:
+    """Prepare Guide/Success indexes outside the long-lived Atlas process."""
+
+    prewarmed = _await_startup_cache_warmup()
+    if str(prewarmed.get("status") or "") == "ready" and bool(
+        prewarmed.get("encyclopedia_ready")
+    ):
+        return
+
+    # Direct/dev launches retain the safe fallback. Normal DOFUS.bat launches
+    # arrive here only if the disposable startup warmup did not complete.
+    _run_preload_module_status(
+        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+        "--ensure-compact-cache",
+    )
+    _run_preload_module_status(
+        "app.modules.encyclopedia.services.achievement_index_warmup",
+    )
+    _run_preload_module_status(
+        "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+        "--ensure-compact-cache",
+    )
+    _run_preload_module_status(
+        "app.modules.encyclopedia.providers.dofus_item_provider",
+        "--ensure-guide-index",
+    )
+
+
+def build_quest_related_preload(catalog: Any | None = None) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "achievement_provider": None,
         "guide_provider": None,
@@ -322,18 +392,22 @@ def build_quest_related_preload(catalog: Any | None) -> dict[str, Any]:
         "guide_progress_character_key": "",
         "errors": [],
     }
-    if not isinstance(catalog, QuestCatalog):
-        return payload
     try:
+        if catalog is None:
+            _warm_encyclopedia_compact_stores()
+            return payload
+
+        from app.modules.encyclopedia.services import build_related_encyclopedia_data
         related = build_related_encyclopedia_data(catalog)
         achievement_provider = related.achievement_provider
         guide_provider = related.guide_provider
         payload["quest_graph"] = related.quest_graph
         payload["achievement_provider"] = achievement_provider
         payload["guide_provider"] = guide_provider
-        guide_progress, character_key = build_guide_progress_preload(catalog, guide_provider)
-        payload["guide_progress_by_guide"] = guide_progress
-        payload["guide_progress_character_key"] = character_key
+        if isinstance(catalog, QuestCatalog):
+            guide_progress, character_key = build_guide_progress_preload(catalog, guide_provider)
+            payload["guide_progress_by_guide"] = guide_progress
+            payload["guide_progress_character_key"] = character_key
     except Exception as exc:
         payload["errors"].append(str(exc))
     return payload
@@ -343,6 +417,11 @@ def build_guide_progress_preload(
     catalog: Any,
     guide_provider: Any,
 ) -> tuple[dict[str, tuple[int, int, str]], str]:
+    load_all = getattr(guide_provider, "load_all", None)
+    guides = tuple(load_all()) if callable(load_all) else ()
+    if not guides:
+        return {}, ""
+
     from app.modules.encyclopedia.services import (
         ACHIEVEMENT_PROGRESS_FILE,
         GUIDE_PROGRESS_FILE,
@@ -364,7 +443,7 @@ def build_guide_progress_preload(
         catalog.by_id,
     )
     progress_by_guide: dict[str, tuple[int, int, str]] = {}
-    for guide in guide_provider.load_all():
+    for guide in guides:
         progress = calculator.guide_progress(guide, character_key)
         progress_by_guide[guide.id] = (
             progress.completed,
@@ -382,15 +461,33 @@ def guide_progress_state(completed: int, total: int) -> str:
     return "Non commencé"
 
 
+def _warm_quest_catalogue() -> int:
+    """Build/validate the Quest SQLite store outside the long-lived Atlas process."""
+
+    prewarmed = _await_startup_cache_warmup()
+    try:
+        prewarmed_count = int(prewarmed.get("quest_count") or 0)
+    except (TypeError, ValueError):
+        prewarmed_count = 0
+    if str(prewarmed.get("status") or "") == "ready" and prewarmed_count > 0:
+        return prewarmed_count
+
+    raw = _run_preload_module_result(
+        "app.quest_catalog_details",
+        "--ensure-cache",
+    )
+    return max(0, int(raw))
+
+
 def build_quest_preload(
     owned_items: dict[int, dict[str, Any]] | None = None,
     include_related: bool = True,
 ) -> dict[str, Any]:
-    from app.modules.encyclopedia.providers import AchievementProvider
-
-    quest_provider_type = _resolve_quest_provider()
     payload: dict[str, Any] = {
+        # Preload owns disk artefacts only. A live QuestCatalog is created on
+        # explicit Encyclopedia use and released again when the page sleeps.
         "catalog": None,
+        "catalog_count": 0,
         "owned_items": owned_items or {},
         "achievement_provider": None,
         "guide_provider": None,
@@ -400,16 +497,9 @@ def build_quest_preload(
         "errors": [],
     }
     try:
-        # QuestProvider owns the process-wide default-catalog lock. A preload
-        # racing an explicit click therefore parses once and both consumers
-        # reuse the same catalog instead of starting duplicate work.
-        catalog = quest_provider_type().get_catalog()
-        payload["catalog"] = catalog
-        payload["achievement_provider"] = AchievementProvider(
-            quest_provider=quest_provider_type(catalog=catalog)
-        )
+        payload["catalog_count"] = _warm_quest_catalogue()
         if include_related:
-            related = build_quest_related_preload(catalog)
+            related = build_quest_related_preload(None)
             payload.update({key: value for key, value in related.items() if key != "errors"})
             payload["errors"].extend(related.get("errors") or [])
     except Exception as exc:
@@ -691,6 +781,8 @@ class AtlasWindow(QMainWindow):
         }
         self.preload_state_lock = Lock()
         self.preload_user_tasks: set[str] = set()
+        self.preload_retry_timers: dict[str, QTimer] = {}
+        self.preload_retry_priority: dict[str, bool] = {}
         self.pending_page_name = ""
         self.pending_encyclopedia_tab = ""
         self.pending_guide_target: tuple[str, int | None] | None = None
@@ -762,6 +854,7 @@ class AtlasWindow(QMainWindow):
 
         self.apply_style()
         self.preload_popup = PreloadProgressPopup(self)
+        self._schedule_owned_callback(0, self.start_startup_preload_sequence)
         self._schedule_owned_callback(POST_RENDER_TRAY_DELAY_MS, self.setup_tray)
         self.update_topmost_button()
         self.refresh_nav_selection("")
@@ -772,16 +865,6 @@ class AtlasWindow(QMainWindow):
             self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
         if EQUIPMENT_PRELOAD_DELAY_MS > 0:
             self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
-        if not self.preload_finished and self.preload_states["quests"] == PRELOAD_IDLE:
-            self._schedule_owned_callback(
-                GLOBAL_QUEST_PRELOAD_DELAY_MS,
-                lambda: self.start_preload("quests"),
-            )
-        if not self.preload_finished and self.preload_states["craft"] == PRELOAD_IDLE:
-            self._schedule_owned_callback(
-                GLOBAL_CRAFT_PRELOAD_DELAY_MS,
-                lambda: self.start_preload("craft"),
-            )
 
     def _schedule_owned_callback(self, delay_ms: int, callback: Callable[[], None]) -> None:
         timer = QTimer(self)
@@ -789,6 +872,36 @@ class AtlasWindow(QMainWindow):
         timer.timeout.connect(callback)
         timer.timeout.connect(timer.deleteLater)
         timer.start(max(0, int(delay_ms)))
+
+    def _schedule_preload_retry(
+        self,
+        task: str,
+        *,
+        user_requested: bool,
+        delay_ms: int,
+    ) -> None:
+        """Reuse one timer per preload task while another stage owns the worker."""
+
+        key = str(task or "").strip().casefold()
+        if not key:
+            return
+        self.preload_retry_priority[key] = bool(
+            self.preload_retry_priority.get(key, False) or user_requested
+        )
+        timer = self.preload_retry_timers.get(key)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(
+                lambda target=key: self._run_preload_retry(target)
+            )
+            self.preload_retry_timers[key] = timer
+        if not timer.isActive():
+            timer.start(max(0, int(delay_ms)))
+
+    def _run_preload_retry(self, task: str) -> None:
+        priority = bool(self.preload_retry_priority.pop(task, False))
+        self.start_preload(task, user_requested=priority)
 
     def build_top_nav(self) -> QFrame:
         nav = QFrame()
@@ -1290,6 +1403,14 @@ class AtlasWindow(QMainWindow):
             return False
         runtime = getattr(self, "runtime", None)
         if runtime is None:
+            if not desired:
+                return False
+            runtime = self._ensure_runtime()
+            self._atlas_runtime_client_mapping_signature = desired
+            start = getattr(runtime, "start", None)
+            if callable(start):
+                start()
+                return True
             return False
 
         marker_name = "_atlas_runtime_client_mapping_signature"
@@ -1657,6 +1778,20 @@ class AtlasWindow(QMainWindow):
         group = self.page_nav_group.get(name, "")
         self.refresh_nav_selection(group)
         if name == "Home":
+            release_context = getattr(self.home_page, "release_encyclopedia_context", None)
+            if callable(release_context):
+                release_context(preserve_display=True)
+            # Encyclopedia is reconstructible from compact stores. Destroy the
+            # whole page on Home instead of retaining its Qt/runtime shell.
+            self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
+            self.release_reconstructible_page("Craft", self.create_craft_page)
+            self.release_reconstructible_page("Equipement", self.create_equipment_page)
+            # deleteLater() tears down the Qt side, but signal/layout cycles can
+            # keep Python wrappers alive until a generational GC eventually runs.
+            # Flush deferred deletes once Home is visible, then collect only the
+            # now-unreachable wrappers. This is lifecycle cleanup, not a working-
+            # set trim: live caches/providers have already been explicitly released.
+            self._schedule_owned_callback(0, self.collect_released_page_cycles)
             self.home_page.refresh_progress()
         elif name == "Quetes":
             page = self.page_widgets.get("Quetes")
@@ -1666,6 +1801,43 @@ class AtlasWindow(QMainWindow):
                 page.set_character_key(self.current_character_key)
             self._schedule_owned_callback(0, self.finish_pending_encyclopedia_tab)
             self._schedule_owned_callback(0, self.finish_pending_guide_target)
+
+    @staticmethod
+    def collect_released_page_cycles() -> None:
+        """Finalize deferred Qt deletion and reclaim unreachable wrapper cycles."""
+
+        QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        gc.collect()
+
+    def release_reconstructible_page(
+        self,
+        name: str,
+        factory: Callable[[], QWidget],
+    ) -> None:
+        """Replace a loaded heavy page with its tiny lazy slot."""
+
+        if name in self.page_factories:
+            return
+        page = self.page_widgets.get(name)
+        if page is None or page is self.stack.currentWidget():
+            return
+        index = self.stack.indexOf(page)
+        if index < 0:
+            return
+        release = getattr(page, "release_runtime", None)
+        if callable(release):
+            release()
+        placeholder = self.loading_page(name)
+        self.stack.removeWidget(page)
+        self.stack.insertWidget(index, placeholder)
+        self.page_widgets[name] = placeholder
+        self.page_factories[name] = factory
+        self.pages = [
+            (page_name, placeholder if page_name == name else widget)
+            for page_name, widget in self.pages
+        ]
+        page.deleteLater()
+        self.rebuild_page_indexes()
 
     def ensure_pending_page_loaded(self, name: str) -> QWidget | None:
         if self.pending_page_name != name:
@@ -1775,10 +1947,6 @@ class AtlasWindow(QMainWindow):
         return _resolve_equipment_page()(self.set_status)
 
     def create_encyclopedia_page(self) -> QWidget | None:
-        from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
-        from app.modules.encyclopedia.services import QuestGraphService
-        from app.quest_catalog import QuestCatalog
-
         start_preload = getattr(self, "start_preload", None)
         if callable(start_preload):
             start_preload("quests", user_requested=True)
@@ -1797,7 +1965,13 @@ class AtlasWindow(QMainWindow):
         quest_graph = preload.get("quest_graph") if isinstance(preload, dict) else None
         guide_progress_by_guide = preload.get("guide_progress_by_guide") if isinstance(preload, dict) else None
         guide_progress_character_key = preload.get("guide_progress_character_key") if isinstance(preload, dict) else ""
-        resolved_catalog = catalog if isinstance(catalog, QuestCatalog) else None
+        resolved_catalog = (
+            catalog
+            if catalog is not None
+            and hasattr(catalog, "quests")
+            and hasattr(catalog, "by_id")
+            else None
+        )
         quest_provider = (
             quest_provider_type(catalog=resolved_catalog)
             if resolved_catalog is not None
@@ -1805,17 +1979,17 @@ class AtlasWindow(QMainWindow):
         )
         resolved_achievement = (
             achievement_provider
-            if isinstance(achievement_provider, AchievementProvider)
+            if achievement_provider is not None
             and bool(getattr(achievement_provider, "_loaded", False))
             else None
         )
         resolved_guide = (
             guide_provider
-            if isinstance(guide_provider, GuideProvider)
+            if guide_provider is not None
             and bool(getattr(guide_provider, "_loaded", False))
             else None
         )
-        resolved_graph = quest_graph if isinstance(quest_graph, QuestGraphService) else None
+        resolved_graph = quest_graph
         page = encyclopedia_page_type(
             self.set_status,
             quest_provider=quest_provider,
@@ -1837,19 +2011,19 @@ class AtlasWindow(QMainWindow):
         achievement_provider: Any,
         guide_provider: Any,
     ) -> None:
-        from app.quest_catalog import QuestCatalog
-
-        quests = self.preload_results.get("quests")
-        catalog = quests.get("catalog") if isinstance(quests, dict) else None
-        if not isinstance(catalog, QuestCatalog):
-            page = self.page_widgets.get("Quetes")
-            if isinstance(page, _resolve_encyclopedia_page()):
-                catalog = page.quest_provider.get_catalog()
-        self.home_page.apply_encyclopedia_context(
-            catalog=catalog if isinstance(catalog, QuestCatalog) else None,
-            achievement_provider=achievement_provider,
-            guide_provider=guide_provider,
-        )
+        # Home no longer owns the rich Encyclopedia runtime. Network validation
+        # gets its own tiny SQLite-backed Quest context and cold compact
+        # providers, so returning Home can release the UI/runtime graphs fully.
+        bridge = getattr(self.home_page, "network_bridge", None)
+        configure_compact = getattr(bridge, "configure_compact_context", None)
+        if callable(configure_compact):
+            try:
+                configure_compact()
+            except Exception:
+                LOGGER.exception("Compact network Encyclopedia context unavailable.")
+        release_context = getattr(self.home_page, "release_encyclopedia_context", None)
+        if callable(release_context):
+            release_context(preserve_display=True)
 
     def hydrate_preloaded_pages(self) -> None:
         quests = self.preload_results.get("quests")
@@ -1869,6 +2043,27 @@ class AtlasWindow(QMainWindow):
             for page_name, widget in self.page_widgets.items()
         }
 
+    def start_startup_preload_sequence(self) -> None:
+        """Run the visible startup preload in deterministic module order."""
+
+        popup = getattr(self, "preload_popup", None)
+        if popup is not None:
+            popup.begin(dict(self.preload_states))
+
+        with self.preload_state_lock:
+            states = dict(self.preload_states)
+
+        if states.get("quests") == PRELOAD_IDLE:
+            self.start_preload("quests")
+            return
+        if states.get("encyclopedia") == PRELOAD_IDLE:
+            self.start_preload("encyclopedia")
+            return
+        if states.get("craft") == PRELOAD_IDLE:
+            self.start_preload("craft")
+            return
+        self.refresh_preload_popup()
+
     def refresh_preload_popup(self) -> None:
         popup = getattr(self, "preload_popup", None)
         if popup is not None:
@@ -1886,33 +2081,37 @@ class AtlasWindow(QMainWindow):
         task = str(target or "").strip().casefold()
         result_key = task
 
+        with self.preload_state_lock:
+            loading_tasks = [
+                key
+                for key, state in self.preload_states.items()
+                if state == PRELOAD_LOADING and key != task
+            ]
+        if loading_tasks:
+            if user_requested:
+                self.preload_user_tasks.add(task)
+            self._schedule_preload_retry(
+                task,
+                user_requested=user_requested,
+                delay_ms=180,
+            )
+            return
+
         if task == "encyclopedia":
-            quests = self.preload_results.get("quests")
-            catalog = quests.get("catalog") if isinstance(quests, dict) else None
-            if catalog is None:
-                with self.preload_state_lock:
-                    quest_state = self.preload_states.get("quests", PRELOAD_IDLE)
-                    if quest_state in {PRELOAD_READY, PRELOAD_FAILED}:
-                        self.preload_states[task] = PRELOAD_FAILED
-                        self.preload_user_tasks.discard(task)
-                        self.preload_finished = all(
-                            state in {PRELOAD_READY, PRELOAD_FAILED}
-                            for state in self.preload_states.values()
-                        )
-                        self.refresh_preload_popup()
-                        return
-                self.start_preload("quests", user_requested=user_requested)
-                self._schedule_owned_callback(
-                    180,
-                    lambda: self.start_preload(
-                        "encyclopedia",
-                        user_requested=user_requested,
-                    ),
+            with self.preload_state_lock:
+                quest_state = self.preload_states.get("quests", PRELOAD_IDLE)
+            if quest_state in {PRELOAD_IDLE, PRELOAD_LOADING}:
+                if quest_state == PRELOAD_IDLE:
+                    self.start_preload("quests", user_requested=user_requested)
+                self._schedule_preload_retry(
+                    "encyclopedia",
+                    user_requested=user_requested,
+                    delay_ms=180,
                 )
                 return
-            builder: Callable[[], dict[str, Any]] = (
-                lambda catalog=catalog: build_quest_related_preload(catalog)
-            )
+            # Serialize heavyweight cache builders: Encyclopedia warmup starts
+            # only after the Quest disk cache worker has exited.
+            builder = lambda: build_quest_related_preload(None)
             result_key = "quests"
         else:
             builders: dict[str, Callable[[], dict[str, Any]]] = {
@@ -1929,9 +2128,10 @@ class AtlasWindow(QMainWindow):
                     self.preload_user_tasks.add(task)
                 return
             if not user_requested and self.preload_user_tasks:
-                self._schedule_owned_callback(
-                    250,
-                    lambda target=task: self.start_preload(target),
+                self._schedule_preload_retry(
+                    task,
+                    user_requested=False,
+                    delay_ms=250,
                 )
                 return
             self.preload_states[task] = PRELOAD_LOADING
@@ -1968,11 +2168,15 @@ class AtlasWindow(QMainWindow):
         self.preload_poll_timer.start()
 
     def collect_preload_result(self) -> None:
+        # The poll timer fires while long-running external warmup work is still
+        # pending. Avoid allocating/catching Queue.Empty on every idle tick.
+        if self.preload_queue.empty():
+            return
+
         handled = False
         completed_tasks: list[str] = []
         fatal_error = ""
         errors: list[str] = []
-        from app.quest_catalog import QuestCatalog
 
         while True:
             try:
@@ -2014,10 +2218,8 @@ class AtlasWindow(QMainWindow):
             if isinstance(result_quests, dict):
                 errors.extend(result_quests.get("errors") or [])
 
-            if task == "quests" and not task_failed:
-                current_quests = self.preload_results.get("quests")
-                catalog = current_quests.get("catalog") if isinstance(current_quests, dict) else None
-                if catalog is not None and self.preload_states.get("encyclopedia") == PRELOAD_IDLE:
+            if task == "quests":
+                if self.preload_states.get("encyclopedia") == PRELOAD_IDLE:
                     user_waiting = (
                         self.pending_page_name == "Quetes"
                         or self.active_page_name() == "Quetes"
@@ -2026,6 +2228,19 @@ class AtlasWindow(QMainWindow):
                         0,
                         lambda priority=user_waiting: self.start_preload(
                             "encyclopedia",
+                            user_requested=priority,
+                        ),
+                    )
+            elif task == "encyclopedia":
+                if self.preload_states.get("craft") == PRELOAD_IDLE:
+                    user_waiting = (
+                        self.pending_page_name == "Craft"
+                        or self.active_page_name() == "Craft"
+                    )
+                    self._schedule_owned_callback(
+                        0,
+                        lambda priority=user_waiting: self.start_preload(
+                            "craft",
                             user_requested=priority,
                         ),
                     )
@@ -2054,7 +2269,10 @@ class AtlasWindow(QMainWindow):
             craft_count = len(merged_craft.get("items", [])) if isinstance(merged_craft, dict) else 0
             merged_quests = self.preload_results.get("quests")
             quest_catalog = merged_quests.get("catalog") if isinstance(merged_quests, dict) else None
-            quest_count = len(quest_catalog.quests) if isinstance(quest_catalog, QuestCatalog) else 0
+            quest_rows = getattr(quest_catalog, "quests", ()) if quest_catalog is not None else ()
+            quest_count = len(quest_rows or ())
+            if quest_count == 0 and isinstance(merged_quests, dict):
+                quest_count = max(0, int(merged_quests.get("catalog_count") or 0))
             page = self.page_widgets.get("Quetes")
             if (
                 quest_count == 0
@@ -2096,6 +2314,15 @@ class AtlasWindow(QMainWindow):
         page.show_runtime_error(message)
 
     def apply_home_preload_update(self, quests: dict[str, Any]) -> None:
+        # Disk-only preload payloads deliberately carry no live Encyclopedia
+        # objects. Do not call into Home for an all-None update: that path would
+        # import the complete provider/catalogue runtime into Atlas merely to
+        # discover that there is no context to apply.
+        if not any(
+            quests.get(key) is not None
+            for key in ("catalog", "guide_provider", "achievement_provider")
+        ):
+            return
         self.home_page.apply_encyclopedia_context(
             catalog=quests.get("catalog"),
             guide_provider=quests.get("guide_provider"),
@@ -2266,6 +2493,11 @@ class AtlasWindow(QMainWindow):
             user_load_in_progress = bool(self.preload_user_tasks)
         if user_load_in_progress:
             self._schedule_owned_callback(250, self.start_runtime)
+            return
+        if not self._runtime_client_mapping_signature():
+            # No Dofus client can consume macros yet. Keep the hook/runtime
+            # graph cold; refresh_global_characters() starts it as soon as a
+            # client mapping appears.
             return
         self._ensure_runtime().start()
 

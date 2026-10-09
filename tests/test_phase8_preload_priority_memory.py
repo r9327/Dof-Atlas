@@ -75,16 +75,36 @@ class LightweightRelatedPreloadTests(unittest.TestCase):
             related_data_service._CACHED_DATA = None
             related_data_service._BUILD_COUNT = 0
 
-    def test_related_preload_keeps_heavy_success_and_guide_providers_cold(self) -> None:
-        catalog = object()
-        quest_provider = Mock(name="quest_provider")
-        quest_graph = Mock(name="quest_graph")
+    def test_zero_guide_progress_preload_returns_before_progress_imports(self) -> None:
+        import sys
+        import main
 
+        class EmptyGuideProvider:
+            @staticmethod
+            def load_all():
+                return []
+
+        watched = (
+            "app.modules.encyclopedia.services.guide_progress_calculator",
+            "app.modules.encyclopedia.services.memory_bound_achievement_progress_service",
+        )
+        before = {name: sys.modules.get(name) for name in watched}
+        self.assertEqual(
+            main.build_guide_progress_preload(object(), EmptyGuideProvider()),
+            ({}, ""),
+        )
+        for name in watched:
+            self.assertIs(sys.modules.get(name), before[name])
+
+
+    def test_related_preload_keeps_all_rich_runtime_graphs_cold(self) -> None:
+        catalog = object()
         with (
-            patch.object(related_data_service, "QuestProvider", return_value=quest_provider) as provider_type,
-            patch.object(related_data_service, "QuestGraphService", return_value=quest_graph) as graph_type,
-            patch.object(related_data_service, "_warm_achievement_source_indexes", return_value=7) as warm_success,
-            patch.object(related_data_service, "_warm_guide_files", return_value=23) as warm_guides,
+            patch.object(related_data_service, "_warm_achievement_source_indexes", return_value=7) as warm_source,
+            patch.object(related_data_service, "_warm_achievement_catalogue", return_value=1418) as warm_success,
+            patch.object(related_data_service, "_warm_guide_files", return_value=23) as warm_files,
+            patch.object(related_data_service, "_warm_guide_catalogue", return_value=20) as warm_guides,
+            patch.object(related_data_service, "_warm_guide_items_index", return_value=6) as warm_items,
         ):
             first = related_data_service.build_related_encyclopedia_data(catalog)
             second = related_data_service.build_related_encyclopedia_data(catalog)
@@ -92,13 +112,17 @@ class LightweightRelatedPreloadTests(unittest.TestCase):
         self.assertIs(first, second)
         self.assertIsNone(first.achievement_provider)
         self.assertEqual(first.guide_provider.load_all(), [])
-        self.assertIs(first.quest_graph, quest_graph)
+        self.assertIsNone(first.quest_graph)
         self.assertEqual(first.warmed_source_count, 7)
+        self.assertEqual(first.warmed_achievement_count, 1418)
         self.assertEqual(first.warmed_guide_file_count, 23)
-        provider_type.assert_called_once_with(catalog=catalog)
-        graph_type.assert_called_once_with(quest_provider)
+        self.assertEqual(first.warmed_guide_count, 20)
+        self.assertEqual(first.warmed_guide_item_count, 6)
+        warm_source.assert_called_once_with()
         warm_success.assert_called_once_with()
+        warm_files.assert_called_once_with()
         warm_guides.assert_called_once_with()
+        warm_items.assert_called_once_with()
         self.assertEqual(related_data_service.related_data_build_count(), 1)
 
 

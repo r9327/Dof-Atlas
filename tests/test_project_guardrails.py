@@ -37,8 +37,12 @@ class ProjectGuardrailsTests(unittest.TestCase):
 
     def test_manual_runtime_preserves_structured_domain_data(self) -> None:
         runtime = self._text("app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py")
-        self.assertIn('"manual_stage_data": copy.deepcopy(stage)', runtime)
-        self.assertIn('"manual_chapter_preparation": copy.deepcopy', runtime)
+        core = self._text("app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py")
+        self.assertIn('"manual_stage_data": stage', core)
+        self.assertIn('"manual_chapter_preparation": chapter_preparation or []', core)
+        self.assertIn("def _hydrate_manual_card_source", core)
+        self.assertIn('card["manual_stage_data"] = stage', core)
+        self.assertIn('card["manual_chapter_preparation"] = preparation', core)
         self.assertIn("_structured_rows_from_fields", runtime)
         self.assertIn("_link_next_cards(cards)", runtime)
         self.assertIn('"manual_stage_id": str(nxt.get("manual_stage_id")', runtime)

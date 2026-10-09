@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,32 @@ INTEGRITY_TIMEOUT_SECONDS = {
     'full': 7200,
     'deep': 7200,
 }
+
+
+def _decode_lines(value: str | bytes | None) -> list[str]:
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace").splitlines()
+    return value.splitlines() if isinstance(value, str) else []
+
+
+def _read_gate_progress(path: Path) -> list[dict[str, str]]:
+    try:
+        contents = path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    result: list[dict[str, str]] = []
+    for line in contents.splitlines():
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if (
+            isinstance(record, dict)
+            and isinstance(record.get("group"), str)
+            and record.get("event") in {"STARTED", "FINISHED", "FAILED"}
+        ):
+            result.append(record)
+    return result
 
 
 def run_integrity_gate(
@@ -54,28 +81,47 @@ def run_integrity_gate(
         '--json',
     ]
     started = time.perf_counter()
-    try:
-        completed = subprocess.run(
-            command,
-            cwd=root,
-            env=env,
-            text=True,
-            encoding='utf-8',
-            errors='replace',
-            capture_output=True,
-            check=False,
-            timeout=effective_timeout,
-        )
-    except subprocess.TimeoutExpired as exc:
-        return {
-            'status': 'TIMEOUT',
-            'mode': normalized.upper(),
-            'duration_ms': milliseconds(started),
-            'command': command,
-            'reason': f'Integrity gate depasse {effective_timeout}s',
-            'stdout_tail': (exc.stdout or '').splitlines()[-30:] if isinstance(exc.stdout, str) else [],
-            'stderr_tail': (exc.stderr or '').splitlines()[-30:] if isinstance(exc.stderr, str) else [],
-        }
+    # Keep progress independent of the JSON stdout contract. The last STARTED
+    # group remains visible if a child blocks and the outer timeout kills it.
+    with tempfile.TemporaryDirectory(prefix="atlas-doctor-integrity-") as scratch:
+        progress_path = Path(scratch) / "groups.jsonl"
+        env['ATLAS_INTEGRITY_PROGRESS_PATH'] = str(progress_path)
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=root,
+                env=env,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                capture_output=True,
+                check=False,
+                timeout=effective_timeout,
+            )
+        except subprocess.TimeoutExpired as exc:
+            progress = _read_gate_progress(progress_path)
+            started_groups = [item["group"] for item in progress if item.get("event") == "STARTED"]
+            finished_groups = {
+                item["group"] for item in progress
+                if item.get("event") in {"FINISHED", "FAILED"}
+            }
+            current = next((name for name in reversed(started_groups) if name not in finished_groups), None)
+            reason = f'Integrity gate depasse {effective_timeout}s'
+            if current:
+                reason += f' (groupe bloque: {current})'
+            return {
+                'status': 'TIMEOUT',
+                'mode': normalized.upper(),
+                'duration_ms': milliseconds(started),
+                'command': command,
+                'reason': reason,
+                'current_group': current,
+                'group_progress': progress[-40:],
+                'stdout_tail': _decode_lines(exc.stdout)[-30:],
+                'stderr_tail': _decode_lines(exc.stderr)[-30:],
+            }
+        progress = _read_gate_progress(progress_path)
+
 
     payload: dict[str, Any] | None = None
     try:
@@ -94,6 +140,7 @@ def run_integrity_gate(
         'returncode': completed.returncode,
         'command': command,
         'report': payload,
+        'group_progress': progress[-40:],
         'stdout_tail': [] if payload is not None else completed.stdout.splitlines()[-40:],
         'stderr_tail': completed.stderr.splitlines()[-40:],
     }

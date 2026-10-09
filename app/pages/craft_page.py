@@ -605,10 +605,44 @@ class CraftPage(QWidget):
         self.refresh_results()
         self.refresh_selection()
         self.refresh_jobs()
-        self.status_callback(
-            f"Craft prêt · {len(self.items)} objets, {len(self.jobs)} métiers."
-        )
+        if bool(self.preload.get("_lazy_items")):
+            self.status_callback(
+                f"Craft prêt · recherche SQLite à la demande, {len(self.jobs)} métiers."
+            )
+        else:
+            self.status_callback(
+                f"Craft prêt · {len(self.items)} objets, {len(self.jobs)} métiers."
+            )
         return True
+
+    def release_runtime(self) -> None:
+        """Drop reconstructible Craft UI/data before the page is destroyed."""
+
+        for timer_name in (
+            "search_timer",
+            "result_batch_timer",
+            "jobs_resize_timer",
+            "layout_timer",
+        ):
+            timer = getattr(self, timer_name, None)
+            if timer is not None:
+                timer.stop()
+        if self.resource_dialog is not None:
+            self.resource_dialog.close()
+            self.resource_dialog = None
+        self.items.clear()
+        self.items_by_name.clear()
+        self.item_lookup_cache.clear()
+        clear_icons = getattr(self.icon_cache, "clear", None)
+        if callable(clear_icons):
+            clear_icons()
+        self.selection.clear()
+        self.jobs.clear()
+        self._pending_result_items.clear()
+        self.preload = {}
+        release = getattr(local_data_cache, "release_adapter", None)
+        if callable(release):
+            release()
 
     def restyle_button(self, button: QPushButton) -> None:
         button.style().unpolish(button)
@@ -729,15 +763,34 @@ class CraftPage(QWidget):
     def refresh_results(self) -> None:
         self._result_generation += 1
         self.result_batch_timer.stop()
-        query = normalize_key(self.search.text())
+        raw_query = self.search.text().strip()
+        query = normalize_key(raw_query)
         self.results.clear()
         self._pending_result_items = []
         if not self._runtime_ready or len(query) < 2:
             return
-        for item in self.items:
-            if item.get("_craft_category") != self.category:
+
+        if bool(self.preload.get("_lazy_items")) and hasattr(local_data_cache, "search_craft_items"):
+            try:
+                candidates = local_data_cache.search_craft_items(raw_query, limit=160)
+            except Exception as exc:
+                LOGGER.debug("Recherche Craft SQLite indisponible: %s", exc)
+                candidates = []
+        else:
+            candidates = self.items
+
+        for item in candidates:
+            if not isinstance(item, dict):
                 continue
-            if query not in item.get("_search_name", ""):
+            search_name = item.get("_search_name")
+            if not isinstance(search_name, str):
+                search_name = normalize_key(item.get("name"))
+                item["_search_name"] = search_name
+            category = item.get("_craft_category")
+            if category not in {"equipment", "trophy_prysma", "resource"}:
+                category = self.category_for_item(item)
+                item["_craft_category"] = category
+            if category != self.category or query not in search_name:
                 continue
             self._pending_result_items.append(item)
             if len(self._pending_result_items) >= 80:
@@ -957,7 +1010,7 @@ class CraftPage(QWidget):
             item = self.items_by_name[key]
             self.item_lookup_cache[key] = item
             return item
-        if bool(self.preload.get("_prepared")):
+        if bool(self.preload.get("_prepared")) and not bool(self.preload.get("_lazy_items")):
             self.item_lookup_cache[key] = None
             return None
         if hasattr(local_data_cache, "search_items"):
@@ -1097,11 +1150,11 @@ class CraftPage(QWidget):
                 button.setObjectName("ActiveButton")
             else:
                 button.setObjectName("SecondaryButton")
-            icon_source = self.job_icon_source(job)
-            icon = self.icon_cache.icon_for_item(icon_source)
-            if not icon.isNull() and key != "recolte":
-                button.setIcon(icon)
-                button.setIconSize(QSize(22, 22))
+            # Keep the initial Craft surface independent from the local-data
+            # adapter. Resolving a decorative job icon used to open the whole
+            # SQLite/repository stack before the user had searched or selected
+            # anything, permanently raising the process high-water mark.
+            # Functional item/resource icons remain loaded on explicit demand.
             button.clicked.connect(lambda _checked=False, target=name: self.set_job(target))
             self.job_buttons_layout.addWidget(button, index // button_columns, index % button_columns)
         for column in range(button_columns):

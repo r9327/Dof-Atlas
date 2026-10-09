@@ -61,6 +61,9 @@
         ]
       },
       "append": {
+        "successes": [
+          "Souvenir d'Imagiro"
+        ],
         "hard_exit": [
           "Yonkwa : Voie du sabre terminée avant Sankwa : Voie du bouclier.",
           "Sankwa : Voie du bouclier terminée avant Nikwa : Voie des cinq griffes.",
