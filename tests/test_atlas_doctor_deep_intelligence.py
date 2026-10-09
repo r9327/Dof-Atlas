@@ -210,6 +210,62 @@ class DeepIntelligenceTests(unittest.TestCase):
             self.assertEqual(result["status"], "PASS")
             self.assertEqual(result["missing_internal_import_candidates"], [])
 
+    def test_json_lineage_to_ui_uses_only_source_confirmed_import_edges(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_literal_json_to_ui
+        graph = {"nodes": [
+            {"id": 1, "source_file": "app/core/catalog.py"},
+            {"id": 2, "source_file": "app/modules/encyclopedia/services/catalog_service.py"},
+            {"id": 3, "source_file": "app/modules/encyclopedia/views/catalog_view.py"},
+            {"id": 4, "source_file": "app/ui/decoy.py"},
+        ], "links": [
+            {"source": 2, "target": 1, "relation": "imports_from",
+             "confidence": "EXTRACTED", "_origin": "ast"},
+            {"source": 3, "target": 2, "relation": "imports",
+             "confidence": "EXTRACTED", "_origin": "ast"},
+            {"source": 4, "target": 1, "relation": "imports",
+             "confidence": "INFERRED", "_origin": "generated"},
+        ]}
+        evidence = trace_literal_json_to_ui(graph, [{
+            "path": "app/core/catalog.py", "line": 11,
+            "data_reference": "data/catalog.json",
+        }])
+        self.assertEqual(evidence["status"], "REVIEW")
+        self.assertEqual(evidence["references_with_ui_importers"], 1)
+        self.assertEqual(evidence["references"][0]["possible_ui_importers"], [
+            {"path": "app/modules/encyclopedia/views/catalog_view.py", "import_hops": 2}
+        ])
+        self.assertFalse(evidence["runtime_data_flow_proven"])
+        self.assertFalse(evidence["references"][0]["data_read_proven"])
+
+    def test_json_lineage_cycles_and_unproven_links_never_claim_ui(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_literal_json_to_ui
+        graph = {"nodes": [
+            {"id": "a", "source_file": "app/core/catalog.py"},
+            {"id": "b", "source_file": "app/core/loader.py"},
+            {"id": "c", "source_file": "app/pages/catalog_page.py"},
+        ], "links": [
+            {"source": "a", "target": "b", "relation": "imports",
+             "confidence": "EXTRACTED", "_origin": "ast"},
+            {"source": "b", "target": "a", "relation": "imports",
+             "confidence": "EXTRACTED", "_origin": "ast"},
+            {"source": "c", "target": "a", "relation": "imports",
+             "confidence": "INFERRED", "_origin": "generated"},
+        ]}
+        data = trace_literal_json_to_ui(graph, [{"path": "app/core/catalog.py",
+                                                "data_reference": "data/items.json"}])
+        self.assertEqual(data["references"][0]["possible_ui_importers"], [])
+        self.assertFalse(data["truncated"])
+
+    def test_json_lineage_budgets_never_report_complete_when_graph_oversized(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_literal_json_to_ui
+        graph = {"nodes": [{"id": n, "source_file": "app/core/item.py"}
+                           for n in range(15001)], "links": []}
+        data = trace_literal_json_to_ui(graph, [{"path": "app/core/item.py",
+                                                "data_reference": "x.json"}])
+        self.assertEqual(data["status"], "REVIEW")
+        self.assertTrue(data["truncated"])
+        self.assertFalse(data["runtime_data_flow_proven"])
+
     def test_old_architecture_debt_is_separate(self):
         g = {"nodes": [
             {"id": "a", "source_file": "app/a.py"},

@@ -178,6 +178,87 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
     }
 
 
+def trace_literal_json_to_ui(
+    graph: dict[str, Any], references: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Bounded reverse AST-import paths, not proof of a JSON read or UI render.
+
+    A UI file importing a service that contains a JSON string is a useful
+    investigation lead, but that string need not ever be opened at runtime.
+    """
+    if not references:
+        return {"status": "NOT_REQUIRED", "references": [], "truncated": False,
+                "runtime_data_flow_proven": False}
+    raw_nodes, raw_links = graph.get("nodes", []), graph.get("links", [])
+    if not isinstance(raw_nodes, list) or not isinstance(raw_links, list):
+        return {"status": "UNAVAILABLE", "reason": "Invalid graph payload",
+                "references": [], "runtime_data_flow_proven": False}
+    if len(raw_nodes) > 15000 or len(raw_links) > 50000:
+        return {"status": "REVIEW", "reason": "Graph traversal budget exceeded",
+                "references": [], "truncated": True, "runtime_data_flow_proven": False}
+    node_files = {
+        node.get("id"): node.get("source_file")
+        for node in raw_nodes if isinstance(node, dict)
+        and isinstance(node.get("id"), (int, str))
+        and isinstance(node.get("source_file"), str)
+    }
+    reverse: dict[str, set[str]] = defaultdict(set)
+    for link in raw_links:
+        if not isinstance(link, dict) or link.get("relation") not in {"imports", "imports_from"}:
+            continue
+        if link.get("confidence") != "EXTRACTED" or link.get("_origin") != "ast":
+            continue
+        source, target = node_files.get(link.get("source")), node_files.get(link.get("target"))
+        if source and target and source != target:
+            reverse[target].add(source)
+
+    def is_ui(path: str) -> bool:
+        return (path.startswith(("app/pages/", "app/ui/"))
+                or path.startswith("app/modules/") and
+                ("/views/" in path or "/widgets/" in path))
+
+    entries: list[dict[str, Any]] = []
+    truncated = len(references) > MAX_FINDINGS
+    for candidate in references[:MAX_FINDINGS]:
+        source = candidate.get("path")
+        if not isinstance(source, str):
+            continue
+        found: list[dict[str, Any]] = []
+        frontier = deque([(source, 0)])
+        visited = {source}
+        while frontier:
+            current, hops = frontier.popleft()
+            if hops >= 4:
+                if reverse.get(current):
+                    truncated = True
+                continue
+            for importer in sorted(reverse.get(current, ())):
+                if importer in visited:
+                    continue
+                if len(visited) >= 512:
+                    truncated = True
+                    break
+                visited.add(importer)
+                if is_ui(importer):
+                    if len(found) >= 8:
+                        truncated = True
+                        break
+                    found.append({"path": importer, "import_hops": hops + 1})
+                frontier.append((importer, hops + 1))
+        entries.append({
+            "source": source, "line": candidate.get("line"),
+            "data_reference": candidate.get("data_reference"),
+            "possible_ui_importers": found, "confidence": "STATIC_IMPORT_PATH_ONLY",
+            "data_read_proven": False, "ui_render_proven": False,
+        })
+    return {
+        "status": "REVIEW", "references": entries,
+        "references_with_ui_importers": sum(bool(x["possible_ui_importers"]) for x in entries),
+        "truncated": truncated, "runtime_data_flow_proven": False,
+        "limits": "Literal JSON strings + AST import paths, four hops, 512 files/reference, eight UI leads; no runtime data flow proof.",
+    }
+
+
 def launcher_entrypoints(root: Path) -> dict[str, Any]:
     """Read only literal DOFUS.bat startup declarations (never execute BAT)."""
     # Windows CI may supply an 8.3 short path or a symlinked checkout root.
@@ -322,6 +403,7 @@ def inspect_code(root: Path, *, paths: list[str],
     graph_evidence = graph_status(root)
     reach: dict[str, Any] = {"status": "UNAVAILABLE", "reason": "Current exact-SHA graph required."}
     rules: dict[str, Any] = {"status": "UNAVAILABLE"}
+    lineage: dict[str, Any] = {"status": "UNAVAILABLE", "references": [], "runtime_data_flow_proven": False}
     if graph_evidence["status"] == "PASS":
         try:
             graph = json.loads(Path(graph_evidence["graph"]).read_text(encoding="utf-8"))
@@ -345,6 +427,7 @@ def inspect_code(root: Path, *, paths: list[str],
             if launcher["status"] != "PASS":
                 reach["status"] = "REVIEW"
             rules = architectural_guardrails(graph, old)
+            lineage = trace_literal_json_to_ui(graph, source.get("data_lineage_candidates", []))
             # Source confirmation already exists in graph_audit, do not duplicate it.
             from .graph_audit import inspect_graph
             findings = inspect_graph(graph, root=root)
@@ -369,6 +452,7 @@ def inspect_code(root: Path, *, paths: list[str],
         except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
             reach = {"status": "UNAVAILABLE", "reason": str(exc)}
             rules = {"status": "UNAVAILABLE", "reason": str(exc)}
+            lineage = {"status": "UNAVAILABLE", "reason": str(exc), "references": [], "runtime_data_flow_proven": False}
     return {
         "schema_version": 1, "kind": "doctor_code_inspection",
         "status": "BLOCKED" if source["status"] == "BLOCKED" or rules["status"] == "BLOCKED"
@@ -376,5 +460,6 @@ def inspect_code(root: Path, *, paths: list[str],
         or reach["status"] != "PASS" or rules["status"] != "PASS" else "PASS",
         "source": source, "graph_status": graph_evidence["status"],
         "reachability": reach, "architectural_rules": rules,
+        "data_lineage_to_ui": lineage,
         "tests_executed": False, "graph_rebuilt": False,
     }
