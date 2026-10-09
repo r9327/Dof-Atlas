@@ -390,3 +390,8 @@ Les connexions `watch_qt_destroyed` reçoivent désormais un jeton unique et ém
 ### Même sémantique de couverture pour Doctor et Graphify
 
 `observed_executing_python_files` est désormais l'autorité commune des modules Test Intelligence et Doctor UI pour attribuer une exécution positive. Un `file_open`, un `import_attempt`, un import `importlib` retourné depuis le cache et un simple `QObject.signal.connect` n'ajoutent jamais le fichier cible à la couverture exécutée. Seul l’émetteur de l’événement est actif, sauf véritables entrées Python de fonction et callbacks Qt enveloppés et entrés. Les relations de résolution/import figurent toujours sur le graphe sous leur propre type. Les fichiers non observés ne sont jamais déclarés morts.
+
+
+### JSON décodé vers vrais widgets Guides, Quêtes et Succès
+
+Le scénario opt-in `capture-ui encyclopedia` crée toujours des vues réelles mais différées, sans hydrater les catalogues lourds. Il vérifie désormais un `QLabel.setText` effectif sur chacun des trois widgets grâce à un petit JSON synthétique temporaire dans `.ai/runtime/atlas_doctor`, immédiatement supprimé. La recherche du fichier propriétaire traverse une chaîne de parenté Qt bornée à 12 objets pour retrouver le véritable widget Atlas derrière des QFrame/QLabel génériques. Les jetons de liaison conservent les trois preuves dans le graphe de provenance sans journaliser la valeur JSON. Aucun chargement de données joueur, navigation WebEngine, benchmark ni instrumentation permanente.

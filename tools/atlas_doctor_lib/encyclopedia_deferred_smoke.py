@@ -5,8 +5,9 @@ from __future__ import annotations
 No catalog hydration, no user profile edits, no application start and no
 background worker; used only via Doctor's explicit runtime-trace command.
 """
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, NamedTemporaryFile
 from pathlib import Path
+import json
 from tools.atlas_doctor_lib.runtime_observation import active_observer
 
 
@@ -14,7 +15,7 @@ def main() -> None:
     observer = active_observer()
     if observer is None:
         raise RuntimeError("Run through Doctor runtime-trace, never app startup")
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication, QLabel
     from shiboken6 import delete, isValid
     from app.modules.encyclopedia.views.guides_view import GuidesView
     from app.modules.encyclopedia.views.achievements_view import AchievementsView
@@ -76,6 +77,26 @@ def main() -> None:
         if quests.quest_detail_view is not None:
             raise AssertionError("Search unexpectedly initialized rich Quest detail")
         quests.search.clear()
+        # Decode one isolated fixture and prove an actual QLabel.setText()
+        # handoff for all three real Atlas widgets, not merely a file open.
+        # No production JSON or player profile is read or written.
+        runtime_dir = observer.root / ".ai" / "runtime" / "atlas_doctor"
+        runtime_dir.mkdir(parents=True, exist_ok=True)
+        with NamedTemporaryFile("w", encoding="utf-8", suffix=".json",
+                                dir=runtime_dir, delete=False) as stream:
+            json.dump({"title": "Doctor UI data handoff"}, stream)
+            json_fixture = Path(stream.name)
+        try:
+            payload, token = observer.read_json(json_fixture.relative_to(observer.root))
+            for container in (guide, success, quests):
+                outer = QLabel(parent=container)
+                inner = QLabel(parent=outer)  # Real nested Qt parent ancestry.
+                if not observer.bind_json_label_text(token, inner, payload["title"]):
+                    raise AssertionError("Real Atlas UI JSON binding failed")
+                if inner.text() != payload["title"]:
+                    raise AssertionError("Decoded text did not reach the real QLabel")
+        finally:
+            json_fixture.unlink(missing_ok=True)
         observer.watch(quests, label="quests-empty", kind="qwidget")
         observer.watch_qt_destroyed(quests, label="quests-empty")
         observer.snapshot_watches(label="deferred-created")

@@ -325,6 +325,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         if not scenario_names:
             single = trace.get("scenario_module")
             scenario_names = [single] if isinstance(single, str) and len(single) <= 120 else ["Trace 1"]
+        from .scenario_coverage import observed_executing_python_files
         # Every emitted event keeps its originating scenario. Do not assign a
         # JSON decode to another scenario sharing the same token.
         for row in trace.get("events", []):
@@ -332,7 +333,6 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             if not isinstance(group, int) or isinstance(group, bool) or not 0 <= group < 8:
                 continue
             label = f"Scénario {group + 1}"
-            from .scenario_coverage import observed_executing_python_files
             for file in observed_executing_python_files(row):
                 runtime_scenarios_by_file[file].add(label)
     native_invalid_by_file: dict[str, int] = {}
@@ -754,7 +754,7 @@ matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain
  (!kind||(n.review_categories||[]).includes(kind))&&
  (!snapshotOnly.checked||!!n.snapshot_changes)&&
  (!level||(n.doctor_task&&n.doctor_task.priority===level))&&
- (!flagged.checked||n.reasons.length||n.doctor_task||n.source_evidence.length||n.worker_start_unpaired_at_trace_end)&&
+ (!flagged.checked||n.reasons.length||n.doctor_task||n.source_evidence.length||(n.review_categories||[]).length||n.worker_start_unpaired_at_trace_end)&&
  (!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
 const pages=Math.max(1,Math.ceil(matches.length/PAGE_SIZE));
 if(resetPage)pageIndex=0;

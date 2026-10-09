@@ -473,16 +473,29 @@ class RuntimeObserver:
         # Prefer the source file defining the real owner QWidget (e.g.
         # EquipmentPage) over an injected scenario module or native QLabel.
         source = None
-        owner = getattr(label, "parentWidget", None)
-        if callable(owner):
-            try:
-                parent = owner()
-                if parent is not None:
-                    import inspect
-                    defining_file = inspect.getsourcefile(type(parent))
-                    source = self._path(defining_file) if defining_file else None
-            except (OSError, TypeError, RuntimeError, ValueError):
-                source = None
+        # QLabel can be wrapped by anonymous QWidget/QFrame containers. Walk
+        # only the existing QObject parent chain (max 12) and attribute the
+        # binding to the first real Dofus Atlas view owner, not to a generic
+        # PySide container or the Doctor script driving this scenario.
+        widget = label
+        try:
+            import inspect
+            for _ in range(12):
+                parent_getter = getattr(widget, "parentWidget", None)
+                if not callable(parent_getter):
+                    break
+                widget = parent_getter()
+                if widget is None:
+                    break
+                defining_file = inspect.getsourcefile(type(widget))
+                candidate_source = self._path(defining_file) if defining_file else None
+                if (candidate_source and candidate_source.endswith(".py")
+                        and candidate_source.startswith(("app/pages/", "app/ui/",
+                                                         "app/modules/"))):
+                    source = candidate_source
+                    break
+        except (OSError, TypeError, RuntimeError, ValueError):
+            source = None
         if not source:
             source = self._path(sys._getframe(1).f_code.co_filename)
         set_text(value)
