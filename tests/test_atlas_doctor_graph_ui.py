@@ -8,6 +8,57 @@ from tools.atlas_doctor_lib.doctor_graph_ui import compact_graph, render_html
 
 
 class DoctorGraphUiTests(unittest.TestCase):
+    def test_history_overlay_marks_changed_imports_without_claiming_dead_code(self):
+        graph = {
+            "built_at_commit": "b" * 40,
+            "nodes": [{"id": 1, "source_file": "app/a.py"},
+                      {"id": 2, "source_file": "app/b.py"}],
+            "links": [],
+        }
+        compare = {
+            "baseline_sha": "a" * 40, "candidate_sha": "b" * 40,
+            "status": "REVIEW",
+            "new_import_file_pairs": [["app/a.py", "app/b.py"]],
+            "removed_import_file_pairs": [["app/a.py", "app/old.py"]],
+            "new_orphan_symbols": [{"path": "app/a.py", "symbol": "do", "origin": "ast"}],
+            "new_weak_symbols": [],
+        }
+        output = compact_graph(graph, {}, comparison=compare)
+        self.assertEqual(output["snapshot_diff"]["baseline_sha"], "a" * 40)
+        self.assertEqual(output["nodes"][0]["snapshot_changes"]["added_imports"], ["app/b.py"])
+        self.assertEqual(output["nodes"][0]["snapshot_changes"]["removed_imports"], ["app/old.py"])
+        self.assertTrue(output["nodes"][0]["snapshot_changes"]["new_orphan"])
+        self.assertIsNone(output["nodes"][1]["snapshot_changes"])
+        html = render_html(output)
+        self.assertIn("Changements depuis le graphe de référence", html)
+        self.assertIn("Différences Graphify depuis la référence", html)
+        self.assertIn("aucune preuve de régression ou de code mort", html)
+        with self.assertRaisesRegex(ValueError, "does not match graph SHA"):
+            compact_graph(graph, {}, comparison={**compare, "candidate_sha": "f" * 40})
+
+    def test_snapshot_baseline_is_bounded_to_graphify_out_and_read_only(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from tools.atlas_doctor_lib.doctor_graph_ui import load_snapshot_comparison
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            output = root / "graphify-out"
+            output.mkdir()
+            prior = output / "previous.json"
+            graph = {"built_at_commit": "b" * 40,
+                     "nodes": [], "links": []}
+            prior.write_text(json.dumps({"built_at_commit": "a" * 40,
+                                         "nodes": [], "links": []}), encoding="utf-8")
+            report = load_snapshot_comparison(root, graph, prior)
+            self.assertEqual(report["baseline_sha"], "a" * 40)
+            self.assertEqual(report["candidate_sha"], "b" * 40)
+            with self.assertRaisesRegex(ValueError, "under graphify-out"):
+                load_snapshot_comparison(root, graph, root / "other.json")
+            prior.write_text("[]", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "must be an object"):
+                load_snapshot_comparison(root, graph, prior)
+
     def test_interactive_view_has_real_navigation_and_filters(self):
         graph = {"nodes": [
             {"id": "a", "label": "guide", "source_file": "app/modules/encyclopedia/view.py", "community": 5},

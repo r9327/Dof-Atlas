@@ -26,9 +26,32 @@ def _domain(path: str) -> str:
 def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                   trace: dict[str, Any] | None = None,
                   inspection: dict[str, Any] | None = None,
-                  lineage: dict[str, Any] | None = None) -> dict[str, Any]:
+                  lineage: dict[str, Any] | None = None,
+                  comparison: dict[str, Any] | None = None) -> dict[str, Any]:
     nodes = graph.get("nodes", [])[:MAX_NODES]
     indexed = {item["id"]: number for number, item in enumerate(nodes)}
+    # Stable source-file comparisons, never match ephemeral Leiden community IDs.
+    source_changes: dict[str, dict[str, Any]] = {}
+    if comparison is not None:
+        if comparison.get("candidate_sha") != graph.get("built_at_commit"):
+            raise ValueError("Baseline comparison does not match graph SHA")
+        def change(path: str) -> dict[str, Any]:
+            return source_changes.setdefault(path, {
+                "added_imports": [], "removed_imports": [],
+                "new_orphan": False, "new_weak": False,
+            })
+        for field, kind in (("new_import_file_pairs", "added_imports"),
+                            ("removed_import_file_pairs", "removed_imports")):
+            for pair in comparison.get(field, [])[:80]:
+                if isinstance(pair, (list, tuple)) and len(pair) == 2 and all(
+                    isinstance(value, str) for value in pair
+                ):
+                    change(pair[0])[kind].append(pair[1])
+        for field, kind in (("new_orphan_symbols", "new_orphan"),
+                            ("new_weak_symbols", "new_weak")):
+            for item in comparison.get(field, [])[:80]:
+                if isinstance(item, dict) and isinstance(item.get("path"), str):
+                    change(item["path"])[kind] = True
     file_reasons: dict[str, list[str]] = {}
     review_by_file: dict[str, set[str]] = {}
     for field, reason, category in (
@@ -206,6 +229,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                 | ({"worker"} if file in open_worker_files else set())
             ),
             "source_evidence": source_evidence.get(file, []),
+            "snapshot_changes": source_changes.get(file),
             "doctor_task": file_actions.get(file),
             "runtime_observed": file in observed_files,
             "qt_call_site_observed": file in qt_sites,
@@ -238,6 +262,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                           "relation": "QT_CONNECT_RETURNED", "observed": True})
     return {
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
+        "snapshot_diff": comparison,
         "community_review_candidates": community_reviews,
         "community_review_total": int(cohesion.get("candidate_count") or 0)
         if isinstance(cohesion, dict) else 0,
@@ -284,7 +309,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <button id="graphNext" type="button" aria-label="Page suivante du graphe">▶</button>
 <small id="summary"></small><small id="liveStatus">Graphe statique</small></header>
 <main><canvas id="map" aria-label="Graphe interactif, zoom molette, déplacement souris"></canvas>
-<aside><h2>Inspection du code</h2><div id="coverageDetails"></div><div id="nodeDetails">Clique sur un nœud pour voir les dépendances, les preuves et les raisons d'examen.</div>
+<aside><h2>Inspection du code</h2><div id="snapshotDetails"></div><div id="coverageDetails"></div><div id="nodeDetails">Clique sur un nœud pour voir les dépendances, les preuves et les raisons d'examen.</div>
 <hr><small id="limits"></small></aside></main>
 <script id="doctor-data" type="application/json">__GRAPH_DATA__</script>
 <script>
@@ -298,6 +323,22 @@ const flagged=document.getElementById('flagged'),details=document.getElementById
 const priority=document.getElementById('priority');
 const reviewKind=document.getElementById('reviewKind');
 const inventory=data.file_coverage;
+const snapshot=data.snapshot_diff;
+if(snapshot){
+ const section=document.getElementById('snapshotDetails');
+ const heading=document.createElement('h3');heading.textContent='Changements depuis le graphe de référence';
+ section.appendChild(heading);
+ const summary=document.createElement('p');
+ summary.textContent='Référence '+snapshot.baseline_sha.slice(0,9)+' → '+snapshot.candidate_sha.slice(0,9)+
+  ' · '+snapshot.new_import_file_pairs.length+' imports ajoutés · '+
+  snapshot.removed_import_file_pairs.length+' imports retirés · '+
+  snapshot.new_orphan_symbols.length+' nouveaux orphelins candidats';
+ section.appendChild(summary);
+ const caveat=document.createElement('small');
+ caveat.textContent='Diff statique consultatif ; aucune preuve de régression ou de code mort. Les listes peuvent être tronquées.';
+ section.appendChild(caveat);
+ section.appendChild(document.createElement('hr'));
+}
 if(inventory){
  const section=document.getElementById('coverageDetails');
  const heading=document.createElement('h3');heading.textContent='Fichiers Python couverts';section.appendChild(heading);
@@ -429,6 +470,14 @@ if(importChanges.has(n.file)){
 }
 if(importErrors.has(n.file))line('p','Inspection AST incomplète : '+importErrors.get(n.file));
 line('p','Communauté Graphify : '+String(n.community??'non déterminée'));
+if(n.snapshot_changes){
+ const changes=n.snapshot_changes;
+ line('h4','Différences Graphify depuis la référence');
+ changes.added_imports.forEach(path=>line('p','+ import vers '+path));
+ changes.removed_imports.forEach(path=>line('p','− import vers '+path));
+ if(changes.new_orphan)line('p','Nouveau symbole orphelin candidat : vérifier ses consommateurs.');
+ if(changes.new_weak)line('p','Symbole nouvellement peu connecté : examen nécessaire.');
+}
 if(n.review_categories.length){
  line('p','Catégories de diagnostic à vérifier : '+n.review_categories.map(kind=>reviewLabels[kind]||kind).join(', '));
 }
@@ -644,8 +693,30 @@ def render_html(payload: dict[str, Any]) -> str:
     return HTML.replace("__GRAPH_DATA__", encoded)
 
 
+def load_snapshot_comparison(
+    root: Path, graph: dict[str, Any], baseline_path: Path
+) -> dict[str, Any]:
+    """Compare an explicitly supplied snapshot inside graphify-out, read-only."""
+    from .graph_intelligence import compare_graphs
+
+    root = root.resolve()
+    allowed = root / "graphify-out"
+    if baseline_path.is_symlink():
+        raise ValueError("Symlink baseline snapshots are not allowed")
+    selected = baseline_path.resolve()
+    if not selected.is_relative_to(allowed) or not selected.is_file():
+        raise ValueError("Baseline graph must be a regular file under graphify-out")
+    if selected.stat().st_size > 25_000_000:
+        raise ValueError("Baseline graph exceeds 25 MB")
+    baseline = json.loads(selected.read_text(encoding="utf-8"))
+    if not isinstance(baseline, dict):
+        raise ValueError("Baseline graph JSON must be an object")
+    return compare_graphs(baseline, graph)
+
+
 def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
-                             allow_stale: bool = False) -> dict[str, Any]:
+                             allow_stale: bool = False,
+                             baseline_path: Path | None = None) -> dict[str, Any]:
     from .architecture import graph_status
     from .graph_audit import audit_current_graph, inspect_graph
     root = root.resolve()
@@ -716,7 +787,14 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
     if inspection is not None and inspection.get("data_lineage_candidates"):
         from .deep_intelligence import trace_literal_json_to_ui
         lineage = trace_literal_json_to_ui(graph, inspection["data_lineage_candidates"])
-    payload = compact_graph(graph, audit, trace=trace, inspection=inspection, lineage=lineage)
+    comparison = None
+    if baseline_path is not None:
+        try:
+            comparison = load_snapshot_comparison(root, graph, baseline_path)
+        except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
+            return {"status": "BLOCKED", "reason": f"Baseline graph: {exc}"}
+    payload = compact_graph(graph, audit, trace=trace, inspection=inspection,
+                            lineage=lineage, comparison=comparison)
     payload["source_scan_selection_truncated"] = source_scan_truncated
     from .file_coverage import tracked_python
     inventory = tracked_python(root)
@@ -741,6 +819,8 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         "source_inspection": payload["source_inspection_status"],
         "source_scan_files": payload["source_inspection_files"],
         "json_lineage_review_leads": payload["json_lineage_review_leads"],
+        "baseline_sha": comparison["baseline_sha"] if comparison else None,
+        "snapshot_comparison_status": comparison["status"] if comparison else "NOT_PROVIDED",
         "source_scan_truncated": source_scan_truncated or payload["source_inspection_truncated"],
         "tests_executed": False, "graph_rebuilt": False,
     }
