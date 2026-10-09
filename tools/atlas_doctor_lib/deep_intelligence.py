@@ -180,6 +180,9 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
 
 def launcher_entrypoints(root: Path) -> dict[str, Any]:
     """Read only literal DOFUS.bat startup declarations (never execute BAT)."""
+    # Windows CI may supply an 8.3 short path or a symlinked checkout root.
+    # _relative() checks resolved paths, so canonicalize both sides first.
+    root = root.resolve()
     launcher = root / "DOFUS.bat"
     if launcher.is_symlink() or not launcher.is_file():
         return {"status": "REVIEW", "entrypoints": ["main.py"],

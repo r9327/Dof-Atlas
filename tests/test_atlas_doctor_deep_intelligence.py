@@ -153,6 +153,24 @@ class DeepIntelligenceTests(unittest.TestCase):
             ])
             self.assertFalse(report["execution_proven"])
 
+    def test_launcher_entrypoints_accept_a_symlinked_repo_root(self):
+        from tools.atlas_doctor_lib.deep_intelligence import launcher_entrypoints
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            root = base / "real_repo"
+            root.mkdir()
+            (root / "launch.py").write_text("pass\n")
+            (root / "DOFUS.bat").write_text('set "APP_SCRIPT=%ROOT%launch.py"\n')
+            alias = base / "alias_repo"
+            try:
+                alias.symlink_to(root, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("Directory symlinks not available")
+            result = launcher_entrypoints(alias)
+            self.assertEqual(result["status"], "PASS")
+            self.assertEqual(result["entrypoints"], ["launch.py"])
+            self.assertFalse(result["execution_proven"])
+
     def test_undocumented_or_missing_launcher_cannot_prove_accessibility(self):
         from tools.atlas_doctor_lib.deep_intelligence import launcher_entrypoints
         with tempfile.TemporaryDirectory() as directory:
