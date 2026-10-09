@@ -719,6 +719,49 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(result["observed_json_ui_bindings"], 0)
         self.assertFalse(result["nodes"][1]["json_verified_binding_evidence"])
 
+    def test_multi_trace_scenario_filter_preserves_source_identity(self):
+        from tools.atlas_doctor_lib.doctor_graph_ui import merge_runtime_traces
+        sha = "8" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/pages/home.py"},
+            {"id": 2, "source_file": "app/pages/equipment_page.py"}], "links": []}
+        def scenario(module, source):
+            return {"kind": "doctor_runtime_observation", "candidate_sha": sha,
+                    "worktree_clean": True, "truncated": False,
+                    "scenario_module": module,
+                    "events": [{"type": "python_call_edge", "source": source,
+                                "target": source}]}
+        combined = merge_runtime_traces([
+            scenario("tools.guide_smoke", "app/pages/home.py"),
+            scenario("tools.equipment_smoke", "app/pages/equipment_page.py"),
+        ], graph_sha=sha)
+        payload = compact_graph(graph, {}, combined)
+        self.assertEqual(payload["scenario_modules"],
+                         ["tools.guide_smoke", "tools.equipment_smoke"])
+        self.assertEqual(payload["nodes"][0]["runtime_scenarios"], ["Scénario 1"])
+        self.assertEqual(payload["nodes"][1]["runtime_scenarios"], ["Scénario 2"])
+        html = render_html(payload)
+        self.assertIn('id="scenario"', html)
+        self.assertIn("scenarioName||(n.runtime_scenarios||[])", html)
+        self.assertIn("runtime_scenarios:(n.runtime_scenarios||[])", html)
+        combined["worktree_clean"] = False
+        self.assertEqual(compact_graph(graph, {}, combined)["nodes"][0]["runtime_scenarios"], [])
+
+    def test_multi_trace_merge_keeps_repeat_scenario_identity_and_rejects_bad_trace(self):
+        from tools.atlas_doctor_lib.doctor_graph_ui import merge_runtime_traces
+        sha = "9" * 40
+        def trace():
+            return {"kind": "doctor_runtime_observation", "candidate_sha": sha,
+                    "worktree_clean": True, "truncated": False,
+                    "scenario_module": "tools.same_scenario", "events": []}
+        merged = merge_runtime_traces([trace(), trace()], graph_sha=sha)
+        self.assertEqual(merged["scenario_modules"],
+                         ["tools.same_scenario", "tools.same_scenario"])
+        wrong = trace()
+        wrong["candidate_sha"] = "a" * 40
+        with self.assertRaises(ValueError):
+            merge_runtime_traces([trace(), wrong], graph_sha=sha)
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,

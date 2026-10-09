@@ -476,6 +476,25 @@ class DeepIntelligenceTests(unittest.TestCase):
         self.assertEqual(result["json_opens_observed"], 1)
         self.assertEqual(result["references"][0]["ui_callers_in_same_trace"], [])
 
+    def test_import_attempt_does_not_promote_failed_import_to_reachable(self):
+        graph = {"built_at_commit": "f" * 40,
+                 "nodes": [{"id": 1, "source_file": "main.py"},
+                           {"id": 2, "source_file": "app/features/lazy.py"}],
+                 "links": []}
+        trace = {"candidate_sha": "f" * 40, "worktree_clean": True,
+                 "truncated": False, "events": [
+                     {"type": "import_attempt", "source": "main.py",
+                      "module": "app.features.lazy"},
+                 ]}
+        report = graph_reachability(graph, ["main.py"], trace=trace)
+        self.assertEqual(report["unreached_total"], 1)
+        self.assertEqual(report["runtime_import_attempt_pairs"], 1)
+        self.assertEqual(report["unreached_with_runtime_import_attempt"],
+                         ["app/features/lazy.py"])
+        self.assertFalse(report["proof_of_dead_code"])
+        trace["worktree_clean"] = False
+        self.assertEqual(graph_reachability(graph, ["main.py"], trace=trace)
+                         ["runtime_import_attempt_pairs"], 0)
 
 
 if __name__ == "__main__":

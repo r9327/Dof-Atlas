@@ -4,6 +4,7 @@ from __future__ import annotations
 
 An independent local HTML viewer; no server, CDN, Qt runtime or graph rebuild.
 """
+from collections import defaultdict
 import hashlib
 import json
 import re
@@ -230,6 +231,26 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     open_worker_files = {row["source"] for row in observed_lifecycle.get("worker_starts_unpaired", [])}
     cache_released_files = set(observed_lifecycle.get("cache_release_sources", []))
     qt_destroyed_files = set(observed_lifecycle.get("qt_destroyed_sources", []))
+    runtime_scenarios_by_file: dict[str, set[str]] = defaultdict(set)
+    scenario_names: list[str] = []
+    if trace_status == "MATCHED" and isinstance(trace, dict):
+        raw_names = trace.get("scenario_modules")
+        if isinstance(raw_names, list):
+            scenario_names = [name for name in raw_names if isinstance(name, str) and len(name) <= 120][:8]
+        if not scenario_names:
+            single = trace.get("scenario_module")
+            scenario_names = [single] if isinstance(single, str) and len(single) <= 120 else ["Trace 1"]
+        # Every emitted event keeps its originating scenario. Do not assign a
+        # JSON decode to another scenario sharing the same token.
+        for row in trace.get("events", []):
+            group = row.get("_trace_group", 0)
+            if not isinstance(group, int) or isinstance(group, bool) or not 0 <= group < 8:
+                continue
+            label = f"Scénario {group + 1}"
+            for field in ("source", "target"):
+                file = row.get(field)
+                if isinstance(file, str) and file.endswith(".py"):
+                    runtime_scenarios_by_file[file].add(label)
     native_invalid_by_file: dict[str, int] = {}
     if trace_status == "MATCHED" and trace is not None:
         for event in trace.get("events", []):
@@ -318,6 +339,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "worker_start_unpaired_at_trace_end": file in open_worker_files,
             "cache_release_observed": file in cache_released_files,
             "qt_destroyed_observed": file in qt_destroyed_files,
+            "runtime_scenarios": sorted(runtime_scenarios_by_file.get(file, set())),
             "qt_native_invalid_wrappers_observed": native_invalid_by_file.get(file, 0),
         })
     edges = []
@@ -363,6 +385,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         if isinstance(cohesion, dict) else 0,
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
         "scenarios_merged": (trace.get("scenarios_merged", 1) if trace_status == "MATCHED" and isinstance(trace, dict) else 0),
+        "scenario_modules": scenario_names,
         "observed_qt_callback_file_pairs": len(invoked_qt_pairs),
         "observed_runtime_import_attempt_pairs": len(runtime_import_pairs),
         "runtime_import_attempts_truncated": runtime_imports_truncated,
@@ -400,6 +423,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <header><h1>Doctor Atlas × Graphify</h1>
 <input id="search" type="search" placeholder="Chercher symbole ou fichier" aria-label="Rechercher">
 <select id="domain" aria-label="Domaine"><option value="">Tous les domaines</option></select>
+<select id="scenario" aria-label="Scénario runtime"><option value="">Tous les scénarios</option></select>
 <select id="community" aria-label="Communauté Graphify"><option value="">Toutes les communautés</option></select>
 <select id="relation" aria-label="Relation du graphe"><option value="">Toutes les relations</option></select>
 <select id="priority" aria-label="Priorité Doctor"><option value="">Toutes priorités</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
@@ -421,6 +445,7 @@ const data=JSON.parse(document.getElementById('doctor-data').textContent);
 const canvas=document.getElementById('map'),ctx=canvas.getContext('2d');
 const search=document.getElementById('search'),domain=document.getElementById('domain');
 const community=document.getElementById('community');
+const scenario=document.getElementById('scenario');
 const relation=document.getElementById('relation');
 const flagged=document.getElementById('flagged'),details=document.getElementById('nodeDetails');
 const snapshotOnly=document.getElementById('snapshotOnly');
@@ -492,6 +517,11 @@ data.edges.forEach(e=>{
 });
 const groups=[...new Set(nodes.map(n=>n.domain))].sort();
 groups.forEach(g=>{let opt=document.createElement('option');opt.value=g;opt.textContent=g;domain.appendChild(opt)});
+(data.scenario_modules||[]).forEach((name,index)=>{
+ const opt=document.createElement('option');opt.value='Scénario '+(index+1);
+ opt.textContent='Scénario '+(index+1)+' · '+name;scenario.appendChild(opt);
+});
+scenario.disabled=!(data.scenarios_merged>0);
 const communityReview=new Map((data.community_review_candidates||[]).map(row=>[String(row.community),row]));
 // All counts are bounded by the already-loaded Graphify node payload.
 const reviewLabels={orphan:'Nœuds isolés',weak:'Connexions faibles',fanout:'Couplage élevé',
@@ -531,9 +561,10 @@ let changedFiles=new Set();
 let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
-function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value,cluster=community.value,kind=reviewKind.value;
+function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value,cluster=community.value,kind=reviewKind.value,scenarioName=scenario.value;
 matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
  (!cluster||String(n.community)===cluster)&&
+ (!scenarioName||(n.runtime_scenarios||[]).includes(scenarioName))&&
  (!kind||(n.review_categories||[]).includes(kind))&&
  (!snapshotOnly.checked||!!n.snapshot_changes)&&
  (!level||(n.doctor_task&&n.doctor_task.priority===level))&&
@@ -606,6 +637,7 @@ if(boundary){
  line('p','Cohésion faible selon le graphe statique : ni fusion ni suppression automatique. Vérifier responsabilités, imports et appels réels.');
 }
 if(n.runtime_observed)line('p','Appel Python observé dans une trace opt-in correspondant au SHA.');
+if((n.runtime_scenarios||[]).length)line('p','Scénarios observés : '+n.runtime_scenarios.join(', '));
 const symbolCalls=(data.observed_symbol_calls||[]).filter(e=>e.source===n.file||e.target===n.file);
 if(symbolCalls.length){
  line('h4','Appels de fonctions observés (scénario opt-in)');
@@ -702,6 +734,7 @@ function buildNodeEvidence(i){
   candidate_sha:data.candidate_sha,
   static_graph_truncated:!!data.truncated,
   runtime_trace_status:data.trace_status,
+  runtime_scenarios:(n.runtime_scenarios||[]).slice(0,8),
   source_inspection_status:data.source_inspection_status,
   source:{file:n.file,symbol:n.label,line:n.line,community:n.community},
   review:{categories:n.review_categories||[],reasons:n.reasons||[],
@@ -881,7 +914,7 @@ if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;panX=drag.px+dx;panY=drag.py+dy;r
 canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;
 if(!moved){const r=canvas.getBoundingClientRect();const found=pick((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio);if(found>=0)show(found)}});
 canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.min(3,scale*(e.deltaY>0?.84:1.16)));render()},{passive:false});
-[search,domain,community,reviewKind,priority,flagged,snapshotOnly].forEach(el=>el.addEventListener('input',()=>filter(true)));
+[search,domain,scenario,community,reviewKind,priority,flagged,snapshotOnly].forEach(el=>el.addEventListener('input',()=>filter(true)));
 relation.addEventListener('change',()=>{if(selected>=0)show(selected);else render()});
 document.getElementById('graphPrev').addEventListener('click',()=>{pageIndex--;filter(false)});
 document.getElementById('graphNext').addEventListener('click',()=>{pageIndex++;filter(false)});
@@ -1019,14 +1052,14 @@ def merge_runtime_traces(traces: list[dict[str, Any]], *, graph_sha: str) -> dic
         # Python call paths from two runs must never combine into fake proof.
         combined.extend({**event, "_trace_group": index} for event in events)
         module = trace.get("scenario_module")
-        if isinstance(module, str) and len(module) <= 120:
-            modules.append(module)
+        modules.append(module if isinstance(module, str) and len(module) <= 120
+                       else f"Trace {index + 1}")
     return {
         "kind": "doctor_runtime_observation", "candidate_sha": graph_sha,
         "worktree_clean": True, "truncated": False,
         "events": combined, "events_captured": len(combined),
         "symbol_edges_truncated": any(bool(t.get("symbol_edges_truncated")) for t in traces),
-        "scenarios_merged": len(traces), "scenario_modules": sorted(set(modules)),
+        "scenarios_merged": len(traces), "scenario_modules": modules,
         "limits": "Merged complete exact-SHA positive observations only; absence does not imply dead code.",
     }
 

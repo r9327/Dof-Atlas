@@ -495,15 +495,28 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
                    and len(graph_sha) == 40 and trace_sha == graph_sha
                    and trace.get("worktree_clean") is True
                    and trace.get("truncated") is False
-                   and isinstance(events, list) and len(events) <= 50000)
+                   and isinstance(events, list) and len(events) <= 50000
+                   and all(isinstance(row, dict) for row in events))
     runtime_pairs: set[tuple[str, str]] = set()
     qt_registered: set[str] = set()
     qt_invoked: set[str] = set()
+    import_attempts: set[tuple[str, str]] = set()
     if valid_trace:
         for item in events:
             if not isinstance(item, dict):
                 continue
             source, target = item.get("source"), item.get("target")
+            if item.get("type") == "import_attempt" and isinstance(source, str) and source in files:
+                module = item.get("module")
+                if (isinstance(module, str) and len(module) <= 240
+                        and all(part.isidentifier() for part in module.split("."))):
+                    stem = module.replace(".", "/")
+                    # An audit-hook import event records an ATTEMPT, not
+                    # successful module initialization or use by the caller.
+                    resolved = next((p for p in (stem + ".py", stem + "/__init__.py")
+                                     if p in files), None)
+                    if resolved and source != resolved and len(import_attempts) < 256:
+                        import_attempts.add((source, resolved))
             if not isinstance(source, str) or not isinstance(target, str):
                 continue
             if source not in files or target not in files or source == target:
@@ -525,12 +538,17 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
                 visited.add(target)
                 frontier.append(target)
     missing = sorted(set(entrypoints) - files)
+    unreachable = files - visited
+    attempted_only = sorted(unreachable & {target for _, target in import_attempts})
     return {
         "status": "REVIEW" if missing or (trace is not None and not valid_trace) else "PASS",
         "entrypoints_found": known, "entrypoints_missing_from_graph": missing,
         "reachable_files": len(visited), "graph_files": len(files),
-        "unreached_candidates": sorted(files - visited)[:MAX_FINDINGS],
-        "unreached_total": len(files - visited),
+        "unreached_candidates": sorted(unreachable)[:MAX_FINDINGS],
+        "unreached_total": len(unreachable),
+        "unreached_with_runtime_import_attempt": attempted_only[:MAX_FINDINGS],
+        "runtime_import_attempt_pairs": len(import_attempts),
+        "static_or_observed_reachable_files": len(visited),
         "runtime_trace_status": ("NOT_PROVIDED" if trace is None else
                                  "MATCHED" if valid_trace else "STALE_OR_INCOMPLETE"),
         "observed_python_call_edges": len(runtime_pairs),
@@ -538,7 +556,7 @@ def graph_reachability(graph: dict[str, Any], entrypoints: list[str],
         "observed_qt_callback_targets": sorted(qt_invoked)[:MAX_FINDINGS],
         "observed_qt_callback_target_count": len(qt_invoked),
         "proof_of_dead_code": False,
-        "coverage": "Static imports, observed Python calls and explicitly wrapped Python callback entries; no native ownership or negative reachability proof.",
+        "coverage": "Static imports, observed Python calls and explicitly wrapped Python callback entries; import attempts reported separately. No native ownership or negative reachability proof.",
     }
 
 

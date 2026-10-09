@@ -240,3 +240,10 @@ Dofus Atlas, et aucun benchmark n'est déclenché.
 La commande `graph-ui --trace .ai/runtime/atlas_doctor/traces/guide.json --extra-trace .ai/runtime/atlas_doctor/traces/quests.json --open` superpose les preuves de deux à huit scénarios **complets, exact-SHA et worktree propre**, avec un plafond partagé de 50 000 événements. Elle n'exécute pas de scénario et ne lance ni CI ni benchmark. Le compteur de scénarios figure dans la vue.
 
 Les événements sont rattachés explicitement à leur scénario (`_trace_group`), y compris les jetons JSON `json-1` qui peuvent être identiques dans des exécutions différentes : aucune lecture d'un scénario ne peut être reliée à une affectation QLabel ou à une chaîne d'appels d'un autre. En cas de provenance partielle ou périmée, l'ensemble est refusé plutôt qu'un faux résultat positif. L'absence de preuve dans ces scénarios ne prouve toujours pas qu'un fichier est inutilisé. `--trace` unique conserve son fonctionnement antérieur.
+
+
+### Reachability conservative et filtre Graphify par scénario
+
+`code-inspect` sépare désormais les modules atteints par les imports AST ou les appels Python/Qt réellement observés, et les *tentatives* d'imports Python vers des modules du dépôt. Un import déclenché par l'audit hook peut échouer : ces cibles apparaissent dans `unreached_with_runtime_import_attempt`, et ne deviennent jamais « atteintes » ou « supprimables » par ce seul événement. Les traces malformées/incomplètes sont refusées.
+
+Dans `graph-ui`, un filtre « Scénario runtime » permet de retrouver les nœuds rencontrés pendant chaque trace du lot agrégé, avec provenance exact-SHA. Un nom de scénario peut se répéter sans confusion : la sélection repose sur son rang dans le lot, pas sur une égalité de noms. Les traces séparées ne sont pas recollées en flux de données artificiel. Aucun watcher ni test lancé à l'ouverture du graphe.
