@@ -302,7 +302,13 @@ visible=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain
 document.getElementById('summary').textContent=visible.length+' / '+nodes.length+' nœuds · '+(visible.length>3500?'relations masquées en vue globale':'relations visibles');render()}
 function screen(p){return {x:canvas.width/2+(p.x+panX)*scale*devicePixelRatio,
 y:canvas.height/2+(p.y+panY)*scale*devicePixelRatio}}
+let drawScheduled=false;
 function render(){
+ if(drawScheduled)return;
+ drawScheduled=true;
+ requestAnimationFrame(()=>{drawScheduled=false;paint()});
+}
+function paint(){
  if(!ctx)return;
  ctx.fillStyle='#0d1420';ctx.fillRect(0,0,canvas.width,canvas.height);
  const subset=new Set(visible);ctx.strokeStyle='#2b4259';ctx.lineWidth=1;
@@ -314,7 +320,7 @@ function render(){
  for(const i of visible){const p=screen(positions[i]),n=nodes[i];
  if(p.x < -10||p.x>canvas.width+10||p.y < -10||p.y>canvas.height+10)continue;
  ctx.beginPath();ctx.arc(p.x,p.y,i===selected?6:3,0,2*Math.PI);
- ctx.fillStyle=i===selected?'#ffdf86':changedFiles.has(n.file)?'#f9b454':n.reasons.length?'#ff8d7d':(n.runtime_observed||n.qt_call_site_observed)?'#b39cf5':'#70b9e9';ctx.fill()}
+ ctx.fillStyle=i===selected?'#ffdf86':changedFiles.has(n.file)?'#f9b454':(n.reasons.length||n.source_evidence.length)?'#ff8d7d':(n.runtime_observed||n.qt_call_site_observed)?'#b39cf5':'#70b9e9';ctx.fill()}
 }
 function pick(x,y){let best=-1,distance=100;for(const i of visible){
  const p=screen(positions[i]),d=(p.x-x)**2+(p.y-y)**2;
@@ -404,7 +410,8 @@ if(location.hostname==='127.0.0.1'||location.hostname==='localhost'){
  setInterval(()=>{if(!document.hidden)fetch('/api/ping',{cache:'no-store'}).catch(()=>{})},60000);
  refreshLive(true);
 }
-window.addEventListener('resize',fit);fit();
+// Populate the initial node set before the first canvas render.
+window.addEventListener('resize',fit);filter();fit();
 })();
 </script></body></html>"""
 

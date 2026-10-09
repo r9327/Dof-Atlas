@@ -84,6 +84,16 @@ class DoctorGraphUiTests(unittest.TestCase):
                          "Possible JSON reference via import chain")
         self.assertEqual(report["nodes"][0]["source_evidence"], [])
 
+    def test_graph_is_populated_on_first_open_and_renders_only_per_frame(self):
+        payload = compact_graph({"nodes": [{"id": 1, "source_file": "app/a.py"}],
+                                 "links": []}, {})
+        html = render_html(payload)
+        self.assertIn("window.addEventListener('resize',fit);filter();fit();", html)
+        self.assertIn("requestAnimationFrame(()=>{drawScheduled=false;paint()})", html)
+        self.assertIn("if(drawScheduled)return", html)
+        self.assertIn("n.source_evidence.length", html)
+        self.assertNotIn("setInterval(refreshLive,2500)", html)
+
     def test_unscanned_graph_nodes_do_not_inherit_ast_findings(self):
         graph = {"nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}
         result = compact_graph(graph, {})
