@@ -23,6 +23,27 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertTrue(data["nodes"][1]["reasons"])
         self.assertFalse(data["truncated"])
 
+    def test_pagination_retains_full_graph_and_global_neighbor_navigation(self):
+        graph = {
+            "nodes": [{"id": i, "source_file": f"app/{i}.py"} for i in range(2405)],
+            "links": [{"source": 0, "target": 2404, "relation": "imports"}],
+            "built_at_commit": "f" * 40,
+        }
+        data = compact_graph(graph, {})
+        self.assertEqual(len(data["nodes"]), 2405)
+        self.assertEqual(len(data["edges"]), 1)
+        self.assertFalse(data["truncated"])
+        html = render_html(data)
+        for marker in (
+            'id="graphPrev"', 'id="graphNext"', 'id="graphPage"',
+            "const PAGE_SIZE=1200", "matches=nodes.map", "matches.slice(",
+            "Math.floor(offset/PAGE_SIZE)", "filter(false);show(e.n)",
+            "button.addEventListener('click'", "relations de la page uniquement",
+        ):
+            self.assertIn(marker, html)
+        self.assertIn("Page précédente du graphe", html)
+        self.assertIn("Page suivante du graphe", html)
+
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
                  "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}

@@ -251,7 +251,11 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <select id="domain" aria-label="Domaine"><option value="">Tous les domaines</option></select>
 <select id="priority" aria-label="Priorité Doctor"><option value="">Toutes priorités</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
-<button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button><small id="summary"></small><small id="liveStatus">Graphe statique</small></header>
+<button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button>
+<button id="graphPrev" type="button" aria-label="Page précédente du graphe">◀</button>
+<small id="graphPage" aria-live="polite">Page 1</small>
+<button id="graphNext" type="button" aria-label="Page suivante du graphe">▶</button>
+<small id="summary"></small><small id="liveStatus">Graphe statique</small></header>
 <main><canvas id="map" aria-label="Graphe interactif, zoom molette, déplacement souris"></canvas>
 <aside><h2>Inspection du code</h2><div id="coverageDetails"></div><div id="nodeDetails">Clique sur un nœud pour voir les dépendances, les preuves et les raisons d'examen.</div>
 <hr><small id="limits"></small></aside></main>
@@ -302,17 +306,26 @@ const positions=nodes.map(n=>{
   return {x:Math.cos(groupAngle)*outer+Math.cos(angle)*small,
           y:Math.sin(groupAngle)*outer+Math.sin(angle)*small};
 });
-let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[];
+const PAGE_SIZE=1200;
+let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[],matches=[],pageIndex=0;
 let changedFiles=new Set();
 let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
-function filter(){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value;
-visible=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
+function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value;
+matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
  (!level||(n.doctor_task&&n.doctor_task.priority===level))&&
  (!flagged.checked||n.reasons.length||n.doctor_task||n.source_evidence.length||n.worker_start_unpaired_at_trace_end)&&
  (!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
-document.getElementById('summary').textContent=visible.length+' / '+nodes.length+' nœuds · '+(visible.length>3500?'relations masquées en vue globale':'relations visibles');render()}
+const pages=Math.max(1,Math.ceil(matches.length/PAGE_SIZE));
+if(resetPage)pageIndex=0;
+pageIndex=Math.max(0,Math.min(pageIndex,pages-1));
+visible=matches.slice(pageIndex*PAGE_SIZE,(pageIndex+1)*PAGE_SIZE);
+document.getElementById('graphPrev').disabled=pageIndex===0;
+document.getElementById('graphNext').disabled=pageIndex>=pages-1;
+document.getElementById('graphPage').textContent='Page '+(pageIndex+1)+' / '+pages;
+document.getElementById('summary').textContent=visible.length+' affichés · '+matches.length+' filtrés / '+nodes.length+' nœuds · relations de la page uniquement';
+render()}
 function screen(p){return {x:canvas.width/2+(p.x+panX)*scale*devicePixelRatio,
 y:canvas.height/2+(p.y+panY)*scale*devicePixelRatio}}
 let drawScheduled=false;
@@ -376,8 +389,21 @@ if(n.reasons.length){line('h4','Pourquoi Doctor signale ce nœud');n.reasons.for
 else line('p','Aucun signal prioritaire dans cet extrait de diagnostic.');
 const link=document.createElement('a');link.href='https://github.com/r9327/Dof-Atlas/blob/'+encodeURIComponent(data.candidate_sha||'main')+'/'+n.file.split('/').map(encodeURIComponent).join('/');
 link.target='_blank';link.rel='noopener noreferrer';link.textContent='Voir le code sur GitHub';details.appendChild(link);
-const adj=neighbors.get(i)||[];line('h4','Connexions affichées ('+adj.length+')');
-adj.slice(0,40).forEach(e=>line('p',e.direction==='out'?'→ '+nodes[e.n].file+' · '+e.relation:'← '+nodes[e.n].file+' · '+e.relation));
+const adj=neighbors.get(i)||[];line('h4','Voisins du graphe ('+adj.length+')');
+adj.slice(0,40).forEach(e=>{
+ const button=document.createElement('button');button.type='button';
+ button.textContent=(e.direction==='out'?'→ ':'← ')+nodes[e.n].file+' · '+e.relation;
+ button.addEventListener('click',()=>{
+  let offset=matches.indexOf(e.n);
+  if(offset<0){
+   search.value='';domain.value='';priority.value='';flagged.checked=false;
+   filter(true);offset=matches.indexOf(e.n);
+  }
+  if(offset>=0){pageIndex=Math.floor(offset/PAGE_SIZE);filter(false);show(e.n)}
+ });
+ details.appendChild(button);
+});
+if(adj.length>40)line('small','Liste limitée à 40 voisins, sans supprimer les relations du graphe.');
 render()}
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,px:panX,py:panY,moved:false}});
 canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=(e.clientX-drag.x)/scale,dy=(e.clientY-drag.y)/scale;
@@ -385,7 +411,9 @@ if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;panX=drag.px+dx;panY=drag.py+dy;r
 canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;
 if(!moved){const r=canvas.getBoundingClientRect();const found=pick((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio);if(found>=0)show(found)}});
 canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.min(3,scale*(e.deltaY>0?.84:1.16)));render()},{passive:false});
-[search,domain,priority,flagged].forEach(el=>el.addEventListener('input',filter));
+[search,domain,priority,flagged].forEach(el=>el.addEventListener('input',()=>filter(true)));
+document.getElementById('graphPrev').addEventListener('click',()=>{pageIndex--;filter(false)});
+document.getElementById('graphNext').addEventListener('click',()=>{pageIndex++;filter(false)});
 document.getElementById('reset').addEventListener('click',()=>{scale=.36;panX=0;panY=0;render()});
 document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées. '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
 async function refreshLive(force=false){
