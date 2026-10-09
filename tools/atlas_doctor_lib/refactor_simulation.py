@@ -32,6 +32,7 @@ def _runtime_consumer_evidence(
     empty = {
         "status": "NOT_PROVIDED" if trace_path is None else "UNAVAILABLE",
         "observed_python_consumers": [],
+        "observed_dynamic_imports": [],
         "qt_registration_sites": [],
         "qt_callback_invocations": [],
         "events_examined": 0,
@@ -76,9 +77,10 @@ def _runtime_consumer_evidence(
         python_rows: set[tuple[str, str]] = set()
         qt_rows: set[tuple[str, str]] = set()
         qt_callback_rows: set[tuple[str, str]] = set()
+        imported_rows: set[tuple[str, str]] = set()
         for event in events:
             kind = event.get("type")
-            if kind not in {"python_call_edge", "python_symbol_call", "qt_signal_connect_returned", "qt_callback_invoked"}:
+            if kind not in {"python_call_edge", "python_symbol_call", "qt_signal_connect_returned", "qt_callback_invoked", "module_import_returned"}:
                 continue
             source, target = event.get("source"), event.get("target")
             if not isinstance(source, str) or not isinstance(target, str) or target not in targets:
@@ -88,7 +90,10 @@ def _runtime_consumer_evidence(
                     or ".." in path.parts or "\\" in source
                     or source == target or not (root / path).is_file()):
                 continue
-            if kind == "qt_signal_connect_returned":
+            if kind == "module_import_returned":
+                if event.get("confidence") == "IMPORTLIB_RETURNED_REPOSITORY_MODULE":
+                    imported_rows.add((source, target))
+            elif kind == "qt_signal_connect_returned":
                 qt_rows.add((source, target))
             elif kind == "qt_callback_invoked":
                 if event.get("confidence") == "WRAPPED_PYTHON_CALLBACK_ENTERED":
@@ -102,6 +107,12 @@ def _runtime_consumer_evidence(
                 {"source": source, "target": target, "confidence": "OBSERVED_PYTHON_CALL"}
                 for source, target in python_sorted[:MAX_RUNTIME_CONSUMERS]
             ],
+            "observed_dynamic_imports": [
+                {"source": source, "target": target,
+                 "confidence": "IMPORTLIB_RETURNED_REPOSITORY_MODULE",
+                 "not_new_execution_proof": True}
+                for source, target in sorted(imported_rows)[:MAX_RUNTIME_CONSUMERS]
+            ],
             "qt_registration_sites": [
                 {"source": source, "target": target,
                  "confidence": "CONNECT_RETURNED_NOT_CALLBACK_INVOKED"}
@@ -112,7 +123,8 @@ def _runtime_consumer_evidence(
                 for source, target in sorted(qt_callback_rows)[:MAX_RUNTIME_CONSUMERS]
             ],
             "events_examined": len(events),
-            "truncated": (len(qt_callback_rows) > MAX_RUNTIME_CONSUMERS
+            "truncated": (len(imported_rows) > MAX_RUNTIME_CONSUMERS
+                          or len(qt_callback_rows) > MAX_RUNTIME_CONSUMERS
                           or len(python_rows) > MAX_RUNTIME_CONSUMERS
                           or len(qt_rows) > MAX_RUNTIME_CONSUMERS
                           or trace.get("symbol_edges_truncated") is True),
@@ -215,7 +227,7 @@ def simulate_refactor(
             | {row["path"] for row in source_impact.get("consumer_files", [])}
             | {row["importer"] for row in source_impact.get("literal_dynamic_import_candidates", [])}
             | (
-            {row["source"] for kind in ("observed_python_consumers", "qt_registration_sites", "qt_callback_invocations")
+            {row["source"] for kind in ("observed_python_consumers", "observed_dynamic_imports", "qt_registration_sites", "qt_callback_invocations")
              for row in runtime[kind]} if runtime["status"] == "MATCHED" else set()
         )) - set(normalized)),
         "runtime_evidence": runtime,

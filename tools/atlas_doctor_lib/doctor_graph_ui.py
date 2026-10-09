@@ -284,6 +284,21 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                     runtime_imports_truncated = True
                     continue
                 runtime_import_pairs.add((source, target))
+    # A genuine return from explicit importlib.import_module is stronger
+    # evidence than an attempted import, but not proof of fresh execution.
+    returned_import_pairs: set[tuple[str, str]] = set()
+    if trace_status == "MATCHED" and trace is not None:
+        represented = {row.get("source_file") for row in nodes}
+        returned_import_pairs = {
+            (row["source"], row["target"])
+            for row in trace.get("events", [])[:50000]
+            if row.get("type") == "module_import_returned"
+            and row.get("confidence") == "IMPORTLIB_RETURNED_REPOSITORY_MODULE"
+            and isinstance(row.get("source"), str)
+            and isinstance(row.get("target"), str)
+            and row["source"] in represented and row["target"] in represented
+            and row["source"] != row["target"]
+        }
     symbol_calls: list[dict[str, Any]] = []
     if trace_status == "MATCHED" and trace is not None:
         symbol_calls = [
@@ -336,6 +351,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     qt_files = {file for pair in qt_pairs for file in pair}
     qt_invoked_files = {file for pair in invoked_qt_pairs for file in pair}
     dynamic_import_files = {file for pair in runtime_import_pairs for file in pair}
+    returned_import_files = {file for pair in returned_import_pairs for file in pair}
     qt_sites: set[str] = set()
     if trace_status == "MATCHED" and trace is not None:
         qt_sites = {row["source"] for row in trace.get("events", [])
@@ -406,6 +422,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "qt_connection_observed": file in qt_files,
             "qt_callback_invoked_observed": file in qt_invoked_files,
             "runtime_import_attempt_observed": file in dynamic_import_files,
+            "dynamic_module_import_returned": file in returned_import_files,
             "json_runtime_evidence": json_runtime_by_file.get(file, []),
             "json_verified_binding_evidence": json_bindings_by_file.get(file, []),
             "worker_start_unpaired_at_trace_end": file in open_worker_files,
@@ -445,6 +462,12 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         if a in first_by_file and b in first_by_file:
             edges.append({"a": first_by_file[a], "b": first_by_file[b],
                           "relation": "QT_CALLBACK_INVOKED", "observed": True})
+    for a, b in sorted(returned_import_pairs):
+        if len(edges) >= MAX_LINKS:
+            break
+        if a in first_by_file and b in first_by_file:
+            edges.append({"a": first_by_file[a], "b": first_by_file[b],
+                          "relation": "RUNTIME_IMPORT_RETURNED", "observed": True})
     for a, b in sorted(runtime_import_pairs):
         if len(edges) >= MAX_LINKS:
             break
@@ -464,6 +487,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "scenario_modules": scenario_names,
         "observed_qt_callback_file_pairs": len(invoked_qt_pairs),
         "observed_runtime_import_attempt_pairs": len(runtime_import_pairs),
+        "observed_module_import_returned_pairs": len(returned_import_pairs),
         "runtime_import_attempts_truncated": runtime_imports_truncated,
         "observed_json_opens": json_runtime_summary.get("json_opens_observed", 0),
         "observed_json_ui_bindings": bindings_summary.get("bound_to_ui", 0),
@@ -826,6 +850,7 @@ if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; r
 if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ; exécution du récepteur non prouvée.');
  if(n.qt_callback_invoked_observed)line('p','Callback Python Qt entré pendant ce scénario opt-in ; ownership natif non prouvé.');
  if(n.runtime_import_attempt_observed)line('p','Tentative d’import Python observée dans ce scénario ; réussite de l’import non attestée.');
+ if(n.dynamic_module_import_returned)line('p','Import dynamique retourné par importlib dans ce scénario ; succès de résolution attesté, pas de nouvelle exécution prouvée.');
  if((n.json_verified_binding_evidence||[]).length){
   line('h4','JSON décodé et transmis à la vue (scénario opt-in)');
   n.json_verified_binding_evidence.forEach(e=>line('p',e.json_path+' · '+e.reader+' → '+e.ui_file));

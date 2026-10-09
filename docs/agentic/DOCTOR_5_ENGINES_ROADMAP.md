@@ -380,3 +380,8 @@ La dernière étape de certification devra inclure les suites `test_atlas_doctor
 ### Observations Qt par objet plutôt que simples compteurs
 
 Les connexions `watch_qt_destroyed` reçoivent désormais un jeton unique et émettent un événement d’enregistrement distinct du vrai signal `QObject.destroyed`. `summarize_runtime_lifecycle` rapproche les deux uniquement dans le même scénario et remonte les watches qui n’ont pas reçu le signal pendant la capture. Graphify les indique sur le fichier concerné, sans les convertir en diagnostic de fuite native, car Qt peut différer la destruction jusqu’à un prochain tour de boucle. Les objets sont observés par référence faible; le mécanisme reste explicitement opt-in et plafonné à 128 connexions.
+
+
+### Imports dynamiques retournés (preuves opt-in)
+
+`observer.import_module("app.core.text")` encapsule exclusivement l’appel fait volontairement dans un scénario Doctor. Si `importlib.import_module` retourne un module dont le fichier Python se trouve dans le dépôt courant, Doctor émet un événement `module_import_returned` distinct d’une simple tentative d’import. Une exception ne produit jamais une preuve positive. Cette relation est visible dans Graphify comme `RUNTIME_IMPORT_RETURNED` et entre comme consommateur positif dans l’aperçu de refactorisation. La présence d’un module en cache n’est pas une preuve que son code a été réexécuté pendant cette trace. Aucun patch global d’import, watcher, test ou instrumentation au démarrage.

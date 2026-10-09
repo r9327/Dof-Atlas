@@ -8,6 +8,7 @@ explicit test instrumentation or separate platform profilers.
 """
 import argparse
 import hashlib
+import importlib
 import math
 import re
 import gc
@@ -381,6 +382,31 @@ class RuntimeObserver:
             return False
         self._watched.append((str(label)[:100], str(kind)[:40], reference))
         return True
+
+    def import_module(self, module: str, package: str | None = None) -> Any:
+        """Opt-in successful Python dynamic import evidence.
+
+        Unlike the CPython audit event (attempted import), the returned module
+        is real. Only module source files located inside this checkout appear
+        in the trace. A cached import proves module resolution, NOT fresh code
+        execution. No global monkeypatch, background poll or module interception.
+        """
+        if not self._active:
+            raise RuntimeError("Doctor module import needs an active observer")
+        if not isinstance(module, str) or not 0 < len(module) <= 240:
+            raise ValueError("Expected a bounded Python module name")
+        loaded = importlib.import_module(module, package=package)
+        caller = self._path(sys._getframe(1).f_code.co_filename)
+        target = self._path(getattr(loaded, "__file__", None))
+        if (caller and target and caller.endswith(".py") and target.endswith(".py")
+                and caller != target):
+            self._record({
+                "type": "module_import_returned", "source": caller,
+                "target": target,
+                "confidence": "IMPORTLIB_RETURNED_REPOSITORY_MODULE",
+                "not_new_execution_proof": True,
+            })
+        return loaded
 
     def read_json(self, relative_path: str | Path) -> tuple[Any, str]:
         """Decode a repo JSON explicitly and record *successful* decode, no content.
