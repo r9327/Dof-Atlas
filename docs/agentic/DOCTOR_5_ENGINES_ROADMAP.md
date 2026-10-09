@@ -455,3 +455,8 @@ L'option existante `graph-ui --inspect-file app/pages/quests_page.py --trace .ai
 ### Cycles import Python — confirmation AST sans imports relatifs impossibles
 
 La confirmation des cycles de Graphify sur les sources courantes interdit désormais de réinterpréter un `from ....module import name` qui remonte au-delà du package comme un import absolu valide. Les imports relatifs corrects `from . import b` et `from .a import something` restent reconnus. La lecture source est plafonnée à 512 KiB et refuse les liens symboliques. Les cycles suspectés par le graphe qui ne disposent pas de toutes leurs arêtes réellement confirmées restent des candidats de revue, jamais une erreur inventée ni un motif de suppression.
+
+
+### Graphe LIVE réellement interactif : arêtes AST incrémentales
+
+Le serveur local `graph-live` sait maintenant résoudre les imports Python des 12 fichiers modifiés, y compris `from . import module` et les imports relatifs, vers les modules Git locaux. L’API renvoie `added_dependency_links` / `removed_dependency_links` (32 relations par sens au plus et par fichier). Le Canvas les superpose en **traits tiretés temporaires**, consultables par navigation depuis le fichier modifié, sans modifier `data.edges`, reconstruire Graphify, ni déclarer le graphe global à jour. Les arêtes affichées sont limitées aux nœuds visibles de la page courante et ne sont recalculées qu’au rafraîchissement demandé, pas pendant le zoom ou le déplacement. Les relations absentes de la carte source sont explicitement signalées comme hors graphe, et les erreurs/limites de l’inventaire restent PARTIAL. Pas de surveillance permanente ni tests déclenchés.

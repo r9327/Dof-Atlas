@@ -810,7 +810,8 @@ const positions=nodes.map(n=>{
 });
 const PAGE_SIZE=1200;
 let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[],matches=[],pageIndex=0,pathStart=-1;
-let pageEdges=[];
+let pageEdges=[],livePageEdges=[];
+let liveAddedLinks=[];
 function rebuildPageEdges(){
  // At most 50k relations inspected once per page/filter change, never
  // at each animation frame during drag or wheel zoom.
@@ -818,6 +819,8 @@ function rebuildPageEdges(){
  const selectedRelation=relation.value;
  pageEdges=data.edges.filter(e=>subset.has(e.a)&&subset.has(e.b)&&
   (!selectedRelation||e.relation===selectedRelation));
+ livePageEdges=(!selectedRelation?liveAddedLinks.filter(e=>
+  subset.has(e.a)&&subset.has(e.b)):[]);
 }
 let changedFiles=new Set();
 let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
@@ -858,6 +861,16 @@ function paint(){
  let a=screen(positions[e.a]),b=screen(positions[e.b]);
  ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
  }}
+ // Live imports are temporary current-worktree AST links, not part of the
+ // persisted Graphify graph. Draw with a distinct dashed stroke.
+ if(livePageEdges.length){
+  ctx.strokeStyle='#e3b56b';ctx.setLineDash([5,4]);
+  for(const e of livePageEdges){
+   let a=screen(positions[e.a]),b=screen(positions[e.b]);
+   ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  }
+  ctx.setLineDash([]);
+ }
  for(const i of visible){const p=screen(positions[i]),n=nodes[i];
  if(p.x < -10||p.x>canvas.width+10||p.y < -10||p.y>canvas.height+10)continue;
  ctx.beginPath();ctx.arc(p.x,p.y,i===selected?6:3,0,2*Math.PI);
@@ -875,6 +888,14 @@ if(importChanges.has(n.file)){
  line('h4','Imports Python modifiés (AST courant versus commit du graphe)');
  delta.added_imports.forEach(x=>line('p','+ L'+x.line+' '+x.statement));
  delta.removed_imports.forEach(x=>line('p','− ancienne L'+x.baseline_line+' '+x.statement));
+ (delta.added_dependency_links||[]).forEach(x=>{
+  const index=firstNodeByFile.get(x.target);
+  if(index==null){line('p','+ L'+x.line+' → '+x.target+' · hors graphe');return}
+  const button=line('button','+ L'+x.line+' → '+x.target+' · lien AST temporaire');
+  button.type='button';button.addEventListener('click',()=>revealNode(index));
+ });
+ (delta.removed_dependency_links||[]).forEach(x=>
+  line('p','− ancienne dépendance '+x.target+' · L'+x.baseline_line));
  if(delta.imports_truncated)line('p','Détails tronqués : analyse ciblée nécessaire.');
 }
 if(importErrors.has(n.file))line('p','Inspection AST incomplète : '+importErrors.get(n.file));
@@ -1244,11 +1265,23 @@ async function refreshLive(force=false){
   importChanges=nextImportChanges;
   importErrors=nextImportErrors;
   importStatus=importData.status||'UNKNOWN';
+  // Update only this page's temporary overlay. No mutation of data.edges.
+  liveAddedLinks=[];
+  for(const [source,delta] of importChanges){
+   const a=firstNodeByFile.get(source);
+   if(a==null)continue;
+   for(const link of (delta.added_dependency_links||[])){
+    const b=firstNodeByFile.get(link.target);
+    if(b!=null&&a!==b)liveAddedLinks.push({a,b,relation:'LIVE_AST_ADDED'});
+   }
+  }
+  rebuildPageEdges();
   const filesShown=new Set(nodes.map(n=>n.file));
   const unknown=[...changedFiles].filter(path=>!filesShown.has(path)).length;
   let caption=live.graph_stale?'Graphe figé · '+live.changed_count+' fichiers modifiés · '+unknown+' hors graphe':'Graphe inchangé · suivi à la demande';
   if(live.truncated)caption+=' (liste partielle)';
-  label.textContent=caption+' · imports '+importStatus;
+  label.textContent=caption+' · imports '+importStatus+
+   ' · '+liveAddedLinks.length+' lien(s) AST temporaire(s), non persistés';
   if(changed){if(selected>=0)show(selected);else render();}
  }catch(error){label.textContent='Suivi Git indisponible · graphe figé';}
  finally{refreshInFlight=false;}

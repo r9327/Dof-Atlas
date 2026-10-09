@@ -47,23 +47,84 @@ def _direct_imports(contents: bytes, filename: str) -> dict[str, int]:
     return found
 
 
-def changed_imports(root: Path, commit_sha: str, paths: list[str]) -> dict[str, Any]:
+def _module_source(parts: list[str], known: set[str]) -> str | None:
+    if not parts or not all(part.isidentifier() for part in parts):
+        return None
+    stem = "/".join(parts)
+    return next((target for target in (stem + ".py", stem + "/__init__.py")
+                 if target in known), None)
+
+
+def _resolved_file_imports(contents: bytes, path: str,
+                           known: set[str]) -> dict[str, int]:
+    """AST-confirmed file targets in this checkout, never dynamic callbacks."""
+    tree = ast.parse(contents.decode("utf-8-sig"), filename=path)
+    resolved: dict[str, int] = {}
+    package = path.removesuffix(".py").split("/")[:-1]
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            groups = [alias.name.split(".") for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                if node.level > len(package):
+                    continue
+                origin = package[:len(package) - node.level + 1]
+            else:
+                origin = []
+            if node.module:
+                origin += node.module.split(".")
+            groups = [origin]
+            groups.extend(origin + [alias.name] for alias in node.names
+                          if alias.name != "*" and alias.name.isidentifier())
+        else:
+            continue
+        for group in groups:
+            target = _module_source(group, known)
+            if target is not None and target != path:
+                resolved.setdefault(target, node.lineno)
+    return resolved
+
+
+def changed_imports(root: Path, commit_sha: str, paths: list[str],
+                    *, tracked_sources: set[str] | None = None) -> dict[str, Any]:
     """Read only small changed Python sources and their Git baseline versions."""
     candidates = [path for path in paths if path.endswith(".py")]
+    inventory_unavailable = False
+    try:
+        inventory = set(tracked_sources) if tracked_sources is not None else {
+            item.decode("utf-8", "replace").replace("\\", "/")
+            for item in _git(root, "ls-files", "-z", "--", "*.py").split(b"\0")
+            if item
+        }
+    except (OSError, RuntimeError, subprocess.TimeoutExpired):
+        inventory, inventory_unavailable = set(), True
+    # Include safe untracked changed sources so a newly created local module
+    # can be represented as an import target before the first git add.
+    for name in candidates:
+        relative = Path(name)
+        candidate = root / relative
+        if (not relative.is_absolute() and ".." not in relative.parts
+                and "\\" not in name and candidate.is_file()
+                and not candidate.is_symlink()
+                and candidate.resolve().is_relative_to(root)):
+            inventory.add(name)
     out: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
     for path in candidates[:MAX_PYTHON_FILES]:
         relative = Path(path)
-        target = (root / relative).resolve()
-        if (relative.is_absolute() or ".." in relative.parts or
-                not target.is_relative_to(root) or not target.is_file() or target.is_symlink()):
+        original = root / relative
+        target = original.resolve()
+        if (relative.is_absolute() or ".." in relative.parts or "\\" in path or
+                not target.is_relative_to(root) or not target.is_file() or original.is_symlink()):
             errors.append({"path": path, "reason": "Deleted, missing or unsafe Python source."})
             continue
         try:
             if target.stat().st_size > MAX_SOURCE_BYTES:
                 errors.append({"path": path, "reason": "Source exceeds local scan budget."})
                 continue
-            current = _direct_imports(target.read_bytes(), path)
+            contents = target.read_bytes()
+            current = _direct_imports(contents, path)
+            linked_now = _resolved_file_imports(contents, path, inventory)
         except (OSError, UnicodeError, SyntaxError, ValueError) as exc:
             errors.append({"path": path, "reason": f"Current source could not be parsed: {type(exc).__name__}"})
             continue
@@ -81,16 +142,20 @@ def changed_imports(root: Path, commit_sha: str, paths: list[str]) -> dict[str, 
                 continue
             try:
                 previous = _direct_imports(old.stdout, path)
+                linked_before = _resolved_file_imports(old.stdout, path, inventory)
             except (UnicodeError, SyntaxError, ValueError) as exc:
                 errors.append({"path": path, "reason": f"Baseline source could not be parsed: {type(exc).__name__}"})
                 continue
             baseline_absent = False
         else:
             previous = {}
+            linked_before = {}
             baseline_absent = True
         added = sorted(set(current) - set(previous))
         removed = sorted(set(previous) - set(current))
-        if added or removed or baseline_absent:
+        linked_added = sorted(set(linked_now) - set(linked_before))
+        linked_removed = sorted(set(linked_before) - set(linked_now))
+        if added or removed or linked_added or linked_removed or baseline_absent:
             out.append({
                 "path": path,
                 "baseline_absent": baseline_absent,
@@ -98,18 +163,24 @@ def changed_imports(root: Path, commit_sha: str, paths: list[str]) -> dict[str, 
                                   for key in added[:MAX_IMPORT_ROWS]],
                 "removed_imports": [{"statement": key, "baseline_line": previous[key]}
                                     for key in removed[:MAX_IMPORT_ROWS]],
-                "imports_truncated": len(added) > MAX_IMPORT_ROWS or len(removed) > MAX_IMPORT_ROWS,
+                "added_dependency_links": [{"target": value, "line": linked_now[value]}
+                                           for value in linked_added[:MAX_IMPORT_ROWS]],
+                "removed_dependency_links": [{"target": value, "baseline_line": linked_before[value]}
+                                             for value in linked_removed[:MAX_IMPORT_ROWS]],
+                "imports_truncated": (len(added) > MAX_IMPORT_ROWS or len(removed) > MAX_IMPORT_ROWS
+                                      or len(linked_added) > MAX_IMPORT_ROWS or len(linked_removed) > MAX_IMPORT_ROWS),
                 "evidence": "CURRENT_AST_VS_BASELINE_AST",
             })
     return {
-        "status": "PARTIAL" if len(candidates) > MAX_PYTHON_FILES or errors or
+        "status": "PARTIAL" if inventory_unavailable or len(candidates) > MAX_PYTHON_FILES or errors or
         any(row["imports_truncated"] for row in out) else "COMPLETE",
         "inspected_count": min(len(candidates), MAX_PYTHON_FILES),
         "python_file_count": len(candidates),
         "changes": out,
         "errors": errors[:MAX_PYTHON_FILES],
+        "source_inventory_available": not inventory_unavailable,
         "truncated": len(candidates) > MAX_PYTHON_FILES,
-        "limits": "Direct AST imports only. No dynamic Qt/reflective consumer proof or graph rebuild.",
+        "limits": "Current-source AST import file links are an ephemeral review overlay (12 changed Python files, max 32 link additions/removals per file). No graph rebuild, runtime callbacks, Qt/reflective or complete coverage proof.",
     }
 
 

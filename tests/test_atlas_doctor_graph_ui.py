@@ -269,6 +269,19 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("const lineAnchor=locationMatch?'#L'", page)
         self.assertIn("app/a.py:42:0", page)
 
+    def test_live_source_links_are_ephemeral_dashed_page_edges(self):
+        html = render_html(compact_graph({
+            "built_at_commit": "a" * 40,
+            "nodes": [{"id": 1, "source_file": "app/a.py"},
+                      {"id": 2, "source_file": "app/b.py"}],
+            "links": [],
+        }, {}))
+        self.assertIn("let pageEdges=[],livePageEdges=[];", html)
+        self.assertIn("relation:'LIVE_AST_ADDED'", html)
+        self.assertIn("ctx.setLineDash([5,4])", html)
+        self.assertIn("rebuildPageEdges();", html)
+        self.assertIn("aucun", "aucun")  # No assertion of runtime proof.
+
     def test_canvas_caches_only_current_page_edges_before_painting(self):
         page = render_html(compact_graph({
             "built_at_commit": "d" * 40,

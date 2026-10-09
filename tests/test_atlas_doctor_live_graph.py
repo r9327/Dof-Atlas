@@ -118,6 +118,22 @@ class LiveGraphTests(unittest.TestCase):
         report2 = change_snapshot(self.root, self.sha)["source_import_delta"]
         self.assertEqual(report2["changes"][0]["added_imports"][0]["statement"], "import json as parser")
 
+    def test_live_graph_adds_actual_local_import_edges_without_graph_rebuild(self):
+        package = self.root / "app"
+        (package / "__init__.py").write_text("", encoding="utf-8")
+        (package / "helper.py").write_text("VALUE = 1\n", encoding="utf-8")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "add helper")
+        baseline = self.git("rev-parse", "HEAD")
+        self.path.write_text("from . import helper\n", encoding="utf-8")
+        report = change_snapshot(self.root, baseline)
+        row = report["source_import_delta"]["changes"][0]
+        self.assertEqual(row["added_dependency_links"][0]["target"], "app/helper.py")
+        self.assertEqual(row["added_dependency_links"][0]["line"], 1)
+        self.assertEqual(row["removed_dependency_links"], [])
+        self.assertFalse(report["graph_rebuilt"])
+        self.assertFalse(report["tests_executed"])
+
     def test_implicit_dynamic_import_not_claimed(self):
         self.path.write_text('name = "app.some_module"\n')
         self.assertEqual(change_snapshot(self.root, self.sha)["source_import_delta"]["changes"], [])
