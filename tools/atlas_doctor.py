@@ -181,7 +181,8 @@ def command_capabilities(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.capability_matrix import capability_inventory
     result = capability_inventory(root)
     if not args.json:
-        print(f"Doctor capabilities: {result['source_present']}/18 source anchors present")
+        print(f"Doctor capabilities: {result['source_present']}/18 source anchors; "
+              f"{result['call_sites_wired']}/18 wiring call-sites")
         print("No behavioral certification was run by this inventory.")
     return result
 

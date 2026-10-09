@@ -28,11 +28,58 @@ CAPABILITIES = (
 )
 
 
+# Explicit read-only call-site contracts. A matching AST call does not
+# certify that the call succeeds, only that its source-level wiring exists.
+WIRED_AT = {
+    "G01": ("tools/atlas_doctor.py", "file_coverage"),
+    "G02": ("tools/atlas_doctor_lib/graph_audit.py", "inspect_import_cycles"),
+    "G03": ("tools/atlas_doctor_lib/graph_audit.py", "analyze_community_boundaries"),
+    "G04": ("tools/atlas_doctor.py", "inspect_code"),
+    "R05": ("tools/atlas_doctor.py", "run_traced_module"),
+    "R06": ("tools/atlas_doctor.py", "run_traced_module"),
+    "R07": ("tools/atlas_doctor_lib/qt_smoke_scenario.py", "wrap_qt_slot"),
+    "R08": ("tools/atlas_doctor_lib/qt_smoke_scenario.py", "watch_qt_thread"),
+    "R09": ("tools/atlas_doctor_lib/webengine_lifecycle_scenario.py", "snapshot_qt_objects"),
+    "C10": ("tools/atlas_doctor.py", "build_change_plan"),
+    "C11": ("tools/atlas_doctor_lib/integrated_investigation.py", "source_reverse_impact"),
+    "C12": ("tools/atlas_doctor.py", "simulate_refactor"),
+    "C13": ("tools/atlas_doctor_lib/doctor_graph_ui.py", "load_scenario_trend"),
+    "T14": ("tools/atlas_doctor_lib/integrated_investigation.py", "suggest_targeted_test_order"),
+    "T15": ("tools/atlas_doctor_lib/integrated_investigation.py", "test_cost_report"),
+    "T16": ("tools/atlas_doctor_lib/integrated_investigation.py", "summarize_scenarios"),
+    "U17": ("tools/atlas_doctor_lib/doctor_graph_ui.py", "render_html"),
+    "U18": ("tools/atlas_doctor.py", "serve_graph_live"),
+}
+
+
+def _call_names(root: Path, path: str) -> set[str] | None:
+    source = root / path
+    try:
+        if (source.is_symlink() or not source.is_file()
+                or not source.resolve().is_relative_to(root)
+                or source.stat().st_size > 512 * 1024):
+            return None
+        tree = ast.parse(source.read_text(encoding="utf-8-sig"), filename=path)
+    except (OSError, ValueError, SyntaxError, UnicodeError):
+        return None
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Name):
+            found.add(node.func.id)
+        elif isinstance(node.func, ast.Attribute):
+            found.add(node.func.attr)
+    return found
+
+
 def capability_inventory(root: Path) -> dict[str, Any]:
     root = root.resolve()
     library = root / "tools" / "atlas_doctor_lib"
     symbols: dict[str, set[str] | None] = {}
     rows: list[dict[str, Any]] = []
+    wiring_cache = {path: _call_names(root, path)
+                    for path in {path for path, _ in WIRED_AT.values()}}
     for ident, engine, name, file, symbol in CAPABILITIES:
         if file not in symbols:
             candidate = library / file
@@ -54,18 +101,25 @@ def capability_inventory(root: Path) -> dict[str, Any]:
             except (OSError, ValueError, SyntaxError, UnicodeError):
                 symbols[file] = None
         present = symbols[file] is not None and symbol in symbols[file]
+        site, called = WIRED_AT[ident]
+        calls = wiring_cache.get(site)
+        wired = calls is not None and called in calls
         rows.append({
             "id": ident, "engine": engine, "name": name,
+            "wiring_status": "AST_CALLSITE_PRESENT" if wired else "CALLSITE_NOT_FOUND",
+            "wiring_source": site, "called_symbol": called,
             "source_anchor": "PRESENT" if present else "MISSING",
             "source_path": "tools/atlas_doctor_lib/" + file,
             "callable": symbol, "behavior_certified": False,
         })
     missing = sum(row["source_anchor"] == "MISSING" for row in rows)
+    unwired = sum(row["wiring_status"] != "AST_CALLSITE_PRESENT" for row in rows)
     return {
         "kind": "doctor_capabilities", "count": len(rows),
         "source_present": len(rows) - missing, "source_missing": missing,
-        "status": "BLOCKED" if missing else "REVIEW_PENDING_FINAL_CERTIFICATION",
+        "call_sites_wired": len(rows) - unwired, "call_sites_missing": unwired,
+        "status": "BLOCKED" if missing or unwired else "REVIEW_PENDING_FINAL_CERTIFICATION",
         "capabilities": rows, "certified_count": 0,
         "tests_executed": False, "graph_rebuilt": False,
-        "limits": "AST presence is not functionality. Every capability still requires exact-SHA behavioral, Qt, Graphify and applicable RAM/CI proof.",
+        "limits": "AST definitions and AST call-sites are integration evidence only, not proof of behavior. Every capability requires exact-SHA behavioral, Qt, Graphify and applicable RAM/CI certification.",
     }

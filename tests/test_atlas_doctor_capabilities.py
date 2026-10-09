@@ -14,6 +14,8 @@ class DoctorCapabilityContractsTests(unittest.TestCase):
         self.assertEqual(len({row[0] for row in CAPABILITIES}), 18)
         self.assertEqual(result["count"], 18)
         self.assertEqual(result["source_missing"], 0, result["capabilities"])
+        self.assertEqual(result["call_sites_missing"], 0, result["capabilities"])
+        self.assertEqual(result["call_sites_wired"], 18)
         self.assertEqual(result["status"], "REVIEW_PENDING_FINAL_CERTIFICATION")
         self.assertEqual(result["certified_count"], 0)
         self.assertFalse(result["tests_executed"])

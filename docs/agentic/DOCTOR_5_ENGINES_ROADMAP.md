@@ -475,3 +475,8 @@ Les imports supprimés depuis le SHA Graphify ne sont plus seulement listés dan
 ### Test Intelligence raccordé à l’enquête unifiée (cinquième moteur)
 
 `file-audit` utilise désormais `tools.agent.plan_payload`, l’autorité canonique Atlas Integrity pour déduire les tests, scopes et groupes requis à partir des fichiers réellement concernés. Le statut reste consultatif ; aucune validation, test ou benchmark n’est exécuté. `--cost-report` (facultatif) lit des rapports historiques existants sous `.ai/runtime` pour ordonner les groupes sans en supprimer aucun ni abaisser la certification exigée. Une erreur d’inventaire Agent se traduit par `PARTIAL_REVIEW`, sans bloquer la lecture AST.
+
+
+### Vérification des 18 branchements sans exécuter leurs fonctions
+
+L’inventaire `capabilities` vérifie maintenant pour chacune des 18 capacités **deux preuves AST distinctes** : sa définition dans le module attendu et au moins un appel dans le composant qui l’utilise effectivement (commande CLI, contrôleur Graphify, scénario Qt ou enquête unifiée). Il retourne `source_present` et `call_sites_wired`, avec le site d’appel par capacité. Cela évite de compter une fonction isolée jamais appelée comme une intégration complète. Ces preuves restent statiques, **ne valent pas certification comportementale**, n’exécutent aucune action et ne prétendent pas 18/18 PASS. Les vérifications de scénarios réels, RAM/preload et CI restent réservées à la certification finale.
