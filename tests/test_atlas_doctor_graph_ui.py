@@ -695,6 +695,30 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(compact_graph(graph, {}, trace)["nodes"][0]
                          ["qt_native_invalid_wrappers_observed"], 0)
 
+    def test_multi_trace_join_does_not_fabricate_cross_scenario_json_binding(self):
+        from tools.atlas_doctor_lib.doctor_graph_ui import merge_runtime_traces
+        sha = "7" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/core/reader.py"},
+            {"id": 2, "source_file": "app/pages/equipment_page.py"}], "links": []}
+        first = {"kind": "doctor_runtime_observation", "candidate_sha": sha,
+                 "worktree_clean": True, "truncated": False,
+                 "scenario_module": "tools.first_scenario",
+                 "events": [{"type": "json_decoded", "source": "app/core/reader.py",
+                             "target": "data/a.json", "token": "json-1",
+                             "confidence": "JSON_DECODE_RETURNED"}]}
+        second = {"kind": "doctor_runtime_observation", "candidate_sha": sha,
+                  "worktree_clean": True, "truncated": False,
+                  "scenario_module": "tools.second_scenario",
+                  "events": [{"type": "json_ui_bound", "source": "app/pages/equipment_page.py",
+                              "token": "json-1",
+                              "confidence": "EXPLICIT_QT_LABEL_SETTEXT_RETURNED"}]}
+        merged = merge_runtime_traces([first, second], graph_sha=sha)
+        result = compact_graph(graph, {}, merged)
+        self.assertEqual(result["scenarios_merged"], 2)
+        self.assertEqual(result["observed_json_ui_bindings"], 0)
+        self.assertFalse(result["nodes"][1]["json_verified_binding_evidence"])
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,

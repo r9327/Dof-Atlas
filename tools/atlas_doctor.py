@@ -219,7 +219,8 @@ def command_graph_ui(root: Path, args) -> dict[str, Any]:
     payload = export_interactive_graph(root, trace_path=args.trace,
                                        baseline_path=getattr(args, "baseline_graph", None),
                                        save_snapshot=getattr(args, "save_snapshot", False),
-                                       ide_links=getattr(args, "ide_links", False))
+                                       ide_links=getattr(args, "ide_links", False),
+                                       extra_trace_paths=getattr(args, "extra_trace", None))
     if payload.get("status") == "PASS" and args.open:
         import webbrowser
         webbrowser.open(Path(payload["path"]).as_uri())
@@ -572,6 +573,8 @@ def build_parser() -> argparse.ArgumentParser:
     gu.add_argument('--open', action='store_true', help='Ouvrir le rapport HTML dans le navigateur.')
     gu.add_argument('--ide-links', action='store_true', help='Ajouter des liens VS Code locaux (chemin absolu dans le HTML).')
     gu.add_argument('--trace', type=Path, help='Trace runtime JSON dans .ai/runtime pour enrichir les liens.')
+    gu.add_argument('--extra-trace', type=Path, action='append', default=[],
+                    help='Ajouter une autre trace complète du même SHA (max 8 au total).')
     gu.add_argument('--baseline-graph', type=Path,
                     help='Comparer un ancien graph.json sous graphify-out (lecture seule).')
     gu.add_argument('--save-snapshot', action='store_true',

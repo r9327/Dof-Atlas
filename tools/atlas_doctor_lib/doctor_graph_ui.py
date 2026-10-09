@@ -362,6 +362,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "community_review_total": int(cohesion.get("candidate_count") or 0)
         if isinstance(cohesion, dict) else 0,
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
+        "scenarios_merged": (trace.get("scenarios_merged", 1) if trace_status == "MATCHED" and isinstance(trace, dict) else 0),
         "observed_qt_callback_file_pairs": len(invoked_qt_pairs),
         "observed_runtime_import_attempt_pairs": len(runtime_import_pairs),
         "runtime_import_attempts_truncated": runtime_imports_truncated,
@@ -888,7 +889,7 @@ search.addEventListener('keydown',event=>{
  if(event.key==='Enter'&&matches.length){event.preventDefault();pageIndex=0;filter(false);focusNode(matches[0])}
 });
 document.getElementById('reset').addEventListener('click',()=>{scale=.36;panX=0;panY=0;render()});
-document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées, '+(data.observed_qt_callback_file_pairs||0)+' callbacks Qt exécutés. '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
+document.getElementById('limits').textContent='Trace: '+data.trace_status+' · '+data.observed_runtime_file_pairs+' relations de fichiers observées, '+(data.observed_qt_callback_file_pairs||0)+' callbacks Qt exécutés · '+(data.scenarios_merged||0)+' scénario(s). '+data.disclaimer+(data.truncated?' Attention : graphe tronqué pour une visualisation fluide.':'');
 async function refreshLive(force=false){
  if(document.hidden||refreshInFlight||(!force&&Date.now()-lastRefresh<1500))return;
  lastRefresh=Date.now();
@@ -992,11 +993,50 @@ def load_snapshot_comparison(
     return compare_graphs(baseline, graph)
 
 
+def merge_runtime_traces(traces: list[dict[str, Any]], *, graph_sha: str) -> dict[str, Any]:
+    """Combine positive observations of 2..8 complete traces from one SHA.
+
+    Reject all evidence on a mismatch rather than partially trusting a mixed
+    batch. Never infer negative coverage or restart an application.
+    """
+    if not re.fullmatch(r"[a-f0-9]{40}", graph_sha) or not 2 <= len(traces) <= 8:
+        raise ValueError("Expected 2..8 trace objects and full Graphify SHA")
+    combined: list[dict[str, Any]] = []
+    modules: list[str] = []
+    for index, trace in enumerate(traces):
+        if not isinstance(trace, dict):
+            raise ValueError(f"Malformed trace {index}")
+        events = trace.get("events")
+        if (trace.get("kind") != "doctor_runtime_observation"
+                or trace.get("candidate_sha") != graph_sha
+                or trace.get("worktree_clean") is not True
+                or trace.get("truncated") is not False
+                or not isinstance(events, list) or len(events) > 50000
+                or any(not isinstance(row, dict) for row in events)
+                or len(combined) + len(events) > 50000):
+            raise ValueError(f"Trace {index} is incomplete, stale or exceeds 50k combined events")
+        # Preserve scenario identity: identical json-1 tokens and unrelated
+        # Python call paths from two runs must never combine into fake proof.
+        combined.extend({**event, "_trace_group": index} for event in events)
+        module = trace.get("scenario_module")
+        if isinstance(module, str) and len(module) <= 120:
+            modules.append(module)
+    return {
+        "kind": "doctor_runtime_observation", "candidate_sha": graph_sha,
+        "worktree_clean": True, "truncated": False,
+        "events": combined, "events_captured": len(combined),
+        "symbol_edges_truncated": any(bool(t.get("symbol_edges_truncated")) for t in traces),
+        "scenarios_merged": len(traces), "scenario_modules": sorted(set(modules)),
+        "limits": "Merged complete exact-SHA positive observations only; absence does not imply dead code.",
+    }
+
+
 def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
                              allow_stale: bool = False,
                              baseline_path: Path | None = None,
                              save_snapshot: bool = False,
-                             ide_links: bool = False) -> dict[str, Any]:
+                             ide_links: bool = False,
+                             extra_trace_paths: list[Path] | None = None) -> dict[str, Any]:
     from .architecture import graph_status
     from .graph_audit import audit_current_graph, inspect_graph
     root = root.resolve()
@@ -1030,16 +1070,34 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
             return {"status": "BLOCKED", "reason": "Doctor graph audit is not valid."}
     graph["built_at_commit"] = snapshot_commit
     trace = None
-    if trace_path is not None:
-        selected_path = trace_path.resolve()
-        if not selected_path.is_relative_to(root / ".ai" / "runtime") or not selected_path.is_file():
-            return {"status": "BLOCKED", "reason": "Trace must exist in .ai/runtime."}
-        if selected_path.stat().st_size > 10_000_000:
-            return {"status": "BLOCKED", "reason": "Trace too large; bounded trace required."}
-        try:
-            trace = json.loads(selected_path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError, ValueError) as exc:
-            return {"status": "BLOCKED", "reason": str(exc)}
+    trace_files = ([trace_path] if trace_path is not None else []) + list(extra_trace_paths or [])
+    if len(trace_files) > 8 or (extra_trace_paths and trace_path is None):
+        return {"status": "BLOCKED", "reason": "Provide --trace first, at most 8 sources."}
+    if trace_files:
+        loaded_traces: list[dict[str, Any]] = []
+        for original in trace_files:
+            path = Path(original)
+            selected_path = path.resolve()
+            boundary = root / ".ai" / "runtime"
+            if (path.is_symlink() or not selected_path.is_relative_to(boundary)
+                    or not selected_path.is_file()):
+                return {"status": "BLOCKED", "reason": "Trace must exist in .ai/runtime without symlinks."}
+            if selected_path.stat().st_size > 10_000_000:
+                return {"status": "BLOCKED", "reason": "Trace larger than 10 MB."}
+            try:
+                parsed = json.loads(selected_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, ValueError) as exc:
+                return {"status": "BLOCKED", "reason": str(exc)}
+            if not isinstance(parsed, dict):
+                return {"status": "BLOCKED", "reason": "Malformed trace JSON payload."}
+            loaded_traces.append(parsed)
+        if len(loaded_traces) == 1:
+            trace = loaded_traces[0]  # Retain existing single-trace behavior.
+        else:
+            try:
+                trace = merge_runtime_traces(loaded_traces, graph_sha=snapshot_commit)
+            except ValueError as exc:
+                return {"status": "BLOCKED", "reason": str(exc)}
     # Explicit graph-ui action only: inspect at most 16 flagged Python files.
     # Never scan the repository periodically or certify historical graph data.
     inspection: dict[str, Any] | None = None
@@ -1104,6 +1162,7 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         "status": "REVIEW" if stale else "PASS",
         "candidate_sha": snapshot_commit, "graph_status": status["status"],
         "path": str(destination), "trace_status": payload["trace_status"],
+        "runtime_trace_sources": len(trace_files),
         "nodes_shown": len(payload["nodes"]),
         "links_shown": len(payload["edges"]), "truncated": payload["truncated"],
         "source_inspection": payload["source_inspection_status"],

@@ -286,8 +286,8 @@ def trace_observed_json_to_ui(
         return {**empty, "reason": "Exact SHA, complete events and clean worktree required."}
     files = {node.get("source_file") for node in graph.get("nodes", [])
              if isinstance(node, dict) and isinstance(node.get("source_file"), str)}
-    reverse: dict[str, set[str]] = defaultdict(set)
-    opened: set[tuple[str, str]] = set()
+    reverse: dict[tuple[int, str], set[str]] = defaultdict(set)
+    opened: set[tuple[int, str, str]] = set()
 
     def valid(path: Any, *, suffix: str) -> bool:
         return (isinstance(path, str) and path.endswith(suffix)
@@ -297,13 +297,16 @@ def trace_observed_json_to_ui(
     for event in events:
         kind = event.get("type")
         source, target = event.get("source"), event.get("target")
+        group = event.get("_trace_group", 0)
+        if not isinstance(group, int) or isinstance(group, bool) or not 0 <= group < 8:
+            continue
         if not valid(source, suffix=".py") or source not in files:
             continue
         if kind == "file_open" and valid(target, suffix=".json"):
-            opened.add((source, target))
+            opened.add((group, source, target))
         elif (kind == "python_call_edge" and valid(target, suffix=".py")
               and target in files and target != source):
-            reverse[target].add(source)
+            reverse[(group, target)].add(source)
 
     def is_ui(path: str) -> bool:
         return (path.startswith(("app/pages/", "app/ui/"))
@@ -313,7 +316,7 @@ def trace_observed_json_to_ui(
     selected = sorted(opened)
     truncated = len(selected) > MAX_FINDINGS
     references: list[dict[str, Any]] = []
-    for source, json_path in selected[:MAX_FINDINGS]:
+    for group, source, json_path in selected[:MAX_FINDINGS]:
         callers: list[dict[str, Any]] = []
         frontier = deque([(source, 0)])
         visited = {source}
@@ -322,10 +325,10 @@ def trace_observed_json_to_ui(
         while frontier:
             current, hops = frontier.popleft()
             if hops >= 4:
-                if reverse.get(current):
+                if reverse.get((group, current)):
                     truncated = True
                 continue
-            for caller in sorted(reverse.get(current, ())):
+            for caller in sorted(reverse.get((group, current), ())):
                 if caller in visited:
                     continue
                 if len(visited) >= 512:
@@ -375,7 +378,7 @@ def trace_explicit_json_bindings(
         return {**empty, "reason": "Exact SHA, complete events and clean worktree required."}
     known = {item.get("source_file") for item in graph.get("nodes", [])
              if isinstance(item, dict) and isinstance(item.get("source_file"), str)}
-    reads: dict[str, tuple[str, str]] = {}
+    reads: dict[tuple[int, str], tuple[str, str]] = {}
     bindings: list[dict[str, Any]] = []
     total_bound = 0
 
@@ -391,21 +394,25 @@ def trace_explicit_json_bindings(
 
     for row in events:
         kind, token = row.get("type"), row.get("token")
-        if not isinstance(token, str) or not re.fullmatch(r"json-[1-9][0-9]{0,8}", token):
+        group = row.get("_trace_group", 0)
+        if (not isinstance(group, int) or isinstance(group, bool) or not 0 <= group < 8
+                or not isinstance(token, str)
+                or not re.fullmatch(r"json-[1-9][0-9]{0,8}", token)):
             continue
+        key = (group, token)
         source = row.get("source")
         if kind == "json_decoded" and row.get("confidence") == "JSON_DECODE_RETURNED":
             target = row.get("target")
             if safe(source, ".py") and source in known and safe(target, ".json"):
-                reads.setdefault(token, (source, target))
+                reads.setdefault(key, (source, target))
         elif (kind == "json_ui_bound"
               and row.get("confidence") in {"EXPLICIT_UI_BINDING_MARKER",
                                              "EXPLICIT_QT_LABEL_SETTEXT_RETURNED"}
               and safe(source, ".py") and source in known and view(source)
-              and token in reads):
+              and key in reads):
             total_bound += 1
             if len(bindings) < MAX_FINDINGS:
-                decoder, json_path = reads[token]
+                decoder, json_path = reads[key]
                 bindings.append({"reader": decoder, "json_path": json_path,
                                  "ui_file": source,
                                  "confidence": ("QT_TEXT_BINDING_RETURNED"

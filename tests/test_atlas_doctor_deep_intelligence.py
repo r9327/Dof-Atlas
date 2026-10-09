@@ -459,6 +459,23 @@ class DeepIntelligenceTests(unittest.TestCase):
         self.assertEqual(result["bound_to_ui"], 1)
         self.assertEqual(result["bindings"][0]["confidence"], "QT_TEXT_BINDING_RETURNED")
         self.assertFalse(result["ui_render_proven"])
+    def test_multi_trace_call_chains_do_not_cross_independent_scenarios(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_observed_json_to_ui
+        sha = "c" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/core/reader.py"},
+            {"id": 2, "source_file": "app/pages/home.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                    {"type": "file_open", "source": "app/core/reader.py",
+                     "target": "data/config.json", "_trace_group": 0},
+                    {"type": "python_call_edge", "source": "app/pages/home.py",
+                     "target": "app/core/reader.py", "_trace_group": 1},
+                 ]}
+        result = trace_observed_json_to_ui(graph, trace)
+        self.assertEqual(result["json_opens_observed"], 1)
+        self.assertEqual(result["references"][0]["ui_callers_in_same_trace"], [])
+
 
 
 if __name__ == "__main__":

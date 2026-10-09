@@ -233,3 +233,10 @@ Le moteur `trace_explicit_json_bindings` distingue le marqueur déclaratif
 exécutée). Ce n'est toujours pas la preuve qu'un frame a été peint ni qu'une
 valeur est arrivée dans QWebEngine. Rien ne s'exécute au lancement normal de
 Dofus Atlas, et aucun benchmark n'est déclenché.
+
+
+### Graphify multi-scénarios sans surveillant permanent
+
+La commande `graph-ui --trace .ai/runtime/atlas_doctor/traces/guide.json --extra-trace .ai/runtime/atlas_doctor/traces/quests.json --open` superpose les preuves de deux à huit scénarios **complets, exact-SHA et worktree propre**, avec un plafond partagé de 50 000 événements. Elle n'exécute pas de scénario et ne lance ni CI ni benchmark. Le compteur de scénarios figure dans la vue.
+
+Les événements sont rattachés explicitement à leur scénario (`_trace_group`), y compris les jetons JSON `json-1` qui peuvent être identiques dans des exécutions différentes : aucune lecture d'un scénario ne peut être reliée à une affectation QLabel ou à une chaîne d'appels d'un autre. En cas de provenance partielle ou périmée, l'ensemble est refusé plutôt qu'un faux résultat positif. L'absence de preuve dans ces scénarios ne prouve toujours pas qu'un fichier est inutilisé. `--trace` unique conserve son fonctionnement antérieur.
