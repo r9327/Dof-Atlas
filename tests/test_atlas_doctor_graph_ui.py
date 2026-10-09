@@ -143,6 +143,27 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("Recherche partielle (8 sauts ou 4 000 nœuds)", html)
         self.assertIn("relation.addEventListener('change'", html)
 
+    def test_reverse_consumer_inspection_is_bounded_and_advisory(self):
+        graph = {
+            "built_at_commit": "a" * 40,
+            "nodes": [{"id": "core", "source_file": "app/core/a.py"},
+                      {"id": "consumer", "source_file": "app/pages/b.py"}],
+            "links": [{"source": "consumer", "target": "core", "relation": "imports"}],
+        }
+        html = render_html(compact_graph(graph, {}))
+        for marker in (
+            "Explorer les consommateurs (imports inverses)",
+            "function showReverseImpact(source)",
+            "edge.direction!=='in'",
+            "['imports','imports_from'].includes(edge.relation)",
+            "current.depth>=2",
+            "seen.size>=2000",
+            "Consommateurs possibles (imports inverses, 2 sauts maximum)",
+            "Relations structurales uniquement",
+            "button.addEventListener('click',()=>revealNode(row.node))",
+        ):
+            self.assertIn(marker, html)
+
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
                  "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}

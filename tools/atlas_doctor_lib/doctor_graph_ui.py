@@ -460,6 +460,10 @@ if(pathStart>=0&&pathStart!==i){
  details.appendChild(pathButton);
 }
 if(pathStart===i)line('p','Choisis un autre nœud puis cherche son chemin de dépendances.');
+const impactButton=document.createElement('button');impactButton.type='button';
+impactButton.textContent='Explorer les consommateurs (imports inverses)';
+impactButton.addEventListener('click',()=>showReverseImpact(i));
+details.appendChild(impactButton);
 render()}
 function focusNode(i){
  const loc=positions[i];
@@ -475,6 +479,38 @@ function revealNode(i){
   filter(true);offset=matches.indexOf(i);
  }
  if(offset>=0){pageIndex=Math.floor(offset/PAGE_SIZE);filter(false);focusNode(i)}
+}
+function showReverseImpact(source){
+ // Imported-by is static structural review, never observed behavior or deadness.
+ const queue=[{node:source,depth:0}],seen=new Set([source]),candidates=[];
+ let cursor=0,truncated=false;
+ while(cursor<queue.length){
+  const current=queue[cursor++];
+  if(current.depth>=2)continue;
+  for(const edge of neighbors.get(current.node)||[]){
+   if(edge.direction!=='in'||!['imports','imports_from'].includes(edge.relation))continue;
+   if(seen.has(edge.n))continue;
+   if(seen.size>=2000){truncated=true;break}
+   seen.add(edge.n);queue.push({node:edge.n,depth:current.depth+1});
+   if(candidates.length<30)candidates.push({node:edge.n,depth:current.depth+1,relation:edge.relation});
+  }
+  if(truncated)break;
+ }
+ const section=document.createElement('section');
+ const header=document.createElement('h4');
+ header.textContent='Consommateurs possibles (imports inverses, 2 sauts maximum)';
+ section.appendChild(header);
+ const status=document.createElement('p');
+ status.textContent=(seen.size-1)+' nœuds atteints dans ce budget ; '+(truncated?'revue partielle. ':'30 résultats affichés maximum. ')+
+  'Relations structurales uniquement : valider les fichiers avant tout refactor.';
+ section.appendChild(status);
+ candidates.forEach(row=>{
+  const button=document.createElement('button');button.type='button';
+  button.textContent='Niveau '+row.depth+' : '+nodes[row.node].file+' ('+row.relation+')';
+  button.addEventListener('click',()=>revealNode(row.node));
+  section.appendChild(button);
+ });
+ details.appendChild(section);
 }
 function showGraphPath(from,to){
  // On-demand, directional Graphify relationships only; never a runtime proof.
