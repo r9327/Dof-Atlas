@@ -567,9 +567,14 @@ class RuntimeObservationTests(unittest.TestCase):
             observer = RuntimeObserver(Path(folder))
             with self.assertRaisesRegex(RuntimeError, "active observer"):
                 observer.snapshot_process_tree(label="early")
+            scenario = Path(folder) / "snapshot_scenario.py"
+            scenario.write_text("result = observer.snapshot_process_tree(label='view')\\n",
+                                encoding="utf-8")
             with patch.dict(sys.modules, {"psutil": fake_psutil}):
                 with observer:
-                    result = observer.snapshot_process_tree(label="view")
+                    result = __import__("runpy").run_path(
+                        str(scenario), init_globals={"observer": observer}
+                    )["result"]
             self.assertEqual(result["status"], "OBSERVED")
             self.assertEqual(result["rss_tree_bytes"], 57)
             self.assertEqual(result["webengine_children_named"], 1)
