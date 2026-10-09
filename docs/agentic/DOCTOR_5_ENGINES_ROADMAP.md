@@ -94,3 +94,10 @@ Ce constat concerne le SHA de l'artefact, non les commits postérieurs de la PR.
 ### Indices AST sur les nœuds Graphify
 
 Le mode `graph-ui` inspecte explicitement **au maximum 16 fichiers Python signalés** (erreurs d'import, exceptions avalées, références JSON littérales, structures proches), en respectant les bornes de `scan_sources`. Les indices sont visibles dans la fiche du nœud avec leurs lignes, sans être convertis en preuve de code mort ni en statut critique. Le graphe historique ne déclenche aucune inspection de sources actuelles. Aucune surveillance périodique ou exécution de tests n'est ajoutée à l'application.
+
+
+### Simulation de refactorisation avec consommateurs runtime observés
+
+`python -m tools.atlas_doctor refactor-preview app/pages/character_page.py --trace .ai/runtime/atlas_doctor/traces/scenario.json --json`
+
+Le plan non mutatif combine les consommateurs Graphify confirmés avec les **appels Python réellement observés** et les **enregistrements Qt explicites** de la trace. La trace est acceptée seulement si le SHA correspond au HEAD courant, si le worktree est propre, si les événements ne sont pas tronqués et si le fichier reste dans `.ai/runtime` (10 Mo et 50 000 événements au maximum). Les événements dédupliqués restent limités à 60 consommateurs Python et 60 connexions Qt; un scénario non observé ne signifie jamais « code mort ». Une trace périmée est marquée `STALE` et ses résultats n'entrent pas dans les suggestions de fichiers à modifier. Aucun benchmark, graphe régénéré ni test n'est déclenché par la commande.

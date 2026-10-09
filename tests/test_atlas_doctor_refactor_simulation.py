@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import tempfile
+from types import SimpleNamespace
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -99,6 +101,87 @@ class RefactorSimulationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             simulate_refactor(self.root, ["app/mod.py"], action="move")
 
+
+    def _preview_mocks(self):
+        impact = {"status": "PASS", "graph": {"status": "PASS"},
+                  "impacted_files": [], "confirmed_relationships": []}
+        plan = {"status": "READY", "integrity_mode": "FAST",
+                "execution_tests": [], "required_groups": []}
+        return impact, plan
+
+    def _write_trace(self, *, sha="a" * 40, events=None, truncated=False):
+        path = self.root / ".ai/runtime/doctor_trace.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({
+            "kind": "doctor_runtime_observation", "candidate_sha": sha,
+            "worktree_clean": True, "truncated": truncated,
+            "events": events or [],
+        }), encoding="utf-8")
+        return path
+
+    def test_refactor_preview_includes_observed_runtime_consumers(self):
+        (self.root / "app/use.py").write_text("pass\n")
+        trace = self._write_trace(events=[
+            {"type": "python_call_edge", "source": "app/use.py", "target": "app/mod.py"},
+            {"type": "python_symbol_call", "source": "app/use.py", "target": "app/mod.py"},
+            {"type": "qt_signal_connect_returned", "source": "app/use.py", "target": "app/mod.py"},
+        ])
+        impact, plan = self._preview_mocks()
+        git_ok = SimpleNamespace(returncode=0, stdout="a" * 40 + "\n")
+        clean = SimpleNamespace(returncode=0, stdout="")
+        with patch("tools.agent.reverse_impact_payload", return_value=impact), \
+             patch("tools.agent.plan_payload", return_value=plan), \
+             patch("tools.atlas_doctor_lib.refactor_simulation.subprocess.run",
+                   side_effect=[git_ok, clean]):
+            preview = simulate_refactor(self.root, ["app/mod.py"], trace_path=trace)
+        self.assertEqual(preview["runtime_evidence"]["status"], "MATCHED")
+        self.assertEqual(preview["consumer_files"], ["app/use.py"])
+        self.assertEqual(len(preview["runtime_evidence"]["observed_python_consumers"]), 1)
+        self.assertEqual(preview["runtime_evidence"]["qt_registration_sites"][0]["confidence"],
+                         "CONNECT_RETURNED_NOT_CALLBACK_INVOKED")
+        self.assertFalse(preview["runtime_evidence"]["absence_proves_unused"])
+        self.assertEqual(preview["status"], "REVIEW")
+
+    def test_stale_trace_never_contributes_consumers(self):
+        (self.root / "app/use.py").write_text("pass\n")
+        trace = self._write_trace(sha="b" * 40, events=[
+            {"type": "python_call_edge", "source": "app/use.py", "target": "app/mod.py"},
+        ])
+        impact, plan = self._preview_mocks()
+        git_ok = SimpleNamespace(returncode=0, stdout="a" * 40 + "\n")
+        clean = SimpleNamespace(returncode=0, stdout="")
+        with patch("tools.agent.reverse_impact_payload", return_value=impact), \
+             patch("tools.agent.plan_payload", return_value=plan), \
+             patch("tools.atlas_doctor_lib.refactor_simulation.subprocess.run",
+                   side_effect=[git_ok, clean]):
+            preview = simulate_refactor(self.root, ["app/mod.py"], trace_path=trace)
+        self.assertEqual(preview["runtime_evidence"]["status"], "STALE")
+        self.assertEqual(preview["consumer_files"], [])
+
+    def test_truncated_trace_does_not_prove_runtime_edges(self):
+        (self.root / "app/use.py").write_text("pass\n")
+        trace = self._write_trace(truncated=True, events=[
+            {"type": "python_call_edge", "source": "app/use.py", "target": "app/mod.py"},
+        ])
+        impact, plan = self._preview_mocks()
+        with patch("tools.agent.reverse_impact_payload", return_value=impact), \
+             patch("tools.agent.plan_payload", return_value=plan), \
+             patch("tools.atlas_doctor_lib.refactor_simulation.subprocess.run") as git:
+            git.side_effect = [SimpleNamespace(returncode=0, stdout="a" * 40),
+                               SimpleNamespace(returncode=0, stdout="")]
+            preview = simulate_refactor(self.root, ["app/mod.py"], trace_path=trace)
+        self.assertEqual(preview["runtime_evidence"]["status"], "STALE")
+        self.assertEqual(preview["consumer_files"], [])
+
+    def test_external_runtime_trace_is_rejected_without_changing_preview(self):
+        (self.root / "outside.json").write_text("{}")
+        impact, plan = self._preview_mocks()
+        with patch("tools.agent.reverse_impact_payload", return_value=impact), \
+             patch("tools.agent.plan_payload", return_value=plan):
+            preview = simulate_refactor(self.root, ["app/mod.py"],
+                                        trace_path=self.root / "outside.json")
+        self.assertEqual(preview["runtime_evidence"]["status"], "UNAVAILABLE")
+        self.assertEqual(preview["consumer_files"], [])
 
 if __name__ == "__main__":
     unittest.main()

@@ -178,7 +178,8 @@ def command_change_plan(root: Path, args) -> dict[str, Any]:
 def command_refactor_preview(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.refactor_simulation import simulate_refactor
     result = simulate_refactor(root, args.paths, action=args.action,
-                               replacement=args.to, depth=args.depth)
+                               replacement=args.to, depth=args.depth,
+                               trace_path=getattr(args, "trace", None))
     if not args.json:
         print(f"Doctor refactor preview: {result['status']}")
         print(f"Consumer files: {len(result.get('consumer_files', []))} | no edits or tests executed")
@@ -510,6 +511,7 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument('--action', choices=('remove', 'move', 'consolidate'), default='remove')
     rp.add_argument('--to', help='Chemin relatif cible pour move/consolidate.')
     rp.add_argument('--depth', type=int, choices=(1, 2), default=2)
+    rp.add_argument('--trace', type=Path, help='Trace runtime .ai/runtime du HEAD exact (optionnelle).')
     ev = sub.add_parser('dev-event', help='Analyse evenementielle code: save, pre-commit, push (lecture seule).')
     ev.add_argument('--event', choices=('save', 'pre-commit', 'push'), required=True)
     ev.add_argument('paths', nargs='*')

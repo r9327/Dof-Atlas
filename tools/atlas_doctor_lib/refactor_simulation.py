@@ -3,6 +3,8 @@ from __future__ import annotations
 """Non-mutating architectural refactor preview using the canonical Agent graph."""
 from pathlib import Path
 from typing import Any
+import json
+import subprocess
 
 MAX_TARGETS = 10
 
@@ -18,9 +20,103 @@ def _path_uses_symlink(root: Path, relative: Path) -> bool:
 
 
 
+
+MAX_RUNTIME_EVENTS = 50000
+MAX_RUNTIME_CONSUMERS = 60
+
+
+def _runtime_consumer_evidence(
+    root: Path, targets: list[str], trace_path: Path | None,
+) -> dict[str, Any]:
+    """Correlate opt-in positives only; never derive deletion safety from silence."""
+    empty = {
+        "status": "NOT_PROVIDED" if trace_path is None else "UNAVAILABLE",
+        "observed_python_consumers": [],
+        "qt_registration_sites": [],
+        "events_examined": 0,
+        "truncated": False,
+        "absence_proves_unused": False,
+    }
+    if trace_path is None:
+        return empty
+    try:
+        original = Path(trace_path)
+        selected = original.resolve()
+        trace_dir = (root / ".ai" / "runtime").resolve()
+        if not selected.is_relative_to(trace_dir) or original.is_symlink():
+            raise ValueError("Trace must be a regular file inside .ai/runtime")
+        if not selected.is_file() or selected.stat().st_size > 10_000_000:
+            raise ValueError("Trace missing or larger than 10 MB")
+        trace = json.loads(selected.read_text(encoding="utf-8"))
+        if not isinstance(trace, dict) or trace.get("kind") != "doctor_runtime_observation":
+            raise ValueError("Invalid Doctor runtime trace payload")
+        events = trace.get("events")
+        if not isinstance(events, list) or len(events) > MAX_RUNTIME_EVENTS:
+            raise ValueError("Invalid or oversized runtime event list")
+        if any(not isinstance(event, dict) for event in events):
+            raise ValueError("Malformed runtime event")
+        head = subprocess.run(
+            ["git", "rev-parse", "--verify", "HEAD"], cwd=root,
+            capture_output=True, text=True, check=False, timeout=5,
+        )
+        status = subprocess.run(
+            ["git", "status", "--porcelain=v1", "--untracked-files=all"], cwd=root,
+            capture_output=True, text=True, check=False, timeout=8,
+        )
+        if (head.returncode != 0 or status.returncode != 0
+                or len(head.stdout.strip()) != 40
+                or trace.get("candidate_sha") != head.stdout.strip()
+                or trace.get("worktree_clean") is not True
+                or trace.get("truncated") is not False
+                or status.stdout.strip()):
+            return {**empty, "status": "STALE",
+                    "reason": "Exact HEAD, clean worktree and complete runtime trace required.",
+                    "events_examined": len(events)}
+        python_rows: set[tuple[str, str]] = set()
+        qt_rows: set[tuple[str, str]] = set()
+        for event in events:
+            kind = event.get("type")
+            if kind not in {"python_call_edge", "python_symbol_call", "qt_signal_connect_returned"}:
+                continue
+            source, target = event.get("source"), event.get("target")
+            if not isinstance(source, str) or not isinstance(target, str) or target not in targets:
+                continue
+            path = Path(source)
+            if (not source.endswith(".py") or path.is_absolute()
+                    or ".." in path.parts or "\\" in source
+                    or source == target or not (root / path).is_file()):
+                continue
+            if kind == "qt_signal_connect_returned":
+                qt_rows.add((source, target))
+            else:
+                python_rows.add((source, target))
+        python_sorted, qt_sorted = sorted(python_rows), sorted(qt_rows)
+        return {
+            "status": "MATCHED", "candidate_sha": head.stdout.strip(),
+            "observed_python_consumers": [
+                {"source": source, "target": target, "confidence": "OBSERVED_PYTHON_CALL"}
+                for source, target in python_sorted[:MAX_RUNTIME_CONSUMERS]
+            ],
+            "qt_registration_sites": [
+                {"source": source, "target": target,
+                 "confidence": "CONNECT_RETURNED_NOT_CALLBACK_INVOKED"}
+                for source, target in qt_sorted[:MAX_RUNTIME_CONSUMERS]
+            ],
+            "events_examined": len(events),
+            "truncated": (len(python_rows) > MAX_RUNTIME_CONSUMERS
+                          or len(qt_rows) > MAX_RUNTIME_CONSUMERS
+                          or trace.get("symbol_edges_truncated") is True),
+            "absence_proves_unused": False,
+            "limits": "Observed positives only; Qt connect is not callback execution or native ownership.",
+        }
+    except (OSError, ValueError, UnicodeError, subprocess.TimeoutExpired) as exc:
+        return {**empty, "reason": f"Runtime evidence unavailable: {type(exc).__name__}"}
+
+
 def simulate_refactor(
     root: Path, paths: list[str], *, action: str = "remove",
     replacement: str | None = None, depth: int = 2,
+    trace_path: Path | None = None,
 ) -> dict[str, Any]:
     from tools import agent
     root = root.resolve()
@@ -66,6 +162,7 @@ def simulate_refactor(
     else:
         replacement = None
     impact = agent.reverse_impact_payload(root, normalized, depth=depth)
+    runtime = _runtime_consumer_evidence(root, normalized, trace_path)
     base = {
         "schema_version": 1, "kind": "doctor_refactor_simulation",
         "read_only": True, "automatic_edit": False, "tests_executed": False,
@@ -78,11 +175,16 @@ def simulate_refactor(
             "truncated": impact.get("truncated", False),
             "source_errors": impact.get("source_errors", []),
         },
-        "consumer_files": sorted(set(impact.get("impacted_files", [])) - set(normalized)),
+        "consumer_files": sorted((set(impact.get("impacted_files", [])) | (
+            {row["source"] for kind in ("observed_python_consumers", "qt_registration_sites")
+             for row in runtime[kind]} if runtime["status"] == "MATCHED" else set()
+        )) - set(normalized)),
+        "runtime_evidence": runtime,
         "limitations": [
             "Graph-derived relations are confirmed against literal Python imports, not arbitrary runtime callbacks.",
             "A preview cannot prove absence of dynamic consumers or that consolidation preserves behavior.",
             "No file will be modified without a reviewed implementation plan.",
+            "Observed Python calls and Qt registrations are positive scenario-specific evidence, not complete coverage.",
         ],
     }
     if impact.get("status") not in {"PASS", "REVIEW"} or (impact.get("graph") or {}).get("status") != "PASS":
