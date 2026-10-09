@@ -24,6 +24,14 @@ class GraphifyWorkflowBudgetTests(unittest.TestCase):
         self.assertIn('"graph_build_seconds": int(', code)
         self.assertIn('Graphify exact-SHA build time:', code)
 
+    def test_full_graph_map_certifies_interactive_doctor_ui_at_exact_sha(self):
+        workflow = (ROOT / ".github/workflows/graphify-map.yml").read_text(encoding="utf-8")
+        self.assertIn("Verify Doctor interactive export against exact Graphify SHA", workflow)
+        self.assertIn("from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph", workflow)
+        self.assertIn('result.get("candidate_sha") != os.environ["CANDIDATE_SHA"]', workflow)
+        self.assertIn("graphify-out/doctor_graph_ui_metrics.json", workflow)
+        self.assertIn("source_scan_truncated", workflow)
+
     def test_focused_ci_still_runs_on_every_dev_push(self):
         code = (ROOT / ".github/workflows/graphify-targeted-ci.yml").read_text(encoding="utf-8")
         self.assertIn("phase8/graphify-staged-cleanup-v1", code)

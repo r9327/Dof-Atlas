@@ -188,6 +188,41 @@ jobs:
           print("Advisory candidates require source-level proof before deletion or merge.")
           PY
 
+      - name: Verify Doctor interactive export against exact Graphify SHA
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph
+
+          root = Path.cwd()
+          result = export_interactive_graph(root)
+          if result.get("status") != "PASS":
+              raise SystemExit("Doctor Graphify UI export failed: " + str(result))
+          if result.get("candidate_sha") != os.environ["CANDIDATE_SHA"]:
+              raise SystemExit("Doctor Graphify UI SHA mismatch")
+          html = Path(result["path"])
+          if not html.is_file() or html.stat().st_size < 1000:
+              raise SystemExit("Doctor Graphify UI HTML missing or empty")
+          metrics = {
+              "candidate_sha": result["candidate_sha"],
+              "interactive_nodes": result["nodes_shown"],
+              "interactive_edges": result["links_shown"],
+              "source_scan_files": result["source_scan_files"],
+              "source_scan_truncated": result["source_scan_truncated"],
+              "json_lineage_review_leads": result["json_lineage_review_leads"],
+              "runtime_observed": False,
+          }
+          Path("graphify-out/doctor_graph_ui_metrics.json").write_text(
+              json.dumps(metrics, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print("Doctor interactive graph: exact SHA PASS; " +
+                str(metrics["interactive_nodes"]) + " interactive nodes")
+          PY
+
       - name: Upload visual map and graph
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
