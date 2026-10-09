@@ -51,6 +51,35 @@ def _relative(root: Path, value: str) -> str | None:
     return relative
 
 
+def _missing_internal_imports(root: Path, source: str, tree: ast.AST) -> list[dict[str, Any]]:
+    """Bounded static candidates, never claim missing attributes are modules."""
+    prefixes = {"app", "tools", "tests", "local_dofus_data"}
+    findings: list[dict[str, Any]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            names = [node.module]
+        else:
+            continue
+        for module in names:
+            parts = module.split(".")
+            if len(parts) < 2 or parts[0] not in prefixes:
+                continue
+            if not all(part.isidentifier() for part in parts):
+                continue
+            candidate = root.joinpath(*parts)
+            if candidate.with_suffix(".py").is_file() or candidate.is_dir():
+                continue
+            findings.append({
+                "path": source, "line": node.lineno, "module": module,
+                "kind": "MISSING_LOCAL_MODULE_CANDIDATE",
+                "confidence": "STATIC_ABSOLUTE_MODULE_RESOLUTION",
+                "review_only": True,
+            })
+    return findings
+
+
 def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
     """AST evidence, bounded by requested files; never imports project code."""
     root = root.resolve()
@@ -62,6 +91,7 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
     selected = [path for path in selected if path is not None]
     inspected, errors, functions, silent, lineage = [], [], defaultdict(list), [], []
     similar: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    missing_imports: list[dict[str, Any]] = []
     function_count = 0
     function_cap_reached = False
     for path in selected[:MAX_FILES]:
@@ -75,6 +105,7 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
             errors.append({"path": path, "reason": type(exc).__name__})
             continue
         inspected.append(path)
+        missing_imports.extend(_missing_internal_imports(root, path, tree))
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 if function_count >= MAX_FUNCTIONS:
@@ -125,22 +156,25 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
     near.sort(key=lambda x: (-len(x["occurrences"]), x["occurrences"][0]["path"]))
     truncated = (len(selected) > MAX_FILES or function_cap_reached or bool(errors)
                  or len(duplicates) > MAX_FINDINGS or len(near) > MAX_FINDINGS
+                 or len(missing_imports) > MAX_FINDINGS
                  or len(silent) > MAX_FINDINGS or len(lineage) > MAX_FINDINGS)
     return {
-        "status": "REVIEW" if truncated else "PASS",
+        "status": "REVIEW" if truncated or missing_imports else "PASS",
         "paths_inspected": inspected, "requested_count": len(requested),
         "parse_errors": errors[:MAX_FINDINGS], "duplicate_bodies": duplicates[:MAX_FINDINGS],
         "near_duplicate_candidates": near[:MAX_FINDINGS],
+        "missing_internal_import_candidates": missing_imports[:MAX_FINDINGS],
         "silent_exceptions": silent[:MAX_FINDINGS],
         "data_lineage_candidates": lineage[:MAX_FINDINGS],
         "counts": {"functions": function_count,
                    "duplicate_groups": len(duplicates), "near_duplicate_groups": len(near),
+                   "missing_internal_import_candidates": len(missing_imports),
                    "silent_exceptions": len(silent),
                    "literal_json_references": len(lineage)},
         "truncated": truncated,
         "budgets": {"max_files": MAX_FILES, "max_source_bytes": MAX_SOURCE_BYTES,
                     "max_function_bodies": MAX_FUNCTIONS, "function_limit_reached": function_cap_reached},
-        "limits": "Bounded AST only; oversized sources are REVIEW; near duplicates are review leads, not safe automatic edits.",
+        "limits": "Bounded AST only; missing local imports and near duplicates are source-review leads, never automatic deletions.",
     }
 
 

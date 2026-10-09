@@ -165,6 +165,33 @@ class DeepIntelligenceTests(unittest.TestCase):
             self.assertEqual(report["status"], "REVIEW")
             self.assertEqual(report["unresolved_declarations"], ["missing.py"])
 
+    def test_missing_internal_import_is_flagged_without_code_deletion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "app/core").mkdir(parents=True)
+            (root / "app/core/existing.py").write_text("pass\n")
+            (root / "caller.py").write_text(
+                "import app.core.existing\n"
+                "from app.core.missing import coordinator_for\n"
+                "from pathlib import Path\n"
+            )
+            result = scan_sources(root, ["caller.py"])
+            self.assertEqual(result["status"], "REVIEW")
+            self.assertEqual(result["counts"]["missing_internal_import_candidates"], 1)
+            finding = result["missing_internal_import_candidates"][0]
+            self.assertEqual((finding["module"], finding["line"]), ("app.core.missing", 2))
+            self.assertTrue(finding["review_only"])
+
+    def test_imported_package_attribute_is_not_called_a_missing_module(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "app/core").mkdir(parents=True)
+            (root / "app/core/__init__.py").write_text("name = 1\n")
+            (root / "consumer.py").write_text("from app.core import name\n")
+            result = scan_sources(root, ["consumer.py"])
+            self.assertEqual(result["status"], "PASS")
+            self.assertEqual(result["missing_internal_import_candidates"], [])
+
     def test_old_architecture_debt_is_separate(self):
         g = {"nodes": [
             {"id": "a", "source_file": "app/a.py"},
