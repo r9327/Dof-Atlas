@@ -5,6 +5,7 @@ from __future__ import annotations
 Run only via Doctor runtime-trace; no Huzounet URL is opened and no Chromium
 process is created. Does not instrument application startup or other modules.
 """
+from pathlib import Path
 from tools.atlas_doctor_lib.runtime_observation import active_observer
 
 

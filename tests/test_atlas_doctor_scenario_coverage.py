@@ -51,6 +51,19 @@ class ScenarioCoverageTests(unittest.TestCase):
             summarize_scenarios([], expected_sha=self.SHA,
                                 required_files=["../bad.py"])
 
+    def test_opened_python_and_registered_qt_receiver_are_not_executed_files(self):
+        trace = self.scenario([
+            {"type": "file_open", "source": "app/loader.py", "target": "app/unexecuted.py"},
+            {"type": "qt_signal_connect_returned",
+             "source": "app/loader.py", "target": "app/never_called.py"},
+        ])
+        report = summarize_scenarios([trace], expected_sha=self.SHA,
+                                     required_files=["app/unexecuted.py", "app/never_called.py"])
+        self.assertEqual(report["observed_python_files_count"], 1)
+        self.assertEqual(report["observed_python_files_examples"], ["app/loader.py"])
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertFalse(report["safe_to_delete_unobserved"])
+
     def test_bounds_and_invalid_events_do_not_prove_coverage(self):
         trace = self.scenario([None])
         report = summarize_scenarios([trace], expected_sha=self.SHA)

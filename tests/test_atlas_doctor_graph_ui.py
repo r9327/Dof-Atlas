@@ -36,6 +36,23 @@ class DoctorGraphUiTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "does not match graph SHA"):
             compact_graph(graph, {}, comparison={**compare, "candidate_sha": "f" * 40})
 
+    def test_history_scenario_overlay_keeps_review_evidence_separate(self):
+        graph = {"built_at_commit": "c" * 40,
+                 "nodes": [{"id": 1, "source_file": "app/a.py"},
+                           {"id": 2, "source_file": "app/b.py"}],
+                 "links": []}
+        trend = {"status": "REVIEW", "scenario_module": "tests.demo",
+                 "run_count": 4, "repeated_absence_candidates": 1,
+                 "candidates": [{"source": "app/a.py", "target": "app/b.py",
+                                 "classification": "REPEATED_ABSENCE_REVIEW"}]}
+        payload = compact_graph(graph, {}, historical_trend=trend)
+        self.assertEqual(payload["historical_scenario_trend"], trend)
+        self.assertIn("history", payload["nodes"][0]["review_categories"])
+        self.assertIn("history", payload["nodes"][1]["review_categories"])
+        html = render_html(payload)
+        self.assertIn("Historique du scénario", html)
+        self.assertIn("non preuve de régression", html)
+
     def test_snapshot_saves_exact_graph_without_rebuild_or_overwrite(self):
         import tempfile
         from pathlib import Path
