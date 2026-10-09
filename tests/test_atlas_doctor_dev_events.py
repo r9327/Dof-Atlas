@@ -105,6 +105,10 @@ class DevelopmentPreflightTests(unittest.TestCase):
             with patch("tools.atlas_integrity.resolve_base_ref"), \
                  patch("tools.atlas_integrity.changed_files", return_value=["app/broken.py"]), \
                  patch("tools.atlas_integrity.repository_head", return_value="a" * 40), \
+                 patch("tools.atlas_integrity.load_policy", return_value={
+                     "modes": {"FAST": ["ARCHITECTURE"]},
+                     "risk_requirements": {"LOW": [], "MEDIUM": [], "HIGH": [], "CRITICAL": []},
+                     "groups": {"ARCHITECTURE": {}}}), \
                  patch("tools.ai_context.recommended_tests", return_value=[]):
                 report = development_preflight(root, base_ref="main")
             self.assertEqual(report["status"], "FAIL")
@@ -124,6 +128,10 @@ class DevelopmentPreflightTests(unittest.TestCase):
             with patch("tools.atlas_integrity.resolve_base_ref"), \
                  patch("tools.atlas_integrity.changed_files", return_value=["tests/test_example.py"]), \
                  patch("tools.atlas_integrity.repository_head", return_value="a" * 40), \
+                 patch("tools.atlas_integrity.load_policy", return_value={
+                     "modes": {"FAST": ["ARCHITECTURE"]},
+                     "risk_requirements": {"LOW": [], "MEDIUM": [], "HIGH": [], "CRITICAL": []},
+                     "groups": {"ARCHITECTURE": {}}}), \
                  patch("tools.ai_context.recommended_tests", return_value=["tests.test_example"]), \
                  patch("tools.atlas_doctor_lib.development_preflight._run_focused_tests",
                        return_value={"status": "PASS", "modules": ["tests.test_example"],
@@ -142,6 +150,10 @@ class DevelopmentPreflightTests(unittest.TestCase):
             with patch("tools.atlas_integrity.resolve_base_ref"), \
                  patch("tools.atlas_integrity.changed_files", return_value=["app/deleted.py"]), \
                  patch("tools.atlas_integrity.repository_head", return_value="a" * 40), \
+                 patch("tools.atlas_integrity.load_policy", return_value={
+                     "modes": {"FAST": ["ARCHITECTURE"]},
+                     "risk_requirements": {"LOW": [], "MEDIUM": [], "HIGH": [], "CRITICAL": []},
+                     "groups": {"ARCHITECTURE": {}}}), \
                  patch("tools.ai_context.recommended_tests", return_value=[]):
                 report = development_preflight(root, base_ref="main")
             self.assertEqual(report["status"], "FAIL")
