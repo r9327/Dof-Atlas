@@ -59,7 +59,7 @@ def _module_path(parts: list[str], available: set[str]) -> str | None:
 
 def _imports(source: str, tree: ast.AST, available: set[str]) -> tuple[list[tuple[str, int]], int]:
     parent = source.removesuffix(".py").split("/")
-    package = parent if parent[-1] == "__init__" else parent[:-1]
+    package = parent[:-1]  # Both foo/bar.py and foo/__init__.py live in foo
     found: set[tuple[str, int]] = set()
     unresolved = 0
     for node in ast.walk(tree):

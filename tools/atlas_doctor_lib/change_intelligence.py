@@ -152,6 +152,21 @@ def build_change_plan(root: Path, *, base_ref: str,
     if graph_evidence is None:
         graph_evidence = graph_status(root)
     current_python = [p for p in changed if p.endswith(".py") and (root / p).is_file()]
+    # Source-confirmed fallback even when the persisted Graphify map is stale.
+    # Inspect on request, bounded to the actual changed Python files.
+    source_impact: dict[str, Any] = {
+        "status": "NOT_RUN", "reason": "Source impact is limited to 12 changed Python files."
+    }
+    if current_python and len(current_python) <= 12:
+        from .source_impact import source_reverse_impact
+        try:
+            source_impact = source_reverse_impact(root, current_python, depth=2)
+        except (OSError, RuntimeError, ValueError) as exc:
+            source_impact = {"status": "REVIEW", "reason": type(exc).__name__,
+                             "safe_to_delete": False}
+    elif not current_python:
+        source_impact = {"status": "NOT_REQUIRED"}
+
     if graph_evidence.get("status") == "PASS" and graph_impact is None and current_python:
         graph_impact = agent.reverse_impact_payload(root, current_python[:MAX_GRAPH_PATHS], depth=1)
     graph_truncated = len(current_python) > MAX_GRAPH_PATHS or bool((graph_impact or {}).get("truncated"))
@@ -164,7 +179,8 @@ def build_change_plan(root: Path, *, base_ref: str,
     # command as a quick test when HARD/FULL/DEEP is required.
     tests = list(plan.get("execution_tests") or [])
     full_required = plan.get("integrity_mode") in {"FULL", "DEEP"}
-    review = bool(stale["errors"] or stale["truncated"] or graph_truncated or missing_graph
+    review = bool(source_impact.get("status") in {"BLOCKED", "REVIEW"}
+                  or stale["errors"] or stale["truncated"] or graph_truncated or missing_graph
                   or plan.get("status") != "READY" or old_paths)
     payload.update(
         status="BLOCKED" if stale["findings"] else "REVIEW" if review else "READY",
@@ -176,6 +192,7 @@ def build_change_plan(root: Path, *, base_ref: str,
         graph={"status": graph_evidence.get("status"),
                "reason": graph_evidence.get("reason"),
                "rebuild_command": graph_evidence.get("rebuild_command")},
+        source_confirmed_impact=source_impact,
         graph_consumer_evidence={
             "status": (graph_impact or {}).get("status", "NOT_RUN"),
             "confirmed": confirmation[:40],

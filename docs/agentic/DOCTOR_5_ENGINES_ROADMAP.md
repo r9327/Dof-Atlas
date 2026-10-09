@@ -353,3 +353,8 @@ Une trace runtime exacte-SHA peut désormais présenter dans Graphify les compte
 ### Analyse d'impact AST sur sources courantes (sans Graphify)
 
 Doctor source-impact app/pages/character_page.py --depth 2 --json établit les imports réellement présents dans les fichiers Python suivis par Git, puis remonte jusqu'à deux niveaux de consommateurs. L'algorithme borné ne se fie pas à une carte Graphify périmée, prend en charge les imports relatifs et produit les chemins, lignes et domaines concernés. L'analyse est strictement à la demande (32 fichiers ciblés, 1600 sources/40 Mio), avec données tronquées signalées et indices séparés d'imports dynamiques; elle ne prouve jamais l'absence de consommateur ou que le code peut être supprimé. Aucun test ni benchmark lancé.
+
+
+### Change-plan avec secours AST lorsque Graphify n'est pas à jour
+
+La consultation change-plan intègre désormais la remontée de consommateurs à deux niveaux sur les fichiers Python modifiés (12 au maximum pour conserver une exécution légère). Les relations AST et les lignes proviennent de la source Git courante; elles restent distinctes des arêtes historiques Graphify et des consommateurs dynamiques non encore observés. Les résultats incomplets restent REVIEW et n'autorisent aucune suppression automatique. Il n'y a aucun rebuild ni test implicite.
