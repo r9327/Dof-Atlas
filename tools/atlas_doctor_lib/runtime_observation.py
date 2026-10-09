@@ -312,6 +312,7 @@ class RuntimeObserver:
             "truncated": self._overflow, "symbol_edges_truncated": self._symbol_overflow,
             "symbol_edges_recorded": len(self._symbol_edges),
             "object_watches": watched,
+            "lifecycle": summarize_runtime_lifecycle({"events": self.events, "truncated": self._overflow}),
             "limits": [
                 "Qt connections require explicit connect_qt_signal instrumentation; callback execution and native ownership remain unknown.",
                 "Still referenced objects may be intentionally retained; not a proof of a memory leak.",
@@ -319,6 +320,57 @@ class RuntimeObserver:
                 "Symbol call sites are bounded, observed positives only; no negative reachability proof.",
             ],
         }
+
+
+def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
+    """Explicit lifecycle markers, without claiming Qt ownership or leaks."""
+    events = trace.get("events")
+    if not isinstance(events, list) or len(events) > 50000:
+        return {"status": "REVIEW", "reason": "Missing or oversized runtime events",
+                "truncated": True, "proof_of_memory_leak": False,
+                "worker_starts_unpaired": [], "cache_release_sources": []}
+    pending: dict[tuple[str, str], int] = {}
+    releases: set[str] = set()
+    started = stopped = unmatched = 0
+    for event in events:
+        if not isinstance(event, dict):
+            return {"status": "REVIEW", "reason": "Malformed runtime event",
+                    "truncated": True, "proof_of_memory_leak": False,
+                    "worker_starts_unpaired": [], "cache_release_sources": []}
+        kind = event.get("type")
+        if kind not in {"worker_start", "worker_stop", "cache_release"}:
+            continue
+        source = event.get("source")
+        target = event.get("target") or ""
+        if not isinstance(source, str) or not isinstance(target, str):
+            continue
+        if kind == "cache_release":
+            releases.add(source)
+            continue
+        key = (source, target)
+        if kind == "worker_start":
+            started += 1
+            pending[key] = pending.get(key, 0) + 1
+        else:
+            stopped += 1
+            if pending.get(key, 0):
+                pending[key] -= 1
+            else:
+                unmatched += 1
+    open_workers = [
+        {"source": source, "target": target, "unpaired_starts": count}
+        for (source, target), count in sorted(pending.items()) if count > 0
+    ]
+    return {
+        "status": "REVIEW" if trace.get("truncated") or open_workers or unmatched else "OBSERVED",
+        "worker_start_events": started, "worker_stop_events": stopped,
+        "unmatched_stop_events": unmatched,
+        "worker_starts_unpaired": open_workers[:80],
+        "cache_release_sources": sorted(releases)[:80],
+        "truncated": bool(trace.get("truncated") or len(open_workers) > 80 or len(releases) > 80),
+        "proof_of_memory_leak": False,
+        "limits": "Markers are explicit and opt-in; an open worker at trace end may be intentional. Native Qt ownership and memory remain unproven.",
+    }
 
 
 def compare_runtime_to_graph(trace: dict[str, Any], graph: dict[str, Any]) -> dict[str, Any]:

@@ -103,6 +103,35 @@ class RuntimeObservationTests(unittest.TestCase):
         self.assertEqual(report["static_edges_with_runtime_evidence"], 0)
         self.assertFalse(report["runtime_evidence_valid"])
 
+    def test_lifecycle_marker_pairing_is_bounded_and_not_leak_proof(self):
+        from tools.atlas_doctor_lib.runtime_observation import summarize_runtime_lifecycle
+        trace = {"events": [
+            {"type": "worker_start", "source": "app/worker.py", "target": "app/job.py"},
+            {"type": "worker_stop", "source": "app/worker.py", "target": "app/job.py"},
+            {"type": "worker_start", "source": "app/worker.py", "target": "app/job.py"},
+            {"type": "cache_release", "source": "app/cache.py"},
+        ], "truncated": False}
+        result = summarize_runtime_lifecycle(trace)
+        self.assertEqual(result["worker_start_events"], 2)
+        self.assertEqual(result["worker_stop_events"], 1)
+        self.assertEqual(result["worker_starts_unpaired"], [
+            {"source": "app/worker.py", "target": "app/job.py", "unpaired_starts": 1}
+        ])
+        self.assertEqual(result["cache_release_sources"], ["app/cache.py"])
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertFalse(result["proof_of_memory_leak"])
+        trace["events"].append({"type": "worker_stop",
+                                "source": "app/worker.py", "target": "app/job.py"})
+        self.assertEqual(summarize_runtime_lifecycle(trace)["status"], "OBSERVED")
+
+    def test_lifecycle_rejects_oversized_and_malformed_runtime(self):
+        from tools.atlas_doctor_lib.runtime_observation import summarize_runtime_lifecycle
+        for trace in ({"events": [None]}, {"events": [None] * 50001}):
+            result = summarize_runtime_lifecycle(trace)
+            self.assertEqual(result["status"], "REVIEW")
+            self.assertTrue(result["truncated"])
+            self.assertEqual(result["worker_starts_unpaired"], [])
+
     def test_explicit_qt_signal_registration_records_callback_source(self):
         import runpy
 

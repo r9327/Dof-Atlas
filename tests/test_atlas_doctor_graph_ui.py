@@ -120,6 +120,36 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(compact_graph(graph, {}, trace)["trace_status"], "STALE_OR_INCOMPLETE")
         self.assertEqual(compact_graph(graph, {}, trace)["edges"], [])
 
+    def test_lifecycle_ui_evidence_requires_same_complete_clean_sha(self):
+        sha = "b" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/worker.py"},
+            {"id": 2, "source_file": "app/cache.py"},
+        ], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                     {"type": "worker_start", "source": "app/worker.py"},
+                     {"type": "cache_release", "source": "app/cache.py"},
+                 ]}
+        data = compact_graph(graph, {}, trace)
+        self.assertEqual(data["trace_status"], "MATCHED")
+        self.assertTrue(data["nodes"][0]["worker_start_unpaired_at_trace_end"])
+        self.assertTrue(data["nodes"][1]["cache_release_observed"])
+        self.assertFalse(data["observed_lifecycle"]["proof_of_memory_leak"])
+        trace["candidate_sha"] = "c" * 40
+        stale = compact_graph(graph, {}, trace)
+        self.assertEqual(stale["observed_lifecycle"]["status"], "NOT_TRUSTED")
+        self.assertFalse(stale["nodes"][0]["worker_start_unpaired_at_trace_end"])
+
+    def test_malformed_runtime_events_cannot_crash_graph_ui(self):
+        sha = "d" * 40
+        graph = {"built_at_commit": sha, "nodes": [], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True,
+                 "truncated": False, "events": [None]}
+        data = compact_graph(graph, {}, trace)
+        self.assertEqual(data["trace_status"], "STALE_OR_INCOMPLETE")
+        self.assertEqual(data["observed_lifecycle"]["status"], "NOT_TRUSTED")
+
     def test_legacy_runtime_trace_without_cleanliness_is_not_trusted(self):
         sha = "c" * 40
         graph = {"nodes": [{"id": 1, "source_file": "app/a.py"},

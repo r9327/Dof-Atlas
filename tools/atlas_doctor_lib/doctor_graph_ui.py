@@ -121,14 +121,20 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                 })
     trace_status = "NOT_PROVIDED"
     runtime_pairs: set[tuple[str, str]] = set()
+    observed_lifecycle: dict[str, Any] = {"status": "NOT_TRUSTED"}
+    trace_events = trace.get("events") if isinstance(trace, dict) else None
     if trace is not None:
         trace_sha = trace.get("candidate_sha")
         graph_sha = graph.get("built_at_commit")
         if (isinstance(trace_sha, str) and isinstance(graph_sha, str)
                 and len(graph_sha) == 40 and trace_sha == graph_sha
                 and trace.get("worktree_clean") is True
-                and not trace.get("truncated")):
+                and not trace.get("truncated")
+                and isinstance(trace_events, list) and len(trace_events) <= 50000
+                and all(isinstance(row, dict) for row in trace_events)):
             trace_status = "MATCHED"
+            from .runtime_observation import summarize_runtime_lifecycle
+            observed_lifecycle = summarize_runtime_lifecycle(trace)
             runtime_pairs = {
                 (row["source"], row["target"])
                 for row in trace.get("events", [])
@@ -159,6 +165,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             and isinstance(row.get("source"), str)
             and isinstance(row.get("target"), str)
         ][:384]
+    open_worker_files = {row["source"] for row in observed_lifecycle.get("worker_starts_unpaired", [])}
+    cache_released_files = set(observed_lifecycle.get("cache_release_sources", []))
     observed_files = {file for pair in runtime_pairs for file in pair}
     qt_files = {file for pair in qt_pairs for file in pair}
     qt_sites: set[str] = set()
@@ -179,6 +187,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "runtime_observed": file in observed_files,
             "qt_call_site_observed": file in qt_sites,
             "qt_connection_observed": file in qt_files,
+            "worker_start_unpaired_at_trace_end": file in open_worker_files,
+            "cache_release_observed": file in cache_released_files,
         })
     edges = []
     for link in graph.get("links", []):
@@ -206,6 +216,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     return {
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
+        "observed_lifecycle": observed_lifecycle,
         "observed_symbol_calls": symbol_calls,
         "source_inspection_status": (inspection or {}).get("status", "NOT_RUN"),
         "json_lineage_review_leads": (lineage or {}).get("references_with_ui_importers", 0),
@@ -297,7 +308,7 @@ function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1
 function filter(){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value;
 visible=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
  (!level||(n.doctor_task&&n.doctor_task.priority===level))&&
- (!flagged.checked||n.reasons.length||n.doctor_task||n.source_evidence.length)&&
+ (!flagged.checked||n.reasons.length||n.doctor_task||n.source_evidence.length||n.worker_start_unpaired_at_trace_end)&&
  (!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
 document.getElementById('summary').textContent=visible.length+' / '+nodes.length+' nœuds · '+(visible.length>3500?'relations masquées en vue globale':'relations visibles');render()}
 function screen(p){return {x:canvas.width/2+(p.x+panX)*scale*devicePixelRatio,
@@ -348,6 +359,8 @@ if(symbolCalls.length){
 }
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
 if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ; exécution du récepteur non prouvée.');
+if(n.worker_start_unpaired_at_trace_end)line('p','Worker démarré sans arrêt observé avant la fin de cette trace ; une activité en cours est possible, ce n’est pas une fuite mémoire prouvée.');
+if(n.cache_release_observed)line('p','Libération de cache explicitement marquée dans le scénario runtime.');
 if(n.doctor_task){
  line('h4','Priorité Doctor : '+n.doctor_task.priority);
  line('p',n.doctor_task.kind+' · '+n.doctor_task.action);
