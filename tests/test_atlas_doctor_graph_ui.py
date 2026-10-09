@@ -549,6 +549,52 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(data["observed_qt_callback_file_pairs"], 0)
         self.assertEqual(data["edges"], [])
 
+
+    def test_json_runtime_evidence_is_visible_only_for_matching_scenario(self):
+        sha = "1" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/core/reader.py"},
+            {"id": 2, "source_file": "app/modules/encyclopedia/services/catalog.py"},
+            {"id": 3, "source_file": "app/modules/encyclopedia/views/catalog_view.py"},
+        ], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                     {"type": "file_open", "source": "app/core/reader.py",
+                      "target": "data/items.json"},
+                     {"type": "python_call_edge",
+                      "source": "app/modules/encyclopedia/services/catalog.py",
+                      "target": "app/core/reader.py"},
+                     {"type": "python_call_edge",
+                      "source": "app/modules/encyclopedia/views/catalog_view.py",
+                      "target": "app/modules/encyclopedia/services/catalog.py"},
+                 ]}
+        result = compact_graph(graph, {}, trace)
+        self.assertEqual(result["observed_json_opens"], 1)
+        self.assertEqual(result["nodes"][0]["json_runtime_evidence"][0]["kind"],
+                         "JSON_OPEN_OBSERVED")
+        self.assertEqual(result["nodes"][2]["json_runtime_evidence"][0]["kind"],
+                         "CO_OBSERVED_PYTHON_CALL_CHAIN")
+        self.assertEqual(result["nodes"][2]["json_runtime_evidence"][0]["confidence"],
+                         "OBSERVATION_NOT_DATA_FLOW")
+        html = render_html(result)
+        self.assertIn("JSON : observations du scénario", html)
+        self.assertIn("json_runtime_evidence:(n.json_runtime_evidence||[]).slice(0,6)", html)
+        trace["worktree_clean"] = False
+        stale = compact_graph(graph, {}, trace)
+        self.assertEqual(stale["observed_json_opens"], 0)
+        self.assertEqual(stale["nodes"][2]["json_runtime_evidence"], [])
+
+    def test_json_runtime_paths_outside_repo_are_ignored(self):
+        sha = "2" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/core/reader.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [{"type": "file_open", "source": "app/core/reader.py",
+                             "target": "../bad.json"}]}
+        result = compact_graph(graph, {}, trace)
+        self.assertEqual(result["observed_json_opens"], 0)
+        self.assertEqual(result["nodes"][0]["json_runtime_evidence"], [])
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,

@@ -113,3 +113,7 @@ Le plan non mutatif combine les consommateurs Graphify confirmés avec les **app
 ### Graphify : callbacks Qt exécutés dans le Canvas
 
 Le graphe interactif et l'export de preuves par nœud distinguent désormais `QT_CONNECT_RETURNED` (enregistrement du signal) de `QT_CALLBACK_INVOKED` (entrée observée d'un callback Python explicitement instrumenté). Aucune arête d'exécution n'est affichée sans trace correspondant au SHA exact et à un worktree propre ; les callbacks non observés et l'ownership C++ restent non prouvés.
+
+### JSON ouverts jusqu'aux vues UI, dans Graphify
+
+L'inspecteur de nœud et l'export JSON intègrent désormais, depuis une trace opt-in exacte-SHA, les ouvertures de JSON et les chaînes d'appels Python co-observées jusqu'aux vues. Les preuves sont bornées et étiquetées `OBSERVATION_NOT_DATA_FLOW` : aucun transfert de données ni rendu visuel n'est déduit. Absence de trace valide = aucune preuve runtime affichée.

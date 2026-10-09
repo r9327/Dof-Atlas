@@ -216,6 +216,25 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         qt_sites = {row["source"] for row in trace.get("events", [])
                     if row.get("type") == "qt_c_call_site"
                     and isinstance(row.get("source"), str)}
+    # Runtime JSON opens plus observed caller paths are not proof of data flow.
+    json_runtime_by_file: dict[str, list[dict[str, str]]] = {}
+    json_runtime_summary: dict[str, Any] = {"status": "NOT_TRUSTED", "json_opens_observed": 0}
+    if trace_status == "MATCHED" and trace is not None:
+        from .deep_intelligence import trace_observed_json_to_ui
+        json_runtime_summary = trace_observed_json_to_ui(graph, trace)
+        for entry in json_runtime_summary.get("references", []):
+            source, json_path = entry.get("opening_source"), entry.get("json_path")
+            if not isinstance(source, str) or not isinstance(json_path, str):
+                continue
+            sources = [(source, "JSON_OPEN_OBSERVED")]
+            sources.extend((row["path"], "CO_OBSERVED_PYTHON_CALL_CHAIN")
+                           for row in entry.get("ui_callers_in_same_trace", [])
+                           if isinstance(row, dict) and isinstance(row.get("path"), str))
+            for path, kind in sources:
+                bucket = json_runtime_by_file.setdefault(path, [])
+                if len(bucket) < 6:
+                    bucket.append({"json_path": json_path, "opening_source": source,
+                                   "kind": kind, "confidence": "OBSERVATION_NOT_DATA_FLOW"})
     # Existing source-backed community cohesion audit is advisory. Store it
     # once per community, never duplicate the same row for every symbol node.
     cohesion = audit.get("community_cohesion") or {}
@@ -248,6 +267,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "qt_call_site_observed": file in qt_sites,
             "qt_connection_observed": file in qt_files,
             "qt_callback_invoked_observed": file in qt_invoked_files,
+            "json_runtime_evidence": json_runtime_by_file.get(file, []),
             "worker_start_unpaired_at_trace_end": file in open_worker_files,
             "cache_release_observed": file in cache_released_files,
         })
@@ -288,6 +308,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         if isinstance(cohesion, dict) else 0,
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
         "observed_qt_callback_file_pairs": len(invoked_qt_pairs),
+        "observed_json_opens": json_runtime_summary.get("json_opens_observed", 0),
+        "observed_json_truncated": json_runtime_summary.get("truncated", False),
         "observed_lifecycle": observed_lifecycle,
         "observed_symbol_calls": symbol_calls,
         "source_inspection_status": (inspection or {}).get("status", "NOT_RUN"),
@@ -535,6 +557,11 @@ if(symbolCalls.length){
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
 if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ; exécution du récepteur non prouvée.');
  if(n.qt_callback_invoked_observed)line('p','Callback Python Qt entré pendant ce scénario opt-in ; ownership natif non prouvé.');
+ if((n.json_runtime_evidence||[]).length){
+  line('h4','JSON : observations du scénario');
+  n.json_runtime_evidence.forEach(e=>line('p',e.kind+' · '+e.json_path+' · ouverture dans '+e.opening_source));
+  line('p','Ouverture et appels co-observés : ni lecture des données ni rendu UI prouvés.');
+ }
 if(n.worker_start_unpaired_at_trace_end)line('p','Worker démarré sans arrêt observé avant la fin de cette trace ; une activité en cours est possible, ce n’est pas une fuite mémoire prouvée.');
 if(n.cache_release_observed)line('p','Libération de cache explicitement marquée dans le scénario runtime.');
 if(n.doctor_task){
@@ -608,6 +635,7 @@ function buildNodeEvidence(i){
   runtime:{python_call_observed:!!n.runtime_observed,
    qt_connection_observed:!!n.qt_connection_observed,
    qt_callback_invoked_observed:!!n.qt_callback_invoked_observed,
+    json_runtime_evidence:(n.json_runtime_evidence||[]).slice(0,6),
    qt_call_site_observed:!!n.qt_call_site_observed,
    unpaired_worker_at_trace_end:!!n.worker_start_unpaired_at_trace_end,
    cache_release_marked:!!n.cache_release_observed,
