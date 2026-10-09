@@ -504,3 +504,8 @@ Nouveau circuit rapide explicite :
 ### Menu Doctor : diagnostic réellement rapide
 
 Dans `python -m tools.atlas_doctor` → menu `[1]`, la question est désormais posée **avant** le scan AST global. Choix `D` → référence Git explicite (`HEAD` par défaut pour les changements non commités) → tests ciblés facultatifs. Ce chemin utilise `dev-check` et n'exécute jamais `quick` ou le gate CRITICAL au préalable. La touche Entrée conserve volontairement le diagnostic AST complet et `A` demande explicitement le gate CRITICAL plus long.
+
+
+### Performance mesurée dans la CI ciblée
+
+Le workflow Graphify Focused effectue maintenant une **mesure du précontrôle de développement sur un vrai checkout Git** : diff `HEAD~1`, analyse des fichiers et suggestions de tests, sans aucune exécution de suite. Budget bloquant de **10 secondes** sur runner Ubuntu/Python 3.13, rapport local `graphify-dev-check-metrics.json` avec le SHA et la durée. Un dépassement échoue explicitement la CI ciblée ; cela ne constitue ni un résultat RAM, ni une preuve de performance Windows, ni une certification. Le FAST canonique et son ensemble de groupes restent inchangés.
