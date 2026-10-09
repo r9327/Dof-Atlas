@@ -21,7 +21,9 @@ def main() -> None:
     application = QApplication.instance() or QApplication([])
     view = QWebEngineView()
     # Unnamed profile is off-the-record: no persistent user profile/cache.
-    profile = QWebEngineProfile(view)
+    # Keep the profile alive until after the page/view have been destroyed.
+    # Parent it to QApplication, not to the view's QObject children list.
+    profile = QWebEngineProfile(application)
     page = QWebEnginePage(profile, view)
     view.setPage(page)
     for obj, name in ((view, "webengine-view"), (page, "webengine-page"),
@@ -30,7 +32,7 @@ def main() -> None:
             raise AssertionError("Cannot register WebEngine weak lifecycle watch")
         if not observer.watch_qt_destroyed(obj, label=name):
             raise AssertionError("Cannot register QObject destroyed signal")
-    if page.parent() is not view or profile.parent() is not view:
+    if page.parent() is not view or profile.parent() is not application:
         raise AssertionError("Explicit WebEngine Qt parent relation not established")
     observer.snapshot_watches(label="webengine-created")
     observer.snapshot_qt_objects(label="webengine-created")
@@ -38,6 +40,7 @@ def main() -> None:
     # Never call .show(), .load(), .setUrl() or process event loop here.
     # Native parent ownership does not prove Chromium process cleanup.
     delete(view)
+    delete(profile)  # The profile outlives its page until native disposal.
     if any(isValid(obj) for obj in (view, page, profile)):
         raise AssertionError("Explicit WebEngine native children remained valid")
     observer.snapshot_watches(label="webengine-destroyed")
