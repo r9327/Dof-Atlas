@@ -201,3 +201,8 @@ Aucune relance répétée des benchmarks RAM/preload pendant le développement.
 ### Comparaison de scénarios historiques sans fausse régression
 
 Les traces lancées par `runtime-trace` incluent leur nom de module `scenario_module`. La commande `python -m tools.atlas_doctor scenario-diff --before .ai/runtime/atlas_doctor/traces/before.json --after .ai/runtime/atlas_doctor/traces/after.json --json` compare uniquement deux **mêmes scénarios**, complets et datés par SHA, en classant les relations Python/Qt observées qui disparaissent comme `REVIEW`. Un appel non observé dans une nouvelle exécution n'est pas une preuve de bug, de code mort ni de suppression sûre. Aucun scénario, test, graph rebuild ou benchmark n'est lancé pendant la comparaison.
+
+
+### Scénarios réels Guides / Succès en chargement différé
+
+`python -m tools.atlas_doctor runtime-trace --module tools.atlas_doctor_lib.encyclopedia_deferred_smoke --max-events 50000 --json` vérifie, uniquement à la demande et avec `QT_QPA_PLATFORM=offscreen`, la création des vrais `GuidesView` et `AchievementsView` en `defer_runtime=True`. Les fournisseurs sont volontairement inertes, les chemins de progression du Guide sont temporaires, les catalogues ne sont pas hydratés, et la destruction QObject est observée. Ce scénario ne valide pas le détail d'une quête ni l'exactitude des guides; ceux-ci requièrent une session d'intégration avec les données de l'application. Test manuel ciblé : `tests/test_atlas_doctor_encyclopedia_smoke.py`; un SKIP sans PySide6/offscreen ne prouve rien.
