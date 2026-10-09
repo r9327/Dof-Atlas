@@ -231,7 +231,7 @@ def command_graph_ui(root: Path, args) -> dict[str, Any]:
                                        baseline_path=getattr(args, "baseline_graph", None),
                                        save_snapshot=getattr(args, "save_snapshot", False),
                                        ide_links=getattr(args, "ide_links", False),
-                                       extra_trace_paths=getattr(args, "extra_trace", None,
+                                       extra_trace_paths=getattr(args, "extra_trace", None),
                                        scenario_trend_paths=getattr(args, "scenario_trend", None))
     if payload.get("status") == "PASS" and args.open:
         import webbrowser
