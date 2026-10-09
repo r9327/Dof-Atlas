@@ -164,6 +164,36 @@ class DoctorGraphUiTests(unittest.TestCase):
         ):
             self.assertIn(marker, html)
 
+    def test_review_category_filter_surfaces_isolates_hubs_workers_and_ast(self):
+        graph = {"built_at_commit": "e" * 40,
+                 "nodes": [{"id": 1, "source_file": "app/isolated.py"},
+                           {"id": 2, "source_file": "app/hub.py"},
+                           {"id": 3, "source_file": "app/ui.py"}], "links": []}
+        audit = {
+            "orphan_nodes": [{"file": "app/isolated.py"}],
+            "high_fanout_files": [{"file": "app/hub.py"}],
+            "isolated_communities": [{"sample_source_files": ["app/isolated.py"],
+                                     "sample_linked_production_files": []}],
+            "remediation_plan": {"tasks": [{"priority": "P2", "kind": "REVIEW",
+                                           "action": "Inspect coupling",
+                                           "paths": ["app/hub.py"]}]},
+        }
+        inspected = {"status": "REVIEW",
+                     "paths_inspected": ["app/ui.py"],
+                     "silent_exceptions": [{"path": "app/ui.py", "line": 7}],
+                     "data_lineage_candidates": []}
+        payload = compact_graph(graph, audit, inspection=inspected)
+        self.assertEqual(payload["nodes"][0]["review_categories"], ["island", "orphan"])
+        self.assertEqual(payload["nodes"][1]["review_categories"], ["doctor", "fanout"])
+        self.assertEqual(payload["nodes"][2]["review_categories"], ["ast"])
+        self.assertFalse(payload["truncated"])
+        html = render_html(payload)
+        for term in ('id="reviewKind"', "const reviewLabels=", "reviewCounts=new Map()",
+                     "(n.review_categories||[]).includes(kind)", "reviewKind.value=''",
+                     "Catégories de diagnostic à vérifier"):
+            self.assertIn(term, html)
+        self.assertIn("not proof of dead code", payload["disclaimer"])
+
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
                  "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}

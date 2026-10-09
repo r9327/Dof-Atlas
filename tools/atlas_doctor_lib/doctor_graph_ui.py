@@ -30,11 +30,13 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     nodes = graph.get("nodes", [])[:MAX_NODES]
     indexed = {item["id"]: number for number, item in enumerate(nodes)}
     file_reasons: dict[str, list[str]] = {}
-    for field, reason in (
-        ("orphan_nodes", "Isolated Graphify node; not proof of dead code"),
-        ("weak_production_candidates", "Weakly connected candidate"),
-        ("high_fanout_files", "High fanout coupling candidate"),
-        ("blocking_findings", "Doctor source-confirmed forbidden dependency"),
+    review_by_file: dict[str, set[str]] = {}
+    for field, reason, category in (
+
+        ("orphan_nodes", "Isolated Graphify node; not proof of dead code", "orphan"),
+        ("weak_production_candidates", "Weakly connected candidate", "weak"),
+        ("high_fanout_files", "High fanout coupling candidate", "fanout"),
+        ("blocking_findings", "Doctor source-confirmed forbidden dependency", "forbidden"),
     ):
         for item in audit.get(field, []):
             path = item.get("file") or item.get("path") or item.get("source")
@@ -42,6 +44,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                 values = file_reasons.setdefault(path, [])
                 if reason not in values:
                     values.append(reason)
+                review_by_file.setdefault(path, set()).add(category)
     for community in audit.get("isolated_communities", []):
         # A disconnected community does not imply its containing Python file
         # lacks imports/calls from other communities. Make this explicit.
@@ -55,6 +58,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             values = file_reasons.setdefault(path, [])
             if reason not in values:
                 values.append(reason)
+            review_by_file.setdefault(path, set()).add("island")
     # Expose Doctor's existing prioritized remediation plan in the graph
     # inspector, without promoting speculative candidate findings to P0.
     priority_rank = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
@@ -195,6 +199,12 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "file": file, "domain": _domain(file), "community": item.get("community"),
             "line": str(item.get("source_location") or ""),
             "reasons": file_reasons.get(file, []),
+            "review_categories": sorted(
+                review_by_file.get(file, set())
+                | ({"ast"} if source_evidence.get(file) else set())
+                | ({"doctor"} if file_actions.get(file) else set())
+                | ({"worker"} if file in open_worker_files else set())
+            ),
             "source_evidence": source_evidence.get(file, []),
             "doctor_task": file_actions.get(file),
             "runtime_observed": file in observed_files,
@@ -266,6 +276,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <select id="community" aria-label="Communauté Graphify"><option value="">Toutes les communautés</option></select>
 <select id="relation" aria-label="Relation du graphe"><option value="">Toutes les relations</option></select>
 <select id="priority" aria-label="Priorité Doctor"><option value="">Toutes priorités</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
+<select id="reviewKind" aria-label="Catégorie de diagnostic Doctor"><option value="">Tous les diagnostics</option></select>
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
 <button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button>
 <button id="graphPrev" type="button" aria-label="Page précédente du graphe">◀</button>
@@ -285,6 +296,7 @@ const community=document.getElementById('community');
 const relation=document.getElementById('relation');
 const flagged=document.getElementById('flagged'),details=document.getElementById('nodeDetails');
 const priority=document.getElementById('priority');
+const reviewKind=document.getElementById('reviewKind');
 const inventory=data.file_coverage;
 if(inventory){
  const section=document.getElementById('coverageDetails');
@@ -324,6 +336,18 @@ data.edges.forEach(e=>{
 const groups=[...new Set(nodes.map(n=>n.domain))].sort();
 groups.forEach(g=>{let opt=document.createElement('option');opt.value=g;opt.textContent=g;domain.appendChild(opt)});
 const communityReview=new Map((data.community_review_candidates||[]).map(row=>[String(row.community),row]));
+// All counts are bounded by the already-loaded Graphify node payload.
+const reviewLabels={orphan:'Nœuds isolés',weak:'Connexions faibles',fanout:'Couplage élevé',
+ forbidden:'Imports interdits confirmés',island:'Communautés isolées',
+ ast:'Indices AST / JSON',doctor:'Actions Doctor',worker:'Workers à vérifier'};
+const reviewCounts=new Map();
+nodes.forEach(n=>(n.review_categories||[]).forEach(kind=>
+ reviewCounts.set(kind,(reviewCounts.get(kind)||0)+1)));
+[...reviewCounts].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([kind,count])=>{
+ const option=document.createElement('option');option.value=kind;
+ option.textContent=(reviewLabels[kind]||kind)+' ('+count+' nœuds)';
+ reviewKind.appendChild(option);
+});
 const communityCounts=new Map();
 nodes.forEach(n=>{
  if(n.community===null||n.community===undefined)return;
@@ -350,9 +374,10 @@ let changedFiles=new Set();
 let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
-function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value,cluster=community.value;
+function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value,cluster=community.value,kind=reviewKind.value;
 matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
  (!cluster||String(n.community)===cluster)&&
+ (!kind||(n.review_categories||[]).includes(kind))&&
  (!level||(n.doctor_task&&n.doctor_task.priority===level))&&
  (!flagged.checked||n.reasons.length||n.doctor_task||n.source_evidence.length||n.worker_start_unpaired_at_trace_end)&&
  (!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
@@ -404,6 +429,9 @@ if(importChanges.has(n.file)){
 }
 if(importErrors.has(n.file))line('p','Inspection AST incomplète : '+importErrors.get(n.file));
 line('p','Communauté Graphify : '+String(n.community??'non déterminée'));
+if(n.review_categories.length){
+ line('p','Catégories de diagnostic à vérifier : '+n.review_categories.map(kind=>reviewLabels[kind]||kind).join(', '));
+}
 const boundary=communityReview.get(String(n.community));
 if(boundary){
  line('h4','Frontières de communauté à examiner');
@@ -475,7 +503,7 @@ function focusNode(i){
 function revealNode(i){
  let offset=matches.indexOf(i);
  if(offset<0){
-  search.value='';domain.value='';community.value='';priority.value='';flagged.checked=false;
+  search.value='';domain.value='';community.value='';reviewKind.value='';priority.value='';flagged.checked=false;
   filter(true);offset=matches.indexOf(i);
  }
  if(offset>=0){pageIndex=Math.floor(offset/PAGE_SIZE);filter(false);focusNode(i)}
@@ -557,7 +585,7 @@ if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;panX=drag.px+dx;panY=drag.py+dy;r
 canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;
 if(!moved){const r=canvas.getBoundingClientRect();const found=pick((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio);if(found>=0)show(found)}});
 canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.min(3,scale*(e.deltaY>0?.84:1.16)));render()},{passive:false});
-[search,domain,community,priority,flagged].forEach(el=>el.addEventListener('input',()=>filter(true)));
+[search,domain,community,reviewKind,priority,flagged].forEach(el=>el.addEventListener('input',()=>filter(true)));
 relation.addEventListener('change',()=>{if(selected>=0)show(selected);else render()});
 document.getElementById('graphPrev').addEventListener('click',()=>{pageIndex--;filter(false)});
 document.getElementById('graphNext').addEventListener('click',()=>{pageIndex++;filter(false)});
