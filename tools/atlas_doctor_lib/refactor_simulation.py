@@ -209,6 +209,7 @@ def simulate_refactor(
         },
         "consumer_files": sorted((set(impact.get("impacted_files", []))
             | {row["path"] for row in source_impact.get("consumer_files", [])}
+            | {row["importer"] for row in source_impact.get("literal_dynamic_import_candidates", [])}
             | (
             {row["source"] for kind in ("observed_python_consumers", "qt_registration_sites", "qt_callback_invocations")
              for row in runtime[kind]} if runtime["status"] == "MATCHED" else set()
@@ -218,7 +219,7 @@ def simulate_refactor(
         "consolidation_similarity": consolidation_similarity,
         "limitations": [
             "Graph-derived relations are confirmed against literal Python imports, not arbitrary runtime callbacks.",
-            "Current-source reverse consumers are AST-proven but do not cover dynamic imports or native Qt registrations.",
+            "Current-source reverse consumers are AST-proven; literal dynamic imports are separate review leads, not execution proof.",
             "A preview cannot prove absence of dynamic consumers or that consolidation preserves behavior.",
             "No file will be modified without a reviewed implementation plan.",
             "Observed Python calls, Qt registrations and explicitly wrapped callback entries are scenario-specific positives, not complete coverage.",
