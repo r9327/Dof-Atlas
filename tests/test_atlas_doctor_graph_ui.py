@@ -82,6 +82,34 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("revealNode(index)", html)
         self.assertIn("Import AST confirmé ≠ usage runtime", html)
 
+    def test_symbol_level_evidence_is_deduplicated_and_not_fabricated(self):
+        sha = "b" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "app/core/catalog.py"},
+                           {"id": 2, "source_file": "app/pages/view.py"}],
+                 "links": []}
+        valid_call = {"type": "python_symbol_call", "source": "app/pages/view.py",
+                      "target": "app/core/catalog.py", "callee_symbol": "Catalog.get",
+                      "confidence": "OBSERVED_CALL_ENTRY"}
+        registered = {"type": "qt_signal_connect_returned", "source": "app/pages/view.py",
+                      "target": "app/core/catalog.py", "callee_symbol": "Catalog.never"}
+        invoked = {"type": "qt_callback_invoked", "source": "app/pages/view.py",
+                   "target": "app/core/catalog.py", "callee_symbol": "Catalog.refresh",
+                   "confidence": "WRAPPED_PYTHON_CALLBACK_ENTERED"}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [valid_call, valid_call, registered, invoked]}
+        output = compact_graph(graph, {}, trace=trace)
+        self.assertEqual(output["nodes"][0]["entered_symbol_count"], 2)
+        self.assertEqual(output["nodes"][1]["entered_symbol_count"], 0)
+        self.assertEqual({row["symbol"] for row in output["entered_function_evidence"]},
+                         {"Catalog.get", "Catalog.refresh"})
+        html = render_html(output)
+        self.assertIn("const enteredByFile=new Map()", html)
+        self.assertIn("Fonctions réellement entrées dans les scénarios", html)
+        self.assertIn("entered_symbols:enteredSymbols", html)
+        trace["worktree_clean"] = False
+        self.assertEqual(compact_graph(graph, {}, trace=trace)["entered_function_evidence"], [])
+
     def test_importlib_returned_module_renders_separate_runtime_edge(self):
         sha = "b" * 40
         graph = {"built_at_commit": sha,

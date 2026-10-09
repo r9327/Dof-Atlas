@@ -425,3 +425,8 @@ La validation focalisée inclut désormais les contrats du scanner de ressources
 ### Couverture fonctionnelle par symbole réellement entré (Test Intelligence)
 
 La commande `scenario-coverage --trace ... --require-symbol app/pages/guide.py::GuidesView.refresh` sait désormais chercher des **entrées de fonctions/méthodes**, en plus des fichiers. Les événements `python_symbol_call` exigent la provenance `OBSERVED_CALL_ENTRY`; les callbacks Qt enveloppés demandent `WRAPPED_PYTHON_CALLBACK_ENTERED` et exposent maintenant leur `callee_symbol`. Les seules inscriptions de slots, tentatives d'imports, résolutions de modules déjà en cache ou chaînes de texte ne constituent jamais une couverture. Au maximum 256 symboles exigés et 12 traces exact-SHA. Une fonction non entrée dans ces scénarios reste **non observée**, jamais déclarée morte. Aucun test ni application lancée par la commande de consultation.
+
+
+### Fonctions observées dans l'inspecteur Graphify
+
+Les événements `python_symbol_call` et `qt_callback_invoked` sont désormais normalisés par la même règle de couverture des fonctions que `scenario-coverage`. L'inspecteur Graphify affiche pour chaque fichier les noms de méthodes réellement entrées et le numéro de scénario, sans convertir les simples enregistrements Qt ou imports en exécution. Les preuves sont dédupliquées et limitées à 384 identités (fichier, symbole, scénario), stockées une seule fois dans le JSON du graphe et réutilisées par les nœuds de ce fichier pour préserver la RAM du navigateur; les exports JSON les conservent. Traces hors SHA ou tronquées = aucune preuve affichée. Absence d'observation ≠ code mort.

@@ -311,6 +311,36 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             and isinstance(row.get("source"), str)
             and isinstance(row.get("target"), str)
         ][:384]
+    entered_functions: list[dict[str, Any]] = []
+    entered_keys: set[tuple[str, str, int]] = set()
+    entered_truncated = False
+    if trace_status == "MATCHED" and trace is not None:
+        from .scenario_coverage import observed_entered_symbols
+        for row in trace.get("events", []):
+            qualified = observed_entered_symbols(row)
+            if not qualified:
+                continue
+            group = row.get("_trace_group", 0)
+            if not isinstance(group, int) or isinstance(group, bool) or not 0 <= group < 8:
+                continue
+            for value in qualified:
+                path, symbol = value.split("::", 1)
+                identity = path, symbol, group
+                if identity in entered_keys:
+                    continue
+                if len(entered_functions) >= 384:
+                    entered_truncated = True
+                    break
+                entered_keys.add(identity)
+                entered_functions.append({
+                    "file": path, "symbol": symbol, "trace_group": group,
+                    "kind": "QT_CALLBACK_ENTERED" if row["type"] == "qt_callback_invoked"
+                    else "PYTHON_CALL_ENTERED",
+                    "confidence": row["confidence"],
+                })
+    entered_counts: dict[str, int] = defaultdict(int)
+    for evidence in entered_functions:
+        entered_counts[evidence["file"]] += 1
     open_worker_files = {row["source"] for row in observed_lifecycle.get("worker_starts_unpaired", [])}
     open_qt_worker_files = {row["source"] for row in observed_lifecycle.get("qt_worker_unpaired", [])}
     cache_released_files = set(observed_lifecycle.get("cache_release_sources", []))
@@ -431,6 +461,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "qt_destroy_pending_at_trace_end": file in qt_pending_destroy_files,
             "runtime_scenarios": sorted(runtime_scenarios_by_file.get(file, set())),
             "qt_native_invalid_wrappers_observed": native_invalid_by_file.get(file, 0),
+            "entered_symbol_count": entered_counts.get(file, 0),
         })
     edges = []
     for link in graph.get("links", []):
@@ -494,6 +525,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "observed_lifecycle": observed_lifecycle,
         "observed_performance": observed_performance,
         "observed_symbol_calls": symbol_calls,
+        "entered_function_evidence": entered_functions,
+        "entered_function_evidence_truncated": entered_truncated,
         "source_inspection_status": (inspection or {}).get("status", "NOT_RUN"),
         "json_lineage_review_leads": (lineage or {}).get("references_with_ui_importers", 0),
         "json_lineage_runtime_proven": False,
@@ -676,6 +709,13 @@ if(focusImpact){
   'Import AST confirmé ≠ usage runtime; piste d’import dynamique ≠ exécution.';
  section.appendChild(note);section.appendChild(document.createElement('hr'));
 }
+// Store symbol evidence once per file rather than duplicating it on every
+// function/symbol graph node (the graph can contain 15,000 nodes).
+const enteredByFile=new Map();
+(data.entered_function_evidence||[]).forEach(row=>{
+ if(!enteredByFile.has(row.file))enteredByFile.set(row.file,[]);
+ enteredByFile.get(row.file).push(row);
+});
 const neighbors=new Map(), nodes=data.nodes;
 const relationCounts=new Map();
 // File-level import consumers are derived once from the existing static graph.
@@ -851,6 +891,14 @@ if(symbolCalls.length){
   e.source+':'+e.caller_line+' '+e.caller_symbol+' → '+e.target+':'+e.callee_line+' '+e.callee_symbol));
  if(symbolCalls.length>20||data.symbol_calls_bounded)line('p','Observations partielles : aucune conclusion sur les fonctions non vues.');
 }
+const enteredHere=enteredByFile.get(n.file)||[];
+if(enteredHere.length){
+ line('h4','Fonctions réellement entrées dans les scénarios');
+ enteredHere.slice(0,32).forEach(e=>line('p',
+  'Scénario '+(e.trace_group+1)+' · '+e.symbol+' · '+e.kind));
+ line('small','Une fonction absente de ces traces n’est pas du code mort.'+
+  (data.entered_function_evidence_truncated?' Échantillon incomplet.':''));
+}
 if(n.qt_destroy_pending_at_trace_end)line('p',
  'Signal de destruction Qt connecté mais non reçu pendant la trace. À examiner, pas une preuve de fuite.');
 if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; récepteur non prouvé.');
@@ -939,6 +987,7 @@ function buildNodeEvidence(i){
  }));
  const calls=(data.observed_symbol_calls||[])
   .filter(e=>e.source===n.file||e.target===n.file).slice(0,20);
+ const enteredSymbols=(enteredByFile.get(n.file)||[]).slice(0,40);
  return {
   schema_version:1,kind:'doctor_graph_node_evidence',
   candidate_sha:data.candidate_sha,
@@ -972,6 +1021,8 @@ function buildNodeEvidence(i){
    'The exported subset and current Graphify snapshot may be incomplete.',
   ],
   code_changed_since_graph:changedFiles.has(n.file),
+  entered_symbols:enteredSymbols,
+  entered_symbols_truncated:!!data.entered_function_evidence_truncated,
  };
 }
 function downloadNodeEvidence(i){
