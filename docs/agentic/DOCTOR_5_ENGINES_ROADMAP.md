@@ -363,3 +363,10 @@ La consultation change-plan intègre désormais la remontée de consommateurs à
 ### Historique des scénarios dans Graphify
 
 Le mode graph-ui --scenario-trend .ai/runtime/avant.json --scenario-trend .ai/runtime/apres.json affiche désormais dans le graphe les fichiers concernés par les pertes d'observations (catégorie « Écarts historiques à examiner »). Avec quatre traces ou plus, les absences répétées sont distinguées des variations ponctuelles. Toutes les données sont rattachées aux SHA et au scénario, sans conclure à une régression fonctionnelle ni un fichier mort; les fichiers absents de la carte actuelle ne sont pas inventés. Aucun scénario n'est lancé par cette option.
+
+
+## Contrats finaux — 18 capacités, pas de certification par présence
+
+La commande `python -m tools.atlas_doctor capabilities --json` inventorie 18 points d'entrée effectifs, répartis entre les cinq moteurs. Chaque source vérifiée par AST est marquée PRESENT ou MISSING. La présence d'une fonction n'est jamais considérée comme une preuve d'exécution ni de bon fonctionnement. L'inventaire ne lance aucun test, aucun graphe et aucun benchmark. Les contrats de comportement à certifier restent : dépendances courantes et consommateurs dynamiques, captures Qt/Guide/Quêtes/Succès/Équipement, cycle WebEngine, grands graphes interactifs, provenance des traces, intégrité des régressions, RAM et preload Phase 8. La branche doit rester en Draft jusqu'aux preuves exact-SHA.
+
+La dernière étape de certification devra inclure les suites `test_atlas_doctor_source_impact`, `test_atlas_doctor_scenario_trends` et `test_atlas_doctor_capabilities` en plus des tests Doctor/Graphify historiques. Aucun seuil de mémoire n'est relevé et une trace incomplète ne devient jamais PASS.
