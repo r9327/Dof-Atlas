@@ -284,11 +284,10 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             self.assertNotIn(old_test_module, source, label)
 
     def test_module_safe_final_audits_have_no_path_hack(self) -> None:
-        for module in (
-            CANONICAL_LOCK_MODULE,
-            "tools.validate_guide_ultime_manual_transversals_v15",
-            FINAL_TRANSVERSAL_MODULE,
-        ):
+        # The versioned v15 wrapper is deliberately retired.
+        retired = ROOT / "tools/validate_guide_ultime_manual_transversals_v15.py"
+        self.assertFalse(retired.exists(), "retired validator must stay deleted")
+        for module in (CANONICAL_LOCK_MODULE, FINAL_TRANSVERSAL_MODULE):
             relative = Path(*module.split(".")).with_suffix(".py")
             source = (ROOT / relative).read_text(encoding="utf-8")
             self.assertTrue((ROOT / relative).is_file(), module)
