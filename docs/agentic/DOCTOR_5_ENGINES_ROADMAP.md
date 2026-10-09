@@ -348,3 +348,8 @@ Les diagnostics source de cycle de vie Qt/WebEngine et de caches non bornés son
 ### Parent QObject dans le graphe interactif
 
 Une trace runtime exacte-SHA peut désormais présenter dans Graphify les compteurs de parenté native Qt par snapshot, y compris les wrappers WebEngine observés. Ce panneau est indépendant des métriques RSS/CPU et ne compare pas des processus différents comme s'il s'agissait d'une preuve de libération mémoire. Toutes les données restent limitées aux observations explicitement demandées et ne déclenchent aucun scénario.
+
+
+### Analyse d'impact AST sur sources courantes (sans Graphify)
+
+Doctor source-impact app/pages/character_page.py --depth 2 --json établit les imports réellement présents dans les fichiers Python suivis par Git, puis remonte jusqu'à deux niveaux de consommateurs. L'algorithme borné ne se fie pas à une carte Graphify périmée, prend en charge les imports relatifs et produit les chemins, lignes et domaines concernés. L'analyse est strictement à la demande (32 fichiers ciblés, 1600 sources/40 Mio), avec données tronquées signalées et indices séparés d'imports dynamiques; elle ne prouve jamais l'absence de consommateur ou que le code peut être supprimé. Aucun test ni benchmark lancé.

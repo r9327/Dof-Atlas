@@ -176,6 +176,16 @@ def command_change_plan(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_source_impact(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.source_impact import source_reverse_impact
+    result = source_reverse_impact(root, args.paths, depth=args.depth)
+    if not args.json:
+        print(f"Doctor source-impact: {result['status']} | "
+              f"{len(result.get('consumer_files', []))} consumers")
+        print("Source-confirmed imports, not proof of complete runtime coverage.")
+    return result
+
+
 def command_refactor_preview(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.refactor_simulation import simulate_refactor
     result = simulate_refactor(root, args.paths, action=args.action,
@@ -588,6 +598,9 @@ def build_parser() -> argparse.ArgumentParser:
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
     ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
+    si = sub.add_parser('source-impact', help='Analyse AST inverse du code courant, sans Graphify ni tests.')
+    si.add_argument('paths', nargs='+', help='Fichiers Python suivis par Git, au maximum 32.')
+    si.add_argument('--depth', type=int, choices=(1, 2), default=2)
     rp = sub.add_parser('refactor-preview', help='Simuler impact et tests requis sans modifier le code.')
     rp.add_argument('paths', nargs='+')
     rp.add_argument('--action', choices=('remove', 'move', 'consolidate'), default='remove')
@@ -769,6 +782,7 @@ def main(argv: list[str] | None = None) -> int:
         'graph-live': command_graph_live,
         'dev-event': command_dev_event,
         'refactor-preview': command_refactor_preview,
+        'source-impact': command_source_impact,
         'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
         'audit': command_audit,
@@ -795,6 +809,8 @@ def main(argv: list[str] | None = None) -> int:
         # architectural audit (e.g. a source-confirmed app -> tools inversion).
         graph_audit = payload.get("graph_audit") or {}
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
+    if args.command == 'source-impact':
+        return 2 if payload.get('status') == 'BLOCKED' else 0
     if args.command == 'refactor-preview':
         return 2 if payload['status'] == 'BLOCKED' else 1
     if args.command == 'dev-event':
