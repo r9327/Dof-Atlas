@@ -91,6 +91,29 @@ class DoctorGraphUiTests(unittest.TestCase):
             self.assertIn(fragment, page)
         self.assertNotIn('selectedCommunity = "', page)
 
+    def test_cohesion_review_uses_existing_doctor_evidence_not_automatic_merges(self):
+        graph = {
+            "built_at_commit": "f" * 40,
+            "nodes": [{"id": 1, "source_file": "app/a.py", "community": 9},
+                      {"id": 2, "source_file": "app/b.py", "community": 9}],
+            "links": [],
+        }
+        audit = {"community_cohesion": {"status": "REVIEW", "candidate_count": 1,
+                 "candidates": [{"community": 9, "production_files": 2,
+                                 "internal_extracted_edges": 1,
+                                 "external_extracted_edges": 6,
+                                 "classification": "LOW_INTERNAL_HIGH_EXTERNAL_GRAPH_COHESION_REVIEW",
+                                 "automatic_merge": False}]}}
+        data = compact_graph(graph, audit)
+        self.assertEqual(data["community_review_total"], 1)
+        self.assertEqual(len(data["community_review_candidates"]), 1)
+        self.assertIs(data["community_review_candidates"][0]["automatic_merge"], False)
+        self.assertNotIn("community_review", data["nodes"][0])
+        page = render_html(data)
+        self.assertIn("Frontières de communauté à examiner", page)
+        self.assertIn("communityReview.has(id)", page)
+        self.assertIn("ni fusion ni suppression automatique", page)
+
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
                  "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}

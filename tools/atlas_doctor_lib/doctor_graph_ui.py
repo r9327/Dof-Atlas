@@ -176,6 +176,17 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         qt_sites = {row["source"] for row in trace.get("events", [])
                     if row.get("type") == "qt_c_call_site"
                     and isinstance(row.get("source"), str)}
+    # Existing source-backed community cohesion audit is advisory. Store it
+    # once per community, never duplicate the same row for every symbol node.
+    cohesion = audit.get("community_cohesion") or {}
+    boundary_rows = cohesion.get("candidates", []) if isinstance(cohesion, dict) else []
+    community_reviews = [
+        {key: row[key] for key in (
+            "community", "production_files", "internal_extracted_edges",
+            "external_extracted_edges", "classification", "automatic_merge"
+        ) if key in row}
+        for row in boundary_rows[:80] if isinstance(row, dict)
+    ]
     selected = []
     for item in nodes:
         file = item.get("source_file") or ""
@@ -217,6 +228,9 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                           "relation": "QT_CONNECT_RETURNED", "observed": True})
     return {
         "nodes": selected, "edges": edges, "candidate_sha": graph.get("built_at_commit"),
+        "community_review_candidates": community_reviews,
+        "community_review_total": int(cohesion.get("candidate_count") or 0)
+        if isinstance(cohesion, dict) else 0,
         "trace_status": trace_status, "observed_runtime_file_pairs": len(runtime_pairs),
         "observed_lifecycle": observed_lifecycle,
         "observed_symbol_calls": symbol_calls,
@@ -299,6 +313,7 @@ const neighbors=new Map(), nodes=data.nodes;data.edges.forEach(e=>{
 });
 const groups=[...new Set(nodes.map(n=>n.domain))].sort();
 groups.forEach(g=>{let opt=document.createElement('option');opt.value=g;opt.textContent=g;domain.appendChild(opt)});
+const communityReview=new Map((data.community_review_candidates||[]).map(row=>[String(row.community),row]));
 const communityCounts=new Map();
 nodes.forEach(n=>{
  if(n.community===null||n.community===undefined)return;
@@ -307,7 +322,7 @@ nodes.forEach(n=>{
 });
 [...communityCounts].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})).forEach(([id,count])=>{
  const option=document.createElement('option');option.value=id;
- option.textContent='Communauté '+id+' ('+count+' nœuds)';
+ option.textContent='Communauté '+id+' ('+count+' nœuds)'+(communityReview.has(id)?' · cohésion à examiner':'');
  community.appendChild(option);
 });
 function hash(s){let n=2166136261;for(let i=0;i<s.length;i++)n=Math.imul(n^s.charCodeAt(i),16777619);return n>>>0}
@@ -378,6 +393,13 @@ if(importChanges.has(n.file)){
 }
 if(importErrors.has(n.file))line('p','Inspection AST incomplète : '+importErrors.get(n.file));
 line('p','Communauté Graphify : '+String(n.community??'non déterminée'));
+const boundary=communityReview.get(String(n.community));
+if(boundary){
+ line('h4','Frontières de communauté à examiner');
+ line('p',boundary.production_files+' fichiers de production · '+boundary.internal_extracted_edges+
+ ' liens internes extraits · '+boundary.external_extracted_edges+' liens externes extraits.');
+ line('p','Cohésion faible selon le graphe statique : ni fusion ni suppression automatique. Vérifier responsabilités, imports et appels réels.');
+}
 if(n.runtime_observed)line('p','Appel Python observé dans une trace opt-in correspondant au SHA.');
 const symbolCalls=(data.observed_symbol_calls||[]).filter(e=>e.source===n.file||e.target===n.file);
 if(symbolCalls.length){
