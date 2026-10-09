@@ -333,3 +333,8 @@ Les snapshots existants interrogent shiboken6.isValid puis QObject.parent() pour
 ### Scénario WebEngine isolé, strictement manuel
 
 Doctor propose capture-ui webengine (QT_QPA_PLATFORM=offscreen). Ce scénario distinct du parcours Équipement crée un profil WebEngine sans persistance, sa page et sa vue, puis relève les relations QObject.parent(), la validité native des wrappers et les instantanés facultatifs du processus. Il ne navigue pas, n'utilise aucune donnée utilisateur et ne démarre jamais avec DOFUS.bat. Il peut lancer des processus Chromium lors de son exécution explicite et doit donc rester réservé à la certification finale, pas aux commits de développement. La fin des wrappers natifs ne prouve pas la libération du RSS Chromium.
+
+
+### Suivi historique multi-scénarios, sans fausse régression
+
+La commande scenario-trend --trace A --trace B [--trace C ...] lit entre 2 et 8 traces complètes, ordonnées et étiquetées par SHA, pour le même scénario. Elle compare les relations Python/Qt réellement observées et distingue une absence ponctuelle d'une absence répétée sur au moins quatre captures. Un écart reste REVIEW, jamais une régression fonctionnelle prouvée : une différence de branche d'exécution ou d'ordonnancement Qt suffit à l'expliquer. Lecture locale uniquement, 32 Mo maximum au total, sans exécution de tests, sans benchmark, sans watcher et sans rebuild Graphify.

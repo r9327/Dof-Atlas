@@ -324,6 +324,16 @@ def command_scenario_diff(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_scenario_trend(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.scenario_trends import load_scenario_trend
+    result = load_scenario_trend(root, args.trace)
+    if not args.json:
+        print(f"Doctor scenario-trend: {result['status']} | "
+              f"{result.get('repeated_absence_candidates', 0)} repeated absences")
+        print("Historical scenario observations only; no tests or benchmarks run.")
+    return result
+
+
 def command_scenario_coverage(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.scenario_coverage import load_scenario_coverage
     result = load_scenario_coverage(root, args.trace,
@@ -587,6 +597,8 @@ def build_parser() -> argparse.ArgumentParser:
     sd = sub.add_parser('scenario-diff', help='Comparer deux traces historiques du même scénario sans exécution.')
     sd.add_argument('--before', required=True, type=Path)
     sd.add_argument('--after', required=True, type=Path)
+    st = sub.add_parser('scenario-trend', help='Historique de 2 a 8 traces du meme scenario sans execution.')
+    st.add_argument('--trace', action='append', type=Path, required=True)
     sc = sub.add_parser('scenario-coverage', help='Comparer les preuves de plusieurs traces exact-SHA, sans exécuter de scénario.')
     sc.add_argument('--trace', action='append', type=Path, required=True,
                     help='Trace Doctor existante dans .ai/runtime, maximum 12.')
@@ -745,6 +757,7 @@ def main(argv: list[str] | None = None) -> int:
         'test-costs': command_test_costs,
         'scenario-coverage': command_scenario_coverage,
         'scenario-diff': command_scenario_diff,
+        'scenario-trend': command_scenario_trend,
         'change-plan': command_change_plan,
         'file-coverage': command_file_coverage,
         'consumer-sites': command_consumer_sites,
@@ -803,6 +816,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'file-coverage':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command == 'scenario-diff':
+        return 0 if payload['status'] == 'NO_OBSERVATION_DROP' else 1
+    if args.command == 'scenario-trend':
         return 0 if payload['status'] == 'NO_OBSERVATION_DROP' else 1
     if args.command == 'scenario-coverage':
         return 0 if payload['status'] == 'OBSERVED' else 1
