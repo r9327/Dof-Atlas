@@ -117,3 +117,7 @@ Le graphe interactif et l'export de preuves par nœud distinguent désormais `QT
 ### JSON ouverts jusqu'aux vues UI, dans Graphify
 
 L'inspecteur de nœud et l'export JSON intègrent désormais, depuis une trace opt-in exacte-SHA, les ouvertures de JSON et les chaînes d'appels Python co-observées jusqu'aux vues. Les preuves sont bornées et étiquetées `OBSERVATION_NOT_DATA_FLOW` : aucun transfert de données ni rendu visuel n'est déduit. Absence de trace valide = aucune preuve runtime affichée.
+
+### Destruction explicite QObject, sans faux diagnostic de fuite
+
+En scénario opt-in, `observer.watch_qt_destroyed(obj, label='guide_view')` raccorde un callback faible au signal `QObject.destroyed`, sans capturer l'objet et sans instrumentation permanente de Dofus Atlas. La trace et l'inspecteur Graphify indiquent uniquement la **réception du signal**, sous provenance exacte-SHA. Ce n'est pas une preuve de collecte du wrapper Python, de libération native WebEngine ni d'absence de fuite RAM. Aucun benchmark n'est déclenché.

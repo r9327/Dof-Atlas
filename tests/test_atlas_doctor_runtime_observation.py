@@ -383,6 +383,45 @@ class RuntimeObservationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 observer.mark("arbitrary", source="a.py")
 
+
+    def test_opt_in_qt_destroyed_signal_marks_actual_delivery_without_ownership_claim(self):
+        import runpy
+
+        class Signal:
+            def __init__(self):
+                self.callbacks = []
+            def connect(self, callback):
+                self.callbacks.append(callback)
+            def fire(self):
+                for callback in self.callbacks:
+                    callback()
+
+        class QObjectLike:
+            def __init__(self):
+                self.destroyed = Signal()
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            script = root / "window.py"
+            script.write_text("registered = watcher.watch_qt_destroyed(obj, label='view')\n"
+                              "obj.destroyed.fire()\n", encoding="utf-8")
+            watcher = RuntimeObserver(root, max_events=500)
+            obj = QObjectLike()
+            with watcher:
+                result = runpy.run_path(str(script), init_globals={"watcher": watcher, "obj": obj})
+            self.assertTrue(result["registered"])
+            records = [e for e in watcher.report()["events"] if e["type"] == "qt_destroyed_observed"]
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0]["source"], "window.py")
+            lifecycle = watcher.report()["lifecycle"]
+            self.assertEqual(lifecycle["qt_destroyed_sources"], ["window.py"])
+            self.assertTrue(lifecycle["qt_destroyed_is_not_ownership_proof"])
+            obj.destroyed.fire()
+            self.assertEqual(len([e for e in watcher.report()["events"]
+                                  if e["type"] == "qt_destroyed_observed"]), 1)
+            with self.assertRaisesRegex(RuntimeError, "active observer"):
+                watcher.watch_qt_destroyed(obj, label="late")
+
     def test_wrapped_qt_slot_records_actual_entry_and_preserves_result(self):
         import runpy
         with tempfile.TemporaryDirectory() as folder:

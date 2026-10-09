@@ -595,6 +595,21 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(result["observed_json_opens"], 0)
         self.assertEqual(result["nodes"][0]["json_runtime_evidence"], [])
 
+
+    def test_qobject_destroyed_marker_surfaces_only_on_exact_trace(self):
+        sha = "9" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/ui/window.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [{"type": "qt_destroyed_observed", "source": "app/ui/window.py",
+                             "confidence": "QT_DESTROYED_SIGNAL_DELIVERED"}]}
+        data = compact_graph(graph, {}, trace)
+        self.assertTrue(data["nodes"][0]["qt_destroyed_observed"])
+        self.assertIn("Signal QObject.destroyed reçu", render_html(data))
+        self.assertIn("qt_destroyed_observed:!!n.qt_destroyed_observed", render_html(data))
+        trace["worktree_clean"] = False
+        self.assertFalse(compact_graph(graph, {}, trace)["nodes"][0]["qt_destroyed_observed"])
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,

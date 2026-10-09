@@ -273,6 +273,36 @@ class RuntimeObserver:
 
         return observed_slot
 
+    def watch_qt_destroyed(self, obj: Any, *, label: str) -> bool:
+        """Opt-in QObject.destroyed signal evidence, without retaining QObject.
+
+        Signal delivery is observable, not wrapper garbage collection, C++
+        ownership or proof that WebEngine released its external processes.
+        """
+        if not self._active:
+            raise RuntimeError("Qt destruction watch requires an active observer")
+        source = self._path(sys._getframe(1).f_code.co_filename)
+        signal = getattr(obj, "destroyed", None)
+        connect = getattr(signal, "connect", None)
+        if source is None or not callable(connect):
+            return False
+        reference = weakref.ref(self)
+        safe_label = str(label)[:100]
+
+        def destroyed(*_args: Any) -> None:
+            observer = reference()
+            if observer is not None and observer._active:
+                observer._record({
+                    "type": "qt_destroyed_observed", "source": source,
+                    "label": safe_label, "confidence": "QT_DESTROYED_SIGNAL_DELIVERED",
+                })
+
+        try:
+            connect(destroyed)
+        except (TypeError, RuntimeError):
+            return False
+        return True
+
     def watch(self, obj: Any, *, label: str, kind: str = "object") -> bool:
         """Explicit, non-owning watch for Qt workers, timers or cache holders."""
         try:
@@ -366,6 +396,8 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
                 "worker_starts_unpaired": [], "cache_release_sources": []}
     pending: dict[tuple[str, str], int] = {}
     releases: set[str] = set()
+    destroyed_sources: set[str] = set()
+    destroyed_count = 0
     started = stopped = unmatched = 0
     for event in events:
         if not isinstance(event, dict):
@@ -373,11 +405,16 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
                     "truncated": True, "proof_of_memory_leak": False,
                     "worker_starts_unpaired": [], "cache_release_sources": []}
         kind = event.get("type")
-        if kind not in {"worker_start", "worker_stop", "cache_release"}:
+        if kind not in {"worker_start", "worker_stop", "cache_release", "qt_destroyed_observed"}:
             continue
         source = event.get("source")
         target = event.get("target") or ""
         if not isinstance(source, str) or not isinstance(target, str):
+            continue
+        if kind == "qt_destroyed_observed":
+            if event.get("confidence") == "QT_DESTROYED_SIGNAL_DELIVERED":
+                destroyed_count += 1
+                destroyed_sources.add(source)
             continue
         if kind == "cache_release":
             releases.add(source)
@@ -402,7 +439,10 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
         "unmatched_stop_events": unmatched,
         "worker_starts_unpaired": open_workers[:80],
         "cache_release_sources": sorted(releases)[:80],
+        "qt_destroyed_sources": sorted(destroyed_sources)[:80],
+        "qt_destroyed_events": destroyed_count,
         "truncated": bool(trace.get("truncated") or len(open_workers) > 80 or len(releases) > 80),
+        "qt_destroyed_is_not_ownership_proof": True,
         "proof_of_memory_leak": False,
         "limits": "Markers are explicit and opt-in; an open worker at trace end may be intentional. Native Qt ownership and memory remain unproven.",
     }
