@@ -1,4 +1,5 @@
 name: Graphify Code Map
+# Explicit final code-map certification of PR #123; keep this gate event-scoped.
 
 on:
   # Manual exact-SHA certification of Graphify/Doctor after the structural
