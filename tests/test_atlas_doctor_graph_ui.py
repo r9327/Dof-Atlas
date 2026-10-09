@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
 import unittest
 
 from tools.atlas_doctor_lib.doctor_graph_ui import compact_graph, render_html
@@ -58,6 +60,18 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("focusNode(matches[0])", page)
         self.assertIn("const lineAnchor=locationMatch?'#L'", page)
         self.assertIn("app/a.py:42:0", page)
+
+    def test_generated_interactive_javascript_passes_node_syntax_check(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js runtime unavailable for optional JS syntax validation")
+        page = render_html(compact_graph({"nodes": [], "links": []}, {}))
+        script = page.rsplit("<script>", 1)[1].split("</script>", 1)[0]
+        result = subprocess.run(
+            [node, "--check", "-"], input=script, text=True,
+            capture_output=True, timeout=10, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
