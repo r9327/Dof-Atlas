@@ -75,6 +75,19 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                 if reason not in reasons:
                     reasons.append(reason)
                 review_by_file.setdefault(path, set()).add("history")
+    if isinstance(historical_trend, dict):
+        for finding in historical_trend.get("symbol_candidates", [])[:80]:
+            if not isinstance(finding, dict):
+                continue
+            path, symbol = finding.get("file"), finding.get("symbol")
+            if not isinstance(path, str) or not path.endswith(".py") or not isinstance(symbol, str):
+                continue
+            reason = ("Historical symbol entry absent: " + symbol[:100]
+                      + " — scenario review, not a functional regression")
+            messages = file_reasons.setdefault(path, [])
+            if reason not in messages:
+                messages.append(reason)
+            review_by_file.setdefault(path, set()).add("history")
     for field, reason, category in (
 
         ("orphan_nodes", "Isolated Graphify node; not proof of dead code", "orphan"),
@@ -688,7 +701,8 @@ if(historicalTrend && historicalTrend.status!=='UNAVAILABLE'){
  const p=document.createElement('p');
  p.textContent=String(historicalTrend.scenario_module||'')+' · '+
   String(historicalTrend.run_count||0)+' traces · '+
-  String(historicalTrend.repeated_absence_candidates||0)+' absences répétées candidates';
+  String(historicalTrend.repeated_absence_candidates||0)+' absences répétées d’arêtes candidates · '+
+  String(historicalTrend.repeated_symbol_absence_candidates||0)+' absences répétées de fonctions candidates';
  section.appendChild(p);
  const note=document.createElement('small');
  note.textContent='Différences historiques, non preuve de régression ni de code mort. Vérifier les scénarios réels.';

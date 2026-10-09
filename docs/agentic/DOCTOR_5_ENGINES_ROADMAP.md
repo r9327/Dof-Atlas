@@ -430,3 +430,8 @@ La commande `scenario-coverage --trace ... --require-symbol app/pages/guide.py::
 ### Fonctions observées dans l'inspecteur Graphify
 
 Les événements `python_symbol_call` et `qt_callback_invoked` sont désormais normalisés par la même règle de couverture des fonctions que `scenario-coverage`. L'inspecteur Graphify affiche pour chaque fichier les noms de méthodes réellement entrées et le numéro de scénario, sans convertir les simples enregistrements Qt ou imports en exécution. Les preuves sont dédupliquées et limitées à 384 identités (fichier, symbole, scénario), stockées une seule fois dans le JSON du graphe et réutilisées par les nœuds de ce fichier pour préserver la RAM du navigateur; les exports JSON les conservent. Traces hors SHA ou tronquées = aucune preuve affichée. Absence d'observation ≠ code mort.
+
+
+### Régression historique par fonction (sans fausse preuve)
+
+`scenario-diff` et `scenario-trend` comparent désormais aussi les méthodes **réellement entrées** dans les traces, distinctement des arêtes d’appels entre fichiers. Leurs noms figurent dans `lost_entered_symbols`, `symbol_candidates` et les motifs d’examen Graphify. Quatre traces du même scénario permettent de distinguer une absence répétée aux deux dernières captures d'une disparition ponctuelle; en dessous, tout reste REVIEW. L’analyse se limite à 2 048 identités par trace : si la borne est atteinte, Doctor déclare les symboles non comparables et n’invente aucune disparition. Une absence d’entrée n’est jamais une régression fonctionnelle prouvée ni une preuve de code mort. Aucun scénario n’est lancé à la demande de comparaison.

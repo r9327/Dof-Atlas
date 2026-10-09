@@ -9,8 +9,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .trace_regressions import (_observed_edges, compare_scenario_traces,
-                                MAX_BYTES)
+from .trace_regressions import (_observed_edges, _entered_symbol_names,
+                                compare_scenario_traces, MAX_BYTES)
 
 MAX_TRACES = 8
 MAX_TOTAL_BYTES = 32_000_000
@@ -52,9 +52,36 @@ def summarize_scenario_trend(traces: list[dict[str, Any]]) -> dict[str, Any]:
     ))
     repeated = sum(x["classification"] == "REPEATED_ABSENCE_REVIEW"
                    for x in candidates)
+    symbol_samples = [_entered_symbol_names(trace) for trace in traces]
+    symbols_comparable = all(not truncated for _, truncated in symbol_samples)
+    symbol_candidates: list[dict[str, Any]] = []
+    if symbols_comparable:
+        observed_symbols = [names for names, _ in symbol_samples]
+        for qualified in sorted(observed_symbols[0] - observed_symbols[-1]):
+            if "::" not in qualified:
+                continue
+            source_file, symbol = qualified.split("::", 1)
+            repeated_before = (len(observed_symbols) >= 4
+                               and qualified in observed_symbols[1])
+            repeated_after = (len(observed_symbols) >= 4
+                              and qualified not in observed_symbols[-2])
+            symbol_candidates.append({
+                "file": source_file, "symbol": symbol,
+                "classification": ("REPEATED_ABSENCE_REVIEW"
+                                   if repeated_before and repeated_after
+                                   else "SINGLE_WINDOW_ABSENCE_REVIEW"),
+                "observed_in": sum(qualified in rows for rows in observed_symbols),
+                "functional_regression_proven": False,
+            })
+        symbol_candidates.sort(key=lambda row: (
+            row["classification"] != "REPEATED_ABSENCE_REVIEW",
+            row["file"], row["symbol"],
+        ))
+    repeated_symbols = sum(row["classification"] == "REPEATED_ABSENCE_REVIEW"
+                           for row in symbol_candidates)
     return {
         "schema_version": 1, "kind": "doctor_historical_scenario_trend",
-        "status": "REVIEW" if candidates else "NO_OBSERVATION_DROP",
+        "status": "REVIEW" if candidates or symbol_candidates or not symbols_comparable else "NO_OBSERVATION_DROP",
         "scenario_module": traces[0]["scenario_module"],
         "ordered_shas": [row["candidate_sha"] for row in traces],
         "run_count": len(traces),
@@ -68,7 +95,12 @@ def summarize_scenario_trend(traces: list[dict[str, Any]]) -> dict[str, Any]:
         "candidates": candidates[:MAX_CANDIDATES],
         "candidates_total": len(candidates),
         "repeated_absence_candidates": repeated,
-        "truncated": len(candidates) > MAX_CANDIDATES,
+        "symbol_candidates": symbol_candidates[:MAX_CANDIDATES],
+        "symbol_candidates_total": len(symbol_candidates),
+        "repeated_symbol_absence_candidates": repeated_symbols,
+        "symbols_comparable": symbols_comparable,
+        "truncated": (len(candidates) > MAX_CANDIDATES or
+                      len(symbol_candidates) > MAX_CANDIDATES or not symbols_comparable),
         "regression_proven": False, "tests_executed": False,
         "next_verification": ("Repeat the same scenario on the target SHA and compare"
                               " the affected source/Qt callbacks before classifying a defect."),

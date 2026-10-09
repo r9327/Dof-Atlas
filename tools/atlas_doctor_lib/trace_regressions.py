@@ -8,6 +8,7 @@ from typing import Any
 
 MAX_EVENTS = 50000
 MAX_RESULTS = 100
+MAX_OBSERVED_SYMBOLS = 2048
 MAX_BYTES = 10_000_000
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 MODULE = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*\Z")
@@ -33,6 +34,18 @@ def _observed_edges(trace: dict[str, Any]) -> set[tuple[str, str, str]]:
     return rows
 
 
+def _entered_symbol_names(trace: dict[str, Any]) -> tuple[set[str], bool]:
+    """Bounded positive function entries, not references, imports or Qt connects."""
+    from .scenario_coverage import observed_entered_symbols
+    symbols: set[str] = set()
+    for event in trace["events"]:
+        for name in observed_entered_symbols(event):
+            if len(symbols) >= MAX_OBSERVED_SYMBOLS and name not in symbols:
+                return symbols, True
+            symbols.add(name)
+    return symbols, False
+
+
 def compare_scenario_traces(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
     def valid(trace: dict[str, Any]) -> bool:
         return (
@@ -55,20 +68,35 @@ def compare_scenario_traces(before: dict[str, Any], after: dict[str, Any]) -> di
                 "lost_observed_edges": [], "regression_proven": False}
     left, right = _observed_edges(before), _observed_edges(after)
     vanished, added = sorted(left - right), sorted(right - left)
+    left_symbols, left_symbol_truncated = _entered_symbol_names(before)
+    right_symbols, right_symbol_truncated = _entered_symbol_names(after)
+    symbols_comparable = not (left_symbol_truncated or right_symbol_truncated)
+    vanished_symbols = (sorted(left_symbols - right_symbols)
+                        if symbols_comparable else [])
+    new_symbols = (sorted(right_symbols - left_symbols)
+                   if symbols_comparable else [])
     def rows(items: list[tuple[str, str, str]]) -> list[dict[str, str]]:
         return [{"kind": kind, "source": source, "target": target,
                  "confidence": "SCENARIO_OBSERVATION_ONLY"}
                 for kind, source, target in items[:MAX_RESULTS]]
     return {
         "schema_version": 1, "kind": "doctor_historical_scenario_difference",
-        "status": "REVIEW" if vanished else "NO_OBSERVATION_DROP",
+        "status": "REVIEW" if vanished or vanished_symbols or not symbols_comparable else "NO_OBSERVATION_DROP",
         "scenario_module": before["scenario_module"],
         "baseline_sha": before["candidate_sha"],
         "candidate_sha": after["candidate_sha"],
         "observed_edges_before": len(left), "observed_edges_after": len(right),
         "lost_observed_edges": rows(vanished), "new_observed_edges": rows(added),
         "lost_total": len(vanished), "new_total": len(added),
-        "truncated": len(vanished) > MAX_RESULTS or len(added) > MAX_RESULTS,
+        "lost_entered_symbols": vanished_symbols[:MAX_RESULTS],
+        "new_entered_symbols": new_symbols[:MAX_RESULTS],
+        "lost_symbol_total": len(vanished_symbols),
+        "new_symbol_total": len(new_symbols),
+        "symbols_comparable": symbols_comparable,
+        "symbols_truncated": not symbols_comparable,
+        "truncated": (len(vanished) > MAX_RESULTS or len(added) > MAX_RESULTS
+                      or len(vanished_symbols) > MAX_RESULTS or len(new_symbols) > MAX_RESULTS
+                      or not symbols_comparable),
         "regression_proven": False, "tests_executed": False,
         "limits": "Same tagged scenario only, 50k events each, 100 displayed changes. Missing events can reflect test coverage, nondeterminism or execution path changes; never proof of dead code or functional regression.",
     }
