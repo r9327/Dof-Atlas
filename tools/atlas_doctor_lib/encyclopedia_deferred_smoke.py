@@ -18,6 +18,10 @@ def main() -> None:
     from shiboken6 import delete, isValid
     from app.modules.encyclopedia.views.guides_view import GuidesView
     from app.modules.encyclopedia.views.achievements_view import AchievementsView
+    from app.pages.quests_page import QuestsPage
+    from app.quest_catalog import QuestCatalog
+    from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+    from app.modules.encyclopedia.services.quest_graph_service import QuestGraphService
 
     application = QApplication.instance() or QApplication([])
     statuses: list[str] = []
@@ -46,10 +50,27 @@ def main() -> None:
             raise AssertionError("Success view hydrated catalog in deferred mode")
         observer.watch(success, label="success-deferred", kind="qwidget")
         observer.watch_qt_destroyed(success, label="success-deferred")
+        empty_catalog = QuestCatalog([])
+        quest_provider = QuestProvider(catalog=empty_catalog)
+        quest_graph = QuestGraphService(quest_provider, eager=False)
+        quests = QuestsPage(
+            statuses.append, catalog=empty_catalog, quest_provider=quest_provider,
+            graph=quest_graph, achievement_progress_service=object(),
+            progress_path=temp / "quest_progress.json",
+            profile_path=temp / "profiles.json",
+            client_index_path=temp / "clients.json",
+            owned_items_path=temp / "items.json",
+            defer_detail_view=True,
+        )
+        if quests.quest_detail_view is not None or quests.catalog.quests:
+            raise AssertionError("Quest smoke initialized heavy detail or external catalog")
+        observer.watch(quests, label="quests-empty", kind="qwidget")
+        observer.watch_qt_destroyed(quests, label="quests-empty")
         observer.snapshot_watches(label="deferred-created")
+        delete(quests)
         delete(success)
         delete(guide)
-        if isValid(success) or isValid(guide):
+        if isValid(quests) or isValid(success) or isValid(guide):
             raise AssertionError("A deferred Qt widget remained valid after deletion")
         observer.snapshot_watches(label="deferred-destroyed")
     if not application:

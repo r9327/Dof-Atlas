@@ -206,3 +206,8 @@ Les traces lancées par `runtime-trace` incluent leur nom de module `scenario_mo
 ### Scénarios réels Guides / Succès en chargement différé
 
 `python -m tools.atlas_doctor runtime-trace --module tools.atlas_doctor_lib.encyclopedia_deferred_smoke --max-events 50000 --json` vérifie, uniquement à la demande et avec `QT_QPA_PLATFORM=offscreen`, la création des vrais `GuidesView` et `AchievementsView` en `defer_runtime=True`. Les fournisseurs sont volontairement inertes, les chemins de progression du Guide sont temporaires, les catalogues ne sont pas hydratés, et la destruction QObject est observée. Ce scénario ne valide pas le détail d'une quête ni l'exactitude des guides; ceux-ci requièrent une session d'intégration avec les données de l'application. Test manuel ciblé : `tests/test_atlas_doctor_encyclopedia_smoke.py`; un SKIP sans PySide6/offscreen ne prouve rien.
+
+
+### Scénario Qt Quêtes sans catalogue massif
+
+Le scénario `encyclopedia_deferred_smoke` couvre aussi `QuestsPage` avec `QuestCatalog([])`, `QuestProvider` et `QuestGraphService(eager=False)` réels, plus des chemins de profil/progression temporaires. Il confirme que le panneau de détail n'est pas construit et que le widget peut être détruit sans importer les données complètes. Cette vérification porte sur le **shell à zéro quête** : la recherche, le graphe des prérequis et le détail de vraies quêtes doivent encore être exercés dans une session applicative dédiée.

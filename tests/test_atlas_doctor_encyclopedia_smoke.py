@@ -18,6 +18,7 @@ class DeferredEncyclopediaSmokeTests(unittest.TestCase):
         # deferred QWidget lifecycle rather than the Python module loader.
         from app.modules.encyclopedia.views.guides_view import GuidesView  # noqa: F401
         from app.modules.encyclopedia.views.achievements_view import AchievementsView  # noqa: F401
+        from app.pages.quests_page import QuestsPage  # noqa: F401
         root = Path(__file__).resolve().parents[1]
         observer = RuntimeObserver(root, max_events=50000)
         with observer:
@@ -27,11 +28,12 @@ class DeferredEncyclopediaSmokeTests(unittest.TestCase):
         self.assertFalse(result["truncated"])
         destroyed = {event.get("label") for event in result["events"]
                      if event.get("type") == "qt_destroyed_observed"}
-        self.assertTrue({"guides-deferred", "success-deferred"}.issubset(destroyed))
+        self.assertTrue({"guides-deferred", "success-deferred", "quests-empty"}.issubset(destroyed))
         seen = {event.get("target") for event in result["events"]
                 if event.get("type") == "python_call_edge"}
         self.assertIn("app/modules/encyclopedia/views/guides_view.py", seen)
         self.assertIn("app/modules/encyclopedia/views/achievements_view.py", seen)
+        self.assertIn("app/pages/quests_page.py", seen)
 
 
 if __name__ == "__main__":
