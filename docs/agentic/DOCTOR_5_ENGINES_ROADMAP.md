@@ -445,3 +445,8 @@ Les événements `python_symbol_call` et `qt_callback_invoked` sont désormais n
 ### Refus des traces runtime corrompues sans faire tomber Doctor
 
 `compare_runtime_to_graph` classe désormais une trace contenant un événement non objet comme REVIEW sans lever d'erreur pendant l'inspection; aucun de ses événements ne peut être compté comme preuve validée. Le triage de nœuds isolés exige également `QT_DESTROYED_SIGNAL_DELIVERED` avant d'afficher la destruction QObject comme positive, afin qu'un marqueur non vérifié ne constitue jamais un faux signal de libération native. Ces changements sont purement défensifs et ne démarrent aucune validation.
+
+
+### Inventaire des fonctions non observées d'un fichier ciblé
+
+L'option existante `graph-ui --inspect-file app/pages/quests_page.py --trace .ai/runtime/...json` peut désormais rapprocher **les définitions de fonctions/méthodes AST réellement présentes** avec les entrées `python_symbol_call` et `qt_callback_invoked` prouvées par la trace exacte-SHA. Le rapport global indique les définitions vues et non vues; l'inspecteur Graphify donne le nom, la ligne source et un badge « Observée » ou « Non observée » propre au scénario. Les résultats sont plafonnés à 8 fichiers / 320 fonctions / 512 KiB par fichier. Une fonction absente de la trace reste une piste de revue, jamais du code mort ou supprimable; les scénarios incomplets sont refusés. Aucun test, benchmark, watcher ou chargeur d'application n'est démarré.

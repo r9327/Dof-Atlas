@@ -32,7 +32,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                   lineage: dict[str, Any] | None = None,
                   comparison: dict[str, Any] | None = None,
                   historical_trend: dict[str, Any] | None = None,
-                  focused_impact: dict[str, Any] | None = None) -> dict[str, Any]:
+                  focused_impact: dict[str, Any] | None = None,
+                  focused_functions: dict[str, Any] | None = None) -> dict[str, Any]:
     nodes = graph.get("nodes", [])[:MAX_NODES]
     indexed = {item["id"]: number for number, item in enumerate(nodes)}
     # Stable source-file comparisons, never match ephemeral Leiden community IDs.
@@ -144,6 +145,15 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                     "path": importer, "line": edge.get("line"),
                     "depth": 1, "kind": "LITERAL_IMPORT_CALL_UNEXECUTED",
                 })
+    if isinstance(focused_functions, dict):
+        for item in focused_functions.get("files", [])[:8]:
+            if not isinstance(item, dict):
+                continue
+            path = item.get("path")
+            if isinstance(path, str) and item.get("not_observed", 0) > 0:
+                review_by_file.setdefault(path, set()).add("symbol")
+                file_reasons.setdefault(path, []).append(
+                    "Some defined functions did not enter the supplied scenarios; not dead-code proof")
     # Expose Doctor's existing prioritized remediation plan in the graph
     # inspector, without promoting speculative candidate findings to P0.
     priority_rank = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
@@ -522,6 +532,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "snapshot_diff": comparison,
         "historical_scenario_trend": historical_trend,
         "focused_source_impact": focused_impact,
+        "focused_function_inventory": focused_functions,
         "community_review_candidates": community_reviews,
         "community_review_total": int(cohesion.get("candidate_count") or 0)
         if isinstance(cohesion, dict) else 0,
@@ -725,6 +736,8 @@ if(focusImpact){
 }
 // Store symbol evidence once per file rather than duplicating it on every
 // function/symbol graph node (the graph can contain 15,000 nodes).
+const focusedFunctionByFile=new Map(
+ ((data.focused_function_inventory||{}).files||[]).map(row=>[row.path,row]));
 const enteredByFile=new Map();
 (data.entered_function_evidence||[]).forEach(row=>{
  if(!enteredByFile.has(row.file))enteredByFile.set(row.file,[]);
@@ -766,7 +779,7 @@ const communityReview=new Map((data.community_review_candidates||[]).map(row=>[S
 // All counts are bounded by the already-loaded Graphify node payload.
 const reviewLabels={focus:'Fichier ciblé',consumer:'Consommateur AST',dynamic:'Import dynamique candidat',orphan:'Nœuds isolés',weak:'Connexions faibles',fanout:'Couplage élevé',
  forbidden:'Imports interdits confirmés',island:'Communautés isolées',lifecycle:'Destruction Qt non observée',history:'Écarts historiques à examiner',
- ast:'Indices AST / JSON',doctor:'Actions Doctor',worker:'Workers à vérifier'};
+ ast:'Indices AST / JSON',symbol:'Fonctions sans entrée observée',doctor:'Actions Doctor',worker:'Workers à vérifier'};
 const reviewCounts=new Map();
 nodes.forEach(n=>(n.review_categories||[]).forEach(kind=>
  reviewCounts.set(kind,(reviewCounts.get(kind)||0)+1)));
@@ -904,6 +917,18 @@ if(symbolCalls.length){
  symbolCalls.slice(0,20).forEach(e=>line('p',
   e.source+':'+e.caller_line+' '+e.caller_symbol+' → '+e.target+':'+e.callee_line+' '+e.callee_symbol));
  if(symbolCalls.length>20||data.symbol_calls_bounded)line('p','Observations partielles : aucune conclusion sur les fonctions non vues.');
+}
+const focusedFunctions=focusedFunctionByFile.get(n.file);
+if(focusedFunctions){
+ line('h4','Fonctions Python définies et couverture de ce scénario');
+ line('p',focusedFunctions.entered+' entrées observées / '+
+   focusedFunctions.defined+' définitions (dans ces seules traces)');
+ focusedFunctions.symbols.slice(0,40).forEach(entry=>{
+  line('p',(entry.entry_observed?'Observée':'Non observée')+
+   ' · L'+entry.line+' '+entry.symbol);
+ });
+ line('small','Non observée ne signifie pas inutilisée ; vérifier les autres parcours.');
+ if(focusedFunctions.truncated)line('small','Liste limitée : poursuivre sur le fichier source.');
 }
 const enteredHere=enteredByFile.get(n.file)||[];
 if(enteredHere.length){
@@ -1480,10 +1505,19 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
             return {"status": "BLOCKED", "reason": f"Focused AST impact: {type(exc).__name__}"}
         if focused_impact.get("status") not in {"SOURCE_CONFIRMED", "REVIEW"}:
             return {"status": "BLOCKED", "reason": focused_impact.get("reason", "Source impact unavailable.")}
+    focused_functions = None
+    if focused and trace is not None and isinstance(trace, dict):
+        from .function_inventory import compare_source_functions
+        focused_functions = compare_source_functions(
+            root, focused, trace, expected_sha=snapshot_commit)
+        if focused_functions["status"] == "UNAVAILABLE":
+            return {"status": "BLOCKED",
+                    "reason": focused_functions.get("reason", "Invalid source/trace pair")}
     payload = compact_graph(graph, audit, trace=trace, inspection=inspection,
                             lineage=lineage, comparison=comparison,
                             historical_trend=historical_trend,
-                            focused_impact=focused_impact)
+                            focused_impact=focused_impact,
+                            focused_functions=focused_functions)
     payload["source_scan_selection_truncated"] = source_scan_truncated
     if ide_links:
         payload["local_ide_root"] = root.as_posix()
@@ -1519,6 +1553,7 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         "source_inspection": payload["source_inspection_status"],
         "source_scan_files": payload["source_inspection_files"],
         "focused_impact_status": focused_impact["status"] if focused_impact else "NOT_REQUESTED",
+        "focused_functions_status": focused_functions["status"] if focused_functions else "NOT_REQUESTED",
         "focused_consumer_count": focused_impact["direct_consumers"] + focused_impact["indirect_consumers"] if focused_impact else 0,
         "json_lineage_review_leads": payload["json_lineage_review_leads"],
         "baseline_sha": comparison["baseline_sha"] if comparison else None,
