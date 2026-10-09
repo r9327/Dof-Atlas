@@ -39,14 +39,7 @@ class RuntimeObserver:
         if not 1 <= max_events <= 50000:
             raise ValueError("max_events must be 1..50000")
         self.root = root.resolve()
-        try:
-            commit = subprocess.run(
-                ["git", "rev-parse", "--verify", "HEAD"], cwd=self.root,
-                text=True, capture_output=True, timeout=5, check=False,
-            )
-            self.candidate_sha = commit.stdout.strip() if commit.returncode == 0 else None
-        except (OSError, subprocess.TimeoutExpired):
-            self.candidate_sha = None
+        self.candidate_sha = self._head_sha()
         self.worktree_clean_before = self._clean_worktree()
         self.worktree_clean = self.worktree_clean_before
         self.max_events = max_events
@@ -61,6 +54,17 @@ class RuntimeObserver:
         self._old_profile = None
         self._old_thread_profile = None
         self.started_ns = 0
+
+    def _head_sha(self) -> str | None:
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--verify", "HEAD"], cwd=self.root,
+                text=True, capture_output=True, timeout=5, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        value = result.stdout.strip()
+        return value if result.returncode == 0 and len(value) == 40 else None
 
     def _clean_worktree(self) -> bool:
         """Unknown Git state fails closed; ignored runtime output is not source."""
@@ -105,6 +109,10 @@ class RuntimeObserver:
                     and getattr(current, "__func__", None) is RuntimeObserver._profile):
                 sys.setprofile(self._old_thread_profile)
             return
+        # Once the bounded event log is full, do not keep expanding the
+        # deduplication sets (or pay for source path resolution).
+        if self._overflow and len(self.events) >= self.max_events:
+            return
         if self._busy or event not in {"call", "c_call"}:
             return
         self._busy = True
@@ -124,6 +132,9 @@ class RuntimeObserver:
             if target and caller and target.endswith(".py") and caller.endswith(".py"):
                 key = caller, target
                 if key not in self._edges:
+                    if len(self.events) >= self.max_events:
+                        self._overflow = True
+                        return
                     self._edges.add(key)
                     self._record({"type": "python_call_edge", "source": caller, "target": target})
                 previous = frame.f_back
@@ -151,6 +162,8 @@ class RuntimeObserver:
 
     def _audit_event(self, event: str, args: tuple[Any, ...]) -> None:
         if not self._active or self._busy:
+            return
+        if self._overflow and len(self.events) >= self.max_events:
             return
         kind = {
             "open": "file_open", "os.remove": "file_remove",
@@ -277,7 +290,11 @@ class RuntimeObserver:
         if _ACTIVE_AUDIT_REF is not None and _ACTIVE_AUDIT_REF() is self:
             _ACTIVE_AUDIT_REF = None
         # A trace made while editing files must never appear exact-SHA.
-        self.worktree_clean = self.worktree_clean_before and self._clean_worktree()
+        self.worktree_clean = (
+            self.worktree_clean_before and self._clean_worktree()
+            and self.candidate_sha is not None
+            and self._head_sha() == self.candidate_sha
+        )
 
     def report(self, *, collect: bool = False) -> dict[str, Any]:
         if collect:

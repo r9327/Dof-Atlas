@@ -25,6 +25,32 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertTrue(any(e["type"] == "python_call_edge" for e in report["events"]))
             self.assertFalse(watcher._active)
 
+    def test_runtime_edge_deduplication_stays_bounded_after_event_cap(self):
+        from types import SimpleNamespace
+
+        with tempfile.TemporaryDirectory() as directory:
+            observer = RuntimeObserver(Path(directory), max_events=2)
+            observer._active = True
+            observer._path = lambda source: source
+            for index in range(300):
+                caller = SimpleNamespace(
+                    f_code=SimpleNamespace(co_filename="app/caller.py",
+                                           co_qualname="caller"),
+                    f_lineno=23,
+                )
+                frame = SimpleNamespace(
+                    f_code=SimpleNamespace(co_filename=f"app/target_{index}.py",
+                                           co_qualname="target",
+                                           co_firstlineno=1),
+                    f_back=caller,
+                )
+                observer._profile(frame, "call", None)
+            observer._active = False
+            self.assertTrue(observer._overflow)
+            self.assertLessEqual(len(observer.events), observer.max_events)
+            self.assertLessEqual(len(observer._edges), observer.max_events)
+            self.assertLessEqual(len(observer._symbol_edges), observer.max_events)
+
     def test_runtime_provenance_rejects_dirty_source_even_with_same_sha(self):
         import subprocess
         with tempfile.TemporaryDirectory() as directory:
@@ -43,6 +69,25 @@ class RuntimeObservationTests(unittest.TestCase):
             result = observer.report()
             self.assertEqual(len(result["candidate_sha"]), 40)
             self.assertFalse(result["worktree_clean"])
+
+    def test_runtime_head_change_invalidates_observation_even_when_worktree_clean(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "Atlas"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "doctor@example.invalid"], cwd=root, check=True)
+            (root / "a.py").write_text("pass\n")
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "first"], cwd=root, check=True)
+            observer = RuntimeObserver(root)
+            first_sha = observer.candidate_sha
+            self.assertTrue(observer.worktree_clean)
+            with observer:
+                subprocess.run(["git", "commit", "--allow-empty", "-qm", "second"], cwd=root, check=True)
+            self.assertNotEqual(observer._head_sha(), first_sha)
+            self.assertTrue(observer._clean_worktree())
+            self.assertFalse(observer.report()["worktree_clean"])
 
     def test_short_sha_prefix_cannot_validate_runtime_comparison(self):
         sha = "a" * 40
