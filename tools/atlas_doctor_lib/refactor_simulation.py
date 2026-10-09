@@ -7,6 +7,17 @@ from typing import Any
 MAX_TARGETS = 10
 
 
+def _path_uses_symlink(root: Path, relative: Path) -> bool:
+    """Reject symlink sources and symlinked parent directories before resolve."""
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            return True
+    return False
+
+
+
 def simulate_refactor(
     root: Path, paths: list[str], *, action: str = "remove",
     replacement: str | None = None, depth: int = 2,
@@ -24,6 +35,8 @@ def simulate_refactor(
         candidate = Path(item.replace("\\", "/"))
         if candidate.is_absolute() or ".." in candidate.parts:
             raise ValueError("Repository-relative paths required")
+        if _path_uses_symlink(root, candidate):
+            raise ValueError(f"Refactor source is a symlink: {item}")
         target = (root / candidate).resolve()
         if not target.is_relative_to(root) or not target.is_file() or target.suffix != ".py":
             raise ValueError(f"Not an existing Python module: {item}")
@@ -31,13 +44,13 @@ def simulate_refactor(
     if action != "remove":
         if not replacement:
             raise ValueError("New relative destination path required")
-        destination = Path(replacement.replace("\\\\", "/"))
+        destination = Path(replacement.replace(chr(92), "/"))
         if (destination.is_absolute() or ".." in destination.parts
                 or ":" in destination.parts[0] or destination.suffix != ".py"):
             raise ValueError("New repository-relative Python destination required")
         unresolved = root / destination
-        if unresolved.is_symlink():
-            raise ValueError("Destination is a symlink")
+        if _path_uses_symlink(root, destination):
+            raise ValueError("Destination or ancestor is a symlink")
         resolved = unresolved.resolve()
         if not resolved.is_relative_to(root):
             raise ValueError("Destination escapes repository")

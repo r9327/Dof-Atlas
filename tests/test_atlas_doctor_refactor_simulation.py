@@ -66,6 +66,33 @@ class RefactorSimulationTests(unittest.TestCase):
             simulate_refactor(self.root, ["app/mod.py"],
                               action="move", replacement="app/not_python.json")
 
+    def test_source_and_parent_symlinks_are_not_safe_refactor_inputs(self):
+        original = self.root / "app/mod.py"
+        alias = self.root / "app/source_alias.py"
+        folder_alias = self.root / "alias_app"
+        try:
+            alias.symlink_to(original)
+            folder_alias.symlink_to(self.root / "app", target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("Symlink creation unavailable on this runner")
+        for name in ("app/source_alias.py", "alias_app/mod.py"):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "symlink"):
+                simulate_refactor(self.root, [name])
+        with self.assertRaisesRegex(ValueError, "symlink"):
+            simulate_refactor(self.root, ["app/mod.py"],
+                              action="move", replacement="alias_app/new.py")
+
+    def test_windows_destination_separators_are_normalized(self):
+        impact = {"status": "PASS", "graph": {"status": "PASS"},
+                  "impacted_files": [], "confirmed_relationships": []}
+        plan = {"status": "READY", "integrity_mode": "FAST",
+                "execution_tests": [], "required_groups": []}
+        with patch("tools.agent.reverse_impact_payload", return_value=impact), \
+             patch("tools.agent.plan_payload", return_value=plan):
+            report = simulate_refactor(self.root, ["app/mod.py"],
+                                       action="move", replacement="app\\new.py")
+        self.assertEqual(report["replacement"], "app/new.py")
+
     def test_paths_and_operations_must_be_bounded(self):
         with self.assertRaises(ValueError):
             simulate_refactor(self.root, ["../bad.py"])
