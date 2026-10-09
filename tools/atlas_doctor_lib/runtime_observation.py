@@ -949,6 +949,10 @@ def compare_runtime_to_graph(trace: dict[str, Any], graph: dict[str, Any]) -> di
     trusted = trusted and isinstance(events, list) and len(events) <= 50000 and all(isinstance(e, dict) for e in events)
     if not isinstance(events, list):
         events = []
+    # A malformed event object invalidates the trace as a whole, but must
+    # never crash a read-only Doctor report or create runtime coverage.
+    if not trusted:
+        events = [event for event in events if isinstance(event, dict)]
     observed = {(e["source"], e["target"]) for e in events
                 if e.get("type") == "python_call_edge"
                 and isinstance(e.get("source"), str) and isinstance(e.get("target"), str)}

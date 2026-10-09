@@ -103,6 +103,19 @@ class RuntimeObservationTests(unittest.TestCase):
         self.assertEqual(report["static_edges_with_runtime_evidence"], 0)
         self.assertFalse(report["runtime_evidence_valid"])
 
+    def test_corrupted_runtime_trace_is_review_not_positive_execution(self):
+        sha = "d" * 40
+        graph = {"built_at_commit": sha, "nodes": [], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True,
+                 "truncated": False,
+                 "events": [None, {"type": "python_call_edge", "source": "a.py",
+                                   "target": "b.py"}]}
+        report = compare_runtime_to_graph(trace, graph)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertFalse(report["runtime_evidence_valid"])
+        self.assertEqual(report["static_edges_with_runtime_evidence"], 0)
+        self.assertEqual(report["successful_import_pairs_trusted"], 0)
+
     def test_successful_import_is_not_folded_into_executed_call_edges(self):
         sha = "d" * 40
         graph = {"built_at_commit": sha,

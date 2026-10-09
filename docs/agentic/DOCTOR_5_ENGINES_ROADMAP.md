@@ -440,3 +440,8 @@ Les événements `python_symbol_call` et `qt_callback_invoked` sont désormais n
 ### Nœuds isolés : traces opt-in réellement raccordées à la CLI
 
 `python -m tools.atlas_doctor isolate-triage --kind orphan --limit 5 --trace .ai/runtime/atlas_doctor/traces/guide.json --json` peut désormais transmettre jusqu'à huit traces exact-SHA au moteur d'examen des nœuds isolés (le lecteur existait, mais l'option de commande n'était pas câblée). Il distingue les vrais appels de fonctions/callbacks entrés, les autres observations et le résultat positif `importlib.import_module` ayant **retourné un module**. La résolution dynamique n'est pas une preuve de nouvelle exécution; l'absence d'observation dans les scénarios ne signifie jamais code mort. Aucun fichier supprimé ni suite lancée.
+
+
+### Refus des traces runtime corrompues sans faire tomber Doctor
+
+`compare_runtime_to_graph` classe désormais une trace contenant un événement non objet comme REVIEW sans lever d'erreur pendant l'inspection; aucun de ses événements ne peut être compté comme preuve validée. Le triage de nœuds isolés exige également `QT_DESTROYED_SIGNAL_DELIVERED` avant d'afficher la destruction QObject comme positive, afin qu'un marqueur non vérifié ne constitue jamais un faux signal de libération native. Ces changements sont purement défensifs et ne démarrent aucune validation.

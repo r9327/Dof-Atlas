@@ -63,7 +63,8 @@ def _trace_observations(root: Path, trace_paths: list[Path], graph_sha: str) -> 
         elif (kind == "module_import_returned"
               and event.get("confidence") == "IMPORTLIB_RETURNED_REPOSITORY_MODULE"):
             path, proof = target, "DYNAMIC_MODULE_RESOLVED_NOT_EXECUTED"
-        elif kind == "qt_destroyed_observed":
+        elif (kind == "qt_destroyed_observed"
+              and event.get("confidence") == "QT_DESTROYED_SIGNAL_DELIVERED"):
             path, proof = source, "QT_DESTROYED_SIGNAL"
         elif (kind in {"qt_worker_started", "qt_worker_finished"} and
               event.get("confidence") == ("QT_STARTED_SIGNAL_DELIVERED" if kind == "qt_worker_started"
