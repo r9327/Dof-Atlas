@@ -780,6 +780,22 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(compact_graph(graph, {}, trace)["observed_performance"]["status"],
                          "NOT_PROVIDED")
 
+    def test_qt_worker_unpaired_shows_as_unconfirmed_lifecycle_lead(self):
+        sha = "8" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/pages/home.py"}], "links": []}
+        trace = {"kind": "doctor_runtime_observation", "candidate_sha": sha,
+                 "worktree_clean": True, "truncated": False,
+                 "events": [{"type": "qt_worker_started", "source": "app/pages/home.py",
+                             "target": "app/pages/home.py", "qt_worker_token": "qt-thread-1",
+                             "confidence": "QT_STARTED_SIGNAL_DELIVERED"}]}
+        report = compact_graph(graph, {}, trace)
+        self.assertTrue(report["nodes"][0]["qt_worker_unpaired_at_trace_end"])
+        self.assertIn("QThread.started observé", render_html(report))
+        trace["candidate_sha"] = "7" * 40
+        self.assertFalse(compact_graph(graph, {}, trace)["nodes"][0]
+                         ["qt_worker_unpaired_at_trace_end"])
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,

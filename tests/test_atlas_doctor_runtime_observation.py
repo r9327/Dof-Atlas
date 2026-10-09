@@ -668,6 +668,55 @@ class RuntimeObservationTests(unittest.TestCase):
         trace["truncated"] = True
         self.assertEqual(summarize_process_checkpoints(trace)["status"], "INCOMPLETE")
 
+    def test_qt_worker_started_finished_signals_observed_without_strong_ownership(self):
+        import runpy
+        class Signal:
+            def __init__(self): self.handlers = []
+            def connect(self, handler): self.handlers.append(handler)
+            def emit(self):
+                for handler in self.handlers: handler()
+        class Worker:
+            def __init__(self): self.started = Signal(); self.finished = Signal()
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "worker_scenario.py"
+            source.write_text("ok = observer.watch_qt_thread(worker, label='catalog')\n"
+                              "worker.started.emit()\nworker.finished.emit()\n")
+            observer = RuntimeObserver(root, max_events=800)
+            worker = Worker()
+            with observer:
+                r = runpy.run_path(str(source), init_globals={
+                    "observer": observer, "worker": worker})
+            self.assertTrue(r["ok"])
+            report = observer.report()
+            events = [e for e in report["events"] if e.get("type") in {
+                "qt_worker_started", "qt_worker_finished"}]
+            self.assertEqual([e["type"] for e in events],
+                             ["qt_worker_started", "qt_worker_finished"])
+            self.assertEqual(report["lifecycle"]["qt_worker_started_events"], 1)
+            self.assertEqual(report["lifecycle"]["qt_worker_finished_events"], 1)
+            self.assertEqual(report["lifecycle"]["qt_worker_unpaired"], [])
+            self.assertFalse(report["lifecycle"]["proof_of_memory_leak"])
+            worker.started.emit()
+            self.assertEqual(len([e for e in observer.report()["events"]
+                                  if e.get("type") == "qt_worker_started"]), 1)
+
+    def test_qt_worker_unpaired_is_review_and_scenarios_do_not_cancel_each_other(self):
+        from tools.atlas_doctor_lib.runtime_observation import summarize_runtime_lifecycle
+        started = {"type": "qt_worker_started", "source": "app/worker.py",
+                   "target": "app/worker.py", "qt_worker_token": "qt-thread-1",
+                   "confidence": "QT_STARTED_SIGNAL_DELIVERED", "_trace_group": 0}
+        finished = {"type": "qt_worker_finished", "source": "app/worker.py",
+                    "target": "app/worker.py", "qt_worker_token": "qt-thread-1",
+                    "confidence": "QT_FINISHED_SIGNAL_DELIVERED", "_trace_group": 1}
+        report = summarize_runtime_lifecycle({"events": [started, finished],
+                                             "truncated": False})
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["qt_worker_started_events"], 1)
+        self.assertEqual(len(report["qt_worker_unpaired"]), 1)
+        self.assertEqual(report["qt_worker_unmatched_finished"], 1)
+        self.assertFalse(report["proof_of_memory_leak"])
+
 
 if __name__ == "__main__":
     unittest.main()

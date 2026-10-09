@@ -294,3 +294,25 @@ checkpoints lors de leur exécution manuelle. **Aucune attente active,
 instrumentation de DOFUS.bat, exécution répétée ni certification de pic
 RAM/performance ne découle de ces fonctions.** Elles ne prouvent ni la
 propriété native d'un QObject ni la mémoire libérée par QWebEngine.
+
+
+### Véritable cycle QThread, sans faux diagnostic de worker bloqué
+
+`RuntimeObserver.watch_qt_thread(thread, label=...)` instrumente uniquement,
+sur demande explicite, les **signaux Qt réels** `QThread.started` et
+`QThread.finished`. Les callbacks ne conservent pas le QThread : ils
+référencent l'observateur faiblement. Borne stricte de 128 watchers Qt;
+les événements indiquent le module du scénario, un jeton d'instance et
+le type de signal effectivement livré.
+
+`summarize_runtime_lifecycle` recoupe démarrage/fin sur le jeton et le groupe
+de scénario, empêchant qu'un `finished` d'une autre exécution fasse croire
+qu'un QThread est terminé. L'inspecteur Graphify et l'export par nœud
+signalent les débuts restés sans fin observée (`REVIEW`), mais ne
+concluent **jamais** à une fuite mémoire, un deadlock ou une propriété native.
+
+Le scénario réel `tools.atlas_doctor_lib.qt_smoke_scenario` comprend un
+`QThread` à exécution courte, créé et détruit en PySide6; il reste
+strictement opt-in, sans travail de fond dans Dofus Atlas. Sa vérification
+Qt n'est pas considérée PASS si PySide6 est absent et que le test est SKIP.
+Aucun benchmark RAM/preload ni certification finale n'est lancé dans ce lot.

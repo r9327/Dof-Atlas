@@ -57,13 +57,14 @@ class DoctorRealQtSignalTests(unittest.TestCase):
         events = observer.report()["events"]
         scenario = "tools/atlas_doctor_lib/qt_smoke_scenario.py"
         for kind in ("qt_signal_connect_returned", "qt_callback_invoked",
-                     "qt_destroyed_observed"):
+                     "qt_destroyed_observed", "qt_worker_started", "qt_worker_finished"):
             matched = [event for event in events
                        if event.get("type") == kind and event.get("source") == scenario]
             self.assertTrue(matched, f"missing {kind} in the real PySide6 scenario")
         callbacks = [event for event in events if event["type"] == "qt_callback_invoked"]
         self.assertTrue(any(row.get("target") == scenario for row in callbacks))
         self.assertIn(scenario, observer.report()["lifecycle"]["qt_destroyed_sources"])
+        self.assertEqual(observer.report()["lifecycle"]["qt_worker_unpaired"], [])
 
 
 

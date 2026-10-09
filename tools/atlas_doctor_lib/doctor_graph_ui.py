@@ -233,6 +233,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             and isinstance(row.get("target"), str)
         ][:384]
     open_worker_files = {row["source"] for row in observed_lifecycle.get("worker_starts_unpaired", [])}
+    open_qt_worker_files = {row["source"] for row in observed_lifecycle.get("qt_worker_unpaired", [])}
     cache_released_files = set(observed_lifecycle.get("cache_release_sources", []))
     qt_destroyed_files = set(observed_lifecycle.get("qt_destroyed_sources", []))
     runtime_scenarios_by_file: dict[str, set[str]] = defaultdict(set)
@@ -328,7 +329,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                 review_by_file.get(file, set())
                 | ({"ast"} if source_evidence.get(file) else set())
                 | ({"doctor"} if file_actions.get(file) else set())
-                | ({"worker"} if file in open_worker_files else set())
+                | ({"worker"} if file in open_worker_files or file in open_qt_worker_files else set())
             ),
             "source_evidence": source_evidence.get(file, []),
             "snapshot_changes": source_changes.get(file),
@@ -341,6 +342,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "json_runtime_evidence": json_runtime_by_file.get(file, []),
             "json_verified_binding_evidence": json_bindings_by_file.get(file, []),
             "worker_start_unpaired_at_trace_end": file in open_worker_files,
+            "qt_worker_unpaired_at_trace_end": file in open_qt_worker_files,
             "cache_release_observed": file in cache_released_files,
             "qt_destroyed_observed": file in qt_destroyed_files,
             "runtime_scenarios": sorted(runtime_scenarios_by_file.get(file, set())),
@@ -689,6 +691,7 @@ if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ;
   line('p','Ouverture et appels co-observés : ni lecture des données ni rendu UI prouvés.');
  }
 if(n.worker_start_unpaired_at_trace_end)line('p','Worker démarré sans arrêt observé avant la fin de cette trace ; une activité en cours est possible, ce n’est pas une fuite mémoire prouvée.');
+if(n.qt_worker_unpaired_at_trace_end)line('p','QThread.started observé sans QThread.finished correspondant dans le même scénario ; ce n’est ni preuve de fuite ni ownership.');
 if(n.cache_release_observed)line('p','Libération de cache explicitement marquée dans le scénario runtime.');
  if(n.qt_destroyed_observed)line('p','Signal QObject.destroyed reçu sous observation explicite ; ownership C++ et mémoire libérée non prouvés.');
  if(n.qt_native_invalid_wrappers_observed)line('p',n.qt_native_invalid_wrappers_observed+' wrapper(s) Python Qt avec objet C++ invalidé ; ce n’est pas une fuite prouvée.');
@@ -777,6 +780,7 @@ function buildNodeEvidence(i){
     json_runtime_evidence:(n.json_runtime_evidence||[]).slice(0,6),
    qt_call_site_observed:!!n.qt_call_site_observed,
    unpaired_worker_at_trace_end:!!n.worker_start_unpaired_at_trace_end,
+   qt_worker_unpaired_at_trace_end:!!n.qt_worker_unpaired_at_trace_end,
    cache_release_marked:!!n.cache_release_observed,
     qt_destroyed_observed:!!n.qt_destroyed_observed,
     qt_native_invalid_wrappers_observed:n.qt_native_invalid_wrappers_observed||0,

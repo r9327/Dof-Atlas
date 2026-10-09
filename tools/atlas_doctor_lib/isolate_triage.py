@@ -62,6 +62,10 @@ def _trace_observations(root: Path, trace_paths: list[Path], graph_sha: str) -> 
             path, proof = target, "QT_CALLBACK_ENTERED"
         elif kind == "qt_destroyed_observed":
             path, proof = source, "QT_DESTROYED_SIGNAL"
+        elif (kind in {"qt_worker_started", "qt_worker_finished"} and
+              event.get("confidence") == ("QT_STARTED_SIGNAL_DELIVERED" if kind == "qt_worker_started"
+                                             else "QT_FINISHED_SIGNAL_DELIVERED")):
+            path, proof = source, "QT_WORKER_STARTED" if kind == "qt_worker_started" else "QT_WORKER_FINISHED"
         elif kind == "json_decoded" and event.get("confidence") == "JSON_DECODE_RETURNED":
             path, proof = source, "JSON_DECODE_RETURNED"
         elif kind == "import_attempt":

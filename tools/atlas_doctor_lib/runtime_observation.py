@@ -60,6 +60,7 @@ class RuntimeObserver:
         self._watched: list[tuple[str, str, weakref.ReferenceType]] = []
         self._json_read_tokens: set[str] = set()
         self._json_serial = 0
+        self._qt_thread_serial = 0
         self._overflow = False
         self._active = False
         self._busy = False
@@ -320,6 +321,44 @@ class RuntimeObserver:
             connect(destroyed)
         except (TypeError, RuntimeError):
             return False
+        return True
+
+    def watch_qt_thread(self, thread: Any, *, label: str) -> bool:
+        """Connect to genuine Qt started/finished signals when explicitly asked.
+
+        No strong reference to the QThread is retained. Signal callbacks hold
+        only a weak observer reference; they cannot establish thread ownership.
+        """
+        if not self._active:
+            raise RuntimeError("Qt worker watch requires an active observer")
+        if self._qt_thread_serial >= 128:
+            return False
+        source = self._path(sys._getframe(1).f_code.co_filename)
+        start = getattr(getattr(thread, "started", None), "connect", None)
+        finish = getattr(getattr(thread, "finished", None), "connect", None)
+        if source is None or not callable(start) or not callable(finish):
+            return False
+        self._qt_thread_serial += 1
+        token = f"qt-thread-{self._qt_thread_serial}"
+        watcher = weakref.ref(self)
+        safe_label = str(label)[:80]
+
+        def record(kind: str, confidence: str) -> None:
+            observer = watcher()
+            if observer is not None and observer._active:
+                observer._record({
+                    "type": kind, "source": source, "target": source,
+                    "label": safe_label, "qt_worker_token": token,
+                    "confidence": confidence,
+                })
+
+        try:
+            start(lambda: record("qt_worker_started", "QT_STARTED_SIGNAL_DELIVERED"))
+            finish(lambda: record("qt_worker_finished", "QT_FINISHED_SIGNAL_DELIVERED"))
+        except (TypeError, RuntimeError):
+            # Failed or partial connections do not create positive observations.
+            return False
+        self.watch(thread, label=label, kind="qobject")
         return True
 
     def watch(self, obj: Any, *, label: str, kind: str = "object") -> bool:
@@ -689,6 +728,8 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
                 "truncated": True, "proof_of_memory_leak": False,
                 "worker_starts_unpaired": [], "cache_release_sources": []}
     pending: dict[tuple[str, str], int] = {}
+    qt_pending: dict[tuple[int, str, str], int] = {}
+    qt_started = qt_finished = qt_unmatched = 0
     releases: set[str] = set()
     destroyed_sources: set[str] = set()
     destroyed_count = 0
@@ -699,7 +740,8 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
                     "truncated": True, "proof_of_memory_leak": False,
                     "worker_starts_unpaired": [], "cache_release_sources": []}
         kind = event.get("type")
-        if kind not in {"worker_start", "worker_stop", "cache_release", "qt_destroyed_observed"}:
+        if kind not in {"worker_start", "worker_stop", "cache_release", "qt_destroyed_observed",
+                        "qt_worker_started", "qt_worker_finished"}:
             continue
         source = event.get("source")
         target = event.get("target") or ""
@@ -712,6 +754,25 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
             continue
         if kind == "cache_release":
             releases.add(source)
+            continue
+        if kind in {"qt_worker_started", "qt_worker_finished"}:
+            token = event.get("qt_worker_token")
+            group = event.get("_trace_group", 0)
+            if (not isinstance(token, str) or len(token) > 40
+                    or not isinstance(group, int) or isinstance(group, bool) or not 0 <= group < 8
+                    or event.get("confidence") != ("QT_STARTED_SIGNAL_DELIVERED" if kind == "qt_worker_started"
+                                                   else "QT_FINISHED_SIGNAL_DELIVERED")):
+                continue
+            worker = (group, source, token)
+            if kind == "qt_worker_started":
+                qt_started += 1
+                qt_pending[worker] = qt_pending.get(worker, 0) + 1
+            else:
+                qt_finished += 1
+                if qt_pending.get(worker, 0):
+                    qt_pending[worker] -= 1
+                else:
+                    qt_unmatched += 1
             continue
         key = (source, target)
         if kind == "worker_start":
@@ -727,15 +788,24 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
         {"source": source, "target": target, "unpaired_starts": count}
         for (source, target), count in sorted(pending.items()) if count > 0
     ]
+    qt_open = [
+        {"source": source, "trace_group": group, "qt_worker_token": token,
+         "unpaired_starts": count}
+        for (group, source, token), count in sorted(qt_pending.items()) if count > 0
+    ]
     return {
-        "status": "REVIEW" if trace.get("truncated") or open_workers or unmatched else "OBSERVED",
+        "status": "REVIEW" if trace.get("truncated") or open_workers or unmatched or qt_open or qt_unmatched else "OBSERVED",
+        "qt_worker_started_events": qt_started, "qt_worker_finished_events": qt_finished,
+        "qt_worker_unmatched_finished": qt_unmatched,
+        "qt_worker_unpaired": qt_open[:80],
         "worker_start_events": started, "worker_stop_events": stopped,
         "unmatched_stop_events": unmatched,
         "worker_starts_unpaired": open_workers[:80],
         "cache_release_sources": sorted(releases)[:80],
         "qt_destroyed_sources": sorted(destroyed_sources)[:80],
         "qt_destroyed_events": destroyed_count,
-        "truncated": bool(trace.get("truncated") or len(open_workers) > 80 or len(releases) > 80),
+        "truncated": bool(trace.get("truncated") or len(open_workers) > 80 or len(qt_open) > 80
+                          or len(releases) > 80),
         "qt_destroyed_is_not_ownership_proof": True,
         "proof_of_memory_leak": False,
         "limits": "Markers are explicit and opt-in; an open worker at trace end may be intentional. Native Qt ownership and memory remain unproven.",
