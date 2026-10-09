@@ -35,6 +35,33 @@ class LayerBoundaryTests(unittest.TestCase):
             self.assertEqual(report["total_findings"], 0)
             self.assertEqual(report["status"], "PASS")
 
+    def test_relative_service_to_ui_import_is_detected_in_same_domain(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "app/modules/encyclopedia/services").mkdir(parents=True)
+            (root / "app/modules/encyclopedia/views").mkdir(parents=True)
+            (root / "app/modules/encyclopedia/views/panel.py").write_text(
+                "class Panel: pass\n", encoding="utf-8")
+            target = root / "app/modules/encyclopedia/services/reader.py"
+            target.write_text("from ..views.panel import Panel\n", encoding="utf-8")
+            result = layer_boundary_review(
+                root, ["app/modules/encyclopedia/services/reader.py"])
+            self.assertEqual(result["status"], "REVIEW")
+            self.assertTrue(any(row["rule"] == "LOWER_LAYER_IMPORTS_UI"
+                                and row["line"] == 1 for row in result["findings"]))
+            self.assertFalse(result["safe_to_refactor"])
+
+    def test_invalid_relative_import_level_cannot_fabricate_dependency(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "app/core").mkdir(parents=True)
+            (root / "app/pages").mkdir(parents=True)
+            (root / "app/pages/view.py").write_text("pass\n")
+            source = root / "app/core/a.py"
+            source.write_text("from ....pages.view import Example\n", encoding="utf-8")
+            result = layer_boundary_review(root, ["app/core/a.py"])
+            self.assertEqual(result["total_findings"], 0)
+
     def test_invalid_path_yields_review_not_pass(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

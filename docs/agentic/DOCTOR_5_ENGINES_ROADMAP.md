@@ -400,3 +400,8 @@ Le scénario opt-in `capture-ui encyclopedia` crée toujours des vues réelles m
 ### Fluidité du Canvas Graphify sans scanner 50 000 arêtes à chaque frame
 
 Le rendu paginé calcule maintenant `pageEdges` à partir des seules relations reliant des nœuds effectivement affichés, en respectant le filtre de relation. Ce cache est rafraîchi uniquement quand l’utilisateur change de page, de filtres ou de type de lien. Panoramique et zoom dessinent uniquement ce sous-graphe déjà sélectionné, sans retraverser le graphe global à chaque frame d’animation. Le jeu de données complet et les recherches globales sont conservés ; aucun intervalle de scan ni ressource réseau n’est ajouté. Le coût exact du rendu devra être mesuré pendant la validation finale.
+
+
+### Imports relatifs et garde-fous entre domaines
+
+Le scanner de couches résout maintenant `from .module import name`, `from ..views.panel import View` et `from . import module` selon l’emplacement du fichier source et les règles des packages Python, puis confirme la présence du fichier importé sur disque. Un niveau relatif qui sort du package est ignoré comme non résolu, jamais transformé en violation inventée. Les inversions `core/services → ui` et les imports d’interfaces privées entre domaines sont signalés comme preuves AST consultatives; aucune réécriture ni suppression automatique.

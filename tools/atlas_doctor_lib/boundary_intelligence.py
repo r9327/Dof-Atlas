@@ -66,11 +66,30 @@ def layer_boundary_review(root: Path, paths: list[str]) -> dict[str, Any]:
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 modules = [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-                modules = [node.module]
+            elif isinstance(node, ast.ImportFrom):
+                # Resolve explicit relative imports with Python package rules.
+                # A submodule imported as "from . import item" is checked only
+                # if the matching Python file actually exists in this tree.
+                if node.level:
+                    package = relative.removesuffix(".py").split("/")[:-1]
+                    if node.level > len(package):
+                        continue
+                    parts = package[:len(package) - node.level + 1]
+                else:
+                    parts = []
+                if node.module:
+                    parts += node.module.split(".")
+                if not parts or not all(part.isidentifier() for part in parts):
+                    continue
+                modules = [".".join(parts)]
+                modules.extend(
+                    ".".join([*parts, alias.name])
+                    for alias in node.names if alias.name != "*"
+                    and alias.name.isidentifier()
+                )
             else:
                 continue
-            for module in modules:
+            for module in dict.fromkeys(modules):
                 parts = module.split(".")
                 if not parts or not all(part.isidentifier() for part in parts):
                     continue
