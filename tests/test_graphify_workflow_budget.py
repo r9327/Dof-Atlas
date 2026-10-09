@@ -17,6 +17,13 @@ class GraphifyWorkflowBudgetTests(unittest.TestCase):
         self.assertNotIn('"tools/atlas_doctor_lib/live_graph.py"', trigger)
         self.assertIn('timeout-minutes: 20', code)
 
+    def test_full_map_persists_exact_sha_build_duration(self):
+        code = (ROOT / ".github/workflows/graphify-map.yml").read_text(encoding="utf-8")
+        self.assertIn("started=$SECONDS", code)
+        self.assertIn("graphify-out/graph_build_seconds.txt", code)
+        self.assertIn('"graph_build_seconds": int(', code)
+        self.assertIn('Graphify exact-SHA build time:', code)
+
     def test_focused_ci_still_runs_on_every_dev_push(self):
         code = (ROOT / ".github/workflows/graphify-targeted-ci.yml").read_text(encoding="utf-8")
         self.assertIn("phase8/graphify-staged-cleanup-v1", code)

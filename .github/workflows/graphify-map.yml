@@ -74,7 +74,12 @@ jobs:
 
       - name: Build graph through Atlas Doctor and canonical Graphify engine
         shell: bash
-        run: python -m tools.atlas_doctor graph --rebuild --json
+        run: |
+          started=$SECONDS
+          python -m tools.atlas_doctor graph --rebuild --json
+          elapsed=$((SECONDS - started))
+          printf '%s\n' "$elapsed" > graphify-out/graph_build_seconds.txt
+          echo "Graphify exact-SHA build time: ${elapsed}s" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify graph output
         shell: bash
@@ -146,6 +151,7 @@ jobs:
           reported_omissions = int(omitted_match.group(1)) if omitted_match else None
           metrics = {
               "candidate_sha": os.environ["CANDIDATE_SHA"],
+              "graph_build_seconds": int(Path("graphify-out/graph_build_seconds.txt").read_text(encoding="ascii")),
               "node_count": len(nodes),
               "tracked_python_files": len(tracked),
               "represented_tracked_python_files": len(tracked),
