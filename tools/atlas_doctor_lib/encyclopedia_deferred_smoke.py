@@ -79,6 +79,7 @@ def main() -> None:
         observer.watch(quests, label="quests-empty", kind="qwidget")
         observer.watch_qt_destroyed(quests, label="quests-empty")
         observer.snapshot_watches(label="deferred-created")
+        observer.snapshot_process_tree(label="deferred-created")
         observer.snapshot_qt_objects(label="deferred-created")
         delete(quests)
         delete(success)
@@ -86,6 +87,7 @@ def main() -> None:
         if isValid(quests) or isValid(success) or isValid(guide):
             raise AssertionError("A deferred Qt widget remained valid after deletion")
         observer.snapshot_watches(label="deferred-destroyed")
+        observer.snapshot_process_tree(label="deferred-destroyed")
         observer.snapshot_qt_objects(label="deferred-destroyed")
     if not application:
         raise AssertionError("Qt application unavailable")

@@ -7,6 +7,8 @@ signals, C++ allocations and reference ownership are NOT observable without
 explicit test instrumentation or separate platform profilers.
 """
 import argparse
+import hashlib
+import math
 import gc
 import json
 from functools import partial, wraps
@@ -495,18 +497,37 @@ class RuntimeObserver:
             observed = 0
             webengine = 0
             errors = 0
+            cpu_total = 0.0
+            cpu_measured = 0
+            identities: list[str] = []
             for process in selected:
                 try:
                     total_bytes += int(process.memory_info().rss)
                     name = process.name().lower()
                     webengine += int("qtwebengineprocess" in name)
                     observed += 1
+                    # CPU times are cumulative kernel counters, not utilization.
+                    cpu_getter = getattr(process, "cpu_times", None)
+                    if callable(cpu_getter):
+                        times = cpu_getter()
+                        seconds = float(times.user) + float(times.system)
+                        if math.isfinite(seconds) and seconds >= 0:
+                            cpu_total += seconds
+                            cpu_measured += 1
+                    pid = getattr(process, "pid", None)
+                    created = getattr(process, "create_time", None)
+                    if isinstance(pid, int) and callable(created):
+                        identities.append(f"{pid}:{created():.5f}")
                 except (psutil.Error, OSError, AttributeError, ValueError):
                     errors += 1
+            identity_digest = (hashlib.sha256("|".join(sorted(identities)).encode("utf-8")).hexdigest()[:24]
+                               if identities and len(identities) == observed and not errors else None)
             result = {"status": "REVIEW" if errors or truncated else "OBSERVED",
                       "rss_tree_bytes": total_bytes, "processes_counted": observed,
                       "webengine_children_named": webengine, "truncated": truncated,
                       "processes_inaccessible": errors,
+                      "cpu_time_cumulative_seconds": round(cpu_total, 6) if cpu_measured == observed and observed else None,
+                      "process_group_fingerprint": identity_digest,
                       "not_native_qt_ownership_proof": True}
         except (ImportError, OSError, RuntimeError) as exc:
             result = {"status": "UNAVAILABLE", "reason": type(exc).__name__,
@@ -590,6 +611,74 @@ class RuntimeObserver:
                 "Symbol call sites are bounded, observed positives only; no negative reachability proof.",
             ],
         }
+
+
+def summarize_process_checkpoints(trace: dict[str, Any] | None) -> dict[str, Any]:
+    """Compare existing opt-in process samples; never measure while reading.
+
+    CPU is cumulative and comparable only when the same process identities
+    were sampled; no sampling delays, workload claims or peak-memory inference.
+    """
+    empty = {"status": "NOT_PROVIDED", "samples": [], "comparisons": [],
+             "peak_rss_proven": False, "tests_executed": False}
+    if not isinstance(trace, dict) or not isinstance(trace.get("events"), list):
+        return empty
+    events = trace["events"]
+    if trace.get("truncated") is not False or len(events) > 50000:
+        return {**empty, "status": "INCOMPLETE"}
+    samples: list[dict[str, Any]] = []
+    comparisons: list[dict[str, Any]] = []
+    previous: dict[str, Any] | None = None
+    for row in events:
+        if not isinstance(row, dict) or row.get("type") != "process_tree_snapshot":
+            continue
+        if len(samples) >= 32:
+            return {**empty, "status": "TRUNCATED", "samples": samples,
+                    "comparisons": comparisons}
+        rss = row.get("rss_tree_bytes")
+        cpu = row.get("cpu_time_cumulative_seconds")
+        digest = row.get("process_group_fingerprint")
+        if (row.get("status") != "OBSERVED" or not isinstance(rss, int)
+                or isinstance(rss, bool) or rss < 0 or rss > 100_000_000_000
+                or not isinstance(row.get("processes_counted"), int)
+                or row.get("processes_counted", 0) <= 0):
+            samples.append({"label": str(row.get("label", ""))[:60], "status": "UNAVAILABLE"})
+            previous = None
+            continue
+        sample = {
+            "label": str(row.get("label", ""))[:60], "rss_tree_bytes": rss,
+            "processes_counted": row["processes_counted"],
+            "webengine_children_named": row.get("webengine_children_named", 0),
+            "cpu_time_cumulative_seconds": cpu if isinstance(cpu, (int, float))
+            and not isinstance(cpu, bool) and math.isfinite(cpu) and cpu >= 0 else None,
+            "process_group_fingerprint": digest if isinstance(digest, str) and len(digest) == 24 else None,
+        }
+        samples.append(sample)
+        if previous is not None:
+            same = (sample["process_group_fingerprint"] is not None
+                    and sample["process_group_fingerprint"] == previous["process_group_fingerprint"])
+            if same:
+                old_cpu, new_cpu = previous["cpu_time_cumulative_seconds"], sample["cpu_time_cumulative_seconds"]
+                comparisons.append({
+                    "from": previous["label"], "to": sample["label"],
+                    "rss_delta_bytes": rss - previous["rss_tree_bytes"],
+                    "cpu_time_delta_seconds": round(new_cpu - old_cpu, 6)
+                    if old_cpu is not None and new_cpu is not None and new_cpu >= old_cpu else None,
+                    "same_sampled_process_set": True,
+                    "peak_rss_proven": False,
+                })
+            else:
+                comparisons.append({"from": previous["label"], "to": sample["label"],
+                                    "same_sampled_process_set": False,
+                                    "rss_delta_bytes": None, "cpu_time_delta_seconds": None,
+                                    "peak_rss_proven": False})
+        previous = sample
+    return {"status": "REVIEW" if any(x.get("status") == "UNAVAILABLE" for x in samples) else
+            "OBSERVED_SNAPSHOTS" if samples else "NOT_PROVIDED",
+            "samples": samples, "comparisons": comparisons,
+            "peak_rss_proven": False, "tests_executed": False,
+            "limits": "Up to 32 opt-in snapshot events, no CPU percentage, no native WebEngine ownership, no peak RAM or certified benchmark.",
+    }
 
 
 def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:

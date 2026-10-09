@@ -152,6 +152,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     trace_status = "NOT_PROVIDED"
     runtime_pairs: set[tuple[str, str]] = set()
     observed_lifecycle: dict[str, Any] = {"status": "NOT_TRUSTED"}
+    observed_performance: dict[str, Any] = {"status": "NOT_PROVIDED", "samples": [],
+                                            "comparisons": [], "peak_rss_proven": False}
     trace_events = trace.get("events") if isinstance(trace, dict) else None
     if isinstance(trace, dict):
         trace_sha = trace.get("candidate_sha")
@@ -165,6 +167,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             trace_status = "MATCHED"
             from .runtime_observation import summarize_runtime_lifecycle
             observed_lifecycle = summarize_runtime_lifecycle(trace)
+            from .runtime_observation import summarize_process_checkpoints
+            observed_performance = summarize_process_checkpoints(trace)
             runtime_pairs = {
                 (row["source"], row["target"])
                 for row in trace.get("events", [])
@@ -393,6 +397,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "observed_json_ui_bindings": bindings_summary.get("bound_to_ui", 0),
         "observed_json_truncated": json_runtime_summary.get("truncated", False),
         "observed_lifecycle": observed_lifecycle,
+        "observed_performance": observed_performance,
         "observed_symbol_calls": symbol_calls,
         "source_inspection_status": (inspection or {}).get("status", "NOT_RUN"),
         "json_lineage_review_leads": (lineage or {}).get("references_with_ui_importers", 0),
@@ -489,6 +494,30 @@ if(inventory){
   section.appendChild(details);
  }
  section.appendChild(document.createElement('hr'));
+}
+const perf=data.observed_performance;
+if(perf && perf.samples && perf.samples.length){
+ const section=document.getElementById('coverageDetails');
+ const h=document.createElement('h3');h.textContent='Checkpoints CPU/RAM du scénario';section.appendChild(h);
+ perf.samples.slice(0,12).forEach(sample=>{
+  const line=document.createElement('p');
+  line.textContent=sample.label+' : '+(sample.rss_tree_bytes==null?'indisponible':
+    (sample.rss_tree_bytes/1048576).toFixed(2)+' Mio RSS observés')+
+    (sample.cpu_time_cumulative_seconds==null?'':' · '+sample.cpu_time_cumulative_seconds+' s CPU cumulé');
+  section.appendChild(line);
+ });
+ perf.comparisons.slice(0,10).forEach(delta=>{
+  const p=document.createElement('p');
+  p.textContent=delta.from+' → '+delta.to+' : '+
+   (delta.same_sampled_process_set ?
+     (delta.rss_delta_bytes/1048576).toFixed(2)+' Mio RSS (différence)' +
+     (delta.cpu_time_delta_seconds==null?'':' · '+delta.cpu_time_delta_seconds+' s CPU (différence)') :
+     'ensemble de processus modifié, comparaison refusée');
+  section.appendChild(p);
+ });
+ const limits=document.createElement('small');
+ limits.textContent='Instantanés opt-in, pas le pic RAM ni un benchmark certifié ; aucun ownership WebEngine prouvé.';
+ section.appendChild(limits);section.appendChild(document.createElement('hr'));
 }
 const neighbors=new Map(), nodes=data.nodes;
 const relationCounts=new Map();

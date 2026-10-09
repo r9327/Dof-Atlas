@@ -762,6 +762,24 @@ class DoctorGraphUiTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             merge_runtime_traces([trace(), wrong], graph_sha=sha)
 
+    def test_runtime_process_snapshots_are_caveated_not_benchmarks(self):
+        sha = "e" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/pages/home.py"}], "links": []}
+        trace = {"kind": "doctor_runtime_observation", "candidate_sha": sha,
+                 "worktree_clean": True, "truncated": False, "events": [
+                     {"type": "process_tree_snapshot", "source": "app/pages/home.py",
+                      "label": "Home", "status": "OBSERVED", "rss_tree_bytes": 123456,
+                      "processes_counted": 1, "process_group_fingerprint": "a" * 24,
+                      "cpu_time_cumulative_seconds": 0.8}]}
+        data = compact_graph(graph, {}, trace)
+        self.assertEqual(data["observed_performance"]["status"], "OBSERVED_SNAPSHOTS")
+        self.assertFalse(data["observed_performance"]["peak_rss_proven"])
+        self.assertIn("Checkpoints CPU/RAM du scénario", render_html(data))
+        trace["candidate_sha"] = "f" * 40
+        self.assertEqual(compact_graph(graph, {}, trace)["observed_performance"]["status"],
+                         "NOT_PROVIDED")
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,

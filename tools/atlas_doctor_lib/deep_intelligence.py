@@ -606,6 +606,7 @@ def inspect_code(root: Path, *, paths: list[str],
     lineage: dict[str, Any] = {"status": "UNAVAILABLE", "references": [], "runtime_data_flow_proven": False}
     runtime_lineage: dict[str, Any] = {"status": "NOT_PROVIDED" if trace_path is None else "UNAVAILABLE", "references": [], "data_read_proven": False, "ui_render_proven": False}
     explicit_bindings: dict[str, Any] = {"status": "NOT_PROVIDED", "bindings": [], "ui_render_proven": False}
+    performance_checkpoints: dict[str, Any] = {"status": "NOT_PROVIDED", "samples": [], "peak_rss_proven": False}
     if graph_evidence["status"] == "PASS":
         try:
             graph = json.loads(Path(graph_evidence["graph"]).read_text(encoding="utf-8"))
@@ -632,6 +633,13 @@ def inspect_code(root: Path, *, paths: list[str],
             lineage = trace_literal_json_to_ui(graph, source.get("data_lineage_candidates", []))
             runtime_lineage = trace_observed_json_to_ui(graph, trace)
             explicit_bindings = trace_explicit_json_bindings(graph, trace)
+            if (trace is not None and trace.get("candidate_sha") == graph.get("built_at_commit")
+                    and trace.get("worktree_clean") is True and trace.get("truncated") is False):
+                from .runtime_observation import summarize_process_checkpoints
+                performance_checkpoints = summarize_process_checkpoints(trace)
+            elif trace is not None:
+                performance_checkpoints = {"status": "STALE_OR_INCOMPLETE", "samples": [],
+                                           "peak_rss_proven": False}
             # Source confirmation already exists in graph_audit, do not duplicate it.
             from .graph_audit import inspect_graph
             findings = inspect_graph(graph, root=root)
@@ -670,5 +678,6 @@ def inspect_code(root: Path, *, paths: list[str],
         "data_lineage_to_ui": lineage,
         "observed_json_to_ui": runtime_lineage,
         "explicit_json_bindings": explicit_bindings,
+        "performance_checkpoints": performance_checkpoints,
         "tests_executed": False, "graph_rebuilt": False,
     }

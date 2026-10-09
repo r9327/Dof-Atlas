@@ -272,3 +272,25 @@ dans des rapports de validations **réellement exécutées** ; les coûts inconn
 Les groupes obligatoires sont conservés, aucun FULL_SUITE/DEEP gate n'est supprimé,
 et l'ordre n'est ni une prévision de durée ni une certification. Cette consultation ne lance
 aucun test, benchmark ou reconstruction du graphe. La PR reste DRAFT et non fusionnée.
+
+
+### Checkpoints CPU/RAM par scénario opt-in (aucun benchmark lancé)
+
+`RuntimeObserver.snapshot_process_tree(label=...)` peut à présent relever, outre
+le RSS courant de l'arbre Python + enfants, le temps CPU **cumulatif** de ces
+processus et une empreinte anonyme de leur ensemble d'identités (PID et heure
+de création condensés). Ni adresse, ni arguments, ni contenu utilisateur ne
+sont enregistrés. En cas de dépendance `psutil` absente, d'inaccessibilité,
+de données CPU partielles ou de tronquature, la métrique concernée est
+signalée indisponible, jamais remplacée par une valeur de confort.
+
+`summarize_process_checkpoints` compare uniquement deux checkpoints
+successifs si les mêmes processus ont été relevés : différences RSS et
+temps CPU cumulé. En cas de changement d'un processus WebEngine ou autre,
+la comparaison est refusée. L'observation est exposée dans
+`code-inspect --trace` et dans le panneau de Graphify `graph-ui --trace`.
+Les scénarios offscreen optionnels Équipement et Encyclopédie émettent ces
+checkpoints lors de leur exécution manuelle. **Aucune attente active,
+instrumentation de DOFUS.bat, exécution répétée ni certification de pic
+RAM/performance ne découle de ces fonctions.** Elles ne prouvent ni la
+propriété native d'un QObject ni la mémoire libérée par QWebEngine.

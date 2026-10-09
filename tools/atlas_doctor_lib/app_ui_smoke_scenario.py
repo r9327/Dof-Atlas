@@ -49,12 +49,14 @@ def main() -> None:
     # Preserve the normal EquipmentPage section state before disposal.
     page.set_section(page.section)
     observer.snapshot_watches(label="equipment-created")
+    observer.snapshot_process_tree(label="equipment-created")
     observer.snapshot_qt_objects(label="equipment-created")
     # No .show(), event loop or navigation: preserve the application's lazy rules.
     delete(page)
     if isValid(page):
         raise AssertionError("EquipmentPage C++ object still valid after delete")
     observer.snapshot_watches(label="equipment-destroyed")
+    observer.snapshot_process_tree(label="equipment-destroyed")
     observer.snapshot_qt_objects(label="equipment-destroyed")
     if not app:
         raise AssertionError("QApplication unavailable")

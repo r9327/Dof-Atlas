@@ -643,6 +643,31 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertEqual(events[0]["source"], "page.py")
             self.assertNotIn("secret-text", json.dumps(observer.report()))
 
+    def test_process_checkpoints_only_compare_stable_sampled_processes(self):
+        from tools.atlas_doctor_lib.runtime_observation import summarize_process_checkpoints
+        trace = {"truncated": False, "events": [
+            {"type": "process_tree_snapshot", "status": "OBSERVED",
+             "label": "Home", "rss_tree_bytes": 1000, "processes_counted": 2,
+             "cpu_time_cumulative_seconds": 1.2,
+             "process_group_fingerprint": "a" * 24},
+            {"type": "process_tree_snapshot", "status": "OBSERVED",
+             "label": "Guide", "rss_tree_bytes": 1500, "processes_counted": 2,
+             "cpu_time_cumulative_seconds": 1.45,
+             "process_group_fingerprint": "a" * 24},
+            {"type": "process_tree_snapshot", "status": "OBSERVED",
+             "label": "After WebEngine", "rss_tree_bytes": 1900, "processes_counted": 3,
+             "cpu_time_cumulative_seconds": 1.8,
+             "process_group_fingerprint": "b" * 24}]}
+        report = summarize_process_checkpoints(trace)
+        self.assertEqual(report["status"], "OBSERVED_SNAPSHOTS")
+        self.assertEqual(report["comparisons"][0]["rss_delta_bytes"], 500)
+        self.assertAlmostEqual(report["comparisons"][0]["cpu_time_delta_seconds"], 0.25)
+        self.assertIsNone(report["comparisons"][1]["rss_delta_bytes"])
+        self.assertFalse(report["comparisons"][1]["same_sampled_process_set"])
+        self.assertFalse(report["peak_rss_proven"])
+        trace["truncated"] = True
+        self.assertEqual(summarize_process_checkpoints(trace)["status"], "INCOMPLETE")
+
 
 if __name__ == "__main__":
     unittest.main()
