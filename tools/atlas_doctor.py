@@ -436,16 +436,25 @@ def command_ponytail(root: Path, args) -> dict[str, Any]:
 
 
 def menu_diagnostics(root: Path) -> dict[str, Any]:
-    payload = command_quick(root, argparse.Namespace(json=False))
-    choice = input("A : audit avec gate CRITICAL | P : problemes | T : Ponytail | Entree : retour\n").strip().casefold()
+    # Asking first avoids a full-repository AST pass just to open a menu.
+    choice = input(
+        "D : precontrole des changements (rapide) | "
+        "A : audit avec gate CRITICAL (long) | "
+        "P : problemes | T : Ponytail | Entree : scan AST complet\n"
+    ).strip().casefold()
+    if choice == "d":
+        base = input("Reference Git [HEAD pour changements non commites] : ").strip() or "HEAD"
+        run_tests = input("Lancer les seuls tests cibles (o/N) ? ").strip().casefold() in {"o", "oui", "y", "yes"}
+        return command_dev_check(root, argparse.Namespace(
+            base_ref=base, run_tests=run_tests, max_tests=8,
+            timeout_seconds=90, json=False))
     if choice == "a":
         return command_audit(root, argparse.Namespace(force=True, gate="critical", json=False))
     if choice == "p":
         return command_issues(root, argparse.Namespace(severity=None, json=False))
     if choice == "t":
         return command_ponytail(root, argparse.Namespace(base_ref=None, json=False))
-    return payload
-
+    return command_quick(root, argparse.Namespace(json=False))
 
 def menu_graph(root: Path) -> dict[str, Any]:
     payload = command_graph(root, argparse.Namespace(json=False, rebuild=False, install=False, open=False))
@@ -789,7 +798,7 @@ def _read_choice() -> str:
 
 def menu(root: Path) -> int:
     actions = {
-        '1': ('Diagnostic rapide / audit / problemes', lambda: menu_diagnostics(root)),
+        '1': ('Precontrole rapide Git/AST / audit approfondi', lambda: menu_diagnostics(root)),
         '2': ('Inspecteur performances LIVE + I/O', lambda: command_live(root, argparse.Namespace(sample_seconds=0.5, no_io_trace=False, json=False))),
         '3': ('Performance Lab automatise', lambda: command_perf(root, argparse.Namespace(files_only=False, json=False))),
         '4': ('Comparer avec le dernier audit', lambda: command_compare(root, argparse.Namespace(json=False))),

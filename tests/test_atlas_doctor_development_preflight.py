@@ -65,6 +65,18 @@ class DevelopmentPreflightContracts(unittest.TestCase):
             self.assertEqual(bad["status"], "FAIL")
             self.assertTrue(good["tests_executed"])
 
+    def test_menu_development_does_not_launch_full_scan(self):
+        from tools.atlas_doctor import menu_diagnostics
+        from unittest.mock import patch
+        expected = {"status": "PLANNED", "kind": "doctor_development_preflight"}
+        with patch("builtins.input", side_effect=["d", "HEAD", "n"]), \
+             patch("tools.atlas_doctor.command_quick",
+                   side_effect=AssertionError("Full repository scan must not start")), \
+             patch("tools.atlas_doctor.command_dev_check", return_value=expected) as dev:
+            result = menu_diagnostics(Path("."))
+        self.assertEqual(result, expected)
+        self.assertFalse(dev.call_args[0][1].run_tests)
+
     def test_rejects_unsafe_budgets_and_refs(self):
         root = Path("/tmp")
         for kw in ({"base_ref": "-bad"}, {"base_ref": "main", "max_tests": 9},

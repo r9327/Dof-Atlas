@@ -499,3 +499,8 @@ Nouveau circuit rapide explicite :
 - Les groupes obligatoires FAST restent explicitement listés dans `deferred_integrity_groups` et `certified=false`, `merge_gate_satisfied=false`. Aucune preuve de test ciblé ne peut être utilisée pour contourner le gate canonique de merge ou la certification FULL. Le mode `verify --gate fast` conserve intégralement sa politique originale.
 
 À long terme, un cache AST de contenu existe déjà dans `run_audit`, mais les attestations de tests / gates ne sont **jamais réutilisées entre SHA ni d’après un rapport incomplet**. Sur le quotidien, préférer le nouveau profil explicite ; réserver le FAST de conformité aux étapes de validation qui l’exigent. Le chantier RAM/preload est indépendant.
+
+
+### Menu Doctor : diagnostic réellement rapide
+
+Dans `python -m tools.atlas_doctor` → menu `[1]`, la question est désormais posée **avant** le scan AST global. Choix `D` → référence Git explicite (`HEAD` par défaut pour les changements non commités) → tests ciblés facultatifs. Ce chemin utilise `dev-check` et n'exécute jamais `quick` ou le gate CRITICAL au préalable. La touche Entrée conserve volontairement le diagnostic AST complet et `A` demande explicitement le gate CRITICAL plus long.
