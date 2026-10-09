@@ -610,6 +610,39 @@ class DoctorGraphUiTests(unittest.TestCase):
         trace["worktree_clean"] = False
         self.assertFalse(compact_graph(graph, {}, trace)["nodes"][0]["qt_destroyed_observed"])
 
+
+    def test_runtime_import_attempt_edge_is_not_a_success_claim(self):
+        sha = "a" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/views/page.py"},
+            {"id": 2, "source_file": "app/core/catalog.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [{"type": "import_attempt", "source": "app/views/page.py",
+                             "module": "app.core.catalog"}]}
+        payload = compact_graph(graph, {}, trace)
+        self.assertEqual(payload["observed_runtime_import_attempt_pairs"], 1)
+        self.assertEqual(payload["edges"][0]["relation"], "RUNTIME_IMPORT_ATTEMPT")
+        self.assertTrue(payload["nodes"][0]["runtime_import_attempt_observed"])
+        html = render_html(payload)
+        self.assertIn("Tentative d’import Python observée", html)
+        self.assertIn("runtime_import_attempt_observed:!!n.runtime_import_attempt_observed", html)
+        trace["worktree_clean"] = False
+        stale = compact_graph(graph, {}, trace)
+        self.assertEqual(stale["observed_runtime_import_attempt_pairs"], 0)
+        self.assertEqual(stale["edges"], [])
+
+    def test_external_runtime_import_attempt_is_not_mapped_to_fake_app_file(self):
+        sha = "b" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/views/page.py"},
+            {"id": 2, "source_file": "app/core/catalog.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True,
+                 "events": [{"type": "import_attempt", "source": "app/views/page.py",
+                             "module": "some.external.module"}]}
+        report = compact_graph(graph, {}, trace)
+        self.assertEqual(report["observed_runtime_import_attempt_pairs"], 0)
+        self.assertEqual(report["edges"], [])
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,

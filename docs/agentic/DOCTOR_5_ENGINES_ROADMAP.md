@@ -125,3 +125,7 @@ En scénario opt-in, `observer.watch_qt_destroyed(obj, label='guide_view')` racc
 ### Scénario PySide6 réel, lancé uniquement sur demande
 
 `python -m tools.atlas_doctor runtime-trace --module tools.atlas_doctor_lib.qt_smoke_scenario --json` exécute un mini-scénario avec un vrai `QCoreApplication`, un signal Qt réel, un slot Python instrumenté et le signal `QObject.destroyed` lors d'une destruction explicite. Le scénario ne démarre jamais automatiquement avec Dofus Atlas et exige PySide6/shiboken6 installés. Un test ciblé l'exécute seulement quand Qt est disponible ; un SKIP n'est pas une certification Qt. Correction associée : `connect_qt_signal` suit `__wrapped__` pour identifier la source réelle d'un callback enveloppé, et non le fichier de l'instrumenteur.
+
+### Tentatives d’import Python observées dans Graphify
+
+Les événements Python `import_attempt` (issus d’imports statiques ou dynamiques, sans distinction certaine) enregistrés par un scénario opt-in créent des relations `RUNTIME_IMPORT_ATTEMPT` distinctes des imports AST et des appels de fonctions. La conversion module→fichier est limitée aux fichiers Python présents dans le graphe exact-SHA et à 256 paires au maximum ; la trace doit être complète et le worktree propre. L'interface et l'export de preuves les affichent comme tentatives et **jamais comme succès d'import ou preuve de code mort**.
