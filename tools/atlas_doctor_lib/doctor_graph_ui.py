@@ -123,7 +123,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     runtime_pairs: set[tuple[str, str]] = set()
     observed_lifecycle: dict[str, Any] = {"status": "NOT_TRUSTED"}
     trace_events = trace.get("events") if isinstance(trace, dict) else None
-    if trace is not None:
+    if isinstance(trace, dict):
         trace_sha = trace.get("candidate_sha")
         graph_sha = graph.get("built_at_commit")
         if (isinstance(trace_sha, str) and isinstance(graph_sha, str)
@@ -144,6 +144,8 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             }
         else:
             trace_status = "STALE_OR_INCOMPLETE"
+    elif trace is not None:
+        trace_status = "STALE_OR_INCOMPLETE"
     qt_pairs: set[tuple[str, str]] = set()
     if trace_status == "MATCHED" and trace is not None:
         qt_pairs = {
@@ -223,7 +225,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "json_lineage_runtime_proven": False,
         "source_inspection_files": len((inspection or {}).get("paths_inspected", [])),
         "source_inspection_truncated": bool((inspection or {}).get("truncated")),
-        "symbol_calls_bounded": bool(trace and trace.get("symbol_edges_truncated")),
+        "symbol_calls_bounded": bool(isinstance(trace, dict) and trace.get("symbol_edges_truncated")),
         "qt_call_site_files": len(qt_sites),
         "raw_nodes": len(graph.get("nodes", [])), "raw_links": len(graph.get("links", [])),
         "truncated": len(graph.get("nodes", [])) > MAX_NODES or len(graph.get("links", [])) > MAX_LINKS,

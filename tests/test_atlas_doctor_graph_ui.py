@@ -149,6 +149,9 @@ class DoctorGraphUiTests(unittest.TestCase):
         data = compact_graph(graph, {}, trace)
         self.assertEqual(data["trace_status"], "STALE_OR_INCOMPLETE")
         self.assertEqual(data["observed_lifecycle"]["status"], "NOT_TRUSTED")
+        unexpected = compact_graph(graph, {}, trace=["not", "a", "trace"])
+        self.assertEqual(unexpected["trace_status"], "STALE_OR_INCOMPLETE")
+        self.assertEqual(unexpected["observed_lifecycle"]["status"], "NOT_TRUSTED")
 
     def test_legacy_runtime_trace_without_cleanliness_is_not_trusted(self):
         sha = "c" * 40
