@@ -568,7 +568,7 @@ class RuntimeObservationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "active observer"):
                 observer.snapshot_process_tree(label="early")
             scenario = Path(folder) / "snapshot_scenario.py"
-            scenario.write_text("result = observer.snapshot_process_tree(label='view')\\n",
+            scenario.write_text("result = observer.snapshot_process_tree(label='view')\n",
                                 encoding="utf-8")
             with patch.dict(sys.modules, {"psutil": fake_psutil}):
                 with observer:
