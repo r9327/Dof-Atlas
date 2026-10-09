@@ -495,6 +495,89 @@ class RuntimeObservationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "active observer"):
                 watcher.wrap_qt_slot(broken)
 
+    def test_explicit_json_decode_and_ui_binding_emit_no_payload(self):
+        import runpy
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "data").mkdir()
+            (root / "data/catalog.json").write_text('{"secret":"do-not-log"}', encoding="utf-8")
+            source = root / "app_ui.py"
+            source.write_text("obj, token = observer.read_json('data/catalog.json')\n"
+                              "did_bind = observer.mark_ui_bound(token)\n", encoding="utf-8")
+            observer = RuntimeObserver(root, max_events=1000)
+            with observer:
+                scope = runpy.run_path(str(source), init_globals={"observer": observer})
+            report = observer.report()
+            self.assertEqual(scope["obj"], {"secret": "do-not-log"})
+            self.assertTrue(scope["did_bind"])
+            self.assertEqual(len([e for e in report["events"] if e["type"] == "json_decoded"]), 1)
+            self.assertEqual(len([e for e in report["events"] if e["type"] == "json_ui_bound"]), 1)
+            self.assertNotIn("do-not-log", json.dumps(report))
+            self.assertFalse(observer.mark_ui_bound(scope["token"]))
+
+    def test_json_decode_rejects_invalid_traversal_and_malformed_json(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "bad.json").write_text("{broken", encoding="utf-8")
+            observer = RuntimeObserver(root)
+            with observer:
+                with self.assertRaises(ValueError):
+                    observer.read_json("../bad.json")
+                with self.assertRaises(json.JSONDecodeError):
+                    observer.read_json("bad.json")
+                self.assertFalse(observer.mark_ui_bound("unknown"))
+            self.assertFalse(any(e["type"] == "json_decoded" for e in observer.report()["events"]))
+
+    def test_weak_watch_snapshot_is_observational_not_leak_evidence(self):
+        import gc
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            script = root / "scenario.py"
+            script.write_text("class Item: pass\n"
+                              "instance = Item()\n"
+                              "watched = observer.watch(instance, label='item')\n"
+                              "before = observer.snapshot_watches(label='before')\n"
+                              "del instance\n"
+                              "import gc; gc.collect()\n"
+                              "after = observer.snapshot_watches(label='after')\n")
+            observer = RuntimeObserver(root, max_events=1000)
+            with observer:
+                scope = __import__("runpy").run_path(str(script), init_globals={"observer": observer})
+            self.assertTrue(scope["watched"])
+            self.assertEqual(scope["before"]["alive"], 1)
+            self.assertEqual(scope["after"]["alive"], 0)
+            self.assertEqual(len([e for e in observer.report()["events"]
+                                  if e["type"] == "weak_watch_snapshot"]), 2)
+    def test_process_tree_sample_is_opt_in_and_does_not_claim_ownership(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import sys
+        class Proc:
+            def __init__(self, name, rss, children=None):
+                self._name, self._rss, self._children = name, rss, children or []
+            def children(self, recursive=False):
+                return self._children
+            def memory_info(self):
+                return SimpleNamespace(rss=self._rss)
+            def name(self):
+                return self._name
+        root = Proc("Python", 12, [Proc("QtWebEngineProcess.exe", 45)])
+        fake_psutil = SimpleNamespace(Process=lambda: root, Error=Exception)
+        with tempfile.TemporaryDirectory() as folder:
+            observer = RuntimeObserver(Path(folder))
+            with self.assertRaisesRegex(RuntimeError, "active observer"):
+                observer.snapshot_process_tree(label="early")
+            with patch.dict(sys.modules, {"psutil": fake_psutil}):
+                with observer:
+                    result = observer.snapshot_process_tree(label="view")
+            self.assertEqual(result["status"], "OBSERVED")
+            self.assertEqual(result["rss_tree_bytes"], 57)
+            self.assertEqual(result["webengine_children_named"], 1)
+            self.assertTrue(result["not_native_qt_ownership_proof"])
+            self.assertEqual(len([x for x in observer.report()["events"]
+                                  if x["type"] == "process_tree_snapshot"]), 1)
+
+
 
 if __name__ == "__main__":
     unittest.main()

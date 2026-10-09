@@ -353,6 +353,73 @@ def trace_observed_json_to_ui(
     }
 
 
+def trace_explicit_json_bindings(
+    graph: dict[str, Any], trace: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Cross-check opt-in JSON decoding and explicit UI binding by opaque token.
+
+    Proof is limited to a Python decode and scenario-supplied handoff marker;
+    neither a rendered Qt frame nor data use inside QWebEngine is inferred.
+    """
+    empty = {"status": "NOT_PROVIDED" if trace is None else "STALE_OR_INCOMPLETE",
+             "bindings": [], "json_decodes": 0, "bound_to_ui": 0,
+             "data_decoded_proven": False, "ui_render_proven": False,
+             "truncated": False}
+    if not isinstance(trace, dict):
+        return empty
+    sha, events = graph.get("built_at_commit"), trace.get("events")
+    if (not isinstance(sha, str) or len(sha) != 40 or trace.get("candidate_sha") != sha
+            or trace.get("worktree_clean") is not True or trace.get("truncated") is not False
+            or not isinstance(events, list) or len(events) > 50000
+            or any(not isinstance(row, dict) for row in events)):
+        return {**empty, "reason": "Exact SHA, complete events and clean worktree required."}
+    known = {item.get("source_file") for item in graph.get("nodes", [])
+             if isinstance(item, dict) and isinstance(item.get("source_file"), str)}
+    reads: dict[str, tuple[str, str]] = {}
+    bindings: list[dict[str, Any]] = []
+    total_bound = 0
+
+    def safe(path: Any, suffix: str) -> bool:
+        return (isinstance(path, str) and path.endswith(suffix)
+                and not path.startswith("/") and "\\" not in path
+                and all(part not in {"", ".", ".."} for part in path.split("/")))
+
+    def view(path: str) -> bool:
+        return (path.startswith(("app/pages/", "app/ui/"))
+                or (path.startswith("app/modules/") and
+                    ("/views/" in path or "/widgets/" in path)))
+
+    for row in events:
+        kind, token = row.get("type"), row.get("token")
+        if not isinstance(token, str) or not re.fullmatch(r"json-[1-9][0-9]{0,8}", token):
+            continue
+        source = row.get("source")
+        if kind == "json_decoded" and row.get("confidence") == "JSON_DECODE_RETURNED":
+            target = row.get("target")
+            if safe(source, ".py") and source in known and safe(target, ".json"):
+                reads.setdefault(token, (source, target))
+        elif (kind == "json_ui_bound"
+              and row.get("confidence") == "EXPLICIT_UI_BINDING_MARKER"
+              and safe(source, ".py") and source in known and view(source)
+              and token in reads):
+            total_bound += 1
+            if len(bindings) < MAX_FINDINGS:
+                decoder, json_path = reads[token]
+                bindings.append({"reader": decoder, "json_path": json_path,
+                                 "ui_file": source,
+                                 "confidence": "EXPLICIT_JSON_DECODE_AND_UI_BINDING",
+                                 "json_decode_observed": True,
+                                 "ui_binding_marked": True, "ui_render_proven": False})
+    return {
+        "status": "OBSERVED_BINDING" if total_bound else "REVIEW",
+        "bindings": bindings, "json_decodes": len(reads),
+        "bound_to_ui": total_bound,
+        "data_decoded_proven": bool(reads), "ui_render_proven": False,
+        "truncated": total_bound > MAX_FINDINGS or len(reads) > MAX_FINDINGS,
+        "limits": "Up to 50k exact-SHA events; 80 binding rows; no payloads; explicit Python handoff is not visual rendering.",
+    }
+
+
 def launcher_entrypoints(root: Path) -> dict[str, Any]:
     """Read only literal DOFUS.bat startup declarations (never execute BAT)."""
     # Windows CI may supply an 8.3 short path or a symlinked checkout root.
@@ -500,11 +567,17 @@ def inspect_code(root: Path, *, paths: list[str],
     from .architecture import graph_status
     root = root.resolve()
     source = scan_sources(root, paths)
+    from .boundary_intelligence import layer_boundary_review
+    layer_boundaries = layer_boundary_review(root, source.get("paths_inspected", [])[:16])
+    if len(source.get("paths_inspected", [])) > 16:
+        layer_boundaries["truncated"] = True
+        layer_boundaries["status"] = "REVIEW"
     graph_evidence = graph_status(root)
     reach: dict[str, Any] = {"status": "UNAVAILABLE", "reason": "Current exact-SHA graph required."}
     rules: dict[str, Any] = {"status": "UNAVAILABLE"}
     lineage: dict[str, Any] = {"status": "UNAVAILABLE", "references": [], "runtime_data_flow_proven": False}
     runtime_lineage: dict[str, Any] = {"status": "NOT_PROVIDED" if trace_path is None else "UNAVAILABLE", "references": [], "data_read_proven": False, "ui_render_proven": False}
+    explicit_bindings: dict[str, Any] = {"status": "NOT_PROVIDED", "bindings": [], "ui_render_proven": False}
     if graph_evidence["status"] == "PASS":
         try:
             graph = json.loads(Path(graph_evidence["graph"]).read_text(encoding="utf-8"))
@@ -530,6 +603,7 @@ def inspect_code(root: Path, *, paths: list[str],
             rules = architectural_guardrails(graph, old)
             lineage = trace_literal_json_to_ui(graph, source.get("data_lineage_candidates", []))
             runtime_lineage = trace_observed_json_to_ui(graph, trace)
+            explicit_bindings = trace_explicit_json_bindings(graph, trace)
             # Source confirmation already exists in graph_audit, do not duplicate it.
             from .graph_audit import inspect_graph
             findings = inspect_graph(graph, root=root)
@@ -556,6 +630,7 @@ def inspect_code(root: Path, *, paths: list[str],
             rules = {"status": "UNAVAILABLE", "reason": str(exc)}
             lineage = {"status": "UNAVAILABLE", "reason": str(exc), "references": [], "runtime_data_flow_proven": False}
             runtime_lineage = {"status": "UNAVAILABLE", "reason": str(exc), "references": [], "data_read_proven": False, "ui_render_proven": False}
+            explicit_bindings = {"status": "UNAVAILABLE", "reason": str(exc), "bindings": [], "ui_render_proven": False}
     return {
         "schema_version": 1, "kind": "doctor_code_inspection",
         "status": "BLOCKED" if source["status"] == "BLOCKED" or rules["status"] == "BLOCKED"
@@ -563,7 +638,9 @@ def inspect_code(root: Path, *, paths: list[str],
         or reach["status"] != "PASS" or rules["status"] != "PASS" else "PASS",
         "source": source, "graph_status": graph_evidence["status"],
         "reachability": reach, "architectural_rules": rules,
+        "layer_boundaries": layer_boundaries,
         "data_lineage_to_ui": lineage,
         "observed_json_to_ui": runtime_lineage,
+        "explicit_json_bindings": explicit_bindings,
         "tests_executed": False, "graph_rebuilt": False,
     }

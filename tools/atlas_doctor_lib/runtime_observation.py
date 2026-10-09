@@ -55,6 +55,8 @@ class RuntimeObserver:
         self._symbol_edges: set[tuple[str, str, int, str, str]] = set()
         self._symbol_overflow = False
         self._watched: list[tuple[str, str, weakref.ReferenceType]] = []
+        self._json_read_tokens: set[str] = set()
+        self._json_serial = 0
         self._overflow = False
         self._active = False
         self._busy = False
@@ -325,6 +327,108 @@ class RuntimeObserver:
             return False
         self._watched.append((str(label)[:100], str(kind)[:40], reference))
         return True
+
+    def read_json(self, relative_path: str | Path) -> tuple[Any, str]:
+        """Decode a repo JSON explicitly and record *successful* decode, no content.
+
+        Test and opt-in scenarios only; this does not intercept app file APIs.
+        Caller must explicitly hand off the returned token after UI binding.
+        """
+        if not self._active:
+            raise RuntimeError("JSON read tracing requires an active observer")
+        candidate = Path(relative_path)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            raise ValueError("Expected a repository-relative JSON path")
+        original = self.root / candidate
+        current = self.root
+        for part in candidate.parts:
+            current = current / part
+            if current.is_symlink():
+                raise ValueError("Symlinked JSON path forbidden")
+        selected = original.resolve()
+        if (not selected.is_relative_to(self.root) or selected.suffix.lower() != ".json"
+                or not selected.is_file() or selected.stat().st_size > 4_000_000):
+            raise ValueError("JSON file absent, outside repository or larger than 4 MB")
+        # Parsing exceptions propagate. Emit no successful read event on failure.
+        payload = json.loads(selected.read_text(encoding="utf-8-sig"))
+        self._json_serial += 1
+        token = f"json-{self._json_serial}"
+        relative = selected.relative_to(self.root).as_posix()
+        source = self._path(sys._getframe(1).f_code.co_filename)
+        if source and len(self.events) < self.max_events:
+            self._json_read_tokens.add(token)
+            self._record({"type": "json_decoded", "source": source,
+                          "target": relative, "token": token,
+                          "confidence": "JSON_DECODE_RETURNED"})
+        return payload, token
+
+    def mark_ui_bound(self, token: str) -> bool:
+        """Positive marker after scenario code actually binds decoded data to UI.
+
+        Not proof that native Qt rendered a frame or that the UI is visible.
+        """
+        if not self._active or token not in self._json_read_tokens or len(self.events) >= self.max_events:
+            return False
+        source = self._path(sys._getframe(1).f_code.co_filename)
+        if not source or not source.endswith(".py"):
+            return False
+        self._record({"type": "json_ui_bound", "source": source, "token": token,
+                      "confidence": "EXPLICIT_UI_BINDING_MARKER"})
+        return True
+
+    def snapshot_watches(self, *, label: str) -> dict[str, int]:
+        """Opt-in weakref counts: reference liveness, never leak/ownership proof."""
+        if not self._active:
+            raise RuntimeError("Weak reference snapshots require an active observer")
+        alive = sum(ref() is not None for _, _, ref in self._watched)
+        summary = {"watched": len(self._watched), "alive": alive,
+                   "not_referenced": len(self._watched) - alive}
+        source = self._path(sys._getframe(1).f_code.co_filename)
+        if source:
+            self._record({"type": "weak_watch_snapshot", "source": source,
+                          "label": str(label)[:60], **summary,
+                          "confidence": "WEAKREF_LIVENESS_ONLY"})
+        return summary
+
+    def snapshot_process_tree(self, *, label: str) -> dict[str, Any]:
+        """Opt-in psutil process-tree sample (no arguments or personal data).
+
+        QtWebEngine child process names are only hints; process ownership and
+        Qt object lifecycle are not established by an RSS sample.
+        """
+        if not self._active:
+            raise RuntimeError("Process snapshot requires an active observer")
+        try:
+            import psutil
+            root_process = psutil.Process()
+            children = root_process.children(recursive=True)
+            truncated = len(children) > 64
+            selected = [root_process, *children[:64]]
+            total_bytes = 0
+            observed = 0
+            webengine = 0
+            errors = 0
+            for process in selected:
+                try:
+                    total_bytes += int(process.memory_info().rss)
+                    name = process.name().lower()
+                    webengine += int("qtwebengineprocess" in name)
+                    observed += 1
+                except (psutil.Error, OSError, AttributeError, ValueError):
+                    errors += 1
+            result = {"status": "REVIEW" if errors or truncated else "OBSERVED",
+                      "rss_tree_bytes": total_bytes, "processes_counted": observed,
+                      "webengine_children_named": webengine, "truncated": truncated,
+                      "processes_inaccessible": errors,
+                      "not_native_qt_ownership_proof": True}
+        except (ImportError, OSError, RuntimeError) as exc:
+            result = {"status": "UNAVAILABLE", "reason": type(exc).__name__,
+                      "not_native_qt_ownership_proof": True}
+        source = self._path(sys._getframe(1).f_code.co_filename)
+        if source:
+            self._record({"type": "process_tree_snapshot", "source": source,
+                          "label": str(label)[:60], **result})
+        return result
 
     def mark(self, kind: str, *, source: str, target: str | None = None) -> None:
         """Explicit instrumentation for Qt signal connect/disconnect or lifecycle events."""

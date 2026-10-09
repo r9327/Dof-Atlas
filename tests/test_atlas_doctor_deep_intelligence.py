@@ -392,6 +392,54 @@ class DeepIntelligenceTests(unittest.TestCase):
         trace["worktree_clean"] = False
         self.assertEqual(graph_reachability(graph, ["main.py"], trace=trace)["unreached_total"], 1)
 
+    def test_explicit_json_binding_confirms_decode_handoff_not_visual_render(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_explicit_json_bindings
+        sha = "d" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/core/data_reader.py"},
+            {"id": 2, "source_file": "app/modules/encyclopedia/views/catalog_view.py"},
+        ], "links": []}
+        events = [
+            {"type": "json_decoded", "source": "app/core/data_reader.py",
+             "target": "data/catalog.json", "token": "json-1",
+             "confidence": "JSON_DECODE_RETURNED"},
+            {"type": "json_ui_bound", "source": "app/modules/encyclopedia/views/catalog_view.py",
+             "token": "json-1", "confidence": "EXPLICIT_UI_BINDING_MARKER"},
+        ]
+        trace = {"candidate_sha": sha, "worktree_clean": True,
+                 "truncated": False, "events": events}
+        result = trace_explicit_json_bindings(graph, trace)
+        self.assertEqual(result["status"], "OBSERVED_BINDING")
+        self.assertEqual(result["json_decodes"], 1)
+        self.assertEqual(result["bound_to_ui"], 1)
+        self.assertEqual(result["bindings"][0]["ui_file"],
+                         "app/modules/encyclopedia/views/catalog_view.py")
+        self.assertFalse(result["ui_render_proven"])
+        self.assertNotIn("token", result["bindings"][0])
+        trace["candidate_sha"] = "b" * 40
+        self.assertEqual(trace_explicit_json_bindings(graph, trace)["bound_to_ui"], 0)
+
+    def test_unmatched_token_and_non_ui_marker_not_data_flow_proof(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_explicit_json_bindings
+        sha = "f" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/core/loader.py"},
+            {"id": 2, "source_file": "app/services/service.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                     {"type": "json_ui_bound", "source": "app/services/service.py",
+                      "token": "json-1", "confidence": "EXPLICIT_UI_BINDING_MARKER"},
+                     {"type": "json_decoded", "source": "app/core/loader.py",
+                      "target": "data/a.json", "token": "json-1",
+                      "confidence": "JSON_DECODE_RETURNED"},
+                     {"type": "json_ui_bound", "source": "app/services/service.py",
+                      "token": "json-1", "confidence": "EXPLICIT_UI_BINDING_MARKER"},
+                 ]}
+        result = trace_explicit_json_bindings(graph, trace)
+        self.assertEqual(result["json_decodes"], 1)
+        self.assertEqual(result["bound_to_ui"], 0)
+        self.assertEqual(result["status"], "REVIEW")
+
 
 if __name__ == "__main__":
     unittest.main()

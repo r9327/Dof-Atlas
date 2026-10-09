@@ -258,6 +258,17 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                 if len(bucket) < 6:
                     bucket.append({"json_path": json_path, "opening_source": source,
                                    "kind": kind, "confidence": "OBSERVATION_NOT_DATA_FLOW"})
+    # Exact-SHA opt-in decoded JSON -> explicit Python UI-binding evidence.
+    json_bindings_by_file: dict[str, list[dict[str, Any]]] = {}
+    bindings_summary: dict[str, Any] = {"status": "NOT_TRUSTED", "bound_to_ui": 0}
+    if trace_status == "MATCHED" and trace is not None:
+        from .deep_intelligence import trace_explicit_json_bindings
+        bindings_summary = trace_explicit_json_bindings(graph, trace)
+        for row in bindings_summary.get("bindings", []):
+            for path in (row["reader"], row["ui_file"]):
+                selected_rows = json_bindings_by_file.setdefault(path, [])
+                if len(selected_rows) < 6:
+                    selected_rows.append(row)
     # Existing source-backed community cohesion audit is advisory. Store it
     # once per community, never duplicate the same row for every symbol node.
     cohesion = audit.get("community_cohesion") or {}
@@ -292,6 +303,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "qt_callback_invoked_observed": file in qt_invoked_files,
             "runtime_import_attempt_observed": file in dynamic_import_files,
             "json_runtime_evidence": json_runtime_by_file.get(file, []),
+            "json_verified_binding_evidence": json_bindings_by_file.get(file, []),
             "worker_start_unpaired_at_trace_end": file in open_worker_files,
             "cache_release_observed": file in cache_released_files,
             "qt_destroyed_observed": file in qt_destroyed_files,
@@ -342,6 +354,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "observed_runtime_import_attempt_pairs": len(runtime_import_pairs),
         "runtime_import_attempts_truncated": runtime_imports_truncated,
         "observed_json_opens": json_runtime_summary.get("json_opens_observed", 0),
+        "observed_json_ui_bindings": bindings_summary.get("bound_to_ui", 0),
         "observed_json_truncated": json_runtime_summary.get("truncated", False),
         "observed_lifecycle": observed_lifecycle,
         "observed_symbol_calls": symbol_calls,
@@ -591,6 +604,11 @@ if(n.qt_call_site_observed)line('p','Appel PySide observé au site d’appel ; r
 if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ; exécution du récepteur non prouvée.');
  if(n.qt_callback_invoked_observed)line('p','Callback Python Qt entré pendant ce scénario opt-in ; ownership natif non prouvé.');
  if(n.runtime_import_attempt_observed)line('p','Tentative d’import Python observée dans ce scénario ; réussite de l’import non attestée.');
+ if((n.json_verified_binding_evidence||[]).length){
+  line('h4','JSON décodé et transmis à la vue (scénario opt-in)');
+  n.json_verified_binding_evidence.forEach(e=>line('p',e.json_path+' · '+e.reader+' → '+e.ui_file));
+  line('p','Liaison Python explicitement marquée : ni affichage d’une image ni rendu QWebEngine prouvés.');
+ }
  if((n.json_runtime_evidence||[]).length){
   line('h4','JSON : observations du scénario');
   n.json_runtime_evidence.forEach(e=>line('p',e.kind+' · '+e.json_path+' · ouverture dans '+e.opening_source));
@@ -615,6 +633,14 @@ const locationMatch=String(n.line||'').match(/(?:^|:)([0-9]+)(?::[0-9]+)?$/);
 const lineAnchor=locationMatch?'#L'+locationMatch[1]:'';
 link.href='https://github.com/r9327/Dof-Atlas/blob/'+encodeURIComponent(data.candidate_sha||'main')+'/'+n.file.split('/').map(encodeURIComponent).join('/')+lineAnchor;
 link.target='_blank';link.rel='noopener noreferrer';link.textContent='Voir le code sur GitHub';details.appendChild(link);
+if(data.local_ide_root && n.file && !n.file.startsWith('/') &&
+  n.file.endsWith('.py') && n.file.split('/').every(p=>p && p!=='.' && p!=='..')){
+ const filePath=data.local_ide_root.replace(/\\/g,'/')+'/'+n.file;
+ const ideLink=document.createElement('a');
+ ideLink.href='vscode://file/'+encodeURI(filePath)+(locationMatch?':'+locationMatch[1]:'');
+ ideLink.textContent='Ouvrir le fichier dans VS Code';
+ details.appendChild(ideLink);
+}
 const adj=neighbors.get(i)||[];
 const shownAdj=adj.filter(e=>!relation.value||e.relation===relation.value);
 line('h4','Voisins du graphe ('+shownAdj.length+' / '+adj.length+' avec ce filtre)');
@@ -670,6 +696,7 @@ function buildNodeEvidence(i){
   runtime:{python_call_observed:!!n.runtime_observed,
    qt_connection_observed:!!n.qt_connection_observed,
    qt_callback_invoked_observed:!!n.qt_callback_invoked_observed,
+    json_verified_binding_evidence:(n.json_verified_binding_evidence||[]).slice(0,6),
     runtime_import_attempt_observed:!!n.runtime_import_attempt_observed,
     json_runtime_evidence:(n.json_runtime_evidence||[]).slice(0,6),
    qt_call_site_observed:!!n.qt_call_site_observed,
@@ -954,7 +981,8 @@ def load_snapshot_comparison(
 def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
                              allow_stale: bool = False,
                              baseline_path: Path | None = None,
-                             save_snapshot: bool = False) -> dict[str, Any]:
+                             save_snapshot: bool = False,
+                             ide_links: bool = False) -> dict[str, Any]:
     from .architecture import graph_status
     from .graph_audit import audit_current_graph, inspect_graph
     root = root.resolve()
@@ -1034,6 +1062,8 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
     payload = compact_graph(graph, audit, trace=trace, inspection=inspection,
                             lineage=lineage, comparison=comparison)
     payload["source_scan_selection_truncated"] = source_scan_truncated
+    if ide_links:
+        payload["local_ide_root"] = root.as_posix()
     from .file_coverage import tracked_python
     inventory = tracked_python(root)
     graph_files = {row.get("source_file") for row in graph["nodes"]

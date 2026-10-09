@@ -643,6 +643,42 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertEqual(report["observed_runtime_import_attempt_pairs"], 0)
         self.assertEqual(report["edges"], [])
 
+    def test_explicit_json_binding_proof_in_node_export_requires_matching_trace(self):
+        sha = "3" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/core/reader.py"},
+            {"id": 2, "source_file": "app/modules/encyclopedia/views/catalog_view.py"}],
+                 "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                     {"type": "json_decoded", "source": "app/core/reader.py",
+                      "target": "data/catalog.json", "token": "json-1",
+                      "confidence": "JSON_DECODE_RETURNED"},
+                     {"type": "json_ui_bound",
+                      "source": "app/modules/encyclopedia/views/catalog_view.py",
+                      "token": "json-1", "confidence": "EXPLICIT_UI_BINDING_MARKER"},
+                 ]}
+        report = compact_graph(graph, {}, trace)
+        self.assertEqual(report["observed_json_ui_bindings"], 1)
+        self.assertEqual(report["nodes"][1]["json_verified_binding_evidence"][0]["json_path"],
+                         "data/catalog.json")
+        html = render_html(report)
+        self.assertIn("JSON décodé et transmis à la vue", html)
+        self.assertIn("json_verified_binding_evidence:(n.json_verified_binding_evidence||[]).slice(0,6)", html)
+        trace["worktree_clean"] = False
+        self.assertEqual(compact_graph(graph, {}, trace)["observed_json_ui_bindings"], 0)
+
+    def test_vs_code_local_navigation_is_opt_in_for_safe_python_paths(self):
+        graph = {"built_at_commit": "a" * 40,
+                 "nodes": [{"id": 1, "source_file": "app/pages/home.py"}], "links": []}
+        payload = compact_graph(graph, {})
+        self.assertNotIn("local_ide_root", payload)
+        payload["local_ide_root"] = "C:/Dof-Atlas"
+        html = render_html(payload)
+        self.assertIn("Ouvrir le fichier dans VS Code", html)
+        self.assertIn("vscode://file/", html)
+        self.assertIn("n.file.split('/').every", html)
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,

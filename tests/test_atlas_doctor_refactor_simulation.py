@@ -201,5 +201,20 @@ class RefactorSimulationTests(unittest.TestCase):
         self.assertEqual(preview["runtime_evidence"]["qt_registration_sites"], [])
 
 
+    def test_consolidation_shows_exact_ast_without_auto_merge(self):
+        (self.root / "app/second.py").write_text("def other():\n    return 7\n")
+        (self.root / "app/mod.py").write_text("def old():\n    return 7\n")
+        impact, plan = self._preview_mocks()
+        with patch("tools.agent.reverse_impact_payload", return_value=impact), \
+             patch("tools.agent.plan_payload", return_value=plan):
+            report = simulate_refactor(self.root, ["app/mod.py", "app/second.py"],
+                                       action="consolidate", replacement="app/combined.py")
+        evidence = report["consolidation_similarity"]
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertGreaterEqual(len(evidence["exact_body_groups"]), 1)
+        self.assertFalse(evidence["semantic_equivalence_proven"])
+        self.assertFalse(evidence["automatic_consolidation_allowed"])
+        self.assertFalse((self.root / "app/combined.py").exists())
+
 if __name__ == "__main__":
     unittest.main()

@@ -218,7 +218,8 @@ def command_graph_ui(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph
     payload = export_interactive_graph(root, trace_path=args.trace,
                                        baseline_path=getattr(args, "baseline_graph", None),
-                                       save_snapshot=getattr(args, "save_snapshot", False))
+                                       save_snapshot=getattr(args, "save_snapshot", False),
+                                       ide_links=getattr(args, "ide_links", False))
     if payload.get("status") == "PASS" and args.open:
         import webbrowser
         webbrowser.open(Path(payload["path"]).as_uri())
@@ -277,6 +278,21 @@ def command_graph_compare(root: Path, args) -> dict[str, Any]:
         print(f"Graphify {result['baseline_sha']} -> {result['candidate_sha']}")
         print(f"Nouveaux orphelins : {len(result['new_orphan_symbols'])} | nouveaux cycles : {len(result['new_candidate_import_cycles'])}")
         print("Les différences structurelles sont des pistes, pas des défauts confirmés.")
+    return result
+
+
+def command_scenario_coverage(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.scenario_coverage import load_scenario_coverage
+    result = load_scenario_coverage(root, args.trace,
+                                    required_files=args.require_file)
+    if not args.json:
+        print(f"Doctor scenario coverage: {result['status']} | "
+              f"{result['traces_checked']} traces | "
+              f"{result['observed_python_files_count']} Python files observed")
+        if result["unobserved_required_files"]:
+            print("Not observed in supplied scenarios (NOT proof of dead code): "
+                  + ", ".join(result["unobserved_required_files"]))
+        print("No scenarios, tests, benchmarks or graph rebuild executed.")
     return result
 
 
@@ -523,6 +539,11 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument('--to', help='Chemin relatif cible pour move/consolidate.')
     rp.add_argument('--depth', type=int, choices=(1, 2), default=2)
     rp.add_argument('--trace', type=Path, help='Trace runtime .ai/runtime du HEAD exact (optionnelle).')
+    sc = sub.add_parser('scenario-coverage', help='Comparer les preuves de plusieurs traces exact-SHA, sans exécuter de scénario.')
+    sc.add_argument('--trace', action='append', type=Path, required=True,
+                    help='Trace Doctor existante dans .ai/runtime, maximum 12.')
+    sc.add_argument('--require-file', action='append', default=[],
+                    help='Fichier Python à rechercher parmi les traces sans déduire un code mort.')
     tc = sub.add_parser('test-costs', help='Coût des groupes réels depuis rapports Atlas Integrity existants; aucun test exécuté.')
     tc.add_argument('--report', action='append', type=Path, required=True,
                     help='Rapport JSON sous .ai/runtime (max 8, plusieurs --report possibles).')
@@ -536,6 +557,7 @@ def build_parser() -> argparse.ArgumentParser:
     gl.add_argument('--once', action='store_true', help='Retourner seulement les changements courants.')
     gu = sub.add_parser('graph-ui', help='Exporter Graphify interactif local avec diagnostics Doctor.')
     gu.add_argument('--open', action='store_true', help='Ouvrir le rapport HTML dans le navigateur.')
+    gu.add_argument('--ide-links', action='store_true', help='Ajouter des liens VS Code locaux (chemin absolu dans le HTML).')
     gu.add_argument('--trace', type=Path, help='Trace runtime JSON dans .ai/runtime pour enrichir les liens.')
     gu.add_argument('--baseline-graph', type=Path,
                     help='Comparer un ancien graph.json sous graphify-out (lecture seule).')
@@ -668,6 +690,7 @@ def main(argv: list[str] | None = None) -> int:
         'graph': command_graph,
         'graph-audit': command_graph_audit,
         'test-costs': command_test_costs,
+        'scenario-coverage': command_scenario_coverage,
         'change-plan': command_change_plan,
         'file-coverage': command_file_coverage,
         'consumer-sites': command_consumer_sites,
@@ -722,6 +745,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == 'file-coverage':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
+    if args.command == 'scenario-coverage':
+        return 0 if payload['status'] == 'OBSERVED' else 1
     if args.command == 'test-costs':
         return 0 if payload['status'] == 'PASS' else 1
     if args.command == 'change-plan':

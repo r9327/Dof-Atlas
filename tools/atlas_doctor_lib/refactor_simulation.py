@@ -173,6 +173,20 @@ def simulate_refactor(
         replacement = None
     impact = agent.reverse_impact_payload(root, normalized, depth=depth)
     runtime = _runtime_consumer_evidence(root, normalized, trace_path)
+    consolidation_similarity: dict[str, Any] | None = None
+    if action == "consolidate":
+        from .deep_intelligence import scan_sources
+        compared = normalized + ([replacement] if replacement and (root / replacement).is_file() else [])
+        evidence = scan_sources(root, compared)
+        consolidation_similarity = {
+            "status": evidence["status"],
+            "exact_body_groups": evidence.get("duplicate_bodies", [])[:20],
+            "similar_body_groups": evidence.get("near_duplicate_candidates", [])[:20],
+            "truncated": evidence.get("truncated", False),
+            "semantic_equivalence_proven": False,
+            "automatic_consolidation_allowed": False,
+            "reason": "Matching AST bodies are candidates; APIs, side effects and callers still require review.",
+        }
     base = {
         "schema_version": 1, "kind": "doctor_refactor_simulation",
         "read_only": True, "automatic_edit": False, "tests_executed": False,
@@ -190,6 +204,7 @@ def simulate_refactor(
              for row in runtime[kind]} if runtime["status"] == "MATCHED" else set()
         )) - set(normalized)),
         "runtime_evidence": runtime,
+        "consolidation_similarity": consolidation_similarity,
         "limitations": [
             "Graph-derived relations are confirmed against literal Python imports, not arbitrary runtime callbacks.",
             "A preview cannot prove absence of dynamic consumers or that consolidation preserves behavior.",

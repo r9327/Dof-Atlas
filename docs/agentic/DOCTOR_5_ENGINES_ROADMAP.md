@@ -133,3 +133,62 @@ Les événements Python `import_attempt` (issus d’imports statiques ou dynamiq
 ### Test Intelligence : coûts historiques sans exécuter de suite
 
 `python -m tools.atlas_doctor test-costs --report .ai/runtime/<rapport_integrity>.json --json` lit jusqu'à huit rapports Atlas Integrity locaux déjà produits. Médiane/min/max des durées de groupes réellement exécutés avec succès ; réutilisations `FULL_SUITE` à 0 seconde, échecs, durées incomplètes et NaN exclus. Les données restent historiques, pas des prévisions ni une preuve de couverture. Aucun test, benchmark, Graphify rebuild ou watcher lancé. Les fichiers restent confinés à `.ai/runtime`.
+
+
+## Lot d'intégration Doctor/Graphify — preuves utiles avant certification
+
+Ce lot n'active aucune surveillance automatique dans DOFUS.bat, main.py, Guide ou
+QWebEngine. Les mesures ne se font que dans un scénario explicitement lancé.
+
+### Runtime Inspector — preuves progressives et bornées
+
+- `RuntimeObserver.read_json("data/catalog.json")` décode le JSON avec succès et
+  rend (valeur, jeton opaque). Aucun contenu JSON n'entre dans la trace.
+- `RuntimeObserver.mark_ui_bound(token)` doit être appelé explicitement **après**
+  l'affectation des données à la vue Python. Doctor fait correspondre les jetons,
+  les fichiers et le SHA de la trace; un callback qui ne décode pas, un jeton inconnu
+  ou une trace tronquée ne fournit pas cette preuve.
+- `trace_explicit_json_bindings` et `code-inspect` conservent séparément les
+  pistes d'ouvertures de fichiers et les **liaisons explicites**. La présence du
+  marqueur ne prouve pas un frame Qt affiché ni un rendu WebEngine.
+- `RuntimeObserver.snapshot_watches(label=...)` compte les références faibles
+  vivantes, sans conserver les objets; ne prouve jamais une fuite.
+- `RuntimeObserver.snapshot_process_tree(label=...)` relève à la demande le RSS
+  d'un arbre de processus et le nombre de noms QtWebEngineProcess visibles,
+  avec `psutil` facultatif et 64 enfants maximum. Absence de permission ou de
+  bibliothèque = UNAVAILABLE/REVIEW, pas un faux PASS. Cette mesure **n'est pas
+  lancée ici** et ne remplace pas les benchmarks Phase 8.
+
+### Test Intelligence / Change Intelligence
+
+- `python -m tools.atlas_doctor scenario-coverage --trace .ai/runtime/atlas_doctor/traces/guide.json --trace .ai/runtime/atlas_doctor/traces/quests.json --require-file app/pages/home.py --json`
+  regroupe jusqu'à 12 traces exact-SHA. Les fichiers non rencontrés sont
+  `unobserved_required_files`, **jamais des fichiers supprimables**. Une trace
+  incomplète, d'un autre SHA ou malformée ne donne aucune couverture positive.
+- `code-inspect` expose désormais les indices de frontières architecturales
+  confirmés par AST, en inspection bornée à 16 fichiers, sans inventer de règle
+  bloquante sur des couches qui ont des exceptions réelles.
+- `refactor-preview --action consolidate` ajoute les corps AST identiques ou
+  similaires parmi les fichiers ciblés; l'équivalence comportementale et toute
+  fusion/suppression automatique restent expressément non prouvées.
+
+### Graphify interactif
+
+- Les nœuds affichent maintenant les traces `json_decoded → json_ui_bound`
+  distinctement des simples chaînes d'appels ou ouvertures JSON.
+- `graph-ui --ide-links --open` fournit un lien `vscode://file/...` par nœud
+  Python : cette option est désactivée par défaut car elle inscrit le chemin
+  local absolu dans le HTML exporté. Aucune liaison VS Code permanente.
+- Recherche, communautés, pagination, snapshots historiques, inspections de
+  consommateurs et export des preuves précédemment intégrés restent inchangés.
+
+### Conditions de fin des 18 capacités
+
+L'implémentation des primitives n'est **pas** une preuve de couverture réelle des
+flux Guide / Quêtes / Succès / Équipement. La liaison Qt et WebEngine native ne
+peut pas être déduite de la seule trace Python; un sous-processus WebEngine
+observé n'est pas une preuve de propriété d'un QObject. Il faut encore exercer
+des scénarios réels et valider les garde-fous de comportement, puis figer le
+HEAD pour les suites de certification finale. Tant que ces scénarios et les
+checks obligatoires ne sont pas validés : **DRAFT, non certified, no merge**.
+Aucune relance répétée des benchmarks RAM/preload pendant le développement.
