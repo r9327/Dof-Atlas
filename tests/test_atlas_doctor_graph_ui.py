@@ -291,6 +291,39 @@ class DoctorGraphUiTests(unittest.TestCase):
             self.assertIn(term, html)
         self.assertIn("not proof of dead code", payload["disclaimer"])
 
+    def test_file_removal_what_if_uses_static_file_imports_only(self):
+        # Two importers of the same file, an indirect consumer and a runtime
+        # edge. The interactive preview must keep all graph data read-only and
+        # must not promote runtime events to import dependencies.
+        graph = {"built_at_commit": "f" * 40,
+                 "nodes": [
+                     {"id": 1, "source_file": "app/source.py"},
+                     {"id": 2, "source_file": "app/direct.py"},
+                     {"id": 3, "source_file": "app/indirect.py"},
+                     {"id": 4, "source_file": "app/runtime.py"},
+                 ], "links": [
+                     {"source": 2, "target": 1, "relation": "imports"},
+                     {"source": 3, "target": 2, "relation": "imports_from"},
+                 ]}
+        data = compact_graph(graph, {})
+        html = render_html(data)
+        self.assertEqual(len(data["nodes"]), 4)
+        self.assertEqual(len(data["edges"]), 2)
+        for marker in (
+            "const firstNodeByFile=new Map(), staticImporters=new Map()",
+            "if(!['imports','imports_from'].includes(edge.relation)||edge.observed===true)",
+            "function showFileRemovalPreview(file)",
+            "showFileRemovalPreview(n.file)",
+            "examinedEdges>4000||visited.size>=2000",
+            "if(current.depth>=2)continue",
+            "row.depth===1?'Direct : ':'Indirect : '",
+            "button.addEventListener('click',()=>revealNode(index))",
+            "Scénario hypothétique, lecture seule",
+        ):
+            self.assertIn(marker, html)
+        self.assertIn("Simuler l’impact du retrait de ce fichier", html)
+        self.assertNotIn("safe_to_delete", html)
+
     def test_prioritized_doctor_actions_are_actionable_but_review_only(self):
         graph = {"built_at_commit": "a" * 40,
                  "nodes": [{"id": 1, "source_file": "app/a.py"}], "links": []}

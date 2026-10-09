@@ -367,6 +367,17 @@ if(inventory){
 }
 const neighbors=new Map(), nodes=data.nodes;
 const relationCounts=new Map();
+// File-level import consumers are derived once from the existing static graph.
+// Runtime call and Qt connection edges must never be treated as imports.
+const firstNodeByFile=new Map(), staticImporters=new Map();
+nodes.forEach((node,i)=>{if(node.file&&!firstNodeByFile.has(node.file))firstNodeByFile.set(node.file,i)});
+for(const edge of data.edges){
+ if(!['imports','imports_from'].includes(edge.relation)||edge.observed===true)continue;
+ const importer=nodes[edge.a]?.file, imported=nodes[edge.b]?.file;
+ if(!importer||!imported||importer===imported)continue;
+ if(!staticImporters.has(imported))staticImporters.set(imported,new Set());
+ staticImporters.get(imported).add(importer);
+}
 data.edges.forEach(e=>{
   const kind=String(e.relation||'non typée');
   relationCounts.set(kind,(relationCounts.get(kind)||0)+1);
@@ -547,6 +558,10 @@ const impactButton=document.createElement('button');impactButton.type='button';
 impactButton.textContent='Explorer les consommateurs (imports inverses)';
 impactButton.addEventListener('click',()=>showReverseImpact(i));
 details.appendChild(impactButton);
+const previewButton=document.createElement('button');previewButton.type='button';
+previewButton.textContent='Simuler l’impact du retrait de ce fichier (sans modification)';
+previewButton.addEventListener('click',()=>showFileRemovalPreview(n.file));
+details.appendChild(previewButton);
 render()}
 function focusNode(i){
  const loc=positions[i];
@@ -593,6 +608,54 @@ function showReverseImpact(source){
   button.addEventListener('click',()=>revealNode(row.node));
   section.appendChild(button);
  });
+ details.appendChild(section);
+}
+function showFileRemovalPreview(file){
+ // Static file-import review only. Never edit files or claim an absence of consumers.
+ const visited=new Set([file]), queue=[{file,depth:0}], direct=[], indirect=[];
+ let cursor=0,complete=true, examinedEdges=0;
+ while(cursor<queue.length){
+  const current=queue[cursor++];
+  if(current.depth>=2)continue;
+  const incoming=staticImporters.get(current.file)||new Set();
+  for(const importer of incoming){
+   examinedEdges++;
+   if(examinedEdges>4000||visited.size>=2000){complete=false;break}
+   if(visited.has(importer))continue;
+   visited.add(importer);
+   const entry={file:importer,depth:current.depth+1};
+   if(entry.depth===1)direct.push(entry);else indirect.push(entry);
+   queue.push(entry);
+  }
+  if(!complete)break;
+ }
+ const section=document.createElement('section');
+ const heading=document.createElement('h4');
+ heading.textContent='Aperçu de retrait (imports par fichier, sans édition)';
+ section.appendChild(heading);
+ const note=document.createElement('p');
+ note.textContent=direct.length+' consommateurs directs, '+indirect.length+
+  ' indirects (2 niveaux). '+(complete?'Analyse bornée terminée. ':'Résultats incomplets (budget atteint). ')+
+  'Ce sont des imports statiques extraits, pas une preuve d’exécution ou de sécurité de suppression.';
+ section.appendChild(note);
+ const rowList=[...direct,...indirect];
+ rowList.sort((a,b)=>a.depth-b.depth||a.file.localeCompare(b.file));
+ for(const row of rowList.slice(0,40)){
+  const index=firstNodeByFile.get(row.file);
+  if(index===undefined)continue;
+  const button=document.createElement('button');button.type='button';
+  button.textContent=(row.depth===1?'Direct : ':'Indirect : ')+row.file;
+  button.addEventListener('click',()=>revealNode(index));
+  section.appendChild(button);
+ }
+ if(rowList.length>40){
+  const warning=document.createElement('small');
+  warning.textContent='Affichage limité à 40 fichiers ; le total reste calculé séparément.';
+  section.appendChild(warning);
+ }
+ const provenance=document.createElement('small');
+ provenance.textContent='Scénario hypothétique, lecture seule. Vérifier les imports dynamiques, Qt et tests avant tout changement.';
+ section.appendChild(provenance);
  details.appendChild(section);
 }
 function showGraphPath(from,to){
