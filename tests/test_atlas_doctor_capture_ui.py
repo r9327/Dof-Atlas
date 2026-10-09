@@ -11,7 +11,13 @@ from tools.atlas_doctor import UI_SCENARIOS, build_parser, command_capture_ui
 
 class DoctorUiCaptureContracts(unittest.TestCase):
     def test_registered_scenarios_are_safe_bounded_entrypoints(self):
-        self.assertEqual(set(UI_SCENARIOS), {"qt", "equipment", "encyclopedia"})
+        self.assertEqual(set(UI_SCENARIOS), {"qt", "equipment", "encyclopedia", "webengine"})
+        self.assertEqual(
+            UI_SCENARIOS["webengine"],
+            "tools.atlas_doctor_lib.webengine_lifecycle_scenario",
+        )
+        isolated = build_parser().parse_args(["capture-ui", "webengine"])
+        self.assertEqual(isolated.scenario, "webengine")
         args = build_parser().parse_args(["capture-ui", "equipment"])
         self.assertEqual(args.scenario, "equipment")
         self.assertEqual(args.max_events, 50000)
