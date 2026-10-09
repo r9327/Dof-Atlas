@@ -487,7 +487,12 @@ class RuntimeObserver:
                 widget = parent_getter()
                 if widget is None:
                     break
-                defining_file = inspect.getsourcefile(type(widget))
+                try:
+                    defining_file = inspect.getsourcefile(type(widget))
+                except (TypeError, OSError):
+                    # Native PySide6 QLabel/QFrame types have no Python file.
+                    # Keep following their parent chain to the Atlas view.
+                    continue
                 candidate_source = self._path(defining_file) if defining_file else None
                 if (candidate_source and candidate_source.endswith(".py")
                         and candidate_source.startswith(("app/pages/", "app/ui/",
