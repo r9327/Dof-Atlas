@@ -77,6 +77,42 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertEqual(rows[0]["target"], "window.py")
             self.assertEqual(rows[0]["confidence"], "CONNECT_RETURNED_NOT_CALLBACK_INVOKED")
 
+    def test_qt_partial_callback_recovers_real_target_without_invocation(self):
+        import runpy
+
+        class Signal:
+            def __init__(self):
+                self.callbacks = []
+
+            def connect(self, callback):
+                self.callbacks.append(callback)
+                return "connected"
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            callback_file = root / "slot.py"
+            caller_file = root / "caller.py"
+            callback_file.write_text("def callback(value):\n    return value\n")
+            caller_file.write_text(
+                "from functools import partial\n"
+                "result = observer.connect_qt_signal(signal, partial(callback, 7))\n"
+            )
+            callback = runpy.run_path(str(callback_file))["callback"]
+            observer = RuntimeObserver(root)
+            signal = Signal()
+            with observer:
+                scope = runpy.run_path(str(caller_file), init_globals={
+                    "observer": observer, "signal": signal, "callback": callback,
+                })
+            self.assertEqual(scope["result"], "connected")
+            self.assertEqual(len(signal.callbacks), 1)
+            events = [row for row in observer.report()["events"]
+                      if row["type"] == "qt_signal_connect_returned"]
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["source"], "caller.py")
+            self.assertEqual(events[0]["target"], "slot.py")
+            self.assertEqual(events[0]["confidence"], "CONNECT_RETURNED_NOT_CALLBACK_INVOKED")
+
     def test_real_cross_file_function_call_is_recorded_by_symbol(self):
         import runpy
         with tempfile.TemporaryDirectory() as directory:

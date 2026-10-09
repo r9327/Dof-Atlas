@@ -9,6 +9,7 @@ explicit test instrumentation or separate platform profilers.
 import argparse
 import gc
 import json
+from functools import partial
 import runpy
 import subprocess
 import sys
@@ -201,7 +202,15 @@ class RuntimeObserver:
         if not self._active:
             raise RuntimeError("Qt connection capture requires an active observer")
         caller = self._path(sys._getframe(1).f_code.co_filename)
-        method = getattr(callback, "__func__", callback)
+        method = callback
+        # functools.partial is common for Qt bindings; unwrap without
+        # invoking the callback, and cap pathological nested partials.
+        for _ in range(6):
+            if isinstance(method, partial):
+                method = method.func
+                continue
+            method = getattr(method, "__func__", method)
+            break
         code = getattr(method, "__code__", None)
         receiver_file = self._path(code.co_filename) if code is not None else None
         result = signal.connect(callback)
