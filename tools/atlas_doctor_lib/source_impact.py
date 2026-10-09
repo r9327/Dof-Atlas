@@ -57,10 +57,11 @@ def _module_path(parts: list[str], available: set[str]) -> str | None:
     return None
 
 
-def _imports(source: str, tree: ast.AST, available: set[str]) -> tuple[list[tuple[str, int]], int]:
+def _imports(source: str, tree: ast.AST, available: set[str]) -> tuple[list[tuple[str, int]], int, list[tuple[str, int]]]:
     parent = source.removesuffix(".py").split("/")
     package = parent[:-1]  # Both foo/bar.py and foo/__init__.py live in foo
     found: set[tuple[str, int]] = set()
+    dynamic: set[tuple[str, int]] = set()
     unresolved = 0
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -95,9 +96,17 @@ def _imports(source: str, tree: ast.AST, available: set[str]) -> tuple[list[tupl
         elif isinstance(node, ast.Call):
             name = node.func.id if isinstance(node.func, ast.Name) else (
                 node.func.attr if isinstance(node.func, ast.Attribute) else "")
-            if name in {"import_module", "__import__", "getattr"}:
+            if name in {"import_module", "__import__"}:
                 unresolved += 1
-    return sorted(found), unresolved
+                first = node.args[0] if node.args else next(
+                    (arg.value for arg in node.keywords if arg.arg == "name"), None)
+                if isinstance(first, ast.Constant) and isinstance(first.value, str):
+                    resolved = _module_path(first.value.split("."), available)
+                    if resolved and resolved != source:
+                        dynamic.add((resolved, node.lineno))
+            elif name == "getattr":
+                unresolved += 1
+    return sorted(found), unresolved, sorted(dynamic)
 
 
 def source_reverse_impact(root: Path, changed_paths: list[str], *, depth: int = 2) -> dict[str, Any]:
@@ -128,6 +137,7 @@ def source_reverse_impact(root: Path, changed_paths: list[str], *, depth: int = 
             "read_only": True, "tests_executed": False, "safe_to_delete": False,
         }
     backwards: dict[str, list[tuple[str, int]]] = {}
+    dynamic_backwards: dict[str, list[tuple[str, int]]] = {}
     budget = 0
     errors: list[dict[str, str]] = []
     inspected = 0
@@ -146,10 +156,12 @@ def source_reverse_impact(root: Path, changed_paths: list[str], *, depth: int = 
             errors.append({"path": path, "reason": type(exc).__name__})
             continue
         inspected += 1
-        deps, unresolved = _imports(path, tree, available)
+        deps, unresolved, dynamic = _imports(path, tree, available)
         dynamic_sites += unresolved
         for target, line in deps:
             backwards.setdefault(target, []).append((path, line))
+        for target, line in dynamic:
+            dynamic_backwards.setdefault(target, []).append((path, line))
 
     reached = {path: 0 for path in changed}
     chain = deque(changed)
@@ -172,6 +184,15 @@ def source_reverse_impact(root: Path, changed_paths: list[str], *, depth: int = 
                     "line": line, "depth": next_depth,
                     "confidence": "CURRENT_SOURCE_AST_STATIC_IMPORT",
                 })
+    # Literal importlib/__import__ calls are source candidates, never
+    # treated as successful imports or static edges for transitive traversal.
+    dynamic_candidates = [
+        {"importer": importer, "imported": target, "line": line,
+         "confidence": "LITERAL_DYNAMIC_IMPORT_CALL_NOT_EXECUTED"}
+        for target in changed
+        for importer, line in sorted(dynamic_backwards.get(target, []))
+        if importer != target
+    ]
     consumers = sorted(({"path": path, "depth": level}
                         for path, level in reached.items() if path not in changed),
                        key=lambda item: (item["depth"], item["path"]))
@@ -180,7 +201,8 @@ def source_reverse_impact(root: Path, changed_paths: list[str], *, depth: int = 
                       else "/".join(item["path"].split("/")[:2])
                       for item in consumers})
     incomplete = (len(tracked) > MAX_SOURCE_FILES or bool(errors)
-                  or len(evidence) >= MAX_RESULTS or len(consumers) > MAX_RESULTS)
+                  or len(evidence) >= MAX_RESULTS or len(consumers) > MAX_RESULTS
+                  or len(dynamic_candidates) > MAX_RESULTS)
     return {
         "schema_version": 1, "kind": "doctor_source_reverse_impact",
         "status": "REVIEW" if incomplete else "SOURCE_CONFIRMED",
@@ -190,10 +212,12 @@ def source_reverse_impact(root: Path, changed_paths: list[str], *, depth: int = 
         "indirect_consumers": sum(row["depth"] == 2 for row in consumers),
         "consumer_files": consumers[:MAX_RESULTS],
         "import_evidence": evidence[:MAX_RESULTS],
+        "literal_dynamic_import_candidates": dynamic_candidates[:MAX_RESULTS],
+        "literal_dynamic_import_candidate_count": len(dynamic_candidates),
         "affected_domains": domains[:MAX_RESULTS],
         "potential_dynamic_import_sites": dynamic_sites,
         "source_errors": errors[:32], "truncated": incomplete,
         "read_only": True, "tests_executed": False, "graph_rebuilt": False,
         "safe_to_delete": False, "runtime_coverage_proven": False,
-        "limits": "Source AST static imports only, 2 levels, bounded to 1600 tracked files/40 MiB. Dynamic imports, callbacks, Qt receivers, plugins and external consumers require separate evidence.",
+        "limits": "Static imports are source-confirmed; literal importlib calls are unexecuted candidate consumers. Two levels, 1600 files/40 MiB. Reflective Qt receivers, plugins and external users remain unknown.",
     }
