@@ -405,3 +405,8 @@ Le rendu paginé calcule maintenant `pageEdges` à partir des seules relations r
 ### Imports relatifs et garde-fous entre domaines
 
 Le scanner de couches résout maintenant `from .module import name`, `from ..views.panel import View` et `from . import module` selon l’emplacement du fichier source et les règles des packages Python, puis confirme la présence du fichier importé sur disque. Un niveau relatif qui sort du package est ignoré comme non résolu, jamais transformé en violation inventée. Les inversions `core/services → ui` et les imports d’interfaces privées entre domaines sont signalés comme preuves AST consultatives; aucune réécriture ni suppression automatique.
+
+
+### Résolution précise des constructeurs Qt
+
+Doctor ne signale désormais les créations `QTimer`, `QThread`, `QWebEnginePage/View/Profile`, `QNetworkAccessManager` que lorsque le constructeur peut être relié à un import PySide6/PyQt6 réel (import direct, alias ou module qualifié). Un symbole non lié nommé `QTimer` n’est plus un faux positif. Les constructeurs recevant des arguments positionnels sont distingués de ceux qui ne spécifient pas de parent ; aucune ownership native n’est déduite de leur présence.

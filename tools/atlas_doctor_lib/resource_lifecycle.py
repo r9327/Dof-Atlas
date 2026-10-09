@@ -47,12 +47,21 @@ def inspect_resource_lifecycle(root: Path, paths: list[str]) -> dict[str, Any]:
             continue
         inspected.append(relative)
         aliases: dict[str, str] = {}
+        qt_modules: set[str] = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module and (
-                    node.module.startswith("PySide6.") or node.module.startswith("PyQt")):
+            if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name in QT_TYPES:
-                        aliases[alias.asname or alias.name] = alias.name
+                    if alias.name.startswith(("PySide6.Qt", "PyQt6.Qt")):
+                        qt_modules.add(alias.asname or alias.name)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                if node.module in {"PySide6", "PyQt6"}:
+                    for alias in node.names:
+                        if alias.name.startswith("Qt"):
+                            qt_modules.add(alias.asname or alias.name)
+                elif node.module.startswith(("PySide6.Qt", "PyQt6.Qt")):
+                    for alias in node.names:
+                        if alias.name in QT_TYPES:
+                            aliases[alias.asname or alias.name] = alias.name
 
         signals: set[str] = set()
         cleanup: set[str] = set()
@@ -67,14 +76,22 @@ def inspect_resource_lifecycle(root: Path, paths: list[str]) -> dict[str, Any]:
                     signal = _name(node.func.value).rsplit(".", 1)[-1]
                     if signal in {"destroyed", "finished", "started", "aboutToQuit"}:
                         signals.add(signal)
-                qt_type = aliases.get(name, method if method in QT_TYPES else None)
+                qt_type = aliases.get(name)
+                if (qt_type is None and method in QT_TYPES and
+                        isinstance(node.func, ast.Attribute)):
+                    owner = name.rsplit(".", 1)[0]
+                    if owner in qt_modules:
+                        qt_type = method
                 if qt_type:
                     parent = next((keyword.value for keyword in node.keywords
                                    if keyword.arg == "parent"), None)
-                    parent_evidence = ("KEYWORD_PARENT_PRESENT" if parent is not None
-                                       and not (isinstance(parent, ast.Constant)
-                                                and parent.value is None)
-                                       else "PARENT_NOT_ESTABLISHED")
+                    if parent is not None and not (
+                            isinstance(parent, ast.Constant) and parent.value is None):
+                        parent_evidence = "KEYWORD_PARENT_PRESENT"
+                    elif node.args:
+                        parent_evidence = "POSITIONAL_ARGUMENTS_OWNERSHIP_UNRESOLVED"
+                    else:
+                        parent_evidence = "PARENT_NOT_ESTABLISHED"
                     resources.append({
                         "path": relative, "line": node.lineno, "qt_type": qt_type,
                         "parent_evidence": parent_evidence,
