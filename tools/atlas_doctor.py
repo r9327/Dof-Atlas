@@ -216,7 +216,8 @@ def command_graph_live(root: Path, args) -> dict[str, Any]:
 def command_graph_ui(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph
     payload = export_interactive_graph(root, trace_path=args.trace,
-                                       baseline_path=getattr(args, "baseline_graph", None))
+                                       baseline_path=getattr(args, "baseline_graph", None),
+                                       save_snapshot=getattr(args, "save_snapshot", False))
     if payload.get("status") == "PASS" and args.open:
         import webbrowser
         webbrowser.open(Path(payload["path"]).as_uri())
@@ -522,6 +523,8 @@ def build_parser() -> argparse.ArgumentParser:
     gu.add_argument('--trace', type=Path, help='Trace runtime JSON dans .ai/runtime pour enrichir les liens.')
     gu.add_argument('--baseline-graph', type=Path,
                     help='Comparer un ancien graph.json sous graphify-out (lecture seule).')
+    gu.add_argument('--save-snapshot', action='store_true',
+                    help='Conserver le graphe actuel dans graphify-out/history/<sha>.json (sans rebuild).')
     rt = sub.add_parser('runtime-trace', help='Tracer explicitement les appels Python d un module (mode instrumente).')
     rt.add_argument('--module', required=True, help='Module de scenario de test a executer.')
     rt.add_argument('--max-events', type=int, default=5000)

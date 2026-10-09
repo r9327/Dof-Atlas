@@ -36,6 +36,28 @@ class DoctorGraphUiTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "does not match graph SHA"):
             compact_graph(graph, {}, comparison={**compare, "candidate_sha": "f" * 40})
 
+    def test_snapshot_saves_exact_graph_without_rebuild_or_overwrite(self):
+        import tempfile
+        from pathlib import Path
+        from tools.atlas_doctor_lib.doctor_graph_ui import save_graph_snapshot
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "graphify-out"
+            output.mkdir()
+            graph = output / "graph.json"
+            graph.write_text('{"nodes":[{"id":1}],"links":[]}', encoding="utf-8")
+            sha = "e" * 40
+            saved = Path(save_graph_snapshot(root, graph, sha))
+            self.assertEqual(saved.parent.name, "history")
+            self.assertEqual(saved.name, sha + ".json")
+            self.assertEqual(saved.read_bytes(), graph.read_bytes())
+            self.assertEqual(save_graph_snapshot(root, graph, sha), str(saved))
+            saved.write_text("changed", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "different contents"):
+                save_graph_snapshot(root, graph, sha)
+            with self.assertRaisesRegex(ValueError, "Full commit SHA"):
+                save_graph_snapshot(root, graph, "short")
+
     def test_snapshot_baseline_is_bounded_to_graphify_out_and_read_only(self):
         import json
         import tempfile

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 An independent local HTML viewer; no server, CDN, Qt runtime or graph rebuild.
 """
+import hashlib
 import json
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -697,6 +699,38 @@ def render_html(payload: dict[str, Any]) -> str:
     return HTML.replace("__GRAPH_DATA__", encoded)
 
 
+def save_graph_snapshot(root: Path, graph_path: Path, sha: str) -> str:
+    """Opt-in immutable snapshot. Never rebuild or overwrite an existing SHA."""
+    root = root.resolve()
+    if not re.fullmatch(r"[0-9a-f]{40}", sha):
+        raise ValueError("Full commit SHA required for snapshot")
+    expected = root / "graphify-out" / "graph.json"
+    source = Path(graph_path)
+    if source.is_symlink() or not source.is_file() or source.resolve() != expected.resolve():
+        raise ValueError("Only the canonical Graphify export can be snapshotted")
+    if source.stat().st_size > 25_000_000:
+        raise ValueError("Graphify snapshot exceeds 25 MB")
+    history = root / "graphify-out" / "history"
+    if history.is_symlink():
+        raise ValueError("Snapshot history cannot be a symlink")
+    history.mkdir(parents=True, exist_ok=True)
+    target = history / (sha + ".json")
+    if target.is_symlink():
+        raise ValueError("Historical snapshot cannot be a symlink")
+    if target.exists():
+        with source.open("rb") as left, target.open("rb") as right:
+            if hashlib.file_digest(left, "sha256").digest() != hashlib.file_digest(right, "sha256").digest():
+                raise ValueError("Existing snapshot SHA has different contents")
+        return str(target)
+    with source.open("rb") as left, target.open("xb") as right:
+        try:
+            shutil.copyfileobj(left, right, 1024 * 1024)
+        except BaseException:
+            target.unlink(missing_ok=True)
+            raise
+    return str(target)
+
+
 def load_snapshot_comparison(
     root: Path, graph: dict[str, Any], baseline_path: Path
 ) -> dict[str, Any]:
@@ -720,7 +754,8 @@ def load_snapshot_comparison(
 
 def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
                              allow_stale: bool = False,
-                             baseline_path: Path | None = None) -> dict[str, Any]:
+                             baseline_path: Path | None = None,
+                             save_snapshot: bool = False) -> dict[str, Any]:
     from .architecture import graph_status
     from .graph_audit import audit_current_graph, inspect_graph
     root = root.resolve()
@@ -812,6 +847,14 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         "status": "HISTORICAL" if stale else "CURRENT_SNAPSHOT",
         "runtime_proof": False,
     }
+    saved_snapshot = None
+    if save_snapshot:
+        if stale:
+            return {"status": "BLOCKED", "reason": "Cannot snapshot a stale graph as current."}
+        try:
+            saved_snapshot = save_graph_snapshot(root, Path(status["graph"]), snapshot_commit)
+        except (OSError, ValueError) as exc:
+            return {"status": "BLOCKED", "reason": str(exc)}
     destination = root / "graphify-out" / "doctor_graph.html"
     destination.write_text(render_html(payload), encoding="utf-8")
     return {
@@ -825,6 +868,7 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         "json_lineage_review_leads": payload["json_lineage_review_leads"],
         "baseline_sha": comparison["baseline_sha"] if comparison else None,
         "snapshot_comparison_status": comparison["status"] if comparison else "NOT_PROVIDED",
+        "saved_snapshot": saved_snapshot,
         "source_scan_truncated": source_scan_truncated or payload["source_inspection_truncated"],
         "tests_executed": False, "graph_rebuilt": False,
     }
