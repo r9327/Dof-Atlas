@@ -338,3 +338,8 @@ Doctor propose capture-ui webengine (QT_QPA_PLATFORM=offscreen). Ce scénario di
 ### Suivi historique multi-scénarios, sans fausse régression
 
 La commande scenario-trend --trace A --trace B [--trace C ...] lit entre 2 et 8 traces complètes, ordonnées et étiquetées par SHA, pour le même scénario. Elle compare les relations Python/Qt réellement observées et distingue une absence ponctuelle d'une absence répétée sur au moins quatre captures. Un écart reste REVIEW, jamais une régression fonctionnelle prouvée : une différence de branche d'exécution ou d'ordonnancement Qt suffit à l'expliquer. Lecture locale uniquement, 32 Mo maximum au total, sans exécution de tests, sans benchmark, sans watcher et sans rebuild Graphify.
+
+
+### Graphify affiche les pistes WebEngine et caches
+
+Les diagnostics source de cycle de vie Qt/WebEngine et de caches non bornés sont désormais directement associés aux nœuds des fichiers concernés dans l'inspecteur du graphe et son filtre par catégorie Doctor. Ils sont calculés seulement sur les 16 fichiers explicitement sélectionnés pour le diagnostic courant ; un graphe historique ne relit jamais des sources modernes. Tous les avertissements restent candidats à vérifier, sans suppression automatique ni déduction de fuite.

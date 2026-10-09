@@ -114,6 +114,24 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
                 bucket.append({"line": str(line or ""), "kind": kind,
                                "subject": str(subject or "")[:180],
                                "confidence": "STATIC_SOURCE_REVIEW_ONLY"})
+        # Show bounded Doctor resource/caching hints in the existing inspector.
+        resource_scan = inspection.get("resource_lifecycle") or {}
+        for item in resource_scan.get("findings", [])[:80]:
+            if not isinstance(item, dict):
+                continue
+            path = item.get("path")
+            if not isinstance(path, str):
+                continue
+            is_cache = item.get("kind") == "UNBOUNDED_CACHE_CANDIDATE"
+            category = "cache" if is_cache else "resource"
+            reason = ("Potentially unbounded cache, source review only" if is_cache
+                      else "Qt/WebEngine resource, native lifetime unproven")
+            review_by_file.setdefault(path, set()).add(category)
+            reasons = file_reasons.setdefault(path, [])
+            if reason not in reasons:
+                reasons.append(reason)
+            add(path, item.get("line"), reason,
+                item.get("symbol") if is_cache else item.get("qt_type"))
         for key, kind in (
             ("missing_internal_import_candidates", "Missing internal import candidate"),
             ("silent_exceptions", "Swallowed exception pattern"),
@@ -1187,6 +1205,8 @@ def export_interactive_graph(root: Path, *, trace_path: Path | None = None,
         if source_paths:
             from .deep_intelligence import scan_sources
             inspection = scan_sources(root, source_paths)
+            from .resource_lifecycle import inspect_resource_lifecycle
+            inspection["resource_lifecycle"] = inspect_resource_lifecycle(root, source_paths)
     lineage = None
     if inspection is not None and inspection.get("data_lineage_candidates"):
         from .deep_intelligence import trace_literal_json_to_ui
