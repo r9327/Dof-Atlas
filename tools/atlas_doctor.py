@@ -235,6 +235,7 @@ UI_SCENARIOS = {
     "qt": "tools.atlas_doctor_lib.qt_smoke_scenario",
     "equipment": "tools.atlas_doctor_lib.app_ui_smoke_scenario",
     "encyclopedia": "tools.atlas_doctor_lib.encyclopedia_deferred_smoke",
+    "webengine": "tools.atlas_doctor_lib.webengine_lifecycle_scenario",
 }
 
 

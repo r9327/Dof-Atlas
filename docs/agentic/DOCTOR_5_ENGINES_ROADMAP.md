@@ -328,3 +328,8 @@ Mode consultation uniquement : aucun test, benchmark, import applicatif ni recon
 ### Indices de parenté QObject natifs (scénarios manuels uniquement)
 
 Les snapshots existants interrogent shiboken6.isValid puis QObject.parent() pour les wrappers Qt explicitement observés. Ils comptent les wrappers WebEngine, ceux qui ont un parent Qt natif valide et les cas sans parent visible, par scénario. Un parent Qt présent ne prouve pas la libération de Chromium ; son absence ne prouve pas une fuite. Ces indices sont disponibles dans summarize_runtime_lifecycle, sans instrumentation automatique de Dofus Atlas et sans nouveaux tests lancés.
+
+
+### Scénario WebEngine isolé, strictement manuel
+
+Doctor propose capture-ui webengine (QT_QPA_PLATFORM=offscreen). Ce scénario distinct du parcours Équipement crée un profil WebEngine sans persistance, sa page et sa vue, puis relève les relations QObject.parent(), la validité native des wrappers et les instantanés facultatifs du processus. Il ne navigue pas, n'utilise aucune donnée utilisateur et ne démarre jamais avec DOFUS.bat. Il peut lancer des processus Chromium lors de son exécution explicite et doit donc rester réservé à la certification finale, pas aux commits de développement. La fin des wrappers natifs ne prouve pas la libération du RSS Chromium.
