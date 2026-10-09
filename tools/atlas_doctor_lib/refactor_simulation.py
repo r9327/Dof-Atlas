@@ -175,11 +175,15 @@ def simulate_refactor(
     # Independent current-source AST evidence remains visible if Graphify is
     # stale. Never use it to override a blocked graph certification gate.
     from .source_impact import source_reverse_impact
-    try:
-        source_impact = source_reverse_impact(root, normalized, depth=depth)
-    except (OSError, RuntimeError, ValueError) as exc:
-        source_impact = {"status": "REVIEW", "reason": type(exc).__name__,
+    if not (root / ".git").exists():
+        source_impact = {"status": "UNAVAILABLE", "reason": "GIT_WORKTREE_REQUIRED",
                          "consumer_files": [], "safe_to_delete": False}
+    else:
+        try:
+            source_impact = source_reverse_impact(root, normalized, depth=depth)
+        except (OSError, RuntimeError, ValueError) as exc:
+            source_impact = {"status": "REVIEW", "reason": type(exc).__name__,
+                             "consumer_files": [], "safe_to_delete": False}
     runtime = _runtime_consumer_evidence(root, normalized, trace_path)
     consolidation_similarity: dict[str, Any] | None = None
     if action == "consolidate":
