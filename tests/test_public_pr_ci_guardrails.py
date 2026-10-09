@@ -104,7 +104,7 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         self.assertIn("name: Run merge-safety contracts outside Doctor FAST policy",
                       self.source)
         self.assertIn("name: Enforce dependency review verdict", self.source)
-        self.assertIn("and !(" + match + ")", self.source)
+        self.assertIn("&& !(" + match + ")", self.source)
         self.assertNotIn("pull_request_target:", self.source)
 
     def test_non_doctor_merge_contracts_remain_explicit(self) -> None:
