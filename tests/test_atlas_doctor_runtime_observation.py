@@ -614,6 +614,35 @@ class RuntimeObservationTests(unittest.TestCase):
             self.assertEqual(sum(successful), 128)
             self.assertEqual(len(observer._watched), 128)
 
+    def test_json_qt_label_binding_proves_setter_without_storing_secret(self):
+        import runpy
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "data").mkdir()
+            (root / "data/settings.json").write_text('{"label":"secret-text"}')
+            script = root / "page.py"
+            script.write_text(
+                "class Window:\n    pass\n"
+                "class Label:\n"
+                "    def __init__(self): self._text = ''; self.owner = Window()\n"
+                "    def setText(self, text): self._text = text\n"
+                "    def text(self): return self._text\n"
+                "    def parentWidget(self): return self.owner\n"
+                "data, token = observer.read_json('data/settings.json')\n"
+                "label = Label()\n"
+                "bound = observer.bind_json_label_text(token, label, data['label'])\n"
+            )
+            observer = RuntimeObserver(root, max_events=1000)
+            with observer:
+                result = runpy.run_path(str(script), init_globals={"observer": observer})
+            self.assertTrue(result["bound"])
+            self.assertEqual(result["label"].text(), "secret-text")
+            events = [e for e in observer.report()["events"] if e["type"] == "json_ui_bound"]
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["confidence"], "EXPLICIT_QT_LABEL_SETTEXT_RETURNED")
+            self.assertEqual(events[0]["source"], "page.py")
+            self.assertNotIn("secret-text", json.dumps(observer.report()))
+
 
 if __name__ == "__main__":
     unittest.main()

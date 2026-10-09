@@ -379,6 +379,44 @@ class RuntimeObserver:
                       "confidence": "EXPLICIT_UI_BINDING_MARKER"})
         return True
 
+    def bind_json_label_text(self, token: str, label: Any, value: str) -> bool:
+        """Explicitly perform + verify QLabel setText without logging content.
+
+        The returned event proves a Python/Qt text-setter returned and matches
+        the expected value, not that a frame was painted or a user saw it.
+        """
+        if not self._active or token not in self._json_read_tokens:
+            return False
+        if len(self.events) >= self.max_events or not isinstance(value, str):
+            return False
+        set_text = getattr(label, "setText", None)
+        get_text = getattr(label, "text", None)
+        if not callable(set_text) or not callable(get_text):
+            return False
+        # Prefer the source file defining the real owner QWidget (e.g.
+        # EquipmentPage) over an injected scenario module or native QLabel.
+        source = None
+        owner = getattr(label, "parentWidget", None)
+        if callable(owner):
+            try:
+                parent = owner()
+                if parent is not None:
+                    import inspect
+                    defining_file = inspect.getsourcefile(type(parent))
+                    source = self._path(defining_file) if defining_file else None
+            except (OSError, TypeError, RuntimeError, ValueError):
+                source = None
+        if not source:
+            source = self._path(sys._getframe(1).f_code.co_filename)
+        set_text(value)
+        if get_text() != value or not source or not source.endswith(".py"):
+            return False
+        self._record({
+            "type": "json_ui_bound", "source": source, "token": token,
+            "confidence": "EXPLICIT_QT_LABEL_SETTEXT_RETURNED",
+        })
+        return True
+
     def snapshot_watches(self, *, label: str) -> dict[str, int]:
         """Opt-in weakref counts: reference liveness, never leak/ownership proof."""
         if not self._active:

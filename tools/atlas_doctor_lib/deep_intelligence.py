@@ -399,7 +399,8 @@ def trace_explicit_json_bindings(
             if safe(source, ".py") and source in known and safe(target, ".json"):
                 reads.setdefault(token, (source, target))
         elif (kind == "json_ui_bound"
-              and row.get("confidence") == "EXPLICIT_UI_BINDING_MARKER"
+              and row.get("confidence") in {"EXPLICIT_UI_BINDING_MARKER",
+                                             "EXPLICIT_QT_LABEL_SETTEXT_RETURNED"}
               and safe(source, ".py") and source in known and view(source)
               and token in reads):
             total_bound += 1
@@ -407,7 +408,9 @@ def trace_explicit_json_bindings(
                 decoder, json_path = reads[token]
                 bindings.append({"reader": decoder, "json_path": json_path,
                                  "ui_file": source,
-                                 "confidence": "EXPLICIT_JSON_DECODE_AND_UI_BINDING",
+                                 "confidence": ("QT_TEXT_BINDING_RETURNED"
+                                                if row.get("confidence") == "EXPLICIT_QT_LABEL_SETTEXT_RETURNED"
+                                                else "EXPLICIT_JSON_DECODE_AND_UI_BINDING"),
                                  "json_decode_observed": True,
                                  "ui_binding_marked": True, "ui_render_proven": False})
     return {

@@ -26,6 +26,10 @@ class RealEquipmentScenarioTests(unittest.TestCase):
         self.assertTrue(any(row.get("type") == "qt_destroyed_observed"
                             and row.get("label") == "equipment-page" for row in events))
         self.assertTrue(any(row.get("type") == "weak_watch_snapshot" for row in events))
+        self.assertTrue(any(row.get("type") == "json_ui_bound"
+                            and row.get("source") == "app/pages/equipment_page.py"
+                            and row.get("confidence") == "EXPLICIT_QT_LABEL_SETTEXT_RETURNED"
+                            for row in events))
         self.assertTrue(any(row.get("type") == "python_call_edge"
                             and row.get("target") == "app/pages/equipment_page.py"
                             for row in events))

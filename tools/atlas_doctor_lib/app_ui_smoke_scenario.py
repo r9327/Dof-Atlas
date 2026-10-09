@@ -28,6 +28,26 @@ def main() -> None:
         raise AssertionError("EquipmentPage section did not update")
     if page.web_loaded or getattr(page, "_legacy_view", None) is not None:
         raise AssertionError("Unexpected embedded WebEngine activity")
+    # Real QLabel text assignment from a decoded isolated JSON payload.
+    # The temporary file lives in ignored Doctor runtime state, not app data.
+    import json
+    from tempfile import NamedTemporaryFile
+    runtime = observer.root / ".ai" / "runtime" / "atlas_doctor"
+    runtime.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".json",
+                            dir=runtime, delete=False) as handle:
+        handle.write(json.dumps({"section": "Doctor UI binding smoke"}))
+        fixture = Path(handle.name)
+    try:
+        payload, token = observer.read_json(fixture.relative_to(observer.root))
+        if not observer.bind_json_label_text(token, page.section_label, payload["section"]):
+            raise AssertionError("Real EquipmentPage QLabel binding was not observed")
+        if page.section_label.text() != payload["section"]:
+            raise AssertionError("Qt label did not retain decoded section text")
+    finally:
+        fixture.unlink(missing_ok=True)
+    # Preserve the normal EquipmentPage section state before disposal.
+    page.set_section(page.section)
     observer.snapshot_watches(label="equipment-created")
     observer.snapshot_qt_objects(label="equipment-created")
     # No .show(), event loop or navigation: preserve the application's lazy rules.

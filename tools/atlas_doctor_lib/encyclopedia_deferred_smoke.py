@@ -19,7 +19,7 @@ def main() -> None:
     from app.modules.encyclopedia.views.guides_view import GuidesView
     from app.modules.encyclopedia.views.achievements_view import AchievementsView
     from app.pages.quests_page import QuestsPage
-    from app.quest_catalog import QuestCatalog
+    from app.quest_catalog import QuestCatalog, QuestRecord
     from app.modules.encyclopedia.providers.quest_provider import QuestProvider
     from app.modules.encyclopedia.services.quest_graph_service import QuestGraphService
 
@@ -50,7 +50,12 @@ def main() -> None:
             raise AssertionError("Success view hydrated catalog in deferred mode")
         observer.watch(success, label="success-deferred", kind="qwidget")
         observer.watch_qt_destroyed(success, label="success-deferred")
-        empty_catalog = QuestCatalog([])
+        # A single synthetic quest exercises real hierarchy/search without
+        # loading the 1,976-item production catalog or writing player progress.
+        quest = QuestRecord(id=991234, name="Mission Doctor Atlas",
+                            category="Diagnostic", level_min=1, level_max=1,
+                            start_criterion="")
+        empty_catalog = QuestCatalog([quest])
         quest_provider = QuestProvider(catalog=empty_catalog)
         quest_graph = QuestGraphService(quest_provider, eager=False)
         quests = QuestsPage(
@@ -62,8 +67,15 @@ def main() -> None:
             owned_items_path=temp / "items.json",
             defer_detail_view=True,
         )
-        if quests.quest_detail_view is not None or quests.catalog.quests:
-            raise AssertionError("Quest smoke initialized heavy detail or external catalog")
+        if quests.quest_detail_view is not None or len(quests.catalog.quests) != 1:
+            raise AssertionError("Quest smoke initialized rich detail or external catalog")
+        quests.search.setText("Mission Doctor")
+        matches = quests.matching_quests()
+        if [row.id for row in matches] != [quest.id]:
+            raise AssertionError("Real Quests search did not return the synthetic quest")
+        if quests.quest_detail_view is not None:
+            raise AssertionError("Search unexpectedly initialized rich Quest detail")
+        quests.search.clear()
         observer.watch(quests, label="quests-empty", kind="qwidget")
         observer.watch_qt_destroyed(quests, label="quests-empty")
         observer.snapshot_watches(label="deferred-created")

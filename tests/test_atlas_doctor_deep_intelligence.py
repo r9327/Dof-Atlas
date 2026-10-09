@@ -440,6 +440,26 @@ class DeepIntelligenceTests(unittest.TestCase):
         self.assertEqual(result["bound_to_ui"], 0)
         self.assertEqual(result["status"], "REVIEW")
 
+    def test_qt_label_binding_evidence_is_positive_and_never_visual_proof(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_explicit_json_bindings
+        sha = "9" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "tools/atlas_doctor_lib/app_ui_smoke_scenario.py"},
+            {"id": 2, "source_file": "app/pages/equipment_page.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                     {"type": "json_decoded",
+                      "source": "tools/atlas_doctor_lib/app_ui_smoke_scenario.py",
+                      "target": ".ai/runtime/doctor_sample.json", "token": "json-1",
+                      "confidence": "JSON_DECODE_RETURNED"},
+                     {"type": "json_ui_bound", "source": "app/pages/equipment_page.py",
+                      "token": "json-1", "confidence": "EXPLICIT_QT_LABEL_SETTEXT_RETURNED"},
+                 ]}
+        result = trace_explicit_json_bindings(graph, trace)
+        self.assertEqual(result["bound_to_ui"], 1)
+        self.assertEqual(result["bindings"][0]["confidence"], "QT_TEXT_BINDING_RETURNED")
+        self.assertFalse(result["ui_render_proven"])
+
 
 if __name__ == "__main__":
     unittest.main()
