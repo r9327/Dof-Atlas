@@ -124,6 +124,28 @@ class RuntimeObservationTests(unittest.TestCase):
                                 "source": "app/worker.py", "target": "app/job.py"})
         self.assertEqual(summarize_runtime_lifecycle(trace)["status"], "OBSERVED")
 
+    def test_qt_destroy_watches_match_only_delivered_signal_in_same_scenario(self):
+        from tools.atlas_doctor_lib.runtime_observation import summarize_runtime_lifecycle
+        events = [
+            {"type": "qt_destroy_watch_registered", "source": "app/a.py",
+             "label": "guide", "qt_watch_token": "qt-destroy-1",
+             "confidence": "QT_DESTROYED_SIGNAL_CONNECTED", "_trace_group": 0},
+            {"type": "qt_destroyed_observed", "source": "app/a.py",
+             "label": "guide", "qt_watch_token": "qt-destroy-1",
+             "confidence": "QT_DESTROYED_SIGNAL_DELIVERED", "_trace_group": 1},
+        ]
+        report = summarize_runtime_lifecycle({"events": events, "truncated": False})
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["qt_destroy_watches_registered"], 1)
+        self.assertEqual(report["qt_destroy_watches_delivered"], 0)
+        self.assertEqual(report["qt_destroy_watches_pending_count"], 1)
+        self.assertFalse(report["proof_of_memory_leak"])
+        events[-1]["_trace_group"] = 0
+        matched = summarize_runtime_lifecycle({"events": events, "truncated": False})
+        self.assertEqual(matched["qt_destroy_watches_delivered"], 1)
+        self.assertEqual(matched["qt_destroy_watches_pending_count"], 0)
+        self.assertEqual(matched["status"], "OBSERVED")
+
     def test_lifecycle_rejects_oversized_and_malformed_runtime(self):
         from tools.atlas_doctor_lib.runtime_observation import summarize_runtime_lifecycle
         for trace in ({"events": [None]}, {"events": [None] * 50001}):

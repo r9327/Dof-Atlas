@@ -9,6 +9,7 @@ explicit test instrumentation or separate platform profilers.
 import argparse
 import hashlib
 import math
+import re
 import gc
 import json
 from functools import partial, wraps

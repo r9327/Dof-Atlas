@@ -53,6 +53,35 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("Historique du scénario", html)
         self.assertIn("non preuve de régression", html)
 
+    def test_focused_source_impact_is_visible_without_fabricated_runtime_edges(self):
+        graph = {"built_at_commit": "a" * 40,
+                 "nodes": [{"id": 1, "source_file": "app/core/catalog.py"},
+                           {"id": 2, "source_file": "app/pages/quests_page.py"}],
+                 "links": []}
+        focus = {
+            "status": "SOURCE_CONFIRMED",
+            "changed_files": ["app/core/catalog.py"],
+            "direct_consumers": 1, "indirect_consumers": 0,
+            "import_evidence": [{
+                "importer": "app/pages/quests_page.py",
+                "imported": "app/core/catalog.py",
+                "line": 17, "depth": 1,
+                "confidence": "CURRENT_SOURCE_AST_STATIC_IMPORT"}],
+            "literal_dynamic_import_candidates": [],
+            "truncated": False,
+        }
+        result = compact_graph(graph, {}, focused_impact=focus)
+        self.assertEqual(result["focused_source_impact"], focus)
+        self.assertIn("focus", result["nodes"][0]["review_categories"])
+        self.assertIn("consumer", result["nodes"][1]["review_categories"])
+        self.assertEqual(result["nodes"][0]["focused_source_consumers"][0]["path"],
+                         "app/pages/quests_page.py")
+        self.assertEqual(result["edges"], [])
+        html = render_html(result)
+        self.assertIn("Impact source ciblé", html)
+        self.assertIn("revealNode(index)", html)
+        self.assertIn("Import AST confirmé ≠ usage runtime", html)
+
     def test_snapshot_saves_exact_graph_without_rebuild_or_overwrite(self):
         import tempfile
         from pathlib import Path
