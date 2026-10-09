@@ -174,6 +174,46 @@ class IsolateTriageTests(unittest.TestCase):
             self.assertFalse(cold["safe_to_remove"])
             self.assertFalse(report["tests_executed"])
 
+    def test_dynamic_import_return_is_positive_resolution_not_call_execution(self):
+        import hashlib
+        sha = "a" * 40
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            graph = root / "graph.json"
+            graph.write_text(json.dumps({"built_at_commit": sha,
+                                         "nodes": [], "links": []}))
+            runtime_dir = root / ".ai/runtime"
+            runtime_dir.mkdir(parents=True)
+            trace = runtime_dir / "dynamic.json"
+            trace.write_text(json.dumps({
+                "kind": "doctor_runtime_observation",
+                "candidate_sha": sha, "worktree_clean": True,
+                "truncated": False,
+                "events": [
+                    {"type": "module_import_returned", "source": "app/runner.py",
+                     "target": "app/target.py",
+                     "confidence": "IMPORTLIB_RETURNED_REPOSITORY_MODULE"},
+                ],
+            }))
+            info = {"status": "PASS", "graph": str(graph),
+                    "graph_signature": hashlib.sha256(graph.read_bytes()).hexdigest()}
+            audit = {"orphan_nodes": [{"file": "app/target.py"}],
+                     "weak_production_candidates": [], "isolated_communities": []}
+            review = {"static_confirmed_count": 0, "dynamic_lead_count": 0,
+                      "candidate_files": 0, "truncated": False, "source_errors": []}
+            with (patch("tools.atlas_doctor_lib.architecture.graph_status",
+                        return_value=info),
+                  patch("tools.atlas_doctor_lib.graph_audit.inspect_graph",
+                        return_value=audit),
+                  patch("tools.atlas_doctor_lib.consumer_sites.inspect_consumer_sites",
+                        return_value=review)):
+                result = triage_isolates(root, trace_paths=[trace])
+            finding = result["findings"][0]
+            self.assertEqual(finding["runtime_review"],
+                             "DYNAMIC_MODULE_RESOLVED_NOT_EXECUTED")
+            self.assertFalse(finding["safe_to_remove"])
+            self.assertEqual(finding["runtime_scenarios_observed"], 1)
+
     def test_stale_runtime_trace_blocks_positive_or_negative_inference(self):
         import hashlib
         sha = "a" * 40

@@ -136,7 +136,8 @@ def command_graph_audit(root: Path, args) -> dict[str, Any]:
 
 def command_isolate_triage(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.isolate_triage import triage_isolates
-    result = triage_isolates(root, limit=args.limit, kind=args.kind, offset=args.offset)
+    result = triage_isolates(root, limit=args.limit, kind=args.kind, offset=args.offset,
+                             trace_paths=args.trace)
     if not args.json:
         print(f"Doctor orphan triage: {result['status']}")
         print(f"Candidates checked: {result.get('candidates_inspected', 0)}")
@@ -605,6 +606,8 @@ def build_parser() -> argparse.ArgumentParser:
     it.add_argument('--limit', type=int, default=5)
     it.add_argument('--kind', choices=('mixed', 'weak', 'orphan', 'community'), default='mixed')
     it.add_argument('--offset', type=int, default=0)
+    it.add_argument('--trace', action='append', type=Path, default=[],
+                    help='Trace Doctor exacte-SHA opt-in, max 8, aucune execution.')
     cs = sub.add_parser('consumer-sites', help='Analyser les consommateurs statiques et dynamiques candidats.')
     cs.add_argument('path', help='Fichier Python cible relatif au depot.')
     ch = sub.add_parser('change-plan', help='Plan diff Git + consommateurs Graphify + tests cibles; aucun test execute.')

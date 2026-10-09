@@ -435,3 +435,8 @@ Les événements `python_symbol_call` et `qt_callback_invoked` sont désormais n
 ### Régression historique par fonction (sans fausse preuve)
 
 `scenario-diff` et `scenario-trend` comparent désormais aussi les méthodes **réellement entrées** dans les traces, distinctement des arêtes d’appels entre fichiers. Leurs noms figurent dans `lost_entered_symbols`, `symbol_candidates` et les motifs d’examen Graphify. Quatre traces du même scénario permettent de distinguer une absence répétée aux deux dernières captures d'une disparition ponctuelle; en dessous, tout reste REVIEW. L’analyse se limite à 2 048 identités par trace : si la borne est atteinte, Doctor déclare les symboles non comparables et n’invente aucune disparition. Une absence d’entrée n’est jamais une régression fonctionnelle prouvée ni une preuve de code mort. Aucun scénario n’est lancé à la demande de comparaison.
+
+
+### Nœuds isolés : traces opt-in réellement raccordées à la CLI
+
+`python -m tools.atlas_doctor isolate-triage --kind orphan --limit 5 --trace .ai/runtime/atlas_doctor/traces/guide.json --json` peut désormais transmettre jusqu'à huit traces exact-SHA au moteur d'examen des nœuds isolés (le lecteur existait, mais l'option de commande n'était pas câblée). Il distingue les vrais appels de fonctions/callbacks entrés, les autres observations et le résultat positif `importlib.import_module` ayant **retourné un module**. La résolution dynamique n'est pas une preuve de nouvelle exécution; l'absence d'observation dans les scénarios ne signifie jamais code mort. Aucun fichier supprimé ni suite lancée.

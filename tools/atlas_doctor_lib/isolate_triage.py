@@ -60,6 +60,9 @@ def _trace_observations(root: Path, trace_paths: list[Path], graph_sha: str) -> 
         elif (kind == "qt_callback_invoked"
               and event.get("confidence") == "WRAPPED_PYTHON_CALLBACK_ENTERED"):
             path, proof = target, "QT_CALLBACK_ENTERED"
+        elif (kind == "module_import_returned"
+              and event.get("confidence") == "IMPORTLIB_RETURNED_REPOSITORY_MODULE"):
+            path, proof = target, "DYNAMIC_MODULE_RESOLVED_NOT_EXECUTED"
         elif kind == "qt_destroyed_observed":
             path, proof = source, "QT_DESTROYED_SIGNAL"
         elif (kind in {"qt_worker_started", "qt_worker_finished"} and
@@ -171,6 +174,8 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
             "file": name, "signal": reason, "review": confidence,
             "runtime_review": ("OBSERVED_CONSUMER_IN_SUPPLIED_SCENARIO"
                                if runtime.get("entered_as_consumer")
+                               else "DYNAMIC_MODULE_RESOLVED_NOT_EXECUTED"
+                               if "DYNAMIC_MODULE_RESOLVED_NOT_EXECUTED" in runtime.get("kinds", [])
                                else "POSITIVE_RUNTIME_SIDE_EFFECT_ONLY"
                                if runtime else "NOT_OBSERVED_NOT_DEAD_CODE"
                                if trace_paths else "NO_RUNTIME_TRACES_PROVIDED"),
