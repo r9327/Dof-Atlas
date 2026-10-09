@@ -310,5 +310,69 @@ class DeepIntelligenceTests(unittest.TestCase):
             self.assertFalse(report["tests_executed"])
 
 
+    def test_observed_json_open_and_python_ui_call_chain(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_observed_json_to_ui
+        sha = "c" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": "a", "source_file": "app/core/reader.py"},
+            {"id": "b", "source_file": "app/modules/encyclopedia/services/provider.py"},
+            {"id": "c", "source_file": "app/modules/encyclopedia/views/catalog_view.py"},
+        ], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                     {"type": "file_open", "source": "app/core/reader.py",
+                      "target": "data/catalog.json"},
+                     {"type": "python_call_edge",
+                      "source": "app/modules/encyclopedia/services/provider.py",
+                      "target": "app/core/reader.py"},
+                     {"type": "python_call_edge",
+                      "source": "app/modules/encyclopedia/views/catalog_view.py",
+                      "target": "app/modules/encyclopedia/services/provider.py"},
+                 ]}
+        result = trace_observed_json_to_ui(graph, trace)
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertEqual(result["json_opens_observed"], 1)
+        self.assertEqual(result["references"][0]["ui_callers_in_same_trace"], [
+            {"path": "app/modules/encyclopedia/views/catalog_view.py", "call_hops": 2}
+        ])
+        self.assertFalse(result["data_read_proven"])
+        self.assertFalse(result["ui_render_proven"])
+        self.assertFalse(result["references"][0]["data_read_proven"])
+
+    def test_observed_json_lineage_rejects_stale_and_incomplete_traces(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_observed_json_to_ui
+        graph = {"built_at_commit": "a" * 40, "nodes": [
+            {"id": 1, "source_file": "app/core/reader.py"},
+        ], "links": []}
+        trace = {"candidate_sha": "b" * 40, "worktree_clean": True,
+                 "truncated": False, "events": [
+                     {"type": "file_open", "source": "app/core/reader.py",
+                      "target": "data/items.json"},
+                 ]}
+        for change in ({"candidate_sha": "b" * 40},
+                       {"candidate_sha": "a" * 40, "truncated": True},
+                       {"candidate_sha": "a" * 40, "truncated": False, "events": ["invalid"]}):
+            sample = {**trace, **change}
+            actual = trace_observed_json_to_ui(graph, sample)
+            self.assertEqual(actual["status"], "STALE_OR_INCOMPLETE")
+            self.assertEqual(actual["json_opens_observed"], 0)
+            self.assertEqual(actual["references"], [])
+
+    def test_observed_json_lineage_ignores_untracked_data_and_outside_paths(self):
+        from tools.atlas_doctor_lib.deep_intelligence import trace_observed_json_to_ui
+        sha = "a" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/core/reader.py"},
+        ], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [
+                     {"type": "file_open", "source": "app/core/reader.py", "target": "../bad.json"},
+                     {"type": "file_open", "source": "app/core/reader.py", "target": "/tmp/file.json"},
+                     {"type": "file_open", "source": "missing.py", "target": "data/good.json"},
+                 ]}
+        result = trace_observed_json_to_ui(graph, trace)
+        self.assertEqual(result["json_opens_observed"], 0)
+        self.assertFalse(result["ui_render_proven"])
+
 if __name__ == "__main__":
     unittest.main()

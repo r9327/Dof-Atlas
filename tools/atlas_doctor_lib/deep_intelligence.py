@@ -259,6 +259,100 @@ def trace_literal_json_to_ui(
     }
 
 
+
+def trace_observed_json_to_ui(
+    graph: dict[str, Any], trace: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Join observed JSON open attempts with observed Python call paths.
+
+    Opening a file is not necessarily reading it, and co-observation does not
+    prove that data reached a widget or was rendered to the screen.
+    """
+    empty = {
+        "status": "NOT_PROVIDED" if trace is None else "STALE_OR_INCOMPLETE",
+        "references": [], "json_opens_observed": 0, "truncated": False,
+        "data_read_proven": False, "ui_render_proven": False,
+    }
+    if trace is None:
+        return empty
+    events = trace.get("events")
+    sha = graph.get("built_at_commit")
+    if (not isinstance(sha, str) or len(sha) != 40
+            or trace.get("candidate_sha") != sha
+            or trace.get("worktree_clean") is not True
+            or trace.get("truncated") is not False
+            or not isinstance(events, list) or len(events) > 50000
+            or any(not isinstance(e, dict) for e in events)):
+        return {**empty, "reason": "Exact SHA, complete events and clean worktree required."}
+    files = {node.get("source_file") for node in graph.get("nodes", [])
+             if isinstance(node, dict) and isinstance(node.get("source_file"), str)}
+    reverse: dict[str, set[str]] = defaultdict(set)
+    opened: set[tuple[str, str]] = set()
+
+    def valid(path: Any, *, suffix: str) -> bool:
+        return (isinstance(path, str) and path.endswith(suffix)
+                and not path.startswith("/") and "\\" not in path
+                and all(part not in {"", ".", ".."} for part in path.split("/")))
+
+    for event in events:
+        kind = event.get("type")
+        source, target = event.get("source"), event.get("target")
+        if not valid(source, suffix=".py") or source not in files:
+            continue
+        if kind == "file_open" and valid(target, suffix=".json"):
+            opened.add((source, target))
+        elif (kind == "python_call_edge" and valid(target, suffix=".py")
+              and target in files and target != source):
+            reverse[target].add(source)
+
+    def is_ui(path: str) -> bool:
+        return (path.startswith(("app/pages/", "app/ui/"))
+                or (path.startswith("app/modules/")
+                    and ("/views/" in path or "/widgets/" in path)))
+
+    selected = sorted(opened)
+    truncated = len(selected) > MAX_FINDINGS
+    references: list[dict[str, Any]] = []
+    for source, json_path in selected[:MAX_FINDINGS]:
+        callers: list[dict[str, Any]] = []
+        frontier = deque([(source, 0)])
+        visited = {source}
+        if is_ui(source):
+            callers.append({"path": source, "call_hops": 0})
+        while frontier:
+            current, hops = frontier.popleft()
+            if hops >= 4:
+                if reverse.get(current):
+                    truncated = True
+                continue
+            for caller in sorted(reverse.get(current, ())):
+                if caller in visited:
+                    continue
+                if len(visited) >= 512:
+                    truncated = True
+                    break
+                visited.add(caller)
+                if is_ui(caller):
+                    if len(callers) < 8:
+                        callers.append({"path": caller, "call_hops": hops + 1})
+                    else:
+                        truncated = True
+                frontier.append((caller, hops + 1))
+        references.append({
+            "opening_source": source, "json_path": json_path,
+            "ui_callers_in_same_trace": callers,
+            "json_open_observed": True, "data_read_proven": False,
+            "ui_render_proven": False,
+            "confidence": "OPEN_AND_CALL_PATH_CO_OBSERVED_NOT_DATA_FLOW",
+        })
+    return {
+        "status": "REVIEW", "references": references,
+        "json_opens_observed": len(selected), "truncated": truncated,
+        "data_read_proven": False, "ui_render_proven": False,
+        "limits": "50k events, 80 JSON open sites, 4 call hops, 512 files and 8 UI leads/site; observed opens are not reads or widget rendering.",
+    }
+
+
 def launcher_entrypoints(root: Path) -> dict[str, Any]:
     """Read only literal DOFUS.bat startup declarations (never execute BAT)."""
     # Windows CI may supply an 8.3 short path or a symlinked checkout root.
@@ -404,6 +498,7 @@ def inspect_code(root: Path, *, paths: list[str],
     reach: dict[str, Any] = {"status": "UNAVAILABLE", "reason": "Current exact-SHA graph required."}
     rules: dict[str, Any] = {"status": "UNAVAILABLE"}
     lineage: dict[str, Any] = {"status": "UNAVAILABLE", "references": [], "runtime_data_flow_proven": False}
+    runtime_lineage: dict[str, Any] = {"status": "NOT_PROVIDED" if trace_path is None else "UNAVAILABLE", "references": [], "data_read_proven": False, "ui_render_proven": False}
     if graph_evidence["status"] == "PASS":
         try:
             graph = json.loads(Path(graph_evidence["graph"]).read_text(encoding="utf-8"))
@@ -428,6 +523,7 @@ def inspect_code(root: Path, *, paths: list[str],
                 reach["status"] = "REVIEW"
             rules = architectural_guardrails(graph, old)
             lineage = trace_literal_json_to_ui(graph, source.get("data_lineage_candidates", []))
+            runtime_lineage = trace_observed_json_to_ui(graph, trace)
             # Source confirmation already exists in graph_audit, do not duplicate it.
             from .graph_audit import inspect_graph
             findings = inspect_graph(graph, root=root)
@@ -453,6 +549,7 @@ def inspect_code(root: Path, *, paths: list[str],
             reach = {"status": "UNAVAILABLE", "reason": str(exc)}
             rules = {"status": "UNAVAILABLE", "reason": str(exc)}
             lineage = {"status": "UNAVAILABLE", "reason": str(exc), "references": [], "runtime_data_flow_proven": False}
+            runtime_lineage = {"status": "UNAVAILABLE", "reason": str(exc), "references": [], "data_read_proven": False, "ui_render_proven": False}
     return {
         "schema_version": 1, "kind": "doctor_code_inspection",
         "status": "BLOCKED" if source["status"] == "BLOCKED" or rules["status"] == "BLOCKED"
@@ -461,5 +558,6 @@ def inspect_code(root: Path, *, paths: list[str],
         "source": source, "graph_status": graph_evidence["status"],
         "reachability": reach, "architectural_rules": rules,
         "data_lineage_to_ui": lineage,
+        "observed_json_to_ui": runtime_lineage,
         "tests_executed": False, "graph_rebuilt": False,
     }
