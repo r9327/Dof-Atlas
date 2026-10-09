@@ -278,6 +278,8 @@ class DoctorGraphUiTests(unittest.TestCase):
         }, {}))
         self.assertIn("let pageEdges=[],livePageEdges=[];", html)
         self.assertIn("relation:'LIVE_AST_ADDED'", html)
+        self.assertIn("relation:'LIVE_AST_REMOVED'", html)
+        self.assertIn("liveRemovedPageEdges", html)
         self.assertIn("ctx.setLineDash([5,4])", html)
         self.assertIn("rebuildPageEdges();", html)
         self.assertIn("aucun", "aucun")  # No assertion of runtime proof.

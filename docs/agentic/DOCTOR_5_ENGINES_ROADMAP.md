@@ -465,3 +465,8 @@ Le serveur local `graph-live` sait maintenant résoudre les imports Python des 1
 ## Intégration transversale Doctor ↔ Graphify : enquête sur fichier
 
 Commande `python -m tools.atlas_doctor file-audit app/pages/quests_page.py --json`. Un seul appel read-only regroupe désormais les diagnostics AST (doublons et exceptions silencieuses), les frontières entre domaines, le cycle de vie des ressources Qt, les consommateurs statiques actuels avec pistes d’import dynamique, et les nœuds/arêtes correspondants du **graphe Graphify au SHA exact**. Le mode `--trace .ai/runtime/atlas_doctor/traces/quests.json` ajoute sans exécution de scénario la couverture de fichiers, les méthodes entrées, les observations de cycle de vie et, lorsque Graphify est vérifié, la preuve de liaison explicite JSON → UI. Si le graphe est périmé ou absent, la partie AST reste disponible avec `PARTIAL_REVIEW` : ni certification mensongère, ni reconstruction automatique. Contrat borné à huit fichiers, graphe lu seulement à la demande, aucune suppression, test, Qt, benchmark ou merge déclenché.
+
+
+### Visibilité des dépendances retirées dans Graphify LIVE
+
+Les imports supprimés depuis le SHA Graphify ne sont plus seulement listés dans l'inspecteur : le Canvas les **superpose en tirets rouges de retrait**, et l'inspecteur permet la navigation vers l'ancien fichier cible. Les anciens liens du graphe restent dans l'artefact historique (non altéré), tandis que les nouveaux liens apparaissent séparément en tirets dorés. Les deux overlays sont limités à la page affichée et recalculés uniquement sur événement de rafraîchissement explicite. Aucune réécriture du graphe ni surveillance permanente.

@@ -810,8 +810,8 @@ const positions=nodes.map(n=>{
 });
 const PAGE_SIZE=1200;
 let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[],matches=[],pageIndex=0,pathStart=-1;
-let pageEdges=[],livePageEdges=[];
-let liveAddedLinks=[];
+let pageEdges=[],livePageEdges=[],liveRemovedPageEdges=[];
+let liveAddedLinks=[],liveRemovedLinks=[];
 function rebuildPageEdges(){
  // At most 50k relations inspected once per page/filter change, never
  // at each animation frame during drag or wheel zoom.
@@ -820,6 +820,8 @@ function rebuildPageEdges(){
  pageEdges=data.edges.filter(e=>subset.has(e.a)&&subset.has(e.b)&&
   (!selectedRelation||e.relation===selectedRelation));
  livePageEdges=(!selectedRelation?liveAddedLinks.filter(e=>
+  subset.has(e.a)&&subset.has(e.b)):[]);
+ liveRemovedPageEdges=(!selectedRelation?liveRemovedLinks.filter(e=>
   subset.has(e.a)&&subset.has(e.b)):[]);
 }
 let changedFiles=new Set();
@@ -871,6 +873,14 @@ function paint(){
   }
   ctx.setLineDash([]);
  }
+ if(liveRemovedPageEdges.length){
+  ctx.strokeStyle='#ff897f';ctx.lineWidth=2;ctx.setLineDash([2,6]);
+  for(const e of liveRemovedPageEdges){
+   const a=screen(positions[e.a]),b=screen(positions[e.b]);
+   ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  }
+  ctx.setLineDash([]);ctx.lineWidth=1;
+ }
  for(const i of visible){const p=screen(positions[i]),n=nodes[i];
  if(p.x < -10||p.x>canvas.width+10||p.y < -10||p.y>canvas.height+10)continue;
  ctx.beginPath();ctx.arc(p.x,p.y,i===selected?6:3,0,2*Math.PI);
@@ -894,8 +904,13 @@ if(importChanges.has(n.file)){
   const button=line('button','+ L'+x.line+' → '+x.target+' · lien AST temporaire');
   button.type='button';button.addEventListener('click',()=>revealNode(index));
  });
- (delta.removed_dependency_links||[]).forEach(x=>
-  line('p','− ancienne dépendance '+x.target+' · L'+x.baseline_line));
+ (delta.removed_dependency_links||[]).forEach(x=>{
+  const index=firstNodeByFile.get(x.target);
+  if(index==null){line('p','− ancienne dépendance '+x.target+' · L'+x.baseline_line+' · hors graphe');return}
+  const button=line('button','− ancienne dépendance '+x.target+
+   ' · L'+x.baseline_line+' · supprimée dans les sources actuelles');
+  button.type='button';button.addEventListener('click',()=>revealNode(index));
+ });
  if(delta.imports_truncated)line('p','Détails tronqués : analyse ciblée nécessaire.');
 }
 if(importErrors.has(n.file))line('p','Inspection AST incomplète : '+importErrors.get(n.file));
@@ -1266,13 +1281,17 @@ async function refreshLive(force=false){
   importErrors=nextImportErrors;
   importStatus=importData.status||'UNKNOWN';
   // Update only this page's temporary overlay. No mutation of data.edges.
-  liveAddedLinks=[];
+  liveAddedLinks=[];liveRemovedLinks=[];
   for(const [source,delta] of importChanges){
    const a=firstNodeByFile.get(source);
    if(a==null)continue;
    for(const link of (delta.added_dependency_links||[])){
     const b=firstNodeByFile.get(link.target);
     if(b!=null&&a!==b)liveAddedLinks.push({a,b,relation:'LIVE_AST_ADDED'});
+   }
+   for(const link of (delta.removed_dependency_links||[])){
+    const b=firstNodeByFile.get(link.target);
+    if(b!=null&&a!==b)liveRemovedLinks.push({a,b,relation:'LIVE_AST_REMOVED'});
    }
   }
   rebuildPageEdges();
@@ -1281,7 +1300,8 @@ async function refreshLive(force=false){
   let caption=live.graph_stale?'Graphe figé · '+live.changed_count+' fichiers modifiés · '+unknown+' hors graphe':'Graphe inchangé · suivi à la demande';
   if(live.truncated)caption+=' (liste partielle)';
   label.textContent=caption+' · imports '+importStatus+
-   ' · '+liveAddedLinks.length+' lien(s) AST temporaire(s), non persistés';
+   ' · '+liveAddedLinks.length+' ajout(s) / '+liveRemovedLinks.length+
+   ' retrait(s) AST temporaires, non persistés';
   if(changed){if(selected>=0)show(selected);else render();}
  }catch(error){label.textContent='Suivi Git indisponible · graphe figé';}
  finally{refreshInFlight=false;}
