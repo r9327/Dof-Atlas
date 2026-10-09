@@ -14,6 +14,28 @@ MAX_FILES = 128
 SHA_RE = re.compile(r"[0-9a-f]{40}\Z")
 
 
+def observed_executing_python_files(event: dict[str, Any]) -> set[str]:
+    """Positive execution only, not arbitrary file references in runtime logs."""
+    kind = event.get("type")
+    if not isinstance(kind, str) or len(kind) > 80:
+        return set()
+    sources = [event.get("source")]
+    if kind in {"python_call_edge", "python_symbol_call"} or (
+        kind == "qt_callback_invoked" and
+        event.get("confidence") == "WRAPPED_PYTHON_CALLBACK_ENTERED"
+    ):
+        sources.append(event.get("target"))
+    # Explicitly exclude target of file_open, import_attempt, returned
+    # importlib module (which may be cached), and registered Qt callbacks.
+    return {
+        path for path in sources if (
+            isinstance(path, str) and path.endswith(".py")
+            and not path.startswith("/") and "\\" not in path
+            and all(part not in {"", ".", ".."} for part in path.split("/"))
+        )
+    }
+
+
 def summarize_scenarios(
     traces: list[dict[str, Any]], *, expected_sha: str,
     required_files: list[str] | None = None,
@@ -53,23 +75,7 @@ def summarize_scenarios(
             if not isinstance(kind, str) or len(kind) > 80:
                 continue
             event_counts[kind] = event_counts.get(kind, 0) + 1
-            # The producer source is executing code; a target is *not*
-            # necessarily executing. E.g. file_open can merely read a .py
-            # file and qt_signal_connect_returned only registers a callback.
-            executable_targets = {
-                "python_call_edge", "python_symbol_call",
-            }
-            if (kind == "qt_callback_invoked" and
-                    row.get("confidence") == "WRAPPED_PYTHON_CALLBACK_ENTERED"):
-                executable_targets.add(kind)
-            candidates = [row.get("source")]
-            if kind in executable_targets:
-                candidates.append(row.get("target"))
-            for path in candidates:
-                if (isinstance(path, str) and path.endswith(".py")
-                        and not path.startswith("/") and "\\" not in path
-                        and all(part not in {"", ".", ".."} for part in path.split("/"))):
-                    trace_files.add(path)
+            trace_files.update(observed_executing_python_files(row))
         confirmed.update(trace_files)
         trace_summaries.append({"index": i, "status": "OBSERVED",
                                 "events": len(events), "python_files": len(trace_files)})

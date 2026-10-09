@@ -100,6 +100,25 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertTrue(report["edges"][0]["observed"])
         self.assertFalse(any(e["relation"] == "imports" for e in report["edges"]))
 
+    def test_graphify_scenario_coverage_does_not_count_uninvoked_qt_slots(self):
+        sha = "a" * 40
+        graph = {"built_at_commit": sha,
+                 "nodes": [{"id": 1, "source_file": "app/pages/guide.py"},
+                           {"id": 2, "source_file": "app/core/uninvoked.py"}],
+                 "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True,
+                 "truncated": False, "scenario_module": "tests.doctor",
+                 "events": [
+                     {"type": "qt_signal_connect_returned", "source": "app/pages/guide.py",
+                      "target": "app/core/uninvoked.py",
+                      "confidence": "CONNECT_RETURNED_NOT_CALLBACK_INVOKED"},
+                 ]}
+        report = compact_graph(graph, {}, trace=trace)
+        self.assertEqual(report["nodes"][0]["runtime_scenarios"], ["Scénario 1"])
+        self.assertEqual(report["nodes"][1]["runtime_scenarios"], [])
+        self.assertTrue(report["nodes"][1]["qt_connection_observed"])
+        self.assertFalse(report["nodes"][1]["runtime_observed"])
+
     def test_snapshot_saves_exact_graph_without_rebuild_or_overwrite(self):
         import tempfile
         from pathlib import Path

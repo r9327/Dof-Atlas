@@ -385,3 +385,8 @@ Les connexions `watch_qt_destroyed` reçoivent désormais un jeton unique et ém
 ### Imports dynamiques retournés (preuves opt-in)
 
 `observer.import_module("app.core.text")` encapsule exclusivement l’appel fait volontairement dans un scénario Doctor. Si `importlib.import_module` retourne un module dont le fichier Python se trouve dans le dépôt courant, Doctor émet un événement `module_import_returned` distinct d’une simple tentative d’import. Une exception ne produit jamais une preuve positive. Cette relation est visible dans Graphify comme `RUNTIME_IMPORT_RETURNED` et entre comme consommateur positif dans l’aperçu de refactorisation. La présence d’un module en cache n’est pas une preuve que son code a été réexécuté pendant cette trace. Aucun patch global d’import, watcher, test ou instrumentation au démarrage.
+
+
+### Même sémantique de couverture pour Doctor et Graphify
+
+`observed_executing_python_files` est désormais l'autorité commune des modules Test Intelligence et Doctor UI pour attribuer une exécution positive. Un `file_open`, un `import_attempt`, un import `importlib` retourné depuis le cache et un simple `QObject.signal.connect` n'ajoutent jamais le fichier cible à la couverture exécutée. Seul l’émetteur de l’événement est actif, sauf véritables entrées Python de fonction et callbacks Qt enveloppés et entrés. Les relations de résolution/import figurent toujours sur le graphe sous leur propre type. Les fichiers non observés ne sont jamais déclarés morts.

@@ -64,6 +64,16 @@ class ScenarioCoverageTests(unittest.TestCase):
         self.assertEqual(report["status"], "REVIEW")
         self.assertFalse(report["safe_to_delete_unobserved"])
 
+    def test_returned_cached_import_never_counts_target_as_executed(self):
+        report = summarize_scenarios([self.scenario([
+            {"type": "module_import_returned", "source": "app/consumer.py",
+             "target": "app/not_executed.py",
+             "confidence": "IMPORTLIB_RETURNED_REPOSITORY_MODULE"},
+        ])], expected_sha=self.SHA, required_files=["app/not_executed.py"])
+        self.assertEqual(report["observed_python_files_examples"], ["app/consumer.py"])
+        self.assertEqual(report["unobserved_required_files"], ["app/not_executed.py"])
+        self.assertFalse(report["safe_to_delete_unobserved"])
+
     def test_bounds_and_invalid_events_do_not_prove_coverage(self):
         trace = self.scenario([None])
         report = summarize_scenarios([trace], expected_sha=self.SHA)

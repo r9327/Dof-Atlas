@@ -332,10 +332,9 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             if not isinstance(group, int) or isinstance(group, bool) or not 0 <= group < 8:
                 continue
             label = f"Scénario {group + 1}"
-            for field in ("source", "target"):
-                file = row.get(field)
-                if isinstance(file, str) and file.endswith(".py"):
-                    runtime_scenarios_by_file[file].add(label)
+            from .scenario_coverage import observed_executing_python_files
+            for file in observed_executing_python_files(row):
+                runtime_scenarios_by_file[file].add(label)
     native_invalid_by_file: dict[str, int] = {}
     if trace_status == "MATCHED" and trace is not None:
         for event in trace.get("events", []):
