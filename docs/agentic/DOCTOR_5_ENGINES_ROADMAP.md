@@ -395,3 +395,8 @@ Les connexions `watch_qt_destroyed` reçoivent désormais un jeton unique et ém
 ### JSON décodé vers vrais widgets Guides, Quêtes et Succès
 
 Le scénario opt-in `capture-ui encyclopedia` crée toujours des vues réelles mais différées, sans hydrater les catalogues lourds. Il vérifie désormais un `QLabel.setText` effectif sur chacun des trois widgets grâce à un petit JSON synthétique temporaire dans `.ai/runtime/atlas_doctor`, immédiatement supprimé. La recherche du fichier propriétaire traverse une chaîne de parenté Qt bornée à 12 objets pour retrouver le véritable widget Atlas derrière des QFrame/QLabel génériques. Les jetons de liaison conservent les trois preuves dans le graphe de provenance sans journaliser la valeur JSON. Aucun chargement de données joueur, navigation WebEngine, benchmark ni instrumentation permanente.
+
+
+### Fluidité du Canvas Graphify sans scanner 50 000 arêtes à chaque frame
+
+Le rendu paginé calcule maintenant `pageEdges` à partir des seules relations reliant des nœuds effectivement affichés, en respectant le filtre de relation. Ce cache est rafraîchi uniquement quand l’utilisateur change de page, de filtres ou de type de lien. Panoramique et zoom dessinent uniquement ce sous-graphe déjà sélectionné, sans retraverser le graphe global à chaque frame d’animation. Le jeu de données complet et les recherches globales sont conservés ; aucun intervalle de scan ni ressource réseau n’est ajouté. Le coût exact du rendu devra être mesuré pendant la validation finale.

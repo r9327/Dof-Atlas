@@ -743,6 +743,15 @@ const positions=nodes.map(n=>{
 });
 const PAGE_SIZE=1200;
 let scale=.36,panX=0,panY=0,drag=null,selected=-1,visible=[],matches=[],pageIndex=0,pathStart=-1;
+let pageEdges=[];
+function rebuildPageEdges(){
+ // At most 50k relations inspected once per page/filter change, never
+ // at each animation frame during drag or wheel zoom.
+ const subset=new Set(visible);
+ const selectedRelation=relation.value;
+ pageEdges=data.edges.filter(e=>subset.has(e.a)&&subset.has(e.b)&&
+  (!selectedRelation||e.relation===selectedRelation));
+}
 let changedFiles=new Set();
 let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
@@ -760,6 +769,7 @@ const pages=Math.max(1,Math.ceil(matches.length/PAGE_SIZE));
 if(resetPage)pageIndex=0;
 pageIndex=Math.max(0,Math.min(pageIndex,pages-1));
 visible=matches.slice(pageIndex*PAGE_SIZE,(pageIndex+1)*PAGE_SIZE);
+rebuildPageEdges();
 document.getElementById('graphPrev').disabled=pageIndex===0;
 document.getElementById('graphNext').disabled=pageIndex>=pages-1;
 document.getElementById('graphPage').textContent='Page '+(pageIndex+1)+' / '+pages;
@@ -776,10 +786,8 @@ function render(){
 function paint(){
  if(!ctx)return;
  ctx.fillStyle='#0d1420';ctx.fillRect(0,0,canvas.width,canvas.height);
- const subset=new Set(visible);ctx.strokeStyle='#2b4259';ctx.lineWidth=1;
- if(visible.length<=3500){for(const e of data.edges){
- if(!subset.has(e.a)||!subset.has(e.b))continue;
- if(relation.value && e.relation!==relation.value)continue;
+ ctx.strokeStyle='#2b4259';ctx.lineWidth=1;
+ if(visible.length<=3500){for(const e of pageEdges){
  let a=screen(positions[e.a]),b=screen(positions[e.b]);
  ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
  }}
@@ -1118,7 +1126,7 @@ canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;d
 if(!moved){const r=canvas.getBoundingClientRect();const found=pick((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio);if(found>=0)show(found)}});
 canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.min(3,scale*(e.deltaY>0?.84:1.16)));render()},{passive:false});
 [search,domain,scenario,community,reviewKind,priority,flagged,snapshotOnly].forEach(el=>el.addEventListener('input',()=>filter(true)));
-relation.addEventListener('change',()=>{if(selected>=0)show(selected);else render()});
+relation.addEventListener('change',()=>{rebuildPageEdges();if(selected>=0)show(selected);render()});
 document.getElementById('graphPrev').addEventListener('click',()=>{pageIndex--;filter(false)});
 document.getElementById('graphNext').addEventListener('click',()=>{pageIndex++;filter(false)});
 search.addEventListener('keydown',event=>{

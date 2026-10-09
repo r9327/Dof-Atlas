@@ -241,6 +241,20 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("const lineAnchor=locationMatch?'#L'", page)
         self.assertIn("app/a.py:42:0", page)
 
+    def test_canvas_caches_only_current_page_edges_before_painting(self):
+        page = render_html(compact_graph({
+            "built_at_commit": "d" * 40,
+            "nodes": [{"id": 1, "source_file": "app/a.py"},
+                      {"id": 2, "source_file": "app/b.py"}],
+            "links": [{"source": 1, "target": 2, "relation": "imports"}],
+        }, {}))
+        self.assertIn("let pageEdges=[];", page)
+        self.assertIn("function rebuildPageEdges()", page)
+        self.assertIn("pageEdges=data.edges.filter", page)
+        self.assertIn("for(const e of pageEdges)", page)
+        self.assertIn("relation.addEventListener('change',()=>{rebuildPageEdges()", page)
+        self.assertNotIn("if(visible.length<=3500){for(const e of data.edges)", page)
+
     def test_generated_interactive_javascript_passes_node_syntax_check(self):
         node = shutil.which("node")
         if node is None:
