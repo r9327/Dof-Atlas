@@ -34,6 +34,10 @@ class DeferredEncyclopediaSmokeTests(unittest.TestCase):
         self.assertIn("app/modules/encyclopedia/views/guides_view.py", seen)
         self.assertIn("app/modules/encyclopedia/views/achievements_view.py", seen)
         self.assertIn("app/pages/quests_page.py", seen)
+        snapshots = [e for e in result["events"] if e.get("type") == "qt_native_snapshot"
+                     and e.get("label") == "deferred-destroyed"]
+        self.assertTrue(snapshots)
+        self.assertGreaterEqual(snapshots[-1].get("native_invalid_wrappers", 0), 3)
 
 
 if __name__ == "__main__":

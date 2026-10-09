@@ -230,6 +230,17 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
     open_worker_files = {row["source"] for row in observed_lifecycle.get("worker_starts_unpaired", [])}
     cache_released_files = set(observed_lifecycle.get("cache_release_sources", []))
     qt_destroyed_files = set(observed_lifecycle.get("qt_destroyed_sources", []))
+    native_invalid_by_file: dict[str, int] = {}
+    if trace_status == "MATCHED" and trace is not None:
+        for event in trace.get("events", []):
+            count = event.get("native_invalid_wrappers")
+            source = event.get("source")
+            if (event.get("type") == "qt_native_snapshot"
+                    and event.get("status") == "OBSERVED"
+                    and isinstance(source, str)
+                    and isinstance(count, int) and not isinstance(count, bool)
+                    and 0 < count <= 128):
+                native_invalid_by_file[source] = max(native_invalid_by_file.get(source, 0), count)
     observed_files = {file for pair in runtime_pairs for file in pair}
     qt_files = {file for pair in qt_pairs for file in pair}
     qt_invoked_files = {file for pair in invoked_qt_pairs for file in pair}
@@ -307,6 +318,7 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
             "worker_start_unpaired_at_trace_end": file in open_worker_files,
             "cache_release_observed": file in cache_released_files,
             "qt_destroyed_observed": file in qt_destroyed_files,
+            "qt_native_invalid_wrappers_observed": native_invalid_by_file.get(file, 0),
         })
     edges = []
     for link in graph.get("links", []):
@@ -617,6 +629,7 @@ if(n.qt_connection_observed)line('p','Connexion Qt explicitement instrumentée ;
 if(n.worker_start_unpaired_at_trace_end)line('p','Worker démarré sans arrêt observé avant la fin de cette trace ; une activité en cours est possible, ce n’est pas une fuite mémoire prouvée.');
 if(n.cache_release_observed)line('p','Libération de cache explicitement marquée dans le scénario runtime.');
  if(n.qt_destroyed_observed)line('p','Signal QObject.destroyed reçu sous observation explicite ; ownership C++ et mémoire libérée non prouvés.');
+ if(n.qt_native_invalid_wrappers_observed)line('p',n.qt_native_invalid_wrappers_observed+' wrapper(s) Python Qt avec objet C++ invalidé ; ce n’est pas une fuite prouvée.');
 if(n.doctor_task){
  line('h4','Priorité Doctor : '+n.doctor_task.priority);
  line('p',n.doctor_task.kind+' · '+n.doctor_task.action);
@@ -703,6 +716,7 @@ function buildNodeEvidence(i){
    unpaired_worker_at_trace_end:!!n.worker_start_unpaired_at_trace_end,
    cache_release_marked:!!n.cache_release_observed,
     qt_destroyed_observed:!!n.qt_destroyed_observed,
+    qt_native_invalid_wrappers_observed:n.qt_native_invalid_wrappers_observed||0,
    symbol_calls:calls,partial_symbol_calls:!!data.symbol_calls_bounded},
   relationships:{shown:direct,total:(neighbors.get(i)||[]).length,
    truncated:(neighbors.get(i)||[]).length>80},

@@ -30,6 +30,10 @@ class RealEquipmentScenarioTests(unittest.TestCase):
                             and row.get("target") == "app/pages/equipment_page.py"
                             for row in events))
         self.assertFalse(observer.report()["truncated"])
+        snapshots = [e for e in events if e.get("type") == "qt_native_snapshot"
+                     and e.get("label") == "equipment-destroyed"]
+        self.assertTrue(snapshots)
+        self.assertGreaterEqual(snapshots[-1].get("native_invalid_wrappers", 0), 1)
 
 
 if __name__ == "__main__":

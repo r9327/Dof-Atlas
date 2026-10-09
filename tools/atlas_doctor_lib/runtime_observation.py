@@ -23,6 +23,7 @@ from typing import Any
 # CPython audit hooks cannot be unregistered. Install one dispatcher for the
 # process, and point it at at most one opt-in observer using a weak reference.
 MAX_SYMBOL_EDGES = 384
+MAX_WEAK_WATCHES = 128
 _AUDIT_HOOK_INSTALLED = False
 _ACTIVE_AUDIT_REF: weakref.ReferenceType | None = None
 
@@ -321,6 +322,8 @@ class RuntimeObserver:
 
     def watch(self, obj: Any, *, label: str, kind: str = "object") -> bool:
         """Explicit, non-owning watch for Qt workers, timers or cache holders."""
+        if len(self._watched) >= MAX_WEAK_WATCHES:
+            return False
         try:
             reference = weakref.ref(obj)
         except TypeError:
@@ -389,6 +392,52 @@ class RuntimeObserver:
                           "label": str(label)[:60], **summary,
                           "confidence": "WEAKREF_LIVENESS_ONLY"})
         return summary
+
+    def snapshot_qt_objects(self, *, label: str) -> dict[str, Any]:
+        """Distinguish live Python wrappers from native C++ Qt validity.
+
+        This observes only explicitly weak-watched Qt objects while tracing.
+        Invalid wrappers do not by themselves establish leaked memory.
+        """
+        if not self._active:
+            raise RuntimeError("Qt object snapshot requires an active observer")
+        try:
+            from shiboken6 import isValid
+        except ImportError:
+            result: dict[str, Any] = {
+                "status": "UNAVAILABLE", "reason": "shiboken6_not_installed",
+                "not_memory_leak_proof": True,
+            }
+        else:
+            native_valid = native_invalid = python_gone = inspect_errors = 0
+            for _, kind, reference in self._watched:
+                if kind not in {"qt", "qwidget", "qobject"}:
+                    continue
+                obj = reference()
+                if obj is None:
+                    python_gone += 1
+                    continue
+                try:
+                    if isValid(obj):
+                        native_valid += 1
+                    else:
+                        native_invalid += 1
+                except (TypeError, RuntimeError, ValueError):
+                    inspect_errors += 1
+            result = {
+                "status": "REVIEW" if inspect_errors else "OBSERVED",
+                "native_valid_wrappers": native_valid,
+                "native_invalid_wrappers": native_invalid,
+                "python_wrappers_collected": python_gone,
+                "inspect_errors": inspect_errors,
+                "truncated": len(self._watched) >= MAX_WEAK_WATCHES,
+                "not_memory_leak_proof": True,
+            }
+        source = self._path(sys._getframe(1).f_code.co_filename)
+        if source:
+            self._record({"type": "qt_native_snapshot", "source": source,
+                          "label": str(label)[:60], **result})
+        return result
 
     def snapshot_process_tree(self, *, label: str) -> dict[str, Any]:
         """Opt-in psutil process-tree sample (no arguments or personal data).

@@ -679,6 +679,22 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("vscode://file/", html)
         self.assertIn("n.file.split('/').every", html)
 
+    def test_explicit_cpp_qt_invalidation_does_not_become_memory_leak_claim(self):
+        sha = "6" * 40
+        graph = {"built_at_commit": sha, "nodes": [
+            {"id": 1, "source_file": "app/pages/equipment_page.py"}], "links": []}
+        trace = {"candidate_sha": sha, "worktree_clean": True, "truncated": False,
+                 "events": [{"type": "qt_native_snapshot",
+                             "source": "app/pages/equipment_page.py",
+                             "status": "OBSERVED", "native_invalid_wrappers": 1,
+                             "not_memory_leak_proof": True}]}
+        report = compact_graph(graph, {}, trace)
+        self.assertEqual(report["nodes"][0]["qt_native_invalid_wrappers_observed"], 1)
+        self.assertIn("ce n’est pas une fuite prouvée", render_html(report))
+        trace["candidate_sha"] = "a" * 40
+        self.assertEqual(compact_graph(graph, {}, trace)["nodes"][0]
+                         ["qt_native_invalid_wrappers_observed"], 0)
+
     def test_symbol_observations_are_opt_in_positive_evidence_only(self):
         sha = "f" * 40
         graph = {"built_at_commit": sha,

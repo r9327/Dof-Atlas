@@ -578,6 +578,42 @@ class RuntimeObservationTests(unittest.TestCase):
                                   if x["type"] == "process_tree_snapshot"]), 1)
 
 
+    def test_bounded_qt_watch_distinguishes_invalid_cpp_wrapper_without_leak_claim(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import sys
+        class QWidgetLike:
+            pass
+        obj = QWidgetLike()
+        fake = SimpleNamespace(isValid=lambda _: False)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            scenario = root / "qt_check.py"
+            scenario.write_text("observer.watch(obj, label='widget', kind='qwidget')\n"
+                                "state = observer.snapshot_qt_objects(label='after-destroy')\n")
+            observer = RuntimeObserver(root, max_events=500)
+            with patch.dict(sys.modules, {"shiboken6": fake}):
+                with observer:
+                    state = __import__("runpy").run_path(str(scenario), init_globals={
+                        "observer": observer, "obj": obj})["state"]
+            self.assertEqual(state["native_invalid_wrappers"], 1)
+            self.assertEqual(state["native_valid_wrappers"], 0)
+            self.assertTrue(state["not_memory_leak_proof"])
+            self.assertEqual(len([e for e in observer.report()["events"]
+                                  if e.get("type") == "qt_native_snapshot"]), 1)
+            with self.assertRaisesRegex(RuntimeError, "active observer"):
+                observer.snapshot_qt_objects(label="after")
+
+    def test_weak_watch_cap_is_bounded_without_retaining_objects(self):
+        class Watched:
+            pass
+        with tempfile.TemporaryDirectory() as folder:
+            observer = RuntimeObserver(Path(folder))
+            values = [Watched() for _ in range(130)]
+            successful = [observer.watch(row, label="test", kind="qobject") for row in values]
+            self.assertEqual(sum(successful), 128)
+            self.assertEqual(len(observer._watched), 128)
+
 
 if __name__ == "__main__":
     unittest.main()

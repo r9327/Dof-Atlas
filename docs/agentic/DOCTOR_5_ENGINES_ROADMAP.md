@@ -211,3 +211,8 @@ Les traces lancées par `runtime-trace` incluent leur nom de module `scenario_mo
 ### Scénario Qt Quêtes sans catalogue massif
 
 Le scénario `encyclopedia_deferred_smoke` couvre aussi `QuestsPage` avec `QuestCatalog([])`, `QuestProvider` et `QuestGraphService(eager=False)` réels, plus des chemins de profil/progression temporaires. Il confirme que le panneau de détail n'est pas construit et que le widget peut être détruit sans importer les données complètes. Cette vérification porte sur le **shell à zéro quête** : la recherche, le graphe des prérequis et le détail de vraies quêtes doivent encore être exercés dans une session applicative dédiée.
+
+
+### Validité native QObject distincte de la référence Python
+
+`RuntimeObserver.snapshot_qt_objects(label=...)` inspecte seulement les widgets/objets Qt explicitement enregistrés via `watch(..., kind='qwidget'|'qobject'|'qt')`. `shiboken6.isValid` distingue objets C++ encore valides, wrappers Python pointant vers un objet C++ invalidé et wrappers déjà collectés. Borne stricte : 128 références **faibles**, sans garder de QWidget vivant. Le graphe montre les cas d'invalidation observés, jamais une preuve de fuite, d'ownership, ni d'absence de mémoire native retenue. Les scénarios Qt réels Équipement/Guides/Quêtes/Succès prennent chacun un instantané avant et après destruction ; ces scénarios ne tournent jamais avec l'application normale et restent à valider en environnement Qt offscreen.

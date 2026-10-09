@@ -29,11 +29,13 @@ def main() -> None:
     if page.web_loaded or getattr(page, "_legacy_view", None) is not None:
         raise AssertionError("Unexpected embedded WebEngine activity")
     observer.snapshot_watches(label="equipment-created")
+    observer.snapshot_qt_objects(label="equipment-created")
     # No .show(), event loop or navigation: preserve the application's lazy rules.
     delete(page)
     if isValid(page):
         raise AssertionError("EquipmentPage C++ object still valid after delete")
     observer.snapshot_watches(label="equipment-destroyed")
+    observer.snapshot_qt_objects(label="equipment-destroyed")
     if not app:
         raise AssertionError("QApplication unavailable")
 
