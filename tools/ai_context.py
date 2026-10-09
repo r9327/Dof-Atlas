@@ -175,6 +175,7 @@ def classify_path(path: str) -> str:
         or lowered.startswith(".github/")
         or lowered.startswith(".githooks/")
         or lowered.startswith(".agents/skills/")
+        or lowered.startswith(".codex/")
     ):
         return "quality"
     return "repository"
