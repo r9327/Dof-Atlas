@@ -176,6 +176,15 @@ def command_change_plan(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_capabilities(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.capability_matrix import capability_inventory
+    result = capability_inventory(root)
+    if not args.json:
+        print(f"Doctor capabilities: {result['source_present']}/18 source anchors present")
+        print("No behavioral certification was run by this inventory.")
+    return result
+
+
 def command_source_impact(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.source_impact import source_reverse_impact
     result = source_reverse_impact(root, args.paths, depth=args.depth)
@@ -585,6 +594,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest='command')
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
+    sub.add_parser('capabilities', help='Inventaire AST des 18 capacites sans lancer de tests.')
     sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
     it = sub.add_parser('isolate-triage', help='Investiguer jusqu a 10 fichiers isoles en preservant leurs consommateurs.')
     it.add_argument('--limit', type=int, default=5)
@@ -768,6 +778,7 @@ def main(argv: list[str] | None = None) -> int:
         return menu(root)
     handlers = {
         'quick': command_quick,
+        'capabilities': command_capabilities,
         'graph': command_graph,
         'graph-audit': command_graph_audit,
         'test-costs': command_test_costs,
@@ -812,6 +823,8 @@ def main(argv: list[str] | None = None) -> int:
         # architectural audit (e.g. a source-confirmed app -> tools inversion).
         graph_audit = payload.get("graph_audit") or {}
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
+    if args.command == 'capabilities':
+        return 2 if payload['status'] == 'BLOCKED' else 0
     if args.command == 'source-impact':
         return 2 if payload.get('status') == 'BLOCKED' else 0
     if args.command == 'refactor-preview':
