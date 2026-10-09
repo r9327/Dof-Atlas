@@ -190,12 +190,16 @@ def command_capabilities(root: Path, args) -> dict[str, Any]:
 def command_file_audit(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.integrated_investigation import investigate_files
     report = investigate_files(root, args.paths, trace_path=args.trace,
-                               cost_reports=args.cost_report)
+                               cost_reports=args.cost_report,
+                               graph_ui=args.graph_ui)
     if not args.json:
         print(f"Doctor/Graphify investigation: {report['status']}")
         print(f"Sources: {len(report['paths'])} | Graphify: "
               f"{report.get('graphify', {}).get('status', 'NOT_RUN')}")
         print(f"Tests suggérés : {len(report.get('canonical_test_intelligence', {}).get('recommended_tests', []))}, exécutés : zéro")
+        if args.graph_ui:
+            print("Vue Graphify : " + str(report.get("graphify_interactive_view", {}).get("path",
+                                            report.get("graphify_interactive_view", {}).get("status", "UNAVAILABLE"))))
         print("No graph rebuild, test, benchmark, deletion or certification.")
     return report
 
@@ -636,6 +640,8 @@ def build_parser() -> argparse.ArgumentParser:
     fa.add_argument('--trace', type=Path, help='Trace existante exacte-SHA sous .ai/runtime (optionnelle).')
     fa.add_argument('--cost-report', type=Path, action='append', default=[],
                     help='Rapports Integrity historiques, uniquement pour le classement.')
+    fa.add_argument('--graph-ui', action='store_true',
+                    help='Exporter sur demande la vue Graphify focalisee, sans rebuild ni tests.')
     si = sub.add_parser('source-impact', help='Analyse AST inverse du code courant, sans Graphify ni tests.')
     si.add_argument('paths', nargs='+', help='Fichiers Python suivis par Git, au maximum 32.')
     si.add_argument('--depth', type=int, choices=(1, 2), default=2)

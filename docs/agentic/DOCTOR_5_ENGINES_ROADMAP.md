@@ -480,3 +480,8 @@ Les imports supprimés depuis le SHA Graphify ne sont plus seulement listés dan
 ### Vérification des 18 branchements sans exécuter leurs fonctions
 
 L’inventaire `capabilities` vérifie maintenant pour chacune des 18 capacités **deux preuves AST distinctes** : sa définition dans le module attendu et au moins un appel dans le composant qui l’utilise effectivement (commande CLI, contrôleur Graphify, scénario Qt ou enquête unifiée). Il retourne `source_present` et `call_sites_wired`, avec le site d’appel par capacité. Cela évite de compter une fonction isolée jamais appelée comme une intégration complète. Ces preuves restent statiques, **ne valent pas certification comportementale**, n’exécutent aucune action et ne prétendent pas 18/18 PASS. Les vérifications de scénarios réels, RAM/preload et CI restent réservées à la certification finale.
+
+
+### Inspection graphique accessible depuis l'enquête Doctor
+
+`file-audit app/pages/quests_page.py --graph-ui` produit maintenant **sur demande explicite** la vue interactive Graphify focalisée sur ce fichier, et retourne le chemin local du rapport HTML. Cette action ne se déclenche que si la provenance du graphe source est exacte-SHA ; avec un graphe périmé, le diagnostic AST reste accessible, mais aucune vue d'arêtes actuelles non validée n'est produite. En présence de `--trace`, la même trace est transmise au panneau d'inspection Graphify. Sans `--graph-ui`, la consultation n'écrit aucun artefact de visualisation. Pas de test, benchmark, merge ou reconstruction Graphify en arrière-plan.

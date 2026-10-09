@@ -47,6 +47,19 @@ class IntegratedDoctorInvestigationTests(unittest.TestCase):
             self.assertFalse(report["canonical_test_intelligence"]["full_suite_waived"])
             self.assertFalse(report["canonical_test_intelligence"]["tests_executed"])
 
+    def test_requested_interactive_view_uses_exact_sha_graph_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            target = root / "app/guide.py"
+            target.parent.mkdir()
+            target.write_text("def page(): pass\n", encoding="utf-8")
+            with patch("tools.atlas_doctor_lib.architecture.graph_status",
+                       return_value={"status": "STALE"}):
+                report = investigate_files(root, ["app/guide.py"], graph_ui=True)
+            self.assertEqual(report["graphify_interactive_view"]["status"], "UNAVAILABLE")
+            self.assertFalse(report["graphify_interactive_view"]["graph_rebuilt"])
+            self.assertFalse(report["tests_executed"])
+
     def test_bad_trace_cannot_inject_positive_runtime_coverage(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

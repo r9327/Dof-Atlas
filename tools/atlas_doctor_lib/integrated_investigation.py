@@ -96,7 +96,8 @@ def _read_trace(root: Path, trace_path: Path, sha: str | None) -> tuple[dict[str
 
 def investigate_files(root: Path, paths: list[str], *,
                       trace_path: Path | None = None,
-                      cost_reports: list[Path] | None = None) -> dict[str, Any]:
+                      cost_reports: list[Path] | None = None,
+                      graph_ui: bool = False) -> dict[str, Any]:
     """One small, opt-in cross-engine investigation without tests or rebuild."""
     from .deep_intelligence import scan_sources
     from .source_impact import source_reverse_impact
@@ -221,6 +222,18 @@ def investigate_files(root: Path, paths: list[str], *,
         or tests["status"] not in {"READY", "PASS"}
         or runtime["status"] not in {"NOT_PROVIDED", "MATCHED"}
     )
+    graph_visualization: dict[str, Any] = {"status": "NOT_REQUESTED"}
+    if graph_ui:
+        if graph_summary.get("status") != "EXACT_SHA_GRAPH_EVIDENCE":
+            graph_visualization = {
+                "status": "UNAVAILABLE",
+                "reason": "Interactive file view needs an exact-SHA Graphify graph.",
+                "graph_rebuilt": False,
+            }
+        else:
+            from .doctor_graph_ui import export_interactive_graph
+            graph_visualization = export_interactive_graph(
+                root, trace_path=trace_path, inspect_files=requested)
     # No PASS status here: successful source inspection never certifies
     # functional availability, Graphify correctness or memory release.
     return {
@@ -231,6 +244,7 @@ def investigate_files(root: Path, paths: list[str], *,
         "resource_lifecycle": resources,
         "source_confirmed_consumers": consumers,
         "graphify": graph_summary, "runtime": runtime,
+        "graphify_interactive_view": graph_visualization,
         "canonical_test_intelligence": tests,
         "read_only": True, "tests_executed": False, "benchmarks_executed": False,
         "graph_rebuilt": False, "safe_to_delete": False, "final_certification": False,
