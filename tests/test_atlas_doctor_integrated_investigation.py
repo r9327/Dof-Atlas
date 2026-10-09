@@ -27,6 +27,26 @@ class IntegratedDoctorInvestigationTests(unittest.TestCase):
             self.assertFalse(result["graph_rebuilt"])
             self.assertFalse(result["final_certification"])
 
+    def test_canonical_planning_is_advisory_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / "app/a.py"
+            path.parent.mkdir()
+            path.write_text("pass\n", encoding="utf-8")
+            plan = {"status": "READY", "execution_tests": ["tests.test_a"],
+                    "required_groups": ["AST_FOCUSED"],
+                    "integrity_mode": "CRITICAL", "scopes": ["app"]}
+            with patch("tools.atlas_doctor_lib.architecture.graph_status",
+                       return_value={"status": "MISSING"}), \
+                 patch("tools.agent.plan_payload", return_value=plan):
+                report = investigate_files(root, ["app/a.py"])
+            self.assertEqual(report["canonical_test_intelligence"]["recommended_tests"],
+                             ["tests.test_a"])
+            self.assertEqual(report["canonical_test_intelligence"]["integrity_mode"],
+                             "CRITICAL")
+            self.assertFalse(report["canonical_test_intelligence"]["full_suite_waived"])
+            self.assertFalse(report["canonical_test_intelligence"]["tests_executed"])
+
     def test_bad_trace_cannot_inject_positive_runtime_coverage(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

@@ -95,7 +95,8 @@ def _read_trace(root: Path, trace_path: Path, sha: str | None) -> tuple[dict[str
 
 
 def investigate_files(root: Path, paths: list[str], *,
-                      trace_path: Path | None = None) -> dict[str, Any]:
+                      trace_path: Path | None = None,
+                      cost_reports: list[Path] | None = None) -> dict[str, Any]:
     """One small, opt-in cross-engine investigation without tests or rebuild."""
     from .deep_intelligence import scan_sources
     from .source_impact import source_reverse_impact
@@ -130,6 +131,37 @@ def investigate_files(root: Path, paths: list[str], *,
         consumers = {"status": "UNAVAILABLE", "reason": type(exc).__name__,
                      "consumer_files": [], "safe_to_delete": False}
 
+    # Atlas Agent selects real scope/test obligations. Advisory only.
+    from tools import agent
+    tests: dict[str, Any] = {
+        "status": "UNAVAILABLE", "recommended_tests": [],
+        "required_groups": [], "tests_executed": False,
+        "full_suite_waived": False,
+    }
+    try:
+        plan = agent.plan_payload(root, requested)
+        tests = {
+            "status": plan.get("status", "REVIEW"),
+            "recommended_tests": list(plan.get("execution_tests") or [])[:64],
+            "required_groups": list(plan.get("required_groups") or [])[:64],
+            "integrity_mode": plan.get("integrity_mode"),
+            "scopes": list(plan.get("scopes") or [])[:32],
+            "tests_executed": False, "full_suite_waived": False,
+        }
+    except Exception as exc:
+        tests["reason"] = f"Canonical Agent unavailable: {type(exc).__name__}"
+    if cost_reports:
+        from .test_intelligence import test_cost_report, suggest_targeted_test_order
+        try:
+            costs = test_cost_report(root, cost_reports)
+            tests["historical_costs"] = costs
+            tests["advisory_order"] = suggest_targeted_test_order(
+                tests.get("required_groups", []), costs)
+        except (OSError, ValueError, UnicodeError) as exc:
+            tests["historical_costs"] = {
+                "status": "UNAVAILABLE", "reason": type(exc).__name__,
+                "tests_executed": False,
+            }
     sha = _git_head(root)
     graph_status_result = graph_status(root)
     graph_summary: dict[str, Any] = {
@@ -186,6 +218,7 @@ def investigate_files(root: Path, paths: list[str], *,
         or resources.get("status") in {"BLOCKED", "UNAVAILABLE"}
         or consumers.get("status") not in {"SOURCE_CONFIRMED", "REVIEW"}
         or graph_summary["status"] != "EXACT_SHA_GRAPH_EVIDENCE"
+        or tests["status"] not in {"READY", "PASS"}
         or runtime["status"] not in {"NOT_PROVIDED", "MATCHED"}
     )
     # No PASS status here: successful source inspection never certifies
@@ -198,6 +231,7 @@ def investigate_files(root: Path, paths: list[str], *,
         "resource_lifecycle": resources,
         "source_confirmed_consumers": consumers,
         "graphify": graph_summary, "runtime": runtime,
+        "canonical_test_intelligence": tests,
         "read_only": True, "tests_executed": False, "benchmarks_executed": False,
         "graph_rebuilt": False, "safe_to_delete": False, "final_certification": False,
         "next_action": "Review linked consumers, runtime entry evidence, and domain tests before modifying files.",

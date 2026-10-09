@@ -188,11 +188,13 @@ def command_capabilities(root: Path, args) -> dict[str, Any]:
 
 def command_file_audit(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.integrated_investigation import investigate_files
-    report = investigate_files(root, args.paths, trace_path=args.trace)
+    report = investigate_files(root, args.paths, trace_path=args.trace,
+                               cost_reports=args.cost_report)
     if not args.json:
         print(f"Doctor/Graphify investigation: {report['status']}")
         print(f"Sources: {len(report['paths'])} | Graphify: "
               f"{report.get('graphify', {}).get('status', 'NOT_RUN')}")
+        print(f"Tests suggérés : {len(report.get('canonical_test_intelligence', {}).get('recommended_tests', []))}, exécutés : zéro")
         print("No graph rebuild, test, benchmark, deletion or certification.")
     return report
 
@@ -631,6 +633,8 @@ def build_parser() -> argparse.ArgumentParser:
     fa = sub.add_parser('file-audit', help='Enquete unifiee Doctor / Graphify, aucune execution de tests.')
     fa.add_argument('paths', nargs='+', help='Un a huit fichiers Python actuels.')
     fa.add_argument('--trace', type=Path, help='Trace existante exacte-SHA sous .ai/runtime (optionnelle).')
+    fa.add_argument('--cost-report', type=Path, action='append', default=[],
+                    help='Rapports Integrity historiques, uniquement pour le classement.')
     si = sub.add_parser('source-impact', help='Analyse AST inverse du code courant, sans Graphify ni tests.')
     si.add_argument('paths', nargs='+', help='Fichiers Python suivis par Git, au maximum 32.')
     si.add_argument('--depth', type=int, choices=(1, 2), default=2)

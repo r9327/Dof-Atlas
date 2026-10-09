@@ -470,3 +470,8 @@ Commande `python -m tools.atlas_doctor file-audit app/pages/quests_page.py --jso
 ### Visibilité des dépendances retirées dans Graphify LIVE
 
 Les imports supprimés depuis le SHA Graphify ne sont plus seulement listés dans l'inspecteur : le Canvas les **superpose en tirets rouges de retrait**, et l'inspecteur permet la navigation vers l'ancien fichier cible. Les anciens liens du graphe restent dans l'artefact historique (non altéré), tandis que les nouveaux liens apparaissent séparément en tirets dorés. Les deux overlays sont limités à la page affichée et recalculés uniquement sur événement de rafraîchissement explicite. Aucune réécriture du graphe ni surveillance permanente.
+
+
+### Test Intelligence raccordé à l’enquête unifiée (cinquième moteur)
+
+`file-audit` utilise désormais `tools.agent.plan_payload`, l’autorité canonique Atlas Integrity pour déduire les tests, scopes et groupes requis à partir des fichiers réellement concernés. Le statut reste consultatif ; aucune validation, test ou benchmark n’est exécuté. `--cost-report` (facultatif) lit des rapports historiques existants sous `.ai/runtime` pour ordonner les groupes sans en supprimer aucun ni abaisser la certification exigée. Une erreur d’inventaire Agent se traduit par `PARTIAL_REVIEW`, sans bloquer la lecture AST.
