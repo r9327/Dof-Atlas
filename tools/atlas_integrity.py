@@ -720,7 +720,11 @@ def execute_gate(
                 module: suite_cases[module] for module in candidate_modules
             }
         if int(result["exit_code"]) != 0:
-            command_report["output_tail"] = "\n".join(output.strip().splitlines()[-40:])
+            # A FULL failure can contain multiple exceptions: the old 40-line
+            # suffix hides all but the final traceback. Keep each failing
+            # unittest's traceback in test-only certification evidence.
+            tail_lines = 320 if name in {"FULL_SUITE", "DIFF_TARGETS"} else 40
+            command_report["output_tail"] = "\n".join(output.strip().splitlines()[-tail_lines:])
         commands.append(command_report)
         groups[name]["commands"].append(command_report)
         groups[name]["tests"] = command_report["tests"]
