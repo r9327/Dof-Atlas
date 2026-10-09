@@ -489,6 +489,7 @@ class RuntimeObserver:
             }
         else:
             native_valid = native_invalid = python_gone = inspect_errors = 0
+            parent_present = parent_absent = parent_errors = webengine_wrappers = 0
             for _, kind, reference in self._watched:
                 if kind not in {"qt", "qwidget", "qobject"}:
                     continue
@@ -499,13 +500,32 @@ class RuntimeObserver:
                 try:
                     if isValid(obj):
                         native_valid += 1
+                        if type(obj).__name__.startswith("QWebEngine"):
+                            webengine_wrappers += 1
+                        parent_getter = getattr(obj, "parent", None)
+                        if callable(parent_getter):
+                            try:
+                                parent = parent_getter()
+                                if parent is None:
+                                    parent_absent += 1
+                                elif isValid(parent):
+                                    parent_present += 1
+                                else:
+                                    parent_errors += 1
+                            except (TypeError, RuntimeError, ValueError):
+                                parent_errors += 1
                     else:
                         native_invalid += 1
                 except (TypeError, RuntimeError, ValueError):
                     inspect_errors += 1
             result = {
-                "status": "REVIEW" if inspect_errors else "OBSERVED",
+                "status": "REVIEW" if inspect_errors or parent_errors else "OBSERVED",
                 "native_valid_wrappers": native_valid,
+                "parent_present_native_valid": parent_present,
+                "parent_absent_at_snapshot": parent_absent,
+                "parent_inspection_errors": parent_errors,
+                "webengine_wrappers_sampled": webengine_wrappers,
+                "parent_is_not_full_ownership_proof": True,
                 "native_invalid_wrappers": native_invalid,
                 "python_wrappers_collected": python_gone,
                 "inspect_errors": inspect_errors,
@@ -730,6 +750,7 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
     pending: dict[tuple[str, str], int] = {}
     qt_pending: dict[tuple[int, str, str], int] = {}
     qt_started = qt_finished = qt_unmatched = 0
+    qt_parent_snapshots: list[dict[str, Any]] = []
     releases: set[str] = set()
     destroyed_sources: set[str] = set()
     destroyed_count = 0
@@ -740,6 +761,20 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
                     "truncated": True, "proof_of_memory_leak": False,
                     "worker_starts_unpaired": [], "cache_release_sources": []}
         kind = event.get("type")
+        if kind == "qt_native_snapshot":
+            if len(qt_parent_snapshots) < 32:
+                qt_parent_snapshots.append({
+                    "trace_group": event.get("_trace_group", 0),
+                    "label": str(event.get("label", ""))[:60],
+                    "status": event.get("status", "UNAVAILABLE"),
+                    "parent_present_native_valid": event.get("parent_present_native_valid"),
+                    "parent_absent_at_snapshot": event.get("parent_absent_at_snapshot"),
+                    "parent_inspection_errors": event.get("parent_inspection_errors"),
+                    "webengine_wrappers_sampled": event.get("webengine_wrappers_sampled"),
+                    "native_valid_wrappers": event.get("native_valid_wrappers"),
+                    "native_invalid_wrappers": event.get("native_invalid_wrappers"),
+                })
+            continue
         if kind not in {"worker_start", "worker_stop", "cache_release", "qt_destroyed_observed",
                         "qt_worker_started", "qt_worker_finished"}:
             continue
@@ -804,6 +839,8 @@ def summarize_runtime_lifecycle(trace: dict[str, Any]) -> dict[str, Any]:
         "cache_release_sources": sorted(releases)[:80],
         "qt_destroyed_sources": sorted(destroyed_sources)[:80],
         "qt_destroyed_events": destroyed_count,
+        "qt_parent_snapshots": qt_parent_snapshots,
+        "parent_is_not_full_ownership_proof": True,
         "truncated": bool(trace.get("truncated") or len(open_workers) > 80 or len(qt_open) > 80
                           or len(releases) > 80),
         "qt_destroyed_is_not_ownership_proof": True,

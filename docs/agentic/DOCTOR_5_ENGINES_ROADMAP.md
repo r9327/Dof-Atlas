@@ -323,3 +323,8 @@ Aucun benchmark RAM/preload ni certification finale n'est lancé dans ce lot.
 La commande code-inspect expose désormais resource_lifecycle : revue AST bornée des constructions QWebEngineView/Page/Profile, QThread, QTimer, QNetworkAccessManager, des arguments parent=, des appels de nettoyage et des caches Python sans limite explicite. layer_boundaries détecte aussi les imports vers les vues/widgets privés d'un autre domaine. Ces signaux servent à prioriser les scénarios réels : absence de parent explicite n'est pas une fuite prouvée, et une référence Python ne prouve jamais la propriété C++ d'un QObject.
 
 Mode consultation uniquement : aucun test, benchmark, import applicatif ni reconstruction Graphify implicite. Les scénarios Qt réels et la certification finale restent nécessaires avant merge.
+
+
+### Indices de parenté QObject natifs (scénarios manuels uniquement)
+
+Les snapshots existants interrogent shiboken6.isValid puis QObject.parent() pour les wrappers Qt explicitement observés. Ils comptent les wrappers WebEngine, ceux qui ont un parent Qt natif valide et les cas sans parent visible, par scénario. Un parent Qt présent ne prouve pas la libération de Chromium ; son absence ne prouve pas une fuite. Ces indices sont disponibles dans summarize_runtime_lifecycle, sans instrumentation automatique de Dofus Atlas et sans nouveaux tests lancés.
