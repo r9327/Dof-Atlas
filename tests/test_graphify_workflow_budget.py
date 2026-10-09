@@ -32,6 +32,19 @@ class GraphifyWorkflowBudgetTests(unittest.TestCase):
         self.assertIn("graphify-out/doctor_graph_ui_metrics.json", workflow)
         self.assertIn("source_scan_truncated", workflow)
 
+    def test_heavy_memory_and_preload_are_explicit_for_graphify_ui_only_changes(self):
+        # Graphify code/UI iterations must not re-run 45-minute Windows
+        # benchmarks every push. Manual final Phase 8 certification remains.
+        for name in ("phase8-memory-benchmark.yml", "phase8-preload-benchmark.yml"):
+            workflow = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
+            self.assertIn("workflow_dispatch:", workflow)
+            self.assertIn("github.event_name == 'workflow_dispatch'", workflow)
+            self.assertNotIn(
+                "github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1'",
+                workflow,
+            )
+            self.assertIn("startsWith(github.event.pull_request.title, 'Phase 8')", workflow)
+
     def test_focused_ci_still_runs_on_every_dev_push(self):
         code = (ROOT / ".github/workflows/graphify-targeted-ci.yml").read_text(encoding="utf-8")
         self.assertIn("phase8/graphify-staged-cleanup-v1", code)
