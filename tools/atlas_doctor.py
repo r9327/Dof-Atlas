@@ -186,6 +186,17 @@ def command_capabilities(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_file_audit(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.integrated_investigation import investigate_files
+    report = investigate_files(root, args.paths, trace_path=args.trace)
+    if not args.json:
+        print(f"Doctor/Graphify investigation: {report['status']}")
+        print(f"Sources: {len(report['paths'])} | Graphify: "
+              f"{report.get('graphify', {}).get('status', 'NOT_RUN')}")
+        print("No graph rebuild, test, benchmark, deletion or certification.")
+    return report
+
+
 def command_source_impact(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.source_impact import source_reverse_impact
     result = source_reverse_impact(root, args.paths, depth=args.depth)
@@ -617,6 +628,9 @@ def build_parser() -> argparse.ArgumentParser:
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
     ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
+    fa = sub.add_parser('file-audit', help='Enquete unifiee Doctor / Graphify, aucune execution de tests.')
+    fa.add_argument('paths', nargs='+', help='Un a huit fichiers Python actuels.')
+    fa.add_argument('--trace', type=Path, help='Trace existante exacte-SHA sous .ai/runtime (optionnelle).')
     si = sub.add_parser('source-impact', help='Analyse AST inverse du code courant, sans Graphify ni tests.')
     si.add_argument('paths', nargs='+', help='Fichiers Python suivis par Git, au maximum 32.')
     si.add_argument('--depth', type=int, choices=(1, 2), default=2)
@@ -809,6 +823,7 @@ def main(argv: list[str] | None = None) -> int:
         'dev-event': command_dev_event,
         'refactor-preview': command_refactor_preview,
         'source-impact': command_source_impact,
+        'file-audit': command_file_audit,
         'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
         'audit': command_audit,
@@ -838,6 +853,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'capabilities':
         return 2 if payload['status'] == 'BLOCKED' else 0
     if args.command == 'source-impact':
+        return 2 if payload.get('status') == 'BLOCKED' else 0
+    if args.command == 'file-audit':
         return 2 if payload.get('status') == 'BLOCKED' else 0
     if args.command == 'refactor-preview':
         return 2 if payload['status'] == 'BLOCKED' else 1
