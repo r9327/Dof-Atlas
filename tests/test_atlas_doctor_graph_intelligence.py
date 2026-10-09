@@ -79,6 +79,21 @@ class GraphIntelligenceTests(unittest.TestCase):
         self.assertEqual(report["cycles"][0]["source_confirmed_subcycles"], 1)
         self.assertEqual(report["cycles"][0]["confirmed_cycle_samples"], [["app/core/a.py", "app/core/b.py"]])
 
+    def test_relative_import_cycles_require_valid_package_depth(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            directory = root / "app/core"
+            directory.mkdir(parents=True)
+            (directory / "a.py").write_text("from . import b\n", encoding="utf-8")
+            (directory / "b.py").write_text("from .a import something\n", encoding="utf-8")
+            report = inspect_import_cycles(fixture(), root=root)
+            self.assertEqual(report["source_confirmed_cycles"], 1)
+            (directory / "a.py").write_text(
+                "from ....app.core import b\n", encoding="utf-8")
+            invalid = inspect_import_cycles(fixture(), root=root)
+            self.assertEqual(invalid["source_confirmed_cycles"], 0)
+            self.assertEqual(invalid["suspected_cycles"], 1)
+
     def test_graph_comparison_checks_cycles_past_display_limit(self):
         def many(n, sha):
             nodes, links = [], []

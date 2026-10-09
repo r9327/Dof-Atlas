@@ -450,3 +450,8 @@ Les événements `python_symbol_call` et `qt_callback_invoked` sont désormais n
 ### Inventaire des fonctions non observées d'un fichier ciblé
 
 L'option existante `graph-ui --inspect-file app/pages/quests_page.py --trace .ai/runtime/...json` peut désormais rapprocher **les définitions de fonctions/méthodes AST réellement présentes** avec les entrées `python_symbol_call` et `qt_callback_invoked` prouvées par la trace exacte-SHA. Le rapport global indique les définitions vues et non vues; l'inspecteur Graphify donne le nom, la ligne source et un badge « Observée » ou « Non observée » propre au scénario. Les résultats sont plafonnés à 8 fichiers / 320 fonctions / 512 KiB par fichier. Une fonction absente de la trace reste une piste de revue, jamais du code mort ou supprimable; les scénarios incomplets sont refusés. Aucun test, benchmark, watcher ou chargeur d'application n'est démarré.
+
+
+### Cycles import Python — confirmation AST sans imports relatifs impossibles
+
+La confirmation des cycles de Graphify sur les sources courantes interdit désormais de réinterpréter un `from ....module import name` qui remonte au-delà du package comme un import absolu valide. Les imports relatifs corrects `from . import b` et `from .a import something` restent reconnus. La lecture source est plafonnée à 512 KiB et refuse les liens symboliques. Les cycles suspectés par le graphe qui ne disposent pas de toutes leurs arêtes réellement confirmées restent des candidats de revue, jamais une erreur inventée ni un motif de suppression.

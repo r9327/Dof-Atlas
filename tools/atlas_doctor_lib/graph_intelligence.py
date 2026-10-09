@@ -48,8 +48,13 @@ def _imports_from_current_source(root: Path, path: str, cache: dict[str, set[str
         cache[path] = None
         return None
     try:
-        resolved = (root / relative).resolve()
+        original = root / relative
+        if original.is_symlink() or not original.is_file():
+            raise ValueError("Missing or symlinked source")
+        resolved = original.resolve()
         resolved.relative_to(root.resolve())
+        if original.stat().st_size > 512 * 1024:
+            raise ValueError("Source size budget exceeded")
         tree = ast.parse(resolved.read_text(encoding="utf-8-sig"), filename=path)
     except (OSError, UnicodeError, SyntaxError, ValueError):
         cache[path] = None
@@ -63,7 +68,11 @@ def _imports_from_current_source(root: Path, path: str, cache: dict[str, set[str
             prefix = node.module or ""
             if node.level:
                 parts = package.split(".") if package else []
-                parts = parts[:max(0, len(parts) - node.level + 1)]
+                if node.level > len(parts):
+                    # Import climbs above the containing package: never
+                    # reinterpret it as an absolute module dependency.
+                    continue
+                parts = parts[:len(parts) - node.level + 1]
                 prefix = ".".join(filter(None, (".".join(parts), prefix)))
             if prefix:
                 imports.add(prefix)
