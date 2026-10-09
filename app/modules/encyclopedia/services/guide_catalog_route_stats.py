@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import re
 
+from app.modules.encyclopedia.services.guide_catalog_hints import (
+    catalog_route_map_count_hint,
+)
 from app.modules.encyclopedia.services.guide_quest_view_model import (
     first_position_from_quest,
     quest_solution_steps,
@@ -10,18 +13,6 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 
 
 _COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
-
-# Certified compact catalogue hints. They exist so rendering the Guide home never
-# loads every quest solution merely to display a route-sheet count. The real
-# GuideCatalogManualRuntimeService recomputes and replaces the hint on first open.
-_CATALOG_ROUTE_MAP_COUNT_HINTS = {
-    "dofus_sylvestre": 237,
-}
-
-
-def catalog_route_map_count_hint(guide_id: str) -> int:
-    return max(0, int(_CATALOG_ROUTE_MAP_COUNT_HINTS.get(str(guide_id or ""), 0)))
-
 
 def _position_key(value) -> str:
     match = _COORD_RE.search(str(value or ""))

@@ -3,20 +3,6 @@ from __future__ import annotations
 from importlib import import_module
 from typing import Any
 
-from app.modules.encyclopedia.services.guide_progress_service import (
-    GUIDE_PROGRESS_FILE,
-    GuideProgressService,
-)
-from app.modules.encyclopedia.services.guide_progress_calculator import (
-    GuideProgressCalculator,
-    ProgressCount,
-)
-from app.modules.encyclopedia.services.memory_bound_achievement_progress_service import (
-    ACHIEVEMENT_PROGRESS_FILE,
-    AchievementProgressService,
-)
-from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
-
 
 _REAL_QUEST_GRAPH_SERVICE: type | None = None
 
@@ -46,16 +32,38 @@ class _LazyQuestGraphServiceMeta(type):
 
 
 class QuestGraphService(metaclass=_LazyQuestGraphServiceMeta):
-    """Lazy public facade for the quest graph service.
-
-    main.py imports this symbol before QApplication only for type checks. The
-    concrete graph module also imports AchievementProvider helpers, so loading it
-    here would pull the Successes model stack into startup for no user-visible
-    benefit.
-    """
+    """Lazy public facade for the quest graph service."""
 
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
+    "ACHIEVEMENT_PROGRESS_FILE": (
+        "app.modules.encyclopedia.services.memory_bound_achievement_progress_service",
+        "ACHIEVEMENT_PROGRESS_FILE",
+    ),
+    "AchievementProgressService": (
+        "app.modules.encyclopedia.services.memory_bound_achievement_progress_service",
+        "AchievementProgressService",
+    ),
+    "GUIDE_PROGRESS_FILE": (
+        "app.modules.encyclopedia.services.guide_progress_service",
+        "GUIDE_PROGRESS_FILE",
+    ),
+    "GuideProgressService": (
+        "app.modules.encyclopedia.services.guide_progress_service",
+        "GuideProgressService",
+    ),
+    "GuideProgressCalculator": (
+        "app.modules.encyclopedia.services.guide_progress_calculator",
+        "GuideProgressCalculator",
+    ),
+    "ProgressCount": (
+        "app.modules.encyclopedia.services.guide_progress_calculator",
+        "ProgressCount",
+    ),
+    "QuestProgressService": (
+        "app.modules.encyclopedia.services.quest_progress_service",
+        "QuestProgressService",
+    ),
     "EncyclopediaService": (
         "app.modules.encyclopedia.services.encyclopedia_service",
         "EncyclopediaService",
@@ -102,12 +110,9 @@ def __getattr__(name: str) -> Any:
 
 
 def build_related_encyclopedia_data(*args, **kwargs):
-    """Load the related-data builder only when the preload worker actually runs."""
-
     from app.modules.encyclopedia.services.related_data_service import (
         build_related_encyclopedia_data as build,
     )
-
     return build(*args, **kwargs)
 
 
@@ -115,7 +120,6 @@ def related_data_build_count() -> int:
     from app.modules.encyclopedia.services.related_data_service import (
         related_data_build_count as build_count,
     )
-
     return int(build_count())
 
 

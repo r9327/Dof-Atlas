@@ -57,17 +57,19 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             },
         )
 
-    def test_non_low_pr_materializes_quest_catalog_and_critical_adds_heavy_fixtures(self) -> None:
+    def test_ordinary_non_low_pr_materializes_catalog_but_phase_defers_to_full(self) -> None:
         for token in (
             "name: Classify Doctor risk",
             "from tools.atlas_integrity import changed_files, classify_risk",
             "name: Materialize Doctor quest catalog",
-            "if: steps.doctor_risk.outputs.risk != 'LOW'",
+            "steps.doctor_risk.outputs.risk != 'LOW' && !(",
+            "startsWith(github.event.pull_request.title, 'Phase ')",
             'git lfs pull --include="tools/doduda/doduda.exe"',
             "QuestCatalog.load()",
             "count < 1900",
             "name: Materialize CRITICAL Doctor fixtures",
-            "if: steps.doctor_risk.outputs.risk == 'CRITICAL'",
+            "steps.doctor_risk.outputs.risk == 'CRITICAL' && !(",
+            "github.event.pull_request.head.repo.full_name == github.repository",
             "data/images/misc/dofus_atlas_logo.png",
         ):
             with self.subTest(token=token):
@@ -80,6 +82,12 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         self.assertLess(classify_index, catalog_index)
         self.assertLess(catalog_index, heavy_index)
         self.assertLess(heavy_index, doctor_index)
+        certification = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        self.assertIn("name: Phase Certification / Full Validation", certification)
+        self.assertIn("name: Materialize local Dofus catalog", certification)
+        self.assertIn("name: Materialize certification LFS fixtures", certification)
+        self.assertIn("tools.atlas_integrity full", certification)
+        self.assertIn("if: ${{ steps.doctor_risk.outputs.risk", self.source)
 
     def test_non_doctor_merge_contracts_remain_explicit(self) -> None:
         for module in (
@@ -106,6 +114,20 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             self.source,
             r"(?s)Doctor returned REVIEW.*?\n\s+}\s*\n\s+.*REVIEW has been explicitly accepted.*?\n\s+exit 0",
         )
+
+    def test_phase_preflight_is_bound_to_full_certification_trigger(self) -> None:
+        self.assertIn("ATLAS_PHASE_PR_PREFLIGHT:", self.source)
+        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", self.source)
+        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", self.source)
+        certification = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", certification)
+        self.assertIn("name: Phase Certification / Full Validation", certification)
+
+    def test_phase_changed_tests_are_never_omitted_from_full_certification(self) -> None:
+        cert = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        self.assertIn("tools.atlas_integrity full", cert)
+        self.assertIn("name: Phase Certification / Full Validation", cert)
+        self.assertIn("changed-test DIFF_TARGETS are deferred", self.source)
 
     def test_dependency_review_failure_is_deferred_but_never_swallowed(self) -> None:
         self.assertEqual(self.source.count("continue-on-error: true"), 1)

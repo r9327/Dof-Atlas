@@ -112,19 +112,24 @@ def wait_until(
     *,
     timeout: float,
     label: str,
+    poll_seconds: float = 0.005,
 ) -> tuple[float, float | None]:
+    """Pump Qt without making the benchmark itself a memory workload.
+
+    memory_mb() already exposes Windows' cumulative PeakWorkingSetSize at the
+    explicit measurement points below. Sampling it every 5 ms during a 30+
+    second cache warmup only raises the measured process' own Python heap.
+    """
+
     started = time.perf_counter()
     deadline = started + timeout
-    peak_seen: float | None = None
+    interval = max(0.001, float(poll_seconds))
     while time.perf_counter() < deadline:
         app.processEvents()
-        _rss, process_peak = memory_mb()
-        if process_peak is not None:
-            peak_seen = max(peak_seen or process_peak, process_peak)
         if predicate():
             app.processEvents()
-            return milliseconds(started), peak_seen
-        time.sleep(0.005)
+            return milliseconds(started), None
+        time.sleep(interval)
     raise RuntimeError(f"Timeout while waiting for {label} ({timeout:.1f}s).")
 
 
@@ -251,6 +256,7 @@ def measure() -> dict[str, Any]:
         lambda: preload_terminal(window),
         timeout=90.0,
         label="functional preload",
+        poll_seconds=0.02,
     )
     preload_completed_from_constructor_ms = milliseconds(startup_started)
     preload_states_after = preload_state_snapshot(window)

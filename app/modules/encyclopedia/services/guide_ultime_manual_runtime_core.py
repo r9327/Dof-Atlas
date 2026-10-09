@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 import re
+import zlib
 from pathlib import Path
 from threading import RLock
 from typing import Any
@@ -19,6 +20,10 @@ from app.quest_catalog import normalize_text
 ROOT = Path(__file__).resolve().parents[4]
 MANUAL_DIR = ROOT / "data" / "routes" / "guide_ultime_manual"
 MANIFEST_PATH = MANUAL_DIR / "manifest_v1.json"
+MANUAL_RUNTIME_COMPACT_CACHE = (
+    ROOT / ".cache" / "dofus_atlas" / "guide_ultime_manual_runtime_v1.json"
+)
+_MANUAL_RUNTIME_COMPACT_SCHEMA = 1
 _MANUAL_BUNDLE_LOCK = RLock()
 _MANUAL_BUNDLE_CACHE: dict[tuple[object, ...], dict[str, Any]] = {}
 _MAX_MANUAL_BUNDLE_CACHE_ENTRIES = 4
@@ -92,6 +97,165 @@ def _restore_manual_bundle(service: Any, bundle: dict[str, Any]) -> None:
 def clear_manual_bundle_cache() -> None:
     with _MANUAL_BUNDLE_LOCK:
         _MANUAL_BUNDLE_CACHE.clear()
+
+def _manual_runtime_quest_signature(service: Any) -> int:
+    mapping = getattr(service, "_quest_name_to_id", {})
+    if not isinstance(mapping, dict):
+        return 0
+    payload = json.dumps(
+        sorted((str(name), int(quest_id)) for name, quest_id in mapping.items()),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return int(zlib.crc32(payload) & 0xFFFFFFFF)
+
+
+def _manual_runtime_json_encode(value: Any) -> Any:
+    if isinstance(value, (bytes, bytearray)):
+        return {"__atlas_bytes_hex__": bytes(value).hex()}
+    if isinstance(value, dict):
+        return {
+            str(key): _manual_runtime_json_encode(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [_manual_runtime_json_encode(item) for item in value]
+    return value
+
+
+def _manual_runtime_json_decode(value: Any) -> Any:
+    if isinstance(value, dict):
+        if set(value) == {"__atlas_bytes_hex__"}:
+            raw = value.get("__atlas_bytes_hex__")
+            if isinstance(raw, str):
+                try:
+                    return bytes.fromhex(raw)
+                except ValueError:
+                    return b""
+        return {
+            str(key): _manual_runtime_json_decode(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_manual_runtime_json_decode(item) for item in value]
+    return value
+
+
+def _manual_runtime_source_signature(service: Any, cache_path: Path) -> list[list[object]]:
+    """Fingerprint authored JSON only, never the generated runtime cache itself."""
+
+    manual_dir = Path(service.manual_dir).resolve()
+    cache_path = Path(cache_path).resolve()
+    rows = _manual_tree_signature(manual_dir)
+    if cache_path.parent == manual_dir:
+        rows = tuple(row for row in rows if row[0] != cache_path.name)
+    return [list(row) for row in rows]
+
+
+def write_manual_runtime_compact_cache(
+    service: Any,
+    path: Path = MANUAL_RUNTIME_COMPACT_CACHE,
+) -> int:
+    """Persist the already-composed compact manual route outside Atlas' heap."""
+
+    cards = list(getattr(service, "cards", ()) or ())
+    if not cards:
+        raise RuntimeError("Route manuelle compacte vide")
+    route = dict(getattr(service, "route", {}) or {})
+    route.pop("steps", None)
+    payload = {
+        "schema_version": _MANUAL_RUNTIME_COMPACT_SCHEMA,
+        "source_signature": _manual_runtime_source_signature(service, path),
+        "quest_signature": _manual_runtime_quest_signature(service),
+        "route": _manual_runtime_json_encode(route),
+        "cards": _manual_runtime_json_encode(cards),
+        "manual_audit_data": _manual_runtime_json_encode(
+            getattr(service, "manual_audit_data", {}) or {}
+        ),
+        "manual_preview_active": bool(
+            getattr(service, "manual_preview_active", False)
+        ),
+        "manual_preview_chapters": list(
+            getattr(service, "manual_preview_chapters", ()) or ()
+        ),
+        "manual_manifest_active": bool(
+            getattr(service, "manual_manifest_active", False)
+        ),
+        "manual_chapters": list(
+            getattr(service, "manual_chapters", ()) or ()
+        ),
+        "common_quest_ids": [
+            int(value)
+            for value in getattr(service, "_common_quest_ids", ()) or ()
+        ],
+        "full_success_ids": [
+            int(value)
+            for value in getattr(service, "_full_success_ids", ()) or ()
+        ],
+    }
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+    return len(cards)
+
+
+def restore_manual_runtime_compact_cache(
+    service: Any,
+    path: Path = MANUAL_RUNTIME_COMPACT_CACHE,
+) -> bool:
+    """Restore one verified compact manual route without composing chapters."""
+
+    path = Path(path)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    if int(payload.get("schema_version") or 0) != _MANUAL_RUNTIME_COMPACT_SCHEMA:
+        return False
+    expected_source = _manual_runtime_source_signature(service, path)
+    if payload.get("source_signature") != expected_source:
+        return False
+    if int(payload.get("quest_signature") or 0) != _manual_runtime_quest_signature(service):
+        return False
+
+    decoded_cards = _manual_runtime_json_decode(payload.get("cards"))
+    decoded_route = _manual_runtime_json_decode(payload.get("route"))
+    decoded_audit = _manual_runtime_json_decode(payload.get("manual_audit_data"))
+    if not isinstance(decoded_cards, list) or not decoded_cards:
+        return False
+    if not all(isinstance(card, dict) for card in decoded_cards):
+        return False
+    if not isinstance(decoded_route, dict) or not isinstance(decoded_audit, dict):
+        return False
+
+    decoded_route["steps"] = decoded_cards
+    service.route = decoded_route
+    service.cards = decoded_cards
+    service.manual_audit_data = decoded_audit
+    service.manual_preview_active = bool(payload.get("manual_preview_active"))
+    service.manual_preview_chapters = tuple(
+        str(value) for value in payload.get("manual_preview_chapters", []) or []
+    )
+    service.manual_manifest_active = bool(payload.get("manual_manifest_active"))
+    service.manual_chapters = tuple(
+        str(value) for value in payload.get("manual_chapters", []) or []
+    )
+    service._common_quest_ids = tuple(
+        int(value) for value in payload.get("common_quest_ids", []) or []
+    )
+    service._full_success_ids = tuple(
+        int(value) for value in payload.get("full_success_ids", []) or []
+    )
+    service.manual_preview_error = ""
+    return True
+
 
 _META_INSTRUCTION_TOKENS = (
     "ne créer aucune étape",
@@ -284,9 +448,21 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
     kept only as an emergency fallback if the manual route cannot be resolved.
     """
 
-    def __init__(self, *args, quest_provider: Any = None, manual_dir: Path = MANUAL_DIR, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        quest_provider: Any = None,
+        manual_dir: Path = MANUAL_DIR,
+        cache_manual_bundle: bool = True,
+        compact_runtime: bool = False,
+        use_disk_cache: bool = True,
+        **kwargs,
+    ) -> None:
         self.quest_provider = quest_provider
         self.manual_dir = Path(manual_dir)
+        self.cache_manual_bundle = bool(cache_manual_bundle)
+        self.compact_runtime = bool(compact_runtime)
+        self.use_disk_cache = bool(use_disk_cache)
         self.manual_preview_active = False
         self.manual_preview_error = ""
         self.manual_preview_chapters: tuple[str, ...] = ()
@@ -297,7 +473,13 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         super().__init__(*args, **kwargs)
         self._build_quest_name_index()
         try:
-            self._load_manual_preview()
+            restored = (
+                bool(getattr(self, "compact_runtime", False))
+                and self.use_disk_cache
+                and restore_manual_runtime_compact_cache(self)
+            )
+            if not restored:
+                self._load_manual_preview()
         except Exception as exc:
             self.manual_preview_error = f"{type(exc).__name__}: {exc}"
 
@@ -305,6 +487,21 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         provider = self.quest_provider
         if provider is None:
             return
+
+        compact_name_index = getattr(provider, "compact_name_index", None)
+        if callable(compact_name_index):
+            try:
+                compact = compact_name_index()
+            except Exception:
+                compact = {}
+            if isinstance(compact, dict) and compact:
+                self._quest_name_to_id = {
+                    str(name): int(quest_id)
+                    for name, quest_id in compact.items()
+                    if str(name)
+                }
+                return
+
         try:
             quests = provider.list_quests()
         except Exception:
@@ -346,13 +543,16 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         stage_count_by_chapter: dict[str, int] = {}
         resolved_files_by_chapter: dict[str, list[str]] = {}
         index = 1
-        chapter_memo: dict[tuple[Path, bool], dict[str, Any]] = {}
 
         for chapter_meta in chapters:
             chapter_id = str(chapter_meta.get("id") or "").strip()
             filename = str(chapter_meta.get("file") or "").strip()
             if not filename:
                 raise ValueError(f"Chapitre canonique sans fichier: {chapter_id}")
+            # Bound composition memory to one canonical chapter. Sharing this
+            # memo across the whole 267-card route retained every expanded
+            # dependency graph until the very end of first-open hydration.
+            chapter_memo: dict[tuple[Path, bool], dict[str, Any]] = {}
             chapter = load_manual_chapter(self.manual_dir / filename, _memo=chapter_memo)
             stages = [row for row in chapter.get("stages", []) or [] if isinstance(row, dict)]
             stage_count_by_chapter[chapter_id] = len(stages)
@@ -366,24 +566,71 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                     f"Stage count canonique incohérent pour {chapter_id}: manifeste={declared}, résolu={len(stages)}"
                 )
 
+            # In compact runtime, do not build every full player card only to
+            # discard its authored source afterwards. That old path rendered all
+            # lines, built preparation schedules and allocated structured payloads
+            # for 267 sheets in Atlas' long-lived process. Keep a tiny route index
+            # instead; the visible sheet is hydrated from its source on demand.
+            # Resolve chapter-level preparation once while the already-resolved
+            # chapter is in hand. Compact cards keep only their own compressed
+            # preparation rows, so visible-card hydration never has to rebuild the
+            # complete chapter dependency graph later.
             chapter_preparation_schedule = self._chapter_preparation_schedule(chapter, stages)
             unsupported: set[str] = set()
             for stage_position, stage in enumerate(stages):
                 unsupported.update(str(key) for key in stage.keys() if str(key) not in _SUPPORTED_STAGE_FIELDS)
-                card = self._stage_to_card(
-                    chapter_id,
-                    chapter_meta,
-                    chapter,
-                    stage,
-                    index,
-                    chapter_preparation=chapter_preparation_schedule.get(stage_position, []),
-                )
-                if not card.get("manual_lines"):
+                if bool(getattr(self, "compact_runtime", False)):
+                    card = self._stage_to_compact_card(
+                        chapter_id,
+                        chapter_meta,
+                        chapter,
+                        stage,
+                        index,
+                    )
+                    # Persist only the resolved source for this one sheet. Bytes
+                    # are immutable/compact and survive route navigation without
+                    # retaining a Python object graph for all 267 authored stages.
+                    card["_manual_stage_payload"] = zlib.compress(
+                        json.dumps(
+                            stage,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        ).encode("utf-8"),
+                        1,
+                    )
+                    preparation = chapter_preparation_schedule.get(stage_position, [])
+                    if preparation:
+                        card["_manual_chapter_preparation_payload"] = zlib.compress(
+                            json.dumps(
+                                preparation,
+                                ensure_ascii=False,
+                                separators=(",", ":"),
+                            ).encode("utf-8"),
+                            1,
+                        )
+                else:
+                    card = self._stage_to_card(
+                        chapter_id,
+                        chapter_meta,
+                        chapter,
+                        stage,
+                        index,
+                        chapter_preparation=chapter_preparation_schedule.get(stage_position, []),
+                    )
+                card["manual_source_file"] = filename
+                card["manual_stage_position"] = int(stage_position)
+                card["manual_capture_transition"] = bool(stage.get("capture_transition"))
+                if not bool(card.get("manual_has_lines", card.get("manual_lines"))):
                     empty_cards.append(f"{chapter_id}:{card.get('manual_stage_id')}")
                 cards.append(card)
                 index += 1
             if unsupported:
                 unsupported_by_chapter[chapter_id] = sorted(unsupported)
+
+            # Drop the resolved dependency graph before opening the next chapter.
+            # This is ordinary ownership cleanup, not a memory trim: no runtime
+            # behavior depends on chapter_memo after the compact rows are built.
+            chapter_memo.clear()
 
         self._link_next_cards(cards)
 
@@ -428,6 +675,10 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         self.manual_chapters = chapter_ids
 
     def _load_manual_preview(self) -> None:
+        if not bool(getattr(self, "cache_manual_bundle", True)):
+            self._load_manual_preview_uncached()
+            return
+
         key = _manual_bundle_cache_key(self)
         with _MANUAL_BUNDLE_LOCK:
             cached = _MANUAL_BUNDLE_CACHE.get(key)
@@ -443,6 +694,177 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
 
     def manual_audit(self) -> dict[str, Any]:
         return copy.deepcopy(self.manual_audit_data)
+
+    def _stage_to_compact_card(
+        self,
+        chapter_id: str,
+        chapter_meta: dict[str, Any],
+        chapter: dict[str, Any],
+        stage: dict[str, Any],
+        index: int,
+    ) -> dict[str, Any]:
+        """Build only the route/progress metadata required while a card is hidden."""
+
+        start = stage.get("start") if isinstance(stage.get("start"), dict) else {}
+        end = stage.get("end") if isinstance(stage.get("end"), dict) else {}
+        location = start if start else end
+        x = self._as_int(location.get("x"))
+        y = self._as_int(location.get("y"))
+
+        first_route_position = self._first_route_position(stage)
+        if x is None or y is None:
+            route_coords = self._coords_from_text(first_route_position)
+            if route_coords is not None:
+                x, y = route_coords
+
+        coverage = chapter.get("coverage") if isinstance(chapter.get("coverage"), dict) else {}
+        zone = str(
+            location.get("zone")
+            or location.get("label")
+            or coverage.get("chapter")
+            or chapter_meta.get("label")
+            or chapter_id.replace("_", " ").title()
+        ).strip()
+        destination = self._location_text(x, y, zone)
+        if not destination and first_route_position:
+            destination = first_route_position
+
+        quest_names = self._stage_quest_names(stage)
+        quest_ids = [
+            self._quest_name_to_id[name]
+            for name in quest_names
+            if name in self._quest_name_to_id
+        ]
+        temporal_hooks = self._string_list(stage.get("temporal_hooks"))
+        temporal_hooks.extend(self._string_list(stage.get("temporal_hook")))
+        temporal_hooks = list(dict.fromkeys(temporal_hooks))
+        success_names = self._string_list(stage.get("successes"))
+        resource_names = self._stage_resource_names(chapter, stage)
+
+        search_chunks = [
+            str(stage.get("title") or ""),
+            destination,
+            " ".join(quest_names),
+            " ".join(success_names),
+            " ".join(temporal_hooks),
+            " ".join(self._string_list(stage.get("route_hooks"))),
+        ]
+        manual_search_text = normalize_text(" ".join(value for value in search_chunks if value))
+        metadata_only = {
+            "id",
+            "title",
+            "expected_level",
+            "level",
+            "start",
+            "end",
+            "notes",
+            "note",
+        }
+        manual_has_lines = any(
+            value not in (None, "", [], {})
+            for key, value in stage.items()
+            if str(key) not in metadata_only
+        )
+
+        return {
+            "index": index,
+            "manual_source": True,
+            "_manual_route_cacheable": True,
+            "manual_chapter_id": chapter_id,
+            "manual_chapter_label": str(
+                chapter_meta.get("label")
+                or coverage.get("chapter")
+                or chapter_id.replace("_", " ").title()
+            ).strip(),
+            "manual_stage_id": str(stage.get("id") or f"{chapter_id}-{index}"),
+            "manual_title": str(stage.get("title") or zone or "Fiche de route").strip(),
+            "expected_level": str(stage.get("expected_level") or stage.get("level") or "").strip(),
+            "x": x,
+            "y": y,
+            "zone": zone,
+            "subzone": zone,
+            "destination": destination,
+            "manual_lines": [],
+            "manual_has_lines": bool(manual_has_lines),
+            "manual_search_text": manual_search_text,
+            "manual_quest_ids": quest_ids,
+            "manual_quest_names": quest_names,
+            "manual_resource_names": resource_names,
+            "manual_success_names": success_names,
+            "manual_temporal_hooks": temporal_hooks,
+            "a_prendre": [],
+            "a_faire_ici": [],
+            "progresse_aussi": {"quest_ids": quest_ids, "success_ids": []},
+            "a_preparer": [],
+            "hard_runtime_gates": [],
+            "profession_gates": [],
+            "avant_de_partir": [],
+            "succes_monstres_a_faire": [],
+            "succes_donjon_a_faire": [],
+            "ensuite": None,
+        }
+
+    def _hydrate_manual_card_source(self, card: dict[str, Any]) -> dict[str, Any] | None:
+        """Hydrate only the currently visible authored stage in compact runtime mode."""
+
+        stage = card.get("manual_stage_data")
+        if isinstance(stage, dict):
+            return stage
+        if not bool(getattr(self, "compact_runtime", False)):
+            return None
+
+        filename = str(card.get("manual_source_file") or "").strip()
+        position = self._as_int(card.get("manual_stage_position"))
+        if not filename or position is None or position < 0:
+            return None
+
+        previous = getattr(self, "_manual_hydrated_card", None)
+        if isinstance(previous, dict) and previous is not card:
+            previous.pop("manual_stage_data", None)
+            previous.pop("manual_chapter_preparation", None)
+        self._manual_base_lines_cache = None
+
+        # Normal compact path: decode only the already-resolved sheet selected by
+        # the player. This avoids resolving an entire canonical chapter (and its
+        # base/import graph) again in Atlas' long-lived process.
+        payload = card.get("_manual_stage_payload")
+        if isinstance(payload, (bytes, bytearray)):
+            try:
+                decoded = json.loads(zlib.decompress(bytes(payload)).decode("utf-8"))
+            except (OSError, UnicodeError, ValueError, TypeError):
+                decoded = None
+            if isinstance(decoded, dict):
+                preparation: list[dict[str, Any]] = []
+                preparation_payload = card.get("_manual_chapter_preparation_payload")
+                if isinstance(preparation_payload, (bytes, bytearray)):
+                    try:
+                        prepared = json.loads(
+                            zlib.decompress(bytes(preparation_payload)).decode("utf-8")
+                        )
+                    except (OSError, UnicodeError, ValueError, TypeError):
+                        prepared = []
+                    if isinstance(prepared, list):
+                        preparation = [
+                            row for row in prepared if isinstance(row, dict)
+                        ]
+                card["manual_stage_data"] = decoded
+                card["manual_chapter_preparation"] = preparation
+                self._manual_hydrated_card = card
+                return decoded
+
+        # Compatibility fallback for old/manual cards that predate the compact
+        # per-sheet payload. New canonical cards should never take this branch.
+        chapter_memo: dict[tuple[Path, bool], dict[str, Any]] = {}
+        chapter = load_manual_chapter(self.manual_dir / filename, _memo=chapter_memo)
+        stages = [row for row in chapter.get("stages", []) or [] if isinstance(row, dict)]
+        if position >= len(stages):
+            return None
+        stage = stages[position]
+        preparation = self._chapter_preparation_schedule(chapter, stages).get(position, [])
+        card["manual_stage_data"] = stage
+        card["manual_chapter_preparation"] = preparation
+        self._manual_hydrated_card = card
+        return stage
 
     def _stage_to_card(
         self,
@@ -481,6 +903,13 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         quest_names = self._stage_quest_names(stage)
         quest_ids = [self._quest_name_to_id[name] for name in quest_names if name in self._quest_name_to_id]
         lines = self._stage_lines(stage, quest_names, chapter_preparation=chapter_preparation)
+        manual_search_text = normalize_text(
+            " ".join(
+                f"{row.get('position', '')} {row.get('text', '')}"
+                for row in lines
+                if isinstance(row, dict)
+            )
+        )
         structured_runtime_lines = self._stage_structured_runtime_lines(stage)
         resource_names = self._stage_resource_names(chapter, stage)
         temporal_hooks = self._string_list(stage.get("temporal_hooks")) + self._string_list(stage.get("temporal_hook"))
@@ -517,7 +946,12 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "zone": zone,
             "subzone": zone,
             "destination": destination,
-            "manual_lines": lines,
+            # Atlas renders one sheet at a time. In compact runtime mode, keep
+            # only the compact search fingerprint and rebuild the visible sheet lines
+            # from the authored stage instead of retaining 267 rendered lists.
+            "manual_lines": [] if bool(getattr(self, "compact_runtime", False)) else lines,
+            "manual_has_lines": bool(lines),
+            "manual_search_text": manual_search_text,
             "structured_runtime_lines": structured_runtime_lines,
             "manual_quest_ids": quest_ids,
             "manual_quest_names": quest_names,
@@ -525,10 +959,11 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "manual_success_names": self._string_list(stage.get("successes")),
             "manual_temporal_hooks": temporal_hooks,
             "manual_runtime_metadata": runtime_metadata,
-            # Keep the exact resolved canonical stage so future pods/profession/
-            # inventory logic never has to reverse-engineer player-facing text.
-            "manual_stage_data": copy.deepcopy(stage),
-            "manual_chapter_preparation": copy.deepcopy(chapter_preparation or []),
+            # Non-compact callers retain the authored structured values directly.
+            # Compact runtime hydrates only the visible sheet and releases it again,
+            # so this rich payload does not stay resident across the whole route.
+            "manual_stage_data": stage,
+            "manual_chapter_preparation": chapter_preparation or [],
             "a_prendre": [],
             "a_faire_ici": [],
             "progresse_aussi": {"quest_ids": quest_ids, "success_ids": []},

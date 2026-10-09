@@ -5,7 +5,7 @@ import json
 import re
 import subprocess
 import sys
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
@@ -23,12 +23,105 @@ from app.modules.encyclopedia.providers.achievement_provider import (
     AchievementProvider as BaseAchievementProvider,
     safe_int,
 )
-from app.quest_source_index import JsonSourceMapping, QuestSources
+from app.quest_source_index import QuestSources, SelectedJsonValueMapping
+from app.quest_catalog import normalize_text
 
 
 _DUMP_COMPACT_FLAG = "--dump-compact"
 _DUMP_DETAIL_FLAG = "--dump-detail"
+_BUILD_COMPACT_CACHE_FLAG = "--build-compact-cache"
+_ENSURE_COMPACT_CACHE_FLAG = "--ensure-compact-cache"
 _SPACE_RE = re.compile(r"\s*")
+ACHIEVEMENT_COMPACT_CACHE = (
+    ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_catalogue_v1.jsonl"
+)
+_ACHIEVEMENT_COMPACT_SCHEMA = 5
+_ACHIEVEMENT_COMPACT_SOURCES = (
+    "achievements.json",
+    "achievement_categories.json",
+    "achievement_objectives.json",
+    "quests.json",
+    "monsters.json",
+    "dungeons.json",
+    "languages/fr.json",
+)
+
+
+def _achievement_compact_source_signature(data_dir: Path) -> list[list[object]]:
+    signature: list[list[object]] = []
+    for relative in _ACHIEVEMENT_COMPACT_SOURCES:
+        path = data_dir / relative
+        try:
+            stat = path.stat()
+        except OSError:
+            signature.append([relative, -1, -1])
+            continue
+        signature.append([relative, int(stat.st_size), int(stat.st_mtime_ns)])
+    return signature
+
+
+def _achievement_compact_index_path(path: Path = ACHIEVEMENT_COMPACT_CACHE) -> Path:
+    return path.with_suffix(path.suffix + ".idx.json")
+
+
+def _achievement_compact_cache_valid(
+    path: Path = ACHIEVEMENT_COMPACT_CACHE,
+    *,
+    data_dir: Path = RAW_QUEST_DATA_DIR,
+) -> bool:
+    try:
+        with path.open("r", encoding="utf-8") as stream:
+            meta = json.loads(stream.readline())
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+    return bool(
+        isinstance(meta, dict)
+        and meta.get("kind") == "meta"
+        and int(meta.get("schema_version") or 0) == _ACHIEVEMENT_COMPACT_SCHEMA
+        and meta.get("source_signature") == _achievement_compact_source_signature(data_dir)
+        and _achievement_compact_index_path(path).is_file()
+    )
+
+
+def ensure_achievement_compact_cache(
+    *,
+    data_dir: Path = RAW_QUEST_DATA_DIR,
+    path: Path = ACHIEVEMENT_COMPACT_CACHE,
+) -> int:
+    """Materialize compact Success summaries during controlled preload."""
+
+    if _achievement_compact_cache_valid(path, data_dir=data_dir):
+        try:
+            index_payload = json.loads(
+                _achievement_compact_index_path(path).read_text(encoding="utf-8")
+            )
+            return max(0, int(index_payload.get("achievement_count") or 0))
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            return 0
+    if bool(getattr(sys, "frozen", False)):
+        return 0
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+            _BUILD_COMPACT_CACHE_FLAG,
+            str(path),
+        ],
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=90,
+        check=True,
+    )
+    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise RuntimeError("La génération du cache compact Succès n'a produit aucun résultat")
+    payload = json.loads(lines[-1])
+    return max(0, int(payload.get("achievement_count") or 0))
+
 
 
 def _entity_ref_from_dict(value: object) -> EntityRef | None:
@@ -100,22 +193,35 @@ def _entity_ref_to_dict(ref: EntityRef) -> dict[str, object]:
     }
 
 
-def _progress_objective_row(objective: AchievementObjective) -> list[object]:
-    """Primitive auto-progress contract; rich objective text/entities stay off-heap."""
+
+def _compact_objective_dict(objective: AchievementObjective) -> dict[str, object]:
+    """Compact one objective in the disposable worker before crossing process boundaries."""
 
     objective_type = str(objective.objective_type or "")
     keep_text = objective_type.strip().casefold() == "critère pr"
-    return [
-        int(objective.id),
-        objective_type,
-        str(objective.criterion or ""),
-        str(objective.text or "") if keep_text else "",
-        [
+    return {
+        "id": int(objective.id),
+        "type": objective_type,
+        "criterion": str(objective.criterion or ""),
+        "text": str(objective.text or "") if keep_text else "",
+        "refs": [
             [str(ref.entity_type), ref.entity_id]
             for ref in objective.entity_refs
         ],
-    ]
+    }
 
+
+def _progress_objective_row(objective: AchievementObjective) -> list[object]:
+    """Primitive auto-progress contract; rich objective models stay off-heap."""
+
+    compact = _compact_objective_dict(objective)
+    return [
+        compact["id"],
+        compact["type"],
+        compact["criterion"],
+        compact["text"],
+        compact["refs"],
+    ]
 
 def _progress_objectives_from_rows(values: object) -> tuple[tuple[object, ...], ...]:
     if not isinstance(values, list):
@@ -251,65 +357,6 @@ def _achievement_from_dict(value: dict[str, Any]) -> Achievement:
     )
 
 
-class _SelectedEntriesMapping(JsonSourceMapping):
-    """Offset mapping for only the localization IDs used by the compact catalogue."""
-
-    def __init__(self, path: Path, cache_root: Path, selected_keys: set[str]) -> None:
-        self._selected_keys = frozenset(str(key) for key in selected_keys)
-        key_digest = hashlib.sha256(
-            "\0".join(sorted(self._selected_keys)).encode("utf-8")
-        ).hexdigest()
-        super().__init__(
-            path,
-            cache_root,
-            f"entries:selected:{key_digest}",
-            doduda=False,
-            required=True,
-        )
-
-    def _build_offsets(self, _field):
-        if not self._selected_keys:
-            return {}
-
-        data = self.path.read_bytes().decode("utf-8")
-        marker = re.search(r'"entries"\s*:\s*\{', data)
-        if marker is None:
-            self._source_failure("champ requis absent (entries)")
-            return {}
-
-        decoder = json.JSONDecoder()
-        cursor = marker.end()
-        byte_cursor = len(data[:cursor].encode("utf-8"))
-        previous = cursor
-        offsets: dict[str, tuple[int, int]] = {}
-        remaining = set(self._selected_keys)
-
-        while remaining:
-            cursor = _SPACE_RE.match(data, cursor).end()
-            if data[cursor:cursor + 1] == "}":
-                break
-            key, cursor = decoder.raw_decode(data, cursor)
-            cursor = _SPACE_RE.match(data, cursor).end()
-            if data[cursor:cursor + 1] != ":":
-                raise ValueError("Missing JSON member separator")
-            cursor = _SPACE_RE.match(data, cursor + 1).end()
-            byte_cursor += len(data[previous:cursor].encode("utf-8"))
-            start = byte_cursor
-            _value, value_end = decoder.raw_decode(data, cursor)
-            byte_cursor += len(data[cursor:value_end].encode("utf-8"))
-            key_text = str(key)
-            if key_text in remaining:
-                offsets[key_text] = (start, byte_cursor)
-                remaining.remove(key_text)
-            previous = value_end
-            cursor = _SPACE_RE.match(data, value_end).end()
-            if data[cursor:cursor + 1] == ",":
-                cursor += 1
-            elif data[cursor:cursor + 1] != "}":
-                raise ValueError("Missing JSON member delimiter")
-        return offsets
-
-
 class _CompactAchievementSources(QuestSources):
     def __init__(
         self,
@@ -332,10 +379,11 @@ class _CompactAchievementSources(QuestSources):
                 required = True
             key = (path, field, doduda, bool(required))
             if key not in self._mappings:
-                self._mappings[key] = _SelectedEntriesMapping(
+                self._mappings[key] = SelectedJsonValueMapping(
                     path,
-                    self.cache_root,
+                    "entries",
                     self._selected_text_ids,
+                    required=bool(required),
                 )
             return self._mappings[key]
         return super().mapping(path, field, doduda=doduda, required=required)
@@ -410,6 +458,12 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._progress_objectives: dict[int, str] = {}
         self._compat_cache_id: int | None = None
         self._compat_cache: Achievement | None = None
+        self._compact_external_index: dict[int, tuple[int, int]] | None = None
+        self._compact_retained_ids: tuple[int, ...] = ()
+        self._compact_retained_set: frozenset[int] = frozenset()
+        self._compact_category_ids: dict[int, tuple[int, ...]] = {}
+        self._compact_quest_link_cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
+        self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -440,6 +494,12 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._progress_objectives = {}
         self._compat_cache_id = None
         self._compat_cache = None
+        self._compact_external_index = None
+        self._compact_retained_ids = ()
+        self._compact_retained_set = frozenset()
+        self._compact_category_ids = {}
+        self._compact_quest_link_cache.clear()
+        self._compact_summary_cache.clear()
         self._reset_sources()
 
     def _image_for_icon(self, icon_id: int | None, folders: tuple[str, ...]) -> str:
@@ -477,21 +537,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._linked_achievements = {}
         self._image_indexes.clear()
 
-    def _load_in_process(self) -> None:
-        cache_root = self._sources.cache_root
-        selected_text_ids = _collect_compact_text_ids(self.data_dir, cache_root)
-        self._sources.close()
-        self._sources = _CompactAchievementSources(
-            cache_root,
-            self.data_dir / "languages" / "fr.json",
-            selected_text_ids,
-        )
-        self._entries = None
-        self._catalog_loading = True
-        try:
-            super()._load()
-        finally:
-            self._catalog_loading = False
+    def _finish_in_process_catalogue(self) -> None:
         self._trim_catalogue_payload()
         self._progress_objectives = {
             int(achievement.id): json.dumps(
@@ -507,72 +553,54 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         }
         self._reset_sources()
 
-    def _load_from_compact_subprocess(self) -> None:
-        process = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
-                _DUMP_COMPACT_FLAG,
-            ],
-            cwd=ROOT_DIR,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
+    def _load_in_process(self) -> None:
+        cache_root = self._sources.cache_root
+        selected_text_ids = _collect_compact_text_ids(self.data_dir, cache_root)
+        self._sources.close()
+        self._sources = _CompactAchievementSources(
+            cache_root,
+            self.data_dir / "languages" / "fr.json",
+            selected_text_ids,
         )
-        categories: dict[int, AchievementCategory] = {}
-        achievements: list[Achievement] = []
-        progress_objectives: dict[int, str] = {}
-        assert process.stdout is not None
-        for raw_line in process.stdout:
-            line = raw_line.strip()
-            if not line:
-                continue
-            row = json.loads(line)
-            if not isinstance(row, dict):
-                continue
-            kind = str(row.get("kind") or "")
-            value = row.get("value")
-            if kind == "category" and isinstance(value, dict):
-                category = AchievementCategory(
-                    id=int(value["id"]),
-                    name=str(value.get("name") or ""),
-                    parent_id=int(value.get("parent_id") or 0),
-                    order=int(value.get("order") or 0),
-                    achievement_ids=tuple(
-                        int(item)
-                        for item in value.get("achievement_ids", [])
-                        if isinstance(item, int)
-                    ),
-                )
-                categories[category.id] = category
-            elif kind == "achievement" and isinstance(value, dict):
-                achievement = _achievement_from_dict(value)
-                achievements.append(achievement)
-                raw_progress = value.get("progress_objectives")
-                if isinstance(raw_progress, list) and raw_progress:
-                    progress_objectives[int(achievement.id)] = json.dumps(
-                        raw_progress,
-                        ensure_ascii=False,
-                        separators=(",", ":"),
-                    )
+        self._entries = None
+        self._catalog_loading = True
+        try:
+            super()._load()
+        finally:
+            self._catalog_loading = False
+        self._finish_in_process_catalogue()
 
-        stderr = process.stderr.read() if process.stderr is not None else ""
-        return_code = process.wait(timeout=10)
-        if process.stdout is not None:
-            process.stdout.close()
-        if process.stderr is not None:
-            process.stderr.close()
-        if return_code != 0:
-            raise RuntimeError(
-                "Extraction compacte des succès impossible"
-                + (f": {stderr.strip()}" if stderr.strip() else "")
-            )
-        if not achievements:
-            raise RuntimeError("Extraction compacte des succès vide")
+    def _load_disposable_worker_fast(self) -> None:
+        """Build compact Success data with one source pass in a disposable process.
 
+        The long-lived Atlas path still uses selected localization values to keep
+        its allocator high-water low.  A startup worker can instead keep the
+        language byte-offset table for its short lifetime and avoid scanning the
+        achievement/quest/monster sources once just to discover text IDs.
+        """
+
+        # Guide/Quest warmup runs first and has already prepared the canonical
+        # byte-offset source indexes. Reuse that disposable cache namespace
+        # instead of rebuilding the same offsets under achievement_sources_v1.
+        shared_source_offsets = (
+            ROOT_DIR / ".cache" / "dofus_atlas" / "quest_details_v1" / "source_offsets"
+        )
+        self._sources.close()
+        self._sources = QuestSources(shared_source_offsets)
+        self._entries = None
+        self._catalog_loading = True
+        try:
+            super()._load()
+        finally:
+            self._catalog_loading = False
+        self._finish_in_process_catalogue()
+
+    def _install_compact_rows(
+        self,
+        categories: dict[int, AchievementCategory],
+        achievements: list[Achievement],
+        progress_objectives: dict[int, str],
+    ) -> None:
         self._categories = categories
         self._achievements = achievements
         self._by_id = {achievement.id: achievement for achievement in achievements}
@@ -597,13 +625,623 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._image_indexes.clear()
         self._reset_sources()
 
+    def _consume_compact_row(
+        self,
+        row: dict[str, object],
+        categories: dict[int, AchievementCategory],
+        achievements: list[Achievement],
+        progress_objectives: dict[int, str],
+        *,
+        retained_only: bool,
+    ) -> bool:
+        kind = str(row.get("kind") or "")
+        if kind == "external_start" and retained_only:
+            return False
+        value = row.get("value")
+        if kind == "category" and isinstance(value, dict):
+            category = AchievementCategory(
+                id=int(value["id"]),
+                name=str(value.get("name") or ""),
+                parent_id=int(value.get("parent_id") or 0),
+                order=int(value.get("order") or 0),
+                achievement_ids=tuple(
+                    int(item)
+                    for item in value.get("achievement_ids", [])
+                    if isinstance(item, int)
+                ),
+            )
+            categories[category.id] = category
+        elif kind == "achievement" and isinstance(value, dict):
+            achievement = _achievement_from_dict(value)
+            if retained_only and int(achievement.category_id) not in {
+                int(item) for item in RETAINED_TOP_CATEGORY_IDS
+            }:
+                return True
+            achievements.append(achievement)
+            raw_progress = value.get("progress_objectives")
+            if isinstance(raw_progress, list) and raw_progress:
+                progress_objectives[int(achievement.id)] = json.dumps(
+                    raw_progress,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+        return True
+
+    def _load_from_compact_cache(self) -> None:
+        if not _achievement_compact_cache_valid(
+            ACHIEVEMENT_COMPACT_CACHE,
+            data_dir=self.data_dir,
+        ):
+            raise RuntimeError("Cache compact Succès absent ou périmé")
+
+        try:
+            index_payload = json.loads(
+                _achievement_compact_index_path().read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Index compact Succès absent ou invalide") from exc
+
+        categories: dict[int, AchievementCategory] = {}
+        with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+            for raw_line in stream:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                row = json.loads(line)
+                if not isinstance(row, dict):
+                    continue
+                kind = str(row.get("kind") or "")
+                if kind == "achievement":
+                    break
+                value = row.get("value")
+                if kind != "category" or not isinstance(value, dict):
+                    continue
+                category = AchievementCategory(
+                    id=int(value["id"]),
+                    name=str(value.get("name") or ""),
+                    parent_id=int(value.get("parent_id") or 0),
+                    order=int(value.get("order") or 0),
+                    achievement_ids=tuple(
+                        int(item)
+                        for item in value.get("achievement_ids", [])
+                        if isinstance(item, int)
+                    ),
+                )
+                categories[category.id] = category
+
+        raw_offsets = index_payload.get("offsets") if isinstance(index_payload, dict) else {}
+        offsets: dict[int, tuple[int, int]] = {}
+        if isinstance(raw_offsets, dict):
+            for raw_id, span in raw_offsets.items():
+                if not isinstance(span, list) or len(span) != 2:
+                    continue
+                try:
+                    offsets[int(raw_id)] = (int(span[0]), int(span[1]))
+                except (TypeError, ValueError):
+                    continue
+
+        def id_tuple_map(value: object) -> dict[int, tuple[int, ...]]:
+            output: dict[int, tuple[int, ...]] = {}
+            if not isinstance(value, dict):
+                return output
+            for raw_key, raw_ids in value.items():
+                if not isinstance(raw_ids, list):
+                    continue
+                try:
+                    key = int(raw_key)
+                except (TypeError, ValueError):
+                    continue
+                ids: list[int] = []
+                for raw_id in raw_ids:
+                    try:
+                        ids.append(int(raw_id))
+                    except (TypeError, ValueError):
+                        continue
+                output[key] = tuple(ids)
+            return output
+
+        retained_ids = tuple(
+            int(value)
+            for value in (index_payload.get("retained_ids") or ())
+            if isinstance(value, int)
+        )
+        if not categories or not retained_ids:
+            raise RuntimeError("Index compact Succès incomplet")
+
+        self._categories = categories
+        self._achievements = []
+        self._by_id = {}
+        self._by_category = defaultdict(list)
+        self._by_quest = defaultdict(list)
+        self._linked_quests = {}
+        self._linked_monsters = {}
+        self._linked_dungeons = {}
+        self._linked_achievements = {}
+        self._progress_objectives = {}
+        self._compact_external_index = offsets
+        self._compact_retained_ids = retained_ids
+        self._compact_retained_set = frozenset(retained_ids)
+        self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
+        self._compact_quest_link_cache.clear()
+        self._compact_summary_cache.clear()
+        self._image_indexes.clear()
+        self._reset_sources()
+
+    def _load_from_compact_subprocess(self) -> None:
+        """Compatibility fallback used only when controlled preload did not build the cache."""
+
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+                _DUMP_COMPACT_FLAG,
+            ],
+            cwd=ROOT_DIR,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        categories: dict[int, AchievementCategory] = {}
+        achievements: list[Achievement] = []
+        progress_objectives: dict[int, str] = {}
+        assert process.stdout is not None
+        retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+        for raw_line in process.stdout:
+            line = raw_line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if not isinstance(row, dict):
+                continue
+            kind = str(row.get("kind") or "")
+            value = row.get("value")
+            if kind == "category" and isinstance(value, dict):
+                category = AchievementCategory(
+                    id=int(value["id"]),
+                    name=str(value.get("name") or ""),
+                    parent_id=int(value.get("parent_id") or 0),
+                    order=int(value.get("order") or 0),
+                    achievement_ids=tuple(
+                        int(item)
+                        for item in value.get("achievement_ids", [])
+                        if isinstance(item, int)
+                    ),
+                )
+                categories[category.id] = category
+            elif kind == "achievement" and isinstance(value, dict):
+                category_id = safe_int(value.get("category_id"), 0) or 0
+                if int(category_id) not in retained_ids:
+                    continue
+                achievement = _achievement_from_dict(value)
+                achievements.append(achievement)
+                raw_progress = value.get("progress_objectives")
+                if isinstance(raw_progress, list) and raw_progress:
+                    progress_objectives[int(achievement.id)] = json.dumps(
+                        raw_progress,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+
+        stderr = process.stderr.read() if process.stderr is not None else ""
+        return_code = process.wait(timeout=10)
+        if process.stdout is not None:
+            process.stdout.close()
+        if process.stderr is not None:
+            process.stderr.close()
+        if return_code != 0:
+            raise RuntimeError(
+                "Extraction compacte des succès impossible"
+                + (f": {stderr.strip()}" if stderr.strip() else "")
+            )
+        if not achievements:
+            raise RuntimeError("Extraction compacte des succès vide")
+        self._install_compact_rows(categories, achievements, progress_objectives)
+
     def _load(self) -> None:
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
         if bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir:
             self._load_in_process()
             return
+        if _achievement_compact_cache_valid(
+            ACHIEVEMENT_COMPACT_CACHE,
+            data_dir=self.data_dir,
+        ):
+            self._load_from_compact_cache()
+            return
         self._load_from_compact_subprocess()
+
+    def _compact_value_by_id(self, achievement_id: int) -> dict[str, object] | None:
+        achievement_id = int(achievement_id)
+        if self._compact_external_index is None:
+            try:
+                payload = json.loads(
+                    _achievement_compact_index_path().read_text(encoding="utf-8")
+                )
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                self._compact_external_index = {}
+            else:
+                raw_offsets = payload.get("offsets") if isinstance(payload, dict) else {}
+                index: dict[int, tuple[int, int]] = {}
+                if isinstance(raw_offsets, dict):
+                    for raw_id, span in raw_offsets.items():
+                        if not isinstance(span, list) or len(span) != 2:
+                            continue
+                        try:
+                            index[int(raw_id)] = (int(span[0]), int(span[1]))
+                        except (TypeError, ValueError):
+                            continue
+                self._compact_external_index = index
+
+        span = self._compact_external_index.get(achievement_id)
+        if span is not None:
+            start, length = span
+            try:
+                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    stream.seek(start)
+                    row = json.loads(stream.read(length))
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                return None
+            value = row.get("value") if isinstance(row, dict) else None
+            return value if isinstance(value, dict) else None
+
+        # Non-retained Successes are compatibility/cross-link lookups only.
+        # Stream the compact file for those rare requests instead of retaining
+        # a second global offset table for the whole corpus.
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                external = False
+                for raw_line in stream:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict):
+                        continue
+                    kind = str(row.get("kind") or "")
+                    if kind == "external_start":
+                        external = True
+                        continue
+                    if not external or kind != "achievement":
+                        continue
+                    value = row.get("value")
+                    if not isinstance(value, dict):
+                        continue
+                    try:
+                        row_id = int(value.get("id"))
+                    except (TypeError, ValueError):
+                        continue
+                    if row_id == achievement_id:
+                        return value
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            return None
+        return None
+
+    def _load_external_summary(self, achievement_id: int) -> Achievement | None:
+        value = self._compact_value_by_id(int(achievement_id))
+        return _achievement_from_dict(value) if value is not None else None
+
+    def _summary_by_id(self, achievement_id: int) -> Achievement | None:
+        achievement_id = int(achievement_id)
+        summary = self._by_id.get(achievement_id)
+        if summary is not None:
+            return summary
+        cached = self._compact_summary_cache.get(achievement_id)
+        if cached is not None:
+            self._compact_summary_cache.move_to_end(achievement_id)
+            return cached
+        summary = self._load_external_summary(achievement_id)
+        if summary is None:
+            return None
+        self._compact_summary_cache[achievement_id] = summary
+        self._compact_summary_cache.move_to_end(achievement_id)
+        while len(self._compact_summary_cache) > 32:
+            self._compact_summary_cache.popitem(last=False)
+        return summary
+
+    def compact_name_index(self) -> dict[str, tuple[int, str]]:
+        """Stream the compact Success catalogue into a tiny normalized name/id index."""
+
+        if not _achievement_compact_cache_valid(
+            ACHIEVEMENT_COMPACT_CACHE,
+            data_dir=self.data_dir,
+        ):
+            return {}
+        result: dict[str, tuple[int, str]] = {}
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                for raw_line in stream:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict) or row.get("kind") != "achievement":
+                        continue
+                    value = row.get("value")
+                    if not isinstance(value, dict):
+                        continue
+                    achievement_id = safe_int(value.get("id"))
+                    name = str(value.get("name") or "").strip()
+                    key = normalize_text(name)
+                    if achievement_id is not None and key and key not in result:
+                        result[key] = (int(achievement_id), name)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            return {}
+        return result
+
+    def retained_count(self) -> int:
+        self._ensure_loaded()
+        if self._compact_retained_ids:
+            return len(self._compact_retained_ids)
+        return sum(
+            1
+            for achievement in self._achievements
+            if int(achievement.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+        )
+
+    def count_by_category(self, category_id: int) -> int:
+        self._ensure_loaded()
+        if self._compact_category_ids:
+            return len(self._compact_category_ids.get(int(category_id), ()))
+        return len(self._by_category.get(int(category_id), ()))
+
+    def catalogue_ids(self, category_id: int | None = None) -> tuple[int, ...]:
+        """Return retained Success IDs without materializing Achievement objects."""
+
+        self._ensure_loaded()
+        if self._compact_retained_ids:
+            if category_id is None:
+                return tuple(self._compact_retained_ids)
+            return tuple(self._compact_category_ids.get(int(category_id), ()))
+        if category_id is None:
+            return tuple(
+                int(achievement.id)
+                for achievement in self._achievements
+                if self.is_retained(int(achievement.id))
+            )
+        return tuple(
+            int(achievement.id)
+            for achievement in self._by_category.get(int(category_id), ())
+            if self.is_retained(int(achievement.id))
+        )
+
+    def catalogue_row_by_id(
+        self,
+        achievement_id: int,
+    ) -> tuple[int, str, int | None, int] | None:
+        """Return one primitive list row; rich Success objects stay cold."""
+
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        if (
+            self._compact_retained_set
+            and achievement_id in self._compact_retained_set
+            and self._compact_external_index is not None
+        ):
+            span = self._compact_external_index.get(achievement_id)
+            if span is not None:
+                start, length = span
+                try:
+                    with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                        stream.seek(start)
+                        payload = json.loads(stream.read(length))
+                except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                    return None
+                value = payload.get("value") if isinstance(payload, dict) else None
+                if isinstance(value, dict):
+                    return (
+                        achievement_id,
+                        str(value.get("name") or ""),
+                        safe_int(value.get("level")),
+                        int(value.get("points") or 0),
+                    )
+
+        summary = self._summary_by_id(achievement_id)
+        if summary is None or not self.is_retained(achievement_id):
+            return None
+        return (
+            achievement_id,
+            str(summary.name or ""),
+            summary.level,
+            int(summary.points or 0),
+        )
+
+    def load_retained(self) -> list[Achievement]:
+        self._ensure_loaded()
+        if self._compact_retained_ids:
+            return [
+                summary
+                for achievement_id in self._compact_retained_ids
+                for summary in (self._summary_by_id(achievement_id),)
+                if summary is not None
+            ]
+        return super().load_retained()
+
+    def get_by_category(self, category_id: int) -> list[Achievement]:
+        self._ensure_loaded()
+        if self._compact_category_ids:
+            return [
+                summary
+                for achievement_id in self._compact_category_ids.get(int(category_id), ())
+                for summary in (self._summary_by_id(achievement_id),)
+                if summary is not None
+            ]
+        return list(self._by_category.get(int(category_id), ()))
+
+    def _compact_achievement_ids_for_quest(self, quest_id: int) -> tuple[int, ...]:
+        quest_id = int(quest_id)
+        cached = self._compact_quest_link_cache.get(quest_id)
+        if cached is not None:
+            self._compact_quest_link_cache.move_to_end(quest_id)
+            return cached
+
+        matches: list[int] = []
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                for raw_line in stream:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict):
+                        continue
+                    kind = str(row.get("kind") or "")
+                    if kind == "external_start":
+                        break
+                    if kind != "achievement":
+                        continue
+                    value = row.get("value")
+                    if not isinstance(value, dict):
+                        continue
+                    linked = value.get("linked_quests")
+                    if not isinstance(linked, list):
+                        continue
+                    linked_ids: set[int] = set()
+                    for ref in linked:
+                        if not isinstance(ref, dict):
+                            continue
+                        try:
+                            linked_ids.add(int(ref.get("entity_id")))
+                        except (TypeError, ValueError):
+                            continue
+                    if quest_id not in linked_ids:
+                        continue
+                    try:
+                        matches.append(int(value.get("id")))
+                    except (TypeError, ValueError):
+                        continue
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            matches = []
+
+        result = tuple(dict.fromkeys(matches))
+        self._compact_quest_link_cache[quest_id] = result
+        self._compact_quest_link_cache.move_to_end(quest_id)
+        while len(self._compact_quest_link_cache) > 24:
+            self._compact_quest_link_cache.popitem(last=False)
+        return result
+
+    def get_by_quest(self, quest_id: int) -> list[Achievement]:
+        self._ensure_loaded()
+        if self._compact_retained_ids:
+            return [
+                summary
+                for achievement_id in self._compact_achievement_ids_for_quest(int(quest_id))
+                for summary in (self._summary_by_id(achievement_id),)
+                if summary is not None
+            ]
+        return list(self._by_quest.get(int(quest_id), ()))
+
+    def search(self, query: str, limit: int | None = None) -> list[Achievement]:
+        self._ensure_loaded()
+        if not self._compact_retained_ids:
+            return super().search(query, limit=limit)
+        needle = normalize_text(query)
+        tokens = [token for token in needle.split("_") if token]
+        results: list[Achievement] = []
+        for achievement_id in self._compact_retained_ids:
+            summary = self._summary_by_id(achievement_id)
+            if summary is None:
+                continue
+            if tokens and not all(token in summary.search_text for token in tokens):
+                continue
+            results.append(summary)
+            if limit is not None and len(results) >= int(limit):
+                break
+        return results
+
+    def iter_progress_achievement_ids(self):
+        """Iterate retained Success IDs without materializing catalogue rows."""
+
+        self._ensure_loaded()
+        if self._compact_retained_ids:
+            return iter(self._compact_retained_ids)
+        return iter(
+            int(achievement.id)
+            for achievement in self._achievements
+            if self.is_retained(int(achievement.id))
+        )
+
+    def progress_row_by_id(
+        self,
+        achievement_id: int,
+    ) -> tuple[int, str, tuple[tuple[object, ...], ...]] | None:
+        """Load one primitive progress row directly from the compact JSONL."""
+
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        if (
+            self._compact_retained_set
+            and achievement_id in self._compact_retained_set
+            and self._compact_external_index is not None
+        ):
+            span = self._compact_external_index.get(achievement_id)
+            if span is None:
+                return None
+            start, length = span
+            try:
+                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    stream.seek(start)
+                    payload = json.loads(stream.read(length))
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                return None
+            value = payload.get("value") if isinstance(payload, dict) else None
+            if not isinstance(value, dict):
+                return None
+            return (
+                achievement_id,
+                str(value.get("category_name") or ""),
+                _progress_objectives_from_rows(value.get("progress_objectives")),
+            )
+
+        summary = self.get_by_id(achievement_id)
+        if summary is None or not self.is_retained(achievement_id):
+            return None
+        return (
+            achievement_id,
+            str(summary.category_name or ""),
+            tuple(self.progress_objectives_for(achievement_id)),
+        )
+
+    def progress_catalogue(self) -> tuple[tuple[int, str, tuple[tuple[object, ...], ...]], ...]:
+        """Primitive progress rows; no Achievement graph enters the resident heap."""
+
+        self._ensure_loaded()
+        if not self._compact_retained_ids or self._compact_external_index is None:
+            return tuple(
+                (
+                    int(achievement.id),
+                    str(achievement.category_name or ""),
+                    tuple(self.progress_objectives_for(int(achievement.id))),
+                )
+                for achievement in self.load_retained()
+            )
+
+        rows: list[tuple[int, str, tuple[tuple[object, ...], ...]]] = []
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                for achievement_id in self._compact_retained_ids:
+                    span = self._compact_external_index.get(int(achievement_id))
+                    if span is None:
+                        continue
+                    start, length = span
+                    stream.seek(start)
+                    payload = json.loads(stream.read(length))
+                    value = payload.get("value") if isinstance(payload, dict) else None
+                    if not isinstance(value, dict):
+                        continue
+                    rows.append(
+                        (
+                            int(achievement_id),
+                            str(value.get("category_name") or ""),
+                            _progress_objectives_from_rows(value.get("progress_objectives")),
+                        )
+                    )
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            return ()
+        return tuple(rows)
 
     def load_runtime(self) -> None:
         """Warm only the compact resident catalogue used by Atlas runtime."""
@@ -651,25 +1289,65 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         current_data_dir = Path(self.data_dir).resolve(strict=False)
         if bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir:
             self.prepare_detail_sources()
-        return [self._compat_achievement(summary) for summary in self._achievements]
+            return [self._compat_achievement(summary) for summary in self._achievements]
+
+        if not _achievement_compact_cache_valid(
+            ACHIEVEMENT_COMPACT_CACHE,
+            data_dir=self.data_dir,
+        ):
+            return [self._compat_achievement(summary) for summary in self._achievements]
+
+        result: list[Achievement] = []
+        with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+            for raw_line in stream:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                row = json.loads(line)
+                value = row.get("value") if isinstance(row, dict) else None
+                if row.get("kind") != "achievement" or not isinstance(value, dict):
+                    continue
+                summary = _achievement_from_dict(value)
+                raw_progress = value.get("progress_objectives")
+                if isinstance(raw_progress, list) and raw_progress:
+                    encoded = json.dumps(
+                        raw_progress,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    previous = self._progress_objectives.get(int(summary.id))
+                    self._progress_objectives[int(summary.id)] = encoded
+                    try:
+                        result.append(self._compat_achievement(summary))
+                    finally:
+                        if previous is None and int(summary.id) not in self._by_id:
+                            self._progress_objectives.pop(int(summary.id), None)
+                        elif previous is not None:
+                            self._progress_objectives[int(summary.id)] = previous
+                else:
+                    result.append(self._compat_achievement(summary))
+        return result
 
     def progress_objectives_for(self, achievement_id: int) -> tuple[tuple[object, ...], ...]:
         self._ensure_loaded()
         encoded = self._progress_objectives.get(int(achievement_id), "")
-        if not encoded:
+        if encoded:
+            try:
+                payload = json.loads(encoded)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                return ()
+            return _progress_objectives_from_rows(payload)
+        value = self._compact_value_by_id(int(achievement_id))
+        if value is None:
             return ()
-        try:
-            payload = json.loads(encoded)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            return ()
-        return _progress_objectives_from_rows(payload)
+        return _progress_objectives_from_rows(value.get("progress_objectives"))
 
     def get_by_id(self, achievement_id: int) -> Achievement | None:
         """Return one lightweight compatibility object without warming rich sources."""
 
         self._ensure_loaded()
         achievement_id = int(achievement_id)
-        summary = self._by_id.get(achievement_id)
+        summary = self._summary_by_id(achievement_id)
         if summary is None:
             return None
         if self._compat_cache_id == achievement_id and self._compat_cache is not None:
@@ -681,7 +1359,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def is_retained(self, achievement_id: int) -> bool:
         self._ensure_loaded()
-        summary = self._by_id.get(int(achievement_id))
+        achievement_id = int(achievement_id)
+        if self._compact_retained_set:
+            return achievement_id in self._compact_retained_set
+        summary = self._by_id.get(achievement_id)
         return bool(
             summary is not None
             and int(summary.category_id) in {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
@@ -759,22 +1440,22 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def get_linked_quests(self, achievement_id: int):
         self._ensure_loaded()
-        achievement = self._by_id.get(int(achievement_id))
+        achievement = self._summary_by_id(int(achievement_id))
         return list(achievement.linked_quests) if achievement is not None else []
 
     def get_linked_monsters(self, achievement_id: int):
         self._ensure_loaded()
-        achievement = self._by_id.get(int(achievement_id))
+        achievement = self._summary_by_id(int(achievement_id))
         return list(achievement.linked_monsters) if achievement is not None else []
 
     def get_linked_dungeons(self, achievement_id: int):
         self._ensure_loaded()
-        achievement = self._by_id.get(int(achievement_id))
+        achievement = self._summary_by_id(int(achievement_id))
         return list(achievement.linked_dungeons) if achievement is not None else []
 
     def get_linked_achievements(self, achievement_id: int):
         self._ensure_loaded()
-        achievement = self._by_id.get(int(achievement_id))
+        achievement = self._summary_by_id(int(achievement_id))
         return list(achievement.linked_achievements) if achievement is not None else []
 
 
@@ -800,6 +1481,111 @@ def _dump_compact_default_catalogue() -> int:
     return 0
 
 
+def _build_compact_cache(path: Path) -> int:
+    provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+    provider._load_disposable_worker_fast()
+    retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+    path = Path(path)
+    index_path = _achievement_compact_index_path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_suffix(path.suffix + ".tmp")
+    temp_index = index_path.with_suffix(index_path.suffix + ".tmp")
+    offsets: dict[str, list[int]] = {}
+
+    def line_bytes(payload: dict[str, object]) -> bytes:
+        return (
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n"
+        ).encode("utf-8")
+
+    with temp_path.open("wb") as stream:
+        stream.write(
+            line_bytes(
+                {
+                    "kind": "meta",
+                    "schema_version": _ACHIEVEMENT_COMPACT_SCHEMA,
+                    "source_signature": _achievement_compact_source_signature(
+                        RAW_QUEST_DATA_DIR
+                    ),
+                }
+            )
+        )
+        for category in provider._categories.values():
+            stream.write(
+                line_bytes({"kind": "category", "value": asdict(category)})
+            )
+
+        retained = [
+            achievement
+            for achievement in provider._achievements
+            if int(achievement.category_id) in retained_ids
+        ]
+        external = [
+            achievement
+            for achievement in provider._achievements
+            if int(achievement.category_id) not in retained_ids
+        ]
+        by_category_ids: dict[int, list[int]] = defaultdict(list)
+        for achievement in retained:
+            by_category_ids[int(achievement.category_id)].append(int(achievement.id))
+            if achievement.subcategory_id is not None:
+                by_category_ids[int(achievement.subcategory_id)].append(int(achievement.id))
+        for achievement in retained:
+            payload = {
+                "kind": "achievement",
+                "value": _compact_achievement_dict(achievement),
+            }
+            raw = line_bytes(payload)
+            start = stream.tell()
+            stream.write(raw)
+            # The resident index intentionally covers only retained Successes.
+            # External summaries remain in the JSONL and are scanned on-demand;
+            # keeping thousands of external offsets in the startup JSON made a
+            # short-lived allocation become permanent RSS high-water.
+            offsets[str(achievement.id)] = [start, len(raw)]
+
+        stream.write(line_bytes({"kind": "external_start"}))
+        for achievement in external:
+            payload = {
+                "kind": "achievement",
+                "value": _compact_achievement_dict(achievement),
+            }
+            stream.write(line_bytes(payload))
+
+    temp_index.write_text(
+        json.dumps(
+            {
+                "schema_version": _ACHIEVEMENT_COMPACT_SCHEMA,
+                "achievement_count": len(provider._achievements),
+                "retained_count": len(retained),
+                "retained_ids": [int(achievement.id) for achievement in retained],
+                "by_category": {
+                    str(category_id): list(dict.fromkeys(achievement_ids))
+                    for category_id, achievement_ids in sorted(by_category_ids.items())
+                },
+                "offsets": offsets,
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    temp_path.replace(path)
+    temp_index.replace(index_path)
+    print(
+        json.dumps(
+            {
+                "achievement_count": len(provider._achievements),
+                "retained_count": len(retained),
+                "path": str(path),
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    )
+    return 0
+
+
 def _dump_default_detail(achievement_id: int) -> int:
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
     provider._load_in_process()
@@ -818,6 +1604,29 @@ def _dump_default_detail(achievement_id: int) -> int:
     return 0
 
 
+def _ensure_compact_cache_cli() -> int:
+    if _achievement_compact_cache_valid(ACHIEVEMENT_COMPACT_CACHE, data_dir=RAW_QUEST_DATA_DIR):
+        try:
+            payload = json.loads(_achievement_compact_index_path(ACHIEVEMENT_COMPACT_CACHE).read_text(encoding="utf-8"))
+            count = max(0, int(payload.get("achievement_count") or 0))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            count = 0
+        print(json.dumps({"achievement_count": count, "path": str(ACHIEVEMENT_COMPACT_CACHE)}, ensure_ascii=False, separators=(",", ":")))
+        return 0
+    return _build_compact_cache(ACHIEVEMENT_COMPACT_CACHE)
+
+
+if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:
+    raise SystemExit(_ensure_compact_cache_cli())
+
+
+if __name__ == "__main__" and _BUILD_COMPACT_CACHE_FLAG in sys.argv:
+    try:
+        compact_path = Path(sys.argv[sys.argv.index(_BUILD_COMPACT_CACHE_FLAG) + 1])
+    except (ValueError, IndexError):
+        raise SystemExit(2)
+    raise SystemExit(_build_compact_cache(compact_path))
+
 if __name__ == "__main__" and _DUMP_COMPACT_FLAG in sys.argv:
     raise SystemExit(_dump_compact_default_catalogue())
 
@@ -829,4 +1638,8 @@ if __name__ == "__main__" and _DUMP_DETAIL_FLAG in sys.argv:
     raise SystemExit(_dump_default_detail(detail_id))
 
 
-__all__ = ["MemoryBoundAchievementProvider"]
+__all__ = [
+    "ACHIEVEMENT_COMPACT_CACHE",
+    "MemoryBoundAchievementProvider",
+    "ensure_achievement_compact_cache",
+]

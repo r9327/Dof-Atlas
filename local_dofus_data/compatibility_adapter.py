@@ -83,6 +83,9 @@ class LocalCompatibilityAdapter:
     def search_items(self, query: str, limit: int = 50) -> list[dict[str, Any]]:
         return self.items.search_legacy(query, limit)
 
+    def search_craft_items(self, query: str, limit: int = 80) -> list[dict[str, Any]]:
+        return decorate_craft_items(self.items.search_craft_legacy(query, limit))
+
     def get_item(self, item_id: int) -> dict[str, Any] | None:
         row = self.items.get_by_ankama_id(int(item_id)) or self.items.get_by_id(int(item_id))
         if not row:
@@ -264,6 +267,18 @@ def get_adapter() -> LocalCompatibilityAdapter:
 
 def search_items(query: str, limit: int = 50) -> list[dict[str, Any]]:
     return get_adapter().search_items(query, limit)
+
+
+def search_craft_items(query: str, limit: int = 80) -> list[dict[str, Any]]:
+    return get_adapter().search_craft_items(query, limit)
+
+
+def release_adapter() -> None:
+    global _ADAPTER
+    adapter = _ADAPTER
+    _ADAPTER = None
+    if adapter is not None:
+        adapter.close()
 
 
 def get_item(item_id: int) -> dict[str, Any] | None:

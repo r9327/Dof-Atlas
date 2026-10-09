@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from PySide6.QtCore import QTimer, Qt
@@ -30,15 +31,7 @@ from app.modules.encyclopedia.models.achievement import Achievement
 from app.modules.encyclopedia.models.entity_ref import EntityRef
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import AchievementProgressService, QuestGraphService, QuestProgressService
-from app.modules.encyclopedia.achievement_catalog_policy import (
-    ALIGNMENT_GUIDE_IDS,
-    ALIGNMENT_ORDER_ACHIEVEMENT_RANKS,
-)
-from app.modules.encyclopedia.services.guide_path_profiles import ORDER_QUEST_IDS
-from app.modules.encyclopedia.widgets.achievement_detail_widget import AchievementDetailWidget
-from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntityRow
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
-from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView, QuestViewContext
 from app.quest_catalog import normalize_text
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
@@ -51,7 +44,50 @@ CATEGORY_ROLE = Qt.UserRole
 TOP_CATEGORY_ROLE = Qt.UserRole + 1
 COMPLETED_ROLE = Qt.UserRole + 2
 _SEARCH_DEBOUNCE_MS = 90
-_RESULT_BATCH_SIZE = 16
+_RESULT_BATCH_SIZE = 8
+_INITIAL_RESULT_ROWS = 16
+
+
+@dataclass(frozen=True, slots=True)
+class _AchievementListRef:
+    id: int
+
+
+def _alignment_order_achievement_ranks() -> dict[int, int]:
+    from app.modules.encyclopedia.achievement_catalog_policy import (
+        ALIGNMENT_ORDER_ACHIEVEMENT_RANKS,
+    )
+
+    return ALIGNMENT_ORDER_ACHIEVEMENT_RANKS
+
+
+def _alignment_guide_ids() -> dict[str, str]:
+    from app.modules.encyclopedia.achievement_catalog_policy import ALIGNMENT_GUIDE_IDS
+
+    return ALIGNMENT_GUIDE_IDS
+
+
+def _order_quest_ids() -> dict[str, dict[str, tuple[int, ...]]]:
+    # guide_path_profiles carries the whole Dofus route catalogue. The Success
+    # catalogue only needs this tiny alignment table after an alignment detail
+    # is explicitly opened, never for the normal Success list.
+    from app.modules.encyclopedia.achievement_catalog_policy import (
+        ALIGNMENT_ORDER_QUEST_IDS,
+    )
+
+    return ALIGNMENT_ORDER_QUEST_IDS
+
+
+def _achievement_detail_widget_type():
+    from app.modules.encyclopedia.widgets.achievement_detail_widget import AchievementDetailWidget
+
+    return AchievementDetailWidget
+
+
+def _achievement_entity_row_type():
+    from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntityRow
+
+    return AchievementEntityRow
 
 
 class AchievementListDelegate(QStyledItemDelegate):
@@ -111,13 +147,17 @@ class AchievementsView(QWidget):
         self.navigate_callback = navigate_callback
         self.quest_provider = quest_provider or provider.quest_provider
         self.guide_provider = guide_provider
-        self.quest_graph = quest_graph or QuestGraphService(self.quest_provider, guide_provider, provider)
+        self.quest_graph = (
+            quest_graph
+            if defer_runtime
+            else (quest_graph or QuestGraphService(self.quest_provider, guide_provider, provider))
+        )
         self.quest_progress_service = quest_progress_service or QuestProgressService()
         self._runtime_ready = False
         self.achievements = [] if defer_runtime else provider.load_retained()
         if not defer_runtime:
             self.sync_automatic_progress()
-        self.filtered: list[Achievement] = []
+        self.filtered: list[_AchievementListRef] = []
         self.current_achievement_id: int | None = None
         self.selected_category_id: int | None = None
         self._tree_items: dict[int, QTreeWidgetItem] = {}
@@ -180,33 +220,6 @@ class AchievementsView(QWidget):
         self.detail_layout.setSpacing(10)
         self.detail_scroll.setWidget(self.detail_content)
 
-        self.quest_detail_page = QWidget()
-        self.quest_detail_page.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
-        quest_page_layout = QVBoxLayout(self.quest_detail_page)
-        quest_page_layout.setContentsMargins(0, 0, 0, 0)
-        quest_page_layout.setSpacing(6)
-        self.back_to_achievement = AtlasButton("← Retour au succès")
-        self.back_to_achievement.setObjectName("GuideBreadcrumbButton")
-        self.back_to_achievement.clicked.connect(self.show_current_achievement)
-        quest_page_layout.addWidget(self.back_to_achievement, 0, Qt.AlignLeft)
-        self.quest_detail_view = QuestDetailView(
-            self.quest_provider,
-            self.quest_graph,
-            self.quest_progress_service,
-            achievement_provider=self.provider,
-            guide_provider=self.guide_provider,
-            character_key=self.character_key,
-            open_quest=self.show_quest,
-            open_prerequisite=self.open_prerequisite_in_quests,
-            navigate_entity=self.open_shared_entity,
-        )
-        self.quest_detail_view.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
-        quest_page_layout.addWidget(self.quest_detail_view, 1)
-        self.detail_stack.addWidget(self.quest_detail_page)
-        self.quest_detail_view.questProgressChanged.connect(
-            self.on_embedded_quest_progress_changed
-        )
-
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 0)
         self.splitter.setStretchFactor(2, 1)
@@ -243,16 +256,24 @@ class AchievementsView(QWidget):
     ) -> bool:
         if self._runtime_ready:
             return True
-        achievements = self.provider.load_retained()
-        if not achievements:
-            raise RuntimeError("Aucun succès conservé chargé")
-        self.achievements = list(achievements)
+        retained_count = getattr(self.provider, "retained_count", None)
+        retained_value = retained_count() if callable(retained_count) else None
+        if isinstance(retained_value, int):
+            if retained_value <= 0:
+                raise RuntimeError("Aucun succès conservé chargé")
+            self.achievements = []
+        else:
+            achievements = self.provider.load_retained()
+            if not achievements:
+                raise RuntimeError("Aucun succès conservé chargé")
+            self.achievements = list(achievements)
         if quest_graph is not None:
             self.quest_graph = quest_graph
-            self.quest_detail_view.update_related_context(
-                achievement_provider=self.provider,
-                guide_provider=self.guide_provider,
-                graph=quest_graph,
+        elif self.quest_graph is None:
+            self.quest_graph = QuestGraphService(
+                self.quest_provider,
+                self.guide_provider,
+                self.provider,
             )
         if not progress_synchronized:
             self.sync_automatic_progress()
@@ -280,8 +301,15 @@ class AchievementsView(QWidget):
         self.category_tree.clear()
         self._tree_items.clear()
         first_item: QTreeWidgetItem | None = None
+        count_by_category = getattr(self.provider, "count_by_category", None)
         for category in self.provider.get_retained_categories():
-            top_item = QTreeWidgetItem([f"{category.name}  ({len(self.provider.get_by_category(category.id))})"])
+            top_value = count_by_category(category.id) if callable(count_by_category) else None
+            top_count = (
+                top_value
+                if isinstance(top_value, int)
+                else len(self.provider.get_by_category(category.id))
+            )
+            top_item = QTreeWidgetItem([f"{category.name}  ({top_count})"])
             top_font = top_item.font(0)
             top_font.setBold(True)
             top_item.setFont(0, top_font)
@@ -293,7 +321,17 @@ class AchievementsView(QWidget):
             if first_item is None:
                 first_item = top_item
             for subcategory in self.provider.get_subcategories(category.id):
-                child = QTreeWidgetItem([f"{subcategory.name}  ({len(self.provider.get_by_category(subcategory.id))})"])
+                child_value = (
+                    count_by_category(subcategory.id)
+                    if callable(count_by_category)
+                    else None
+                )
+                child_count = (
+                    child_value
+                    if isinstance(child_value, int)
+                    else len(self.provider.get_by_category(subcategory.id))
+                )
+                child = QTreeWidgetItem([f"{subcategory.name}  ({child_count})"])
                 child.setToolTip(0, subcategory.name)
                 child.setData(0, CATEGORY_ROLE, subcategory.id)
                 child.setData(0, TOP_CATEGORY_ROLE, category.id)
@@ -318,15 +356,11 @@ class AchievementsView(QWidget):
     def set_character_key(self, character_key: str) -> None:
         self.character_key = character_key or ""
         if not self._runtime_ready:
-            self.quest_detail_view.set_character_key(self.character_key)
             return
         self.quest_progress_service.reload()
         self.sync_automatic_progress()
-        self.quest_detail_view.set_character_key(self.character_key)
         self.refresh_completion_styles()
-        if self.detail_stack.currentWidget() is self.quest_detail_page:
-            self.quest_detail_view.refresh()
-        elif self._detail_open and self.current_achievement_id is not None:
+        if self._detail_open and self.current_achievement_id is not None:
             self.show_achievement(self.current_achievement_id)
 
 
@@ -378,7 +412,17 @@ class AchievementsView(QWidget):
             self.search.clear()
         for row, candidate in enumerate(self.filtered):
             if candidate.id == achievement.id:
-                self.list_widget.setCurrentRow(row)
+                # Direct navigation may target a row outside the currently
+                # materialized viewport. Render only up to that target instead
+                # of eagerly building the whole category.
+                while (
+                    self.isVisible()
+                    and self.list_widget.count() <= row
+                    and self._achievement_pending_rows
+                ):
+                    self._render_next_achievement_batch()
+                if row < self.list_widget.count():
+                    self.list_widget.setCurrentRow(row)
                 self.show_achievement(achievement.id)
                 return True
         return False
@@ -408,10 +452,10 @@ class AchievementsView(QWidget):
             objective_entity_overrides,
             objective_text_overrides,
         ) = self.alignment_tracking_overrides(achievement)
-        if achievement.id in ALIGNMENT_ORDER_ACHIEVEMENT_RANKS:
+        if achievement.id in _alignment_order_achievement_ranks():
             self.detail_layout.addWidget(self.build_alignment_order_panel())
         self.detail_layout.addWidget(
-            AchievementDetailWidget(
+            _achievement_detail_widget_type()(
                 achievement,
                 self.progress_service,
                 self.character_key,
@@ -455,7 +499,8 @@ class AchievementsView(QWidget):
         combo.setMinimumContentsLength(16)
         combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
         combo.addItem("Choisir un Ordre...", None)
-        for side, orders in ORDER_QUEST_IDS.items():
+        order_quest_ids = _order_quest_ids()
+        for side, orders in order_quest_ids.items():
             city = "Bonta" if side == "bonta" else "Brâkmar"
             for order_name in orders:
                 combo.addItem(f"{city} · {order_name}", (side, order_name))
@@ -480,7 +525,7 @@ class AchievementsView(QWidget):
         side, order_name = choice
         self.add_alignment_guide_button(layout, side)
 
-        quest_ids = ORDER_QUEST_IDS[side][order_name]
+        quest_ids = order_quest_ids[side][order_name]
         done = 0
         for rank, quest_id in enumerate(quest_ids, 1):
             quest = self.quest_provider.get_quest(int(quest_id))
@@ -489,7 +534,7 @@ class AchievementsView(QWidget):
             completed = self.quest_progress_service.is_quest_completed(self.character_key, int(quest_id))
             done += int(completed)
             marker = "✓" if completed else "○"
-            link = AchievementEntityRow(EntityRef("quest", int(quest_id), f"{marker} Rang {rank} · {quest.name}"))
+            link = _achievement_entity_row_type()(EntityRef("quest", int(quest_id), f"{marker} Rang {rank} · {quest.name}"))
             link.entityActivated.connect(self.on_alignment_quest_activated)
             layout.addWidget(link)
         progress = QLabel(f"Progression de l'Ordre · {done} / 5 quêtes")
@@ -503,7 +548,7 @@ class AchievementsView(QWidget):
         guide_button.setObjectName("GuideBreadcrumbButton")
         guide_button.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
         guide_button.clicked.connect(
-            lambda _checked=False, guide_id=ALIGNMENT_GUIDE_IDS[side]: self.open_guide(guide_id)
+            lambda _checked=False, guide_id=_alignment_guide_ids()[side]: self.open_guide(guide_id)
         )
         layout.addWidget(guide_button, 0, Qt.AlignLeft)
 
@@ -512,7 +557,7 @@ class AchievementsView(QWidget):
         if choice is None:
             return None
         side, order_name = choice
-        if order_name not in ORDER_QUEST_IDS.get(side, {}):
+        if order_name not in _order_quest_ids().get(side, {}):
             return None
         return side, order_name
 
@@ -520,7 +565,7 @@ class AchievementsView(QWidget):
         self,
         achievement: Achievement,
     ) -> tuple[dict[int, bool], set[int], dict[int, EntityRef], dict[int, str]]:
-        rank = ALIGNMENT_ORDER_ACHIEVEMENT_RANKS.get(achievement.id)
+        rank = _alignment_order_achievement_ranks().get(achievement.id)
         if rank is None:
             return {}, set(), {}, {}
         rank_objective = next(
@@ -546,7 +591,7 @@ class AchievementsView(QWidget):
             )
 
         side, order_name = choice
-        quest_id = int(ORDER_QUEST_IDS[side][order_name][rank - 1])
+        quest_id = int(_order_quest_ids()[side][order_name][rank - 1])
         quest = self.quest_provider.get_quest(quest_id)
         if quest is None:
             return {objective_id: False}, readonly, {}, {}
@@ -576,14 +621,14 @@ class AchievementsView(QWidget):
         self.show_current_achievement()
 
     def effective_quest_refs(self, achievement: Achievement) -> tuple[EntityRef, ...]:
-        rank = ALIGNMENT_ORDER_ACHIEVEMENT_RANKS.get(achievement.id)
+        rank = _alignment_order_achievement_ranks().get(achievement.id)
         if rank is None:
             return achievement.resolved_linked_quests
         choice = self.valid_alignment_choice()
         if choice is None:
             return ()
         side, order_name = choice
-        quest_ids = ORDER_QUEST_IDS[side][order_name]
+        quest_ids = _order_quest_ids()[side][order_name]
         quest_id = int(quest_ids[rank - 1])
         quest = self.quest_provider.get_quest(quest_id)
         if quest is None:
@@ -680,11 +725,12 @@ class AchievementsView(QWidget):
     def __init__(self, *args, **kwargs) -> None:
         self._catalog_refresh_signature: tuple[object, ...] | None = None
         self._achievement_render_generation = 0
-        self._achievement_pending_rows: list[tuple[int, str, str]] = []
+        self._achievement_pending_rows: list[int] = []
         self._achievement_pending_selected_id: int | None = None
         self._achievement_rows_dirty = False
         self._achievement_completed_ids: frozenset[int] = frozenset()
         self._achievement_batch_timer: QTimer | None = None
+        self._achievement_rendering_batch = False
         self._achievement_initializing = True
         self._initialize_achievements_view(*args, **kwargs)
         self._achievement_initializing = False
@@ -718,6 +764,9 @@ class AchievementsView(QWidget):
         batch_timer.setInterval(0)
         batch_timer.timeout.connect(self._render_next_achievement_batch)
         self._achievement_batch_timer = batch_timer
+        self.list_widget.verticalScrollBar().valueChanged.connect(
+            self._maybe_render_more_achievement_rows
+        )
         if self.isVisible() and self._achievement_rows_dirty:
             batch_timer.start()
 
@@ -729,14 +778,27 @@ class AchievementsView(QWidget):
     def _filtered_achievements(self):
         query = normalize_text(self.search.text())
         tokens = [token for token in query.split("_") if token]
+
+        catalogue_ids = getattr(self.provider, "catalogue_ids", None)
+        if not tokens and callable(catalogue_ids):
+            category_id = (
+                int(self.selected_category_id)
+                if self.selected_category_id is not None
+                else None
+            )
+            return [
+                _AchievementListRef(int(achievement_id))
+                for achievement_id in catalogue_ids(category_id)
+            ], tokens
+
         if tokens:
-            candidates = self.achievements
+            candidates = self.provider.search(self.search.text())
         elif self.selected_category_id is not None:
             candidates = self.provider.get_by_category(self.selected_category_id)
         else:
-            candidates = self.achievements
+            candidates = self.provider.load_retained()
         filtered = [
-            achievement
+            _AchievementListRef(int(achievement.id))
             for achievement in candidates
             if self.provider.is_retained(achievement.id)
             and (not tokens or all(token in achievement.search_text for token in tokens))
@@ -744,13 +806,13 @@ class AchievementsView(QWidget):
         return filtered, tokens
 
     @staticmethod
-    def _achievement_row_text(achievement) -> str:
+    def _achievement_row_text(name: str, level: int | None, points: int) -> str:
         meta: list[str] = []
-        if achievement.level is not None:
-            meta.append(f"Niveau {achievement.level}")
-        if achievement.points:
-            meta.append(f"{achievement.points} pt{'s' if achievement.points > 1 else ''}")
-        text = achievement.name
+        if level is not None:
+            meta.append(f"Niveau {level}")
+        if points:
+            meta.append(f"{points} pt{'s' if points > 1 else ''}")
+        text = str(name or "")
         if meta:
             text = f"{text}\n{'  ·  '.join(meta)}"
         return text
@@ -781,7 +843,7 @@ class AchievementsView(QWidget):
             int(value) for value in self.progress_service.state_for(self.character_key).completed_achievements
         )
         self._achievement_pending_rows = [
-            (int(achievement.id), self._achievement_row_text(achievement), achievement.name)
+            int(achievement.id)
             for achievement in filtered
         ]
         self._achievement_rows_dirty = bool(self._achievement_pending_rows)
@@ -809,53 +871,99 @@ class AchievementsView(QWidget):
         if timer is not None:
             timer.start()
 
+    def _apply_pending_achievement_selection(self) -> None:
+        selected_id = self._achievement_pending_selected_id
+        if selected_id is None:
+            return
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            if int(item.data(Qt.UserRole) or 0) == int(selected_id):
+                self.list_widget.setCurrentRow(row)
+                return
+
     def _render_next_achievement_batch(self) -> None:
-        if not self.isVisible() or not self._achievement_pending_rows:
+        if (
+            self._achievement_rendering_batch
+            or not self.isVisible()
+            or not self._achievement_pending_rows
+        ):
             self._achievement_rows_dirty = bool(self._achievement_pending_rows)
             return
 
-        generation = self._achievement_render_generation
-        batch = self._achievement_pending_rows[:_RESULT_BATCH_SIZE]
-        del self._achievement_pending_rows[:_RESULT_BATCH_SIZE]
-        done_color = self.palette().color(QPalette.Disabled, QPalette.Text)
-        todo_color = self.palette().color(QPalette.Active, QPalette.Text)
-
-        self.list_widget.blockSignals(True)
+        self._achievement_rendering_batch = True
         try:
-            for achievement_id, text, tooltip in batch:
-                if generation != self._achievement_render_generation:
-                    return
-                completed = achievement_id in self._achievement_completed_ids
-                item = QListWidgetItem(text)
-                item.setData(Qt.UserRole, achievement_id)
-                item.setToolTip(tooltip)
-                item.setForeground(done_color if completed else todo_color)
-                item.setData(COMPLETED_ROLE, completed)
-                self.list_widget.addItem(item)
+            generation = self._achievement_render_generation
+            batch = self._achievement_pending_rows[:_RESULT_BATCH_SIZE]
+            del self._achievement_pending_rows[:_RESULT_BATCH_SIZE]
+            done_color = self.palette().color(QPalette.Disabled, QPalette.Text)
+            todo_color = self.palette().color(QPalette.Active, QPalette.Text)
+
+            self.list_widget.blockSignals(True)
+            try:
+                row_loader = getattr(self.provider, "catalogue_row_by_id", None)
+                for achievement_id in batch:
+                    if generation != self._achievement_render_generation:
+                        return
+                    payload = row_loader(achievement_id) if callable(row_loader) else None
+                    if payload is None:
+                        achievement = self.provider.get_by_id(int(achievement_id))
+                        if achievement is None:
+                            continue
+                        name = str(achievement.name or "")
+                        level = achievement.level
+                        points = int(achievement.points or 0)
+                    else:
+                        _row_id, name, level, points = payload
+                    completed = achievement_id in self._achievement_completed_ids
+                    item = QListWidgetItem(
+                        self._achievement_row_text(str(name), level, int(points))
+                    )
+                    item.setData(Qt.UserRole, achievement_id)
+                    item.setToolTip(str(name))
+                    item.setForeground(done_color if completed else todo_color)
+                    item.setData(COMPLETED_ROLE, completed)
+                    self.list_widget.addItem(item)
+            finally:
+                self.list_widget.blockSignals(False)
+
+            if generation != self._achievement_render_generation:
+                return
+
+            self._apply_pending_achievement_selection()
+            self._achievement_rows_dirty = bool(self._achievement_pending_rows)
+            if self._achievement_pending_rows:
+                # The old timer chain eventually instantiated every success in
+                # the selected category. Keep only an initial viewport resident;
+                # the next batch is requested by scrolling or direct navigation.
+                if self.list_widget.count() < _INITIAL_RESULT_ROWS:
+                    timer = self._achievement_batch_timer
+                    if timer is not None:
+                        timer.start()
+                return
         finally:
-            self.list_widget.blockSignals(False)
+            self._achievement_rendering_batch = False
 
-        if generation != self._achievement_render_generation:
+    def _maybe_render_more_achievement_rows(self, value: int) -> None:
+        if (
+            self._achievement_rendering_batch
+            or not self._achievement_pending_rows
+            or not self.isVisible()
+        ):
             return
-        if self._achievement_pending_rows:
-            timer = self._achievement_batch_timer
-            if timer is not None:
-                timer.start()
-            return
-
-        self._achievement_rows_dirty = False
-        selected_id = self._achievement_pending_selected_id
-        if selected_id is not None:
-            for row in range(self.list_widget.count()):
-                item = self.list_widget.item(row)
-                if int(item.data(Qt.UserRole) or 0) == int(selected_id):
-                    self.list_widget.setCurrentRow(row)
-                    break
+        bar = self.list_widget.verticalScrollBar()
+        threshold = max(0, bar.maximum() - max(1, bar.pageStep() // 2))
+        if int(value) >= threshold:
+            self._render_next_achievement_batch()
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
         timer = self._achievement_batch_timer
-        if self._achievement_rows_dirty and timer is not None and not timer.isActive():
+        if (
+            self._achievement_rows_dirty
+            and self.list_widget.count() < _INITIAL_RESULT_ROWS
+            and timer is not None
+            and not timer.isActive()
+        ):
             timer.start()
 
     def refresh_completion_styles(self) -> None:
@@ -906,7 +1014,5 @@ class AchievementsView(QWidget):
         if quest_changed:
             self.sync_automatic_progress()
         self.refresh_completion_styles()
-        if self.detail_stack.currentWidget() is self.quest_detail_page:
-            self.quest_detail_view.refresh()
-        elif self._detail_open and self.current_achievement_id is not None:
+        if self._detail_open and self.current_achievement_id is not None:
             self.show_achievement(self.current_achievement_id)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import re
 import subprocess
 import sys
@@ -283,22 +284,83 @@ def _changed_test_modules(root: Path, paths: Iterable[str]) -> list[str]:
     return sorted(set(modules))
 
 
-def _critical_inventory_modules(root: Path) -> list[str]:
+def _critical_inventory_test_ids(root: Path) -> list[str]:
+    """Execute the inventory's exact protections, not entire test modules.
+
+    The full suite still checks every test; META_INTEGRITY separately checks
+    the inventory's protected methods for real assertions and skip markers.
+    Missing, invalid or duplicate owner metadata must never silently pass.
+    """
     path = root / "tests/critical_regression_inventory.json"
     try:
         payload = json.loads(path.read_text(encoding="utf-8-sig"))
         protections = payload["protections"]
-    except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError) as exc:
         raise IntegrityConfigError(f"critical inventory unavailable: {exc}") from exc
-    modules: set[str] = set()
+    if not isinstance(protections, list):
+        raise IntegrityConfigError("critical inventory protections must be a list")
+
+    expected: list[str] = []
     for protection in protections:
-        owner = protection.get("owner", {}) if isinstance(protection, dict) else {}
-        relative = owner.get("path")
-        if owner.get("kind") == "python_test" and isinstance(relative, str) and relative.endswith(".py"):
-            modules.add(relative[:-3].replace("/", ".").replace("\\", "."))
-    if not modules:
-        raise IntegrityConfigError("critical inventory contains no executable Python test owner")
-    return sorted(modules)
+        if not isinstance(protection, dict):
+            raise IntegrityConfigError("critical inventory contains invalid protection")
+        owner = protection.get("owner")
+        if not isinstance(owner, dict):
+            raise IntegrityConfigError("critical inventory protection has no owner")
+        if owner.get("kind") != "python_test":
+            continue
+        relative, symbol = owner.get("path"), owner.get("symbol")
+        if not isinstance(relative, str) or re.fullmatch(r"tests/test_[A-Za-z0-9_]+\.py", relative) is None:
+            raise IntegrityConfigError(f"critical inventory invalid test path: {relative!r}")
+        if not isinstance(symbol, str) or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*\.test_[A-Za-z0-9_]+", symbol) is None:
+            raise IntegrityConfigError(f"critical inventory invalid test symbol: {symbol!r}")
+        expected.append(relative[:-3].replace("/", ".") + "." + symbol)
+    if not expected or len(expected) != len(set(expected)):
+        raise IntegrityConfigError("critical inventory requires unique executable test IDs")
+    return sorted(expected)
+
+
+def _critical_inventory_modules(root: Path) -> list[str]:
+    """Compatibility/introspection helper: module owners, not execution scope."""
+    return sorted({".".join(test_id.split(".")[:2]) for test_id in _critical_inventory_test_ids(root)})
+
+
+def _critical_execution_issues(output: str, expected: list[str]) -> list[str]:
+    """Require exact successful critical IDs, tolerating noisy unittest output.
+
+    unittest descriptions and captured application logging may occur between
+    a test ID and its terminal 'ok'. An exit-code-zero suite does not prove
+    that each registered protection ran: skips and missing IDs still block.
+    """
+    issues: list[str] = []
+    if _test_count(output) != len(expected):
+        issues.append(f"critical test count differs from inventory: expected {len(expected)}")
+    records: list[tuple[int, int, str]] = []
+    for identifier in expected:
+        method = identifier.rsplit(".", 1)[1]
+        marker = f"{method} ({identifier})"
+        matches = list(re.finditer(re.escape(marker) + r"(?=\s|$)", output))
+        if len(matches) != 1:
+            issues.append(f"missing successful critical protection: {identifier}")
+        else:
+            records.append((matches[0].start(), matches[0].end(), identifier))
+
+    records.sort()
+    for index, (_, end, identifier) in enumerate(records):
+        next_start = records[index + 1][0] if index + 1 < len(records) else len(output)
+        portion = output[end:next_start]
+        # The final record is followed by unittest's summary; never interpret
+        # the global "OK" as the outcome of the final individual test.
+        portion = re.split(r"(?m)^-{10,}\s*$|^Ran\s+\d+\s+tests?", portion, maxsplit=1)[0]
+        if (
+            re.search(r"\b(?:skipped|expected failure|unexpected success)\b", portion, re.I)
+            or re.search(r"\.\.\.\s+(?:FAIL|ERROR)\b", portion)
+            or not re.search(r"(?:\.\.\.\s*)?\bok\s*$", portion.strip())
+        ):
+            issues.append(f"missing successful critical protection: {identifier}")
+    return issues
+
+
 
 
 def _command_for_group(
@@ -373,7 +435,7 @@ def _command_for_group(
             "-m",
             "unittest",
             "-v",
-            *_critical_inventory_modules(root),
+            *_critical_inventory_test_ids(root),
         ]
     if runner == "changed_tests":
         modules = _changed_test_modules(root, changed)
@@ -429,12 +491,96 @@ def _guide_details(root: Path, config: dict[str, Any]) -> tuple[list[str], int |
 
 def _required_groups(policy: dict[str, Any], mode: str, classification: dict[str, Any]) -> list[str]:
     requested = set(policy["modes"][mode])
-    requested.update(policy["risk_requirements"][classification["risk"]])
-    requested.update(classification["affected_groups"])
+    # For internal Phase PRs, an independently required exact-SHA FULL gate
+    # owns the expensive risk-expanded suites. The early preflight keeps all
+    # changed-test modules, identity, syntax, and critical CI protections.
+    # Ordinary PRs retain the original risk-expanded FAST verification.
+    phase_preflight = (
+        mode == "FAST" and os.environ.get("ATLAS_PHASE_PR_PREFLIGHT") == "1"
+    )
+    if phase_preflight:
+        # This exact-SHA Phase PR must also pass a mandatory FULL certification.
+        # Avoid rerunning every modified test in the preflight: FULL_SUITE and
+        # DIFF_TARGETS in the FULL gate retain exhaustive, blocking coverage.
+        requested.discard("DIFF_TARGETS")
+        if classification["risk"] == "CRITICAL":
+            requested.update(("TEST_INTEGRITY", "CI_INTEGRITY"))
+        if "CI_INTEGRITY" in classification["affected_groups"]:
+            requested.add("CI_INTEGRITY")
+    else:
+        requested.update(policy["risk_requirements"][classification["risk"]])
+        requested.update(classification["affected_groups"])
     if mode not in {"FULL", "DEEP"}:
         requested.discard("FULL_SUITE")
         requested.discard("DATA_INTEGRITY")
     return [name for name in policy["groups"] if name in requested]
+
+
+def _full_suite_case_counts(output: str) -> dict[str, int]:
+    """Recover reusable module proofs from a complete, successful unittest run.
+
+    A verbose test result can span multiple lines because of the test's
+    docstring or application logging. Only exact test identifiers followed by
+    a terminal successful status count; skipped/expected-failure modules are
+    never reused. Any unaccounted-for test disables all reuse.
+    """
+    reported = _test_count(output)
+    if not reported:
+        return {}
+    test_header = re.compile(
+        r"(?m)^test_[^\r\n]*?\(((?:tests\.)?test_[A-Za-z0-9_]+)\.[^)\r\n]+\)(?=\s|$)"
+    )
+    records = list(test_header.finditer(output))
+    if len(records) != reported:
+        return {}
+    counts: dict[str, int] = {}
+    unproven: set[str] = set()
+    for index, record in enumerate(records):
+        name = record.group(1)
+        module = name if name.startswith("tests.") else "tests." + name
+        next_start = records[index + 1].start() if index + 1 < len(records) else len(output)
+        body = output[record.end():next_start]
+        # Never mistake the global unittest OK summary for one test's result.
+        body = re.split(r"(?m)^-{10,}\s*$|^Ran\s+\d+\s+tests?", body, maxsplit=1)[0]
+        tail = body.strip()
+        if not tail:
+            return {}
+        if re.search(r"(?:\.\.\.\s*ok|(?:^|\n)\s*ok)\s*$", tail):
+            # A logging line might contain status words. Fail closed when an
+            # earlier explicit unsuccessful unittest outcome is also present.
+            if re.search(
+                r"\.\.\.\s*(?:skipped|expected failure|unexpected success|FAIL|ERROR)\b",
+                tail,
+                flags=re.IGNORECASE,
+            ):
+                return {}
+            counts[module] = counts.get(module, 0) + 1
+        elif re.search(r"\b(?:skipped|expected failure|unexpected success)\b", tail):
+            unproven.add(module)
+        else:
+            return {}
+    return {module: count for module, count in counts.items() if module not in unproven}
+
+
+def _group_test_modules(
+    name: str,
+    config: dict[str, Any],
+    *,
+    root: Path,
+    changed: list[str],
+) -> list[str]:
+    runner = config.get("runner")
+    if runner == "unittest_modules":
+        return [str(value) for value in config.get("modules", [])]
+    if runner == "changed_tests":
+        return _changed_test_modules(root, changed)
+    # Do not reuse arbitrary successful module tests as proof that exact
+    # critical inventory methods ran: always execute those methods directly.
+    if runner == "critical_inventory":
+        return []
+    return []
+
+
 
 
 def verdict_from_groups(groups: dict[str, dict[str, Any]], required: Iterable[str]) -> tuple[str, list[str]]:
@@ -458,6 +604,22 @@ def exit_code_for_report(report: dict[str, Any]) -> int:
     if report.get("verdict") == "BLOCKED":
         return 1
     return 2
+
+
+def _record_gate_progress(group: str, event: str, *, seconds: float | None = None) -> None:
+    """Emit lightweight, append-only breadcrumbs for diagnosing a killed gate."""
+    target = os.environ.get("ATLAS_INTEGRITY_PROGRESS_PATH", "").strip()
+    if not target:
+        return
+    payload: dict[str, Any] = {"group": group, "event": event}
+    if seconds is not None:
+        payload["duration_seconds"] = round(seconds, 3)
+    try:
+        with Path(target).open("a", encoding="utf-8") as output:
+            output.write(json.dumps(payload, ensure_ascii=True, separators=(",", ":")) + "\n")
+    except OSError:
+        # Diagnostic output must never replace or downgrade a validation verdict.
+        pass
 
 
 def execute_gate(
@@ -494,17 +656,57 @@ def execute_gate(
     guardrail_counts: dict[str, int | None] = {}
     protections_missing: list[str] = []
 
-    for name in required:
+    # FULL_SUITE already executes every discovered module: prove each group
+    # with the exact successful test IDs instead of rerunning it in isolation.
+    # If proof is partial or ambiguous, execute the independent group normally.
+    order = (
+        ["FULL_SUITE", *(name for name in required if name != "FULL_SUITE")]
+        if mode == "FULL" and "FULL_SUITE" in required else required
+    )
+    suite_cases: dict[str, int] = {}
+    for name in order:
         config = policy["groups"][name]
+        _record_gate_progress(name, "STARTED")
         command = _command_for_group(name, config, root=root, base_ref=base_ref, changed=changed)
         if command is None:
             groups[name]["status"] = "PASS"
             groups[name]["tests"] = 0
+            _record_gate_progress(name, "FINISHED", seconds=0.0)
             continue
-        result = executor.run(command, root)
+        candidate_modules = (
+            _group_test_modules(name, config, root=root, changed=changed)
+            if suite_cases and name != "FULL_SUITE" else []
+        )
+        reused = bool(candidate_modules) and all(
+            suite_cases.get(module, 0) > 0 for module in candidate_modules
+        )
+        if reused:
+            result = {
+                "command": command, "exit_code": 0, "stderr": "",
+                "stdout": f"Ran {sum(suite_cases[m] for m in candidate_modules)} tests in FULL_SUITE",
+                "duration_seconds": 0.0,
+            }
+        else:
+            result = executor.run(command, root)
         if not isinstance(result, dict) or "exit_code" not in result:
             raise IntegrityConfigError(f"{name}: command executor returned an invalid result")
         output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
+        if name == "TEST_INTEGRITY" and int(result["exit_code"]) == 0:
+            # unittest exits zero for skips. Treat skipped, missing, aliased or
+            # otherwise unproven critical methods as a hard validation failure.
+            evidence_issues = _critical_execution_issues(
+                output, _critical_inventory_test_ids(root)
+            )
+            if evidence_issues:
+                result = {
+                    **result,
+                    "exit_code": 1,
+                    "stderr": str(result.get("stderr", ""))
+                    + "\n" + "\n".join(evidence_issues),
+                }
+                output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
+        if name == "FULL_SUITE" and int(result["exit_code"]) == 0:
+            suite_cases = _full_suite_case_counts(output)
         command_report = {
             "group": name,
             "command": result.get("command", command),
@@ -512,6 +714,11 @@ def execute_gate(
             "duration_seconds": float(result.get("duration_seconds", 0.0)),
             "tests": _test_count(output),
         }
+        if reused:
+            command_report["evidence_reused_from"] = "FULL_SUITE"
+            command_report["evidence_test_cases"] = {
+                module: suite_cases[module] for module in candidate_modules
+            }
         if int(result["exit_code"]) != 0:
             command_report["output_tail"] = "\n".join(output.strip().splitlines()[-40:])
         commands.append(command_report)
@@ -522,6 +729,11 @@ def execute_gate(
         else:
             status = "BLOCKED" if config.get("blocking", True) else "MEASURED_ONLY_FAILED"
         groups[name]["status"] = status
+        _record_gate_progress(
+            name,
+            "FINISHED" if status in {"PASS", "MEASURED_ONLY"} else "FAILED",
+            seconds=command_report["duration_seconds"],
+        )
 
         group_blockers: list[str] = []
         if name == "META_INTEGRITY":
@@ -607,6 +819,29 @@ def execute_gate(
         "risk_reasons": classification["reasons"],
         "diff_report": build_diff_report(changed, classification),
         "validations_required": required,
+        "validation_profile": (
+            "PHASE_PR_PREFLIGHT" if mode == "FAST"
+            and os.environ.get("ATLAS_PHASE_PR_PREFLIGHT") == "1"
+            else "STANDARD"
+        ),
+        "deferred_to_full": (
+            ["DIFF_TARGETS", *[
+                name for name in policy["groups"]
+                if name not in required
+                and name in {
+                    *policy["risk_requirements"][classification["risk"]],
+                    *classification["affected_groups"],
+                }
+                and name not in {"FULL_SUITE", "DATA_INTEGRITY", "DIFF_TARGETS"}
+            ]]
+            if mode == "FAST"
+            and os.environ.get("ATLAS_PHASE_PR_PREFLIGHT") == "1"
+            else []
+        ),
+        "evidence_reused_groups": [
+            name for name in required
+            if any("evidence_reused_from" in row for row in groups[name]["commands"])
+        ],
         "validations_executed": [name for name in required if groups[name]["status"] != "NOT_RUN"],
         "validations_not_run": [name for name in policy["groups"] if groups[name]["status"] == "NOT_RUN"],
         "performance": {

@@ -203,9 +203,16 @@ class NetworkApplicationCoordinator:
         with self._lock:
             return self._last_status
 
+    def has_pending_ui_events(self) -> bool:
+        """Cheap UI poll gate that avoids empty queue allocation churn."""
+
+        return not self._statuses.empty() or not self._results.empty()
+
     def drain_statuses(self, limit: int = 50) -> list[NetworkApplicationStatus]:
         rows: list[NetworkApplicationStatus] = []
         for _ in range(max(0, int(limit))):
+            if self._statuses.empty():
+                break
             try:
                 rows.append(self._statuses.get_nowait())
             except Empty:
@@ -215,6 +222,8 @@ class NetworkApplicationCoordinator:
     def drain_results(self, limit: int = 100) -> list[EventApplicationResult]:
         rows: list[EventApplicationResult] = []
         for _ in range(max(0, int(limit))):
+            if self._results.empty():
+                break
             try:
                 rows.append(self._results.get_nowait())
             except Empty:

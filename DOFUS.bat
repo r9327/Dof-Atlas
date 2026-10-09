@@ -61,6 +61,12 @@ if not "%PREFLIGHT_CODE%"=="0" (
 call :ok "Environnement et code valides"
 >> "%LOG_FILE%" echo PREFLIGHT_OK %date% %time%
 
+call :step "Preparation des caches en arriere-plan"
+set "DOFUS_ATLAS_CACHE_WARMUP_TOKEN=%RANDOM%_%RANDOM%_%RANDOM%"
+>> "%LOG_FILE%" echo CACHE_WARMUP_START token=%DOFUS_ATLAS_CACHE_WARMUP_TOKEN% %date% %time%
+start "" /b "%PYTHONW_EXE%" -m app.startup_cache_warmup --token "%DOFUS_ATLAS_CACHE_WARMUP_TOKEN%"
+call :ok "Preparation des caches lancee"
+
 echo.
 call :step "Lancement de Dofus Atlas"
 >> "%LOG_FILE%" echo APP_START %date% %time%

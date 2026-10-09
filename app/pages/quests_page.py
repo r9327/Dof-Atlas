@@ -16,7 +16,6 @@ from app.pages._quests_page_impl import (
     quest_detail_html,
     quest_required_items,
 )
-from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QTreeWidgetItem
 
@@ -90,6 +89,16 @@ class QuestsPage(_EagerQuestsPage):
     def __init__(self, *args, **kwargs) -> None:
         self._quest_search_text_cache: dict[int, str] = {}
         self._owned_items_file_signature: tuple[int, int] | None = None
+        detail_view_defaulted = "defer_detail_view" not in kwargs
+        kwargs.setdefault("defer_detail_view", True)
+        if detail_view_defaulted:
+            candidate_catalog = kwargs.get("catalog")
+            if candidate_catalog is None:
+                provider = kwargs.get("quest_provider")
+                candidate_catalog = getattr(provider, "_catalog", None)
+            quest_count = len(getattr(candidate_catalog, "quests", ()) or ())
+            if candidate_catalog is not None and quest_count < _MIN_LAZY_QUESTS:
+                kwargs["defer_detail_view"] = False
         super().__init__(*args, **kwargs)
 
         old_detail = self.detail
@@ -397,9 +406,12 @@ class QuestsPage(_EagerQuestsPage):
                 achievement_state,
             )
         )
-        self.quest_detail_view.set_character_key(self.current_character_key)
+        view = self._ensure_quest_detail_view()
+        from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
+
+        view.set_character_key(self.current_character_key)
         active_series = self.hierarchy.series_by_id.get(self.active_series_id)
-        self.quest_detail_view.show_quest(
+        view.show_quest(
             int(quest.id),
             QuestViewContext(
                 host="quests",

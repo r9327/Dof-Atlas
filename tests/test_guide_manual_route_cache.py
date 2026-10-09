@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.modules.encyclopedia.services import guide_ultime_manual_route
+from app.modules.encyclopedia.services import (
+    guide_ultime_manual_route,
+    guide_ultime_manual_runtime_core,
+)
 
 
 class GuideManualRouteCacheTests(unittest.TestCase):
@@ -63,7 +67,7 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             self.assertEqual(calls, 2)
             self.assertEqual(third["call"], 2)
 
-    def test_shared_memo_reuses_recursive_resolution_and_returns_isolated_copy(self) -> None:
+    def test_shared_memo_reuses_recursive_resolution_without_duplicate_copy(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             chapter = Path(tmp) / "chapter.json"
             chapter.write_text("{}", encoding="utf-8")
@@ -78,11 +82,41 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             seen = {Path(tmp) / "parent.json"}
             with patch.object(guide_ultime_manual_route, "_load_manual_chapter_uncached", resolver):
                 first = guide_ultime_manual_route.load_manual_chapter(chapter, _seen=seen, _memo=memo)
-                first["rows"].append(999)
                 second = guide_ultime_manual_route.load_manual_chapter(chapter, _seen=seen, _memo=memo)
 
             self.assertEqual(calls, 1)
+            self.assertIs(first, second)
             self.assertEqual(second["rows"], [1])
+
+    def test_copy_on_write_patch_does_not_mutate_memoized_base(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base = root / "base.json"
+            child = root / "child.json"
+            base.write_text(
+                '{"stages":[{"id":"A","quests":["Q1"],"meta":{"keep":true}}]}',
+                encoding="utf-8",
+            )
+            child.write_text(
+                '{"base_file":"base.json","stage_patches":{"A":{"append":{"quests":["Q2"]}}}}',
+                encoding="utf-8",
+            )
+            memo: dict[tuple[Path, bool], dict] = {}
+            resolved = guide_ultime_manual_route.load_manual_chapter(
+                child,
+                _seen={root / "parent.json"},
+                _expand_hooks=False,
+                _memo=memo,
+            )
+
+            memoized_base = memo[(base.resolve(), False)]
+            self.assertEqual(memoized_base["stages"][0]["quests"], ["Q1"])
+            self.assertEqual(resolved["stages"][0]["quests"], ["Q1", "Q2"])
+            self.assertIsNot(resolved["stages"][0], memoized_base["stages"][0])
+            self.assertIs(
+                resolved["stages"][0]["meta"],
+                memoized_base["stages"][0]["meta"],
+            )
 
     def test_shared_memo_does_not_mask_active_cycle(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -93,6 +127,135 @@ class GuideManualRouteCacheTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "Cycle de composition"):
                 guide_ultime_manual_route.load_manual_chapter(chapter, _seen={resolved}, _memo=memo)
+
+    def test_compact_runtime_builds_hidden_cards_without_full_render_payload(self) -> None:
+        service = object.__new__(
+            guide_ultime_manual_runtime_core.GuideUltimeManualRuntimeService
+        )
+        service._quest_name_to_id = {"quest_a": 42}
+
+        chapter = {
+            "coverage": {"chapter": "Astrub"},
+            "preparation": [{"name": "Potion de rappel"}],
+        }
+        stage = {
+            "id": "AST-1",
+            "title": "Départ",
+            "start": {"x": 4, "y": -19, "zone": "Astrub"},
+            "quests": ["Quest A"],
+            "instructions": ["Parler au PNJ."],
+            "successes": ["Succès A"],
+            "temporal_hooks": ["window-a"],
+        }
+
+        with patch.object(
+            service,
+            "_stage_lines",
+            side_effect=AssertionError("hidden compact cards must not render lines"),
+        ):
+            card = service._stage_to_compact_card(
+                "astrub",
+                {"label": "Astrub"},
+                chapter,
+                stage,
+                1,
+            )
+
+        self.assertEqual(card["manual_stage_id"], "AST-1")
+        self.assertEqual(card["manual_quest_ids"], [42])
+        self.assertEqual(card["manual_quest_names"], ["quest_a"])
+        self.assertTrue(card["manual_has_lines"])
+        self.assertEqual(card["manual_lines"], [])
+        self.assertNotIn("manual_stage_data", card)
+        self.assertNotIn("manual_chapter_preparation", card)
+        self.assertNotIn("structured_runtime_lines", card)
+        self.assertNotIn("manual_runtime_metadata", card)
+
+    def test_compact_runtime_hydrates_only_current_manual_stage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            service = object.__new__(
+                guide_ultime_manual_runtime_core.GuideUltimeManualRuntimeService
+            )
+            service.compact_runtime = True
+            service.manual_dir = Path(tmp)
+            service._manual_base_lines_cache = ("old", [{"text": "old"}])
+
+            previous = {
+                "manual_stage_data": {"id": "previous"},
+                "manual_chapter_preparation": [{"name": "old"}],
+            }
+            service._manual_hydrated_card = previous
+            card = {
+                "manual_source_file": "chapter.json",
+                "manual_stage_position": 1,
+            }
+            chapter = {
+                "stages": [
+                    {"id": "first"},
+                    {"id": "visible", "instructions": ["Do it"]},
+                ]
+            }
+
+            with (
+                patch.object(
+                    guide_ultime_manual_runtime_core,
+                    "load_manual_chapter",
+                    return_value=chapter,
+                ),
+                patch.object(
+                    service,
+                    "_chapter_preparation_schedule",
+                    return_value={1: [{"name": "needed"}]},
+                ),
+            ):
+                stage = service._hydrate_manual_card_source(card)
+
+            self.assertIs(stage, chapter["stages"][1])
+            self.assertIs(card["manual_stage_data"], chapter["stages"][1])
+            self.assertEqual(
+                card["manual_chapter_preparation"],
+                [{"name": "needed"}],
+            )
+            self.assertNotIn("manual_stage_data", previous)
+            self.assertNotIn("manual_chapter_preparation", previous)
+            self.assertIs(service._manual_hydrated_card, card)
+            self.assertIsNone(service._manual_base_lines_cache)
+
+    def test_compact_runtime_hydrates_resolved_sheet_without_reloading_chapter(self) -> None:
+        service = object.__new__(
+            guide_ultime_manual_runtime_core.GuideUltimeManualRuntimeService
+        )
+        service.compact_runtime = True
+        service.manual_dir = Path(".")
+        service._manual_base_lines_cache = None
+        service._manual_hydrated_card = None
+
+        stage = {"id": "visible", "instructions": ["Do it"], "quests": ["Quest A"]}
+        preparation = [{"name": "Potion de rappel"}]
+        card = {
+            "manual_source_file": "chapter.json",
+            "manual_stage_position": 0,
+            "_manual_stage_payload": __import__("zlib").compress(
+                json.dumps(stage, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+                1,
+            ),
+            "_manual_chapter_preparation_payload": __import__("zlib").compress(
+                json.dumps(preparation, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+                1,
+            ),
+        }
+
+        with patch.object(
+            guide_ultime_manual_runtime_core,
+            "load_manual_chapter",
+            side_effect=AssertionError("visible compact sheet must not reload chapter"),
+        ):
+            hydrated = service._hydrate_manual_card_source(card)
+
+        self.assertEqual(hydrated, stage)
+        self.assertEqual(card["manual_stage_data"], stage)
+        self.assertEqual(card["manual_chapter_preparation"], preparation)
+        self.assertIs(service._manual_hydrated_card, card)
 
     def test_recursive_resolution_bypasses_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -122,6 +285,61 @@ class GuideManualRouteCacheTests(unittest.TestCase):
 
             self.assertEqual((first["call"], second["call"]), (1, 2))
             self.assertEqual(calls, 2)
+
+    def test_compact_runtime_disk_cache_roundtrips_bytes_and_rejects_stale_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "chapter.json"
+            source.write_text("{}", encoding="utf-8")
+            cache = root / "runtime.json"
+
+            class Service:
+                manual_dir = root
+                _quest_name_to_id = {"quete_test": 42}
+                route = {"id": "manual", "steps": []}
+                cards = [
+                    {
+                        "manual_stage_id": "s1",
+                        "_manual_stage_payload": b"abc",
+                    }
+                ]
+                manual_audit_data = {"card_count": 1}
+                manual_preview_active = True
+                manual_preview_chapters = ("c1",)
+                manual_manifest_active = True
+                manual_chapters = ("c1",)
+                _common_quest_ids = (42,)
+                _full_success_ids = ()
+
+            guide_ultime_manual_runtime_core.write_manual_runtime_compact_cache(
+                Service,
+                cache,
+            )
+
+            target = Service()
+            target.route = {}
+            target.cards = []
+            target.manual_audit_data = {}
+            self.assertTrue(
+                guide_ultime_manual_runtime_core.restore_manual_runtime_compact_cache(
+                    target,
+                    cache,
+                )
+            )
+            self.assertEqual(target.cards[0]["_manual_stage_payload"], b"abc")
+            self.assertEqual(target._common_quest_ids, (42,))
+
+            source.write_text('{"changed":true}', encoding="utf-8")
+            stale = Service()
+            stale.route = {}
+            stale.cards = []
+            self.assertFalse(
+                guide_ultime_manual_runtime_core.restore_manual_runtime_compact_cache(
+                    stale,
+                    cache,
+                )
+            )
+
 
 
 if __name__ == "__main__":

@@ -50,7 +50,9 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
         *,
         chapter_preparation: Any = None,
     ) -> dict[str, Any]:
-        card = super()._stage_to_card(
+        # The core already owns the canonical stage/preparation snapshots.
+        # Copying them again here briefly doubles the heaviest per-card payload.
+        return super()._stage_to_card(
             chapter_id,
             chapter_meta,
             chapter,
@@ -58,13 +60,6 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
             index,
             chapter_preparation=chapter_preparation,
         )
-        card.update(
-            {
-                "manual_stage_data": copy.deepcopy(stage),
-                "manual_chapter_preparation": copy.deepcopy(chapter_preparation or []),
-            }
-        )
-        return card
 
     def _raw_stage_lines(
         self,
@@ -112,9 +107,17 @@ class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
         """
         stage = card.get("manual_stage_data")
         if not isinstance(stage, dict):
+            hydrate = getattr(self, "_hydrate_manual_card_source", None)
+            if callable(hydrate):
+                hydrated = hydrate(card)
+                stage = hydrated if isinstance(hydrated, dict) else None
+        if not isinstance(stage, dict):
             return super().manual_sections_for_card(character_key, card)
 
-        source_card = copy.deepcopy(card)
+        # In compact runtime the visible authored stage can itself be large.
+        # A shallow card shell is enough: classification treats the stage as read-only
+        # and already deep-copies the emitted player lines.
+        source_card = dict(card) if bool(getattr(self, "compact_runtime", False)) else copy.deepcopy(card)
         source_card["manual_lines"] = self._raw_stage_lines(
             stage,
             [

@@ -122,6 +122,10 @@ class AtlasRuntime:
         self._startup_thread: threading.Thread | None = None
         self._startup_reload_requested = False
         self._starting = False
+        # False means there is no live Dofus client to bind hooks to. Keep the
+        # Win32 hook backends completely cold in that state; a later start()
+        # reloads settings and enables them as soon as a session appears.
+        self._runtime_bindings_available = True
         self._threads: list[threading.Thread] = []
 
     @property
@@ -300,6 +304,10 @@ class AtlasRuntime:
             cancelled = self._startup_cancel.is_set()
             if cancelled:
                 return
+            if not self._runtime_bindings_available:
+                self.logger.info("Runtime Python en attente: aucune session Unity detectee.")
+                self._emit_active(False)
+                return
             if not self._admin_ok:
                 self.logger.error("Runtime Python non demarre: droits insuffisants pour les hooks.")
                 self._emit_active(False)
@@ -415,6 +423,18 @@ class AtlasRuntime:
     def reload_hotkeys(self, force_restart: bool = False) -> None:
         self.settings = load_settings()
         set_debug_logging(self.settings.debug_enabled)
+        if not self.settings.clients:
+            # No client means no keyboard/mouse action can target Dofus. Avoid
+            # importing/constructing the Win32 hook backends merely to wait.
+            self._runtime_bindings_available = False
+            self._admin_ok = True
+            self.synthetic_guard.reset()
+            self.input_state.reset_armed()
+            self._emit_active(False)
+            self._emit_status("Runtime Python en attente: aucune session Unity detectee.")
+            return
+
+        self._runtime_bindings_available = True
         report = self.registry.register_hotkeys(build_runtime_hotkey_actions(self.settings))
         admin_audit = audit_client_admin_rights((client.handle for client in self.settings.clients), self.logger)
         self._admin_ok = admin_audit.ok

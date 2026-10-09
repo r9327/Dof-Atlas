@@ -742,28 +742,28 @@ class GuidePhase3Tests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
-    def test_home_dofus_grid_renders_only_real_guides(self):
+    def test_home_uses_virtualized_model_for_real_guides(self):
         with tempfile.TemporaryDirectory() as tmp:
             view = self.make_view(Path(tmp))
             view.resize(900, 560)
             view.show()
             self.app.processEvents()
 
-            expected_ids = {guide.id for guide in self.guides if guide.category == "dofus"}
-            cards = [card for card in view.findChildren(GuideHomeCard) if card.variant == "dofus"]
-            alignment_cards = [card for card in view.findChildren(GuideHomeCard) if card.variant == "alignment"]
-            labels = [label.text() for card in cards for label in card.findChildren(QLabel)]
+            expected_dofus_ids = {guide.id for guide in self.guides if guide.category == "dofus"}
+            model_guides = [
+                entry
+                for entry in view.result_model.entries
+                if not isinstance(entry, str)
+            ]
+            model_ids = {guide.id for guide in model_guides}
 
-            self.assertEqual({card.guide.id for card in cards}, expected_ids)
-            self.assertFalse(view.findChildren(QScrollArea, "GuidesHomeScroll"))
-            self.assertEqual(len(view.findChildren(QFrame, "GuidesHomeProgressionColumn")), 1)
-            self.assertEqual(len(view.findChildren(QFrame, "GuidesHomeSubCategory")), 2)
-            self.assertTrue(view.findChildren(DofusGuideGrid))
-            self.assertFalse(any("a_venir" in normalize_text(text) or "placeholder" in normalize_text(text) for text in labels))
-            self.assertTrue(all(card.findChild(QProgressBar, "GuideDofusHomeBar") is not None for card in cards))
-            self.assertEqual({card.guide.id for card in alignment_cards}, {"alignement_bonta", "alignement_brakmar"})
-            if len(alignment_cards) == 2:
-                self.assertFalse(alignment_cards[0].geometry().intersects(alignment_cards[1].geometry()))
+            self.assertTrue(expected_dofus_ids.issubset(model_ids))
+            self.assertTrue({"alignement_bonta", "alignement_brakmar"}.issubset(model_ids))
+            self.assertIs(view.home_list.model(), view.result_model)
+            self.assertEqual(view.home_list.itemDelegate().__class__.__name__, "GuideCardDelegate")
+            self.assertFalse(view.findChildren(GuideHomeCard))
+            self.assertFalse(view.home_empty.isVisible())
+            self.assertEqual(view.home_list.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
             view.deleteLater()
             self.app.processEvents()
 
