@@ -303,6 +303,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <select id="priority" aria-label="Priorité Doctor"><option value="">Toutes priorités</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
 <select id="reviewKind" aria-label="Catégorie de diagnostic Doctor"><option value="">Tous les diagnostics</option></select>
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
+<label><input id="snapshotOnly" type="checkbox"> Changements depuis référence</label>
 <button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button>
 <button id="graphPrev" type="button" aria-label="Page précédente du graphe">◀</button>
 <small id="graphPage" aria-live="polite">Page 1</small>
@@ -320,10 +321,12 @@ const search=document.getElementById('search'),domain=document.getElementById('d
 const community=document.getElementById('community');
 const relation=document.getElementById('relation');
 const flagged=document.getElementById('flagged'),details=document.getElementById('nodeDetails');
+const snapshotOnly=document.getElementById('snapshotOnly');
 const priority=document.getElementById('priority');
 const reviewKind=document.getElementById('reviewKind');
 const inventory=data.file_coverage;
 const snapshot=data.snapshot_diff;
+snapshotOnly.disabled=!snapshot;
 if(snapshot){
  const section=document.getElementById('snapshotDetails');
  const heading=document.createElement('h3');heading.textContent='Changements depuis le graphe de référence';
@@ -419,6 +422,7 @@ function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),g
 matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
  (!cluster||String(n.community)===cluster)&&
  (!kind||(n.review_categories||[]).includes(kind))&&
+ (!snapshotOnly.checked||!!n.snapshot_changes)&&
  (!level||(n.doctor_task&&n.doctor_task.priority===level))&&
  (!flagged.checked||n.reasons.length||n.doctor_task||n.source_evidence.length||n.worker_start_unpaired_at_trace_end)&&
  (!needle||(n.file+' '+n.label).toLowerCase().includes(needle))});
@@ -452,7 +456,7 @@ function paint(){
  for(const i of visible){const p=screen(positions[i]),n=nodes[i];
  if(p.x < -10||p.x>canvas.width+10||p.y < -10||p.y>canvas.height+10)continue;
  ctx.beginPath();ctx.arc(p.x,p.y,i===selected?6:3,0,2*Math.PI);
- ctx.fillStyle=i===selected?'#ffdf86':changedFiles.has(n.file)?'#f9b454':(n.reasons.length||n.source_evidence.length)?'#ff8d7d':(n.runtime_observed||n.qt_call_site_observed)?'#b39cf5':'#70b9e9';ctx.fill()}
+ ctx.fillStyle=i===selected?'#ffdf86':changedFiles.has(n.file)?'#f9b454':n.snapshot_changes?'#9bdf8b':(n.reasons.length||n.source_evidence.length)?'#ff8d7d':(n.runtime_observed||n.qt_call_site_observed)?'#b39cf5':'#70b9e9';ctx.fill()}
 }
 function pick(x,y){let best=-1,distance=100;for(const i of visible){
  const p=screen(positions[i]),d=(p.x-x)**2+(p.y-y)**2;
@@ -552,7 +556,7 @@ function focusNode(i){
 function revealNode(i){
  let offset=matches.indexOf(i);
  if(offset<0){
-  search.value='';domain.value='';community.value='';reviewKind.value='';priority.value='';flagged.checked=false;
+  search.value='';domain.value='';community.value='';reviewKind.value='';priority.value='';flagged.checked=false;snapshotOnly.checked=false;
   filter(true);offset=matches.indexOf(i);
  }
  if(offset>=0){pageIndex=Math.floor(offset/PAGE_SIZE);filter(false);focusNode(i)}
@@ -634,7 +638,7 @@ if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;panX=drag.px+dx;panY=drag.py+dy;r
 canvas.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;
 if(!moved){const r=canvas.getBoundingClientRect();const found=pick((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio);if(found>=0)show(found)}});
 canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.025,Math.min(3,scale*(e.deltaY>0?.84:1.16)));render()},{passive:false});
-[search,domain,community,reviewKind,priority,flagged].forEach(el=>el.addEventListener('input',()=>filter(true)));
+[search,domain,community,reviewKind,priority,flagged,snapshotOnly].forEach(el=>el.addEventListener('input',()=>filter(true)));
 relation.addEventListener('change',()=>{if(selected>=0)show(selected);else render()});
 document.getElementById('graphPrev').addEventListener('click',()=>{pageIndex--;filter(false)});
 document.getElementById('graphNext').addEventListener('click',()=>{pageIndex++;filter(false)});

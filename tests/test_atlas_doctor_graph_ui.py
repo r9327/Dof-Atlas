@@ -62,6 +62,27 @@ class DoctorGraphUiTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must be an object"):
                 load_snapshot_comparison(root, graph, prior)
 
+    def test_snapshot_only_filter_is_opt_in_and_preserves_neighbor_discovery(self):
+        graph = {
+            "built_at_commit": "c" * 40,
+            "nodes": [{"id": 1, "source_file": "app/a.py"},
+                      {"id": 2, "source_file": "app/b.py"}],
+            "links": [{"source": 1, "target": 2, "relation": "imports"}],
+        }
+        diff = {"baseline_sha": "b" * 40, "candidate_sha": "c" * 40,
+                "new_import_file_pairs": [["app/a.py", "app/b.py"]],
+                "removed_import_file_pairs": [],
+                "new_orphan_symbols": [], "new_weak_symbols": []}
+        report = compact_graph(graph, {}, comparison=diff)
+        self.assertEqual(len(report["nodes"]), 2)
+        self.assertEqual(len(report["edges"]), 1)
+        page = render_html(report)
+        for text in ('id="snapshotOnly"', "snapshotOnly.disabled=!snapshot",
+                     "(!snapshotOnly.checked||!!n.snapshot_changes)",
+                     "snapshotOnly.checked=false", "n.snapshot_changes?'#9bdf8b'"):
+            self.assertIn(text, page)
+        self.assertIsNone(compact_graph(graph, {})["snapshot_diff"])
+
     def test_interactive_view_has_real_navigation_and_filters(self):
         graph = {"nodes": [
             {"id": "a", "label": "guide", "source_file": "app/modules/encyclopedia/view.py", "community": 5},
