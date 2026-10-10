@@ -36,6 +36,15 @@ class GuideCatalogFillTests(unittest.TestCase):
         cls.guides = cls.provider.load_all()
         cls.by_id = {guide.id: guide for guide in cls.guides}
 
+    @classmethod
+    def _shared_generated_build(cls):
+        # Read-only build output is identical for the catalogue assertion tests.
+        # Build lazily once; the filesystem/network isolation test below keeps
+        # its own builds to preserve its independent integration assertions.
+        if not hasattr(cls, "_cached_generated_build"):
+            cls._cached_generated_build = GuideCatalogBuilder().build()
+        return cls._cached_generated_build
+
     def test_catalog_categories_are_strict_and_guides_are_grouped(self):
         catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
         self.assertEqual([category["id"] for category in catalog["categories"]], ["aventure", "dofus", "alignements"])
@@ -82,7 +91,7 @@ class GuideCatalogFillTests(unittest.TestCase):
             ["guide_complet", "dofus_sylvestre"],
         )
 
-        result = GuideCatalogBuilder().build()
+        result = self._shared_generated_build()
         rebuilt = result.guides["dofus_sylvestre"]
         self.assertEqual(rebuilt["title"], "Lanyel Sylvestre")
         self.assertEqual(rebuilt["category"], "aventure")
@@ -179,8 +188,7 @@ class GuideCatalogFillTests(unittest.TestCase):
     def test_partial_draft_hide_completed_and_tools(self):
         self.assertTrue(any(guide.completeness_status == "partial" for guide in self.guides))
         self.assertFalse(any(guide.completeness_status == "draft" for guide in self.guides))
-        builder = GuideCatalogBuilder()
-        result = builder.build()
+        result = self._shared_generated_build()
         self.assertEqual([category["id"] for category in result.catalog["categories"]], ["aventure", "dofus", "alignements"])
         self.assertGreaterEqual(len(result.report["guides_non_ajoutes"]), 1)
         self.assertEqual(result.report["schema_version"], 2)
