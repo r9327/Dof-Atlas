@@ -181,6 +181,59 @@ class GraphIntelligenceTests(unittest.TestCase):
             self.assertEqual(item["classification"], "POSSIBLE_EXTERNAL_CONSUMER")
             self.assertFalse(item["confirmed_dead_code"])
 
+    def test_same_file_callback_and_ctypes_reference_are_not_unused_leads(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            owner = root / "app/input/hotkeys.py"
+            owner.parent.mkdir(parents=True)
+            owner.write_text(
+                "import ctypes\n"
+                "class KBDLLHOOKSTRUCT(ctypes.Structure):\n"
+                "    _fields_ = [('key', ctypes.c_int)]\n"
+                "class Hooks:\n"
+                "    def __init__(self):\n"
+                "        self.handler = self._handle_mouse_click\n"
+                "    def _handle_mouse_click(self, event):\n"
+                "        return event\n"
+                "    def consume(self, raw):\n"
+                "        return ctypes.POINTER(KBDLLHOOKSTRUCT)\n",
+                encoding="utf-8",
+            )
+            subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+            report = inspect_consumers(root, [
+                {"file": "app/input/hotkeys.py", "symbol": "._handle_mouse_click()"},
+                {"file": "app/input/hotkeys.py", "symbol": "KBDLLHOOKSTRUCT"},
+            ])
+            self.assertEqual(
+                [row["classification"] for row in report["reviewed"]],
+                ["LOCAL_SOURCE_REFERENCE_REVIEW", "LOCAL_SOURCE_REFERENCE_REVIEW"],
+            )
+            for row in report["reviewed"]:
+                self.assertTrue(row["local_references"])
+                self.assertFalse(row["confirmed_dead_code"])
+            plan = remediation_plan({}, {"cycles": []}, {"candidates": []},
+                                    source_review=report)
+            self.assertEqual(plan["actionability"]["confirmed_fix_candidates"], 0)
+            self.assertEqual(len(plan["actionability"]["local_source_used_symbols"]), 2)
+            self.assertFalse(any(t["kind"] == "UNPROVEN_UNUSED_SYMBOL"
+                                 for t in plan["tasks"]))
+
+    def test_doctor_plan_separates_proven_fixes_from_advisory_candidates(self):
+        plan = remediation_plan(
+            {"blocking_findings": [{"source": "app/core/a.py", "target": "tools/b.py"}],
+             "high_fanout_files": [{"file": "app/core/a.py", "runtime_neighbor_files": 30}]},
+            {"cycles": [{"files": ["app/core/a.py", "app/core/b.py"],
+                          "confidence": "CURRENT_SOURCE_IMPORT_CYCLE"}]},
+            {"candidates": []},
+        )
+        self.assertEqual(plan["actionability"]["confirmed_fix_candidates"], 1)
+        self.assertEqual(plan["actionability"]["investigation_candidates"], 2)
+        self.assertEqual(plan["tasks"][0]["decision"], "FIX_CONFIRMED_CONTRACT_VIOLATION")
+        self.assertEqual(plan["tasks"][1]["decision"], "INVESTIGATE_NO_CODE_CHANGE_YET")
+        self.assertIn("TYPE_CHECKING", plan["tasks"][1]["next_proof"])
+        self.assertTrue(all(not task["code_change_authorized"] for task in plan["tasks"]))
+
     def test_missing_memory_metrics_are_explicitly_unavailable(self):
         with tempfile.TemporaryDirectory() as folder:
             self.assertEqual(correlate_performance(Path(folder), "a" * 40)["status"], "UNAVAILABLE")
