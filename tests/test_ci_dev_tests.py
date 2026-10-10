@@ -116,3 +116,44 @@ class DeveloperTestPlannerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DeveloperParallelTests(unittest.TestCase):
+    def test_parallel_refuses_qt_and_unknown(self):
+        with self.assertRaises(ci_dev_tests.SelectionError):
+            ci_dev_tests.run_parallel_safe(Path.cwd(), ["tests.test_ci_dev_tests", "tests.test_achievements_phase2"], head="a"*40, jobs=2)
+        with self.assertRaises(ci_dev_tests.SelectionError):
+            ci_dev_tests.run_parallel_safe(Path.cwd(), ["tests.test_ci_dev_tests"], head="a"*40, jobs=2)
+        with self.assertRaises(ci_dev_tests.SelectionError):
+            ci_dev_tests.run_parallel_safe(Path.cwd(), ["tests.test_ci_history", "tests.test_ci_dev_tests"], head="a"*40, jobs=8)
+
+    def test_parallel_all_safe_modules_run_in_separate_subprocesses(self):
+        from subprocess import CompletedProcess
+        seen = []
+
+        def completed(args, **kwargs):
+            seen.append((args, kwargs))
+            return CompletedProcess(args, 0, "", "Ran 2 tests in 0.002s\n\nOK\n")
+
+        modules = ["tests.test_ci_history", "tests.test_ci_dev_tests"]
+        with patch.object(ci_dev_tests.subprocess, "run", side_effect=completed):
+            code, result = ci_dev_tests.run_parallel_safe(Path.cwd(), modules, head="a"*40, jobs=2)
+        self.assertEqual(code, 0)
+        self.assertEqual(result["test_count"], 4)
+        self.assertFalse(result["per_test_timings_available"])
+        self.assertEqual({args[-1] for args, _ in seen}, set(modules))
+        self.assertTrue(all(kwargs.get("timeout") == 600 for _, kwargs in seen))
+        self.assertFalse(result["full_suite_waived"])
+
+    def test_parallel_failure_is_not_hidden(self):
+        from subprocess import CompletedProcess
+
+        def result(args, **kwargs):
+            return CompletedProcess(args, 1 if args[-1] == "tests.test_ci_history" else 0,
+                                    "", "Ran 1 test in 0.001s\nFAILED\n")
+        with patch.object(ci_dev_tests.subprocess, "run", side_effect=result):
+            code, payload = ci_dev_tests.run_parallel_safe(
+                Path.cwd(), ["tests.test_ci_dev_tests", "tests.test_ci_history"],
+                head="b"*40, jobs=2)
+        self.assertEqual(code, 1)
+        self.assertEqual(payload["status"], "FAIL")

@@ -3,6 +3,8 @@ from __future__ import annotations
 """Opt-in, diff-scoped developer tests. Never a substitute for Atlas FULL CI."""
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
+import re
 import json
 import platform
 import subprocess
@@ -18,6 +20,16 @@ from tools import ai_context
 ROOT = Path(__file__).resolve().parents[1]
 MAX_CHANGED_PATHS = 512
 MAX_SELECTED_MODULES = 128
+# Only these explicitly reviewed, pure tooling suites are safe for concurrent
+# processes. Qt, workers, persistence, catalog and unknown modules stay serial.
+SAFE_PARALLEL_MODULES = frozenset({
+    "tests.test_ci_dev_tests",
+    "tests.test_ci_history",
+    "tests.test_atlas_doctor_test_intelligence",
+})
+MAX_DEV_JOBS = 4
+DEFAULT_MODULE_TIMEOUT_SECONDS = 600
+_TEST_COUNT_RE = re.compile(r"Ran (\d+) tests? in [0-9.]+s")
 
 TOOL_SPEC = {
     "schema_version": 1,
@@ -149,6 +161,66 @@ def run_targeted(modules: list[str], *, head: str) -> tuple[int, dict[str, objec
     return (0 if succeeded else 1), report
 
 
+def run_parallel_safe(
+    root: Path, modules: list[str], *, head: str, jobs: int,
+    timeout_seconds: int = DEFAULT_MODULE_TIMEOUT_SECONDS,
+) -> tuple[int, dict[str, object]]:
+    """Opt-in separate Python interpreters only for allowlisted pure tooling tests.
+
+    Every selected test module remains required. Unknown/Qt modules cannot be
+    silently dropped, moved into a worker or declared passed on another SHA.
+    """
+    if not 2 <= jobs <= MAX_DEV_JOBS:
+        raise SelectionError("--jobs must be between 2 and 4 for parallel execution")
+    if not 30 <= timeout_seconds <= 1800:
+        raise SelectionError("--timeout-seconds must be between 30 and 1800")
+    if len(modules) < 2 or len(set(modules)) != len(modules):
+        raise SelectionError("Parallel mode needs at least two distinct modules")
+    unsafe = sorted(set(modules) - SAFE_PARALLEL_MODULES)
+    if unsafe:
+        raise SelectionError("Not independently verified for concurrency: " + ", ".join(unsafe))
+
+    def worker(module: str) -> dict[str, object]:
+        start = time.perf_counter()
+        try:
+            outcome = subprocess.run(
+                [sys.executable, "-X", "faulthandler", "-m", "unittest", "-v", module],
+                cwd=root, capture_output=True, text=True, encoding="utf-8",
+                errors="replace", timeout=timeout_seconds, check=False,
+            )
+            logs = outcome.stdout + outcome.stderr
+            counts = _TEST_COUNT_RE.findall(logs)
+            number = int(counts[-1]) if counts else 0
+            code = outcome.returncode if number else 1
+        except subprocess.TimeoutExpired as exc:
+            logs = f"{module}: execution exceeded {timeout_seconds}s: {exc}"
+            number, code = 0, 124
+        return {
+            "module": module, "seconds": round(time.perf_counter() - start, 3),
+            "test_count": number, "exit_code": code, "output": logs,
+        }
+
+    with ThreadPoolExecutor(max_workers=min(jobs, len(modules))) as executor:
+        # executor.map preserves input ordering, including errors; no test vanishes.
+        results = list(executor.map(worker, modules))
+    for result in results:
+        print(f"=== {result['module']} (exit={result['exit_code']}) ===", file=sys.stderr)
+        print(result["output"], file=sys.stderr)
+    succeeded = all(result["exit_code"] == 0 for result in results)
+    rows = [{key: value for key, value in result.items() if key != "output"}
+            for result in results]
+    return (0 if succeeded else 1), {
+        "schema_version": 1, "kind": "atlas_developer_parallel_test_timings",
+        "mode": "DEVELOPMENT_ONLY", "status": "PASS" if succeeded else "FAIL",
+        "head": head, "selected_modules": list(modules), "workers": min(jobs, len(modules)),
+        "test_count": sum(result["test_count"] for result in results),
+        "top_slowest_modules": sorted(rows, key=lambda item: (-item["seconds"], item["module"])),
+        "per_test_timings_available": False,
+        "isolation": "separate Python subprocess per explicitly allowlisted pure tooling module",
+        "certified": False, "full_suite_waived": False, "benchmark_executed": False,
+    }
+
+
 def _write_report(root: Path, relative: str, payload: dict[str, object]) -> None:
     """Explicit artifact output, never writing to tracked product files."""
     if not relative:
@@ -167,6 +239,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-ref", default="origin/main", help="Git merge-base for diff selection")
     parser.add_argument("--path", action="append", dest="paths", default=[], help="Explicit changed path (repeatable); skips git discovery")
     parser.add_argument("--run", action="store_true", help="Opt in to executing selected tests; by default, plan only")
+    parser.add_argument("--jobs", type=int, default=1, help="Opt-in pure-test subprocess parallelism (max 4); default sequential")
+    parser.add_argument("--timeout-seconds", type=int, default=DEFAULT_MODULE_TIMEOUT_SECONDS, help="Per-module parallel-worker timeout")
     parser.add_argument("--report", default="", help="Optional JSON report under artifacts/; explicit write")
     parser.add_argument("--json", action="store_true", help="Print machine-readable plan")
     args = parser.parse_args(argv)
@@ -183,6 +257,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {module}")
             for path in selection["unmapped_paths"]:
                 print(f"  UNMAPPED: {path}")
+        if args.jobs < 1 or args.jobs > MAX_DEV_JOBS:
+            raise SelectionError("--jobs must be between 1 and 4")
         if not args.run:
             if args.report:
                 _write_report(root, args.report, selection)
@@ -190,7 +266,11 @@ def main(argv: list[str] | None = None) -> int:
         if selection["status"] != "TARGETED_ADVISORY":
             print("Refusing incomplete selection; use canonical gates for broad changes", file=sys.stderr)
             return 2
-        code, metrics = run_targeted(selection["modules"], head=head)
+        if args.jobs == 1:
+            code, metrics = run_targeted(selection["modules"], head=head)
+        else:
+            code, metrics = run_parallel_safe(root, selection["modules"], head=head,
+                jobs=args.jobs, timeout_seconds=args.timeout_seconds)
         metrics["changed_paths"] = selection["changed_paths"]
         if args.report:
             _write_report(root, args.report, metrics)
