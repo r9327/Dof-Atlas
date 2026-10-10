@@ -64,7 +64,9 @@ from app.constants import (
     ZAAP_FAVORITES_KEY,
     ZAAP_SHORTCUTS_FILE,
 )
+from app.core.item_identity import item_id
 from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.zaap_shortcuts import parse_unit_ratio, zaap_ratios_from_payload
 from app.core.text import clean_auto_group_name, normalize_key, strip_accents
 from app.services.profile_settings_service import ProfileSettingsService
 from app.ui.components import AtlasButton
@@ -516,16 +518,6 @@ def invoke_compatible_callback(callback, *args):
     return callback(*args)
 
 
-def parse_unit_ratio(value: Any) -> float | None:
-    try:
-        ratio = float(str(value).strip())
-    except (TypeError, ValueError):
-        return None
-    if 0.0 <= ratio <= 1.0:
-        return ratio
-    return None
-
-
 def format_zaap_ratio(value: float) -> str:
     return f"{float(value):.6f}".rstrip("0").rstrip(".")
 
@@ -536,15 +528,9 @@ def read_zaap_shortcuts(path: Path | None = None) -> dict[str, Any]:
 
 
 def read_zaap_button_ratios(payload: dict[str, Any] | None = None) -> tuple[float, float] | None:
+    # Keep the legacy UI reader's injectable path and storage semantics.
     payload = payload if isinstance(payload, dict) else read_zaap_shortcuts()
-    button = payload.get("zaap_button")
-    if not isinstance(button, dict):
-        return None
-    x_ratio = parse_unit_ratio(button.get("x_ratio"))
-    y_ratio = parse_unit_ratio(button.get("y_ratio"))
-    if x_ratio is None or y_ratio is None:
-        return None
-    return (x_ratio, y_ratio)
+    return zaap_ratios_from_payload(payload)
 
 
 def zaap_favorite_lookup(zaaps: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -886,14 +872,6 @@ def load_zaap_index(path: Path = ZAAPS_FILE) -> list[dict[str, Any]]:
         zaaps.append(item)
         seen.add(key)
     return sorted(zaaps, key=lambda entry: normalize_key(entry.get("label")))
-
-
-def item_id(item: dict[str, Any]) -> int | None:
-    value = item.get("id_dofus") or item.get("ankama_id") or item.get("id")
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def local_image_path(item: dict[str, Any]) -> Path | None:

@@ -148,8 +148,12 @@ class ProjectGuardrailsTests(unittest.TestCase):
         coordinator = self._text("app/core/progress_coordinator.py")
         self.assertIn("ProgressFileCoordinator", coordinator)
         self.assertIn("mark_changed", coordinator)
-        compatibility = self._text("app/modules/encyclopedia/services/progress_coordinator.py")
-        self.assertIn("from app.core.progress_coordinator import", compatibility)
+        # The old module was retired: all producers and migration must
+        # import the same canonical coordinator registry (no shadow locks).
+        resolver = self._text("app/network/character_resolver.py")
+        self.assertIn("from app.core.progress_coordinator import coordinator_for", resolver)
+        self.assertNotIn("services.progress_coordinator import coordinator_for", resolver)
+        self.assertFalse((ROOT / "app/modules/encyclopedia/services/progress_coordinator.py").exists())
         for relative in (
             "app/modules/encyclopedia/services/quest_progress_service.py",
             "app/modules/encyclopedia/services/guide_progress_service.py",

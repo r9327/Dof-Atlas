@@ -21,7 +21,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
     GuideUltimeManualView,
 )
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton
 
 

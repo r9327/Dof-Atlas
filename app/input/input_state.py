@@ -2,20 +2,11 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass
 from logging import Logger
 
 
 ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO = 0xA71A5C1
 ATLAS_SYNTHETIC_KEYBOARD_EXTRA_INFO = 0xA71A5C2
-
-
-@dataclass(frozen=True)
-class MouseClick:
-    button: str
-    x: int
-    y: int
-    injected: bool = False
 
 
 class InputState:

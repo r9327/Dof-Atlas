@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from tools.ai_context import sync_index
+from tools.atlas_doctor_lib.dev_events import dev_event
 from tools.check_generated_files import find_forbidden, find_sensitive_content, git_paths
 
 
@@ -66,6 +67,17 @@ def pre_commit(root: Path) -> int:
         if code:
             print(f"[pre-commit] BLOCKED: {label}", file=sys.stderr)
             return code
+    # Advisory only: do not duplicate tests or block commits for Graphify candidates.
+    try:
+        hints = dev_event(root, "pre-commit")
+        if hints["changed_count"]:
+            print(f"[pre-commit] Doctor hint: {hints['status']} | "
+                  f"{hints['changed_count']} files | "
+                  f"{len(hints['recommended_tests'])} proposed tests (not run)")
+            if hints["source_structural_total"]:
+                print("[pre-commit] Doctor: structural consumers require review.")
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(f"[pre-commit] Doctor advisory unavailable: {exc}", file=sys.stderr)
     print("[pre-commit] PASS")
     return 0
 

@@ -8,7 +8,7 @@ from app.modules.encyclopedia.views.guide_ultime_universal_view import (
     GuideUltimeRouteCard,
     GuideUltimeUniversalView,
 )
-from app.ui.styles.guide_universal import guide_universal_stylesheet
+from app.ui.styles.guide import guide_universal_stylesheet
 
 
 class GuideUltimeRouteSheetUITests(unittest.TestCase):

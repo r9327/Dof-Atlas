@@ -19,7 +19,7 @@ from app.modules.encyclopedia.providers.indexed_guide_provider import (
     IndexedGuideProvider,
     _drop_nested_raw,
 )
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 
 _DUMP_COMPACT_FLAG = "--dump-compact"

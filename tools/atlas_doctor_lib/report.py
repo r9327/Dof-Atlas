@@ -190,6 +190,43 @@ def _compact_integrity(integrity: dict[str, Any] | None) -> dict[str, Any] | Non
 
 def build_ai_report(root) -> dict[str, Any]:
     from .architecture import graph_status
+    from .graph_audit import audit_current_graph
+
+    arch = graph_status(root)
+    if arch.get("status") == "PASS":
+        triage = audit_current_graph(root, graph_evidence=arch)
+        compact_graph = {
+            "status": triage["status"],
+            "candidate_sha": triage.get("candidate_sha"),
+            "graph_signature": triage.get("graph_signature"),
+            "metrics": triage.get("metrics", {}),
+            "import_cycles": triage.get("import_cycles"),
+            "community_cohesion": {
+                "status": (triage.get("community_cohesion") or {}).get("status"),
+                "candidate_count": (triage.get("community_cohesion") or {}).get("candidate_count"),
+                "candidates": (triage.get("community_cohesion") or {}).get("candidates", [])[:6],
+            },
+            "performance_correlation": triage.get("performance_correlation"),
+            "remediation_plan": {
+                "status": (triage.get("remediation_plan") or {}).get("status"),
+                "task_count": (triage.get("remediation_plan") or {}).get("task_count"),
+                "tasks": (triage.get("remediation_plan") or {}).get("tasks", [])[:8],
+            },
+            "blocking_findings": triage.get("blocking_findings", []),
+            "unconfirmed_import_candidates": triage.get("unconfirmed_import_candidates", [])[:8],
+            "orphan_nodes": triage.get("orphan_nodes", [])[:8],
+            "isolated_communities": triage.get("isolated_communities", [])[:8],
+            "weak_production_candidates": triage.get("weak_production_candidates", [])[:8],
+            "high_fanout_files": triage.get("high_fanout_files", [])[:8],
+            "cross_community_bridges": triage.get("cross_community_bridges", [])[:8],
+            "limitations": triage.get("limits", {}),
+        }
+    else:
+        compact_graph = {
+            "status": "UNAVAILABLE", "graph_status": arch.get("status"),
+            "reason": arch.get("reason", "Current Graphify graph not available."),
+            "next_action": "python -m tools.atlas_doctor graph --rebuild",
+        }
 
     audit = load_json(root, 'latest_audit')
     perf = load_json(root, 'latest_perf')
@@ -208,7 +245,8 @@ def build_ai_report(root) -> dict[str, Any]:
         'schema_version': 1,
         'kind': 'ai_report',
         'generated_at': utc_now(),
-        'architecture': graph_status(root),
+        'architecture': arch,
+        'architecture_graph_triage': compact_graph,
         'audit_summary': (audit or {}).get('summary'),
         'audit_analysis_sources': (audit or {}).get('analysis_sources'),
         'git': (audit or perf or live or {}).get('git'),
@@ -226,7 +264,9 @@ def build_ai_report(root) -> dict[str, Any]:
         },
         'instructions_for_agent': [
             'Prioriser la revue CRITICAL/HIGH; confirmed confirme le motif detecte, pas automatiquement un bug.',
-            'Le diagnostic statique ne consulte pas Graphify: verifier audit_analysis_sources puis architecture pour le graph.',
+            'Le diagnostic statique ne consulte pas Graphify: verifier audit_analysis_sources puis architecture_graph_triage pour le graph.',
+            'Un nœud peu lie ou une communaute isolee est un candidat de revue, pas une preuve de code mort.',
+            'Le graphe doit etre courant pour le SHA et les verifications source priment sur les liens inferes.',
             'Ne jamais supprimer un module marque suspect sans verifier wiring dynamique et consommateurs reels.',
             'Comparer les performances uniquement sur la meme machine/environnement.',
             'Une hausse >=15% est un signal de regression a verifier, pas une preuve absolue entre environnements differents.',

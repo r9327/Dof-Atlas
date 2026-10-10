@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 
 def load_ocre_capture_registry(manual_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:

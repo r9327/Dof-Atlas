@@ -13,7 +13,7 @@ from app.modules.encyclopedia.achievement_catalog_policy import (
     ALIGNMENT_ORDER_QUEST_IDS as ORDER_QUEST_IDS,
 )
 from app.modules.encyclopedia.providers.achievement_provider import safe_int
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 
 # The profiles below are deliberately conservative: they enumerate the route/success

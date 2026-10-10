@@ -14,7 +14,7 @@ from app.modules.encyclopedia.services.guide_ultime_manual_route import (
     load_manual_chapter,
 )
 from app.modules.encyclopedia.services.guide_ultime_runtime_service import GuideUltimeRuntimeService
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 
 ROOT = Path(__file__).resolve().parents[4]
