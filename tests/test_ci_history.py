@@ -55,6 +55,15 @@ class CIHistoryTests(unittest.TestCase):
         self.assertEqual(report['elisions_authorized'], 0)
         self.assertFalse(report['full_suite_waived'])
 
+    def test_full_application_suite_reports_slowest_tests_without_filters(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    '.github/workflows/app-ci.yml').read_text(encoding='utf-8')
+        full = next(line.strip() for line in workflow.splitlines()
+                    if '-m unittest discover -v -s tests' in line)
+        self.assertIn('-p "test_*.py" --durations=20', full)
+        self.assertNotIn(' -k ', full)
+        self.assertNotIn(' --failfast', full)
+        self.assertNotIn(' --buffer', full)
     def test_read_files_instead_of_running_workflows(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'workflow.yml'

@@ -314,7 +314,7 @@ jobs:
         continue-on-error: true
         run: |
           $ErrorActionPreference = "Continue"
-          & py -3.13 -X faulthandler -m unittest discover -v -s tests -p "test_*.py" 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/05_full_unittest.log"
+          & py -3.13 -X faulthandler -m unittest discover -v -s tests -p "test_*.py" --durations=20 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/05_full_unittest.log"
           $code = $LASTEXITCODE
           if ($null -eq $code) { $code = 0 }
           if ($code -ne 0) { exit $code }
