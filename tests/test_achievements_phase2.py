@@ -168,7 +168,13 @@ class AchievementContextPhase2Tests(unittest.TestCase):
             widget.deleteLater()
             app.processEvents()
 
-    def test_tabs_remain_lazy_without_visible_placeholder_ui(self):
+    @patch.object(EncyclopediaPage, "request_related_preload", autospec=True)
+    @patch.object(EncyclopediaPage, "request_achievement_runtime", autospec=True)
+    def test_tabs_remain_lazy_without_visible_placeholder_ui(
+        self, request_achievement_runtime, request_related_preload
+    ):
+        # This test checks lazy UI slots, not asynchronous catalog hydration.
+        # Do not let background workers write into TemporaryDirectory after it closes.
         app = self.app()
         with tempfile.TemporaryDirectory() as tmp:
             profile, client_index, quest_progress, achievement_progress, owned = self.make_temp_paths(Path(tmp))
@@ -202,6 +208,7 @@ class AchievementContextPhase2Tests(unittest.TestCase):
             self.assertIsNot(guide_tab, guide_slot)
             self.assertEqual(type(guide_tab).__name__, "GuideCatalogView")
             self.assertIs(guide_tab, page.guides_view)
+            request_related_preload.assert_any_call(page, "GUIDES")
             page.tabs.setCurrentIndex(page.tab_labels().index(QUESTS_TAB))
             app.processEvents()
             achievement_slot = page.tabs.widget(page.tab_labels().index(ACHIEVEMENTS_TAB))
@@ -211,6 +218,7 @@ class AchievementContextPhase2Tests(unittest.TestCase):
             app.processEvents()
             self.assertEqual(page.current_tab_label(), ACHIEVEMENTS_TAB)
             self.assertIsNot(page.tabs.widget(page.tab_labels().index(ACHIEVEMENTS_TAB)), achievement_slot)
+            request_achievement_runtime.assert_any_call(page)
             page.tabs.setCurrentIndex(page.tab_labels().index(QUESTS_TAB))
             app.processEvents()
             lazy_tabs = {"DONJONS", "MONSTRES", "ARCHIMONSTRES", "AVIS DE RECHERCHE"}
