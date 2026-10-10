@@ -20,7 +20,7 @@ from app.modules.encyclopedia.tools import validate_guides
 from app.modules.encyclopedia.views import EncyclopediaPage, GuidesView
 from app.modules.encyclopedia.views.guides_view import QuestLine
 from app.modules.encyclopedia.widgets import GUIDE_GROUP_ROLE
-from app.quest_catalog import load_quest_progress, quest_done, set_quest_done
+from app.quest_catalog import load_quest_progress, quest_done, save_quest_progress, set_quest_done
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "data" / "encyclopedia" / "guides" / "catalog.json"
@@ -198,11 +198,16 @@ class GuideCatalogFillTests(unittest.TestCase):
             view = self._make_guides_view(Path(tmp))
             guide = self.by_id["dofus_turquoise"]
             progress = load_quest_progress(view.quest_progress_path)
+            # This test verifies the final Guide/UI state, not the write
+            # transaction for each prerequisite (covered separately).
+            # Seed the fixture once instead of repeated JSON reads/writes.
+            completed = progress.setdefault("characters", {}).setdefault(
+                "character:1", {"done": {}}
+            ).setdefault("done", {})
             for step in guide.required_steps:
-                if step.step_type != "quest" or step.entity_id is None:
-                    continue
-                set_quest_done(progress, "character:1", step.entity_id, True, view.quest_progress_path)
-                progress = load_quest_progress(view.quest_progress_path)
+                if step.step_type == "quest" and step.entity_id is not None:
+                    completed[str(step.entity_id)] = True
+            save_quest_progress(progress, view.quest_progress_path)
             view.refresh_external_progress()
             self.assertEqual(view.guide_state(guide), "Terminé")
             view.select_guide("dofus_turquoise")
@@ -250,14 +255,9 @@ class GuideCatalogFillTests(unittest.TestCase):
             self.assertNotEqual(validate_guides.main(["--guides-dir", str(tmp_path)]), 0)
 
     def test_write_missing_does_not_replace_existing_guide_and_no_network(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            existing = tmp_path / "dofus_turquoise.json"
-            existing.write_text('{"sentinel": true}', encoding="utf-8")
-            builder = GuideCatalogBuilder(guides_dir=tmp_path)
-            builder.write_missing(builder.build())
-            self.assertEqual(json.loads(existing.read_text(encoding="utf-8")), {"sentinel": True})
-
+        # The original test regenerated the full Guide catalog twice. Do the
+        # real write_missing contract and the network prohibition during ONE
+        # full build; keep both independent assertions and the on-disk sentinel.
         original_socket = socket.socket
 
         def forbidden_socket(*_args, **_kwargs):
@@ -267,8 +267,19 @@ class GuideCatalogFillTests(unittest.TestCase):
         try:
             provider = GuideProvider()
             self.assertGreater(len(provider.load_all()), 0)
-            builder = GuideCatalogBuilder()
-            self.assertGreater(len(builder.build().guides), 0)
+            with tempfile.TemporaryDirectory() as tmp:
+                tmp_path = Path(tmp)
+                existing = tmp_path / "dofus_turquoise.json"
+                existing.write_text('{"sentinel": true}', encoding="utf-8")
+                builder = GuideCatalogBuilder(guides_dir=tmp_path)
+                result = builder.build()
+                self.assertGreater(len(result.guides), 0)
+                written = builder.write_missing(result)
+                self.assertNotIn(str(existing), written)
+                self.assertEqual(
+                    json.loads(existing.read_text(encoding="utf-8")),
+                    {"sentinel": True},
+                )
         finally:
             socket.socket = original_socket
 
