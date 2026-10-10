@@ -31,6 +31,37 @@ class ScopeGateTests(unittest.TestCase):
             **extra
         )
 
+    def test_selector_or_ai_context_changes_require_full(self):
+        for changed in (
+            "tools/ci_scope_gate.py",
+            "tools/ai_context.py",
+            "tests/test_ci_scope_gate.py",
+        ):
+            with self.subTest(path=changed):
+                report = self.classify([changed])
+                self.assertEqual(report["status"], "FULL_REQUIRED")
+                self.assertIn(
+                    "SCOPE_ENGINE_OR_GUIDE_BUILDER_CHANGE", report["reasons"]
+                )
+                self.assertIn(changed, report["full_only_paths"])
+                self.assertFalse(report["certified"])
+
+    def test_guide_builder_is_not_covered_by_only_resolver_unit_tests(self):
+        path = "app/modules/encyclopedia/services/guide_catalog_builder.py"
+        report = self.classify([path])
+        self.assertEqual(report["status"], "FULL_REQUIRED")
+        self.assertIn(path, report["full_only_paths"])
+        self.assertEqual(report["modules"], [])
+        self.assertNotIn(
+            "tests.test_guide_prerequisite_lookup",
+            ci_scope_gate.KNOWN_COUPLED_MODULES.get(path, ()),
+        )
+
+    def test_scope_policy_in_mixed_diff_still_requires_full(self):
+        report = self.classify(["tools/ci_dev_tests.py", "tools/ci_scope_gate.py"])
+        self.assertEqual(report["status"], "FULL_REQUIRED")
+        self.assertIn("SCOPE_ENGINE_OR_GUIDE_BUILDER_CHANGE", report["reasons"])
+
     def test_small_tool_change_runs_only_its_related_tests(self):
         result = self.classify(["tools/ci_dev_tests.py"])
         self.assertEqual(result["status"], "TARGETED")

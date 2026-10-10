@@ -20,11 +20,16 @@ from tools.atlas_integrity import classify_risk
 ROOT = Path(__file__).resolve().parents[1]
 MAX_ROUTINE_CHANGED_FILES = 12
 MAX_ROUTINE_MODULES = 12
+# These files define selection/trust policy or generate the complete Guide.
+# A unit test for a resolver is not proof of the Guide builder's entire output.
+FULL_ONLY_PATHS = frozenset({
+    "tools/ci_scope_gate.py",
+    "tools/ai_context.py",
+    "tests/test_ci_scope_gate.py",
+    "app/modules/encyclopedia/services/guide_catalog_builder.py",
+})
 KNOWN_COUPLED_MODULES = {
     "app/modules/encyclopedia/services/guide_path_profiles.py": (
-        "tests.test_guide_prerequisite_lookup",
-    ),
-    "app/modules/encyclopedia/services/guide_catalog_builder.py": (
         "tests.test_guide_prerequisite_lookup",
     ),
     "tools/ci_scope_gate.py": ("tests.test_ci_scope_gate",),
@@ -73,6 +78,9 @@ def classify_diff(root: Path, paths: Iterable[str], *, before_sha: str = "",
         reasons.append("BROAD_CHANGE")
     if deleted:
         reasons.append("REMOVED_OR_RENAMED_FILES")
+    full_only = sorted(set(changed) & FULL_ONLY_PATHS)
+    if full_only:
+        reasons.append("SCOPE_ENGINE_OR_GUIDE_BUILDER_CHANGE")
     if any(not p or p.startswith("/") or p.startswith("../") or "/../" in p for p in changed):
         reasons.append("INVALID_PATH")
 
@@ -111,6 +119,7 @@ def classify_diff(root: Path, paths: Iterable[str], *, before_sha: str = "",
         "deleted_paths": deleted,
         "unclassified_paths": unclassified,
         "uncovered_paths": uncovered,
+        "full_only_paths": full_only,
         "modules": modules if mode == "TARGETED" else [],
         "full_required": mode == "FULL_REQUIRED",
         "full_suite_waived": False,
