@@ -201,6 +201,24 @@ class ScopeGateTests(unittest.TestCase):
         self.assertIn("tools.atlas_doctor verify --gate fast", pr)
         self.assertIn("Public PR / Safe Validation", pr)
 
+    def test_scoped_runner_rejects_empty_modules_even_when_other_tests_pass(self):
+        (self.root / "scope_good.py").write_text(
+            "import unittest\nclass Good(unittest.TestCase):\n"
+            "    def test_real(self): self.assertTrue(True)\n",
+            encoding="utf-8",
+        )
+        (self.root / "scope_empty.py").write_text(
+            "VALUE = 42\n", encoding="utf-8"
+        )
+        self.assertEqual(
+            ci_scope_gate._run_scoped_modules(self.root, ["scope_good"]), 0
+        )
+        self.assertNotEqual(
+            ci_scope_gate._run_scoped_modules(
+                self.root, ["scope_good", "scope_empty"]
+            ), 0,
+        )
+
     def test_git_name_status_uses_null_separated_tokens(self):
         with mock.patch.object(ci_scope_gate.subprocess, "run") as runner:
             runner.side_effect = [

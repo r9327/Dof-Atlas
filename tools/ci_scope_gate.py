@@ -36,8 +36,34 @@ KNOWN_COUPLED_MODULES = {
     "tools/ci_dev_tests.py": ("tests.test_ci_dev_tests",),
     "tools/atlas_doctor_lib/ci_history.py": ("tests.test_ci_history",),
 }
+_SCOPED_TEST_RUNNER = """import sys
+import unittest
+
+modules = sys.argv[1:]
+loader = unittest.defaultTestLoader
+suites = [loader.loadTestsFromName(module) for module in modules]
+counts = [suite.countTestCases() for suite in suites]
+for module, count in zip(modules, counts):
+    print(f"[scope] {module}: {count} discovered tests", flush=True)
+if not counts or any(count == 0 for count in counts):
+    print("[scope] BLOCKED: selected module has no tests", file=sys.stderr)
+    raise SystemExit(2)
+result = unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(suites))
+raise SystemExit(0 if result.wasSuccessful() else 1)
+"""
+
+
 class ScopeError(ValueError):
     pass
+
+
+def _run_scoped_modules(root: Path, modules: list[str]) -> int:
+    """Execute all selected modules together, rejecting empty test modules."""
+    result = subprocess.run(
+        [sys.executable, "-X", "faulthandler", "-c", _SCOPED_TEST_RUNNER, *modules],
+        cwd=root, check=False, timeout=600,
+    )
+    return result.returncode
 
 
 def _path_has_direct_test_coverage(root: Path, path: str) -> bool:
@@ -195,12 +221,7 @@ def main(argv: list[str] | None = None) -> int:
                 f.write(f"full_required={str(data['full_required']).lower()}\n")
                 f.write(f"scope_status={data['status']}\n")
         if options.run and data["status"] == "TARGETED":
-            result = subprocess.run(
-                [sys.executable, "-X", "faulthandler", "-m", "unittest", "-v",
-                 *data["modules"]],
-                cwd=root, check=False, timeout=600,
-            )
-            return result.returncode
+            return _run_scoped_modules(root, data["modules"])
         return 0
     except (OSError, subprocess.CalledProcessError, ScopeError) as exc:
         print(f"Atlas CI scope failure, FULL required: {exc}", file=sys.stderr)
