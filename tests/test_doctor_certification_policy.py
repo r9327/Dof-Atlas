@@ -196,6 +196,19 @@ class PolicyAndPassportTests(unittest.TestCase):
         self.assertIn("Une **PR Phase en brouillon**", docs)
         self.assertIn("FULL Phase n'est pas lancée automatiquement", docs)
 
+    def test_plan_is_cheap_and_windows_only_if_scoped(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/doctor-certification.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("name: Doctor / Fast Policy & Coverage", workflow)
+        self.assertIn("runs-on: ubuntu-latest", workflow)
+        self.assertIn("stdlib-only planning", workflow)
+        self.assertIn("needs.plan.outputs.run_scoped == 'true'", workflow)
+        self.assertIn("runs-on: windows-latest", workflow)
+        self.assertIn("only when scoped tests are required", workflow)
+        self.assertIn("SCOPED_TESTS_PASS is **NOT** Phase certification", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

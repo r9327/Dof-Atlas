@@ -184,3 +184,24 @@ pushes to main. This changes *when* the exhaustive phase suite runs, not its
 required tests or verdict. Draft PRs still run Doctor Adaptive/Doctor FAST/
 scoped feedback, and cannot declare their phase certified. See
 \`PHASE_CERTIFICATION.md\` and the specific draft/ready guardrail test.
+
+
+## Stage 1C — cheap plan before optional Windows tests
+
+The Doctor workflow now separates two cost profiles:
+
+- **Plan:** Ubuntu/Python 3.13 with only stdlib imports. Checks contracts,
+  Git diff, independent policy, Source Impact, exact SHA and emits
+  \`plan.json\`/\`plan_passport.json\`. **No pip/Qt install.**
+- **Scoped:** Windows/PySide6 **only** when the plan is
+  \`READY_TO_RUN_SCOPED\`. Rechecks exact SHA, repeats fail-closed selection,
+  executes the actual canonical test modules and emits a final passport.
+- **FULL_REQUIRED** deliberately does *not* start a Windows scoped job. It is
+  not a waiver of the separately required Phase/Release FULL.
+- The planning report contains real group/test selection justifications;
+  all outstanding metrics and the FULL certification status remain explicit.
+
+This optimizes the **Doctor adaptive workflow** immediately. Existing
+Public PR and other independent Windows validation jobs still have their
+own scheduling and may require separate optimization. Do not claim their
+time was reduced without a comparable measured run.
