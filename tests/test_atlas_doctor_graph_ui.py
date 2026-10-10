@@ -27,6 +27,8 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("Fichiers app uniquement", html)
         self.assertIn("runtimeFileEdges", html)
         self.assertIn("runtimeOnly.checked", html)
+        self.assertIn("Passerelles entre domaines applicatifs", html)
+        self.assertIn("runtimeFocus.cross_domain_bridges", html)
         stale = compact_graph(graph, {"runtime_file_focus": {
             **focus, "source_sha": "b" * 40}})
         self.assertIsNone(stale["runtime_file_focus"])

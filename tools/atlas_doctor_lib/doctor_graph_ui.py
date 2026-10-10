@@ -790,6 +790,26 @@ if(runtimeFocusComplete){
     if(i!==undefined)revealNode(i);}
  });
  section.appendChild(pick);
+ const bridgeTitle=document.createElement('h4');
+ bridgeTitle.textContent='Passerelles entre domaines applicatifs';
+ section.appendChild(bridgeTitle);
+ (runtimeFocus.cross_domain_bridges||[]).slice(0,8).forEach(bridge=>{
+  const wrapper=document.createElement('p');
+  const example=(bridge.example_files||[])[0];
+  const label=String(bridge.source_domain||'')+' → '+String(bridge.target_domain||'')+
+   ' · '+String(bridge.distinct_imports||0)+' imports';
+  const control=document.createElement('button');
+  control.type='button';control.textContent=label;
+  control.title='Voir un fichier source de cette passerelle (pas une preuve de goulet)';
+  control.addEventListener('click',()=>{
+   if(!Array.isArray(example)||!firstNodeByFile.has(example[0]))return;
+   runtimeOnly.checked=true;
+   domain.value='';community.value='';relation.value='';
+   search.value=example[0];filter(true);
+   revealNode(firstNodeByFile.get(example[0]));
+  });
+  wrapper.appendChild(control);section.appendChild(wrapper);
+ });
  const caveat=document.createElement('small');
  caveat.textContent='Couplage statique, pas une mesure CPU/RAM ; aucune suppression automatique.';
  section.appendChild(caveat);section.appendChild(document.createElement('hr'));

@@ -68,12 +68,12 @@ def runtime_file_focus(graph: dict[str, Any]) -> dict[str, Any]:
         dependencies = caller_imports[path]
         in_count, out_count = len(consumers), len(dependencies)
         boundary = path.endswith("/__init__.py")
-        if in_count == 0 and out_count == 0:
-            classification = "NO_STATIC_IMPORT_EDGES_REVIEW"
-            next_check = "Check launcher, dynamic imports, Qt callbacks and external entrypoints; never delete from isolation alone."
-        elif boundary:
+        if boundary:
             classification = "PACKAGE_FACADE_OR_BOUNDARY"
             next_check = "Verify __init__ re-exports and lazy import contracts; preserve public import compatibility."
+        elif in_count == 0 and out_count == 0:
+            classification = "NO_STATIC_IMPORT_EDGES_REVIEW"
+            next_check = "Check launcher, dynamic imports, Qt callbacks and external entrypoints; never delete from isolation alone."
         elif in_count >= 12 and out_count <= 2:
             classification = "SHARED_LEAF_EXPECTED"
             next_check = "Keep stable shared APIs unless benchmark or source contracts show a regression."
@@ -106,6 +106,7 @@ def runtime_file_focus(graph: dict[str, Any]) -> dict[str, Any]:
         key=lambda r: (-r["consumer_files"], r["file"]),
     )
     isolates = [r for r in rows if r["classification"] == "NO_STATIC_IMPORT_EDGES_REVIEW"]
+    boundary_files = [r for r in rows if r["classification"] == "PACKAGE_FACADE_OR_BOUNDARY"]
     # Deterministic domain groupings make community triage stable across Leiden
     # community-ID changes. The original graph's communities remain unchanged.
     groups: dict[str, set[str]] = defaultdict(set)
@@ -123,6 +124,10 @@ def runtime_file_focus(graph: dict[str, Any]) -> dict[str, Any]:
         "raw_graph_node_count": len(graph["nodes"]),
         "file_nodes": len(files), "confirmed_ast_import_file_pairs": len(pairs),
         "files_without_static_import_edges": len(isolates),
+        "package_boundary_files": len(boundary_files),
+        "boundary_files_without_static_import_edges": sum(
+            r["consumer_files"] == 0 and r["dependency_files"] == 0 for r in boundary_files
+        ),
         "source_domains": len(groups), "cross_domain_import_pairs": sum(map(len, bridges.values())),
         "structural_hotspot_count": len(ranked),
         "ignored_nonimport_app_relations": ignored_nonimports,
