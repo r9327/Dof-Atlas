@@ -105,6 +105,48 @@ class GuidePrerequisiteLookupTests(unittest.TestCase):
         expected.extend(sorted(ids - set(expected), key=key))
         self.assertEqual(resolver._topological_order(ids), expected)
 
+    def test_text_cache_returns_independent_sets_without_rescanning(self):
+        resolver = self.resolver
+        phrase = "Avoir terminé La quête de l'aube"
+        first = resolver._quest_ids_from_prerequisite_text(phrase)
+        self.assertEqual(first, {1})
+        first.add(9999)
+        # The complete candidate list must not be visited again.
+        resolver._prerequisite_name_candidates = None
+        self.assertEqual(resolver._quest_ids_from_prerequisite_text(phrase), {1})
+        self.assertEqual(resolver._prerequisite_text_cache[phrase], frozenset({1}))
+
+    def test_direct_cache_avoids_reparsing_but_tracks_record_changes(self):
+        resolver = self.resolver
+        quest = SimpleNamespace(id=1, start_criterion='Qf=2', prerequisites=[])
+        parser = guide_path_profiles.mandatory_references
+        with patch.object(guide_path_profiles, 'mandatory_references', wraps=parser) as parse:
+            first = resolver._direct_quest_prerequisites(quest)
+            self.assertEqual(first, {2})
+            first.clear()
+            self.assertEqual(resolver._direct_quest_prerequisites(quest), {2})
+            self.assertEqual(parse.call_count, 1)
+            resolver.enriched_quest_prerequisites[1] = {3}
+            self.assertEqual(resolver._direct_quest_prerequisites(quest, include_enriched=True), {2, 3})
+            resolver.enriched_quest_prerequisites[1].clear()
+            self.assertEqual(resolver._direct_quest_prerequisites(quest, include_enriched=True), {2})
+            self.assertEqual(parse.call_count, 1)
+            quest.start_criterion = 'Qf=3'
+            self.assertEqual(resolver._direct_quest_prerequisites(quest), {3})
+            self.assertEqual(parse.call_count, 2)
+            quest.prerequisites = ["Avoir terminé La quête de l'aube"]
+            # A self-referencing quest remains excluded after a record update.
+            self.assertEqual(resolver._direct_quest_prerequisites(quest), {3})
+            self.assertEqual(parse.call_count, 3)
+
+    def test_text_cache_is_bounded_to_the_resolver_lifetime(self):
+        resolver = self.resolver
+        for i in range(4102):
+            self.assertEqual(resolver._quest_ids_from_prerequisite_text(f'Unknown condition {i}'), set())
+        self.assertEqual(len(resolver._prerequisite_text_cache), 4096)
+        self.assertEqual(resolver._quest_ids_from_prerequisite_text('Avoir terminé Légende oubliée'), {2})
+        self.assertEqual(len(resolver._prerequisite_text_cache), 4096)
+
 
 if __name__ == "__main__":
     unittest.main()
