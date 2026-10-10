@@ -72,6 +72,39 @@ class GuidePrerequisiteLookupTests(unittest.TestCase):
             )
         self.assertEqual(resolver._quest_ids_from_prerequisite_text("Terminer Épreuve"), set())
 
+    def test_topological_order_preserves_legacy_sorted_priority(self):
+        from collections import defaultdict
+        quests = {qid: SimpleNamespace(id=qid, name=f'Quest {qid:04d}',
+                                      level_min=qid % 7) for qid in range(1, 121)}
+        deps = {qid: {max(1, qid // 2), max(1, qid // 3)} for qid in range(4, 100)}
+        deps[119], deps[120] = {120}, {119}
+        resolver = object.__new__(GuidePathResolver)
+        resolver.quest_by_id = quests
+        resolver._direct_quest_prerequisites = lambda quest: deps.get(quest.id, set())
+        def key(qid):
+            q = quests[qid]
+            return q.level_min, guide_path_profiles.normalize_text(q.name), qid
+        ids = set(quests)
+        incoming = {qid: 0 for qid in ids}
+        children = defaultdict(set)
+        for qid in ids:
+            for previous in deps.get(qid, set()) & ids:
+                if qid not in children[previous]:
+                    children[previous].add(qid)
+                    incoming[qid] += 1
+        ready = sorted((qid for qid, count in incoming.items() if count == 0), key=key)
+        expected = []
+        while ready:
+            qid = ready.pop(0)
+            expected.append(qid)
+            for child in sorted(children.get(qid, ()), key=key):
+                incoming[child] -= 1
+                if incoming[child] == 0:
+                    ready.append(child)
+                    ready.sort(key=key)
+        expected.extend(sorted(ids - set(expected), key=key))
+        self.assertEqual(resolver._topological_order(ids), expected)
+
 
 if __name__ == "__main__":
     unittest.main()
