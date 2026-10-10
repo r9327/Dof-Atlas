@@ -40,7 +40,7 @@ jobs:
       - name: Check candidate provenance
         run: |
           if ((git rev-parse HEAD).Trim() -ne "${{ github.sha }}") { throw "Candidate checkout SHA mismatch" }
-          git cat-file -e 1cead775eea7a41f337549f305b01d1007c265bd^{commit}
+          git cat-file -e "1cead775eea7a41f337549f305b01d1007c265bd"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Set up Python 3.13
