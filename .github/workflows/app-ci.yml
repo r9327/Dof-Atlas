@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - ci/app-only-pr128-20261010
     paths:
       - "app/**"
       - "local_dofus_data/**"
