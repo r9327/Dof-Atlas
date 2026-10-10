@@ -49,6 +49,45 @@ class ScopeGateTests(unittest.TestCase):
         self.assertNotIn("tests.test_guides_catalog_fill", result["modules"])
         self.assertEqual(result["risk"], "MEDIUM")
 
+    def test_mixed_diff_rejects_uncovered_file_even_with_other_test_mappings(self):
+        # An exact test for ci_dev_tests must not make an unrelated runtime
+        # module look covered just because generic runtime smokes exist.
+        result = self.classify([
+            "tools/ci_dev_tests.py",
+            "app/modules/encyclopedia/services/new_unmapped_logic.py",
+        ])
+        self.assertEqual(result["status"], "FULL_REQUIRED")
+        self.assertIn("INSUFFICIENT_PATH_COVERAGE", result["reasons"])
+        self.assertIn(
+            "app/modules/encyclopedia/services/new_unmapped_logic.py",
+            result["uncovered_paths"],
+        )
+        self.assertNotIn("tools/ci_dev_tests.py", result["uncovered_paths"])
+        self.assertEqual(result["modules"], [])
+
+    def test_generated_index_does_not_force_full_for_known_code_change(self):
+        result = self.classify([
+            "tools/ci_dev_tests.py",
+            ".ai/context_index.json",
+        ])
+        self.assertEqual(result["status"], "TARGETED")
+        self.assertEqual(result["uncovered_paths"], [])
+        self.assertIn("tests.test_ci_dev_tests", result["modules"])
+        self.assertIn("tests.test_ai_context", result["modules"])
+
+    def test_quality_domain_smoke_does_not_claim_direct_source_coverage(self):
+        result = self.classify(["tools/new_unmapped_tool.py"])
+        self.assertEqual(result["status"], "FULL_REQUIRED")
+        self.assertIn("INSUFFICIENT_PATH_COVERAGE", result["reasons"])
+
+    def test_changed_test_file_must_exist_for_targeted_selection(self):
+        missing = self.classify(["tests/test_not_present.py"])
+        self.assertEqual(missing["status"], "FULL_REQUIRED")
+        self.assertIn("tests/test_not_present.py", missing["uncovered_paths"])
+        present = self.classify(["tests/test_ci_scope_gate.py"])
+        self.assertEqual(present["status"], "TARGETED")
+        self.assertEqual(present["uncovered_paths"], [])
+
     def test_unknown_changed_path_never_returns_targeted(self):
         result = self.classify(["future_area/new_service.py"])
         self.assertEqual(result["status"], "FULL_REQUIRED")

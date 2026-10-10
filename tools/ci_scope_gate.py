@@ -35,6 +35,26 @@ class ScopeError(ValueError):
     pass
 
 
+def _path_has_direct_test_coverage(root: Path, path: str) -> bool:
+    """Require evidence for every changed file, not merely its broad domain.
+
+    DOMAIN_TEST_MODULES are useful regression smoke tests but don't prove
+    that an unrelated source file has a direct test. Generated top-level AI
+    index metadata is checked separately by the mandatory integrity gates.
+    """
+    if path == ".ai/context_index.json":
+        return True
+    selected = set(ai_context.recommended_tests(root, [path]))
+    if path.startswith("tests/test_") and path.endswith(".py"):
+        exact = ".".join(Path(path).with_suffix("").parts)
+        return exact in selected and (root / path).is_file()
+    if path.endswith(".py"):
+        name = "tests.test_" + Path(path).stem
+        if name in selected:
+            return True
+    return bool(set(KNOWN_COUPLED_MODULES.get(path, ())) & selected)
+
+
 def classify_diff(root: Path, paths: Iterable[str], *, before_sha: str = "",
                   deletion_paths: Iterable[str] = (), head: str = "") -> dict[str, object]:
     changed = sorted({ai_context.normalize_path(p) for p in paths})
@@ -57,6 +77,12 @@ def classify_diff(root: Path, paths: Iterable[str], *, before_sha: str = "",
     unclassified = [p for p in changed if ai_context.classify_path(p) == "repository"]
     if unclassified:
         reasons.append("UNCLASSIFIED_PATHS")
+    # Domain-level smoke tests are not sufficient to approve a mixed diff.
+    # Every file must have an exact/co-located or explicitly coupled test,
+    # except the generated index checked by the unchanged integrity gates.
+    uncovered = [p for p in changed if not _path_has_direct_test_coverage(root, p)]
+    if uncovered:
+        reasons.append("INSUFFICIENT_PATH_COVERAGE")
 
     recommended = list(ai_context.recommended_tests(root, changed))
     for path in changed:
@@ -79,6 +105,7 @@ def classify_diff(root: Path, paths: Iterable[str], *, before_sha: str = "",
         "changed_paths": changed,
         "deleted_paths": deleted,
         "unclassified_paths": unclassified,
+        "uncovered_paths": uncovered,
         "modules": modules if mode == "TARGETED" else [],
         "full_required": mode == "FULL_REQUIRED",
         "full_suite_waived": False,
