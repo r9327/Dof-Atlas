@@ -22,7 +22,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "f63ecd9441e57c7b4f8eda7c148ec04ceb9d8720",
+      "sha": "79b0f5982c14b3e5b57c0ebcb219cb493a08afa0",
       "type": "tree"
     },
     ".gitignore": {
@@ -52,7 +52,7 @@
     },
     "DOCTOR_ADAPTIVE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "6c8b6c8f271a2a7b10ac2892b767dc014c1212e2",
+      "sha": "e2beb2a4b3416236e7233b88f86dc904f519efff",
       "type": "blob"
     },
     "DOFUS.bat": {
@@ -82,7 +82,7 @@
     },
     "PHASE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "1b954a4e8d4bd530393464b149f8452cea0c92c9",
+      "sha": "341cb4125b44a2db5f4c1ed6674cb4ffaff27657",
       "type": "blob"
     },
     "ROAD_IA.md": {
@@ -142,7 +142,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "675c68b04f5d6e012caa7a23fbaa16d37ef529ff",
+      "sha": "c69dee226c6b2c7e7519172c2c43c86c1d09614b",
       "type": "tree"
     },
     "tools": {

@@ -14,6 +14,22 @@ Les états officiels sont :
 
 Seul l'état `CERTIFIED` autorise les formulations « phase terminée », « phase validée définitivement », « 100 % terminée » ou équivalent.
 
+## Calendrier des certifications automatiques
+
+- Une **PR Phase en brouillon** est en développement : Doctor Adaptive
+  Certification, Doctor FAST, Graphify et les contrôles ciblés peuvent
+  donner du feedback, mais la FULL Phase n'est pas lancée automatiquement
+  à chaque commit du brouillon.
+- Le passage à **ready for review** (ou une PR Phase déjà non-brouillon)
+  déclenche la certification FULL de la Phase, sur le SHA candidat exact.
+  Tout nouveau commit sur une PR Phase non-brouillon relance cette FULL.
+- Un **push sur main** et le déclenchement manuel explicite conservent
+  leur FULL historique. La validation finale d'une phase n'est **jamais**
+  remplacée par un passeport Doctor ciblé.
+- Un brouillon ne peut pas être déclaré `CERTIFIED` uniquement parce que
+  le nouveau workflow adaptatif est vert. Une sortie de brouillon, puis
+  un rapport FULL PASS sur le bon SHA, restent nécessaires.
+
 ## Source machine de vérité
 
 La validation technique générale est définie par `tools/atlas_integrity_policy.json` et exécutée par `tools.atlas_integrity`.

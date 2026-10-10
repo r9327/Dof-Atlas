@@ -173,3 +173,14 @@ It is an advisory result, not a new authorized release certificate.
 The remaining Stage 2–4 work above (trusted attestation, replay of real
 end-to-end scenarios, shadow campaigns, validated shards, independent
 policy migration) remains explicitly **NOT IMPLEMENTED** in this PR.
+
+
+## Immediate CI time saving — Phase draft gate
+
+Phase Certification no longer auto-runs FULL on each update to a **draft**
+Phase PR. It continues to run when that PR becomes ready for review, on
+subsequent ready Phase PR commits, when explicitly dispatched, and after
+pushes to main. This changes *when* the exhaustive phase suite runs, not its
+required tests or verdict. Draft PRs still run Doctor Adaptive/Doctor FAST/
+scoped feedback, and cannot declare their phase certified. See
+\`PHASE_CERTIFICATION.md\` and the specific draft/ready guardrail test.

@@ -177,7 +177,24 @@ class PolicyAndPassportTests(unittest.TestCase):
         self.assertIn("tests.test_doctor_certification_policy", workflow)
         source = (root / "tools/doctor_certification.py").read_text(encoding="utf-8")
         self.assertIn("verify_passport", source)
-        self.assertIn("SCOPED_TESTS_PASS", source)
+        self.assertIn("verify_scoped_evidence", source)
+        engine = (root / "tools/atlas_doctor_lib/certification_engine.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("SCOPED_TESTS_PASS", engine)
+
+    def test_phase_draft_does_not_auto_launch_full(self):
+        root = Path(__file__).resolve().parents[1]
+        phase = (root / ".github/workflows/phase-certification.yml").read_text(
+            encoding="utf-8"
+        )
+        docs = (root / "PHASE_CERTIFICATION.md").read_text(encoding="utf-8")
+        self.assertIn("github.event.pull_request.draft == false", phase)
+        self.assertIn("ready_for_review", phase)
+        self.assertIn("github.event_name == 'push'", phase)
+        self.assertIn("tools.atlas_integrity full", phase)
+        self.assertIn("Une **PR Phase en brouillon**", docs)
+        self.assertIn("FULL Phase n'est pas lancée automatiquement", docs)
 
 
 if __name__ == "__main__":
