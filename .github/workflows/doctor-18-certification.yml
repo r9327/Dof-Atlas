@@ -43,7 +43,7 @@ jobs:
         run: |
           $actual = (git rev-parse HEAD).Trim()
           if ($actual -ne "${{ github.sha }}") { throw "Unexpected SHA: $actual" }
-          if ((git status --porcelain).Trim()) { throw "Dirty checkout before certification" }
+          if (@(git status --porcelain).Count -ne 0) { throw "Dirty checkout before certification" }
 
       - name: Set up Python 3.13
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
