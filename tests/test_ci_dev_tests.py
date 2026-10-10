@@ -60,6 +60,24 @@ class DeveloperTestPlannerTests(unittest.TestCase):
         self.assertFalse(payload["certified"])
         self.assertFalse(payload["full_suite_waived"])
 
+    def test_mixed_selection_refuses_empty_test_module(self):
+        class Real(unittest.TestCase):
+            def test_real(self):
+                self.assertTrue(True)
+
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(Real)
+        with patch.object(
+            unittest.defaultTestLoader, "loadTestsFromNames",
+            side_effect=[suite, unittest.TestSuite()],
+        ):
+            code, payload = ci_dev_tests.run_targeted(
+                ["tests.real", "tests.empty"], head="a" * 40
+            )
+        self.assertEqual(code, 1)
+        self.assertEqual(payload["status"], "FAIL")
+        self.assertEqual(payload["test_count"], 1)
+        self.assertEqual(payload["modules_without_tests"], ["tests.empty"])
+
     def test_git_discovery_includes_committed_staged_and_untracked(self):
         def git(*args):
             proc = subprocess.run(
