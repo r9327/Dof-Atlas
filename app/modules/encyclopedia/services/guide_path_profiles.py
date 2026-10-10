@@ -373,14 +373,6 @@ class GuidePathResolver:
                     continue
                 self.quest_source_name_to_ids[normalize_text(name)].append(int(qid))
                 self.quest_source_loose_to_ids[_loose_name(name)].append(int(qid))
-        # The canonical source-name table is immutable for this resolver's lifetime.
-        # Pre-sort it once: enriched and recursive prerequisite passes may probe
-        # thousands of text entries for each guide build.
-        self._prerequisite_name_candidates = sorted(
-            self.quest_source_name_to_ids.items(),
-            key=lambda item: len(item[0]),
-            reverse=True,
-        )
         self._prerequisite_text_cache: dict[str, frozenset[int]] = {}
         self._direct_quest_reference_cache: dict[
             tuple[int, str, tuple[str, ...]], frozenset[int]
@@ -422,19 +414,38 @@ class GuidePathResolver:
             # Exact source-name resolution first.
             result.update(self.quest_source_name_to_ids.get(normalized, ()))
             result.update(self.quest_source_loose_to_ids.get(loose, ()))
-            # DPLN prerequisite lines often contain prefixes such as "Quête :"
-            # or "Avoir terminé ...". Preserve the historical match ordering.
+            # DPLN lines often prefix a title with "Quête :" / "Avoir
+            # terminé ...". Enumerate just the possible normalized substrings
+            # instead of scanning EVERY source quest title. Include arbitrary
+            # suffixes to preserve the older .endswith() contract, even if a
+            # title begins in the middle of the last normalized token.
             if not result:
-                padded = f"_{normalized}_"
-                for name_key, ids in self._prerequisite_name_candidates:
-                    if len(name_key) < 8:
-                        continue
-                    if f"_{name_key}_" in padded or normalized.endswith(name_key):
-                        result.update(int(value) for value in ids)
+                result.update(self._source_prerequisite_matches(normalized))
         matches = frozenset(qid for qid in result if qid in self.quest_by_id)
         if len(cache) < _MAX_PREREQUISITE_LOOKUP_CACHE:
             cache[text] = matches
         return set(matches)
+
+    def _source_prerequisite_matches(self, normalized: str) -> set[int]:
+        """Resolve prefixed local quest names without a whole-catalog scan.
+
+        Matches normalized token runs and arbitrary text suffixes, preserving
+        the previous name-key substring and suffix semantics.
+        """
+        result: set[int] = set()
+        lookup = self.quest_source_name_to_ids
+        delimiters = [i for i, char in enumerate(normalized) if char == "_"]
+        starts = [0, *(i + 1 for i in delimiters)]
+        ends = [*delimiters, len(normalized)]
+        # Match a whole run of normalized tokens, including one-token titles.
+        for start in starts:
+            for end in ends:
+                if end - start >= 8:
+                    result.update(lookup.get(normalized[start:end], ()))
+        # Historical suffix matching did not require a left token boundary.
+        for start in range(len(normalized) - 7):
+            result.update(lookup.get(normalized[start:], ()))
+        return result
 
     def _direct_quest_prerequisites(
         self,
