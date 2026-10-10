@@ -367,6 +367,14 @@ class GuidePathResolver:
                     continue
                 self.quest_source_name_to_ids[normalize_text(name)].append(int(qid))
                 self.quest_source_loose_to_ids[_loose_name(name)].append(int(qid))
+        # The canonical source-name table is immutable for this resolver's lifetime.
+        # Pre-sort it once: enriched and recursive prerequisite passes may probe
+        # thousands of text entries for each guide build.
+        self._prerequisite_name_candidates = sorted(
+            self.quest_source_name_to_ids.items(),
+            key=lambda item: len(item[0]),
+            reverse=True,
+        )
         self._load_enriched_prerequisites()
 
     def _load_enriched_prerequisites(self) -> None:
@@ -403,13 +411,8 @@ class GuidePathResolver:
         # "Avoir terminé ...". Match canonical quest titles only inside this
         # dedicated prerequisite field, longest names first to avoid pollution.
         if not result:
-            candidates = sorted(
-                self.quest_source_name_to_ids.items(),
-                key=lambda item: len(item[0]),
-                reverse=True,
-            )
             padded = f"_{normalized}_"
-            for name_key, ids in candidates:
+            for name_key, ids in self._prerequisite_name_candidates:
                 if len(name_key) < 8:
                     continue
                 if f"_{name_key}_" in padded or normalized.endswith(name_key):
