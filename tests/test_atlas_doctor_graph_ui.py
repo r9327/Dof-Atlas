@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 
 from tools.atlas_doctor_lib.doctor_graph_ui import compact_graph, render_html
 
@@ -328,10 +330,17 @@ class DoctorGraphUiTests(unittest.TestCase):
             self.skipTest("Node.js runtime unavailable for optional JS syntax validation")
         page = render_html(compact_graph({"nodes": [], "links": []}, {}))
         script = page.rsplit("<script>", 1)[1].split("</script>", 1)[0]
-        result = subprocess.run(
-            [node, "--check", "-"], input=script, text=True,
-            capture_output=True, timeout=10, check=False,
-        )
+        # On Windows, node --check - (stdin) can stall under redirected
+        # subprocess pipes even for valid JS. A small on-disk .js input
+        # avoids that platform-specific transport issue while preserving the
+        # *actual Node parser* as the test oracle.
+        with tempfile.TemporaryDirectory(prefix="atlas-doctor-js-check-") as folder:
+            path = Path(folder) / "doctor_graph_generated.js"
+            path.write_text(script, encoding="utf-8")
+            result = subprocess.run(
+                [node, "--check", str(path)], text=True,
+                capture_output=True, timeout=25, check=False,
+            )
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_community_navigation_filters_global_nodes_without_deleting_them(self):
