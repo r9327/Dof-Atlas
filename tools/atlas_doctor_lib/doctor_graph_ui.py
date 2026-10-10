@@ -533,6 +533,12 @@ def compact_graph(graph: dict[str, Any], audit: dict[str, Any],
         "historical_scenario_trend": historical_trend,
         "focused_source_impact": focused_impact,
         "focused_function_inventory": focused_functions,
+        "runtime_file_focus": (
+            audit.get("runtime_file_focus")
+            if isinstance(audit.get("runtime_file_focus"), dict)
+            and audit["runtime_file_focus"].get("source_sha") == graph.get("built_at_commit")
+            else None
+        ),
         "community_review_candidates": community_reviews,
         "community_review_total": int(cohesion.get("candidate_count") or 0)
         if isinstance(cohesion, dict) else 0,
@@ -586,6 +592,7 @@ small{color:#9baec9}a{color:#8dc9ff}li{margin-bottom:8px} .warning{color:#ffbd6b
 <select id="priority" aria-label="Priorité Doctor"><option value="">Toutes priorités</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
 <select id="reviewKind" aria-label="Catégorie de diagnostic Doctor"><option value="">Tous les diagnostics</option></select>
 <label><input id="flagged" type="checkbox"> À examiner uniquement</label>
+<label><input id="runtimeOnly" type="checkbox"> Fichiers app uniquement</label>
 <label><input id="snapshotOnly" type="checkbox"> Changements depuis référence</label>
 <button id="reset">Recentrer</button><button id="refreshGit">Actualiser Git</button>
 <button id="graphPrev" type="button" aria-label="Page précédente du graphe">◀</button>
@@ -605,6 +612,7 @@ const community=document.getElementById('community');
 const scenario=document.getElementById('scenario');
 const relation=document.getElementById('relation');
 const flagged=document.getElementById('flagged'),details=document.getElementById('nodeDetails');
+const runtimeOnly=document.getElementById('runtimeOnly');
 const snapshotOnly=document.getElementById('snapshotOnly');
 const priority=document.getElementById('priority');
 const reviewKind=document.getElementById('reviewKind');
@@ -749,6 +757,69 @@ const relationCounts=new Map();
 // Runtime call and Qt connection edges must never be treated as imports.
 const firstNodeByFile=new Map(), staticImporters=new Map();
 nodes.forEach((node,i)=>{if(node.file&&!firstNodeByFile.has(node.file))firstNodeByFile.set(node.file,i)});
+const runtimeFocus=data.runtime_file_focus;
+const runtimeFocusComplete=!!(runtimeFocus&&runtimeFocus.source_sha===data.candidate_sha&&
+ Array.isArray(runtimeFocus.file_import_edges)&&!runtimeFocus.file_import_edges_truncated);
+runtimeOnly.disabled=!runtimeFocusComplete;
+const runtimeFileEdges=runtimeFocusComplete?runtimeFocus.file_import_edges
+ .filter(pair=>Array.isArray(pair)&&pair.length===2&&
+  firstNodeByFile.has(pair[0])&&firstNodeByFile.has(pair[1]))
+ .map(pair=>({a:firstNodeByFile.get(pair[0]),b:firstNodeByFile.get(pair[1]),
+              relation:'imports',observed:false})):[];
+if(runtimeFocusComplete){
+ const section=document.getElementById('coverageDetails');
+ const title=document.createElement('h3');title.textContent='Atlas · dépendances par fichier';
+ section.appendChild(title);
+ const summary=document.createElement('p');
+ summary.textContent=runtimeFocus.file_nodes+' fichiers app · '+
+  runtimeFocus.confirmed_ast_import_file_pairs+' imports AST distincts · '+
+  runtimeFocus.source_domains+' domaines · '+
+  runtimeFocus.structural_hotspot_count+' couplages à examiner';
+ section.appendChild(summary);
+ const pick=document.createElement('select');pick.setAttribute('aria-label','Explorer un fichier couplé');
+ const placeholder=document.createElement('option');placeholder.value='';
+ placeholder.textContent='Explorer un point de couplage';pick.appendChild(placeholder);
+ (runtimeFocus.hotspots||[]).slice(0,30).forEach(row=>{
+  const option=document.createElement('option');option.value=row.file;
+  option.textContent=row.file+' ('+row.dependency_files+' imports / '+
+   row.consumer_files+' consommateurs)';
+  pick.appendChild(option);
+ });
+ pick.addEventListener('change',()=>{
+  if(pick.value){search.value=pick.value;filter(true);const i=firstNodeByFile.get(pick.value);
+    if(i!==undefined)revealNode(i);}
+ });
+ section.appendChild(pick);
+ const bridgeTitle=document.createElement('h4');
+ bridgeTitle.textContent='Passerelles entre domaines applicatifs';
+ section.appendChild(bridgeTitle);
+ (runtimeFocus.cross_domain_bridges||[]).slice(0,8).forEach(bridge=>{
+  const wrapper=document.createElement('p');
+  const example=(bridge.example_files||[])[0];
+  const label=String(bridge.source_domain||'')+' → '+String(bridge.target_domain||'')+
+   ' · '+String(bridge.distinct_imports||0)+' imports';
+  const control=document.createElement('button');
+  control.type='button';control.textContent=label;
+  control.title='Voir un fichier source de cette passerelle (pas une preuve de goulet)';
+  control.addEventListener('click',()=>{
+   if(!Array.isArray(example)||!firstNodeByFile.has(example[0]))return;
+   runtimeOnly.checked=true;
+   domain.value='';community.value='';relation.value='';
+   search.value=example[0];filter(true);
+   revealNode(firstNodeByFile.get(example[0]));
+  });
+  wrapper.appendChild(control);section.appendChild(wrapper);
+ });
+ const caveat=document.createElement('small');
+ caveat.textContent='Couplage statique, pas une mesure CPU/RAM ; aucune suppression automatique.';
+ section.appendChild(caveat);section.appendChild(document.createElement('hr'));
+}
+runtimeOnly.addEventListener('change',()=>{
+ relation.value='';community.value='';reviewKind.value='';priority.value='';
+ flagged.checked=false;snapshotOnly.checked=false;
+ search.value='';domain.value='';
+ filter(true);
+});
 for(const edge of data.edges){
  if(!['imports','imports_from'].includes(edge.relation)||edge.observed===true)continue;
  const importer=nodes[edge.a]?.file, imported=nodes[edge.b]?.file;
@@ -817,11 +888,11 @@ function rebuildPageEdges(){
  // at each animation frame during drag or wheel zoom.
  const subset=new Set(visible);
  const selectedRelation=relation.value;
- pageEdges=data.edges.filter(e=>subset.has(e.a)&&subset.has(e.b)&&
+ pageEdges=(runtimeOnly.checked?runtimeFileEdges:data.edges).filter(e=>subset.has(e.a)&&subset.has(e.b)&&
   (!selectedRelation||e.relation===selectedRelation));
- livePageEdges=(!selectedRelation?liveAddedLinks.filter(e=>
+ livePageEdges=(!runtimeOnly.checked&&!selectedRelation?liveAddedLinks.filter(e=>
   subset.has(e.a)&&subset.has(e.b)):[]);
- liveRemovedPageEdges=(!selectedRelation?liveRemovedLinks.filter(e=>
+ liveRemovedPageEdges=(!runtimeOnly.checked&&!selectedRelation?liveRemovedLinks.filter(e=>
   subset.has(e.a)&&subset.has(e.b)):[]);
 }
 let changedFiles=new Set();
@@ -829,7 +900,8 @@ let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
 function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value,cluster=community.value,kind=reviewKind.value,scenarioName=scenario.value;
-matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!group||n.domain===group)&&
+matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!runtimeOnly.checked||(n.file.startsWith('app/')&&firstNodeByFile.get(n.file)===i))&&
+ (!group||n.domain===group)&&
  (!cluster||String(n.community)===cluster)&&
  (!scenarioName||(n.runtime_scenarios||[]).includes(scenarioName))&&
  (!kind||(n.review_categories||[]).includes(kind))&&
@@ -845,7 +917,9 @@ rebuildPageEdges();
 document.getElementById('graphPrev').disabled=pageIndex===0;
 document.getElementById('graphNext').disabled=pageIndex>=pages-1;
 document.getElementById('graphPage').textContent='Page '+(pageIndex+1)+' / '+pages;
-document.getElementById('summary').textContent=visible.length+' affichés · '+matches.length+' filtrés / '+nodes.length+' nœuds · relations de la page uniquement';
+document.getElementById('summary').textContent=visible.length+' affichés · '+matches.length+
+ (runtimeOnly.checked?' fichiers app / '+runtimeFocus.file_nodes+' fichiers · imports AST uniquement':
+  ' filtrés / '+nodes.length+' nœuds · relations de la page uniquement');
 render()}
 function screen(p){return {x:canvas.width/2+(p.x+panX)*scale*devicePixelRatio,
 y:canvas.height/2+(p.y+panY)*scale*devicePixelRatio}}

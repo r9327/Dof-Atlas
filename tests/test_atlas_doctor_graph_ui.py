@@ -8,6 +8,31 @@ from tools.atlas_doctor_lib.doctor_graph_ui import compact_graph, render_html
 
 
 class DoctorGraphUiTests(unittest.TestCase):
+    def test_app_file_focus_is_opt_in_and_preserves_full_graph(self):
+        graph = {"built_at_commit": "a" * 40, "nodes": [
+            {"id": "fileA", "source_file": "app/core/a.py", "label": "A"},
+            {"id": "symA", "source_file": "app/core/a.py", "label": "symbol"},
+            {"id": "fileB", "source_file": "app/core/b.py", "label": "B"},
+            {"id": "test", "source_file": "tests/test_a.py", "label": "test"},
+        ], "links": [{"source": "symA", "target": "fileB", "relation": "imports",
+                      "confidence": "EXTRACTED", "_origin": "ast"}]}
+        focus = {"source_sha": "a" * 40, "file_nodes": 2, "source_domains": 1,
+                 "confirmed_ast_import_file_pairs": 1, "structural_hotspot_count": 0,
+                 "file_import_edges": [["app/core/a.py", "app/core/b.py"]],
+                 "file_import_edges_truncated": False, "hotspots": []}
+        payload = compact_graph(graph, {"runtime_file_focus": focus})
+        self.assertEqual(len(payload["nodes"]), 4)
+        self.assertEqual(payload["runtime_file_focus"]["file_nodes"], 2)
+        html = render_html(payload)
+        self.assertIn("Fichiers app uniquement", html)
+        self.assertIn("runtimeFileEdges", html)
+        self.assertIn("runtimeOnly.checked", html)
+        self.assertIn("Passerelles entre domaines applicatifs", html)
+        self.assertIn("runtimeFocus.cross_domain_bridges", html)
+        stale = compact_graph(graph, {"runtime_file_focus": {
+            **focus, "source_sha": "b" * 40}})
+        self.assertIsNone(stale["runtime_file_focus"])
+
     def test_history_overlay_marks_changed_imports_without_claiming_dead_code(self):
         graph = {
             "built_at_commit": "b" * 40,
@@ -292,7 +317,7 @@ class DoctorGraphUiTests(unittest.TestCase):
         }, {}))
         self.assertIn("let pageEdges=[],livePageEdges=[],liveRemovedPageEdges=[];", page)
         self.assertIn("function rebuildPageEdges()", page)
-        self.assertIn("pageEdges=data.edges.filter", page)
+        self.assertIn("pageEdges=(runtimeOnly.checked?runtimeFileEdges:data.edges).filter", page)
         self.assertIn("for(const e of pageEdges)", page)
         self.assertIn("relation.addEventListener('change',()=>{rebuildPageEdges()", page)
         self.assertNotIn("if(visible.length<=3500){for(const e of data.edges)", page)
@@ -363,7 +388,7 @@ class DoctorGraphUiTests(unittest.TestCase):
         html = render_html(payload)
         for marker in (
             'id="relation"', "const relationCounts=new Map()",
-            "pageEdges=data.edges.filter", "(!selectedRelation||e.relation===selectedRelation)",
+            "pageEdges=(runtimeOnly.checked?runtimeFileEdges:data.edges).filter", "(!selectedRelation||e.relation===selectedRelation)",
             "edge.direction!=='out'", "function showGraphPath(from,to)",
             "depth.size>=4000", "distance>=8",
             "function revealNode(i)", "Définir comme départ du chemin",
