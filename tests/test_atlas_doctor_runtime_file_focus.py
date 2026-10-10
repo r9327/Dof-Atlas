@@ -45,6 +45,8 @@ class RuntimeFileFocusTests(unittest.TestCase):
         focus = runtime_file_focus(fixture())
         self.assertEqual(focus["file_nodes"], 30)
         self.assertEqual(focus["confirmed_ast_import_file_pairs"], 26)
+        self.assertEqual(len(focus["file_import_edges"]), 26)
+        self.assertFalse(focus["file_import_edges_truncated"])
         self.assertEqual(focus["ignored_inferred_app_import_edges"], 1)
         self.assertEqual(focus["ignored_nonimport_app_relations"], 1)
         self.assertEqual(focus["source_sha"], "a" * 40)

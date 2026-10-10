@@ -127,6 +127,8 @@ def runtime_file_focus(graph: dict[str, Any]) -> dict[str, Any]:
         "structural_hotspot_count": len(ranked),
         "ignored_nonimport_app_relations": ignored_nonimports,
         "ignored_inferred_app_import_edges": ignored_inferred,
+        "file_import_edges": [list(pair) for pair in sorted(pairs)[:5000]],
+        "file_import_edges_truncated": len(pairs) > 5000,
         "hotspots": ranked[:30], "shared_leaf_apis": shared[:20],
         "isolate_candidates": isolates[:30],
         "domain_groups": [

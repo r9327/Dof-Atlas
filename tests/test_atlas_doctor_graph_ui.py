@@ -8,6 +8,29 @@ from tools.atlas_doctor_lib.doctor_graph_ui import compact_graph, render_html
 
 
 class DoctorGraphUiTests(unittest.TestCase):
+    def test_app_file_focus_is_opt_in_and_preserves_full_graph(self):
+        graph = {"built_at_commit": "a" * 40, "nodes": [
+            {"id": "fileA", "source_file": "app/core/a.py", "label": "A"},
+            {"id": "symA", "source_file": "app/core/a.py", "label": "symbol"},
+            {"id": "fileB", "source_file": "app/core/b.py", "label": "B"},
+            {"id": "test", "source_file": "tests/test_a.py", "label": "test"},
+        ], "links": [{"source": "symA", "target": "fileB", "relation": "imports",
+                      "confidence": "EXTRACTED", "_origin": "ast"}]}
+        focus = {"source_sha": "a" * 40, "file_nodes": 2, "source_domains": 1,
+                 "confirmed_ast_import_file_pairs": 1, "structural_hotspot_count": 0,
+                 "file_import_edges": [["app/core/a.py", "app/core/b.py"]],
+                 "file_import_edges_truncated": False, "hotspots": []}
+        payload = compact_graph(graph, {"runtime_file_focus": focus})
+        self.assertEqual(len(payload["nodes"]), 4)
+        self.assertEqual(payload["runtime_file_focus"]["file_nodes"], 2)
+        html = render_html(payload)
+        self.assertIn("Fichiers app uniquement", html)
+        self.assertIn("runtimeFileEdges", html)
+        self.assertIn("runtimeOnly.checked", html)
+        stale = compact_graph(graph, {"runtime_file_focus": {
+            **focus, "source_sha": "b" * 40}})
+        self.assertIsNone(stale["runtime_file_focus"])
+
     def test_history_overlay_marks_changed_imports_without_claiming_dead_code(self):
         graph = {
             "built_at_commit": "b" * 40,
