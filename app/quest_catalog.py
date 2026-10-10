@@ -5,7 +5,6 @@ import html
 import json
 import logging
 import re
-import unicodedata
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
@@ -23,6 +22,7 @@ from app.constants import (
     ROOT_DIR,
 )
 from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.text import normalize_key as normalize_text
 from app.quest_source_index import build_image_index
 
 
@@ -59,10 +59,6 @@ QUEST_CATALOG_SOURCE_FILES = (
 )
 
 
-def normalize_text(value: Any) -> str:
-    text = unicodedata.normalize("NFKD", str(value or ""))
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    return re.sub(r"[^a-zA-Z0-9]+", "_", text.casefold()).strip("_")
 
 
 def array_value(value: Any) -> list[Any]:

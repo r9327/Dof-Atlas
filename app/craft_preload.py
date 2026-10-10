@@ -11,7 +11,9 @@ from app.constants import (
     JOB_RESOURCE_GROUPS,
     LEVELING_FILE,
 )
-from app.storage import item_id, normalize_key, read_json
+from app.core.item_identity import item_id
+from app.core.json_store import read_json_resilient as read_json
+from app.core.text import normalize_key
 
 
 def build_compact_craft_preload() -> dict[str, object]:

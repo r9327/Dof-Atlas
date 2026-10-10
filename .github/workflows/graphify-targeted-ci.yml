@@ -1,0 +1,126 @@
+name: Graphify Focused Architecture
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "tools/**"
+      - "tests/**"
+      - ".ai/context_index.json"
+      - ".github/workflows/graphify-targeted-ci.yml"
+  push:
+    branches:
+      - phase8/graphify-staged-cleanup-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: graphify-focused-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  targeted-contracts:
+    name: Graphify / Focused Code Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Verify SHA
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Verify real developer preflight latency (no validation suites)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.atlas_doctor_lib.development_preflight import development_preflight
+          result = development_preflight(Path.cwd(), base_ref="HEAD~1")
+          elapsed = result.get("duration_seconds", 0)
+          print(f"Doctor development preflight: {result['status']} in {elapsed}s")
+          if result.get("integrity_executed") or result.get("tests_executed"):
+              raise SystemExit("Development preflight accidentally ran heavyweight validation")
+          if result.get("certified") or result.get("merge_gate_satisfied"):
+              raise SystemExit("Development preflight incorrectly certified release")
+          if result["status"] not in {"PLANNED", "PARTIAL_REVIEW", "NO_CHANGES"}:
+              raise SystemExit("Developer preflight failed source review")
+          if elapsed > 10:
+              raise SystemExit(f"Developer preflight exceeded 10s budget: {elapsed}s")
+          with open("graphify-dev-check-metrics.json", "w", encoding="utf-8") as output:
+              json.dump({"candidate_sha": result["candidate_sha"],
+                         "elapsed_seconds": elapsed,
+                         "changed_files": result["changed_count"],
+                         "certified": False}, output)
+          PY
+
+      - name: Compile touched architecture files
+        shell: bash
+        run: |
+          python -m compileall -q \
+            app/modules/encyclopedia/services/guide_criterion_scope.py \
+            app/craft_preload.py \
+            app/core/item_identity.py \
+            app/modules/encyclopedia/services/adventure_route_adapter.py \
+            app/modules/encyclopedia/views/guides_view.py \
+            app/modules/encyclopedia/widgets \
+            tools/atlas_doctor.py \
+            tools/atlas_doctor_lib \
+            tools/guide_ultime_scope_v5.py \
+            tests/test_guide_canonical_button_imports.py \
+            tests/test_guide_criterion_scope_boundary.py
+
+      - name: Run focused architecture and compatibility tests
+        shell: bash
+        run: |
+          python -m unittest discover -s tests -p "test_atlas_doctor_graph_audit.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_graph_intelligence.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_change_intelligence.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_deep_intelligence.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_runtime_observation.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_test_intelligence.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_scenario_coverage.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_trace_regressions.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_boundary_intelligence.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_resource_lifecycle.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_qt_integration.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_source_impact.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_scenario_trends.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_capabilities.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_graph_ui.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_live_graph.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_dev_events.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_development_preflight.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_file_coverage.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_consumer_sites.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_isolate_triage.py" -v
+          python -m unittest discover -s tests -p "test_graphify_workflow_budget.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_refactor_simulation.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_function_inventory.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_integrated_investigation.py" -v
+          python -m unittest discover -s tests -p "test_guide_canonical_button_imports.py" -v
+          python -m unittest discover -s tests -p "test_craft_lightweight_import_boundary.py" -v
+          python -m unittest discover -s tests -p "test_guide_criterion_scope_boundary.py" -v
+          python -m unittest discover -s tests -p "test_normalize_text_canonical_boundary.py" -v
+          python -m unittest discover -s tests -p "test_guide_ultime_v5_scope.py" -v
+          python -m unittest discover -s tests -p "test_guide_tools_status.py" -v
+          python -m unittest discover -s tests -p "test_guide_tools_no_versioned_wrappers.py" -v

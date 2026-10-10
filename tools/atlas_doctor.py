@@ -78,6 +78,9 @@ def command_graph(root: Path, args) -> dict[str, Any]:
                 print(result.get("reason"))
             return result
     payload = architecture(root, rebuild=args.rebuild or args.install)
+    if payload.get("status") == "PASS":
+        from tools.atlas_doctor_lib.graph_audit import audit_current_graph
+        payload["graph_audit"] = audit_current_graph(root, graph_evidence=payload)
     if not args.json:
         print(f"Architecture : {payload['status']}")
         print(payload.get("reason", ""))
@@ -87,6 +90,11 @@ def command_graph(root: Path, args) -> dict[str, Any]:
             print(f"Noeuds : {summary['node_count']} | Relations : {summary['link_count']}")
             for row in summary["most_connected_files"][:5]:
                 print(f"  {row['path']} : {row['neighbor_file_count']} fichiers voisins")
+        graph_triage = payload.get("graph_audit") or {}
+        if graph_triage:
+            metrics = graph_triage.get("metrics") or {}
+            print(f"Audit des nœuds : {graph_triage.get('status')} | code peu lié : {metrics.get('weak_production_nodes_degree1', 0)}")
+            print(f"Couplages à revoir : {metrics.get('high_fanout_app_files', 0)} | inversions confirmées : {metrics.get('confirmed_runtime_to_tools_imports', 0)}")
         print(f"HTML : {payload.get('html', root / 'graphify-out/graph.html')}")
         print(f"Rapport : {payload.get('report', root / 'graphify-out/GRAPH_REPORT.md')}")
         if payload["status"] != "PASS":
@@ -103,6 +111,310 @@ def command_graph(root: Path, args) -> dict[str, Any]:
         import webbrowser
         webbrowser.open(Path(payload["html"]).as_uri())
     return payload
+
+
+def command_graph_audit(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.graph_audit import audit_current_graph
+    result = audit_current_graph(
+        root, deep=getattr(args, "deep", False), weak_offset=getattr(args, "offset", 0)
+    )
+    if not args.json:
+        metrics = result.get("metrics") or {}
+        print(f"Doctor + Graphify audit : {result['status']}")
+        print(f"SHA : {result.get('candidate_sha', 'UNVERIFIED')} | nœuds : {metrics.get('node_count', 0)}")
+        print(f"Isolés : {metrics.get('isolated_nodes', 0)} | communautés isolées : {metrics.get('isolated_communities', 0)}")
+        print(f"Hubs : {metrics.get('high_fanout_app_files', 0)} | imports app->tools prouvés : {metrics.get('confirmed_runtime_to_tools_imports', 0)}")
+        cycles = result.get("import_cycles") or {}
+        plan = result.get("remediation_plan") or {}
+        print(f"Cycles suspects : {cycles.get('suspected_cycles', 0)} | confirmés : {cycles.get('source_confirmed_cycles', 0)}")
+        print(f"Corrections proposées : {plan.get('task_count', 0)}")
+        print("Les nœuds isolés et communautés candidates ne prouvent pas du code mort.")
+        if result.get("reason"):
+            print(result["reason"])
+    return result
+
+
+def command_isolate_triage(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.isolate_triage import triage_isolates
+    result = triage_isolates(root, limit=args.limit, kind=args.kind, offset=args.offset,
+                             trace_paths=args.trace)
+    if not args.json:
+        print(f"Doctor orphan triage: {result['status']}")
+        print(f"Candidates checked: {result.get('candidates_inspected', 0)}")
+        print("Isolation is not proof of unused code.")
+    return result
+
+
+def command_consumer_sites(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.consumer_sites import inspect_consumer_sites
+    result = inspect_consumer_sites(root, args.path)
+    if not args.json:
+        print(f"Doctor consumers: {result['status']} | {result['target']}")
+        print(f"Confirmed static: {result['static_confirmed_count']} | dynamic leads: {result['dynamic_lead_count']}")
+        print("Dynamic candidates are not a proof of dead code.")
+    return result
+
+
+def command_file_coverage(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.file_coverage import file_coverage
+    result = file_coverage(root)
+    if not args.json:
+        print(f"Doctor Graphify coverage: {result['status']}")
+        print(f"Tracked Python: {result['tracked_python_files']} | represented: {result['represented_files']}")
+        print("Graph node presence never proves a runtime consumer or dead code.")
+    return result
+
+
+def command_change_plan(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.change_intelligence import build_change_plan
+    result = build_change_plan(root, base_ref=args.base_ref,
+                               cost_reports=getattr(args, "cost_report", []))
+    if not args.json:
+        print(f"Doctor change-plan: {result['status']} | {len(result['paths'])} chemins")
+        print(f"Imports casses confirmes : {len(result.get('structural_findings', []))}")
+        print(f"Tests proposes : {len(result.get('targeted_tests', []))} | executes : non")
+        print(result.get('reason', ''))
+    return result
+
+
+def command_capabilities(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.capability_matrix import capability_inventory
+    result = capability_inventory(root)
+    if not args.json:
+        print(f"Doctor capabilities: {result['source_present']}/18 source anchors; "
+              f"{result['call_sites_wired']}/18 wiring call-sites")
+        print("No behavioral certification was run by this inventory.")
+    return result
+
+
+def command_file_audit(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.integrated_investigation import investigate_files
+    report = investigate_files(root, args.paths, trace_path=args.trace,
+                               cost_reports=args.cost_report,
+                               graph_ui=args.graph_ui)
+    if not args.json:
+        print(f"Doctor/Graphify investigation: {report['status']}")
+        print(f"Sources: {len(report['paths'])} | Graphify: "
+              f"{report.get('graphify', {}).get('status', 'NOT_RUN')}")
+        print(f"Tests suggérés : {len(report.get('canonical_test_intelligence', {}).get('recommended_tests', []))}, exécutés : zéro")
+        if args.graph_ui:
+            print("Vue Graphify : " + str(report.get("graphify_interactive_view", {}).get("path",
+                                            report.get("graphify_interactive_view", {}).get("status", "UNAVAILABLE"))))
+        print("No graph rebuild, test, benchmark, deletion or certification.")
+    return report
+
+
+def command_source_impact(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.source_impact import source_reverse_impact
+    result = source_reverse_impact(root, args.paths, depth=args.depth)
+    if not args.json:
+        print(f"Doctor source-impact: {result['status']} | "
+              f"{len(result.get('consumer_files', []))} consumers")
+        print("Source-confirmed imports, not proof of complete runtime coverage.")
+    return result
+
+
+def command_refactor_preview(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.refactor_simulation import simulate_refactor
+    result = simulate_refactor(root, args.paths, action=args.action,
+                               replacement=args.to, depth=args.depth,
+                               trace_path=getattr(args, "trace", None))
+    if not args.json:
+        print(f"Doctor refactor preview: {result['status']}")
+        print(f"Consumer files: {len(result.get('consumer_files', []))} | no edits or tests executed")
+        print(result.get("reason", ""))
+    return result
+
+
+def command_dev_event(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.dev_events import dev_event
+    result = dev_event(root, args.event, paths=args.paths, base_ref=args.base_ref)
+    if not args.json:
+        print(f"Doctor development event: {result['status']} ({result['changed_count']} files)")
+        print(f"Selected test modules (not executed): {len(result['recommended_tests'])}")
+    return result
+
+
+def command_dev_check(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.development_preflight import development_preflight
+    result = development_preflight(
+        root, base_ref=args.base_ref, run_tests=args.run_tests,
+        max_tests=args.max_tests, timeout_seconds=args.timeout_seconds)
+    if not args.json:
+        print(f"Doctor development check: {result['status']}")
+        print(f"Changed: {result.get('changed_count', 0)} | "
+              f"Focused tests: {result.get('targeted_test_execution', {}).get('status', 'NOT_RUN')}")
+        print("Not an Atlas Integrity, merge, RAM or preload certification.")
+    return result
+
+
+def command_graph_live(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.live_graph import change_snapshot, serve_graph_live
+    if args.once:
+        import json
+        from tools.atlas_doctor_lib.architecture import graph_status
+        graph = graph_status(root)
+        if graph.get("status") not in {"PASS", "STALE"}:
+            result = {"status": "BLOCKED", "reason": graph.get("reason")}
+        else:
+            data = json.loads(Path(graph["graph"]).read_text(encoding="utf-8"))
+            result = change_snapshot(root, data.get("built_at_commit"))
+            result["graph_validation"] = graph["status"]
+        if not args.json:
+            print(f"Doctor Graphify LIVE status: {result['status']}")
+        return result
+    return serve_graph_live(root, port=args.port, open_browser=args.open)
+
+
+def command_graph_ui(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.doctor_graph_ui import export_interactive_graph
+    payload = export_interactive_graph(root, trace_path=args.trace,
+                                       baseline_path=getattr(args, "baseline_graph", None),
+                                       save_snapshot=getattr(args, "save_snapshot", False),
+                                       ide_links=getattr(args, "ide_links", False),
+                                       extra_trace_paths=getattr(args, "extra_trace", None),
+                                       scenario_trend_paths=getattr(args, "scenario_trend", None),
+                                       inspect_files=getattr(args, "inspect_file", None))
+    if payload.get("status") == "PASS" and args.open:
+        import webbrowser
+        webbrowser.open(Path(payload["path"]).as_uri())
+    if not args.json:
+        print(f"Doctor interactive Graphify: {payload['status']}")
+        print(payload.get("path", payload.get("reason", "")))
+    return payload
+
+
+UI_SCENARIOS = {
+    "qt": "tools.atlas_doctor_lib.qt_smoke_scenario",
+    "equipment": "tools.atlas_doctor_lib.app_ui_smoke_scenario",
+    "encyclopedia": "tools.atlas_doctor_lib.encyclopedia_deferred_smoke",
+    "webengine": "tools.atlas_doctor_lib.webengine_lifecycle_scenario",
+}
+
+
+def command_capture_ui(root: Path, args) -> dict[str, Any]:
+    """Manually run one vetted offscreen Qt scenario; no normal app hooks."""
+    if os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen":
+        return {"status": "BLOCKED",
+                "reason": "Set QT_QPA_PLATFORM=offscreen before explicitly running Qt UI capture.",
+                "tests_executed": False, "benchmarks_executed": False}
+    from tools.atlas_doctor_lib.runtime_observation import run_traced_module
+    module = UI_SCENARIOS[args.scenario]
+    output = root / ".ai/runtime/atlas_doctor/traces" / (
+        "atlas_ui_" + args.scenario + ".json"
+    )
+    result = run_traced_module(root, module, output, max_events=args.max_events)
+    if not args.json:
+        print(f"Doctor UI capture: {args.scenario} · {result['status']} · "
+              f"{result['events_captured']} events")
+        print(f"Trace: {output}")
+    return {"status": result["status"], "scenario": args.scenario,
+            "scenario_module": module, "trace_path": str(output),
+            "events_captured": result["events_captured"],
+            "truncated": result["truncated"],
+            "benchmarks_executed": False, "normal_app_instrumented": False}
+
+
+def command_runtime_trace(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.runtime_observation import run_traced_module
+    target = root / ".ai/runtime/atlas_doctor/traces" / (args.module.replace(".", "_") + ".json")
+    payload = run_traced_module(root, args.module, target, max_events=args.max_events)
+    if not args.json:
+        print(f"Doctor runtime trace: {payload['status']} | {payload['events_captured']} events")
+        print(f"Trace output: {target}")
+    return {"status": payload["status"], "events_captured": payload["events_captured"],
+            "truncated": payload["truncated"], "trace_path": str(target)}
+
+
+def command_code_inspect(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.deep_intelligence import inspect_code
+    from tools import atlas_integrity
+    paths = list(args.paths)
+    if args.base_ref:
+        paths.extend(atlas_integrity.changed_files(root, args.base_ref))
+    paths = sorted({p for p in paths if p.endswith(".py") and (root / p).is_file()})
+    payload = inspect_code(root, paths=paths, entrypoints=args.entrypoint,
+                           baseline=args.baseline, trace_path=args.trace)
+    if not args.json:
+        summary = payload.get("source") or {}
+        print(f"Doctor code-inspect: {payload['status']} | {len(summary.get('paths_inspected', []))} Python files")
+        print(f"Exact duplicates: {(summary.get('counts') or {}).get('duplicate_groups', 0)} | "
+              f"Near-duplicate review: {(summary.get('counts') or {}).get('near_duplicate_groups', 0)} | "
+              f"Silent error candidates: {(summary.get('counts') or {}).get('silent_exceptions', 0)}")
+        print("No tests executed; Graphify is never rebuilt implicitly.")
+    return payload
+
+
+def command_graph_compare(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.architecture import graph_status
+    from tools.atlas_doctor_lib.graph_intelligence import compare_graphs
+    evidence = graph_status(root)
+    if evidence.get("status") != "PASS":
+        return {"status": "BLOCKED", "reason": evidence.get("reason", "Current graph required."),
+                "rebuild_command": "python -m tools.atlas_doctor graph --rebuild"}
+    try:
+        baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
+        candidate = json.loads(Path(evidence["graph"]).read_text(encoding="utf-8"))
+        result = compare_graphs(baseline, candidate)
+        if result["candidate_sha"] != evidence["git"]["head"]:
+            raise ValueError("Candidate graph SHA differs from current checkout.")
+    except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
+        return {"status": "BLOCKED", "reason": str(exc)}
+    if not args.json:
+        print(f"Graphify {result['baseline_sha']} -> {result['candidate_sha']}")
+        print(f"Nouveaux orphelins : {len(result['new_orphan_symbols'])} | nouveaux cycles : {len(result['new_candidate_import_cycles'])}")
+        print("Les différences structurelles sont des pistes, pas des défauts confirmés.")
+    return result
+
+
+def command_scenario_diff(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.trace_regressions import load_historical_scenario_diff
+    result = load_historical_scenario_diff(root, args.before, args.after)
+    if not args.json:
+        print(f"Doctor scenario-diff: {result['status']} | "
+              f"{result.get('lost_total', 0)} previously seen edges not observed now")
+        print("Observation changes are not confirmed functional regressions; no tests run.")
+    return result
+
+
+def command_scenario_trend(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.scenario_trends import load_scenario_trend
+    result = load_scenario_trend(root, args.trace)
+    if not args.json:
+        print(f"Doctor scenario-trend: {result['status']} | "
+              f"{result.get('repeated_absence_candidates', 0)} repeated absences")
+        print("Historical scenario observations only; no tests or benchmarks run.")
+    return result
+
+
+def command_scenario_coverage(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.scenario_coverage import load_scenario_coverage
+    result = load_scenario_coverage(root, args.trace,
+                                    required_files=args.require_file,
+                                    required_symbols=args.require_symbol)
+    if not args.json:
+        print(f"Doctor scenario coverage: {result['status']} | "
+              f"{result['traces_checked']} traces | "
+              f"{result['observed_python_files_count']} Python files observed")
+        if result["unobserved_required_files"]:
+            print("Not observed in supplied scenarios (NOT proof of dead code): "
+                  + ", ".join(result["unobserved_required_files"]))
+        if result["unobserved_required_symbols"]:
+            print("Symbols not observed entering (NOT proof of dead code): "
+                  + ", ".join(result["unobserved_required_symbols"][:12]))
+        print("No scenarios, tests, benchmarks or graph rebuild executed.")
+    return result
+
+
+def command_test_costs(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.test_intelligence import test_cost_report
+    result = test_cost_report(root, args.report)
+    if not args.json:
+        print(f"Doctor test-costs: {result['status']} | {len(result['reports'])} existing reports")
+        for group in result["groups"][:20]:
+            print(f"{group['group']}: median {group['median_seconds']}s ({group['samples']} samples)")
+        print("No tests, benchmarks or graph rebuild executed.")
+    return result
 
 
 def command_ponytail(root: Path, args) -> dict[str, Any]:
@@ -124,20 +436,31 @@ def command_ponytail(root: Path, args) -> dict[str, Any]:
 
 
 def menu_diagnostics(root: Path) -> dict[str, Any]:
-    payload = command_quick(root, argparse.Namespace(json=False))
-    choice = input("A : audit avec gate CRITICAL | P : problemes | T : Ponytail | Entree : retour\n").strip().casefold()
+    # Asking first avoids a full-repository AST pass just to open a menu.
+    choice = input(
+        "D : precontrole des changements (rapide) | "
+        "A : audit avec gate CRITICAL (long) | "
+        "P : problemes | T : Ponytail | Entree : scan AST complet\n"
+    ).strip().casefold()
+    if choice == "d":
+        base = input("Reference Git [HEAD pour changements non commites] : ").strip() or "HEAD"
+        run_tests = input("Lancer les seuls tests cibles (o/N) ? ").strip().casefold() in {"o", "oui", "y", "yes"}
+        return command_dev_check(root, argparse.Namespace(
+            base_ref=base, run_tests=run_tests, max_tests=8,
+            timeout_seconds=90, json=False))
     if choice == "a":
         return command_audit(root, argparse.Namespace(force=True, gate="critical", json=False))
     if choice == "p":
         return command_issues(root, argparse.Namespace(severity=None, json=False))
     if choice == "t":
         return command_ponytail(root, argparse.Namespace(base_ref=None, json=False))
-    return payload
-
+    return command_quick(root, argparse.Namespace(json=False))
 
 def menu_graph(root: Path) -> dict[str, Any]:
     payload = command_graph(root, argparse.Namespace(json=False, rebuild=False, install=False, open=False))
-    choice = input("R : reconstruire | I : installer Graphify puis generer | O : ouvrir HTML | Entree : retour\n").strip().casefold()
+    choice = input("R : reconstruire | I : installer Graphify puis generer | A : auditer graphe | O : ouvrir HTML | Entree : retour\n").strip().casefold()
+    if choice == "a":
+        return command_graph_audit(root, argparse.Namespace(json=False))
     if choice in {"r", "i", "o"}:
         payload = command_graph(root, argparse.Namespace(
             json=False, rebuild=choice == "r", install=choice == "i", open=choice == "o",
@@ -317,6 +640,95 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest='command')
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
+    sub.add_parser('capabilities', help='Inventaire AST des 18 capacites sans lancer de tests.')
+    sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
+    it = sub.add_parser('isolate-triage', help='Investiguer jusqu a 10 fichiers isoles en preservant leurs consommateurs.')
+    it.add_argument('--limit', type=int, default=5)
+    it.add_argument('--kind', choices=('mixed', 'weak', 'orphan', 'community'), default='mixed')
+    it.add_argument('--offset', type=int, default=0)
+    it.add_argument('--trace', action='append', type=Path, default=[],
+                    help='Trace Doctor exacte-SHA opt-in, max 8, aucune execution.')
+    cs = sub.add_parser('consumer-sites', help='Analyser les consommateurs statiques et dynamiques candidats.')
+    cs.add_argument('path', help='Fichier Python cible relatif au depot.')
+    ch = sub.add_parser('change-plan', help='Plan diff Git + consommateurs Graphify + tests cibles; aucun test execute.')
+    ch.add_argument('--base-ref', required=True, help='Ref Git explicite pour la comparaison.')
+    ch.add_argument('--cost-report', type=Path, action='append', default=[],
+                    help='Rapport Integrity historique pour ordre conseillé (aucune suite lancée).')
+    ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
+    ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
+    ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
+    fa = sub.add_parser('file-audit', help='Enquete unifiee Doctor / Graphify, aucune execution de tests.')
+    fa.add_argument('paths', nargs='+', help='Un a huit fichiers Python actuels.')
+    fa.add_argument('--trace', type=Path, help='Trace existante exacte-SHA sous .ai/runtime (optionnelle).')
+    fa.add_argument('--cost-report', type=Path, action='append', default=[],
+                    help='Rapports Integrity historiques, uniquement pour le classement.')
+    fa.add_argument('--graph-ui', action='store_true',
+                    help='Exporter sur demande la vue Graphify focalisee, sans rebuild ni tests.')
+    si = sub.add_parser('source-impact', help='Analyse AST inverse du code courant, sans Graphify ni tests.')
+    si.add_argument('paths', nargs='+', help='Fichiers Python suivis par Git, au maximum 32.')
+    si.add_argument('--depth', type=int, choices=(1, 2), default=2)
+    rp = sub.add_parser('refactor-preview', help='Simuler impact et tests requis sans modifier le code.')
+    rp.add_argument('paths', nargs='+')
+    rp.add_argument('--action', choices=('remove', 'move', 'consolidate'), default='remove')
+    rp.add_argument('--to', help='Chemin relatif cible pour move/consolidate.')
+    rp.add_argument('--depth', type=int, choices=(1, 2), default=2)
+    rp.add_argument('--trace', type=Path, help='Trace runtime .ai/runtime du HEAD exact (optionnelle).')
+    sd = sub.add_parser('scenario-diff', help='Comparer deux traces historiques du même scénario sans exécution.')
+    sd.add_argument('--before', required=True, type=Path)
+    sd.add_argument('--after', required=True, type=Path)
+    st = sub.add_parser('scenario-trend', help='Historique de 2 a 8 traces du meme scenario sans execution.')
+    st.add_argument('--trace', action='append', type=Path, required=True)
+    sc = sub.add_parser('scenario-coverage', help='Comparer les preuves de plusieurs traces exact-SHA, sans exécuter de scénario.')
+    sc.add_argument('--trace', action='append', type=Path, required=True,
+                    help='Trace Doctor existante dans .ai/runtime, maximum 12.')
+    sc.add_argument('--require-file', action='append', default=[],
+                    help='Fichier Python à rechercher parmi les traces sans déduire un code mort.')
+    sc.add_argument('--require-symbol', action='append', default=[],
+                    help='Fonction path.py::qualified_name a retrouver parmi les entrees observees.')
+    tc = sub.add_parser('test-costs', help='Coût des groupes réels depuis rapports Atlas Integrity existants; aucun test exécuté.')
+    tc.add_argument('--report', action='append', type=Path, required=True,
+                    help='Rapport JSON sous .ai/runtime (max 8, plusieurs --report possibles).')
+    ev = sub.add_parser('dev-event', help='Analyse evenementielle code: save, pre-commit, push (lecture seule).')
+    ev.add_argument('--event', choices=('save', 'pre-commit', 'push'), required=True)
+    ev.add_argument('paths', nargs='*')
+    ev.add_argument('--base-ref', help='Reference de comparaison explicite pour push.')
+    dc = sub.add_parser('dev-check', help='Precontrole Git/AST borne, tests cibles opt-in; jamais un gate de merge.')
+    dc.add_argument('--base-ref', required=True, help='Reference Git explicite de comparaison.')
+    dc.add_argument('--run-tests', action='store_true', help='Lancer les seuls tests modules selectionnes (budget).')
+    dc.add_argument('--max-tests', type=int, default=8, help='Maximum 1..8 modules selectionnes.')
+    dc.add_argument('--timeout-seconds', type=int, default=90, help='Budget total pour les tests cibles (10..180s).')
+    gl = sub.add_parser('graph-live', help='Suivi Git temps reel dans Graphify Web local, sans rebuilder.')
+    gl.add_argument('--port', type=int, default=8765)
+    gl.add_argument('--open', action='store_true')
+    gl.add_argument('--once', action='store_true', help='Retourner seulement les changements courants.')
+    gu = sub.add_parser('graph-ui', help='Exporter Graphify interactif local avec diagnostics Doctor.')
+    gu.add_argument('--open', action='store_true', help='Ouvrir le rapport HTML dans le navigateur.')
+    gu.add_argument('--ide-links', action='store_true', help='Ajouter des liens VS Code locaux (chemin absolu dans le HTML).')
+    gu.add_argument('--trace', type=Path, help='Trace runtime JSON dans .ai/runtime pour enrichir les liens.')
+    gu.add_argument('--inspect-file', action='append', default=[],
+                    help='Examiner 1 a 8 fichiers representes, consommateurs AST et pistes dynamiques.')
+    gu.add_argument('--extra-trace', type=Path, action='append', default=[],
+                    help='Ajouter une autre trace complète du même SHA (max 8 au total).')
+    gu.add_argument('--baseline-graph', type=Path,
+                    help='Comparer un ancien graph.json sous graphify-out (lecture seule).')
+    gu.add_argument('--scenario-trend', type=Path, action='append', default=[],
+                    help='Historique de 2 a 8 traces du meme scenario, lecture seule.')
+    gu.add_argument('--save-snapshot', action='store_true',
+                    help='Conserver le graphe actuel dans graphify-out/history/<sha>.json (sans rebuild).')
+    capture = sub.add_parser('capture-ui', help='Tracer un vrai scenario Qt offscreen explicitement, sans chargement complet.')
+    capture.add_argument('scenario', choices=tuple(UI_SCENARIOS))
+    capture.add_argument('--max-events', type=int, default=50000)
+    rt = sub.add_parser('runtime-trace', help='Tracer explicitement les appels Python d un module (mode instrumente).')
+    rt.add_argument('--module', required=True, help='Module de scenario de test a executer.')
+    rt.add_argument('--max-events', type=int, default=5000)
+    ci = sub.add_parser('code-inspect', help='Inspecter AST, doublons, accessibilite et gardes architectures, sans tests.')
+    ci.add_argument('paths', nargs='*', help='Fichiers Python explicitement cibles.')
+    ci.add_argument('--base-ref', help='Inclure les fichiers modifies depuis la reference.')
+    ci.add_argument('--entrypoint', action='append', help='Point entree connu (plusieurs possibles).')
+    ci.add_argument('--baseline', type=Path, help='Ancien Graphify graph.json pour comparaison.')
+    ci.add_argument('--trace', type=Path, help='Trace opt-in .ai/runtime du même commit.')
+    gc = sub.add_parser('graph-compare', help='Comparer l’ancien graph.json à celui du HEAD actuel.')
+    gc.add_argument('--baseline', required=True, type=Path)
     graph = sub.add_parser('graph', help='Architecture Graphify; lecture du graph par defaut.')
     graph.add_argument('--rebuild', action='store_true', help='Generer explicitement le graph AST, clustering et HTML.')
     graph.add_argument('--install', action='store_true', help='Installer explicitement Graphify pinne via uv puis generer.')
@@ -386,7 +798,7 @@ def _read_choice() -> str:
 
 def menu(root: Path) -> int:
     actions = {
-        '1': ('Diagnostic rapide / audit / problemes', lambda: menu_diagnostics(root)),
+        '1': ('Precontrole rapide Git/AST / audit approfondi', lambda: menu_diagnostics(root)),
         '2': ('Inspecteur performances LIVE + I/O', lambda: command_live(root, argparse.Namespace(sample_seconds=0.5, no_io_trace=False, json=False))),
         '3': ('Performance Lab automatise', lambda: command_perf(root, argparse.Namespace(files_only=False, json=False))),
         '4': ('Comparer avec le dernier audit', lambda: command_compare(root, argparse.Namespace(json=False))),
@@ -430,7 +842,28 @@ def main(argv: list[str] | None = None) -> int:
         return menu(root)
     handlers = {
         'quick': command_quick,
+        'capabilities': command_capabilities,
         'graph': command_graph,
+        'graph-audit': command_graph_audit,
+        'test-costs': command_test_costs,
+        'scenario-coverage': command_scenario_coverage,
+        'scenario-diff': command_scenario_diff,
+        'scenario-trend': command_scenario_trend,
+        'change-plan': command_change_plan,
+        'file-coverage': command_file_coverage,
+        'consumer-sites': command_consumer_sites,
+        'isolate-triage': command_isolate_triage,
+        'code-inspect': command_code_inspect,
+        'runtime-trace': command_runtime_trace,
+        'capture-ui': command_capture_ui,
+        'graph-ui': command_graph_ui,
+        'graph-live': command_graph_live,
+        'dev-event': command_dev_event,
+        'dev-check': command_dev_check,
+        'refactor-preview': command_refactor_preview,
+        'source-impact': command_source_impact,
+        'file-audit': command_file_audit,
+        'graph-compare': command_graph_compare,
         'ponytail': command_ponytail,
         'audit': command_audit,
         'live': command_live,
@@ -450,7 +883,52 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'ponytail':
         return {'PASS': 0, 'REVIEW': 1, 'FAIL': 2, 'UNAVAILABLE': 2}.get(payload.get('status'), 2)
     if args.command == 'graph':
+        if payload.get("status") != "PASS":
+            return 1
+        # The graph visualization passing does not override a failed Doctor
+        # architectural audit (e.g. a source-confirmed app -> tools inversion).
+        graph_audit = payload.get("graph_audit") or {}
+        return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
+    if args.command == 'capabilities':
+        return 2 if payload['status'] == 'BLOCKED' else 0
+    if args.command == 'source-impact':
+        return 2 if payload.get('status') == 'BLOCKED' else 0
+    if args.command == 'file-audit':
+        return 2 if payload.get('status') == 'BLOCKED' else 0
+    if args.command == 'refactor-preview':
+        return 2 if payload['status'] == 'BLOCKED' else 1
+    if args.command == 'dev-event':
+        return 0
+    if args.command == 'dev-check':
+        return 2 if payload['status'] in {'FAIL', 'BLOCKED'} else 1 if payload['status'] == 'PARTIAL_REVIEW' else 0
+    if args.command == 'graph-live':
+        return 2 if payload['status'] == 'BLOCKED' else 0
+    if args.command == 'graph-ui':
+        return 0 if payload['status'] == 'PASS' else 2
+    if args.command == 'capture-ui':
+        return 0 if payload['status'] == 'RECORDED' else 1
+    if args.command == 'runtime-trace':
+        return 0 if payload['status'] == 'RECORDED' else 1
+    if args.command == 'code-inspect':
+        return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
+    if args.command == 'isolate-triage':
+        return 2 if payload['status'] == 'BLOCKED' else 0
+    if args.command == 'consumer-sites':
+        return 0
+    if args.command == 'file-coverage':
+        return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
+    if args.command == 'scenario-diff':
+        return 0 if payload['status'] == 'NO_OBSERVATION_DROP' else 1
+    if args.command == 'scenario-trend':
+        return 0 if payload['status'] == 'NO_OBSERVATION_DROP' else 1
+    if args.command == 'scenario-coverage':
+        return 0 if payload['status'] == 'OBSERVED' else 1
+    if args.command == 'test-costs':
         return 0 if payload['status'] == 'PASS' else 1
+    if args.command == 'change-plan':
+        return {'READY': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
+    if args.command in {'graph-audit', 'graph-compare'}:
+        return 0 if payload['status'] in {'PASS', 'REVIEW'} else 2
     if args.command in {'audit', 'quick'}:
         verdict = (payload.get('summary') or {}).get('verdict')
         return 2 if verdict == 'FAIL' else (1 if verdict == 'WARN' else 0)

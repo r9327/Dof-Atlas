@@ -24,12 +24,12 @@ class GuideUltimeFinalTransversalValidatorTests(unittest.TestCase):
             "level_191_200": "level_191_200_v22.json",
             "level_200_plus": "level_200_plus_v11.json",
         }
-        actual = {chapter_id: filename for chapter_id, filename, _ in validator._impl.EXPECTED_CHAPTERS}
+        actual = {chapter_id: filename for chapter_id, filename, _ in validator.EXPECTED_CHAPTERS}
         for chapter_id, filename in expected.items():
             self.assertEqual(actual.get(chapter_id), filename, chapter_id)
-        self.assertEqual(validator._impl.EXPECTED_BONTA_FILE, "bonta_1_100_v17.json")
-        self.assertEqual(validator._impl.EXPECTED_TEMPORAL_FILE, "temporal_registry_v15.json")
-        self.assertEqual(validator._impl.EXPECTED_OCRE_FINAL_FILE, "ocre_final_route_v2.json")
+        self.assertEqual(validator.EXPECTED_BONTA_FILE, "bonta_1_100_v17.json")
+        self.assertEqual(validator.EXPECTED_TEMPORAL_FILE, "temporal_registry_v15.json")
+        self.assertEqual(validator.EXPECTED_OCRE_FINAL_FILE, "ocre_final_route_v2.json")
 
     def test_final_static_transversal_audit_passes_without_catalog(self) -> None:
         report = validator.audit(skip_catalog=True)
@@ -53,7 +53,7 @@ class GuideUltimeFinalTransversalValidatorTests(unittest.TestCase):
         source = Path(validator.__file__).read_text(encoding="utf-8")
         self.assertNotIn("sys.path.insert", source)
         self.assertNotIn("import sys", source)
-        self.assertIsNotNone(validator._impl)
+        self.assertFalse(hasattr(validator, "_impl"))
 
 
 if __name__ == "__main__":
