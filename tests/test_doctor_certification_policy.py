@@ -204,6 +204,8 @@ class PolicyAndPassportTests(unittest.TestCase):
         self.assertIn("name: Doctor / Fast Policy & Coverage", workflow)
         self.assertIn("runs-on: ubuntu-latest", workflow)
         self.assertIn("stdlib-only planning", workflow)
+        self.assertIn("unittest discover -v -s tests -p 'test_doctor_certification*.py'", workflow)
+        self.assertIn("avoid importing tests/__init__.py", workflow)
         self.assertIn("needs.plan.outputs.run_scoped == 'true'", workflow)
         self.assertIn("runs-on: windows-latest", workflow)
         self.assertIn("only when scoped tests are required", workflow)

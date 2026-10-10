@@ -205,3 +205,11 @@ This optimizes the **Doctor adaptive workflow** immediately. Existing
 Public PR and other independent Windows validation jobs still have their
 own scheduling and may require separate optimization. Do not claim their
 time was reduced without a comparable measured run.
+
+
+Planner test collection uses \`unittest discover -s tests -p
+'test_doctor_certification*.py'\` to bypass the app-wide
+\`tests/__init__.py\` Qt harness during the fast standard-library-only job.
+Actual application test execution on Windows keeps its original canonical
+imports and PySide6 requirements. This is an isolation of the **planning
+contract tests**, not a shortcut for Qt functional validation.

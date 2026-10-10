@@ -51,7 +51,9 @@ jobs:
       - name: Test independent adaptive certification contracts
         shell: bash
         run: |
-          python -X faulthandler -m unittest -v tests.test_doctor_certification tests.test_doctor_certification_policy tests.test_doctor_certification_shadow
+          # Only source files selected; avoid importing tests/__init__.py (PySide6 Qt harness).
+          # Contracts: tests.test_doctor_certification tests.test_doctor_certification_policy tests.test_doctor_certification_shadow
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_certification*.py'
 
       - name: Plan exact-SHA test scope without application dependencies
         id: scope
