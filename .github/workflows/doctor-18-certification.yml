@@ -1,0 +1,104 @@
+name: Doctor 18 Capability Certification
+
+on:
+  push:
+    branches:
+      - cert/doctor-18-capabilities-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: doctor-18-cert-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  QT_OPENGL: software
+  QT_QUICK_BACKEND: software
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  certify:
+    name: Doctor 18 / Real behavior and Qt scenarios
+    runs-on: windows-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout immutable candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Verify exact SHA
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne "${{ github.sha }}") { throw "Unexpected SHA: $actual" }
+          if ((git status --porcelain).Trim()) { throw "Dirty checkout before certification" }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install pinned runtime and Graphify
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install --disable-pip-version-check "graphifyy==0.9.72"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build exact-SHA Graphify once
+        id: graph
+        continue-on-error: true
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts/doctor_18_certification | Out-Null
+          python -m tools.atlas_doctor graph --rebuild --json |
+            Out-File -Encoding utf8 artifacts/doctor_18_certification/graph_build.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run 18 focused behavioral checks and isolated real Qt scenarios
+        id: capabilities
+        continue-on-error: true
+        run: |
+          python -m tools.doctor_18_certification
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload exact-SHA capability evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: doctor-18-${{ github.sha }}-${{ github.run_attempt }}
+          path: artifacts/doctor_18_certification/**
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce real certification verdict
+        if: always()
+        run: |
+          if ("${{ steps.graph.outcome }}" -ne "success") {
+            throw "Exact-SHA Graphify graph build failed"
+          }
+          if ("${{ steps.capabilities.outcome }}" -ne "success") {
+            throw "At least one of the 18 capabilities or Qt scenarios failed"
+          }
+          $result = Get-Content -LiteralPath artifacts/doctor_18_certification/verdict.json -Raw |
+            ConvertFrom-Json
+          if ($result.status -ne "PASS" -or $result.passed -ne 18 -or $result.total -ne 18) {
+            throw "Capability certification incomplete: $($result.passed)/18 $($result.status)"
+          }
+          Write-Host "18/18 automated behavior and isolated Qt scenarios PASS on $($result.candidate_sha)"
+          Write-Host "FULL, RAM/preload, and manual UI remain independent required gates."
