@@ -89,6 +89,75 @@ def _source_proves_import(root: Path, source: str, target: str, cache: dict[str,
     return module in imported or any(name.startswith(module + ".") for name in imported)
 
 
+def _source_import_scopes(root: Path, source: str, target: str) -> set[str]:
+    """Return source AST import contexts for a confirmed import file pair.
+
+    This classifies syntax, not execution. A TYPE_CHECKING edge and a deferred
+    method/function import must not be promoted to an import-time cycle.
+    Unknown top-level conditionals remain import-time *candidates*.
+    """
+    source_file = root / source
+    try:
+        if (source_file.is_symlink() or not source_file.is_file()
+                or source_file.stat().st_size > 512 * 1024):
+            return set()
+        source_file.resolve().relative_to(root.resolve())
+        tree = ast.parse(source_file.read_text(encoding="utf-8-sig"), filename=source)
+    except (OSError, ValueError, UnicodeError, SyntaxError):
+        return set()
+
+    module = _module(target)
+    package = _module(source).rsplit(".", 1)[0] if not source.endswith("/__init__.py") else _module(source)
+    scopes: set[str] = set()
+
+    def matches(node: ast.AST) -> bool:
+        if isinstance(node, ast.Import):
+            imports = {name.name for name in node.names}
+        elif isinstance(node, ast.ImportFrom):
+            prefix = node.module or ""
+            if node.level:
+                parts = package.split(".") if package else []
+                if node.level > len(parts):
+                    return False
+                prefix = ".".join(filter(None, (".".join(parts[:len(parts) - node.level + 1]), prefix)))
+            imports = {prefix}
+            imports.update(prefix + "." + name.name for name in node.names if name.name != "*")
+        else:
+            return False
+        return module in imports or any(name.startswith(module + ".") for name in imports)
+
+    def is_type_checking(test: ast.AST) -> bool:
+        return ((isinstance(test, ast.Name) and test.id == "TYPE_CHECKING")
+                or (isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+                    and isinstance(test.value, ast.Name) and test.value.id == "typing"))
+
+    def visit(node: ast.AST, *, delayed: bool = False, type_only: bool = False) -> None:
+        if isinstance(node, (ast.Import, ast.ImportFrom)) and matches(node):
+            scopes.add("TYPE_ONLY" if type_only else "DEFERRED" if delayed else "IMPORT_TIME")
+            return
+        if isinstance(node, ast.If) and is_type_checking(node.test):
+            for child in node.body:
+                visit(child, delayed=delayed, type_only=True)
+            for child in node.orelse:
+                visit(child, delayed=delayed, type_only=type_only)
+            return
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            # Imports in a function body are executed at call time, even if the
+            # function itself is defined during module import.
+            for child in node.body:
+                visit(child, delayed=True, type_only=type_only)
+            return
+        if isinstance(node, ast.Lambda):
+            # A lambda body is one expression, not a list of statements.
+            visit(node.body, delayed=True, type_only=type_only)
+            return
+        for child in ast.iter_child_nodes(node):
+            visit(child, delayed=delayed, type_only=type_only)
+
+    visit(tree)
+    return scopes
+
+
 def _import_pairs(graph: dict[str, Any]) -> set[tuple[str, str]]:
     by_id = {node["id"]: node for node in graph["nodes"]}
     pairs: set[tuple[str, str]] = set()
@@ -160,6 +229,7 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
     components = _components(adjacency)
     cache: dict[str, set[str] | None] = {}
     source_confirmed_pairs: set[tuple[str, str]] = set()
+    import_time_adjacency: dict[str, set[str]] = defaultdict(set)
     cycles = []
     for members in components:
         group = set(members)
@@ -167,7 +237,12 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
         checked = []
         for source, target in edges:
             proof = root is not None and _source_proves_import(root, source, target, cache)
-            checked.append({"source": source, "target": target, "source_confirmed": proof})
+            scope = sorted(_source_import_scopes(root, source, target)) if proof and root is not None else []
+            checked.append({"source": source, "target": target, "source_confirmed": proof,
+                            "import_scopes": scope})
+            if proof and "IMPORT_TIME" in scope:
+                import_time_adjacency[source].add(target)
+                import_time_adjacency.setdefault(target, set())
             if proof:
                 source_confirmed_pairs.add((source, target))
         cycles.append({
@@ -177,7 +252,14 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
             "blocking": False, "review_required": True,
             "reason": "A cycle in import dependencies does not prove a runtime error or a new regression.",
             "sample_edges": checked[:10],
+            "type_only_or_deferred_edge_count": sum(
+                1 for row in checked if row["source_confirmed"]
+                and "IMPORT_TIME" not in row["import_scopes"]
+            ),
         })
+    # Analyze every source-confirmed import edge, not merely the 10 edges
+    # retained for user-facing examples of a large component.
+    import_time_components = _components(import_time_adjacency)
     # A source-confirmed cycle can survive even when *other* edges in the
     # same Graphify SCC are stale. Compute SCCs again using only proven edges.
     confirmed_adjacency: dict[str, set[str]] = defaultdict(set)
@@ -192,11 +274,19 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
             candidate["confidence"] = "CURRENT_SOURCE_IMPORT_CYCLE"
         candidate["source_confirmed_subcycles"] = len(confirmed_inside)
         candidate["confirmed_cycle_samples"] = confirmed_inside[:3]
+        import_time_inside = [c for c in import_time_components if set(c) <= members]
+        candidate["confirmed_import_time_subcycles"] = len(import_time_inside) if root is not None else None
+        candidate["import_time_cycle_samples"] = import_time_inside[:3]
+        candidate["static_cycle_contains_deferred_or_type_only_edges"] = bool(
+            candidate["type_only_or_deferred_edge_count"]
+        )
     return {
         "status": "REVIEW" if cycles else "PASS",
         "directed_extracted_import_pairs": len(pairs),
         "suspected_cycles": len(cycles),
         "source_confirmed_cycles": len(confirmed_components),
+        "confirmed_import_time_cycles": len(import_time_components) if root is not None else None,
+        "import_scope_status": "SOURCE_SCANNED" if root is not None else "NOT_RUN",
         "cycles": cycles[:MAX_REVIEW],
         "truncated": len(cycles) > MAX_REVIEW,
         "scope": "Extracted directed runtime Python file imports only; dynamic imports can be missed.",
@@ -279,6 +369,38 @@ def _candidate_symbol(value: Any) -> str | None:
     return token
 
 
+
+def _local_symbol_references(root: Path, path: str, symbol: str) -> list[dict[str, Any]]:
+    """Recognize local AST *uses*, not just external text matches.
+
+    A callback passed as self.method or a ctypes type referenced within its
+    defining file must not become an 'unused' removal lead. Local AST names
+    alone still do not prove that any execution path was reached.
+    """
+    safe = _path(path)
+    if not safe or not safe.endswith(".py"):
+        return []
+    try:
+        candidate = root / safe
+        if candidate.is_symlink() or not candidate.is_file() or candidate.stat().st_size > 512 * 1024:
+            return []
+        resolved = candidate.resolve()
+        resolved.relative_to(root.resolve())
+        tree = ast.parse(candidate.read_text(encoding="utf-8-sig"), filename=safe)
+    except (OSError, ValueError, UnicodeError, SyntaxError):
+        return []
+    lines = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr == symbol:
+            lines.add(node.lineno)
+        elif isinstance(node, ast.Name) and node.id == symbol and isinstance(node.ctx, ast.Load):
+            lines.add(node.lineno)
+    return [
+        {"file": safe, "line": line, "kind": "LOCAL_AST_REFERENCE_UNVERIFIED_BINDING"}
+        for line in sorted(lines)[:8]
+    ]
+
+
 def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: int = 20) -> dict[str, Any]:
     """Bounded full tracked-source name sweep; no negative proof of dead code."""
     subset = [
@@ -335,11 +457,20 @@ def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: in
     reviewed = []
     for row, name in subset:
         references = [item for item in findings[name] if item["file"] != row["file"]]
+        local_references = _local_symbol_references(root, row["file"], name)
+        classification = ("POSSIBLE_EXTERNAL_CONSUMER" if references
+                          else "LOCAL_SOURCE_REFERENCE_REVIEW" if local_references
+                          else "NO_EXTERNAL_TEXT_MATCH_UNPROVEN")
         reviewed.append({
             "file": row["file"], "symbol": row["symbol"], "normalized_symbol": name,
-            "classification": "POSSIBLE_EXTERNAL_CONSUMER" if references else "NO_EXTERNAL_TEXT_MATCH_UNPROVEN",
-            "references": references[:8], "confirmed_dead_code": False,
-            "next_action": "Verify dynamic Qt callbacks, entry points, native code and external consumers before removal.",
+            "classification": classification,
+            "references": references[:8], "local_references": local_references,
+            "confirmed_dead_code": False,
+            "next_action": (
+                "Keep as source-used pending binding/runtime verification; do not propose removal."
+                if local_references else
+                "Verify dynamic Qt callbacks, entry points, native code and external consumers before removal."
+            ),
         })
     return {
         "status": "REVIEW" if reviewed else "PASS",
@@ -396,7 +527,8 @@ def analyze_community_boundaries(graph: dict[str, Any]) -> dict[str, Any]:
 
 def remediation_plan(
     triage: dict[str, Any], cycles: dict[str, Any], cohesion: dict[str, Any],
-    *, source_review: dict[str, Any] | None = None, performance: dict[str, Any] | None = None
+    *, source_review: dict[str, Any] | None = None, performance: dict[str, Any] | None = None,
+    runtime_focus: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     tasks: list[dict[str, Any]] = []
     for row in triage.get("blocking_findings", [])[:MAX_REVIEW]:
@@ -408,10 +540,16 @@ def remediation_plan(
             "automatic_edit": False,
         })
     for cycle in cycles.get("cycles", [])[:MAX_REVIEW]:
+        import_time = cycle.get("confirmed_import_time_subcycles")
+        # Legacy graph artifacts may not have import-scope evidence. Never
+        # downgrade those silently: they keep their prior review priority.
+        deferred = import_time == 0 and cycle["confidence"] == "CURRENT_SOURCE_IMPORT_CYCLE"
         tasks.append({
-            "priority": "P1" if cycle["confidence"] == "CURRENT_SOURCE_IMPORT_CYCLE" else "P2", "kind": "IMPORT_CYCLE",
+            "priority": "P3" if deferred else "P1" if cycle["confidence"] == "CURRENT_SOURCE_IMPORT_CYCLE" else "P2",
+            "kind": "DEFERRED_OR_TYPE_ONLY_IMPORT_CYCLE" if deferred else "IMPORT_CYCLE",
             "paths": cycle["files"], "evidence": cycle["confidence"],
-            "action": "Review dependency direction and relocate shared interfaces only if source and tests confirm.",
+            "action": ("Keep lazy/type-checking import boundaries; test import order before changing architecture."
+                       if deferred else "Review dependency direction and relocate shared interfaces only if source and tests confirm."),
             "require_tests": ["affected unit tests", "Graphify exact SHA", "Doctor FAST"],
             "automatic_edit": False,
         })
@@ -443,18 +581,64 @@ def remediation_plan(
             "require_tests": ["affected unit tests", "Graphify exact SHA"],
             "automatic_edit": False,
         })
+    for row in (runtime_focus or {}).get("hotspots", [])[:5]:
+        tasks.append({
+            "priority": "P3", "kind": "STATIC_HOTSPOT_REVIEW",
+            "paths": [row["file"]],
+            "evidence": (
+                f"{row['consumer_files']} importing files; "
+                f"{row['dependency_files']} imported files; "
+                f"{row['consumer_domains']} consumer domains"
+            ),
+            "action": row["next_check"],
+            "require_tests": ["affected module contracts", "Graphify exact SHA"],
+            "automatic_edit": False,
+        })
     for task in tasks:
         if any(path.startswith("app/") or path == "main.py" for path in task["paths"]):
             task["require_tests"].extend(["Phase 8 RAM benchmark", "Phase 8 comparable preload"])
             task["memory_risk"] = "UNMEASURED_REQUIRES_BENCHMARK"
         else:
             task["memory_risk"] = "NO_DIRECT_RUNTIME_SCOPE_IDENTIFIED"
+    # Explicitly separate an actionable, proven contract violation from a
+    # graph lead. Source-confirmed import cycles are still not proven runtime
+    # failures, and weak communities are never automatic refactor commands.
+    next_proofs = {
+        "PROVEN_IMPORT_INVERSION": "Confirm imports in current source and run affected contracts.",
+        "IMPORT_CYCLE": "Identify eager runtime imports versus TYPE_CHECKING/lazy imports, then exercise both import orders.",
+        "DEFERRED_OR_TYPE_ONLY_IMPORT_CYCLE": "Retain deferred/type-only boundaries; confirm import-order behavior before any refactor.",
+        "UNPROVEN_UNUSED_SYMBOL": "Check callbacks, ctypes/FFI, same-file references and entrypoints before any deletion.",
+        "FRAGMENTED_COMMUNITY_REVIEW": "Inspect domain ownership and runtime consumers; merge only for a proven duplication.",
+        "HIGH_FANOUT_REVIEW": "Profile import and runtime cost before splitting a heavily used API.",
+        "STATIC_HOTSPOT_REVIEW": "Confirm a latency/RAM problem or duplicate responsibility; graph centrality alone is not a bottleneck.",
+    }
+    for task in tasks:
+        task["decision"] = ("FIX_CONFIRMED_CONTRACT_VIOLATION"
+                            if task["kind"] == "PROVEN_IMPORT_INVERSION"
+                            else "INVESTIGATE_NO_CODE_CHANGE_YET")
+        task["next_proof"] = next_proofs[task["kind"]]
+        task["code_change_authorized"] = False
     priority = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
     tasks.sort(key=lambda task: (priority[task["priority"]], task["kind"], str(task["paths"])))
     return {
         "schema_version": 1, "status": "REVIEW" if tasks else "PASS",
         "tasks": tasks[:MAX_REVIEW], "task_count": len(tasks),
         "truncated": len(tasks) > MAX_REVIEW,
+        "actionability": {
+            "confirmed_fix_candidates": sum(t["decision"] == "FIX_CONFIRMED_CONTRACT_VIOLATION" for t in tasks),
+            "investigation_candidates": sum(t["decision"] == "INVESTIGATE_NO_CODE_CHANGE_YET" for t in tasks),
+            "static_hotspot_count": (runtime_focus or {}).get("structural_hotspot_count", 0),
+            "stable_runtime_domain_groups": (runtime_focus or {}).get("source_domains"),
+            "static_coupling_is_not_performance_evidence": True,
+            "local_source_used_symbols": [
+                {"file": row["file"], "symbol": row["symbol"],
+                 "references": row.get("local_references", [])[:8]}
+                for row in (source_review or {}).get("reviewed", [])
+                if row.get("classification") == "LOCAL_SOURCE_REFERENCE_REVIEW"
+            ],
+            "unproven_is_not_safe_to_delete": True,
+            "next_action": "Investigate individual source/runtime leads; no automatic app refactor on graph counts alone.",
+        },
         "performance_evidence": performance or {
             "status": "UNAVAILABLE", "reason": "No exact-SHA runtime benchmark joined."
         },
