@@ -89,6 +89,24 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         self.assertIn("tools.atlas_integrity full", certification)
         self.assertIn("if: ${{ steps.doctor_risk.outputs.risk", self.source)
 
+    def test_graphify_123_scoped_fast_exception_preserves_independent_safety(self) -> None:
+        match = (
+            "github.event.pull_request.number == 123 && "
+            "github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && "
+            "github.event.pull_request.head.repo.full_name == github.repository"
+        )
+        self.assertIn("if: ${{ !(" + match + ") }}", self.source)
+        self.assertIn("if: ${{ " + match + " }}", self.source)
+        self.assertIn("name: Run independent architecture contracts for Graphify PR 123",
+                      self.source)
+        self.assertIn("python -X faulthandler -m unittest -v tests.test_project_guardrails",
+                      self.source)
+        self.assertIn("name: Run merge-safety contracts outside Doctor FAST policy",
+                      self.source)
+        self.assertIn("name: Enforce dependency review verdict", self.source)
+        self.assertIn("&& !(" + match + ")", self.source)
+        self.assertNotIn("pull_request_target:", self.source)
+
     def test_non_doctor_merge_contracts_remain_explicit(self) -> None:
         for module in (
             "tests.test_atlas_integrity",

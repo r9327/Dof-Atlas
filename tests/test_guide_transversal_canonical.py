@@ -13,7 +13,7 @@ class GuideTransversalCanonicalTests(unittest.TestCase):
         self.assertFalse((ROOT / "tools/validate_guide_ultime_manual_transversals_v16.py").exists())
 
     def test_current_chapter_contract_is_owned_by_canonical_module(self) -> None:
-        chapters = {chapter_id: filename for chapter_id, filename, _ in canonical._impl.EXPECTED_CHAPTERS}
+        chapters = {chapter_id: filename for chapter_id, filename, _ in canonical.EXPECTED_CHAPTERS}
         self.assertEqual(chapters["level_191_200"], "level_191_200_v22.json")
         self.assertEqual(chapters["level_200_plus"], "level_200_plus_v11.json")
 

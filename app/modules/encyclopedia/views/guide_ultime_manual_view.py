@@ -26,7 +26,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     quest_items_from_objectives,
 )
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
 
 

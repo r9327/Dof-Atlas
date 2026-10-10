@@ -81,6 +81,23 @@ class CraftMinimalLazyTests(unittest.TestCase):
         self.assertEqual(len(page._pending_result_items), 12)
         page.deleteLater()
 
+    def test_recipe_read_error_is_visible_in_craft_status(self) -> None:
+        status = Mock()
+        page = CraftPage(status, defer_runtime=True)
+        page.selection = {
+            999: {"item": {"ankama_id": 999, "name": "Objet Test"}, "quantity": 2},
+        }
+        with (
+            patch("app.pages.craft_page.local_data_cache.get_recipe_for_item", side_effect=OSError("db unavailable")),
+            patch("app.pages.craft_page.CraftResourceDialog") as dialog,
+            patch("app.pages.craft_page.LOGGER.exception") as log_error,
+        ):
+            page.show_resources()
+        log_error.assert_called_once()
+        dialog.assert_called_once_with({}, ["Objet Test"])
+        self.assertIn("erreur de lecture", status.call_args.args[0])
+        page.deleteLater()
+
 
 if __name__ == "__main__":
     unittest.main()

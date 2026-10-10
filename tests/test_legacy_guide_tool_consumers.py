@@ -15,10 +15,12 @@ RETIRED_TOOLS = (
     "tools/apply_verified_guides_v2.py",
     "tools/apply_verified_guides_v3.py",
     "tools/atlas_complete_guides_v1.py",
-)
-DEFERRED_LEGACY = (
     "tools/run_guide_ultime_v5.ps1",
     "tools/build_guide_ultime_final.py",
+    "tools/guide_ultime_scope_v4.py",
+    "tools/validate_guide_ultime_manual_transversals_v15.py",
+)
+DEFERRED_LEGACY = (
     "tools/build_guide_ultime_gps_route.py",
     "tools/audit_guide_ultime_route_forensic.py",
 )
@@ -28,18 +30,6 @@ class LegacyGuideToolConsumerTests(unittest.TestCase):
     def test_retired_tools_are_gone(self) -> None:
         for path in RETIRED_TOOLS:
             self.assertFalse((ROOT / path).exists(), msg=f"retired tool restored: {path}")
-
-    def test_v5_runner_has_no_live_consumers(self) -> None:
-        report = audit(ROOT)
-        rows = {row["path"]: row for row in report["tools"]}
-        self.assertEqual(rows["tools/run_guide_ultime_v5.ps1"]["consumer_references"], [])
-
-    def test_final_builder_is_only_invoked_by_v5_harness(self) -> None:
-        report = audit(ROOT)
-        rows = {row["path"]: row for row in report["tools"]}
-        builder = rows["tools/build_guide_ultime_final.py"]
-        self.assertEqual(builder["consumer_references"], ["tools/run_guide_ultime_v5.ps1"])
-        self.assertEqual(builder["import_references"], [])
 
     def test_gps_base_is_only_imported_by_canonical_gps(self) -> None:
         report = audit(ROOT)

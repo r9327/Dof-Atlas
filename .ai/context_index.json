@@ -1,5 +1,15 @@
 {
   "entries": {
+    ".agents": {
+      "mode": "040000",
+      "sha": "a41129145d8bd5c5b307d2b463e4641e16870c8b",
+      "type": "tree"
+    },
+    ".codex": {
+      "mode": "040000",
+      "sha": "9d1a91cf04dbd57611db7d0c710671e502b3984f",
+      "type": "tree"
+    },
     ".gitattributes": {
       "mode": "100644",
       "sha": "877ffeada0dad4bfced98478dfa7c011fbcc4f42",
@@ -12,7 +22,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "a2408e917f40057343d4e35b9ea118cea3135f63",
+      "sha": "4dc5edaff02a5a4f7b049aeffb0d41d2234e70a2",
       "type": "tree"
     },
     ".gitignore": {
@@ -27,7 +37,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "aca1b690a07a77c9d179df8815780bc7bec39557",
+      "sha": "fc26dd6714b198c9081abbb71c422edcc0887659",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -82,7 +92,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "505950536b3ecdabb51695bb8f7db7e2ef49d78f",
+      "sha": "a1bce8cdfa07775a92ec2f229a0bf27ad0624f46",
       "type": "tree"
     },
     "data": {
@@ -92,7 +102,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "e8fcafd6aabafafd6ec7fb7aae2b6ef5d2385bc4",
+      "sha": "fc76f829133d80d035d618794d312517e7f565f0",
       "type": "tree"
     },
     "launch.py": {
@@ -107,7 +117,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "a49d8a31b145e39a6ef46ec0359d26b9a4a61ca1",
+      "sha": "9a1df7737b97f75e46390eeb0275b1408185e251",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -127,12 +137,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "ebff01abfd5eaeccfbddcb1f7b33b4a8d124aea3",
+      "sha": "4491938b005cb4d20138dd6ece2ef98707d16e1f",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "d886b8d925a3cc21bb7b1adb5d7c6b1be8c2631c",
+      "sha": "2568f77693babc5f4d60051ec0cacc190c19fdbf",
       "type": "tree"
     }
   },

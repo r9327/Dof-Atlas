@@ -25,7 +25,7 @@ from app.modules.encyclopedia.providers.achievement_provider import (
     safe_int,
 )
 from app.quest_source_index import QuestSources, SelectedJsonValueMapping
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 
 _DUMP_COMPACT_FLAG = "--dump-compact"

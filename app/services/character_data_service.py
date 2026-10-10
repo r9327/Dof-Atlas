@@ -19,7 +19,7 @@ from app.modules.encyclopedia.services.guide_progress_service import (
     GUIDE_PROGRESS_FILE,
     _guide_progress_schema_error,
 )
-from app.modules.encyclopedia.services.progress_coordinator import coordinator_for
+from app.core.progress_coordinator import coordinator_for
 from app.modules.encyclopedia.services.progress_service import ACHIEVEMENT_PROGRESS_FILE
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
     _achievement_progress_schema_error,
