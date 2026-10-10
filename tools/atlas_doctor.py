@@ -177,6 +177,22 @@ def command_change_plan(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_certification(root: Path, args) -> dict[str, Any]:
+    """Inspect and optionally execute safe scoped tests; no phase/full waiver."""
+    from tools.doctor_certification import run
+    payload = run(argparse.Namespace(
+        base_ref=args.base_ref,
+        expected_sha=args.expected_sha,
+        run=args.run_tests,
+        shadow_full_report=args.shadow_full_report,
+    ))
+    if not args.json:
+        print(f"Doctor certification: {payload['status']} ({payload['profile']})")
+        print(f"Scoped execution: {payload['execution']['status']}")
+        print("Phase/FULL certification is still governed by PHASE_CERTIFICATION.md.")
+    return payload
+
+
 def command_capabilities(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.capability_matrix import capability_inventory
     result = capability_inventory(root)
@@ -650,6 +666,13 @@ def build_parser() -> argparse.ArgumentParser:
                     help='Trace Doctor exacte-SHA opt-in, max 8, aucune execution.')
     cs = sub.add_parser('consumer-sites', help='Analyser les consommateurs statiques et dynamiques candidats.')
     cs.add_argument('path', help='Fichier Python cible relatif au depot.')
+    cert = sub.add_parser('certify', help='Certification adaptative Doctor; aucune dispense FULL.')
+    cert.add_argument('--base-ref', required=True, help='SHA ou ref Git de base explicite.')
+    cert.add_argument('--expected-sha', default='', help='SHA exact attendu du candidat.')
+    cert.add_argument('--run-tests', action='store_true',
+                      help='Executer uniquement les tests cibles juges surs.')
+    cert.add_argument('--shadow-full-report', type=Path,
+                      help='Comparer un ancien rapport FULL exact-SHA sans relancer de tests.')
     ch = sub.add_parser('change-plan', help='Plan diff Git + consommateurs Graphify + tests cibles; aucun test execute.')
     ch.add_argument('--base-ref', required=True, help='Ref Git explicite pour la comparaison.')
     ch.add_argument('--cost-report', type=Path, action='append', default=[],
@@ -850,6 +873,7 @@ def main(argv: list[str] | None = None) -> int:
         'scenario-diff': command_scenario_diff,
         'scenario-trend': command_scenario_trend,
         'change-plan': command_change_plan,
+        'certify': command_certification,
         'file-coverage': command_file_coverage,
         'consumer-sites': command_consumer_sites,
         'isolate-triage': command_isolate_triage,
@@ -878,6 +902,10 @@ def main(argv: list[str] | None = None) -> int:
     payload = handlers[args.command](root, args)
     if args.json:
         _print_json(payload)
+    if args.command == 'certify':
+        if payload.get('status') == 'BLOCKED' or payload.get('execution', {}).get('status') == 'BLOCKED':
+            return 2
+        return 1 if payload.get('execution', {}).get('exit_code') not in (None, 0) else 0
     if args.command == 'verify':
         return {'PASS': 0, 'REVIEW': 1, 'FAIL': 2}[payload['status']]
     if args.command == 'ponytail':
