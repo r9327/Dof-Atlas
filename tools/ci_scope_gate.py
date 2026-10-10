@@ -52,7 +52,12 @@ def _path_has_direct_test_coverage(root: Path, path: str) -> bool:
         name = "tests.test_" + Path(path).stem
         if name in selected:
             return True
-    return bool(set(KNOWN_COUPLED_MODULES.get(path, ())) & selected)
+    # Explicit coupled modules are added by classify_diff AFTER the shared
+    # AI Context recommendation, so check their existence directly here.
+    return any(
+        (root / Path(*module.split(".")).with_suffix(".py")).is_file()
+        for module in KNOWN_COUPLED_MODULES.get(path, ())
+    )
 
 
 def classify_diff(root: Path, paths: Iterable[str], *, before_sha: str = "",
