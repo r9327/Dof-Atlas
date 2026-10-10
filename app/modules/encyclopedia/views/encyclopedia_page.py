@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
         DeferredAchievementGuidesView,
     )
-    from app.pages.progressive_quests_page import ProgressiveQuestsPage
+    from app.pages.lazy_quests_page import LazyQuestsPage
     from app.pages.quests_page import QuestsPage
 
 
@@ -90,9 +90,9 @@ def _resolve_guides_view_type() -> type:
 def _resolve_progressive_quests_page_type() -> type:
     global _PROGRESSIVE_QUESTS_PAGE_TYPE
     if _PROGRESSIVE_QUESTS_PAGE_TYPE is None:
-        from app.pages.progressive_quests_page import ProgressiveQuestsPage
+        from app.pages.lazy_quests_page import LazyQuestsPage
 
-        _PROGRESSIVE_QUESTS_PAGE_TYPE = ProgressiveQuestsPage
+        _PROGRESSIVE_QUESTS_PAGE_TYPE = LazyQuestsPage
     return _PROGRESSIVE_QUESTS_PAGE_TYPE
 
 
@@ -109,7 +109,6 @@ def _has_embedded_search(widget: object) -> bool:
         "AchievementsView",
         "DeferredAchievementGuidesView",
         "LazyQuestsPage",
-        "ProgressiveQuestsPage",
         "QuestsPage",
     }
 
@@ -671,7 +670,7 @@ class EncyclopediaPage(QWidget):
             )
         return result
 
-    def _build_quests_page_progressive(self) -> ProgressiveQuestsPage:
+    def _build_quests_page_progressive(self) -> LazyQuestsPage:
         progressive_quests_page_type = _resolve_progressive_quests_page_type()
         lightweight_graph = self._quest_graph or QuestGraphService(
             self.quest_provider,
@@ -1008,6 +1007,7 @@ class EncyclopediaPage(QWidget):
                             quest_progress_path,
                         )
                     except Exception:
+                        LOGGER.exception("Guide progress snapshot failed; using empty fallback.")
                         progress = {}
                     result: object = _GuideStagePayload(
                         active_guide_provider,

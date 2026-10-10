@@ -32,7 +32,7 @@ from app.modules.encyclopedia.models.entity_ref import EntityRef
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import AchievementProgressService, QuestGraphService, QuestProgressService
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
 

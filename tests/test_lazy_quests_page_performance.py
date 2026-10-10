@@ -115,6 +115,17 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_encyclopedia_uses_canonical_lazy_page_without_progressive_shim(self) -> None:
+        source = Path(
+            "app/modules/encyclopedia/views/encyclopedia_page.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "from app.pages.lazy_quests_page import LazyQuestsPage",
+            source,
+        )
+        self.assertNotIn("app.pages.progressive_quests_page", source)
+        self.assertFalse(Path("app/pages/progressive_quests_page.py").exists())
+
     def build_page(self, root: Path) -> LazyQuestsPage:
         profile = root / "profiles.json"
         client_index = root / "clients.json"

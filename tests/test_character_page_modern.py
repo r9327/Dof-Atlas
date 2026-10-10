@@ -21,6 +21,18 @@ class ModernCharacterPageTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_legacy_character_page_shim_stays_retired(self) -> None:
+        self.assertFalse(Path("app/pages/character_page_modern.py").exists())
+        self.assertEqual(CharacterPage.__module__, "app.pages.character_page")
+
+    def test_shell_character_resolver_keeps_canonical_path(self) -> None:
+        source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")
+        self.assertIn(
+            "from app.pages.character_page import CharacterPage as resolved",
+            source,
+        )
+        self.assertNotIn("app.pages.character_page_modern", source)
+
     def test_identity_equipment_and_stats_have_the_requested_layout(self) -> None:
         self.assertEqual(CharacterPage.__module__, "app.pages.character_page")
 

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QCheckBox, QFrame, QHBoxLayout, QLabel, QVBoxLayou
 
 from app.modules.encyclopedia.models import EntityRef, GuideStep
 from app.modules.encyclopedia.widgets.entity_link_button import EntityLinkButton
-from app.storage import AtlasButton
+from app.ui.components import AtlasButton
 
 STEP_TYPE_LABELS = {
     "info": "Information",

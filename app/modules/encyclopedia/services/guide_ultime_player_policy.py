@@ -4,7 +4,7 @@ import copy
 import re
 from typing import Any
 
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 
 _ACTION_START_RE = re.compile(

@@ -370,9 +370,13 @@ def lazy_dependency():
         self.assertGreater(payload["edge_count"], 0)
         guide_view = "app/modules/encyclopedia/views/guides_view.py"
         self.assertIn(guide_view, payload["files"])
-        self.assertIn("app/quest_catalog.py", payload["files"][guide_view])
-        self.assertIn("app/quest_catalog.py", payload["import_dependencies"])
-        self.assertIn("app/quest_catalog.py", payload["enriched_working_set"])
+        # Guide now consumes the canonical lightweight text normalizer.
+        # Its direct AST import edges must reflect the actual module, not a
+        # retired dependency on the heavy quest catalog.
+        self.assertIn("app/core/text.py", payload["files"][guide_view])
+        self.assertNotIn("app/quest_catalog.py", payload["files"][guide_view])
+        self.assertIn("app/core/text.py", payload["import_dependencies"])
+        self.assertIn("app/core/text.py", payload["enriched_working_set"])
         self.assertTrue(all(path.endswith(".py") for path in payload["import_dependencies"]))
 
     def test_imports_rejects_unknown_scope(self) -> None:
