@@ -89,6 +89,71 @@ def _source_proves_import(root: Path, source: str, target: str, cache: dict[str,
     return module in imported or any(name.startswith(module + ".") for name in imported)
 
 
+def _source_import_scopes(root: Path, source: str, target: str) -> set[str]:
+    """Return source AST import contexts for a confirmed import file pair.
+
+    This classifies syntax, not execution. A TYPE_CHECKING edge and a deferred
+    method/function import must not be promoted to an import-time cycle.
+    Unknown top-level conditionals remain import-time *candidates*.
+    """
+    source_file = root / source
+    try:
+        if (source_file.is_symlink() or not source_file.is_file()
+                or source_file.stat().st_size > 512 * 1024):
+            return set()
+        source_file.resolve().relative_to(root.resolve())
+        tree = ast.parse(source_file.read_text(encoding="utf-8-sig"), filename=source)
+    except (OSError, ValueError, UnicodeError, SyntaxError):
+        return set()
+
+    module = _module(target)
+    package = _module(source).rsplit(".", 1)[0] if not source.endswith("/__init__.py") else _module(source)
+    scopes: set[str] = set()
+
+    def matches(node: ast.AST) -> bool:
+        if isinstance(node, ast.Import):
+            imports = {name.name for name in node.names}
+        elif isinstance(node, ast.ImportFrom):
+            prefix = node.module or ""
+            if node.level:
+                parts = package.split(".") if package else []
+                if node.level > len(parts):
+                    return False
+                prefix = ".".join(filter(None, (".".join(parts[:len(parts) - node.level + 1]), prefix)))
+            imports = {prefix}
+            imports.update(prefix + "." + name.name for name in node.names if name.name != "*")
+        else:
+            return False
+        return module in imports or any(name.startswith(module + ".") for name in imports)
+
+    def is_type_checking(test: ast.AST) -> bool:
+        return ((isinstance(test, ast.Name) and test.id == "TYPE_CHECKING")
+                or (isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+                    and isinstance(test.value, ast.Name) and test.value.id == "typing"))
+
+    def visit(node: ast.AST, *, delayed: bool = False, type_only: bool = False) -> None:
+        if isinstance(node, (ast.Import, ast.ImportFrom)) and matches(node):
+            scopes.add("TYPE_ONLY" if type_only else "DEFERRED" if delayed else "IMPORT_TIME")
+            return
+        if isinstance(node, ast.If) and is_type_checking(node.test):
+            for child in node.body:
+                visit(child, delayed=delayed, type_only=True)
+            for child in node.orelse:
+                visit(child, delayed=delayed, type_only=type_only)
+            return
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            # Imports in a function body are executed at call time, even if the
+            # function itself is defined during module import.
+            for child in getattr(node, "body", []):
+                visit(child, delayed=True, type_only=type_only)
+            return
+        for child in ast.iter_child_nodes(node):
+            visit(child, delayed=delayed, type_only=type_only)
+
+    visit(tree)
+    return scopes
+
+
 def _import_pairs(graph: dict[str, Any]) -> set[tuple[str, str]]:
     by_id = {node["id"]: node for node in graph["nodes"]}
     pairs: set[tuple[str, str]] = set()
@@ -167,7 +232,9 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
         checked = []
         for source, target in edges:
             proof = root is not None and _source_proves_import(root, source, target, cache)
-            checked.append({"source": source, "target": target, "source_confirmed": proof})
+            scope = sorted(_source_import_scopes(root, source, target)) if proof and root is not None else []
+            checked.append({"source": source, "target": target, "source_confirmed": proof,
+                            "import_scopes": scope})
             if proof:
                 source_confirmed_pairs.add((source, target))
         cycles.append({
@@ -178,6 +245,15 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
             "reason": "A cycle in import dependencies does not prove a runtime error or a new regression.",
             "sample_edges": checked[:10],
         })
+    # Compute import-time SCCs separately. A Graphify cycle across TYPE_CHECKING
+    # or lazily imported modules is static coupling, not an import-time cycle.
+    import_time_adjacency: dict[str, set[str]] = defaultdict(set)
+    for candidate in cycles:
+        for edge in candidate["sample_edges"]:
+            if edge["source_confirmed"] and "IMPORT_TIME" in edge["import_scopes"]:
+                import_time_adjacency[edge["source"]].add(edge["target"])
+                import_time_adjacency.setdefault(edge["target"], set())
+    import_time_components = _components(import_time_adjacency)
     # A source-confirmed cycle can survive even when *other* edges in the
     # same Graphify SCC are stale. Compute SCCs again using only proven edges.
     confirmed_adjacency: dict[str, set[str]] = defaultdict(set)
@@ -192,11 +268,19 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
             candidate["confidence"] = "CURRENT_SOURCE_IMPORT_CYCLE"
         candidate["source_confirmed_subcycles"] = len(confirmed_inside)
         candidate["confirmed_cycle_samples"] = confirmed_inside[:3]
+        import_time_inside = [c for c in import_time_components if set(c) <= members]
+        candidate["confirmed_import_time_subcycles"] = len(import_time_inside)
+        candidate["import_time_cycle_samples"] = import_time_inside[:3]
+        candidate["static_cycle_contains_deferred_or_type_only_edges"] = any(
+            (edge["source_confirmed"] and "IMPORT_TIME" not in edge["import_scopes"])
+            for edge in candidate["sample_edges"]
+        )
     return {
         "status": "REVIEW" if cycles else "PASS",
         "directed_extracted_import_pairs": len(pairs),
         "suspected_cycles": len(cycles),
         "source_confirmed_cycles": len(confirmed_components),
+        "confirmed_import_time_cycles": len(import_time_components),
         "cycles": cycles[:MAX_REVIEW],
         "truncated": len(cycles) > MAX_REVIEW,
         "scope": "Extracted directed runtime Python file imports only; dynamic imports can be missed.",
@@ -450,10 +534,16 @@ def remediation_plan(
             "automatic_edit": False,
         })
     for cycle in cycles.get("cycles", [])[:MAX_REVIEW]:
+        import_time = cycle.get("confirmed_import_time_subcycles")
+        # Legacy graph artifacts may not have import-scope evidence. Never
+        # downgrade those silently: they keep their prior review priority.
+        deferred = import_time == 0 and cycle["confidence"] == "CURRENT_SOURCE_IMPORT_CYCLE"
         tasks.append({
-            "priority": "P1" if cycle["confidence"] == "CURRENT_SOURCE_IMPORT_CYCLE" else "P2", "kind": "IMPORT_CYCLE",
+            "priority": "P3" if deferred else "P1" if cycle["confidence"] == "CURRENT_SOURCE_IMPORT_CYCLE" else "P2",
+            "kind": "DEFERRED_OR_TYPE_ONLY_IMPORT_CYCLE" if deferred else "IMPORT_CYCLE",
             "paths": cycle["files"], "evidence": cycle["confidence"],
-            "action": "Review dependency direction and relocate shared interfaces only if source and tests confirm.",
+            "action": ("Keep lazy/type-checking import boundaries; test import order before changing architecture."
+                       if deferred else "Review dependency direction and relocate shared interfaces only if source and tests confirm."),
             "require_tests": ["affected unit tests", "Graphify exact SHA", "Doctor FAST"],
             "automatic_edit": False,
         })
@@ -510,6 +600,7 @@ def remediation_plan(
     next_proofs = {
         "PROVEN_IMPORT_INVERSION": "Confirm imports in current source and run affected contracts.",
         "IMPORT_CYCLE": "Identify eager runtime imports versus TYPE_CHECKING/lazy imports, then exercise both import orders.",
+        "DEFERRED_OR_TYPE_ONLY_IMPORT_CYCLE": "Retain deferred/type-only boundaries; confirm import-order behavior before any refactor.",
         "UNPROVEN_UNUSED_SYMBOL": "Check callbacks, ctypes/FFI, same-file references and entrypoints before any deletion.",
         "FRAGMENTED_COMMUNITY_REVIEW": "Inspect domain ownership and runtime consumers; merge only for a proven duplication.",
         "HIGH_FANOUT_REVIEW": "Profile import and runtime cost before splitting a heavily used API.",
