@@ -32,4 +32,4 @@ jobs:
         shell: bash
         run: |
           test "$(git rev-parse HEAD)" = "${{ github.sha }}"
-          python -X faulthandler -m unittest -v tests.test_encyclopedia_provider_lazy_boundary
+          python -X faulthandler -m unittest discover -s tests -p "test_encyclopedia_provider_lazy_boundary.py" -v
