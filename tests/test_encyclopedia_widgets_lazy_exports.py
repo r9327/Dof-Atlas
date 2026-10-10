@@ -37,13 +37,13 @@ class EncyclopediaWidgetLazyExportsTests(unittest.TestCase):
     def test_public_attribute_imports_once_and_preserves_type_identity(self):
         module = self._module_without_qt()
         canonical = object()
-        with patch("importlib.import_module", return_value=types.SimpleNamespace(
+        with patch.object(module, "import_module", return_value=types.SimpleNamespace(
                 QuestDetailView=canonical)) as imported:
             self.assertIs(getattr(module, "QuestDetailView"), canonical)
             self.assertIs(getattr(module, "QuestDetailView"), canonical)
             imported.assert_called_once_with(
                 "app.modules.encyclopedia.widgets.quest_detail_view")
-        with patch("importlib.import_module") as imported:
+        with patch.object(module, "import_module") as imported:
             with self.assertRaises(AttributeError):
                 getattr(module, "MissingAtlasWidget")
             imported.assert_not_called()
