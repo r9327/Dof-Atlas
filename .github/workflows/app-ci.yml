@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - ci/pr130-cert-final-20261010-v3
     paths:
       - "app/**"
       - "local_dofus_data/**"
