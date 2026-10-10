@@ -66,6 +66,7 @@ class GraphIntelligenceTests(unittest.TestCase):
             )
             b.write_text(
                 "from typing import TYPE_CHECKING\n"
+                "lambda_debug = lambda n: n + 1\n"
                 "if TYPE_CHECKING:\n    from app.core import a\n",
                 encoding="utf-8",
             )

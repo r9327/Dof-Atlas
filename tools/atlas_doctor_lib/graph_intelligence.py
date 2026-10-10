@@ -141,11 +141,15 @@ def _source_import_scopes(root: Path, source: str, target: str) -> set[str]:
             for child in node.orelse:
                 visit(child, delayed=delayed, type_only=type_only)
             return
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             # Imports in a function body are executed at call time, even if the
             # function itself is defined during module import.
-            for child in getattr(node, "body", []):
+            for child in node.body:
                 visit(child, delayed=True, type_only=type_only)
+            return
+        if isinstance(node, ast.Lambda):
+            # A lambda body is one expression, not a list of statements.
+            visit(node.body, delayed=True, type_only=type_only)
             return
         for child in ast.iter_child_nodes(node):
             visit(child, delayed=delayed, type_only=type_only)
