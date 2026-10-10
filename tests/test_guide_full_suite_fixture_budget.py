@@ -33,8 +33,10 @@ def _slow_method(name: str) -> ast.FunctionDef:
 def _method_calls(method: ast.FunctionDef, name: str) -> int:
     return sum(
         isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == name
+        and (
+            (isinstance(node.func, ast.Attribute) and node.func.attr == name)
+            or (isinstance(node.func, ast.Name) and node.func.id == name)
+        )
         for node in ast.walk(method)
     )
 
