@@ -79,6 +79,7 @@ jobs:
           }
           git checkout --force $candidate
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Path "artifacts/widget_import_comparison" -Force | Out-Null
           Copy-Item "$output\*.json" -Destination "artifacts/widget_import_comparison/" -Force
 
       - name: Aggregate, bound and verify exact SHAs
