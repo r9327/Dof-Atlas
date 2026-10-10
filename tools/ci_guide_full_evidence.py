@@ -71,12 +71,13 @@ def prove(log_text: str, expected: dict[str, list[str]]) -> dict[str, int]:
         needed = expected.get(stage, [])
         if not needed or len(needed) != len(set(needed)):
             raise ValueError("missing or duplicate discovery for " + module)
-        if len(observed) != len(needed):
-            raise ValueError("missing, extra or duplicate test for " + module)
         if any(status != "ok" for _, status in observed):
             raise ValueError("non-successful test status in " + module)
-        if sorted(test_id for test_id, _ in observed) != sorted(needed):
-            raise ValueError("test ID mismatch in " + module)
+        # Some real FULL tests recursively run another unittest subprocess:
+        # duplicate successful log records are harmless; every discovered ID
+        # must still be represented, and unrecognized IDs remain forbidden.
+        if sorted({test_id for test_id, _ in observed}) != sorted(needed):
+            raise ValueError("missing or unexpected test ID in " + module)
         result[stage] = len(needed)
     return result
 

@@ -58,6 +58,14 @@ class GuideExactFullEvidenceTests(unittest.TestCase):
                 "test_c (test_pyside_shell.S.test_unknown) ... ok",
             ), _expected())
 
+    def test_recursively_repeated_successful_tests_do_not_invalidate_proof(self):
+        line = "test_c (test_pyside_shell.S.test_c) ... ok\n"
+        repeated = _full().replace(line, line + line)
+        self.assertEqual(
+            prove(repeated, _expected()),
+            {name: 1 for name in REUSED_MODULES},
+        )
+
     def test_incomplete_discovery_cannot_be_reused(self):
         incomplete = _expected()
         incomplete["12_existing_success_tests"] = []
