@@ -880,8 +880,7 @@ let importChanges=new Map(),importErrors=new Map(),importStatus='UNKNOWN';
 let lastRefresh=0,refreshInFlight=false,lastLabel='';
 function fit(){const rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(rect.height*devicePixelRatio));render()}
 function filter(resetPage=true){const needle=search.value.toLowerCase().trim(),group=domain.value,level=priority.value,cluster=community.value,kind=reviewKind.value,scenarioName=scenario.value;
-matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return
- (!runtimeOnly.checked||(n.file.startsWith('app/')&&firstNodeByFile.get(n.file)===i))&&
+matches=nodes.map((n,i)=>i).filter(i=>{const n=nodes[i];return (!runtimeOnly.checked||(n.file.startsWith('app/')&&firstNodeByFile.get(n.file)===i))&&
  (!group||n.domain===group)&&
  (!cluster||String(n.community)===cluster)&&
  (!scenarioName||(n.runtime_scenarios||[]).includes(scenarioName))&&
