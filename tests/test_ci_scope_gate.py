@@ -115,7 +115,7 @@ class ScopeGateTests(unittest.TestCase):
         missing = self.classify(["tests/test_not_present.py"])
         self.assertEqual(missing["status"], "FULL_REQUIRED")
         self.assertIn("tests/test_not_present.py", missing["uncovered_paths"])
-        present = self.classify(["tests/test_ci_scope_gate.py"])
+        present = self.classify(["tests/test_ci_dev_tests.py"])
         self.assertEqual(present["status"], "TARGETED")
         self.assertEqual(present["uncovered_paths"], [])
 
