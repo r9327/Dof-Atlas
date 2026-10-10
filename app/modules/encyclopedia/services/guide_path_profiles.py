@@ -6,6 +6,7 @@ import re
 import unicodedata
 from collections import defaultdict, deque
 from dataclasses import dataclass
+from heapq import heapify, heappop, heappush
 from typing import Any, Iterable
 
 from app.constants import DATA_DIR
@@ -933,16 +934,18 @@ class GuidePathResolver:
             level = safe_int(getattr(quest, "level_min", 0), 0) or 0
             return level, normalize_text(getattr(quest, "name", "")), qid
 
-        ready = sorted((qid for qid, count in incoming.items() if count == 0), key=key)
+        # Identical priority as the sorted list, without repeatedly sorting
+        # every pending quest when a new prerequisite becomes ready.
+        ready = [(key(qid), qid) for qid, count in incoming.items() if count == 0]
+        heapify(ready)
         result: list[int] = []
         while ready:
-            qid = ready.pop(0)
+            _priority, qid = heappop(ready)
             result.append(qid)
             for child in sorted(children.get(qid, ()), key=key):
                 incoming[child] -= 1
                 if incoming[child] == 0:
-                    ready.append(child)
-                    ready.sort(key=key)
+                    heappush(ready, (key(child), child))
         result.extend(sorted(ids - set(result), key=key))
         return result
 
