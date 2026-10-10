@@ -386,7 +386,7 @@ class DoctorGraphUiTests(unittest.TestCase):
         html = render_html(payload)
         for marker in (
             'id="relation"', "const relationCounts=new Map()",
-            "pageEdges=data.edges.filter", "(!selectedRelation||e.relation===selectedRelation)",
+            "pageEdges=(runtimeOnly.checked?runtimeFileEdges:data.edges).filter", "(!selectedRelation||e.relation===selectedRelation)",
             "edge.direction!=='out'", "function showGraphPath(from,to)",
             "depth.size>=4000", "distance>=8",
             "function revealNode(i)", "Définir comme départ du chemin",
