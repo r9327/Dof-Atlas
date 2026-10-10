@@ -60,10 +60,7 @@ class GuidePrerequisiteLookupTests(unittest.TestCase):
                 raise AssertionError("Resorting the source mapping on each lookup is forbidden")
 
         resolver = self.resolver
-        self.assertEqual(
-            [len(key) for key, _ids in resolver._prerequisite_name_candidates],
-            sorted([len(key) for key, _ids in resolver._prerequisite_name_candidates], reverse=True),
-        )
+        # The fallback must perform indexed lookups, never loop across all names.
         resolver.quest_source_name_to_ids = FrozenItems(resolver.quest_source_name_to_ids)
         for _ in range(20):
             self.assertEqual(
@@ -71,6 +68,65 @@ class GuidePrerequisiteLookupTests(unittest.TestCase):
                 {1},
             )
         self.assertEqual(resolver._quest_ids_from_prerequisite_text("Terminer Épreuve"), set())
+
+    def test_indexed_fallback_is_equivalent_to_full_catalog_scan(self) -> None:
+        from random import Random
+
+        rng = Random(9327)
+        resolver = self.resolver
+        keys = [
+            "la_quete_de_l_aube", "legende_oubliee", "epreuve",
+            "retour_au_village", "quete_des_grands_jours", "le_dernier_souffle",
+            "defi_sylvestre", "surprenant", "poursuite", "longue_quete_finale",
+        ]
+        resolver.quest_source_name_to_ids.clear()
+        for ident, key in enumerate(keys, 1):
+            resolver.quest_source_name_to_ids[key].append(ident)
+
+        def legacy_full_scan(value: str) -> set[int]:
+            padded = f"_{value}_"
+            result: set[int] = set()
+            for name, ids in resolver.quest_source_name_to_ids.items():
+                if len(name) >= 8 and (f"_{name}_" in padded or value.endswith(name)):
+                    result.update(ids)
+            return result
+
+        handpicked = (
+            "", "legende_oubliee", "avoir_termine_legende_oubliee",
+            "interdit_surprenant", "lasurprenant", "autresurprenant",
+            "quete_des_grands_jours_et_legende_oubliee",
+            "xla_quete_de_l_aube", "retour_au_village_extra", "epreuve",
+        )
+        alphabet = "abcdefghijklmnopqrstuvwxyz_"
+        random_cases = [
+            "".join(rng.choice(alphabet) for _ in range(rng.randrange(0, 65)))
+            for _ in range(500)
+        ]
+        random_cases.extend(
+            "_".join(rng.choice(keys) for _ in range(rng.randrange(1, 5)))
+            for _ in range(250)
+        )
+        for value in (*handpicked, *random_cases):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    resolver._source_prerequisite_matches(value),
+                    legacy_full_scan(value),
+                )
+
+    def test_fallback_never_scans_whole_catalog(self) -> None:
+        resolver = self.resolver
+        class IndexOnlyDict(dict):
+            def items(self):
+                raise AssertionError("full scan is forbidden")
+        resolver.quest_source_name_to_ids = IndexOnlyDict(
+            resolver.quest_source_name_to_ids
+        )
+        self.assertEqual(
+            resolver._quest_ids_from_prerequisite_text(
+                "Avoir terminé Légende oubliée"
+            ),
+            {2},
+        )
 
     def test_topological_order_preserves_legacy_sorted_priority(self):
         from collections import defaultdict
@@ -112,7 +168,10 @@ class GuidePrerequisiteLookupTests(unittest.TestCase):
         self.assertEqual(first, {1})
         first.add(9999)
         # The complete candidate list must not be visited again.
-        resolver._prerequisite_name_candidates = None
+        class NoLookup(dict):
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("cached text must not probe source mapping")
+        resolver.quest_source_name_to_ids = NoLookup(resolver.quest_source_name_to_ids)
         self.assertEqual(resolver._quest_ids_from_prerequisite_text(phrase), {1})
         self.assertEqual(resolver._prerequisite_text_cache[phrase], frozenset({1}))
 
