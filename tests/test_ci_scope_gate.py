@@ -175,6 +175,15 @@ class ScopeGateTests(unittest.TestCase):
         self.assertIn("github.event_name == 'workflow_dispatch'", full)
         self.assertIn("steps.full_tests.outcome", full)
 
+    def test_app_ci_watches_real_windows_launcher(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertTrue((root / "DOFUS.bat").is_file())
+        workflow = (root / ".github/workflows/app-ci.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('      - "DOFUS.bat"', workflow)
+        self.assertNotIn('      - "Dofus_Atlas.bat"', workflow)
+
     def test_scoped_pr_feedback_does_not_replace_doctor_fast(self):
         root = Path(__file__).resolve().parents[1]
         scoped = (root / ".github/workflows/scoped-pr-ci.yml").read_text(
