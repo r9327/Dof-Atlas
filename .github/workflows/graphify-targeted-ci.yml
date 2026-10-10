@@ -55,7 +55,9 @@ jobs:
           import json
           from pathlib import Path
           from tools.atlas_doctor_lib.development_preflight import development_preflight
-          result = development_preflight(Path.cwd(), base_ref="HEAD~1")
+          # Review the true PR diff; HEAD~1 on a merge-commit branch
+          # is an old feature head and wrongly treats merged main as changes.
+          result = development_preflight(Path.cwd(), base_ref="origin/main")
           elapsed = result.get("duration_seconds", 0)
           print(f"Doctor development preflight: {result['status']} in {elapsed}s")
           if result.get("integrity_executed") or result.get("tests_executed"):

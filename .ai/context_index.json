@@ -1,5 +1,15 @@
 {
   "entries": {
+    ".agents": {
+      "mode": "040000",
+      "sha": "a41129145d8bd5c5b307d2b463e4641e16870c8b",
+      "type": "tree"
+    },
+    ".codex": {
+      "mode": "040000",
+      "sha": "9d1a91cf04dbd57611db7d0c710671e502b3984f",
+      "type": "tree"
+    },
     ".gitattributes": {
       "mode": "100644",
       "sha": "877ffeada0dad4bfced98478dfa7c011fbcc4f42",
@@ -12,7 +22,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "33b4e86b9f9a30c12e4d4eeafb9d916cc0cd23ee",
+      "sha": "4dc5edaff02a5a4f7b049aeffb0d41d2234e70a2",
       "type": "tree"
     },
     ".gitignore": {
@@ -27,7 +37,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "aca1b690a07a77c9d179df8815780bc7bec39557",
+      "sha": "fc26dd6714b198c9081abbb71c422edcc0887659",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -92,7 +102,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "74692e35b88cfa5582f9dc42cdeafb5d15458569",
+      "sha": "fc76f829133d80d035d618794d312517e7f565f0",
       "type": "tree"
     },
     "launch.py": {
@@ -127,12 +137,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "b1583ec7e825f4fef9c85a06b4e3554fddc4eb8f",
+      "sha": "7ac018d1668e509515c148cced1a14f92e09740e",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "e4a88c7b9fe7c1ca13e67f02b6e905e0fc40f2d5",
+      "sha": "2568f77693babc5f4d60051ec0cacc190c19fdbf",
       "type": "tree"
     }
   },

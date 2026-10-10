@@ -111,6 +111,8 @@ class AiContextTests(unittest.TestCase):
             "ROAD_IA.md": "quality",
             ".github/workflows/app-ci.yml": "quality",
             ".githooks/pre-commit": "quality",
+            ".agents/skills/find-docs/SKILL.md": "quality",
+            ".codex/config.toml": "quality",
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
