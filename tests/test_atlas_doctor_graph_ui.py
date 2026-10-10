@@ -315,7 +315,7 @@ class DoctorGraphUiTests(unittest.TestCase):
         }, {}))
         self.assertIn("let pageEdges=[],livePageEdges=[],liveRemovedPageEdges=[];", page)
         self.assertIn("function rebuildPageEdges()", page)
-        self.assertIn("pageEdges=data.edges.filter", page)
+        self.assertIn("pageEdges=(runtimeOnly.checked?runtimeFileEdges:data.edges).filter", page)
         self.assertIn("for(const e of pageEdges)", page)
         self.assertIn("relation.addEventListener('change',()=>{rebuildPageEdges()", page)
         self.assertNotIn("if(visible.length<=3500){for(const e of data.edges)", page)
