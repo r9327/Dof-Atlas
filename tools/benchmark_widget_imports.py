@@ -40,10 +40,18 @@ def current_rss_mb() -> float:
 
         counter = MEMORY_COUNTERS()
         counter.cb = ctypes.sizeof(counter)
-        func = ctypes.windll.psapi.GetProcessMemoryInfo
-        handle = ctypes.windll.kernel32.GetCurrentProcess()
-        if not func(handle, ctypes.byref(counter), counter.cb):
-            raise OSError("GetProcessMemoryInfo failed")
+        # ctypes otherwise assumes 32-bit integer function results/arguments,
+        # which truncates process HANDLEs on 64-bit Windows runners.
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        psapi = ctypes.WinDLL("psapi", use_last_error=True)
+        kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        psapi.GetProcessMemoryInfo.argtypes = [
+            wintypes.HANDLE, ctypes.POINTER(MEMORY_COUNTERS), wintypes.DWORD,
+        ]
+        psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+        handle = kernel32.GetCurrentProcess()
+        if not psapi.GetProcessMemoryInfo(handle, ctypes.byref(counter), counter.cb):
+            raise OSError(ctypes.get_last_error(), "GetProcessMemoryInfo failed")
         return round(counter.WorkingSetSize / (1024 * 1024), 3)
     # Linux/macos fallback for local deterministic quick smoke only.
     try:
