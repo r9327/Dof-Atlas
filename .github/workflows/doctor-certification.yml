@@ -1,0 +1,101 @@
+name: Doctor Adaptive Certification
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: doctor-adaptive-cert-PR-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+  CERT_BASE_REF: ${{ github.event.pull_request.base.sha }}
+
+jobs:
+  adaptive:
+    name: Doctor / Adaptive Evidence (not FULL)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Verify exact candidate
+        shell: pwsh
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) {
+            throw "Candidate SHA mismatch: expected $env:CANDIDATE_SHA, got $actual"
+          }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install pinned dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Test independent adaptive certification contracts
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_doctor_certification
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Plan and execute only safely covered tests
+        shell: pwsh
+        run: |
+          python -X faulthandler -m tools.doctor_certification --base-ref "$env:CERT_BASE_REF" --expected-sha "$env:CANDIDATE_SHA" --run --output artifacts/doctor_certification/report.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish candid certification decision
+        if: always()
+        shell: pwsh
+        run: |
+          $path = "artifacts/doctor_certification/report.json"
+          if (Test-Path $path) {
+            $report = Get-Content $path -Raw | ConvertFrom-Json
+            Write-Host "Doctor profile: $($report.profile), scope: $($report.status)"
+            Write-Host "Execution: $($report.execution.status)"
+            if ($env:GITHUB_STEP_SUMMARY) {
+              Add-Content $env:GITHUB_STEP_SUMMARY "## Doctor adaptive certification"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Candidate: $env:CANDIDATE_SHA"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Selected profile: $($report.profile)"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Plan: $($report.status)"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Scoped verdict: $($report.execution.status)"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- FULL_REQUIRED means the FULL was **not dispatched** by this workflow."
+              Add-Content $env:GITHUB_STEP_SUMMARY "- SCOPED_TESTS_PASS is **not phase/release certification**."
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Full certification remains mandatory under PHASE_CERTIFICATION.md."
+            }
+          } else {
+            Write-Host "Doctor evidence unavailable: failed stage; NO certification."
+          }
+
+      - name: Upload Doctor evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: doctor-certification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/doctor_certification/report.json
+          if-no-files-found: warn
+          retention-days: 30

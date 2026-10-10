@@ -22,7 +22,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "b27dc93d21f8c804fb8521ac654f76423e64cb1c",
+      "sha": "c2c4ecb7d2e658f548d8a6185fd0a1f700bbf448",
       "type": "tree"
     },
     ".gitignore": {
@@ -48,6 +48,11 @@
     "DEVELOPMENT_GUARDRAILS.md": {
       "mode": "100644",
       "sha": "39c4bdfaee0d29728e2abfc1069a0426a42ff73f",
+      "type": "blob"
+    },
+    "DOCTOR_ADAPTIVE_CERTIFICATION.md": {
+      "mode": "100644",
+      "sha": "0bcf1d1c24bb270fab95fef5d40f8ed65ef6c5e7",
       "type": "blob"
     },
     "DOFUS.bat": {
@@ -137,12 +142,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "8ac1f8fc17c84a5dd10d813a4d30d70f511cfd77",
+      "sha": "cb3f0caf2fa79b87a5a6eeb7b5a8d16d455d878e",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "b5b931e18891fe13731f640039697832061eb39f",
+      "sha": "2841691cda3a4387de289ee9fddc08cd454a4bf9",
       "type": "tree"
     }
   },
