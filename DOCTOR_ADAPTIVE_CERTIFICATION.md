@@ -137,3 +137,39 @@ original budgets. Optimize based on measured end-to-end time, not estimates.
 Do **not** merge this PR before its focused checks and the repo's current
 required checks pass. The stage 2–4 items are explicit future gates, not
 features silently claimed complete by v1.
+
+
+## Stage 1B — implemented additive policy, passports and offline shadow reviews
+
+Doctor now also has the following concrete components (all scoped to the
+existing feature branch and existing FULL requirements):
+
+- \`tools/atlas_doctor_lib/certification_policy.py\`: **independent**
+  additional contracts for Encyclopedia navigation, Guide progression,
+  startup resources, Qt lifecycle, memory/preload and data integrity.
+  Each points to existing test modules, affected integrity groups and
+  benchmark dimensions; the policy enforcer rejects missing scenario tests.
+- \`tools/atlas_doctor_lib/certification_passport.py\`: per-SHA passport
+  describing actual tests, outstanding metrics, environment versions,
+  selection explanations and unresolved reasons. Local hash mismatch or
+  incorrect candidate SHA blocks artifact consumption; hashes alone do
+  **not** attest GitHub provenance, and automatic cross-SHA reuse remains
+  disabled.
+- \`tools/atlas_doctor_lib/certification_shadow.py\`: compares a candidate
+  plan with a **previously completed** FULL Integrity JSON from the same
+  candidate SHA and explicitly flags potentially missed regressions.
+  It does not start a FULL and never waives phase obligations.
+- Command usage:
+  \`python -m tools.doctor_certification --base-ref origin/main --expected-sha <HEAD> --run --output artifacts/doctor_certification/report.json --passport-output artifacts/doctor_certification/passport.json\`
+- Optional exact-SHA shadow comparison:
+  \`python -m tools.atlas_doctor certify --base-ref origin/main --shadow-full-report artifacts/completed-full.json --json\`.
+  Malformed or mismatched FULL evidence is blocked, never interpreted as PASS.
+- Tests: \`tests.test_doctor_certification\`,
+  \`tests.test_doctor_certification_policy\`, and
+  \`tests.test_doctor_certification_shadow\` are CI-targeted.
+
+The passport always reports required but **unexecuted** performance metrics.
+It is an advisory result, not a new authorized release certificate.
+The remaining Stage 2–4 work above (trusted attestation, replay of real
+end-to-end scenarios, shadow campaigns, validated shards, independent
+policy migration) remains explicitly **NOT IMPLEMENTED** in this PR.

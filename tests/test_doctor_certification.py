@@ -29,7 +29,11 @@ class AdaptiveCertificationTests(unittest.TestCase):
         (self.root / "tests").mkdir()
         for name in ("test_ci_dev_tests", "test_guide_prerequisite_lookup",
                      "test_encyclopedia_on_demand_loading",
-                     "test_encyclopedia_tab_demand_loading"):
+                     "test_encyclopedia_tab_demand_loading",
+                     "test_startup_resource_contracts",
+                     "test_performance_guardrails",
+                     "test_guide_ultime_manual_prerequisites",
+                     "test_critical_json_schema"):
             (self.root / "tests" / (name + ".py")).write_text("pass\n", encoding="utf-8")
 
     def scoped(self, root, paths, **kwargs):

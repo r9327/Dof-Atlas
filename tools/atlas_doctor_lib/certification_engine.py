@@ -170,11 +170,19 @@ def plan(
     if len(consumers) > 160:
         reasons.append("IMPACT_SCOPE_TOO_LARGE")
     domains = classify_domains(changed, consumers)
+    from tools.atlas_doctor_lib.certification_policy import obligations
+    independent = obligations(root, changed, consumers)
+    if independent["missing_contracts"]:
+        reasons.append("REQUIRED_SCENARIO_CONTRACT_UNAVAILABLE")
+        reasons.append("BOUNDARY_CONTRACT_UNAVAILABLE")
 
     modules = list(scoped.get("modules", [])) if not reasons else []
     if not reasons:
         try:
-            modules = list(dict.fromkeys(modules + _required_boundary_modules(root, changed)))
+            modules = list(dict.fromkeys(
+                modules + _required_boundary_modules(root, changed)
+                + independent["required_tests"]
+            ))
         except ValueError:
             reasons.append("BOUNDARY_CONTRACT_UNAVAILABLE")
         if len(modules) > MAX_SELECTED_MODULES or not modules:
@@ -209,7 +217,20 @@ def plan(
         "status": "FULL_REQUIRED" if reasons else "READY_TO_RUN_SCOPED",
         "reasons": sorted(set(reasons)),
         "domains": domains,
+        "independent_policy": independent,
         "test_modules": modules,
+        "test_selection_explanations": {
+            module: {
+                "source": ("scenario_contract" if module in independent["required_tests"]
+                           else "canonical_scope_or_boundary"),
+                "triggered_by": sorted({
+                    path for row in independent["scenarios"].values()
+                    if module in row["tests"] for path in row["triggered_by"]
+                }),
+                "not_full_certification": True,
+            }
+            for module in modules
+        },
         "source_impact": {
             "status": impacted.get("status"),
             "consumers": consumers[:160],
@@ -225,6 +246,17 @@ def plan(
         "read_only": True,
         "tests_executed": False,
     }
+    from tools.atlas_doctor_lib.certification_policy import enforce
+    decision = enforce(data)
+    if decision["status"] != "POLICY_CONFORMING":
+        data["status"] = "FULL_REQUIRED"
+        data["profile"] = "FULL_REQUIRED"
+        data["reasons"] = sorted(set(data["reasons"] + ["INDEPENDENT_POLICY_BLOCKED"]
+                                    + decision["errors"]))
+        data["test_modules"] = []
+        data["test_selection_explanations"] = {}
+        decision = enforce(data)
+    data["independent_verdict"] = decision
     data["plan_fingerprint"] = fingerprint(data)
     return data
 

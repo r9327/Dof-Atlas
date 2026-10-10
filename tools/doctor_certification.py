@@ -14,6 +14,8 @@ from pathlib import Path
 
 from tools import ci_scope_gate
 from tools.atlas_doctor_lib.certification_engine import plan, verify_scoped_evidence
+from tools.atlas_doctor_lib.certification_passport import build_passport, verify_passport, environment
+from tools.atlas_doctor_lib.certification_shadow import evaluate_shadow, load_full_report
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,6 +74,22 @@ def run(args: argparse.Namespace) -> dict:
             }
     elif args.run:
         report["execution"] = {"status": "FULL_REQUIRED_NOT_DISPATCHED", "exit_code": None}
+    previous_full = getattr(args, "shadow_full_report", None)
+    if previous_full:
+        comparison = evaluate_shadow(report, load_full_report(previous_full))
+        report["shadow_comparison"] = comparison
+        if comparison["status"] == "INVALID_EVIDENCE":
+            report["status"] = "BLOCKED"
+            report["reasons"].append("SHADOW_EVIDENCE_INVALID")
+    report["passport"] = build_passport(report, root=ROOT)
+    report["passport_validation"] = verify_passport(
+        report["passport"], head_sha=head,
+        plan_fingerprint=report["plan_fingerprint"],
+        runner_environment=environment(ROOT),
+    )
+    if report["passport_validation"]["status"] != "INTEGRITY_CHECKED_NOT_ATTESTED":
+        report["status"] = "BLOCKED"
+        report["reasons"].append("PASSPORT_INTEGRITY_FAILURE")
     return report
 
 
@@ -81,6 +99,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--expected-sha", default="")
     parser.add_argument("--run", action="store_true", help="Run safe selected modules; never a FULL.")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--passport-output", type=Path)
+    parser.add_argument("--shadow-full-report", type=Path,
+                        help="Optional completed Atlas Integrity FULL JSON, never launches FULL")
     args = parser.parse_args(argv)
     try:
         report = run(args)
@@ -97,6 +118,8 @@ def main(argv: list[str] | None = None) -> int:
         }
     if args.output:
         _write_report(args.output, report)
+    if args.passport_output and isinstance(report.get("passport"), dict):
+        _write_report(args.passport_output, report["passport"])
     print(json.dumps(report, indent=2, ensure_ascii=False))
     # Exit 0 when a FULL is required: this workflow is *advisory*, never
     # marks the mandatory FULL as passing. A broken plan/test does fail.
