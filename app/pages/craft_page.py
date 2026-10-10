@@ -1244,6 +1244,7 @@ class CraftPage(QWidget):
             return
         resources: dict[str, dict[str, Any]] = {}
         missing = []
+        lookup_errors = 0
         for row in self.selection.values():
             item = row["item"]
             ident = item_id(item)
@@ -1253,6 +1254,8 @@ class CraftPage(QWidget):
             try:
                 recipe = local_data_cache.get_recipe_for_item(ident)
             except Exception:
+                LOGGER.exception("Craft recipe lookup failed for item %s", ident)
+                lookup_errors += 1
                 recipe = {"found": False, "ingredients": []}
             if not recipe.get("found") or not recipe.get("ingredients"):
                 missing.append(item.get("name", str(ident)))
@@ -1273,4 +1276,7 @@ class CraftPage(QWidget):
         self.resource_dialog = dialog
         dialog.show()
         dialog.raise_()
-        self.status_callback(f"{len(resources)} ressource(s) agregee(s).")
+        message = f"{len(resources)} ressource(s) agregee(s)."
+        if lookup_errors:
+            message += f" {lookup_errors} recette(s) indisponible(s) (erreur de lecture)."
+        self.status_callback(message)
