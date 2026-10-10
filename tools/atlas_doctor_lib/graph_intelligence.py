@@ -225,6 +225,7 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
     components = _components(adjacency)
     cache: dict[str, set[str] | None] = {}
     source_confirmed_pairs: set[tuple[str, str]] = set()
+    import_time_adjacency: dict[str, set[str]] = defaultdict(set)
     cycles = []
     for members in components:
         group = set(members)
@@ -235,6 +236,9 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
             scope = sorted(_source_import_scopes(root, source, target)) if proof and root is not None else []
             checked.append({"source": source, "target": target, "source_confirmed": proof,
                             "import_scopes": scope})
+            if proof and "IMPORT_TIME" in scope:
+                import_time_adjacency[source].add(target)
+                import_time_adjacency.setdefault(target, set())
             if proof:
                 source_confirmed_pairs.add((source, target))
         cycles.append({
@@ -244,15 +248,13 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
             "blocking": False, "review_required": True,
             "reason": "A cycle in import dependencies does not prove a runtime error or a new regression.",
             "sample_edges": checked[:10],
+            "type_only_or_deferred_edge_count": sum(
+                1 for row in checked if row["source_confirmed"]
+                and "IMPORT_TIME" not in row["import_scopes"]
+            ),
         })
-    # Compute import-time SCCs separately. A Graphify cycle across TYPE_CHECKING
-    # or lazily imported modules is static coupling, not an import-time cycle.
-    import_time_adjacency: dict[str, set[str]] = defaultdict(set)
-    for candidate in cycles:
-        for edge in candidate["sample_edges"]:
-            if edge["source_confirmed"] and "IMPORT_TIME" in edge["import_scopes"]:
-                import_time_adjacency[edge["source"]].add(edge["target"])
-                import_time_adjacency.setdefault(edge["target"], set())
+    # Analyze every source-confirmed import edge, not merely the 10 edges
+    # retained for user-facing examples of a large component.
     import_time_components = _components(import_time_adjacency)
     # A source-confirmed cycle can survive even when *other* edges in the
     # same Graphify SCC are stale. Compute SCCs again using only proven edges.
@@ -269,18 +271,18 @@ def inspect_import_cycles(graph: dict[str, Any], root: Path | None = None) -> di
         candidate["source_confirmed_subcycles"] = len(confirmed_inside)
         candidate["confirmed_cycle_samples"] = confirmed_inside[:3]
         import_time_inside = [c for c in import_time_components if set(c) <= members]
-        candidate["confirmed_import_time_subcycles"] = len(import_time_inside)
+        candidate["confirmed_import_time_subcycles"] = len(import_time_inside) if root is not None else None
         candidate["import_time_cycle_samples"] = import_time_inside[:3]
-        candidate["static_cycle_contains_deferred_or_type_only_edges"] = any(
-            (edge["source_confirmed"] and "IMPORT_TIME" not in edge["import_scopes"])
-            for edge in candidate["sample_edges"]
+        candidate["static_cycle_contains_deferred_or_type_only_edges"] = bool(
+            candidate["type_only_or_deferred_edge_count"]
         )
     return {
         "status": "REVIEW" if cycles else "PASS",
         "directed_extracted_import_pairs": len(pairs),
         "suspected_cycles": len(cycles),
         "source_confirmed_cycles": len(confirmed_components),
-        "confirmed_import_time_cycles": len(import_time_components),
+        "confirmed_import_time_cycles": len(import_time_components) if root is not None else None,
+        "import_scope_status": "SOURCE_SCANNED" if root is not None else "NOT_RUN",
         "cycles": cycles[:MAX_REVIEW],
         "truncated": len(cycles) > MAX_REVIEW,
         "scope": "Extracted directed runtime Python file imports only; dynamic imports can be missed.",
