@@ -132,7 +132,11 @@ jobs:
           python -X faulthandler -m unittest -v `
             tests.test_atlas_doctor_development_preflight `
             tests.test_atlas_doctor_capture_ui `
-            tests.test_guide_ultime_route_sheet_ui
+            tests.test_guide_ultime_route_sheet_ui `
+            tests.test_guide_tools_harness_contract `
+            tests.test_guide_transversal_canonical `
+            tests.test_guide_ultime_final_transversal_validator `
+            tests.test_agent_tool
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           @'
