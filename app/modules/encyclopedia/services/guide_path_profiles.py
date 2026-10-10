@@ -332,6 +332,11 @@ def _loose_name(value: Any) -> str:
     return " ".join(re.findall(r"[a-z0-9]+", text))
 
 
+# A builder spans many guides, but these caches must die with the resolver.
+# Keep them bounded to avoid turning Guide generation into a steady-RAM cache.
+_MAX_PREREQUISITE_LOOKUP_CACHE = 4096
+
+
 class GuidePathResolver:
     def __init__(self, quest_provider: Any, achievement_provider: Any) -> None:
         self.quest_provider = quest_provider
@@ -376,6 +381,10 @@ class GuidePathResolver:
             key=lambda item: len(item[0]),
             reverse=True,
         )
+        self._prerequisite_text_cache: dict[str, frozenset[int]] = {}
+        self._direct_quest_reference_cache: dict[
+            tuple[int, str, tuple[str, ...]], frozenset[int]
+        ] = {}
         self._load_enriched_prerequisites()
 
     def _load_enriched_prerequisites(self) -> None:
@@ -400,25 +409,32 @@ class GuidePathResolver:
                 )
 
     def _quest_ids_from_prerequisite_text(self, text: str) -> set[int]:
+        # Repeated prerequisites occur across Dofus guides and expanded routes.
+        # A frozen, per-resolver result makes every caller receive its own set.
+        cache = self._prerequisite_text_cache
+        cached = cache.get(text)
+        if cached is not None:
+            return set(cached)
         normalized = normalize_text(text)
         loose = _loose_name(text)
-        if not normalized and not loose:
-            return set()
         result: set[int] = set()
-        # Exact source-name resolution first.
-        result.update(self.quest_source_name_to_ids.get(normalized, ()))
-        result.update(self.quest_source_loose_to_ids.get(loose, ()))
-        # DPLN prerequisite lines often contain prefixes such as "Quête :" or
-        # "Avoir terminé ...". Match canonical quest titles only inside this
-        # dedicated prerequisite field, longest names first to avoid pollution.
-        if not result:
-            padded = f"_{normalized}_"
-            for name_key, ids in self._prerequisite_name_candidates:
-                if len(name_key) < 8:
-                    continue
-                if f"_{name_key}_" in padded or normalized.endswith(name_key):
-                    result.update(int(value) for value in ids)
-        return {qid for qid in result if qid in self.quest_by_id}
+        if normalized or loose:
+            # Exact source-name resolution first.
+            result.update(self.quest_source_name_to_ids.get(normalized, ()))
+            result.update(self.quest_source_loose_to_ids.get(loose, ()))
+            # DPLN prerequisite lines often contain prefixes such as "Quête :"
+            # or "Avoir terminé ...". Preserve the historical match ordering.
+            if not result:
+                padded = f"_{normalized}_"
+                for name_key, ids in self._prerequisite_name_candidates:
+                    if len(name_key) < 8:
+                        continue
+                    if f"_{name_key}_" in padded or normalized.endswith(name_key):
+                        result.update(int(value) for value in ids)
+        matches = frozenset(qid for qid in result if qid in self.quest_by_id)
+        if len(cache) < _MAX_PREREQUISITE_LOOKUP_CACHE:
+            cache[text] = matches
+        return set(matches)
 
     def _direct_quest_prerequisites(
         self,
@@ -426,13 +442,31 @@ class GuidePathResolver:
         *,
         include_enriched: bool = False,
     ) -> set[int]:
-        qrefs, _srefs = mandatory_references(str(getattr(quest, "start_criterion", "") or ""))
-        result = set(qrefs)
+        # Include the current criterion and prerequisite strings in the key:
+        # refreshing a QuestRecord cannot return a stale prerequisite result.
+        quest_id = int(quest.id)
+        criterion = str(getattr(quest, "start_criterion", "") or "")
+        prerequisites = tuple(
+            str(value or "") for value in (getattr(quest, "prerequisites", ()) or ())
+        )
+        key = (quest_id, criterion, prerequisites)
+        cache = self._direct_quest_reference_cache
+        cached = cache.get(key)
+        if cached is None:
+            qrefs, _srefs = mandatory_references(criterion)
+            result = set(qrefs)
+            for value in prerequisites:
+                result.update(self._quest_ids_from_prerequisite_text(value))
+            result.discard(quest_id)
+            cached = frozenset(qid for qid in result if qid in self.quest_by_id)
+            if len(cache) < _MAX_PREREQUISITE_LOOKUP_CACHE:
+                cache[key] = cached
+        result = set(cached)
+        # Enriched prerequisites can be refreshed independently of the quest
+        # record. Read them live instead of retaining an outdated snapshot.
         if include_enriched:
-            result.update(self.enriched_quest_prerequisites.get(int(quest.id), set()))
-        for value in getattr(quest, "prerequisites", ()) or ():
-            result.update(self._quest_ids_from_prerequisite_text(str(value or "")))
-        result.discard(int(quest.id))
+            result.update(self.enriched_quest_prerequisites.get(quest_id, ()))
+        result.discard(quest_id)
         return {qid for qid in result if qid in self.quest_by_id}
 
     @staticmethod
