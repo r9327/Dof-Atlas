@@ -279,6 +279,38 @@ def _candidate_symbol(value: Any) -> str | None:
     return token
 
 
+
+def _local_symbol_references(root: Path, path: str, symbol: str) -> list[dict[str, Any]]:
+    """Recognize local AST *uses*, not just external text matches.
+
+    A callback passed as self.method or a ctypes type referenced within its
+    defining file must not become an 'unused' removal lead. Local AST names
+    alone still do not prove that any execution path was reached.
+    """
+    safe = _path(path)
+    if not safe or not safe.endswith(".py"):
+        return []
+    try:
+        candidate = root / safe
+        if candidate.is_symlink() or not candidate.is_file() or candidate.stat().st_size > 512 * 1024:
+            return []
+        resolved = candidate.resolve()
+        resolved.relative_to(root.resolve())
+        tree = ast.parse(candidate.read_text(encoding="utf-8-sig"), filename=safe)
+    except (OSError, ValueError, UnicodeError, SyntaxError):
+        return []
+    lines = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr == symbol:
+            lines.add(node.lineno)
+        elif isinstance(node, ast.Name) and node.id == symbol and isinstance(node.ctx, ast.Load):
+            lines.add(node.lineno)
+    return [
+        {"file": safe, "line": line, "kind": "LOCAL_AST_REFERENCE_UNVERIFIED_BINDING"}
+        for line in sorted(lines)[:8]
+    ]
+
+
 def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: int = 20) -> dict[str, Any]:
     """Bounded full tracked-source name sweep; no negative proof of dead code."""
     subset = [
@@ -335,11 +367,20 @@ def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: in
     reviewed = []
     for row, name in subset:
         references = [item for item in findings[name] if item["file"] != row["file"]]
+        local_references = _local_symbol_references(root, row["file"], name)
+        classification = ("POSSIBLE_EXTERNAL_CONSUMER" if references
+                          else "LOCAL_SOURCE_REFERENCE_REVIEW" if local_references
+                          else "NO_EXTERNAL_TEXT_MATCH_UNPROVEN")
         reviewed.append({
             "file": row["file"], "symbol": row["symbol"], "normalized_symbol": name,
-            "classification": "POSSIBLE_EXTERNAL_CONSUMER" if references else "NO_EXTERNAL_TEXT_MATCH_UNPROVEN",
-            "references": references[:8], "confirmed_dead_code": False,
-            "next_action": "Verify dynamic Qt callbacks, entry points, native code and external consumers before removal.",
+            "classification": classification,
+            "references": references[:8], "local_references": local_references,
+            "confirmed_dead_code": False,
+            "next_action": (
+                "Keep as source-used pending binding/runtime verification; do not propose removal."
+                if local_references else
+                "Verify dynamic Qt callbacks, entry points, native code and external consumers before removal."
+            ),
         })
     return {
         "status": "REVIEW" if reviewed else "PASS",
@@ -449,12 +490,40 @@ def remediation_plan(
             task["memory_risk"] = "UNMEASURED_REQUIRES_BENCHMARK"
         else:
             task["memory_risk"] = "NO_DIRECT_RUNTIME_SCOPE_IDENTIFIED"
+    # Explicitly separate an actionable, proven contract violation from a
+    # graph lead. Source-confirmed import cycles are still not proven runtime
+    # failures, and weak communities are never automatic refactor commands.
+    next_proofs = {
+        "PROVEN_IMPORT_INVERSION": "Confirm imports in current source and run affected contracts.",
+        "IMPORT_CYCLE": "Identify eager runtime imports versus TYPE_CHECKING/lazy imports, then exercise both import orders.",
+        "UNPROVEN_UNUSED_SYMBOL": "Check callbacks, ctypes/FFI, same-file references and entrypoints before any deletion.",
+        "FRAGMENTED_COMMUNITY_REVIEW": "Inspect domain ownership and runtime consumers; merge only for a proven duplication.",
+        "HIGH_FANOUT_REVIEW": "Profile import and runtime cost before splitting a heavily used API.",
+    }
+    for task in tasks:
+        task["decision"] = ("FIX_CONFIRMED_CONTRACT_VIOLATION"
+                            if task["kind"] == "PROVEN_IMPORT_INVERSION"
+                            else "INVESTIGATE_NO_CODE_CHANGE_YET")
+        task["next_proof"] = next_proofs[task["kind"]]
+        task["code_change_authorized"] = False
     priority = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
     tasks.sort(key=lambda task: (priority[task["priority"]], task["kind"], str(task["paths"])))
     return {
         "schema_version": 1, "status": "REVIEW" if tasks else "PASS",
         "tasks": tasks[:MAX_REVIEW], "task_count": len(tasks),
         "truncated": len(tasks) > MAX_REVIEW,
+        "actionability": {
+            "confirmed_fix_candidates": sum(t["decision"] == "FIX_CONFIRMED_CONTRACT_VIOLATION" for t in tasks),
+            "investigation_candidates": sum(t["decision"] == "INVESTIGATE_NO_CODE_CHANGE_YET" for t in tasks),
+            "local_source_used_symbols": [
+                {"file": row["file"], "symbol": row["symbol"],
+                 "references": row.get("local_references", [])[:8]}
+                for row in (source_review or {}).get("reviewed", [])
+                if row.get("classification") == "LOCAL_SOURCE_REFERENCE_REVIEW"
+            ],
+            "unproven_is_not_safe_to_delete": True,
+            "next_action": "Investigate individual source/runtime leads; no automatic app refactor on graph counts alone.",
+        },
         "performance_evidence": performance or {
             "status": "UNAVAILABLE", "reason": "No exact-SHA runtime benchmark joined."
         },
