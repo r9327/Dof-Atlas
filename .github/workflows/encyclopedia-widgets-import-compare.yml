@@ -1,0 +1,126 @@
+name: Encyclopedia Widget Import Comparison
+
+on:
+  push:
+    branches:
+      - perf/encyclopedia-widgets-lazy-exports-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-widget-import-compare-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  import-comparison:
+    name: Compare real widget import cost, before vs after
+    runs-on: windows-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout exact candidate with baseline history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Check candidate provenance
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne "${{ github.sha }}") { throw "Candidate checkout SHA mismatch" }
+          git cat-file -e 1cead775eea7a41f337549f305b01d1007c265bd^{commit}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install exact Qt runtime
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Compare eight fresh Python processes per case
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $baseline = "1cead775eea7a41f337549f305b01d1007c265bd"
+          $candidate = "${{ github.sha }}"
+          $output = Join-Path $env:RUNNER_TEMP "widget-import-evidence"
+          New-Item -ItemType Directory -Path $output -Force | Out-Null
+          $script = Join-Path $env:RUNNER_TEMP "benchmark_widget_imports.py"
+          Copy-Item -LiteralPath "tools/benchmark_widget_imports.py" -Destination $script -Force
+          foreach ($pair in @(@("before", $baseline), @("after", $candidate))) {
+            $label, $sha = $pair
+            git checkout --force $sha
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            if ((git rev-parse HEAD).Trim() -ne $sha) { throw "SHA mismatch for $label" }
+            foreach ($mode in @("package", "submodule", "public_api")) {
+              foreach ($trial in 1..8) {
+                $name = "$label-$mode-$trial.json"
+                python -X faulthandler $script --mode $mode --output (Join-Path $output $name)
+                if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+              }
+            }
+          }
+          git checkout --force $candidate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item "$output\*.json" -Destination "artifacts/widget_import_comparison/" -Force
+
+      - name: Aggregate, bound and verify exact SHAs
+        run: |
+          @'
+          import json, statistics
+          from pathlib import Path
+          path = Path("artifacts/widget_import_comparison")
+          baseline = "1cead775eea7a41f337549f305b01d1007c265bd"
+          candidate = "${{ github.sha }}"
+          stats = {}
+          for label, sha in (("before", baseline), ("after", candidate)):
+              for mode in ("package", "submodule", "public_api"):
+                  samples = [json.loads((path / f"{label}-{mode}-{i}.json").read_text(encoding="utf-8")) for i in range(1,9)]
+                  if any(s["git_head"] != sha or s["mode"] != mode for s in samples):
+                      raise SystemExit(f"Invalid provenance for {label}/{mode}")
+                  stats[f"{label}_{mode}"] = {
+                      "median_ms": round(statistics.median(s["elapsed_ms"] for s in samples), 2),
+                      "median_rss_delta_mb": round(statistics.median(s["rss_delta_mb"] for s in samples), 3),
+                      "median_loaded_widget_modules": statistics.median(s["widget_submodules_loaded"] for s in samples),
+                  }
+          base = stats["before_package"]
+          now = stats["after_package"]
+          if now["median_loaded_widget_modules"] != 0:
+              raise SystemExit("Plain widget package import still eagerly imports concrete widgets")
+          report = {
+              "base_sha": baseline, "candidate_sha": candidate,
+              "scope": "cold Python import only, NOT Atlas process-tree steady RAM or Phase 8 preload",
+              "trials_per_case": 8, "comparisons": stats,
+              "package_delta_ms": round(now["median_ms"] - base["median_ms"],2),
+              "package_delta_rss_mb": round(now["median_rss_delta_mb"] - base["median_rss_delta_mb"],3),
+          }
+          (path / "comparison.json").write_text(json.dumps(report, indent=2)+"\n", encoding="utf-8")
+          print(json.dumps(report, indent=2))
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload comparison
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: widget-import-cost-${{ github.sha }}-${{ github.run_attempt }}
+          path: artifacts/widget_import_comparison/**
+          if-no-files-found: warn
+          retention-days: 30
