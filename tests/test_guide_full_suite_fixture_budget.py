@@ -42,6 +42,20 @@ def _method_calls(method: ast.FunctionDef, name: str) -> int:
 
 
 class GuideFullSuiteFixtureBudgetTests(unittest.TestCase):
+    def test_all_guide_integration_contracts_share_single_expensive_build(self):
+        tree = ast.parse(SLOW_TEST_FILE.read_text(encoding="utf-8"))
+        klass = next(
+            node for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "GuideCatalogFillTests"
+        )
+        self.assertEqual(_method_calls(klass, "build"), 1)
+        for method in (
+            "test_lanyel_sylvestre_reuses_the_adventure_guide_engine",
+            "test_partial_draft_hide_completed_and_tools",
+            "test_write_missing_does_not_replace_existing_guide_and_no_network",
+        ):
+            self.assertEqual(_method_calls(_slow_method(method), "_shared_generated_build"), 1)
+
     def test_offline_catalog_and_write_missing_share_one_real_build(self):
         method = _slow_method(
             "test_write_missing_does_not_replace_existing_guide_and_no_network"
