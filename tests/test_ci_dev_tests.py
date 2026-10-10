@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -58,6 +59,50 @@ class DeveloperTestPlannerTests(unittest.TestCase):
         self.assertGreaterEqual(payload["top_slowest_tests"][0]["seconds"], 0)
         self.assertFalse(payload["certified"])
         self.assertFalse(payload["full_suite_waived"])
+
+    def test_git_discovery_includes_committed_staged_and_untracked(self):
+        def git(*args):
+            proc = subprocess.run(
+                ["git", *args], cwd=self.root, capture_output=True,
+                text=True, check=True,
+            )
+            return proc.stdout.strip()
+
+        git("init")
+        git("config", "user.name", "Atlas CI tests")
+        git("config", "user.email", "atlas-ci@example.invalid")
+        git("add", "-A")
+        git("commit", "-m", "initial")
+        base = git("rev-parse", "HEAD")
+
+        committed = self.root / "tests/test_achievements_phase2.py"
+        committed.write_text("# committed update\n", encoding="utf-8")
+        git("add", "-A")
+        git("commit", "-m", "changed test")
+        staged = self.root / "tests/test_meta_integrity.py"
+        staged.write_text("# staged update\n", encoding="utf-8")
+        git("add", "--", "tests/test_meta_integrity.py")
+        new = self.root / "tests/test_untracked.py"
+        new.write_text("# untracked\n", encoding="utf-8")
+
+        paths = ci_dev_tests.changed_paths(self.root, base)
+        self.assertIn("tests/test_achievements_phase2.py", paths)
+        self.assertIn("tests/test_meta_integrity.py", paths)
+        self.assertIn("tests/test_untracked.py", paths)
+
+    def test_failing_test_stays_failure_with_timing(self):
+        class Broken(unittest.TestCase):
+            def test_failure(self):
+                self.fail("must stay red")
+
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(Broken)
+        with patch.object(unittest.defaultTestLoader, "loadTestsFromNames", return_value=suite):
+            code, payload = ci_dev_tests.run_targeted(["tests.broken"], head="a" * 40)
+        self.assertEqual(code, 1)
+        self.assertEqual(payload["status"], "FAIL")
+        self.assertEqual(payload["failures"], 1)
+        self.assertEqual(payload["test_count"], 1)
+        self.assertEqual(len(payload["top_slowest_tests"]), 1)
 
     def test_report_is_sandboxed_to_artifacts(self):
         data = {"status": "PASS"}
