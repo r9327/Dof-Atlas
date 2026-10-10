@@ -195,6 +195,7 @@ class ScopeGateTests(unittest.TestCase):
         self.assertIn("pull_request:", scoped)
         self.assertIn("ref: ${{ env.CANDIDATE_SHA }}", scoped)
         self.assertIn("fetch-depth: 0", scoped)
+        self.assertIn("tests.test_ci_scope_gate tests.test_ci_dev_tests", scoped)
         self.assertIn("python -X faulthandler -m tools.ci_scope_gate", scoped)
         self.assertNotIn("unittest discover", scoped)
         self.assertNotIn("pull_request_target:", scoped)
