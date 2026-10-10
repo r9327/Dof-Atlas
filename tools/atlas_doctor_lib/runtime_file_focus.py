@@ -7,7 +7,6 @@ deletion or a claim about runtime performance, dead code, or community validity.
 Only EXTRACTED AST Python imports between app files enter the dependency graph.
 """
 from collections import defaultdict
-from pathlib import PurePosixPath
 from typing import Any
 
 _IMPORTS = frozenset({"imports", "imports_from"})
@@ -30,9 +29,9 @@ def _app_file(value: Any) -> str | None:
 def _domain(path: str) -> str:
     parts = path.split("/")
     if len(parts) >= 4 and parts[1:3] == ["modules", "encyclopedia"]:
-        return "/".join(parts[:5]) if len(parts) >= 5 else "/".join(parts[:4])
+        return "/".join(parts[:4])
     if len(parts) >= 3:
-        return "/".join(parts[:2]) if len(parts) > 3 else path
+        return "/".join(parts[:2])
     return path
 
 
