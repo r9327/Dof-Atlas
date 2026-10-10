@@ -42,20 +42,30 @@ def _method_calls(method: ast.FunctionDef, name: str) -> int:
 
 
 class GuideFullSuiteFixtureBudgetTests(unittest.TestCase):
-    def test_network_and_write_missing_integration_uses_one_real_build(self):
+    def test_offline_catalog_and_write_missing_share_one_real_build(self):
         method = _slow_method(
             "test_write_missing_does_not_replace_existing_guide_and_no_network"
         )
-        self.assertEqual(_method_calls(method, "build"), 1)
+        shared = _slow_method("_shared_generated_build")
+        self.assertEqual(_method_calls(shared, "build"), 1)
+        self.assertEqual(_method_calls(method, "build"), 0)
+        self.assertEqual(_method_calls(method, "_shared_generated_build"), 1)
         self.assertEqual(_method_calls(method, "write_missing"), 1)
         self.assertGreaterEqual(_method_calls(method, "assertEqual"), 1)
         self.assertGreaterEqual(_method_calls(method, "assertGreater"), 2)
+        shared_source = ast.get_source_segment(
+            SLOW_TEST_FILE.read_text(encoding="utf-8"), shared
+        )
         source = ast.get_source_segment(
             SLOW_TEST_FILE.read_text(encoding="utf-8"), method
         )
+        self.assertIn("socket.socket = forbidden_socket", shared_source)
+        self.assertIn("socket.socket = original_socket", shared_source)
+        self.assertIn("result = GuideCatalogBuilder().build()", shared_source)
+        self.assertIn("_cached_build_verified_offline = True", shared_source)
         self.assertIn("socket.socket = forbidden_socket", source)
         self.assertIn("socket.socket = original_socket", source)
-        self.assertIn("builder.build()", source)
+        self.assertIn("assertTrue(self._cached_build_verified_offline)", source)
         self.assertIn("assertNotIn(str(existing), written)", source)
 
     def test_guide_completion_setup_has_one_atomic_persist(self):

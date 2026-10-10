@@ -38,11 +38,22 @@ class GuideCatalogFillTests(unittest.TestCase):
 
     @classmethod
     def _shared_generated_build(cls):
-        # Read-only build output is identical for the catalogue assertion tests.
-        # Build lazily once; the filesystem/network isolation test below keeps
-        # its own builds to preserve its independent integration assertions.
+        # The same genuine generated catalog is consumed by all three contracts.
+        # Building under a network ban preserves offline validation while avoiding
+        # costly identical Guide reconstruction across independent assertions.
         if not hasattr(cls, "_cached_generated_build"):
-            cls._cached_generated_build = GuideCatalogBuilder().build()
+            original_socket = socket.socket
+
+            def forbidden_socket(*_args, **_kwargs):
+                raise AssertionError("network call forbidden during Guide build")
+
+            socket.socket = forbidden_socket
+            try:
+                result = GuideCatalogBuilder().build()
+            finally:
+                socket.socket = original_socket
+            cls._cached_generated_build = result
+            cls._cached_build_verified_offline = True
         return cls._cached_generated_build
 
     def test_catalog_categories_are_strict_and_guides_are_grouped(self):
@@ -255,9 +266,9 @@ class GuideCatalogFillTests(unittest.TestCase):
             self.assertNotEqual(validate_guides.main(["--guides-dir", str(tmp_path)]), 0)
 
     def test_write_missing_does_not_replace_existing_guide_and_no_network(self):
-        # The original test regenerated the full Guide catalog twice. Do the
-        # real write_missing contract and the network prohibition during ONE
-        # full build; keep both independent assertions and the on-disk sentinel.
+        # The real build is shared with the Lanyel/catalog assertions and was
+        # performed under a socket ban. Keep this independent filesystem test:
+        # write_missing must never replace the on-disk sentinel or use network.
         original_socket = socket.socket
 
         def forbidden_socket(*_args, **_kwargs):
@@ -272,7 +283,8 @@ class GuideCatalogFillTests(unittest.TestCase):
                 existing = tmp_path / "dofus_turquoise.json"
                 existing.write_text('{"sentinel": true}', encoding="utf-8")
                 builder = GuideCatalogBuilder(guides_dir=tmp_path)
-                result = builder.build()
+                result = self._shared_generated_build()
+                self.assertTrue(self._cached_build_verified_offline)
                 self.assertGreater(len(result.guides), 0)
                 written = builder.write_missing(result)
                 self.assertNotIn(str(existing), written)

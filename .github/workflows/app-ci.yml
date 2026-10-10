@@ -21,7 +21,7 @@ on:
       - "main.py"
       - "sitecustomize.py"
       - "requirements-pyside.txt"
-      - "Dofus_Atlas.bat"
+      - "DOFUS.bat"
       - "Install_Dofus_Atlas.bat"
       - "bootstrap_dofus_atlas.ps1"
       - ".gitignore"
@@ -55,6 +55,9 @@ jobs:
     name: Integrity Policy / Fast Code Validation
     runs-on: windows-latest
     timeout-minutes: 30
+    outputs:
+      full_required: ${{ steps.scope.outputs.full_required }}
+      scope_status: ${{ steps.scope.outputs.scope_status }}
     steps:
       - name: Checkout repository without LFS payloads
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -144,6 +147,17 @@ jobs:
           if ($null -eq $code) { $code = 0 }
           if ($code -ne 0) { exit $code }
 
+      - name: Select test scope for routine main pushes
+        id: scope
+        run: |
+          # Unknown/broad/critical diffs or manual dispatch mandate the FULL
+          # job. For small, mapped changes this runs only the affected tests.
+          # All earlier fast guardrails still execute on every push.
+          $base = "${{ github.event.before }}"
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") { $base = "" }
+          python -X faulthandler -m tools.ci_scope_gate --base-ref "$base" --output "$env:GITHUB_OUTPUT" --run
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload fast code validation logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -156,6 +170,9 @@ jobs:
   full-validation:
     name: Full Application Suite
     needs: code-validation
+    # This is a REAL defer, never a fake FULL PASS. High/critical/unknown
+    # diffs and manual dispatch retain every full validation requirement.
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.code-validation.outputs.full_required == 'true' }}
     runs-on: windows-latest
     timeout-minutes: 120
     steps:

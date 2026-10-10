@@ -133,10 +133,11 @@ class TimedResult(unittest.TextTestResult):
 def run_targeted(modules: list[str], *, head: str) -> tuple[int, dict[str, object]]:
     """Run a selected suite in one process, preserving Qt/test isolation order."""
     start = time.perf_counter()
-    suite = unittest.defaultTestLoader.loadTestsFromNames(modules)
-    result = unittest.TextTestRunner(verbosity=2, resultclass=TimedResult).run(suite)
+    suites = [unittest.defaultTestLoader.loadTestsFromNames([name]) for name in modules]
+    empty_modules = [name for name, suite in zip(modules, suites) if suite.countTestCases() == 0]
+    result = unittest.TextTestRunner(verbosity=2, resultclass=TimedResult).run(unittest.TestSuite(suites))
     duration = round(time.perf_counter() - start, 3)
-    succeeded = result.wasSuccessful() and result.testsRun > 0
+    succeeded = result.wasSuccessful() and result.testsRun > 0 and not empty_modules
     report: dict[str, object] = {
         "schema_version": 1,
         "kind": "atlas_developer_test_timings",
@@ -147,6 +148,7 @@ def run_targeted(modules: list[str], *, head: str) -> tuple[int, dict[str, objec
         "python_version": platform.python_version(),
         "platform": sys.platform,
         "test_count": result.testsRun,
+        "modules_without_tests": empty_modules,
         "errors": len(result.errors),
         "failures": len(result.failures),
         "skipped": len(result.skipped),
