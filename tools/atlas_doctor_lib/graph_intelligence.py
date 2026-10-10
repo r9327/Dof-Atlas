@@ -437,7 +437,8 @@ def analyze_community_boundaries(graph: dict[str, Any]) -> dict[str, Any]:
 
 def remediation_plan(
     triage: dict[str, Any], cycles: dict[str, Any], cohesion: dict[str, Any],
-    *, source_review: dict[str, Any] | None = None, performance: dict[str, Any] | None = None
+    *, source_review: dict[str, Any] | None = None, performance: dict[str, Any] | None = None,
+    runtime_focus: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     tasks: list[dict[str, Any]] = []
     for row in triage.get("blocking_findings", [])[:MAX_REVIEW]:
@@ -484,6 +485,19 @@ def remediation_plan(
             "require_tests": ["affected unit tests", "Graphify exact SHA"],
             "automatic_edit": False,
         })
+    for row in (runtime_focus or {}).get("hotspots", [])[:5]:
+        tasks.append({
+            "priority": "P3", "kind": "STATIC_HOTSPOT_REVIEW",
+            "paths": [row["file"]],
+            "evidence": (
+                f"{row['consumer_files']} importing files; "
+                f"{row['dependency_files']} imported files; "
+                f"{row['consumer_domains']} consumer domains"
+            ),
+            "action": row["next_check"],
+            "require_tests": ["affected module contracts", "Graphify exact SHA"],
+            "automatic_edit": False,
+        })
     for task in tasks:
         if any(path.startswith("app/") or path == "main.py" for path in task["paths"]):
             task["require_tests"].extend(["Phase 8 RAM benchmark", "Phase 8 comparable preload"])
@@ -499,6 +513,7 @@ def remediation_plan(
         "UNPROVEN_UNUSED_SYMBOL": "Check callbacks, ctypes/FFI, same-file references and entrypoints before any deletion.",
         "FRAGMENTED_COMMUNITY_REVIEW": "Inspect domain ownership and runtime consumers; merge only for a proven duplication.",
         "HIGH_FANOUT_REVIEW": "Profile import and runtime cost before splitting a heavily used API.",
+        "STATIC_HOTSPOT_REVIEW": "Confirm a latency/RAM problem or duplicate responsibility; graph centrality alone is not a bottleneck.",
     }
     for task in tasks:
         task["decision"] = ("FIX_CONFIRMED_CONTRACT_VIOLATION"
@@ -515,6 +530,9 @@ def remediation_plan(
         "actionability": {
             "confirmed_fix_candidates": sum(t["decision"] == "FIX_CONFIRMED_CONTRACT_VIOLATION" for t in tasks),
             "investigation_candidates": sum(t["decision"] == "INVESTIGATE_NO_CODE_CHANGE_YET" for t in tasks),
+            "static_hotspot_count": (runtime_focus or {}).get("structural_hotspot_count", 0),
+            "stable_runtime_domain_groups": (runtime_focus or {}).get("source_domains"),
+            "static_coupling_is_not_performance_evidence": True,
             "local_source_used_symbols": [
                 {"file": row["file"], "symbol": row["symbol"],
                  "references": row.get("local_references", [])[:8]}
