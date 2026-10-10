@@ -54,6 +54,38 @@ class GraphIntelligenceTests(unittest.TestCase):
             (path / "b.py").write_text("print('no import')\n", encoding="utf-8")
             self.assertEqual(inspect_import_cycles(fixture(), root)["source_confirmed_cycles"], 0)
 
+    def test_type_checking_and_lazy_cycles_are_not_import_time_cycles(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            base = root / "app/core"
+            base.mkdir(parents=True)
+            a, b = base / "a.py", base / "b.py"
+            a.write_text(
+                "def get_b():\n    from app.core import b\n    return b\n",
+                encoding="utf-8",
+            )
+            b.write_text(
+                "from typing import TYPE_CHECKING\n"
+                "if TYPE_CHECKING:\n    from app.core import a\n",
+                encoding="utf-8",
+            )
+            report = inspect_import_cycles(fixture(), root)
+            self.assertEqual(report["source_confirmed_cycles"], 1)
+            self.assertEqual(report["confirmed_import_time_cycles"], 0)
+            self.assertTrue(report["cycles"][0]["static_cycle_contains_deferred_or_type_only_edges"])
+            plan = remediation_plan({}, report, {"candidates": []})
+            self.assertEqual(plan["tasks"][0]["kind"], "DEFERRED_OR_TYPE_ONLY_IMPORT_CYCLE")
+            self.assertEqual(plan["tasks"][0]["priority"], "P3")
+            # Deliberately make the cycle eager. It remains a review, not an
+            # assertion that application startup actually fails.
+            a.write_text("from app.core import b\n", encoding="utf-8")
+            b.write_text("from app.core import a\n", encoding="utf-8")
+            eager = inspect_import_cycles(fixture(), root)
+            self.assertEqual(eager["confirmed_import_time_cycles"], 1)
+            self.assertEqual(remediation_plan({}, eager, {"candidates": []})["tasks"][0]["priority"], "P1")
+        self.assertIsNone(inspect_import_cycles(fixture())["confirmed_import_time_cycles"])
+        self.assertEqual(inspect_import_cycles(fixture())["import_scope_status"], "NOT_RUN")
+
     def test_source_cycle_survives_one_stale_edge_inside_graph_component(self):
         graph = fixture()
         graph["nodes"].append({
