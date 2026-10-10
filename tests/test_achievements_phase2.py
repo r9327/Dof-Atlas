@@ -168,8 +168,8 @@ class AchievementContextPhase2Tests(unittest.TestCase):
             widget.deleteLater()
             app.processEvents()
 
-    @patch.object(EncyclopediaPage, "request_related_preload", autospec=True)
-    @patch.object(EncyclopediaPage, "request_achievement_runtime", autospec=True)
+    @patch("app.modules.encyclopedia.views.encyclopedia_page.EncyclopediaPage.request_related_preload", autospec=True)
+    @patch("app.modules.encyclopedia.views.encyclopedia_page.EncyclopediaPage.request_achievement_runtime", autospec=True)
     def test_tabs_remain_lazy_without_visible_placeholder_ui(
         self, request_achievement_runtime, request_related_preload
     ):
