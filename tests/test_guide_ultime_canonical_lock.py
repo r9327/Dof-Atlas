@@ -26,8 +26,14 @@ from tools.audit_guide_ultime_canonical_lock import (
 
 
 class GuideUltimeCanonicalLockTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Immutable canonical-route inventory: one real audit, shared by
+        # independent read-only assertions in this class.
+        cls._canonical_report = audit()
+
     def test_all_canonical_chapters_match_final_data_lock(self) -> None:
-        report = audit()
+        report = self._canonical_report
         self.assertEqual(report["status"], "PASS", report["errors"])
         self.assertEqual(report["chapter_count"], 13)
         self.assertEqual(report["supporting_route_count"], 12)
@@ -44,7 +50,7 @@ class GuideUltimeCanonicalLockTests(unittest.TestCase):
 
     def test_lock_identity_and_baseline_are_pinned_outside_json(self) -> None:
         lock = json.loads(LOCK.read_text(encoding="utf-8"))
-        report = audit()
+        report = self._canonical_report
         self.assertEqual(int(lock["schema_version"]), EXPECTED_LOCK_SCHEMA_VERSION)
         self.assertEqual(lock["lock_id"], EXPECTED_LOCK_ID)
         self.assertEqual(lock["active_source_baseline_commit"], EXPECTED_ACTIVE_SOURCE_BASELINE_COMMIT)
@@ -72,7 +78,7 @@ class GuideUltimeCanonicalLockTests(unittest.TestCase):
             self.assertTrue(all(char in "0123456789abcdef" for char in sha), row)
 
     def test_every_active_composition_source_has_a_baseline_blob_fingerprint(self) -> None:
-        report = audit()
+        report = self._canonical_report
         self.assertEqual(report["status"], "PASS", report["errors"])
         self.assertEqual(report["active_source_count"], len(report["active_sources"]))
         for row in report["active_sources"]:
@@ -86,7 +92,7 @@ class GuideUltimeCanonicalLockTests(unittest.TestCase):
             self.assertTrue(row["locked"], row)
 
     def test_active_source_lock_covers_real_chains_and_excludes_dead_history(self) -> None:
-        report = audit()
+        report = self._canonical_report
         self.assertEqual(report["status"], "PASS", report["errors"])
         active = set(report["active_source_files"])
         self.assertIn("manifest_v1.json", active)
