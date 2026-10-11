@@ -27,12 +27,12 @@ class ToolAuditTests(unittest.TestCase):
             "tools/build.cmd",
             "tools/other.py",
         ]
-        source = "\\n".join([
+        source = "\n".join([
             "python -m tools.sample --json",
             "py -3.13 -m tools.example_v2 --json",
-            "python .\\\\tools\\\\other.py",
+            "python .\\tools\\other.py",
             'Invoke-PythonCheck "foo" @("-m", "tools.sample", "--strict")',
-            "& .\\\\tools\\\\foo.ps1",
+            "& .\\tools\\foo.ps1",
             "pwsh -NoProfile -File tools/foo.ps1",
             "bash tools/deploy.sh",
             "call tools/build.bat",
@@ -46,6 +46,7 @@ class ToolAuditTests(unittest.TestCase):
             for tool in paths
             if any(_line_invokes_tool(tool, line) for line in source.splitlines())
         }
+        self.assertEqual(expected, set(paths))
         self.assertEqual(_text_tool_invocation_paths(source, paths), expected)
         self.assertEqual(
             _text_tool_invocation_paths(source, iter(paths)), expected,
@@ -54,9 +55,9 @@ class ToolAuditTests(unittest.TestCase):
     def test_invocation_prefilter_keeps_case_insensitive_paths(self) -> None:
         paths = ["tools/sample.py", "tools/foo.ps1", "tools/bar.sh"]
         source = (
-            "PYTHON -M TOOLS.SAMPLE\\n"
-            "PWSh -File .\\\\TOOLS\\\\FOO.PS1\\n"
-            "bash ./TOOLS/BAR.SH\\n"
+            "PYTHON -M TOOLS.SAMPLE\n"
+            "PWSh -File .\\TOOLS\\FOO.PS1\n"
+            "bash ./TOOLS/BAR.SH\n"
         )
         expected = {
             tool
