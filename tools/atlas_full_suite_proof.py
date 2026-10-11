@@ -7,10 +7,12 @@ bounded per-test ledger only after the complete suite returns successfully.
 """
 import argparse
 import json
+import math
 from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 import unittest
 
 SCHEMA = 1
@@ -40,6 +42,24 @@ class ProofResult(unittest.TextTestResult):
     def __init__(self, stream, descriptions, verbosity):
         super().__init__(stream, descriptions, verbosity)
         self.completed: list[tuple[str, str]] = []
+        self._test_starts_ns: dict[int, int] = {}
+        self.test_duration_seconds: dict[str, float] = {}
+
+    def startTest(self, test):
+        super().startTest(test)
+        self._test_starts_ns[id(test)] = time.perf_counter_ns()
+
+    def stopTest(self, test):
+        started = self._test_starts_ns.pop(id(test), None)
+        if started is not None:
+            try:
+                self.test_duration_seconds[canonical(test.id())] = (
+                    time.perf_counter_ns() - started
+                ) / 1_000_000_000
+            except ValueError:
+                # unittest _ErrorHolder (setUpClass/tearDownClass) is not a test.
+                pass
+        super().stopTest(test)
 
     def _record(self, test: unittest.case.TestCase, status: str) -> None:
         self.completed.append((canonical(test.id()), status))
@@ -147,6 +167,40 @@ def module_proofs(payload: dict) -> dict[str, int]:
     }
 
 
+
+def validated_timings(expected: list[str], observed: dict[str, float],
+                      *, sha: str) -> dict:
+    """Diagnostic-only timing report. Never used as a pass or coverage proof."""
+    if not SHA.fullmatch(sha):
+        raise ValueError("Expected exact Git SHA")
+    if not expected or len(expected) != len(set(expected)) or set(expected) != set(observed):
+        raise ValueError("Timing records must cover the complete discovered FULL")
+    if any(type(value) not in (int, float) or not math.isfinite(value) or value < 0
+           for value in observed.values()):
+        raise ValueError("Invalid elapsed test duration")
+    rows = [{"test": test_id, "seconds": round(observed[test_id], 6)}
+            for test_id in expected]
+    rows.sort(key=lambda row: (-row["seconds"], row["test"]))
+    module_totals: dict[str, float] = {}
+    for row in rows:
+        module = ".".join(row["test"].split(".")[:2])
+        module_totals[module] = module_totals.get(module, 0.0) + row["seconds"]
+    modules = [{"module": name, "seconds": round(seconds, 6)}
+               for name, seconds in module_totals.items()]
+    modules.sort(key=lambda row: (-row["seconds"], row["module"]))
+    return {
+        "schema_version": 1,
+        "kind": "atlas_full_test_timings_diagnostic",
+        "candidate_sha": sha,
+        "tests_run": len(expected),
+        "measurement": "unittest.TextTestResult.startTest_to_stopTest_perf_counter_ns",
+        "scope": "per-test intervals; excludes class/module setup and discovery",
+        "slowest_20_tests": rows[:20],
+        "module_totals": modules,
+        "individual_tests": rows,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("discover",))
@@ -155,8 +209,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("-p", "--pattern", default="test_*.py")
     parser.add_argument("--proof-file", type=Path,
                         default=Path("artifacts/ci_app_logs/05_full_unittest_proof.json"))
+    parser.add_argument("--timings-file", type=Path,
+                        default=Path("artifacts/ci_app_logs/05_full_unittest_timings.json"))
     args = parser.parse_args(argv)
     args.proof_file.unlink(missing_ok=True)
+    args.timings_file.unlink(missing_ok=True)
     loader = unittest.TestLoader()
     suite = loader.discover(args.start_directory, pattern=args.pattern)
     if loader.errors:
@@ -182,6 +239,16 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         print("No reusable FULL evidence: " + str(exc), file=sys.stderr)
         return 0  # Tests passed, but all other groups will run independently.
+    try:
+        timings = validated_timings(expected, result.test_duration_seconds, sha=head)
+        args.timings_file.parent.mkdir(parents=True, exist_ok=True)
+        timing_tmp = args.timings_file.with_suffix(".json.tmp")
+        timing_tmp.write_text(json.dumps(timings, ensure_ascii=False,
+                                         separators=(",", ":")) + "\n", encoding="utf-8")
+        timing_tmp.replace(args.timings_file)
+    except ValueError as exc:
+        # Profiling is only diagnostic and never gates a successful FULL.
+        print("FULL timing diagnostics unavailable: " + str(exc), file=sys.stderr)
     args.proof_file.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.proof_file.with_suffix(".json.tmp")
     temporary.write_text(json.dumps(proof, ensure_ascii=False, separators=(",", ":")) + "\n",
