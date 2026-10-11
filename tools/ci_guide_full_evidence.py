@@ -1,6 +1,6 @@
 """Fail-closed reuse of exact, successful FULL unittest coverage in Guide CI.
 
-Only the three independently re-executed test modules are eligible. No
+Only explicitly enumerated FULL-discovered test modules are eligible. No
 equivalence is claimed from mere module names, counts or a stale SHA.
 Absent/ambiguous evidence means the canonical Guide runner executes them.
 """
@@ -20,6 +20,46 @@ REUSED_MODULES = {
     "11_existing_guides_tests": "tests.test_guides_phase3",
     "12_existing_success_tests": "tests.test_achievements_lot7",
     "13_existing_shell_tests": "tests.test_pyside_shell",
+}
+# The Guide runner also repeated these exact unittest modules after FULL.
+# For multi-module stages every discovered ID must be present and successful.
+REUSED_MULTI_STAGES = {
+    "02_guide_ultime_core_tests": (
+        "tests.test_guide_ultime_v5_ui",
+        "tests.test_guide_ultime_v5_runtime",
+        "tests.test_guide_ultime_walkthrough",
+        "tests.test_guide_ultime_route_sanitizer",
+        "tests.test_guide_ultime_route_sheet_ui",
+        "tests.test_guide_ultime_manual_preview",
+        "tests.test_guide_ultime_manual_ui_navigation",
+        "tests.test_guide_ultime_manual_success_sync",
+        "tests.test_guide_ultime_success_links",
+        "tests.test_guide_ultime_manual_class_branch",
+        "tests.test_guide_ultime_manual_runtime_text",
+        "tests.test_guide_ultime_manual_prerequisites",
+        "tests.test_guide_ultime_manual_route_hooks",
+        "tests.test_guide_ultime_manual_structured_domain",
+        "tests.test_guide_ultime_auto_validation_contract",
+        "tests.test_guide_ultime_canonical_lock",
+        "tests.test_guide_ultime_action_review_audit",
+        "tests.test_guide_ultime_action_quality_audit",
+        "tests.test_guide_ultime_stable_progress_keys",
+        "tests.test_guide_progress_persistence",
+        "tests.test_home_guide_ultime_source",
+        "tests.test_quest_detail_guide_ui_contract",
+        "tests.test_guide_ultime_ocre_registry_runtime",
+    ),
+    "03_manual_route_composition_tests": (
+        "tests.test_guide_ultime_manual_route_composition",
+        "tests.test_guide_ultime_manual_stage_imports",
+        "tests.test_guide_ultime_manual_astrub_v6",
+        "tests.test_guide_ultime_manual_boss_fusions",
+        "tests.test_guide_ultime_temporal_registry",
+        "tests.test_guide_ultime_manual_level_191_200",
+        "tests.test_guide_ultime_manual_level_191_200_v4",
+        "tests.test_guide_ultime_manual_level_191_200_v5",
+        "tests.test_guide_ultime_manual_post_200",
+    ),
 }
 TEST_HEADER = re.compile(
     r"(?m)^test_[A-Za-z0-9_]+\s+\(((?:tests\.)?test_[A-Za-z0-9_]+\.[A-Za-z0-9_]+\.test_[A-Za-z0-9_]+)\)\s+\.\.\.\s+([^\r\n]+)$"
@@ -47,6 +87,17 @@ def expected_tests() -> dict[str, list[str]]:
         names = _all_test_ids(suite)
         if loader.errors or not names or len(names) != len(set(names)):
             raise ValueError("unreliable unittest discovery: " + module)
+        output[stage] = names
+    for stage, modules in REUSED_MULTI_STAGES.items():
+        names = []
+        for module in modules:
+            suite = loader.loadTestsFromName(module)
+            discovered = _all_test_ids(suite)
+            if loader.errors or not discovered or len(discovered) != len(set(discovered)):
+                raise ValueError("unreliable unittest discovery: " + module)
+            names.extend(discovered)
+        if len(names) != len(set(names)):
+            raise ValueError("duplicate multi-module Guide discovery: " + stage)
         output[stage] = names
     return output
 
@@ -97,6 +148,17 @@ def prove_ledger(payload: dict[str, object],
                 or observed != set(needed)
                 or not observed.issubset(successes)):
             raise ValueError("FULL test IDs missing, skipped or unexpected for " + module)
+        result[stage] = len(needed)
+    for stage, modules in REUSED_MULTI_STAGES.items():
+        needed = [canonical(x) for x in expected.get(stage, [])]
+        observed = {
+            x for x in actual
+            if any(x.startswith(module + ".") for module in modules)
+        }
+        if (not needed or len(needed) != len(set(needed))
+                or observed != set(needed)
+                or not observed.issubset(successes)):
+            raise ValueError("FULL IDs missing, skipped or unexpected for " + stage)
         result[stage] = len(needed)
     return result
 

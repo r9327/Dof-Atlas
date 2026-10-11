@@ -85,13 +85,13 @@ function Invoke-PythonCheck {
 function Invoke-GuideTestOrReuse {
     param(
         [Parameter(Mandatory=$true)][string]$Name,
-        [Parameter(Mandatory=$true)][string]$Module
+        [Parameter(Mandatory=$true)][string[]]$Module
     )
     if ($script:VerifiedFullStages.ContainsKey($Name)) {
         $logPath = Join-Path $LogDir ("{0}.log" -f $Name)
         $proofCount = [int]$script:VerifiedFullStages[$Name]
         if (Test-Path $logPath) { Remove-Item $logPath -Force }
-        Write-LogLine -Path $logPath -Text "REUSED_FROM_EXACT_FULL SHA=$env:ATLAS_FULL_SUITE_SHA module=$Module tests=$proofCount"
+        Write-LogLine -Path $logPath -Text "REUSED_FROM_EXACT_FULL SHA=$env:ATLAS_FULL_SUITE_SHA modules=$($Module -join ',') tests=$proofCount"
         $results.Add([pscustomobject]@{
             name = $Name
             exit_code = 0
@@ -102,7 +102,7 @@ function Invoke-GuideTestOrReuse {
         }) | Out-Null
         return
     }
-    Invoke-PythonCheck $Name @("-m", "unittest", $Module)
+    Invoke-PythonCheck $Name (@("-m", "unittest") + $Module)
 }
 
 $diag = Join-Path $LogDir "00_environment.log"
@@ -140,7 +140,7 @@ try {
         if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $proofPath)) {
             $proof = Get-Content -LiteralPath $proofPath -Raw | ConvertFrom-Json
             if ($proof.status -eq "PROVEN" -and $proof.head -eq $env:ATLAS_FULL_SUITE_SHA) {
-                $required = @("11_existing_guides_tests", "12_existing_success_tests", "13_existing_shell_tests")
+                $required = @("02_guide_ultime_core_tests", "03_manual_route_composition_tests", "11_existing_guides_tests", "12_existing_success_tests", "13_existing_shell_tests")
                 foreach ($name in $required) {
                     if ($proof.stages.PSObject.Properties.Name -contains $name -and [int]$proof.stages.$name -gt 0) {
                         $script:VerifiedFullStages[$name] = [int]$proof.stages.$name
@@ -151,7 +151,7 @@ try {
                 }
             }
         }
-        if ($script:VerifiedFullStages.Count -ne 3) {
+        if ($script:VerifiedFullStages.Count -ne 5) {
             Write-Warning "Guide exact FULL evidence unavailable: execute original suites."
         }
     }
@@ -171,7 +171,7 @@ try {
         Invoke-PythonCheck "01_install_dependencies" @("-m", "pip", "install", "-r", "requirements-pyside.txt")
     }
 
-    Invoke-PythonCheck "02_guide_ultime_core_tests" @(
+    Invoke-GuideTestOrReuse "02_guide_ultime_core_tests" @(
         "-m", "unittest",
         "tests.test_guide_ultime_v5_ui",
         "tests.test_guide_ultime_v5_runtime",
@@ -198,7 +198,7 @@ try {
         "tests.test_guide_ultime_ocre_registry_runtime"
     )
 
-    Invoke-PythonCheck "03_manual_route_composition_tests" @(
+    Invoke-GuideTestOrReuse "03_manual_route_composition_tests" @(
         "-m", "unittest",
         "tests.test_guide_ultime_manual_route_composition",
         "tests.test_guide_ultime_manual_stage_imports",

@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from tools import atlas_full_suite_proof as proof
 from tools import atlas_integrity
-from tools.ci_guide_full_evidence import REUSED_MODULES, prove_ledger
+from tools.ci_guide_full_evidence import REUSED_MODULES, REUSED_MULTI_STAGES, prove_ledger
 
 
 class FullSuiteStructuredReuseTests(unittest.TestCase):
@@ -114,13 +114,15 @@ class FullSuiteStructuredReuseTests(unittest.TestCase):
             stage: [f"{module}.Example.test_one", f"{module}.Example.test_two"]
             for stage, module in REUSED_MODULES.items()
         }
+        for stage, modules in REUSED_MULTI_STAGES.items():
+            expected[stage] = [f"{module}.Example.test_one" for module in modules]
         all_ids = sorted(k for group in expected.values() for k in group)
         p = proof.validated_ledger(
             all_ids, [(x, "ok") for x in all_ids], tests_run=len(all_ids),
             successful=True, sha="a" * 40,
         )
         self.assertEqual(prove_ledger(p, expected),
-                         {stage: 2 for stage in REUSED_MODULES})
+                         {stage: len(ids) for stage, ids in expected.items()})
         bad = dict(p)
         bad["successful_test_ids"] = all_ids[:-1]
         with self.assertRaisesRegex(ValueError, "missing"):
