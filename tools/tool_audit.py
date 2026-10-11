@@ -392,9 +392,29 @@ def _line_invokes_tool(path: str, raw_line: str) -> bool:
 
 
 def _text_tool_invocation_paths(source: str, tool_paths: Iterable[str]) -> set[str]:
+    # A shell invocation must contain the actual tools/... path; Python
+    # module invocations may instead use tools.foo. Reject unrelated lines
+    # before running the more expensive (and deliberately conservative)
+    # invocation regexes. Keep _line_invokes_tool as the single authority.
+    candidates = [
+        (
+            tool,
+            tool.casefold().replace("\\", "/"),
+            tool[:-3].casefold().replace("\\", "/").replace("/", ".")
+            if tool.casefold().endswith(".py") else "",
+        )
+        for tool in tool_paths
+    ]
     result: set[str] = set()
     for line in source.splitlines():
-        for tool in tool_paths:
+        normalized = line.casefold().replace("\\", "/")
+        if "tools" not in normalized or normalized.lstrip().startswith("#"):
+            continue
+        for tool, path_needle, module_needle in candidates:
+            if path_needle not in normalized and (
+                not module_needle or module_needle not in normalized
+            ):
+                continue
             if _line_invokes_tool(tool, line):
                 result.add(tool)
     return result
