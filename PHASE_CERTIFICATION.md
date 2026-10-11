@@ -42,8 +42,12 @@ pas remplacer les contrôles du nouveau commit.
   donner du feedback, mais la FULL Phase n'est pas lancée automatiquement
   à chaque commit du brouillon.
 - Le passage à **ready for review** (ou une PR Phase déjà non-brouillon)
-  déclenche la certification FULL de la Phase, sur le SHA candidat exact.
-  Tout nouveau commit sur une PR Phase non-brouillon relance cette FULL.
+  déclenche la **décision adaptative de Doctor** sur le SHA candidat exact.
+  La FULL est exécutée seulement si le diff touche un composant critique,
+  les workflows ou la politique de certification, si Doctor la juge
+  nécessaire, ou s'il manque une preuve fiable. Un diff éligible exécute
+  **tous** les tests canoniques ciblés sélectionnés par Doctor et vérifie
+  les preuves du SHA exact, sans FULL.
 - Un **push sur main** et le déclenchement manuel explicite conservent
   leur FULL historique. La validation finale d'une phase n'est **jamais**
   remplacée par un passeport Doctor ciblé.
@@ -51,11 +55,41 @@ pas remplacer les contrôles du nouveau commit.
   le nouveau workflow adaptatif est vert. Une sortie de brouillon, puis
   un rapport FULL PASS sur le bon SHA, restent nécessaires.
 
+## Mode CI adaptatif, indépendant de la certification finale
+
+Le contrôle `Phase Certification / Full Validation` peut produire deux types
+de preuves **explicitement différents** :
+
+- **`FULL`** : le changement touche les règles d'audit, la politique, les
+  workflows ou une zone risquée ; un push sur `main` ou une
+  `workflow_dispatch` demande aussi une FULL. Le workflow exécute le
+  `tools.atlas_integrity full` et le verdict historique
+  `tools.phase_certification_verdict`. Lui seul peut produire un verdict
+  `CERTIFIED` selon les contrats existants.
+- **`SCOPED`** : Doctor juge le diff éligible, la politique indépendante est
+  conforme, aucun fichier de confiance n'a changé et les identités Git SHA
+  sont exactes. Le workflow exécute réellement tous les modules retenus
+  via le sélecteur canonique, puis valide le plan, la liste des tests,
+  les résultats et le passeport du même SHA. La sortie
+  `SCOPED_TESTS_PASS_NOT_PHASE_CERTIFIED` signifie **`VALIDATED`**,
+  **pas `CERTIFIED`**, ni autorisation automatique de fusion.
+
+La route est calculée avant les préparations coûteuses sur Windows et reste
+fail-closed : toute incertitude, modification des règles, du Doctor ou des
+workflows déclenche `FULL`. Aucune preuve inter-SHA n'est réutilisée. Les
+budgets mémoire ne sont ni relevés ni cachés : leurs gates GitHub restent
+indépendants, et une demande de ne pas les optimiser ne modifie pas les
+conditions officielles de fusion.
+
+Cette distinction permet d'éviter de répéter une FULL pendant le
+développement ordinaire ; **la clôture officielle d'une phase** exige
+toujours la FULL et les autres preuves obligatoires sur le SHA final.
+
 ## Source machine de vérité
 
 La validation technique générale est définie par `tools/atlas_integrity_policy.json` et exécutée par `tools.atlas_integrity`.
 
-La certification de phase utilise au minimum le mode `FULL`, qui doit notamment couvrir :
+La clôture officielle d'une phase utilise au minimum le mode `FULL`, qui doit notamment couvrir :
 
 - méta-intégrité et syntaxe ;
 - architecture ;
@@ -103,7 +137,7 @@ certification.
 
 `Public PR / Safe Validation` est un garde-fou de PR. Même entièrement vert, il ne constitue pas une certification de phase.
 
-La certification est portée par `Phase Certification / Full Validation` (`.github/workflows/phase-certification.yml`). Elle peut être lancée manuellement, mais elle est aussi déclenchée automatiquement à chaque mise à jour d'une PR interne dont le titre commence par `Phase ` et dont la branche source appartient au dépôt lui-même.
+Le contrôle adaptatif (FULL ou tests ciblés avec attestation explicite) est porté par `Phase Certification / Full Validation` (`.github/workflows/phase-certification.yml`). Elle peut être lancée manuellement, mais elle est aussi déclenchée automatiquement à chaque mise à jour d'une PR interne dont le titre commence par `Phase ` et dont la branche source appartient au dépôt lui-même.
 
 Pour une PR de phase, le workflow checkout explicitement le SHA de tête de la PR et utilise le SHA de base de la PR pour classifier le diff courant. Lorsqu'une dette figée est transportée par non-régression, le validateur contrôle en plus la descendance depuis l'ancre du baseline et les changements de fichiers protégés entre cette ancre et la base courante. La certification suit donc le candidat exact ; une nouvelle modification rend l'ancien résultat obsolète et déclenche une nouvelle validation.
 
