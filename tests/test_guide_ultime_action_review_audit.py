@@ -6,8 +6,14 @@ from tools.audit_guide_ultime_manual_runtime import audit
 
 
 class GuideUltimeActionReviewAuditTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Immutable canonical-route inventory: one real audit, shared by
+        # independent read-only assertions in this class.
+        cls._canonical_report = audit()
+
     def test_action_review_inventory_covers_all_locked_chapters(self) -> None:
-        report = audit()
+        report = self._canonical_report
         self.assertEqual(report["chapter_count"], 13)
         self.assertEqual(report["card_count"], 267)
         chapters = report["action_review"]["chapters"]
@@ -15,7 +21,7 @@ class GuideUltimeActionReviewAuditTests(unittest.TestCase):
         self.assertEqual(sum(int(row["stage_count"]) for row in chapters.values()), 267)
 
     def test_action_review_status_is_derived_from_real_structure(self) -> None:
-        report = audit()
+        report = self._canonical_report
         allowed = {
             "STRUCTURE_BLOCKED",
             "ACTION_REVIEW_WITH_STRUCTURING_GAPS",
@@ -34,7 +40,7 @@ class GuideUltimeActionReviewAuditTests(unittest.TestCase):
                 self.assertEqual(row["status"], "ACTION_REVIEW_READY", chapter_id)
 
     def test_gap_stage_count_matches_unique_stage_ids(self) -> None:
-        report = audit()
+        report = self._canonical_report
         for chapter_id, row in report["action_review"]["chapters"].items():
             stage_ids = list(row["gap_stage_ids"])
             self.assertEqual(len(stage_ids), len(set(stage_ids)), chapter_id)
