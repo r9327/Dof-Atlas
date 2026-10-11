@@ -12,19 +12,20 @@ from tools import atlas_integrity
 from tools.ci_guide_full_evidence import REUSED_MODULES, prove_ledger
 
 
-class SyntheticCases(unittest.TestCase):
-    def test_pass(self): pass
-
-    @unittest.skip("not part of reusable proof")
-    def test_skipped(self): pass
-
-    @unittest.expectedFailure
-    def test_expected_failure(self):
-        self.fail("expected")
-
-
 class FullSuiteStructuredReuseTests(unittest.TestCase):
     def test_real_unittest_result_ledger_is_complete_and_excludes_skips(self):
+        # This synthetic class must NOT enter the repository's FULL discovery:
+        # its skip/xfail are unit fixtures, not real skipped application tests.
+        class SyntheticCases(unittest.TestCase):
+            def test_pass(self): pass
+
+            @unittest.skip("not part of reusable proof")
+            def test_skipped(self): pass
+
+            @unittest.expectedFailure
+            def test_expected_failure(self):
+                self.fail("expected")
+
         suite = unittest.defaultTestLoader.loadTestsFromTestCase(SyntheticCases)
         expected = proof.ids(suite)
         result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=2,
