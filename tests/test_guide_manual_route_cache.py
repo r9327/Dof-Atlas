@@ -40,6 +40,27 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             self.assertEqual(calls, 1)
             self.assertEqual(second["rows"], [1])
 
+    def test_cold_cache_keeps_own_result_and_frozen_snapshot_separate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            chapter = Path(tmp) / "chapter.json"
+            chapter.write_text("{}", encoding="utf-8")
+            owned = {"rows": [{"quests": [42]}]}
+            with patch.object(
+                guide_ultime_manual_route,
+                "_load_manual_chapter_uncached",
+                return_value=owned,
+            ) as resolver:
+                first = guide_ultime_manual_route.load_manual_chapter(chapter)
+                # Cold resolution must not deep-copy the already-owned result twice.
+                self.assertIs(first, owned)
+                first["rows"][0]["quests"].append(99)
+                second = guide_ultime_manual_route.load_manual_chapter(chapter)
+                second["rows"][0]["quests"].append(101)
+                third = guide_ultime_manual_route.load_manual_chapter(chapter)
+            resolver.assert_called_once()
+            self.assertEqual(third["rows"][0]["quests"], [42])
+            self.assertIsNot(second, third)
+
     def test_sibling_json_change_invalidates_top_level_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
