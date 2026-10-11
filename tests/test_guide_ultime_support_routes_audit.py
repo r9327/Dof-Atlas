@@ -6,8 +6,14 @@ from tools.audit_guide_ultime_support_routes import audit
 
 
 class GuideUltimeSupportRoutesAuditTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Immutable canonical-route inventory: one real audit, shared by
+        # independent read-only assertions in this class.
+        cls._canonical_report = audit()
+
     def test_support_route_inventory_is_complete(self) -> None:
-        report = audit()
+        report = self._canonical_report
         self.assertEqual(report["conditional_route_count"], 6)
         self.assertEqual(report["transversal_route_count"], 1)
         self.assertEqual(report["transversal_stage_count"], 49)
@@ -23,7 +29,7 @@ class GuideUltimeSupportRoutesAuditTests(unittest.TestCase):
             self.assertEqual(report["status"], "CATALOG_UNAVAILABLE")
 
     def test_support_routes_have_no_hard_issue(self) -> None:
-        report = audit()
+        report = self._canonical_report
         self.assertEqual(report["hard_issue_count"], 0, report["issues"])
         self.assertNotIn("class_quest_missing_from_catalog", report["issue_counts"] if not report["catalog_available"] else {})
 
