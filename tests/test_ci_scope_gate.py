@@ -171,8 +171,14 @@ class ScopeGateTests(unittest.TestCase):
         self.assertIn("run_guide_ultime_ci.ps1", full)
         self.assertIn("name: Select test scope for routine main pushes", full)
         self.assertIn("tools.ci_scope_gate", full)
-        self.assertIn("needs.code-validation.outputs.full_required == 'true'", full)
+        # Automatic main FULL now belongs exclusively to Phase Certification.
+        # The standalone application FULL remains explicitly manual, while a
+        # host-verified same-SHA workflow_run preserves post-merge contracts.
+        self.assertNotIn("needs.code-validation.outputs.full_required == 'true'", full)
         self.assertIn("github.event_name == 'workflow_dispatch'", full)
+        self.assertIn('workflows: ["Phase Certification"]', full)
+        self.assertIn("tools.ci_main_phase_evidence", full)
+        self.assertIn("Run unique same-process lifecycle contracts", full)
         self.assertIn("steps.full_tests.outcome", full)
 
     def test_app_ci_watches_real_windows_launcher(self):

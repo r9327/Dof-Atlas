@@ -120,6 +120,7 @@ ROOT_OF_TRUST_FILES = frozenset(
         "tests/test_startup_resource_contracts.py",
         "tools/atlas_meta_integrity.py",
         "tools/atlas_integrity.py",
+        "tools/ci_main_phase_evidence.py",
         "tools/atlas_integrity_policy.json",
         "tools/atlas_performance_budget.py",
         "tools/atlas_performance_budgets.json",
@@ -436,6 +437,27 @@ def check_ci_contracts(root: Path) -> list[str]:
         issues.append("application CI automatic push trigger missing")
     if "pull_request:" in app:
         issues.append("self-hosted application CI must not run on pull_request")
+    # Main pushes are covered by the canonical Phase FULL; Application CI
+    # independently verifies the host result and runs only unique contracts.
+    if ('workflows: ["Phase Certification"]' not in app
+            or "types: [completed]" not in app
+            or "actions: read" not in app):
+        issues.append("main Phase FULL host trigger or read permission missing")
+    if ("if: github.event_name != 'workflow_run'" not in app
+            or "if: ${{ github.event_name == 'workflow_dispatch' }}" not in app
+            or "needs.code-validation.outputs.full_required == 'true'" in app):
+        issues.append("duplicate automatic Application FULL is not disabled")
+    for mandatory in (
+        "tools.ci_main_phase_evidence",
+        "github.event.workflow_run.head_sha",
+        "Run unique same-process lifecycle contracts",
+        "github.event.workflow_run.event == 'push'",
+        "github.event.workflow_run.head_branch == 'main'",
+    ):
+        if mandatory not in app:
+            issues.append("main Phase FULL reuse protection missing: " + mandatory)
+    if not (root / "tools/ci_main_phase_evidence.py").is_file():
+        issues.append("independent main Phase FULL verifier missing")
     if "pull_request:" not in public_pr:
         issues.append("public PR CI pull_request trigger missing")
     if "runs-on: windows-latest" not in public_pr or "self-hosted" in public_pr:

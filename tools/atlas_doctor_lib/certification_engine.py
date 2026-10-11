@@ -23,6 +23,7 @@ CRITICAL_PATHS = frozenset({
     "tools/doctor_certification.py",
     "tools/phase_adaptive_gate.py",
     "tools/atlas_full_suite_proof.py",
+    "tools/ci_main_phase_evidence.py",
     "tools/atlas_doctor_lib/certification_engine.py",
     "tools/atlas_doctor_lib/certification_policy.py",
     "tools/atlas_doctor_lib/certification_passport.py",

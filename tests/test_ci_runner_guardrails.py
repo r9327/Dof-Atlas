@@ -131,6 +131,24 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertNotIn("git lfs pull", fast_block)
         self.assertNotIn("doduda.exe", fast_block)
 
+    def test_main_full_is_host_reused_once_with_independent_lifecycle(self) -> None:
+        source = self._workflow("app-ci.yml")
+        self.assertIn('workflows: ["Phase Certification"]', source)
+        self.assertIn("types: [completed]", source)
+        self.assertIn("actions: read", source)
+        self.assertIn("if: github.event_name != 'workflow_run'", source)
+        self.assertIn("github.event_name == 'workflow_dispatch'", source)
+        self.assertNotIn("needs.code-validation.outputs.full_required == 'true'", source)
+        self.assertIn("tools.ci_main_phase_evidence", source)
+        self.assertIn("github.event.workflow_run.head_sha", source)
+        self.assertIn("github.event.workflow_run.event == 'push'", source)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'", source)
+        self.assertIn("Run unique same-process lifecycle contracts", source)
+        self.assertIn("tests.test_pyside_shell", source)
+        self.assertIn("tests.test_qt_async_non_accumulation", source)
+        self.assertIn("Run full application test suite", source)  # manual diagnostic preserved
+        self.assertTrue((ROOT / "tools/ci_main_phase_evidence.py").is_file())
+
     def test_app_ci_full_gate_materializes_catalog_before_full_discovery(self) -> None:
         source = self._workflow("app-ci.yml")
         full = source[source.index("  full-validation:") :]

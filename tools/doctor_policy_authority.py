@@ -37,6 +37,7 @@ TRUST_PATHS = (
     "tools/doctor_certification.py",
     "tools/phase_adaptive_gate.py",
     "tools/atlas_full_suite_proof.py",
+    "tools/ci_main_phase_evidence.py",
     "tools/doctor_github_provenance.py",
     "tools/doctor_shadow_campaign.py",
     "tools/doctor_scenario_runner.py",
