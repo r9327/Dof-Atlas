@@ -213,6 +213,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     args.proof_file.unlink(missing_ok=True)
     timing_file = args.proof_file.with_name(args.proof_file.stem + "_timings.json")
+    # Phase Certification uploads this directory, not ci_app_logs.
+    phase_logs = Path("artifacts/phase_certification")
+    if phase_logs.is_dir():
+        timing_file = phase_logs / "05_full_unittest_timings.json"
     timing_file.unlink(missing_ok=True)
     loader = unittest.TestLoader()
     suite = loader.discover(args.start_directory, pattern=args.pattern)
