@@ -451,17 +451,30 @@ class QuestGraphService:
                 result.update(achievement_quest_ids(child_id, seen))
             return result & all_ids
 
+        # Repeated Sc/OA references to the same success must not recursively
+        # rebuild its quest descendants for every following quest. Cache only
+        # this closure's immutable root result: the all_ids filter is local,
+        # and recursive cycle detection still receives a fresh 'seen' set.
+        achievement_root_cache: dict[int, frozenset[int]] = {}
+
+        def root_achievement_quest_ids(achievement_id: int) -> frozenset[int]:
+            result = achievement_root_cache.get(achievement_id)
+            if result is None:
+                result = frozenset(achievement_quest_ids(achievement_id))
+                achievement_root_cache[achievement_id] = result
+            return result
+
         # A Sc/OA condition is ordered after the quests that make up that
         # achievement, while the quest steps keep only Qf in prerequisites.
         for following in all_ids:
             refs = self.criterion_references(self.catalog.by_id[following].start_criterion)
             for achievement_id in refs.mandatory_achievements:
-                for previous in achievement_quest_ids(achievement_id):
+                for previous in root_achievement_quest_ids(achievement_id):
                     if previous != following:
                         hard_edges.add((previous, following))
             for branch in refs.alternative_branches:
                 for achievement_id in branch.achievements:
-                    for previous in achievement_quest_ids(achievement_id):
+                    for previous in root_achievement_quest_ids(achievement_id):
                         if previous != following:
                             alternative_edges.add((previous, following))
 

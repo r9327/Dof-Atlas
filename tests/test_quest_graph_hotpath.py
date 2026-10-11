@@ -68,6 +68,32 @@ class QuestGraphHotpathTests(unittest.TestCase):
         self.assertEqual(graph.prerequisite_closure(seed_achievements=[100]).mandatory_quests, {2})
         self.assertEqual(provider.load_all.call_count, 2)
 
+    def test_repeated_sc_root_only_expands_achievement_once_for_ordering(self):
+        class CountingObjectives:
+            def __init__(self, *rows):
+                self.rows = rows
+                self.visits = 0
+
+            def __iter__(self):
+                self.visits += 1
+                return iter(self.rows)
+
+        objectives = CountingObjectives(
+            SimpleNamespace(id=1, criterion="Qf=1", entity_ref=None)
+        )
+        achievement = SimpleNamespace(
+            id=100, objectives=objectives, linked_quests=(),
+        )
+        graph, _provider = self._graph(
+            [_quest(1), _quest(2, "Sc=100"), _quest(3, "Sc=100"),
+             _quest(4, "Sc=100")],
+            [achievement],
+        )
+        closure = graph.prerequisite_closure(seed_quests=[2, 3, 4])
+        self.assertEqual(closure.mandatory_quests, {1, 2, 3, 4})
+        self.assertTrue({(1, 2), (1, 3), (1, 4)}.issubset(closure.hard_edges))
+        self.assertEqual(objectives.visits, 2)
+
     def test_heap_order_keeps_determinism_and_cycles(self):
         graph, _ = self._graph([_quest(i) for i in range(1, 7)])
         ordered, cycles = graph._topological_order(
