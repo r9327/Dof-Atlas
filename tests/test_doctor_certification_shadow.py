@@ -139,6 +139,17 @@ class ShadowValidationTests(unittest.TestCase):
         self.assertNotIn("tools.atlas_integrity full", source)
         self.assertIn("tests.test_doctor_certification_shadow", source)
 
+    def test_phase_full_produces_real_exact_sha_shadow_pair(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/phase-certification.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("tools.doctor_certification", workflow)
+        self.assertIn("tools.doctor_shadow_campaign --pair", workflow)
+        self.assertIn("--expected-sha", workflow)
+        self.assertIn("doctor_same_sha_shadow.json", workflow)
+        self.assertIn("steps.doctor_shadow.outcome", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

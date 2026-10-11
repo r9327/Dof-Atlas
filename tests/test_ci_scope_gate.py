@@ -202,6 +202,8 @@ class ScopeGateTests(unittest.TestCase):
         self.assertIn("runs-on: ubuntu-latest", scoped)
         self.assertIn("runs-on: windows-latest", scoped)
         self.assertIn("needs.plan.outputs.run_scoped == 'true'", scoped)
+        self.assertIn("tests.test_guide_full_suite_fixture_budget", scoped)
+        self.assertIn("tests.test_ci_guide_full_evidence", scoped)
         self.assertIn("needs: [plan, windows]", scoped)
         self.assertIn("name: PR / Scoped Test Feedback", scoped)
         self.assertIn('WINDOWS_RESULT" != "success"', scoped)

@@ -2,6 +2,7 @@ name: Doctor Adaptive Certification
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
 
@@ -56,6 +57,9 @@ jobs:
           python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_certification*.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_shadow_campaign.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_github_provenance.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_policy_authority.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_scenario_runner.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_certification_readiness.py'
 
       - name: Plan exact-SHA test scope without application dependencies
         id: scope
@@ -181,5 +185,77 @@ jobs:
           path: |
             artifacts/doctor_certification/report.json
             artifacts/doctor_certification/passport.json
+          if-no-files-found: warn
+          retention-days: 30
+
+
+  journeys:
+    needs: plan
+    if: github.event.pull_request.draft == false && needs.plan.result == 'success'
+    name: Doctor / Windows User Journey Contracts
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: "1"
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Verify exact candidate
+        shell: pwsh
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) { throw "Wrong candidate SHA" }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install pinned application dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Exercise independent user journey contracts
+        shell: pwsh
+        run: |
+          python -X faulthandler -m tools.doctor_scenario_runner --expected-sha "$env:CANDIDATE_SHA" --run --scenario guide_quest_succes --scenario home_qt_lifecycle --scenario progress_persistence --scenario startup_preload --scenario guide_full_fixture_budget --output artifacts/doctor_certification/scenario_contracts.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Explain coverage and resource budget boundary
+        if: always()
+        shell: pwsh
+        run: |
+          $file = "artifacts/doctor_certification/scenario_contracts.json"
+          if (Test-Path $file) {
+            $evidence = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json
+            if ($env:GITHUB_STEP_SUMMARY) {
+              Add-Content $env:GITHUB_STEP_SUMMARY "## Doctor real user journey contract tests"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Candidate: $env:CANDIDATE_SHA"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Status: $($evidence.status)"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Real test modules: $($evidence.executed_test_modules.Count)"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Resource metrics not executed: $($evidence.required_metrics -join ', ')"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Contract PASS does NOT certify a real GUI end-to-end run or RAM budgets."
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Exact-SHA Phase FULL remains independently mandatory."
+            }
+          }
+
+      - name: Publish user journey contract evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: doctor-scenarios-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/doctor_certification/scenario_contracts.json
           if-no-files-found: warn
           retention-days: 30

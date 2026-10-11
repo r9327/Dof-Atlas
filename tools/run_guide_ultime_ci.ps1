@@ -22,6 +22,7 @@ if ((Test-Path $ZaapSeed) -and -not (Test-Path $ZaapSandbox)) {
 }
 
 $results = [System.Collections.Generic.List[object]]::new()
+$script:VerifiedFullStages = @{}
 
 function Write-LogLine {
     param([string]$Path, [string]$Text)
@@ -81,6 +82,29 @@ function Invoke-PythonCheck {
     Invoke-LoggedNative $Name $PythonExecutable @($PythonPrefixArguments + $Arguments)
 }
 
+function Invoke-GuideTestOrReuse {
+    param(
+        [Parameter(Mandatory=$true)][string]$Name,
+        [Parameter(Mandatory=$true)][string]$Module
+    )
+    if ($script:VerifiedFullStages.ContainsKey($Name)) {
+        $logPath = Join-Path $LogDir ("{0}.log" -f $Name)
+        $proofCount = [int]$script:VerifiedFullStages[$Name]
+        if (Test-Path $logPath) { Remove-Item $logPath -Force }
+        Write-LogLine -Path $logPath -Text "REUSED_FROM_EXACT_FULL SHA=$env:GITHUB_SHA module=$Module tests=$proofCount"
+        $results.Add([pscustomobject]@{
+            name = $Name
+            exit_code = 0
+            duration_seconds = 0.0
+            log = [IO.Path]::GetFileName($logPath)
+            reused_from_full = $true
+            exact_full_test_count = $proofCount
+        }) | Out-Null
+        return
+    }
+    Invoke-PythonCheck $Name @("-m", "unittest", $Module)
+}
+
 $diag = Join-Path $LogDir "00_environment.log"
 if (Test-Path $diag) { Remove-Item $diag -Force }
 Write-LogLine -Path $diag -Text "Guide Ultime CI diagnostics"
@@ -104,6 +128,33 @@ try {
     & git lfs status 2>&1 | Tee-Object -FilePath $diag -Append
     "--- canonical route files ---" | Tee-Object -FilePath $diag -Append
     Get-ChildItem "data\routes\guide_ultime_manual" -File | Sort-Object Name | Select-Object -ExpandProperty Name | Tee-Object -FilePath $diag -Append
+
+    # Optional, same-checkout FULL proof. Every missing or ambiguous test
+    # causes a normal, independent subprocess run of ALL Guide test modules.
+    if ($env:ATLAS_GUIDE_REUSE_FULL -eq "1" -and
+        $env:ATLAS_FULL_SUITE_SUCCESS -eq "success" -and
+        -not [string]::IsNullOrWhiteSpace($env:GITHUB_SHA)) {
+        $proofPath = Join-Path $LogDir "exact_full_test_proof.json"
+        $fullLog = Join-Path $Root "artifacts/ci_app_logs/05_full_unittest.log"
+        & $PythonExecutable @PythonPrefixArguments -m tools.ci_guide_full_evidence --root $Root --log $fullLog --sha $env:GITHUB_SHA --out $proofPath
+        if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $proofPath)) {
+            $proof = Get-Content -LiteralPath $proofPath -Raw | ConvertFrom-Json
+            if ($proof.status -eq "PROVEN" -and $proof.head -eq $env:GITHUB_SHA) {
+                $required = @("11_existing_guides_tests", "12_existing_success_tests", "13_existing_shell_tests")
+                foreach ($name in $required) {
+                    if ($proof.stages.PSObject.Properties.Name -contains $name -and [int]$proof.stages.$name -gt 0) {
+                        $script:VerifiedFullStages[$name] = [int]$proof.stages.$name
+                    }
+                }
+                if ($script:VerifiedFullStages.Count -ne $required.Count) {
+                    $script:VerifiedFullStages = @{}
+                }
+            }
+        }
+        if ($script:VerifiedFullStages.Count -ne 3) {
+            Write-Warning "Guide exact FULL evidence unavailable: execute original suites."
+        }
+    }
 
     Invoke-PythonCheck "01_install_dependencies" @("-m", "pip", "install", "-r", "requirements-pyside.txt")
 
@@ -167,9 +218,9 @@ try {
     Invoke-PythonCheck "10b_action_quality_inventory" @("-m", "tools.audit_guide_ultime_action_quality", "--strict-hard", "--output", ".\artifacts\ci_guide_ultime_logs\action_quality.json")
     Invoke-PythonCheck "10c_player_contract_7e" @("-m", "tools.guide_player_contract", "--strict-hard", "--output", ".\artifacts\ci_guide_ultime_logs\player_contract_7e.json")
 
-    Invoke-PythonCheck "11_existing_guides_tests" @("-m", "unittest", "tests.test_guides_phase3")
-    Invoke-PythonCheck "12_existing_success_tests" @("-m", "unittest", "tests.test_achievements_lot7")
-    Invoke-PythonCheck "13_existing_shell_tests" @("-m", "unittest", "tests.test_pyside_shell")
+    Invoke-GuideTestOrReuse "11_existing_guides_tests" "tests.test_guides_phase3"
+    Invoke-GuideTestOrReuse "12_existing_success_tests" "tests.test_achievements_lot7"
+    Invoke-GuideTestOrReuse "13_existing_shell_tests" "tests.test_pyside_shell"
 }
 finally {
     Pop-Location

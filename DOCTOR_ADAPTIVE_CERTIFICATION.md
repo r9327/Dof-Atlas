@@ -401,3 +401,112 @@ independently authenticated default-branch policy and complete dynamic
 dependency closure; real end-to-end scenario assertions and expensive
 FULL sharding/Guide builders must likewise be demonstrated before
 official release policy migration. These are *not* marked done here.
+
+
+## Stage 3 implementation — complete feature coding batch for PR #137
+
+This final development batch builds on existing independent, conservative
+selection; it does not silently change Phase/FULL release policy.
+
+### Verified source policy and provenance
+
+- \`tools/doctor_policy_authority.py\` compares the full set of
+  certification root-of-trust **Git blobs** on the candidate with immutable
+  \`main\` blob IDs retrieved from the GitHub API. Branch protection requires
+  independently observed required PR reviews and status checks and forbids
+  force pushes and deletion. Missing GitHub permissions/rulesets or changed
+  policy files yields \`BLOCKED\`; no authentication is inferred from a
+  PR-owned JSON field.
+- The existing GitHub archive digest verifier and cross-SHA eligible-docs
+  inspector remain distinct. Even if all three were satisfied, **automatic
+  cross-SHA test reuse is not enabled in this PR**: policy lock-down must be
+  deployed on the protected default branch first and complete dynamic
+  dependency closure independently demonstrated.
+- All new policy/memory/verification modules and Guide evidence scripts are
+  classified as root-of-trust changes requiring FULL by Doctor's scope router.
+
+### Actual user-journey contract execution, not a fabricated GUI PASS
+
+\`tools/doctor_scenario_runner.py\` provides five explicit end-user contract
+families (actual existing test modules, no generated mock tests):
+
+- \`guide_quest_succes\`: Guide -> Quest links -> achievement mapping and UI
+  navigation contracts;
+- \`home_qt_lifecycle\`: Qt/WebEngine/home teardown contracts;
+- \`progress_persistence\`: Guide, Quest and Success persistence contracts;
+- \`startup_preload\`: startup, preload and resource contracts;
+- \`guide_full_fixture_budget\`: PR #131 one-catalog-build and exact FULL test
+  identity guardrails.
+
+Only a clean exact-SHA worktree can execute these via the **canonical
+unittest scope runner**, which rejects zero collected tests. Missing modules
+and failures block. The successful status is specifically
+\`CONTRACTS_PASS_METRICS_NOT_RUN\`, **not** a live Dofus session, complete
+GUI replay, memory/CPU certification, or a Phase FULL PASS.
+
+\`Doctor Adaptive Certification\` runs these Windows journeys only after
+the PR leaves draft and the fast policy job succeeded; it does not rebuild
+the catalog on each development commit. The final mandatory Phase FULL
+still controls phase closure.
+
+### Budget review and selected/unselected test traceability
+
+- \`certification_metrics.py\` validates actual Phase 8 benchmark JSON
+  numerically: preload ≤95 MB, each Home return strictly <100 MB,
+  process-tree peak ≤220 MB, retention delta limits 15/20/2/1 MB.
+  Missing values, duplicate stages, NaN/negative and boundary regressions
+  become \`BLOCKED\`. A local JSON has no SHA provenance and can only
+  earn \`LOCAL_NUMBERS_IN_BUDGET_UNATTESTED\`.
+- \`certification_explain.py\` inventories every test and records why it was
+  selected or deferred. An unselected test is **not** misrepresented as
+  independent proof of no dynamic dependencies.
+- \`certification_readiness.py\` produces an actionable deficiency list:
+  runtime traces, exact-SHA scenario assertions, bounded metrics, GitHub
+  provenance, policy trust, real shadow pairs, and mandatory FULL. No
+  scenario or advisory PASS authorizes a merge.
+
+### FULL performance improvement from PR #131 (integrated here, without
+merging or deleting the still-open #131)
+
+- Share a **single real GuideCatalogBuilder.build()** between the original
+  Guide integration assertions and network-free guide file preservation;
+  persist quest progress in one validated batch.
+- Reuse three existing Guide runner suites only after parsing their **exact
+  successful unittest IDs in the same successful FULL**. Any incomplete
+  report/skip/failure falls back to executing those test modules normally.
+- Preserve 100% discovery, all tests/assertions, independent Doctor FAST
+  and all RAM/preload budgets.
+- Keep PR #131 unchanged until this combined candidate has completed final
+  certification; no double merge or competing builders.
+
+### Historical FULL and real same-SHA shadow
+
+During *final Phase Certification only*, the workflow creates
+\`doctor_same_sha_plan.json\` and compares it with
+\`03_atlas_integrity_full.json\` using \`doctor_shadow_campaign --pair\`.
+It adds an independent failure condition on an invalid shadow record.
+The combined report is archived alongside the original Phase verdict and
+the FULL execution logs; no second FULL is launched. A FULL_REQUIRED plan
+paired with a passing FULL merely confirms the conservative decision, it
+does NOT establish that a targeted strategy can replace all future FULLs.
+
+### Commands and release gate
+
+During development, run no memory benchmark or heavy Guide/FULL.
+After coding is complete:
+
+1. Run the focused Doctor/Graphify/AI Context/Guide contracts and verify
+   every required PR check on the **last exact SHA**.
+2. Change the candidate out of draft for final Windows journey contracts.
+   For a Phase-labeled PR the canonical \`Phase Certification\` FULL runs
+   only at readiness/explicit dispatch; it must report PASS on that SHA.
+3. Analyze FULL/Guide timings against recorded baseline; do not claim the
+   target 15–30min FULL without a measured comparison.
+4. Confirm mandatory Phase/FULL, data integrity, shadow, source trust,
+   merger conflicts, branch rules, and never merge with a blocked check.
+
+**Not automatically certifiable yet:** cross-SHA skipping across
+PR-supplied policies, a real in-game GUI recording, and a formal policy
+change waiving Phase FULL remain deliberately locked until independent
+provenance, real runs, and policy review are complete. These are security
+gates, not optional untracked TODOs.

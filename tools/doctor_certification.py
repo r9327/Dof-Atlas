@@ -19,6 +19,9 @@ from tools.atlas_doctor_lib.certification_shadow import evaluate_shadow, load_fu
 from tools.atlas_doctor_lib.certification_cumulative import assess_cumulative
 from tools.atlas_doctor_lib.certification_engine import fingerprint
 from tools.atlas_doctor_lib.certification_policy import enforce
+from tools.atlas_doctor_lib.certification_readiness import readiness
+from tools.atlas_doctor_lib.certification_metrics import assess_memory_benchmark
+from tools.atlas_doctor_lib.certification_explain import explain_selection
 from tools.atlas_doctor_lib.certification_runtime import attach_runtime_trace
 from tools.atlas_doctor_lib.certification_evidence import inspect_previous_evidence
 from tools.atlas_doctor_lib.certification_passport import load_passport
@@ -40,6 +43,15 @@ def _git(*args: str) -> str:
 def _write_report(path: Path, report: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _load_bounded_json(path: Path) -> dict:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 3_000_000:
+        raise ValueError("Invalid, missing or oversized evidence JSON")
+    report = json.loads(path.read_text(encoding="utf-8-sig"))
+    if not isinstance(report, dict):
+        raise ValueError("Evidence must be an object")
+    return report
 
 
 def run(args: argparse.Namespace) -> dict:
@@ -135,6 +147,33 @@ def run(args: argparse.Namespace) -> dict:
         if comparison["status"] == "INVALID_EVIDENCE":
             report["status"] = "BLOCKED"
             report["reasons"].append("SHADOW_EVIDENCE_INVALID")
+    scenario_report = getattr(args, "scenario_report", None)
+    if scenario_report:
+        saved = _load_bounded_json(scenario_report)
+        expected_modules = set(saved.get("required_test_modules", []))
+        actual_modules = set(saved.get("executed_test_modules", []))
+        if (saved.get("candidate_sha") != head
+                or saved.get("status") != "CONTRACTS_PASS_METRICS_NOT_RUN"
+                or not expected_modules or actual_modules != expected_modules
+                or saved.get("test_exit_code") != 0
+                or saved.get("all_end_to_end_certified") is not False):
+            report["status"] = "BLOCKED"
+            report["reasons"].append("INVALID_OR_STALE_SCENARIO_EVIDENCE")
+        else:
+            report["scenario_execution"] = saved
+    memory_report = getattr(args, "memory_report", None)
+    if memory_report:
+        review = assess_memory_benchmark(_load_bounded_json(memory_report))
+        report["memory_measurement_review"] = review
+        # A JSON file has NO candidate SHA and is NOT authenticated. Even good
+        # local numbers must never populate metrics_executed in the passport.
+        if review["status"] == "BLOCKED":
+            report["status"] = "BLOCKED"
+            report["reasons"].append("INVALID_OR_OVER_BUDGET_MEMORY_EVIDENCE")
+    report["test_selection_audit"] = explain_selection(ROOT, report)
+    if report["test_selection_audit"]["status"] == "BLOCKED":
+        report["status"] = "BLOCKED"
+        report["reasons"].append("TEST_SELECTION_INVENTORY_UNAVAILABLE")
     report["passport"] = build_passport(report, root=ROOT)
     report["passport_validation"] = verify_passport(
         report["passport"], head_sha=head,
@@ -144,6 +183,7 @@ def run(args: argparse.Namespace) -> dict:
     if report["passport_validation"]["status"] != "INTEGRITY_CHECKED_NOT_ATTESTED":
         report["status"] = "BLOCKED"
         report["reasons"].append("PASSPORT_INTEGRITY_FAILURE")
+    report["readiness"] = readiness(report)
     return report
 
 
@@ -156,6 +196,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run", action="store_true", help="Run safe selected modules; never a FULL.")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--passport-output", type=Path)
+    parser.add_argument("--scenario-report", type=Path,
+                        help="Completed same-SHA Doctor user journey contract JSON")
+    parser.add_argument("--memory-report", type=Path,
+                        help="Review local Phase 8 benchmark numbers; NOT trusted provenance")
     parser.add_argument("--prior-passport", type=Path,
                         help="Review previous SHA evidence; NEVER skips tests without trusted provenance")
     parser.add_argument("--trace", type=Path, action="append", default=[],

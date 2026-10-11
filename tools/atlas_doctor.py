@@ -188,6 +188,8 @@ def command_certification(root: Path, args) -> dict[str, Any]:
         cumulative_base_ref=args.cumulative_base_ref,
         trace=args.trace,
         prior_passport=args.prior_passport,
+        scenario_report=args.scenario_report,
+        memory_report=args.memory_report,
     ))
     if not args.json:
         print(f"Doctor certification: {payload['status']} ({payload['profile']})")
@@ -676,6 +678,10 @@ def build_parser() -> argparse.ArgumentParser:
                       help='Executer uniquement les tests cibles juges surs.')
     cert.add_argument('--cumulative-base-ref',
                       help='Base Git pour analyse cumulative, sans prétendre prouver une FULL.')
+    cert.add_argument('--scenario-report', type=Path,
+                      help='Preuve des tests de parcours exact-SHA, sans RAM implicite.')
+    cert.add_argument('--memory-report', type=Path,
+                      help='Verifier budget de mesures RAM locales, provenance non attestee.')
     cert.add_argument('--prior-passport', type=Path,
                       help='Comparer avec un ancien passeport sans sauter les tests.')
     cert.add_argument('--trace', type=Path, action='append', default=[],

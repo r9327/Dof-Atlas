@@ -208,6 +208,24 @@ jobs:
           Get-Content -LiteralPath $report | Write-Host
           if ($code -ne 0) { exit $code }
 
+      - name: Compare Doctor plan with actual exact-SHA FULL evidence
+        id: doctor_shadow
+        if: always()
+        continue-on-error: true
+        run: |
+          $full = "artifacts/phase_certification/03_atlas_integrity_full.json"
+          if (-not (Test-Path -LiteralPath $full)) {
+            Write-Host "Doctor shadow: FULL JSON unavailable, no comparison possible"
+            exit 0
+          }
+          $plan = "artifacts/phase_certification/doctor_same_sha_plan.json"
+          $campaign = "artifacts/phase_certification/doctor_same_sha_shadow.json"
+          python -X faulthandler -m tools.doctor_certification --base-ref "$env:CERT_BASE_REF" --expected-sha "$env:CANDIDATE_SHA" --output $plan
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -X faulthandler -m tools.doctor_shadow_campaign --pair $plan $full --output $campaign
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host "Doctor exact-SHA shadow pair recorded; no FULL waiver granted"
+
       - name: Upload certification logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -225,6 +243,7 @@ jobs:
           $failures = @()
           if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
           if ("${{ steps.catalog.outcome }}" -ne "success") { $failures += "Dofus catalog" }
+          if ("${{ steps.doctor_shadow.outcome }}" -eq "failure") { $failures += "Doctor same-SHA shadow verification" }
           $timingOutcome = "${{ steps.timing.outcome }}"
           if ($timingOutcome -and $timingOutcome -ne "success" -and $timingOutcome -ne "skipped") {
             $failures += "Encyclopedia timing performance"

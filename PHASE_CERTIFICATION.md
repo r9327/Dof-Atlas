@@ -157,3 +157,17 @@ Tout rapport de clôture doit distinguer explicitement :
 Ne jamais transformer `NOT RUN`, `BLOCKED` ou une dette non figée en validation implicite.
 
 Si `Phase Certification / Full Validation` n'est pas `PASS` sur le SHA exact, la phase reste ouverte.
+
+
+## Doctor shadow on a completed FULL (Phase 8 certification)
+
+After the full Atlas Integrity gate, the phase workflow now generates a
+read-only Doctor candidate plan and compares it with the actual FULL JSON
+from **the same checked-out SHA**. Both artifacts are stored alongside the
+original phase log. Invalid shadow evidence is an independent failure;
+there is no second FULL execution and no retroactive waiver.
+
+The Doctor shadow campaign is **advisory when the scope is FULL_REQUIRED**:
+it shows what was and was not checked, but cannot manufacture a Phase PASS.
+The authoritative Phase verdict still comes only from Atlas Integrity FULL,
+the critical Guide/data evidence and the phase verdict engine.
