@@ -92,6 +92,14 @@ def build_passport(plan: dict[str, Any], *, root: Path) -> dict[str, Any]:
         "metrics_executed": [],
         "unresolved_reasons": list(plan.get("reasons") or []),
         "source_impact": plan.get("source_impact"),
+        "evidence_reuse_review": plan.get("evidence_reuse_review", {
+            "status": "NOT_REQUESTED", "automated_test_reuse_authorized": False,
+            "tests_skipped": False,
+        }),
+        "runtime_observation": plan.get("runtime_observation", {
+            "status": "NOT_OBSERVED", "functional_tests_passed": False,
+            "performance_budgets_passed": False, "qt_lifecycle_certified": False,
+        }),
         "traceability": plan.get("test_selection_explanations", {}),
         "execution": {
             "status": execution.get("status", "NOT_RUN"),

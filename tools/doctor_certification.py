@@ -19,6 +19,9 @@ from tools.atlas_doctor_lib.certification_shadow import evaluate_shadow, load_fu
 from tools.atlas_doctor_lib.certification_cumulative import assess_cumulative
 from tools.atlas_doctor_lib.certification_engine import fingerprint
 from tools.atlas_doctor_lib.certification_policy import enforce
+from tools.atlas_doctor_lib.certification_runtime import attach_runtime_trace
+from tools.atlas_doctor_lib.certification_evidence import inspect_previous_evidence
+from tools.atlas_doctor_lib.certification_passport import load_passport
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,6 +71,33 @@ def run(args: argparse.Namespace) -> dict:
             report["test_modules"] = []
             report["test_selection_explanations"] = {}
             report["independent_verdict"] = enforce(report)
+        core = dict(report)
+        core.pop("plan_fingerprint", None)
+        report["plan_fingerprint"] = fingerprint(core)
+    requested_traces = getattr(args, "trace", None) or []
+    if requested_traces:
+        runtime = attach_runtime_trace(ROOT, report, requested_traces)
+        report["runtime_observation"] = runtime
+        if runtime["status"] != "OBSERVED_NOT_CERTIFIED":
+            report["status"] = "FULL_REQUIRED"
+            report["profile"] = "FULL_REQUIRED"
+            report["test_modules"] = []
+            report["test_selection_explanations"] = {}
+            report["reasons"] = sorted(set(report["reasons"] + [
+                "RUNTIME_TRACE_INCOMPLETE_OR_UNPROVEN"
+            ]))
+            report["independent_verdict"] = enforce(report)
+        core = dict(report)
+        core.pop("plan_fingerprint", None)
+        report["plan_fingerprint"] = fingerprint(core)
+    previous_receipt = getattr(args, "prior_passport", None)
+    if previous_receipt:
+        prior = load_passport(previous_receipt)
+        report["evidence_reuse_review"] = inspect_previous_evidence(
+            ROOT, prior, report,
+        )
+        # Auditing possible cross-SHA reuse NEVER short-circuits execution:
+        # artifact provenance is not independently attested in this PR.
         core = dict(report)
         core.pop("plan_fingerprint", None)
         report["plan_fingerprint"] = fingerprint(core)
@@ -126,6 +156,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run", action="store_true", help="Run safe selected modules; never a FULL.")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--passport-output", type=Path)
+    parser.add_argument("--prior-passport", type=Path,
+                        help="Review previous SHA evidence; NEVER skips tests without trusted provenance")
+    parser.add_argument("--trace", type=Path, action="append", default=[],
+                        help="Existing exact-SHA .ai/runtime trace, bounded; never runs the application")
     parser.add_argument("--shadow-full-report", type=Path,
                         help="Optional completed Atlas Integrity FULL JSON, never launches FULL")
     args = parser.parse_args(argv)

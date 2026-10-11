@@ -268,3 +268,83 @@ mandatory and is not reduced by this scheduling optimization. The canonical
 \`tests/test_ci_scope_gate.py\` workflow contract has been deliberately
 updated to ensure the new dependent verdict cannot mask failed tests.
 This is a scheduling optimization only, not a coverage relaxation.
+
+
+## Stage 2A — runtime trace binding and conservative evidence review
+
+These are implemented **advisory features** rather than simulated PASS gates:
+
+- \`--trace .ai/runtime/...json\` (repeatable, maximum 12) binds the
+  existing Doctor scenario-coverage analyzer to the candidate SHA. The
+  trace must be non-stale, untruncated, inside the runtime boundary and
+  must show actual execution of all changed/impacted application Python
+  files. Otherwise \`FULL_REQUIRED\` is recorded; a runtime observation
+  is **not** a completed functional assertion, Qt teardown certification,
+  or memory/preload benchmark.
+- \`--prior-passport artifacts/previous/passport.json\` performs a safe
+  *cross-SHA eligibility review*. It validates internal passport checksum,
+  current OS/Python/pinned dependency digest, prior executed test subset,
+  exact Git ancestry/HEAD, and requires **every changed Git object**
+  between those SHAs to be a \`docs/**/*.md\` documentation file. Any
+  code, data, tests, workflow, fixture, or dependency change makes the
+  previous evidence ineligible.
+- The \`evidence_reuse_review\` reports
+  \`CANDIDATE_FOR_INDEPENDENT_PROVENANCE_REVIEW\` versus \`NOT_ELIGIBLE\`.
+  **No tests are skipped.** Git SHA plus a self-reported JSON digest
+  cannot prove that GitHub Actions produced a successful, unmodified
+  certificate. An independently authenticated artifact origin and a
+  separately reviewed policy are still required before any execution
+  waiver can be implemented.
+
+## Stage 2B — actual historical FULL ingestion and offline shadow cohorts
+
+The tool \`python -m tools.doctor_shadow_campaign\` now accepts **actual**
+downloaded Atlas Integrity reports without starting a single new FULL:
+
+\`\`\`bash
+python -m tools.doctor_shadow_campaign --inspect-full artifacts/phase_certification/03_atlas_integrity_full.json --output artifacts/doctor/shadow_inspection.json
+python -m tools.doctor_shadow_campaign --pair previous_doctor_plan.json matching_exact_sha_full.json --output artifacts/doctor/shadow_campaign.json
+\`\`\`
+
+The two modes are deliberately distinct:
+
+- \`--inspect-full\` validates the real report's mode, schema, exact SHA,
+  every mandatory policy group, status consistency, and positive
+  \`FULL_SUITE\` execution records. It **does not pretend to have run
+  Doctor on that historical SHA**.
+- \`--pair\` requires an actual plan and a FULL report for the **same
+  candidate SHA**, aggregates candidate missed regressions, and exits
+  non-zero on invalid evidence or observed false negatives. Up to 12
+  report inputs; local JSON provenance remains untrusted until attested.
+
+### Observed real baseline (not synthetic; not a shadow pair)
+
+GitHub Actions run
+\`38034553541\`, PR #127, HEAD
+\`a63aa598b321a5cb48a4724309e83c3816e73ef7\`
+contains artifact
+\`phase-certification-38034553541-1\`, and its
+\`phase_certification/03_atlas_integrity_full.json\` reports:
+
+- \`mode=FULL\`, \`verdict=PASS\`, all 16 required groups PASS.
+- \`FULL_SUITE\`: **2267 tests, 4135.928 seconds**.
+- \`DATA_INTEGRITY\`: 415.486 seconds;
+  \`GOLDEN_FLOWS\`: 167.709 seconds.
+- Entire Atlas Integrity execution: **4864.007 seconds (~81.1 min)**.
+
+This establishes a *real cost baseline* and a real archived FULL record.
+It does **not** demonstrate any current PR #137 shadow agreement, nor
+validate that historical #127 behavior matches newer code. The separate
+Guide-fixture speedup remains owned by PR #131; no duplicate rewrite here.
+
+### Remaining safety work
+
+- Authenticate run identity, attempt, conclusion, artifact digest, GitHub
+  workflow SHA and repository origin **outside PR-modifiable code** before
+  allowing evidence reuse.
+- Collect actual Doctor-vs-FULL **same-SHA** pairs and adversarial
+  mutation samples for all scenario families; one successful FULL alone
+  cannot certify the selector's false-negative rate.
+- Implement trusted policy migration and resource-budget/runnable
+  scenario gates in a separately reviewed rollout. Keep the current
+  mandatory FULL untouched until proven safe.
