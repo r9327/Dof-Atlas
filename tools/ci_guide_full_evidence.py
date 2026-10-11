@@ -82,23 +82,45 @@ def prove(log_text: str, expected: dict[str, list[str]]) -> dict[str, int]:
     return result
 
 
+def prove_ledger(payload: dict[str, object],
+                 expected: dict[str, list[str]]) -> dict[str, int]:
+    """Exact per-test structured proof; never trust module counts alone."""
+    from tools.atlas_full_suite_proof import canonical
+
+    actual = set(payload["expected_test_ids"])
+    successes = set(payload["successful_test_ids"])
+    result = {}
+    for stage, module in REUSED_MODULES.items():
+        needed = [canonical(x) for x in expected.get(stage, [])]
+        observed = {x for x in actual if x.startswith(module + ".")}
+        if (not needed or len(needed) != len(set(needed))
+                or observed != set(needed)
+                or not observed.issubset(successes)):
+            raise ValueError("FULL test IDs missing, skipped or unexpected for " + module)
+        result[stage] = len(needed)
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
-    parser.add_argument("--log", type=Path, required=True)
+    parser.add_argument("--log", type=Path)
+    parser.add_argument("--proof", type=Path)
     parser.add_argument("--sha", required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
         root = args.root.resolve(strict=True)
-        log = args.log.resolve(strict=True)
+        if bool(args.log) == bool(args.proof):
+            raise ValueError("Exactly one of --log or --proof is required")
+        log = (args.proof or args.log).resolve(strict=True)
         target = args.out.resolve()
         if not log.is_relative_to(root) or not target.is_relative_to(root):
             raise ValueError("evidence paths must stay inside the checkout")
         if os.getenv("ATLAS_FULL_SUITE_SUCCESS") != "success":
             raise ValueError("FULL job did not report a successful test step")
-        if os.getenv("GITHUB_SHA") != args.sha:
-            raise ValueError("GitHub exact SHA mismatch")
+        if os.getenv("ATLAS_FULL_SUITE_SHA") != args.sha:
+            raise ValueError("FULL evidence SHA mismatch")
         actual = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=root,
             capture_output=True, text=True, check=True, timeout=10,
@@ -106,10 +128,17 @@ def main(argv: list[str] | None = None) -> int:
         if actual != args.sha:
             raise ValueError("checkout exact SHA mismatch")
         raw = log.read_bytes()
-        covered = prove(raw.decode("utf-8"), expected_tests())
+        if args.proof:
+            from tools.atlas_full_suite_proof import load_verified
+
+            payload = load_verified(log, sha=args.sha)
+            covered = prove_ledger(payload, expected_tests())
+        else:
+            covered = prove(raw.decode("utf-8"), expected_tests())
         payload = {
             "schema_version": 1, "kind": "atlas_guide_exact_full_reuse",
-            "head": actual, "full_log_sha256": hashlib.sha256(raw).hexdigest(),
+            "head": actual, "full_proof_sha256" if args.proof else "full_log_sha256":
+                hashlib.sha256(raw).hexdigest(),
             "stages": covered, "status": "PROVEN",
             "reason": "All discovered test IDs succeeded in exact-SHA FULL",
         }

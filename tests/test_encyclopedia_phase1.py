@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtWidgets import QApplication
 
 from app.constants import KEY_SESSION_ORDER
@@ -180,7 +181,28 @@ class EncyclopediaPhase1Tests(unittest.TestCase):
             self.assertTrue(statuses)
             self.assertEqual(page.current_tab_label(), ENCYCLOPEDIA_TABS[-1])
 
+            # Tab changes deliberately kick off Guide/Achievement background
+            # progress readers. On Windows an active quest_progress.json.lock
+            # cannot be deleted by TemporaryDirectory cleanup. Wait for the
+            # actual workers to finish instead of ignoring a leaked lock.
+            deadline = time.monotonic() + 15
+            busy_names = (
+                "_quest_load_started",
+                "_related_preload_started",
+                "_achievement_load_started",
+            )
+            while time.monotonic() < deadline:
+                app.processEvents()
+                if not any(bool(getattr(page, flag, False)) for flag in busy_names):
+                    break
+                time.sleep(0.02)
+            self.assertFalse(
+                any(bool(getattr(page, flag, False)) for flag in busy_names),
+                "Encyclopedia background worker remains active at test teardown",
+            )
+            page.close()
             page.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
             app.processEvents()
 
 

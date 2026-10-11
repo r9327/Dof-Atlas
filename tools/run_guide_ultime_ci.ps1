@@ -91,7 +91,7 @@ function Invoke-GuideTestOrReuse {
         $logPath = Join-Path $LogDir ("{0}.log" -f $Name)
         $proofCount = [int]$script:VerifiedFullStages[$Name]
         if (Test-Path $logPath) { Remove-Item $logPath -Force }
-        Write-LogLine -Path $logPath -Text "REUSED_FROM_EXACT_FULL SHA=$env:GITHUB_SHA module=$Module tests=$proofCount"
+        Write-LogLine -Path $logPath -Text "REUSED_FROM_EXACT_FULL SHA=$env:ATLAS_FULL_SUITE_SHA module=$Module tests=$proofCount"
         $results.Add([pscustomobject]@{
             name = $Name
             exit_code = 0
@@ -133,13 +133,13 @@ try {
     # causes a normal, independent subprocess run of ALL Guide test modules.
     if ($env:ATLAS_GUIDE_REUSE_FULL -eq "1" -and
         $env:ATLAS_FULL_SUITE_SUCCESS -eq "success" -and
-        -not [string]::IsNullOrWhiteSpace($env:GITHUB_SHA)) {
+        -not [string]::IsNullOrWhiteSpace($env:ATLAS_FULL_SUITE_SHA)) {
         $proofPath = Join-Path $LogDir "exact_full_test_proof.json"
-        $fullLog = Join-Path $Root "artifacts/ci_app_logs/05_full_unittest.log"
-        & $PythonExecutable @PythonPrefixArguments -m tools.ci_guide_full_evidence --root $Root --log $fullLog --sha $env:GITHUB_SHA --out $proofPath
+        $fullLog = Join-Path $Root "artifacts/ci_app_logs/05_full_unittest_proof.json"
+        & $PythonExecutable @PythonPrefixArguments -m tools.ci_guide_full_evidence --root $Root --proof $fullLog --sha $env:ATLAS_FULL_SUITE_SHA --out $proofPath
         if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $proofPath)) {
             $proof = Get-Content -LiteralPath $proofPath -Raw | ConvertFrom-Json
-            if ($proof.status -eq "PROVEN" -and $proof.head -eq $env:GITHUB_SHA) {
+            if ($proof.status -eq "PROVEN" -and $proof.head -eq $env:ATLAS_FULL_SUITE_SHA) {
                 $required = @("11_existing_guides_tests", "12_existing_success_tests", "13_existing_shell_tests")
                 foreach ($name in $required) {
                     if ($proof.stages.PSObject.Properties.Name -contains $name -and [int]$proof.stages.$name -gt 0) {
@@ -156,7 +156,20 @@ try {
         }
     }
 
-    Invoke-PythonCheck "01_install_dependencies" @("-m", "pip", "install", "-r", "requirements-pyside.txt")
+    if ($env:ATLAS_GUIDE_DEPENDENCIES_READY -eq "1" -and
+        $env:ATLAS_FULL_SUITE_SUCCESS -eq "success") {
+        $skipLog = Join-Path $LogDir "01_install_dependencies.log"
+        Write-LogLine -Path $skipLog -Text "REUSED_FROM_SAME_PYTHON_ENV pinned application dependencies already installed by Phase workflow"
+        $results.Add([pscustomobject]@{
+            name = "01_install_dependencies"
+            exit_code = 0
+            duration_seconds = 0.0
+            log = [IO.Path]::GetFileName($skipLog)
+            reused_from_phase = $true
+        }) | Out-Null
+    } else {
+        Invoke-PythonCheck "01_install_dependencies" @("-m", "pip", "install", "-r", "requirements-pyside.txt")
+    }
 
     Invoke-PythonCheck "02_guide_ultime_core_tests" @(
         "-m", "unittest",

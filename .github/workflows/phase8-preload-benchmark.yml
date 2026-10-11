@@ -182,6 +182,11 @@ jobs:
               "craft_open_ms",
               "equipment_open_ms",
               "rss_after_first_accesses_mb",
+              "deep_quest_detail_ms",
+              "deep_guide_detail_ms",
+              "deep_achievement_detail_ms",
+              "deep_first_content_total_ms",
+              "total_first_path_ms",
           )
           missing = [name for name in required if after_metrics.get(name) is None]
           if missing:
@@ -209,6 +214,19 @@ jobs:
                   f"candidate peak RAM regressed: {after_peak:.2f} MB vs {before_peak:.2f} MB base"
               )
 
+          # Real cold first-use details: compare against exact same ids on
+          # baseline/candidate, never just the immediate navigable shell.
+          from tools.phase8_deep_comparison import compare_deep_first_use
+          deep_review = compare_deep_first_use(
+              before_metrics, after_metrics,
+              base_sha=expected_base, candidate_sha=expected_candidate,
+          )
+          if deep_review["verdict"] == "NET_REGRESSION":
+              raise SystemExit(
+                  "candidate total first-use path regressed >1s: "
+                  + str(deep_review["net_full_first_use_gain_ms"]) + " ms"
+              )
+
           deltas = {}
           for name in required:
               before_value = before_metrics.get(name)
@@ -223,6 +241,7 @@ jobs:
               "before": before_metrics,
               "after": after_metrics,
               "delta_after_minus_before": deltas,
+              "deep_first_use_review": deep_review,
           }
           (root / "comparison.json").write_text(
               json.dumps(comparison, ensure_ascii=False, indent=2) + "\n",
@@ -255,12 +274,24 @@ jobs:
             "achievements_open_ms",
             "guide_open_ms",
             "craft_open_ms",
-            "equipment_open_ms"
+            "equipment_open_ms",
+            "deep_quest_detail_ms",
+            "deep_guide_detail_ms",
+            "deep_achievement_detail_ms",
+            "deep_first_content_total_ms",
+            "total_first_path_ms"
           )) {
             $before = $payload.before.$name
             $after = $payload.after.$name
             $delta = $payload.delta_after_minus_before.$name
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| $name | $before | $after | $delta |"
+          }
+          if ($payload.deep_first_use_review) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Net first-use gain (including all three rendered details): $($payload.deep_first_use_review.net_full_first_use_gain_ms) ms"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Shifted into detail rendering: $($payload.deep_first_use_review.shifted_into_deep_details_ms) ms"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Deep first-use verdict: $($payload.deep_first_use_review.verdict)"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- One controlled run; repeated trials and other user journeys still require verification."
           }
 
       - name: Upload Phase 8 benchmark evidence

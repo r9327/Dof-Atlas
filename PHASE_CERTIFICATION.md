@@ -14,11 +14,133 @@ Les états officiels sont :
 
 Seul l'état `CERTIFIED` autorise les formulations « phase terminée », « phase validée définitivement », « 100 % terminée » ou équivalent.
 
+## Activation explicite du contrôle FULL pour les PR Phase
+
+Pour déclencher automatiquement `Phase Certification / Full Validation` sur une
+PR interne prête à relire, **le titre doit commencer exactement par `Phase `**.
+Un titre descriptif sans ce préfixe rend le job `skipped`, ce qui **n'est
+pas une certification**. Modifier uniquement le titre ne relance pas un
+workflow déjà créé ; il faut un nouvel événement `synchronize` (un commit
+poussé sur la branche), un nouveau passage `ready_for_review`, ou un
+déclenchement manuel explicite selon les droits disponibles.
+
+Avant de déclarer `CERTIFIED`, vérifier sur le **dernier SHA exact** :
+- `Phase Certification / Full Validation` réellement exécuté et `PASS` ;
+- `Doctor / Windows User Journey Contracts` `PASS` sur la même révision ;
+- budgets Phase 8 RAM / preload réellement exécutés et `PASS` ;
+- tests Doctor / Graphify / AI Context / Public PR sans échec ;
+- artefact FULL, verdict de phase et shadow comparés sur ce même SHA.
+
+Les tests `skipped` et les anciennes exécutions vertes ne sont jamais
+des preuves de cette révision. Les preuves d'une ancienne PR ne peuvent
+pas remplacer les contrôles du nouveau commit.
+
+## Calendrier des certifications automatiques
+
+- Une **PR Phase en brouillon** est en développement : Doctor Adaptive
+  Certification, Doctor FAST, Graphify et les contrôles ciblés peuvent
+  donner du feedback, mais la FULL Phase n'est pas lancée automatiquement
+  à chaque commit du brouillon.
+- Le passage à **ready for review** (ou une PR Phase déjà non-brouillon)
+  déclenche la **décision adaptative de Doctor** sur le SHA candidat exact.
+  La FULL est exécutée seulement si le diff touche un composant critique,
+  les workflows ou la politique de certification, si Doctor la juge
+  nécessaire, ou s'il manque une preuve fiable. Un diff éligible exécute
+  **tous** les tests canoniques ciblés sélectionnés par Doctor et vérifie
+  les preuves du SHA exact, sans FULL.
+- Un **push sur main** et le déclenchement manuel explicite conservent
+  leur FULL historique. La validation finale d'une phase n'est **jamais**
+  remplacée par un passeport Doctor ciblé.
+- Un brouillon ne peut pas être déclaré `CERTIFIED` uniquement parce que
+  le nouveau workflow adaptatif est vert. Une sortie de brouillon, puis
+  un rapport FULL PASS sur le bon SHA, restent nécessaires.
+
+## Mode CI adaptatif, indépendant de la certification finale
+
+Le contrôle `Phase Certification / Full Validation` peut produire deux types
+de preuves **explicitement différents** :
+
+- **`FULL`** : le changement touche les règles d'audit, la politique, les
+  workflows ou une zone risquée ; un push sur `main` ou une
+  `workflow_dispatch` demande aussi une FULL. Le workflow exécute le
+  `tools.atlas_integrity full` et le verdict historique
+  `tools.phase_certification_verdict`. Lui seul peut produire un verdict
+  `CERTIFIED` selon les contrats existants.
+- **`SCOPED`** : Doctor juge le diff éligible, la politique indépendante est
+  conforme, aucun fichier de confiance n'a changé et les identités Git SHA
+  sont exactes. Le workflow exécute réellement tous les modules retenus
+  via le sélecteur canonique, puis valide le plan, la liste des tests,
+  les résultats et le passeport du même SHA. La sortie
+  `SCOPED_TESTS_PASS_NOT_PHASE_CERTIFIED` signifie **`VALIDATED`**,
+  **pas `CERTIFIED`**, ni autorisation automatique de fusion.
+
+La route est calculée avant les préparations coûteuses sur Windows et reste
+fail-closed : toute incertitude, modification des règles, du Doctor ou des
+workflows déclenche `FULL`. Aucune preuve inter-SHA n'est réutilisée. Les
+budgets mémoire ne sont ni relevés ni cachés : leurs gates GitHub restent
+indépendants, et une demande de ne pas les optimiser ne modifie pas les
+conditions officielles de fusion.
+
+Cette distinction permet d'éviter de répéter une FULL pendant le
+développement ordinaire ; **la clôture officielle d'une phase** exige
+toujours la FULL et les autres preuves obligatoires sur le SHA final.
+
+## Réutilisation contrôlée des tests dans la FULL
+
+L'audit du run 38134779396 a trouvé des tests rejoués malgré une
+`FULL_SUITE` déjà réussie : `DIFF_TARGETS`, `GOLDEN_FLOWS`,
+plusieurs groupes ciblés et trois modules Guide/Succès/Shell.
+
+`FULL_SUITE` emploie désormais le runner `tools.atlas_full_suite_proof`
+avec la **même découverte canonique** `tests/test_*.py`.
+Sa sortie structurée `artifacts/ci_app_logs/05_full_unittest_proof.json`
+est générée par les événements terminaux `unittest` de chaque test,
+pas par des expressions régulières sur un log pollué par des runners
+imbriqués. Elle contient la SHA exacte, tous les IDs découverts, les
+réussites et les tests non réutilisables (skip / expected failure).
+
+Le moteur ne réutilise un groupe que si tous les tests de ses modules
+ont été réellement exécutés et réussis. Toute preuve manquante,
+ambiguë ou non conforme entraîne la réexécution du groupe. L'inventaire
+critique `TEST_INTEGRITY` reste **toujours exécuté directement** avec
+les IDs exigés ; les audits Guide restent obligatoires.
+
+Pour les trois tests Guide/Succès/Shell, `ci_guide_full_evidence`
+contrôle les **IDs exacts** contre le registre et le SHA de ce même
+checkout ; un échec de preuve restaure la commande originale.
+L'installation pip interne Guide peut être sautée uniquement si le
+workflow Phase a déjà installé les dépendances dans le même
+environnement Python. Le rapport `evidence_reused_groups` et les
+`evidence_test_cases` permettent de vérifier l'économie réellement
+constatée. Aucun gain de temps n'est affirmé avant mesure Windows.
+
+## Après fusion sur main : une FULL propriétaire unique
+
+Sur `main`, `Phase Certification` reste propriétaire de l'unique
+`tools.atlas_integrity full` et du verdict de phase, avec les audits Guide,
+le catalogue et l'inventaire critique. La CI applicative conserve son job
+rapide de push, mais **ne relance plus une FULL automatiquement**.
+
+Après la conclusion de `Phase Certification`, `Dofus Atlas Application CI`
+reçoit l'événement GitHub `workflow_run`. Un job indépendant vérifie
+le résultat officiel GitHub (`completed/success`), la branche `main`,
+l'événement `push`, le dépôt, le SHA de checkout et les étapes
+obligatoires de la FULL. En absence de preuve exacte, le job **échoue**
+sans transformer les contrôles manquants en PASS. Le job exécute alors
+les tests Qt / lifecycle **ensemble dans un seul processus**, l'exigence
+spécifique restante de l'ancien workflow Application FULL.
+
+`Application FULL` reste disponible via `workflow_dispatch` pour
+diagnostic manuel, sans devenir une condition automatique sur chaque
+push. L'application ne réutilise jamais les preuves d'une autre révision ;
+la sortie distingue les tests effectivement exécutés des preuves hôtes
+réutilisées. Les gates RAM et preload indépendants restent inchangés.
+
 ## Source machine de vérité
 
 La validation technique générale est définie par `tools/atlas_integrity_policy.json` et exécutée par `tools.atlas_integrity`.
 
-La certification de phase utilise au minimum le mode `FULL`, qui doit notamment couvrir :
+La clôture officielle d'une phase utilise au minimum le mode `FULL`, qui doit notamment couvrir :
 
 - méta-intégrité et syntaxe ;
 - architecture ;
@@ -66,7 +188,7 @@ certification.
 
 `Public PR / Safe Validation` est un garde-fou de PR. Même entièrement vert, il ne constitue pas une certification de phase.
 
-La certification est portée par `Phase Certification / Full Validation` (`.github/workflows/phase-certification.yml`). Elle peut être lancée manuellement, mais elle est aussi déclenchée automatiquement à chaque mise à jour d'une PR interne dont le titre commence par `Phase ` et dont la branche source appartient au dépôt lui-même.
+Le contrôle adaptatif (FULL ou tests ciblés avec attestation explicite) est porté par `Phase Certification / Full Validation` (`.github/workflows/phase-certification.yml`). Elle peut être lancée manuellement, mais elle est aussi déclenchée automatiquement à chaque mise à jour d'une PR interne dont le titre commence par `Phase ` et dont la branche source appartient au dépôt lui-même.
 
 Pour une PR de phase, le workflow checkout explicitement le SHA de tête de la PR et utilise le SHA de base de la PR pour classifier le diff courant. Lorsqu'une dette figée est transportée par non-régression, le validateur contrôle en plus la descendance depuis l'ancre du baseline et les changements de fichiers protégés entre cette ancre et la base courante. La certification suit donc le candidat exact ; une nouvelle modification rend l'ancien résultat obsolète et déclenche une nouvelle validation.
 
@@ -141,3 +263,17 @@ Tout rapport de clôture doit distinguer explicitement :
 Ne jamais transformer `NOT RUN`, `BLOCKED` ou une dette non figée en validation implicite.
 
 Si `Phase Certification / Full Validation` n'est pas `PASS` sur le SHA exact, la phase reste ouverte.
+
+
+## Doctor shadow on a completed FULL (Phase 8 certification)
+
+After the full Atlas Integrity gate, the phase workflow now generates a
+read-only Doctor candidate plan and compares it with the actual FULL JSON
+from **the same checked-out SHA**. Both artifacts are stored alongside the
+original phase log. Invalid shadow evidence is an independent failure;
+there is no second FULL execution and no retroactive waiver.
+
+The Doctor shadow campaign is **advisory when the scope is FULL_REQUIRED**:
+it shows what was and was not checked, but cannot manufacture a Phase PASS.
+The authoritative Phase verdict still comes only from Atlas Integrity FULL,
+the critical Guide/data evidence and the phase verdict engine.

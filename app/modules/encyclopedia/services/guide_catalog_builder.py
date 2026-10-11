@@ -470,7 +470,9 @@ class GuideCatalogBuilder:
             item.id: DofusGuideCandidate(item=item, accepted=False, reason="aucun succès fiable récompensant l'objet")
             for item in dofus_items.values()
         }
-        for achievement in self.achievement_provider.load_all():
+        achievements = self.achievement_provider.load_all()
+        achievement_catalog = {int(row.id): row for row in achievements}
+        for achievement in achievements:
             reward_item_ids = [reward.entity_id for reward in achievement.rewards if reward.kind == "item" and reward.entity_id in dofus_items]
             for item_id in reward_item_ids:
                 if item_id is None:
@@ -501,6 +503,7 @@ class GuideCatalogBuilder:
                 closure = self.quest_graph.prerequisite_closure(
                     seed_quests=seed_quests,
                     seed_achievements=self._unique_quest_ids(root_achievement_ids),
+                    achievement_catalog=achievement_catalog,
                 )
                 linked_quests = list(closure.ordered_quest_ids)
                 candidate = DofusGuideCandidate(
