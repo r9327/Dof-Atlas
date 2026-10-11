@@ -3,8 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 from collections import Counter, defaultdict
+from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -122,7 +123,11 @@ def refs(achievement: Any, entity_type: str) -> list[dict[str, Any]]:
     return result
 
 
-def classify(achievement: Any, evidence: dict[str, Any]) -> dict[str, Any]:
+def classify(achievement: Any, evidence: dict[str, Any], *,
+             explicit_check: Callable[[str], bool] | None = None) -> dict[str, Any]:
+    # Callers without a shared cache keep the original, independent behavior.
+    # The FULL audit can reuse read-only answers across retained achievements.
+    check = explicit_check or (lambda label: label_is_explicit(label, evidence))
     direct_success = norm(achievement.name) in evidence["success_names"]
     linked: dict[str, list[dict[str, Any]]] = {}
     missing: dict[str, list[dict[str, Any]]] = {}
@@ -132,7 +137,7 @@ def classify(achievement: Any, evidence: dict[str, Any]) -> dict[str, Any]:
         rows = refs(achievement, entity_type)
         linked[entity_type] = rows
         total_refs += len(rows)
-        absent = [row for row in rows if not label_is_explicit(str(row["name"]), evidence)]
+        absent = [row for row in rows if not check(str(row["name"]))]
         missing[entity_type] = absent
         covered_refs += len(rows) - len(absent)
 
@@ -274,6 +279,15 @@ def main() -> None:
     args = parser.parse_args()
 
     evidence = collect_route_evidence()
+
+    # Thousands of retained achievements may reference the same quest/monster/
+    # dungeon labels. Matching every reference against all route text tokens
+    # repeatedly is unnecessary: evidence is immutable during this audit.
+    # Scope the cache to this invocation, never across catalog/route changes.
+    @lru_cache(maxsize=32768)
+    def explicit_check(label: str) -> bool:
+        return label_is_explicit(label, evidence)
+
     contract_report = evaluate_success_contracts(evidence)
     loaded_achievements = load_provider_achievements()
     achievement_catalog_available = bool(loaded_achievements)
@@ -282,7 +296,7 @@ def main() -> None:
         for achievement in loaded_achievements
         if achievement.category_id in set(RETAINED_TOP_CATEGORY_IDS)
     ]
-    rows = [classify(achievement, evidence) for achievement in achievements]
+    rows = [classify(achievement, evidence, explicit_check=explicit_check) for achievement in achievements]
 
     state_counts = Counter(row["state"] for row in rows)
     category_counts: dict[str, Counter[str]] = defaultdict(Counter)
