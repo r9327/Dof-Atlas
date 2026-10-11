@@ -58,7 +58,7 @@ jobs:
       - name: Validate fail-closed scope planner
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_ci_scope_gate tests.test_ci_dev_tests
+          python -X faulthandler -m unittest -v tests.test_ci_scope_gate tests.test_ci_dev_tests tests.test_guide_full_suite_fixture_budget tests.test_ci_guide_full_evidence tests.test_ci_runner_guardrails
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run changed-module tests when safe
