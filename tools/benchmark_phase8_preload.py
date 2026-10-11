@@ -254,6 +254,11 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
         raise RuntimeError("Quest catalogue empty during first deep access")
     quest_id = min(int(q.id) for q in quest_rows if getattr(q, "id", None) is not None)
     started = time.perf_counter()
+    window.open_encyclopedia_tab(QUESTS_TAB)
+    wait_until(
+        app, lambda: encyclopedia_ready(window, QUESTS_TAB),
+        timeout=60.0, label="visible Quest tab before detail",
+    )
     if not page.navigate_to_entity("quest", quest_id, source="benchmark"):
         raise RuntimeError("Real Quest detail navigation rejected first quest")
     wait_until(
@@ -270,6 +275,11 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
     # Guide: requesting a specific Guide opens the richer detail view,
     # NOT merely the lazy catalog tab. Data selection is inside the timer.
     started = time.perf_counter()
+    window.open_encyclopedia_tab(GUIDES_TAB)
+    wait_until(
+        app, lambda: encyclopedia_ready(window, GUIDES_TAB),
+        timeout=60.0, label="visible Guide tab before detail",
+    )
     guides = page.service.guide_provider.load_all()
     if not guides:
         raise RuntimeError("No Guide available for detailed view")
@@ -290,6 +300,11 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
     # Achievement: request the first real retained Achievement detail;
     # the shell readiness measured earlier does not prove detail creation.
     started = time.perf_counter()
+    window.open_encyclopedia_tab(ACHIEVEMENTS_TAB)
+    wait_until(
+        app, lambda: encyclopedia_ready(window, ACHIEVEMENTS_TAB),
+        timeout=60.0, label="visible Achievement tab before detail",
+    )
     achievements = page.service.achievement_provider.load_retained()
     if not achievements:
         raise RuntimeError("No retained Achievement for detail measurement")

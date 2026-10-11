@@ -552,7 +552,12 @@ Achievement ID in each checkout. It invokes the real navigation APIs:
 
 All three operations are mandatory. Missing source rows, differing IDs,
 unfinished background detail loads, timeouts or mismatched SHAs make the
-benchmark fail. It measures the full selection/rendering duration, including
+benchmark fail. Each probe brings its Encyclopedia tab back to the **visible foreground**
+before selecting the detail, so hidden-widget callbacks cannot be mistaken
+for fully visible UI rendering. Navigation into the visible tab is included
+inside its cold-detail timer.
+
+It measures the full selection/rendering duration, including
 the first deferred data load, rather than simply a loaded shell.
 
 The benchmark now reports \`deep_*_detail_ms\`,
