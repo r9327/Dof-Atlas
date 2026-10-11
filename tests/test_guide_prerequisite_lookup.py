@@ -41,6 +41,23 @@ class GuidePrerequisiteLookupTests(unittest.TestCase):
         with patch.object(guide_path_profiles, "DATA_DIR", self.root):
             self.resolver = GuidePathResolver(quest_provider, achievement_provider)
 
+    def test_mandatory_parser_cache_returns_independent_sets(self) -> None:
+        expression = "Qf=12&(Sc=24|Sc=24)"
+        expected = ({12}, {24})
+        self.assertEqual(guide_path_profiles.mandatory_references(expression), expected)
+        quests, successes = guide_path_profiles.mandatory_references(expression)
+        quests.clear()
+        successes.add(999)
+        self.assertEqual(guide_path_profiles.mandatory_references(expression), expected)
+        self.assertEqual(
+            guide_path_profiles.mandatory_references("Qf=1|(Qf=2&Sc=3)"),
+            (set(), set()),
+        )
+        self.assertEqual(guide_path_profiles.mandatory_references(""), (set(), set()))
+        self.assertGreaterEqual(
+            guide_path_profiles._cached_mandatory_references.cache_info().hits, 1,
+        )
+
     def test_exact_loose_and_prefixed_text_keep_same_quest_ids(self) -> None:
         resolver = self.resolver
         self.assertEqual(resolver._quest_ids_from_prerequisite_text("La quête de l'aube"), {1})
