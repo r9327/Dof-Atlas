@@ -62,3 +62,9 @@ jobs:
         run: |
           python -X faulthandler -m unittest -v tests.test_guides_v4_prerequisites tests.test_guide_prerequisite_lookup
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Reproduce Encyclopedia worker teardown contract
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_encyclopedia_phase1.EncyclopediaPhase1Tests.test_tab_changes_do_not_error
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
