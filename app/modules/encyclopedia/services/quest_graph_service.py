@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict, deque
+from functools import lru_cache
+from heapq import heapify, heappop, heappush
 from dataclasses import dataclass, field
 from itertools import product
 from typing import Any, Iterable
@@ -246,6 +248,7 @@ class QuestGraphService:
         return any(token in text for token in ("journaliere", "hebdomadaire", "repetable", "repeatable"))
 
     @classmethod
+    @lru_cache(maxsize=1024)
     def criterion_references(cls, criterion: str) -> CriterionReferences:
         branches = _criterion_branches(str(criterion or ""))
         return CriterionReferences(tuple(branches or [CriterionBranch()]))
@@ -512,16 +515,16 @@ class QuestGraphService:
             quest = self.catalog.by_id[quest_id]
             return int(getattr(quest, "level_min", 0) or 0), normalize_text(quest.name), quest_id
 
-        ready = sorted((quest_id for quest_id, count in incoming.items() if count == 0), key=key)
+        ready = [(key(quest_id), quest_id) for quest_id, count in incoming.items() if count == 0]
+        heapify(ready)
         result: list[int] = []
         while ready:
-            quest_id = ready.pop(0)
+            _priority, quest_id = heappop(ready)
             result.append(quest_id)
             for child in sorted(children.get(quest_id, ()), key=key):
                 incoming[child] -= 1
                 if incoming[child] == 0:
-                    ready.append(child)
-                    ready.sort(key=key)
+                    heappush(ready, (key(child), child))
 
         remaining = ids - set(result)
         cycles = _cycle_components(remaining, children)

@@ -193,6 +193,7 @@ class GuideCatalogBuilder:
         self.quest_graph = QuestGraphService(
             quest_provider=self.quest_provider,
             achievement_provider=self.achievement_provider,
+            eager=False,
         )
         self._v4_audits: dict[str, dict[str, Any]] = {}
         self._existing_snapshot: dict[str, dict[str, Any]] = {}
