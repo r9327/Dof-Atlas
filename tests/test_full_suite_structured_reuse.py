@@ -47,6 +47,33 @@ class FullSuiteStructuredReuseTests(unittest.TestCase):
         self.assertEqual(len(payload["successful_test_ids"]), 1)
         self.assertEqual(len(payload["non_successful_test_ids"]), 2)
         self.assertEqual(proof.module_proofs(payload), {})
+        timings = proof.timing_profile(payload, result.timings, elapsed_seconds=0.5)
+        self.assertEqual(timings["candidate_sha"], "a" * 40)
+        self.assertEqual(timings["cases_run"], 3)
+        self.assertEqual({row["id"] for row in timings["top20"]}, set(expected))
+        self.assertTrue(all(row["test_seconds"] >= 0 for row in timings["cases"]))
+        self.assertTrue(all(row["fixture_gap_before_seconds"] >= 0
+                            for row in timings["cases"]))
+
+
+    def test_timing_profile_attributes_fixture_gaps_without_affecting_proof(self):
+        first = "tests.test_slow.A.test_first"
+        second = "tests.test_slow.A.test_second"
+        ledger = proof.validated_ledger(
+            [first, second], [(first, "ok"), (second, "ok")],
+            tests_run=2, successful=True, sha="a" * 40,
+        )
+        rows = [
+            {"id": first, "test_seconds": 0.1, "fixture_gap_before_seconds": 5.0},
+            {"id": second, "test_seconds": 2.0, "fixture_gap_before_seconds": 0.1},
+        ]
+        profile = proof.timing_profile(ledger, rows, elapsed_seconds=7.3)
+        self.assertEqual(profile["top20"][0]["id"], first)
+        self.assertEqual(profile["modules"]["tests.test_slow"]["cases"], 2)
+        self.assertAlmostEqual(profile["modules"]["tests.test_slow"]["fixture_gap_seconds"], 5.1)
+        self.assertEqual(ledger["successful_test_ids"], sorted([first, second]))
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            proof.timing_profile(ledger, rows[:1], elapsed_seconds=7.3)
 
     def test_exact_ledger_survives_log_noise_and_proves_complete_module(self):
         a, b = "tests.test_slow.A.test_a", "tests.test_slow.A.test_b"
