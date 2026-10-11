@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 import unittest
 
 SCHEMA = 1
@@ -40,6 +41,33 @@ class ProofResult(unittest.TextTestResult):
     def __init__(self, stream, descriptions, verbosity):
         super().__init__(stream, descriptions, verbosity)
         self.completed: list[tuple[str, str]] = []
+        self.timings: list[dict[str, object]] = []
+        self._previous_finish = time.perf_counter()
+        self._test_started = self._previous_finish
+        self._fixture_before_test = 0.0
+
+    def startTest(self, test):
+        now = time.perf_counter()
+        self._fixture_before_test = max(0.0, now - self._previous_finish)
+        self._test_started = now
+        super().startTest(test)
+
+    def stopTest(self, test):
+        finished = time.perf_counter()
+        try:
+            identity = canonical(test.id())
+        except ValueError:
+            identity = None
+        if identity is not None:
+            elapsed = max(0.0, finished - self._test_started)
+            self.timings.append({
+                "test_id": identity,
+                "test_seconds": round(elapsed, 6),
+                "preceding_fixture_seconds": round(self._fixture_before_test, 6),
+                "total_seconds": round(elapsed + self._fixture_before_test, 6),
+            })
+        self._previous_finish = finished
+        super().stopTest(test)
 
     def _record(self, test: unittest.case.TestCase, status: str) -> None:
         self.completed.append((canonical(test.id()), status))
@@ -103,6 +131,33 @@ def validated_ledger(expected: list[str], completed: list[tuple[str, str]],
     }
 
 
+def timing_report(expected: list[str], timings: list[dict[str, object]], *,
+                  sha: str, suite_seconds: float, successful: bool) -> dict:
+    """Diagnostic only: never substitutes for the exact-SHA success ledger.
+
+    Preceding fixture time includes class setup/teardown between test cases.
+    Time after the final test remains separately unattributed.
+    """
+    if not SHA.fullmatch(sha):
+        raise ValueError("Invalid timing SHA")
+    names = [row["test_id"] for row in timings]
+    if not expected or len(set(expected)) != len(expected) or sorted(names) != sorted(expected):
+        raise ValueError("Incomplete or duplicate per-test timings")
+    ordered = sorted(timings, key=lambda row: (-row["total_seconds"], row["test_id"]))
+    observed = sum(row["total_seconds"] for row in ordered)
+    return {
+        "schema_version": 1,
+        "kind": "atlas_full_unittest_timing_diagnostic",
+        "candidate_sha": sha,
+        "status": "COMPLETE" if successful else "FAILED",
+        "tests_timed": len(ordered),
+        "suite_seconds": round(suite_seconds, 3),
+        "unattributed_tail_seconds": round(max(0.0, suite_seconds - observed), 3),
+        "slowest_20": ordered[:20],
+        "per_test": ordered,
+    }
+
+
 def load_verified(path: Path, *, sha: str) -> dict[str, object]:
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 1_500_000:
         raise ValueError("Missing, unsafe or oversized FULL test ledger")
@@ -157,6 +212,8 @@ def main(argv: list[str] | None = None) -> int:
                         default=Path("artifacts/ci_app_logs/05_full_unittest_proof.json"))
     args = parser.parse_args(argv)
     args.proof_file.unlink(missing_ok=True)
+    timing_file = args.proof_file.with_name(args.proof_file.stem + "_timings.json")
+    timing_file.unlink(missing_ok=True)
     loader = unittest.TestLoader()
     suite = loader.discover(args.start_directory, pattern=args.pattern)
     if loader.errors:
@@ -170,9 +227,29 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
                           text=True, check=True, timeout=10).stdout.strip()
+    started = time.perf_counter()
     result = unittest.TextTestRunner(
         verbosity=2 if args.verbose else 1, resultclass=ProofResult,
     ).run(suite)
+    suite_seconds = time.perf_counter() - started
+    try:
+        timing = timing_report(expected, result.timings, sha=head,
+                               suite_seconds=suite_seconds,
+                               successful=result.wasSuccessful())
+        timing_file.parent.mkdir(parents=True, exist_ok=True)
+        temporary_timing = timing_file.with_suffix(".json.tmp")
+        temporary_timing.write_text(
+            json.dumps(timing, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        temporary_timing.replace(timing_file)
+        for slow in timing["slowest_20"]:
+            print("FULL_SLOW_TEST {:.3f}s (fixture {:.3f}s) {}".format(
+                slow["total_seconds"], slow["preceding_fixture_seconds"],
+                slow["test_id"],
+            ), file=sys.stderr)
+    except (OSError, ValueError) as exc:
+        print("FULL timing diagnostics unavailable: " + str(exc), file=sys.stderr)
     if not result.wasSuccessful():
         return 1
     try:
