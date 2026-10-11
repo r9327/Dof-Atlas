@@ -16,15 +16,23 @@ class FullSuiteStructuredReuseTests(unittest.TestCase):
     def test_real_unittest_result_ledger_is_complete_and_excludes_skips(self):
         # This synthetic class must NOT enter the repository's FULL discovery:
         # its skip/xfail are unit fixtures, not real skipped application tests.
-        class SyntheticCases(unittest.TestCase):
-            def test_pass(self): pass
+        # A dynamically-created class has a normal canonical unittest ID
+        # without <locals>, but is invisible to normal module discovery.
+        def passing(self):
+            return None
 
-            @unittest.skip("not part of reusable proof")
-            def test_skipped(self): pass
+        def skipping(self):
+            return None
 
-            @unittest.expectedFailure
-            def test_expected_failure(self):
-                self.fail("expected")
+        def expected_failure(self):
+            self.fail("expected")
+
+        SyntheticCases = type("SyntheticCases", (unittest.TestCase,), {
+            "__module__": "test_full_suite_structured_reuse",
+            "test_pass": passing,
+            "test_skipped": unittest.skip("not part of reusable proof")(skipping),
+            "test_expected_failure": unittest.expectedFailure(expected_failure),
+        })
 
         suite = unittest.defaultTestLoader.loadTestsFromTestCase(SyntheticCases)
         expected = proof.ids(suite)
