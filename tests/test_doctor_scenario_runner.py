@@ -88,6 +88,18 @@ class UserJourneyCertificationTests(unittest.TestCase):
         out = target.contract_plan(self.root, SHA, ["guide_quest_succes"])
         self.assertIn("MISSING_SCENARIO_CONTRACTS", out["errors"])
 
+    def test_real_navigation_requires_catalog_materialization(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/doctor-certification.yml").read_text(
+                        encoding="utf-8")
+        self.assertIn("quest_categories.json", workflow)
+        self.assertIn("tools/doduda/doduda.exe", workflow)
+        self.assertIn("data/encyclopedia/images/quests/2464", workflow)
+        self.assertIn("data/encyclopedia/images/quests/691", workflow)
+        self.assertIn("Independent Doctor journey catalog", workflow)
+        self.assertLess(workflow.index("Materialize canonical quest data"),
+                        workflow.index("Exercise independent user journey contracts"))
+
 
 if __name__ == "__main__":
     unittest.main()

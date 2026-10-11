@@ -227,6 +227,31 @@ jobs:
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Materialize canonical quest data for real Guide/Quest navigation
+        shell: pwsh
+        run: |
+          # Navigation contracts use real Quest 2464 and 691; no mocked graph.
+          git lfs pull --include="tools/doduda/doduda.exe,data/encyclopedia/images/quests/2464/**,data/encyclopedia/images/quests/691/**" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path -LiteralPath "$catalog/quest_categories.json")) {
+            throw "Canonical quest_categories.json was not materialized"
+          }
+          @'
+          from app.quest_catalog import QuestCatalog
+          catalog = QuestCatalog.load()
+          total = len(catalog.quests)
+          print(f"Independent Doctor journey catalog: {total} quests")
+          if total < 1900:
+              raise SystemExit("Doctor journey fixture is incomplete")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Exercise independent user journey contracts
         shell: pwsh
         run: |
