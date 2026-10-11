@@ -14,6 +14,27 @@ Les états officiels sont :
 
 Seul l'état `CERTIFIED` autorise les formulations « phase terminée », « phase validée définitivement », « 100 % terminée » ou équivalent.
 
+## Activation explicite du contrôle FULL pour les PR Phase
+
+Pour déclencher automatiquement `Phase Certification / Full Validation` sur une
+PR interne prête à relire, **le titre doit commencer exactement par `Phase `**.
+Un titre descriptif sans ce préfixe rend le job `skipped`, ce qui **n'est
+pas une certification**. Modifier uniquement le titre ne relance pas un
+workflow déjà créé ; il faut un nouvel événement `synchronize` (un commit
+poussé sur la branche), un nouveau passage `ready_for_review`, ou un
+déclenchement manuel explicite selon les droits disponibles.
+
+Avant de déclarer `CERTIFIED`, vérifier sur le **dernier SHA exact** :
+- `Phase Certification / Full Validation` réellement exécuté et `PASS` ;
+- `Doctor / Windows User Journey Contracts` `PASS` sur la même révision ;
+- budgets Phase 8 RAM / preload réellement exécutés et `PASS` ;
+- tests Doctor / Graphify / AI Context / Public PR sans échec ;
+- artefact FULL, verdict de phase et shadow comparés sur ce même SHA.
+
+Les tests `skipped` et les anciennes exécutions vertes ne sont jamais
+des preuves de cette révision. Les preuves d'une ancienne PR ne peuvent
+pas remplacer les contrôles du nouveau commit.
+
 ## Calendrier des certifications automatiques
 
 - Une **PR Phase en brouillon** est en développement : Doctor Adaptive
