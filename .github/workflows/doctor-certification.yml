@@ -55,6 +55,7 @@ jobs:
           # Contracts: tests.test_doctor_certification tests.test_doctor_certification_policy tests.test_doctor_certification_shadow
           python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_certification*.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_shadow_campaign.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_github_provenance.py'
 
       - name: Plan exact-SHA test scope without application dependencies
         id: scope

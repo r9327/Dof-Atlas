@@ -348,3 +348,56 @@ Guide-fixture speedup remains owned by PR #131; no duplicate rewrite here.
 - Implement trusted policy migration and resource-budget/runnable
   scenario gates in a separately reviewed rollout. Keep the current
   mandatory FULL untouched until proven safe.
+
+
+## Stage 2C — authenticated GitHub artifact bytes, not policy provenance
+
+\`python -m tools.doctor_github_provenance\` performs an *opt-in*
+independent check of a previously downloaded Doctor artifact ZIP.
+
+\`\`\`bash
+# Requires a read-only GITHUB_TOKEN for the GitHub REST API.
+python -m tools.doctor_github_provenance \
+  --repo r9327/Dof-Atlas --run-id <github_run_id> \
+  --artifact-id <artifact_id> --expected-sha <40-character_SHA> \
+  --archive /path/to/downloaded-doctor-plan.zip \
+  --output /path/to/origin-report.json
+\`\`\`
+
+The verifier looks up the run and artifact on GitHub's API (never trusting
+JSON inside the ZIP as its origin), requires a completed successful run
+from the named canonical repository and workflow, matches repository ID,
+candidate SHA and run ID, validates the GitHub-reported SHA256 of the
+ZIP, parses one bounded Doctor passport, and checks the passport's
+digest and mandatory no-FULL/no-merge claims. Failures block.
+
+The result is named \`ARTIFACT_ORIGIN_VERIFIED_NOT_POLICY_TRUSTED\`,
+**not** \`CERTIFIED\`. A PR-modifiable workflow could itself publish a
+misleading artefact. A separate, default-branch-protected policy and
+workflow-code provenance decision is still necessary before automated
+cross-SHA reuse.
+
+### Real current-run artifact check (GitHub run metadata + ZIP bytes)
+
+For the PR #137 HEAD \`6c42d202388051bbb25cd570824c15e5ebe403a4\`:
+
+- Doctor Adaptive Certification run \`38129227192\` succeeded.
+- GitHub reported artifact \`11698522059\`:
+  \`doctor-plan-38129227192-1\`, origin SHA matching the PR HEAD,
+  \`digest=sha256:d8a9bf8d5fd66a25a1bced3808b578890bbf679bea56233c66b37de59894893e\`.
+- The downloaded ZIP was independently hashed and had **exactly the
+  same SHA256**. It contained \`plan.json\` and \`plan_passport.json\`
+  both bound to the same candidate HEAD. The passport was
+  \`FULL_PENDING\`, not an unwarranted \`FULL PASS\`.
+
+This is a real artifact-origin consistency measurement, not a signed
+release attestation. The read-only verifier's full API-driven execution
+remains an opt-in command; all its attack cases are tested offline in CI.
+
+### Remaining work for completion
+
+Actual **safe automatic** cross-SHA test reuse is still blocked by an
+independently authenticated default-branch policy and complete dynamic
+dependency closure; real end-to-end scenario assertions and expensive
+FULL sharding/Guide builders must likewise be demonstrated before
+official release policy migration. These are *not* marked done here.
