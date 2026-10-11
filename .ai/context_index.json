@@ -52,7 +52,7 @@
     },
     "DOCTOR_ADAPTIVE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "e6d7014a6a213f0c8626b1df97f54ce8b8546496",
+      "sha": "1f75d2db0db3fcbd49765db05fd56c67243b7563",
       "type": "blob"
     },
     "DOFUS.bat": {
@@ -142,12 +142,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "0cb46841d1260a3181c3164e20fb839917bb9fcd",
+      "sha": "3d137628488f9800d66584d7876af6814d060daf",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "d8398b6ae99cc3d0921dc3a88a804e737693888c",
+      "sha": "a25bf3160c11e0e5b3733d977b1086b9c49d8cca",
       "type": "tree"
     }
   },

@@ -96,6 +96,14 @@ class DeepFirstUseTimingTests(unittest.TestCase):
         self.assertIn("window.open_encyclopedia_tab(QUESTS_TAB)", src)
         self.assertIn("window.open_encyclopedia_tab(GUIDES_TAB)", src)
         self.assertIn("window.open_encyclopedia_tab(ACHIEVEMENTS_TAB)", src)
+        # Cold access must reload a page evicted by the RAM manager; do not
+        # inspect stale Qt objects before re-opening its parent module.
+        segment = src.split("def measure_deep_first_content(", 1)[1].split("def measure(", 1)[0]
+        self.assertLess(
+            segment.index("window.open_encyclopedia_tab(QUESTS_TAB)"),
+            segment.index('page = getattr(window, "page_widgets", {}).get("Quetes")'),
+        )
+        self.assertIn("cold reconstruction cost", segment)
         self.assertIn("total_first_path_ms", workflow)
         self.assertIn("compare_deep_first_use", workflow)
         self.assertIn("shifted_into_deep_details_ms", workflow)

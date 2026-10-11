@@ -576,3 +576,17 @@ network requests, repeated sessions and concurrent deferred callbacks remain
 outside this one fixed sequence. Do not extrapolate the measured savings to
 those unmeasured operations. RAM budgets remain independently enforced by
 the existing staged memory benchmark (no threshold changes).
+
+
+### Cold first-detail page recreation (real CI finding)
+
+The first comparable Windows run failed on the **base** before any
+candidate measurements, because the benchmark probed an old Quests page
+object after visiting other modules. Atlas legitimately unloads that Qt
+page for RAM. The fixture now reopens Quests through
+\`AtlasWindow.open_encyclopedia_tab\`, waits for the newly materialized
+page, then selects the Quest detail, with the **entire cold recreation
+time counted**. The Guide and Achievement probes also re-acquire their
+currently loaded pages after their own navigation. This corrects the
+instrumentation, not an application failure or an excuse to omit deferred
+work. The first failed run supplies no valid deep speed comparison.

@@ -243,22 +243,22 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
     This is the *same test script* on baseline and candidate Git trees.
     Every missing datum, deferred worker failure or timeout fails visibly.
     """
-    page = getattr(window, "page_widgets", {}).get("Quetes")
-    if page is None or getattr(page, "quest_page", None) is None:
-        raise RuntimeError("Quest module never materialized after first navigation")
-
-    # Quest: select using the real Encyclopedia navigation API. With deferred
-    # catalogue details, this waits for the background worker and detail view.
-    quest_rows = getattr(page.quest_provider.get_catalog(), "quests", None)
-    if not quest_rows:
-        raise RuntimeError("Quest catalogue empty during first deep access")
-    quest_id = min(int(q.id) for q in quest_rows if getattr(q, "id", None) is not None)
+    # The memory manager may legitimately evict the entire Quests page after
+    # the earlier first-tab sequence. Recreate it through public navigation
+    # and include that cold reconstruction cost inside the timer.
     started = time.perf_counter()
     window.open_encyclopedia_tab(QUESTS_TAB)
     wait_until(
         app, lambda: encyclopedia_ready(window, QUESTS_TAB),
         timeout=60.0, label="visible Quest tab before detail",
     )
+    page = getattr(window, "page_widgets", {}).get("Quetes")
+    if page is None or getattr(page, "quest_page", None) is None:
+        raise RuntimeError("Quests never materialized after visible re-navigation")
+    quest_rows = getattr(page.quest_provider.get_catalog(), "quests", None)
+    if not quest_rows:
+        raise RuntimeError("Quest catalogue empty during first deep access")
+    quest_id = min(int(q.id) for q in quest_rows if getattr(q, "id", None) is not None)
     if not page.navigate_to_entity("quest", quest_id, source="benchmark"):
         raise RuntimeError("Real Quest detail navigation rejected first quest")
     wait_until(
@@ -280,6 +280,9 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
         app, lambda: encyclopedia_ready(window, GUIDES_TAB),
         timeout=60.0, label="visible Guide tab before detail",
     )
+    page = getattr(window, "page_widgets", {}).get("Quetes")
+    if page is None:
+        raise RuntimeError("Guide module was evicted during navigation")
     guides = page.service.guide_provider.load_all()
     if not guides:
         raise RuntimeError("No Guide available for detailed view")
@@ -305,6 +308,9 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
         app, lambda: encyclopedia_ready(window, ACHIEVEMENTS_TAB),
         timeout=60.0, label="visible Achievement tab before detail",
     )
+    page = getattr(window, "page_widgets", {}).get("Quetes")
+    if page is None:
+        raise RuntimeError("Achievement module was evicted during navigation")
     achievements = page.service.achievement_provider.load_retained()
     if not achievements:
         raise RuntimeError("No retained Achievement for detail measurement")
