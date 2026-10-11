@@ -52,6 +52,8 @@ jobs:
           # Run exact test files without importing tests/__init__.py (which starts Qt).
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_scope_gate.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_dev_tests.py'
+          # Cheap stdlib-only timing invariants; no Qt catalog or FULL startup.
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_full_suite_timings.py'
 
       - name: Classify scope fail closed without installing PySide6
         id: scope
