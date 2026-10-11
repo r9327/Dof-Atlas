@@ -237,6 +237,89 @@ def preload_state_snapshot(window: Any) -> dict[str, str]:
     return {str(key): str(value) for key, value in states.items()}
 
 
+def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]:
+    """Time actual first detailed content, not just ready-to-navigate shells.
+
+    This is the *same test script* on baseline and candidate Git trees.
+    Every missing datum, deferred worker failure or timeout fails visibly.
+    """
+    page = getattr(window, "page_widgets", {}).get("Quetes")
+    if page is None or getattr(page, "quest_page", None) is None:
+        raise RuntimeError("Quest module never materialized after first navigation")
+
+    # Quest: select using the real Encyclopedia navigation API. With deferred
+    # catalogue details, this waits for the background worker and detail view.
+    quest_rows = getattr(page.quest_provider.get_catalog(), "quests", None)
+    if not quest_rows:
+        raise RuntimeError("Quest catalogue empty during first deep access")
+    quest_id = min(int(q.id) for q in quest_rows if getattr(q, "id", None) is not None)
+    started = time.perf_counter()
+    if not page.navigate_to_entity("quest", quest_id, source="benchmark"):
+        raise RuntimeError("Real Quest detail navigation rejected first quest")
+    wait_until(
+        app,
+        lambda: (
+            getattr(getattr(page.quest_page, "quest_detail_view", None),
+                    "current_quest_id", None) == quest_id
+            and not bool(getattr(page.quest_page, "_detail_pending", False))
+        ),
+        timeout=90.0, label="first rendered Quest detail", poll_seconds=0.02,
+    )
+    quest_detail_ms = milliseconds(started)
+
+    # Guide: requesting a specific Guide opens the richer detail view,
+    # NOT merely the lazy catalog tab. Data selection is inside the timer.
+    started = time.perf_counter()
+    guides = page.service.guide_provider.load_all()
+    if not guides:
+        raise RuntimeError("No Guide available for detailed view")
+    guide_id = min(str(g.id) for g in guides)
+    if not page.navigate_to_guide(guide_id):
+        raise RuntimeError("Real detailed Guide navigation rejected guide")
+    wait_until(
+        app,
+        lambda: (
+            getattr(getattr(page, "guides_view", None),
+                    "current_guide_id", None) == guide_id
+            and bool(getattr(page.guides_view, "_runtime_ready", False))
+        ),
+        timeout=90.0, label="first rendered Guide detail", poll_seconds=0.02,
+    )
+    guide_detail_ms = milliseconds(started)
+
+    # Achievement: request the first real retained Achievement detail;
+    # the shell readiness measured earlier does not prove detail creation.
+    started = time.perf_counter()
+    achievements = page.service.achievement_provider.load_retained()
+    if not achievements:
+        raise RuntimeError("No retained Achievement for detail measurement")
+    achievement_id = min(int(a.id) for a in achievements)
+    if not page.navigate_to_achievement_tab(achievement_id):
+        raise RuntimeError("Achievement detail request rejected")
+    wait_until(
+        app,
+        lambda: (
+            (view := page.get_achievements_view()) is not None
+            and getattr(view, "current_achievement_id", None) == achievement_id
+            and bool(getattr(view, "_detail_open", False))
+        ),
+        timeout=90.0, label="first rendered Achievement detail",
+        poll_seconds=0.02,
+    )
+    achievement_detail_ms = milliseconds(started)
+
+    return {
+        "quest_detail_ms": quest_detail_ms,
+        "guide_detail_ms": guide_detail_ms,
+        "achievement_detail_ms": achievement_detail_ms,
+        "quest_id": quest_id,
+        "guide_id": guide_id,
+        "achievement_id": achievement_id,
+        "all_details_rendered": True,
+        "note": "Rendering/detail readiness, not all future I/O or background work.",
+    }
+
+
 def measure() -> dict[str, Any]:
     app = QApplication.instance() or QApplication([])
 
@@ -268,6 +351,16 @@ def measure() -> dict[str, Any]:
     guide_open_ms = open_encyclopedia(app, window, GUIDES_TAB)
     craft_open_ms = open_page(app, window, "Craft")
     equipment_open_ms = open_page(app, window, "Equipement", timeout=60.0)
+
+    deep = measure_deep_first_content(app, window)
+    total_first_path_ms = round(
+        preload_completed_from_constructor_ms
+        + quests_open_ms + achievements_open_ms + guide_open_ms
+        + craft_open_ms + equipment_open_ms
+        + deep["quest_detail_ms"] + deep["guide_detail_ms"]
+        + deep["achievement_detail_ms"],
+        2,
+    )
 
     pump(app, 0.1)
     final_rss_mb, final_peak_rss_mb = memory_mb()
@@ -306,6 +399,15 @@ def measure() -> dict[str, Any]:
         "guide_open_ms": guide_open_ms,
         "craft_open_ms": craft_open_ms,
         "equipment_open_ms": equipment_open_ms,
+        "deep_first_content": deep,
+        "deep_quest_detail_ms": deep["quest_detail_ms"],
+        "deep_guide_detail_ms": deep["guide_detail_ms"],
+        "deep_achievement_detail_ms": deep["achievement_detail_ms"],
+        "deep_first_content_total_ms": round(
+            deep["quest_detail_ms"] + deep["guide_detail_ms"]
+            + deep["achievement_detail_ms"], 2,
+        ),
+        "total_first_path_ms": total_first_path_ms,
         "rss_after_first_accesses_mb": final_rss_mb,
     }
 

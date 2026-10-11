@@ -60,6 +60,7 @@ jobs:
           python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_policy_authority.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_scenario_runner.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_certification_readiness.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_phase8_deep_comparison.py'
 
       - name: Plan exact-SHA test scope without application dependencies
         id: scope

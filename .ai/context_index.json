@@ -22,7 +22,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "44a616562e1ec8923826825da1c68dfb5de2da73",
+      "sha": "4f507f3c52f56c3f13f3e605c942241ba4384592",
       "type": "tree"
     },
     ".gitignore": {
@@ -52,7 +52,7 @@
     },
     "DOCTOR_ADAPTIVE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "7b63f1bc0b03eccdd7b9d8d88e70cae39dcd0383",
+      "sha": "2f81672f02122e38ad5917edef56f2fc5ad5c406",
       "type": "blob"
     },
     "DOFUS.bat": {
@@ -142,12 +142,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "5cc8c1f36d781608daddeb15f5f9f7577fbb516e",
+      "sha": "337a6e9895f9689eb5df9e5501b868098f73296d",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "b0ddc175fea7c2f0644b1b0b7554a7e8336d2e8d",
+      "sha": "07c0b5f81bbd98a38c82039425b256ef1c826bd1",
       "type": "tree"
     }
   },

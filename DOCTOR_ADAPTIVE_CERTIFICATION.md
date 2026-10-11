@@ -530,3 +530,44 @@ a purported PASS missing any selected module or a nonzero module result.
 This is an isolation fix for the *scenario test runner*, not proof that
 application SQLite runtime locking was corrected. A reproducible error
 under ordinary use must be fixed in the application separately.
+
+
+## Stage 4 — prove preload gains are NOT simply deferred to first details
+
+Previously the Phase 8 comparable preload benchmark reported a faster
+\`preload_completed_from_constructor_ms\` and first *navigable* tab
+openings, but **did not time real first detail rendering**.
+
+The single-session \`tools/benchmark_phase8_preload.py\` now also uses the
+same, unmodified runner against both the immutable Git base SHA and candidate
+SHA, selecting the same deterministic Quest ID, Guide ID and retained
+Achievement ID in each checkout. It invokes the real navigation APIs:
+
+- \`EncyclopediaPage.navigate_to_entity('quest', id)\`, awaiting the
+  \`QuestDetailView.current_quest_id\` and deferred detail worker completion.
+- \`EncyclopediaPage.navigate_to_guide(guide_id)\`, awaiting the full
+  Guides view and selected Guide detail.
+- \`EncyclopediaPage.navigate_to_achievement_tab(id)\`, awaiting a rendered
+  Achievements detail.
+
+All three operations are mandatory. Missing source rows, differing IDs,
+unfinished background detail loads, timeouts or mismatched SHAs make the
+benchmark fail. It measures the full selection/rendering duration, including
+the first deferred data load, rather than simply a loaded shell.
+
+The benchmark now reports \`deep_*_detail_ms\`,
+\`deep_first_content_total_ms\`, and \`total_first_path_ms\`
+(startup-to-preload completion + all first tab openings + 3 first details).
+The independent standard-library \`tools/phase8_deep_comparison.py\`
+validates that all three details rendered, sums are consistent, IDs
+match across branches, and values are finite. It explicitly exposes
+\`shifted_into_deep_details_ms\` and \`net_full_first_use_gain_ms\`
+rather than hiding regressions behind preload improvements. A candidate
+worse by >1 s on the full measured path blocks the comparable benchmark.
+
+**Limitations:** one sequence is not a statistical proof across all Dofus
+content or a long-running CPU/RAM profile. Deep Craft recipe exploration,
+network requests, repeated sessions and concurrent deferred callbacks remain
+outside this one fixed sequence. Do not extrapolate the measured savings to
+those unmeasured operations. RAM budgets remain independently enforced by
+the existing staged memory benchmark (no threshold changes).
