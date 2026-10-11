@@ -166,6 +166,23 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
                 str(quest_id),
             )
 
+    def test_guide_full_evidence_is_exact_sha_and_falls_back_to_real_tests(self) -> None:
+        source = self._workflow("app-ci.yml")
+        guide = (ROOT / "tools/run_guide_ultime_ci.ps1").read_text(encoding="utf-8")
+        self.assertIn('ATLAS_GUIDE_REUSE_FULL: "1"', source)
+        self.assertIn("ATLAS_FULL_SUITE_SUCCESS: ${{ steps.full_tests.outcome }}", source)
+        self.assertIn("tools.ci_guide_full_evidence", guide)
+        self.assertIn('ATLAS_FULL_SUITE_SUCCESS -eq "success"', guide)
+        self.assertIn("if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $proofPath))", guide)
+        self.assertIn("REUSED_FROM_EXACT_FULL", guide)
+        for name, module in (
+            ("11_existing_guides_tests", "tests.test_guides_phase3"),
+            ("12_existing_success_tests", "tests.test_achievements_lot7"),
+            ("13_existing_shell_tests", "tests.test_pyside_shell"),
+        ):
+            self.assertIn(f'Invoke-GuideTestOrReuse "{name}" "{module}"', guide)
+        self.assertIn('Invoke-PythonCheck $Name @("-m", "unittest", $Module)', guide)
+
     def test_app_ci_full_verdict_propagates_every_heavy_failure(self) -> None:
         source = self._workflow("app-ci.yml")
         final = source[source.index("- name: Fail full validation when a full check failed") :]

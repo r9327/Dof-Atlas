@@ -338,6 +338,9 @@ jobs:
 
       - name: Run canonical Guide and data integrity runner
         id: guide_data
+        env:
+          ATLAS_GUIDE_REUSE_FULL: "1"
+          ATLAS_FULL_SUITE_SUCCESS: ${{ steps.full_tests.outcome }}
         run: |
           & .\tools\run_guide_ultime_ci.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
