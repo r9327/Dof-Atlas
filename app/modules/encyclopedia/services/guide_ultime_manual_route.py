@@ -524,7 +524,10 @@ def load_manual_chapter(
         _CHAPTER_CACHE[key] = frozen
         while len(_CHAPTER_CACHE) > _MAX_CHAPTER_CACHE_ENTRIES:
             _CHAPTER_CACHE.pop(next(iter(_CHAPTER_CACHE)))
-    return copy.deepcopy(frozen)
+    # The uncached resolution is already privately owned by this caller.
+    # The stored deep copy is isolated; cloning it a second time on misses
+    # only repeats an expensive traversal of the complete Guide chapter.
+    return result
 
 
 def clear_manual_route_cache() -> None:
