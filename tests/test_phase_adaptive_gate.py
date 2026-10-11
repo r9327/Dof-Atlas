@@ -40,6 +40,7 @@ class PhaseAdaptiveGateTests(unittest.TestCase):
             "tools/ci_scope_gate.py",
             "tools/run_guide_ultime_ci.ps1",
             "tools/atlas_integrity.py",
+            "tools/atlas_full_suite_proof.py",
         ):
             with self.subTest(path=path):
                 route = choose_route(plan(), [path], base_sha=BASE, candidate_sha=HEAD)

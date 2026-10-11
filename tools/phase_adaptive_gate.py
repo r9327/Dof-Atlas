@@ -23,6 +23,7 @@ TRUST_FILES = frozenset({
     "PHASE_CERTIFICATION.md",
     "DOCTOR_ADAPTIVE_CERTIFICATION.md",
     "tools/atlas_integrity.py",
+    "tools/atlas_full_suite_proof.py",
     "tools/atlas_integrity_policy.json",
     "tools/ci_scope_gate.py",
     "tools/doctor_certification.py",
