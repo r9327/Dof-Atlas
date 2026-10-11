@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict, deque
+from functools import lru_cache
+from heapq import heapify, heappop, heappush
 from dataclasses import dataclass, field
 from itertools import product
 from typing import Any, Iterable
@@ -246,6 +248,7 @@ class QuestGraphService:
         return any(token in text for token in ("journaliere", "hebdomadaire", "repetable", "repeatable"))
 
     @classmethod
+    @lru_cache(maxsize=8192)
     def criterion_references(cls, criterion: str) -> CriterionReferences:
         branches = _criterion_branches(str(criterion or ""))
         return CriterionReferences(tuple(branches or [CriterionBranch()]))
@@ -413,8 +416,16 @@ class QuestGraphService:
                 raise RuntimeError("fermeture de prérequis >1500 quêtes, refus de contamination")
 
         all_ids = set(quest_mode)
+        # Multiple dependent quests often refer to the same achievement.
+        # Cache only root expansions: visited-dependent recursive results must
+        # remain separate to preserve correct behavior for cyclic references.
+        achievement_quest_cache: dict[int, frozenset[int]] = {}
 
         def achievement_quest_ids(achievement_id: int, visited: set[int] | None = None) -> set[int]:
+            if visited is None:
+                cached = achievement_quest_cache.get(achievement_id)
+                if cached is not None:
+                    return set(cached)
             seen = set() if visited is None else set(visited)
             if achievement_id in seen or achievement_id not in achievements:
                 return set()
@@ -433,7 +444,10 @@ class QuestGraphService:
                     result.add(int(quest_id))
             for child_id in child_achievements:
                 result.update(achievement_quest_ids(child_id, seen))
-            return result & all_ids
+            result.intersection_update(all_ids)
+            if visited is None:
+                achievement_quest_cache[achievement_id] = frozenset(result)
+            return result
 
         # A Sc/OA condition is ordered after the quests that make up that
         # achievement, while the quest steps keep only Qf in prerequisites.
@@ -512,16 +526,18 @@ class QuestGraphService:
             quest = self.catalog.by_id[quest_id]
             return int(getattr(quest, "level_min", 0) or 0), normalize_text(quest.name), quest_id
 
-        ready = sorted((quest_id for quest_id, count in incoming.items() if count == 0), key=key)
+        # A heap preserves the old sorted-ready order without O(n) re-sorts
+        # for each newly ready quest in large Guide prerequisite closures.
+        ready = [(key(quest_id), quest_id) for quest_id, count in incoming.items() if count == 0]
+        heapify(ready)
         result: list[int] = []
         while ready:
-            quest_id = ready.pop(0)
+            _priority, quest_id = heappop(ready)
             result.append(quest_id)
             for child in sorted(children.get(quest_id, ()), key=key):
                 incoming[child] -= 1
                 if incoming[child] == 0:
-                    ready.append(child)
-                    ready.sort(key=key)
+                    heappush(ready, (key(child), child))
 
         remaining = ids - set(result)
         cycles = _cycle_components(remaining, children)
