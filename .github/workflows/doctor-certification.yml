@@ -62,6 +62,7 @@ jobs:
           python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_certification_readiness.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_phase8_deep_comparison.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_phase_adaptive_gate.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_full_suite_structured_reuse.py'
 
       - name: Plan exact-SHA test scope without application dependencies
         id: scope

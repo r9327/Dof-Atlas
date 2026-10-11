@@ -85,6 +85,35 @@ Cette distinction permet d'éviter de répéter une FULL pendant le
 développement ordinaire ; **la clôture officielle d'une phase** exige
 toujours la FULL et les autres preuves obligatoires sur le SHA final.
 
+## Réutilisation contrôlée des tests dans la FULL
+
+L'audit du run 38134779396 a trouvé des tests rejoués malgré une
+`FULL_SUITE` déjà réussie : `DIFF_TARGETS`, `GOLDEN_FLOWS`,
+plusieurs groupes ciblés et trois modules Guide/Succès/Shell.
+
+`FULL_SUITE` emploie désormais le runner `tools.atlas_full_suite_proof`
+avec la **même découverte canonique** `tests/test_*.py`.
+Sa sortie structurée `artifacts/ci_app_logs/05_full_unittest_proof.json`
+est générée par les événements terminaux `unittest` de chaque test,
+pas par des expressions régulières sur un log pollué par des runners
+imbriqués. Elle contient la SHA exacte, tous les IDs découverts, les
+réussites et les tests non réutilisables (skip / expected failure).
+
+Le moteur ne réutilise un groupe que si tous les tests de ses modules
+ont été réellement exécutés et réussis. Toute preuve manquante,
+ambiguë ou non conforme entraîne la réexécution du groupe. L'inventaire
+critique `TEST_INTEGRITY` reste **toujours exécuté directement** avec
+les IDs exigés ; les audits Guide restent obligatoires.
+
+Pour les trois tests Guide/Succès/Shell, `ci_guide_full_evidence`
+contrôle les **IDs exacts** contre le registre et le SHA de ce même
+checkout ; un échec de preuve restaure la commande originale.
+L'installation pip interne Guide peut être sautée uniquement si le
+workflow Phase a déjà installé les dépendances dans le même
+environnement Python. Le rapport `evidence_reused_groups` et les
+`evidence_test_cases` permettent de vérifier l'économie réellement
+constatée. Aucun gain de temps n'est affirmé avant mesure Windows.
+
 ## Source machine de vérité
 
 La validation technique générale est définie par `tools/atlas_integrity_policy.json` et exécutée par `tools.atlas_integrity`.

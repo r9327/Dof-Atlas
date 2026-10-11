@@ -448,7 +448,7 @@ def _command_for_group(
             "-X",
             "faulthandler",
             "-m",
-            "unittest",
+            "tools.atlas_full_suite_proof",
             "discover",
             "-v",
             "-s",
@@ -664,6 +664,8 @@ def execute_gate(
         if mode == "FULL" and "FULL_SUITE" in required else required
     )
     suite_cases: dict[str, int] = {}
+    suite_proof = False
+    proof_path = root / "artifacts/ci_app_logs/05_full_unittest_proof.json"
     for name in order:
         config = policy["groups"][name]
         _record_gate_progress(name, "STARTED")
@@ -687,7 +689,34 @@ def execute_gate(
                 "duration_seconds": 0.0,
             }
         else:
-            result = executor.run(command, root)
+            if name == "FULL_SUITE":
+                # Never accept evidence from an earlier/partial FULL run.
+                proof_path.unlink(missing_ok=True)
+            if name == "DATA_INTEGRITY" and suite_proof:
+                # The Guide CI independently verifies exact IDs in the same
+                # per-test ledger. Only this subprocess sees the claim.
+                previous = {
+                    k: os.environ.get(k) for k in (
+                        "ATLAS_GUIDE_REUSE_FULL", "ATLAS_FULL_SUITE_SUCCESS",
+                        "ATLAS_FULL_SUITE_SHA", "ATLAS_GUIDE_DEPENDENCIES_READY",
+                    )
+                }
+                os.environ.update({
+                    "ATLAS_GUIDE_REUSE_FULL": "1",
+                    "ATLAS_FULL_SUITE_SUCCESS": "success",
+                    "ATLAS_FULL_SUITE_SHA": repository_head(root),
+                    "ATLAS_GUIDE_DEPENDENCIES_READY": "1",
+                })
+                try:
+                    result = executor.run(command, root)
+                finally:
+                    for key, value in previous.items():
+                        if value is None:
+                            os.environ.pop(key, None)
+                        else:
+                            os.environ[key] = value
+            else:
+                result = executor.run(command, root)
         if not isinstance(result, dict) or "exit_code" not in result:
             raise IntegrityConfigError(f"{name}: command executor returned an invalid result")
         output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
@@ -706,7 +735,20 @@ def execute_gate(
                 }
                 output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
         if name == "FULL_SUITE" and int(result["exit_code"]) == 0:
-            suite_cases = _full_suite_case_counts(output)
+            # Prefer an exact suite-owned terminal event ledger. Verbose
+            # unittest logs may contain nested runners or multiline output.
+            # Keep legacy log parsing only for injected/older executors.
+            if proof_path.is_file():
+                try:
+                    from tools.atlas_full_suite_proof import load_verified, module_proofs
+
+                    ledger = load_verified(proof_path, sha=repository_head(root))
+                    suite_cases = module_proofs(ledger)
+                    suite_proof = True
+                except (ValueError, OSError, KeyError, TypeError):
+                    suite_cases = {}
+            else:
+                suite_cases = _full_suite_case_counts(output)
         command_report = {
             "group": name,
             "command": result.get("command", command),
@@ -716,6 +758,9 @@ def execute_gate(
         }
         if reused:
             command_report["evidence_reused_from"] = "FULL_SUITE"
+            command_report["evidence_kind"] = (
+                "EXACT_TERMINAL_LEDGER" if suite_proof else "COMPLETE_UNITTEST_LOG"
+            )
             command_report["evidence_test_cases"] = {
                 module: suite_cases[module] for module in candidate_modules
             }
