@@ -114,6 +114,28 @@ environnement Python. Le rapport `evidence_reused_groups` et les
 `evidence_test_cases` permettent de vérifier l'économie réellement
 constatée. Aucun gain de temps n'est affirmé avant mesure Windows.
 
+## Après fusion sur main : une FULL propriétaire unique
+
+Sur `main`, `Phase Certification` reste propriétaire de l'unique
+`tools.atlas_integrity full` et du verdict de phase, avec les audits Guide,
+le catalogue et l'inventaire critique. La CI applicative conserve son job
+rapide de push, mais **ne relance plus une FULL automatiquement**.
+
+Après la conclusion de `Phase Certification`, `Dofus Atlas Application CI`
+reçoit l'événement GitHub `workflow_run`. Un job indépendant vérifie
+le résultat officiel GitHub (`completed/success`), la branche `main`,
+l'événement `push`, le dépôt, le SHA de checkout et les étapes
+obligatoires de la FULL. En absence de preuve exacte, le job **échoue**
+sans transformer les contrôles manquants en PASS. Le job exécute alors
+les tests Qt / lifecycle **ensemble dans un seul processus**, l'exigence
+spécifique restante de l'ancien workflow Application FULL.
+
+`Application FULL` reste disponible via `workflow_dispatch` pour
+diagnostic manuel, sans devenir une condition automatique sur chaque
+push. L'application ne réutilise jamais les preuves d'une autre révision ;
+la sortie distingue les tests effectivement exécutés des preuves hôtes
+réutilisées. Les gates RAM et preload indépendants restent inchangés.
+
 ## Source machine de vérité
 
 La validation technique générale est définie par `tools/atlas_integrity_policy.json` et exécutée par `tools.atlas_integrity`.
