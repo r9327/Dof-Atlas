@@ -172,7 +172,26 @@ def main(argv: list[str] | None = None) -> int:
                           text=True, check=True, timeout=10).stdout.strip()
     result = unittest.TextTestRunner(
         verbosity=2 if args.verbose else 1, resultclass=ProofResult,
+        durations=20,
     ).run(suite)
+    # Supplemental exact-SHA timings, never part of the PASS ledger or a
+    # shortcut around test execution. The Phase artifact already uploads this
+    # directory; collecting durations here does not rerun any test.
+    phase_logs = Path("artifacts/phase_certification")
+    if phase_logs.is_dir():
+        slowest = sorted(result.collectedDurations, key=lambda row: row[1], reverse=True)[:20]
+        timing_path = phase_logs / "04_full_suite_top20.json"
+        timing_tmp = timing_path.with_suffix(".json.tmp")
+        timing_tmp.write_text(json.dumps({
+            "candidate_sha": head,
+            "tests_run": result.testsRun,
+            "successful": result.wasSuccessful(),
+            "top20": [
+                {"test": str(label), "seconds": round(float(seconds), 3)}
+                for label, seconds in slowest
+            ],
+        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        timing_tmp.replace(timing_path)
     if not result.wasSuccessful():
         return 1
     try:

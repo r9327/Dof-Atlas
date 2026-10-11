@@ -48,6 +48,25 @@ class FullSuiteStructuredReuseTests(unittest.TestCase):
         self.assertEqual(len(payload["non_successful_test_ids"]), 2)
         self.assertEqual(proof.module_proofs(payload), {})
 
+    def test_native_unittest_durations_preserve_structured_pass_ledger(self):
+        def passing(self):
+            self.assertTrue(True)
+
+        SyntheticCases = type("SyntheticCases", (unittest.TestCase,), {
+            "__module__": "test_full_suite_structured_reuse",
+            "test_pass": passing,
+        })
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(SyntheticCases)
+        result = unittest.TextTestRunner(
+            stream=io.StringIO(), resultclass=proof.ProofResult,
+            verbosity=2, durations=20,
+        ).run(suite)
+        self.assertTrue(result.wasSuccessful())
+        self.assertEqual(len(result.collectedDurations), 1)
+        self.assertGreaterEqual(result.collectedDurations[0][1], 0)
+        self.assertEqual(len(result.completed), 1)
+        self.assertEqual(result.completed[0][1], "ok")
+
     def test_exact_ledger_survives_log_noise_and_proves_complete_module(self):
         a, b = "tests.test_slow.A.test_a", "tests.test_slow.A.test_b"
         p = proof.validated_ledger([a, b], [(a, "ok"), (b, "ok")],
