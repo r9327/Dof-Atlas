@@ -142,7 +142,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "58676fa167803373cba076dba7c2d16ec200793d",
+      "sha": "54318f5712acf0760872507ce9378e40ee18cc86",
       "type": "tree"
     },
     "tools": {
