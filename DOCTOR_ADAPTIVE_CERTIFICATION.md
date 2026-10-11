@@ -213,3 +213,35 @@ Planner test collection uses \`unittest discover -s tests -p
 Actual application test execution on Windows keeps its original canonical
 imports and PySide6 requirements. This is an isolation of the **planning
 contract tests**, not a shortcut for Qt functional validation.
+
+
+## Stage 1D — cumulative risk and strict historical FULL evidence
+
+- Optional \`--cumulative-base-ref <SHA/ref>\` for
+  \`python -m tools.atlas_doctor certify\` or
+  \`python -m tools.doctor_certification\` widens the risk horizon
+  beyond just the PR diff. Git ancestry and HEAD are verified; dangerous
+  accumulated changes, deletions, large diffs or mixed runtime/data domains
+  trigger \`FULL_REQUIRED\`. Invalid ancestry is BLOCKED. This feature may
+  **escalate**, never reduce obligations.
+- The cumulative reference is a Git comparison ref, **not** evidence that
+  this ref had a successful FULL. \`base_full_proven\` and
+  \`authorizes_skipping_tests\` remain false.
+- Shadow comparison now requires an actual \`schema_version=1\`,
+  \`mode=FULL\` Atlas Integrity report, the exact candidate SHA, all
+  currently mandatory groups from \`tools/atlas_integrity_policy.json\`,
+  coherent group statuses and test execution records for \`FULL_SUITE\`.
+  FAST/CRITICAL/DEEP reports, sparse JSONs claiming PASS, and missing
+  execution records become \`INVALID_EVIDENCE\`.
+- Even a correctly shaped local JSON cannot authenticate GitHub workflow
+  provenance; an authenticated evidence store still belongs to Stage 2.
+
+Examples (advisory planning, no tests executed):
+
+\`\`\`bash
+python -m tools.atlas_doctor certify --base-ref origin/main --cumulative-base-ref <older_ancestor_sha> --json
+python -m tools.atlas_doctor certify --base-ref origin/main --shadow-full-report artifacts/existing_exact_sha_full.json --json
+\`\`\`
+
+The new \`tests.test_doctor_certification_cumulative\` cases run using a
+minimal isolated Git fixture, not the real application or a FULL.

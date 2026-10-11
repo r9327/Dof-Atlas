@@ -1,49 +1,107 @@
 from __future__ import annotations
 
-"""Doctor shadow certification audit of previously completed FULL reports.
+"""Fail-closed comparison against a completed Atlas Integrity FULL report.
 
-Never starts FULL, never declares scoped == exhaustive and never authorizes
-a merge. Flags where proposed scope would have hidden observed FULL failures.
+This is an offline shadow audit, never a phase verdict, and it cannot authenticate
+an arbitrary local JSON file as a GitHub Actions attestation.
 """
 import json
+import re
 from pathlib import Path
 from typing import Any
 
+from tools.atlas_integrity import load_policy
+
+ROOT = Path(__file__).resolve().parents[2]
 MAX_FULL_REPORT_BYTES = 5_000_000
+SHA = re.compile(r"[0-9a-f]{40}\Z")
+
+
+def _actual_required_groups() -> set[str]:
+    policy = load_policy(ROOT)
+    certification = policy.get("certification", {})
+    mandatory = certification.get("required_groups", [])
+    if certification.get("minimum_mode") != "FULL" or not isinstance(mandatory, list):
+        raise ValueError("Invalid independent FULL certification policy")
+    if not mandatory or any(not isinstance(name, str) or name not in policy["groups"]
+                            for name in mandatory):
+        raise ValueError("Missing independent FULL certification groups")
+    return set(mandatory)
 
 
 def evaluate_shadow(plan: dict[str, Any], full: dict[str, Any]) -> dict[str, Any]:
+    """Review exact-SHA observed outcomes. A local report is never trusted provenance."""
     errors: list[str] = []
     expected_head = plan.get("candidate_sha")
-    full_head = full.get("head")
-    if not isinstance(expected_head, str) or len(expected_head) != 40 or full_head != expected_head:
+    if (not isinstance(expected_head, str) or not SHA.fullmatch(expected_head)
+            or full.get("head") != expected_head):
         errors.append("CANDIDATE_SHA_MISMATCH")
-    required = list(full.get("validations_required") or [])
-    groups = full.get("groups") or {}
-    if not isinstance(groups, dict) or not isinstance(required, list):
-        errors.append("MALFORMED_FULL_GROUPS")
-        groups, required = {}, []
-    if any(not isinstance(name, str) or not isinstance(groups.get(name), dict)
-           for name in required):
-        errors.append("MALFORMED_FULL_GROUPS")
-    required = [name for name in required if isinstance(name, str)]
-    for group in ("FULL_SUITE", "DATA_INTEGRITY"):
-        if group not in required or not isinstance(groups.get(group), dict):
-            errors.append("FULL_EVIDENCE_MISSING:" + group)
-    if not full.get("verdict") in {"PASS", "FAIL", "BLOCKED"}:
-        errors.append("UNKNOWN_FULL_VERDICT")
-    if not expected_head or plan.get("plan_fingerprint") is None:
+    if not isinstance(plan.get("plan_fingerprint"), str) or not plan["plan_fingerprint"]:
         errors.append("INVALID_PLAN")
-    group_failures = sorted(
-        group for group in required
-        if not isinstance(groups.get(group), dict)
-        or groups[group].get("status") != "PASS"
-    )
+
+    if full.get("schema_version") != 1 or full.get("mode") != "FULL":
+        errors.append("NOT_AN_ATLAS_INTEGRITY_FULL_REPORT")
+    if full.get("verdict") not in {"PASS", "BLOCKED"}:
+        errors.append("UNKNOWN_FULL_VERDICT")
+
+    try:
+        mandatory = _actual_required_groups()
+    except (ValueError, OSError, KeyError, TypeError):
+        errors.append("INDEPENDENT_POLICY_UNAVAILABLE")
+        mandatory = {"FULL_SUITE", "DATA_INTEGRITY"}
+    raw_required = full.get("validations_required")
+    required = set()
+    if not isinstance(raw_required, list) or any(
+        not isinstance(name, str) for name in raw_required
+    ) or len(raw_required) != len(set(raw_required)):
+        errors.append("MALFORMED_FULL_REQUIREMENTS")
+    else:
+        required = set(raw_required)
+    missing = mandatory - required
+    if missing:
+        errors.append("REQUIRED_POLICY_GROUPS_MISSING")
+    groups = full.get("groups")
+    if not isinstance(groups, dict):
+        errors.append("MALFORMED_FULL_GROUPS")
+        groups = {}
+    group_failures: list[str] = []
+    for name in sorted(required | mandatory):
+        group = groups.get(name)
+        if not isinstance(group, dict):
+            errors.append("FULL_EVIDENCE_MISSING:" + name)
+            group_failures.append(name)
+            continue
+        if group.get("required") is not True:
+            errors.append("FULL_GROUP_NOT_MARKED_REQUIRED:" + name)
+        if group.get("status") != "PASS":
+            group_failures.append(name)
+        if group.get("status") == "PASS" and group.get("blockers"):
+            errors.append("PASS_GROUP_WITH_BLOCKERS:" + name)
+    blockers = full.get("blockers")
+    if not isinstance(blockers, list):
+        errors.append("MALFORMED_FULL_BLOCKERS")
+        blockers = ["INVALID"]
+
+    # A passed FULL_SUITE without a real successful command/test count is an
+    # invalid report, even if a JSON object falsely says status=PASS.
+    suite = groups.get("FULL_SUITE")
+    if isinstance(suite, dict) and suite.get("status") == "PASS":
+        commands = suite.get("commands")
+        if (not isinstance(commands, list) or not commands or
+                not all(isinstance(cmd, dict) and cmd.get("exit_code") == 0
+                        and isinstance(cmd.get("tests"), int) and cmd["tests"] > 0
+                        for cmd in commands)):
+            errors.append("UNPROVEN_FULL_SUITE_EXECUTION")
+    if full.get("verdict") == "PASS" and (group_failures or blockers):
+        errors.append("INCONSISTENT_FULL_PASS")
+
     full_pass = (not errors and full.get("verdict") == "PASS"
-                 and not group_failures and not full.get("blockers"))
+                 and not group_failures and not blockers)
     scoped_result = (plan.get("execution") or {}).get("status")
-    would_be_scoped_pass = (plan.get("status") == "READY_TO_RUN_SCOPED"
-                            and scoped_result == "SCOPED_TESTS_PASS")
+    would_be_scoped_pass = (
+        plan.get("status") == "READY_TO_RUN_SCOPED"
+        and scoped_result == "SCOPED_TESTS_PASS"
+    )
     if errors:
         status = "INVALID_EVIDENCE"
     elif not full_pass and would_be_scoped_pass:
@@ -61,14 +119,16 @@ def evaluate_shadow(plan: dict[str, Any], full: dict[str, Any]) -> dict[str, Any
         "candidate_sha": expected_head,
         "plan_fingerprint": plan.get("plan_fingerprint"),
         "status": status,
-        "errors": errors,
+        "errors": sorted(set(errors)),
         "full_verdict": full.get("verdict"),
-        "failed_or_blocked_groups": group_failures,
+        "full_mode": full.get("mode"),
+        "failed_or_blocked_groups": sorted(set(group_failures)),
         "scoped_verdict": scoped_result,
         "full_suite_not_waived": True,
         "phase_certified": False,
         "merge_authorized": False,
-        "note": "A PASS shadow comparison is not proof that this selector is safe on future changes.",
+        "trusted_workflow_provenance": False,
+        "note": "Local JSON is not a trusted GitHub attestation. Passing history does not prove the selector safe on future changes.",
     }
 
 
@@ -94,5 +154,5 @@ def aggregate_shadows(comparisons: list[dict[str, Any]]) -> dict[str, Any]:
         "status": "BLOCKED" if missed or invalid else "ADVISORY",
         "safe_to_relax_full": False,
         "full_coverage_proven": False,
-        "limitations": "Historical outcomes cannot establish zero future selection errors.",
+        "limitations": "Historical outcomes cannot establish zero future selection errors or trusted attestation.",
     }

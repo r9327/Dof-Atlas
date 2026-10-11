@@ -185,6 +185,7 @@ def command_certification(root: Path, args) -> dict[str, Any]:
         expected_sha=args.expected_sha,
         run=args.run_tests,
         shadow_full_report=args.shadow_full_report,
+        cumulative_base_ref=args.cumulative_base_ref,
     ))
     if not args.json:
         print(f"Doctor certification: {payload['status']} ({payload['profile']})")
@@ -671,6 +672,8 @@ def build_parser() -> argparse.ArgumentParser:
     cert.add_argument('--expected-sha', default='', help='SHA exact attendu du candidat.')
     cert.add_argument('--run-tests', action='store_true',
                       help='Executer uniquement les tests cibles juges surs.')
+    cert.add_argument('--cumulative-base-ref',
+                      help='Base Git pour analyse cumulative, sans prétendre prouver une FULL.')
     cert.add_argument('--shadow-full-report', type=Path,
                       help='Comparer un ancien rapport FULL exact-SHA sans relancer de tests.')
     ch = sub.add_parser('change-plan', help='Plan diff Git + consommateurs Graphify + tests cibles; aucun test execute.')

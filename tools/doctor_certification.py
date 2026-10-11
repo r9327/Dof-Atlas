@@ -16,6 +16,9 @@ from tools import ci_scope_gate
 from tools.atlas_doctor_lib.certification_engine import plan, verify_scoped_evidence
 from tools.atlas_doctor_lib.certification_passport import build_passport, verify_passport, environment
 from tools.atlas_doctor_lib.certification_shadow import evaluate_shadow, load_full_report
+from tools.atlas_doctor_lib.certification_cumulative import assess_cumulative
+from tools.atlas_doctor_lib.certification_engine import fingerprint
+from tools.atlas_doctor_lib.certification_policy import enforce
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,6 +50,27 @@ def run(args: argparse.Namespace) -> dict:
         raise RuntimeError("tracked worktree is dirty; cannot plan exact-SHA evidence")
     paths, deleted = ci_scope_gate.changed_paths(ROOT, base)
     report = plan(ROOT, paths, base_sha=base, head_sha=head, deleted_paths=deleted)
+    cumulative_ref = getattr(args, "cumulative_base_ref", None)
+    if cumulative_ref:
+        cumulative_base = _git("rev-parse", "--verify", f"{cumulative_ref}^{{commit}}")
+        cumulative = assess_cumulative(
+            ROOT, baseline_sha=cumulative_base, candidate_sha=head,
+        )
+        report["cumulative_impact"] = cumulative
+        if cumulative["status"] in {"FULL_REQUIRED", "BLOCKED"}:
+            report["status"] = (
+                "BLOCKED" if cumulative["status"] == "BLOCKED" else "FULL_REQUIRED"
+            )
+            report["profile"] = "FULL_REQUIRED"
+            report["reasons"] = sorted(set(
+                report["reasons"] + cumulative["reasons"]
+            ))
+            report["test_modules"] = []
+            report["test_selection_explanations"] = {}
+            report["independent_verdict"] = enforce(report)
+        core = dict(report)
+        core.pop("plan_fingerprint", None)
+        report["plan_fingerprint"] = fingerprint(core)
     report["execution"] = {"status": "NOT_RUN", "exit_code": None}
     if args.run and report["status"] == "READY_TO_RUN_SCOPED":
         started = time.perf_counter()
@@ -96,6 +120,8 @@ def run(args: argparse.Namespace) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-ref", required=True)
+    parser.add_argument("--cumulative-base-ref",
+                        help="Optional prior Git ref for cumulative risk, NOT proof of a passed FULL")
     parser.add_argument("--expected-sha", default="")
     parser.add_argument("--run", action="store_true", help="Run safe selected modules; never a FULL.")
     parser.add_argument("--output", type=Path)
