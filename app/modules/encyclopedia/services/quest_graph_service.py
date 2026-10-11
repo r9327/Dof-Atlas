@@ -4,6 +4,7 @@ import re
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from itertools import product
+from heapq import heapify, heappop, heappush
 from typing import Any, Iterable
 
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
@@ -19,6 +20,7 @@ def safe_int(value: Any, default: int | None = None) -> int | None:
 
 _REFERENCE_RE = re.compile(r"\b(Qf|Qa|Sc|OA)\s*(?:==|=)\s*(\d+)\b", re.IGNORECASE)
 _MAX_CRITERION_BRANCHES = 256
+_CRITERION_CACHE_LIMIT = 4096
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,6 +126,8 @@ class QuestGraphService:
         self.guide_ids_by_quest: dict[int, set[str]] = defaultdict(set)
         self.achievement_names_by_quest: dict[int, set[str]] = defaultdict(set)
         self._built = False
+        # Scoped to this graph: no process-global cache or stale cross-test data.
+        self._criterion_cache: dict[str, CriterionReferences] = {}
         if eager:
             self._build()
             self._built = True
@@ -137,7 +141,7 @@ class QuestGraphService:
             return []
         return sorted(
             previous
-            for previous in self.criterion_references(quest.start_criterion).mandatory_hard_quests
+            for previous in self._cached_criterion_references(quest.start_criterion).mandatory_hard_quests
             if previous in self.catalog.by_id and previous != quest_id
         )
 
@@ -149,7 +153,7 @@ class QuestGraphService:
             int(quest.id)
             for quest in self.catalog.quests
             if int(quest.id) != quest_id
-            and quest_id in self.criterion_references(quest.start_criterion).mandatory_hard_quests
+            and quest_id in self._cached_criterion_references(quest.start_criterion).mandatory_hard_quests
         )
 
     def context_previous_ids(self, quest_id: int) -> list[int]:
@@ -161,7 +165,7 @@ class QuestGraphService:
             return []
         return sorted(
             previous
-            for previous in self.criterion_references(quest.start_criterion).mandatory_context_quests
+            for previous in self._cached_criterion_references(quest.start_criterion).mandatory_context_quests
             if previous in self.catalog.by_id and previous != quest_id
         )
 
@@ -207,7 +211,7 @@ class QuestGraphService:
             edges = {
                 (previous, quest_id)
                 for quest_id in ids
-                for previous in self.criterion_references(
+                for previous in self._cached_criterion_references(
                     self.catalog.by_id[quest_id].start_criterion
                 ).mandatory_hard_quests
                 if previous in ids
@@ -249,6 +253,16 @@ class QuestGraphService:
     def criterion_references(cls, criterion: str) -> CriterionReferences:
         branches = _criterion_branches(str(criterion or ""))
         return CriterionReferences(tuple(branches or [CriterionBranch()]))
+
+    def _cached_criterion_references(self, criterion: str) -> CriterionReferences:
+        expression = str(criterion or "")
+        cached = self._criterion_cache.get(expression)
+        if cached is not None:
+            return cached
+        parsed = self.criterion_references(expression)
+        if len(self._criterion_cache) < _CRITERION_CACHE_LIMIT:
+            self._criterion_cache[expression] = parsed
+        return parsed
 
     def prerequisite_closure(
         self,
@@ -374,7 +388,7 @@ class QuestGraphService:
                 processed_quest_mode[quest_id] = mode
                 quest = self.catalog.by_id[quest_id]
                 add_references(
-                    self.criterion_references(quest.start_criterion),
+                    self._cached_criterion_references(quest.start_criterion),
                     mode=mode,
                     owner=f"quest:{quest_id}",
                     following_quest=quest_id,
@@ -390,7 +404,7 @@ class QuestGraphService:
                 covered: set[int] = set()
                 inherited = achievement_groups.get(achievement_id, ())
                 for objective in getattr(achievement, "objectives", ()) or ():
-                    refs = self.criterion_references(str(getattr(objective, "criterion", "") or ""))
+                    refs = self._cached_criterion_references(str(getattr(objective, "criterion", "") or ""))
                     objective_covered = add_references(
                         refs,
                         mode=mode,
@@ -423,7 +437,7 @@ class QuestGraphService:
             result: set[int] = set()
             child_achievements: set[int] = set()
             for objective in getattr(achievement, "objectives", ()) or ():
-                refs = self.criterion_references(str(getattr(objective, "criterion", "") or ""))
+                refs = self._cached_criterion_references(str(getattr(objective, "criterion", "") or ""))
                 for branch in refs.branches:
                     result.update(branch.quest_ids)
                     child_achievements.update(branch.achievements)
@@ -438,7 +452,7 @@ class QuestGraphService:
         # A Sc/OA condition is ordered after the quests that make up that
         # achievement, while the quest steps keep only Qf in prerequisites.
         for following in all_ids:
-            refs = self.criterion_references(self.catalog.by_id[following].start_criterion)
+            refs = self._cached_criterion_references(self.catalog.by_id[following].start_criterion)
             for achievement_id in refs.mandatory_achievements:
                 for previous in achievement_quest_ids(achievement_id):
                     if previous != following:
@@ -472,7 +486,7 @@ class QuestGraphService:
 
     def _build(self) -> None:
         for quest in self.catalog.quests:
-            refs = self.criterion_references(quest.start_criterion)
+            refs = self._cached_criterion_references(quest.start_criterion)
             for previous in refs.mandatory_hard_quests:
                 if previous in self.catalog.by_id and previous != quest.id:
                     self.criterion_previous_by_quest[quest.id].add(previous)
@@ -512,20 +526,22 @@ class QuestGraphService:
             quest = self.catalog.by_id[quest_id]
             return int(getattr(quest, "level_min", 0) or 0), normalize_text(quest.name), quest_id
 
-        ready = sorted((quest_id for quest_id, count in incoming.items() if count == 0), key=key)
+        # Same priority and cycle rules, without repeated full-queue sorts.
+        priority = {quest_id: key(quest_id) for quest_id in ids}
+        ready = [(priority[quest_id], quest_id) for quest_id, count in incoming.items() if count == 0]
+        heapify(ready)
         result: list[int] = []
         while ready:
-            quest_id = ready.pop(0)
+            _priority, quest_id = heappop(ready)
             result.append(quest_id)
-            for child in sorted(children.get(quest_id, ()), key=key):
+            for child in sorted(children.get(quest_id, ()), key=priority.__getitem__):
                 incoming[child] -= 1
                 if incoming[child] == 0:
-                    ready.append(child)
-                    ready.sort(key=key)
+                    heappush(ready, (priority[child], child))
 
         remaining = ids - set(result)
         cycles = _cycle_components(remaining, children)
-        result.extend(sorted(remaining, key=key))
+        result.extend(sorted(remaining, key=priority.__getitem__))
         return result, cycles
 
     @classmethod
