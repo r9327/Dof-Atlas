@@ -196,7 +196,23 @@ class GuidePrerequisiteLookupTests(unittest.TestCase):
             quest.prerequisites = ["Avoir terminé La quête de l'aube"]
             # A self-referencing quest remains excluded after a record update.
             self.assertEqual(resolver._direct_quest_prerequisites(quest), {3})
-            self.assertEqual(parse.call_count, 3)
+            # The prerequisite list changed, but the criterion string did not:
+        # its parsed Qf=3 result must be reused, not parsed a third time.
+        self.assertEqual(parse.call_count, 2)
+        quest.prerequisites = ["Avoir terminé Légende oubliée"]
+        self.assertEqual(resolver._direct_quest_prerequisites(quest), {2, 3})
+        self.assertEqual(parse.call_count, 2)
+
+    def test_criterion_cache_is_bounded_and_never_leaks_mutable_sets(self):
+        resolver = self.resolver
+        quests, achievements = resolver._cached_mandatory_references("Qf=2&Sc=11")
+        self.assertEqual((quests, achievements), ({2}, {11}))
+        quests.clear()
+        achievements.clear()
+        self.assertEqual(resolver._cached_mandatory_references("Qf=2&Sc=11"), ({2}, {11}))
+        for index in range(4200):
+            resolver._cached_mandatory_references(f"Qf={index+100}")
+        self.assertLessEqual(len(resolver._mandatory_reference_cache), 4096)
 
     def test_text_cache_is_bounded_to_the_resolver_lifetime(self):
         resolver = self.resolver
