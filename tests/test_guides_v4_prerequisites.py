@@ -47,6 +47,61 @@ def achievement(achievement_id: int, *criteria: str) -> SimpleNamespace:
 
 
 class GuidesV4PrerequisitesTests(unittest.TestCase):
+    def test_criterion_cache_is_instance_scoped_and_follows_updated_input(self):
+        provider = FakeQuestProvider([quest(1), quest(2, "Qf=1")])
+        first = QuestGraphService(provider, achievement_provider=FakeAchievementProvider([]), eager=False)
+        second = QuestGraphService(provider, achievement_provider=FakeAchievementProvider([]), eager=False)
+        expression = "Qf=1|Qa=2"
+        parsed = first._cached_criterion_references(expression)
+        self.assertIs(parsed, first._cached_criterion_references(expression))
+        self.assertIsNot(parsed, second._cached_criterion_references(expression))
+        updated = first._cached_criterion_references("Qf=1&Qa=2")
+        self.assertEqual(updated.mandatory_hard_quests, {1})
+        self.assertEqual(updated.mandatory_context_quests, {2})
+        self.assertNotEqual(parsed.branches, updated.branches)
+
+    def test_heap_order_matches_sorted_frontier_with_cycles_and_ties(self):
+        from app.modules.encyclopedia.services.quest_graph_service import _cycle_components
+        from app.quest_catalog import normalize_text
+        from collections import defaultdict
+
+        quests = [quest(i, level=(i * 3) % 7) for i in range(1, 41)]
+        graph = QuestGraphService(FakeQuestProvider(quests), achievement_provider=FakeAchievementProvider([]), eager=False)
+        ids = set(range(1, 41))
+        edges = {(i, i + 1) for i in range(1, 39, 3)}
+        edges.update({(i, i + 2) for i in range(1, 35, 4)})
+        edges.update({(30, 31), (31, 30), (40, 40)})
+
+        def legacy_order():
+            incoming = {qid: 0 for qid in ids}
+            children = defaultdict(set)
+            for before, after in edges:
+                if before not in ids or after not in ids or after in children[before]:
+                    continue
+                children[before].add(after)
+                incoming[after] += 1
+
+            def key(qid):
+                row = graph.catalog.by_id[qid]
+                return int(row.level_min or 0), normalize_text(row.name), qid
+
+            ready = sorted((qid for qid, count in incoming.items() if count == 0), key=key)
+            ordered = []
+            while ready:
+                qid = ready.pop(0)
+                ordered.append(qid)
+                for child in sorted(children.get(qid, ()), key=key):
+                    incoming[child] -= 1
+                    if incoming[child] == 0:
+                        ready.append(child)
+                        ready.sort(key=key)
+            remaining = ids - set(ordered)
+            cycles = _cycle_components(remaining, children)
+            ordered.extend(sorted(remaining, key=key))
+            return ordered, cycles
+
+        self.assertEqual(graph._topological_order(ids, edges), legacy_order())
+
     def test_qf_qa_sc_and_or_are_not_flattened(self):
         refs = QuestGraphService.criterion_references("Qf=1&Qa=2&Sc=3")
         self.assertEqual(refs.mandatory_hard_quests, {1})
