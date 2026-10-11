@@ -245,3 +245,26 @@ python -m tools.atlas_doctor certify --base-ref origin/main --shadow-full-report
 
 The new \`tests.test_doctor_certification_cumulative\` cases run using a
 minimal isolated Git fixture, not the real application or a FULL.
+
+
+## Stage 1E — avoid duplicate Windows installation for canonical PR scoped feedback
+
+\`.github/workflows/scoped-pr-ci.yml\` now keeps the existing
+\`PR / Scoped Test Feedback\` required check name, but separates execution:
+
+1. **Stdlib Ubuntu planning** runs the existing \`test_ci_scope_gate.py\`
+   and \`test_ci_dev_tests.py\` contracts as isolated test files, and invokes
+   the **unchanged canonical scope selector** without \`--run\`.
+2. **Windows tests** only when the canonical selector returns \`TARGETED\`.
+   The exact candidate SHA and scope are rechecked, then Python dependencies
+   are installed and the same canonical selector runs required modules.
+3. **Final verdict** runs after both jobs. If the planner failed, or Windows
+   was required but failed/skipped, the original \`PR / Scoped Test Feedback\`
+   check fails. A \`FULL_REQUIRED\` classification explicitly skips the
+   Windows scoped job and does **not** claim FULL PASS.
+
+The independent \`Public PR / Safe Validation\` Doctor FAST gate stays
+mandatory and is not reduced by this scheduling optimization. The canonical
+\`tests/test_ci_scope_gate.py\` workflow contract has been deliberately
+updated to ensure the new dependent verdict cannot mask failed tests.
+This is a scheduling optimization only, not a coverage relaxation.
