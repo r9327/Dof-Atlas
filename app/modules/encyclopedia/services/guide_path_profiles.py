@@ -373,6 +373,8 @@ class GuidePathResolver:
                     continue
                 self.quest_source_name_to_ids[normalize_text(name)].append(int(qid))
                 self.quest_source_loose_to_ids[_loose_name(name)].append(int(qid))
+        # Scoped to one immutable build/resolver, never shared between tests.
+        self._mandatory_reference_cache: dict[str, tuple[frozenset[int], frozenset[int]]] = {}
         self._prerequisite_text_cache: dict[str, frozenset[int]] = {}
         self._direct_quest_reference_cache: dict[
             tuple[int, str, tuple[str, ...]], frozenset[int]
@@ -447,6 +449,17 @@ class GuidePathResolver:
             result.update(lookup.get(normalized[start:], ()))
         return result
 
+    def _cached_mandatory_references(self, criterion: str) -> tuple[set[int], set[int]]:
+        expression = str(criterion or "")
+        cached = self._mandatory_reference_cache.get(expression)
+        if cached is None:
+            quests, achievements = mandatory_references(expression)
+            cached = (frozenset(quests), frozenset(achievements))
+            if len(self._mandatory_reference_cache) < _MAX_PREREQUISITE_LOOKUP_CACHE:
+                self._mandatory_reference_cache[expression] = cached
+        # Callers mutate these sets while expanding closures. No alias leakage.
+        return set(cached[0]), set(cached[1])
+
     def _direct_quest_prerequisites(
         self,
         quest: Any,
@@ -464,7 +477,7 @@ class GuidePathResolver:
         cache = self._direct_quest_reference_cache
         cached = cache.get(key)
         if cached is None:
-            qrefs, _srefs = mandatory_references(criterion)
+            qrefs, _srefs = self._cached_mandatory_references(criterion)
             result = set(qrefs)
             for value in prerequisites:
                 result.update(self._quest_ids_from_prerequisite_text(value))
@@ -829,7 +842,7 @@ class GuidePathResolver:
         ]
         for objective in getattr(achievement, "objectives", ()) or ():
             criterion = str(getattr(objective, "criterion", "") or "")
-            _qrefs, srefs = mandatory_references(criterion)
+            _qrefs, srefs = self._cached_mandatory_references(criterion)
             child_ids.update(aid for aid in srefs if aid in self.achievement_by_id)
 
         groups: list[tuple[int, str, list[int]]] = []
@@ -873,7 +886,7 @@ class GuidePathResolver:
         while quest_queue or achievement_queue:
             while quest_queue:
                 quest = self.quest_by_id[quest_queue.popleft()]
-                _qrefs, srefs = mandatory_references(str(getattr(quest, "start_criterion", "") or ""))
+                _qrefs, srefs = self._cached_mandatory_references(str(getattr(quest, "start_criterion", "") or ""))
                 for qid in self._direct_quest_prerequisites(
                     quest,
                     include_enriched=include_enriched,
@@ -889,7 +902,7 @@ class GuidePathResolver:
                     if qid is not None:
                         add_quest(qid)
                 for objective in getattr(achievement, "objectives", ()) or ():
-                    qrefs, srefs = mandatory_references(str(getattr(objective, "criterion", "") or ""))
+                    qrefs, srefs = self._cached_mandatory_references(str(getattr(objective, "criterion", "") or ""))
                     for qid in qrefs:
                         add_quest(qid)
                     for aid in srefs:
