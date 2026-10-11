@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from .architecture import graph_status, summarize_graph
+from .runtime_file_focus import runtime_file_focus
 
 IMPORT_RELATIONS = {"imports", "imports_from"}
 GRAPH_RELATIONS = {"imports", "imports_from", "calls", "inherits", "references", "uses", "re_exports"}
@@ -66,6 +67,7 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offse
         raise ValueError("Candidate offsets must be nonnegative")
     """Bounded O(nodes + links) architectural diagnosis with explicit evidence."""
     basic = summarize_graph(graph)  # strict missing/duplicate nodes and dangling links
+    runtime_focus = runtime_file_focus(graph)
     nodes = {node["id"]: node for node in graph["nodes"]}
     degree: Counter[Any] = Counter()
     incoming: Counter[Any] = Counter()
@@ -228,6 +230,7 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offse
         "schema_version": 1, "kind": "graph_architecture_audit",
         "status": "FAIL" if confirmed else "REVIEW" if orphan or weak or hubs or bridges or unconfirmed else "PASS",
         "blocking_findings": confirmed, "unconfirmed_import_candidates": unconfirmed,
+        "runtime_file_focus": runtime_focus,
         "metrics": {
             "node_count": basic["node_count"], "link_count": basic["link_count"],
             "raw_community_count": len(communities),
@@ -292,7 +295,8 @@ def audit_current_graph(
             source_consumer_review=source_review,
             performance_correlation=perf,
             remediation_plan=remediation_plan(
-                result, cycles, cohesion, source_review=source_review, performance=perf
+                result, cycles, cohesion, source_review=source_review, performance=perf,
+                runtime_focus=result["runtime_file_focus"]
             ),
         )
         # Existing source-level import cycles are architecture debt, not proof

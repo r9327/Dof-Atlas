@@ -96,6 +96,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_atlas_doctor_graph_audit.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_graph_intelligence.py" -v
+          python -m unittest discover -s tests -p "test_atlas_doctor_runtime_file_focus.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_change_intelligence.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_deep_intelligence.py" -v
           python -m unittest discover -s tests -p "test_atlas_doctor_runtime_observation.py" -v
