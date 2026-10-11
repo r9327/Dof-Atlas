@@ -38,7 +38,9 @@ class UserJourneyCertificationTests(unittest.TestCase):
 
     def test_real_runner_eligible_only_on_exact_sha_and_clean_worktree(self):
         selected = []
+        batches = []
         def runner(root, modules):
+            batches.append(list(modules))
             selected.extend(modules)
             return 0
         with mock.patch.object(target, "_git", side_effect=[SHA, ""]):
@@ -48,6 +50,10 @@ class UserJourneyCertificationTests(unittest.TestCase):
         self.assertEqual(output["status"], "CONTRACTS_PASS_METRICS_NOT_RUN")
         self.assertGreater(len(selected), 2)
         self.assertEqual(output["executed_test_modules"], selected)
+        self.assertTrue(output["isolated_process_per_module"])
+        self.assertTrue(all(len(batch) == 1 for batch in batches))
+        self.assertEqual(len(output["module_results"]), len(selected))
+        self.assertTrue(all(row["exit_code"] == 0 for row in output["module_results"]))
         self.assertFalse(output["all_end_to_end_certified"])
         self.assertEqual(output["metrics_executed"], [])
 
@@ -58,6 +64,8 @@ class UserJourneyCertificationTests(unittest.TestCase):
             )
         self.assertEqual(output["status"], "BLOCKED")
         self.assertIn("SCENARIO_TESTS_FAILED", output["errors"])
+        self.assertEqual(output["failed_modules"], output["required_test_modules"])
+        self.assertTrue(all(row["exit_code"] == 1 for row in output["module_results"]))
 
     def test_wrong_git_candidate_or_dirty_tree_never_runs(self):
         called = []

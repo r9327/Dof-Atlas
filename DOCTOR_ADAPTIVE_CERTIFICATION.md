@@ -510,3 +510,23 @@ PR-supplied policies, a real in-game GUI recording, and a formal policy
 change waiving Phase FULL remain deliberately locked until independent
 provenance, real runs, and policy review are complete. These are security
 gates, not optional untracked TODOs.
+
+
+## Windows journey isolation corrective
+
+The first non-draft Windows journey run exposed a genuine test isolation
+failure: a test accessing the QuestGraphService encountered
+\`sqlite3.OperationalError: database is locked\` after other Qt/Quest tests
+had run in the **same** Python interpreter.
+
+The scenario executor now runs each selected canonical unittest module in a
+**fresh Python process**, sequentially. All selected test modules still
+execute and are recorded individually with exit codes, duration and
+process-isolation evidence; no skip, xfail, module exclusion, or downgrade
+of the phase FULL is used. A failed module makes the entire journey verdict
+BLOCKED even if other modules pass. The Doctor evidence reader also rejects
+a purported PASS missing any selected module or a nonzero module result.
+
+This is an isolation fix for the *scenario test runner*, not proof that
+application SQLite runtime locking was corrected. A reproducible error
+under ordinary use must be fixed in the application separately.

@@ -132,16 +132,42 @@ def execute_scenarios(
         from tools.ci_scope_gate import _run_scoped_modules
         runner = _run_scoped_modules
     started = time.perf_counter()
-    try:
-        exit_code = runner(root, report["required_test_modules"])
-    except (OSError, RuntimeError, subprocess.TimeoutExpired):
-        exit_code = 2
-    report["tests_executed"] = True
-    report["executed_test_modules"] = report["required_test_modules"]
-    report["test_exit_code"] = exit_code
+    executed: list[str] = []
+    module_results: list[dict[str, Any]] = []
+    failures: list[str] = []
+    # IMPORTANT: run each module in a distinct canonical runner subprocess.
+    # Running all modules in one Qt interpreter can retain SQLite/WAL handles
+    # and QTimers between otherwise independent scenario contracts.
+    for module in report["required_test_modules"]:
+        module_started = time.perf_counter()
+        try:
+            code = runner(root, [module])
+        except (OSError, RuntimeError, subprocess.TimeoutExpired):
+            code = 2
+        if type(code) is not int:
+            code = 2
+        executed.append(module)
+        module_results.append({
+            "module": module, "exit_code": code,
+            "duration_seconds": round(time.perf_counter() - module_started, 3),
+            "process_isolated": True,
+        })
+        if code != 0:
+            failures.append(module)
+    report["tests_executed"] = bool(executed)
+    report["executed_test_modules"] = executed
+    report["module_results"] = module_results
+    report["failed_modules"] = failures
+    report["isolated_process_per_module"] = True
+    report["test_exit_code"] = 0 if not failures and len(executed) == len(
+        report["required_test_modules"]
+    ) else 2
     report["duration_seconds"] = round(time.perf_counter() - started, 3)
-    report["status"] = "CONTRACTS_PASS_METRICS_NOT_RUN" if exit_code == 0 else "BLOCKED"
-    if exit_code != 0:
+    report["status"] = (
+        "CONTRACTS_PASS_METRICS_NOT_RUN"
+        if report["test_exit_code"] == 0 else "BLOCKED"
+    )
+    if failures or len(executed) != len(report["required_test_modules"]):
         report["errors"].append("SCENARIO_TESTS_FAILED")
     # The actual full UI journey and performance gate need independent
     # instrumentation and should NEVER be implied by these contracts.

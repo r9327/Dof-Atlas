@@ -150,11 +150,25 @@ def run(args: argparse.Namespace) -> dict:
     scenario_report = getattr(args, "scenario_report", None)
     if scenario_report:
         saved = _load_bounded_json(scenario_report)
-        expected_modules = set(saved.get("required_test_modules", []))
-        actual_modules = set(saved.get("executed_test_modules", []))
+        expected = saved.get("required_test_modules")
+        actual = saved.get("executed_test_modules")
+        rows = saved.get("module_results")
+        modules_complete = (
+            isinstance(expected, list) and bool(expected)
+            and len(expected) == len(set(expected))
+            and isinstance(actual, list) and actual == expected
+            and isinstance(rows, list) and len(rows) == len(expected)
+            and all(
+                isinstance(row, dict)
+                and row.get("module") == expected[i]
+                and row.get("exit_code") == 0
+                and row.get("process_isolated") is True
+                for i, row in enumerate(rows)
+            )
+        )
         if (saved.get("candidate_sha") != head
                 or saved.get("status") != "CONTRACTS_PASS_METRICS_NOT_RUN"
-                or not expected_modules or actual_modules != expected_modules
+                or not modules_complete
                 or saved.get("test_exit_code") != 0
                 or saved.get("all_end_to_end_certified") is not False):
             report["status"] = "BLOCKED"
