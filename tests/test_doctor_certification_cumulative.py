@@ -81,7 +81,7 @@ class CumulativeCertificationTests(unittest.TestCase):
         )["status"], "BLOCKED")
 
     def test_wrong_ancestry_is_blocked(self):
-        head = self.commit()
+        head = git(self.root, "rev-parse", "HEAD")
         self.assertEqual(assess_cumulative(
             self.root, baseline_sha="a" * 40, candidate_sha=head,
         )["status"], "BLOCKED")
