@@ -670,7 +670,7 @@ def _cycle_components(remaining: set[int], children: dict[int, set[int]]) -> lis
         index += 1
         stack.append(node)
         on_stack.add(node)
-        for child in sorted(children.get(node, ()) & remaining):
+        for child in sorted(children.get(node, set()) & remaining):
             if child not in indices:
                 visit(child)
                 lowlinks[node] = min(lowlinks[node], lowlinks[child])
