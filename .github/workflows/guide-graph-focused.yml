@@ -1,0 +1,64 @@
+name: Guide Graph Focused Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/modules/encyclopedia/services/quest_graph_service.py'
+      - 'app/modules/encyclopedia/services/guide_path_profiles.py'
+      - 'tests/test_guides_v4_prerequisites.py'
+      - 'tests/test_guide_prerequisite_lookup.py'
+      - '.github/workflows/guide-graph-focused.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dof-atlas-guide-graph-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  graph-contracts:
+    name: Guide / Focused Graph Contracts (not FULL)
+    runs-on: windows-latest
+    timeout-minutes: 12
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: '1'
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          lfs: false
+
+      - name: Verify exact SHA
+        shell: pwsh
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne $env:CANDIDATE_SHA) {
+            throw 'Incorrect Guide Graph test checkout'
+          }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install pinned Qt runtime
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run true parser and graph contracts
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guides_v4_prerequisites tests.test_guide_prerequisite_lookup
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
