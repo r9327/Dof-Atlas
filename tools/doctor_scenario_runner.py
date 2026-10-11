@@ -52,6 +52,7 @@ SCENARIOS = {
     "guide_full_fixture_budget": {
         "modules": [
             "tests.test_guide_full_suite_fixture_budget",
+            "tests.test_guide_builder_criterion_cache",
             "tests.test_ci_guide_full_evidence",
         ],
         "metrics": [],
