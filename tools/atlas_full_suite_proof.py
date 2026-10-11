@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 import unittest
 
 SCHEMA = 1
@@ -40,6 +41,27 @@ class ProofResult(unittest.TextTestResult):
     def __init__(self, stream, descriptions, verbosity):
         super().__init__(stream, descriptions, verbosity)
         self.completed: list[tuple[str, str]] = []
+        self.timings: list[dict[str, object]] = []
+        self._last_stop = time.perf_counter()
+        self._active_start = self._last_stop
+        self._gap_before = 0.0
+
+    def startTest(self, test):
+        started = time.perf_counter()
+        # The gap includes class/module fixture setup and preceding teardown.
+        self._gap_before = max(0.0, started - self._last_stop)
+        self._active_start = started
+        super().startTest(test)
+
+    def stopTest(self, test):
+        elapsed = max(0.0, time.perf_counter() - self._active_start)
+        self.timings.append({
+            "id": canonical(test.id()),
+            "test_seconds": round(elapsed, 6),
+            "fixture_gap_before_seconds": round(self._gap_before, 6),
+        })
+        super().stopTest(test)
+        self._last_stop = time.perf_counter()
 
     def _record(self, test: unittest.case.TestCase, status: str) -> None:
         self.completed.append((canonical(test.id()), status))
@@ -103,6 +125,49 @@ def validated_ledger(expected: list[str], completed: list[tuple[str, str]],
     }
 
 
+def timing_profile(ledger: dict, rows: list[dict[str, object]], *,
+                   elapsed_seconds: float) -> dict:
+    """Advisory timing data; never a substitute for actual test results."""
+    expected = set(ledger["expected_test_ids"])
+    if len(rows) != len(expected) or {row["id"] for row in rows} != expected:
+        raise ValueError("Timings are incomplete or duplicated")
+    cases = []
+    modules: dict[str, dict[str, float | int]] = {}
+    for row in rows:
+        test_seconds = float(row["test_seconds"])
+        fixture_seconds = float(row["fixture_gap_before_seconds"])
+        if not (0 <= test_seconds < float("inf") and 0 <= fixture_seconds < float("inf")):
+            raise ValueError("Invalid per-test timing")
+        test_id = str(row["id"])
+        module = ".".join(test_id.split(".")[:2])
+        cases.append({
+            "id": test_id,
+            "test_seconds": test_seconds,
+            "fixture_gap_before_seconds": fixture_seconds,
+            "total_seconds": round(test_seconds + fixture_seconds, 6),
+        })
+        aggregate = modules.setdefault(module, {"cases": 0, "test_seconds": 0.0,
+                                                "fixture_gap_seconds": 0.0})
+        aggregate["cases"] += 1
+        aggregate["test_seconds"] += test_seconds
+        aggregate["fixture_gap_seconds"] += fixture_seconds
+    for module in modules.values():
+        module["test_seconds"] = round(module["test_seconds"], 6)
+        module["fixture_gap_seconds"] = round(module["fixture_gap_seconds"], 6)
+    return {
+        "kind": "atlas_full_test_timings",
+        "schema_version": 1,
+        "candidate_sha": ledger["candidate_sha"],
+        "advisory_only": True,
+        "cases_run": len(cases),
+        "suite_seconds": round(elapsed_seconds, 3),
+        "modules": dict(sorted(modules.items(), key=lambda x: -(
+            x[1]["test_seconds"] + x[1]["fixture_gap_seconds"]))),
+        "top20": sorted(cases, key=lambda x: -x["total_seconds"])[:20],
+        "cases": cases,
+    }
+
+
 def load_verified(path: Path, *, sha: str) -> dict[str, object]:
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 1_500_000:
         raise ValueError("Missing, unsafe or oversized FULL test ledger")
@@ -155,8 +220,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("-p", "--pattern", default="test_*.py")
     parser.add_argument("--proof-file", type=Path,
                         default=Path("artifacts/ci_app_logs/05_full_unittest_proof.json"))
+    parser.add_argument("--timings-file", type=Path,
+                        default=Path("artifacts/phase_certification/05_full_test_timings.json"))
     args = parser.parse_args(argv)
     args.proof_file.unlink(missing_ok=True)
+    args.timings_file.unlink(missing_ok=True)
     loader = unittest.TestLoader()
     suite = loader.discover(args.start_directory, pattern=args.pattern)
     if loader.errors:
@@ -170,9 +238,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
                           text=True, check=True, timeout=10).stdout.strip()
+    timing_started = time.perf_counter()
     result = unittest.TextTestRunner(
         verbosity=2 if args.verbose else 1, resultclass=ProofResult,
     ).run(suite)
+    suite_elapsed = time.perf_counter() - timing_started
     if not result.wasSuccessful():
         return 1
     try:
@@ -187,6 +257,16 @@ def main(argv: list[str] | None = None) -> int:
     temporary.write_text(json.dumps(proof, ensure_ascii=False, separators=(",", ":")) + "\n",
                          encoding="utf-8")
     temporary.replace(args.proof_file)
+    try:
+        timings = timing_profile(proof, result.timings, elapsed_seconds=suite_elapsed)
+        args.timings_file.parent.mkdir(parents=True, exist_ok=True)
+        timing_tmp = args.timings_file.with_suffix(".json.tmp")
+        timing_tmp.write_text(json.dumps(timings, ensure_ascii=False, separators=(",", ":")) + "\n",
+                              encoding="utf-8")
+        timing_tmp.replace(args.timings_file)
+    except (OSError, ValueError) as exc:
+        # Diagnostic telemetry must not alter the certified unittest result.
+        print("Optional FULL timing report unavailable: " + str(exc), file=sys.stderr)
     return 0
 
 
