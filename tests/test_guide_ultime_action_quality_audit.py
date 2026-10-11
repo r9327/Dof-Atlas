@@ -6,8 +6,14 @@ from tools.audit_guide_ultime_action_quality import _line_issues, audit
 
 
 class GuideUltimeActionQualityAuditTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Immutable canonical-route inventory: one real audit, shared by
+        # independent read-only assertions in this class.
+        cls._canonical_report = audit()
+
     def test_repository_inventory_covers_locked_route(self) -> None:
-        report = audit()
+        report = self._canonical_report
         self.assertEqual(report["chapter_count"], 13)
         self.assertEqual(report["stage_count"], 267)
         self.assertEqual(sum(int(row["stage_count"]) for row in report["chapters"].values()), 267)
@@ -126,7 +132,7 @@ class GuideUltimeActionQualityAuditTests(unittest.TestCase):
         self.assertIn("vague_action_condition", {row["code"] for row in issues})
 
     def test_issue_rows_are_traceable_to_stage_and_line(self) -> None:
-        report = audit()
+        report = self._canonical_report
         for row in report["issues"]:
             self.assertTrue(str(row.get("chapter") or ""))
             self.assertTrue(str(row.get("stage") or ""))
