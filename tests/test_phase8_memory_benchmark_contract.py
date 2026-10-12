@@ -132,6 +132,7 @@ def test_memory_benchmark_opens_real_guide_detail_before_home() -> None:
     ]
     assert "navigate_to_guide" in helper
     assert '"guide_detail_ready"' in helper
+    assert 'bool(getattr(view, "_runtime_ready", False))' in helper
 
     flow = source[source.index('sampler.set_phase("guide_catalogue_open")'):]
     detail = flow.index("_open_rich_guide_with_probe(")
