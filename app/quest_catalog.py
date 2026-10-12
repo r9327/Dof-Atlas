@@ -451,9 +451,10 @@ class QuestCatalog:
             )
 
         record_phase("rich_quest_steps")
-        enrichment = ({"quests": {str(quest_id): sources.mapping(
-            DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json", "quests").get(str(quest_id), {})
-            for quest_id in quest_ids}} if include_enrichment and sources is not None and quest_ids is not None else None)
+        enrichment = ({"quests": sources.mapping(
+            DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json", "quests"
+        ).selected_values({str(quest_id) for quest_id in quest_ids})}
+            if include_enrichment and sources is not None and quest_ids is not None else None)
         if include_enrichment:
             apply_quest_enrichment(records, payload=enrichment)
         record_phase("enrichment")

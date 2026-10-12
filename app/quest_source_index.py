@@ -267,8 +267,42 @@ class JsonSourceMapping(Mapping):
                 temp_path.unlink(missing_ok=True)
         self._offsets = {int(key) if self.doduda else key: tuple(span) for key, span in offsets.items()}
 
-    def _build_offsets(self, field):
-        """Build byte spans without decoding the monolithic source as one string."""
+    def selected_values(self, selected_keys: set[str] | frozenset[str]) -> dict[str, object]:
+        """Read only requested object members without materializing a global index.
+
+        This uses the same nesting-aware scanner as the ordinary offset cache.
+        It stops when the requested top-level members have been found, and
+        deliberately leaves the full index cold for later on-demand access.
+        """
+        if self.doduda:
+            raise ValueError("selected_values requires an object-backed source")
+        wanted = {str(key) for key in selected_keys}
+        if not wanted:
+            return {}
+        with self._lock:
+            if not self.path.is_file():
+                self._source_failure("fichier indisponible")
+                return {}
+            try:
+                offsets = (
+                    {key: self._offsets[key] for key in wanted if key in self._offsets}
+                    if self._offsets is not None
+                    else self._build_offsets(self._field, selected_keys=wanted)
+                )
+                results: dict[str, object] = {}
+                with self.path.open("rb") as stream:
+                    for key, (start, end) in offsets.items():
+                        stream.seek(start)
+                        results[key] = json.loads(stream.read(end - start))
+                return results
+            except (OSError, UnicodeError, ValueError, TypeError, KeyError) as exc:
+                self._source_failure("lecture/parsing impossible", exc)
+                return {}
+
+    def _build_offsets(self, field, *, selected_keys: set[str] | None = None):
+        """Build source byte spans, stopping early for selected object members."""
+
+        wanted = {str(key) for key in selected_keys} if selected_keys is not None else None
 
         field_marker = json.dumps(str(field), ensure_ascii=False).encode("utf-8")
         field_pattern = re.compile(re.escape(field_marker) + rb"\s*:\s*([\[{])")
@@ -439,7 +473,13 @@ class JsonSourceMapping(Mapping):
                     row = raw_value.get("data") if isinstance(raw_value, dict) else None
                     key = row.get("id") if isinstance(row, dict) else None
                 if key is not None:
-                    offsets[str(key)] = (value_start, value_end)
+                    key_text = str(key)
+                    if wanted is None or key_text in wanted:
+                        offsets[key_text] = (value_start, value_end)
+                        if wanted is not None:
+                            wanted.discard(key_text)
+                            if not wanted:
+                                break
 
                 skip_space()
                 delimiter = reader.peek()
