@@ -47,9 +47,9 @@ class DoctorCapabilityContractsTests(unittest.TestCase):
             tests.mkdir()
             path = tests / "test_real.py"
             path.write_text(
-                "# def test_fake(): pass\\n"
-                "class Check:\\n"
-                "    def test_real(self): pass\\n",
+                "# def test_fake(): pass\n"
+                "class Check:\n"
+                "    def test_real(self): pass\n",
                 encoding="utf-8",
             )
             self.assertTrue(_test_case_defined(root, "test_real.py", "test_real"))
