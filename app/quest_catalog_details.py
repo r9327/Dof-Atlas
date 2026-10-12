@@ -57,6 +57,7 @@ class QuestDetails:
         # so the first rich Quest detail rebuilt indexes from monolithic JSON in
         # Atlas' long-lived process and caused the Guide memory spike.
         self._sources = QuestSources(path.parent / "source_offsets")
+        self._objective_step_index_checked = False
         self._records: OrderedDict[int, qc.QuestRecord] = OrderedDict()
         self._summaries: OrderedDict[
             int,
@@ -113,6 +114,30 @@ class QuestDetails:
         with self._lock:
             return int(quest_id) in self._records
 
+    def _prime_objective_step_index(self) -> None:
+        """Reuse the immutable preload lookup instead of decoding all objectives.
+
+        Older SQLite caches without the lookup retain the source-backed fallback.
+        The SQLite filename includes the source signature and loader version.
+        """
+        if self._objective_step_index_checked:
+            return
+        with _connect(self.path) as connection:
+            row = connection.execute(
+                "SELECT value FROM metadata WHERE key='objective_step_ids'"
+            ).fetchone()
+        if row is not None:
+            raw = json.loads(row[0])
+            if not isinstance(raw, dict):
+                raise ValueError("Invalid quest objective step lookup")
+            indexed: dict[int, list[int]] = {}
+            for step_id, objective_ids in raw.items():
+                if not isinstance(objective_ids, list):
+                    raise ValueError("Invalid quest objective step ids")
+                indexed[int(step_id)] = [int(objective_id) for objective_id in objective_ids]
+            self._sources.prime_objective_steps(indexed)
+        self._objective_step_index_checked = True
+
     def get(self, quest_id: int) -> qc.QuestRecord:
         quest_id = int(quest_id)
         with self._load_lock:
@@ -132,6 +157,7 @@ class QuestDetails:
                 if _signature(self.data_dir) != self.signature:
                     raise RuntimeError("Les sources Quêtes ont changé ; rechargez le catalogue.")
                 try:
+                    self._prime_objective_step_index()
                     record = qc.QuestCatalog._load_source(self.data_dir, quest_ids={quest_id}, sources=self._sources).by_id[quest_id]
                 finally:
                     self._sources.close()
@@ -240,7 +266,10 @@ def ensure_lazy_catalog_cache(
         ready = connection.execute("SELECT value FROM metadata WHERE key='ready'").fetchone()
         if ready is None:
             records, series = _source_index(data_dir)
-            guide_evidence = _guide_evidence_index(data_dir)
+            objective_step_ids: dict[int, list[int]] = {}
+            guide_evidence = _guide_evidence_index(
+                data_dir, objective_step_ids=objective_step_ids
+            )
             if _signature(data_dir) != signature:
                 raise RuntimeError("Les sources Quêtes ont changé pendant l'indexation.")
             connection.executemany(
@@ -265,6 +294,14 @@ def ensure_lazy_catalog_cache(
                 "INSERT OR REPLACE INTO metadata VALUES ('series', ?)",
                 (_json([asdict(item) for item in series]),),
             )
+            # Guide evidence already scanned the objective source. Persist its
+            # tiny step -> objective-id lookup in the same signed SQLite cache,
+            # so opening a Quest does not scan all objectives a second time.
+            if objective_step_ids:
+                connection.execute(
+                    "INSERT OR REPLACE INTO metadata VALUES ('objective_step_ids', ?)",
+                    (_json(objective_step_ids),),
+                )
             connection.execute("INSERT OR REPLACE INTO metadata VALUES ('ready', '1')")
         row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
         return max(0, int(row[0] if row else 0))
@@ -382,7 +419,9 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
     return catalog
 
 
-def _guide_evidence_index(data_dir: Path) -> dict[int, dict[str, object]]:
+def _guide_evidence_index(
+    data_dir: Path, *, objective_step_ids: dict[int, list[int]] | None = None
+) -> dict[int, dict[str, object]]:
     """Build tiny Guide item/combat evidence from raw Quest objectives."""
 
     required = (
@@ -472,6 +511,14 @@ def _guide_evidence_index(data_dir: Path) -> dict[int, dict[str, object]]:
 
             if item_rows or combat_rows:
                 result[int(quest_id)] = {"items": item_rows, "combats": combat_rows}
+        if objective_step_ids is not None and sources._objectives_by_step is not None:
+            objective_step_ids.update(
+                {
+                    int(step_id): [int(objective_id) for objective_id in ids]
+                    for step_id, ids in sources._objectives_by_step.items()
+                    if step_id is not None
+                }
+            )
         return result
     finally:
         sources.close()
