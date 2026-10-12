@@ -516,6 +516,21 @@ class QuestSources:
     def rows(self, path):
         return self.mapping(path, 'RefIds', doduda=True, required=True)
 
+    def prime_objective_steps(self, index: dict[int, list[int]]) -> None:
+        """Reuse the objective IDs indexed by the versioned Quest SQLite cache.
+
+        Only row identifiers are retained; objective payloads are still loaded
+        from the canonical source on demand, with normal source validation.
+        """
+        if self._objectives_by_step is None:
+            self._objectives_by_step = defaultdict(
+                list,
+                {
+                    int(step_id): [int(objective_id) for objective_id in ids]
+                    for step_id, ids in index.items()
+                },
+            )
+
     def objectives_for_steps(self, path, step_ids):
         rows = self.rows(path)
         if self._objectives_by_step is None:
