@@ -1,5 +1,16 @@
 # Lot 3 — RAM, latence, lifecycle et architecture prouvée
 
+## L3.3 — Reprise priorité latence Succès (2026-10-12)
+
+- **Décision utilisateur** : reporter l'investigation des faibles écarts RAM, **sans supprimer ni assouplir les gates**. La mémoire du dernier candidat reste **FAIL** ([run 38294628576](https://github.com/r9327/Dof-Atlas/actions/runs/38294628576)) : 100,11 Mo après 2e Guide→Home pour budget strict <100, et pic process-tree 220,63 Mo pour budget ≤220. Ce FAIL ne devient pas PASS par décision de priorité.
+- **Comparatif propre Windows** : [Phase 8 Preload #38294628558](https://github.com/r9327/Dof-Atlas/actions/runs/38294628558) **PASS sur les contrôles**, mais le premier détail Succès réel **42 010,29 ms (main) → 43 258,54 ms (candidat)**, soit +1 248,25 ms et non un gain. Ceci invalide toute prétention que les exports lazy ont accéléré ce scénario.
+- **Cause source prouvée** : `MemoryBoundAchievementProvider.get_detail_by_id()` exécute `subprocess.run(--dump-detail)` de façon synchrone à la navigation. L'ancienne entrée du processus `_dump_default_detail()` reconstruisait **toutes** les sources via `_load_in_process()`, y compris sélection préalable des text IDs. En revanche, le générateur compact `_build_compact_cache()` dispose déjà de `_load_disposable_worker_fast()`, qui réutilise les index d'offsets source et réalise une seule passe.
+- **Correctif borné** : [78cc392f](https://github.com/r9327/Dof-Atlas/commit/78cc392f1d91a8667cd31630edf275ae2ff35cf6) remplace uniquement l'initialisation du sous-processus détail par le chargeur rapide **déjà exploité dans le dépôt** ; `prepare_detail_sources()`, `_get_detail_in_process()`, JSON complet et signal d'échec restent inchangés. Le processus est toujours éphémère, sans épingler les sources en RAM permanente ni déplacer un chargement vers le preload.
+- **Validation développée, non encore exécutée** : [278992a3](https://github.com/r9327/Dof-Atlas/commit/278992a3c5ad9ab2f30745ad5ae8e8e1571fc596) ajoute deux vrais `unittest.TestCase` : contrat JSON complet (id, nom, objectifs, récompenses, source rapide invoquée, source lente non invoquée) et échec `None → exit 2`. Les tests réels de données et la certification restent à vérifier dans les runners.
+- **Observabilité comparative** : [4e596825](https://github.com/r9327/Dof-Atlas/commit/4e596825ba7b98e3b597cf74c2307e652d984f61) conserve `deep_achievement_detail_ms` et ajoute `achievement_detail_phases_ms` (tab_ready, catalogue_lookup, navigation_call, post_navigation_wait). [Contrat 412314d5](https://github.com/r9327/Dof-Atlas/commit/412314d59d635537ee10330db602af08831a83e8) vérifie que le chronomètre total englobe toujours le détail réellement ouvert.
+- **Critère de sortie** : mesurer à nouveau sur runner Windows identique, deux caches froids indépendants, même ID Succès, puis comparer surtout `deep_achievement_detail_ms` et la nouvelle phase `navigation_call` ; aucune preuve de gain n'est avancée avant ce résultat. Conserver Graphify/Doctor ciblés et la certification finale d'après exigences projet.
+
+
 Statut : **LOT 1 ET LOT 2 FUSIONNÉS — L3.1 INSTRUMENTATION ÉTENDUE — NON CERTIFIÉ**.
 
 ## Changement applicatif et verrouillage final de la mesure
