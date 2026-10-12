@@ -266,6 +266,36 @@ class GraphIntelligenceTests(unittest.TestCase):
         self.assertEqual(plan["tasks"][1]["decision"], "INVESTIGATE_NO_CODE_CHANGE_YET")
         self.assertIn("TYPE_CHECKING", plan["tasks"][1]["next_proof"])
         self.assertTrue(all(not task["code_change_authorized"] for task in plan["tasks"]))
+        self.assertEqual(plan["confirmed_count"], 1)
+        self.assertEqual(plan["review_only_count"], 2)
+        self.assertTrue(plan["actionable"])
+        self.assertEqual(len(plan["confirmed_findings"]), 1)
+        self.assertTrue(plan["confirmed_findings"][0]["confirmed_defect"])
+        self.assertTrue(plan["confirmed_findings"][0]["actionable"])
+        self.assertTrue(all(not row["confirmed_defect"] and not row["actionable"]
+                            for row in plan["tasks"][1:]))
+
+    def test_only_heuristics_never_trigger_a_confirmed_fix(self):
+        plan = remediation_plan(
+            {"blocking_findings": [], "high_fanout_files": [
+                {"file": "app/constants.py", "runtime_neighbor_files": 72},
+            ]},
+            {"cycles": [{
+                "files": ["app/a.py", "app/b.py"],
+                "confidence": "CURRENT_SOURCE_IMPORT_CYCLE",
+                "confirmed_import_time_subcycles": 0,
+            }]},
+            {"candidates": [{
+                "community": 12, "sample_files": ["app/a.py"],
+                "external_extracted_edges": 18, "internal_extracted_edges": 2,
+            }]},
+        )
+        self.assertEqual(plan["task_count"], 3)
+        self.assertEqual(plan["confirmed_count"], 0)
+        self.assertEqual(plan["review_only_count"], 3)
+        self.assertFalse(plan["actionable"])
+        self.assertEqual(plan["confirmed_findings"], [])
+        self.assertTrue(all(task["confirmed_defect"] is False for task in plan["tasks"]))
 
     def test_missing_memory_metrics_are_explicitly_unavailable(self):
         with tempfile.TemporaryDirectory() as folder:
