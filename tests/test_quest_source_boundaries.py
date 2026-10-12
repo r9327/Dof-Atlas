@@ -45,6 +45,17 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 sources.close()
 
+    def test_primed_objective_ids_still_require_valid_canonical_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources = QuestSources(root / "cache")
+            try:
+                sources.prime_objective_steps({10: [40, 41]})
+                with self.assertRaises(QuestSourceError):
+                    list(sources.objectives_for_steps(root / "quest_objectives.json", [10]))
+            finally:
+                sources.close()
+
     def test_optional_enrichment_fallback_is_logged_and_empty(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
