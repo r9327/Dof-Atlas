@@ -2,7 +2,10 @@ name: AI Context CI
 
 on:
   pull_request:
+    # Every tracked change may invalidate the Git-tree fingerprint.
+    # Keep the targeted tests; do not run the expensive FULL here.
     paths:
+      - "**"
       - ".ai/**"
       - "AGENTS.md"
       - "AI_CONTEXT.md"
