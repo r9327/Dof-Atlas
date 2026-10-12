@@ -165,6 +165,25 @@ class DoctorGraphAuditTests(unittest.TestCase):
             self.assertEqual(summary["review_only_count"], 2)
             self.assertEqual(summary["tasks"], [])
 
+    def test_suspect_high_and_medium_issues_are_not_actionable(self):
+        issues = [
+            {"rule": "busy_loop_risk", "severity": "MEDIUM", "confidence": "suspect"},
+            {"rule": "silent_exception", "severity": "HIGH", "confidence": "confirmed"},
+            {"rule": "controlled_dynamic_exec", "severity": "INFO", "confidence": "confirmed"},
+            {"rule": "unknown_security_risk", "severity": "CRITICAL", "confidence": "suspect"},
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            with patch("tools.atlas_doctor_lib.architecture.graph_status",
+                       return_value={"status": "MISSING"}), patch(
+                "tools.atlas_doctor_lib.report.load_json",
+                side_effect=lambda _root, key: {"issues": issues} if key == "latest_audit" else None,
+            ):
+                payload = build_ai_report(Path(d))
+        self.assertEqual([x["rule"] for x in payload["issues_actionable"]], ["silent_exception"])
+        self.assertEqual({x["rule"] for x in payload["issues_to_verify"]},
+                         {"busy_loop_risk", "unknown_security_risk"})
+        self.assertEqual(payload["issues_total"], 4)
+
     def test_graph_audit_reuses_validated_evidence_without_recomputing_status(self):
         import hashlib
         with tempfile.TemporaryDirectory() as d:
