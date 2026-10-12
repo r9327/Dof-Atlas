@@ -1,7 +1,7 @@
 # Lot 2 — Fiabilité du Guide, Doctor et parcours fonctionnels
 
 Statut : **EN DÉVELOPPEMENT PARTIEL — NON CERTIFIÉ**. Les cases de fin de lot restent ouvertes.
-Base de rédaction `f6deb4a4fc8828ab9fc9372adc8653842303a7e9`. Dépendance de clôture : **Lot 1 certifié**.
+Base de rédaction `f6deb4a4fc8828ab9fc9372adc8653842303a7e9`. Dépendance de clôture : **SATISFAITE** — Lot 1 #152 fusionné/certifié ; les propres critères de sortie du lot 2 restent obligatoires.
 PR #148 et #149 sont déjà fusionnées ; réutiliser leurs détecteurs plutôt que les remplacer.
 
 ## Journal d'implémentation (12/10/2026)
@@ -10,6 +10,21 @@ PR #148 et #149 sont déjà fusionnées ; réutiliser leurs détecteurs plutôt 
 - `36ae9fd4` — Matrice `capabilities` : ajout des numéros de ligne des définitions et des appels AST pour les 18 capacités et étiquetage explicite `AST_NAME_ONLY_UNVERIFIED`. Ne constitue **pas** une preuve de branchement dynamique ni de comportement correct. Tests dédiés ajoutés.
 - Les contrôles automatiques exact-SHA sont à réexaminer après ce dernier commit. Aucune exécution manuelle des 18 scénarios Doctor ni validation du parcours Windows n'est encore attestée. Ne pas cocher L2.2 ou L2.3.
 - Dépendance maintenue : **Lot 1 (#152) non certifié, pas de merge de #150**.
+
+## Vérifications et preuves nouvelles (12/10/2026)
+
+- Base Git synchronisée avec le `main` certifié (`70c954d5`) sans perdre les modifications Doctor : merge `5c640aa1`, `main...lot2` sans retard.
+- Doctor Graphify : correction de la preuve d'import avec l'analyse de portée AST partagée. `from tools import helper` est détecté; `if TYPE_CHECKING` n'est plus pris pour un import runtime; un import différé réellement exécutable reste surveillé. Tests dédiés, commit `ae3a0e1c`.
+- Guide : collision de titres empêchant une vraie preuve d'ordre corrigée par comparaison de séquence normalisée complète (`Quête A` ne matche plus `Quête Aventure`). Deux tests anti-régression, commit `b17d834f`. **Les données canoniques et verrous n'ont pas été modifiés.**
+- IA Context : index reconstruit à partir de l'arbre Git réel après les changements, commit `be2e35cb`; `AI Context CI`, `Doctor Adaptive Certification` et `Graphify Focused Architecture` PASS sur ce SHA. La Full du lot 2 n'est pas acquise.
+- Graphify Focused Architecture (run 38277269647, SHA `be2e35cb`) : 266 tests Doctor observés PASS; **pas d'attestation des 18 expériences runtime ni d'un parcours Windows complet**.
+
+### Baseline issue des vrais artefacts de certification du lot 1
+
+Preuve ancienne mais authentifiée : `phase-certification-38268360659-1`, SHA `9c32a0130f83de74c5510631d6447dc5450e7ec8` (ne pas la présenter comme un audit du HEAD actuel) :
+- `prerequisite_order.json` : catalogue QuestProvider 1 976 quêtes; 267 fiches; 1 081 occurrences; 988 dépendances contrôlées; **0 erreur dure** et 199 avertissements, dont 299 dépendances même fiche et 127 preuves d'ordre. Les autres ne sont **pas des bugs prouvés**.
+- `action_quality.json` : 2 959 actions / 5 341 lignes; **0 erreur dure** et 141 remarques de rédaction : 18 conditions vagues + 123 formulations d'auteur. Ces remarques exigent triage joueur; aucune suppression automatique.
+- L2.1/L2.2/L2.3 restent ouvertes tant que l'audit exact-SHA du lot 2, la matrice comportementale 18/18 et les parcours Windows ne sont pas attestés.
 
 ## Inventaire d'entrée : signes, pas bugs prouvés
 
