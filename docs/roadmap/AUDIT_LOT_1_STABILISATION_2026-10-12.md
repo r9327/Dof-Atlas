@@ -1,6 +1,8 @@
 # Lot 1 — Stabilisation de main, tests FULL et certification
 
-Statut : **PLAN PRÉPARÉ — CODE NON IMPLÉMENTÉ — NON CERTIFIÉ**.
+Statut vérifié le 12 octobre 2026 : **STABILISATION FUSIONNÉE, FULL ET PHASE PASS, APPLICATION CI POST-MERGE PASS**.
+
+> Les cases non cochées et les références « plan préparé » des sections historiques ci-dessous sont la photographie du chantier **avant exécution**, conservée pour traçabilité. Le verdict final est documenté dans la section « Clôture certifiée et limites » en fin de fichier.
 Dépôt : `r9327/Dof-Atlas` ; base de préparation : `f6deb4a4fc8828ab9fc9372adc8653842303a7e9` (2026-10-12).
 Dépendances : **aucune** ; lot prioritaire, bloque les lots 2 à 4 pour leur clôture.
 Responsabilité : restaurer des verdicts fiables sans désactiver un seul contrôle.
@@ -13,7 +15,7 @@ Responsabilité : restaurer des verdicts fiables sans désactiver un seul contr�
 - Le rapport de phase signale `Guide baseline owners changed`, `manifest status changed: expected BUILDING, got CERTIFIED`, `prerequisite baseline fingerprint drift`, `final coverage baseline fingerprint drift`, `state_counts.partial/uncovered missing`. Déterminer ce qui provient de la référence gelée historique et ce qui est un vrai écart métier.
 - PR #148 et #149 déjà fusionnées, respectivement filtres Doctor et correction du détecteur d'ordre ; **ne pas revenir en arrière**.
 
-## Travail exécutable, par ordre
+## Plan initial — travail prévu (historique avant livraison)
 
 ### L1.1 — Localiser précisément la cause des 3 échecs FULL
 - [ ] Récupérer HEAD réel, `git status --short`, brancher sur cette PR existante ; regarder les artefacts `phase-certification-38241991428-1` et le `05_full_unittest.log` complet.
@@ -43,7 +45,7 @@ Responsabilité : restaurer des verdicts fiables sans désactiver un seul contr�
 
 `PHASE_CERTIFICATION.md`, `DOCTOR_ADAPTIVE_CERTIFICATION.md`, `GUIDE_ULTIME_STATUS.md`, `tools/atlas_full_suite_proof.py`, `tools/phase_certification_verdict.py`, `tests/test_ai_context.py`, `.github/workflows/{phase-certification,app-ci,ai-context-ci}.yml`.
 
-## Définition de terminé (tous obligatoires)
+## Définition de terminé — critères planifiés (historique)
 
 - [ ] Chaque échec de la FULL reproduit/corrigé, avec régression ciblée ; résultat exhaustif `PASS`, 0 test perdu.
 - [ ] Contrats Guide et fingerprints expliqués et conformes, aucun faux relâchement de baseline.
@@ -62,3 +64,27 @@ Pas d'optimisation FULL concurrente avec #141–#146, pas d'audit cosmétique Gr
 - Audits Guide du SHA `f6deb4a4` : `ci_summary=PASS`, 17/17 contrôles, prérequis `COMPLETE_BY_PROVIDER_ORDER`, 0 erreur dure, 267 étapes, 1 976 quêtes ; couverture `COMPLETE_BY_EVIDENCE`, 1 418 succès, 13 chapitres et 267 étapes. Les 1 418 états sont répartis en `covered_all_linked_entities=691` et `covered_direct_success=727`. Les anciens champs `partial`/`uncovered` du freeze Phase 2 ne représentent plus ce contrat actuel. Le verdict ne consulte le freeze que quand l'intégrité FULL est bloquée ; **ne pas modifier le freeze pour le faire passer**.
 - Rapport `ASYNC_LIFECYCLE=PASS` sur 36 tests Windows. Aucune fuite worker de production prouvée ; analyse runtime approfondie encore à confirmer. Aucun timeout étendu ni destruction forcée.
 - **État : CODE PARTIEL + TESTS CIBLÉS PASS. NON CERTIFIÉ.** Restent les validations spécifiques Windows, une FULL vraie sur le SHA final, l'identification de tout échec restant, et le chemin post-merge exact-SHA. Pas de fusion avant ces preuves.
+
+
+## Clôture certifiée et limites — preuves GitHub exact-SHA (12/10/2026)
+
+**Statut du lot 1 : STABILISATION LIVRÉE ET CERTIFIÉE.** PR [#152](https://github.com/r9327/Dof-Atlas/pull/152) **fusionnée** par merge commit `9c32a0130f83de74c5510631d6447dc5450e7ec8`.
+
+| Contrat | Résultat vérifié | Preuve |
+| --- | --- | --- |
+| Correctifs AI Context et garde de synchronisation d'index | Implémentés, tests anti-régression ajoutés | Commit [a1918b9b](https://github.com/r9327/Dof-Atlas/commit/a1918b9b66ce2dbd0f43b9ba2f4cc57736703276) et vérifications AI Context |
+| FULL du candidat | **PASS**, 2 487 tests (le point de départ en avait 2 486 et trois échecs) | [Phase Certification 38266201839](https://github.com/r9327/Dof-Atlas/actions/runs/38266201839) sur `a1918b9b` ; artefact `phase-certification-38266201839-1` |
+| Verdict Guide réel | **GUIDE_CERTIFIED**, `raw_integrity_verdict=PASS`, `baseline_debt=[]`, `errors=[]` | Verdict de phase dans [38266201839](https://github.com/r9327/Dof-Atlas/actions/runs/38266201839) ; baseline gelée Phase 2 **non modifiée** |
+| Certification après fusion | **PASS**, FULL 2 487 tests sur le merge commit | [Phase Certification 38268360659](https://github.com/r9327/Dof-Atlas/actions/runs/38268360659) ; artefact `phase-certification-38268360659-1` |
+| Validation rapide de `main` | **PASS** | [Application CI 38268360662](https://github.com/r9327/Dof-Atlas/actions/runs/38268360662) |
+| Réutilisation FULL authentifiée et lifecycle Qt en même processus | **PASS**, **76 tests** exécutés, catalogue de **1 976 quêtes** | [Application CI / workflow_run 38271738654](https://github.com/r9327/Dof-Atlas/actions/runs/38271738654) |
+
+**Ancien échec FULL :** le troisième nom de test en échec dans la run 38241991428 demeure indéterminable à partir des anciennes sorties tronquées ; ne pas le deviner. Les trois échecs ne se reproduisent plus dans les deux FULL finales vertes. La correction de `tools/atlas_integrity.py` conserve désormais les logs FULL complets **en cas de nouvel échec**, sans les recopier inutilement après succès.
+
+**Baseline Guide :** les dérives signalées par comparaison au gel historique `BUILDING` ne sont pas, à elles seules, des défauts du contrat Guide actuel `CERTIFIED`. Les prérequis actuels (0 erreur dure, 267 étapes et 1 976 quêtes), la couverture des 1 418 succès et les audits du Guide sont validés par la certification de phase, sans déverrouiller le gel. Aucune régression Guide n'est attestée par ces rapports.
+
+**Cycle de vie :** les 36 tests `ASYNC_LIFECYCLE` et les 76 tests intégrés post-fusion sont PASS. Ils apportent une preuve des contrats automatisés Qt (workers/fermeture/navigation) mais **ne prouvent pas l'absence de fuite mémoire dans une longue session réelle** ; cette dernière relève du lot 3 (RAM/runtime). Aucun problème de production spécifique supplémentaire n'a été prouvé dans ce lot et aucun assouplissement artificiel de timeout n'est utilisé pour clore ce dossier.
+
+**Après le lot 1 :** le correctif séparé [#154](https://github.com/r9327/Dof-Atlas/pull/154) a supprimé le `--force-full` récurrent sur `main` et a lui aussi passé sa certification post-fusion [38272560359](https://github.com/r9327/Dof-Atlas/actions/runs/38272560359). Ce travail supplémentaire n'est pas un changement du périmètre initial du lot 1.
+
+Les validations ayant déjà été exécutées et authentifiées sur les SHA cités, **ne pas relancer de FULL** pour une simple mise à jour documentaire de cette clôture.
