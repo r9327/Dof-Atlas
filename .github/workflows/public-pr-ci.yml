@@ -190,6 +190,7 @@ jobs:
             tests.test_ci_runner_guardrails `
             tests.test_encyclopedia_phase1 `
             tests.test_main_phase_evidence `
+            tests.test_ci_verified_pr_full `
             tests.test_phase_certification_guardrails `
             tests.test_repository_git_hooks `
             tests.test_public_pr_ci_guardrails `
