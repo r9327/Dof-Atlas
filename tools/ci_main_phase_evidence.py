@@ -84,7 +84,21 @@ def verify_jobs(jobs_response: dict, *, head_sha: str) -> dict:
             raise ValueError("Duplicate or malformed step evidence")
         steps[name] = step.get("conclusion")
     full_executed = steps.get("Run full Atlas phase certification gate") == "success"
-    if not full_executed:
+    tree_equivalent_pr_full = (
+        steps.get("Check merged PR FULL provenance") == "success"
+        and steps.get("Run full Atlas phase certification gate") == "skipped"
+    )
+    if tree_equivalent_pr_full:
+        proof_steps = ("Verify exact certification checkout",
+                       "Check merged PR FULL provenance",
+                       "Enforce phase certification verdict")
+        if (any(steps.get(x) != "success" for x in proof_steps)
+                or steps.get("Resolve adaptive Doctor route on exact SHA") != "skipped"
+                or steps.get("Materialize certification LFS fixtures") != "skipped"
+                or steps.get("Materialize local Dofus catalog") != "skipped"
+                or steps.get("Compare Doctor plan with actual exact-SHA FULL evidence") != "skipped"):
+            raise ValueError("Incomplete attested identical-tree PR FULL reuse")
+    elif not full_executed:
         required_scoped = (
             "Verify exact certification checkout",
             "Resolve adaptive Doctor route on exact SHA",
@@ -103,15 +117,17 @@ def verify_jobs(jobs_response: dict, *, head_sha: str) -> dict:
         if steps.get("Execute and verify exact-SHA targeted modules") == "success":
             raise ValueError("Scoped execution cannot impersonate canonical FULL")
     return {
-        "kind": ("main_application_reused_phase_full" if full_executed
+        "kind": ("main_application_tree_equivalent_pr_full" if tree_equivalent_pr_full
+                 else "main_application_reused_phase_full" if full_executed
                  else "main_application_verified_scoped"),
         "candidate_sha": head_sha,
         "phase_job": PHASE_JOB,
         "independent_host_steps": list(REQUIRED_STEPS),
-        "phase_full_host_verified": full_executed,
+        "phase_full_host_verified": full_executed or tree_equivalent_pr_full,
         "application_full_suite_executed": False,
-        "application_unique_lifecycle_pending": full_executed,
-        "cross_sha_reuse": False,
+        "application_unique_lifecycle_pending": full_executed or tree_equivalent_pr_full,
+        "cross_sha_reuse": tree_equivalent_pr_full,
+        "git_tree_equivalence_host_attested": tree_equivalent_pr_full,
         "phase_certified_by_this_script": False,
     }
 
