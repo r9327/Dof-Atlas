@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import tempfile
 import threading
 import time
@@ -98,7 +99,10 @@ class QuestDetailsTests(unittest.TestCase):
                 )
             self.assertEqual([row["id"] for row in selected], [40, 41])
 
-            # Reopening a signed cache must keep the same fast path.
+            # Force a genuinely cold detail in the reopened catalogue:
+            # otherwise the stored rich record would bypass the index lookup.
+            with sqlite3.connect(details.path) as connection:
+                connection.execute("UPDATE quests SET detail=NULL WHERE id=1")
             reopened = load_lazy_catalog(root, cache_root=cache_root)
             reopened_details = reopened.by_id[1]._details
             with patch.object(QuestCatalog, "_load_source", side_effect=self.compile):
