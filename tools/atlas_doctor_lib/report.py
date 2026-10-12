@@ -243,11 +243,11 @@ def build_ai_report(root) -> dict[str, Any]:
     comparison = compare_runs(audit, previous_audit)
     perf_comparison = compare_performance(perf, previous_perf)
     issues = list((audit or {}).get('issues', []))
-    actionable = [
-        item for item in issues
-        if item.get('severity') in {'CRITICAL', 'HIGH', 'MEDIUM'}
-        or item.get('confidence') == 'confirmed'
-    ]
+    # Severity alone cannot turn an AST suspicion into a proven finding,
+    # and confidence='confirmed' may only prove a benign pattern (INFO).
+    elevated = [item for item in issues if item.get('severity') in {'CRITICAL', 'HIGH', 'MEDIUM'}]
+    actionable = [item for item in elevated if item.get('confidence') == 'confirmed']
+    to_verify = [item for item in elevated if item.get('confidence') != 'confirmed']
     payload = {
         'schema_version': 1,
         'kind': 'ai_report',
@@ -261,6 +261,9 @@ def build_ai_report(root) -> dict[str, Any]:
         'audit_comparison': comparison,
         'performance_comparison': perf_comparison,
         'issues_actionable': actionable,
+        'issues_to_verify': to_verify,
+        'issues_actionable_scope': 'elevated-severity confirmed detection; still validate impact before code change',
+        'issues_to_verify_not_confirmed': len(to_verify),
         'issues_total': len(issues),
         'performance': _compact_performance(perf),
         'live_performance': _compact_live(live),
@@ -270,7 +273,8 @@ def build_ai_report(root) -> dict[str, Any]:
             'live_performance': '.ai/runtime/atlas_doctor/latest_live_perf.json',
         },
         'instructions_for_agent': [
-            'Prioriser la revue CRITICAL/HIGH; confirmed confirme le motif detecte, pas automatiquement un bug.',
+            'Verifier les CRITICAL/HIGH en priorite; les hypotheses suspectes sont dans issues_to_verify, jamais dans issues_actionable.',
+            'confirmed confirme un motif AST, pas automatiquement un bug ni une autorisation de refactor.',
             'Le diagnostic statique ne consulte pas Graphify: verifier audit_analysis_sources puis architecture_graph_triage pour le graph.',
             'La liste des corrections Graphify contient seulement des violations prouvees; les pistes non confirmees restent dans les diagnostics bruts.',
             'has_confirmed_defect=False veut dire aucun defaut PROUVE par ce controle, pas une garantie de surete globale.',
