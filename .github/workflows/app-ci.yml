@@ -418,7 +418,8 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-pyside.txt
 
-      - name: Independently verify successful exact-SHA Phase FULL
+      - name: Independently verify exact-SHA Phase FULL or scoped result
+        id: proof
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -428,13 +429,38 @@ jobs:
             --candidate-sha "$env:CERTIFIED_MAIN_SHA" `
             --output "artifacts/ci_app_main/phase_full_reuse.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $proof = Get-Content "artifacts/ci_app_main/phase_full_reuse.json" -Raw | ConvertFrom-Json
+          if ($proof.phase_full_host_verified -eq $true) {
+            Add-Content $env:GITHUB_OUTPUT "full_verified=true"
+          } else {
+            if ($proof.kind -ne "main_application_verified_scoped") {
+              throw "Untrusted Doctor scoped evidence"
+            }
+            Add-Content $env:GITHUB_OUTPUT "full_verified=false"
+          }
+
+      - name: Publish verified scoped main result
+        if: steps.proof.outputs.full_verified == 'false'
+        run: |
+          $proof = Get-Content "artifacts/ci_app_main/phase_full_reuse.json" -Raw | ConvertFrom-Json
+          if ($proof.phase_full_host_verified -ne $false -or $proof.kind -ne "main_application_verified_scoped") {
+            throw "Scope result cannot claim FULL certification"
+          }
+          Write-Host "APPLICATION POST-MERGE: Doctor scoped result verified. No FULL certification claimed."
+          if ($env:GITHUB_STEP_SUMMARY) {
+            Add-Content $env:GITHUB_STEP_SUMMARY "## Doctor scoped main validation: PASS"
+            Add-Content $env:GITHUB_STEP_SUMMARY "- Verified same-SHA scoped tests; NOT a FULL or release certification."
+            Add-Content $env:GITHUB_STEP_SUMMARY "- Independent main fast checks run in the push workflow."
+          }
 
       - name: Install pinned application dependencies
+        if: steps.proof.outputs.full_verified == 'true'
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Materialize isolated lifecycle fixtures and catalog
+        if: steps.proof.outputs.full_verified == 'true'
         run: |
           git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -454,6 +480,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run unique same-process lifecycle contracts
+        if: steps.proof.outputs.full_verified == 'true'
         run: |
           # Independent contract of Application CI: these modules execute
           # together, with shared Qt lifetime, unlike individual FULL tests.
@@ -467,6 +494,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Publish independent application reuse verdict
+        if: steps.proof.outputs.full_verified == 'true'
         run: |
           $proof = Get-Content "artifacts/ci_app_main/phase_full_reuse.json" -Raw | ConvertFrom-Json
           if ($proof.candidate_sha -ne $env:CERTIFIED_MAIN_SHA -or

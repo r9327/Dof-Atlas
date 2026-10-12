@@ -456,6 +456,16 @@ class AtlasIntegrityGateTests(unittest.TestCase):
         self.assertIn("tests", discoveries[0])
         self.assertIn("test_*.py", discoveries[0])
 
+    def test_full_failure_log_preserves_all_failures_and_clears_after_success(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = "\n".join(f"FAIL: failing_test_{i}" for i in range(3))
+            atlas_integrity._persist_full_failure_evidence(root, output, failed=True)
+            evidence = root / "artifacts/phase_certification/05_full_unittest.log"
+            self.assertEqual(evidence.read_text(encoding="utf-8"), output)
+            atlas_integrity._persist_full_failure_evidence(root, "Ran 3 tests. OK", failed=False)
+            self.assertFalse(evidence.exists())
+
     def test_full_calls_canonical_guide_runner(self) -> None:
         _, fake = self._run("full", ["docs/validation.md"])
         self.assertTrue(

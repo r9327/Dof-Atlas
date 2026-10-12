@@ -139,6 +139,7 @@ class AiContextTests(unittest.TestCase):
         self.assertIn("Maximum 160 lignes", roadmap)
         workflow = (ROOT / ".github/workflows/ai-context-ci.yml").read_text(encoding="utf-8")
         self.assertIn('"ROAD_IA.md"', workflow)
+        self.assertIn('      - "**"', workflow)  # all PR diffs guard index freshness
 
     def test_v2_scope_rule_routes_reference_existing_contracts(self) -> None:
         defaults, scopes = _context_map_lists(ROOT / ".ai/context-map.yaml")

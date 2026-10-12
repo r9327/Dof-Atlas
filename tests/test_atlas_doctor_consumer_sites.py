@@ -85,6 +85,30 @@ class DoctorConsumerSiteTests(unittest.TestCase):
         ])
         self.assertFalse(report["dead_code_proven"])
 
+    def test_shadowed_import_helper_and_qt_prefix_are_not_target_consumers(self):
+        (self.root / "app/caller.py").write_text(
+            "def import_module(name): return name\n"
+            "x = import_module('app.target')\n"
+            "signal.connect(target_worker)\n"
+        )
+        with patch("tools.agent.reverse_impact_payload", return_value={
+                "status": "PASS", "confirmed_relationships": []}):
+            report = inspect_consumer_sites(self.root, "app/target.py")
+        self.assertEqual(report["dynamic_leads"], [])
+        self.assertFalse(report["safe_to_delete"])
+
+    def test_importlib_qualified_alias_is_a_valid_literal_source_lead(self):
+        (self.root / "app/caller.py").write_text(
+            "import importlib as loader\n"
+            "x = loader.import_module('app.target')\n"
+        )
+        with patch("tools.agent.reverse_impact_payload", return_value={
+                "status": "PASS", "confirmed_relationships": []}):
+            report = inspect_consumer_sites(self.root, "app/target.py")
+        self.assertEqual([row["kind"] for row in report["dynamic_leads"]],
+                         ["LITERAL_IMPORT"])
+        self.assertFalse(report["dead_code_proven"])
+
     def test_traversal_is_rejected(self):
         with self.assertRaises(ValueError):
             inspect_consumer_sites(self.root,"../outside.py")

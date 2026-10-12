@@ -38,28 +38,17 @@ def _domain(path: str) -> str:
 
 
 def _confirm_import(root: Path, source: str, target: str) -> bool:
-    """Prove a tools.* import using current code, never graph inference alone."""
-    file = root / source
+    """Confirm executable app -> tools imports, not TYPE_CHECKING-only hints.
+
+    Reuse the canonical scope-aware AST inspection so that "from tools import
+    helper" resolves to tools/helper.py just like "from tools.helper import x".
+    Deferred function imports remain actual runtime dependencies when called.
+    """
     if not source.startswith("app/") or not target.startswith("tools/"):
         return False
-    if not file.is_file() or file.suffix != ".py":
-        return False
-    module = target.removesuffix(".py").removesuffix("/__init__").replace("/", ".")
-    try:
-        code = ast.parse(file.read_text(encoding="utf-8-sig"), filename=source)
-    except (OSError, UnicodeError, SyntaxError):
-        return False
-    for node in ast.walk(code):
-        if isinstance(node, ast.Import):
-            if any(alias.name == module or alias.name.startswith(module + ".") for alias in node.names):
-                return True
-        elif isinstance(node, ast.ImportFrom) and node.level == 0:
-            imported = node.module or ""
-            if imported == module or imported.startswith(module + "."):
-                return True
-            if target.endswith("/__init__.py") and imported.startswith(module + "."):
-                return True
-    return False
+    from .graph_intelligence import _source_import_scopes
+    scopes = _source_import_scopes(root, source, target)
+    return bool(scopes & {"IMPORT_TIME", "DEFERRED"})
 
 
 def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offset: int = 0, community_offset: int = 0, orphan_offset: int = 0) -> dict[str, Any]:

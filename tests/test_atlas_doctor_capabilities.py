@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
 
-from tools.atlas_doctor_lib.capability_matrix import CAPABILITIES, capability_inventory
+from tools.atlas_doctor_lib.capability_matrix import CAPABILITIES, BEHAVIOR_ANCHORS, capability_inventory, _call_names, _test_case_defined
 
 
 class DoctorCapabilityContractsTests(unittest.TestCase):
@@ -16,12 +17,54 @@ class DoctorCapabilityContractsTests(unittest.TestCase):
         self.assertEqual(result["source_missing"], 0, result["capabilities"])
         self.assertEqual(result["call_sites_missing"], 0, result["capabilities"])
         self.assertEqual(result["call_sites_wired"], 18)
+        self.assertEqual(set(BEHAVIOR_ANCHORS), {row[0] for row in CAPABILITIES})
+        self.assertEqual(result["behavior_test_anchors_defined"], 18)
+        self.assertEqual(result["behavior_test_anchors_missing"], 0)
+        for row in result["capabilities"]:
+            self.assertIsInstance(row["definition_line"], int)
+            self.assertGreater(row["definition_line"], 0)
+            self.assertTrue(row["callsite_lines"])
+            self.assertTrue(all(isinstance(line, int) and line > 0 for line in row["callsite_lines"]))
+            self.assertEqual(row["callsite_resolution"], "AST_NAME_ONLY_UNVERIFIED")
+            self.assertEqual(row["proof_status"], "UNVERIFIED")
+            self.assertFalse(row["proven_defect"])
+            self.assertFalse(row["behavior_certified"])
+            self.assertEqual(row["behavior_test_anchor"], "DEFINED")
+            self.assertTrue(row["behavior_test"].startswith("tests/test_atlas_doctor_"))
+            self.assertFalse(row["behavior_test_executed"])
+            self.assertEqual(row["behavior_test_result"], "UNVERIFIED")
         self.assertEqual(result["status"], "REVIEW_PENDING_FINAL_CERTIFICATION")
         self.assertEqual(result["certified_count"], 0)
         self.assertFalse(result["tests_executed"])
         self.assertFalse(result["graph_rebuilt"])
         self.assertEqual({row["engine"] for row in result["capabilities"]},
                          {"Graph", "Runtime", "Change", "Test", "UI"})
+
+    def test_behavior_witness_requires_actual_method_not_text_match(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            tests = root / "tests"
+            tests.mkdir()
+            path = tests / "test_real.py"
+            path.write_text(
+                "# def test_fake(): pass\n"
+                "class Check:\n"
+                "    def test_real(self): pass\n",
+                encoding="utf-8",
+            )
+            self.assertTrue(_test_case_defined(root, "test_real.py", "test_real"))
+            self.assertFalse(_test_case_defined(root, "test_real.py", "test_fake"))
+            self.assertFalse(_test_case_defined(root, "missing.py", "test_real"))
+
+    def test_callsite_line_evidence_does_not_claim_function_binding(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            fake = root / "callsite.py"
+            fake.write_text("other.file_coverage()\nfile_coverage()\n", encoding="utf-8")
+            calls = _call_names(root, "callsite.py")
+            self.assertEqual(calls["file_coverage"], [1, 2])
+            # Both are only syntactic call names, not resolved imports.
+            self.assertNotIn("binding_confirmed", calls)
 
 
 if __name__ == "__main__":
