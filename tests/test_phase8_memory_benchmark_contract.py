@@ -67,6 +67,24 @@ class GuideHomeStabilizationContractTests(unittest.TestCase):
         self.assertLess(rss, widgets)
         self.assertIn("QApplication.allWidgets()", stage_capture)
 
+    def test_repeated_real_navigation_retention_is_measured(self) -> None:
+        source = BENCHMARK.read_text(encoding="utf-8")
+        flow = source[source.index('after_equipment_stable = _capture('):]
+        for evidence in (
+            "round_trip_home_samples",
+            "for cycle in range(1, 3)",
+            '("quests", QUESTS_TAB)',
+            '("achievements", ACHIEVEMENTS_TAB)',
+            "_open_rich_guide_with_probe(app, window, stages)",
+            'f"repeat_{cycle}_guide_home"',
+            '"round_trip_guide_tree_drift_mb"',
+        ):
+            self.assertIn(evidence, flow)
+        self.assertLess(
+            flow.index("for cycle in range(1, 3)"),
+            flow.index("sampler.stop()"),
+        )
+
     def test_stabilized_guide_home_has_observable_evidence(self) -> None:
         source = BENCHMARK.read_text(encoding="utf-8")
         flow = source[source.index('sampler.set_phase("guide_catalogue_open")'):]
