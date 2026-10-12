@@ -358,6 +358,12 @@ class PeakTreeSampler:
 def _capture(app: QApplication, stages: list[dict[str, Any]], label: str, settle: float = 0.20) -> dict[str, Any]:
     pump(app, settle)
     sample = memory_snapshot(label)
+    # Take the RSS measurement before enumerating Qt objects so introspection
+    # cannot inflate the measured process-tree checkpoint.
+    sample["python_threads_alive"] = sum(
+        thread.is_alive() for thread in threading.enumerate()
+    )
+    sample["qt_widgets_alive"] = len(QApplication.allWidgets())
     stages.append(sample)
     return sample
 
