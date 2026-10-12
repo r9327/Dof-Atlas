@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import unittest
 from pathlib import Path
 
 
@@ -50,22 +51,22 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "equipment_tree_delta_stabilized_mb" in source
 
 
-def test_memory_benchmark_observes_stabilized_guide_home_separately() -> None:
-    source = BENCHMARK.read_text(encoding="utf-8")
-    flow = source[source.index('sampler.set_phase("guide_catalogue_open")'):]
-    first_home = flow.index('after_guide_home = _capture(')
-    stable = flow.index('"after_guide_home_stabilized"')
-    next_module = flow.index('sampler.set_phase("craft_open")')
-    assert first_home < stable < next_module
-    assert 'sampler.set_phase("guide_home_stabilized")' in flow
-    # Existing enforcement is intentionally untouched; new measurements
-    # explain whether the Guide cost persisted after settling.
-    for metric in (
-        "guide_retained_tree_delta_stabilized_mb",
-        "guide_incremental_retained_tree_delta_mb",
-        "guide_home_stabilization_delta_mb",
-    ):
-        assert f'"{metric}"' in flow
+class GuideHomeStabilizationContractTests(unittest.TestCase):
+    def test_stabilized_guide_home_has_observable_evidence(self) -> None:
+        source = BENCHMARK.read_text(encoding="utf-8")
+        flow = source[source.index('sampler.set_phase("guide_catalogue_open")'):]
+        first_home = flow.index('after_guide_home = _capture(')
+        stable = flow.index('"after_guide_home_stabilized"')
+        next_module = flow.index('sampler.set_phase("craft_open")')
+        self.assertLess(first_home, stable)
+        self.assertLess(stable, next_module)
+        self.assertIn('sampler.set_phase("guide_home_stabilized")', flow)
+        for metric in (
+            "guide_retained_tree_delta_stabilized_mb",
+            "guide_incremental_retained_tree_delta_mb",
+            "guide_home_stabilization_delta_mb",
+        ):
+            self.assertIn(f'"{metric}"', flow)
 
 
 def test_memory_benchmark_avoids_sampler_observer_effect_during_external_warmup() -> None:
