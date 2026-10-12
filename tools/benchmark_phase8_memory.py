@@ -622,6 +622,34 @@ def measure() -> dict[str, Any]:
     sampler.set_phase("equipment_home_stabilized")
     after_equipment_stable = _capture(app, stages, "after_equipment_home_stabilized", 1.50)
 
+    # Repeated real navigation differentiates a one-time allocator high-water
+    # mark from retention that keeps accumulating across Home transitions.
+    # Keep the original canonical checkpoints and budgets unchanged.
+    round_trip_home_samples: dict[str, list[dict[str, Any]]] = {
+        "quests": [],
+        "achievements": [],
+        "guide": [],
+    }
+    for cycle in range(1, 3):
+        for domain, tab in (
+            ("quests", QUESTS_TAB),
+            ("achievements", ACHIEVEMENTS_TAB),
+        ):
+            sampler.set_phase(f"repeat_{cycle}_{domain}")
+            open_encyclopedia(app, window, tab)
+            window.show_page("Home")
+            round_trip_home_samples[domain].append(
+                _capture(app, stages, f"repeat_{cycle}_{domain}_home", 0.75)
+            )
+
+        sampler.set_phase(f"repeat_{cycle}_guide")
+        _open_guide_with_probe(app, window, stages)
+        _open_rich_guide_with_probe(app, window, stages)
+        window.show_page("Home")
+        round_trip_home_samples["guide"].append(
+            _capture(app, stages, f"repeat_{cycle}_guide_home", 1.50)
+        )
+
     sampler.stop()
 
     shutdown = getattr(window, "_shutdown_background_services", None)
@@ -648,6 +676,23 @@ def measure() -> dict[str, Any]:
         "peak_process_rss_mb": round(sampler.peak_process_rss_mb, 2),
         "peak_tree_rss_mb": round(sampler.peak_tree_rss_mb, 2),
         "peak_tree_sample": sampler.peak_tree_sample,
+        "round_trip_home": {
+            domain: [
+                {
+                    "tree_rss_mb": item.get("tree_rss_mb"),
+                    "process_rss_mb": item.get("process_rss_mb"),
+                    "python_threads_alive": item.get("python_threads_alive"),
+                    "qt_widgets_alive": item.get("qt_widgets_alive"),
+                }
+                for item in samples
+            ]
+            for domain, samples in round_trip_home_samples.items()
+        },
+        "round_trip_guide_tree_drift_mb": round(
+            float(round_trip_home_samples["guide"][-1]["tree_rss_mb"] or 0.0)
+            - float(round_trip_home_samples["guide"][0]["tree_rss_mb"] or 0.0),
+            2,
+        ),
         "achievements_retained_tree_delta_mb": round(
             achievements_home_tree - quests_home_tree,
             2,
