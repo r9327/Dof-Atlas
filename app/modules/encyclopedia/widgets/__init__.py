@@ -1,3 +1,5 @@
+"""Encyclopedia widget exports; structural Graphify preflight marker."""
+
 from app.modules.encyclopedia.widgets.achievement_detail_widget import AchievementDetailWidget
 from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntityRow, AchievementEntitySection
 from app.modules.encyclopedia.widgets.achievement_objective_widget import AchievementObjectiveWidget
