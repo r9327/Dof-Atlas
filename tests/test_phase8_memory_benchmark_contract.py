@@ -90,6 +90,21 @@ class GuideHomeStabilizationContractTests(unittest.TestCase):
             flow.index("sampler.stop()"),
         )
 
+    def test_memory_gate_covers_repeated_home_cycles_without_budget_relaxation(self) -> None:
+        source = WORKFLOW.read_text(encoding="utf-8")
+        for label in (
+            "after_guide_home_stabilized",
+            "repeat_1_quests_home",
+            "repeat_1_achievements_home",
+            "repeat_1_guide_home",
+            "repeat_2_quests_home",
+            "repeat_2_achievements_home",
+            "repeat_2_guide_home",
+        ):
+            self.assertIn(f'"{label}"', source)
+            self.assertIn(f'"{label}": 100.0', source)
+        self.assertIn("peak_tree > 220.0", source)
+
     def test_stabilized_guide_home_has_observable_evidence(self) -> None:
         source = BENCHMARK.read_text(encoding="utf-8")
         flow = source[source.index('sampler.set_phase("guide_catalogue_open")'):]
