@@ -54,3 +54,11 @@ Responsabilité : restaurer des verdicts fiables sans désactiver un seul contr�
 ## Hors périmètre
 
 Pas d'optimisation FULL concurrente avec #141–#146, pas d'audit cosmétique Graphify, pas de refactor massif du Guide, pas de hausse des budgets RAM. Les lots 2–4 sont **bloqués pour leur fusion finale** tant que Lot 1 n'est pas fiable.
+
+## Exécution vérifiée — 12 octobre 2026
+
+- Commit correctif [124a5b8c](https://github.com/r9327/Dof-Atlas/commit/124a5b8c8e2b865a578dbee55b665a0f669793a8) : régénération exacte de l'index AI Context (30/30 top-level Git tree), CI de fraîcheur universelle à chaque PR, test anti-régression et trace intégrale `05_full_unittest.log` en cas de FULL échouée (supprimée si succès). AI Context [38265550026](https://github.com/r9327/Dof-Atlas/actions/runs/38265550026), Doctor FAST et Graphify focalisé : PASS.
+- La FULL initiale [38241991428](https://github.com/r9327/Dof-Atlas/actions/runs/38241991428) prouve 2 486 tests et 3 échecs ; ses sorties n'incluent que les 40 dernières lignes et l'artefact ne contient pas `05_full_unittest.log`. Deux assertions AI Context sont identifiées ; **le troisième nom exact reste inconnu**, à extraire d'une prochaine FULL échouée si nécessaire. Ne pas inventer le troisième.
+- Audits Guide du SHA `f6deb4a4` : `ci_summary=PASS`, 17/17 contrôles, prérequis `COMPLETE_BY_PROVIDER_ORDER`, 0 erreur dure, 267 étapes, 1 976 quêtes ; couverture `COMPLETE_BY_EVIDENCE`, 1 418 succès, 13 chapitres et 267 étapes. Les 1 418 états sont répartis en `covered_all_linked_entities=691` et `covered_direct_success=727`. Les anciens champs `partial`/`uncovered` du freeze Phase 2 ne représentent plus ce contrat actuel. Le verdict ne consulte le freeze que quand l'intégrité FULL est bloquée ; **ne pas modifier le freeze pour le faire passer**.
+- Rapport `ASYNC_LIFECYCLE=PASS` sur 36 tests Windows. Aucune fuite worker de production prouvée ; analyse runtime approfondie encore à confirmer. Aucun timeout étendu ni destruction forcée.
+- **État : CODE PARTIEL + TESTS CIBLÉS PASS. NON CERTIFIÉ.** Restent les validations spécifiques Windows, une FULL vraie sur le SHA final, l'identification de tout échec restant, et le chemin post-merge exact-SHA. Pas de fusion avant ces preuves.
