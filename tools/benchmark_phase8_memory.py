@@ -455,7 +455,10 @@ def _open_rich_guide_with_probe(
             app.processEvents()
             page = getattr(window, "page_widgets", {}).get("Quetes")
             view = getattr(page, "guides_view", None) if page is not None else None
-            if str(getattr(view, "current_guide_id", "") or "") == str(guide_id):
+            if (
+                str(getattr(view, "current_guide_id", "") or "") == str(guide_id)
+                and bool(getattr(view, "_runtime_ready", False))
+            ):
                 stages.append(memory_snapshot("guide_detail_ready"))
                 return round((time.perf_counter() - started) * 1000.0, 2)
             time.sleep(0.005)
