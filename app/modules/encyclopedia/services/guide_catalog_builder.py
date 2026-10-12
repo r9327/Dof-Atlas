@@ -228,6 +228,7 @@ class GuideCatalogBuilder:
                 payload,
                 candidates_by_id.get(guide_id),
                 profile_report.get(guide_id, {}),
+                achievement_catalog=self.path_resolver.achievement_by_id,
             )
 
         generated_guides: dict[str, dict[str, Any]] = {
@@ -470,7 +471,9 @@ class GuideCatalogBuilder:
             item.id: DofusGuideCandidate(item=item, accepted=False, reason="aucun succès fiable récompensant l'objet")
             for item in dofus_items.values()
         }
-        for achievement in self.achievement_provider.load_all():
+        achievements = self.achievement_provider.load_all()
+        achievement_catalog = {int(row.id): row for row in achievements}
+        for achievement in achievements:
             reward_item_ids = [reward.entity_id for reward in achievement.rewards if reward.kind == "item" and reward.entity_id in dofus_items]
             for item_id in reward_item_ids:
                 if item_id is None:
@@ -501,6 +504,7 @@ class GuideCatalogBuilder:
                 closure = self.quest_graph.prerequisite_closure(
                     seed_quests=seed_quests,
                     seed_achievements=self._unique_quest_ids(root_achievement_ids),
+                    achievement_catalog=achievement_catalog,
                 )
                 linked_quests = list(closure.ordered_quest_ids)
                 candidate = DofusGuideCandidate(
@@ -720,6 +724,14 @@ class GuideCatalogBuilder:
         notes_by_quest: dict[int, str] | None = None,
     ) -> list[dict[str, Any]]:
         notes = notes_by_quest or {}
+        # Index each edge only once. The previous per-quest getter scanned every
+        # edge, resulting in quadratic work for large Dofus/Adventure routes.
+        hard_by_quest: dict[int, list[int]] = {}
+        context_by_quest: dict[int, list[int]] = {}
+        for previous, following in closure.hard_edges:
+            hard_by_quest.setdefault(following, []).append(previous)
+        for previous, following in closure.context_edges:
+            context_by_quest.setdefault(following, []).append(previous)
         steps: list[dict[str, Any]] = []
         for quest_id in closure.ordered_quest_ids:
             relation = "mandatory"
@@ -735,10 +747,10 @@ class GuideCatalogBuilder:
             )
             step["prerequisites"] = [
                 {"type": "quest", "entity_id": previous}
-                for previous in closure.hard_prerequisites(quest_id)
+                for previous in sorted(hard_by_quest.get(quest_id, ()))
             ]
             step["relation"] = relation
-            context = closure.context_predecessors(quest_id)
+            context = sorted(context_by_quest.get(quest_id, ()))
             if context:
                 step["context_quests"] = context
             groups = sorted(closure.quest_alternative_groups.get(quest_id, ()))
@@ -752,6 +764,8 @@ class GuideCatalogBuilder:
         payload: dict[str, Any],
         candidate: DofusGuideCandidate | None,
         profile_row: dict[str, Any],
+        *,
+        achievement_catalog: dict[int, Achievement] | None = None,
     ) -> dict[str, Any]:
         guide_id = str(payload.get("id") or "")
         original = self._existing_snapshot.get(guide_id, {})
@@ -780,6 +794,7 @@ class GuideCatalogBuilder:
             seed_achievements=achievement_ids,
             seed_context_quests=context_ids,
             seed_optional_quests=optional_ids,
+            achievement_catalog=achievement_catalog,
         )
 
         notes_by_quest: dict[int, str] = {}

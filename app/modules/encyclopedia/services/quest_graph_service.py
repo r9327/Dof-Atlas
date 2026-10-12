@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import heapq
 import re
 from collections import defaultdict, deque
+from functools import lru_cache
 from dataclasses import dataclass, field
 from itertools import product
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.quest_catalog import QuestRecord, normalize_text
@@ -77,6 +79,14 @@ class CriterionReferences:
             if row.hard_quests or row.context_quests or row.achievements:
                 rows.append(row)
         return tuple(rows)
+
+
+
+@lru_cache(maxsize=8192)
+def _cached_criterion_references(criterion: str) -> CriterionReferences:
+    # Pure criterion syntax only. Never cache provider data, graph closures or
+    # mutable per-run state across tests or application updates.
+    return CriterionReferences(tuple(_criterion_branches(criterion) or [CriterionBranch()]))
 
 
 @dataclass(slots=True)
@@ -247,8 +257,7 @@ class QuestGraphService:
 
     @classmethod
     def criterion_references(cls, criterion: str) -> CriterionReferences:
-        branches = _criterion_branches(str(criterion or ""))
-        return CriterionReferences(tuple(branches or [CriterionBranch()]))
+        return _cached_criterion_references(str(criterion or ""))
 
     def prerequisite_closure(
         self,
@@ -257,6 +266,7 @@ class QuestGraphService:
         *,
         seed_context_quests: Iterable[int] = (),
         seed_optional_quests: Iterable[int] = (),
+        achievement_catalog: Mapping[int, Any] | None = None,
     ) -> QuestClosure:
         """Resolve recursive Qf/Qa/Sc/OA relations without flattening OR.
 
@@ -265,10 +275,16 @@ class QuestGraphService:
         found only in OR branches remain optional alternatives.
         """
 
-        achievements = {
-            int(row.id): row
-            for row in (self.achievement_provider.load_all() if self.achievement_provider is not None else ())
-        }
+        # A builder may hand in one snapshot shared by its consecutive
+        # closures. Standalone calls still load fresh provider state.
+        achievements = (
+            achievement_catalog
+            if achievement_catalog is not None
+            else {
+                int(row.id): row
+                for row in (self.achievement_provider.load_all() if self.achievement_provider is not None else ())
+            }
+        )
         quest_mode: dict[int, int] = {}  # 2 mandatory, 1 context, 0 optional
         achievement_mode: dict[int, int] = {}
         quest_queue: deque[tuple[int, int]] = deque()
@@ -435,17 +451,30 @@ class QuestGraphService:
                 result.update(achievement_quest_ids(child_id, seen))
             return result & all_ids
 
+        # Repeated Sc/OA references to the same success must not recursively
+        # rebuild its quest descendants for every following quest. Cache only
+        # this closure's immutable root result: the all_ids filter is local,
+        # and recursive cycle detection still receives a fresh 'seen' set.
+        achievement_root_cache: dict[int, frozenset[int]] = {}
+
+        def root_achievement_quest_ids(achievement_id: int) -> frozenset[int]:
+            result = achievement_root_cache.get(achievement_id)
+            if result is None:
+                result = frozenset(achievement_quest_ids(achievement_id))
+                achievement_root_cache[achievement_id] = result
+            return result
+
         # A Sc/OA condition is ordered after the quests that make up that
         # achievement, while the quest steps keep only Qf in prerequisites.
         for following in all_ids:
             refs = self.criterion_references(self.catalog.by_id[following].start_criterion)
             for achievement_id in refs.mandatory_achievements:
-                for previous in achievement_quest_ids(achievement_id):
+                for previous in root_achievement_quest_ids(achievement_id):
                     if previous != following:
                         hard_edges.add((previous, following))
             for branch in refs.alternative_branches:
                 for achievement_id in branch.achievements:
-                    for previous in achievement_quest_ids(achievement_id):
+                    for previous in root_achievement_quest_ids(achievement_id):
                         if previous != following:
                             alternative_edges.add((previous, following))
 
@@ -512,16 +541,16 @@ class QuestGraphService:
             quest = self.catalog.by_id[quest_id]
             return int(getattr(quest, "level_min", 0) or 0), normalize_text(quest.name), quest_id
 
-        ready = sorted((quest_id for quest_id, count in incoming.items() if count == 0), key=key)
+        ready = [(key(quest_id), quest_id) for quest_id, count in incoming.items() if count == 0]
+        heapq.heapify(ready)
         result: list[int] = []
         while ready:
-            quest_id = ready.pop(0)
+            _, quest_id = heapq.heappop(ready)
             result.append(quest_id)
-            for child in sorted(children.get(quest_id, ()), key=key):
+            for child in children.get(quest_id, ()):
                 incoming[child] -= 1
                 if incoming[child] == 0:
-                    ready.append(child)
-                    ready.sort(key=key)
+                    heapq.heappush(ready, (key(child), child))
 
         remaining = ids - set(result)
         cycles = _cycle_components(remaining, children)

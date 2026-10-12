@@ -6,6 +6,7 @@ import re
 import unicodedata
 from collections import defaultdict, deque
 from dataclasses import dataclass
+from functools import lru_cache
 from heapq import heapify, heappop, heappush
 from typing import Any, Iterable
 
@@ -1002,6 +1003,17 @@ _SUCCESS_EQ_RE = re.compile(r"\b(?:Sc|OA)\s*(?:==|=)\s*(\d+)\b", re.IGNORECASE)
 
 
 def mandatory_references(criterion: str) -> tuple[set[int], set[int]]:
+    """Return fresh mutable copies of the mandatory Qf/Sc/OA references.
+
+    A bounded cache stores only frozen parse results. Callers can mutate their
+    returned sets without contaminating the next Guide or test.
+    """
+    quests, achievements = _cached_mandatory_references(str(criterion or ""))
+    return set(quests), set(achievements)
+
+
+@lru_cache(maxsize=8192)
+def _cached_mandatory_references(criterion: str) -> tuple[frozenset[int], frozenset[int]]:
     """Return references that are mandatory in every valid branch.
 
     AND => union; OR => intersection. This is intentionally stricter than a
@@ -1011,7 +1023,7 @@ def mandatory_references(criterion: str) -> tuple[set[int], set[int]]:
 
     text = str(criterion or "").replace("&&", "&").replace("||", "|").strip()
     if not text:
-        return set(), set()
+        return frozenset(), frozenset()
 
     def strip_outer(value: str) -> str:
         value = value.strip()
@@ -1077,4 +1089,5 @@ def mandatory_references(criterion: str) -> tuple[set[int], set[int]]:
             {int(match.group(1)) for match in _SUCCESS_EQ_RE.finditer(value)},
         )
 
-    return parse(text)
+    quests, achievements = parse(text)
+    return frozenset(quests), frozenset(achievements)

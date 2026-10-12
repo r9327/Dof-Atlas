@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.tool_audit import audit
+from tools.tool_audit import _line_invokes_tool, _text_tool_invocation_paths, audit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +16,55 @@ class ToolAuditTests(unittest.TestCase):
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
+
+    def test_invocation_prefilter_preserves_all_exhaustive_shell_matches(self) -> None:
+        paths = [
+            "tools/sample.py",
+            "tools/example_v2.py",
+            "tools/foo.ps1",
+            "tools/deploy.sh",
+            "tools/build.bat",
+            "tools/build.cmd",
+            "tools/other.py",
+        ]
+        source = "\n".join([
+            "python -m tools.sample --json",
+            "py -3.13 -m tools.example_v2 --json",
+            "python .\\tools\\other.py",
+            'Invoke-PythonCheck "foo" @("-m", "tools.sample", "--strict")',
+            "& .\\tools\\foo.ps1",
+            "pwsh -NoProfile -File tools/foo.ps1",
+            "bash tools/deploy.sh",
+            "call tools/build.bat",
+            "call tools/build.cmd",
+            "Write-Host 'tools/sample.py is just a mention'",
+            "# bash tools/deploy.sh",
+            "print('irrelevant')",
+        ])
+        expected = {
+            tool
+            for tool in paths
+            if any(_line_invokes_tool(tool, line) for line in source.splitlines())
+        }
+        self.assertEqual(expected, set(paths))
+        self.assertEqual(_text_tool_invocation_paths(source, paths), expected)
+        self.assertEqual(
+            _text_tool_invocation_paths(source, iter(paths)), expected,
+        )
+
+    def test_invocation_prefilter_keeps_case_insensitive_paths(self) -> None:
+        paths = ["tools/sample.py", "tools/foo.ps1", "tools/bar.sh"]
+        source = (
+            "PYTHON -M TOOLS.SAMPLE\n"
+            "PWSh -File .\\TOOLS\\FOO.PS1\n"
+            "bash ./TOOLS/BAR.SH\n"
+        )
+        expected = {
+            tool
+            for tool in paths
+            if any(_line_invokes_tool(tool, line) for line in source.splitlines())
+        }
+        self.assertEqual(_text_tool_invocation_paths(source, paths), expected)
 
     def test_utf8_bom_python_is_not_reported_as_parse_error(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
