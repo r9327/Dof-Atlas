@@ -44,6 +44,9 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "tree_rss_mb" in source
     assert "child_rss_mb" in source
     assert "peak_tree_rss_mb" in source
+    assert '"python_threads_alive"' in source
+    assert '"qt_widgets_alive"' in source
+    assert "QApplication.allWidgets()" in source
     assert "achievements_retained_tree_delta_mb" in source
     assert "guide_retained_tree_delta_mb" in source
     assert "craft_retained_tree_delta_mb" in source
@@ -52,6 +55,18 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
 
 
 class GuideHomeStabilizationContractTests(unittest.TestCase):
+    def test_stage_introspection_does_not_contaminate_rss_sample(self) -> None:
+        source = BENCHMARK.read_text(encoding="utf-8")
+        stage_capture = source[
+            source.index("def _capture("):source.index("def _open_guide_with_probe(")
+        ]
+        rss = stage_capture.index("sample = memory_snapshot(label)")
+        threads = stage_capture.index('sample["python_threads_alive"]')
+        widgets = stage_capture.index('sample["qt_widgets_alive"]')
+        self.assertLess(rss, threads)
+        self.assertLess(rss, widgets)
+        self.assertIn("QApplication.allWidgets()", stage_capture)
+
     def test_stabilized_guide_home_has_observable_evidence(self) -> None:
         source = BENCHMARK.read_text(encoding="utf-8")
         flow = source[source.index('sampler.set_phase("guide_catalogue_open")'):]
