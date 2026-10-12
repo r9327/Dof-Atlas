@@ -1,6 +1,18 @@
 # Lot 3 — RAM, latence, lifecycle et architecture prouvée
 
-Statut : **PLAN PRÉPARÉ — CODE NON IMPLÉMENTÉ — NON CERTIFIÉ**.
+Statut : **EXÉCUTION ANTICIPÉE — INSTRUMENTATION PARTIELLE POUSSÉE — NON CERTIFIÉ**.
+
+## Journal d'exécution indépendant (2026-10-12)
+
+- **L3.1 partiel — CODE POUSSÉ** : le benchmark existant capture maintenant `after_guide_home_stabilized` après 1,50 s de stabilisation, avec trois métriques explicatives : `guide_retained_tree_delta_stabilized_mb`, `guide_incremental_retained_tree_delta_mb` et `guide_home_stabilization_delta_mb`. Les phases du sampler et l'échantillonnage process-tree existants sont conservés.
+- Commits d'implémentation : [85e81cad](https://github.com/r9327/Dof-Atlas/commit/85e81cad90eb1c2a16b97f40ae78113de5efee12) puis [320637e2](https://github.com/r9327/Dof-Atlas/commit/320637e2fe8727c86878491e034468f51d21c00b). Fichiers : `tools/benchmark_phase8_memory.py`, `tests/test_phase8_memory_benchmark_contract.py`.
+- **Rétrocompatibilité intentionnelle** : les métriques historiques et les seuils du workflow restent inchangés. Le nouvel échantillon n'est pas injecté dans la validation existante ; il sert à différencier coût transitoire et rétention réelle du Guide, avec une attribution incrémentale indépendante des Succès.
+- **Preuve CI sur le commit de test 320637e2** : `Graphify Focused Architecture` PASS (run [38267633378](https://github.com/r9327/Dof-Atlas/actions/runs/38267633378)), `Doctor Adaptive Certification` PASS limité aux contrôles exécutés (run [38267633268](https://github.com/r9327/Dof-Atlas/actions/runs/38267633268)), `Scoped PR Feedback` PASS **mais scope FULL_REQUIRED / Windows scoped SKIPPED** (run [38267633380](https://github.com/r9327/Dof-Atlas/actions/runs/38267633380)). Cela ne constitue ni le test Windows de ce benchmark, ni une FULL, ni une certification Phase 8. Le statut `Public Pull Request CI` reste à contrôler.
+- **L3.1 baseline / L3.2–L3.5 : NOT_RUN/UNVERIFIED**. Pas de Windows/PySide6 exécuté dans cette session ; aucun gain RAM ou latence revendiqué ; ne pas lancer la FULL ou les benchmarks lourds pendant ce micro-lot.
+- **Succès** : `tools/benchmark_phase8_preload.py::measure_deep_first_content` mesure déjà un vrai détail `achievement_detail_ms`, et pas seulement la liste ; le reprendre pour une comparaison sur même environnement avant d'ajouter un deuxième instrument concurrent.
+- **Coordination #134** : [PR #134](https://github.com/r9327/Dof-Atlas/pull/134) réalise déjà les exports différés de widgets. Aucun doublon ou cherry-pick anticipé ; réévaluer le diff et ses conflits avant intégration au lot 3, une fois les lots 1 et 2 stabilisés.
+
+Prochaine preuve requise : tests ciblés du contrat benchmark sur runner compatible, puis baseline RAM/latence Windows identique avant/après sur SHA intégrés ; classement des hotspots seulement après résultats et Graphify de même SHA. **Ne pas cocher les critères de sortie du lot tant que ces preuves manquent.**
 Base `f6deb4a4fc8828ab9fc9372adc8653842303a7e9`. Dépendances de clôture : Lots 1 et 2 stabilisés.
 Doit utiliser Doctor/Graphify exact-SHA et les contrats `docs/PERFORMANCE_MEMORY_POLICY.md` et `PERFORMANCE_GUARDRAILS.md`.
 
