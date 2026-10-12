@@ -56,6 +56,36 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 sources.close()
 
+    def test_large_source_offsets_skip_quoted_json_without_losing_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            path = root / "quests_enriched.json"
+            records = {
+                "18": {
+                    "text": "long " + ("écriture \\\" [{}] " * 8500),
+                    "nested": [{"inner": {"}": "[escaped \\\\ path]"}}],
+                },
+                "19": {
+                    "text": "small",
+                    "nested": [1, {"nested": "quotation: \\\" and } ]"}],
+                },
+                "20": {"text": "final"},
+            }
+            path.write_text(
+                json.dumps({"quests": records}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            self.assertGreater(path.stat().st_size, 64 * 1024)
+            for _ in range(2):
+                sources = QuestSources(root / "cache")
+                try:
+                    mapping = sources.mapping(path, "quests")
+                    self.assertEqual(set(mapping), set(records))
+                    for key, value in records.items():
+                        self.assertEqual(mapping[key], value)
+                finally:
+                    sources.close()
+
     def test_optional_enrichment_fallback_is_logged_and_empty(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

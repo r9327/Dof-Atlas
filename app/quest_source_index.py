@@ -340,23 +340,40 @@ class JsonSourceMapping(Mapping):
             while reader.peek() in whitespace:
                 reader.get()
 
+        # Regex and bytes.find run in native code: rich Quest enrichment can
+        # contain tens of megabytes of quoted text. Avoid a Python iteration
+        # for each byte without changing JSON nesting or disk/cache contracts.
+        structural_token = re.compile(rb'["{}\[\]]')
+
         def read_string_span() -> tuple[int, int]:
             start_pos = reader.tell()
             if reader.get() != ord('"'):
                 raise ValueError("Expected JSON string")
-            escaped = False
-            while True:
-                value = reader.get()
-                if value is None:
-                    raise ValueError("Unterminated JSON string")
-                if escaped:
-                    escaped = False
+            previous_backslashes = 0
+            while reader._fill():
+                begin = reader.index
+                quote = reader.buffer.find(b'"', begin)
+                if quote < 0:
+                    cursor = len(reader.buffer) - 1
+                    while cursor >= begin and reader.buffer[cursor] == 92:
+                        cursor -= 1
+                    previous_backslashes = (
+                        len(reader.buffer) - 1 - cursor
+                        + (previous_backslashes if cursor < begin else 0)
+                    )
+                    reader.index = len(reader.buffer)
                     continue
-                if value == ord("\\"):
-                    escaped = True
-                    continue
-                if value == ord('"'):
+                cursor = quote - 1
+                while cursor >= begin and reader.buffer[cursor] == 92:
+                    cursor -= 1
+                backslashes = quote - 1 - cursor
+                if cursor < begin:
+                    backslashes += previous_backslashes
+                reader.index = quote + 1
+                previous_backslashes = 0
+                if backslashes % 2 == 0:
                     return start_pos, reader.tell()
+            raise ValueError("Unterminated JSON string")
 
         def read_value_span() -> tuple[int, int]:
             skip_space()
@@ -370,23 +387,21 @@ class JsonSourceMapping(Mapping):
 
             if first in {ord("{"), ord("[")}:
                 stack: list[int] = []
-                in_string = False
-                escaped = False
                 while True:
-                    value = reader.get()
-                    if value is None:
+                    # Only quotes and structural delimiters matter; braces
+                    # inside strings are skipped by the escape-aware parser.
+                    if not reader._fill():
                         raise ValueError("Unterminated JSON value")
-                    if in_string:
-                        if escaped:
-                            escaped = False
-                        elif value == ord("\\"):
-                            escaped = True
-                        elif value == ord('"'):
-                            in_string = False
+                    token = structural_token.search(reader.buffer, reader.index)
+                    if token is None:
+                        reader.index = len(reader.buffer)
                         continue
+                    reader.index = token.start()
+                    value = reader.peek()
                     if value == ord('"'):
-                        in_string = True
+                        read_string_span()
                         continue
+                    reader.get()
                     if value in {ord("{"), ord("[")}:
                         stack.append(value)
                         continue
