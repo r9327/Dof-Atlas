@@ -82,3 +82,26 @@ class DeepAchievementTimingContractTests(unittest.TestCase):
             block.index("achievement_navigation_call_ms = milliseconds(navigate_started)"),
             block.index('label="first rendered Achievement detail"'),
         )
+
+
+class DeepQuestTimingContractTests(unittest.TestCase):
+    def test_quest_breakdown_does_not_replace_real_detail_wait(self) -> None:
+        source = BENCHMARK.read_text(encoding="utf-8")
+        block = source[
+            source.index("    # The memory manager may legitimately evict the entire Quests page"):
+            source.index("    # Guide: requesting a specific Guide")
+        ]
+        self.assertIn("quest_detail_ms = milliseconds(started)", block)
+        self.assertIn('label="first rendered Quest detail"', block)
+        self.assertIn('"quest_detail_phases_ms"', source)
+        for field in (
+            "quest_tab_ready_ms",
+            "quest_catalogue_lookup_ms",
+            "quest_navigation_call_ms",
+            "quest_post_navigation_wait_ms",
+        ):
+            self.assertIn(field, block)
+        self.assertLess(
+            block.index("quest_navigation_call_ms = milliseconds(quest_navigation_started)"),
+            block.index('label="first rendered Quest detail"'),
+        )

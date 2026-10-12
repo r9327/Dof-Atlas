@@ -252,6 +252,8 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
         app, lambda: encyclopedia_ready(window, QUESTS_TAB),
         timeout=60.0, label="visible Quest tab before detail",
     )
+    quest_tab_ready_ms = milliseconds(started)
+    quest_catalogue_started = time.perf_counter()
     page = getattr(window, "page_widgets", {}).get("Quetes")
     if page is None or getattr(page, "quest_page", None) is None:
         raise RuntimeError("Quests never materialized after visible re-navigation")
@@ -259,8 +261,12 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
     if not quest_rows:
         raise RuntimeError("Quest catalogue empty during first deep access")
     quest_id = min(int(q.id) for q in quest_rows if getattr(q, "id", None) is not None)
+    quest_catalogue_lookup_ms = milliseconds(quest_catalogue_started)
+    quest_navigation_started = time.perf_counter()
     if not page.navigate_to_entity("quest", quest_id, source="benchmark"):
         raise RuntimeError("Real Quest detail navigation rejected first quest")
+    quest_navigation_call_ms = milliseconds(quest_navigation_started)
+    quest_render_wait_started = time.perf_counter()
     wait_until(
         app,
         lambda: (
@@ -270,6 +276,7 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
         ),
         timeout=90.0, label="first rendered Quest detail", poll_seconds=0.02,
     )
+    quest_post_navigation_wait_ms = milliseconds(quest_render_wait_started)
     quest_detail_ms = milliseconds(started)
 
     # Guide: requesting a specific Guide opens the richer detail view,
@@ -338,6 +345,12 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
 
     return {
         "quest_detail_ms": quest_detail_ms,
+        "quest_detail_phases_ms": {
+            "tab_ready": quest_tab_ready_ms,
+            "catalogue_lookup": quest_catalogue_lookup_ms,
+            "navigation_call": quest_navigation_call_ms,
+            "post_navigation_wait": quest_post_navigation_wait_ms,
+        },
         "guide_detail_ms": guide_detail_ms,
         "achievement_detail_ms": achievement_detail_ms,
         # Keep the comparable total unchanged; diagnose synchronous UI stalls

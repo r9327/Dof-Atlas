@@ -1,5 +1,14 @@
 # Lot 3 — RAM, latence, lifecycle et architecture prouvée
 
+## L3.3 — Profilage ciblé du prochain goulot Quêtes (2026-10-12)
+
+- Succès confirmé : [comparatif exact-SHA #38296487192](https://github.com/r9327/Dof-Atlas/actions/runs/38296487192), `main 617a6975` → `1418977d`, mêmes IDs (`quest=18`, `guide=alignement_bonta`, `succès=20`) et caches froids identiques. `deep_achievement_detail_ms` **47 061,89 → 8 650,29** (gain 38 411,60 ms) ; `navigation_call` **46 910,07 → 8 503,04 ms** ; preload **45 994,91 → 46 149,16 ms** (+154,25 ms) ; résultat net parcours complet **38 526,57 ms plus rapide**, verdict `NET_FASTER` ; aucun coût caché transféré dans les autres détails par cette mesure. Une seule paire de runs, à reproduire statistiquement si nécessaire.
+- Le même comparatif révèle **Quête profonde 24 599,83 → 24 535,24 ms**, quasi inchangée, tandis que le Guide profond est **1 930,70 → 1 861,07 ms**. On ne peut pas attribuer les ~24,5 s Quêtes à `QuestDetails.get()` sans isoler l'activation du module, l'accès catalogue et la navigation.
+- **Correctif d'observabilité seulement, aucune optimisation spéculative des Quêtes** : instrumenter `quest_detail_phases_ms` avec `tab_ready`, `catalogue_lookup`, `navigation_call`, `post_navigation_wait`, sans changer le chronomètre total ni le contrôle du détail affiché ; test de contrat `unittest` ajouté. La prochaine comparaison Windows distingue reconstitution de page (après éviction légitime) de chargement du détail avant d'envisager un correctif moteur.
+- **Architecture exact-SHA validée** : [Graphify Code Map #38296487126](https://github.com/r9327/Dof-Atlas/actions/runs/38296487126) PASS sur `1418977d` : 12 500 nœuds, 36 120 relations, 887/887 fichiers Python, 0 inversion runtime→tools. Doctor audit `REVIEW` non bloquant : **6 nœuds isolés (tous fichiers de frontière / scripts externes, 0 preuve de code mort)**, 332 faibles degrés en revue, 35 hubs applicatifs candidats, 4 cycles de sources incluant imports deferred mais **0 cycle d'initialisation confirmé**, 0 finding bloquant. Aucun refactor/suppression ne peut être autorisé sur ces seuls chiffres. La corrélation performance Graphify est `UNAVAILABLE` tant que la preuve perf Doctor ne correspond pas au SHA.
+- La décision de priorité RAM reste inchangée : **ne pas modifier les budgets et ne pas confondre acceptation produit d'un petit écart avec certification PASS**.
+
+
 ## L3.3 — Reprise priorité latence Succès (2026-10-12)
 
 - **Décision utilisateur** : reporter l'investigation des faibles écarts RAM, **sans supprimer ni assouplir les gates**. La mémoire du dernier candidat reste **FAIL** ([run 38294628576](https://github.com/r9327/Dof-Atlas/actions/runs/38294628576)) : 100,11 Mo après 2e Guide→Home pour budget strict <100, et pic process-tree 220,63 Mo pour budget ≤220. Ce FAIL ne devient pas PASS par décision de priorité.
