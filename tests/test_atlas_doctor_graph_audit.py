@@ -100,6 +100,48 @@ class DoctorGraphAuditTests(unittest.TestCase):
             self.assertFalse(report["blocking_findings"])
             self.assertEqual(report["status"], "REVIEW")
 
+    def test_from_tools_import_member_is_a_confirmed_runtime_inversion(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "app/views/page.py"
+            source.parent.mkdir(parents=True)
+            source.write_text("from tools import helper\n", encoding="utf-8")
+            report = inspect_graph(fixture(), root=root)
+            self.assertEqual(report["status"], "FAIL")
+            self.assertEqual(report["metrics"]["confirmed_runtime_to_tools_imports"], 1)
+            self.assertEqual(report["blocking_findings"][0]["target"], "tools/helper.py")
+
+    def test_type_only_tool_import_is_not_a_runtime_contract_violation(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "app/views/page.py"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "from typing import TYPE_CHECKING\n"
+                "if TYPE_CHECKING:\n"
+                "    from tools import helper\n",
+                encoding="utf-8",
+            )
+            report = inspect_graph(fixture(), root=root)
+            self.assertEqual(report["status"], "REVIEW")
+            self.assertEqual(report["blocking_findings"], [])
+            self.assertEqual(report["metrics"]["confirmed_runtime_to_tools_imports"], 0)
+            self.assertFalse(report["unconfirmed_import_candidates"][0]["blocking"])
+
+    def test_deferred_runtime_import_is_still_confirmed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "app/views/page.py"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "def on_click():\n"
+                "    from tools import helper\n",
+                encoding="utf-8",
+            )
+            report = inspect_graph(fixture(), root=root)
+            self.assertEqual(report["status"], "FAIL")
+            self.assertEqual(report["metrics"]["confirmed_runtime_to_tools_imports"], 1)
+
     def test_only_extracted_ast_import_can_be_blocking(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
