@@ -58,3 +58,27 @@ class ComparablePreloadCacheIsolationTests(unittest.TestCase):
         self.assertLess(resets[0], candidate)
         self.assertLess(candidate, resets[1])
         self.assertEqual(block.count('$cacheRoot = ".cache/dofus_atlas"'), 1)
+
+
+class DeepAchievementTimingContractTests(unittest.TestCase):
+    def test_success_breakdown_keeps_real_render_gate_and_total(self) -> None:
+        source = BENCHMARK.read_text(encoding="utf-8")
+        block = source[
+            source.index("    # Achievement: request the first real retained Achievement detail;"):
+            source.index("\ndef measure() -> dict[str, Any]:")
+        ]
+        self.assertIn('achievement_detail_ms = milliseconds(started)', block)
+        self.assertIn('label="first rendered Achievement detail"', block)
+        self.assertIn('"achievement_detail_phases_ms"', block)
+        phases = (
+            "achievement_tab_ready_ms",
+            "achievement_catalogue_lookup_ms",
+            "achievement_navigation_call_ms",
+            "achievement_post_navigation_wait_ms",
+        )
+        for phase in phases:
+            self.assertIn(phase, block)
+        self.assertLess(
+            block.index("achievement_navigation_call_ms = milliseconds(navigate_started)"),
+            block.index('label="first rendered Achievement detail"'),
+        )
