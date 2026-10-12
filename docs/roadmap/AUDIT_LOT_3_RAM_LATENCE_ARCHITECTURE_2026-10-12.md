@@ -2,6 +2,15 @@
 
 Statut : **LOT 1 ET LOT 2 FUSIONNÉS — L3.1 INSTRUMENTATION ÉTENDUE — NON CERTIFIÉ**.
 
+## Changement applicatif et verrouillage final de la mesure
+
+- **L3 optimisation bornée :** les exports différés de la [PR #134](https://github.com/r9327/Dof-Atlas/pull/134) ont été repris dans cette branche, sans les workflows comparatifs historiques ni leurs anciens fichiers d'index. Les **42 exports `__all__` ont été comparés valeur par valeur et ordre par ordre** à la façade précédente ; ils correspondent exactement. **19 sous-modules Qt** sont résolus seulement à l'usage via `__getattr__`. Le test réel `tests/test_encyclopedia_widgets_lazy_exports.py` est intégré. #134 reste non fusionnée pendant la validation, puis doit être clôturée comme redondante **uniquement après** intégration prouvée de la #151.
+- **Graphify préflight exact-SHA** : [38293752152](https://github.com/r9327/Dof-Atlas/actions/runs/38293752152) `PASS` sur `bd3aeba7`, 12 482 nœuds, 36 131 liens, 886 fichiers Python, zéro fichier manquant ; le point d'entrée `widgets/__init__.py` a bien **19 liens `re_exports`** et **34 imports** AST. Aucune suppression de fichier ni de classe. Une cartographie finale post-changement doit confirmer les dépendances sur le SHA candidat livré.
+- **Renforcement du gate mémoire** : `after_guide_home_stabilized` et les six retours Home des deux cycles Quêtes/Succès/Guide sont désormais **obligatoires et soumis au même seuil strict <100 Mo**, sans modifier le pic hard de **220 Mo**. Tests `unittest` des sept nouveaux budgets présents. Ce correctif empêche de qualifier `PASS` un processus qui monte à 104 Mo après plusieurs navigations.
+- **Interprétation Qt recalée** : [run 38293261068](https://github.com/r9327/Dof-Atlas/actions/runs/38293261068) prouve **145 widgets stables après chaque retour Home** une fois `DeferredDelete` explicitement traité dans la pompe synthétique, tandis que les RSS du deuxième cycle restent 100,86 Mo et le pic 220,29 Mo : **FAIL réel des budgets** sur ce commit, non corrigé par le seul test. La correction applicative lazy doit être mesurée avant de conclure.
+- **Preload équitable** : deux passages depuis caches Atlas effacés, sur le même runner Windows ; les anciens chiffres de gains sur code identique (caches froids puis chauds) restent notés **INVALID_COMPARISON**, et ne peuvent être utilisés pour prétendre que le lot 3 a accéléré Succès.
+- **Aucun résultat final anticipé** : les nouveaux tests de mémoire, la comparaison preload froide, les tests widgets et la FULL ne valent `PASS` que lorsque leurs workflows ont réellement réussi sur le SHA exact final.
+
 ## Analyse des preuves RAM/preload et correction de la mesure (2026-10-12)
 
 - [Mémoire #38291681600](https://github.com/r9327/Dof-Atlas/actions/runs/38291681600) sur `25466e82` **FAIL** : pic process-tree **223,64 Mo** (limite inchangée 220), phase `preload` ; **149,13 Mo** des processus de préchauffage, dont trois processus recensés. `after_guide_home_stabilized` = 98,31 Mo ; `after_equipment_home_stabilized` = 98,35 Mo ; retour Guide 2e cycle = 104,55 Mo avec 446 widgets Qt. Aucune anomalie de threads Python (3 stables).

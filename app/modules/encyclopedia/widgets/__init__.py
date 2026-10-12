@@ -1,4 +1,4 @@
-"""Public encyclopedia-widget exports, loaded only when requested.
+"""Public encyclopedia-widget exports, lazily loaded on demand.
 
 Python imports a package __init__ before any widgets.<submodule>. Keeping this
 facade lightweight avoids importing the entire Qt widget tree for a single
