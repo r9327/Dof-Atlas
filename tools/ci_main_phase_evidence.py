@@ -83,19 +83,34 @@ def verify_jobs(jobs_response: dict, *, head_sha: str) -> dict:
         if not isinstance(name, str) or name in steps:
             raise ValueError("Duplicate or malformed step evidence")
         steps[name] = step.get("conclusion")
-    for step in REQUIRED_STEPS:
-        if steps.get(step) != "success":
-            raise ValueError(f"Mandatory Phase FULL evidence absent/failed: {step}")
-    if steps.get("Execute and verify exact-SHA targeted modules") == "success":
-        raise ValueError("Scoped execution cannot impersonate canonical FULL")
+    full_executed = steps.get("Run full Atlas phase certification gate") == "success"
+    if not full_executed:
+        required_scoped = (
+            "Verify exact certification checkout",
+            "Resolve adaptive Doctor route on exact SHA",
+            "Execute and verify exact-SHA targeted modules",
+            "Enforce phase certification verdict",
+        )
+        if (steps.get("Run full Atlas phase certification gate") != "skipped"
+                or any(steps.get(step) != "success" for step in required_scoped)
+                or steps.get("Materialize certification LFS fixtures") != "skipped"
+                or steps.get("Materialize local Dofus catalog") != "skipped"):
+            raise ValueError("Incomplete or counterfeit Doctor scoped main result")
+    else:
+        for step in REQUIRED_STEPS:
+            if steps.get(step) != "success":
+                raise ValueError(f"Mandatory Phase FULL evidence absent/failed: {step}")
+        if steps.get("Execute and verify exact-SHA targeted modules") == "success":
+            raise ValueError("Scoped execution cannot impersonate canonical FULL")
     return {
-        "kind": "main_application_reused_phase_full",
+        "kind": ("main_application_reused_phase_full" if full_executed
+                 else "main_application_verified_scoped"),
         "candidate_sha": head_sha,
         "phase_job": PHASE_JOB,
         "independent_host_steps": list(REQUIRED_STEPS),
-        "phase_full_host_verified": True,
+        "phase_full_host_verified": full_executed,
         "application_full_suite_executed": False,
-        "application_unique_lifecycle_pending": True,
+        "application_unique_lifecycle_pending": full_executed,
         "cross_sha_reuse": False,
         "phase_certified_by_this_script": False,
     }
