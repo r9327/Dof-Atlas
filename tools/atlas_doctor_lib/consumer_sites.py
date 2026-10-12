@@ -85,6 +85,13 @@ def inspect_consumer_sites(root: Path, target: str) -> dict[str, Any]:
             if isinstance(statement, ast.ImportFrom) and statement.module == "importlib"
             for alias in statement.names if alias.name == "import_module"
         }
+        module_aliases = {
+            alias.asname or alias.name
+            for statement in ast.walk(tree)
+            if isinstance(statement, ast.Import)
+            for alias in statement.names if alias.name == "importlib"
+        }
+
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
@@ -94,7 +101,16 @@ def inspect_consumer_sites(root: Path, target: str) -> dict[str, Any]:
             first = node.args[0] if node.args else next(
                 (kw.value for kw in node.keywords if kw.arg == "name"), None
             )
-            if name_called in {"import_module", "__import__"} or name_called in import_aliases:
+            # A same-named helper or unrelated method is NOT importlib.
+            imported_call = (
+                isinstance(func, ast.Name)
+                and (func.id in import_aliases or func.id == "__import__")
+            ) or (
+                isinstance(func, ast.Attribute) and func.attr == "import_module"
+                and isinstance(func.value, ast.Name)
+                and func.value.id in module_aliases
+            )
+            if imported_call:
                 literal = _literal_string(first)
                 if literal is not None:
                     if literal == module or literal.startswith(module + "."):
@@ -104,7 +120,15 @@ def inspect_consumer_sites(root: Path, target: str) -> dict[str, Any]:
                     leads.append({"source": name, "line": node.lineno, "kind": "DYNAMIC_IMPORT_UNRESOLVED",
                                   "confidence": "UNKNOWN_TARGET"})
             elif name_called == "connect" and isinstance(func, ast.Attribute):
-                if leaf in ast.unparse(node):
+                # Match AST symbols, not a substring in the whole expression.
+                # A 'target_worker' receiver is not a 'target' consumer.
+                if any(
+                    (isinstance(part, ast.Name) and part.id == leaf)
+                    or (isinstance(part, ast.Attribute) and part.attr == leaf)
+                    or (isinstance(part, ast.Constant)
+                        and isinstance(part.value, str) and part.value == leaf)
+                    for part in ast.walk(node)
+                ):
                     leads.append({"source": name, "line": node.lineno, "kind": "QT_CONNECT_CANDIDATE",
                                   "confidence": "UNKNOWN_SIGNAL_RECEIVER"})
             elif name_called == "getattr" and any(

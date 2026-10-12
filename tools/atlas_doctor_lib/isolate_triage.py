@@ -103,7 +103,8 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
     graph = graph_status(root)
     result: dict[str, Any] = {
         "schema_version": 1, "kind": "doctor_isolate_triage",
-        "graph_status": graph.get("status"), "limit": limit, "kind": kind, "offset": offset,
+        "graph_status": graph.get("status"), "limit": limit,
+        "candidate_kind": kind, "offset": offset,
         "dead_code_proven": False, "automatic_edits": False,
         "tests_executed": False, "graph_rebuilt": False,
     }
@@ -188,6 +189,15 @@ def triage_isolates(root: Path, *, limit: int = 5, kind: str = 'mixed', offset: 
             "scan_truncated": scan["truncated"],
             "source_errors": scan["source_errors"],
             "safe_to_remove": False,
+            # A graph candidate is never evidence of a confirmed defect.
+            # FALSE denotes no proven defect, not proof of universal safety.
+            "proven_defect": False,
+            "proof_status": "UNVERIFIED",
+            "disposition": "INVESTIGATE_ONLY",
+            "source_scan_complete": bool(scan.get("candidate_scan_complete")
+                                         and scan.get("static_status") == "PASS"
+                                         and not scan["truncated"]
+                                         and not scan["source_errors"]),
         })
     return {
         **result, "status": "REVIEW", "candidates_available": len(picked),

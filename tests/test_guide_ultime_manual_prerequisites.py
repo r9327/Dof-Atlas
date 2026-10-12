@@ -45,6 +45,27 @@ class GuideUltimeManualPrerequisiteTests(unittest.TestCase):
         self.assertEqual(proof["dependent_line_index"], 1)
         self.assertEqual(proof["proof_scope"], "PLAYER_ACTION_FIELDS_ONLY")
 
+    def test_quest_title_prefix_collision_never_proves_order(self):
+        # A title that merely begins with another quest name is not that quest.
+        stage = {"route": [
+            {"do": "Terminer Quête Aventure."},
+            {"do": "Puis prendre Quête B."},
+        ]}
+        evidence = stage_order_evidence(stage, "Quête A", "Quête B")
+        self.assertFalse(evidence["demonstrated"])
+        self.assertIsNone(evidence["prerequisite_line_index"])
+        self.assertEqual(evidence["dependent_line_index"], 1)
+
+    def test_whole_quest_title_still_proves_action_order(self):
+        stage = {"route": [
+            {"do": "Terminer Quête A, puis revenir au PNJ."},
+            {"do": "Prendre Quête B."},
+        ]}
+        evidence = stage_order_evidence(stage, "Quête A", "Quête B")
+        self.assertTrue(evidence["demonstrated"])
+        self.assertEqual(evidence["prerequisite_line_index"], 0)
+        self.assertEqual(evidence["dependent_line_index"], 1)
+
     def test_meta_only_mentions_never_prove_completed_prerequisite(self):
         stage = {
             "preparation": [{"for": "Quête A"}],

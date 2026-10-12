@@ -13,6 +13,8 @@ class IsolateTriageTests(unittest.TestCase):
                        return_value={"status":"STALE"}):
                 result=triage_isolates(Path(d))
             self.assertEqual(result["status"],"BLOCKED")
+            self.assertEqual(result["kind"], "doctor_isolate_triage")
+            self.assertEqual(result["candidate_kind"], "mixed")
             self.assertFalse(result["dead_code_proven"])
 
     def test_source_probe_bounded_and_never_authorizes_deletion(self):
@@ -33,10 +35,16 @@ class IsolateTriageTests(unittest.TestCase):
                  patch("tools.atlas_doctor_lib.consumer_sites.inspect_consumer_sites",return_value=scan) as checker:
                 result=triage_isolates(root,limit=1)
             self.assertEqual(result["status"],"REVIEW")
+            self.assertEqual(result["kind"], "doctor_isolate_triage")
+            self.assertEqual(result["candidate_kind"], "mixed")
             self.assertEqual(checker.call_count,1)
             self.assertTrue(result["truncated"])
             self.assertFalse(result["findings"][0]["safe_to_remove"])
             self.assertEqual(result["findings"][0]["review"],"HAS_SOURCE_IMPORT_CONSUMERS")
+            self.assertEqual(result["findings"][0]["proof_status"], "UNVERIFIED")
+            self.assertFalse(result["findings"][0]["proven_defect"])
+            self.assertEqual(result["findings"][0]["disposition"], "INVESTIGATE_ONLY")
+            self.assertFalse(result["findings"][0]["source_scan_complete"])
 
     def test_weak_candidates_can_be_paged_without_skipping(self):
         import hashlib
@@ -62,6 +70,9 @@ class IsolateTriageTests(unittest.TestCase):
             self.assertEqual([e["file"] for page in (a,b,c) for e in page["findings"]],
                              [f"app/module_{i}.py" for i in range(5)])
             self.assertIsNone(c["next_offset"])
+            self.assertEqual(b["candidate_kind"], "weak")
+            self.assertTrue(all(e["proof_status"] == "UNVERIFIED" for page in (a,b,c)
+                                for e in page["findings"]))
             self.assertFalse(any(e["safe_to_remove"] for e in a["findings"]))
 
     def test_communities_can_be_paged_beyond_first_30(self):
