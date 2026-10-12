@@ -123,6 +123,19 @@ def _manual_runtime_json_encode(value: Any) -> Any:
     return value
 
 
+def _manual_runtime_json_default(value: Any) -> Any:
+    """Encode only non-JSON byte payloads; avoid cloning the entire route.
+
+    The previous writer recursively copied hundreds of nested cards and
+    generated a second expanded hex tree alongside the original compact
+    route before serializing it. json.dumps can handle native dict/list/tuple
+    nodes directly and invokes this callback only for byte payloads.
+    """
+    if isinstance(value, (bytes, bytearray)):
+        return {"__atlas_bytes_hex__": bytes(value).hex()}
+    raise TypeError(f"Unsupported manual cache value: {type(value).__name__}")
+
+
 def _manual_runtime_json_decode(value: Any) -> Any:
     if isinstance(value, dict):
         if set(value) == {"__atlas_bytes_hex__"}:
@@ -167,11 +180,11 @@ def write_manual_runtime_compact_cache(
         "schema_version": _MANUAL_RUNTIME_COMPACT_SCHEMA,
         "source_signature": _manual_runtime_source_signature(service, path),
         "quest_signature": _manual_runtime_quest_signature(service),
-        "route": _manual_runtime_json_encode(route),
-        "cards": _manual_runtime_json_encode(cards),
-        "manual_audit_data": _manual_runtime_json_encode(
-            getattr(service, "manual_audit_data", {}) or {}
-        ),
+        # Keep original route nodes and compact sheet bytes until the JSON
+        # encoder visits them; avoid retaining a second expanded Python tree.
+        "route": route,
+        "cards": cards,
+        "manual_audit_data": getattr(service, "manual_audit_data", {}) or {},
         "manual_preview_active": bool(
             getattr(service, "manual_preview_active", False)
         ),
@@ -197,7 +210,12 @@ def write_manual_runtime_compact_cache(
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(
-        json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            default=_manual_runtime_json_default,
+        ),
         encoding="utf-8",
     )
     temporary.replace(path)

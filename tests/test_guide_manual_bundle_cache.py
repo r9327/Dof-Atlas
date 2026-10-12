@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from app.modules.encyclopedia.services import guide_ultime_manual_runtime_core as manual_runtime
@@ -65,6 +69,51 @@ class GuideManualBundleCacheTests(unittest.TestCase):
 
         first.cards[0]["rows"].append(999)
         self.assertEqual(second.cards[0]["rows"], [1])
+
+    def test_compact_route_writer_keeps_exact_bytes_and_nested_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manual_dir = root / "manual"
+            manual_dir.mkdir()
+            (manual_dir / "manifest_v1.json").write_text("{}", encoding="utf-8")
+            sidecar = root / "compact.json"
+            encoded_sheet = b"\\x00\\x01\\xf0\\x9f\\x90\\x89" * 4096
+            card = {
+                "manual_stage_id": "test",
+                "_manual_stage_payload": encoded_sheet,
+                "_manual_chapter_preparation_payload": bytearray(b"\\x02\\x03"),
+                "nested": [{"id": 18, "quests": (18, 19)}],
+            }
+            service = SimpleNamespace(
+                manual_dir=manual_dir,
+                route={"steps": [card], "chapter": {"id": "test"}},
+                cards=[card],
+                manual_audit_data={"source": {"ok": True}},
+                manual_preview_active=True,
+                manual_preview_chapters=("test",),
+                manual_manifest_active=True,
+                manual_chapters=("test",),
+                _quest_name_to_id={"Test": 18},
+                _common_quest_ids=(18,),
+                _full_success_ids=(),
+            )
+            self.assertEqual(
+                manual_runtime.write_manual_runtime_compact_cache(service, sidecar),
+                1,
+            )
+            stored = json.loads(sidecar.read_text(encoding="utf-8"))
+            self.assertEqual(
+                stored["cards"],
+                manual_runtime._manual_runtime_json_encode(service.cards),
+            )
+            self.assertEqual(
+                manual_runtime._manual_runtime_json_decode(stored["cards"])[0][
+                    "_manual_stage_payload"
+                ],
+                encoded_sheet,
+            )
+            self.assertEqual(stored["route"], {"chapter": {"id": "test"}})
+            self.assertEqual(stored["manual_audit_data"], service.manual_audit_data)
 
     def test_route_or_catalog_revision_change_recomposes_bundle(self) -> None:
         calls = 0
