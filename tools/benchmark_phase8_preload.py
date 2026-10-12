@@ -308,6 +308,8 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
         app, lambda: encyclopedia_ready(window, ACHIEVEMENTS_TAB),
         timeout=60.0, label="visible Achievement tab before detail",
     )
+    achievement_tab_ready_ms = milliseconds(started)
+    catalogue_started = time.perf_counter()
     page = getattr(window, "page_widgets", {}).get("Quetes")
     if page is None:
         raise RuntimeError("Achievement module was evicted during navigation")
@@ -315,8 +317,12 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
     if not achievements:
         raise RuntimeError("No retained Achievement for detail measurement")
     achievement_id = min(int(a.id) for a in achievements)
+    achievement_catalogue_lookup_ms = milliseconds(catalogue_started)
+    navigate_started = time.perf_counter()
     if not page.navigate_to_achievement_tab(achievement_id):
         raise RuntimeError("Achievement detail request rejected")
+    achievement_navigation_call_ms = milliseconds(navigate_started)
+    render_wait_started = time.perf_counter()
     wait_until(
         app,
         lambda: (
@@ -327,12 +333,21 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
         timeout=90.0, label="first rendered Achievement detail",
         poll_seconds=0.02,
     )
+    achievement_post_navigation_wait_ms = milliseconds(render_wait_started)
     achievement_detail_ms = milliseconds(started)
 
     return {
         "quest_detail_ms": quest_detail_ms,
         "guide_detail_ms": guide_detail_ms,
         "achievement_detail_ms": achievement_detail_ms,
+        # Keep the comparable total unchanged; diagnose synchronous UI stalls
+        # separately from async hydration and catalogue-index lookups.
+        "achievement_detail_phases_ms": {
+            "tab_ready": achievement_tab_ready_ms,
+            "catalogue_lookup": achievement_catalogue_lookup_ms,
+            "navigation_call": achievement_navigation_call_ms,
+            "post_navigation_wait": achievement_post_navigation_wait_ms,
+        },
         "quest_id": quest_id,
         "guide_id": guide_id,
         "achievement_id": achievement_id,
