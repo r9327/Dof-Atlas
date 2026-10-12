@@ -52,7 +52,7 @@ WIRED_AT = {
 }
 
 
-def _call_names(root: Path, path: str) -> set[str] | None:
+def _call_names(root: Path, path: str) -> dict[str, list[int]] | None:
     source = root / path
     try:
         if (source.is_symlink() or not source.is_file()
@@ -62,21 +62,22 @@ def _call_names(root: Path, path: str) -> set[str] | None:
         tree = ast.parse(source.read_text(encoding="utf-8-sig"), filename=path)
     except (OSError, ValueError, SyntaxError, UnicodeError):
         return None
-    found: set[str] = set()
+    found: dict[str, list[int]] = {}
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        if isinstance(node.func, ast.Name):
-            found.add(node.func.id)
-        elif isinstance(node.func, ast.Attribute):
-            found.add(node.func.attr)
-    return found
+        called = (node.func.id if isinstance(node.func, ast.Name)
+                  else node.func.attr if isinstance(node.func, ast.Attribute)
+                  else None)
+        if called:
+            found.setdefault(called, []).append(node.lineno)
+    return {name: sorted(set(lines)) for name, lines in found.items()}
 
 
 def capability_inventory(root: Path) -> dict[str, Any]:
     root = root.resolve()
     library = root / "tools" / "atlas_doctor_lib"
-    symbols: dict[str, set[str] | None] = {}
+    symbols: dict[str, dict[str, int] | None] = {}
     rows: list[dict[str, Any]] = []
     wiring_cache = {path: _call_names(root, path)
                     for path in {path for path, _ in WIRED_AT.values()}}
@@ -89,27 +90,32 @@ def capability_inventory(root: Path) -> dict[str, Any]:
                         or candidate.stat().st_size > 512 * 1024):
                     raise ValueError("Unsafe or unavailable source")
                 tree = ast.parse(candidate.read_text(encoding="utf-8-sig"))
-                declared = set()
+                declared: dict[str, int] = {}
                 for node in tree.body:
                     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                        declared.add(node.name)
+                        declared[node.name] = node.lineno
                         if isinstance(node, ast.ClassDef):
                             for method in node.body:
                                 if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                                    declared.add(node.name + "." + method.name)
+                                    declared[node.name + "." + method.name] = method.lineno
                 symbols[file] = declared
             except (OSError, ValueError, SyntaxError, UnicodeError):
                 symbols[file] = None
         present = symbols[file] is not None and symbol in symbols[file]
         site, called = WIRED_AT[ident]
         calls = wiring_cache.get(site)
-        wired = calls is not None and called in calls
+        callsite_lines = calls.get(called, [])[:20] if calls is not None else []
+        wired = bool(callsite_lines)
         rows.append({
             "id": ident, "engine": engine, "name": name,
             "wiring_status": "AST_CALLSITE_PRESENT" if wired else "CALLSITE_NOT_FOUND",
             "wiring_source": site, "called_symbol": called,
             "source_anchor": "PRESENT" if present else "MISSING",
             "source_path": "tools/atlas_doctor_lib/" + file,
+            "definition_line": symbols[file].get(symbol) if symbols[file] else None,
+            "callsite_lines": callsite_lines,
+            "callsite_resolution": "AST_NAME_ONLY_UNVERIFIED" if wired else "UNAVAILABLE",
+            "proof_status": "UNVERIFIED", "proven_defect": False,
             "callable": symbol, "behavior_certified": False,
         })
     missing = sum(row["source_anchor"] == "MISSING" for row in rows)
@@ -121,5 +127,5 @@ def capability_inventory(root: Path) -> dict[str, Any]:
         "status": "BLOCKED" if missing or unwired else "REVIEW_PENDING_FINAL_CERTIFICATION",
         "capabilities": rows, "certified_count": 0,
         "tests_executed": False, "graph_rebuilt": False,
-        "limits": "AST definitions and AST call-sites are integration evidence only, not proof of behavior. Every capability requires exact-SHA behavioral, Qt, Graphify and applicable RAM/CI certification.",
+        "limits": "AST definitions and name-only AST call-sites are leads; call binding, runtime behavior and safety remain unverified. Every capability requires exact-SHA behavioral, Qt, Graphify and applicable RAM/CI certification.",
     }
