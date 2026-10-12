@@ -1,8 +1,15 @@
 # Lot 2 — Fiabilité du Guide, Doctor et parcours fonctionnels
 
-Statut : **PLAN PRÉPARÉ — CODE NON IMPLÉMENTÉ — NON CERTIFIÉ**.
+Statut : **EN DÉVELOPPEMENT PARTIEL — NON CERTIFIÉ**. Les cases de fin de lot restent ouvertes.
 Base de rédaction `f6deb4a4fc8828ab9fc9372adc8653842303a7e9`. Dépendance de clôture : **Lot 1 certifié**.
 PR #148 et #149 sont déjà fusionnées ; réutiliser leurs détecteurs plutôt que les remplacer.
+
+## Journal d'implémentation (12/10/2026)
+
+- `ed179f62` — Correction du rapport `isolate-triage` : `kind=doctor_isolate_triage` stable, paramètre `candidate_kind` séparé ; chaque nœud candidat indique `proof_status=UNVERIFIED`, `proven_defect=false`, `disposition=INVESTIGATE_ONLY`, avec signal de complétude de la recherche de consommateurs. Tests dédiés ajoutés.
+- `36ae9fd4` — Matrice `capabilities` : ajout des numéros de ligne des définitions et des appels AST pour les 18 capacités et étiquetage explicite `AST_NAME_ONLY_UNVERIFIED`. Ne constitue **pas** une preuve de branchement dynamique ni de comportement correct. Tests dédiés ajoutés.
+- Les contrôles automatiques exact-SHA sont à réexaminer après ce dernier commit. Aucune exécution manuelle des 18 scénarios Doctor ni validation du parcours Windows n'est encore attestée. Ne pas cocher L2.2 ou L2.3.
+- Dépendance maintenue : **Lot 1 (#152) non certifié, pas de merge de #150**.
 
 ## Inventaire d'entrée : signes, pas bugs prouvés
 
