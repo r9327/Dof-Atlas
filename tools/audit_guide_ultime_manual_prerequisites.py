@@ -144,16 +144,16 @@ def _flatten_strings(value: Any, result: list[str]) -> None:
 def stage_order_evidence(stage: dict[str, Any], prerequisite: str, dependent: str) -> dict[str, Any]:
     """Return conservative textual evidence for ordering inside one macro-stage."""
 
+    # Only executable player instructions can prove that one quest is done
+    # before another. The old scan included preparation ("for Quest B") and
+    # hard_exit ("Quest A completed"), which are META references and often
+    # made the first occurrence of B appear before the actual action for A.
+    # This produced false inverted-order leads even for correctly routed stages.
     ordered_fields = (
-        "entry",
         "activation",
-        "preparation",
         "take",
         "route",
         "instructions",
-        "progress_also",
-        "before_leaving",
-        "hard_exit",
     )
     lines: list[str] = []
     for field in ordered_fields:
@@ -176,6 +176,8 @@ def stage_order_evidence(stage: dict[str, Any], prerequisite: str, dependent: st
         "prerequisite_line_index": pre_index,
         "dependent_line_index": dep_index,
         "ordered_line_count": len(lines),
+        "proof_scope": "PLAYER_ACTION_FIELDS_ONLY",
+        "ignored_meta_fields": ["entry", "preparation", "progress_also", "before_leaving", "hard_exit"],
     }
 
 
