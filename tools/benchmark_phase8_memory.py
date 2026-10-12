@@ -594,6 +594,10 @@ def measure() -> dict[str, Any]:
     sampler.set_phase("guide_home")
     window.show_page("Home")
     after_guide_home = _capture(app, stages, "after_guide_home", 0.75)
+    sampler.set_phase("guide_home_stabilized")
+    after_guide_home_stable = _capture(
+        app, stages, "after_guide_home_stabilized", 1.50
+    )
 
     sampler.set_phase("craft_open")
     timings["craft_open_ms"] = open_page(app, window, "Craft")
@@ -628,6 +632,7 @@ def measure() -> dict[str, Any]:
     quests_home_tree = float(after_quests_home.get("tree_rss_mb") or 0.0)
     achievements_home_tree = float(after_achievements_home.get("tree_rss_mb") or 0.0)
     guide_home_tree = float(after_guide_home.get("tree_rss_mb") or 0.0)
+    guide_home_stable_tree = float(after_guide_home_stable.get("tree_rss_mb") or 0.0)
     craft_home_tree = float(after_craft_home.get("tree_rss_mb") or 0.0)
 
     return {
@@ -643,6 +648,19 @@ def measure() -> dict[str, Any]:
         ),
         "guide_retained_tree_delta_mb": round(
             guide_home_tree - quests_home_tree,
+            2,
+        ),
+        # Supplemental evidence only: keep the legacy gate metric unchanged.
+        "guide_retained_tree_delta_stabilized_mb": round(
+            guide_home_stable_tree - quests_home_tree,
+            2,
+        ),
+        "guide_incremental_retained_tree_delta_mb": round(
+            guide_home_stable_tree - achievements_home_tree,
+            2,
+        ),
+        "guide_home_stabilization_delta_mb": round(
+            guide_home_stable_tree - guide_home_tree,
             2,
         ),
         "craft_retained_tree_delta_mb": round(
