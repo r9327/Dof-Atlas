@@ -78,6 +78,9 @@ BEHAVIOR_ANCHORS = {
 
 def _test_case_defined(root: Path, file: str, name: str) -> bool:
     """Find an actual test method without importing or executing any code."""
+    # Windows temporary roots can be junctions/aliases. Resolve both sides
+    # before testing confinement, while still rejecting source symlinks.
+    root = root.resolve()
     source = root / "tests" / file
     try:
         if (source.is_symlink() or not source.is_file()
@@ -96,6 +99,7 @@ def _test_case_defined(root: Path, file: str, name: str) -> bool:
 
 
 def _call_names(root: Path, path: str) -> dict[str, list[int]] | None:
+    root = root.resolve()
     source = root / path
     try:
         if (source.is_symlink() or not source.is_file()
