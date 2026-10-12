@@ -25,6 +25,7 @@ TOOLS = ROOT / "tools"
 if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
+from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QApplication
 
 from benchmark_phase8_preload import (
@@ -367,6 +368,11 @@ class PeakTreeSampler:
 
 def _capture(app: QApplication, stages: list[dict[str, Any]], label: str, settle: float = 0.20) -> dict[str, Any]:
     pump(app, settle)
+    # This benchmark drives Qt with processEvents(), not QApplication.exec().
+    # Qt does NOT dispatch DeferredDelete automatically in such a local loop.
+    # Flush exactly the deleteLater() events which the production event loop
+    # would deliver before measuring whether Home retained live widgets.
+    QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
     sample = memory_snapshot(label)
     # Take the RSS measurement before enumerating Qt objects so introspection
     # cannot inflate the measured process-tree checkpoint.
