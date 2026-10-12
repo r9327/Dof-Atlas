@@ -62,7 +62,9 @@ class GuideHomeStabilizationContractTests(unittest.TestCase):
         stage_capture = source[
             source.index("def _capture("):source.index("def _open_guide_with_probe(")
         ]
+        flush = stage_capture.index("QApplication.sendPostedEvents(None, QEvent.DeferredDelete)")
         rss = stage_capture.index("sample = memory_snapshot(label)")
+        self.assertLess(flush, rss)
         threads = stage_capture.index('sample["python_threads_alive"]')
         widgets = stage_capture.index('sample["qt_widgets_alive"]')
         self.assertLess(rss, threads)
