@@ -139,6 +139,51 @@ class DoctorGraphAuditTests(unittest.TestCase):
             self.assertEqual(payload["architecture_graph_triage"]["status"], "UNAVAILABLE")
             self.assertIn("rebuild", payload["architecture_graph_triage"]["next_action"])
 
+    def test_ai_report_filters_out_unconfirmed_graph_candidates(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            triage = {
+                "status": "REVIEW",
+                "remediation_plan": {
+                    "status": "REVIEW",
+                    "task_count": 2,
+                    "tasks": [{"kind": "HIGH_FANOUT_REVIEW"}, {"kind": "STATIC_HOTSPOT_REVIEW"}],
+                    "confirmed_findings": [], "confirmed_count": 0,
+                    "review_only_count": 2, "actionable": False,
+                },
+            }
+            with patch("tools.atlas_doctor_lib.architecture.graph_status",
+                       return_value={"status": "PASS"}), patch(
+                "tools.atlas_doctor_lib.graph_audit.audit_current_graph",
+                return_value=triage,
+            ):
+                payload = build_ai_report(root)
+            summary = payload["architecture_graph_triage"]["remediation_plan"]
+            self.assertEqual(summary["status"], "NO_CONFIRMED_DEFECT")
+            self.assertEqual(summary["task_count"], 0)
+            self.assertFalse(summary["has_confirmed_defect"])
+            self.assertEqual(summary["review_only_count"], 2)
+            self.assertEqual(summary["tasks"], [])
+
+    def test_suspect_high_and_medium_issues_are_not_actionable(self):
+        issues = [
+            {"rule": "busy_loop_risk", "severity": "MEDIUM", "confidence": "suspect"},
+            {"rule": "silent_exception", "severity": "HIGH", "confidence": "confirmed"},
+            {"rule": "controlled_dynamic_exec", "severity": "INFO", "confidence": "confirmed"},
+            {"rule": "unknown_security_risk", "severity": "CRITICAL", "confidence": "suspect"},
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            with patch("tools.atlas_doctor_lib.architecture.graph_status",
+                       return_value={"status": "MISSING"}), patch(
+                "tools.atlas_doctor_lib.report.load_json",
+                side_effect=lambda _root, key: {"issues": issues} if key == "latest_audit" else None,
+            ):
+                payload = build_ai_report(Path(d))
+        self.assertEqual([x["rule"] for x in payload["issues_actionable"]], ["silent_exception"])
+        self.assertEqual({x["rule"] for x in payload["issues_to_verify"]},
+                         {"busy_loop_risk", "unknown_security_risk"})
+        self.assertEqual(payload["issues_total"], 4)
+
     def test_graph_audit_reuses_validated_evidence_without_recomputing_status(self):
         import hashlib
         with tempfile.TemporaryDirectory() as d:
