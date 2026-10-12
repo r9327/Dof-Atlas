@@ -248,6 +248,16 @@ class CommandExecutor:
         }
 
 
+def _persist_full_failure_evidence(root: Path, output: str, *, failed: bool) -> None:
+    """Keep complete FULL failures for exact-SHA diagnostics, never as pass proof."""
+    log_path = root / "artifacts/phase_certification/05_full_unittest.log"
+    if not failed:
+        log_path.unlink(missing_ok=True)
+        return
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text(output, encoding="utf-8")
+
+
 def load_policy(root: Path, policy_path: Path = DEFAULT_POLICY) -> dict[str, Any]:
     path = policy_path if policy_path.is_absolute() else root / policy_path
     try:
@@ -720,6 +730,8 @@ def execute_gate(
         if not isinstance(result, dict) or "exit_code" not in result:
             raise IntegrityConfigError(f"{name}: command executor returned an invalid result")
         output = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
+        if name == "FULL_SUITE":
+            _persist_full_failure_evidence(root, output, failed=int(result["exit_code"]) != 0)
         if name == "TEST_INTEGRITY" and int(result["exit_code"]) == 0:
             # unittest exits zero for skips. Treat skipped, missing, aliased or
             # otherwise unproven critical methods as a hard validation failure.
