@@ -8,6 +8,7 @@ import os
 import sys
 import threading
 import time
+from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -234,6 +235,7 @@ def memory_snapshot(label: str) -> dict[str, Any]:
     warmup_pid = int(raw_warmup_pid) if raw_warmup_pid.isdecimal() else 0
     warmup_total = 0
     warmup_count = 0
+    warmup_processes: list[dict[str, Any]] = []
     if warmup_pid > 0:
         root_row = next(
             (
@@ -253,9 +255,17 @@ def memory_snapshot(label: str) -> dict[str, Any]:
                     continue
                 warmup_total += rss
                 warmup_count += 1
+                warmup_processes.append({
+                    "pid": row.pid,
+                    "name": row.name,
+                    "rss_mb": round(rss / _MB, 2),
+                })
     warmup_mb = round(warmup_total / _MB, 2)
     payload["warmup_rss_mb"] = warmup_mb
     payload["warmup_process_count"] = warmup_count
+    payload["warmup_processes"] = sorted(
+        warmup_processes, key=lambda row: row["rss_mb"], reverse=True
+    )[:8]
     if process_rss_mb is not None:
         payload["tree_rss_mb"] = round(float(process_rss_mb) + child_mb + warmup_mb, 2)
     return payload
@@ -363,7 +373,11 @@ def _capture(app: QApplication, stages: list[dict[str, Any]], label: str, settle
     sample["python_threads_alive"] = sum(
         thread.is_alive() for thread in threading.enumerate()
     )
-    sample["qt_widgets_alive"] = len(QApplication.allWidgets())
+    widgets = QApplication.allWidgets()
+    sample["qt_widgets_alive"] = len(widgets)
+    sample["qt_widget_classes"] = dict(
+        Counter(type(widget).__name__ for widget in widgets).most_common(15)
+    )
     stages.append(sample)
     return sample
 

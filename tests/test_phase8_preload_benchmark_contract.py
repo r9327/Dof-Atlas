@@ -35,3 +35,26 @@ def test_preload_workflow_enforces_phase8_memory_budget() -> None:
     assert "rss_after_preload - startup_rss > 20.0" in source
     assert "130.00 MB" not in source
     assert "+60.00 MB" not in source
+
+
+import unittest
+
+
+class ComparablePreloadCacheIsolationTests(unittest.TestCase):
+    def test_base_and_candidate_reset_generated_caches_independently(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        block = workflow[
+            workflow.index("      - name: Measure base and candidate on the same runner"):
+            workflow.index("      - name: Validate and compare benchmark evidence")
+        ]
+        base = block.index('git checkout --force "$env:BASE_SHA"')
+        candidate = block.index('git checkout --force "$env:CANDIDATE_SHA"')
+        resets = [
+            i for i in range(len(block))
+            if block.startswith('Remove-Item -LiteralPath $cacheRoot', i)
+        ]
+        self.assertEqual(len(resets), 2)
+        self.assertLess(base, resets[0])
+        self.assertLess(resets[0], candidate)
+        self.assertLess(candidate, resets[1])
+        self.assertEqual(block.count('$cacheRoot = ".cache/dofus_atlas"'), 1)

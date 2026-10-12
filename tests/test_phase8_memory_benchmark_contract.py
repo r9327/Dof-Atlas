@@ -46,6 +46,8 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "peak_tree_rss_mb" in source
     assert '"python_threads_alive"' in source
     assert '"qt_widgets_alive"' in source
+    assert '"qt_widget_classes"' in source
+    assert '"warmup_processes"' in source
     assert "QApplication.allWidgets()" in source
     assert "achievements_retained_tree_delta_mb" in source
     assert "guide_retained_tree_delta_mb" in source
@@ -66,6 +68,7 @@ class GuideHomeStabilizationContractTests(unittest.TestCase):
         self.assertLess(rss, threads)
         self.assertLess(rss, widgets)
         self.assertIn("QApplication.allWidgets()", stage_capture)
+        self.assertIn('"qt_widget_classes"', stage_capture)
 
     def test_repeated_real_navigation_retention_is_measured(self) -> None:
         source = BENCHMARK.read_text(encoding="utf-8")
