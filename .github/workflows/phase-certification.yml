@@ -81,8 +81,8 @@ jobs:
         id: route
         run: |
           $forced = @()
-          if ("${{ github.event_name }}" -ne "pull_request") {
-            # Main pushes and explicit manual phase certification stay FULL.
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            # Explicit manual phase certification remains exhaustive; main pushes use Doctor.
             $forced += "--force-full"
           }
           & python -X faulthandler -m tools.phase_adaptive_gate decide `
