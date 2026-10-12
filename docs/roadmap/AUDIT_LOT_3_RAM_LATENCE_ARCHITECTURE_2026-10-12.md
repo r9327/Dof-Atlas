@@ -2,6 +2,15 @@
 
 Statut : **LOT 1 ET LOT 2 FUSIONNÉS — L3.1 INSTRUMENTATION ÉTENDUE — NON CERTIFIÉ**.
 
+## État de livraison et protocole exact-SHA
+
+- **Code livré dans #151 :** checkpoints RAM Guide stabilisée (maintien des budgets historiques), compteurs de widgets Qt et threads Python, **deux cycles réels** Quêtes → Home / Succès → Home / Guide détaillé → Home après Équipement, delta RSS de rétention et tests `unittest` qui exigent cette instrumentation. Le contrôle de chargement Guide attend maintenant `_runtime_ready` avant de compter la fiche comme affichée.
+- **Validations du précédent HEAD `7a47643a` :** AI Context, Doctor FAST, Graphify Focused et Public PR CI `PASS` ; mémoire/preload/phase `SKIPPED`, donc **NOT_RUN**, pas `PASS`. Les vérifications du SHA final sont indépendantes.
+- **Graphify complet du `main` certifié** : run [38286442745](https://github.com/r9327/Dof-Atlas/actions/runs/38286442745), exact SHA `617a6975` ; 12 475 nœuds, 36 120 liens, 886 fichiers Python tracés, 0 fichier Python suivi manquant, 0 inversion runtime→tools déclarée. Graphe architectural de référence **non exact-SHA pour #151**, utilisable pour investigation seulement, **pas** comme preuve de suppression de code.
+- **Optimisation existante #134** : exports lazy de 42 symboles, 19 sous-modules Qt différés. Les benchmarks anciens du candidat sont verts mais sa [Phase Certification #38088747588](https://github.com/r9327/Dof-Atlas/actions/runs/38088747588) était `FAIL` ; **aucun transfert/fusion dans #151** avant certification compatible du code, et aucun gain RAM sur le SHA actuel n'est allégué. #134 conserve son propre propriétaire.
+- **Performance Succès** : le chemin canonique `app/modules/encyclopedia/tools/benchmark_guides_performance.py::first_achievement_detail` expose déjà `first_achievement_detail_ms` et `first_achievement_detail_max_ui_block_ms`. Le benchmark `tools/benchmark_phase8_preload.py::measure_deep_first_content` chronomètre aussi `achievement_detail_ms` dans une navigation réelle. Réutiliser ces outils pour le comparatif Windows avant/après.
+- **Mesures restantes avant statut CERTIFIED** : résultat Phase 8 RAM, Phase 8 Preload, preuve d'accès Succès froid/chaud, Doctor Windows UI/lifecycle et Phase Certification FULL sur **l'exact même HEAD final**. Des résultats `skipped`, `not_run` ou historiques ne satisfont pas le contrat. Ne relever aucun budget pour accélérer la fusion.
+
 ## Reprise sur main certifié (2026-10-12)
 
 - Lot 1 #152 fusionné, Lot 2 #150 fusionné et certifié : base canonique `617a69752805c5ed047105132a189e319d0db800`. La PR #151 a été mise à jour par merge conservateur [390c7539](https://github.com/r9327/Dof-Atlas/commit/390c7539f438917c5f2ec2e1df6924b7395167fd), sans écrasement ni suppression des précédents travaux ; `main...lot3` était alors uniquement en avance de 7 commits, 0 retard.
