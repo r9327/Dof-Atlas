@@ -165,9 +165,13 @@ def stage_order_evidence(stage: dict[str, Any], prerequisite: str, dependent: st
     dep_index: int | None = None
     for index, line in enumerate(lines):
         key = quest_key(line)
-        if pre_index is None and pre_key and pre_key in key:
+        # normalize_key joins whole words with underscores. A plain substring
+        # search confuses e.g. "Quête A" with "Quête Aventure" and invents a
+        # same-stage order proof. Match whole normalized token sequences only.
+        tokenized = f"_{key}_"
+        if pre_index is None and pre_key and f"_{pre_key}_" in tokenized:
             pre_index = index
-        if dep_index is None and dep_key and dep_key in key:
+        if dep_index is None and dep_key and f"_{dep_key}_" in tokenized:
             dep_index = index
 
     demonstrated = pre_index is not None and dep_index is not None and pre_index < dep_index
