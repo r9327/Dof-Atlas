@@ -174,7 +174,14 @@ class QuestDetails:
 
     def info(self):
         with self._lock:
-            return {"records": len(self._records), "limit": self.limit, "loads": self.loads, "hits": self.hits}
+            return {
+                "records": len(self._records),
+                "limit": self.limit,
+                "loads": self.loads,
+                "hits": self.hits,
+                # Diagnostic only: the same rich-detail worker owns these timings.
+                "last_source_phases_ms": dict(getattr(self._sources, "last_detail_phase_ms", {})),
+            }
 
     def search_documents(self, quest_ids):
         """Build the existing rich search index only after a real search request."""

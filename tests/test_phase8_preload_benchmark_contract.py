@@ -105,3 +105,17 @@ class DeepQuestTimingContractTests(unittest.TestCase):
             block.index("quest_navigation_call_ms = milliseconds(quest_navigation_started)"),
             block.index('label="first rendered Quest detail"'),
         )
+
+
+class QuestSourcePhaseProfilingContractTests(unittest.TestCase):
+    def test_first_real_quest_detail_exposes_source_compiler_diagnostics(self) -> None:
+        source = BENCHMARK.read_text(encoding="utf-8")
+        self.assertIn('"source_compile_phases": quest_source_phases_ms', source)
+        self.assertIn('label="first rendered Quest detail"', source)
+        self.assertIn('quest_detail_ms = milliseconds(started)', source)
+        compiler = (ROOT / "app" / "quest_catalog.py").read_text(encoding="utf-8")
+        for name in (
+            "source_mapping_setup", "image_index_and_xp", "global_names_and_links",
+            "objective_lookup", "rich_quest_steps", "enrichment",
+        ):
+            self.assertIn(f'record_phase("{name}")', compiler)

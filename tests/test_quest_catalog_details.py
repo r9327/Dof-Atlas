@@ -111,6 +111,19 @@ class QuestDetailsTests(unittest.TestCase):
                 reopened_details._sources._objectives_by_step[10], [40, 41]
             )
 
+    def test_detail_cache_profile_exposes_source_phases_without_loading(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            catalog = self.build(Path(tmp))
+            details = catalog.quests[0]._details
+            self.assertEqual(catalog.detail_cache_info()["last_source_phases_ms"], {})
+            details._sources.last_detail_phase_ms = {"objective_lookup": 9.5}
+            self.assertEqual(
+                catalog.detail_cache_info()["last_source_phases_ms"],
+                {"objective_lookup": 9.5},
+            )
+            # No real detail, source traversal, or cache warmup is triggered.
+            self.assertEqual(catalog.detail_cache_info()["loads"], 0)
+
     def test_runtime_details_reuse_preload_source_offset_namespace(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -278,6 +278,13 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
     )
     quest_post_navigation_wait_ms = milliseconds(quest_render_wait_started)
     quest_detail_ms = milliseconds(started)
+    # Read existing worker timings after the real detail is ready; never
+    # prewarm the source or change the user-facing readiness condition.
+    detail_cache_info = getattr(page.quest_provider.get_catalog(), "detail_cache_info", None)
+    quest_source_phases_ms = (
+        dict(detail_cache_info().get("last_source_phases_ms") or {})
+        if callable(detail_cache_info) else {}
+    )
 
     # Guide: requesting a specific Guide opens the richer detail view,
     # NOT merely the lazy catalog tab. Data selection is inside the timer.
@@ -350,6 +357,7 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
             "catalogue_lookup": quest_catalogue_lookup_ms,
             "navigation_call": quest_navigation_call_ms,
             "post_navigation_wait": quest_post_navigation_wait_ms,
+            "source_compile_phases": quest_source_phases_ms,
         },
         "guide_detail_ms": guide_detail_ms,
         "achievement_detail_ms": achievement_detail_ms,
