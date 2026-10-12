@@ -75,6 +75,38 @@ class QuestDetailsTests(unittest.TestCase):
             self.assertEqual(evidence["combats"][0]["monster"], "Monstre compact")
             self.assertEqual(evidence["combats"][0]["objective_id"], 41)
 
+            # The Guide indexer already read all objectives during preload.
+            # Cold Quest details must reuse that signed SQLite step lookup,
+            # not iterate through the whole source a second time.
+            details = catalog.by_id[1]._details
+            self.assertIsNone(details._sources._objectives_by_step)
+            with patch.object(QuestCatalog, "_load_source", side_effect=self.compile):
+                catalog.get_detail(1)
+            self.assertEqual(
+                details._sources._objectives_by_step[10], [40, 41]
+            )
+            rows = details._sources.rows(root / "quest_objectives.json")
+            with patch.object(
+                rows,
+                "items",
+                side_effect=AssertionError("unexpected full objective scan"),
+            ):
+                selected = list(
+                    details._sources.objectives_for_steps(
+                        root / "quest_objectives.json", {10}
+                    )
+                )
+            self.assertEqual([row["id"] for row in selected], [40, 41])
+
+            # Reopening a signed cache must keep the same fast path.
+            reopened = load_lazy_catalog(root, cache_root=cache_root)
+            reopened_details = reopened.by_id[1]._details
+            with patch.object(QuestCatalog, "_load_source", side_effect=self.compile):
+                reopened.get_detail(1)
+            self.assertEqual(
+                reopened_details._sources._objectives_by_step[10], [40, 41]
+            )
+
     def test_runtime_details_reuse_preload_source_offset_namespace(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
