@@ -6,7 +6,7 @@ from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import GuideUltimeManualRuntimeService
-from tools.audit_guide_ultime_manual_prerequisites import catalog_unavailable_report
+from tools.audit_guide_ultime_manual_prerequisites import catalog_unavailable_report, stage_order_evidence
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +28,39 @@ class GuideUltimeManualPrerequisiteTests(unittest.TestCase):
     @staticmethod
     def _row_names(rows: list[dict]) -> list[str]:
         return [str(row.get("name") or row.get("requirement") or "") for row in rows]
+
+    def test_source_order_ignores_meta_mentions_of_dependent_quest(self):
+        stage = {
+            "preparation": [{"name": "Clef", "for": "Quête B"}],
+            "take": [],
+            "route": [
+                {"do": "Terminer Quête A."},
+                {"do": "Puis prendre Quête B."},
+            ],
+            "hard_exit": ["Quête A terminée", "Quête B terminée"],
+        }
+        proof = stage_order_evidence(stage, "Quête A", "Quête B")
+        self.assertTrue(proof["demonstrated"])
+        self.assertEqual(proof["prerequisite_line_index"], 0)
+        self.assertEqual(proof["dependent_line_index"], 1)
+        self.assertEqual(proof["proof_scope"], "PLAYER_ACTION_FIELDS_ONLY")
+
+    def test_meta_only_mentions_never_prove_completed_prerequisite(self):
+        stage = {
+            "preparation": [{"for": "Quête A"}],
+            "route": [{"do": "Prendre Quête B."}],
+            "hard_exit": ["Quête A terminée"],
+        }
+        proof = stage_order_evidence(stage, "Quête A", "Quête B")
+        self.assertFalse(proof["demonstrated"])
+        self.assertIsNone(proof["prerequisite_line_index"])
+        self.assertEqual(proof["dependent_line_index"], 0)
+
+    def test_same_instruction_line_does_not_invent_order_proof(self):
+        stage = {"route": [{"do": "Faire Quête A puis Quête B."}]}
+        proof = stage_order_evidence(stage, "Quête A", "Quête B")
+        self.assertFalse(proof["demonstrated"])
+        self.assertEqual(proof["prerequisite_line_index"], proof["dependent_line_index"])
 
     def test_prerequisites_and_preparation_render_before_travel(self):
         service = self._bare_service()
