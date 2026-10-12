@@ -503,6 +503,11 @@ class JsonSourceMapping(Mapping):
             if self._stream is not None:
                 self._close_stream()
                 self._stream = None
+            # A completed Quest detail is already retained as a bounded rich
+            # record (and stored in SQLite). Keeping its decoded source rows
+            # too duplicates memory across the Guide/Quest/Home lifecycle.
+            # Preserve byte-offset indexes so subsequent details stay fast.
+            self._cache.clear()
 
 
 class QuestSources:

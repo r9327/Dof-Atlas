@@ -45,6 +45,34 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 sources.close()
 
+    def test_completed_source_read_drops_decoded_rows_but_reuses_offsets(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            path = root / "quests_enriched.json"
+            payload = {"quests": {
+                "18": {"text": "Détails " + "longs " * 10000, "steps": [1, 2, 3]},
+                "19": {"text": "Deuxième quête", "steps": [4]},
+            }}
+            path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            sources = QuestSources(root / "cache")
+            mapping = sources.mapping(path, "quests")
+            try:
+                before = mapping["18"]
+                offsets = mapping._offsets
+                self.assertEqual(len(mapping._cache), 1)
+                sources.close()
+                self.assertEqual(len(mapping._cache), 0)
+                self.assertIs(mapping._offsets, offsets)
+                self.assertIsNone(mapping._stream)
+                self.assertEqual(mapping["18"], before)
+                self.assertEqual(mapping["19"], payload["quests"]["19"])
+                self.assertEqual(len(mapping._cache), 2)
+                sources.close()
+                self.assertEqual(len(mapping._cache), 0)
+                self.assertIs(mapping._offsets, offsets)
+            finally:
+                sources.close()
+
     def test_primed_objective_ids_still_require_valid_canonical_source(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
