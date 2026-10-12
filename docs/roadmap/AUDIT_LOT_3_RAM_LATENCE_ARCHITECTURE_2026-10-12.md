@@ -1,5 +1,13 @@
 # Lot 3 — RAM, latence, lifecycle et architecture prouvée
 
+## L3.3 — Retour sûr après régression Guide (2026-10-12)
+
+- **Source toujours monolithique** : `data/encyclopedia/quests/quests_enriched.json` mesure **72 317 050 octets**. Les index de chargement et caches ne correspondent pas à un sharding physique.
+- **Régression Windows prouvée** : [Phase 8 Preload #38303963825](https://github.com/r9327/Dof-Atlas/actions/runs/38303963825), Quêtes `25 790,67 → 5 552,30 ms`, mais Guide `1 857,41 → 275 926,88 ms` : `NET_REGRESSION` malgré la baisse Quêtes. La répétition de balayages de JSON par le chemin sélectif est le suspect prioritaire ; ne pas la traiter comme un résultat acceptable.
+- **Action** : revert limité de l'accès sélectif à l'enrichissement, du scanner modifié et de ses tests spécifiques vers la version `d6237a11cf1b` précédemment validée. Conserver les gains Succès et l'observabilité des phases Quêtes.
+- **Étape ultérieure** : comparer le vrai découpage de données et/ou un index d'offsets rapide réutilisable, avec mêmes détails, même ID et mesure complète Guide/Succès/Quêtes, avant une nouvelle proposition.
+
+
 ## L3.3 — Suppression du deuxième balayage des objectifs Quêtes (2026-10-12)
 
 - **Baseline comparée, preuve Windows** : [run 38297635968](https://github.com/r9327/Dof-Atlas/actions/runs/38297635968), même run Windows, même Quest ID `18` et caches froids : détail Quête `33 179,43` ms (`main`) → `35 920,63` ms (candidat). Décomposition candidat : `tab_ready=42,79`, `catalogue_lookup=1,33`, `navigation_call=1,80`, **`post_navigation_wait=35 874,71` ms**. Le délai est donc côté chargement documentaire asynchrone, pas dans la navigation UI ; gain Quête **non prouvé** à ce stade.

@@ -56,48 +56,6 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 sources.close()
 
-    def test_selected_enrichment_avoids_full_offsets_and_nested_key_collision(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            path = root / "quests_enriched.json"
-            # The requested key also appears deep inside an earlier record.
-            # Only the direct member of "quests" is a real Quest enrichment.
-            source = {"quests": {
-                "1": {"solution_blocks": [{"other": {"18": {"source": "wrong"}}}]},
-                "18": {"source": "correct", "solution_steps": [{"title": 'Test "quoted"'}]},
-                "19": {"source": "later"},
-            }}
-            path.write_text(json.dumps(source, ensure_ascii=False), encoding="utf-8")
-            sources = QuestSources(root / "cache")
-            try:
-                mapping = sources.mapping(path, "quests")
-                self.assertEqual(
-                    mapping.selected_values({"18"}),
-                    {"18": source["quests"]["18"]},
-                )
-                # Selected lookup does not materialize thousands of offsets.
-                self.assertIsNone(mapping._offsets)
-                # Ordinary indexed reads continue to work afterwards.
-                self.assertEqual(mapping["1"], source["quests"]["1"])
-                self.assertEqual(mapping["19"], source["quests"]["19"])
-            finally:
-                sources.close()
-
-    def test_missing_optional_selected_enrichment_remains_empty_and_visible(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            sources = QuestSources(root / "cache")
-            try:
-                with self.assertLogs("dofus_atlas_pyside", level="WARNING") as logs:
-                    self.assertEqual(
-                        sources.mapping(root / "quests_enriched.json", "quests")
-                        .selected_values({"18"}),
-                        {},
-                    )
-                self.assertTrue(any("optionnelle" in line for line in logs.output))
-            finally:
-                sources.close()
-
     def test_optional_enrichment_fallback_is_logged_and_empty(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
