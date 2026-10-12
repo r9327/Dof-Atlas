@@ -618,11 +618,22 @@ def remediation_plan(
                             else "INVESTIGATE_NO_CODE_CHANGE_YET")
         task["next_proof"] = next_proofs[task["kind"]]
         task["code_change_authorized"] = False
+        # A static graph observation is real, but it is NOT a confirmed defect.
+        # Keep this binary field about a *proven contract violation*, never
+        # treat False as proof that an untested runtime path is safe.
+        task["confirmed_defect"] = task["decision"] == "FIX_CONFIRMED_CONTRACT_VIOLATION"
+        task["actionable"] = task["confirmed_defect"]
     priority = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
     tasks.sort(key=lambda task: (priority[task["priority"]], task["kind"], str(task["paths"])))
+    confirmed = [task for task in tasks if task["confirmed_defect"]]
+    review_only = [task for task in tasks if not task["confirmed_defect"]]
     return {
         "schema_version": 1, "status": "REVIEW" if tasks else "PASS",
         "tasks": tasks[:MAX_REVIEW], "task_count": len(tasks),
+        "confirmed_findings": confirmed[:MAX_REVIEW], "confirmed_count": len(confirmed),
+        "review_only_count": len(review_only),
+        "actionable": bool(confirmed),
+        "binary_verdict_scope": "confirmed contract violation (not proof of general runtime safety)",
         "truncated": len(tasks) > MAX_REVIEW,
         "actionability": {
             "confirmed_fix_candidates": sum(t["decision"] == "FIX_CONFIRMED_CONTRACT_VIOLATION" for t in tasks),
