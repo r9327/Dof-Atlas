@@ -26,6 +26,7 @@ def test_memory_benchmark_keeps_required_stage_labels() -> None:
         "after_achievements_home",
         "guide_active",
         "after_guide_home",
+        "after_guide_home_stabilized",
         "craft_active",
         "after_craft_home",
         "before_equipment_home",
@@ -47,6 +48,24 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "craft_retained_tree_delta_mb" in source
     assert "equipment_tree_delta_active_mb" in source
     assert "equipment_tree_delta_stabilized_mb" in source
+
+
+def test_memory_benchmark_observes_stabilized_guide_home_separately() -> None:
+    source = BENCHMARK.read_text(encoding="utf-8")
+    flow = source[source.index('sampler.set_phase("guide_catalogue_open")'):]
+    first_home = flow.index('after_guide_home = _capture(')
+    stable = flow.index('"after_guide_home_stabilized"')
+    next_module = flow.index('sampler.set_phase("craft_open")')
+    assert first_home < stable < next_module
+    assert 'sampler.set_phase("guide_home_stabilized")' in flow
+    # Existing enforcement is intentionally untouched; new measurements
+    # explain whether the Guide cost persisted after settling.
+    for metric in (
+        "guide_retained_tree_delta_stabilized_mb",
+        "guide_incremental_retained_tree_delta_mb",
+        "guide_home_stabilization_delta_mb",
+    ):
+        assert f'"{metric}"' in flow
 
 
 def test_memory_benchmark_avoids_sampler_observer_effect_during_external_warmup() -> None:
