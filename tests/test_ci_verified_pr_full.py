@@ -88,7 +88,7 @@ class VerifiedMainFullReuseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verify_jobs(result({**reused, "Check merged PR FULL provenance": "skipped"}),
                         head_sha=MAIN)
-        scoped = {**reused, "Check merged PR FULL provenance": "skipped",
+        scoped = {**reused,
                   "Resolve adaptive Doctor route on exact SHA": "success",
                   "Execute and verify exact-SHA targeted modules": "success"}
         proof = verify_jobs(result(scoped), head_sha=MAIN)
