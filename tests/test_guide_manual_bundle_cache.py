@@ -77,11 +77,11 @@ class GuideManualBundleCacheTests(unittest.TestCase):
             manual_dir.mkdir()
             (manual_dir / "manifest_v1.json").write_text("{}", encoding="utf-8")
             sidecar = root / "compact.json"
-            encoded_sheet = b"\\x00\\x01\\xf0\\x9f\\x90\\x89" * 4096
+            encoded_sheet = bytes.fromhex("0001f09f9089") * 4096
             card = {
                 "manual_stage_id": "test",
                 "_manual_stage_payload": encoded_sheet,
-                "_manual_chapter_preparation_payload": bytearray(b"\\x02\\x03"),
+                "_manual_chapter_preparation_payload": bytearray(bytes.fromhex("0203")),
                 "nested": [{"id": 18, "quests": (18, 19)}],
             }
             service = SimpleNamespace(
