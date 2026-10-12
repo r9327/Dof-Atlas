@@ -5,8 +5,29 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.atlas_doctor_lib.doctor_graph_ui import compact_graph, render_html
+
+
+def _check_generated_javascript(node: str, path: Path) -> subprocess.CompletedProcess[str]:
+    """Use Node's real parser; retry one transient Windows process timeout.
+
+    Keep the parser's nonzero exit status authoritative. A repeat timeout
+    remains an error; no JS syntax failure is converted to a PASS.
+    """
+    command = [node, "--check", str(path)]
+    for attempt in range(2):
+        try:
+            return subprocess.run(
+                command, text=True, stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                timeout=25, check=False,
+            )
+        except subprocess.TimeoutExpired:
+            if attempt:
+                raise
+    raise AssertionError("Node.js syntax verifier never completed")
 
 
 class DoctorGraphUiTests(unittest.TestCase):
@@ -324,6 +345,31 @@ class DoctorGraphUiTests(unittest.TestCase):
         self.assertIn("relation.addEventListener('change',()=>{rebuildPageEdges()", page)
         self.assertNotIn("if(visible.length<=3500){for(const e of data.edges)", page)
 
+    def test_node_syntax_timeout_retries_once_without_waiving_parser_failures(self):
+        node, path = "node.exe", Path("generated.js")
+        command = [node, "--check", str(path)]
+        timeout = subprocess.TimeoutExpired(command, 25)
+        valid = subprocess.CompletedProcess(command, returncode=0, stderr="")
+        invalid = subprocess.CompletedProcess(command, returncode=1, stderr="SyntaxError")
+
+        with patch.object(subprocess, "run", side_effect=[timeout, valid]) as run:
+            self.assertEqual(_check_generated_javascript(node, path).returncode, 0)
+            self.assertEqual(run.call_count, 2)
+            self.assertEqual(run.call_args_list[0], run.call_args_list[1])
+            self.assertEqual(run.call_args.kwargs["timeout"], 25)
+            self.assertIs(run.call_args.kwargs["stdin"], subprocess.DEVNULL)
+            self.assertIs(run.call_args.kwargs["stdout"], subprocess.DEVNULL)
+            self.assertIs(run.call_args.kwargs["stderr"], subprocess.PIPE)
+
+        with patch.object(subprocess, "run", return_value=invalid) as run:
+            self.assertEqual(_check_generated_javascript(node, path).returncode, 1)
+            run.assert_called_once()
+
+        with patch.object(subprocess, "run", side_effect=[timeout, timeout]) as run:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                _check_generated_javascript(node, path)
+            self.assertEqual(run.call_count, 2)
+
     def test_generated_interactive_javascript_passes_node_syntax_check(self):
         node = shutil.which("node")
         if node is None:
@@ -337,10 +383,7 @@ class DoctorGraphUiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="atlas-doctor-js-check-") as folder:
             path = Path(folder) / "doctor_graph_generated.js"
             path.write_text(script, encoding="utf-8")
-            result = subprocess.run(
-                [node, "--check", str(path)], text=True,
-                capture_output=True, timeout=25, check=False,
-            )
+            result = _check_generated_javascript(node, path)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_community_navigation_filters_global_nodes_without_deleting_them(self):
