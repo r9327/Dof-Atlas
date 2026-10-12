@@ -4,12 +4,20 @@ Statut : **EN DÉVELOPPEMENT PARTIEL — NON CERTIFIÉ**. Les cases de fin de lo
 Base de rédaction `f6deb4a4fc8828ab9fc9372adc8653842303a7e9`. Dépendance de clôture : **SATISFAITE** — Lot 1 #152 fusionné/certifié ; les propres critères de sortie du lot 2 restent obligatoires.
 PR #148 et #149 sont déjà fusionnées ; réutiliser leurs détecteurs plutôt que les remplacer.
 
+## Pré-certification — état prouvé sur `e37cdbb8`
+
+- PR #150 devenue *ready for review*, `main` aligné (`70c954d5`), sans conflit. Titre normalisé au préfixe `Phase ` exigé par le gate ; nouvelle synchronisation nécessaire pour le déclencher.
+- Sur `e37cdbb89932283dc822e18f9d3c099cad60cdda` : Graphify Focused, AI Context, Doctor Adaptive, Public PR CI, Graphify Code Map et Scoped PR Feedback **PASS**. Phase Certification n'avait pas encore été exécutée.
+- [Doctor Adaptive 38280666049](https://github.com/r9327/Dof-Atlas/actions/runs/38280666049), job Windows 114917110325 : les cinq groupes `guide_quest_succes`, `home_qt_lifecycle`, `progress_persistence`, `startup_preload`, `guide_full_fixture_budget` **PASS**, verdict `CONTRACTS_PASS_METRICS_NOT_RUN`. Il ne prouve ni capture UI réelle ni mesure RAM.
+- Les 18 témoins Doctor correspondant à `BEHAVIOR_ANCHORS` sont documentés sur `0738037c` via Graphify Focused 38279630168 ; l'inventaire reste `UNVERIFIED` tant qu'aucun passeport machine exact-SHA n'a certifié leurs comportements en dehors des témoins.
+- Tris des 18 remarques de formulation initiales documentés dans `docs/roadmap/LOT2_GUIDE_REVIEW_REGISTER_2026-10-12.md`. Ces remarques sont `UNVERIFIED`, pas des anomalies confirmées ni des faux positifs démontrés ; **ne pas déverrouiller les routes canoniques sans preuve métier**.
+
 ## Journal d'implémentation (12/10/2026)
 
 - `ed179f62` — Correction du rapport `isolate-triage` : `kind=doctor_isolate_triage` stable, paramètre `candidate_kind` séparé ; chaque nœud candidat indique `proof_status=UNVERIFIED`, `proven_defect=false`, `disposition=INVESTIGATE_ONLY`, avec signal de complétude de la recherche de consommateurs. Tests dédiés ajoutés.
 - `36ae9fd4` — Matrice `capabilities` : ajout des numéros de ligne des définitions et des appels AST pour les 18 capacités et étiquetage explicite `AST_NAME_ONLY_UNVERIFIED`. Ne constitue **pas** une preuve de branchement dynamique ni de comportement correct. Tests dédiés ajoutés.
 - Les contrôles automatiques exact-SHA sont à réexaminer après ce dernier commit. Aucune exécution manuelle des 18 scénarios Doctor ni validation du parcours Windows n'est encore attestée. Ne pas cocher L2.2 ou L2.3.
-- Dépendance maintenue : **Lot 1 (#152) non certifié, pas de merge de #150**.
+- Dépendance levée : **Lot 1 (#152) fusionné et certifié** ; la certification exacte du lot 2 reste obligatoire.
 
 ## Vérifications et preuves nouvelles (12/10/2026)
 
