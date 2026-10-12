@@ -87,6 +87,8 @@ def verify_jobs(jobs_response: dict, *, head_sha: str) -> dict:
     tree_equivalent_pr_full = (
         steps.get("Check merged PR FULL provenance") == "success"
         and steps.get("Run full Atlas phase certification gate") == "skipped"
+        and steps.get("Resolve adaptive Doctor route on exact SHA") == "skipped"
+        and steps.get("Execute and verify exact-SHA targeted modules") == "skipped"
     )
     if tree_equivalent_pr_full:
         proof_steps = ("Verify exact certification checkout",
