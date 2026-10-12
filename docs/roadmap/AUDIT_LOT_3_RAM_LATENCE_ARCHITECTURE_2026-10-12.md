@@ -1,6 +1,15 @@
 # Lot 3 — RAM, latence, lifecycle et architecture prouvée
 
-Statut : **EXÉCUTION ANTICIPÉE — INSTRUMENTATION PARTIELLE POUSSÉE — NON CERTIFIÉ**.
+Statut : **LOT 1 ET LOT 2 FUSIONNÉS — L3.1 INSTRUMENTATION ÉTENDUE — NON CERTIFIÉ**.
+
+## Reprise sur main certifié (2026-10-12)
+
+- Lot 1 #152 fusionné, Lot 2 #150 fusionné et certifié : base canonique `617a69752805c5ed047105132a189e319d0db800`. La PR #151 a été mise à jour par merge conservateur [390c7539](https://github.com/r9327/Dof-Atlas/commit/390c7539f438917c5f2ec2e1df6924b7395167fd), sans écrasement ni suppression des précédents travaux ; `main...lot3` était alors uniquement en avance de 7 commits, 0 retard.
+- L'index AI Context a été régénéré par le même algorithme de fingerprints top-level que `tools.ai_context` (comparaison **octet pour octet** avec le producteur sur l'arbre main précédent), suite à l'échec vrai `STALE/MISSING` du run [38287451384](https://github.com/r9327/Dof-Atlas/actions/runs/38287451384). Correction [f23ab66](https://github.com/r9327/Dof-Atlas/commit/f23ab66be2e49c6b2e962661c0b308dcefc8ab5b) ; [AI Context CI 38287677212](https://github.com/r9327/Dof-Atlas/actions/runs/38287677212) PASS, Doctor FAST et Graphify ciblé PASS sur ce même SHA.
+- Instrumentation additionnelle **L3.1/L3.2** : `python_threads_alive` et `qt_widgets_alive` sur les checkpoints mesurés, **après** la capture RSS (pour éviter la perturbation de l'échantillonnage). Commits [17993adc](https://github.com/r9327/Dof-Atlas/commit/17993adc8a299d32e3e55417cc4f1d1b05ef3da6) et [79890f7c](https://github.com/r9327/Dof-Atlas/commit/79890f7c522e505e563cde1616ce647b81eb9e9f), avec test `unittest` sur l'ordre de capture. Ces compteurs sont des indices de rétention, **pas une preuve de fuite**.
+- **PR #134 observée, non absorbée** : mesure Windows publiée sur SHA antérieur `9a9348b9` : pic process-tree 219,57 Mo (marge 0,43 Mo sous budget 220 Mo), retour Home Guide 94,86 Mo ; cold import package de 245,47 à 4,55 ms dans un essai comparatif. Ces résultats ne décrivent pas le SHA du lot 3 et doivent être revalidés après intégration ; conserver le propriétaire #134 pour éviter une deuxième implémentation des mêmes exports.
+- **Restant** : RUN Windows RAM/preload exact-SHA, mesure à froid du détail Succès, cycles répétés Qt et comparaison sur même environnement ; revue Graphify exact-SHA avant tout refactor structurel. `Phase 8 Memory`, `Phase 8 Preload` et `Phase Certification` SKIPPED sur les runs de développement ne prouvent aucun PASS. Aucun gain produit prétendu à ce stade.
+
 
 ## Journal d'exécution indépendant (2026-10-12)
 
