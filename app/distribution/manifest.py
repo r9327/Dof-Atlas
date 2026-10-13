@@ -114,6 +114,11 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
         if total > MAX_TOTAL_SIZE:
             raise ManifestError("Payload too large")
         files.append(ReleaseFile(path, size, valid_sha(item["sha256"])))
+    normalized_paths = {f.path.casefold() for f in files}
+    for candidate in normalized_paths:
+        components = candidate.split("/")
+        if any("/".join(components[:i]) in normalized_paths for i in range(1, len(components))):
+            raise ManifestError("File/directory path collision")
     entrypoint = valid_path(doc["entrypoint"])
     if entrypoint.casefold() not in seen or not entrypoint.casefold().endswith(".exe"):
         raise ManifestError("Missing executable entrypoint")

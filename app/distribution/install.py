@@ -17,6 +17,11 @@ from .release_client import UpdateError
 
 Progress = Callable[[int, int], None]
 _STATE_NAME = "state.json"
+_SLOT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
+
+
+def _valid_slot(value: object) -> bool:
+    return isinstance(value, str) and bool(_SLOT.fullmatch(value)) and not value.endswith(".")
 
 
 def read_state(root: Path) -> dict:
@@ -31,8 +36,7 @@ def read_state(root: Path) -> dict:
         raise UpdateError("Invalid installation state")
     for key in ("active", "previous"):
         value = doc.get(key)
-        if value is not None and (not isinstance(value, str) or
-                                  not re.fullmatch(r"[A-Za-z0-9._-]{1,120}", value)):
+        if value is not None and (not _valid_slot(value)):
             raise UpdateError("Invalid release slot")
     return doc
 
@@ -52,7 +56,7 @@ def _write_state(root: Path, state: dict) -> None:
 
 
 def slot_path(root: Path, slot: str) -> Path:
-    if not isinstance(slot, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,120}", slot):
+    if not _valid_slot(slot):
         raise UpdateError("Invalid slot")
     return root / "versions" / slot
 
@@ -140,6 +144,8 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
 
     Returns False if this exact version is already installed/active.
     """
+    if manifest.schema_version != 1:
+        raise UpdateError("Unsupported data schema; updater upgrade required")
     state = read_state(root)
     slot = f"{manifest.app_version}-{manifest.source_sha[:12]}".replace("+", "_")
     same_active = state.get("active") == slot
