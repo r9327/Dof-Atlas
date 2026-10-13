@@ -10,7 +10,8 @@ from functools import lru_cache
 from heapq import heapify, heappop, heappush
 from typing import Any, Iterable
 
-from app.constants import DATA_DIR
+from app.constants import DATA_DIR, ROOT_DIR
+from app.quest_source_index import QuestSources
 from app.modules.encyclopedia.achievement_catalog_policy import (
     ALIGNMENT_ORDER_QUEST_IDS as ORDER_QUEST_IDS,
 )
@@ -383,23 +384,30 @@ class GuidePathResolver:
     def _load_enriched_prerequisites(self) -> None:
         self.enriched_quest_prerequisites: dict[int, set[int]] = defaultdict(set)
         path = DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json"
+        # Reuse the byte-offset index already shared by Quest details and preload.
+        # A Guide resolver needs only prerequisite strings, never the 72 MB
+        # documentary payload nor a retained collection of enriched rows.
+        cache_root = (
+            ROOT_DIR / ".cache" / "dofus_atlas" / "quest_details_v1" / "source_offsets"
+        )
+        sources = QuestSources(cache_root)
         try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+            rows = sources.mapping(path, "quests", required=False)
+            for raw_id, row in rows.items():
+                if not isinstance(row, dict):
+                    continue
+                qid = safe_int(raw_id)
+                if qid is None or qid not in self.quest_by_id:
+                    continue
+                for value in row.get("prerequisites", []) or []:
+                    self.enriched_quest_prerequisites[int(qid)].update(
+                        self._quest_ids_from_prerequisite_text(str(value or ""))
+                    )
+        except (OSError, ValueError, TypeError):
+            # Enrichment is optional; local quest prerequisites remain canonical.
             return
-        rows = payload.get("quests", {}) if isinstance(payload, dict) else {}
-        if not isinstance(rows, dict):
-            return
-        for raw_id, row in rows.items():
-            if not isinstance(row, dict):
-                continue
-            qid = safe_int(raw_id)
-            if qid is None or qid not in self.quest_by_id:
-                continue
-            for value in row.get("prerequisites", []) or []:
-                self.enriched_quest_prerequisites[int(qid)].update(
-                    self._quest_ids_from_prerequisite_text(str(value or ""))
-                )
+        finally:
+            sources.close()
 
     def _quest_ids_from_prerequisite_text(self, text: str) -> set[int]:
         # Repeated prerequisites occur across Dofus guides and expanded routes.
