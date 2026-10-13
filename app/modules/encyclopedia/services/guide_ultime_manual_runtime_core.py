@@ -4,6 +4,7 @@ import copy
 import json
 import re
 import zlib
+import weakref
 from pathlib import Path
 from threading import RLock
 from typing import Any
@@ -35,11 +36,13 @@ def _manual_bundle_catalog_signature(service: Any) -> tuple[object, ...]:
     if callable(getter):
         try:
             catalog = getter()
-            hash(catalog)
-        except (Exception, TypeError):
-            catalog = None
-        if catalog is not None:
-            return ("catalog", catalog)
+            catalog_ref = weakref.ref(catalog)
+            hash(catalog_ref)
+        except Exception:
+            catalog_ref = None
+        if catalog_ref is not None:
+            # A global cache key must not own a heavy Quest catalogue after Home.
+            return ("catalog", catalog_ref)
     mapping = getattr(service, "_quest_name_to_id", {})
     if isinstance(mapping, dict):
         return (

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+import weakref
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -69,6 +70,35 @@ class GuideManualBundleCacheTests(unittest.TestCase):
 
         first.cards[0]["rows"].append(999)
         self.assertEqual(second.cards[0]["rows"], [1])
+
+    def test_cache_key_does_not_keep_quest_catalog_alive(self) -> None:
+        class Catalog:
+            pass
+
+        class Provider:
+            def __init__(self, catalog):
+                self.catalog = catalog
+
+            def get_catalog(self):
+                return self.catalog
+
+        catalog = Catalog()
+        provider = Provider(catalog)
+        service = SimpleNamespace(quest_provider=provider)
+        signature = manual_runtime._manual_bundle_catalog_signature(service)
+        self.assertEqual(signature[0], "catalog")
+        self.assertIs(signature[1](), catalog)
+        self.assertEqual(
+            manual_runtime._manual_bundle_catalog_signature(service), signature
+        )
+
+        # Store the actual signature as a global cache key, then release its
+        # owner: cache reuse must not keep the entire Quest catalogue resident.
+        manual_runtime._MANUAL_BUNDLE_CACHE[("manual", signature)] = {"route": {}}
+        catalog_ref = weakref.ref(catalog)
+        provider.catalog = None
+        del catalog
+        self.assertIsNone(catalog_ref())
 
     def test_compact_route_writer_keeps_exact_bytes_and_nested_payloads(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
