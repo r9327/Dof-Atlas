@@ -1,0 +1,194 @@
+"""Transactional Windows release slots; no modification of running binaries."""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import shutil
+import stat
+import tempfile
+import zipfile
+from pathlib import Path
+from typing import Callable
+
+from .manifest import ManifestError, ReleaseManifest, verify_file, valid_path
+from .release_client import UpdateError
+
+Progress = Callable[[int, int], None]
+_STATE_NAME = "state.json"
+
+
+def read_state(root: Path) -> dict:
+    path = root / _STATE_NAME
+    if not path.exists():
+        return {"active": None, "previous": None, "pending": False}
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as exc:
+        raise UpdateError("Broken installation state") from exc
+    if not isinstance(doc, dict) or type(doc.get("pending")) is not bool:
+        raise UpdateError("Invalid installation state")
+    for key in ("active", "previous"):
+        value = doc.get(key)
+        if value is not None and (not isinstance(value, str) or
+                                  not __import__("re").fullmatch(r"[A-Za-z0-9._-]{1,120}", value)):
+            raise UpdateError("Invalid release slot")
+    return doc
+
+
+def _write_state(root: Path, state: dict) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(prefix=".atlas-state-", dir=root)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(state, stream, sort_keys=True)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(name, root / _STATE_NAME)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
+
+
+def slot_path(root: Path, slot: str) -> Path:
+    if not isinstance(slot, str) or not __import__("re").fullmatch(r"[A-Za-z0-9._-]{1,120}", slot):
+        raise UpdateError("Invalid slot")
+    return root / "versions" / slot
+
+
+def active_executable(root: Path) -> Path | None:
+    doc = read_state(root)
+    slot = doc.get("active")
+    if not slot:
+        return None
+    # entrypoint is committed by the verified installer, never fetched as a URL.
+    relative = doc.get("entrypoint")
+    if not isinstance(relative, str):
+        raise UpdateError("Missing executable path")
+    try:
+        valid_path(relative)
+    except ManifestError as exc:
+        raise UpdateError("Invalid active executable path") from exc
+    result = slot_path(root, slot) / relative
+    if not result.is_file() or result.is_symlink():
+        raise UpdateError("Installed executable missing")
+    return result
+
+
+def rollback_pending(root: Path) -> bool:
+    state = read_state(root)
+    if not state["pending"]:
+        return False
+    old = state.get("previous")
+    if old and slot_path(root, old).is_dir():
+        state.update(active=old, previous=None, pending=False,
+                     entrypoint=state.get("previous_entrypoint", "AtlasApp/AtlasApp.exe"))
+        _write_state(root, state)
+        return True
+    # First install has no earlier known-good version; do not fabricate one.
+    state["pending"] = False
+    _write_state(root, state)
+    return False
+
+
+def mark_healthy(root: Path) -> None:
+    state = read_state(root)
+    if state["pending"]:
+        state["pending"] = False
+        _write_state(root, state)
+
+
+def _validate_archive(archive: zipfile.ZipFile, manifest: ReleaseManifest) -> dict[str, zipfile.ZipInfo]:
+    expected = {f.path: f for f in manifest.files}
+    actual: dict[str, zipfile.ZipInfo] = {}
+    seen: set[str] = set()
+    for info in archive.infolist():
+        if info.is_dir():
+            dirname = info.filename.rstrip("/")
+            # Only directory entries along the expected package tree.
+            if dirname and not any(p.startswith(dirname + "/") for p in expected):
+                raise UpdateError("Unexpected directory in archive")
+            continue
+        try:
+            path = valid_path(info.filename)
+        except ManifestError as exc:
+            raise UpdateError("Unsafe archive path") from exc
+        key = path.casefold()
+        if key in seen or path not in expected:
+            raise UpdateError("Unexpected/duplicate archive entry")
+        seen.add(key)
+        mode = info.external_attr >> 16
+        if stat.S_ISLNK(mode) or (mode and not stat.S_ISREG(mode) and not stat.S_ISDIR(mode)):
+            raise UpdateError("Archive links and device files are forbidden")
+        if info.file_size != expected[path].size or info.flag_bits & 0x1:
+            raise UpdateError("Archive size mismatch or encrypted content")
+        actual[path] = info
+    if set(actual) != set(expected):
+        raise UpdateError("Release archive missing required files")
+    return actual
+
+
+def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
+                    progress: Progress | None = None) -> bool:
+    """Stage, verify every byte, then atomically activate the new version.
+
+    Returns False if this exact version is already installed/active.
+    """
+    state = read_state(root)
+    slot = f"{manifest.app_version}-{manifest.source_sha[:12]}".replace("+", "_")
+    if state.get("active") == slot:
+        return False
+    versions = root / "versions"
+    versions.mkdir(parents=True, exist_ok=True)
+    target = slot_path(root, slot)
+    stage = Path(tempfile.mkdtemp(prefix=".atlas-install-", dir=root))
+    try:
+        with zipfile.ZipFile(archive_path) as package:
+            entries = _validate_archive(package, manifest)
+            total = sum(f.size for f in manifest.files)
+            done = 0
+            for entry in manifest.files:
+                destination = stage / entry.path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                digest = hashlib.sha256()
+                count = 0
+                with package.open(entries[entry.path]) as source, destination.open("xb") as output:
+                    while True:
+                        part = source.read(1024 * 1024)
+                        if not part:
+                            break
+                        count += len(part)
+                        if count > entry.size:
+                            raise UpdateError("Decompressed file exceeds manifest limit")
+                        output.write(part)
+                        digest.update(part)
+                        done += len(part)
+                        if progress:
+                            progress(done, total)
+                if count != entry.size or digest.hexdigest() != entry.sha256:
+                    raise UpdateError("Release file SHA-256 validation failed")
+        if not (stage / manifest.entrypoint).is_file():
+            raise UpdateError("Missing packaged application")
+        if target.exists():
+            # Never overwrite existing version trees in-place.
+            if not target.is_dir() or any(not verify_file(target / e.path, e) for e in manifest.files):
+                raise UpdateError("Conflicting existing installation slot")
+        else:
+            os.replace(stage, target)
+        prior = state.get("active")
+        _write_state(root, {
+            "active": slot, "previous": prior, "pending": True,
+            "entrypoint": manifest.entrypoint,
+            "previous_entrypoint": state.get("entrypoint") if prior else None,
+            "app_version": manifest.app_version,
+            "data_version": manifest.data_version,
+            "schema_version": manifest.schema_version,
+            "source_sha": manifest.source_sha,
+        })
+    except (OSError, zipfile.BadZipFile, RuntimeError) as exc:
+        if isinstance(exc, UpdateError):
+            raise
+        raise UpdateError("Release extraction failed") from exc
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+    return True
