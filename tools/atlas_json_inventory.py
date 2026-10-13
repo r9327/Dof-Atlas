@@ -46,6 +46,36 @@ def _contracts(root: Path) -> dict[str, dict]:
     }
 
 
+def _family(path: str) -> str:
+    """Classify tracked content by its owning subsystem, never by file size."""
+    normalized = path.replace(chr(92), "/")
+    if normalized.startswith("data/encyclopedia/quests/"):
+        return "quests"
+    if normalized.startswith("data/routes/guide_ultime_manual/"):
+        return "guide_manual"
+    if normalized.startswith("data/encyclopedia/guides/"):
+        return "guide_catalog"
+    if normalized.startswith("data/routes/"):
+        return "professions_routes"
+    if normalized.startswith("data/cartography/"):
+        return "cartography"
+    if normalized.startswith("data/network/"):
+        return "protocol_research"
+    if normalized.startswith("data/local/"):
+        return "local_static_data"
+    if normalized.startswith("data/"):
+        return "other_data"
+    if normalized.startswith(".ai/"):
+        return "ai_context"
+    if normalized.startswith(".github/"):
+        return "github_policy"
+    if normalized.startswith("tests/"):
+        return "test_contract"
+    if normalized.startswith("tools/"):
+        return "tool_contract"
+    return "other_tracked_json"
+
+
 def _decision(path: str, size: int, available: bool) -> tuple[str, str]:
     if not available:
         return "REVIEW", "Source absente, symlink ou pointeur Git LFS non matérialisé"
@@ -104,6 +134,7 @@ def audit(root: Path, *, files: list[str] | None = None) -> dict:
         source_contract = contracts.get(relative, {})
         record = {
             "path": relative.replace("\\", "/"),
+            "family": _family(relative),
             "bytes": size,
             "status": decision,
             "reason": reason,
@@ -133,11 +164,21 @@ def audit(root: Path, *, files: list[str] | None = None) -> dict:
         counts[record["status"]] = counts.get(record["status"], 0) + 1
         records.append(record)
 
+    families: dict[str, dict[str, object]] = {}
+    for record in records:
+        family = str(record["family"])
+        group = families.setdefault(family, {"count": 0, "bytes": 0, "decisions": {}})
+        group["count"] += 1
+        group["bytes"] += record["bytes"]
+        decisions = group["decisions"]
+        status = record["status"]
+        decisions[status] = decisions.get(status, 0) + 1
+
     return {
         "schema_version": 1,
         "inventory_method": "git ls-files, local bytes, declared contracts and lexical candidate discovery",
         "notes": [
-            "Tracked JSON only; generated local caches and untracked user state are excluded.",
+            "Tracked JSON only; generated local caches, SQLite stores and untracked user state are excluded.",
             "Consumer text candidates are NOT Graphify or runtime proof.",
             "REVIEW and NOT_MEASURED are not PASS or optimization claims.",
             "No source or user files are modified by the audit.",
@@ -145,6 +186,7 @@ def audit(root: Path, *, files: list[str] | None = None) -> dict:
         "json_count": len(records),
         "total_bytes": sum(item["bytes"] for item in records),
         "decisions": dict(sorted(counts.items())),
+        "families": {name: families[name] for name in sorted(families)},
         "files": records,
     }
 
