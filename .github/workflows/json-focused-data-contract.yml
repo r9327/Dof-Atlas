@@ -71,7 +71,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts/lot4" | Out-Null
-          python -m tools.atlas_json_inventory --output artifacts/lot4/json_inventory.json
+          python -m tools.atlas_json_inventory --include-local --output artifacts/lot4/json_inventory.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m tools.atlas_json_shards --output .cache/dofus_atlas/quests_shards
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
