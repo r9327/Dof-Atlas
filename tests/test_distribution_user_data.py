@@ -26,6 +26,28 @@ class UserDataTests(unittest.TestCase):
             prepare_user_data(executable, user)
             self.assertEqual(dest.read_text(encoding="utf-8"), '{"quest":99}')
 
+    def test_import_legacy_source_tree(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            old_clone = root / "legacy"
+            (old_clone / "data" / "local").mkdir(parents=True)
+            (old_clone / "DOFUS.bat").write_text("@echo off")
+            (old_clone / "data" / "local" / "quest_progress.json").write_text('{"quests":42}')
+            bundle = root / "versions" / "v1" / "AtlasApp"
+            bundle.mkdir(parents=True)
+            exe = bundle / "AtlasApp.exe"
+            exe.write_bytes(b"MZ")
+            user = root / "user"
+            prepare_user_data(exe, user, legacy_root=old_clone)
+            self.assertEqual(
+                (user / "data" / "local" / "quest_progress.json").read_text(),
+                '{"quests":42}')
+            (old_clone / "data" / "local" / "quest_progress.json").write_text('{"quests":0}')
+            prepare_user_data(exe, user, legacy_root=old_clone)
+            self.assertEqual(
+                (user / "data" / "local" / "quest_progress.json").read_text(),
+                '{"quests":42}')
+
     def test_no_symlink_seed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
