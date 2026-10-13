@@ -75,6 +75,25 @@ class AtlasJsonInventoryTests(unittest.TestCase):
                 families["guide_manual"]["decisions"]["ALREADY_OPTIMIZED"], 1
             )
 
+    def test_changed_canonical_source_requires_review(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = "data/encyclopedia/quests/quests_enriched.json"
+            contract = "data/large_file_contracts.json"
+            (root / source).parent.mkdir(parents=True)
+            (root / source).write_text('{"quests":{"1":{"name":"Updated"}}}', encoding="utf-8")
+            (root / contract).write_text(
+                json.dumps({"files": [{"path": source, "role": "canonical_runtime_source",
+                                       "sha256": "0" * 64}]}),
+                encoding="utf-8",
+            )
+            report = audit(root, files=[source, contract])
+            row = next(r for r in report["files"] if r["path"] == source)
+            self.assertEqual(row["status"], "REVIEW")
+            self.assertFalse(row["contract_matches"])
+            self.assertEqual(row["contract_sha256"], "0" * 64)
+            self.assertIn("SHA-256", row["reason"])
+
     def test_bad_json_and_unavailable_lfs_are_not_reported_valid(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
