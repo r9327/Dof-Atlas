@@ -336,6 +336,7 @@ class PeakTreeSampler:
         self.peak_process_rss_mb = 0.0
         self.peak_tree_rss_mb = 0.0
         self.peak_tree_sample: dict[str, Any] = {}
+        self.warmup_worker_seen = False
 
     def set_phase(self, phase: str) -> None:
         with self._lock:
@@ -352,7 +353,16 @@ class PeakTreeSampler:
             sample = memory_snapshot("sample")
             process_rss = float(sample.get("process_rss_mb") or 0.0)
             tree_rss = float(sample.get("tree_rss_mb") or process_rss)
+            external_pid_text = os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip()
+            external_pid = int(external_pid_text) if external_pid_text.isdecimal() else 0
+            warmup_worker_seen = any(
+                int(row.get("pid") or 0) != external_pid
+                and str(row.get("name") or "").lower().startswith("python")
+                for row in sample.get("warmup_processes", ())
+            )
             with self._lock:
+                if warmup_worker_seen:
+                    self.warmup_worker_seen = True
                 phase = self._phase
                 self.peak_process_rss_mb = max(self.peak_process_rss_mb, process_rss)
                 if tree_rss > self.peak_tree_rss_mb:
@@ -508,6 +518,10 @@ def measure() -> dict[str, Any]:
     ) and not bool(os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip())
     if not defer_tree_sampler:
         sampler.start()
+        go_file = os.environ.get("DOFUS_ATLAS_WARMUP_GO_FILE", "").strip()
+        if go_file:
+            # Only signal once peak monitoring has actually been activated.
+            Path(go_file).touch(exist_ok=False)
 
     window = app_main.AtlasWindow()
     window.show()
@@ -674,6 +688,13 @@ def measure() -> dict[str, Any]:
         )
 
     sampler.stop()
+    if (
+        os.environ.get("DOFUS_ATLAS_WARMUP_GO_FILE", "").strip()
+        and not sampler.warmup_worker_seen
+    ):
+        raise RuntimeError(
+            "Invalid RAM evidence: external warmup child was never sampled"
+        )
 
     shutdown = getattr(window, "_shutdown_background_services", None)
     if callable(shutdown):

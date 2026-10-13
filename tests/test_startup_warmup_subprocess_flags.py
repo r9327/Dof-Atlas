@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import subprocess
+import tempfile
+from pathlib import Path
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -9,6 +11,14 @@ from app import startup_cache_warmup as warmup
 
 
 class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
+    def test_cold_warmup_wait_requires_real_sampler_signal(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            go_file = Path(temp_dir) / "memory-sampler.ready"
+            with self.assertRaisesRegex(TimeoutError, "sampler"):
+                warmup._wait_for_memory_sampler(str(go_file), timeout=0.0)
+            go_file.touch()
+            warmup._wait_for_memory_sampler(str(go_file), timeout=0.0)
+
     def test_windows_worker_does_not_create_a_hidden_console(self) -> None:
         completed = SimpleNamespace(returncode=0, stdout='{"ok":true}', stderr="")
         with (

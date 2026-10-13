@@ -193,3 +193,17 @@ def test_windows_rss_sampler_reuses_native_bindings() -> None:
     assert "class _ProcessEntry32W(ctypes.Structure):" in source
     assert "class _ProcessMemoryCounters(ctypes.Structure):" in source
     assert "kernel32, psapi = _windows_api_dlls()" in source
+
+
+def test_memory_benchmark_cannot_skip_a_fast_external_warmup() -> None:
+    benchmark = BENCHMARK.read_text(encoding="utf-8")
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    warmup = (ROOT / "app" / "startup_cache_warmup.py").read_text(encoding="utf-8")
+    assert "DOFUS_ATLAS_WARMUP_GO_FILE" in benchmark
+    assert "DOFUS_ATLAS_WARMUP_GO_FILE" in warmup
+    assert "DOFUS_ATLAS_WARMUP_GO_FILE" in workflow
+    assert "_wait_for_memory_sampler(go_file)" in warmup
+    assert "sampler.warmup_worker_seen" in benchmark
+    assert "Invalid RAM evidence: external warmup child was never sampled" in benchmark
+    assert "Path(go_file).touch(exist_ok=False)" in benchmark
+    assert "Remove-Item Env:DOFUS_ATLAS_WARMUP_GO_FILE" in workflow

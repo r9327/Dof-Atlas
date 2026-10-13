@@ -88,6 +88,11 @@ jobs:
           New-Item -ItemType Directory -Force -Path "artifacts/phase8_memory" | Out-Null
           $token = [guid]::NewGuid().ToString("N")
           $env:DOFUS_ATLAS_CACHE_WARMUP_TOKEN = $token
+          # Unique handshake: the worker may import but cannot allocate its
+          # large Guide/Items heap until the Atlas tree sampler is live.
+          $goFile = Join-Path $env:RUNNER_TEMP ("atlas_warmup_" + $token + ".ready")
+          if (Test-Path -LiteralPath $goFile) { Remove-Item -LiteralPath $goFile -Force }
+          $env:DOFUS_ATLAS_WARMUP_GO_FILE = $goFile
           $warmupOut = "artifacts/phase8_memory/warmup.stdout.log"
           $warmupErr = "artifacts/phase8_memory/warmup.stderr.log"
           $python = (Get-Command python).Source
@@ -123,6 +128,8 @@ jobs:
             Copy-Item -LiteralPath $warmupResult -Destination "artifacts/phase8_memory/warmup.cold.json" -Force
           }
 
+          # Hot reuse is not concurrent with the Atlas sampler.
+          Remove-Item Env:DOFUS_ATLAS_WARMUP_GO_FILE -ErrorAction SilentlyContinue
           # Run the same warmup once more after the measured app process is gone.
           # Every reconstructible domain must hit the manifest fast path; this
           # proves the optimization removes work instead of deferring it.
