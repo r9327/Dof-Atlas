@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Compile updater modules
-        run: python -m compileall -q app/distribution scripts/windows/package_release.py scripts/windows/export_app_repository.py launch.py
+        run: python -m compileall -q app/distribution scripts/windows/package_release.py scripts/windows/export_app_repository.py scripts/windows/atlas_setup_entry.py launch.py
       - name: Focused updater tests
         run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
   windows-bundle:
@@ -108,6 +108,21 @@ jobs:
         run: |
           python -m PyInstaller --noconfirm --clean --onefile --windowed \
             --name DofusAtlas --paths . scripts/windows/atlas_launcher_entry.py
+      - name: Compile self-contained desktop shortcut installer
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed \
+            --name DofusAtlasSetup --paths . \
+            --icon data/images/misc/dofus_atlas.ico \
+            --add-binary "dist/DofusAtlas.exe;." scripts/windows/atlas_setup_entry.py
+      - name: Verify installer creates Windows Desktop shortcut
+        shell: pwsh
+        run: |
+          $setup = Start-Process -FilePath "dist/DofusAtlasSetup.exe" -ArgumentList "--no-launch" -PassThru -Wait
+          if ($setup.ExitCode -ne 0) { throw "Atlas setup failed: $($setup.ExitCode)" }
+          $installed = Join-Path $env:LOCALAPPDATA "Programs/DofusAtlas/DofusAtlas.exe"
+          if (-not (Test-Path -LiteralPath $installed)) { throw "Installed launcher missing" }
+          $shortcut = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'Dofus Atlas.lnk'
+          if (-not (Test-Path -LiteralPath $shortcut)) { throw "Desktop shortcut missing" }
       - name: Smoke check frozen QtWebEngine and assets
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
       - name: Real Qt window health smoke (no Python user installation)
@@ -154,6 +169,7 @@ jobs:
             --source-sha "$SOURCE_SHA" --app-version "$version" \
             --data-version "$(date -u +%Y.%m.%d)" --schema-version 1
           cp dist/DofusAtlas.exe dist-release/DofusAtlas.exe
+          cp dist/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
       - name: Upload certified Windows release files
         if: github.event_name == 'workflow_run'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -169,6 +185,7 @@ jobs:
           name: atlas-frozen-launchers-${{ env.SOURCE_SHA }}
           path: |
             dist/DofusAtlas.exe
+            dist/DofusAtlasSetup.exe
             dist/AtlasApp/AtlasApp.exe
           retention-days: 7
           if-no-files-found: error
@@ -206,6 +223,7 @@ jobs:
             dist-release/atlas-windows.zip \
             dist-release/atlas-manifest.json \
             dist-release/DofusAtlas.exe \
+            dist-release/DofusAtlasSetup.exe \
             --repo r9327/Dof-Atlas-App \
             --title "Dofus Atlas $tag" \
             --notes "Certified source r9327/Dof-Atlas@$SOURCE_SHA" \
