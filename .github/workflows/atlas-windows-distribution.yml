@@ -163,9 +163,13 @@ jobs:
           token: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
           path: app-publish
           fetch-depth: 1
+          persist-credentials: false
       - name: Synchronize application-only source and data
         if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
         run: |
+          gh auth setup-git
           python -m scripts.windows.export_app_repository \
             --root . --destination app-publish --source-sha "$SOURCE_SHA"
           git -C app-publish config user.name "github-actions[bot]"
