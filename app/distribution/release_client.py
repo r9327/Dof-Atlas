@@ -16,7 +16,8 @@ REPO = "r9327/Dof-Atlas-App"
 API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 MANIFEST_NAME = "atlas-manifest.json"
 ARCHIVE_NAME = "atlas-windows.zip"
-MAX_ARCHIVE_BYTES = 16 * 1024**3
+# GitHub Releases requires every individual asset to be strictly below 2 GiB.
+MAX_ARCHIVE_BYTES = 2 * 1024**3 - 1
 _ALLOWED_REDIRECT_HOSTS = frozenset({
     "github.com", "api.github.com", "release-assets.githubusercontent.com",
     "objects.githubusercontent.com", "github-releases.githubusercontent.com",

@@ -97,7 +97,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "62fcbd72338ab6482bb21b2259a81a390481028d",
+      "sha": "32e2f4ece51a8f5c1ddbf48a7ab55d0ee5469876",
       "type": "tree"
     },
     "data": {
@@ -132,7 +132,7 @@
     },
     "scripts": {
       "mode": "040000",
-      "sha": "4ce3989109e24500d08fe6cc57818e93f6aa0646",
+      "sha": "5d6dcbb164d7d48a50cc304711ff7a24a49d45c8",
       "type": "tree"
     },
     "sitecustomize.py": {

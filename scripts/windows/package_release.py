@@ -15,6 +15,7 @@ _PRIVATE = {"client_profiles.json", "client_index.json", "client_index.ini",
             "network_character_bindings.json", "craft_selection.json",
             "quest_progress.json", "bootstrap_status.txt"}
 _LFS = b"version https://git-lfs.github.com/spec/v1"
+_MAX_GITHUB_RELEASE_ASSET_BYTES = 2 * 1024**3 - 1
 _RUNTIME_SEEDS = {"_internal/data/local/zaaps.json"}
 
 
@@ -62,6 +63,9 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
             archive.write(path, arcname=name, compress_type=zipfile.ZIP_DEFLATED,
                           compresslevel=6)
             entries.append({"path": name, "size": path.stat().st_size, "sha256": digest.hexdigest()})
+    if archive_path.stat().st_size > _MAX_GITHUB_RELEASE_ASSET_BYTES:
+        archive_path.unlink(missing_ok=True)
+        raise ValueError("Atlas archive exceeds GitHub's 2 GiB asset limit; split the release")
     manifest = {
         "protocol_version": 1, "app_version": app_version,
         "data_version": data_version, "schema_version": schema_version,
