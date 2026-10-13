@@ -95,9 +95,13 @@ def run_update(report) -> None:
         try:
             report("Verification des mises a jour...", 5)
             remote = latest_release()
+            try:
+                current_exe = active_executable(ROOT)
+            except UpdateError:
+                current_exe = None
             if prior.get("blocked_source_sha") == remote.manifest.source_sha:
                 report("Mise a jour en attente de correction", 10)
-            elif prior.get("source_sha") != remote.manifest.source_sha or active_executable(ROOT) is None:
+            elif prior.get("source_sha") != remote.manifest.source_sha or current_exe is None:
                 report("Telechargement de la nouvelle version", 10)
                 archive = download_archive(
                     remote, ROOT / "downloads",
