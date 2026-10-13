@@ -25,9 +25,9 @@ def _achievement():
 
 def _evidence():
     return {
-        "quest_names": {"quest alpha"},
+        "quest_names": {norm("quest alpha")},
         "success_names": set(),
-        "text_tokens": {"find a dragon in the forest"},
+        "text_tokens": {norm("find a dragon in the forest")},
     }
 
 
