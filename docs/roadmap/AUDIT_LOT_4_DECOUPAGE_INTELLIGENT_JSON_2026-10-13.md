@@ -113,3 +113,14 @@ py -3.13 -m tools.atlas_json_benchmark --shards .cache/dofus_atlas/quests_shards
 ```
 
 Cette section documente du **code poussé**, pas un PASS des tests, ni une preuve de gain RAM/latence. La FULL n'est légitime qu'au candidat stabilisé après les corrections ciblées et les checks indépendants.
+
+
+## Mise à jour de la politique de certification RAM — 13 octobre 2026
+
+Le propriétaire du projet a abandonné **le seuil strict <100 Mo au retour Home comme condition de fusion**, car cette cible n'est pas réaliste sur la plateforme mesurée. Les valeurs restent collectées à chaque étape, et tout dépassement de 100 Mo est signalé par une annotation **HOME_TARGET_ADVISORY** ; il n'est jamais faussement annoncé comme « conforme à 100 Mo ».
+
+Les protections bloquantes conservées sont : preuves RSS/étapes obligatoires complètes ; preload ≤95 Mo ; pic process-tree ≤220 Mo ; retenue supplémentaire Succès ≤15 Mo, Guide ≤20 Mo, Craft ≤2 Mo, Équipement ≤1 Mo ; échecs de benchmark/dépendances et warmup ; autres contrôles applicatifs, Guide/Quêtes/Succès, parité JSON et FULL exact-SHA.
+
+Modifications : `.github/workflows/phase8-memory-benchmark.yml`, `tests/test_phase8_memory_benchmark_contract.py` et nouveaux tests de scénario `tests/test_phase8_memory_policy_advisory.py`. Historique et métriques précédentes demeurent sur l'[issue #158](https://github.com/r9327/Dof-Atlas/issues/158) en suivi non bloquant.
+
+**Les anciens FAIL au seuil de 100 Mo restent historiquement des FAIL de leur politique d'origine ; ils ne deviennent pas rétroactivement verts.** Seule une nouvelle exécution sur le HEAD final valide la nouvelle politique, après confirmation des autres seuils.
