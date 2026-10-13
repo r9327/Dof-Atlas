@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from tools import atlas_full_suite_proof as proof
 from tools import atlas_integrity
-from tools.ci_guide_full_evidence import REUSED_MODULES, prove_ledger
+from tools.ci_guide_full_evidence import REUSED_MODULES, REUSED_MULTI_STAGES, prove_ledger
 
 
 class FullSuiteStructuredReuseTests(unittest.TestCase):
@@ -106,13 +106,15 @@ class FullSuiteStructuredReuseTests(unittest.TestCase):
             stage: [f"{module}.Example.test_one", f"{module}.Example.test_two"]
             for stage, module in REUSED_MODULES.items()
         }
+        for stage, modules in REUSED_MULTI_STAGES.items():
+            expected[stage] = [f"{module}.Example.test_one" for module in modules]
         all_ids = sorted(k for group in expected.values() for k in group)
         p = proof.validated_ledger(
             all_ids, [(x, "ok") for x in all_ids], tests_run=len(all_ids),
             successful=True, sha="a" * 40,
         )
         self.assertEqual(prove_ledger(p, expected),
-                         {stage: 2 for stage in REUSED_MODULES})
+                         {stage: len(cases) for stage, cases in expected.items()})
         bad = dict(p)
         bad["successful_test_ids"] = all_ids[:-1]
         with self.assertRaisesRegex(ValueError, "missing"):
@@ -123,6 +125,40 @@ class FullSuiteStructuredReuseTests(unittest.TestCase):
         ]
         with self.assertRaisesRegex(ValueError, "unexpected"):
             prove_ledger(extra, expected)
+
+    def test_guide_multi_stage_falls_back_on_missing_or_skipped_full_cases(self):
+        stages = {
+            stage: [f"{module}.Case.test_ok" for module in modules]
+            for stage, modules in REUSED_MULTI_STAGES.items()
+        }
+        expected = {**{s: [f"{m}.Case.test_ok"] for s, m in REUSED_MODULES.items()}, **stages}
+        all_ids = sorted(x for group in expected.values() for x in group)
+        good = proof.validated_ledger(
+            all_ids, [(case, "ok") for case in all_ids],
+            tests_run=len(all_ids), successful=True, sha="a" * 40,
+        )
+        self.assertEqual(prove_ledger(good, expected),
+                         {stage: len(cases) for stage, cases in expected.items()})
+        for bad_id in [stages["02_guide_ultime_core_tests"][0],
+                       stages["03_manual_route_composition_tests"][0]]:
+            with self.subTest(case=bad_id):
+                skipped = dict(good, successful_test_ids=[x for x in all_ids if x != bad_id],
+                               non_successful_test_ids=[bad_id])
+                with self.assertRaisesRegex(ValueError, "missing|skipped"):
+                    prove_ledger(skipped, expected)
+                incomplete = dict(good, expected_test_ids=[x for x in all_ids if x != bad_id])
+                with self.assertRaisesRegex(ValueError, "missing|skipped"):
+                    prove_ledger(incomplete, expected)
+
+    def test_guide_runner_multi_stage_fallback_invokes_unittest_once(self):
+        script = (Path(__file__).resolve().parents[1] / "tools"
+                  / "run_guide_ultime_ci.ps1").read_text(encoding="utf-8")
+        self.assertIn('Invoke-PythonCheck $Name (@("-m", "unittest") + $Module)', script)
+        for stage in REUSED_MULTI_STAGES:
+            marker = 'Invoke-GuideTestOrReuse "' + stage + '" @('
+            self.assertIn(marker, script)
+            lines = script.split(marker, 1)[1].split(')', 1)[0]
+            self.assertNotIn('"-m", "unittest"', lines)
 
     def test_full_uses_structured_runner_and_critical_inventory_stays_independent(self):
         policy = atlas_integrity.load_policy(Path(__file__).resolve().parents[1])
