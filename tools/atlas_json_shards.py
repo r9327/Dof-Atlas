@@ -125,7 +125,10 @@ def build(
     cache_root: Path | None = None,
 ) -> dict:
     """Publish immutable content and switch a small pointer only after parity."""
-    source = Path(source).resolve()
+    source_input = Path(source)
+    if source_input.is_symlink():
+        raise ValueError("Source canonique symlink interdite")
+    source = source_input.resolve()
     output_root = Path(output_root).resolve()
     if source.name != "quests_enriched.json":
         raise ValueError("Ce producteur est réservé à quests_enriched.json")
@@ -133,7 +136,8 @@ def build(
         raise ValueError("Source canonique inaccessible")
     if ids_per_shard < 1 or ids_per_shard > 4096:
         raise ValueError("ids_per_shard hors limites")
-    if output_root == source.parent or source.parent in output_root.parents:
+    if (output_root == source.parent or source.parent in output_root.parents
+            or output_root in source.parents):
         raise ValueError("Ne pas publier de dérivés dans les sources canoniques")
 
     output_root.mkdir(parents=True, exist_ok=True)
@@ -192,6 +196,10 @@ def build(
             verify(source, staging, cache_root=cache)
             staging.rename(final)
 
+    # Recheck after verification as well: an offline generator may replace the
+    # source while we are comparing thousands of records.
+    if source.stat().st_size != before_size or sha256_file(source) != before_sha:
+        raise ValueError("La source a changé avant publication")
     # Previous versions remain immutable and may be explicitly reactivated.
     _activate_pointer(output_root, version_name)
     return manifest
@@ -227,6 +235,9 @@ def activate_version(
     manifest = verify(source, target, cache_root=cache)
     if version_name != f"quests_v1_{manifest['source_sha256']}_{manifest['ids_per_shard']:04d}":
         raise ValueError("Nom de version incompatible")
+    if (source.stat().st_size != manifest["source_bytes"]
+            or sha256_file(source) != manifest["source_sha256"]):
+        raise ValueError("La source a changé avant rollback")
     _activate_pointer(output_root, version_name)
     return manifest
 
