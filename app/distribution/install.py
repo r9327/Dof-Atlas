@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
 import tempfile
@@ -31,7 +32,7 @@ def read_state(root: Path) -> dict:
     for key in ("active", "previous"):
         value = doc.get(key)
         if value is not None and (not isinstance(value, str) or
-                                  not __import__("re").fullmatch(r"[A-Za-z0-9._-]{1,120}", value)):
+                                  not re.fullmatch(r"[A-Za-z0-9._-]{1,120}", value)):
             raise UpdateError("Invalid release slot")
     return doc
 
@@ -51,7 +52,7 @@ def _write_state(root: Path, state: dict) -> None:
 
 
 def slot_path(root: Path, slot: str) -> Path:
-    if not isinstance(slot, str) or not __import__("re").fullmatch(r"[A-Za-z0-9._-]{1,120}", slot):
+    if not isinstance(slot, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,120}", slot):
         raise UpdateError("Invalid slot")
     return root / "versions" / slot
 
@@ -81,12 +82,17 @@ def rollback_pending(root: Path) -> bool:
         return False
     old = state.get("previous")
     if old and slot_path(root, old).is_dir():
+        blocked = state.get("source_sha")
+        restored = dict(state.get("previous_metadata") or {})
         state.update(active=old, previous=None, pending=False,
-                     entrypoint=state.get("previous_entrypoint", "AtlasApp/AtlasApp.exe"))
+                     entrypoint=state.get("previous_entrypoint") or "AtlasApp/AtlasApp.exe",
+                     blocked_source_sha=blocked, **restored)
+        state.pop("previous_metadata", None)
         _write_state(root, state)
         return True
     # First install has no earlier known-good version; do not fabricate one.
     state["pending"] = False
+    state["blocked_source_sha"] = state.get("source_sha")
     _write_state(root, state)
     return False
 
@@ -118,7 +124,7 @@ def _validate_archive(archive: zipfile.ZipFile, manifest: ReleaseManifest) -> di
             raise UpdateError("Unexpected/duplicate archive entry")
         seen.add(key)
         mode = info.external_attr >> 16
-        if stat.S_ISLNK(mode) or (mode and not stat.S_ISREG(mode) and not stat.S_ISDIR(mode)):
+        if stat.S_ISLNK(mode) or (stat.S_IFMT(mode) and not stat.S_ISREG(mode)):
             raise UpdateError("Archive links and device files are forbidden")
         if info.file_size != expected[path].size or info.flag_bits & 0x1:
             raise UpdateError("Archive size mismatch or encrypted content")
@@ -137,7 +143,10 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     state = read_state(root)
     slot = f"{manifest.app_version}-{manifest.source_sha[:12]}".replace("+", "_")
     if state.get("active") == slot:
-        return False
+        current = slot_path(root, slot)
+        if current.is_dir() and all(verify_file(current / item.path, item) for item in manifest.files):
+            return False
+        raise UpdateError("Installed release is damaged; repair required")
     versions = root / "versions"
     versions.mkdir(parents=True, exist_ok=True)
     target = slot_path(root, slot)
@@ -184,6 +193,9 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
             "data_version": manifest.data_version,
             "schema_version": manifest.schema_version,
             "source_sha": manifest.source_sha,
+            "previous_metadata": {key: state[key] for key in (
+                "app_version", "data_version", "schema_version", "source_sha",
+            ) if key in state},
         })
     except (OSError, zipfile.BadZipFile, RuntimeError) as exc:
         if isinstance(exc, UpdateError):
