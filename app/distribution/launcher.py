@@ -16,6 +16,7 @@ from .install import (
     active_executable, install_release, mark_healthy, read_state, rollback_pending,
 )
 from .release_client import UpdateError, download_archive, latest_release
+from .user_data import prepare_user_data
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
 ROOT = APP_DIR / "runtime"
@@ -58,6 +59,7 @@ def _run_lock():
 
 def _launch_with_health(executable: Path, report) -> bool:
     USER_DIR.mkdir(parents=True, exist_ok=True)
+    prepare_user_data(executable, USER_DIR)
     health_dir = ROOT / ".health"
     health_dir.mkdir(parents=True, exist_ok=True)
     ready = health_dir / (uuid.uuid4().hex + ".ready")
