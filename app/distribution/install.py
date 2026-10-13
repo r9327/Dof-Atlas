@@ -142,11 +142,12 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     """
     state = read_state(root)
     slot = f"{manifest.app_version}-{manifest.source_sha[:12]}".replace("+", "_")
-    if state.get("active") == slot:
+    same_active = state.get("active") == slot
+    if same_active:
         current = slot_path(root, slot)
         if current.is_dir() and all(verify_file(current / item.path, item) for item in manifest.files):
             return False
-        raise UpdateError("Installed release is damaged; repair required")
+        # A missing or corrupt active slot is rebuilt in a fresh stage below.
     versions = root / "versions"
     versions.mkdir(parents=True, exist_ok=True)
     target = slot_path(root, slot)
@@ -179,23 +180,35 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
         if not (stage / manifest.entrypoint).is_file():
             raise UpdateError("Missing packaged application")
         if target.exists():
-            # Never overwrite existing version trees in-place.
-            if not target.is_dir() or any(not verify_file(target / e.path, e) for e in manifest.files):
+            if same_active:
+                quarantine = root / "quarantine"
+                quarantine.mkdir(parents=True, exist_ok=True)
+                damaged = quarantine / (slot + "." + next(tempfile._get_candidate_names()))
+                os.replace(target, damaged)
+                try:
+                    os.replace(stage, target)
+                except OSError:
+                    os.replace(damaged, target)
+                    raise
+            elif not target.is_dir() or any(not verify_file(target / e.path, e) for e in manifest.files):
                 raise UpdateError("Conflicting existing installation slot")
         else:
             os.replace(stage, target)
-        prior = state.get("active")
+        prior = state.get("previous") if same_active else state.get("active")
+        old_meta = state.get("previous_metadata") if same_active else {
+            key: state[key] for key in ("app_version", "data_version", "schema_version", "source_sha")
+            if key in state
+        }
+        old_entrypoint = state.get("previous_entrypoint") if same_active else state.get("entrypoint")
         _write_state(root, {
             "active": slot, "previous": prior, "pending": True,
             "entrypoint": manifest.entrypoint,
-            "previous_entrypoint": state.get("entrypoint") if prior else None,
+            "previous_entrypoint": old_entrypoint if prior else None,
             "app_version": manifest.app_version,
             "data_version": manifest.data_version,
             "schema_version": manifest.schema_version,
             "source_sha": manifest.source_sha,
-            "previous_metadata": {key: state[key] for key in (
-                "app_version", "data_version", "schema_version", "source_sha",
-            ) if key in state},
+            "previous_metadata": old_meta or {},
         })
     except (OSError, zipfile.BadZipFile, RuntimeError) as exc:
         if isinstance(exc, UpdateError):
