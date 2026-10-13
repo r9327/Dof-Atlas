@@ -1,6 +1,7 @@
 name: Atlas Windows Distribution
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "app/distribution/**"
       - "scripts/windows/package_release.py"
@@ -44,6 +45,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
+       github.event.action == 'ready_for_review' &&
        github.head_ref == 'feature/atlas-auto-update-distribution-20261013') ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
@@ -98,6 +100,41 @@ jobs:
             --name DofusAtlas --paths . scripts/windows/atlas_launcher_entry.py
       - name: Smoke check frozen QtWebEngine and assets
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
+      - name: Real Qt window health smoke (no Python user installation)
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+          QTWEBENGINE_DISABLE_SANDBOX: "1"
+        run: |
+          $env:DOFUS_ATLAS_HEALTH_FILE = Join-Path $env:RUNNER_TEMP "atlas-window-health.ready"
+          $env:DOFUS_ATLAS_USER_ROOT = Join-Path $env:RUNNER_TEMP "atlas-smoke-user"
+          Remove-Item -LiteralPath $env:DOFUS_ATLAS_HEALTH_FILE -Force -ErrorAction SilentlyContinue
+          $process = Start-Process -FilePath "dist/AtlasApp/AtlasApp.exe" -PassThru
+          try {
+            $healthy = $false
+            for ($i = 0; $i -lt 450; $i++) {
+              if (Test-Path -LiteralPath $env:DOFUS_ATLAS_HEALTH_FILE) {
+                $healthy = $true
+                break
+              }
+              $process.Refresh()
+              if ($process.HasExited) {
+                throw "Frozen Atlas closed before the main window was ready: $($process.ExitCode)"
+              }
+              Start-Sleep -Milliseconds 200
+            }
+            if (-not $healthy) {
+              throw "Frozen Atlas did not acknowledge its main window after 90 seconds"
+            }
+            Write-Host "Frozen Atlas real Qt startup confirmed"
+          }
+          finally {
+            $process.Refresh()
+            if (-not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+          }
       - name: Package ZIP, manifest and launcher
         run: |
           version="0.1.0-$(echo "$SOURCE_SHA" | cut -c1-12)"
