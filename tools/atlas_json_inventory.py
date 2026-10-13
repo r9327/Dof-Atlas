@@ -112,7 +112,98 @@ def _referencers(root: Path, files: list[str], names: set[str]) -> dict[str, lis
     return found
 
 
-def audit(root: Path, *, files: list[str] | None = None) -> dict:
+# Explicit directories rather than all of the repo: scanning user caches and
+# generated data must be opt-in, finite, and safe to publish as aggregate data.
+LOCAL_JSON_ROOTS = (
+    ("local_user_state", "data/local", "PRESERVE_PRIVATE"),
+    ("generated_cache", "data/cache", "GENERATED_NO_SHARD"),
+    ("raw_profession_imports", "data/raw/json", "REVIEW_GENERATED"),
+    ("profession_and_guide_routes", "data/routes", "PRESERVE_ROUTE_CONTRACT"),
+    ("generated_encyclopedia", "data/encyclopedia", "REVIEW_GENERATED"),
+    ("generated_reports", "data/reports", "GENERATED_NO_SHARD"),
+    ("configuration_state", "config", "PRESERVE_PRIVATE"),
+    ("app_cache", ".cache/dofus_atlas", "GENERATED_NO_SHARD"),
+)
+
+
+def audit_local_json(
+    root: Path,
+    tracked: set[str],
+    *,
+    max_visited_files: int = 200000,
+) -> dict:
+    """Opt-in filesystem inventory of untracked/ignored JSON: METADATA ONLY.
+
+    The report contains only aggregate counts/bytes per family. Never read a
+    user's profiles, quests, progression, or caches or disclose local paths.
+    Ignore symlinks and stop with an explicit incomplete warning if too large.
+    """
+    import os
+
+    if max_visited_files < 1:
+        raise ValueError("max_visited_files must be positive")
+    root = Path(root).resolve()
+    tracked = {name.replace(chr(92), "/") for name in tracked}
+    total_seen = 0
+    truncated = False
+    families: dict[str, dict[str, object]] = {}
+    for family, prefix, action in LOCAL_JSON_ROOTS:
+        folder = root / prefix
+        row: dict[str, object] = {
+            "json_count": 0,
+            "total_bytes": 0,
+            "decision": action,
+        }
+        families[family] = row
+        if folder.is_symlink() or not folder.is_dir():
+            continue
+        for current, dirs, filenames in os.walk(folder, followlinks=False):
+            # Do not follow a directory junction/symlink beyond a configured
+            # root. This includes sensitive external locations on Windows.
+            dirs[:] = [
+                name for name in dirs
+                if not (Path(current) / name).is_symlink()
+            ]
+            for name in filenames:
+                total_seen += 1
+                if total_seen > max_visited_files:
+                    truncated = True
+                    break
+                if not name.lower().endswith(".json"):
+                    continue
+                candidate = Path(current) / name
+                if candidate.is_symlink() or not candidate.is_file():
+                    continue
+                relative = candidate.relative_to(root).as_posix()
+                if relative in tracked:
+                    continue
+                try:
+                    length = candidate.stat().st_size
+                except OSError:
+                    continue
+                row["json_count"] += 1
+                row["total_bytes"] += length
+            if truncated:
+                break
+        if truncated:
+            break
+    return {
+        "scan_scope": "explicit-runtime-directories-only",
+        "complete_within_scope": not truncated,
+        "visited_file_limit": max_visited_files,
+        "visited_files": min(total_seen, max_visited_files),
+        "json_count": sum(row["json_count"] for row in families.values()),
+        "total_bytes": sum(row["total_bytes"] for row in families.values()),
+        "families": families,
+        "privacy": "Only counts and byte sizes; no local paths, names, hashes or JSON content",
+        "warning": (
+            "Scan truncated: counts are lower bounds; increase the limit to claim coverage."
+            if truncated else None
+        ),
+    }
+
+
+def audit(root: Path, *, files: list[str] | None = None, include_local: bool = False) -> dict:
     root = Path(root)
     files = tracked_files(root) if files is None else sorted(files)
     json_paths = [path for path in files if path.lower().endswith(".json")]
@@ -185,11 +276,13 @@ def audit(root: Path, *, files: list[str] | None = None) -> dict:
         status = record["status"]
         decisions[status] = decisions.get(status, 0) + 1
 
+    local_report = audit_local_json(root, set(files)) if include_local else None
     return {
+        "local_runtime_json": local_report,
         "schema_version": 1,
         "inventory_method": "git ls-files, local bytes, declared contracts and lexical candidate discovery",
         "notes": [
-            "Tracked JSON only; generated local caches, SQLite stores and untracked user state are excluded.",
+            "Tracked JSON only by default. Untracked runtime directories are summarized only when opted in.",
             "Consumer text candidates are NOT Graphify or runtime proof.",
             "REVIEW and NOT_MEASURED are not PASS or optimization claims.",
             "Contract SHA mismatches are REVIEW, not permission to regenerate canonical network data.",
@@ -206,9 +299,11 @@ def audit(root: Path, *, files: list[str] | None = None) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Lot 4 : inventaire JSON reproductible")
     parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument("--include-local", action="store_true",
+                        help="Compter les JSON générés/non suivis par famille, sans lire leur contenu")
     parser.add_argument("--output", type=Path, help="Rapport JSON (ne pas placer dans data/)")
     args = parser.parse_args()
-    report = audit(args.root)
+    report = audit(args.root, include_local=args.include_local)
     content = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         output = args.output.resolve()
