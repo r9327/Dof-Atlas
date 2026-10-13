@@ -164,7 +164,7 @@ class FullSuiteStructuredReuseTests(unittest.TestCase):
             self.assertIn(marker, script)
             lines = script.split(marker, 1)[1].split(')', 1)[0]
             self.assertNotIn('"-m", "unittest"', lines)
-            observed = tuple(re.findall(r'"(tests\\.test_[A-Za-z0-9_]+)"', lines))
+            observed = tuple(re.findall(r'"(tests[.]test_[A-Za-z0-9_]+)"', lines))
             self.assertEqual(observed, expected_modules, stage)
 
     def test_full_uses_structured_runner_and_critical_inventory_stays_independent(self):
