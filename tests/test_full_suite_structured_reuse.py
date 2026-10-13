@@ -154,11 +154,18 @@ class FullSuiteStructuredReuseTests(unittest.TestCase):
         script = (Path(__file__).resolve().parents[1] / "tools"
                   / "run_guide_ultime_ci.ps1").read_text(encoding="utf-8")
         self.assertIn('Invoke-PythonCheck $Name (@("-m", "unittest") + $Module)', script)
-        for stage in REUSED_MULTI_STAGES:
+        # A change to a Guide stage's real PowerShell module list must also
+        # update the exact FULL proof allowlist; otherwise a test might be
+        # falsely considered covered. Compare the whole stage, not counts.
+        import re
+
+        for stage, expected_modules in REUSED_MULTI_STAGES.items():
             marker = 'Invoke-GuideTestOrReuse "' + stage + '" @('
             self.assertIn(marker, script)
             lines = script.split(marker, 1)[1].split(')', 1)[0]
             self.assertNotIn('"-m", "unittest"', lines)
+            observed = tuple(re.findall(r'"(tests\\.test_[A-Za-z0-9_]+)"', lines))
+            self.assertEqual(observed, expected_modules, stage)
 
     def test_full_uses_structured_runner_and_critical_inventory_stays_independent(self):
         policy = atlas_integrity.load_policy(Path(__file__).resolve().parents[1])
