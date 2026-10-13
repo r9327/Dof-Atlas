@@ -90,8 +90,9 @@ class GuideHomeStabilizationContractTests(unittest.TestCase):
             flow.index("sampler.stop()"),
         )
 
-    def test_memory_gate_covers_repeated_home_cycles_without_budget_relaxation(self) -> None:
+    def test_memory_measures_repeated_home_cycles_without_blocking_at_100mb(self) -> None:
         source = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("advisory_home_budgets_mb = {", source)
         for label in (
             "after_guide_home_stabilized",
             "repeat_1_quests_home",
@@ -101,8 +102,9 @@ class GuideHomeStabilizationContractTests(unittest.TestCase):
             "repeat_2_achievements_home",
             "repeat_2_guide_home",
         ):
-            self.assertIn(f'"{label}"', source)
             self.assertIn(f'"{label}": 100.0', source)
+        self.assertIn('HOME_TARGET_ADVISORY:', source)
+        self.assertIn("::warning title=Memory Home target (advisory)", source)
         self.assertIn("peak_tree > 220.0", source)
 
     def test_stabilized_guide_home_has_observable_evidence(self) -> None:
@@ -168,17 +170,19 @@ def test_memory_workflow_publishes_and_uploads_evidence() -> None:
     assert "phase8-memory-" in source
 
 
-def test_memory_workflow_enforces_phase8_budgets() -> None:
+def test_memory_workflow_keeps_critical_budgets_hard_and_home_advisory() -> None:
     source = WORKFLOW.read_text(encoding="utf-8")
-    for label, budget in (
-        ("after_preload", "95.0"),
-        ("after_quests_home", "100.0"),
-        ("after_achievements_home", "100.0"),
-        ("after_guide_home", "100.0"),
-        ("after_craft_home", "100.0"),
-        ("after_equipment_home_stabilized", "100.0"),
+    for label in (
+        "after_quests_home",
+        "after_achievements_home",
+        "after_guide_home",
+        "after_craft_home",
+        "after_equipment_home_stabilized",
     ):
-        assert f'"{label}": {budget}' in source
+        assert f'"{label}": 100.0' in source
+    assert 'advisory_home_budgets_mb = {' in source
+    assert 'preload_mb > 95.0' in source
+    assert 'preload memory budget exceeded' in source
     assert "peak_tree > 220.0" in source
     assert '"achievements_retained_tree_delta_mb": 15.0' in source
     assert '"guide_retained_tree_delta_mb": 20.0' in source

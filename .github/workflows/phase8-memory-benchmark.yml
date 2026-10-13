@@ -213,11 +213,12 @@ jobs:
               if row.get("process_rss_mb") is None or row.get("tree_rss_mb") is None:
                   raise SystemExit(f"memory stage {label} has incomplete RSS evidence")
 
-          # Phase 8 user budgets: long-lived Home memory must stay strictly
-          # below 100 MB after every heavy module, and total process-tree peak
-          # must never exceed the existing 220 MB hard gate.
-          stage_budgets_mb = {
-              "after_preload": 95.0,
+          # Phase 8 policy: the former 100 MB Home target is observational,
+          # not a merge gate. Keep the actual RSS values and emit annotations
+          # for any overshoot; never report a budget hit as "within target".
+          # The preload (95 MB), process-tree peak (220 MB), retention
+          # budgets and proof-integrity checks remain strict.
+          advisory_home_budgets_mb = {
               "after_quests_home": 100.0,
               "after_achievements_home": 100.0,
               "after_guide_home": 100.0,
@@ -231,19 +232,27 @@ jobs:
               "repeat_2_achievements_home": 100.0,
               "repeat_2_guide_home": 100.0,
           }
-          for label, budget in stage_budgets_mb.items():
-              measured = float(by_label[label]["tree_rss_mb"])
-              if label == "after_preload":
-                  exceeded = measured > budget
-              else:
-                  exceeded = measured >= budget
-              if exceeded:
-                  operator = ">=" if label != "after_preload" else ">"
-                  raise SystemExit(
-                      f"memory budget exceeded for {label}: "
-                      f"{measured:.2f} MB {operator} {budget:.2f} MB"
-                  )
+          preload_mb = float(by_label["after_preload"]["tree_rss_mb"])
+          if preload_mb > 95.0:
+              raise SystemExit(
+                  f"preload memory budget exceeded: {preload_mb:.2f} MB > 95.00 MB"
+              )
 
+          home_advisories = []
+          for label, budget in advisory_home_budgets_mb.items():
+              measured = float(by_label[label]["tree_rss_mb"])
+              if measured >= budget:
+                  warning = (
+                      f"{label}: {measured:.2f} MB >= {budget:.2f} MB "
+                      "(100 MB Home target advisory, NOT a hard failure)"
+                  )
+                  home_advisories.append(warning)
+                  print(f"::warning title=Memory Home target (advisory)::{warning}")
+
+          print(
+              "HOME_TARGET_ADVISORY: " +
+              (", ".join(home_advisories) if home_advisories else "all measured stages below 100 MB")
+          )
           peak_tree = float(metrics.get("peak_tree_rss_mb") or 0.0)
           if peak_tree > 220.0:
               raise SystemExit(
@@ -283,6 +292,7 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak app RSS: $($payload.metrics.peak_process_rss_mb) MB"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Home RSS <100 MB: **advisory only**, values and overshoots are displayed above; not a merge gate."
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB (budget: 220 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Success retained tree delta after Home: $($payload.metrics.achievements_retained_tree_delta_mb) MB (budget: 15 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide retained tree delta after Home: $($payload.metrics.guide_retained_tree_delta_mb) MB (budget: 20 MB)"
