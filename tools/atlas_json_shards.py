@@ -147,9 +147,11 @@ def verify(source: Path, directory: Path, *, cache_root: Path) -> dict:
     manifest = _manifest(directory)
     if source.name != manifest.get("source_name"):
         raise ValueError("Nom de source incompatible")
+    # A stale source can itself contain duplicate IDs: reject that information
+    # loss explicitly before comparing its digest to an old snapshot.
+    _reject_duplicate_json_keys(source)
     if source.stat().st_size != manifest.get("source_bytes") or sha256_file(source) != manifest.get("source_sha256"):
         raise ValueError("Source différente : dérivés périmés")
-    _reject_duplicate_json_keys(source)
     sources = QuestSources(cache_root)
     try:
         original = sources.mapping(source, "quests", required=True)
