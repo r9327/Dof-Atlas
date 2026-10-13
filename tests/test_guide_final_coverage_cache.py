@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import unittest
 
 from tools.audit_guide_ultime_manual_final_coverage import (
-    classify, label_is_explicit,
+    classify, label_is_explicit, norm,
 )
 
 
@@ -57,7 +57,7 @@ class GuideFinalCoverageCacheTests(unittest.TestCase):
         achievement = _achievement()
         before = _evidence()
         after = _evidence()
-        after["text_tokens"].add("visit the unknown dungeon")
+        after["text_tokens"].add(norm("visit the unknown dungeon"))
 
         @lru_cache(maxsize=32768)
         def check_before(label):

@@ -199,7 +199,7 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             ("13_existing_shell_tests", "tests.test_pyside_shell"),
         ):
             self.assertIn(f'Invoke-GuideTestOrReuse "{name}" "{module}"', guide)
-        self.assertIn('Invoke-PythonCheck $Name @("-m", "unittest", $Module)', guide)
+        self.assertIn('Invoke-PythonCheck $Name (@("-m", "unittest") + $Module)', guide)
 
     def test_app_ci_full_verdict_propagates_every_heavy_failure(self) -> None:
         source = self._workflow("app-ci.yml")
