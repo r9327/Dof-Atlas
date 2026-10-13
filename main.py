@@ -2634,6 +2634,8 @@ def main() -> int:
         LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
         window.show()
         LOGGER.info("[main] AtlasWindow shown visible=%s title=%r", window.isVisible(), window.windowTitle())
+        from app.distribution.health import announce_ready
+        QTimer.singleShot(0, announce_ready)
         if splash is not None and splash_started_at is not None:
             keep_splash_visible(app, splash_started_at)
             splash.finish(window)
