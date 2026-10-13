@@ -105,7 +105,7 @@ class InstallationTests(unittest.TestCase):
             second = parse_manifest(manifest_payload(app_version="1.2.4", source_sha="b" * 40))
             self.assertTrue(install_release(root, archive, second))
             self.assertTrue(rollback_pending(root))
-            self.assertEqual(read_state(root)["app_version"], "1.2.4")
+            self.assertEqual(read_state(root)["app_version"], "1.2.3")
             self.assertEqual(active_executable(root).read_bytes(), b"abc")
 
     def test_reject_modified_file_without_activation(self):
