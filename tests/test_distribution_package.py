@@ -26,7 +26,7 @@ class PackagingTests(unittest.TestCase):
             zaaps.parent.mkdir(parents=True, exist_ok=True)
             zaaps.write_text('{"zaaps":[]}', encoding="utf-8")
             private = bundle / "_internal" / "data" / "local" / "quest_progress.json"
-            private.parent.mkdir(parents=True)
+            private.parent.mkdir(parents=True, exist_ok=True)
             private.write_text('{"private":true}')
             output = root / "release"
             archive, manifest_path = package_release(bundle, output, "a" * 40,
