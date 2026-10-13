@@ -108,6 +108,20 @@ class InstallationTests(unittest.TestCase):
             self.assertEqual(read_state(root)["app_version"], "1.2.3")
             self.assertEqual(active_executable(root).read_bytes(), b"abc")
 
+    def test_repair_corrupted_current_version(self):
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location) / "install"
+            archive = Path(location) / "release.zip"
+            release_archive(archive)
+            candidate = parse_manifest(manifest_payload())
+            self.assertTrue(install_release(root, archive, candidate))
+            mark_healthy(root)
+            active_executable(root).write_bytes(b"bad")
+            self.assertTrue(install_release(root, archive, candidate))
+            self.assertEqual(active_executable(root).read_bytes(), b"abc")
+            self.assertTrue(read_state(root)["pending"])
+            mark_healthy(root)
+
     def test_reject_modified_file_without_activation(self):
         with tempfile.TemporaryDirectory() as location:
             root = Path(location) / "install"
