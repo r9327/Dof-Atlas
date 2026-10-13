@@ -38,8 +38,46 @@ class GuidePrerequisiteLookupTests(unittest.TestCase):
         catalog = SimpleNamespace(quests=quests, by_id={q.id: q for q in quests})
         quest_provider = SimpleNamespace(get_catalog=lambda: catalog)
         achievement_provider = SimpleNamespace(load_all=lambda: [])
-        with patch.object(guide_path_profiles, "DATA_DIR", self.root):
+        self.quest_provider = quest_provider
+        self.achievement_provider = achievement_provider
+        with (
+            patch.object(guide_path_profiles, "DATA_DIR", self.root),
+            patch.object(guide_path_profiles, "ROOT_DIR", self.root),
+        ):
             self.resolver = GuidePathResolver(quest_provider, achievement_provider)
+
+    def test_enriched_prerequisites_never_decode_the_whole_json(self) -> None:
+        """Guide must use bounded source offsets, even for large walkthroughs."""
+        path = self.root / "encyclopedia" / "quests" / "quests_enriched.json"
+        path.write_text(
+            json.dumps({
+                "version": 1,
+                "quests": {
+                    "1": {"prerequisites": ["Avoir terminé Légende oubliée"],
+                          "solution_steps": [{"text": "détails " * 30000}]},
+                    "3": {"prerequisites": ["Avoir terminé La quête de l'aube"]},
+                    "99": {"prerequisites": ["Avoir terminé Légende oubliée"]},
+                },
+            }, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        original_read_text = Path.read_text
+
+        def forbid_enriched_read_text(target, *args, **kwargs):
+            if target == path:
+                raise AssertionError("Guide attempted to load the full enrichment JSON")
+            return original_read_text(target, *args, **kwargs)
+
+        with (
+            patch.object(guide_path_profiles, "DATA_DIR", self.root),
+            patch.object(guide_path_profiles, "ROOT_DIR", self.root),
+            patch.object(Path, "read_text", forbid_enriched_read_text),
+        ):
+            resolver = GuidePathResolver(self.quest_provider, self.achievement_provider)
+
+        self.assertEqual(resolver.enriched_quest_prerequisites[1], {2})
+        self.assertEqual(resolver.enriched_quest_prerequisites[3], {1})
+        self.assertNotIn(99, resolver.enriched_quest_prerequisites)
 
     def test_mandatory_parser_cache_returns_independent_sets(self) -> None:
         expression = "Qf=12&(Sc=24|Sc=24)"
