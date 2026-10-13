@@ -110,7 +110,7 @@ def build(
     cache = Path(cache_root) if cache_root is not None else output_root / "source_offsets"
     before_size = source.stat().st_size
     before_sha = sha256_file(source)
-    version_name = "quests_v1_" + before_sha
+    version_name = f"quests_v1_{before_sha}_{ids_per_shard:04d}"
     final = versions / version_name
 
     if final.exists():
@@ -178,7 +178,7 @@ def current_directory(output_root: Path) -> Path:
     output_root = Path(output_root).resolve()
     pointer = json.loads((output_root / "active.json").read_text(encoding="utf-8"))
     version = pointer.get("version")
-    if pointer.get("schema_version") != 1 or not isinstance(version, str) or not re.fullmatch(r"quests_v1_[0-9a-f]{64}", version):
+    if pointer.get("schema_version") != 1 or not isinstance(version, str) or not re.fullmatch(r"quests_v1_[0-9a-f]{64}_[0-9]{4}", version):
         raise ValueError("Pointeur actif invalide")
     return output_root / "versions" / version
 

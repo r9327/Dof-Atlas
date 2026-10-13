@@ -73,3 +73,24 @@ Faire l'inventaire de **100 % des fichiers JSON et de leurs producteurs/consomma
 - **Certifications requises au SHA final effectivement PASS** ; aucune preuve ancienne, faux positif ou succès présumé.
 
 **Hors périmètre :** refonte complète des providers, nouvelle architecture de stockage parallèle « au cas où », refonte UI, modification des données du jeu, modification de la politique RAM/CI et fusion anticipée du lot 5.
+
+
+## Implémentation initiale du 13/10 — micro-lots sur la PR #157
+
+- [x] **Inventaire automatisé** `tools/atlas_json_inventory.py` sur tous les JSON suivis par Git, sans modifier les données. SHA-256, rôles déclarés (contrat des gros fichiers), consommateurs lexicaux explicitement NON prouvés, état LFS, décisions conservatrices `KEEP / INDEX_ONLY / ALREADY_OPTIMIZED / REVIEW`, `NOT_MEASURED` tant que non mesuré. Tests : `tests/test_atlas_json_inventory.py`.
+- [x] **Générateur hors runtime** `tools/atlas_json_shards.py` : découpage dérivé `quests_enriched.json` par plages stables d'ID de quête (32 ID par partition par défaut) ; manifeste SHA source et SHA/tailles de chaque shard, index ID→shard, validation parité de toutes les valeurs, publication atomique d'un pointeur et versions conservées pour retour arrière. Réutilise `QuestSources` issu des lots précédents. Tests : `tests/test_atlas_json_shards.py`.
+- [ ] Exécuter les tests et l'inventaire sur le checkout complet (non disponibles depuis l'environnement GitHub-seul). Les tests et workflows qui n'ont pas abouti ne sont PAS PASS.
+- [ ] Lire le rapport exhaustif pour classifier chaque famille, identifier les producteurs et lecteurs avec Graphify exact-SHA + preuves runtime, choisir les autres divisions réellement utiles.
+- [ ] Réconcilier PR #156 et migrer les producteurs/consommateurs uniquement après parité et profils mesurés. Pas de connexion runtime aux shards à ce stade ; la source reste canonique et les caches Quêtes/Succès existants demeurent actifs.
+- [ ] Mesurer des gains réels Windows (temps premier détail, I/O, RSS, RAM) et certifier le SHA final avant merge, puis reprendre le lot 5 #153.
+
+Commandes ciblées (pas de FULL pendant développement) :
+
+```powershell
+py -3.13 -m unittest tests.test_atlas_json_inventory tests.test_atlas_json_shards
+py -3.13 -m tools.atlas_json_inventory --output artifacts/lot4/json_inventory.json
+py -3.13 -m tools.atlas_json_shards --source data/encyclopedia/quests/quests_enriched.json --output .cache/dofus_atlas/quests_shards
+py -3.13 -m tools.atlas_json_shards --verify-only
+```
+
+Le générateur produit une **représentation dérivée expérimentale**, pas encore un gain produit ni un changement d'interface de lecture. Les JSON métiers, Succès, Guides et manifestes restent à classifier et traiter selon usage réel, pas par principe.

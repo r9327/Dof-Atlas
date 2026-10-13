@@ -30,6 +30,13 @@ class AtlasJsonShardTests(unittest.TestCase):
             self.assertEqual(verify(source, current_directory(output), cache_root=root / "offsets"), first)
             again = build(source, output, ids_per_shard=16)
             self.assertEqual(again, first)
+            finer = build(source, output, ids_per_shard=8)
+            self.assertEqual(finer["record_count"], len(rows))
+            self.assertEqual(len(finer["shards"]), 10)
+            self.assertEqual(read_by_id(output, 17), rows["17"])
+            # Two deterministic layouts coexist without overwriting old snapshots.
+            self.assertEqual(verify(source, output / "versions" /
+                f"quests_v1_{first['source_sha256']}_0016", cache_root=root / "offsets"), first)
             self.assertEqual(source.read_text(encoding="utf-8"), original)
             with self.assertRaises(KeyError):
                 read_by_id(output, 999999)
