@@ -87,18 +87,21 @@ class QuestDetailsTests(unittest.TestCase):
             self.assertEqual(
                 details._sources._objectives_by_step[10], [40, 41]
             )
-            rows = details._sources.rows(root / "quest_objectives.json")
-            with patch.object(
-                rows,
-                "items",
-                side_effect=AssertionError("unexpected full objective scan"),
-            ):
-                selected = list(
-                    details._sources.objectives_for_steps(
-                        root / "quest_objectives.json", {10}
+            # An explicit source read after get_detail() reopens the JSON
+            # stream. Close it before TemporaryDirectory cleanup on Windows.
+            with closing(details._sources):
+                rows = details._sources.rows(root / "quest_objectives.json")
+                with patch.object(
+                    rows,
+                    "items",
+                    side_effect=AssertionError("unexpected full objective scan"),
+                ):
+                    selected = list(
+                        details._sources.objectives_for_steps(
+                            root / "quest_objectives.json", {10}
+                        )
                     )
-                )
-            self.assertEqual([row["id"] for row in selected], [40, 41])
+                self.assertEqual([row["id"] for row in selected], [40, 41])
 
             # Force a genuinely cold detail in the reopened catalogue:
             # otherwise the stored rich record would bypass the index lookup.
