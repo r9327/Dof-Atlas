@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+from contextlib import closing
 import tempfile
 import threading
 import time
 import unittest
+import weakref
 from dataclasses import asdict
 from pathlib import Path
 from unittest.mock import patch
@@ -74,6 +77,60 @@ class QuestDetailsTests(unittest.TestCase):
             self.assertEqual(evidence["items"][0]["quantity"], 3)
             self.assertEqual(evidence["combats"][0]["monster"], "Monstre compact")
             self.assertEqual(evidence["combats"][0]["objective_id"], 41)
+
+            # The Guide indexer already read all objectives during preload.
+            # Cold Quest details must reuse that signed SQLite step lookup,
+            # not iterate through the whole source a second time.
+            details = catalog.by_id[1]._details
+            self.assertIsNone(details._sources._objectives_by_step)
+            with patch.object(QuestCatalog, "_load_source", side_effect=self.compile):
+                catalog.get_detail(1)
+            self.assertEqual(
+                details._sources._objectives_by_step[10], [40, 41]
+            )
+            # An explicit source read after get_detail() reopens the JSON
+            # stream. Close it before TemporaryDirectory cleanup on Windows.
+            with closing(details._sources):
+                rows = details._sources.rows(root / "quest_objectives.json")
+                with patch.object(
+                    rows,
+                    "items",
+                    side_effect=AssertionError("unexpected full objective scan"),
+                ):
+                    selected = list(
+                        details._sources.objectives_for_steps(
+                            root / "quest_objectives.json", {10}
+                        )
+                    )
+                self.assertEqual([row["id"] for row in selected], [40, 41])
+
+            # Force a genuinely cold detail in the reopened catalogue:
+            # otherwise the stored rich record would bypass the index lookup.
+            # sqlite3.Connection.__exit__ commits but does NOT close the file.
+            # Windows refuses TemporaryDirectory cleanup while it is open.
+            with closing(sqlite3.connect(details.path)) as connection:
+                with connection:
+                    connection.execute("UPDATE quests SET detail=NULL WHERE id=1")
+            reopened = load_lazy_catalog(root, cache_root=cache_root)
+            reopened_details = reopened.by_id[1]._details
+            with patch.object(QuestCatalog, "_load_source", side_effect=self.compile):
+                reopened.get_detail(1)
+            self.assertEqual(
+                reopened_details._sources._objectives_by_step[10], [40, 41]
+            )
+
+    def test_detail_cache_profile_exposes_source_phases_without_loading(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            catalog = self.build(Path(tmp))
+            details = catalog.quests[0]._details
+            self.assertEqual(catalog.detail_cache_info()["last_source_phases_ms"], {})
+            details._sources.last_detail_phase_ms = {"objective_lookup": 9.5}
+            self.assertEqual(
+                catalog.detail_cache_info()["last_source_phases_ms"],
+                {"objective_lookup": 9.5},
+            )
+            # No real detail, source traversal, or cache warmup is triggered.
+            self.assertEqual(catalog.detail_cache_info()["loads"], 0)
 
     def test_runtime_details_reuse_preload_source_offset_namespace(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -221,6 +278,17 @@ class QuestDetailsTests(unittest.TestCase):
             self.assertEqual(catalog.detail_cache_info()['loads'], 0)
             self.assertEqual(len(catalog.achievement_series), 1)
             self.assertEqual(catalog.achievement_series[0].quest_ids, (1,))
+
+    def test_lazy_catalog_search_callback_does_not_pin_released_catalogue(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            catalogue = self.build(Path(tmp))
+            search = catalogue.load_search_documents
+            reference = weakref.ref(catalogue)
+            del catalogue
+            # No gc.collect(): the catalogue must be freed by reference-count
+            # ownership when Home releases it, not at a later GC cycle.
+            self.assertIsNone(reference())
+            self.assertTrue(callable(search))
 
     def test_explicit_search_compiles_bounded_batches_without_filling_details(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1596,7 +1596,11 @@ def _build_compact_cache(path: Path) -> int:
 
 def _dump_default_detail(achievement_id: int) -> int:
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
-    provider._load_in_process()
+    # This is a disposable child process, just like the compact-cache builder.
+    # Reuse its indexed one-pass loader instead of scanning text IDs and then
+    # rebuilding the entire rich catalogue through _load_in_process().
+    # The detail still comes from the canonical source-backed renderer below.
+    provider._load_disposable_worker_fast()
     provider._loaded = True
     provider.prepare_detail_sources()
     detail = provider._get_detail_in_process(int(achievement_id))

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import struct
 import subprocess
 import sys
 from dataclasses import asdict
@@ -18,6 +19,12 @@ DOFUS_UNKNOWN_ICON = DATA_DIR / "encyclopedia" / "images" / "guides" / "dofus_un
 GUIDE_ITEMS_INDEX = ROOT_DIR / ".cache" / "dofus_atlas" / "guide_items_index_v1.json"
 _GUIDE_ITEMS_INDEX_SCHEMA = 1
 _GUIDE_ITEM_KEYS = frozenset({"item_id", "reward_item_id", "illustration_item_id"})
+# Five signed 64-bit integers per source effect (RID, effect ID, dice and value).
+# The original dict[int, tuple[int, ...]] boxes every scalar and allocates a
+# Python tuple for every effect in items.json, even though Guides reference only
+# a small subset. The compact buffer keeps one source pass without pinning
+# that large intermediate Python graph.
+_EFFECT_CANDIDATE_ROW = struct.Struct("<5q")
 
 
 def _guide_item_source_signature(data_dir: Path) -> list[list[object]]:
@@ -149,6 +156,31 @@ def _collect_guide_item_ids() -> set[int]:
             except (OSError, ValueError, TypeError):
                 continue
     return result
+
+def _selected_effect_instances(
+    packed_candidates: bytes | bytearray,
+    requested_rids: set[int],
+) -> dict[int, dict[str, int]]:
+    """Materialize only referenced effects from a compact source-order buffer.
+
+    A repeated RID keeps the last source row, matching the former dictionary
+    overwrite semantics; negative and zero effect values remain unchanged.
+    """
+    selected: dict[int, dict[str, int]] = {}
+    if not requested_rids:
+        return selected
+    for rid, effect_id, dice_num, dice_side, value in _EFFECT_CANDIDATE_ROW.iter_unpack(
+        packed_candidates
+    ):
+        if rid in requested_rids:
+            selected[rid] = {
+                "effectId": effect_id,
+                "diceNum": dice_num,
+                "diceSide": dice_side,
+                "value": value,
+            }
+    return selected
+
 
 def _iter_doduda_refs(path: Path):
     """Yield bounded Doduda RefIds rows without a Python character-by-character scan."""
@@ -446,7 +478,7 @@ class DofusItemProvider:
         # Effect instances live in the same RefIds stream as items. Keep only
         # four scalar fields per candidate so one bounded pass can serve both
         # item discovery and later Dofus effect rendering.
-        effect_candidates: dict[int, tuple[int, int, int, int]] = {}
+        effect_candidates = bytearray()
         for ref in _iter_doduda_refs(items_path):
             data = ref.get("data")
             if not isinstance(data, dict):
@@ -455,11 +487,14 @@ class DofusItemProvider:
             rid = safe_int(ref.get("rid"))
             effect_id = safe_int(data.get("effectId"))
             if rid is not None and effect_id is not None:
-                effect_candidates[int(rid)] = (
-                    int(effect_id),
-                    safe_int(data.get("diceNum"), 0) or 0,
-                    safe_int(data.get("diceSide"), 0) or 0,
-                    safe_int(data.get("value"), 0) or 0,
+                effect_candidates.extend(
+                    _EFFECT_CANDIDATE_ROW.pack(
+                        int(rid),
+                        int(effect_id),
+                        safe_int(data.get("diceNum"), 0) or 0,
+                        safe_int(data.get("diceSide"), 0) or 0,
+                        safe_int(data.get("value"), 0) or 0,
+                    )
                 )
 
             item_id = safe_int(data.get("id"))
@@ -480,18 +515,7 @@ class DofusItemProvider:
                 if effect_rid is not None:
                     effect_rids.add(int(effect_rid))
 
-        effect_instances: dict[int, dict[str, Any]] = {}
-        for rid in effect_rids:
-            compact = effect_candidates.get(int(rid))
-            if compact is None:
-                continue
-            effect_id, dice_num, dice_side, value = compact
-            effect_instances[int(rid)] = {
-                "effectId": effect_id,
-                "diceNum": dice_num,
-                "diceSide": dice_side,
-                "value": value,
-            }
+        effect_instances = _selected_effect_instances(effect_candidates, effect_rids)
         del effect_candidates
 
         needed_type_ids = {DOFUS_TYPE_ID}

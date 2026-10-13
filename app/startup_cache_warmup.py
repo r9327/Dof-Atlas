@@ -7,7 +7,7 @@ import sqlite3
 import subprocess
 import sys
 from pathlib import Path
-from time import perf_counter
+from time import monotonic, perf_counter, sleep
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -111,7 +111,10 @@ def _run_module(module: str, *arguments: str) -> str:
         "timeout": 180,
     }
     if os.name == "nt":
-        options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        # A hidden Windows console still starts conhost.exe for a console child.
+        # This disposable worker has redirected stdio and needs no console;
+        # DETACHED_PROCESS avoids that extra resident OS process entirely.
+        options["creationflags"] = subprocess.DETACHED_PROCESS
 
     completed = subprocess.run(
         [sys.executable, "-m", module, *arguments],
@@ -369,6 +372,16 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _wait_for_memory_sampler(start_file: str, *, timeout: float = 120.0) -> None:
+    """Do not allocate the Guide worker before its concurrent RAM sampler exists."""
+    file_path = Path(start_file)
+    deadline = monotonic() + max(0.0, timeout)
+    while not file_path.is_file():
+        if monotonic() >= deadline:
+            raise TimeoutError("Atlas memory sampler did not signal warmup start")
+        sleep(0.02)
+
+
 def run_warmup(token: str = "") -> dict[str, object]:
     started = perf_counter()
     token = str(token or "").strip()
@@ -379,6 +392,12 @@ def run_warmup(token: str = "") -> dict[str, object]:
             "status": "running",
         }
     )
+
+    # Benchmark-only barrier: short cold warmups previously finished during
+    # Python/Qt benchmark import, making a real 220+ MB peak disappear.
+    go_file = os.environ.get("DOFUS_ATLAS_WARMUP_GO_FILE", "").strip()
+    if go_file:
+        _wait_for_memory_sampler(go_file)
 
     manifest = _load_manifest()
     domain_results: dict[str, dict[str, object]] = {}

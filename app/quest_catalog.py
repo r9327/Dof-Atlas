@@ -5,6 +5,7 @@ import html
 import json
 import logging
 import re
+from time import perf_counter
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
@@ -282,6 +283,19 @@ class QuestCatalog:
         if not isinstance(entries, Mapping):
             entries = {}
 
+        # The first Quest detail may be slow even when the tab itself is ready.
+        # Observe the individual cold compilation phases without extra scans.
+        profile_active = sources is not None and quest_ids is not None
+        phase_started = perf_counter()
+        phase_times: dict[str, float] = {}
+
+        def record_phase(name: str) -> None:
+            nonlocal phase_started
+            if profile_active:
+                current = perf_counter()
+                phase_times[name] = round((current - phase_started) * 1000.0, 2)
+                phase_started = current
+
         quests = row_loader(data_dir / "quests.json")
         quest_steps = row_loader(data_dir / "quest_steps.json")
         objectives = row_loader(data_dir / "quest_objectives.json")
@@ -301,9 +315,11 @@ class QuestCatalog:
         areas = row_loader(data_dir / "areas.json")
         subareas = row_loader(data_dir / "subareas.json")
         maps = row_loader(data_dir / "maps_information.json")
+        record_phase("source_mapping_setup")
         image_index = (sources.image_index(DATA_DIR / "images") if sources is not None
                        else build_image_index(DATA_DIR / "images"))
         character_xp = load_character_xp_table(data_dir)
+        record_phase("image_index_and_xp")
 
         category_names = {
             ident: localized_name(row, entries, f"Categorie {ident}")
@@ -330,6 +346,7 @@ class QuestCatalog:
         achievement_names = context['achievement_names']
         quest_names = context['quest_names']
         quest_to_achievements = context['quest_to_achievements']
+        record_phase("global_names_and_links")
         objectives_by_step: dict[int, list[dict[str, Any]]] = defaultdict(list)
         selected_steps = {int(step) for quest_id in (quest_ids or ())
                           for step in array_value(quests[quest_id].get("stepIds"))}
@@ -340,6 +357,7 @@ class QuestCatalog:
                 objectives_by_step[int(objective.get("stepId"))].append(objective)
             except (TypeError, ValueError):
                 continue
+        record_phase("objective_lookup")
         rewards_by_id = rewards
 
         records: list[QuestRecord] = []
@@ -432,11 +450,15 @@ class QuestCatalog:
                 )
             )
 
+        record_phase("rich_quest_steps")
         enrichment = ({"quests": {str(quest_id): sources.mapping(
             DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json", "quests").get(str(quest_id), {})
             for quest_id in quest_ids}} if include_enrichment and sources is not None and quest_ids is not None else None)
         if include_enrichment:
             apply_quest_enrichment(records, payload=enrichment)
+        record_phase("enrichment")
+        if profile_active:
+            sources.last_detail_phase_ms = phase_times
         records.sort(key=lambda quest: normalize_text(quest.name))
         catalog = cls(
             records,

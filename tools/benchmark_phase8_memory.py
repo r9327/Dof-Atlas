@@ -8,6 +8,7 @@ import os
 import sys
 import threading
 import time
+from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -24,6 +25,7 @@ TOOLS = ROOT / "tools"
 if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
+from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QApplication
 
 from benchmark_phase8_preload import (
@@ -234,6 +236,7 @@ def memory_snapshot(label: str) -> dict[str, Any]:
     warmup_pid = int(raw_warmup_pid) if raw_warmup_pid.isdecimal() else 0
     warmup_total = 0
     warmup_count = 0
+    warmup_processes: list[dict[str, Any]] = []
     if warmup_pid > 0:
         root_row = next(
             (
@@ -253,9 +256,17 @@ def memory_snapshot(label: str) -> dict[str, Any]:
                     continue
                 warmup_total += rss
                 warmup_count += 1
+                warmup_processes.append({
+                    "pid": row.pid,
+                    "name": row.name,
+                    "rss_mb": round(rss / _MB, 2),
+                })
     warmup_mb = round(warmup_total / _MB, 2)
     payload["warmup_rss_mb"] = warmup_mb
     payload["warmup_process_count"] = warmup_count
+    payload["warmup_processes"] = sorted(
+        warmup_processes, key=lambda row: row["rss_mb"], reverse=True
+    )[:8]
     if process_rss_mb is not None:
         payload["tree_rss_mb"] = round(float(process_rss_mb) + child_mb + warmup_mb, 2)
     return payload
@@ -325,6 +336,7 @@ class PeakTreeSampler:
         self.peak_process_rss_mb = 0.0
         self.peak_tree_rss_mb = 0.0
         self.peak_tree_sample: dict[str, Any] = {}
+        self.warmup_worker_seen = False
 
     def set_phase(self, phase: str) -> None:
         with self._lock:
@@ -341,7 +353,16 @@ class PeakTreeSampler:
             sample = memory_snapshot("sample")
             process_rss = float(sample.get("process_rss_mb") or 0.0)
             tree_rss = float(sample.get("tree_rss_mb") or process_rss)
+            external_pid_text = os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip()
+            external_pid = int(external_pid_text) if external_pid_text.isdecimal() else 0
+            warmup_worker_seen = any(
+                int(row.get("pid") or 0) != external_pid
+                and str(row.get("name") or "").lower().startswith("python")
+                for row in sample.get("warmup_processes", ())
+            )
             with self._lock:
+                if warmup_worker_seen:
+                    self.warmup_worker_seen = True
                 phase = self._phase
                 self.peak_process_rss_mb = max(self.peak_process_rss_mb, process_rss)
                 if tree_rss > self.peak_tree_rss_mb:
@@ -357,7 +378,22 @@ class PeakTreeSampler:
 
 def _capture(app: QApplication, stages: list[dict[str, Any]], label: str, settle: float = 0.20) -> dict[str, Any]:
     pump(app, settle)
+    # This benchmark drives Qt with processEvents(), not QApplication.exec().
+    # Qt does NOT dispatch DeferredDelete automatically in such a local loop.
+    # Flush exactly the deleteLater() events which the production event loop
+    # would deliver before measuring whether Home retained live widgets.
+    QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
     sample = memory_snapshot(label)
+    # Take the RSS measurement before enumerating Qt objects so introspection
+    # cannot inflate the measured process-tree checkpoint.
+    sample["python_threads_alive"] = sum(
+        thread.is_alive() for thread in threading.enumerate()
+    )
+    widgets = QApplication.allWidgets()
+    sample["qt_widgets_alive"] = len(widgets)
+    sample["qt_widget_classes"] = dict(
+        Counter(type(widget).__name__ for widget in widgets).most_common(15)
+    )
     stages.append(sample)
     return sample
 
@@ -449,7 +485,10 @@ def _open_rich_guide_with_probe(
             app.processEvents()
             page = getattr(window, "page_widgets", {}).get("Quetes")
             view = getattr(page, "guides_view", None) if page is not None else None
-            if str(getattr(view, "current_guide_id", "") or "") == str(guide_id):
+            if (
+                str(getattr(view, "current_guide_id", "") or "") == str(guide_id)
+                and bool(getattr(view, "_runtime_ready", False))
+            ):
                 stages.append(memory_snapshot("guide_detail_ready"))
                 return round((time.perf_counter() - started) * 1000.0, 2)
             time.sleep(0.005)
@@ -479,6 +518,10 @@ def measure() -> dict[str, Any]:
     ) and not bool(os.environ.get("DOFUS_ATLAS_WARMUP_PID", "").strip())
     if not defer_tree_sampler:
         sampler.start()
+        go_file = os.environ.get("DOFUS_ATLAS_WARMUP_GO_FILE", "").strip()
+        if go_file:
+            # Only signal once peak monitoring has actually been activated.
+            Path(go_file).touch(exist_ok=False)
 
     window = app_main.AtlasWindow()
     window.show()
@@ -594,6 +637,10 @@ def measure() -> dict[str, Any]:
     sampler.set_phase("guide_home")
     window.show_page("Home")
     after_guide_home = _capture(app, stages, "after_guide_home", 0.75)
+    sampler.set_phase("guide_home_stabilized")
+    after_guide_home_stable = _capture(
+        app, stages, "after_guide_home_stabilized", 1.50
+    )
 
     sampler.set_phase("craft_open")
     timings["craft_open_ms"] = open_page(app, window, "Craft")
@@ -612,7 +659,42 @@ def measure() -> dict[str, Any]:
     sampler.set_phase("equipment_home_stabilized")
     after_equipment_stable = _capture(app, stages, "after_equipment_home_stabilized", 1.50)
 
+    # Repeated real navigation differentiates a one-time allocator high-water
+    # mark from retention that keeps accumulating across Home transitions.
+    # Keep the original canonical checkpoints and budgets unchanged.
+    round_trip_home_samples: dict[str, list[dict[str, Any]]] = {
+        "quests": [],
+        "achievements": [],
+        "guide": [],
+    }
+    for cycle in range(1, 3):
+        for domain, tab in (
+            ("quests", QUESTS_TAB),
+            ("achievements", ACHIEVEMENTS_TAB),
+        ):
+            sampler.set_phase(f"repeat_{cycle}_{domain}")
+            open_encyclopedia(app, window, tab)
+            window.show_page("Home")
+            round_trip_home_samples[domain].append(
+                _capture(app, stages, f"repeat_{cycle}_{domain}_home", 0.75)
+            )
+
+        sampler.set_phase(f"repeat_{cycle}_guide")
+        _open_guide_with_probe(app, window, stages)
+        _open_rich_guide_with_probe(app, window, stages)
+        window.show_page("Home")
+        round_trip_home_samples["guide"].append(
+            _capture(app, stages, f"repeat_{cycle}_guide_home", 1.50)
+        )
+
     sampler.stop()
+    if (
+        os.environ.get("DOFUS_ATLAS_WARMUP_GO_FILE", "").strip()
+        and not sampler.warmup_worker_seen
+    ):
+        raise RuntimeError(
+            "Invalid RAM evidence: external warmup child was never sampled"
+        )
 
     shutdown = getattr(window, "_shutdown_background_services", None)
     if callable(shutdown):
@@ -628,6 +710,7 @@ def measure() -> dict[str, Any]:
     quests_home_tree = float(after_quests_home.get("tree_rss_mb") or 0.0)
     achievements_home_tree = float(after_achievements_home.get("tree_rss_mb") or 0.0)
     guide_home_tree = float(after_guide_home.get("tree_rss_mb") or 0.0)
+    guide_home_stable_tree = float(after_guide_home_stable.get("tree_rss_mb") or 0.0)
     craft_home_tree = float(after_craft_home.get("tree_rss_mb") or 0.0)
 
     return {
@@ -637,12 +720,42 @@ def measure() -> dict[str, Any]:
         "peak_process_rss_mb": round(sampler.peak_process_rss_mb, 2),
         "peak_tree_rss_mb": round(sampler.peak_tree_rss_mb, 2),
         "peak_tree_sample": sampler.peak_tree_sample,
+        "round_trip_home": {
+            domain: [
+                {
+                    "tree_rss_mb": item.get("tree_rss_mb"),
+                    "process_rss_mb": item.get("process_rss_mb"),
+                    "python_threads_alive": item.get("python_threads_alive"),
+                    "qt_widgets_alive": item.get("qt_widgets_alive"),
+                }
+                for item in samples
+            ]
+            for domain, samples in round_trip_home_samples.items()
+        },
+        "round_trip_guide_tree_drift_mb": round(
+            float(round_trip_home_samples["guide"][-1]["tree_rss_mb"] or 0.0)
+            - float(round_trip_home_samples["guide"][0]["tree_rss_mb"] or 0.0),
+            2,
+        ),
         "achievements_retained_tree_delta_mb": round(
             achievements_home_tree - quests_home_tree,
             2,
         ),
         "guide_retained_tree_delta_mb": round(
             guide_home_tree - quests_home_tree,
+            2,
+        ),
+        # Supplemental evidence only: keep the legacy gate metric unchanged.
+        "guide_retained_tree_delta_stabilized_mb": round(
+            guide_home_stable_tree - quests_home_tree,
+            2,
+        ),
+        "guide_incremental_retained_tree_delta_mb": round(
+            guide_home_stable_tree - achievements_home_tree,
+            2,
+        ),
+        "guide_home_stabilization_delta_mb": round(
+            guide_home_stable_tree - guide_home_tree,
             2,
         ),
         "craft_retained_tree_delta_mb": round(

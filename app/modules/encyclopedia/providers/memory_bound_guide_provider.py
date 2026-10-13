@@ -736,6 +736,13 @@ def _build_compact_guide_cache(path: Path) -> int:
             separators=(",", ":"),
         ) + "\n"
 
+    # Build the inverse link index once instead of iterating over every
+    # entity and its linked Guide objects for each catalogue row.
+    entity_keys_by_guide: dict[str, set[object]] = defaultdict(set)
+    for entity_key, linked_guides in provider._by_entity.items():
+        for linked_guide in linked_guides:
+            entity_keys_by_guide[str(linked_guide.id)].add(entity_key)
+
     with temporary.open("w", encoding="utf-8", newline="\n") as stream:
         stream.write(
             line(
@@ -747,11 +754,7 @@ def _build_compact_guide_cache(path: Path) -> int:
             )
         )
         for guide in provider._guides:
-            entity_keys = {
-                entity_key
-                for entity_key, guides in provider._by_entity.items()
-                if any(candidate.id == guide.id for candidate in guides)
-            }
+            entity_keys = entity_keys_by_guide.get(str(guide.id), set())
             stream.write(
                 line(
                     {

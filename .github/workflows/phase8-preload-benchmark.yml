@@ -116,6 +116,12 @@ jobs:
 
           git checkout --force "$env:BASE_SHA" 2>&1 | Tee-Object -FilePath $log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Baseline and candidate must both start without generated Atlas caches.
+          # Otherwise the first ref warms the second and invents huge gains.
+          $cacheRoot = ".cache/dofus_atlas"
+          if (Test-Path -LiteralPath $cacheRoot) {
+            Remove-Item -LiteralPath $cacheRoot -Recurse -Force -ErrorAction Stop
+          }
           & python -X faulthandler $runner --output $before 2>&1 | Tee-Object -FilePath $log -Append
           $baseCode = $LASTEXITCODE
           if (-not (Test-Path -LiteralPath $before)) {
@@ -130,6 +136,9 @@ jobs:
 
           git checkout --force "$env:CANDIDATE_SHA" 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Test-Path -LiteralPath $cacheRoot) {
+            Remove-Item -LiteralPath $cacheRoot -Recurse -Force -ErrorAction Stop
+          }
           & python -X faulthandler $runner --output $after 2>&1 | Tee-Object -FilePath $log -Append
           $candidateCode = $LASTEXITCODE
           if (-not (Test-Path -LiteralPath $after)) {

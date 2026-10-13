@@ -88,6 +88,11 @@ jobs:
           New-Item -ItemType Directory -Force -Path "artifacts/phase8_memory" | Out-Null
           $token = [guid]::NewGuid().ToString("N")
           $env:DOFUS_ATLAS_CACHE_WARMUP_TOKEN = $token
+          # Unique handshake: the worker may import but cannot allocate its
+          # large Guide/Items heap until the Atlas tree sampler is live.
+          $goFile = Join-Path $env:RUNNER_TEMP ("atlas_warmup_" + $token + ".ready")
+          if (Test-Path -LiteralPath $goFile) { Remove-Item -LiteralPath $goFile -Force }
+          $env:DOFUS_ATLAS_WARMUP_GO_FILE = $goFile
           $warmupOut = "artifacts/phase8_memory/warmup.stdout.log"
           $warmupErr = "artifacts/phase8_memory/warmup.stderr.log"
           $python = (Get-Command python).Source
@@ -123,6 +128,8 @@ jobs:
             Copy-Item -LiteralPath $warmupResult -Destination "artifacts/phase8_memory/warmup.cold.json" -Force
           }
 
+          # Hot reuse is not concurrent with the Atlas sampler.
+          Remove-Item Env:DOFUS_ATLAS_WARMUP_GO_FILE -ErrorAction SilentlyContinue
           # Run the same warmup once more after the measured app process is gone.
           # Every reconstructible domain must hit the manifest fast path; this
           # proves the optimization removes work instead of deferring it.
@@ -190,6 +197,13 @@ jobs:
               "equipment_active",
               "after_equipment_home",
               "after_equipment_home_stabilized",
+              "after_guide_home_stabilized",
+              "repeat_1_quests_home",
+              "repeat_1_achievements_home",
+              "repeat_1_guide_home",
+              "repeat_2_quests_home",
+              "repeat_2_achievements_home",
+              "repeat_2_guide_home",
           )
           missing = [name for name in required if name not in by_label]
           if missing:
@@ -201,7 +215,7 @@ jobs:
 
           # Phase 8 user budgets: long-lived Home memory must stay strictly
           # below 100 MB after every heavy module, and total process-tree peak
-          # must never exceed 250 MB.
+          # must never exceed the existing 220 MB hard gate.
           stage_budgets_mb = {
               "after_preload": 95.0,
               "after_quests_home": 100.0,
@@ -209,6 +223,13 @@ jobs:
               "after_guide_home": 100.0,
               "after_craft_home": 100.0,
               "after_equipment_home_stabilized": 100.0,
+              "after_guide_home_stabilized": 100.0,
+              "repeat_1_quests_home": 100.0,
+              "repeat_1_achievements_home": 100.0,
+              "repeat_1_guide_home": 100.0,
+              "repeat_2_quests_home": 100.0,
+              "repeat_2_achievements_home": 100.0,
+              "repeat_2_guide_home": 100.0,
           }
           for label, budget in stage_budgets_mb.items():
               measured = float(by_label[label]["tree_rss_mb"])
