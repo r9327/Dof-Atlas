@@ -59,7 +59,7 @@ def _run_lock():
 
 def _launch_with_health(executable: Path, report) -> bool:
     USER_DIR.mkdir(parents=True, exist_ok=True)
-    prepare_user_data(executable, USER_DIR)
+    prepare_user_data(executable, USER_DIR, legacy_root=Path(sys.executable).resolve().parent)
     health_dir = ROOT / ".health"
     health_dir.mkdir(parents=True, exist_ok=True)
     ready = health_dir / (uuid.uuid4().hex + ".ready")
