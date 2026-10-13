@@ -12,7 +12,8 @@ class AtlasJsonShardTests(unittest.TestCase):
     def test_deterministic_shards_by_stable_id_roundtrip_and_reuse(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            source = root / "quests_enriched.json"
+            source = root / "canonical" / "quests_enriched.json"
+            source.parent.mkdir()
             rows = {str(key): {
                 "quest_id": key,
                 "prerequisites": ["Étape \"à\" terminer", None] if key % 3 == 0 else [],
@@ -44,7 +45,8 @@ class AtlasJsonShardTests(unittest.TestCase):
     def test_corruption_does_not_silently_fallback_and_source_change_invalidates(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            source, output = root / "quests_enriched.json", root / "derived"
+            source, output = root / "canonical" / "quests_enriched.json", root / "derived"
+            source.parent.mkdir()
             source.write_text('{"quests":{"10":{"name":"Quest"}}}', encoding="utf-8")
             report = build(source, output, ids_per_shard=4)
             shard = current_directory(output) / next(iter(report["shards"]))
