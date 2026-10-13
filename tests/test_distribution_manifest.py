@@ -18,7 +18,7 @@ def manifest_payload(files=None, **overrides):
     if files is None:
         files = [dict(path="AtlasApp/AtlasApp.exe", size=3, sha256=hashlib.sha256(b"abc").hexdigest())]
     doc = dict(protocol_version=1, app_version="1.2.3", data_version="2026.10",
-               schema_version=1, source_sha="a" * 64, entrypoint="AtlasApp/AtlasApp.exe",
+               schema_version=1, source_sha="a" * 40, entrypoint="AtlasApp/AtlasApp.exe",
                files=files)
     doc.update(overrides)
     return json.dumps(doc).encode("utf-8")
@@ -102,7 +102,7 @@ class InstallationTests(unittest.TestCase):
             mark_healthy(root)
             self.assertFalse(read_state(root)["pending"])
             self.assertFalse(install_release(root, archive, first))
-            second = parse_manifest(manifest_payload(app_version="1.2.4", source_sha="b" * 64))
+            second = parse_manifest(manifest_payload(app_version="1.2.4", source_sha="b" * 40))
             self.assertTrue(install_release(root, archive, second))
             self.assertTrue(rollback_pending(root))
             self.assertEqual(read_state(root)["app_version"], "1.2.4")
