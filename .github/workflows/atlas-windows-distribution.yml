@@ -38,7 +38,7 @@ jobs:
       - name: Compile updater modules
         run: python -m compileall -q app/distribution scripts/windows/package_release.py scripts/windows/export_app_repository.py launch.py
       - name: Focused updater tests
-        run: python -m unittest -v tests.test_distribution_manifest tests.test_distribution_user_data
+        run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
   windows-bundle:
     name: Windows bundle (gated certification)
     if: >-
@@ -73,7 +73,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Focused Windows tests
-        run: python -m unittest -v tests.test_distribution_manifest tests.test_distribution_user_data
+        run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
       - name: Install hashed runtime and pinned build tool
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
