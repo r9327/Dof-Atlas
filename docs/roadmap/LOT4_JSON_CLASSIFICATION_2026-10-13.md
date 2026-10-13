@@ -41,3 +41,14 @@ py -3.13 -m tools.atlas_json_shards --verify-only
 Le rapport local doit confirmer **tous les JSON réellement suivis dans le checkout exact**, les SHA-256 des octets matérialisés, la présence des sources LFS, les contrats déclarés et les références lexicales **non prouvées**. Une différence de compte nécessite enquête, pas correction cosmétique des statistiques. Les producteurs, consommateurs et états runtime ne sont **pas** certifiés par une simple recherche de chaînes : Graphify/Doctor et les tests de parcours demeurent requis.
 
 **Critères bloquants avant fusion #157** : parité données/IDs, comportement Guide/Quêtes/Succès/Équipement/Craft, versions et rollback, mémoire et latence Windows comparables, CI ciblées vertes puis certification officielle au SHA final. Les runs SKIPPED/NOT_RUN ne valent pas PASS. La PR #153 (nouveau lot 5) reste indépendante, non fusionnable avant clôture du lot 4.
+
+
+## Extension du périmètre aux JSON locaux/non suivis — 13/10/2026
+
+`tools/atlas_json_inventory.py --include-local --output artifacts/lot4/json_inventory.json` recense désormais, **sur demande uniquement**, les JSON non suivis/ignorés présents dans des familles runtime explicites : états locaux, caches, imports métiers `data/raw/json`, routes métiers/Guide, données encyclopédiques générées, rapports, configuration et cache applicatif.
+
+Ces données n'ont **pas été trouvées par hypothèse** dans les 239 JSON suivis : l'ancien rapport était un inventaire Git exclusivement. Le nouveau relevé ne lit **aucun contenu** des fichiers locaux et n'exporte **aucun nom, chemin ni hash privé** : seulement le nombre et la taille totale par famille. Les liens symboliques sont ignorés. Il marque le résultat `complete_within_scope=false` s'il dépasse son budget de visite, au lieu de prétendre une couverture exhaustive ; il ne représente pas les données SQLite ni les répertoires hors périmètre explicite.
+
+Décisions conservatrices : fichiers de progression/personnages/configuration = `PRESERVE_PRIVATE` ; caches régénérables = `GENERATED_NO_SHARD` ; imports métiers et encyclopédie = `REVIEW_GENERATED` ; routes = `PRESERVE_ROUTE_CONTRACT`. Aucune migration ou découpe de données utilisateur. Tests ciblés dans `tests/test_atlas_json_inventory.py`, exécution dans `JSON Focused Data Contract` sur Windows.
+
+**Important :** après cette extension, le dernier PASS FULL `bd1f57f` ne peut plus être revendiqué pour le nouveau HEAD sans recertification ; le blocage RAM strict de l'issue #158 reste indépendant et non résolu. La PR #157 ne doit pas être fusionnée avant les critères.
