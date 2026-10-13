@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 import tempfile
 import threading
 import time
@@ -101,8 +102,11 @@ class QuestDetailsTests(unittest.TestCase):
 
             # Force a genuinely cold detail in the reopened catalogue:
             # otherwise the stored rich record would bypass the index lookup.
-            with sqlite3.connect(details.path) as connection:
-                connection.execute("UPDATE quests SET detail=NULL WHERE id=1")
+            # sqlite3.Connection.__exit__ commits but does NOT close the file.
+            # Windows refuses TemporaryDirectory cleanup while it is open.
+            with closing(sqlite3.connect(details.path)) as connection:
+                with connection:
+                    connection.execute("UPDATE quests SET detail=NULL WHERE id=1")
             reopened = load_lazy_catalog(root, cache_root=cache_root)
             reopened_details = reopened.by_id[1]._details
             with patch.object(QuestCatalog, "_load_source", side_effect=self.compile):

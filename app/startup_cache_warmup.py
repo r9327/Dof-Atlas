@@ -111,7 +111,10 @@ def _run_module(module: str, *arguments: str) -> str:
         "timeout": 180,
     }
     if os.name == "nt":
-        options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        # A hidden Windows console still starts conhost.exe for a console child.
+        # This disposable worker has redirected stdio and needs no console;
+        # DETACHED_PROCESS avoids that extra resident OS process entirely.
+        options["creationflags"] = subprocess.DETACHED_PROCESS
 
     completed = subprocess.run(
         [sys.executable, "-m", module, *arguments],
