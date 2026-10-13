@@ -132,7 +132,7 @@
     },
     "scripts": {
       "mode": "040000",
-      "sha": "0df0d38f89149c10d0e8479e6c531a62d0e6cef4",
+      "sha": "4ce3989109e24500d08fe6cc57818e93f6aa0646",
       "type": "tree"
     },
     "sitecustomize.py": {
@@ -142,7 +142,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "5d37a61dbb6e0b82107c692ce09c66cf600fda41",
+      "sha": "f204f230b7d0a6534d15819d782d050b34845f10",
       "type": "tree"
     },
     "tools": {

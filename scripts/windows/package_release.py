@@ -15,9 +15,12 @@ _PRIVATE = {"client_profiles.json", "client_index.json", "client_index.ini",
             "network_character_bindings.json", "craft_selection.json",
             "quest_progress.json", "bootstrap_status.txt"}
 _LFS = b"version https://git-lfs.github.com/spec/v1"
+_RUNTIME_SEEDS = {"_internal/data/local/zaaps.json"}
 
 
 def _publishable(relative: Path) -> bool:
+    if relative.as_posix() in _RUNTIME_SEEDS:
+        return True
     parts = relative.parts
     if any(piece in _BLOCKED for piece in parts):
         return False

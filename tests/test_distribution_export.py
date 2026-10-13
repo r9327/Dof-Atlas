@@ -25,6 +25,7 @@ class ExportTests(unittest.TestCase):
                 "local_dofus_data/store.py": "VALUE=1\n",
                 "data/encyclopedia/quests/quests_enriched.json": "{}\n",
                 "data/images/misc/dofus_atlas_logo.png": "PNG\n",
+                "data/local/zaaps.json": '{"zaaps":[]}',
                 "data/local/quest_progress.json": '{"progress":8}\n',
                 "tests/test_private.py": "secret\n",
                 "tools/doctor.py": "dev\n",
@@ -40,7 +41,8 @@ class ExportTests(unittest.TestCase):
             for rel in ("main.py", "launch.py", "app/runtime.py",
                         "local_dofus_data/store.py",
                         "data/encyclopedia/quests/quests_enriched.json",
-                        "data/images/misc/dofus_atlas_logo.png"):
+                        "data/images/misc/dofus_atlas_logo.png",
+                        "data/local/zaaps.json"):
                 self.assertTrue((destination / rel).is_file(), rel)
             for rel in ("tools/doctor.py", "tests/test_private.py",
                         "app/modules/encyclopedia/tools/dev.py",

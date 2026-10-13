@@ -22,6 +22,9 @@ class PackagingTests(unittest.TestCase):
             qt = bundle / "_internal" / "PySide6" / "QtWebEngineProcess.exe"
             qt.parent.mkdir(parents=True)
             qt.write_bytes(b"Qt helper")
+            zaaps = bundle / "_internal" / "data" / "local" / "zaaps.json"
+            zaaps.parent.mkdir(parents=True, exist_ok=True)
+            zaaps.write_text('{"zaaps":[]}', encoding="utf-8")
             private = bundle / "_internal" / "data" / "local" / "quest_progress.json"
             private.parent.mkdir(parents=True)
             private.write_text('{"private":true}')
@@ -33,6 +36,7 @@ class PackagingTests(unittest.TestCase):
             self.assertIn("AtlasApp/AtlasApp.exe", entries)
             self.assertIn("AtlasApp/_internal/PySide6/QtWebEngineProcess.exe", entries)
             self.assertNotIn("AtlasApp/_internal/data/local/quest_progress.json", entries)
+            self.assertIn("AtlasApp/_internal/data/local/zaaps.json", entries)
             with zipfile.ZipFile(archive) as package:
                 self.assertEqual(set(package.namelist()), entries)
             target = root / "installed"

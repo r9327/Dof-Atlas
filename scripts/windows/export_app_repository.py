@@ -12,6 +12,7 @@ _DATA_SUFFIXES = {".json", ".db", ".ini"}
 _ESSENTIAL_ICONS = {
     "data/images/misc/dofus_atlas_logo.png",
     "data/images/misc/dofus_atlas.ico",
+    "data/local/zaaps.json",
 }
 _MAX_GIT_FILE = 95 * 1024 * 1024
 _RUNTIME_ROOTS = ("app/", "local_dofus_data/")
@@ -26,7 +27,7 @@ def export(root: Path, destination: Path, source_sha: str) -> int:
         if not filename:
             continue
         relative = Path(filename)
-        if set(relative.parts) & _FORBIDDEN or relative.suffix == ".pyc":
+        if (set(relative.parts) & _FORBIDDEN and filename not in _ESSENTIAL_ICONS) or relative.suffix == ".pyc":
             continue
         if filename in _META or filename.startswith(_RUNTIME_ROOTS):
             if relative.name == "AGENTS.md" or relative.suffix in (".md", ".rst"):
