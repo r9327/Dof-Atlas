@@ -94,6 +94,59 @@ class AtlasJsonInventoryTests(unittest.TestCase):
             self.assertEqual(row["contract_sha256"], "0" * 64)
             self.assertIn("SHA-256", row["reason"])
 
+    def test_optional_untracked_json_summary_never_reads_or_exposes_user_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            tracked = "data/routes/guide_ultime_manual/chapter.json"
+            files = {
+                tracked: '{"ok":true}',
+                "data/local/character_progress.json": "A_PRIVATE_NAME_DO_NOT_LEAK",
+                "data/raw/json/gamosaurus/metiers_leveling.json": "{malformed is still counted}",
+                "data/cache/dofus_maps/runtime.json": "another private value",
+                ".cache/dofus_atlas/quests_shards/active.json": '{"version":1}',
+                "config/private_profile.json": "PRIVATE_CONFIG_DATA",
+            }
+            for relative, content in files.items():
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+            report = audit(root, files=[tracked], include_local=True)
+            self.assertEqual(report["json_count"], 1)
+            private = report["local_runtime_json"]
+            self.assertTrue(private["complete_within_scope"])
+            self.assertEqual(private["json_count"], 5)
+            self.assertEqual(private["families"]["local_user_state"]["json_count"], 1)
+            self.assertEqual(private["families"]["raw_profession_imports"]["json_count"], 1)
+            self.assertEqual(private["families"]["profession_and_guide_routes"]["json_count"], 0)
+            self.assertEqual(private["families"]["configuration_state"]["json_count"], 1)
+            self.assertEqual(
+                private["families"]["local_user_state"]["decision"],
+                "PRESERVE_PRIVATE",
+            )
+            encoded = json.dumps(private, ensure_ascii=False)
+            for secret in ("A_PRIVATE_NAME_DO_NOT_LEAK", "character_progress.json",
+                           "PRIVATE_CONFIG_DATA", "private_profile.json"):
+                self.assertNotIn(secret, encoded)
+            # No transformation, parsing or modification of malformed local JSON.
+            self.assertEqual(
+                (root / "data/local/character_progress.json").read_text(encoding="utf-8"),
+                "A_PRIVATE_NAME_DO_NOT_LEAK",
+            )
+
+    def test_optional_local_scan_reports_incomplete_instead_of_claiming_full(self) -> None:
+        from tools.atlas_json_inventory import audit_local_json
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            folder = root / "data/local"
+            folder.mkdir(parents=True)
+            for name in ("one.json", "two.json", "three.json"):
+                (folder / name).write_text("{}", encoding="utf-8")
+            result = audit_local_json(root, tracked=set(), max_visited_files=2)
+            self.assertFalse(result["complete_within_scope"])
+            self.assertIsNotNone(result["warning"])
+            self.assertLessEqual(result["json_count"], 2)
+            self.assertEqual(result["visited_files"], 2)
+
     def test_bad_json_and_unavailable_lfs_are_not_reported_valid(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
