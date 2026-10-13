@@ -38,12 +38,44 @@ def _write(path: Path, payload: object) -> tuple[str, int]:
 
 
 def _manifest(directory: Path) -> dict:
+    """Treat every on-disk manifest as untrusted, even when previously published."""
     manifest_path = directory / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema_version") != 1 or manifest.get("field") != "quests":
+    if not isinstance(manifest, dict) or manifest.get("schema_version") != 1 or manifest.get("field") != "quests":
         raise ValueError("Version ou famille de shards incompatible")
-    if not isinstance(manifest.get("index"), dict) or not isinstance(manifest.get("shards"), dict):
+    index, shards = manifest.get("index"), manifest.get("shards")
+    if not isinstance(index, dict) or not isinstance(shards, dict):
         raise ValueError("Index de shards invalide")
+    count, batch = manifest.get("record_count"), manifest.get("ids_per_shard")
+    if (type(count) is not int or count < 0 or type(batch) is not int
+            or not 1 <= batch <= 4096 or count != len(index)):
+        raise ValueError("Comptage ou granularité de shards invalide")
+    if (manifest.get("source_name") != "quests_enriched.json"
+            or type(manifest.get("source_bytes")) is not int
+            or manifest["source_bytes"] < 0
+            or not isinstance(manifest.get("source_sha256"), str)
+            or re.fullmatch(r"[0-9a-f]{64}", manifest["source_sha256"]) is None):
+        raise ValueError("Identité de la source invalide")
+    for name, info in shards.items():
+        if (not isinstance(name, str) or SAFE_SHARD.fullmatch(name) is None
+                or not isinstance(info, dict)
+                or not isinstance(info.get("sha256"), str)
+                or re.fullmatch(r"[0-9a-f]{64}", info["sha256"]) is None
+                or type(info.get("bytes")) is not int or info["bytes"] < 1
+                or type(info.get("record_count")) is not int or info["record_count"] < 1):
+            raise ValueError("Métadonnées de shard invalides")
+    observed: dict[str, int] = {}
+    for key, name in index.items():
+        if (not isinstance(key, str) or not key.isascii() or not key.isdecimal()
+                or str(int(key)) != key or not isinstance(name, str)
+                or name not in shards
+                or name != f"quests_{int(key) // batch:08d}.json"):
+            raise ValueError("Index ID→shard incohérent")
+        observed[name] = observed.get(name, 0) + 1
+    if (sum(info["record_count"] for info in shards.values()) != count
+            or any(observed.get(name) != info["record_count"]
+                   for name, info in shards.items())):
+        raise ValueError("Couverture des shards incohérente")
     return manifest
 
 
@@ -160,7 +192,14 @@ def build(
             verify(source, staging, cache_root=cache)
             staging.rename(final)
 
-    # The active pointer is small and atomic; previous versions remain for rollback.
+    # Previous versions remain immutable and may be explicitly reactivated.
+    _activate_pointer(output_root, version_name)
+    return manifest
+
+
+def _activate_pointer(output_root: Path, version_name: str) -> None:
+    if re.fullmatch(r"quests_v1_[0-9a-f]{64}_[0-9]{4}", version_name) is None:
+        raise ValueError("Version interdite")
     pointer = {"schema_version": 1, "version": version_name}
     with tempfile.NamedTemporaryFile(
         mode="wb", prefix="active_", suffix=".tmp", dir=output_root, delete=False
@@ -171,6 +210,24 @@ def build(
         os.replace(temp_pointer, output_root / "active.json")
     finally:
         temp_pointer.unlink(missing_ok=True)
+
+
+def activate_version(
+    source: Path, output_root: Path, version_name: str, *, cache_root: Path | None = None
+) -> dict:
+    """Rollback only to a fully verified snapshot of the CURRENT canonical source."""
+    output_root = Path(output_root).resolve()
+    if re.fullmatch(r"quests_v1_[0-9a-f]{64}_[0-9]{4}", version_name) is None:
+        raise ValueError("Version interdite")
+    target = output_root / "versions" / version_name
+    if not target.is_dir() or target.is_symlink():
+        raise ValueError("Version absente ou lien interdit")
+    source = Path(source).resolve()
+    cache = Path(cache_root) if cache_root is not None else output_root / "source_offsets"
+    manifest = verify(source, target, cache_root=cache)
+    if version_name != f"quests_v1_{manifest['source_sha256']}_{manifest['ids_per_shard']:04d}":
+        raise ValueError("Nom de version incompatible")
+    _activate_pointer(output_root, version_name)
     return manifest
 
 
@@ -208,9 +265,15 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=ROOT / ".cache/dofus_atlas/quests_shards")
     parser.add_argument("--ids-per-shard", type=int, default=32)
     parser.add_argument("--verify-only", action="store_true")
+    parser.add_argument("--activate-version", metavar="VERSION",
+                        help="Réactiver un snapshot vérifié de la même source")
     args = parser.parse_args()
+    if args.verify_only and args.activate_version:
+        parser.error("--verify-only et --activate-version sont incompatibles")
     cache = args.output / "source_offsets"
-    if args.verify_only:
+    if args.activate_version:
+        report = activate_version(args.source, args.output, args.activate_version, cache_root=cache)
+    elif args.verify_only:
         report = verify(args.source, current_directory(args.output), cache_root=cache)
     else:
         report = build(args.source, args.output, ids_per_shard=args.ids_per_shard, cache_root=cache)
