@@ -27,6 +27,68 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _reject_duplicate_json_keys(path: Path) -> None:
+    """Stream the canonical JSON and reject lossy duplicate object members.
+
+    json.loads and the existing byte-offset index both apply last-key-wins
+    semantics. This offline preflight must detect duplicates at every nesting
+    level *before* any derived snapshot is published. Memory stays bounded by
+    nesting depth and the largest individual member key, not source size.
+    """
+    stack: list[set[str] | None] = []  # object key sets, None for arrays
+    in_string = False
+    escaped = False
+    key_bytes: bytearray | None = None
+    previous = None
+    with Path(path).open("rb") as stream:
+        for chunk in iter(lambda: stream.read(256 * 1024), b""):
+            for byte in chunk:
+                if in_string:
+                    if key_bytes is not None:
+                        key_bytes.append(byte)
+                        if len(key_bytes) > 65536:
+                            raise ValueError("Clé JSON anormalement longue")
+                    if escaped:
+                        escaped = False
+                    elif byte == 92:  # backslash
+                        escaped = True
+                    elif byte == 34:  # closing quote
+                        in_string = False
+                        if key_bytes is not None:
+                            key = json.loads(bytes(key_bytes))
+                            members = stack[-1]
+                            if key in members:
+                                raise ValueError(f"Clé JSON dupliquée : {key!r}")
+                            members.add(key)
+                        key_bytes = None
+                        previous = byte
+                    continue
+
+                if byte in (9, 10, 13, 32):
+                    continue
+                if byte == 34:  # opening quote
+                    in_string = True
+                    key_bytes = (
+                        bytearray(b'"') if stack and stack[-1] is not None
+                        and previous in (123, 44) else None
+                    )
+                elif byte == 123:  # {
+                    stack.append(set())
+                elif byte == 91:  # [
+                    stack.append(None)
+                elif byte == 125:  # }
+                    if not stack or stack[-1] is None:
+                        raise ValueError("Fermeture d'objet JSON invalide")
+                    stack.pop()
+                elif byte == 93:  # ]
+                    if not stack or stack[-1] is not None:
+                        raise ValueError("Fermeture de tableau JSON invalide")
+                    stack.pop()
+                previous = byte
+    if in_string or stack:
+        raise ValueError("JSON canonique tronqué")
+
+
 def _json_bytes(payload: object) -> bytes:
     return (json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
 
@@ -87,6 +149,7 @@ def verify(source: Path, directory: Path, *, cache_root: Path) -> dict:
         raise ValueError("Nom de source incompatible")
     if source.stat().st_size != manifest.get("source_bytes") or sha256_file(source) != manifest.get("source_sha256"):
         raise ValueError("Source différente : dérivés périmés")
+    _reject_duplicate_json_keys(source)
     sources = QuestSources(cache_root)
     try:
         original = sources.mapping(source, "quests", required=True)
@@ -146,6 +209,7 @@ def build(
     cache = Path(cache_root) if cache_root is not None else output_root / "source_offsets"
     before_size = source.stat().st_size
     before_sha = sha256_file(source)
+    _reject_duplicate_json_keys(source)
     version_name = f"quests_v1_{before_sha}_{ids_per_shard:04d}"
     final = versions / version_name
 
