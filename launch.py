@@ -4,6 +4,12 @@ from __future__ import annotations
 def main() -> int:
     import sys
 
+    if sys.argv[1:2] == ["--atlas-package-smoke"]:
+        from pathlib import Path
+        import PySide6.QtWebEngineWidgets  # noqa: F401
+        from app.constants import DATA_DIR
+        return 0 if DATA_DIR.is_dir() and (Path(sys.executable).is_file()) else 3
+
     # A frozen executable is not a Python interpreter. It must explicitly
     # dispatch trusted workers instead of interpreting "-m module" as GUI args.
     if getattr(sys, "frozen", False) and sys.argv[1:2] == ["-m"]:
