@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 _SHA256 = re.compile(r"[a-f0-9]{64}\Z")
+_GIT_SHA = re.compile(r"[a-f0-9]{40}\Z")
 _VERSION = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9._+-]{0,79}\Z")
 _BAD_WIN = re.compile(r'[<>:"\\|?*\x00-\x1f]')
 _RESERVED = re.compile(r"(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?\Z", re.I)
@@ -50,6 +51,12 @@ def valid_version(value: Any) -> str:
 def valid_sha(value: Any) -> str:
     if not isinstance(value, str) or not _SHA256.fullmatch(value):
         raise ManifestError("Invalid SHA-256")
+    return value
+
+
+def valid_source_sha(value: Any) -> str:
+    if not isinstance(value, str) or not _GIT_SHA.fullmatch(value):
+        raise ManifestError("Invalid Git commit SHA")
     return value
 
 
@@ -114,7 +121,7 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
         valid_version(doc["app_version"]),
         valid_version(doc["data_version"]),
         doc["schema_version"],
-        valid_sha(doc["source_sha"]),
+        valid_source_sha(doc["source_sha"]),
         entrypoint,
         tuple(files),
     )
