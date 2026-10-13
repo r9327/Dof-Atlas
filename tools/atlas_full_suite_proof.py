@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 import unittest
 
 SCHEMA = 1
@@ -40,6 +41,35 @@ class ProofResult(unittest.TextTestResult):
     def __init__(self, stream, descriptions, verbosity):
         super().__init__(stream, descriptions, verbosity)
         self.completed: list[tuple[str, str]] = []
+        # Timing is diagnostic only: the exact-SHA per-test success ledger
+        # remains the sole authority for test reuse and certification.
+        self.timings: list[dict[str, object]] = []
+        self._previous_finish = time.perf_counter()
+        self._test_started = self._previous_finish
+        self._fixture_before_test = 0.0
+
+    def startTest(self, test):
+        now = time.perf_counter()
+        self._fixture_before_test = max(0.0, now - self._previous_finish)
+        self._test_started = now
+        super().startTest(test)
+
+    def stopTest(self, test):
+        finished = time.perf_counter()
+        try:
+            identity = canonical(test.id())
+        except ValueError:
+            identity = None
+        if identity is not None:
+            elapsed = max(0.0, finished - self._test_started)
+            self.timings.append({
+                "test_id": identity,
+                "test_seconds": round(elapsed, 6),
+                "preceding_fixture_seconds": round(self._fixture_before_test, 6),
+                "total_seconds": round(elapsed + self._fixture_before_test, 6),
+            })
+        self._previous_finish = finished
+        super().stopTest(test)
 
     def _record(self, test: unittest.case.TestCase, status: str) -> None:
         self.completed.append((canonical(test.id()), status))
@@ -100,6 +130,33 @@ def validated_ledger(expected: list[str], completed: list[tuple[str, str]],
         "successful_test_ids": sorted(k for k, v in statuses.items() if v == "ok"),
         "non_successful_test_ids": sorted(k for k, v in statuses.items() if v != "ok"),
         "source": "unittest.TextTestResult.addSuccess/addSkip/addExpectedFailure",
+    }
+
+
+def timing_report(expected: list[str], timings: list[dict[str, object]], *,
+                  sha: str, suite_seconds: float, successful: bool) -> dict:
+    """Supplemental timings, never a substitute for a successful FULL ledger.
+
+    Preceding fixture time includes setup and teardown between adjacent tests.
+    Time after the last test is reported separately.
+    """
+    if not SHA.fullmatch(sha):
+        raise ValueError("Invalid timing SHA")
+    names = [row["test_id"] for row in timings]
+    if not expected or len(set(expected)) != len(expected) or sorted(names) != sorted(expected):
+        raise ValueError("Incomplete or duplicate per-test timings")
+    ordered = sorted(timings, key=lambda row: (-row["total_seconds"], row["test_id"]))
+    observed = sum(row["total_seconds"] for row in ordered)
+    return {
+        "schema_version": 1,
+        "kind": "atlas_full_unittest_timing_diagnostic",
+        "candidate_sha": sha,
+        "status": "COMPLETE" if successful else "FAILED",
+        "tests_timed": len(ordered),
+        "suite_seconds": round(suite_seconds, 3),
+        "unattributed_tail_seconds": round(max(0.0, suite_seconds - observed), 3),
+        "slowest_20": ordered[:20],
+        "per_test": ordered,
     }
 
 
@@ -170,10 +227,12 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
                           text=True, check=True, timeout=10).stdout.strip()
+    suite_started = time.perf_counter()
     result = unittest.TextTestRunner(
         verbosity=2 if args.verbose else 1, resultclass=ProofResult,
         durations=20,
     ).run(suite)
+    suite_seconds = time.perf_counter() - suite_started
     # Supplemental exact-SHA timings, never part of the PASS ledger or a
     # shortcut around test execution. The Phase artifact already uploads this
     # directory; collecting durations here does not rerun any test.
@@ -192,6 +251,25 @@ def main(argv: list[str] | None = None) -> int:
             ],
         }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         timing_tmp.replace(timing_path)
+    # In addition to the existing native unittest top-20, persist an exact
+    # per-case report showing expensive fixture/setup gaps. Keep it diagnostic
+    # and independent of the pass/fail ledger.
+    detail_path = (phase_logs / "05_full_unittest_timings.json"
+                   if phase_logs.is_dir()
+                   else args.proof_file.with_name(args.proof_file.stem + "_timings.json"))
+    try:
+        detail = timing_report(expected, result.timings, sha=head,
+                               suite_seconds=suite_seconds,
+                               successful=result.wasSuccessful())
+        detail_path.parent.mkdir(parents=True, exist_ok=True)
+        detail_tmp = detail_path.with_suffix(".json.tmp")
+        detail_tmp.write_text(
+            json.dumps(detail, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        detail_tmp.replace(detail_path)
+    except (OSError, ValueError) as exc:
+        print("FULL timing diagnostics unavailable: " + str(exc), file=sys.stderr)
     if not result.wasSuccessful():
         return 1
     try:
