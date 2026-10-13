@@ -49,3 +49,27 @@
 13. **Cohérence multi-dépôts** : traçabilité SHA source → snapshot distribué → release ; synchronisation idempotente, sans commits en boucle et sans dépendance à un secret dans le client.
 14. **Rollback applicatif et données** : transaction de mise à jour cohérente ; conserver la dernière version saine et vérifier le redémarrage avant de purger les sauvegardes.
 15. **Validation ciblée** : tests unitaires du manifeste, compatibilité, migration, interruption, reprise et restauration pendant le développement ; validation Windows complète avant fusion.
+
+
+## Avancement de l'intégration (PR #159)
+
+Le code du protocole de mise à jour, du téléchargement, des slots transactionnels, de la fenêtre Tkinter, du signal Qt de santé, de la persistance des profils et de l'export applicatif est présent sur cette PR. Les tests unitaires ciblés sont intégrés dans un workflow indépendant des certifications lourdes.
+
+**À ne pas confondre avec une publication prête :** aucun EXE n'est réputé fonctionnel sans le job Windows PyInstaller suivi d'un test réel, et aucun second dépôt n'a été créé par cette PR.
+
+### Configuration de publication (après validation et fusion)
+- Créer le dépôt public GitHub **r9327/Dof-Atlas-App** avec branche \`main\`.
+- Créer dans le dépôt source le secret **ATLAS_DISTRIBUTION_TOKEN**, limité au second dépôt avec permission Contents en écriture, et droits de publication Releases.
+- Autoriser explicitement la publication en configurant la variable source **ATLAS_DISTRIBUTION_ENABLED=true** uniquement après vérification Windows complète.
+- La publication s'exécute sur le SHA **exact de main** validé par le workflow *Phase Certification*. Un SHA périmé est bloqué avant build.
+- Les images et autres binaires volumineux restent dans la Release Windows ; le dépôt App conserve le code applicatif et les données structurées utiles, pas Doctor/Graphify/tests.
+- Distribuer le fichier \`DofusAtlas.exe\` de la Release comme seul point d'entrée visible. Les binaires d'application sont téléchargés dans le dossier utilisateur.
+
+### Points restant à certifier / développer avant un merge de production
+- Validation Windows vierge des imports QtWebEngine, sous-processus gelés, images LFS, premier lancement et rollback.
+- Contrôle exhaustif des écritures hors des chemins utilisateur dédiés, après audit architectural.
+- Mise à jour **des données seules** sans reconstruire l'exécutable, avec version de schéma et migration vérifiée.
+- Téléchargements différentiels multi-assets, purge bornée des anciennes installations, mise à jour du bootstrap lui-même.
+- Vérification de provenance complète des artefacts compilés et du modèle de permissions du dépôt de distribution.
+
+**Règle de sortie :** pas de merge ni de publication stable sur cette seule base documentaire ou sur des tests purement Python.
