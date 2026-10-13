@@ -64,9 +64,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ env.SOURCE_SHA }}
-          fetch-depth: 0
-          lfs: true
+          fetch-depth: 1
+          # Avoid downloading all development/tooling Git-LFS files.
+          lfs: false
           persist-credentials: false
+      - name: Fetch only runtime Git LFS assets
+        run: |
+          git lfs pull --include="data/**" --exclude=""
+          git lfs ls-files | head -n 4
       - name: Ensure successful certification applies to current main HEAD
         if: github.event_name == 'workflow_run'
         run: |
