@@ -7,6 +7,7 @@ import tempfile
 import threading
 import time
 import unittest
+import weakref
 from dataclasses import asdict
 from pathlib import Path
 from unittest.mock import patch
@@ -277,6 +278,17 @@ class QuestDetailsTests(unittest.TestCase):
             self.assertEqual(catalog.detail_cache_info()['loads'], 0)
             self.assertEqual(len(catalog.achievement_series), 1)
             self.assertEqual(catalog.achievement_series[0].quest_ids, (1,))
+
+    def test_lazy_catalog_search_callback_does_not_pin_released_catalogue(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            catalogue = self.build(Path(tmp))
+            search = catalogue.load_search_documents
+            reference = weakref.ref(catalogue)
+            del catalogue
+            # No gc.collect(): the catalogue must be freed by reference-count
+            # ownership when Home releases it, not at a later GC cycle.
+            self.assertIsNone(reference())
+            self.assertTrue(callable(search))
 
     def test_explicit_search_compiles_bounded_batches_without_filling_details(self):
         with tempfile.TemporaryDirectory() as tmp:

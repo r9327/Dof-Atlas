@@ -10,6 +10,7 @@ import hashlib
 import json
 import sqlite3
 import sys
+import weakref
 from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import asdict
@@ -419,7 +420,16 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
     catalog.is_detail_cached = details.cached
     catalog.detail_cache_info = details.info
     catalog.guide_evidence = details.guide_evidence
-    catalog.load_search_documents = lambda: details.search_documents(catalog.by_id)
+    # Do not let a catalogue-owned search callback retain its own catalogue.
+    # Home hibernation drops the provider reference; keeping a self-capturing
+    # lambda would form a cycle and accumulate Quest graphs across navigations.
+    catalogue_ref = weakref.ref(catalog)
+
+    def load_search_documents():
+        current = catalogue_ref()
+        return details.search_documents(current.by_id) if current is not None else []
+
+    catalog.load_search_documents = load_search_documents
     # Rich search is populated only by an explicit search; graph/list prewarm
     # must never enumerate documentary attributes of these records.
     catalog.deferred_details = True
