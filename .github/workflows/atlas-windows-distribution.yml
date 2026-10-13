@@ -21,7 +21,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: atlas-distribution-${{ github.event_name }}-${{ github.ref }}
+  group: atlas-distribution-${{ github.event_name == 'workflow_run' && 'release' || github.event_name == 'workflow_dispatch' && 'manual' || github.event.action == 'ready_for_review' && 'candidate' || 'focused' }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   focused:
