@@ -46,6 +46,24 @@ class AtlasJsonShardTests(unittest.TestCase):
             with self.assertRaises(KeyError):
                 read_by_id(output, 999999)
 
+    def test_never_publish_under_or_over_canonical_source_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "canonical" / "quests_enriched.json"
+            source.parent.mkdir()
+            source.write_text('{"quests":{"7":{"name":"Safe"}}}', encoding="utf-8")
+            for output in (source.parent, source.parent / "derived", root):
+                with self.subTest(output=output):
+                    with self.assertRaises(ValueError):
+                        build(source, output)
+            self.assertEqual(
+                list(source.parent.iterdir()), [source],
+                "No derived data must appear within the canonical directory",
+            )
+            self.assertEqual(
+                build(source, root / "separate" / "derived")["record_count"], 1
+            )
+
     def test_corruption_does_not_silently_fallback_and_source_change_invalidates(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
