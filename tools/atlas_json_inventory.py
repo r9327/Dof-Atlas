@@ -132,6 +132,15 @@ def audit(root: Path, *, files: list[str] | None = None) -> dict:
         usable = available and not lfs_pointer
         decision, reason = _decision(relative, size, usable)
         source_contract = contracts.get(relative, {})
+        sha256 = _sha256(path) if usable else None
+        expected_sha256 = source_contract.get("sha256")
+        if not isinstance(expected_sha256, str):
+            expected_sha256 = None
+        contract_matches = (
+            sha256 == expected_sha256 if sha256 is not None and expected_sha256 else None
+        )
+        if contract_matches is False:
+            decision, reason = "REVIEW", "SHA-256 différent du contrat canonique : vérifier la source"
         record = {
             "path": relative.replace("\\", "/"),
             "family": _family(relative),
@@ -140,7 +149,9 @@ def audit(root: Path, *, files: list[str] | None = None) -> dict:
             "reason": reason,
             "available": usable,
             "lfs_pointer": lfs_pointer,
-            "sha256": _sha256(path) if usable else None,
+            "sha256": sha256,
+            "contract_sha256": expected_sha256,
+            "contract_matches": contract_matches,
             "declared_role": source_contract.get("role"),
             "declared_generator": source_contract.get("generator"),
             "declared_consumers": source_contract.get("consumers", []),
@@ -181,6 +192,7 @@ def audit(root: Path, *, files: list[str] | None = None) -> dict:
             "Tracked JSON only; generated local caches, SQLite stores and untracked user state are excluded.",
             "Consumer text candidates are NOT Graphify or runtime proof.",
             "REVIEW and NOT_MEASURED are not PASS or optimization claims.",
+            "Contract SHA mismatches are REVIEW, not permission to regenerate canonical network data.",
             "No source or user files are modified by the audit.",
         ],
         "json_count": len(records),
