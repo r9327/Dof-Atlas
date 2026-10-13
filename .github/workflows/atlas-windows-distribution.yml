@@ -68,10 +68,15 @@ jobs:
           # Avoid downloading all development/tooling Git-LFS files.
           lfs: false
           persist-credentials: false
-      - name: Fetch only runtime Git LFS assets
+      - name: Fetch only startup images for frozen candidate
+        if: github.event_name != 'workflow_run'
+        run: |
+          # Candidate verifies EXE/Qt integration; it is NOT a distributable full release.
+          git lfs pull --include="data/images/misc/**,data/images/classes/**" --exclude=""
+      - name: Materialize full application data for certified release
+        if: github.event_name == 'workflow_run'
         run: |
           git lfs pull --include="data/**" --exclude=""
-          git lfs ls-files | head -n 4
       - name: Ensure successful certification applies to current main HEAD
         if: github.event_name == 'workflow_run'
         run: |
@@ -141,6 +146,7 @@ jobs:
             }
           }
       - name: Package ZIP, manifest and launcher
+        if: github.event_name == 'workflow_run'
         run: |
           version="0.1.0-$(echo "$SOURCE_SHA" | cut -c1-12)"
           python -m scripts.windows.package_release \
@@ -148,12 +154,23 @@ jobs:
             --source-sha "$SOURCE_SHA" --app-version "$version" \
             --data-version "$(date -u +%Y.%m.%d)" --schema-version 1
           cp dist/DofusAtlas.exe dist-release/DofusAtlas.exe
-      - name: Upload candidate Windows artifacts
+      - name: Upload certified Windows release files
+        if: github.event_name == 'workflow_run'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: atlas-windows-${{ env.SOURCE_SHA }}
           path: dist-release/*
           retention-days: 14
+          if-no-files-found: error
+      - name: Upload frozen candidate launchers for diagnosis
+        if: github.event_name != 'workflow_run'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: atlas-frozen-launchers-${{ env.SOURCE_SHA }}
+          path: |
+            dist/DofusAtlas.exe
+            dist/AtlasApp/AtlasApp.exe
+          retention-days: 7
           if-no-files-found: error
       - name: Checkout isolated application repository
         if: github.event_name == 'workflow_run'
