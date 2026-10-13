@@ -10,7 +10,7 @@ import zipfile
 from pathlib import Path
 
 from app.distribution.install import active_executable, install_release, mark_healthy, read_state, rollback_pending
-from app.distribution.manifest import ManifestError, parse_manifest, verify_file
+from app.distribution.manifest import MAX_MANIFEST_BYTES, ManifestError, parse_manifest, verify_file
 from app.distribution.release_client import UpdateError, _safe_url
 
 
@@ -74,7 +74,7 @@ class ManifestTests(unittest.TestCase):
 
     def test_manifest_size_cap(self):
         with self.assertRaises(ManifestError):
-            parse_manifest(b" " * (2 * 1024 * 1024 + 1))
+            parse_manifest(b" " * (MAX_MANIFEST_BYTES + 1))
 
     def test_url_allowlist(self):
         self.assertEqual(
