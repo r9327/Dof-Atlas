@@ -1,0 +1,147 @@
+name: Atlas Windows Distribution
+on:
+  pull_request:
+    paths:
+      - "app/distribution/**"
+      - "scripts/windows/package_release.py"
+      - "scripts/windows/export_app_repository.py"
+      - "scripts/windows/atlas_launcher_entry.py"
+      - "tests/test_distribution_*.py"
+      - "main.py"
+      - "launch.py"
+      - "app/constants.py"
+      - ".github/workflows/atlas-windows-distribution.yml"
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Phase Certification"]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: atlas-distribution-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  focused:
+    name: Focused updater contracts
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Compile updater modules
+        run: python -m compileall -q app/distribution scripts/windows/package_release.py scripts/windows/export_app_repository.py launch.py
+      - name: Focused updater tests
+        run: python -m unittest -v tests.test_distribution_manifest tests.test_distribution_user_data
+  windows-bundle:
+    name: Windows bundle (gated certification)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       vars.ATLAS_DISTRIBUTION_ENABLED == 'true')
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+          lfs: true
+          persist-credentials: false
+      - name: Ensure successful certification applies to current main HEAD
+        if: github.event_name == 'workflow_run'
+        run: |
+          current="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$current" = "$SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Focused Windows tests
+        run: python -m unittest -v tests.test_distribution_manifest tests.test_distribution_user_data
+      - name: Install hashed runtime and pinned build tool
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          python -m pip install pyinstaller==6.16.0
+      - name: Compile application bundle with QtWebEngine and worker modules
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --name AtlasApp --paths . \
+            --hidden-import PySide6.QtWebEngineWidgets \
+            --hidden-import PySide6.QtWebEngineCore \
+            --hidden-import app.craft_preload \
+            --hidden-import app.quest_catalog_details \
+            --hidden-import app.startup_cache_warmup \
+            --hidden-import app.startup_cache_domain_worker \
+            --collect-submodules app \
+            --collect-submodules local_dofus_data \
+            --add-data "data;data" launch.py
+      - name: Compile lightweight standalone launcher
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed \
+            --name DofusAtlas --paths . scripts/windows/atlas_launcher_entry.py
+      - name: Smoke check frozen QtWebEngine and assets
+        run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
+      - name: Package ZIP, manifest and launcher
+        run: |
+          version="0.1.0-$(echo "$SOURCE_SHA" | cut -c1-12)"
+          python -m scripts.windows.package_release \
+            --payload dist/AtlasApp --output dist-release \
+            --source-sha "$SOURCE_SHA" --app-version "$version" \
+            --data-version "$(date -u +%Y.%m.%d)" --schema-version 1
+          cp dist/DofusAtlas.exe dist-release/DofusAtlas.exe
+      - name: Upload candidate Windows artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: atlas-windows-${{ env.SOURCE_SHA }}
+          path: dist-release/*
+          retention-days: 14
+          if-no-files-found: error
+      - name: Checkout isolated application repository
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: r9327/Dof-Atlas-App
+          token: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+          path: app-publish
+          fetch-depth: 1
+      - name: Synchronize application-only source and data
+        if: github.event_name == 'workflow_run'
+        run: |
+          python -m scripts.windows.export_app_repository \
+            --root . --destination app-publish --source-sha "$SOURCE_SHA"
+          git -C app-publish config user.name "github-actions[bot]"
+          git -C app-publish config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C app-publish add -A
+          if ! git -C app-publish diff --cached --quiet; then
+            git -C app-publish commit -m "sync: exact source $SOURCE_SHA"
+            git -C app-publish push origin HEAD:main
+          fi
+      - name: Publish certified stable release
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          tag="sha-$(echo "$SOURCE_SHA" | cut -c1-12)"
+          gh release create "$tag" \
+            dist-release/atlas-windows.zip \
+            dist-release/atlas-manifest.json \
+            dist-release/DofusAtlas.exe \
+            --repo r9327/Dof-Atlas-App \
+            --title "Dofus Atlas $tag" \
+            --notes "Certified source r9327/Dof-Atlas@$SOURCE_SHA" \
+            --latest
