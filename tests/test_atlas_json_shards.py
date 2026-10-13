@@ -46,6 +46,53 @@ class AtlasJsonShardTests(unittest.TestCase):
             with self.assertRaises(KeyError):
                 read_by_id(output, 999999)
 
+    def test_duplicate_json_members_rejected_before_publication(self) -> None:
+        # Existing offset indexes overwrite duplicate keys. All object levels
+        # must be guarded, not only the quest-id map.
+        payloads = (
+            '{"quests":{"10":{"name":"A"},"10":{"name":"B"}}}',
+            '{"quests":{"10":{"name":"A"},"\\u0031\\u0030":{"name":"B"}}}',
+            '{"quests":{"10":{"name":"A","name":"B"}}}',
+            '{"quests":{"10":{"step":[{"id":1,"id":2}]}}}',
+            '{"quests":{"10":{"name":"A"}},"quests":{"11":{"name":"B"}}}',
+            '{"quests":{"10":{"text":"' + 'x' * (256 * 1024) +
+            '"},"10":{"name":"overwritten"}}}',
+        )
+        for payload in payloads:
+            with self.subTest(prefix=payload[:100]):
+                with tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    source = root / "canonical" / "quests_enriched.json"
+                    source.parent.mkdir()
+                    source.write_text(payload, encoding="utf-8")
+                    output = root / "derived"
+                    with self.assertRaisesRegex(ValueError, "dupliquée"):
+                        build(source, output, ids_per_shard=8)
+                    self.assertFalse((output / "active.json").exists())
+                    self.assertEqual(source.read_text(encoding="utf-8"), payload)
+
+    def test_duplicate_source_detected_even_when_offset_cache_exists(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "canonical" / "quests_enriched.json"
+            source.parent.mkdir()
+            source.write_text('{"quests":{"10":{"name":"A"}}}', encoding="utf-8")
+            output = root / "derived"
+            report = build(source, output, ids_per_shard=8)
+            active = current_directory(output)
+            # The old byte-offset reader may have a cache already; validation
+            # must still catch duplicated IDs and refuse an invalid source.
+            source.write_text(
+                '{"quests":{"10":{"name":"A"},"10":{"name":"B"}}}',
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "dupliquée"):
+                build(source, output, ids_per_shard=8)
+            with self.assertRaisesRegex(ValueError, "dupliquée"):
+                verify(source, active, cache_root=output / "source_offsets")
+            self.assertEqual(current_directory(output), active)
+            self.assertEqual(report["record_count"], 1)
+
     def test_never_publish_under_or_over_canonical_source_tree(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
