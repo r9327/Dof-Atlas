@@ -99,6 +99,8 @@ class InstallationTests(unittest.TestCase):
             self.assertTrue(install_release(root, archive, first))
             self.assertTrue(read_state(root)["pending"])
             self.assertEqual(active_executable(root).read_bytes(), b"abc")
+            self.assertEqual(read_state(root)["entrypoint_size"], 3)
+            self.assertEqual(read_state(root)["entrypoint_sha256"], hashlib.sha256(b"abc").hexdigest())
             mark_healthy(root)
             self.assertFalse(read_state(root)["pending"])
             self.assertFalse(install_release(root, archive, first))
@@ -117,6 +119,8 @@ class InstallationTests(unittest.TestCase):
             self.assertTrue(install_release(root, archive, candidate))
             mark_healthy(root)
             active_executable(root).write_bytes(b"bad")
+            with self.assertRaises(UpdateError):
+                active_executable(root)
             self.assertTrue(install_release(root, archive, candidate))
             self.assertEqual(active_executable(root).read_bytes(), b"abc")
             self.assertTrue(read_state(root)["pending"])

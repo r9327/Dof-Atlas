@@ -120,7 +120,7 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
         if any("/".join(components[:i]) in normalized_paths for i in range(1, len(components))):
             raise ManifestError("File/directory path collision")
     entrypoint = valid_path(doc["entrypoint"])
-    if entrypoint.casefold() not in seen or not entrypoint.casefold().endswith(".exe"):
+    if entrypoint not in {e.path for e in files} or not entrypoint.casefold().endswith(".exe"):
         raise ManifestError("Missing executable entrypoint")
     return ReleaseManifest(
         valid_version(doc["app_version"]),

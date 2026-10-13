@@ -111,13 +111,22 @@ def run_update(report) -> None:
                     ),
                 )
                 report("Verification et installation...", 76)
-                install_release(
-                    ROOT, archive, remote.manifest,
-                    lambda done, total: report(
-                        "Verification des fichiers...",
-                        76 + int(done * 20 / max(total, 1)),
-                    ),
-                )
+                try:
+                    install_release(
+                        ROOT, archive, remote.manifest,
+                        lambda done, total: report(
+                            "Verification des fichiers...",
+                            76 + int(done * 20 / max(total, 1)),
+                        ),
+                    )
+                except UpdateError:
+                    # A completed-but-corrupt cache must not block every later
+                    # launch by being reused indefinitely at the same byte size.
+                    try:
+                        archive.unlink(missing_ok=True)
+                    except OSError:
+                        log.warning("Could not remove failed downloaded archive", exc_info=True)
+                    raise
                 report("Mise a jour installee", 96)
             else:
                 report("Atlas est a jour", 96)

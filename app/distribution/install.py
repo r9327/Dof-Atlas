@@ -12,7 +12,7 @@ import zipfile
 from pathlib import Path
 from typing import Callable
 
-from .manifest import ManifestError, ReleaseManifest, verify_file, valid_path
+from .manifest import ManifestError, ReleaseFile, ReleaseManifest, verify_file, valid_path, valid_sha
 from .release_client import UpdateError
 
 Progress = Callable[[int, int], None]
@@ -77,6 +77,16 @@ def active_executable(root: Path) -> Path | None:
     result = slot_path(root, slot) / relative
     if not result.is_file() or result.is_symlink():
         raise UpdateError("Installed executable missing")
+    size, digest = doc.get("entrypoint_size"), doc.get("entrypoint_sha256")
+    if size is not None or digest is not None:
+        try:
+            if type(size) is not int or size < 0:
+                raise ManifestError("Invalid installed binary size")
+            valid_sha(digest)
+        except ManifestError as exc:
+            raise UpdateError("Invalid installed binary integrity metadata") from exc
+        if not verify_file(result, ReleaseFile(relative, size, digest)):
+            raise UpdateError("Installed executable is corrupt; repair required")
     return result
 
 
@@ -202,7 +212,8 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
             os.replace(stage, target)
         prior = state.get("previous") if same_active else state.get("active")
         old_meta = state.get("previous_metadata") if same_active else {
-            key: state[key] for key in ("app_version", "data_version", "schema_version", "source_sha")
+            key: state[key] for key in ("app_version", "data_version", "schema_version", "source_sha",
+                                  "entrypoint_size", "entrypoint_sha256")
             if key in state
         }
         old_entrypoint = state.get("previous_entrypoint") if same_active else state.get("entrypoint")
@@ -214,6 +225,8 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
             "data_version": manifest.data_version,
             "schema_version": manifest.schema_version,
             "source_sha": manifest.source_sha,
+            "entrypoint_size": next(e.size for e in manifest.files if e.path == manifest.entrypoint),
+            "entrypoint_sha256": next(e.sha256 for e in manifest.files if e.path == manifest.entrypoint),
             "previous_metadata": old_meta or {},
         })
     except (OSError, zipfile.BadZipFile, RuntimeError) as exc:
