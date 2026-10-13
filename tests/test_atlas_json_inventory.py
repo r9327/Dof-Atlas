@@ -42,6 +42,39 @@ class AtlasJsonInventoryTests(unittest.TestCase):
             self.assertEqual(rows[plain]["top_level_keys"], ["quests"])
             self.assertEqual(rows[plain]["runtime_profile"], "NOT_MEASURED")
 
+    def test_family_report_covers_every_tracked_json_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            paths = [
+                "data/encyclopedia/quests/quests_enriched.json",
+                "data/encyclopedia/guides/guide_complet.json",
+                "data/routes/guide_ultime_manual/astrub_v1.json",
+                "data/cartography/map_views.json",
+                "data/network/protocol_research/backlog_v1.json",
+                "data/local/zaaps.json",
+                "tools/atlas_integrity_policy.json",
+                "tests/critical_regression_inventory.json",
+            ]
+            for rel in paths:
+                path = root / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('{"ok": true}', encoding="utf-8")
+            report = audit(root, files=paths)
+            families = report["families"]
+            self.assertEqual(sum(group["count"] for group in families.values()), len(paths))
+            self.assertEqual(sum(group["bytes"] for group in families.values()), report["total_bytes"])
+            self.assertEqual(families["guide_manual"]["count"], 1)
+            self.assertEqual(families["guide_catalog"]["count"], 1)
+            self.assertEqual(families["quests"]["count"], 1)
+            self.assertEqual(families["cartography"]["count"], 1)
+            self.assertEqual(families["protocol_research"]["count"], 1)
+            self.assertEqual(families["local_static_data"]["count"], 1)
+            self.assertEqual(families["tool_contract"]["count"], 1)
+            self.assertEqual(families["test_contract"]["count"], 1)
+            self.assertEqual(
+                families["guide_manual"]["decisions"]["ALREADY_OPTIMIZED"], 1
+            )
+
     def test_bad_json_and_unavailable_lfs_are_not_reported_valid(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
