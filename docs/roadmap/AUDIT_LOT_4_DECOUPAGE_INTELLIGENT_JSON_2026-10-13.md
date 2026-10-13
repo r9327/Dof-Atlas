@@ -94,3 +94,22 @@ py -3.13 -m tools.atlas_json_shards --verify-only
 ```
 
 Le générateur produit une **représentation dérivée expérimentale**, pas encore un gain produit ni un changement d'interface de lecture. Les JSON métiers, Succès, Guides et manifestes restent à classifier et traiter selon usage réel, pas par principe.
+
+
+## Avancement technique — garde-fous de perte de données et mesure comparative
+
+- Le contrôle `_reject_duplicate_json_keys` de `tools/atlas_json_shards.py` passe en flux sur le JSON canonique **hors runtime** (256 Kio/lecture) et refuse les membres répétés à toute profondeur avant publication, y compris les IDs échappés JSON ou masqués par un index d'offsets antérieur. Les données canoniques ne sont pas modifiées. Les tests sont dans `tests/test_atlas_json_shards.py`.
+- `tools/atlas_json_benchmark.py` compare sur un échantillon déterministe d'IDs les lectures du `QuestSources` préexistant avec `read_by_id` des partitions. Le contrôle de parité complète est préalable au chronométrage. Il mesure distinctement vérification, initialisation des offsets et lectures, sans déduire de RAM applicative ni de vitesse de démarrage à partir de ce seul résultat.
+- **Garde de décision** : ne pas migrer l'UI vers les shards par principe. Le moteur existant lit déjà directement le JSON par offsets et met les détails en cache SQLite ; un shard de 32 quêtes peut au contraire désérialiser davantage qu'un seul détail demandé. Choisir `INDEX_ONLY` tant qu'une amélioration nette et reproductible du cas réel n'a pas été démontrée. Il n'existe pas encore de chiffre de comparaison Windows certifié pour cette nouvelle branche.
+- Aucun nouveau format n'est imposé aux fichiers Métiers, Succès, Guide et progression qui ont déjà un stockage ou un chargement approprié. Pas de suppression des monolithes canoniques.
+
+Commandes ciblées, **uniquement une fois le checkout à jour** :
+
+```powershell
+py -3.13 -m unittest -v tests.test_atlas_json_shards tests.test_atlas_json_inventory tests.test_atlas_json_benchmark tests.test_guide_prerequisite_lookup
+py -3.13 -m tools.atlas_json_inventory --output artifacts/lot4/json_inventory.json
+py -3.13 -m tools.atlas_json_shards --output .cache/dofus_atlas/quests_shards
+py -3.13 -m tools.atlas_json_benchmark --shards .cache/dofus_atlas/quests_shards --sample-count 64 --output artifacts/lot4/json_comparison.json
+```
+
+Cette section documente du **code poussé**, pas un PASS des tests, ni une preuve de gain RAM/latence. La FULL n'est légitime qu'au candidat stabilisé après les corrections ciblées et les checks indépendants.
