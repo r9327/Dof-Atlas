@@ -66,7 +66,7 @@ def _launch_with_health(executable: Path, report) -> bool:
     env = os.environ.copy()
     env["DOFUS_ATLAS_HEALTH_FILE"] = str(ready)
     env["DOFUS_ATLAS_USER_ROOT"] = str(USER_DIR)
-    report("Lancement de Dofus Atlas...", 100)
+    report("Lancement de Dofus Atlas...", 98)
     try:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         proc = subprocess.Popen([str(executable)], cwd=str(executable.parent),
