@@ -32,3 +32,20 @@
 - Ne pas recopier les outils de développement dans le dépôt de distribution.
 - Les versions distribuées sont construites par CI, jamais par le PC client.
 - Aucun benchmark RAM lourd pendant l'implémentation ; tests ciblés puis certification finale.
+
+## Exigences complémentaires — mises à jour et exploitation
+1. **Téléchargements différentiels** : ne transférer que les fichiers/blocs modifiés quand le manifeste et le format de distribution le permettent ; repli sûr vers le paquet complet.
+2. **Contrat de compatibilité données/code** : versions de schéma, contraintes min/max et refus d'appliquer des JSON incompatibles avec le binaire installé.
+3. **Migration des données utilisateur** : migrations versionnées, idempotentes, sauvegarde avant migration et restauration vérifiée ; ne jamais écraser profils, progression ou paramètres.
+4. **Versionnement séparé** : version de l'application, version du jeu de données, version du schéma et version du protocole de mise à jour.
+5. **Auto-réparation** : comparer les fichiers installés au manifeste signé ou authentifié et restaurer les fichiers absents/corrompus sans supprimer les données utilisateur.
+6. **Canaux de diffusion** : stable par défaut ; bêta/test sur opt-in explicite ; empêcher tout passage involontaire vers un canal moins stable.
+7. **Reprise sur interruption** : téléchargement reprenable si le serveur le permet, fichiers temporaires vérifiés, reprise sûre après fermeture, crash ou perte réseau.
+8. **Test PC vierge** : démarrage, WebEngine, workers et parcours principaux sur Windows sans Python ni dépendances de développement installés.
+9. **Diagnostic respectueux de la vie privée** : journaux locaux bornés, erreurs exploitables, aucune donnée sensible, aucun jeton ou chemin personnel publié ; collecte distante uniquement sur consentement.
+10. **Garde-fous de publication** : releases exclusivement depuis un commit certifié, provenance exacte SHA, permissions CI minimales, vérification de l'artefact et aucune diffusion depuis PR non validée.
+11. **Updater minimal** : ne pas démarrer QtWebEngine ni charger toute l'application pour afficher la progression ; choisir une interface native/légère et mesurer son temps de démarrage.
+12. **Progrès honnête** : progression calculée à partir des octets et étapes réelles, état indéterminé quand la durée est inconnue, messages explicites en cas d'échec.
+13. **Cohérence multi-dépôts** : traçabilité SHA source → snapshot distribué → release ; synchronisation idempotente, sans commits en boucle et sans dépendance à un secret dans le client.
+14. **Rollback applicatif et données** : transaction de mise à jour cohérente ; conserver la dernière version saine et vérifier le redémarrage avant de purger les sauvegardes.
+15. **Validation ciblée** : tests unitaires du manifeste, compatibilité, migration, interruption, reprise et restauration pendant le développement ; validation Windows complète avant fusion.
