@@ -134,6 +134,10 @@ def _wait_for_parent(pid: int) -> None:
     kernel.CloseHandle.restype = ctypes.c_int
     handle = kernel.OpenProcess(0x00100000, 0, pid)
     if not handle:
+        # A onefile maintenance helper starts slower than the exiting Tk
+        # process. ERROR_INVALID_PARAMETER means the parent already exited.
+        if ctypes.get_last_error() == 87:
+            return
         raise RuntimeError("Cannot safely identify the launcher process")
     try:
         if kernel.WaitForSingleObject(handle, 60000) != 0:
@@ -175,16 +179,21 @@ def finish_launcher_upgrade(candidate: Path, digest: str, parent_pid: int,
     if not valid_binary(candidate):
         raise ValueError("Launcher changed while waiting")
     backup = program / "DofusAtlas.exe.previous"
-    if backup.exists():
-        if backup.is_symlink() or not backup.is_file():
-            raise ValueError("Unsafe launcher backup")
-        backup.unlink()
-    os.replace(target, backup)
+    if backup.exists() and (backup.is_symlink() or not backup.is_file()):
+        raise ValueError("Unsafe launcher backup")
+    # Preserve the old EXE first, then atomically replace the existing target.
+    # A crash at any point leaves a launchable file at the shortcut target.
+    fd, name = tempfile.mkstemp(prefix=".atlas-previous-", dir=program)
     try:
-        os.replace(candidate, target)
-    except OSError:
-        os.replace(backup, target)
-        raise
+        with os.fdopen(fd, "wb") as output, target.open("rb") as source:
+            shutil.copyfileobj(source, output, 1024 * 1024)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(name, backup)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
+    os.replace(candidate, target)
 
 
 def main(argv: list[str] | None = None) -> int:
