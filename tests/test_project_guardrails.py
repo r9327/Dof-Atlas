@@ -43,9 +43,19 @@ class ProjectGuardrailsTests(unittest.TestCase):
         self.assertIn("def _hydrate_manual_card_source", core)
         self.assertIn('card["manual_stage_data"] = stage', core)
         self.assertIn('card["manual_chapter_preparation"] = preparation', core)
-        self.assertIn("_structured_rows_from_fields", runtime)
-        self.assertIn("_link_next_cards(cards)", runtime)
-        self.assertIn('"manual_stage_id": str(nxt.get("manual_stage_id")', runtime)
+        # The canonical core now owns all three neutral implementations.
+        # Verify the structured fields remain there and the Phase 7E façade
+        # inherits them rather than rebuilding heavy cards a second time.
+        self.assertIn("_structured_rows_from_fields", core)
+        self.assertIn("def _link_next_cards(", core)
+        self.assertIn('"manual_stage_id": str(nxt.get("manual_stage_id")', core)
+        self.assertIn(
+            "class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService)",
+            runtime,
+        )
+        self.assertNotIn("def _structured_rows_from_fields(", runtime)
+        self.assertNotIn("def _link_next_cards(", runtime)
+        self.assertNotIn("def _stage_to_card(", runtime)
 
     def test_home_uses_manual_guide_runtime_for_primary_progress(self) -> None:
         home = self._text("app/pages/home_page.py")

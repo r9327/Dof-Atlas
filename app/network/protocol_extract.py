@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.network.contracts import _is_sha256
+
 import argparse
 import hashlib
 import json
@@ -317,14 +319,6 @@ def _positive_int(value: object) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def _is_sha256(value: str) -> bool:
-    if len(value) != 64:
-        return False
-    try:
-        bytes.fromhex(value)
-    except ValueError:
-        return False
-    return True
 
 
 def build_parser() -> argparse.ArgumentParser:
