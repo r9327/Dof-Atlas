@@ -40,6 +40,8 @@ class ReleaseManifest:
     entrypoint: str
     files: tuple[ReleaseFile, ...]
     protocol_version: int = PROTOCOL_VERSION
+    launcher_sha256: str | None = None
+    launcher_size: int | None = None
 
 
 def valid_version(value: Any) -> str:
@@ -87,8 +89,17 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
         raise ManifestError("Malformed JSON") from exc
     fields = {"protocol_version", "app_version", "data_version", "schema_version",
               "source_sha", "entrypoint", "files"}
-    if not isinstance(doc, dict) or set(doc) != fields:
+    optional = {"launcher_sha256", "launcher_size"}
+    if not isinstance(doc, dict) or not fields.issubset(doc) or not set(doc).issubset(fields | optional):
         raise ManifestError("Unexpected manifest fields")
+    if ("launcher_sha256" in doc) != ("launcher_size" in doc):
+        raise ManifestError("Incomplete launcher asset metadata")
+    launcher_sha256 = valid_sha(doc["launcher_sha256"]) if "launcher_sha256" in doc else None
+    launcher_size = doc.get("launcher_size")
+    if launcher_sha256 is not None and (
+        type(launcher_size) is not int or not 0 < launcher_size <= 128 * 1024**2
+    ):
+        raise ManifestError("Invalid launcher asset size")
     if type(doc["protocol_version"]) is not int or doc["protocol_version"] != PROTOCOL_VERSION:
         raise ManifestError("Unsupported updater protocol")
     if type(doc["schema_version"]) is not int or not 1 <= doc["schema_version"] <= 100_000:
@@ -129,6 +140,8 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
         valid_source_sha(doc["source_sha"]),
         entrypoint,
         tuple(files),
+        launcher_sha256=launcher_sha256,
+        launcher_size=launcher_size,
     )
 
 
