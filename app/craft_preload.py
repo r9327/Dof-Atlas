@@ -29,7 +29,7 @@ def build_compact_craft_preload() -> dict[str, object]:
         ),
         "selection": {},
         "lookup_items": [],
-        "_prepared": True,
+        "_prepared": False,
         "_lazy_items": True,
         "errors": [],
     }
@@ -101,6 +101,10 @@ def build_compact_craft_preload() -> dict[str, object]:
             errors.append(str(exc))
     finally:
         adapter.close()
+    if not payload["errors"]:
+        # SQLite catalogue and adapter were both usable. Empty eager item
+        # lists are normal: all searchable items remain SQLite-backed.
+        payload["_prepared"] = True
     return payload
 
 

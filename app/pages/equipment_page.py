@@ -88,9 +88,20 @@ class EquipmentPage(QWidget):
         self.section = value
         self.section_label.setText(value)
 
-    def open_huzounet(self) -> None:
-        QDesktopServices.openUrl(QUrl(HUZOUNET_URL))
-        self.status_callback("Huzounet ouvert dans le navigateur.")
+    def open_huzounet(self) -> bool:
+        """Only report success when the OS accepts the external URL request."""
+        try:
+            opened = bool(QDesktopServices.openUrl(QUrl(HUZOUNET_URL)))
+        except Exception:
+            opened = False
+        if opened:
+            self.status_callback("Huzounet ouvert dans le navigateur.")
+        else:
+            self.status_callback(
+                "Ouverture de Huzounet impossible. Vérifiez votre navigateur "
+                "par défaut ou ouvrez l'adresse Huzounet manuellement."
+            )
+        return opened
 
     def showEvent(self, event) -> None:  # noqa: N802 - Qt API
         super().showEvent(event)
