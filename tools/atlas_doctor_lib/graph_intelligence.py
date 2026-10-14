@@ -482,7 +482,7 @@ def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: in
     }
 
 
-def analyze_community_boundaries(graph: dict[str, Any]) -> dict[str, Any]:
+def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVIEW) -> dict[str, Any]:
     """Advisory cohesion signals only; never force merges based on IDs."""
     summarize_graph(graph)
     nodes = {n["id"]: n for n in graph["nodes"]}
@@ -521,14 +521,15 @@ def analyze_community_boundaries(graph: dict[str, Any]) -> dict[str, Any]:
         })
     rows.sort(key=lambda x: (-x["external_extracted_edges"], x["production_files"], str(x["community"])))
     return {"status": "REVIEW" if rows else "PASS", "candidate_count": len(rows),
-            "candidates": rows[:MAX_REVIEW], "truncated": len(rows) > MAX_REVIEW,
+            "candidates": rows[:limit], "truncated": len(rows) > limit,
+            "pagination": {"offset": 0, "total": len(rows), "returned": min(len(rows), limit), "truncated": len(rows) > limit},
             "limitation": "Leiden partitions are heuristics; domain ownership and runtime tests prevail."}
 
 
 def remediation_plan(
     triage: dict[str, Any], cycles: dict[str, Any], cohesion: dict[str, Any],
     *, source_review: dict[str, Any] | None = None, performance: dict[str, Any] | None = None,
-    runtime_focus: dict[str, Any] | None = None
+    runtime_focus: dict[str, Any] | None = None, limit: int = MAX_REVIEW
 ) -> dict[str, Any]:
     tasks: list[dict[str, Any]] = []
     for row in triage.get("blocking_findings", [])[:MAX_REVIEW]:
@@ -629,12 +630,13 @@ def remediation_plan(
     review_only = [task for task in tasks if not task["confirmed_defect"]]
     return {
         "schema_version": 1, "status": "REVIEW" if tasks else "PASS",
-        "tasks": tasks[:MAX_REVIEW], "task_count": len(tasks),
-        "confirmed_findings": confirmed[:MAX_REVIEW], "confirmed_count": len(confirmed),
+        "tasks": tasks[:limit], "task_count": len(tasks),
+        "pagination": {"offset": 0, "total": len(tasks), "returned": min(len(tasks), limit), "truncated": len(tasks) > limit},
+        "confirmed_findings": confirmed[:limit], "confirmed_count": len(confirmed),
         "review_only_count": len(review_only),
         "actionable": bool(confirmed),
         "binary_verdict_scope": "confirmed contract violation (not proof of general runtime safety)",
-        "truncated": len(tasks) > MAX_REVIEW,
+        "truncated": len(tasks) > limit,
         "actionability": {
             "confirmed_fix_candidates": sum(t["decision"] == "FIX_CONFIRMED_CONTRACT_VIOLATION" for t in tasks),
             "investigation_candidates": sum(t["decision"] == "INVESTIGATE_NO_CODE_CHANGE_YET" for t in tasks),

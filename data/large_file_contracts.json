@@ -3,7 +3,7 @@
   "files": [
     {
       "path": "data/encyclopedia/quests/quests_enriched.json",
-      "sha256": "552713d7e7599c0fbbb59845c98e827a0e17ee5862da0cda413700c89ee6d644",
+      "sha256": "e6d7c5b90ced5768c4b4f4b044146c9928bef23286547001ae0cff97a75bf165",
       "role": "canonical_runtime_source",
       "generator": "app/modules/encyclopedia/tools/enrich_quests.py",
       "consumers": [
@@ -12,11 +12,12 @@
       ],
       "regeneration": "py -3.13 -m app.modules.encyclopedia.tools.enrich_quests",
       "regeneration_requires_network": true,
-      "rationale": "Enrichissement offline charge a la demande par QuestCatalog; il evite une dependance reseau au runtime."
+      "rationale": "Enrichissement offline charge a la demande par QuestCatalog; il evite une dependance reseau au runtime.",
+      "byte_contract": "sha256_of_exact_lf_checkout_bytes"
     },
     {
       "path": "data/encyclopedia/quests/image_manifest.json",
-      "sha256": "c76c122b5ed88301bd7b399f39a2a680666407e3e8800ac60b2bcd130d2a0f3c",
+      "sha256": "c2c32139d1a6d14cb77936aa586b7a34fcf3a0525e395c882f0902e6e9b6729d",
       "role": "canonical_provenance_index",
       "generator": "app/modules/encyclopedia/tools/enrich_quests.py",
       "consumers": [
@@ -25,7 +26,8 @@
       ],
       "regeneration": "py -3.13 -m app.modules.encyclopedia.tools.enrich_quests",
       "regeneration_requires_network": true,
-      "rationale": "Index URL/SHA de provenance et deduplication des images; sa regeneration exacte depend des sources reseau historiques."
+      "rationale": "Index URL/SHA de provenance et deduplication des images; sa regeneration exacte depend des sources reseau historiques.",
+      "byte_contract": "sha256_of_exact_lf_checkout_bytes"
     }
   ]
 }
