@@ -154,7 +154,7 @@ class MemoryBoundAchievementProgressTests(unittest.TestCase):
                 guide_provider = _real_compact_alignment_provider(
                     {side: (quest_ids[0],)}
                 )
-                character_key = "character:alignment"
+                character_key = "character:1"
                 quest_progress = QuestProgressService(
                     Path(directory) / "quest_progress.json"
                 )
