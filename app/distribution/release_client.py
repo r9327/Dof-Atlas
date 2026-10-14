@@ -16,6 +16,7 @@ REPO = "r9327/Dof-Atlas-App"
 API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 MANIFEST_NAME = "atlas-manifest.json"
 ARCHIVE_NAME = "atlas-windows.zip"
+LAUNCHER_NAME = "DofusAtlas.exe"
 # GitHub Releases requires every individual asset to be strictly below 2 GiB.
 MAX_ARCHIVE_BYTES = 2 * 1024**3 - 1
 _ALLOWED_REDIRECT_HOSTS = frozenset({
@@ -36,6 +37,7 @@ class RemoteRelease:
     archive_url: str
     archive_size: int
     manifest: ReleaseManifest
+    launcher_url: str | None = None
 
 
 def _safe_url(url: str, *, asset: bool = False) -> str:
@@ -94,8 +96,8 @@ def latest_release() -> RemoteRelease:
         if not isinstance(tag, str) or not re.fullmatch(r"[A-Za-z0-9._+-]{1,100}", tag):
             raise UpdateError("Invalid release tag")
         indexed = {item["name"]: item for item in assets if isinstance(item, dict) and
-                   item.get("name") in (MANIFEST_NAME, ARCHIVE_NAME)}
-        if set(indexed) != {MANIFEST_NAME, ARCHIVE_NAME}:
+                   item.get("name") in (MANIFEST_NAME, ARCHIVE_NAME, LAUNCHER_NAME)}
+        if not {MANIFEST_NAME, ARCHIVE_NAME}.issubset(indexed):
             raise UpdateError("Release assets missing")
         manifest_asset = indexed[MANIFEST_NAME]
         archive_asset = indexed[ARCHIVE_NAME]
@@ -106,7 +108,17 @@ def latest_release() -> RemoteRelease:
         if not isinstance(archive_asset.get("size"), int) or not 0 < archive_asset["size"] <= MAX_ARCHIVE_BYTES:
             raise UpdateError("Invalid release archive size")
         manifest = parse_manifest(_read_limited(manifest_url, MAX_MANIFEST_BYTES))
-        return RemoteRelease(tag, archive_url, archive_asset["size"], manifest)
+        launcher_url = None
+        if manifest.launcher_sha256 is not None:
+            launcher_asset = indexed.get(LAUNCHER_NAME)
+            if not launcher_asset or type(launcher_asset.get("size")) is not int:
+                raise UpdateError("Launcher asset missing")
+            if launcher_asset["size"] != manifest.launcher_size:
+                raise UpdateError("Launcher asset size mismatch")
+            launcher_url = _safe_url(launcher_asset["browser_download_url"], asset=True)
+            if not launcher_url.endswith("/" + LAUNCHER_NAME):
+                raise UpdateError("Launcher asset URL mismatch")
+        return RemoteRelease(tag, archive_url, archive_asset["size"], manifest, launcher_url)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, ManifestError) as exc:
         raise UpdateError("Invalid release metadata") from exc
 
