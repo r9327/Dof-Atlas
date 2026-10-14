@@ -169,3 +169,9 @@ La publication stable demeure désactivée pendant la mise en service.
 
 
 Le job PR `Focused updater contracts` effectue aussi un **export réel non publié** dans le dossier temporaire du runner, matérialise uniquement le logo LFS requis et exécute le certificat sur le résultat avant tout push. Cela contrôle directement la sélection sur les vrais fichiers du commit.
+
+### Certificat sur chaque PR (sans copie dans le dépôt App)
+
+Le job ciblé **Focused updater + transfer contracts** construit un export temporaire sur le **HEAD exact de la PR** (et non sur un commit de fusion GitHub), exécute le certificat statique et vérifie les empreintes SHA-256 et les chemins. Son résultat se trouve dans le résumé GitHub Actions ; le JSON `atlas-app-transfer-<SHA>` est téléchargeable comme artefact de la CI.
+
+Il ne pousse rien vers le dépôt de distribution et ne contient **ni Doctor, ni Graphify**, seulement leurs principes de contrôle d'inventaire et de graphe. Une destination symbolique ou un SHA incohérent bloque explicitement la certification. Les contrôles Doctor/Graphify et la compilation Windows sont toujours séparés.

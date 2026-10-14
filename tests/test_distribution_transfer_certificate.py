@@ -88,6 +88,32 @@ class TransferCertificateTests(unittest.TestCase):
             self.assertTrue((destination / "app/core/runtime.py").exists())
             self.assertEqual(marker.read_text(), "keep")
 
+    def test_certificate_rejects_linked_destination(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source, destination = self.fixture(root)
+            linked = root / "linked"
+            try:
+                linked.symlink_to(destination, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("Directory symlink unavailable")
+            with self.assertRaisesRegex(TransferCertificationError, "Linked App destination"):
+                certify(source, linked, "a" * 40, check_checkout=False)
+
+    def test_certificate_must_match_real_git_commit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, destination = self.fixture(Path(tmp))
+            subprocess.run(["git", "-c", "user.name=Atlas Tests",
+                            "-c", "user.email=atlas@example.invalid",
+                            "commit", "-qm", "fixture"], cwd=source, check=True)
+            sha = subprocess.check_output(["git", "rev-parse", "HEAD"],
+                                          cwd=source, text=True).strip()
+            with self.assertRaisesRegex(TransferCertificationError, "SHA"):
+                certify(source, destination, "a" * 40)
+            export(source, destination, sha)
+            report = certify(source, destination, sha)
+            self.assertEqual(report["source_sha"], sha)
+
     def test_allowlist_denies_research_and_unknown_resources(self):
         for name in ("app/modules/encyclopedia/tools/audit.py",
                      "data/network/protocol_research/backlog_v1.json",

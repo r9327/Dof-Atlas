@@ -27,13 +27,15 @@ concurrency:
   cancel-in-progress: true
 jobs:
   focused:
-    name: Focused updater contracts
+    name: Focused updater + transfer contracts
     if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          # Certify the exact PR HEAD, never GitHub's temporary merge commit.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -47,11 +49,37 @@ jobs:
           # Only the essential LFS logo is necessary for the code/data mirror.
           git lfs pull --include="data/images/misc/dofus_atlas_logo.png" --exclude=""
           source_sha="$(git rev-parse HEAD)"
+          if test "${{ github.event_name }}" = "pull_request"; then
+            test "$source_sha" = "${{ github.event.pull_request.head.sha }}"
+          fi
           python -m scripts.windows.export_app_repository \
             --root . --destination "$RUNNER_TEMP/atlas-transfer-preview" --source-sha "$source_sha"
           python -m scripts.windows.certify_app_export \
             --root . --destination "$RUNNER_TEMP/atlas-transfer-preview" \
             --source-sha "$source_sha" --output "$RUNNER_TEMP/atlas-transfer-certificate.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "atlas-transfer-certificate.json").read_text())
+          summary = (f"### Atlas App transfer certificate — {report['status']}\n"
+                     f"Source SHA: \`{report['source_sha']}\`\n\n"
+                     f"Allowlisted files: **{report['file_count']}**; "
+                     f"Python modules: **{report['python_modules']}**; "
+                     f"verified static import edges: **{report['static_import_edges']}**.\n\n"
+                     "Doctor/Graphify stay exclusively in the source repository. "
+                     "This certificate validates the transfer only, not dynamic Qt behavior or production rights.\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as output:
+              output.write(summary)
+          PY
+      - name: Archive reviewed App transfer certificate
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: atlas-app-transfer-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/atlas-transfer-certificate.json
+          retention-days: 7
+          if-no-files-found: error
   classify-release:
     name: Detect JSON-only certified changes
     if: >-

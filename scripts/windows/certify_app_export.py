@@ -91,6 +91,9 @@ def certify(source: Path, destination: Path, expected_sha: str,
             *, check_checkout: bool = True) -> dict:
     """Fail closed on unshipped imports, private files and stale/mutated mirror."""
     source = source.resolve()
+    # Resolve only after checking the original path: resolve() hides a symlink.
+    if destination.is_symlink():
+        raise TransferCertificationError("Linked App destination is forbidden")
     destination = destination.resolve()
     if check_checkout:
         sha = subprocess.check_output(
