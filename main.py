@@ -1950,14 +1950,18 @@ class AtlasWindow(QMainWindow):
             self.preload_results.pop("craft", None)
         else:
             self.start_preload("craft", user_requested=True)
-        return _resolve_craft_page()(
+        page = _resolve_craft_page()(
             self.set_status,
             preload=preload if ready else None,
             defer_runtime=not ready,
-            retry_preload_callback=lambda: self.start_preload(
-                "craft", user_requested=True
-            ),
         )
+        # Keep the historical CraftPage constructor contract for legacy
+        # shell substitutes; the actual page exposes an optional retry hook.
+        if hasattr(page, "retry_preload_callback"):
+            page.retry_preload_callback = lambda: self.start_preload(
+                "craft", user_requested=True
+            )
+        return page
 
     def create_equipment_page(self) -> QWidget:
         return _resolve_equipment_page()(self.set_status)
