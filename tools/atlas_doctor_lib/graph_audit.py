@@ -51,8 +51,8 @@ def _confirm_import(root: Path, source: str, target: str) -> bool:
     return bool(scopes & {"IMPORT_TIME", "DEFERRED"})
 
 
-def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offset: int = 0, community_offset: int = 0, orphan_offset: int = 0) -> dict[str, Any]:
-    if weak_offset < 0 or community_offset < 0 or orphan_offset < 0:
+def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offset: int = 0, community_offset: int = 0, orphan_offset: int = 0, page_limit: int = MAX_CANDIDATES) -> dict[str, Any]:
+    if weak_offset < 0 or community_offset < 0 or orphan_offset < 0 or page_limit < 1:
         raise ValueError("Candidate offsets must be nonnegative")
     """Bounded O(nodes + links) architectural diagnosis with explicit evidence."""
     basic = summarize_graph(graph)  # strict missing/duplicate nodes and dangling links
@@ -232,18 +232,26 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offse
             "cross_community_pairs": len(cross_communities), "high_fanout_app_files": len(hubs),
             "confirmed_runtime_to_tools_imports": len(confirmed),
         },
-        "orphan_nodes": orphan[orphan_offset:orphan_offset + MAX_CANDIDATES], "isolated_communities": standalone[community_offset:community_offset+MAX_CANDIDATES],
-        "weak_production_candidates": weak[weak_offset:weak_offset + MAX_CANDIDATES],
-        "high_fanout_files": hubs[:MAX_CANDIDATES], "cross_community_bridges": bridges[:MAX_CANDIDATES],
+        "orphan_nodes": orphan[orphan_offset:orphan_offset + page_limit], "isolated_communities": standalone[community_offset:community_offset+page_limit],
+        "weak_production_candidates": weak[weak_offset:weak_offset + page_limit],
+        "high_fanout_files": hubs[:page_limit], "cross_community_bridges": bridges[:page_limit],
         "limits": {
-            "max_candidates_per_section": MAX_CANDIDATES,
-            "unreported_weak_nodes": max(0, len(weak) - weak_offset - MAX_CANDIDATES),
+            "max_candidates_per_section": page_limit,
+            "unreported_weak_nodes": max(0, len(weak) - weak_offset - page_limit),
             "weak_offset": weak_offset, "weak_total": len(weak),
             "orphan_offset": orphan_offset, "orphan_total": len(orphan),
-            "unreported_orphan_nodes": max(0, len(orphan) - orphan_offset - MAX_CANDIDATES),
+            "unreported_orphan_nodes": max(0, len(orphan) - orphan_offset - page_limit),
             "community_total": len(standalone), "community_offset": community_offset,
-            "unreported_communities": max(0, len(standalone)-community_offset-MAX_CANDIDATES),
+            "unreported_communities": max(0, len(standalone)-community_offset-page_limit),
             "no_automatic_deletion_or_merge": True,
+            "pagination": {
+                section: {"offset": offset, "total": len(items), "returned": len(items[offset:offset + page_limit]), "truncated": offset + page_limit < len(items)}
+                for section, offset, items in (
+                    ("weak_production_candidates", weak_offset, weak),
+                    ("orphan_nodes", orphan_offset, orphan),
+                    ("isolated_communities", community_offset, standalone),
+                )
+            },
             "undirected_graph_cycles": "NOT_COMPUTED",
             "community_report_omissions_are_not_raw_small_communities": True,
             "graph_absence_does_not_prove_no_consumers": True,
@@ -253,7 +261,8 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offse
 
 def audit_current_graph(
     root: Path, *, graph_evidence: dict[str, Any] | None = None,
-    deep: bool = False, weak_offset: int = 0
+    deep: bool = False, weak_offset: int = 0, community_offset: int = 0,
+    orphan_offset: int = 0, all_candidates: bool = False
 ) -> dict[str, Any]:
     """Refuse stale graphs; reuse a validated status to avoid repeat Git work."""
     root = root.resolve()
@@ -268,13 +277,16 @@ def audit_current_graph(
         if hashlib.sha256(content).hexdigest() != status["graph_signature"]:
             raise ValueError("Graph changed during audit; rebuild/retry required.")
         raw = json.loads(content)
-        result = inspect_graph(raw, root=root, weak_offset=weak_offset)
+        page_limit = max(MAX_CANDIDATES, len(raw.get("nodes", []))) if all_candidates else MAX_CANDIDATES
+        result = inspect_graph(raw, root=root, weak_offset=weak_offset,
+                               community_offset=community_offset, orphan_offset=orphan_offset,
+                               page_limit=page_limit)
         from .graph_intelligence import (
             inspect_import_cycles, analyze_community_boundaries,
             inspect_consumers, correlate_performance, remediation_plan,
         )
         cycles = inspect_import_cycles(raw, root=root)
-        cohesion = analyze_community_boundaries(raw)
+        cohesion = analyze_community_boundaries(raw, limit=page_limit)
         source_review = inspect_consumers(
             root, [*result["orphan_nodes"], *result["weak_production_candidates"]]
         ) if deep else {"status": "NOT_RUN", "reason": "Use --deep for tracked-source review."}
@@ -285,7 +297,7 @@ def audit_current_graph(
             performance_correlation=perf,
             remediation_plan=remediation_plan(
                 result, cycles, cohesion, source_review=source_review, performance=perf,
-                runtime_focus=result["runtime_file_focus"]
+                runtime_focus=result["runtime_file_focus"], limit=page_limit
             ),
         )
         # Existing source-level import cycles are architecture debt, not proof

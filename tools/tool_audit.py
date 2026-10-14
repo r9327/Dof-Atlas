@@ -420,6 +420,60 @@ def _text_tool_invocation_paths(source: str, tool_paths: Iterable[str]) -> set[s
     return result
 
 
+def _ui_scenario_routes(root: Path) -> dict[str, dict[str, Any]]:
+    """Resolve Doctor's literal opt-in UI scenario router without imports."""
+    route = "tools/atlas_doctor.py"
+    source = _read_text(root, route)
+    if "run_traced_module(root, module" not in source or "UI_SCENARIOS[args.scenario]" not in source:
+        return {}
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return {}
+    literal = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "UI_SCENARIOS" for t in node.targets
+        ):
+            try:
+                value = ast.literal_eval(node.value)
+                if isinstance(value, dict) and all(
+                    isinstance(key, str) and isinstance(val, str)
+                    for key, val in value.items()
+                ):
+                    literal = value
+            except (SyntaxError, ValueError, TypeError):
+                pass
+    result = {}
+    for scenario, module in literal.items():
+        if not module.startswith("tools.atlas_doctor_lib."):
+            continue
+        path = module.replace(".", "/") + ".py"
+        contents = _read_text(root, path)
+        if "active_observer()" not in contents or "observer is None" not in contents:
+            continue
+        tests = ["tests/test_atlas_doctor_capture_ui.py"]
+        specific = {
+            "equipment": "tests/test_atlas_doctor_app_ui_smoke.py",
+            "encyclopedia": "tests/test_atlas_doctor_encyclopedia_smoke.py",
+        }.get(scenario)
+        if specific and (root / specific).is_file():
+            tests.append(specific)
+        tests = [name for name in tests if (root / name).is_file()]
+        result[path] = {
+            "scenario": scenario,
+            "route": route,
+            "tests": tests,
+            "observer_required": True,
+            "fixture_scoped": (
+                "TemporaryDirectory(" in contents
+                or ("NamedTemporaryFile(" in contents and
+                    ".ai" in contents and "runtime" in contents)
+            ),
+        }
+    return result
+
+
 def _reference_counts(
     *,
     root: Path,
@@ -631,6 +685,16 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
         tool_paths=tool_paths,
         reference_paths=reference_paths,
     )
+    scenario_routes = _ui_scenario_routes(root)
+    for path, contract in scenario_routes.items():
+        if path not in references:
+            continue
+        refs = references[path]
+        route = contract["route"]
+        for key in ("references", "consumer_references"):
+            refs[key] = sorted(set(refs[key]) | {route})
+        refs["contract_references"] = sorted(set(refs["contract_references"]) | set(contract["tests"]))
+        refs["test_references"] = sorted(set(refs["test_references"]) | set(contract["tests"]))
     families = _versioned_families(tool_paths)
     version_members = {
         path
@@ -642,6 +706,16 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
         for path in tool_paths
     ]
     for row in tools:
+        contract = scenario_routes.get(row["path"])
+        if contract:
+            row["ui_scenario_route"] = contract["scenario"]
+            row["scenario_route_evidence"] = "LITERAL_ROUTING_WITH_REQUIRED_ACTIVE_OBSERVER_NOT_RUNTIME_EXECUTION"
+            row["fixture_scoped_mutation"] = contract["fixture_scoped"]
+            # A write confined to temporary Doctor runtime fixtures is not a
+            # mutation of tracked application state. Do not alter actual
+            # mutation_capable or automation readiness heuristics elsewhere.
+            if row["mutation_capable"] and contract["fixture_scoped"]:
+                row["explicit_mutation_gate"] = True
         row["recommendation"] = _suggestion(row, version_members)
 
     parse_errors = [row["path"] for row in tools if row["parse_error"]]
