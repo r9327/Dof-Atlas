@@ -146,6 +146,21 @@ def _wait_for_parent(pid: int) -> None:
         kernel.CloseHandle(handle)
 
 
+def _verify_launcher_starts(executable: Path) -> None:
+    """Exercise the frozen bootstrap without starting the GUI or contacting GitHub."""
+    try:
+        result = subprocess.run(
+            [str(executable), "--atlas-self-test"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, timeout=35, check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("New Atlas launcher startup timed out") from exc
+    if result.returncode != 0:
+        raise RuntimeError("New Atlas launcher failed offline startup self-test")
+
+
 def finish_launcher_upgrade(candidate: Path, digest: str, parent_pid: int,
                             root: Path | None = None) -> None:
     """Replace only our launcher after its process exits; restore on failure."""
@@ -178,6 +193,7 @@ def finish_launcher_upgrade(candidate: Path, digest: str, parent_pid: int,
     _wait_for_parent(parent_pid)
     if not valid_binary(candidate):
         raise ValueError("Launcher changed while waiting")
+    _verify_launcher_starts(candidate)
     backup = program / "DofusAtlas.exe.previous"
     if backup.exists() and (backup.is_symlink() or not backup.is_file()):
         raise ValueError("Unsafe launcher backup")
@@ -194,6 +210,12 @@ def finish_launcher_upgrade(candidate: Path, digest: str, parent_pid: int,
         if os.path.exists(name):
             os.unlink(name)
     os.replace(candidate, target)
+    try:
+        _verify_launcher_starts(target)
+    except (OSError, RuntimeError):
+        # The desktop shortcut must always point to a working bootstrap.
+        os.replace(backup, target)
+        raise
 
 
 def main(argv: list[str] | None = None) -> int:

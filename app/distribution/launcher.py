@@ -190,6 +190,10 @@ def run_update(report) -> None:
 
 
 def main() -> int:
+    # Fast, offline bootstrap self-test used by the detached maintenance helper.
+    # Do not open Tk, contact GitHub or launch AtlasApp during this health check.
+    if sys.argv[1:2] == ["--atlas-self-test"]:
+        return 0
     events: queue.Queue[tuple[str, int | str]] = queue.Queue()
     try:
         import tkinter as tk

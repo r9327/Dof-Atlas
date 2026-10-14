@@ -61,11 +61,34 @@ class LauncherUpgradeTests(unittest.TestCase):
             digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
             with patch.dict(os.environ, {"LOCALAPPDATA": str(base)}), patch(
                 "app.distribution.setup._wait_for_parent"
-            ) as waiter:
+            ) as waiter, patch(
+                "app.distribution.setup._verify_launcher_starts"
+            ) as verify:
                 finish_launcher_upgrade(candidate, digest, 123, root=programs)
                 waiter.assert_called_once_with(123)
+                self.assertEqual(verify.call_count, 2)
             self.assertEqual(target.read_bytes(), b"MZnew")
             self.assertEqual((programs / "DofusAtlas.exe.previous").read_bytes(), b"MZold")
+
+    def test_failure_after_swap_restores_last_working_launcher(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            downloads = base / "DofusAtlas" / "runtime" / "downloads"
+            downloads.mkdir(parents=True)
+            program = base / "Programs" / "DofusAtlas"
+            program.mkdir(parents=True)
+            original = program / "DofusAtlas.exe"
+            original.write_bytes(b"MZprevious-good")
+            candidate = downloads / "new.exe"
+            candidate.write_bytes(b"MZnew-but-broken")
+            digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
+            with patch.dict(os.environ, {"LOCALAPPDATA": str(base)}), patch(
+                "app.distribution.setup._wait_for_parent"
+            ), patch("app.distribution.setup._verify_launcher_starts",
+                     side_effect=[None, RuntimeError("failed after replacement")]):
+                with self.assertRaisesRegex(RuntimeError, "failed after replacement"):
+                    finish_launcher_upgrade(candidate, digest, 123, root=program)
+            self.assertEqual(original.read_bytes(), b"MZprevious-good")
 
     def test_external_candidate_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
