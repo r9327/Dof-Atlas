@@ -40,6 +40,51 @@ jobs:
         run: python -m compileall -q app/distribution scripts/windows/package_release.py scripts/windows/export_app_repository.py scripts/windows/atlas_setup_entry.py launch.py
       - name: Focused updater tests
         run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
+  classify-release:
+    name: Detect JSON-only certified changes
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      vars.ATLAS_DISTRIBUTION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      data_only: ${{ steps.detect.outputs.data_only }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Compare with last certified app release
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          echo "data_only=false" >> "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/previous"
+          if ! gh release download --repo r9327/Dof-Atlas-App \
+              --pattern atlas-manifest.json --dir "$RUNNER_TEMP/previous"; then
+            exit 0
+          fi
+          base="$(python -c 'import json,os;print(json.load(open(os.path.join(os.environ["RUNNER_TEMP"],"previous","atlas-manifest.json")))["source_sha"])')"
+          if ! [[ "$base" =~ ^[a-f0-9]{40}$ ]]; then exit 1; fi
+          if ! git fetch --no-tags --depth=1 origin "$base"; then exit 1; fi
+          git diff --name-only "$base" HEAD > "$RUNNER_TEMP/data-changes.txt"
+          if python - "$RUNNER_TEMP/data-changes.txt" <<'PY'
+          import sys
+          from pathlib import Path
+          from scripts.windows.package_release import _publishable
+          paths = [s.strip() for s in Path(sys.argv[1]).read_text().splitlines() if s.strip()]
+          if not paths or any(not p.startswith("data/") or Path(p).suffix.lower() != ".json"
+                              or ".." in Path(p).parts
+                              or not _publishable(Path("_internal") / p) for p in paths):
+              raise SystemExit(1)
+          PY
+          then
+            echo "data_only=true" >> "$GITHUB_OUTPUT"
+          fi
   windows-bundle:
     name: Windows bundle (gated certification)
     if: >-
