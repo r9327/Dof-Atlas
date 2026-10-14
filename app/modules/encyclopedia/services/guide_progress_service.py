@@ -145,7 +145,10 @@ class GuideProgressService:
     def save(self) -> None:
         """Persist a deliberate compatibility snapshot only when it is current."""
         with self._coordinator.lock:
-            if self._seen_generation != self._coordinator.generation:
+            if (
+                self._seen_generation != self._coordinator.generation
+                or self._disk_signature != self._current_disk_signature()
+            ):
                 self.progress = self._load()
                 self._seen_generation = self._coordinator.generation
                 self._disk_signature = self._current_disk_signature()

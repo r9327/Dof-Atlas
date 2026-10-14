@@ -30,6 +30,31 @@ def zaap_ratios_from_payload(payload: dict[str, Any]) -> tuple[float, float] | N
     return (x_ratio, y_ratio)
 
 
+def update_zaap_shortcuts_field(path: Path, field: str, value: Any) -> None:
+    """Atomically update one Zaap setting without overwriting its neighbours.
+
+    Unlike an atomic replace alone, the coordinator lock also covers the
+    read-modify-write operation across Atlas processes. Invalid existing JSON
+    must never become a fresh empty settings document during a write.
+    """
+    from app.core.json_store import read_json_validated, write_json_atomic
+    from app.core.progress_coordinator import coordinator_for
+
+    if field not in {"zaap_favorites", "zaap_button"}:
+        raise ValueError(f"Unsupported Zaap setting field: {field!r}")
+    target = Path(path)
+    coordinator = coordinator_for(target)
+    with coordinator.lock:
+        payload = read_json_validated(
+            target,
+            {},
+            lambda raw: None if isinstance(raw, dict) else "Zaap settings root must be an object",
+        )
+        payload[field] = value
+        write_json_atomic(target, payload)
+        coordinator.mark_changed()
+
+
 def read_zaap_button_ratios(payload: dict[str, Any] | None = None) -> tuple[float, float] | None:
     """Preserve the storage reader's non-profile JSON and ratio semantics."""
     if not isinstance(payload, dict):
