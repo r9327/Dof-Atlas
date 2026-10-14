@@ -126,14 +126,16 @@ jobs:
           current="$(git ls-remote origin refs/heads/main | cut -f1)"
           test "$current" = "$SOURCE_SHA"
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-      - name: Fetch only startup images for frozen candidate
-        if: github.event_name != 'workflow_run'
+      - name: Fetch only startup images for optional diagnostic build
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          # Candidate verifies EXE/Qt integration; it is NOT a distributable full release.
           git lfs pull --include="data/images/misc/**,data/images/classes/**" --exclude=""
-      - name: Materialize full application data for certified release
-        if: github.event_name == 'workflow_run'
+      - name: Materialize complete application assets for candidate certification or release
+        if: >-
+          github.event_name == 'workflow_run' ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
         run: |
+          # A ready-for-review build is a full, *unpublished* production candidate.
           git lfs pull --include="data/**" --exclude=""
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -230,7 +232,9 @@ jobs:
           gh release download --repo r9327/Dof-Atlas-App \
             --pattern atlas-manifest.json --dir "$RUNNER_TEMP/atlas-previous" || true
       - name: Package ZIP, manifest and launcher
-        if: github.event_name == 'workflow_run'
+        if: >-
+          github.event_name == 'workflow_run' ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
         run: |
           version="0.1.0-$(echo "$SOURCE_SHA" | cut -c1-12)"
           python -m scripts.windows.package_release \
@@ -241,6 +245,46 @@ jobs:
             --base-manifest "$RUNNER_TEMP/atlas-previous/atlas-manifest.json"
           cp dist/DofusAtlas.exe dist-release/DofusAtlas.exe
           cp dist/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
+      - name: Validate full candidate ZIP and manifest integrity
+        if: >-
+          github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
+        run: |
+          python - <<'PY'
+          import hashlib
+          import zipfile
+          from pathlib import Path
+          from app.distribution.manifest import parse_manifest
+          root = Path("dist-release")
+          archive_path = root / "atlas-windows.zip"
+          manifest = parse_manifest((root / "atlas-manifest.json").read_bytes())
+          assert manifest.source_sha == "${{ env.SOURCE_SHA }}", "Incorrect candidate source SHA"
+          expected = {item.path: item for item in manifest.files}
+          with zipfile.ZipFile(archive_path) as archive:
+              names = [item.filename for item in archive.infolist() if not item.is_dir()]
+              assert len(names) == len(expected) and set(names) == set(expected), "ZIP file list mismatch"
+              for item in manifest.files:
+                  digest = hashlib.sha256()
+                  total = 0
+                  with archive.open(item.path) as stream:
+                      for block in iter(lambda: stream.read(1024 * 1024), b""):
+                          digest.update(block)
+                          total += len(block)
+                  assert total == item.size and digest.hexdigest() == item.sha256, item.path
+          print(f"VERIFIED: {len(expected)} hashed files, source={manifest.source_sha}")
+          PY
+      - name: Upload unmerged full Windows distribution candidate
+        if: >-
+          github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: atlas-windows-full-candidate-${{ env.SOURCE_SHA }}
+          path: |
+            dist-release/atlas-windows.zip
+            dist-release/atlas-manifest.json
+            dist-release/DofusAtlas.exe
+            dist-release/DofusAtlasSetup.exe
+          retention-days: 7
+          if-no-files-found: error
       - name: Upload certified Windows release files
         if: github.event_name == 'workflow_run'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
