@@ -1,6 +1,6 @@
 # [PLAN 06] Doctor preuves fiables, pagination et exports lazy (AT-013/014/015/016/028)
 
-> PLAN PRÉPARATOIRE — aucun correctif applicatif implémenté ici. PR DRAFT à compléter en code et tests ciblés avant revue/fusion.
+> CODE ET TESTS IMPLÉMENTÉS. La PR reste DRAFT jusqu’aux validations CI exact-SHA ; le rapport de preuve distinguera toujours les scénarios non exécutés.
 
 Audit source : PR #160, SHA audité `ac07be9b894718f5e68e7c3a91016d7651e3065b`. Branche de base : `main` ; éviter de mélanger les modifications de PR #159 et #138.
 
@@ -79,3 +79,13 @@ Peut avancer après 01 ; rattacher les témoins d’intégration réels ; coordo
 - Pas de merge automatique de cette PR préparatoire.
 
 Sources : [rapport intégral](https://github.com/r9327/Dof-Atlas/blob/docs/audit-integral-2026-10-14/docs/audits/AUDIT_INTEGRAL_DOFUS_ATLAS_2026-10-14.md) ; [registre anomalies](https://github.com/r9327/Dof-Atlas/blob/docs/audit-integral-2026-10-14/docs/audits/2026-10-14-ac07be9b/registres/anomalies.json).
+
+## Journal des modifications effectivement livrées
+
+- AT-013 : `.gitattributes` impose LF pour les deux gros JSON canoniques ; manifest `data/large_file_contracts.json` mis à jour avec les SHA-256 des octets LF prouvés par l’audit #160. Hash disque strict conservé ; une version CRLF au lieu de LF est rejetée, ce n’est pas une normalisation sémantique.
+- AT-014 : `Issue.subject` identifie chaque cible de contrat indépendamment du digest, de son rang dans la liste et du texte de preuve. Les diagnostics reportent leur `target=` pour le traçage.
+- AT-015 : une table `_LAZY_EXPORT_MODULES` AST littérale n’est acceptée qu’avec une fonction `__getattr__` et `__all__`. `PUBLIC_LAZY_EXPORT` prouve la façade, jamais l’exécution d’un parcours Qt ; aucun fichier marqué safe_to_delete.
+- AT-016 : `--community-offset` et `--orphan-offset` complètent `--offset`, les limites `total/returned/truncated` sont dans chaque section ; `--all-candidates` permet un export exhaustif opt-in en réutilisant le graphe chargé une fois, et étend la fenêtre cohésion/plan.
+- AT-028 : analyse AST de la table `UI_SCENARIOS` avec preuve de routage `run_traced_module` et présence obligatoire de `active_observer`. Les tests réellement présents et les mutations de fixtures temporaires sont reconnus, sans promouvoir automatiquement un outil à agent-ready.
+- Tests ajoutés : `tests.test_doctor_evidence_contracts` (IDs, LF/CRLF, façade lazy, 85 entrées paginées, routage UI). Tests existants Doctor/Graphify, catalogue et tool-audit gardés. SHA exact et CI à établir.
+- Limites : une preuve AST ne vaut ni appel runtime ni test UI réellement exécuté ; FULL cumulative et benchmark sont hors de cette PR.
