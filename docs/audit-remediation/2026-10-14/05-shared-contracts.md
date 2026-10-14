@@ -1,6 +1,6 @@
 # [PLAN 05] Mutualiser validateurs SHA et règles réellement dupliquées (AT-010/019/020)
 
-> PLAN PRÉPARATOIRE — aucun correctif applicatif implémenté ici. PR DRAFT à compléter en code et tests ciblés avant revue/fusion.
+> IMPLÉMENTATION : correctifs réalisés sur la branche PR #165. Certification CI exact-SHA encore à confirmer.
 
 Audit source : PR #160, SHA audité `ac07be9b894718f5e68e7c3a91016d7651e3065b`. Branche de base : `main` ; éviter de mélanger les modifications de PR #159 et #138.
 
@@ -40,9 +40,9 @@ Indépendant, après fixes métier prioritaires ; pas de refactor global.
 5. Supprimer uniquement les overrides forwards neutres du runtime manuel dont l’héritage maintient le comportement ; préserver le renderer partagé.
 
 ## Validations ciblées
-- [ ] tests SHA strict / registres / mappings réseau
-- [ ] tests profil/storage/Zaap et imports sans Qt
-- [ ] tests route manuelle, héritage et signatures publiques
+- [x] Tests SHA strict / registres / mappings réseau ajoutés (preuve CI à recueillir)
+- [x] Tests profil/storage/Zaap ajoutés (preuve CI à recueillir)
+- [x] Tests runtime manuel, héritage et signatures ajoutés (preuve CI à recueillir)
 - [ ] Doctor Graphify comparatif pour nouveaux cycles
 
 ## Critères de sortie
@@ -60,3 +60,11 @@ Indépendant, après fixes métier prioritaires ; pas de refactor global.
 - Pas de merge automatique de cette PR préparatoire.
 
 Sources : [rapport intégral](https://github.com/r9327/Dof-Atlas/blob/docs/audit-integral-2026-10-14/docs/audits/AUDIT_INTEGRAL_DOFUS_ATLAS_2026-10-14.md) ; [registre anomalies](https://github.com/r9327/Dof-Atlas/blob/docs/audit-integral-2026-10-14/docs/audits/2026-10-14-ac07be9b/registres/anomalies.json).
+
+## Correctifs livrés
+
+- AT-010 : un prédicat SHA strict dans app/network/contracts.py ; 16 doublons recensés sur les 56 modules réseau et remplacés. Les quatre méthodes statiques des décodeurs sont conservées comme façades de compatibilité.
+- AT-019 : stockage re-exporte les trois fonctions de profil du core ; profile_settings réutilise le parseur ratio de zaap_shortcuts, sans importer Qt.
+- AT-020 : trois overrides neutres de runtime manuel supprimés ; les adaptations Phase 7E restent intactes.
+- Tests : test_network_sha256_shared_contract et test_shared_profile_and_manual_contracts ; preuve exacte-SHA à récupérer via Doctor FAST et Graphify.
+- Aucune migration JSON ni fusion de modules complets ; une FULL cumulative distincte reste prévue.
