@@ -72,6 +72,21 @@ class ManifestTests(unittest.TestCase):
                 with self.assertRaises(ManifestError):
                     parse_manifest(manifest_payload(**update))
 
+    def test_optional_launcher_metadata(self):
+        good = parse_manifest(manifest_payload(
+            launcher_sha256="f" * 64, launcher_size=12345))
+        self.assertEqual(good.launcher_size, 12345)
+        self.assertIsNone(parse_manifest(manifest_payload()).launcher_sha256)
+        for override in (
+            {"launcher_sha256": "f" * 64},
+            {"launcher_size": 42},
+            {"launcher_sha256": "f" * 64, "launcher_size": True},
+            {"launcher_sha256": "f" * 64, "launcher_size": 0},
+            {"launcher_sha256": "../invalid", "launcher_size": 5},
+        ):
+            with self.subTest(override=override), self.assertRaises(ManifestError):
+                parse_manifest(manifest_payload(**override))
+
     def test_manifest_size_cap(self):
         with self.assertRaises(ManifestError):
             parse_manifest(b" " * (MAX_MANIFEST_BYTES + 1))
