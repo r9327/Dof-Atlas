@@ -168,7 +168,8 @@ def _load_manifest() -> dict[str, object]:
         }
     if (
         not isinstance(payload, dict)
-        or int(payload.get("schema_version") or 0) != _MANIFEST_SCHEMA_VERSION
+        or type(payload.get("schema_version")) is not int
+        or payload["schema_version"] != _MANIFEST_SCHEMA_VERSION
         or not isinstance(payload.get("domains"), dict)
     ):
         return {
