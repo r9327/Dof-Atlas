@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -50,9 +51,13 @@ class CraftPreloadAvailabilityTests(unittest.TestCase):
             root = Path(temp)
             db = root / "local" / "dofus_data.sqlite"
             db.parent.mkdir(parents=True)
-            with sqlite3.connect(db) as connection:
-                connection.execute("CREATE TABLE items (id INTEGER PRIMARY KEY)")
-                connection.execute("INSERT INTO items (id) VALUES (1)")
+            # sqlite3.Connection's context manager commits but does not close
+            # the OS file handle. On Windows TemporaryDirectory would fail to
+            # remove the SQLite file unless the connection is closed explicitly.
+            with closing(sqlite3.connect(db)) as connection:
+                with connection:
+                    connection.execute("CREATE TABLE items (id INTEGER PRIMARY KEY)")
+                    connection.execute("INSERT INTO items (id) VALUES (1)")
             fake = Mock()
             fake.list_jobs.return_value = []
             fake.search_items.return_value = []
