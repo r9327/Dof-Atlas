@@ -63,7 +63,7 @@ jobs:
           from pathlib import Path
           report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "atlas-transfer-certificate.json").read_text())
           summary = (f"### Atlas App transfer certificate — {report['status']}\n"
-                     f"Source SHA: \`{report['source_sha']}\`\n\n"
+                     f"Source SHA: `{report['source_sha']}`\n\n"
                      f"Allowlisted files: **{report['file_count']}**; "
                      f"Python modules: **{report['python_modules']}**; "
                      f"verified static import edges: **{report['static_import_edges']}**.\n\n"
