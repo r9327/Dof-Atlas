@@ -160,6 +160,14 @@ jobs:
               Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
             }
           }
+      - name: Read previous certified distribution manifest (if available)
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/atlas-previous"
+          gh release download --repo r9327/Dof-Atlas-App \
+            --pattern atlas-manifest.json --dir "$RUNNER_TEMP/atlas-previous" || true
       - name: Package ZIP, manifest and launcher
         if: github.event_name == 'workflow_run'
         run: |
@@ -168,7 +176,8 @@ jobs:
             --payload dist/AtlasApp --output dist-release \
             --source-sha "$SOURCE_SHA" --app-version "$version" \
             --data-version "$(date -u +%Y.%m.%d)" --schema-version 1 \
-            --launcher dist/DofusAtlas.exe
+            --launcher dist/DofusAtlas.exe \
+            --base-manifest "$RUNNER_TEMP/atlas-previous/atlas-manifest.json"
           cp dist/DofusAtlas.exe dist-release/DofusAtlas.exe
           cp dist/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
       - name: Upload certified Windows release files
@@ -220,11 +229,12 @@ jobs:
           GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
         run: |
           tag="sha-$(echo "$SOURCE_SHA" | cut -c1-12)"
-          gh release create "$tag" \
-            dist-release/atlas-windows.zip \
-            dist-release/atlas-manifest.json \
-            dist-release/DofusAtlas.exe \
-            dist-release/DofusAtlasSetup.exe \
+          assets=(dist-release/atlas-windows.zip dist-release/atlas-manifest.json
+                  dist-release/DofusAtlas.exe dist-release/DofusAtlasSetup.exe)
+          if test -f dist-release/atlas-delta.zip; then
+            assets+=(dist-release/atlas-delta.zip)
+          fi
+          gh release create "$tag" "${assets[@]}" \
             --repo r9327/Dof-Atlas-App \
             --title "Dofus Atlas $tag" \
             --notes "Certified source r9327/Dof-Atlas@$SOURCE_SHA" \
