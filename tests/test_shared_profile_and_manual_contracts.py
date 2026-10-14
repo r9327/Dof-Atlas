@@ -38,7 +38,14 @@ class SharedProfileAndManualContractsTests(unittest.TestCase):
         for name in ("_structured_rows_from_fields", "_link_next_cards", "_stage_to_card"):
             with self.subTest(name=name):
                 self.assertNotIn(name, ManualRuntime.__dict__)
-                self.assertIs(getattr(ManualRuntime, name), getattr(base, name))
+                inherited = getattr(ManualRuntime, name)
+                original = getattr(base, name)
+                # A classmethod rebinds __self__ on subclasses even when
+                # the underlying implementation is the same.
+                self.assertIs(
+                    getattr(inherited, "__func__", inherited),
+                    getattr(original, "__func__", original),
+                )
         self.assertIn("_stage_lines", ManualRuntime.__dict__)
         self.assertIn("manual_sections_for_card", ManualRuntime.__dict__)
         cards = [
