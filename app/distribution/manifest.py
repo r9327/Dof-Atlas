@@ -32,6 +32,14 @@ class ReleaseFile:
 
 
 @dataclass(frozen=True)
+class DeltaManifest:
+    base_source_sha: str
+    archive_sha256: str
+    archive_size: int
+    paths: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ReleaseManifest:
     app_version: str
     data_version: str
@@ -42,6 +50,7 @@ class ReleaseManifest:
     protocol_version: int = PROTOCOL_VERSION
     launcher_sha256: str | None = None
     launcher_size: int | None = None
+    delta: DeltaManifest | None = None
 
 
 def valid_version(value: Any) -> str:
@@ -89,7 +98,7 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
         raise ManifestError("Malformed JSON") from exc
     fields = {"protocol_version", "app_version", "data_version", "schema_version",
               "source_sha", "entrypoint", "files"}
-    optional = {"launcher_sha256", "launcher_size"}
+    optional = {"launcher_sha256", "launcher_size", "delta"}
     if not isinstance(doc, dict) or not fields.issubset(doc) or not set(doc).issubset(fields | optional):
         raise ManifestError("Unexpected manifest fields")
     if ("launcher_sha256" in doc) != ("launcher_size" in doc):
