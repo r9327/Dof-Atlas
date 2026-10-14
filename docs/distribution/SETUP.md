@@ -138,3 +138,31 @@ itinéraires) sont importés sans écraser ceux déjà présents dans
 ressources restent séparées. L'import ne transforme pas les schémas
 métiers : toute évolution future nécessitera une migration versionnée,
 testée, avec sauvegarde préalable.
+
+
+## Certification du transfert (Doctor + Graphify restent côté développement)
+
+La liste de transfert est une **allowlist révisable** dans
+`scripts/windows/export_app_repository.py`. Seuls les points d'entrée Python,
+les modules runtime `app/*.py` et `local_dofus_data/*.py` (hors dossiers
+`tools`), les JSON/DB/INI des domaines de données autorisés et les icônes
+essentielles vont dans le second dépôt. Aucun outil Doctor/Graphify, rapport
+d'audit, test, capture de débogage, profil utilisateur ou secret n'est transféré.
+
+`python -m scripts.windows.certify_app_export --root . --destination app-publish
+--source-sha <HEAD> --output artifacts/atlas-transfer-certificate.json`
+
+Le certificat créé **dans le dépôt de développement** vérifie les noms exacts,
+la provenance SHA, tous les fichiers et leurs SHA-256, l'absence de fichiers
+imprévus et les imports Python statiques entre fichiers publiables. Une erreur
+bloque le push ; elle ne se transforme pas en avertissement vert.
+
+Il s'agit d'une certification **spécifique au transfert** à base d'inventaire
+Doctor et de dépendances AST de type Graphify. Elle **ne prétend pas** être une
+nouvelle exécution complète de Doctor/Graphify, ni prouver les imports
+dynamiques, callbacks Qt, assets LFS de la Release ou comportement runtime.
+Les contrôles Doctor, Graphify, Phase Certification et les tests Windows
+restent indépendants dans le dépôt source. Aucun de ces outils n'est exécuté
+par le dépôt secondaire.
+
+La publication stable demeure désactivée pendant la mise en service.

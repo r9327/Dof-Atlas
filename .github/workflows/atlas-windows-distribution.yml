@@ -7,6 +7,7 @@ on:
       - "scripts/windows/package_release.py"
       - "scripts/windows/repackage_data_only.py"
       - "scripts/windows/export_app_repository.py"
+      - "scripts/windows/certify_app_export.py"
       - "scripts/windows/atlas_launcher_entry.py"
       - "tests/test_distribution_*.py"
       - "main.py"
@@ -38,7 +39,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Compile updater modules
-        run: python -m compileall -q app/distribution scripts/windows/package_release.py scripts/windows/export_app_repository.py scripts/windows/atlas_setup_entry.py launch.py
+        run: python -m compileall -q app/distribution scripts/windows/package_release.py scripts/windows/export_app_repository.py scripts/windows/certify_app_export.py scripts/windows/atlas_setup_entry.py launch.py
       - name: Focused updater tests
         run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
   classify-release:
@@ -364,6 +365,9 @@ jobs:
           gh auth setup-git
           python -m scripts.windows.export_app_repository \
             --root . --destination app-publish --source-sha "$SOURCE_SHA"
+          python -m scripts.windows.certify_app_export \
+            --root . --destination app-publish --source-sha "$SOURCE_SHA" \
+            --output "$RUNNER_TEMP/atlas-transfer-certificate.json"
           git -C app-publish config user.name "github-actions[bot]"
           git -C app-publish config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C app-publish add -A
@@ -495,11 +499,16 @@ jobs:
           provenance = destination / "SOURCE_PROVENANCE.json"
           record = json.loads(provenance.read_text(encoding="utf-8"))
           record["source_sha"] = "${{ env.SOURCE_SHA }}"
+          from scripts.windows.export_app_repository import selected_runtime_files
+          record["runtime_files"] = len(selected_runtime_files(Path(".")))
           provenance.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
           PY
           gh auth setup-git
           git -C app-publish config user.name "github-actions[bot]"
           git -C app-publish config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python -m scripts.windows.certify_app_export \
+            --root . --destination app-publish --source-sha "$SOURCE_SHA" \
+            --output "$RUNNER_TEMP/atlas-transfer-certificate.json"
           git -C app-publish add -A
           if ! git -C app-publish diff --cached --quiet; then
             git -C app-publish commit -m "sync: certified JSON $SOURCE_SHA"
