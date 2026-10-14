@@ -91,18 +91,19 @@ jobs:
     needs: [classify-release]
     if: >-
       always() &&
-      (github.event_name != 'workflow_run' ||
-       (needs.classify-release.result == 'success' &&
-        needs.classify-release.outputs.data_only != 'true')) &&
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-       github.event.action == 'ready_for_review' &&
-       github.head_ref == 'feature/atlas-auto-update-distribution-20261013') ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_repository.full_name == github.repository &&
-       vars.ATLAS_DISTRIBUTION_ENABLED == 'true')
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'pull_request' &&
+         github.event.action == 'ready_for_review' &&
+         github.head_ref == 'feature/atlas-auto-update-distribution-20261013') ||
+        (github.event_name == 'workflow_run' &&
+         needs.classify-release.result == 'success' &&
+         needs.classify-release.outputs.data_only != 'true' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main' &&
+         github.event.workflow_run.head_repository.full_name == github.repository &&
+         vars.ATLAS_DISTRIBUTION_ENABLED == 'true')
+      )
     runs-on: windows-latest
     timeout-minutes: 90
     defaults:
