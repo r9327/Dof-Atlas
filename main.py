@@ -227,7 +227,7 @@ def build_craft_preload() -> dict[str, Any]:
         "guides": {},
         "selection": {},
         "lookup_items": [],
-        "_prepared": True,
+        "_prepared": False,
         "_lazy_items": True,
         "errors": [],
     }
@@ -2216,6 +2216,8 @@ class AtlasWindow(QMainWindow):
                 if not payload_error and task_payload.get("_prepared") is not True:
                     payload_error = "catalogue Craft non validé"
             task_failed = bool(task_error or payload_error)
+            if task == "craft" and payload_error and payload_error not in errors:
+                errors.append(payload_error)
             fatal_error = task_error or fatal_error
             if task:
                 completed_tasks.append(task)
