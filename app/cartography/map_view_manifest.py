@@ -157,7 +157,10 @@ def validate_manifest(data: Any) -> list[str]:
         parent = str(view.get("parent_view_key") or "").strip()
         if parent and parent not in by_key:
             errors.append(f"views[{index}].parent_view_key absent: {parent}")
-        for link_index, link in enumerate(view.get("links") or ()):
+        links = view.get("links") or ()
+        if not isinstance(links, list):
+            continue
+        for link_index, link in enumerate(links):
             if not isinstance(link, dict):
                 continue
             target = str(link.get("target_view_key") or "").strip()
