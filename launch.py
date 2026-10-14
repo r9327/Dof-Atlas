@@ -21,6 +21,10 @@ def main() -> int:
             "app.quest_catalog_details",
             "app.startup_cache_warmup",
             "app.startup_cache_domain_worker",
+            "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+            "app.modules.encyclopedia.services.achievement_index_warmup",
+            "app.modules.encyclopedia.providers.memory_bound_guide_provider",
+            "app.modules.encyclopedia.providers.dofus_item_provider",
         }
         if worker not in permitted:
             print("Unsupported Atlas worker", file=sys.stderr)

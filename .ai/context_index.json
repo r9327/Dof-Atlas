@@ -112,7 +112,7 @@
     },
     "launch.py": {
       "mode": "100644",
-      "sha": "71bfbb9851c178d74410c7ebd5bcadd835ee3129",
+      "sha": "f4d5b5335d7f07b9150bbc6c3407643a2e57d182",
       "type": "blob"
     },
     "local_dofus_data": {
@@ -142,7 +142,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "1ee2975aff05ba7510d9f2eb224b0009135add92",
+      "sha": "03a00d5ed104d86617e65d89bdf9088171f9202c",
       "type": "tree"
     },
     "tools": {
