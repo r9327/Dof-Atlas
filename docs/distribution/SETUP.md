@@ -79,3 +79,15 @@ La certification intégrale Windows (LFS, workers, QtWebEngine, PC vierge),
 la compatibilité métier détaillée des JSON et les droits de redistribution
 restent à valider. La variable `ATLAS_DISTRIBUTION_ENABLED` doit rester
 à `false` jusque-là.
+
+## Import de l'ancienne installation Python
+
+L'installateur prend en charge l'option facultative `--legacy-root "C:\\chemin\\ancien-atlas"`.
+Il retrouve aussi l'ancien dossier automatiquement lorsque `DofusAtlasSetup.exe`
+est lancé depuis un dossier contenant `DOFUS.bat`. Au premier lancement,
+les fichiers personnels existants (profils, progressions, préférences,
+itinéraires) sont importés sans écraser ceux déjà présents dans
+`%LOCALAPPDATA%/DofusAtlas/user`. Les versions compilées et leurs
+ressources restent séparées. L'import ne transforme pas les schémas
+métiers : toute évolution future nécessitera une migration versionnée,
+testée, avec sauvegarde préalable.
