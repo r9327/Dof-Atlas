@@ -832,7 +832,10 @@ def duplicate_files_by_hash(paths: Iterable[Path]) -> dict[str, list[Path]]:
     by_hash: dict[str, list[Path]] = defaultdict(list)
     for path in paths:
         try:
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            # Full-content hashing is required, but only a fixed chunk is
+            # resident at once (image bundles can be tens of megabytes).
+            with path.open("rb") as stream:
+                digest = hashlib.file_digest(stream, "sha256").hexdigest()
         except OSError:
             continue
         by_hash[digest].append(path)
@@ -849,10 +852,12 @@ def is_exploitable_image(path: Path) -> bool:
     try:
         if path.stat().st_size <= 0:
             return False
+        # A signature probe reads a fixed prefix only. It does not claim
+        # the complete image can be decoded; the full audit still owns that.
+        with path.open("rb") as stream:
+            header = stream.read(512 if path.suffix.casefold() == ".svg" else 16)
         if path.suffix.casefold() == ".svg":
-            text = path.read_text(encoding="utf-8", errors="ignore")[:512]
-            return "<svg" in text.lower()
-        header = path.read_bytes()[:16]
+            return "<svg" in header.decode("utf-8-sig", errors="ignore").lower()
     except OSError:
         return False
     suffix = path.suffix.casefold()
