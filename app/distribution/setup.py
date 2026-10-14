@@ -200,6 +200,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Installer Dofus Atlas sans Python")
     parser.add_argument("--no-launch", action="store_true",
                         help="Installer le raccourci sans demarrer l'application")
+    parser.add_argument("--legacy-root", type=Path,
+                        help="Importer les donnees de l'ancien dossier DOFUS.bat")
     parser.add_argument("--finish-upgrade", action="store_true")
     parser.add_argument("--candidate", type=Path)
     parser.add_argument("--sha256")
@@ -215,6 +217,16 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         launcher = install_launcher(embedded_launcher())
         install_maintenance_helper(Path(sys.executable), launcher.parent)
+        legacy = args.legacy_root
+        if legacy is None and (Path.cwd() / "DOFUS.bat").is_file():
+            legacy = Path.cwd()
+        if legacy is not None:
+            if legacy.is_symlink() or not (legacy / "DOFUS.bat").is_file():
+                raise ValueError("Ancien dossier Atlas invalide : DOFUS.bat absent")
+            from .user_data import prepare_user_data
+            local = Path(os.environ["LOCALAPPDATA"])
+            prepare_user_data(launcher, local / "DofusAtlas" / "user",
+                              legacy_root=legacy.resolve())
         if not args.no_launch:
             subprocess.Popen([str(launcher)], cwd=str(launcher.parent),
                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
