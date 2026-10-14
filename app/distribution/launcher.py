@@ -17,6 +17,7 @@ from .install import (
 )
 from .release_client import UpdateError, download_archive, latest_release
 from .user_data import prepare_user_data
+from .self_update import schedule_launcher_upgrade
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
 ROOT = APP_DIR / "runtime"
@@ -92,6 +93,7 @@ def run_update(report) -> None:
             rollback_pending(ROOT)
             report("Version precedente restauree", 3)
         prior = read_state(ROOT)
+        remote = None
         try:
             report("Verification des mises a jour...", 5)
             remote = latest_release()
@@ -147,6 +149,11 @@ def run_update(report) -> None:
             raise UpdateError("Atlas n'a pas confirme son demarrage")
         if was_pending:
             mark_healthy(ROOT)
+        if remote is not None:
+            try:
+                schedule_launcher_upgrade(remote, ROOT / "downloads", report)
+            except (UpdateError, OSError, ValueError) as exc:
+                log.warning("Launcher upgrade deferred: %s", exc)
         report("Dofus Atlas est pret", 100)
     finally:
         _run_handle.close()
