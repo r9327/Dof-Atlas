@@ -1043,8 +1043,13 @@ class PySideShellTests(unittest.TestCase):
                     101: {"item": {"name": "Anneau test", "ankama_id": 101}, "quantity": 3},
                 },
                 "lookup_items": [],
+                # A valid lazy-loaded catalogue is required by the truthful
+                # Craft availability contract before selection is hydrated.
+                "_prepared": True,
+                "_lazy_items": True,
             }
             page = CraftPage(lambda _text: None, preload=preload)
+            self.assertTrue(page._runtime_ready)
             page.show_resources()
             app.processEvents()
 

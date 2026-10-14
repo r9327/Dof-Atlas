@@ -585,7 +585,7 @@ def _valid_ast_fact(fact: Any, digest: str) -> bool:
         return False
     required_issue_keys = {
         "rule", "category", "severity", "confidence", "path", "line",
-        "title", "evidence", "recommendation",
+        "title", "evidence", "recommendation", "subject",
     }
     if any(
         not isinstance(issue, dict)
