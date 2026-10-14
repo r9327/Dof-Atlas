@@ -290,3 +290,113 @@ jobs:
             --title "Dofus Atlas $tag" \
             --notes "Certified source r9327/Dof-Atlas@$SOURCE_SHA" \
             --latest
+
+  json-only-release:
+    name: Certified JSON-only update without PyInstaller
+    needs: [classify-release]
+    if: >-
+      github.event_name == 'workflow_run' &&
+      needs.classify-release.result == 'success' &&
+      needs.classify-release.outputs.data_only == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+    steps:
+      - name: Checkout exact certified source SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Ensure current main and fetch previous assets
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$SOURCE_SHA"
+          mkdir -p prior
+          gh release download --repo r9327/Dof-Atlas-App \
+            --pattern atlas-manifest.json --pattern atlas-windows.zip \
+            --pattern DofusAtlas.exe --pattern DofusAtlasSetup.exe --dir prior
+          base="$(python -c 'import json;print(json.load(open("prior/atlas-manifest.json"))["source_sha"])')"
+          if ! [[ "$base" =~ ^[a-f0-9]{40}$ ]]; then exit 1; fi
+          git fetch --no-tags --depth=1 origin "$base"
+          git diff --name-only "$base" HEAD > data-changes.txt
+          python - data-changes.txt <<'PY'
+          import sys
+          from pathlib import Path
+          from scripts.windows.package_release import _publishable
+          names = [n.strip() for n in Path(sys.argv[1]).read_text().splitlines() if n.strip()]
+          if not names or any(not n.startswith("data/") or Path(n).suffix.lower() != ".json"
+                              or ".." in Path(n).parts
+                              or not _publishable(Path("_internal") / n) for n in names):
+              raise SystemExit("Source diff is no longer JSON-only")
+          PY
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Materialize selected Git LFS JSON
+        run: git lfs pull --include="data/**/*.json" --exclude=""
+      - name: Test standalone JSON repackaging contracts
+        run: python -m unittest tests.test_distribution_data_only tests.test_distribution_delta -v
+      - name: Rebuild only data archives (reuse frozen EXE)
+        run: |
+          python -m scripts.windows.repackage_data_only \
+            --previous-zip prior/atlas-windows.zip \
+            --previous-manifest prior/atlas-manifest.json \
+            --source . --changed-list data-changes.txt --output dist-release \
+            --source-sha "$SOURCE_SHA" --data-version "$(date -u +%Y.%m.%d)" \
+            --launcher prior/DofusAtlas.exe
+          cp prior/DofusAtlas.exe dist-release/DofusAtlas.exe
+          cp prior/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
+      - name: Checkout minimal App distribution repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: r9327/Dof-Atlas-App
+          token: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+          path: app-publish
+          persist-credentials: false
+      - name: Sync only certified data and preserve application code
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+          destination = Path("app-publish")
+          for name in Path("data-changes.txt").read_text().splitlines():
+              if not name:
+                  continue
+              source = Path(name)
+              target = destination / name
+              if source.is_file():
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(source, target)
+              else:
+                  target.unlink(missing_ok=True)
+          provenance = destination / "SOURCE_PROVENANCE.json"
+          record = json.loads(provenance.read_text(encoding="utf-8"))
+          record["source_sha"] = "${{ env.SOURCE_SHA }}"
+          provenance.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+          PY
+          gh auth setup-git
+          git -C app-publish config user.name "github-actions[bot]"
+          git -C app-publish config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C app-publish add -A
+          if ! git -C app-publish diff --cached --quiet; then
+            git -C app-publish commit -m "sync: certified JSON $SOURCE_SHA"
+            git -C app-publish push origin HEAD:main
+          fi
+      - name: Publish verified JSON-only release
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$SOURCE_SHA"
+          tag="sha-$(echo "$SOURCE_SHA" | cut -c1-12)"
+          assets=(dist-release/atlas-windows.zip dist-release/atlas-manifest.json
+                  dist-release/DofusAtlas.exe dist-release/DofusAtlasSetup.exe)
+          if test -f dist-release/atlas-delta.zip; then
+            assets+=(dist-release/atlas-delta.zip)
+          fi
+          gh release create "$tag" "${assets[@]}" \
+            --repo r9327/Dof-Atlas-App \
+            --title "Dofus Atlas data $tag" \
+            --notes "Certified JSON-only source r9327/Dof-Atlas@$SOURCE_SHA; executable reused" \
+            --latest
