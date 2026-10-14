@@ -120,6 +120,12 @@ jobs:
           # Avoid downloading all development/tooling Git-LFS files.
           lfs: false
           persist-credentials: false
+      - name: Ensure successful certification applies to current main HEAD
+        if: github.event_name == 'workflow_run'
+        run: |
+          current="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$current" = "$SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
       - name: Fetch only startup images for frozen candidate
         if: github.event_name != 'workflow_run'
         run: |
@@ -129,12 +135,6 @@ jobs:
         if: github.event_name == 'workflow_run'
         run: |
           git lfs pull --include="data/**" --exclude=""
-      - name: Ensure successful certification applies to current main HEAD
-        if: github.event_name == 'workflow_run'
-        run: |
-          current="$(git ls-remote origin refs/heads/main | cut -f1)"
-          test "$current" = "$SOURCE_SHA"
-          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.13"
