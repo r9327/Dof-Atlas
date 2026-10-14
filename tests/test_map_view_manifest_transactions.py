@@ -126,6 +126,11 @@ class MapManifestTransactionsTests(unittest.TestCase):
         unknown_parent["views"][1]["parent_view_key"] = "not_defined"
         self.assertTrue(any("absent" in item for item in
                             map_view_manifest.validate_manifest(unknown_parent)))
+        malformed_links = copy.deepcopy(valid)
+        malformed_links["views"][0]["links"] = 99
+        self.assertTrue(any("liste" in item for item in
+                            map_view_manifest.validate_manifest(malformed_links)))
+        self.assertTrue(self._import(malformed_links)["errors"])
         explicit = copy.deepcopy(valid)
         explicit["views"][0]["links"][0]["target_view_key"] = "external_world"
         explicit["external_view_keys"] = ["external_world"]
