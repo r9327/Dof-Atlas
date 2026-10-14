@@ -16,7 +16,9 @@ def now_iso() -> str:
 
 
 def detect_encoding(path: str | Path) -> str:
-    raw = Path(path).read_bytes()[:4]
+    # Reading four bytes must not materialize a multi-megabyte source file.
+    with Path(path).open("rb") as stream:
+        raw = stream.read(4)
     if raw.startswith(b"\xef\xbb\xbf"):
         return "utf-8-sig"
     if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
