@@ -58,7 +58,7 @@ def _run_lock():
     return handle
 
 
-def _launch_with_health(executable: Path, report) -> bool:
+def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) -> bool:
     USER_DIR.mkdir(parents=True, exist_ok=True)
     prepare_user_data(executable, USER_DIR, legacy_root=Path(sys.executable).resolve().parent)
     health_dir = ROOT / ".health"
@@ -75,7 +75,15 @@ def _launch_with_health(executable: Path, report) -> bool:
         for _ in range(500):  # 50 seconds maximum, checked without blocking Tk
             if ready.is_file():
                 ready.unlink(missing_ok=True)
-                return True
+                if settle_seconds > 0:
+                    # A window that appears and crashes immediately must not
+                    # certify an update. Wait only on a new, pending version.
+                    deadline = time.monotonic() + settle_seconds
+                    while time.monotonic() < deadline:
+                        if proc.poll() is not None:
+                            return False
+                        time.sleep(0.1)
+                return proc.poll() is None
             if proc.poll() is not None:
                 return False
             time.sleep(0.1)
@@ -167,7 +175,8 @@ def run_update(report) -> None:
         if executable is None:
             raise UpdateError("Aucune version installee : connexion necessaire au premier lancement")
         was_pending = read_state(ROOT)["pending"]
-        if not _launch_with_health(executable, report):
+        if not _launch_with_health(executable, report,
+                                   settle_seconds=2.0 if was_pending else 0):
             if was_pending and rollback_pending(ROOT):
                 report("Demarrage echoue — restauration precedente", 95)
                 previous = active_executable(ROOT)
