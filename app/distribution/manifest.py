@@ -142,6 +142,26 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
     entrypoint = valid_path(doc["entrypoint"])
     if entrypoint not in {e.path for e in files} or not entrypoint.casefold().endswith(".exe"):
         raise ManifestError("Missing executable entrypoint")
+    delta = None
+    if "delta" in doc:
+        item = doc["delta"]
+        required = {"base_source_sha", "archive_sha256", "archive_size", "paths"}
+        if not isinstance(item, dict) or set(item) != required:
+            raise ManifestError("Invalid differential archive metadata")
+        base = valid_source_sha(item["base_source_sha"])
+        if base == doc["source_sha"]:
+            raise ManifestError("Delta base must differ from release")
+        length = item["archive_size"]
+        if type(length) is not int or not 0 < length <= 2 * 1024**3 - 1:
+            raise ManifestError("Invalid differential archive size")
+        paths = item["paths"]
+        if not isinstance(paths, list) or not 0 < len(paths) <= len(files):
+            raise ManifestError("Invalid differential file list")
+        checked = [valid_path(path) for path in paths]
+        if len(set(checked)) != len(checked) or not set(checked).issubset({f.path for f in files}):
+            raise ManifestError("Invalid differential file paths")
+        delta = DeltaManifest(base, valid_sha(item["archive_sha256"]),
+                              length, tuple(checked))
     return ReleaseManifest(
         valid_version(doc["app_version"]),
         valid_version(doc["data_version"]),
@@ -151,6 +171,7 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
         tuple(files),
         launcher_sha256=launcher_sha256,
         launcher_size=launcher_size,
+        delta=delta,
     )
 
 
