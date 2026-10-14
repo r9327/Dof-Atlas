@@ -118,8 +118,9 @@ def mark_healthy(root: Path) -> None:
         _write_state(root, state)
 
 
-def _validate_archive(archive: zipfile.ZipFile, manifest: ReleaseManifest) -> dict[str, zipfile.ZipInfo]:
-    expected = {f.path: f for f in manifest.files}
+def _validate_archive(archive: zipfile.ZipFile, manifest: ReleaseManifest,
+                      selected: set[str] | None = None) -> dict[str, zipfile.ZipInfo]:
+    expected = {f.path: f for f in manifest.files if selected is None or f.path in selected}
     actual: dict[str, zipfile.ZipInfo] = {}
     seen: set[str] = set()
     for info in archive.infolist():
@@ -149,7 +150,7 @@ def _validate_archive(archive: zipfile.ZipFile, manifest: ReleaseManifest) -> di
 
 
 def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
-                    progress: Progress | None = None) -> bool:
+                    progress: Progress | None = None, *, delta: bool = False) -> bool:
     """Stage, verify every byte, then atomically activate the new version.
 
     Returns False if this exact version is already installed/active.
@@ -157,6 +158,11 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     if manifest.schema_version != 1:
         raise UpdateError("Unsupported data schema; updater upgrade required")
     state = read_state(root)
+    if delta:
+        if (manifest.delta is None or state.get("pending")
+                or state.get("source_sha") != manifest.delta.base_source_sha
+                or not state.get("active")):
+            raise UpdateError("Local base does not match differential release")
     slot = f"{manifest.app_version}-{manifest.source_sha[:12]}".replace("+", "_")
     same_active = state.get("active") == slot
     if same_active:
@@ -170,12 +176,22 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     stage = Path(tempfile.mkdtemp(prefix=".atlas-install-", dir=root))
     try:
         with zipfile.ZipFile(archive_path) as package:
-            entries = _validate_archive(package, manifest)
+            entries = _validate_archive(package, manifest,
+                                        set(manifest.delta.paths) if delta else None)
             total = sum(f.size for f in manifest.files)
             done = 0
             for entry in manifest.files:
                 destination = stage / entry.path
                 destination.parent.mkdir(parents=True, exist_ok=True)
+                if delta and entry.path not in entries:
+                    old = slot_path(root, state["active"]) / entry.path
+                    if not verify_file(old, entry):
+                        raise UpdateError("Unchanged base file was modified or missing")
+                    shutil.copyfile(old, destination)
+                    done += entry.size
+                    if progress:
+                        progress(done, total)
+                    continue
                 digest = hashlib.sha256()
                 count = 0
                 with package.open(entries[entry.path]) as source, destination.open("xb") as output:
