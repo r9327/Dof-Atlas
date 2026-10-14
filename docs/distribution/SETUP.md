@@ -36,18 +36,65 @@ n'est pas proposée comme raccourci. Les données utilisateur résident dans
 `%LOCALAPPDATA%/DofusAtlas/user`, hors des dossiers remplacés.
 
 Les builds manuels produisent des artefacts candidats, **jamais** une Release
-stable automatique. Le second dépôt et la variable d'activation n'ont pas
-encore été créés/configurés par cette PR.
+stable automatique. Le dépôt secondaire et le jeton restent à configurer.
 
-## Limites initiales connues
+## État de certification du candidat
 
-- Versionnement app/data présent dans le manifeste ; diffusion incrémentale
-  de jeux de données autonomes et migrations de schéma à implémenter.
-- ZIP de version complète actuellement téléchargé par l'updater ; les
-  téléchargements différentiels restent à développer après stabilité.
-- La présence des fichiers QtWebEngine ne suffit pas à certifier une session
-  complète : faire un smoke test réel de fenêtre et des workers sur Windows.
-- Valider droits de redistribution et volume des assets Dofus avant publication.
+La validation Windows complète de la PR #159, SHA exact
+`c3c4dab331d5bff6429e9ac90afc71b1e4dc0e36`, est **PASS** :
+https://github.com/r9327/Dof-Atlas/actions/runs/38521409821
+
+Elle a vérifié les ressources Git LFS complètes, l'application et les workers
+gelés, le bootstrap du launcher, l'installateur, le raccourci Bureau, le
+démarrage d'une vraie fenêtre Qt, les archives ZIP et l'intégrité SHA-256
+de chaque morceau. Le ZIP original dépassait la limite d'un seul asset
+GitHub Releases de 2 Gio : le protocole multipart
+`atlas-windows.part0001`, `part0002`, etc. est maintenant en place.
+Le downloader reconstitue un ZIP après contrôle des SHA de chaque morceau
+et de l'archive complète, avec reprise HTTP. Les petites releases avec un
+seul ZIP restent compatibles.
+
+Le candidat complet est accessible dans les artefacts de ce run (7 jours de
+rétention, expiration le 21 octobre 2026) ; il ne constitue **pas** une
+publication stable ni la preuve d'un vrai upgrade sur un PC utilisateur.
+
+## Mise en service : opérations manuelles obligatoires
+
+1. Depuis https://github.com/new, créer **public**
+   `r9327/Dof-Atlas-App` avec `main` initialisée (README suffit).
+   Ne pas copier les outils Doctor/Graphify ni les fichiers de développement.
+2. Dans GitHub, créer un **fine-grained personal access token** réservé
+   uniquement à `r9327/Dof-Atlas-App`, permission Repository
+   `Contents: Read and write`. Ne jamais inclure ce jeton dans le code.
+3. Dans **r9327/Dof-Atlas → Settings → Secrets and variables → Actions**,
+   ajouter le Repository secret `ATLAS_DISTRIBUTION_TOKEN`.
+   Ajouter la Repository variable `ATLAS_DISTRIBUTION_ENABLED=false` :
+   la publication stable doit rester désactivée.
+4. Préparer un essai sur Windows avec les fichiers candidats. Confirmer
+   l'installation depuis un profil vierge, l'import d'un dossier `DOFUS.bat`,
+   la conservation des progressions/profils et le démarrage des onglets métier.
+   Simuler une coupure réseau, un téléchargement interrompu, puis une mise à
+   jour cassée pour observer la restauration de la version précédente.
+5. Confirmer les **droits de redistribution** des ressources Dofus et
+   les limites des assets, puis fusionner la PR quand toutes ces validations
+   ont passé. Ne passer `ATLAS_DISTRIBUTION_ENABLED=true` qu'après
+   validation : le workflow publiera uniquement après une certification
+   réussie de `main` au SHA exact en cours.
+
+En l'absence du secret, du dépôt ou de sa branche `main`, le contrôle
+`classify-release` échoue **avant le build Windows coûteux**, sans
+publier de Release.
+
+## Limites restantes
+
+- La branche JSON-only et les téléchargements différentiels sont testés
+  avec des paquets synthétiques mais pas encore validés par une paire de
+  releases publiques réelles.
+- Une réussite CI sur Windows Server ne remplace pas une installation/
+  mise à jour réelle sur le PC utilisateur.
+- Toute future migration du schéma des profils/données doit être versionnée
+  et testée, sans écraser les données personnelles.
+- Les droits de redistribution des ressources Dofus restent à confirmer.
 
 ## Évolution intégrée sur la PR #159 (non publiée)
 

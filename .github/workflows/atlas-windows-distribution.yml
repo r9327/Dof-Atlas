@@ -58,6 +58,22 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
+      - name: Validate publishing destination before any Windows build
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          if test -z "$GH_TOKEN"; then
+            echo "::error::ATLAS_DISTRIBUTION_TOKEN is missing. Keep ATLAS_DISTRIBUTION_ENABLED=false until configured."
+            exit 1
+          fi
+          if ! gh api repos/r9327/Dof-Atlas-App --jq '.full_name' >/dev/null; then
+            echo "::error::Distribution repository r9327/Dof-Atlas-App is missing or the token lacks access."
+            exit 1
+          fi
+          if ! gh api repos/r9327/Dof-Atlas-App/branches/main --jq '.name' >/dev/null; then
+            echo "::error::Distribution repository needs an initialized main branch."
+            exit 1
+          fi
       - name: Compare with last certified app release
         id: detect
         env:
