@@ -322,6 +322,27 @@ def test_achievement_sync_uses_compact_alignment_guide_ids() -> None:
     assert compact_pos < detail_pos
 
 
+
+def test_exported_achievement_sync_prefers_compact_guide_index() -> None:
+    # The services facade exports this override, NOT the legacy base helper.
+    source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "memory_bound_achievement_progress_service.py"
+    ).read_text(encoding="utf-8")
+    helper = source[
+        source.index("def _alignment_main_quest_ids"):
+        source.index("__all__", source.index("def _alignment_main_quest_ids"))
+    ]
+    assert 'getattr(guide_provider, "progress_quest_ids_for", None)' in helper
+    assert helper.index("compact_ids(guide_id)") < helper.index("guide = getter(guide_id)")
+    assert "if not callable(compact_ids)" in helper
+    assert 'getattr(guide_provider, "get_summary_by_id", None)' in helper
+
+
 def test_guide_home_worker_keeps_quest_catalogue_and_graph_cold() -> None:
     source = ENCYCLOPEDIA_PAGE.read_text(encoding="utf-8")
 
