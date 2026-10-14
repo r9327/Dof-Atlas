@@ -48,3 +48,25 @@ encore été créés/configurés par cette PR.
 - La présence des fichiers QtWebEngine ne suffit pas à certifier une session
   complète : faire un smoke test réel de fenêtre et des workers sur Windows.
 - Valider droits de redistribution et volume des assets Dofus avant publication.
+
+## Évolution intégrée sur la PR #159 (non publiée)
+
+Les releases futures peuvent inclure dans `atlas-manifest.json` les champs
+`launcher_sha256` et `launcher_size`. Un `DofusAtlasMaintenance.exe` est
+installé silencieusement à côté du launcher initial, sans deuxième raccourci.
+Il attend la fermeture du launcher en cours, conserve
+`DofusAtlas.exe.previous` puis applique un remplacement atomique vérifié.
+Les releases historiques sans ces champs continuent de fonctionner.
+
+Les releases peuvent aussi inclure un bloc `delta` avec SHA de la version
+précédente, liste des fichiers modifiés et SHA-256/poids de `atlas-delta.zip`.
+Le client ne l'utilise que si le slot local correspond exactement à la version
+de base. Chaque fichier réutilisé est vérifié contre le nouveau manifeste.
+En cas d'échec, le ZIP intégral constitue la voie de secours. Cela diminue
+la quantité téléchargée, sans mettre à jour les fichiers d'un processus actif.
+
+**Limites actuelles :** la diffusion de JSON indépendamment de la compilation
+Windows n'est pas encore branchée à un canal de publication dédié. La
+certification intégrale du bundle Windows (LFS, workers, QtWebEngine, PC vierge)
+et les droits de redistribution doivent toujours être validés. La variable
+`ATLAS_DISTRIBUTION_ENABLED` doit rester à `false` jusque-là.
