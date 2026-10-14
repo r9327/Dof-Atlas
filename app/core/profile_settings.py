@@ -22,6 +22,7 @@ from app.constants import (
     ZAAP_SHORTCUTS_FILE,
 )
 from app.core.json_store import read_json_resilient
+from app.core.zaap_shortcuts import parse_unit_ratio
 
 
 def default_profiles() -> dict[str, Any]:
@@ -59,16 +60,6 @@ def parse_zaap_click_position(
         return (max(0, int(match.group(1))), max(0, int(match.group(2))))
     except ValueError:
         return default
-
-
-def parse_unit_ratio(value: Any) -> float | None:
-    try:
-        ratio = float(str(value).strip())
-    except (TypeError, ValueError):
-        return None
-    if 0.0 <= ratio <= 1.0:
-        return ratio
-    return None
 
 
 def read_zaap_button_ratios(
