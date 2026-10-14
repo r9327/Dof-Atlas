@@ -72,7 +72,7 @@ jobs:
           base="$(python -c 'import json,os;print(json.load(open(os.path.join(os.environ["RUNNER_TEMP"],"previous","atlas-manifest.json")))["source_sha"])')"
           if ! [[ "$base" =~ ^[a-f0-9]{40}$ ]]; then exit 1; fi
           if ! git fetch --no-tags --depth=1 origin "$base"; then exit 1; fi
-          git diff --name-only "$base" HEAD > "$RUNNER_TEMP/data-changes.txt"
+          git diff --name-only "$base" HEAD | sed '/^\\.ai\\/context_index\\.json$/d' > "$RUNNER_TEMP/data-changes.txt"
           if python - "$RUNNER_TEMP/data-changes.txt" <<'PY'
           import sys
           from pathlib import Path
@@ -321,7 +321,7 @@ jobs:
           base="$(python -c 'import json;print(json.load(open("prior/atlas-manifest.json"))["source_sha"])')"
           if ! [[ "$base" =~ ^[a-f0-9]{40}$ ]]; then exit 1; fi
           git fetch --no-tags --depth=1 origin "$base"
-          git diff --name-only "$base" HEAD > data-changes.txt
+          git diff --name-only "$base" HEAD | sed '/^\\.ai\\/context_index\\.json$/d' > data-changes.txt
           python - data-changes.txt <<'PY'
           import sys
           from pathlib import Path
