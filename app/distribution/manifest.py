@@ -40,6 +40,13 @@ class DeltaManifest:
 
 
 @dataclass(frozen=True)
+class ArchivePart:
+    name: str
+    size: int
+    sha256: str
+
+
+@dataclass(frozen=True)
 class ReleaseManifest:
     app_version: str
     data_version: str
@@ -51,6 +58,9 @@ class ReleaseManifest:
     launcher_sha256: str | None = None
     launcher_size: int | None = None
     delta: DeltaManifest | None = None
+    archive_parts: tuple[ArchivePart, ...] = ()
+    archive_size: int | None = None
+    archive_sha256: str | None = None
 
 
 def valid_version(value: Any) -> str:
@@ -98,7 +108,8 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
         raise ManifestError("Malformed JSON") from exc
     fields = {"protocol_version", "app_version", "data_version", "schema_version",
               "source_sha", "entrypoint", "files"}
-    optional = {"launcher_sha256", "launcher_size", "delta"}
+    optional = {"launcher_sha256", "launcher_size", "delta",
+                "archive_parts", "archive_size", "archive_sha256"}
     if not isinstance(doc, dict) or not fields.issubset(doc) or not set(doc).issubset(fields | optional):
         raise ManifestError("Unexpected manifest fields")
     if ("launcher_sha256" in doc) != ("launcher_size" in doc):
@@ -142,6 +153,34 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
     entrypoint = valid_path(doc["entrypoint"])
     if entrypoint not in {e.path for e in files} or not entrypoint.casefold().endswith(".exe"):
         raise ManifestError("Missing executable entrypoint")
+    archive_parts: tuple[ArchivePart, ...] = ()
+    archive_size = None
+    archive_sha256 = None
+    archive_fields = {"archive_parts", "archive_size", "archive_sha256"}
+    if any(name in doc for name in archive_fields):
+        if not archive_fields.issubset(doc):
+            raise ManifestError("Incomplete multipart archive metadata")
+        rows = doc["archive_parts"]
+        if not isinstance(rows, list) or not 2 <= len(rows) <= 64:
+            raise ManifestError("Invalid number of archive parts")
+        archive_size = doc["archive_size"]
+        if type(archive_size) is not int or not 0 < archive_size <= MAX_TOTAL_SIZE + 512 * 1024**2:
+            raise ManifestError("Invalid assembled archive size")
+        archive_sha256 = valid_sha(doc["archive_sha256"])
+        pieces = []
+        for index, row in enumerate(rows, start=1):
+            if not isinstance(row, dict) or set(row) != {"name", "size", "sha256"}:
+                raise ManifestError("Invalid multipart archive entry")
+            name = row["name"]
+            if name != f"atlas-windows.part{index:04d}":
+                raise ManifestError("Unexpected multipart archive name/order")
+            size = row["size"]
+            if type(size) is not int or not 0 < size <= 2 * 1024**3 - 1:
+                raise ManifestError("Invalid multipart asset size")
+            pieces.append(ArchivePart(name, size, valid_sha(row["sha256"])))
+        if sum(piece.size for piece in pieces) != archive_size:
+            raise ManifestError("Multipart archive lengths do not match")
+        archive_parts = tuple(pieces)
     delta = None
     if "delta" in doc:
         item = doc["delta"]
@@ -172,6 +211,9 @@ def parse_manifest(raw: bytes) -> ReleaseManifest:
         launcher_sha256=launcher_sha256,
         launcher_size=launcher_size,
         delta=delta,
+        archive_parts=archive_parts,
+        archive_size=archive_size,
+        archive_sha256=archive_sha256,
     )
 
 

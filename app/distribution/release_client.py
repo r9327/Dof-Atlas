@@ -11,7 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .manifest import MAX_MANIFEST_BYTES, ManifestError, ReleaseManifest, parse_manifest
+from .manifest import MAX_MANIFEST_BYTES, ManifestError, ReleaseFile, ReleaseManifest, parse_manifest, verify_file
+from .archive_parts import assemble_archive_parts
 
 REPO = "r9327/Dof-Atlas-App"
 API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
@@ -41,6 +42,7 @@ class RemoteRelease:
     manifest: ReleaseManifest
     launcher_url: str | None = None
     delta_url: str | None = None
+    part_urls: tuple[str, ...] = ()
 
 
 def _safe_url(url: str, *, asset: bool = False) -> str:
@@ -99,18 +101,43 @@ def latest_release() -> RemoteRelease:
         if not isinstance(tag, str) or not re.fullmatch(r"[A-Za-z0-9._+-]{1,100}", tag):
             raise UpdateError("Invalid release tag")
         indexed = {item["name"]: item for item in assets if isinstance(item, dict) and
-                   item.get("name") in (MANIFEST_NAME, ARCHIVE_NAME, LAUNCHER_NAME, DELTA_NAME)}
-        if not {MANIFEST_NAME, ARCHIVE_NAME}.issubset(indexed):
-            raise UpdateError("Release assets missing")
+                   isinstance(item.get("name"), str) and
+                   (item["name"] in (MANIFEST_NAME, ARCHIVE_NAME, LAUNCHER_NAME, DELTA_NAME)
+                    or re.fullmatch(r"atlas-windows[.]part[0-9]{4}", item["name"]))}
+        if MANIFEST_NAME not in indexed or len(indexed) != len([
+            item for item in assets if isinstance(item, dict) and item.get("name") in indexed
+        ]):
+            raise UpdateError("Release assets missing or duplicate")
         manifest_asset = indexed[MANIFEST_NAME]
-        archive_asset = indexed[ARCHIVE_NAME]
         manifest_url = _safe_url(manifest_asset["browser_download_url"], asset=True)
-        archive_url = _safe_url(archive_asset["browser_download_url"], asset=True)
-        if not manifest_url.endswith("/" + MANIFEST_NAME) or not archive_url.endswith("/" + ARCHIVE_NAME):
-            raise UpdateError("Asset names do not match expected release")
-        if not isinstance(archive_asset.get("size"), int) or not 0 < archive_asset["size"] <= MAX_ARCHIVE_BYTES:
-            raise UpdateError("Invalid release archive size")
+        if not manifest_url.endswith("/" + MANIFEST_NAME):
+            raise UpdateError("Manifest URL does not match expected release")
         manifest = parse_manifest(_read_limited(manifest_url, MAX_MANIFEST_BYTES))
+        archive_url = ""
+        archive_size = 0
+        part_urls: tuple[str, ...] = ()
+        if manifest.archive_parts:
+            URLs = []
+            for part in manifest.archive_parts:
+                item = indexed.get(part.name)
+                if not item or type(item.get("size")) is not int or item["size"] != part.size:
+                    raise UpdateError("Missing or incorrectly sized archive part")
+                url = _safe_url(item["browser_download_url"], asset=True)
+                if not url.endswith("/" + part.name):
+                    raise UpdateError("Archive part URL mismatch")
+                URLs.append(url)
+            part_urls = tuple(URLs)
+            archive_size = manifest.archive_size
+        else:
+            archive_asset = indexed.get(ARCHIVE_NAME)
+            if not archive_asset:
+                raise UpdateError("Release archive asset missing")
+            archive_url = _safe_url(archive_asset["browser_download_url"], asset=True)
+            if not archive_url.endswith("/" + ARCHIVE_NAME):
+                raise UpdateError("Archive asset URL mismatch")
+            if type(archive_asset.get("size")) is not int or not 0 < archive_asset["size"] <= MAX_ARCHIVE_BYTES:
+                raise UpdateError("Invalid release archive size")
+            archive_size = archive_asset["size"]
         launcher_url = None
         if manifest.launcher_sha256 is not None:
             launcher_asset = indexed.get(LAUNCHER_NAME)
@@ -129,16 +156,89 @@ def latest_release() -> RemoteRelease:
             delta_url = _safe_url(asset["browser_download_url"], asset=True)
             if not delta_url.endswith("/" + DELTA_NAME):
                 raise UpdateError("Differential asset URL mismatch")
-        return RemoteRelease(tag, archive_url, archive_asset["size"], manifest,
-                             launcher_url, delta_url)
+        return RemoteRelease(tag, archive_url, archive_size, manifest,
+                             launcher_url, delta_url, part_urls)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, ManifestError) as exc:
         raise UpdateError("Invalid release metadata") from exc
+
+
+def _download_multipart(release: RemoteRelease, directory: Path,
+                        progress: Progress | None) -> Path:
+    """Resume each authenticated part, then atomically reconstruct the ZIP."""
+    manifest = release.manifest
+    if not manifest.archive_parts or len(release.part_urls) != len(manifest.archive_parts):
+        raise UpdateError("Incomplete multipart release metadata")
+    target = directory / (manifest.source_sha[:20] + ".zip")
+    if target.is_file() and verify_file(
+        target, ReleaseFile(target.name, manifest.archive_size, manifest.archive_sha256)
+    ):
+        if progress:
+            progress(manifest.archive_size, manifest.archive_size)
+        return target
+    target.unlink(missing_ok=True)
+    progress_base = 0
+    parts_dir = directory / (manifest.source_sha[:20] + "-parts")
+    parts_dir.mkdir(parents=True, exist_ok=True)
+    total = manifest.archive_size
+    for part, url in zip(manifest.archive_parts, release.part_urls):
+        finished = parts_dir / part.name
+        entry = ReleaseFile(part.name, part.size, part.sha256)
+        if verify_file(finished, entry):
+            progress_base += part.size
+            if progress:
+                progress(progress_base, total)
+            continue
+        finished.unlink(missing_ok=True)
+        partial = parts_dir / (part.name + ".download")
+        offset = partial.stat().st_size if partial.is_file() else 0
+        if offset >= part.size:
+            partial.unlink(missing_ok=True)
+            offset = 0
+        try:
+            with _open(url, {"Range": f"bytes={offset}-"} if offset else {}) as response:
+                status = getattr(response, "status", 200)
+                resumed = offset > 0 and status == 206
+                if resumed:
+                    expected = f"bytes {offset}-{part.size - 1}/{part.size}"
+                    if response.headers.get("Content-Range", "") != expected:
+                        raise UpdateError("Invalid multipart HTTP range")
+                elif status != 200:
+                    raise UpdateError("Unexpected multipart HTTP status")
+                done = offset if resumed else 0
+                with partial.open("ab" if resumed else "wb") as output:
+                    while True:
+                        block = response.read(1024 * 1024)
+                        if not block:
+                            break
+                        done += len(block)
+                        if done > part.size:
+                            raise UpdateError("Multipart download exceeded asset size")
+                        output.write(block)
+                        if progress:
+                            progress(progress_base + done, total)
+                    output.flush()
+            if partial.stat().st_size != part.size or not verify_file(partial, entry):
+                partial.unlink(missing_ok=True)
+                raise UpdateError("Multipart archive SHA-256 mismatch or incomplete download")
+            partial.replace(finished)
+        except (OSError, urllib.error.URLError) as exc:
+            raise UpdateError("Multipart download interrupted") from exc
+        progress_base += part.size
+    try:
+        assemble_archive_parts(manifest, parts_dir, target)
+    except (OSError, ValueError) as exc:
+        raise UpdateError("Unable to verify assembled multipart ZIP") from exc
+    for part in manifest.archive_parts:
+        (parts_dir / part.name).unlink(missing_ok=True)
+    return target
 
 
 def download_archive(release: RemoteRelease, directory: Path, progress: Progress | None = None,
                      *, differential: bool = False) -> Path:
     """Resume HTTP downloads only after validating the server's Content-Range."""
     directory.mkdir(parents=True, exist_ok=True)
+    if not differential and release.manifest.archive_parts:
+        return _download_multipart(release, directory, progress)
     if differential and (release.delta_url is None or release.manifest.delta is None):
         raise UpdateError("No differential archive available")
     size = release.manifest.delta.archive_size if differential else release.archive_size

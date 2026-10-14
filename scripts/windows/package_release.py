@@ -16,6 +16,8 @@ _PRIVATE = {"client_profiles.json", "client_index.json", "client_index.ini",
             "quest_progress.json", "bootstrap_status.txt"}
 _LFS = b"version https://git-lfs.github.com/spec/v1"
 _MAX_GITHUB_RELEASE_ASSET_BYTES = 2 * 1024**3 - 1
+# Keep headroom below GitHub's strict 2 GiB-per-asset limit.
+_CHUNK_BYTES = 1792 * 1024**2
 _RUNTIME_SEEDS = {"_internal/data/local/zaaps.json"}
 
 
@@ -65,15 +67,43 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
             archive.write(path, arcname=name, compress_type=zipfile.ZIP_DEFLATED,
                           compresslevel=6)
             entries.append({"path": name, "size": path.stat().st_size, "sha256": digest.hexdigest()})
-    if archive_path.stat().st_size > _MAX_GITHUB_RELEASE_ASSET_BYTES:
-        archive_path.unlink(missing_ok=True)
-        raise ValueError("Atlas archive exceeds GitHub's 2 GiB asset limit; split the release")
+    oversized = archive_path.stat().st_size > _MAX_GITHUB_RELEASE_ASSET_BYTES
     manifest = {
         "protocol_version": 1, "app_version": app_version,
         "data_version": data_version, "schema_version": schema_version,
         "source_sha": source_sha, "entrypoint": "AtlasApp/AtlasApp.exe",
         "files": entries,
     }
+    if oversized:
+        full_digest = hashlib.sha256()
+        pieces = []
+        index = 0
+        chunk_size = min(_CHUNK_BYTES, _MAX_GITHUB_RELEASE_ASSET_BYTES)
+        with archive_path.open("rb") as source:
+            while True:
+                index += 1
+                name = f"atlas-windows.part{index:04d}"
+                target = output_dir / name
+                part_digest = hashlib.sha256()
+                size = 0
+                with target.open("wb") as dest:
+                    while size < chunk_size:
+                        block = source.read(min(1024 * 1024, chunk_size - size))
+                        if not block:
+                            break
+                        dest.write(block)
+                        size += len(block)
+                        part_digest.update(block)
+                        full_digest.update(block)
+                if not size:
+                    target.unlink(missing_ok=True)
+                    break
+                pieces.append({"name": name, "size": size, "sha256": part_digest.hexdigest()})
+                if len(pieces) > 64:
+                    raise ValueError("Release requires too many GitHub assets")
+        manifest["archive_parts"] = pieces
+        manifest["archive_size"] = archive_path.stat().st_size
+        manifest["archive_sha256"] = full_digest.hexdigest()
     if launcher is not None:
         if not launcher.is_file() or launcher.is_symlink() or not 0 < launcher.stat().st_size <= 128 * 1024**2:
             raise ValueError("Invalid Windows launcher asset")
@@ -103,7 +133,8 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
                     for entry in changed:
                         source = payload_dir / entry["path"].removeprefix("AtlasApp/")
                         archive.write(source, arcname=entry["path"])
-                if delta_archive.stat().st_size < archive_path.stat().st_size:
+                if (delta_archive.stat().st_size <= _MAX_GITHUB_RELEASE_ASSET_BYTES
+                        and delta_archive.stat().st_size < archive_path.stat().st_size):
                     digest = hashlib.sha256()
                     with delta_archive.open("rb") as stream:
                         for block in iter(lambda: stream.read(1024 * 1024), b""):

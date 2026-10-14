@@ -10,6 +10,7 @@ import zipfile
 from pathlib import Path
 
 from app.distribution.install import _validate_archive
+from app.distribution.archive_parts import assemble_archive_parts
 from app.distribution.manifest import parse_manifest
 from scripts.windows.package_release import _publishable, package_release
 
@@ -37,6 +38,9 @@ def repackage_data_only(previous_zip: Path, previous_manifest: Path,
 
     with tempfile.TemporaryDirectory(prefix="atlas-data-repackage-") as directory:
         temporary = Path(directory)
+        if old.archive_parts:
+            previous_zip = assemble_archive_parts(old, previous_zip.parent,
+                                                  temporary / "previous-assembled.zip")
         with zipfile.ZipFile(previous_zip) as archive:
             _validate_archive(archive, old)
             for entry in old.files:
@@ -78,7 +82,8 @@ def repackage_data_only(previous_zip: Path, previous_manifest: Path,
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--previous-zip", required=True, type=Path)
+    parser.add_argument("--previous-zip", required=True, type=Path,
+                        help="Previous ZIP, or sibling path to the previous multipart assets")
     parser.add_argument("--previous-manifest", required=True, type=Path)
     parser.add_argument("--source", required=True, type=Path)
     parser.add_argument("--changed-list", required=True, type=Path)
