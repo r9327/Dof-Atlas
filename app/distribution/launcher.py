@@ -104,31 +104,59 @@ def run_update(report) -> None:
             if prior.get("blocked_source_sha") == remote.manifest.source_sha:
                 report("Mise a jour en attente de correction", 10)
             elif prior.get("source_sha") != remote.manifest.source_sha or current_exe is None:
-                report("Telechargement de la nouvelle version", 10)
-                archive = download_archive(
-                    remote, ROOT / "downloads",
-                    lambda done, total: report(
-                        "Telechargement : " + str(round(done / total * 100)) + " %",
-                        10 + int(done * 65 / total),
-                    ),
+                delta_installed = False
+                can_delta = (
+                    remote.manifest.delta is not None
+                    and remote.delta_url is not None
+                    and prior.get("source_sha") == remote.manifest.delta.base_source_sha
+                    and not prior.get("pending")
                 )
-                report("Verification et installation...", 76)
-                try:
-                    install_release(
-                        ROOT, archive, remote.manifest,
+                if can_delta:
+                    report("Telechargement des fichiers modifies...", 10)
+                    archive = None
+                    try:
+                        archive = download_archive(
+                            remote, ROOT / "downloads",
+                            lambda done, total: report(
+                                f"Differentiel : {int(done * 100 / total)} %",
+                                10 + int(done * 65 / total),
+                            ),
+                            differential=True,
+                        )
+                        report("Verification des fichiers existants...", 76)
+                        delta_installed = install_release(
+                            ROOT, archive, remote.manifest,
+                            lambda done, total: report(
+                                "Installation differentielle...",
+                                76 + int(done * 20 / max(total, 1)),
+                            ),
+                            delta=True,
+                        )
+                    except (UpdateError, OSError) as exc:
+                        log.warning("Differential update failed, using full release: %s", exc)
+                        if archive is not None:
+                            archive.unlink(missing_ok=True)
+                if not delta_installed:
+                    report("Telechargement complet de la nouvelle version...", 10)
+                    archive = download_archive(
+                        remote, ROOT / "downloads",
                         lambda done, total: report(
-                            "Verification des fichiers...",
-                            76 + int(done * 20 / max(total, 1)),
+                            f"Telechargement : {int(done * 100 / total)} %",
+                            10 + int(done * 65 / total),
                         ),
                     )
-                except UpdateError:
-                    # A completed-but-corrupt cache must not block every later
-                    # launch by being reused indefinitely at the same byte size.
+                    report("Verification et installation...", 76)
                     try:
+                        install_release(
+                            ROOT, archive, remote.manifest,
+                            lambda done, total: report(
+                                "Verification des fichiers...",
+                                76 + int(done * 20 / max(total, 1)),
+                            ),
+                        )
+                    except UpdateError:
                         archive.unlink(missing_ok=True)
-                    except OSError:
-                        log.warning("Could not remove failed downloaded archive", exc_info=True)
-                    raise
+                        raise
                 report("Mise a jour installee", 96)
             else:
                 report("Atlas est a jour", 96)
