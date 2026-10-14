@@ -97,7 +97,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "8490bdb2131540cfde34ecf311e8c464485240cd",
+      "sha": "5d6fcc4c8f19405e50650f9767c4befedbf5299a",
       "type": "tree"
     },
     "data": {
@@ -107,7 +107,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "42d479e98df3ee8d83a3a6880fec0be344ec9a20",
+      "sha": "f4ce2d1a4d66793c004b5a8349b2c3077831407f",
       "type": "tree"
     },
     "launch.py": {
@@ -117,7 +117,7 @@
     },
     "local_dofus_data": {
       "mode": "040000",
-      "sha": "27688df053959990c215d33a85613abf8413c929",
+      "sha": "ebf9749c77c5bdbb12aed3d44e8b4d01ed276d76",
       "type": "tree"
     },
     "main.py": {
@@ -142,7 +142,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "affc459b39071d96fd158a05b5622551bb2daad8",
+      "sha": "331881a8d627eedbdecb076b45b47eb9d62063a6",
       "type": "tree"
     },
     "tools": {
