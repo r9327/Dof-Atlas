@@ -264,7 +264,7 @@ jobs:
 
       - name: Run focused certification policy contracts
         shell: bash
-        run: python -m unittest -v tests.test_ci_required_certification
+        run: python -m unittest discover -s tests -p test_ci_required_certification.py -v
 
       - name: Verify candidate identity and authenticated FULL/SCOPED evidence
         shell: bash
