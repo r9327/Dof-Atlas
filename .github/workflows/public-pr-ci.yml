@@ -262,6 +262,10 @@ jobs:
           fetch-depth: 0
           lfs: false
 
+      - name: Run focused certification policy contracts
+        shell: bash
+        run: python -m unittest -v tests.test_ci_required_certification
+
       - name: Verify candidate identity and authenticated FULL/SCOPED evidence
         shell: bash
         env:
