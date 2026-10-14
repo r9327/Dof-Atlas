@@ -40,7 +40,7 @@ def update_zaap_shortcuts_field(path: Path, field: str, value: Any) -> None:
     from app.core.json_store import read_json_validated, write_json_atomic
     from app.core.progress_coordinator import coordinator_for
 
-    if field not in {"favorites", "zaap_button"}:
+    if field not in {"zaap_favorites", "zaap_button"}:
         raise ValueError(f"Unsupported Zaap setting field: {field!r}")
     target = Path(path)
     coordinator = coordinator_for(target)
