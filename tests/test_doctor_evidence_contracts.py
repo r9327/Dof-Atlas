@@ -65,6 +65,34 @@ class DoctorEvidenceContractsTests(unittest.TestCase):
                 {entry.split("target=", 1)[1].split(":", 1)[0] for entry in reordered},
             )
 
+    def test_byte_contract_checks_lf_exactly_and_rejects_crlf_mutation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "data/a.json"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            literal = b'{\n  "a": 1\n}\n'
+            source.write_bytes(literal)
+            generator = root / "tools/gen.py"
+            generator.parent.mkdir(parents=True)
+            generator.write_text("a.json", encoding="utf-8")
+            consumer = root / "app/client.py"
+            consumer.parent.mkdir(parents=True)
+            consumer.write_text("a.json", encoding="utf-8")
+            (root / "data/large_file_contracts.json").write_text(
+                json.dumps({"schema_version": 1, "files": [{
+                    "path": "data/a.json", "role": "canonical_runtime_source",
+                    "sha256": hashlib.sha256(literal).hexdigest(),
+                    "generator": "tools/gen.py", "consumers": ["app/client.py"],
+                }]}), encoding="utf-8",
+            )
+            _, errors = _validated_large_file_contracts(root)
+            self.assertEqual(errors, [])
+            # Same parsed JSON but different bytes is not a valid checksum.
+            source.write_bytes(literal.replace(b"\n", b"\r\n"))
+            _, errors = _validated_large_file_contracts(root)
+            self.assertEqual(len(errors), 1)
+            self.assertIn("sha256 divergent", errors[0])
+
     def test_public_lazy_exports_are_static_only_not_runtime_use(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
