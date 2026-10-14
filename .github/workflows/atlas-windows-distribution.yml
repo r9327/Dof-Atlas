@@ -177,6 +177,13 @@ jobs:
           if (-not (Test-Path -LiteralPath $installed)) { throw "Installed launcher missing" }
           $shortcut = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'Dofus Atlas.lnk'
           if (-not (Test-Path -LiteralPath $shortcut)) { throw "Desktop shortcut missing" }
+          $helper = Join-Path $env:LOCALAPPDATA "Programs/DofusAtlas/DofusAtlasMaintenance.exe"
+          if (-not (Test-Path -LiteralPath $helper)) { throw "Detached launcher repair helper missing" }
+          $shell = New-Object -ComObject WScript.Shell
+          $link = $shell.CreateShortcut($shortcut)
+          if ([IO.Path]::GetFullPath($link.TargetPath) -ne [IO.Path]::GetFullPath($installed)) {
+            throw "Desktop shortcut does not point to the installed Dofus Atlas launcher"
+          }
       - name: Smoke check frozen QtWebEngine and assets
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
       - name: Real Qt window health smoke (no Python user installation)
