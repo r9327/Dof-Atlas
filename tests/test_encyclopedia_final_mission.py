@@ -5,6 +5,7 @@ import os
 import socket
 import tempfile
 import unittest
+import time
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -26,10 +27,13 @@ CATALOG_PATH = GUIDES_DIR / "catalog.json"
 class EncyclopediaFinalMissionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        started = time.perf_counter()
         cls.app = QApplication.instance() or QApplication([])
         cls.quest_provider = QuestProvider()
         cls.achievement_provider = AchievementProvider(quest_provider=cls.quest_provider)
         cls.guide_provider = GuideProvider(quest_provider=cls.quest_provider, achievement_provider=cls.achievement_provider)
+        cls.fixture_setup_ms = round((time.perf_counter() - started) * 1000, 1)
+        print(f"AT018 fixture=encyclopedia setup_ms={cls.fixture_setup_ms}", flush=True)
 
     def make_page(self, tmp_path: Path) -> EncyclopediaPage:
         profile = tmp_path / "client_profiles.json"
