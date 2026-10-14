@@ -65,6 +65,7 @@ from app.constants import (
     ZAAP_SHORTCUTS_FILE,
 )
 from app.core.item_identity import item_id
+from app.core.profile_settings import default_profiles, profile_bool, parse_zaap_click_position
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.zaap_shortcuts import parse_unit_ratio, update_zaap_shortcuts_field, zaap_ratios_from_payload
 from app.core.text import clean_auto_group_name, normalize_key, strip_accents
@@ -617,40 +618,6 @@ def read_bootstrap_status() -> str:
     except Exception:
         return "Verification des prerequis..."
     return text or "Verification des prerequis..."
-
-
-def default_profiles() -> dict[str, Any]:
-    return {
-        KEY_SWITCH_CHARACTER: True,
-        KEY_SWITCH_CLICK: False,
-        KEY_SWITCH_DOUBLE_CLICK: False,
-        KEY_SWITCH_MOVEMENT: False,
-        KEY_STOP_SCRIPT_HOTKEY: "",
-        KEY_ZAAP_CLICK_POSITION: ZAAP_CLICK_POSITION_DEFAULT,
-        KEY_ZAAP_CLICK_LOCKED: True,
-        KEY_SESSION_ORDER: [],
-        KEY_TOPMOST: False,
-        KEY_SCRIPT_SPEED: "normal",
-        KEY_DEBUG_MODE: False,
-    }
-
-
-def profile_bool(payload: dict[str, Any], key: str, default: bool = False) -> bool:
-    value = payload.get(key, default)
-    if isinstance(value, str):
-        return value.strip().casefold() not in ("0", "false", "faux", "non", "off", "")
-    return bool(value)
-
-
-def parse_zaap_click_position(value: Any, default: tuple[int, int] = (ZAAP_CLICK_X, ZAAP_CLICK_Y)) -> tuple[int, int]:
-    text = str(value or "").strip()
-    match = re.search(r"(-?\d+)\s*[,;:xX ]\s*(-?\d+)", text)
-    if not match:
-        return default
-    try:
-        return (max(0, int(match.group(1))), max(0, int(match.group(2))))
-    except ValueError:
-        return default
 
 
 def format_zaap_click_position(position: tuple[int, int]) -> str:
