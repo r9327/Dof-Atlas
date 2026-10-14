@@ -137,23 +137,50 @@ def latest_release() -> RemoteRelease:
 
 def download_archive(release: RemoteRelease, directory: Path, progress: Progress | None = None,
                      *, differential: bool = False) -> Path:
-    """Resume a partial HTTP download only if a valid Content-Range is returned."""
+    """Resume HTTP downloads only after validating the server's Content-Range."""
     directory.mkdir(parents=True, exist_ok=True)
     if differential and (release.delta_url is None or release.manifest.delta is None):
         raise UpdateError("No differential archive available")
     size = release.manifest.delta.archive_size if differential else release.archive_size
     url = release.delta_url if differential else release.archive_url
     suffix = ".delta.zip.part" if differential else ".zip.part"
-    filename = release.manifest.source_sha[:20] + suffix
-    target = directory / filename
+    target = directory / (release.manifest.source_sha[:20] + suffix)
     previous = target.stat().st_size if target.is_file() else 0
     if previous > size:
         target.unlink()
         previous = 0
-    if previous == size:
-        if progress:
-            progress(previous, size)
-        if differential:
+    if previous != size:
+        headers = {"Range": f"bytes={previous}-"} if previous else {}
+        try:
+            with _open(url, headers) as response:
+                status = getattr(response, "status", 200)
+                ranged = previous > 0 and status == 206
+                if ranged:
+                    content_range = response.headers.get("Content-Range", "")
+                    expected = f"bytes {previous}-{size - 1}/{size}"
+                    if content_range != expected:
+                        raise UpdateError("Invalid HTTP resume range")
+                elif status != 200:
+                    raise UpdateError("Unexpected HTTP response")
+                done = previous if ranged else 0
+                with target.open("ab" if ranged else "wb") as output:
+                    while True:
+                        block = response.read(1024 * 1024)
+                        if not block:
+                            break
+                        done += len(block)
+                        if done > size:
+                            raise UpdateError("Download exceeds declared size")
+                        output.write(block)
+                        if progress:
+                            progress(done, size)
+            if target.stat().st_size != size:
+                raise UpdateError("Incomplete archive; download can resume later")
+        except (OSError, urllib.error.URLError) as exc:
+            raise UpdateError(f"Release download interrupted: {exc}") from exc
+    elif progress:
+        progress(previous, size)
+    if differential:
         digest = hashlib.sha256()
         with target.open("rb") as stream:
             for block in iter(lambda: stream.read(1024 * 1024), b""):
@@ -161,33 +188,4 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
         if digest.hexdigest() != release.manifest.delta.archive_sha256:
             target.unlink(missing_ok=True)
             raise UpdateError("Differential archive SHA-256 mismatch")
-    return target
-    headers = {"Range": f"bytes={previous}-"} if previous else {}
-    try:
-        with _open(url, headers) as response:
-            status = getattr(response, "status", 200)
-            ranged = previous > 0 and status == 206
-            if ranged:
-                content_range = response.headers.get("Content-Range", "")
-                expected = f"bytes {previous}-{size - 1}/{size}"
-                if content_range != expected:
-                    raise UpdateError("Invalid HTTP resume range")
-            elif status != 200:
-                raise UpdateError("Unexpected HTTP response")
-            done = previous if ranged else 0
-            with target.open("ab" if ranged else "wb") as output:
-                while True:
-                    block = response.read(1024 * 1024)
-                    if not block:
-                        break
-                    done += len(block)
-                    if done > size:
-                        raise UpdateError("Download exceeds declared size")
-                    output.write(block)
-                    if progress:
-                        progress(done, size)
-        if target.stat().st_size != size:
-            raise UpdateError("Incomplete release archive; download can resume later")
-    except (OSError, urllib.error.URLError) as exc:
-        raise UpdateError(f"Release download interrupted: {exc}") from exc
     return target
