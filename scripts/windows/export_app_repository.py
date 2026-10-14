@@ -41,11 +41,13 @@ def selected_runtime_path(filename: str) -> bool:
     path = Path(filename)
     if (not filename or filename.startswith("/") or "\\" in filename
             or any(part in {"", ".", ".."} for part in filename.split("/"))
-            or path.name.casefold() in _PRIVATE_FILENAMES
-            or any(part.casefold() in _FORBIDDEN_COMPONENTS for part in path.parts)):
+            or path.name.casefold() in _PRIVATE_FILENAMES):
         return False
+    # data/local/zaaps.json is the one reviewed and explicit local data seed.
     if filename in _META or filename in _ESSENTIAL_ASSETS:
         return True
+    if any(part.casefold() in _FORBIDDEN_COMPONENTS for part in path.parts):
+        return False
     if filename.startswith(_RUNTIME_ROOTS):
         return path.suffix.lower() == ".py"
     if filename.startswith(_DATA_ROOTS):
