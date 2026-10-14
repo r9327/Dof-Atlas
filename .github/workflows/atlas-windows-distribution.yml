@@ -167,7 +167,8 @@ jobs:
           python -m scripts.windows.package_release \
             --payload dist/AtlasApp --output dist-release \
             --source-sha "$SOURCE_SHA" --app-version "$version" \
-            --data-version "$(date -u +%Y.%m.%d)" --schema-version 1
+            --data-version "$(date -u +%Y.%m.%d)" --schema-version 1 \
+            --launcher dist/DofusAtlas.exe
           cp dist/DofusAtlas.exe dist-release/DofusAtlas.exe
           cp dist/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
       - name: Upload certified Windows release files
