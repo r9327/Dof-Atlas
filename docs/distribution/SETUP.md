@@ -65,8 +65,17 @@ de base. Chaque fichier réutilisé est vérifié contre le nouveau manifeste.
 En cas d'échec, le ZIP intégral constitue la voie de secours. Cela diminue
 la quantité téléchargée, sans mettre à jour les fichiers d'un processus actif.
 
-**Limites actuelles :** la diffusion de JSON indépendamment de la compilation
-Windows n'est pas encore branchée à un canal de publication dédié. La
-certification intégrale du bundle Windows (LFS, workers, QtWebEngine, PC vierge)
-et les droits de redistribution doivent toujours être validés. La variable
-`ATLAS_DISTRIBUTION_ENABLED` doit rester à `false` jusque-là.
+**JSON indépendants du binaire :** lorsqu'un commit certifié sur `main`
+ne modifie que les JSON publiables sous `data/`, le workflow choisit le job
+`json-only-release` au lieu du build PyInstaller. Il repart du bundle Windows
+déjà certifié, vérifie ses fichiers contre le manifeste, applique uniquement
+les JSON modifiés, puis génère le ZIP complet et le différentiel. L'exécutable
+compilé et l'installateur sont réutilisés sans recompilation. Un changement de
+Python, schéma ou code déclenche le chemin de build classique.
+
+**Limites actuelles :** cette voie est implémentée et testée sur des paquets
+synthétiques, mais pas encore certifiée sur une Release de production.
+La certification intégrale Windows (LFS, workers, QtWebEngine, PC vierge),
+la compatibilité métier détaillée des JSON et les droits de redistribution
+restent à valider. La variable `ATLAS_DISTRIBUTION_ENABLED` doit rester
+à `false` jusque-là.
