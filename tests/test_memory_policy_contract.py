@@ -1074,12 +1074,11 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
         / "services"
         / "guide_ultime_manual_runtime_service.py"
     ).read_text(encoding="utf-8")
-    stage = wrapper_source[
-        wrapper_source.index("def _stage_to_card"):
-        wrapper_source.index("def _raw_stage_lines")
-    ]
-    assert "copy.deepcopy(stage)" not in stage
-    assert "copy.deepcopy(chapter_preparation" not in stage
+    # The refactored wrapper inherits _stage_to_card from the core. The
+    # memory rule must validate the canonical implementation, not a removed
+    # duplicate in the wrapper.
+    assert "def _stage_to_card" not in wrapper_source
+    assert "def _raw_stage_lines" in wrapper_source
 
     runtime_open = view_source[
         view_source.index("def ensure_guide_ultime_view"):

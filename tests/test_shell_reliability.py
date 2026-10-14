@@ -65,7 +65,8 @@ class ShellReliabilityTests(unittest.TestCase):
                 payload = craft_preload.build_compact_craft_preload()
 
         self.assertEqual(payload["items"], [])
-        self.assertTrue(payload["_prepared"])
+        # An existing but empty SQLite catalogue must not report Craft ready.
+        self.assertFalse(payload["_prepared"])
         self.assertTrue(payload["_lazy_items"])
         self.assertEqual(payload.get("_skipped_reason"), "catalogue Craft local vide")
 
