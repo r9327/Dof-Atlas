@@ -37,6 +37,14 @@ class CraftPreloadAvailabilityTests(unittest.TestCase):
                 self.assertFalse(corrupt["_prepared"])
                 self.assertTrue(corrupt["errors"])
 
+    def test_worker_error_does_not_claim_prepared(self) -> None:
+        import main
+
+        with patch.object(main, "_run_preload_module_result", side_effect=RuntimeError("worker failed")):
+            payload = main.build_craft_preload()
+        self.assertFalse(payload["_prepared"])
+        self.assertIn("worker failed", payload["errors"][0])
+
     def test_usable_sqlite_with_lazy_empty_item_list_is_ready(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
