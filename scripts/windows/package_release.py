@@ -34,7 +34,8 @@ def _publishable(relative: Path) -> bool:
 
 
 def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_version: str,
-                    data_version: str, schema_version: int) -> tuple[Path, Path]:
+                    data_version: str, schema_version: int,
+                    launcher: Path | None = None) -> tuple[Path, Path]:
     if not re.fullmatch(r"[a-f0-9]{40}", source_sha):
         raise ValueError("source_sha must be a verified 40-character GitHub SHA")
     if not payload_dir.is_dir() or not (payload_dir / "AtlasApp.exe").is_file():
@@ -72,6 +73,18 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
         "source_sha": source_sha, "entrypoint": "AtlasApp/AtlasApp.exe",
         "files": entries,
     }
+    if launcher is not None:
+        if not launcher.is_file() or launcher.is_symlink() or not 0 < launcher.stat().st_size <= 128 * 1024**2:
+            raise ValueError("Invalid Windows launcher asset")
+        with launcher.open("rb") as stream:
+            if stream.read(2) != b"MZ":
+                raise ValueError("Launcher does not contain a Windows executable")
+            stream.seek(0)
+            digest = hashlib.sha256()
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        manifest["launcher_sha256"] = digest.hexdigest()
+        manifest["launcher_size"] = launcher.stat().st_size
     payload = json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
     parse_manifest(payload)  # Fail the build if the updater cannot accept the package.
     manifest_path.write_bytes(payload)
@@ -86,9 +99,10 @@ def main() -> None:
     parser.add_argument("--app-version", required=True)
     parser.add_argument("--data-version", required=True)
     parser.add_argument("--schema-version", type=int, default=1)
+    parser.add_argument("--launcher", type=Path)
     options = parser.parse_args()
     for file in package_release(options.payload, options.output, options.source_sha,
-                                options.app_version, options.data_version, options.schema_version):
+                                options.app_version, options.data_version, options.schema_version, options.launcher):
         print(file)
 
 
