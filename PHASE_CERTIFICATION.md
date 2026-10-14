@@ -277,7 +277,7 @@ The Doctor shadow campaign is **advisory when the scope is FULL_REQUIRED**:
 it shows what was and was not checked, but cannot manufacture a Phase PASS.
 The authoritative Phase verdict still comes only from Atlas Integrity FULL,
 the critical Guide/data evidence and the phase verdict engine.
- 
+
 
 ## Certification Policy / Merge Gate (AT-026)
 
