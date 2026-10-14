@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256
+from app.network.contracts import _is_sha256 as _strict_sha256
 
 import hashlib
 from dataclasses import dataclass
@@ -242,7 +242,7 @@ class QuestJournalDecoder:
     @staticmethod
     def _is_sha256(value: str) -> bool:
         """Compatibility method delegating to the single network contract."""
-        return _is_sha256(value)
+        return _strict_sha256(value)
 
 
 __all__ = ["QuestJournalDecoder", "QuestJournalRule"]
