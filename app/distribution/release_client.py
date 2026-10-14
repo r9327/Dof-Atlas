@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 import urllib.error
 import urllib.parse
@@ -17,6 +18,7 @@ API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 MANIFEST_NAME = "atlas-manifest.json"
 ARCHIVE_NAME = "atlas-windows.zip"
 LAUNCHER_NAME = "DofusAtlas.exe"
+DELTA_NAME = "atlas-delta.zip"
 # GitHub Releases requires every individual asset to be strictly below 2 GiB.
 MAX_ARCHIVE_BYTES = 2 * 1024**3 - 1
 _ALLOWED_REDIRECT_HOSTS = frozenset({
@@ -38,6 +40,7 @@ class RemoteRelease:
     archive_size: int
     manifest: ReleaseManifest
     launcher_url: str | None = None
+    delta_url: str | None = None
 
 
 def _safe_url(url: str, *, asset: bool = False) -> str:
@@ -96,7 +99,7 @@ def latest_release() -> RemoteRelease:
         if not isinstance(tag, str) or not re.fullmatch(r"[A-Za-z0-9._+-]{1,100}", tag):
             raise UpdateError("Invalid release tag")
         indexed = {item["name"]: item for item in assets if isinstance(item, dict) and
-                   item.get("name") in (MANIFEST_NAME, ARCHIVE_NAME, LAUNCHER_NAME)}
+                   item.get("name") in (MANIFEST_NAME, ARCHIVE_NAME, LAUNCHER_NAME, DELTA_NAME)}
         if not {MANIFEST_NAME, ARCHIVE_NAME}.issubset(indexed):
             raise UpdateError("Release assets missing")
         manifest_asset = indexed[MANIFEST_NAME]
@@ -118,32 +121,55 @@ def latest_release() -> RemoteRelease:
             launcher_url = _safe_url(launcher_asset["browser_download_url"], asset=True)
             if not launcher_url.endswith("/" + LAUNCHER_NAME):
                 raise UpdateError("Launcher asset URL mismatch")
-        return RemoteRelease(tag, archive_url, archive_asset["size"], manifest, launcher_url)
+        delta_url = None
+        if manifest.delta is not None:
+            asset = indexed.get(DELTA_NAME)
+            if not asset or type(asset.get("size")) is not int or asset["size"] != manifest.delta.archive_size:
+                raise UpdateError("Differential asset size mismatch")
+            delta_url = _safe_url(asset["browser_download_url"], asset=True)
+            if not delta_url.endswith("/" + DELTA_NAME):
+                raise UpdateError("Differential asset URL mismatch")
+        return RemoteRelease(tag, archive_url, archive_asset["size"], manifest,
+                             launcher_url, delta_url)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, ManifestError) as exc:
         raise UpdateError("Invalid release metadata") from exc
 
 
-def download_archive(release: RemoteRelease, directory: Path, progress: Progress | None = None) -> Path:
+def download_archive(release: RemoteRelease, directory: Path, progress: Progress | None = None,
+                     *, differential: bool = False) -> Path:
     """Resume a partial HTTP download only if a valid Content-Range is returned."""
     directory.mkdir(parents=True, exist_ok=True)
-    filename = f"{release.manifest.source_sha[:20]}.zip.part"
+    if differential and (release.delta_url is None or release.manifest.delta is None):
+        raise UpdateError("No differential archive available")
+    size = release.manifest.delta.archive_size if differential else release.archive_size
+    url = release.delta_url if differential else release.archive_url
+    suffix = ".delta.zip.part" if differential else ".zip.part"
+    filename = release.manifest.source_sha[:20] + suffix
     target = directory / filename
     previous = target.stat().st_size if target.is_file() else 0
-    if previous > release.archive_size:
+    if previous > size:
         target.unlink()
         previous = 0
-    if previous == release.archive_size:
+    if previous == size:
         if progress:
-            progress(previous, release.archive_size)
-        return target
+            progress(previous, size)
+        if differential:
+        digest = hashlib.sha256()
+        with target.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        if digest.hexdigest() != release.manifest.delta.archive_sha256:
+            target.unlink(missing_ok=True)
+            raise UpdateError("Differential archive SHA-256 mismatch")
+    return target
     headers = {"Range": f"bytes={previous}-"} if previous else {}
     try:
-        with _open(release.archive_url, headers) as response:
+        with _open(url, headers) as response:
             status = getattr(response, "status", 200)
             ranged = previous > 0 and status == 206
             if ranged:
                 content_range = response.headers.get("Content-Range", "")
-                expected = f"bytes {previous}-{release.archive_size - 1}/{release.archive_size}"
+                expected = f"bytes {previous}-{size - 1}/{size}"
                 if content_range != expected:
                     raise UpdateError("Invalid HTTP resume range")
             elif status != 200:
@@ -155,12 +181,12 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
                     if not block:
                         break
                     done += len(block)
-                    if done > release.archive_size:
+                    if done > size:
                         raise UpdateError("Download exceeds declared size")
                     output.write(block)
                     if progress:
-                        progress(done, release.archive_size)
-        if target.stat().st_size != release.archive_size:
+                        progress(done, size)
+        if target.stat().st_size != size:
             raise UpdateError("Incomplete release archive; download can resume later")
     except (OSError, urllib.error.URLError) as exc:
         raise UpdateError(f"Release download interrupted: {exc}") from exc
