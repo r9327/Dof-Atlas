@@ -177,7 +177,9 @@ def run_update(report) -> None:
             raise UpdateError("Atlas n'a pas confirme son demarrage")
         if was_pending:
             mark_healthy(ROOT)
-        if remote is not None:
+        # Never upgrade the bootstrap to a release whose AtlasApp did not
+        # successfully activate; offline/rollback must keep the old launcher.
+        if remote is not None and read_state(ROOT).get("source_sha") == remote.manifest.source_sha:
             try:
                 schedule_launcher_upgrade(remote, ROOT / "downloads", report)
             except (UpdateError, OSError, ValueError) as exc:
