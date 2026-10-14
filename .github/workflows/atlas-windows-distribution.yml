@@ -272,6 +272,32 @@ jobs:
                   assert total == item.size and digest.hexdigest() == item.sha256, item.path
           print(f"VERIFIED: {len(expected)} hashed files, source={manifest.source_sha}")
           PY
+      - name: Ensure multipart pieces match the release manifest
+        if: >-
+          github.event_name == 'workflow_run' ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app.distribution.manifest import ReleaseFile, parse_manifest, verify_file
+          manifest = parse_manifest(Path("dist-release/atlas-manifest.json").read_bytes())
+          root = Path("dist-release")
+          if manifest.archive_parts:
+              assert manifest.archive_size == (root / "atlas-windows.zip").stat().st_size
+              assert verify_file(root / "atlas-windows.zip", ReleaseFile(
+                  "atlas-windows.zip", manifest.archive_size, manifest.archive_sha256
+              ))
+              for part in manifest.archive_parts:
+                  assert verify_file(root / part.name, ReleaseFile(part.name, part.size, part.sha256)), part.name
+              print(f"Verified {len(manifest.archive_parts)} multipart assets")
+          else:
+              assert (root / "atlas-windows.zip").is_file()
+          PY
+          # GitHub Releases limits individual files to <2 GiB. Never upload
+          # the oversized joined archive: only its individually hashed parts.
+          if ls dist-release/atlas-windows.part* >/dev/null 2>&1; then
+            rm dist-release/atlas-windows.zip
+          fi
       - name: Upload unmerged full Windows distribution candidate
         if: >-
           github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
@@ -280,6 +306,7 @@ jobs:
           name: atlas-windows-full-candidate-${{ env.SOURCE_SHA }}
           path: |
             dist-release/atlas-windows.zip
+            dist-release/atlas-windows.part*
             dist-release/atlas-manifest.json
             dist-release/DofusAtlas.exe
             dist-release/DofusAtlasSetup.exe
@@ -334,8 +361,15 @@ jobs:
           GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
         run: |
           tag="sha-$(echo "$SOURCE_SHA" | cut -c1-12)"
-          assets=(dist-release/atlas-windows.zip dist-release/atlas-manifest.json
+          assets=(dist-release/atlas-manifest.json
                   dist-release/DofusAtlas.exe dist-release/DofusAtlasSetup.exe)
+          shopt -s nullglob
+          parts=(dist-release/atlas-windows.part*)
+          if (( ${#parts[@]} )); then
+            assets+=("${parts[@]}")
+          else
+            assets+=(dist-release/atlas-windows.zip)
+          fi
           if test -f dist-release/atlas-delta.zip; then
             assets+=(dist-release/atlas-delta.zip)
           fi
@@ -371,6 +405,7 @@ jobs:
           mkdir -p prior
           gh release download --repo r9327/Dof-Atlas-App \
             --pattern atlas-manifest.json --pattern atlas-windows.zip \
+            --pattern 'atlas-windows.part*' \
             --pattern DofusAtlas.exe --pattern DofusAtlasSetup.exe --dir prior
           base="$(python -c 'import json;print(json.load(open("prior/atlas-manifest.json"))["source_sha"])')"
           if ! [[ "$base" =~ ^[a-f0-9]{40}$ ]]; then exit 1; fi
@@ -403,6 +438,20 @@ jobs:
             --launcher prior/DofusAtlas.exe
           cp prior/DofusAtlas.exe dist-release/DofusAtlas.exe
           cp prior/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
+          python - <<'PY'
+          from pathlib import Path
+          from app.distribution.manifest import parse_manifest
+          from app.distribution.manifest import ReleaseFile, verify_file
+          root = Path("dist-release")
+          manifest = parse_manifest((root / "atlas-manifest.json").read_bytes())
+          if manifest.archive_parts:
+              assert verify_file(root / "atlas-windows.zip", ReleaseFile(
+                  "atlas-windows.zip", manifest.archive_size, manifest.archive_sha256
+              ))
+              for part in manifest.archive_parts:
+                  assert verify_file(root / part.name, ReleaseFile(part.name, part.size, part.sha256))
+              (root / "atlas-windows.zip").unlink()
+          PY
       - name: Checkout minimal App distribution repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -444,8 +493,15 @@ jobs:
         run: |
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$SOURCE_SHA"
           tag="sha-$(echo "$SOURCE_SHA" | cut -c1-12)"
-          assets=(dist-release/atlas-windows.zip dist-release/atlas-manifest.json
+          assets=(dist-release/atlas-manifest.json
                   dist-release/DofusAtlas.exe dist-release/DofusAtlasSetup.exe)
+          shopt -s nullglob
+          parts=(dist-release/atlas-windows.part*)
+          if (( ${#parts[@]} )); then
+            assets+=("${parts[@]}")
+          else
+            assets+=(dist-release/atlas-windows.zip)
+          fi
           if test -f dist-release/atlas-delta.zip; then
             assets+=(dist-release/atlas-delta.zip)
           fi
