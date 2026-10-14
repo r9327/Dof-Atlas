@@ -35,7 +35,8 @@ def _publishable(relative: Path) -> bool:
 
 def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_version: str,
                     data_version: str, schema_version: int,
-                    launcher: Path | None = None) -> tuple[Path, Path]:
+                    launcher: Path | None = None,
+                    base_manifest: Path | None = None) -> tuple[Path, Path]:
     if not re.fullmatch(r"[a-f0-9]{40}", source_sha):
         raise ValueError("source_sha must be a verified 40-character GitHub SHA")
     if not payload_dir.is_dir() or not (payload_dir / "AtlasApp.exe").is_file():
@@ -85,6 +86,36 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
                 digest.update(block)
         manifest["launcher_sha256"] = digest.hexdigest()
         manifest["launcher_size"] = launcher.stat().st_size
+    # Optional delta: changed files only, based on the previous public release.
+    # Reusing unchanged files requires checking their SHA-256 on the client.
+    if base_manifest is not None and base_manifest.is_file():
+        previous = parse_manifest(base_manifest.read_bytes())
+        if previous.schema_version == schema_version and previous.source_sha != source_sha:
+            old = {entry.path: entry for entry in previous.files}
+            changed = [entry for entry in entries if
+                       entry["path"] not in old or
+                       (entry["size"], entry["sha256"]) !=
+                       (old[entry["path"]].size, old[entry["path"]].sha256)]
+            if changed:
+                delta_archive = output_dir / "atlas-delta.zip"
+                with zipfile.ZipFile(delta_archive, "w", zipfile.ZIP_DEFLATED,
+                                     compresslevel=6, allowZip64=True) as archive:
+                    for entry in changed:
+                        source = payload_dir / entry["path"].removeprefix("AtlasApp/")
+                        archive.write(source, arcname=entry["path"])
+                if delta_archive.stat().st_size < archive_path.stat().st_size:
+                    digest = hashlib.sha256()
+                    with delta_archive.open("rb") as stream:
+                        for block in iter(lambda: stream.read(1024 * 1024), b""):
+                            digest.update(block)
+                    manifest["delta"] = {
+                        "base_source_sha": previous.source_sha,
+                        "archive_sha256": digest.hexdigest(),
+                        "archive_size": delta_archive.stat().st_size,
+                        "paths": [entry["path"] for entry in changed],
+                    }
+                else:
+                    delta_archive.unlink(missing_ok=True)
     payload = json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
     parse_manifest(payload)  # Fail the build if the updater cannot accept the package.
     manifest_path.write_bytes(payload)
@@ -100,9 +131,11 @@ def main() -> None:
     parser.add_argument("--data-version", required=True)
     parser.add_argument("--schema-version", type=int, default=1)
     parser.add_argument("--launcher", type=Path)
+    parser.add_argument("--base-manifest", type=Path)
     options = parser.parse_args()
     for file in package_release(options.payload, options.output, options.source_sha,
-                                options.app_version, options.data_version, options.schema_version, options.launcher):
+                                options.app_version, options.data_version, options.schema_version,
+                                options.launcher, options.base_manifest):
         print(file)
 
 
