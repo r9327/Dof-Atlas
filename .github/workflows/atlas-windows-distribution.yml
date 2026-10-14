@@ -42,6 +42,16 @@ jobs:
         run: python -m compileall -q app/distribution scripts/windows/package_release.py scripts/windows/export_app_repository.py scripts/windows/certify_app_export.py scripts/windows/atlas_setup_entry.py launch.py
       - name: Focused updater tests
         run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
+      - name: Certify real runtime export without publishing
+        run: |
+          # Only the essential LFS logo is necessary for the code/data mirror.
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png" --exclude=""
+          source_sha="$(git rev-parse HEAD)"
+          python -m scripts.windows.export_app_repository \
+            --root . --destination "$RUNNER_TEMP/atlas-transfer-preview" --source-sha "$source_sha"
+          python -m scripts.windows.certify_app_export \
+            --root . --destination "$RUNNER_TEMP/atlas-transfer-preview" \
+            --source-sha "$source_sha" --output "$RUNNER_TEMP/atlas-transfer-certificate.json"
   classify-release:
     name: Detect JSON-only certified changes
     if: >-

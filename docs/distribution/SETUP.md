@@ -166,3 +166,6 @@ restent indépendants dans le dépôt source. Aucun de ces outils n'est exécut�
 par le dépôt secondaire.
 
 La publication stable demeure désactivée pendant la mise en service.
+
+
+Le job PR `Focused updater contracts` effectue aussi un **export réel non publié** dans le dossier temporaire du runner, matérialise uniquement le logo LFS requis et exécute le certificat sur le résultat avant tout push. Cela contrôle directement la sélection sur les vrais fichiers du commit.
