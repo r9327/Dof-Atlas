@@ -5,6 +5,7 @@ on:
     paths:
       - "app/distribution/**"
       - "scripts/windows/package_release.py"
+      - "scripts/windows/repackage_data_only.py"
       - "scripts/windows/export_app_repository.py"
       - "scripts/windows/atlas_launcher_entry.py"
       - "tests/test_distribution_*.py"
@@ -87,7 +88,12 @@ jobs:
           fi
   windows-bundle:
     name: Windows bundle (gated certification)
+    needs: [classify-release]
     if: >-
+      always() &&
+      (github.event_name != 'workflow_run' ||
+       (needs.classify-release.result == 'success' &&
+        needs.classify-release.outputs.data_only != 'true')) &&
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
        github.event.action == 'ready_for_review' &&
