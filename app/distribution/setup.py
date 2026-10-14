@@ -7,6 +7,7 @@ required for the desktop shortcut.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import shutil
 import subprocess
@@ -15,6 +16,7 @@ import tempfile
 from pathlib import Path
 
 _LAUNCHER_NAME = "DofusAtlas.exe"
+_MAINTENANCE_NAME = "DofusAtlasMaintenance.exe"
 _SHORTCUT_SCRIPT = r"""
 $ErrorActionPreference = 'Stop'
 $desktop = [Environment]::GetFolderPath('DesktopDirectory')
@@ -99,15 +101,111 @@ def install_launcher(source: Path, install_root: Path | None = None) -> Path:
     return target
 
 
+
+def install_maintenance_helper(source: Path, root: Path) -> Path:
+    """Keep a detached setup helper for safe future launcher replacement."""
+    if not source.is_file() or source.is_symlink():
+        raise ValueError("Invalid maintenance executable")
+    target = root / _MAINTENANCE_NAME
+    fd, name = tempfile.mkstemp(prefix=".atlas-maintenance-", dir=root)
+    try:
+        with os.fdopen(fd, "wb") as output, source.open("rb") as stream:
+            shutil.copyfileobj(stream, output, 1024 * 1024)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(name, target)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
+    return target
+
+
+def _wait_for_parent(pid: int) -> None:
+    """Wait for the original launcher by handle, avoiding PID reuse races."""
+    if os.name != "nt" or pid < 1:
+        raise RuntimeError("Invalid Windows parent process")
+    import ctypes
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.OpenProcess.argtypes = [ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
+    kernel.OpenProcess.restype = ctypes.c_void_p
+    kernel.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+    kernel.WaitForSingleObject.restype = ctypes.c_ulong
+    kernel.CloseHandle.argtypes = [ctypes.c_void_p]
+    kernel.CloseHandle.restype = ctypes.c_int
+    handle = kernel.OpenProcess(0x00100000, 0, pid)
+    if not handle:
+        raise RuntimeError("Cannot safely identify the launcher process")
+    try:
+        if kernel.WaitForSingleObject(handle, 60000) != 0:
+            raise RuntimeError("Launcher did not exit before maintenance deadline")
+    finally:
+        kernel.CloseHandle(handle)
+
+
+def finish_launcher_upgrade(candidate: Path, digest: str, parent_pid: int,
+                            root: Path | None = None) -> None:
+    """Replace only our launcher after its process exits; restore on failure."""
+    from .manifest import valid_sha
+
+    valid_sha(digest)
+    program = root if root is not None else user_programs_directory()
+    target = program / _LAUNCHER_NAME
+    local = os.environ.get("LOCALAPPDATA")
+    if not local:
+        raise RuntimeError("LOCALAPPDATA missing")
+    allowed = (Path(local) / "DofusAtlas" / "runtime" / "downloads").resolve()
+    if candidate.is_symlink() or not candidate.is_file() or not candidate.resolve().is_relative_to(allowed):
+        raise ValueError("Upgrade source is outside verified updater cache")
+    if target.is_symlink() or not target.is_file():
+        raise ValueError("Installed launcher missing")
+
+    def valid_binary(path: Path) -> bool:
+        with path.open("rb") as stream:
+            if stream.read(2) != b"MZ":
+                return False
+            stream.seek(0)
+            check = hashlib.sha256()
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                check.update(block)
+            return check.hexdigest() == digest
+
+    if not valid_binary(candidate):
+        raise ValueError("Unverified launcher candidate")
+    _wait_for_parent(parent_pid)
+    if not valid_binary(candidate):
+        raise ValueError("Launcher changed while waiting")
+    backup = program / "DofusAtlas.exe.previous"
+    if backup.exists():
+        if backup.is_symlink() or not backup.is_file():
+            raise ValueError("Unsafe launcher backup")
+        backup.unlink()
+    os.replace(target, backup)
+    try:
+        os.replace(candidate, target)
+    except OSError:
+        os.replace(backup, target)
+        raise
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Installer Dofus Atlas sans Python")
     parser.add_argument("--no-launch", action="store_true",
                         help="Installer le raccourci sans demarrer l'application")
+    parser.add_argument("--finish-upgrade", action="store_true")
+    parser.add_argument("--candidate", type=Path)
+    parser.add_argument("--sha256")
+    parser.add_argument("--parent-pid", type=int)
     args = parser.parse_args(argv)
     try:
         if os.name != "nt":
             raise RuntimeError("Dofus Atlas Setup fonctionne uniquement sur Windows")
+        if args.finish_upgrade:
+            if args.candidate is None or args.sha256 is None or args.parent_pid is None:
+                raise ValueError("Incomplete maintenance request")
+            finish_launcher_upgrade(args.candidate, args.sha256, args.parent_pid)
+            return 0
         launcher = install_launcher(embedded_launcher())
+        install_maintenance_helper(Path(sys.executable), launcher.parent)
         if not args.no_launch:
             subprocess.Popen([str(launcher)], cwd=str(launcher.parent),
                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
