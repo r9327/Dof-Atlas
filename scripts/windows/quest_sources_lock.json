@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "repository": "dofusdude/dofus3-main",
+  "release_tag": "3.7.10.10",
+  "files": {
+    "languages/fr.json": {
+      "asset": "fr.json",
+      "size": 30976385,
+      "sha256": "fb0359e5cf00a9f1fb2daec64502101eb99259fae0b5a72203bf5f47167eb720"
+    },
+    "quests.json": {
+      "asset": "quests.json",
+      "size": 961363,
+      "sha256": "d57b5f1ca46ff3d841c1cecf3835a3d2f5cc7df554a7147bd51da0f5ca088a1b"
+    },
+    "quest_steps.json": {
+      "asset": "quest_steps.json",
+      "size": 869531,
+      "sha256": "8f3f3d17450976b3c72d5a8983c7d140ba20a8d0d35a224a125ba99f554d5448"
+    },
+    "quest_objectives.json": {
+      "asset": "quest_objectives.json",
+      "size": 6677333,
+      "sha256": "9a58b68ce4b4e3fcfbab3998f3519da1f239d6946d6d6039c485f552e9c84348"
+    },
+    "quest_step_rewards.json": {
+      "asset": "quest_step_rewards.json",
+      "size": 3140729,
+      "sha256": "8ef5a487e40af3ebd3a761b830f967915a6946b6198e72ed9abaa6a81ecbcc40"
+    },
+    "achievements.json": {
+      "asset": "achievements.json",
+      "size": 1074814,
+      "sha256": "8c79d4dc84236b977b348ca70908e70896bad93ba417254c6be825ffac485b03"
+    },
+    "achievement_objectives.json": {
+      "asset": "achievement_objectives.json",
+      "size": 2429504,
+      "sha256": "c6b33716959e28522663469ad90891cf50cac07f7623dc1140ece979f2db5d99"
+    },
+    "achievement_categories.json": {
+      "asset": "achievement_categories.json",
+      "size": 54517,
+      "sha256": "a4c9e369311659ceccd28b23b29f4153a5ddb7d3d1885a1cdcaa76f00c824bf3"
+    },
+    "quest_categories.json": {
+      "asset": "quest_categories.json",
+      "size": 19868,
+      "sha256": "979d6083f31099d0d5ef84d45464325cd517b150d37b55bc8f9e047713a32400"
+    },
+    "quest_objective_types.json": {
+      "asset": "quest_objective_types.json",
+      "size": 3951,
+      "sha256": "4b9fca4b48301cdbd0a412947a5ce3520d3c74f257d792b87ac16e2f9eb1a74d"
+    },
+    "items.json": {
+      "asset": "items.json",
+      "size": 51319323,
+      "sha256": "bb5a759feba52b3c091b4572092db792c5ea1beb92b67e930c4ec9cc0d9a67a2"
+    },
+    "jobs.json": {
+      "asset": "jobs.json",
+      "size": 5354,
+      "sha256": "e56f2a9867a7e331a15913bf211b447f89014b3ea19a140954b9501230c075ca"
+    },
+    "spells.json": {
+      "asset": "spells.json",
+      "size": 19116508,
+      "sha256": "5f283c46632a1b066b1ed395df3027638eb65ef8a1e10040042519472001e158"
+    },
+    "titles.json": {
+      "asset": "titles.json",
+      "size": 141446,
+      "sha256": "5c76c6fb662a2151d286fa9a1779cd87cee7bc88d2a7c1ba6f88436a0ced6676"
+    },
+    "emoticons.json": {
+      "asset": "emoticons.json",
+      "size": 147526,
+      "sha256": "5cd30fe562465020128a928c6500464f4c2cf21599d62176f8fbe7417872f9c0"
+    },
+    "monsters.json": {
+      "asset": "monsters.json",
+      "size": 63149738,
+      "sha256": "301629bc89fbe5543448fcb3ba14b8d155102483c6d51f975b675a3f2c0d62ba"
+    },
+    "npcs.json": {
+      "asset": "npcs.json",
+      "size": 7838078,
+      "sha256": "81c1bfabdc124795ee6fc9e529e6e28e67153b451d6c80f5cac8f29cfafb6e03"
+    },
+    "areas.json": {
+      "asset": "areas.json",
+      "size": 28108,
+      "sha256": "0bf7732c85563b26e5598d70064ccf54ab3645d498cd8a158a4a6b86c62236c6"
+    },
+    "subareas.json": {
+      "asset": "subareas.json",
+      "size": 744233,
+      "sha256": "a80ce1e8d367906be731976de74419c64e19e2c99d91a8d5b4bdeee28493d00d"
+    },
+    "maps_information.json": {
+      "asset": "maps_information.json",
+      "size": 4741573,
+      "sha256": "43f06fdcd00cb27ad485f7e19c736f16d32f475698eff1e9652aea77a38b94dc"
+    },
+    "char_xp_mappings.json": {
+      "asset": "char_xp_mappings.json",
+      "size": 514283,
+      "sha256": "a4ce0fb85b52af4c5635a249a9b4bfe92040659d59ebe473d6908c0915b58b86"
+    }
+  }
+}
