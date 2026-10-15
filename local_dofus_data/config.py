@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 ROOT_DIR = PACKAGE_DIR.parent
 DATA_DIR = ROOT_DIR / "data"
+# Runtime user data must survive version swaps. Static images stay bundled.
+_USER_ROOT = os.environ.get("DOFUS_ATLAS_USER_ROOT", "")
+USER_DATA_DIR = Path(_USER_ROOT) / "data" if _USER_ROOT else DATA_DIR
+
 
 
 @dataclass(frozen=True)
@@ -24,10 +29,10 @@ class LocalDataConfig:
     image_items_dir: Path = DATA_DIR / "images" / "items"
     image_resources_dir: Path = DATA_DIR / "images" / "resources"
     image_misc_dir: Path = DATA_DIR / "images" / "misc"
-    local_dir: Path = DATA_DIR / "local"
-    exports_dir: Path = DATA_DIR / "exports"
-    reports_dir: Path = DATA_DIR / "reports"
-    sqlite_path: Path = DATA_DIR / "local" / "dofus_data.sqlite"
+    local_dir: Path = USER_DATA_DIR / "local"
+    exports_dir: Path = USER_DATA_DIR / "exports"
+    reports_dir: Path = USER_DATA_DIR / "reports"
+    sqlite_path: Path = USER_DATA_DIR / "local" / "dofus_data.sqlite"
     legacy_cache_dir: Path = DATA_DIR / "raw" / "legacy"
     legacy_cache_api_dir: Path = DATA_DIR / "raw" / "legacy" / "api"
     legacy_cache_recipes_dir: Path = DATA_DIR / "raw" / "legacy" / "recipes"
@@ -40,6 +45,11 @@ DEFAULT_CONFIG = LocalDataConfig()
 
 
 def ensure_directories(config: LocalDataConfig = DEFAULT_CONFIG) -> None:
+    # An installed bundle is immutable; only touch user-owned directories.
+    if _USER_ROOT:
+        for folder in (config.local_dir, config.exports_dir, config.reports_dir):
+            folder.mkdir(parents=True, exist_ok=True)
+        return
     for folder in (
         config.data_dir,
         config.raw_dir,
