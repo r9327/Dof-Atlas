@@ -1,0 +1,98 @@
+[
+  {
+    "id": "PC-01",
+    "path": "app/modules/encyclopedia/providers/memory_bound_guide_provider.py:256",
+    "status": "NON CONFIRMÉ",
+    "title": "Scans répétés des relations Guide",
+    "next_proof": "Spy sur consumer réel ; cache existant du search text à conserver",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-02",
+    "path": "app/pages/craft_page.py:773",
+    "status": "NON CONFIRMÉ",
+    "title": "Filtrage catégorie après limite de recherche",
+    "next_proof": "Fixture DB et recherche réelle, comparer SQL/consumer",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-03",
+    "path": "DOFUS.bat:82 ; app/startup_cache_warmup.py:145",
+    "status": "NON CONFIRMÉ",
+    "title": "Warmup concurrent avant mono-instance",
+    "next_proof": "Deux launches Windows, tokens, process-tree, collisions tmp",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-04",
+    "path": "app/modules/encyclopedia/views/encyclopedia_page.py:950",
+    "status": "NON CONFIRMÉ",
+    "title": "Rétention transitoire de page par thread",
+    "next_proof": "Weakrefs après Home et après fin de worker froid réel",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-05",
+    "path": "main.py:510/530 ; app/preload.py:30",
+    "status": "NON CONFIRMÉ",
+    "title": "Préloader historique non appelé au démarrage actuel",
+    "next_proof": "Consumers externes/CLI/compatibility avant suppression",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-06",
+    "path": "app/modules/encyclopedia/tools/audit_quests_guides.py:848",
+    "status": "NON CONFIRMÉ",
+    "title": "Header image ≠ décodage complet",
+    "next_proof": "Scénario corruption et assets modifiés, pas scan lourd en boucle",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-07",
+    "path": ".github/workflows/phase-certification.yml:150",
+    "status": "NON CONFIRMÉ",
+    "title": "Snapshot externe des datasets non reproduit ici",
+    "next_proof": "Export version/hash des inputs raw et Doduda dans artefacts",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-08",
+    "path": "app/modules/encyclopedia/views/shared_manual_guide_view.py:588",
+    "status": "NON CONFIRMÉ",
+    "title": "Longues fiches, scroll/focus/resizing/accessibilité",
+    "next_proof": "Parcours joueur Windows 900×600 et 1180×720 avec contenu réel",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-09",
+    "path": "app/modules/encyclopedia/widgets/guide_step_widget.py:1 et six façades associées",
+    "status": "NON CONFIRMÉ",
+    "title": "Widgets exposés sans consumer produit prouvé",
+    "next_proof": "Bindings/public external API + vrai scénario avant dépréciation",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-10",
+    "path": "app/modules/encyclopedia/services/guide_progress_calculator.py:208",
+    "status": "NON CONFIRMÉ",
+    "title": "Doublon des règles d’objectifs trackables",
+    "next_proof": "Parité solution_objective et pas de nouveau cycle",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-11",
+    "path": "app/macros/input_tools.py:176",
+    "status": "NON CONFIRMÉ",
+    "title": "Doublon facultatif de temporisation",
+    "next_proof": "Parité stop/timing, gain marginal ; garder si migration coûteuse",
+    "action": "Aucune suppression/refonte sans preuve"
+  },
+  {
+    "id": "PC-12",
+    "path": "PR #159: .github/workflows/atlas-windows-distribution.yml:206 ; app/startup_cache_warmup.py:105 ; app/startup_cache_domain_worker.py:229",
+    "status": "NON CONFIRMÉ",
+    "title": "stdout JSON des workers --windowed",
+    "next_proof": "EXE Windows réel, réponse JSON non vide et parent consumer ; documentation native non accessible par HTTP dans cette session",
+    "action": "Aucun changement avant preuve ; résultat fichier explicite existant si nécessaire"
+  }
+]
