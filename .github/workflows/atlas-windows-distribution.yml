@@ -246,7 +246,11 @@ jobs:
       - name: Verify installer creates Windows Desktop shortcut
         shell: pwsh
         run: |
-          $setup = Start-Process -FilePath "dist/DofusAtlasSetup.exe" -ArgumentList "--no-launch" -PassThru -Wait
+          $setup = Start-Process -FilePath "dist/DofusAtlasSetup.exe" -ArgumentList "--no-launch" -PassThru
+          if (-not $setup.WaitForExit(180000)) {
+            Stop-Process -Id $setup.Id -Force -ErrorAction SilentlyContinue
+            throw "Atlas setup timed out during unattended Windows installation"
+          }
           if ($setup.ExitCode -ne 0) { throw "Atlas setup failed: $($setup.ExitCode)" }
           $installed = Join-Path $env:LOCALAPPDATA "Programs/DofusAtlas/DofusAtlas.exe"
           if (-not (Test-Path -LiteralPath $installed)) { throw "Installed launcher missing" }
