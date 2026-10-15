@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from contextlib import closing
 import json
 import sqlite3
 import tempfile
@@ -52,7 +53,7 @@ class CraftFirstInstallTests(unittest.TestCase):
         expected={"items":2,"jobs":1,"recipes":1,"recipe_ingredients":1}
         self.assertEqual(build_seed(self.root,output,minimums=expected),expected)
         self.assertEqual(validate_seed(output,minimums=expected),expected)
-        with sqlite3.connect(output) as conn:
+        with closing(sqlite3.connect(output)) as conn:
             rows=conn.execute(
                 "SELECT r.result_name_fr, ri.name_fr, ri.quantity "
                 "FROM recipes r JOIN recipe_ingredients ri ON ri.recipe_id=r.id"
@@ -90,11 +91,11 @@ class CraftFirstInstallTests(unittest.TestCase):
         prepare_user_data(frozen,user)
         dest=user/"data/local/dofus_data.sqlite"
         self.assertTrue(dest.is_file())
-        with sqlite3.connect(dest) as conn:
+        with closing(sqlite3.connect(dest)) as conn:
             conn.execute("UPDATE items SET name_fr='Utilisateur' WHERE ankama_id=200")
             conn.commit()
         prepare_user_data(frozen,user)
-        with sqlite3.connect(dest) as conn:
+        with closing(sqlite3.connect(dest)) as conn:
             self.assertEqual(conn.execute(
                 "SELECT name_fr FROM items WHERE ankama_id=200").fetchone()[0],
                 "Utilisateur")
