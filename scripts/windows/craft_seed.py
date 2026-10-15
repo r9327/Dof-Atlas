@@ -6,6 +6,7 @@ dependency on a developer's local SQLite database.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import hashlib
 import json
 import os
@@ -116,7 +117,7 @@ def validate_seed(path: Path, *, minimums=None) -> dict[str, int]:
     if not path.is_file() or path.is_symlink() or path.stat().st_size <= 0:
         raise ValueError(f"Craft seed absent: {path}")
     uri = path.resolve().as_uri() + "?mode=ro&immutable=1"
-    with sqlite3.connect(uri, uri=True) as con:
+    with closing(sqlite3.connect(uri, uri=True)) as con:
         if con.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise ValueError("Craft SQLite integrity check failed")
         counts = {table: int(con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
@@ -154,7 +155,7 @@ def build_seed(root: Path, output: Path, *, minimums=None) -> dict[str, int]:
     os.close(fd)
     temp = Path(name)
     try:
-        with sqlite3.connect(temp) as con:
+        with closing(sqlite3.connect(temp)) as con:
             con.executescript(CREATE_TABLES_SQL)
             items = {}
             for row in _rows(base / "items.json"):
