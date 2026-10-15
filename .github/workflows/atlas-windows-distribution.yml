@@ -159,7 +159,9 @@ jobs:
          (github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
           (github.head_ref == 'fix/windows-quest-assets-custom-runtime-root-20261015' ||
            (github.head_ref == 'fix/frozen-guide-success-runtime-assets-20261015' ||
-           github.head_ref == 'fix/windows-craft-seed-and-full-prereqs-20261015')))) ||
+           github.head_ref == 'fix/windows-craft-seed-and-full-prereqs-20261015' ||
+           github.head_ref == 'fix/windows-frozen-success-worker-gate-20261015' ||
+           github.head_ref == 'fix/windows-first-launch-candidate-clean-20261015')))) ||
         (github.event_name == 'workflow_run' &&
          needs.classify-release.result == 'success' &&
          needs.classify-release.outputs.data_only != 'true' &&
@@ -245,7 +247,11 @@ jobs:
       - name: Verify installer creates Windows Desktop shortcut
         shell: pwsh
         run: |
-          $setup = Start-Process -FilePath "dist/DofusAtlasSetup.exe" -ArgumentList "--no-launch" -PassThru -Wait
+          $setup = Start-Process -FilePath "dist/DofusAtlasSetup.exe" -ArgumentList "--no-launch" -PassThru
+          if (-not $setup.WaitForExit(180000)) {
+            Stop-Process -Id $setup.Id -Force -ErrorAction SilentlyContinue
+            throw "Atlas setup timed out during unattended Windows installation"
+          }
           if ($setup.ExitCode -ne 0) { throw "Atlas setup failed: $($setup.ExitCode)" }
           $installed = Join-Path $env:LOCALAPPDATA "Programs/DofusAtlas/DofusAtlas.exe"
           if (-not (Test-Path -LiteralPath $installed)) { throw "Installed launcher missing" }
@@ -266,6 +272,10 @@ jobs:
         run: dist/AtlasApp/AtlasApp.exe --atlas-domain-smoke guide
       - name: Smoke real frozen Successes and retained catalog
         run: dist/AtlasApp/AtlasApp.exe --atlas-domain-smoke success
+      - name: Smoke exact frozen Success worker on clean first installation
+        run: |
+          export DOFUS_ATLAS_USER_ROOT="$RUNNER_TEMP/atlas-success-worker-clean-user"
+          dist/AtlasApp/AtlasApp.exe -m app.modules.encyclopedia.providers.memory_bound_achievement_provider --ensure-compact-cache
       - name: Smoke real frozen Success reward details
         run: dist/AtlasApp/AtlasApp.exe --atlas-success-detail-smoke
       - name: Smoke first-run persistent Craft seeding + real frozen search/recipes
