@@ -493,13 +493,24 @@ def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVI
         path = _path(node.get("source_file"))
         if _production(path) and node.get("file_type") == "code" and node.get("community") is not None:
             files[node["community"]].add(path)
+    # Leiden communities can also contain docs, tests and tool nodes.
+    # Count distinct production-file relationships only: repeated symbol edges
+    # and non-runtime nodes must not fabricate poor application cohesion.
+    seen_file_pairs: set[frozenset[tuple[Any, str]]] = set()
     for edge in graph["links"]:
         if edge.get("confidence") != "EXTRACTED" or edge.get("relation") not in RELEVANT_KINDS:
             continue
         left, right = nodes[edge["source"]], nodes[edge["target"]]
         lc, rc = left.get("community"), right.get("community")
-        if lc not in files or rc not in files:
+        lp, rp = _path(left.get("source_file")), _path(right.get("source_file"))
+        if (lc not in files or rc not in files
+                or left.get("file_type") != "code" or right.get("file_type") != "code"
+                or not _production(lp) or not _production(rp) or lp == rp):
             continue
+        pair = frozenset(((lc, lp), (rc, rp)))
+        if pair in seen_file_pairs:
+            continue
+        seen_file_pairs.add(pair)
         if lc == rc:
             internal[lc] += 1
         else:
@@ -517,6 +528,7 @@ def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVI
             "external_extracted_edges": external[group],
             "sample_files": sorted(sources)[:8],
             "classification": "LOW_INTERNAL_HIGH_EXTERNAL_GRAPH_COHESION_REVIEW",
+            "evidence_scope": "DISTINCT_PRODUCTION_FILE_PAIRS",
             "automatic_merge": False,
         })
     rows.sort(key=lambda x: (-x["external_extracted_edges"], x["production_files"], str(x["community"])))
