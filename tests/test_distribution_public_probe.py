@@ -72,6 +72,25 @@ class PublicProbeContracts(unittest.TestCase):
         self.assertIn("needs: [public-windows-install]", full_job)
         self.assertNotIn("if: github.event_name == 'push'", full_job)
 
+
+    def test_public_e2e_never_runs_before_release_and_is_exact_sha(self):
+        from pathlib import Path
+        text = (Path(__file__).resolve().parents[1] /
+                ".github/workflows/atlas-public-release-smoke.yml").read_text(
+                    encoding="utf-8"
+                )
+        header = text.split("permissions:", 1)[0]
+        self.assertNotIn("  push:", header)
+        self.assertIn("  workflow_run:", header)
+        public = text.split("  public-windows-install:", 1)[1].split(
+            "  complete-first-install:", 1)[0]
+        self.assertNotIn("github.event_name == 'push'", public)
+        full = text.split("  complete-first-install:", 1)[1]
+        self.assertIn("ref: ${{ github.event.workflow_run.head_sha }}", full)
+        self.assertIn("EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}", full)
+        self.assertIn('--expected-source-sha "$env:EXPECTED_SHA" --full-install', full)
+        self.assertIn("cancel-in-progress: false", text)
+
     def test_actual_cdn_ranges_required_for_both_parts(self):
         def serve(url, headers):
             self.assertEqual(headers, {"Range": "bytes=0-3"})
