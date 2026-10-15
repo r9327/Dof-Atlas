@@ -67,8 +67,11 @@ class AtlasDoctorTests(unittest.TestCase):
             (widgets / "__init__.py").write_text(
                 '_LAZY_EXPORT_MODULES: dict[str, str] = {"SomeWidget": "some_widget"}\n'
                 '__all__ = ["SomeWidget"]\n'
+                'from importlib import import_module\n'
                 'def __getattr__(name):\n'
-                '    raise AttributeError(name)\n',
+                '    suffix = _LAZY_EXPORT_MODULES.get(name)\n'
+                '    if suffix is None: raise AttributeError(name)\n'
+                '    return getattr(import_module(f"{__name__}.{suffix}"), name)\n',
                 encoding="utf-8",
             )
             (widgets / "some_widget.py").write_text(
@@ -93,6 +96,19 @@ class AtlasDoctorTests(unittest.TestCase):
                 if x["rule"] == "unreferenced_module"
             }
             self.assertIn("app/widgets/some_widget.py", flagged_without_getattr)
+            # A stub __getattr__ also does not establish a callable API.
+            (widgets / "__init__.py").write_text(
+                '_LAZY_EXPORT_MODULES = {"SomeWidget": "some_widget"}\\n'
+                '__all__ = ["SomeWidget"]\\n'
+                'def __getattr__(name):\\n'
+                '    raise AttributeError(name)\\n',
+                encoding="utf-8",
+            )
+            stub_issues = run_audit(root, save=False)["issues"]
+            self.assertIn(
+                "app/widgets/some_widget.py",
+                {x["path"] for x in stub_issues if x["rule"] == "unreferenced_module"},
+            )
         finally:
             directory.cleanup()
 

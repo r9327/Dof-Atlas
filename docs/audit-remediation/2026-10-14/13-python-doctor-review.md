@@ -57,3 +57,52 @@ ne sont pas effacés : la décision de l'audit original reste traçable.
 
 **Reste à faire :** traiter individuellement les autres cas DR, consumer-sites
 runtime et priorités Python. Ne pas revendiquer la clôture des 898 fichiers.
+
+
+## Seconde vérification — façade dynamique *réellement* branchée (15/10/2026)
+
+Le premier correctif DR-030…036 n'exigeait que la présence d'une
+`_LAZY_EXPORT_MODULES`, de `__all__` et d'un `__getattr__` quelconque.
+Un `__getattr__` qui lève systématiquement `AttributeError` suffisait
+donc à supprimer le warning `unreferenced_module`, alors que son export
+n'était pas utilisable.
+
+Correction : inspecter le corps AST du `__getattr__` et exiger au minimum
+qu'il référence à la fois la table `_LAZY_EXPORT_MODULES` et
+`import_module`. Un `__getattr__` muet garde le statut suspect ;
+la façade réelle de `encyclopedia/widgets` conserve son contrat lazy.
+Ce contrôle prouve **une structure de dispatch statique**, pas que la branche
+s'exécute, ni qu'un widget est affiché. Aucun import Qt n'est exécuté.
+
+### Triage ciblé des diagnostics restants
+
+- DR-011 (`atlas_full_suite_proof.py:101`) : l'exception
+  `ValueError` concerne explicitement le `_ErrorHolder` de
+  `unittest`, qui ne désigne pas un vrai `TestCase`. Suppression du
+  diagnostic sans changement de comportement déconseillée ; signal
+  **FAUX POSITIF ciblé**, à distinguer du registre historique.
+- DR-012 (`atlas_integrity.py:630`) : écriture facultative des
+  breadcrumbs. Un `OSError` est volontairement non bloquant pour
+  préserver l'autorité du verdict de certification. **FAUX POSITIF ciblé**.
+- DR-013/014/015 (`benchmark_phase8_memory.py` et
+  `benchmark_phase8_preload.py`) : mutations de `sys.path` visibles,
+  utilisées par ces entrypoints de mesure. **NON CONFIRMÉ** comme défaut ;
+  réécrire les imports sans reproduire les commandes Windows risquerait
+  de casser les benchmarks.
+- DR-016 (`ci_guide_full_evidence.py:215`) : l'`unlink` tente
+  d'enlever une preuve réutilisable après erreur et finit en code 2,
+  donc la réutilisation devrait être refusée par le consommateur. Le
+  comportement si `unlink` échoue et qu'un ancien fichier persiste
+  nécessite un scénario appelant. **NON CONFIRMÉ**, test de refus de
+  preuve stale à prévoir.
+- DR-017 (`doctor_policy_authority.py:151`) : exception d'API HTTP
+  ignorée, permettant de revenir à une protection signalée non activée.
+  Le sens du verdict et l'échec en mode stricte doivent être testés
+  face à 403/404. **NON CONFIRMÉ**.
+- DR-018 (`phase_adaptive_gate.py:181`) : absence de plan après
+  chargement raté ; la décision d'acheminement doit être FULL_REQUIRED.
+  Test de la politique `choose_route` requis avant verdict.
+  **NON CONFIRMÉ**.
+
+Ce triage n'efface aucun diagnostic historique : il explicite les
+cas examinés et les preuves encore nécessaires.
