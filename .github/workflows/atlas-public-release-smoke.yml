@@ -60,9 +60,15 @@ jobs:
   complete-first-install:
     name: E2E first boot — public 2.66 GB download + Qt-ready activation
     needs: [public-windows-install]
-    # Run once on the certification workflow's first main merge.
-    # Future releases use lightweight public HTTP/Setup checks only.
-    if: github.event_name == 'push'
+    # Exercise the entire real Windows first-install path only AFTER a
+    # successful distribution run, not before a Release exists. An ordinary
+    # code push cannot certify a not-yet-published EXE or 2.66 GB archive.
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: windows-latest
     timeout-minutes: 70
     steps:

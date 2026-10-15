@@ -73,10 +73,21 @@ _OPENER = urllib.request.build_opener(_StrictRedirect())
 
 
 def _open(url: str, headers: dict[str, str] | None = None):
-    request = urllib.request.Request(
-        _safe_url(url),
-        headers={"User-Agent": _AGENT, "Accept": "application/octet-stream", **(headers or {})},
-    )
+    trusted_url = _safe_url(url)
+    destination = urllib.parse.urlsplit(trusted_url)
+    if destination.hostname == "api.github.com":
+        # The Releases REST API requires JSON negotiation. Treating it like
+        # a binary asset caused HTTP 415 on real Windows public-release smoke.
+        accept = "application/vnd.github+json"
+    elif (destination.hostname == "github.com" and
+          destination.path == f"/{REPO}/releases/latest"):
+        accept = "text/html"
+    else:
+        accept = "application/octet-stream"
+    request_headers = {"User-Agent": _AGENT, "Accept": accept}
+    if headers:
+        request_headers.update(headers)
+    request = urllib.request.Request(trusted_url, headers=request_headers)
     return _OPENER.open(request, timeout=20)
 
 
@@ -85,7 +96,9 @@ def _read_limited(url: str, limit: int) -> bytes:
         with _open(url) as response:
             data = response.read(limit + 1)
     except (OSError, urllib.error.URLError) as exc:
-        raise UpdateError(f"Unable to contact GitHub: {exc}") from exc
+        endpoint = urllib.parse.urlsplit(url)
+        location = f"{endpoint.hostname}/{endpoint.path.rsplit('/', 1)[-1]}"
+        raise UpdateError(f"Unable to contact GitHub: {exc} ({location})") from exc
     if len(data) > limit:
         raise UpdateError("Metadata exceeds allowed size")
     return data
