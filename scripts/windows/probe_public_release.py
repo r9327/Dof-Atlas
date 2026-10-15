@@ -153,10 +153,18 @@ def verify_full_first_install(release, *, deadline_seconds: int = 2700) -> None:
     try:
         while time.monotonic() < deadline:
             state = read_state(root)
-            if (state.get("source_sha") == release.manifest.source_sha and
-                    state.get("active") and not state.get("pending")):
+            if (state.get("source_sha") and state.get("active") and
+                    not state.get("pending")):
                 executable = active_executable(root)
                 if executable is not None:
+                    # Another certified Release can appear while the multi-GB
+                    # download runs. Accept the original or the current
+                    # public latest; never flag a successful installation
+                    # as broken merely because publication raced the probe.
+                    installed = state["source_sha"]
+                    current = latest_release().manifest.source_sha
+                    if installed not in {release.manifest.source_sha, current}:
+                        raise UpdateError("Unexpected public source SHA installed")
                     print("VERIFIED: full public download, integrity, Qt health", flush=True)
                     return
             try:
