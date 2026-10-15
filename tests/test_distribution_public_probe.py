@@ -68,5 +68,47 @@ class PublicProbeContracts(unittest.TestCase):
             _published_asset(d, name, tag="sha-bbb")
 
 
+    def test_public_asset_digests_must_match_release_manifest(self):
+        from scripts.windows.probe_public_release import verify_published_digests
+        remote = self.remote()
+        base = ("https://github.com/r9327/Dof-Atlas-App/releases/"
+                "download/sha-aaa/")
+        assets = [
+            {"name": part.name, "size": part.size,
+             "digest": "sha256:" + part.sha256,
+             "browser_download_url": base + part.name}
+            for part in remote.manifest.archive_parts
+        ]
+        verify_published_digests({"assets": assets}, remote)
+        assets[1]["digest"] = "sha256:" + "f" * 64
+        with self.assertRaisesRegex(UpdateError, "Published archive digest"):
+            verify_published_digests({"assets": assets}, remote)
+
+    def test_public_setup_must_pass_github_computed_sha256(self):
+        import hashlib
+        from scripts.windows.probe_public_release import download_public_setup
+        remote = self.remote()
+        payload = b"MZ" + b"valid-installer-bytes"
+        data = {"assets": [
+            {"name": "DofusAtlasSetup.exe", "size": len(payload),
+             "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+             "browser_download_url":
+              "https://github.com/r9327/Dof-Atlas-App/releases/"
+              "download/sha-aaa/DofusAtlasSetup.exe"}]}
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "scripts.windows.probe_public_release._open",
+            return_value=Response(payload, code=200)
+        ):
+            self.assertEqual(download_public_setup(data, remote, Path(tmp)).read_bytes(),
+                             payload)
+        data["assets"][0]["digest"] = "sha256:" + "f" * 64
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "scripts.windows.probe_public_release._open",
+            return_value=Response(payload, code=200)
+        ):
+            with self.assertRaisesRegex(UpdateError, "tampered"):
+                download_public_setup(data, remote, Path(tmp))
+
+
 if __name__ == "__main__":
     unittest.main()

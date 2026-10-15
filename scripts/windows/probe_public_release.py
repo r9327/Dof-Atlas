@@ -62,12 +62,25 @@ def _published_asset(doc: dict, name: str, *, tag: str) -> dict:
     return entries[0]
 
 
+
+def verify_published_digests(doc: dict, release) -> None:
+    """Compare GitHub's measured asset digests with the packager's manifest."""
+    for part in release.manifest.archive_parts:
+        asset = _published_asset(doc, part.name, tag=release.tag)
+        expected = "sha256:" + part.sha256
+        if asset["size"] != part.size or asset.get("digest") != expected:
+            raise UpdateError(f"Published archive digest or size mismatch: {part.name}")
+
 def download_public_setup(doc: dict, release, folder: Path) -> Path:
     asset = _published_asset(doc, "DofusAtlasSetup.exe", tag=release.tag)
     if not 0 < asset["size"] <= 128 * 1024**2:
         raise UpdateError("Invalid published setup size")
     target = folder / "DofusAtlasSetup.exe"
     length = 0
+    digest = hashlib.sha256()
+    expected_digest = asset.get("digest")
+    if not isinstance(expected_digest, str) or not expected_digest.startswith("sha256:"):
+        raise UpdateError("Published setup has no GitHub SHA-256 digest")
     try:
         with _open(asset["browser_download_url"]) as source, target.open("wb") as output:
             for block in iter(lambda: source.read(1024 * 1024), b""):
@@ -75,10 +88,14 @@ def download_public_setup(doc: dict, release, folder: Path) -> Path:
                 if length > asset["size"]:
                     raise UpdateError("Public setup exceeds declared size")
                 output.write(block)
+                digest.update(block)
     except (OSError, urllib.error.URLError) as exc:
         raise UpdateError(f"Published setup download failed: {exc}") from exc
-    if length != asset["size"] or target.open("rb").read(2) != b"MZ":
-        raise UpdateError("Incomplete or invalid public Windows setup")
+    with target.open("rb") as stream:
+        is_exe = stream.read(2) == b"MZ"
+    if (length != asset["size"] or not is_exe or
+            expected_digest != "sha256:" + digest.hexdigest()):
+        raise UpdateError("Incomplete or tampered public Windows setup")
     return target
 
 
@@ -173,6 +190,7 @@ def main(argv: list[str] | None = None) -> int:
         doc = json.loads(_read_limited(API_URL, 1024 * 1024))
         if doc.get("draft") or doc.get("prerelease") or doc.get("tag_name") != release.tag:
             raise UpdateError("Public API release tag does not match latest stable manifest")
+        verify_published_digests(doc, release)
         report["parts"] = probe_parts(release)
         if args.verify_setup or args.full_install:
             with tempfile.TemporaryDirectory(prefix="atlas-public-setup-") as temp:
