@@ -149,7 +149,9 @@ def verify_full_first_install(release, *, deadline_seconds: int = 2700) -> None:
         "QTWEBENGINE_DISABLE_SANDBOX": "1",
     })
     print("Starting actual public launcher and multi-GB first installation", flush=True)
-    proc = subprocess.Popen([str(launcher)], cwd=str(launcher.parent), env=env)
+    # CI runs unattended; interactive installs offer a directory picker instead.
+    proc = subprocess.Popen([str(launcher), "--atlas-auto-install"],
+                            cwd=str(launcher.parent), env=env)
     deadline = time.monotonic() + deadline_seconds
     try:
         while time.monotonic() < deadline:
