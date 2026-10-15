@@ -124,6 +124,19 @@ def verify_frozen_setup(setup: Path, release) -> None:
 
 
 
+def verify_public_quest_sources(executable: Path, *, env: dict[str, str]) -> None:
+    """Check real installed frozen Quest assets before reporting E2E success."""
+    try:
+        check = subprocess.run([str(executable), "--atlas-package-smoke"],
+                               env=env, capture_output=True, text=True,
+                               timeout=60, check=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise UpdateError("Installed Quest source smoke could not run") from exc
+    if check.returncode != 0:
+        raise UpdateError("Installed Quest sources are missing or invalid: " +
+                          check.stderr[-300:])
+
+
 def verify_full_first_install(release, *, deadline_seconds: int = 2700) -> None:
     """Run the published launcher from an empty Windows runtime to healthy Qt.
 
