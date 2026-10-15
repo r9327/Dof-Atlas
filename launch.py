@@ -9,11 +9,16 @@ def main() -> int:
         import PySide6.QtWebEngineWidgets  # noqa: F401
         from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
         from app.quest_catalog import QUEST_CATALOG_SOURCE_FILES
+        from app.modules.encyclopedia.providers.achievement_provider import _DETAIL_SOURCE_FILES
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import _ACHIEVEMENT_COMPACT_SOURCES
         if not DATA_DIR.is_dir() or not Path(sys.executable).is_file():
             return 3
-        # This was missing from the earlier frozen Qt smoke: a GUI can open
-        # while its required Doduda quest sources were never packaged.
-        for _label, source in QUEST_CATALOG_SOURCE_FILES:
+        # A working Qt window and Quest catalogue are insufficient: the real
+        # startup also builds the compact Success cache using dungeon sources.
+        required = {source for _label, source in QUEST_CATALOG_SOURCE_FILES}
+        required.update(_ACHIEVEMENT_COMPACT_SOURCES)
+        required.update(_DETAIL_SOURCE_FILES)
+        for source in sorted(required):
             file = RAW_QUEST_DATA_DIR / source
             if not file.is_file() or file.stat().st_size == 0:
                 print(f"Missing frozen quest source: {file}", file=sys.stderr)
