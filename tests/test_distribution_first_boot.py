@@ -39,6 +39,9 @@ class FirstBootDiagnosticsTests(unittest.TestCase):
         remote = Mock()
         remote.manifest.source_sha = "a" * 40
         remote.manifest.delta = None
+        remote.manifest.files = ()
+        remote.manifest.archive_parts = ()
+        remote.archive_size = 0
         with tempfile.TemporaryDirectory() as directory, \
              patch.object(launcher, "ROOT", Path(directory)), \
              patch.object(launcher, "latest_release", return_value=remote), \
