@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import hashlib
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -16,6 +17,8 @@ from .archive_parts import assemble_archive_parts
 
 REPO = "r9327/Dof-Atlas-App"
 API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
+WEB_LATEST_URL = f"https://github.com/{REPO}/releases/latest"
+_DOWNLOAD_ATTEMPTS = 4
 MANIFEST_NAME = "atlas-manifest.json"
 ARCHIVE_NAME = "atlas-windows.zip"
 LAUNCHER_NAME = "DofusAtlas.exe"
@@ -88,8 +91,8 @@ def _read_limited(url: str, limit: int) -> bytes:
     return data
 
 
-def latest_release() -> RemoteRelease:
-    """Read ONLY the official stable GitHub Releases API endpoint."""
+def _latest_release_api() -> RemoteRelease:
+    """Use GitHub Releases API with verified asset metadata."""
     try:
         doc = json.loads(_read_limited(API_URL, 1024 * 1024))
         if not isinstance(doc, dict) or doc.get("draft") or doc.get("prerelease"):
@@ -162,6 +165,66 @@ def latest_release() -> RemoteRelease:
         raise UpdateError("Invalid release metadata") from exc
 
 
+
+def _latest_release_web() -> RemoteRelease:
+    """Fallback to the official stable-release redirect when the API is unavailable."""
+    try:
+        with _open(WEB_LATEST_URL) as response:
+            final_url = _safe_url(response.geturl())
+    except (OSError, urllib.error.URLError) as exc:
+        raise UpdateError(f"GitHub release page unavailable: {exc}") from exc
+    parsed = urllib.parse.urlsplit(final_url)
+    prefix = f"/{REPO}/releases/tag/"
+    if (parsed.scheme != "https" or parsed.hostname != "github.com" or
+            parsed.query or parsed.fragment or not parsed.path.startswith(prefix)):
+        raise UpdateError("Untrusted stable release redirect")
+    tag = parsed.path[len(prefix):]
+    if not re.fullmatch(r"[A-Za-z0-9._+-]{1,100}", tag):
+        raise UpdateError("Invalid stable release tag")
+    base = f"https://github.com/{REPO}/releases/download/{tag}/"
+    try:
+        manifest = parse_manifest(_read_limited(base + MANIFEST_NAME, MAX_MANIFEST_BYTES))
+    except ManifestError as exc:
+        raise UpdateError("Invalid GitHub release manifest") from exc
+
+    part_urls = tuple(_safe_url(base + p.name, asset=True) for p in manifest.archive_parts)
+    archive_url = "" if part_urls else _safe_url(base + ARCHIVE_NAME, asset=True)
+    if part_urls:
+        archive_size = manifest.archive_size
+    else:
+        # Single-file releases do not declare ZIP size in their manifest.
+        try:
+            request = urllib.request.Request(
+                archive_url, headers={"User-Agent": _AGENT}, method="HEAD"
+            )
+            with _OPENER.open(request, timeout=20) as response:
+                archive_size = int(response.headers["Content-Length"])
+        except (OSError, urllib.error.URLError, ValueError, KeyError) as exc:
+            raise UpdateError(f"Cannot determine official archive size: {exc}") from exc
+        if not 0 < archive_size <= MAX_ARCHIVE_BYTES:
+            raise UpdateError("Invalid official release archive size")
+    launcher_url = (_safe_url(base + LAUNCHER_NAME, asset=True)
+                    if manifest.launcher_sha256 is not None else None)
+    delta_url = (_safe_url(base + DELTA_NAME, asset=True)
+                 if manifest.delta is not None else None)
+    return RemoteRelease(tag, archive_url, archive_size, manifest,
+                         launcher_url, delta_url, part_urls)
+
+
+def latest_release() -> RemoteRelease:
+    """Prefer GitHub API; fall back only when its network request fails."""
+    try:
+        return _latest_release_api()
+    except UpdateError as api_failure:
+        if not str(api_failure).startswith("Unable to contact GitHub:"):
+            raise
+        try:
+            return _latest_release_web()
+        except UpdateError as web_failure:
+            raise UpdateError(
+                f"GitHub API: {api_failure}; official release page: {web_failure}"
+            ) from web_failure
+
 def _download_multipart(release: RemoteRelease, directory: Path,
                         progress: Progress | None) -> Path:
     """Resume each authenticated part, then atomically reconstruct the ZIP."""
@@ -190,39 +253,62 @@ def _download_multipart(release: RemoteRelease, directory: Path,
             continue
         finished.unlink(missing_ok=True)
         partial = parts_dir / (part.name + ".download")
-        offset = partial.stat().st_size if partial.is_file() else 0
-        if offset >= part.size:
-            partial.unlink(missing_ok=True)
-            offset = 0
-        try:
-            with _open(url, {"Range": f"bytes={offset}-"} if offset else {}) as response:
-                status = getattr(response, "status", 200)
-                resumed = offset > 0 and status == 206
-                if resumed:
-                    expected = f"bytes {offset}-{part.size - 1}/{part.size}"
-                    if response.headers.get("Content-Range", "") != expected:
-                        raise UpdateError("Invalid multipart HTTP range")
-                elif status != 200:
-                    raise UpdateError("Unexpected multipart HTTP status")
-                done = offset if resumed else 0
-                with partial.open("ab" if resumed else "wb") as output:
-                    while True:
-                        block = response.read(1024 * 1024)
-                        if not block:
-                            break
-                        done += len(block)
-                        if done > part.size:
-                            raise UpdateError("Multipart download exceeded asset size")
-                        output.write(block)
-                        if progress:
-                            progress(progress_base + done, total)
-                    output.flush()
-            if partial.stat().st_size != part.size or not verify_file(partial, entry):
+
+        # Resume even after a clean but truncated HTTP response. Never throw
+        # away gigabytes of already verified-by-size partial download.
+        for attempt in range(_DOWNLOAD_ATTEMPTS):
+            offset = partial.stat().st_size if partial.is_file() else 0
+            if offset == part.size:
+                if verify_file(partial, entry):
+                    partial.replace(finished)
+                    break
                 partial.unlink(missing_ok=True)
-                raise UpdateError("Multipart archive SHA-256 mismatch or incomplete download")
-            partial.replace(finished)
-        except (OSError, urllib.error.URLError) as exc:
-            raise UpdateError("Multipart download interrupted") from exc
+                raise UpdateError(f"Corrupted release part: {part.name}")
+            if offset > part.size:
+                partial.unlink(missing_ok=True)
+                raise UpdateError(f"Downloaded release part exceeded size: {part.name}")
+            try:
+                with _open(url, {"Range": f"bytes={offset}-"} if offset else {}) as response:
+                    status = getattr(response, "status", 200)
+                    resumed = offset > 0 and status == 206
+                    if resumed:
+                        expected = f"bytes {offset}-{part.size - 1}/{part.size}"
+                        if response.headers.get("Content-Range", "") != expected:
+                            raise UpdateError("Invalid multipart HTTP range")
+                    elif status != 200:
+                        raise UpdateError("Unexpected multipart HTTP status")
+                    done = offset if resumed else 0
+                    with partial.open("ab" if resumed else "wb") as output:
+                        while True:
+                            block = response.read(1024 * 1024)
+                            if not block:
+                                break
+                            done += len(block)
+                            if done > part.size:
+                                raise UpdateError("Multipart download exceeded asset size")
+                            output.write(block)
+                            if progress:
+                                progress(progress_base + done, total)
+                        output.flush()
+            except (OSError, urllib.error.URLError) as exc:
+                if attempt == _DOWNLOAD_ATTEMPTS - 1:
+                    raise UpdateError(
+                        f"Interrupted download of {part.name}: {exc}"
+                    ) from exc
+                time.sleep(min(2 ** attempt, 4))
+                continue
+
+            if partial.stat().st_size == part.size:
+                if not verify_file(partial, entry):
+                    partial.unlink(missing_ok=True)
+                    raise UpdateError(f"SHA-256 mismatch for {part.name}")
+                partial.replace(finished)
+                break
+            if attempt == _DOWNLOAD_ATTEMPTS - 1:
+                raise UpdateError(
+                    f"Incomplete download of {part.name}; saved for next launch"
+                )
+            time.sleep(min(2 ** attempt, 4))
         progress_base += part.size
     try:
         assemble_archive_parts(manifest, parts_dir, target)

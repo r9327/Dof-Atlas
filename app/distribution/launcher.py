@@ -172,7 +172,8 @@ def run_update(report) -> None:
         except (UpdateError, OSError) as exc:
             update_failure = exc
             log.warning("Update unavailable, trying last installed version: %s", exc, exc_info=True)
-            report("Mise a jour indisponible — mode hors ligne", 90)
+            if active_executable(ROOT) is not None:
+                report("Mise a jour indisponible — mode hors ligne", 90)
         executable = active_executable(ROOT)
         if executable is None:
             if update_failure is not None:

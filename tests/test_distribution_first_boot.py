@@ -21,7 +21,7 @@ class FirstBootDiagnosticsTests(unittest.TestCase):
             with self.assertRaisesRegex(UpdateError,
                                         "Premiere installation impossible : HTTP Error 403"):
                 launcher.run_update(lambda message, value: progress.append((message, value)))
-            self.assertIn(("Mise a jour indisponible — mode hors ligne", 90), progress)
+            self.assertNotIn(("Mise a jour indisponible — mode hors ligne", 90), progress)
 
     def test_offline_launch_of_existing_version_still_works(self):
         with tempfile.TemporaryDirectory() as directory, \
