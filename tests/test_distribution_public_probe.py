@@ -34,6 +34,44 @@ class PublicProbeContracts(unittest.TestCase):
         return RemoteRelease("sha-aaa", "", 15, manifest,
                              part_urls=tuple(base + p.name for p in manifest.archive_parts))
 
+    def test_api_json_header_and_binary_release_asset_header_are_distinct(self):
+        from app.distribution import release_client as client
+        sources = (
+            (client.API_URL, "application/vnd.github+json"),
+            (client.WEB_LATEST_URL, "text/html"),
+            ("https://github.com/r9327/Dof-Atlas-App/releases/download/"
+             "sha-aaa/atlas-manifest.json", "application/octet-stream"),
+        )
+        with patch.object(client, "_OPENER") as opener:
+            for address, expected in sources:
+                with self.subTest(address=address):
+                    client._open(address)
+                    request = opener.open.call_args.args[0]
+                    self.assertEqual(request.get_header("Accept"), expected)
+                    self.assertEqual(opener.open.call_args.kwargs["timeout"], 20)
+
+    def test_range_headers_preserved_for_real_release_parts(self):
+        from app.distribution import release_client as client
+        target = ("https://github.com/r9327/Dof-Atlas-App/releases/"
+                  "download/sha-aaa/atlas-windows.part0001")
+        with patch.object(client, "_OPENER") as opener:
+            client._open(target, {"Range": "bytes=0-3"})
+            request = opener.open.call_args.args[0]
+            self.assertEqual(request.get_header("Range"), "bytes=0-3")
+            self.assertEqual(request.get_header("Accept"), "application/octet-stream")
+
+    def test_full_first_install_is_triggered_after_successful_publication(self):
+        from pathlib import Path
+        source = (Path(__file__).resolve().parents[1] /
+                  ".github/workflows/atlas-public-release-smoke.yml").read_text(
+                      encoding="utf-8"
+                  )
+        full_job = source.split("  complete-first-install:", 1)[1]
+        self.assertIn("github.event_name == 'workflow_run'", full_job)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", full_job)
+        self.assertIn("needs: [public-windows-install]", full_job)
+        self.assertNotIn("if: github.event_name == 'push'", full_job)
+
     def test_actual_cdn_ranges_required_for_both_parts(self):
         def serve(url, headers):
             self.assertEqual(headers, {"Range": "bytes=0-3"})
