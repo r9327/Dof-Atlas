@@ -172,7 +172,8 @@ def finish_launcher_upgrade(candidate: Path, digest: str, parent_pid: int,
     local = os.environ.get("LOCALAPPDATA")
     if not local:
         raise RuntimeError("LOCALAPPDATA missing")
-    allowed = (Path(local) / "DofusAtlas" / "runtime" / "downloads").resolve()
+    from .install_location import runtime_root
+    allowed = (runtime_root() / "downloads").resolve()
     if candidate.is_symlink() or not candidate.is_file() or not candidate.resolve().is_relative_to(allowed):
         raise ValueError("Upgrade source is outside verified updater cache")
     if target.is_symlink() or not target.is_file():
