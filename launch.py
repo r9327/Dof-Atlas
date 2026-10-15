@@ -7,8 +7,28 @@ def main() -> int:
     if sys.argv[1:2] == ["--atlas-package-smoke"]:
         from pathlib import Path
         import PySide6.QtWebEngineWidgets  # noqa: F401
-        from app.constants import DATA_DIR
-        return 0 if DATA_DIR.is_dir() and (Path(sys.executable).is_file()) else 3
+        from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
+        from app.quest_catalog import QUEST_CATALOG_SOURCE_FILES
+        if not DATA_DIR.is_dir() or not Path(sys.executable).is_file():
+            return 3
+        # This was missing from the earlier frozen Qt smoke: a GUI can open
+        # while its required Doduda quest sources were never packaged.
+        for _label, source in QUEST_CATALOG_SOURCE_FILES:
+            file = RAW_QUEST_DATA_DIR / source
+            if not file.is_file() or file.stat().st_size == 0:
+                print(f"Missing frozen quest source: {file}", file=sys.stderr)
+                return 4
+        return 0
+
+    if sys.argv[1:2] == ["--atlas-quest-smoke"]:
+        # Exercise the real source parser, not just a directory existence check.
+        from app.quest_catalog_details import ensure_lazy_catalog_cache
+        count = ensure_lazy_catalog_cache()
+        if count <= 0:
+            print("Frozen quest catalogue is empty", file=sys.stderr)
+            return 5
+        print(f"VERIFIED: {count} frozen quests")
+        return 0
 
     # A frozen executable is not a Python interpreter. It must explicitly
     # dispatch trusted workers instead of interpreting "-m module" as GUI args.

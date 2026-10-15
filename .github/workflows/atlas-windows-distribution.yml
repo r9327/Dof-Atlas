@@ -5,6 +5,8 @@ on:
     paths:
       - "app/distribution/**"
       - "scripts/windows/package_release.py"
+      - "scripts/windows/quest_assets.py"
+      - "scripts/windows/quest_assets_lock.json"
       - "scripts/windows/repackage_data_only.py"
       - "scripts/windows/export_app_repository.py"
       - "scripts/windows/certify_app_export.py"
@@ -150,7 +152,8 @@ jobs:
         github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'pull_request' &&
          github.event.action == 'ready_for_review' &&
-         github.head_ref == 'feature/atlas-auto-update-distribution-20261013') ||
+         (github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
+          github.head_ref == 'fix/windows-quest-assets-custom-runtime-root-20261015')) ||
         (github.event_name == 'workflow_run' &&
          needs.classify-release.result == 'success' &&
          needs.classify-release.outputs.data_only != 'true' &&
@@ -197,6 +200,8 @@ jobs:
           python-version: "3.13"
       - name: Focused Windows tests
         run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
+      - name: Acquire SHA-256 pinned, otherwise ignored Doduda quest sources
+        run: python -m scripts.windows.quest_assets --download
       - name: Install hashed runtime and pinned build tool
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
@@ -213,6 +218,8 @@ jobs:
             --collect-submodules app \
             --collect-submodules local_dofus_data \
             --add-data "data;data" launch.py
+      - name: Certify actual frozen quest asset integrity
+        run: python -m scripts.windows.quest_assets --root dist/AtlasApp/_internal
       - name: Compile lightweight standalone launcher
         run: |
           python -m PyInstaller --noconfirm --clean --onefile --windowed \
@@ -243,6 +250,8 @@ jobs:
           }
       - name: Smoke check frozen QtWebEngine and assets
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
+      - name: Smoke real frozen quest parser before accepting a Release
+        run: dist/AtlasApp/AtlasApp.exe --atlas-quest-smoke
       - name: Real Qt window health smoke (no Python user installation)
         shell: pwsh
         env:
@@ -300,6 +309,24 @@ jobs:
             --base-manifest "$RUNNER_TEMP/atlas-previous/atlas-manifest.json"
           cp dist/DofusAtlas.exe dist-release/DofusAtlas.exe
           cp dist/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
+      - name: Require every pinned Quest source in the signed Release manifest
+        if: >-
+          github.event_name == 'workflow_run' ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from scripts.windows.quest_assets import read_lock, REPO_ROOT, RELATIVE_ROOT
+          from app.distribution.manifest import parse_manifest
+          manifest = parse_manifest(Path("dist-release/atlas-manifest.json").read_bytes())
+          packaged = {entry.path for entry in manifest.files}
+          mandatory = {"AtlasApp/_internal/" + (RELATIVE_ROOT / filename).as_posix()
+                       for filename in read_lock(REPO_ROOT)["assets"]}
+          missing = sorted(mandatory - packaged)
+          if missing:
+              raise SystemExit(f"Release manifest missing {len(missing)} mandatory Quest files: {missing[:5]}")
+          print(f"VERIFIED: {len(mandatory)} Quest data files in release manifest")
+          PY
       - name: Validate full candidate ZIP and manifest integrity
         if: >-
           github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
