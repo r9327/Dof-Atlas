@@ -142,8 +142,8 @@
     },
     "tests": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "a7666a814914b38503db6cd388edeaf8b246dd0b"
+      "sha": "a7666a814914b38503db6cd388edeaf8b246dd0b",
+      "type": "tree"
     },
     "tools": {
       "mode": "040000",
