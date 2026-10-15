@@ -16,6 +16,7 @@ from .install import (
     active_executable, install_release, mark_healthy, read_state, rollback_pending,
 )
 from .release_client import UpdateError, download_archive, latest_release
+from .disk_space import ensure_space
 from .user_data import prepare_user_data
 from .self_update import schedule_launcher_upgrade
 
@@ -146,6 +147,7 @@ def run_update(report) -> None:
                         if archive is not None:
                             archive.unlink(missing_ok=True)
                 if not delta_installed:
+                    ensure_space(remote.manifest, ROOT, archive_size=remote.archive_size)
                     report("Telechargement complet de la nouvelle version...", 10)
                     archive = download_archive(
                         remote, ROOT / "downloads",
