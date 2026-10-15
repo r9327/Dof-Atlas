@@ -13,7 +13,7 @@ class GraphifyWorkflowBudgetTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", trigger)
         self.assertIn("paths:", trigger)
         self.assertIn('"tools/graphify.py"', trigger)
-        self.assertIn('"tools/atlas_doctor_lib/graph_intelligence.py"', trigger)
+        self.assertIn('"tools/atlas_doctor_lib/**"', trigger)
         self.assertNotIn('"tools/atlas_doctor_lib/live_graph.py"', trigger)
         self.assertIn('timeout-minutes: 20', code)
 
