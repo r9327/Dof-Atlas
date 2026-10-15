@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from contextlib import closing
 import shutil
 import sqlite3
 import tempfile
@@ -34,7 +35,7 @@ def _seed_craft_database(executable: Path, user_root: Path) -> None:
     if dest.exists():
         return
     try:
-        with sqlite3.connect(source.resolve().as_uri() + "?mode=ro&immutable=1", uri=True) as db:
+        with closing(sqlite3.connect(source.resolve().as_uri() + "?mode=ro&immutable=1", uri=True)) as db:
             if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                 raise ValueError("Bundled Craft SQLite is corrupt")
             for table in ("items", "jobs", "recipes", "recipe_ingredients"):
