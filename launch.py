@@ -103,6 +103,24 @@ def main() -> int:
               f"{recipe_count} recipes, {ingredient_count} ingredients")
         return 0
 
+    if sys.argv[1:2] == ["--atlas-map-state-smoke"]:
+        from app.cartography.world_db import WORLD_DB_PATH, init_db, connection_scope
+        from app.constants import USER_DATA_ROOT
+        if USER_DATA_ROOT is None:
+            print("Frozen map state requires a durable user directory", file=sys.stderr)
+            return 13
+        expected = USER_DATA_ROOT / "data" / "dofus_atlas_world.db"
+        if WORLD_DB_PATH != expected:
+            print(f"Map DB path not durable: {WORLD_DB_PATH}", file=sys.stderr)
+            return 14
+        init_db()
+        with connection_scope() as db:
+            if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                print("Frozen map DB failed integrity check", file=sys.stderr)
+                return 15
+        print(f"VERIFIED: durable world map SQLite at {WORLD_DB_PATH}")
+        return 0
+
     # A frozen executable is not a Python interpreter. It must explicitly
     # dispatch trusted workers instead of interpreting "-m module" as GUI args.
     if getattr(sys, "frozen", False) and sys.argv[1:2] == ["-m"]:
