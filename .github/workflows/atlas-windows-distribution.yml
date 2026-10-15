@@ -259,8 +259,8 @@ jobs:
           $env:DOFUS_ATLAS_USER_ROOT = Join-Path $env:RUNNER_TEMP "atlas-frozen-quest-worker"
           $result = Join-Path $env:RUNNER_TEMP "atlas-quest-worker-count.txt"
           Remove-Item -LiteralPath $result -Force -ErrorAction SilentlyContinue
-          $process = Start-Process -FilePath "dist/AtlasApp/AtlasApp.exe" \
-            -ArgumentList "-m app.quest_catalog_details --ensure-cache --result-file \"${result}\"" -PassThru
+          $arguments = '-m app.quest_catalog_details --ensure-cache --result-file "' + $result + '"'
+          $process = Start-Process -FilePath "dist/AtlasApp/AtlasApp.exe" -ArgumentList $arguments -PassThru
           try {
             Wait-Process -Id $process.Id -Timeout 300 -ErrorAction Stop
           } catch {
