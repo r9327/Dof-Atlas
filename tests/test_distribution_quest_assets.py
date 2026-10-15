@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.windows.quest_assets import RELATIVE_ROOT, provision, read_lock
+from scripts.windows.quest_assets import REPO_ROOT, RELATIVE_ROOT, provision, read_lock
 
 _CATS = b'{"references":{"RefIds":[{"rid":1,"data":{"id":1}}]}}'
 _LANG = b'{"entries":{"1":"Quete"}}'
@@ -27,6 +27,11 @@ class PinnedQuestSourcesTests(unittest.TestCase):
             "('language', 'languages/fr.json'), "
             "('quest_categories', 'quest_categories.json'),)\n", encoding="utf-8"
         )
+        compact = self.root / "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
+        compact.parent.mkdir(parents=True)
+        compact.write_text("_ACHIEVEMENT_COMPACT_SOURCES = ('languages/fr.json',)\n", encoding="utf-8")
+        detail = self.root / "app/modules/encyclopedia/providers/achievement_provider.py"
+        detail.write_text("_DETAIL_SOURCE_FILES = ('quest_categories.json',)\n", encoding="utf-8")
         lock_file = self.root / "scripts/windows/quest_assets_lock.json"
         lock_file.parent.mkdir(parents=True)
         lock = {
@@ -59,6 +64,30 @@ class PinnedQuestSourcesTests(unittest.TestCase):
         module.write_text("QUEST_CATALOG_SOURCE_FILES = (('quests','quests.json'),)\n")
         with self.assertRaises(ValueError):
             read_lock(self.root)
+
+    def test_lock_rejects_new_success_compact_source(self):
+        compact = self.root / "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
+        compact.write_text(
+            "_ACHIEVEMENT_COMPACT_SOURCES = ('languages/fr.json', 'dungeons.json')\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(ValueError):
+            read_lock(self.root)
+
+    def test_lock_rejects_new_success_detail_source(self):
+        detail = self.root / "app/modules/encyclopedia/providers/achievement_provider.py"
+        detail.write_text(
+            "_DETAIL_SOURCE_FILES = ('quest_categories.json', 'achievement_rewards.json')\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(ValueError):
+            read_lock(self.root)
+
+    def test_real_lock_covers_success_source_requirements(self):
+        assets = read_lock(REPO_ROOT)["assets"]
+        self.assertTrue({
+            "dungeons.json", "achievement_rewards.json", "ornaments.json", "alterations.json",
+        }.issubset(assets))
 
     def test_network_download_must_match_pinned_sha(self):
         class Reply(io.BytesIO):
