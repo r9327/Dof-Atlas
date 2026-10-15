@@ -23,8 +23,10 @@ def _valid_root(value: str | Path) -> Path:
         raise UpdateError("Le dossier d'installation doit etre un chemin absolu")
     if os.name == "nt" and (path.drive.startswith("\\\\") or str(path).startswith("\\\\")):
         raise UpdateError("Un dossier reseau n'est pas accepte pour Atlas")
+    if path.is_symlink() or any(parent.is_symlink() for parent in path.parents):
+        raise UpdateError("Un lien symbolique n'est pas accepte pour le dossier Atlas")
     path = path.resolve()
-    if path == Path(path.anchor) or path.is_symlink() or (path.exists() and not path.is_dir()):
+    if path == Path(path.anchor) or (path.exists() and not path.is_dir()):
         raise UpdateError("Dossier d'installation invalide")
     return path
 
