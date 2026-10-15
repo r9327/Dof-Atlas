@@ -40,7 +40,7 @@ def ensure_recipe_asset(root: Path, *, download: bool = False) -> Path:
             or doc.get("source_repo") != "dofusdude/dofus3-main"
             or set(doc["assets"]) != {"recipes.json"}
             or pin["asset"] != "recipes.json" or not isinstance(pin["size"], int)
-            or pin["size"] < 100_000 or pin["size"] > 20_000_000
+            or pin["size"] <= 0 or pin["size"] > 20_000_000
             or len(pin["sha256"]) != 64):
         raise ValueError("Unsupported Craft recipe provenance lock")
     dest = root / RAW / "recipes.json"
