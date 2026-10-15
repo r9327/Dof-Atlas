@@ -7,8 +7,14 @@ def main() -> int:
     if sys.argv[1:2] == ["--atlas-package-smoke"]:
         from pathlib import Path
         import PySide6.QtWebEngineWidgets  # noqa: F401
-        from app.constants import DATA_DIR
-        return 0 if DATA_DIR.is_dir() and (Path(sys.executable).is_file()) else 3
+        from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
+        from app.quest_catalog import QUEST_CATALOG_SOURCE_FILES
+        sources_complete = all(
+            (RAW_QUEST_DATA_DIR / relative).is_file()
+            and (RAW_QUEST_DATA_DIR / relative).stat().st_size > 0
+            for _label, relative in QUEST_CATALOG_SOURCE_FILES
+        )
+        return 0 if DATA_DIR.is_dir() and sources_complete and Path(sys.executable).is_file() else 3
 
     # A frozen executable is not a Python interpreter. It must explicitly
     # dispatch trusted workers instead of interpreting "-m module" as GUI args.
