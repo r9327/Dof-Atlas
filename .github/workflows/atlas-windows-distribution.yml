@@ -252,6 +252,10 @@ jobs:
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
       - name: Smoke real frozen quest parser before accepting a Release
         run: dist/AtlasApp/AtlasApp.exe --atlas-quest-smoke
+      - name: Smoke real frozen Success worker before accepting a Release
+        # This exact frozen -m path failed in production when dungeons.json
+        # was omitted despite passing the Quest-only certification.
+        run: dist/AtlasApp/AtlasApp.exe -m app.modules.encyclopedia.providers.memory_bound_achievement_provider --ensure-compact-cache
       - name: Real Qt window health smoke (no Python user installation)
         shell: pwsh
         env:
