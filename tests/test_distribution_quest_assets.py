@@ -31,18 +31,18 @@ class PinnedQuestSourcesTests(unittest.TestCase):
         # not only the Quests list verified in the previous fix.
         warmup = self.root / "app/startup_cache_warmup.py"
         warmup.write_text(
-            "_QUEST_SOURCE_FILES = ('languages/fr.json', 'quest_categories.json')\\n"
-            "_SUCCESS_SOURCE_FILES = ('quest_categories.json',)\\n"
-            "_GUIDE_EXTRA_SOURCE_FILES = ()\\n",
+            "_QUEST_SOURCE_FILES = ('languages/fr.json', 'quest_categories.json')\n"
+            "_SUCCESS_SOURCE_FILES = ('quest_categories.json',)\n"
+            "_GUIDE_EXTRA_SOURCE_FILES = ()\n",
             encoding="utf-8",
         )
         providers = self.root / "app/modules/encyclopedia/providers"
         providers.mkdir(parents=True)
         (providers / "memory_bound_achievement_provider.py").write_text(
-            "_ACHIEVEMENT_COMPACT_SOURCES = ('quest_categories.json',)\\n", encoding="utf-8"
+            "_ACHIEVEMENT_COMPACT_SOURCES = ('quest_categories.json',)\n", encoding="utf-8"
         )
         (providers / "achievement_provider.py").write_text(
-            "_DETAIL_SOURCE_FILES = ('quest_categories.json',)\\n", encoding="utf-8"
+            "_DETAIL_SOURCE_FILES = ('quest_categories.json',)\n", encoding="utf-8"
         )
         lock_file = self.root / "scripts/windows/quest_assets_lock.json"
         lock_file.parent.mkdir(parents=True)
@@ -74,11 +74,11 @@ class PinnedQuestSourcesTests(unittest.TestCase):
     def test_lock_fails_when_guide_or_success_adds_source(self):
         for filename, contents in (
             ("app/startup_cache_warmup.py",
-             "_QUEST_SOURCE_FILES = ('languages/fr.json', 'quest_categories.json')\\n"
-             "_SUCCESS_SOURCE_FILES = ('dungeons.json',)\\n"
-             "_GUIDE_EXTRA_SOURCE_FILES = ('effects.json',)\\n"),
+             "_QUEST_SOURCE_FILES = ('languages/fr.json', 'quest_categories.json')\n"
+             "_SUCCESS_SOURCE_FILES = ('dungeons.json',)\n"
+             "_GUIDE_EXTRA_SOURCE_FILES = ('effects.json',)\n"),
             ("app/modules/encyclopedia/providers/achievement_provider.py",
-             "_DETAIL_SOURCE_FILES = ('achievement_rewards.json',)\\n"),
+             "_DETAIL_SOURCE_FILES = ('achievement_rewards.json',)\n"),
         ):
             with self.subTest(contract=filename):
                 target = self.root / filename
