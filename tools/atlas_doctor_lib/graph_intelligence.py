@@ -491,8 +491,11 @@ def _cohesion_runtime_source(path: str | None) -> bool:
     )
 
 
-def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVIEW) -> dict[str, Any]:
-    """Advisory cohesion signals only; never force merges based on IDs."""
+def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVIEW,
+                                 offset: int = 0) -> dict[str, Any]:
+    """Advisory cohesion signals only; paginate without rebuilding the graph."""
+    if limit < 1 or offset < 0:
+        raise ValueError("Cohesion pagination requires a positive limit and nonnegative offset")
     summarize_graph(graph)
     nodes = {n["id"]: n for n in graph["nodes"]}
     internal: Counter[Any] = Counter()
@@ -541,9 +544,11 @@ def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVI
             "automatic_merge": False,
         })
     rows.sort(key=lambda x: (-x["external_extracted_edges"], x["production_files"], str(x["community"])))
+    page = rows[offset:offset + limit]
+    truncated = offset + limit < len(rows)
     return {"status": "REVIEW" if rows else "PASS", "candidate_count": len(rows),
-            "candidates": rows[:limit], "truncated": len(rows) > limit,
-            "pagination": {"offset": 0, "total": len(rows), "returned": min(len(rows), limit), "truncated": len(rows) > limit},
+            "candidates": page, "truncated": truncated,
+            "pagination": {"offset": offset, "total": len(rows), "returned": len(page), "truncated": truncated},
             "limitation": "Leiden partitions are heuristics; domain ownership and runtime tests prevail."}
 
 

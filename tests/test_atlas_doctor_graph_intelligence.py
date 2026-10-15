@@ -246,6 +246,37 @@ class GraphIntelligenceTests(unittest.TestCase):
         self.assertEqual(catalog["production_files"], 2)
         self.assertFalse(catalog["automatic_merge"])
 
+    def test_cohesion_pages_are_complete_without_duplicate_candidates(self):
+        # 35 independent community IDs all have a distinct external bridge
+        # to the next group's two files; links from both sides produce
+        # enough distinct pairs for a genuine advisory review row.
+        nodes = [
+            {"id": f"{group}-{i}", "source_file": f"app/group{group}/f{i}.py",
+             "file_type": "code", "community": group}
+            for group in range(35) for i in range(2)
+        ]
+        links = [
+            {"source": f"{group}-{i}", "target": f"{(group + 1) % 35}-{j}",
+             "relation": "imports", "confidence": "EXTRACTED"}
+            for group in range(35) for i in range(2) for j in range(2)
+        ]
+        graph = {"nodes": nodes, "links": links}
+        expected = {i for i in range(35)}
+        seen = []
+        for offset in range(0, 40, 10):
+            response = analyze_community_boundaries(graph, limit=10, offset=offset)
+            self.assertEqual(response["candidate_count"], 35)
+            self.assertEqual(response["pagination"]["total"], 35)
+            self.assertEqual(response["pagination"]["offset"], offset)
+            seen.extend(row["community"] for row in response["candidates"])
+        self.assertEqual(set(seen), expected)
+        self.assertEqual(len(seen), len(expected))
+        self.assertFalse(analyze_community_boundaries(graph, offset=35)["pagination"]["truncated"])
+        with self.assertRaises(ValueError):
+            analyze_community_boundaries(graph, offset=-1)
+        with self.assertRaises(ValueError):
+            analyze_community_boundaries(graph, limit=0)
+
     def test_tracked_consumer_sweep_never_calls_absence_dead_code(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

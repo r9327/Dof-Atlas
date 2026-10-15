@@ -96,3 +96,20 @@ Les 496 communautés et 76 candidats n'ont **pas** été vérifiés
 individuellement au HEAD courant : le registre complet de l'archive #160
 reste la source, et les prochains triages doivent disposer des membres,
 consumers et tests, pas seulement d'un score Leiden.
+
+
+## Pagination sans reconstruction répétée — 15/10/2026
+
+La section `community_cohesion` ne publiait que `candidates[:30]` même
+si `--community-offset` paginait déjà les **communautés isolées**
+(autre section). Un examen réparti en pages faisait donc perdre des
+candidats de cohésion après la première page.
+
+L'API `analyze_community_boundaries(..., offset=...)` et la CLI
+`graph-audit --cohesion-offset N` exposent maintenant la tranche,
+le total et la troncature de **cette** section. Le graphe est lu et
+validé une fois par commande, et peut être réutilisé par l'appelant
+pour paginer sans relancer `graph --rebuild`. Un test négatif refuse
+offset négatif ou limite nulle ; un test à 35 candidats vérifie
+l'union exacte des pages sans répétition. Les décisions restent
+advisory ; aucune fusion/suppression automatique.
