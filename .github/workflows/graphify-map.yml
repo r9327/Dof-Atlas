@@ -10,10 +10,14 @@ on:
       - main
     paths:
       - "app/**"
+      - "main.py"
+      - "launch.py"
+      - "sitecustomize.py"
+      - "local_dofus_data/**"
+      - "tools/atlas_doctor.py"
+      - "tools/atlas_doctor_lib/**"
       - "tools/graphify.py"
       - "tools/agent_graph.py"
-      - "tools/atlas_doctor_lib/graph_audit.py"
-      - "tools/atlas_doctor_lib/graph_intelligence.py"
       - ".graphifyignore"
       - ".github/workflows/graphify-map.yml"
   push:
@@ -22,10 +26,14 @@ on:
       - phase8/graphify-staged-cleanup-v1
     paths:
       - "app/**"
+      - "main.py"
+      - "launch.py"
+      - "sitecustomize.py"
+      - "local_dofus_data/**"
+      - "tools/atlas_doctor.py"
+      - "tools/atlas_doctor_lib/**"
       - "tools/graphify.py"
       - "tools/agent_graph.py"
-      - "tools/atlas_doctor_lib/graph_audit.py"
-      - "tools/atlas_doctor_lib/graph_intelligence.py"
       - ".graphifyignore"
       - ".github/workflows/graphify-map.yml"
 

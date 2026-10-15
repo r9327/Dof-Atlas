@@ -2,153 +2,153 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "sha": "a41129145d8bd5c5b307d2b463e4641e16870c8b",
-      "type": "tree"
+      "type": "tree",
+      "sha": "a41129145d8bd5c5b307d2b463e4641e16870c8b"
     },
     ".codex": {
       "mode": "040000",
-      "sha": "9d1a91cf04dbd57611db7d0c710671e502b3984f",
-      "type": "tree"
+      "type": "tree",
+      "sha": "9d1a91cf04dbd57611db7d0c710671e502b3984f"
     },
     ".gitattributes": {
       "mode": "100644",
-      "sha": "b6e33ec00935afc2113f6565c3934b2b68854b82",
-      "type": "blob"
+      "type": "blob",
+      "sha": "b6e33ec00935afc2113f6565c3934b2b68854b82"
     },
     ".githooks": {
       "mode": "040000",
-      "sha": "767c1467ef461f7eebfe1e1696cbcb5511166268",
-      "type": "tree"
+      "type": "tree",
+      "sha": "767c1467ef461f7eebfe1e1696cbcb5511166268"
     },
     ".github": {
       "mode": "040000",
-      "sha": "d90aef324adcead15243cdaa8dd8de13234daec5",
-      "type": "tree"
+      "type": "tree",
+      "sha": "c2c65707dc9eddcfc32c6589dc20c244d15013e3"
     },
     ".gitignore": {
       "mode": "100644",
-      "sha": "745a846157e2614b8451222cc9d0fe28f2eb78d9",
-      "type": "blob"
+      "type": "blob",
+      "sha": "745a846157e2614b8451222cc9d0fe28f2eb78d9"
     },
     ".graphifyignore": {
       "mode": "100644",
-      "sha": "2d5b414b9533c228bd93a109cc47507a49a6fbe4",
-      "type": "blob"
+      "type": "blob",
+      "sha": "2d5b414b9533c228bd93a109cc47507a49a6fbe4"
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "fc26dd6714b198c9081abbb71c422edcc0887659",
-      "type": "blob"
+      "type": "blob",
+      "sha": "fc26dd6714b198c9081abbb71c422edcc0887659"
     },
     "AI_CONTEXT.md": {
       "mode": "100644",
-      "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
-      "type": "blob"
+      "type": "blob",
+      "sha": "21797f68af70490bb9459d2029678c8e273e64ff"
     },
     "DEVELOPMENT_GUARDRAILS.md": {
       "mode": "100644",
-      "sha": "39c4bdfaee0d29728e2abfc1069a0426a42ff73f",
-      "type": "blob"
+      "type": "blob",
+      "sha": "39c4bdfaee0d29728e2abfc1069a0426a42ff73f"
     },
     "DOCTOR_ADAPTIVE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "1f75d2db0db3fcbd49765db05fd56c67243b7563",
-      "type": "blob"
+      "type": "blob",
+      "sha": "1f75d2db0db3fcbd49765db05fd56c67243b7563"
     },
     "DOFUS.bat": {
       "mode": "100644",
-      "sha": "64f3d36375e3ec77c95146cce135a4a263c04132",
-      "type": "blob"
+      "type": "blob",
+      "sha": "64f3d36375e3ec77c95146cce135a4a263c04132"
     },
     "GITHUB_PROTECTION.md": {
       "mode": "100644",
-      "sha": "1d4b12864859a9f518d599fe9fe9f6ad16deed1d",
-      "type": "blob"
+      "type": "blob",
+      "sha": "1d4b12864859a9f518d599fe9fe9f6ad16deed1d"
     },
     "GRAPHIFY.md": {
       "mode": "100644",
-      "sha": "9d7864b60257ee12d353706b563253a331e7ec47",
-      "type": "blob"
+      "type": "blob",
+      "sha": "9d7864b60257ee12d353706b563253a331e7ec47"
     },
     "GUIDE_ULTIME_STATUS.md": {
       "mode": "100644",
-      "sha": "9ad2c1c5f039c7a34c31621ac59dc405590de13f",
-      "type": "blob"
+      "type": "blob",
+      "sha": "9ad2c1c5f039c7a34c31621ac59dc405590de13f"
     },
     "PERFORMANCE_GUARDRAILS.md": {
       "mode": "100644",
-      "sha": "dc57372db669fa795a18a610d4f0e7e15876194f",
-      "type": "blob"
+      "type": "blob",
+      "sha": "dc57372db669fa795a18a610d4f0e7e15876194f"
     },
     "PHASE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "58917d7736c1a52941a7571199329a2f8598f731",
-      "type": "blob"
+      "type": "blob",
+      "sha": "58917d7736c1a52941a7571199329a2f8598f731"
     },
     "ROAD_IA.md": {
       "mode": "100644",
-      "sha": "7bec21d161e3680967f120d3a17313ed4f7d5a71",
-      "type": "blob"
+      "type": "blob",
+      "sha": "7bec21d161e3680967f120d3a17313ed4f7d5a71"
     },
     "ZERO_TRUST_RULES.md": {
       "mode": "100644",
-      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a",
-      "type": "blob"
+      "type": "blob",
+      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a"
     },
     "app": {
       "mode": "040000",
-      "sha": "c50ef04e8ef8ff22382d0fa0a45f2f530ed32231",
-      "type": "tree"
+      "type": "tree",
+      "sha": "c50ef04e8ef8ff22382d0fa0a45f2f530ed32231"
     },
     "data": {
       "mode": "040000",
-      "sha": "525aafccbe7d9f5e008ba29741491c87924354c5",
-      "type": "tree"
+      "type": "tree",
+      "sha": "525aafccbe7d9f5e008ba29741491c87924354c5"
     },
     "docs": {
       "mode": "040000",
-      "sha": "39858b3880e7fb4ed518c9c2a74ae217d7be31eb",
-      "type": "tree"
+      "type": "tree",
+      "sha": "4bfece0476f0b5f60346279092bdd799448f042e"
     },
     "launch.py": {
       "mode": "100644",
-      "sha": "f4d5b5335d7f07b9150bbc6c3407643a2e57d182",
-      "type": "blob"
+      "type": "blob",
+      "sha": "f4d5b5335d7f07b9150bbc6c3407643a2e57d182"
     },
     "local_dofus_data": {
       "mode": "040000",
-      "sha": "ebf9749c77c5bdbb12aed3d44e8b4d01ed276d76",
-      "type": "tree"
+      "type": "tree",
+      "sha": "ebf9749c77c5bdbb12aed3d44e8b4d01ed276d76"
     },
     "main.py": {
       "mode": "100644",
-      "sha": "e73663f201f6aa25cd05d8c9ecd303c75f0b0b33",
-      "type": "blob"
+      "type": "blob",
+      "sha": "e73663f201f6aa25cd05d8c9ecd303c75f0b0b33"
     },
     "requirements-pyside.txt": {
       "mode": "100644",
-      "sha": "d91459ed7002ed66d12f40061f65ab87e02bbb05",
-      "type": "blob"
+      "type": "blob",
+      "sha": "d91459ed7002ed66d12f40061f65ab87e02bbb05"
     },
     "scripts": {
       "mode": "040000",
-      "sha": "b0332f7f3dcc14c8205a65ab0056d1fd5005c27a",
-      "type": "tree"
+      "type": "tree",
+      "sha": "b0332f7f3dcc14c8205a65ab0056d1fd5005c27a"
     },
     "sitecustomize.py": {
       "mode": "100644",
-      "sha": "70246841cad0d4e2e850a9e4627f8b89ec0d7115",
-      "type": "blob"
+      "type": "blob",
+      "sha": "70246841cad0d4e2e850a9e4627f8b89ec0d7115"
     },
     "tests": {
       "mode": "040000",
-      "sha": "c9086cbcecec615810f1f601a8a2030303ab5303",
-      "type": "tree"
+      "type": "tree",
+      "sha": "8f3f02b8acbd1174d5683095304e528c407d3209"
     },
     "tools": {
       "mode": "040000",
-      "sha": "a70cfbe9bfa1d955e520c26d1352c0e8d4b4c0d5",
-      "type": "tree"
+      "type": "tree",
+      "sha": "829db0e2d16248676e7cb3f1a8c16ef4c97bffa0"
     }
   },
   "excluded_top_level": [
