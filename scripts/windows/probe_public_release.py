@@ -14,6 +14,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 from pathlib import Path
 
@@ -104,11 +105,64 @@ def verify_frozen_setup(setup: Path, release) -> None:
         raise UpdateError("Installed public launcher failed offline bootstrap")
 
 
+
+def verify_full_first_install(release, *, deadline_seconds: int = 2700) -> None:
+    """Run the published launcher from an empty Windows runtime to healthy Qt.
+
+    This deliberately transfers the entire public multipart payload, verifies
+    files and waits until the transactional version leaves pending state.
+    Only invoked by the one-time full E2E job, not routine CI.
+    """
+    if os.name != "nt":
+        raise UpdateError("Full initial install requires a Windows runner")
+    local = os.environ.get("LOCALAPPDATA")
+    if not local:
+        raise UpdateError("Missing Windows LOCALAPPDATA")
+    root = Path(local) / "DofusAtlas" / "runtime"
+    log = Path(local) / "DofusAtlas" / "logs" / "updater.log"
+    launcher = Path(local) / "Programs" / "DofusAtlas" / "DofusAtlas.exe"
+    from app.distribution.install import active_executable, read_state
+    if read_state(root).get("active"):
+        raise UpdateError("Full first-install test requires a clean Windows runtime")
+    env = os.environ.copy()
+    env.update({
+        "QT_QPA_PLATFORM": "offscreen",
+        "QTWEBENGINE_CHROMIUM_FLAGS": "--disable-gpu --no-sandbox",
+        "QTWEBENGINE_DISABLE_SANDBOX": "1",
+    })
+    print("Starting actual public launcher and multi-GB first installation", flush=True)
+    proc = subprocess.Popen([str(launcher)], cwd=str(launcher.parent), env=env)
+    deadline = time.monotonic() + deadline_seconds
+    try:
+        while time.monotonic() < deadline:
+            state = read_state(root)
+            if (state.get("source_sha") == release.manifest.source_sha and
+                    state.get("active") and not state.get("pending")):
+                executable = active_executable(root)
+                if executable is not None:
+                    print("VERIFIED: full public download, integrity, Qt health", flush=True)
+                    return
+            try:
+                error_text = log.read_text(encoding="utf-8") if log.is_file() else ""
+            except OSError:
+                error_text = ""
+            if "Updater failed" in error_text:
+                raise UpdateError("Actual first installation failed: " + error_text[-900:])
+            if proc.poll() is not None:
+                raise UpdateError("Public launcher exited before activating Atlas: " +
+                                  error_text[-600:])
+            time.sleep(8)
+        raise UpdateError("Full public installation timed out after 45 minutes")
+    finally:
+        if proc.poll() is None:
+            proc.terminate()
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--expected-source-sha", default="")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--verify-setup", action="store_true")
+    parser.add_argument("--full-install", action="store_true")
     args = parser.parse_args(argv)
     report = {"status": "FAILED", "source_sha": "", "parts": []}
     try:
@@ -120,10 +174,12 @@ def main(argv: list[str] | None = None) -> int:
         if doc.get("draft") or doc.get("prerelease") or doc.get("tag_name") != release.tag:
             raise UpdateError("Public API release tag does not match latest stable manifest")
         report["parts"] = probe_parts(release)
-        if args.verify_setup:
+        if args.verify_setup or args.full_install:
             with tempfile.TemporaryDirectory(prefix="atlas-public-setup-") as temp:
                 setup = download_public_setup(doc, release, Path(temp))
                 verify_frozen_setup(setup, release)
+            if args.full_install:
+                verify_full_first_install(release)
         report["status"] = "PASS"
     except (UpdateError, OSError, ValueError, KeyError, subprocess.TimeoutExpired) as exc:
         report["error"] = str(exc)

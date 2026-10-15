@@ -1,6 +1,11 @@
 name: Atlas Public Release Smoke
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/atlas-public-release-smoke.yml"
+      - "scripts/windows/probe_public_release.py"
   workflow_dispatch:
   workflow_run:
     workflows: ["Atlas Windows Distribution"]
@@ -18,7 +23,7 @@ jobs:
   public-windows-install:
     name: Public GitHub CDN + Frozen Setup on fresh Windows
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_dispatch' || github.event_name == 'push' ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.event == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
@@ -49,5 +54,36 @@ jobs:
         with:
           name: atlas-public-install-evidence-${{ github.run_id }}
           path: artifacts/public_release_probe.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  complete-first-install:
+    name: E2E first boot — public 2.66 GB download + Qt-ready activation
+    needs: [public-windows-install]
+    # Run once on the certification workflow's first main merge.
+    # Future releases use lightweight public HTTP/Setup checks only.
+    if: github.event_name == 'push'
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - name: Checkout production smoke
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Configure Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Download complete public Release and activate Qt application
+        shell: pwsh
+        run: |
+          python -m scripts.windows.probe_public_release --full-install --output artifacts/public_full_first_install.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Keep full first-install evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: atlas-full-first-install-${{ github.run_id }}
+          path: artifacts/public_full_first_install.json
           if-no-files-found: warn
           retention-days: 30
