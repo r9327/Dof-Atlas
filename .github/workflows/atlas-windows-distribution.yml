@@ -282,6 +282,7 @@ jobs:
               raise SystemExit("First-install Craft database missing")
           PY
           dist/AtlasApp/AtlasApp.exe --atlas-craft-smoke
+          dist/AtlasApp/AtlasApp.exe --atlas-map-state-smoke
       - name: Real Qt window health smoke (no Python user installation)
         shell: pwsh
         env:
