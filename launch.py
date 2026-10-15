@@ -30,6 +30,40 @@ def main() -> int:
         print(f"VERIFIED: {count} frozen quests")
         return 0
 
+    if sys.argv[1:2] == ["--atlas-domain-smoke"]:
+        domain = sys.argv[2] if len(sys.argv) > 2 else ""
+        if domain not in {"guide", "success"}:
+            print("Unsupported Atlas domain smoke", file=sys.stderr)
+            return 2
+        # Certify the same disposable cache-domain builders used by startup.
+        from app.startup_cache_domain_worker import run_domain
+        result = run_domain(domain)
+        tasks = result.get("tasks") or {}
+        if domain == "guide":
+            catalog = tasks.get("guide") or {}
+            items = tasks.get("guide_items") or {}
+            if int(catalog.get("guide_count") or 0) <= 0 or int(items.get("item_count") or 0) <= 0:
+                print(f"Frozen Guide data incomplete: {tasks}", file=sys.stderr)
+                return 6
+        else:
+            retained = tasks.get("success") or {}
+            if int(retained.get("retained_count") or 0) <= 0:
+                print(f"Frozen Success data incomplete: {tasks}", file=sys.stderr)
+                return 7
+        print(f"VERIFIED: frozen {domain} startup data")
+        return 0
+
+    if sys.argv[1:2] == ["--atlas-success-detail-smoke"]:
+        from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+        provider = AchievementProvider()
+        achievements = provider.load_all()
+        candidate = next((item for item in achievements if item.reward_ids), None)
+        if candidate is None or provider.get_detail_by_id(candidate.id) is None:
+            print("Frozen Success rewards/detail unavailable", file=sys.stderr)
+            return 8
+        print(f"VERIFIED: frozen Success detail for ID {candidate.id}")
+        return 0
+
     # A frozen executable is not a Python interpreter. It must explicitly
     # dispatch trusted workers instead of interpreting "-m module" as GUI args.
     if getattr(sys, "frozen", False) and sys.argv[1:2] == ["-m"]:
