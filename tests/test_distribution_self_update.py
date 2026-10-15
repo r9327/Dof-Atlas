@@ -60,6 +60,8 @@ class LauncherUpgradeTests(unittest.TestCase):
             candidate.write_bytes(b"MZnew")
             digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
             with patch.dict(os.environ, {"LOCALAPPDATA": str(base)}), patch(
+                "app.distribution.install_location.runtime_root", return_value=downloads.parent
+            ), patch(
                 "app.distribution.setup._wait_for_parent"
             ) as waiter, patch(
                 "app.distribution.setup._verify_launcher_starts"
@@ -83,6 +85,8 @@ class LauncherUpgradeTests(unittest.TestCase):
             candidate.write_bytes(b"MZnew-but-broken")
             digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
             with patch.dict(os.environ, {"LOCALAPPDATA": str(base)}), patch(
+                "app.distribution.install_location.runtime_root", return_value=downloads.parent
+            ), patch(
                 "app.distribution.setup._wait_for_parent"
             ), patch("app.distribution.setup._verify_launcher_starts",
                      side_effect=[None, RuntimeError("failed after replacement")]):
