@@ -22,17 +22,38 @@ RELATIVE_ROOT = Path("data/cache/dofus_maps/raw/doduda_cli")
 _MAX_SOURCE_BYTES = 128 * 1024 * 1024
 
 
-def required_sources(source_root: Path) -> tuple[str, ...]:
-    """Extract the canonical static source inventory, without importing Qt/app."""
-    module = ast.parse((source_root / "app/quest_catalog.py").read_text(encoding="utf-8"))
+def _static_inventory(source_root: Path, relative_module: str, name: str):
+    """Read a literal runtime inventory without importing Qt or loading data."""
+    module = ast.parse((source_root / relative_module).read_text(encoding="utf-8"))
     for statement in module.body:
         if isinstance(statement, ast.Assign) and any(
-            isinstance(target, ast.Name) and target.id == "QUEST_CATALOG_SOURCE_FILES"
+            isinstance(target, ast.Name) and target.id == name
             for target in statement.targets
         ):
-            entries = ast.literal_eval(statement.value)
-            return tuple(path for _, path in entries)
-    raise ValueError("QUEST_CATALOG_SOURCE_FILES inventory not found")
+            return ast.literal_eval(statement.value)
+    raise ValueError(f"{name} inventory not found in {relative_module}")
+
+
+def required_sources(source_root: Path) -> tuple[str, ...]:
+    """All required Quest AND Success sources, never just the Quest catalogue."""
+    quest_entries = _static_inventory(
+        source_root, "app/quest_catalog.py", "QUEST_CATALOG_SOURCE_FILES"
+    )
+    success_entries = _static_inventory(
+        source_root,
+        "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py",
+        "_ACHIEVEMENT_COMPACT_SOURCES",
+    )
+    detail_entries = _static_inventory(
+        source_root,
+        "app/modules/encyclopedia/providers/achievement_provider.py",
+        "_DETAIL_SOURCE_FILES",
+    )
+    paths = [entry[1] for entry in quest_entries] + list(success_entries) + list(detail_entries)
+    if not all(isinstance(path, str) and path and not Path(path).is_absolute()
+               and ".." not in Path(path).parts for path in paths):
+        raise ValueError("Unsafe or invalid runtime Quest/Success inventory")
+    return tuple(dict.fromkeys(paths))
 
 
 def read_lock(source_root: Path) -> dict:
