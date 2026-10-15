@@ -64,6 +64,45 @@ def main() -> int:
         print(f"VERIFIED: frozen Success detail for ID {candidate.id}")
         return 0
 
+    if sys.argv[1:2] == ["--atlas-craft-smoke"]:
+        import sqlite3
+        from app.craft_preload import build_compact_craft_preload
+        from local_dofus_data.config import DEFAULT_CONFIG
+        from local_dofus_data.compatibility_adapter import LocalCompatibilityAdapter
+        ready = build_compact_craft_preload()
+        if not ready.get("_prepared") or ready.get("errors") or not ready.get("jobs"):
+            print(f"Frozen Craft preload failed: {ready.get('errors') or ready.get('_skipped_reason')}",
+                  file=sys.stderr)
+            return 9
+        with sqlite3.connect(DEFAULT_CONFIG.sqlite_path) as db:
+            item_count = db.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+            recipe_count = db.execute("SELECT COUNT(*) FROM recipes").fetchone()[0]
+            ingredient_count = db.execute("SELECT COUNT(*) FROM recipe_ingredients").fetchone()[0]
+            rows = db.execute(
+                "SELECT i.name_fr FROM items i JOIN recipes r "
+                "ON i.ankama_id=r.result_ankama_id "
+                "WHERE i.name_fr<>'' ORDER BY r.id LIMIT 10"
+            ).fetchall()
+        if item_count < 1000 or recipe_count < 100 or ingredient_count < 100 or not rows:
+            print("Frozen Craft catalog incomplete", file=sys.stderr)
+            return 10
+        adapter = LocalCompatibilityAdapter()
+        try:
+            results = adapter.search_craft_items(rows[0][0], limit=3)
+            if not results:
+                print("Frozen Craft search empty", file=sys.stderr)
+                return 11
+            ident = results[0].get("id_dofus") or results[0].get("ankama_id")
+            recipe = adapter.get_recipe(ident)
+            if not recipe:
+                print("Frozen Craft recipe lookup failed", file=sys.stderr)
+                return 12
+        finally:
+            adapter.close()
+        print(f"VERIFIED: frozen Craft catalog {item_count} items, "
+              f"{recipe_count} recipes, {ingredient_count} ingredients")
+        return 0
+
     # A frozen executable is not a Python interpreter. It must explicitly
     # dispatch trusted workers instead of interpreting "-m module" as GUI args.
     if getattr(sys, "frozen", False) and sys.argv[1:2] == ["-m"]:
