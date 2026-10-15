@@ -179,7 +179,8 @@ def verify_full_first_install(release, *, deadline_seconds: int = 2700) -> None:
                     current = latest_release().manifest.source_sha
                     if installed not in {release.manifest.source_sha, current}:
                         raise UpdateError("Unexpected public source SHA installed")
-                    print("VERIFIED: full public download, integrity, Qt health", flush=True)
+                    verify_public_quest_sources(executable, env=env)
+                    print("VERIFIED: full public download, integrity, Qt health and Quest sources", flush=True)
                     return
             try:
                 error_text = log.read_text(encoding="utf-8") if log.is_file() else ""
