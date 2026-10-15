@@ -22,7 +22,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "d4df800520c399e93c15be4a84410dc9126b299b",
+      "sha": "ecfd1daef4ca1d5850a2c97b491d463b273e9d35",
       "type": "tree"
     },
     ".gitignore": {
@@ -97,7 +97,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "82aa926bd8b47a0f13e94df890c8b905e4acfa0f",
+      "sha": "57d54f6e2c42de6b8e5b3dcb75d3c5ae5cc14a77",
       "type": "tree"
     },
     "data": {
@@ -112,7 +112,7 @@
     },
     "launch.py": {
       "mode": "100644",
-      "sha": "6933c038d1a8eeecc90a54ada16b56fbe225fb6f",
+      "sha": "519ab8b5abeac73ac4ea7f5a7d3f18c56549a6f5",
       "type": "blob"
     },
     "local_dofus_data": {
@@ -142,7 +142,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "ca2baf439993c4a6bed205fdc117df1082487dd5",
+      "sha": "b13aa83ea7b25e060adf651a08db14cc564cc562",
       "type": "tree"
     },
     "tools": {
