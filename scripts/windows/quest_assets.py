@@ -22,17 +22,41 @@ RELATIVE_ROOT = Path("data/cache/dofus_maps/raw/doduda_cli")
 _MAX_SOURCE_BYTES = 128 * 1024 * 1024
 
 
-def required_sources(source_root: Path) -> tuple[str, ...]:
-    """Extract the canonical static source inventory, without importing Qt/app."""
-    module = ast.parse((source_root / "app/quest_catalog.py").read_text(encoding="utf-8"))
+def _static_assignment(source_root: Path, module_path: str, name: str):
+    """Read a constant without importing the application or loading Qt."""
+    module = ast.parse((source_root / module_path).read_text(encoding="utf-8"))
     for statement in module.body:
-        if isinstance(statement, ast.Assign) and any(
-            isinstance(target, ast.Name) and target.id == "QUEST_CATALOG_SOURCE_FILES"
-            for target in statement.targets
-        ):
-            entries = ast.literal_eval(statement.value)
-            return tuple(path for _, path in entries)
-    raise ValueError("QUEST_CATALOG_SOURCE_FILES inventory not found")
+        if isinstance(statement, (ast.Assign, ast.AnnAssign)):
+            targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+            if any(isinstance(target, ast.Name) and target.id == name for target in targets):
+                return ast.literal_eval(statement.value)
+    raise ValueError(f"Runtime data inventory missing: {module_path}:{name}")
+
+
+def required_sources(source_root: Path) -> tuple[str, ...]:
+    """Union of Quest, Guide, Success and reward-detail source contracts.
+
+    Each module maintains its own static inventory. A new required dataset must
+    make the locked Windows build fail until its official digest is reviewed.
+    """
+    quest_sources = _static_assignment(source_root, "app/quest_catalog.py", "QUEST_CATALOG_SOURCE_FILES")
+    sources = {path for _, path in quest_sources}
+    for name in ("_QUEST_SOURCE_FILES", "_SUCCESS_SOURCE_FILES", "_GUIDE_EXTRA_SOURCE_FILES"):
+        sources.update(_static_assignment(source_root, "app/startup_cache_warmup.py", name))
+    sources.update(_static_assignment(
+        source_root,
+        "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py",
+        "_ACHIEVEMENT_COMPACT_SOURCES",
+    ))
+    sources.update(_static_assignment(
+        source_root,
+        "app/modules/encyclopedia/providers/achievement_provider.py",
+        "_DETAIL_SOURCE_FILES",
+    ))
+    if not sources:
+        raise ValueError("No frozen Quest/Guide/Success runtime sources found")
+    return tuple(sorted(sources))
+
 
 
 def read_lock(source_root: Path) -> dict:
@@ -69,7 +93,9 @@ def _check_structure(path: Path, filename: str) -> None:
     if filename not in {
         "quest_categories.json", "quests.json", "achievements.json",
         "achievement_categories.json", "achievement_objectives.json",
-        "languages/fr.json",
+        "languages/fr.json", "dungeons.json", "item_types.json",
+        "effects.json", "achievement_rewards.json", "ornaments.json",
+        "alterations.json",
     }:
         return
     with path.open("r", encoding="utf-8") as handle:
