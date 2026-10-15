@@ -102,6 +102,7 @@ def run_update(report) -> None:
             report("Version precedente restauree", 3)
         prior = read_state(ROOT)
         remote = None
+        update_failure: UpdateError | OSError | None = None
         try:
             report("Verification des mises a jour...", 5)
             remote = latest_release()
@@ -169,11 +170,17 @@ def run_update(report) -> None:
             else:
                 report("Atlas est a jour", 96)
         except (UpdateError, OSError) as exc:
-            log.warning("Update unavailable, trying last installed version: %s", exc)
-            report("Mise a jour indisponible — mode hors ligne", 90)
+            update_failure = exc
+            log.warning("Update unavailable, trying last installed version: %s", exc, exc_info=True)
+            if active_executable(ROOT) is not None:
+                report("Mise a jour indisponible — mode hors ligne", 90)
         executable = active_executable(ROOT)
         if executable is None:
-            raise UpdateError("Aucune version installee : connexion necessaire au premier lancement")
+            if update_failure is not None:
+                raise UpdateError(
+                    f"Premiere installation impossible : {update_failure}"
+                ) from update_failure
+            raise UpdateError("Premiere installation impossible : aucune version disponible")
         was_pending = read_state(ROOT)["pending"]
         if not _launch_with_health(executable, report,
                                    settle_seconds=2.0 if was_pending else 0):
@@ -218,7 +225,7 @@ def main() -> int:
             return 1
 
     window.title("Dofus Atlas — Mise a jour")
-    window.geometry("510x235")
+    window.geometry("510x260")
     window.resizable(False, False)
     window.configure(bg="#101826")
     try:
@@ -231,7 +238,7 @@ def main() -> int:
              bg="#101826", fg="#8fa5bd", font=("Segoe UI", 10)).pack()
     status = tk.StringVar(value="Initialisation...")
     tk.Label(window, textvariable=status, bg="#101826", fg="#d2deeb",
-             font=("Segoe UI", 10)).pack(pady=(19, 7))
+             font=("Segoe UI", 10), wraplength=475, justify="center").pack(pady=(19, 7))
     style = ttk.Style(window)
     style.theme_use("clam")
     style.configure("Atlas.Horizontal.TProgressbar", troughcolor="#27364b",
@@ -272,8 +279,8 @@ def main() -> int:
                     window.after(550, window.destroy)
                 elif kind == "error":
                     finished = True
-                    status.set("Echec : " + str(payload)[:115])
-                    numeric.set("Fermez cette fenetre et reessayez")
+                    status.set("Echec : " + str(payload))
+                    numeric.set("Journal : DofusAtlas/logs/updater.log")
         except queue.Empty:
             pass
         if not finished:
