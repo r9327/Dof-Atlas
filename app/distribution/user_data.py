@@ -58,14 +58,59 @@ def _seed_craft_database(executable: Path, user_root: Path) -> None:
         Path(filename).unlink(missing_ok=True)
 
 
+def _migrate_world_database(user_root: Path, sources: list[Path]) -> None:
+    """Backup the previous version's WAL-backed scan DB before an update.
+
+    SQLite backup (rather than copy2) includes pending WAL state. The frozen
+    executable no longer writes its own version's `data/dofus_atlas_world.db`.
+    """
+    target = user_root / "data" / "dofus_atlas_world.db"
+    if target.is_symlink():
+        raise ValueError("Unsafe map database destination")
+    if target.exists():
+        return
+    for root in sources:
+        source = root / "data" / "dofus_atlas_world.db"
+        if source.is_symlink() or not source.is_file():
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        fd, name = tempfile.mkstemp(prefix=".atlas-world-migrate-", suffix=".sqlite",
+                                    dir=target.parent)
+        os.close(fd)
+        try:
+            with closing(sqlite3.connect(source.resolve().as_uri() + "?mode=ro", uri=True)) as old:
+                with closing(sqlite3.connect(name)) as new:
+                    old.backup(new)
+                    new.commit()
+                    if new.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                        raise ValueError("Existing map scan database failed integrity check")
+                    tables = {row[0] for row in new.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    )}
+                    if not {"maps", "map_views"}.issubset(tables):
+                        raise ValueError("Legacy map database has no expected tables")
+            if not target.exists():
+                os.replace(name, target)
+        finally:
+            Path(name).unlink(missing_ok=True)
+        return
+
+
 def prepare_user_data(executable: Path, user_root: Path,
-                      legacy_root: Path | None = None) -> None:
+                      legacy_root: Path | None = None,
+                      previous_install_root: Path | None = None) -> None:
     """Seed missing user files from a legacy source clone, then from the bundle.
 
     Existing saved profiles/progress always take precedence. Sources are scanned
     only on the first launch of each frozen package; later launches stay fast.
     """
     user_root.mkdir(parents=True, exist_ok=True)
+    map_sources = []
+    if previous_install_root is not None:
+        map_sources.append(previous_install_root)
+    if legacy_root is not None and (legacy_root / "DOFUS.bat").is_file():
+        map_sources.append(legacy_root)
+    _migrate_world_database(user_root, map_sources)
     marker = user_root / ".initialized" / (executable.parent.parent.name + ".ready")
     if marker.is_file():
         _seed_craft_database(executable, user_root)
