@@ -33,12 +33,15 @@ def _seed_craft_database(executable: Path, user_root: Path) -> None:
         raise ValueError("Unsafe Craft SQLite destination")
     if dest.exists():
         return
-    with sqlite3.connect(source.resolve().as_uri() + "?mode=ro&immutable=1", uri=True) as db:
-        if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-            raise ValueError("Bundled Craft SQLite is corrupt")
-        for table in ("items", "jobs", "recipes", "recipe_ingredients"):
-            if not db.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone():
-                raise ValueError(f"Bundled Craft data missing: {table}")
+    try:
+        with sqlite3.connect(source.resolve().as_uri() + "?mode=ro&immutable=1", uri=True) as db:
+            if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                raise ValueError("Bundled Craft SQLite is corrupt")
+            for table in ("items", "jobs", "recipes", "recipe_ingredients"):
+                if not db.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone():
+                    raise ValueError(f"Bundled Craft data missing: {table}")
+    except sqlite3.DatabaseError as exc:
+        raise ValueError("Bundled Craft database invalid") from exc
     dest.parent.mkdir(parents=True, exist_ok=True)
     fd, filename = tempfile.mkstemp(prefix=".atlas-craft-seed-", dir=dest.parent)
     try:
