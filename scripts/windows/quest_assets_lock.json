@@ -107,6 +107,26 @@
       "asset": "char_xp_mappings.json",
       "size": 514283,
       "sha256": "a4ce0fb85b52af4c5635a249a9b4bfe92040659d59ebe473d6908c0915b58b86"
+    },
+    "dungeons.json": {
+      "asset": "dungeons.json",
+      "size": 104719,
+      "sha256": "9828b6a1bcb75ef2209fe7da9454df91151f04cbd82c460c5fd122327546a456"
+    },
+    "achievement_rewards.json": {
+      "asset": "achievement_rewards.json",
+      "size": 3368096,
+      "sha256": "4623a62d7a20d3b017afd3bde84a937ab8923d8f4ed066b0618277c6e789ad6f"
+    },
+    "ornaments.json": {
+      "asset": "ornaments.json",
+      "size": 42196,
+      "sha256": "e1dae3fc32dbe4b8ef2240277878234c0b0563282a92694a7e702deb6dd10950"
+    },
+    "alterations.json": {
+      "asset": "alterations.json",
+      "size": 712327,
+      "sha256": "b26c8344bbaf6bc4f3cc8f8740a15bf5d825be170229bba35182189bb3c1ff03"
     }
   }
 }
