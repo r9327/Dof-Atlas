@@ -482,6 +482,15 @@ def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: in
     }
 
 
+def _cohesion_runtime_source(path: str | None) -> bool:
+    """Runtime Python code, excluding test/tool-only clustering noise."""
+    return bool(
+        path and path.endswith(".py")
+        and (_production(path) or path.startswith("local_dofus_data/")
+             or path == "launch.py" or path == "sitecustomize.py")
+    )
+
+
 def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVIEW) -> dict[str, Any]:
     """Advisory cohesion signals only; never force merges based on IDs."""
     summarize_graph(graph)
@@ -491,7 +500,7 @@ def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVI
     files: dict[Any, set[str]] = defaultdict(set)
     for node in nodes.values():
         path = _path(node.get("source_file"))
-        if _production(path) and node.get("file_type") == "code" and node.get("community") is not None:
+        if _cohesion_runtime_source(path) and node.get("file_type") == "code" and node.get("community") is not None:
             files[node["community"]].add(path)
     # Leiden communities can also contain docs, tests and tool nodes.
     # Count distinct production-file relationships only: repeated symbol edges
@@ -505,7 +514,7 @@ def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVI
         lp, rp = _path(left.get("source_file")), _path(right.get("source_file"))
         if (lc not in files or rc not in files
                 or left.get("file_type") != "code" or right.get("file_type") != "code"
-                or not _production(lp) or not _production(rp) or lp == rp):
+                or not _cohesion_runtime_source(lp) or not _cohesion_runtime_source(rp) or lp == rp):
             continue
         pair = frozenset(((lc, lp), (rc, rp)))
         if pair in seen_file_pairs:

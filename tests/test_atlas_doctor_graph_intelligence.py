@@ -221,6 +221,31 @@ class GraphIntelligenceTests(unittest.TestCase):
         self.assertEqual(row["evidence_scope"], "DISTINCT_PRODUCTION_FILE_PAIRS")
         self.assertFalse(row["automatic_merge"])
 
+    def test_cohesion_includes_runtime_local_catalog_and_entrypoints(self):
+        # local_dofus_data is used by the application; it is not tooling.
+        nodes = [
+            {"id": "a", "source_file": "local_dofus_data/catalog.py", "file_type": "code", "community": 0},
+            {"id": "b", "source_file": "app/core/entry.py", "file_type": "code", "community": 0},
+            {"id": "c", "source_file": "app/pages/screen.py", "file_type": "code", "community": 1},
+            {"id": "d", "source_file": "app/pages/detail.py", "file_type": "code", "community": 1},
+            {"id": "e", "source_file": "launch.py", "file_type": "code", "community": 1},
+            {"id": "f", "source_file": "tools/catalog_debug.py", "file_type": "code", "community": 1},
+        ]
+        links = [
+            {"source": source, "target": dest, "relation": "imports", "confidence": "EXTRACTED"}
+            for source in ("a", "b") for dest in ("c", "d", "e")
+        ]
+        links.extend([
+            {"source": "a", "target": "f", "relation": "imports", "confidence": "EXTRACTED"}
+            for _ in range(20)
+        ])
+        result = analyze_community_boundaries({"nodes": nodes, "links": links})
+        self.assertEqual(result["candidate_count"], 2)
+        catalog = next(row for row in result["candidates"] if row["community"] == 0)
+        self.assertEqual(catalog["external_extracted_edges"], 6)
+        self.assertEqual(catalog["production_files"], 2)
+        self.assertFalse(catalog["automatic_merge"])
+
     def test_tracked_consumer_sweep_never_calls_absence_dead_code(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

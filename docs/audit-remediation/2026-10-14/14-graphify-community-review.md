@@ -50,3 +50,49 @@ doublons de symboles et véritables ponts entre fichiers `app/`.
 **Important :** ce changement améliore le signal de triage ; il ne remplace
 ni l'enquête des 496 communautés historiques, ni la preuve de non-utilisation.
 Ce lot reste DRAFT jusqu'aux CI du SHA exact et à la revue nominative.
+
+
+## Complément ciblé — composants runtime hors `app/` (15/10/2026)
+
+Le premier filtre de cohésion traitait `app/` et `main.py` comme seuls
+composants Python de production, ce qui omettait les fichiers chargés depuis
+`local_dofus_data/` et les entrypoints `launch.py` et
+`sitecustomize.py`. Le correctif limite toujours les rapports aux
+paires distinctes de fichiers runtime et exclut `tools/` et `tests/`,
+sans modifier les autres diagnostics qui utilisent `_production()`.
+Un test injecte volontairement vingt liens venant de `tools/`
+et six liens runtime distincts ; seuls ces six comptent.
+
+### Quatre cycles du graphe historique : décisions sourcées
+
+Les quatre cycles ci-dessous sont tirés du chapitre 5 de l'audit
+`AUDIT_INTEGRAL_DOFUS_ATLAS_2026-10-14.md`, construit sur
+`main@ac07be9b`. Ils sont **historiques**, pas une certification du
+runtime actuel après corrections :
+
+| Famille | Portée établie dans l'audit original | Décision |
+|---|---|---|
+| `runtime_state ↔ macros` | imports de macros DEFERRED, retour TYPE_ONLY | CONSERVER, cold start et tests de modules préservés |
+| `guide_ultime_manual_view ↔ shared_manual_guide_view` | au moins un import DEFERRED | CONSERVER, la façade protège les consumers |
+| `guides_view ↔ quest_detail_view` | chemins DEFERRED | CONSERVER, détail chargé à la demande |
+| `quest_catalog ↔ quest_catalog_details` | séparation de l'accès metadata/détails | CONSERVER, pas de panne IMPORT_TIME prouvée |
+
+Un nouveau test exact-SHA de cycle IMPORT_TIME réel serait nécessaire
+pour changer ces décisions. Ne pas transformer les cycles en bugs ou
+supprimer la façade pour améliorer un compteur.
+
+### Groupes historiques déjà classés
+
+| Communauté(s) | Décision | Motif |
+|---|---|---|
+| 1, 5 | CONSERVER | modèle, infrastructure transverse et hooks; regroupement statistique |
+| 2 | CONSERVER | catalogue/détails et chargement différé distincts |
+| 4 | CONSERVER | pipeline capture/sécurité, frontières utiles |
+| 7 | CONSERVER | Craft/Organizer partagent des primitives, pas un seul propriétaire |
+| 21 | CONSERVER | UI/service/store persistance séparés |
+| 276, 359, 396, 415, 416, 419, 438 | NON SUPPRIMABLE d'après le seul graphe | nœuds isolés dans des fichiers effectivement connectés |
+
+Les 496 communautés et 76 candidats n'ont **pas** été vérifiés
+individuellement au HEAD courant : le registre complet de l'archive #160
+reste la source, et les prochains triages doivent disposer des membres,
+consumers et tests, pas seulement d'un score Leiden.
