@@ -5,6 +5,8 @@ on:
     paths:
       - "app/distribution/**"
       - "scripts/windows/package_release.py"
+      - "scripts/windows/materialize_quest_sources.py"
+      - "scripts/windows/quest_sources_lock.json"
       - "scripts/windows/repackage_data_only.py"
       - "scripts/windows/export_app_repository.py"
       - "scripts/windows/certify_app_export.py"
@@ -201,6 +203,10 @@ jobs:
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           python -m pip install pyinstaller==6.16.0
+      - name: Materialize pinned Quest sources missing from gitignored data/cache
+        run: |
+          python -m scripts.windows.materialize_quest_sources \
+            --destination data/cache/dofus_maps/raw/doduda_cli
       - name: Compile application bundle with QtWebEngine and worker modules
         run: |
           python -m PyInstaller --noconfirm --clean --onedir --windowed --name AtlasApp --paths . \
@@ -213,6 +219,10 @@ jobs:
             --collect-submodules app \
             --collect-submodules local_dofus_data \
             --add-data "data;data" launch.py
+      - name: Verify mandatory Quest JSON survived the frozen PyInstaller build
+        run: |
+          python -m scripts.windows.materialize_quest_sources --verify-only \
+            --destination dist/AtlasApp/_internal/data/cache/dofus_maps/raw/doduda_cli
       - name: Compile lightweight standalone launcher
         run: |
           python -m PyInstaller --noconfirm --clean --onefile --windowed \
@@ -243,6 +253,28 @@ jobs:
           }
       - name: Smoke check frozen QtWebEngine and assets
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
+      - name: Execute frozen Quest catalogue worker with actual source JSON
+        shell: pwsh
+        run: |
+          $env:DOFUS_ATLAS_USER_ROOT = Join-Path $env:RUNNER_TEMP "atlas-frozen-quest-worker"
+          $result = Join-Path $env:RUNNER_TEMP "atlas-quest-worker-count.txt"
+          Remove-Item -LiteralPath $result -Force -ErrorAction SilentlyContinue
+          $process = Start-Process -FilePath "dist/AtlasApp/AtlasApp.exe" \
+            -ArgumentList "-m app.quest_catalog_details --ensure-cache --result-file \"${result}\"" -PassThru
+          try {
+            Wait-Process -Id $process.Id -Timeout 300 -ErrorAction Stop
+          } catch {
+            $process.Refresh()
+            if (-not $process.HasExited) { $process.Kill() }
+            throw "Frozen Quest cache worker timed out"
+          }
+          $process.Refresh()
+          if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $result)) {
+            throw "Frozen Quest cache worker crashed or produced no result: exit=$($process.ExitCode)"
+          }
+          $count = [int](Get-Content -LiteralPath $result -Raw)
+          if ($count -le 0) { throw "Frozen Quest cache worker built an empty catalogue" }
+          Write-Host "VERIFIED: frozen Quest catalogue indexed $count quests"
       - name: Real Qt window health smoke (no Python user installation)
         shell: pwsh
         env:
