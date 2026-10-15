@@ -1,7 +1,10 @@
 """Initialize durable user data once per installed version, without overwrites."""
 from __future__ import annotations
 
+import os
 import shutil
+import sqlite3
+import tempfile
 from pathlib import Path
 
 _USER_PATHS = (
@@ -15,6 +18,42 @@ _USER_PATHS = (
 )
 
 
+def _seed_craft_database(executable: Path, user_root: Path) -> None:
+    """Copy the official public seed once, atomically, never overwrite progress.
+
+    The public release manifest authenticates the packaged seed. Guard schema
+    before importing so a broken release cannot install an unusable Craft DB.
+    """
+    source = executable.parent / "_internal" / "data" / "bootstrap" / "craft_seed.sqlite"
+    dest = user_root / "data" / "local" / "dofus_data.sqlite"
+    if not source.is_file():
+        # Older builds carry no Craft seed; retain compatibility on upgrades.
+        return
+    if dest.is_symlink():
+        raise ValueError("Unsafe Craft SQLite destination")
+    if dest.exists():
+        return
+    with sqlite3.connect(source.resolve().as_uri() + "?mode=ro&immutable=1", uri=True) as db:
+        if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+            raise ValueError("Bundled Craft SQLite is corrupt")
+        for table in ("items", "jobs", "recipes", "recipe_ingredients"):
+            if not db.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone():
+                raise ValueError(f"Bundled Craft data missing: {table}")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    fd, filename = tempfile.mkstemp(prefix=".atlas-craft-seed-", dir=dest.parent)
+    try:
+        with os.fdopen(fd, "wb") as output, source.open("rb") as original:
+            shutil.copyfileobj(original, output, 1024 * 1024)
+            output.flush()
+            os.fsync(output.fileno())
+        # Never replace an existing user's SQLite, including if initialized by
+        # an earlier installation during this launch.
+        if not dest.exists():
+            os.replace(filename, dest)
+    finally:
+        Path(filename).unlink(missing_ok=True)
+
+
 def prepare_user_data(executable: Path, user_root: Path,
                       legacy_root: Path | None = None) -> None:
     """Seed missing user files from a legacy source clone, then from the bundle.
@@ -25,6 +64,7 @@ def prepare_user_data(executable: Path, user_root: Path,
     user_root.mkdir(parents=True, exist_ok=True)
     marker = user_root / ".initialized" / (executable.parent.parent.name + ".ready")
     if marker.is_file():
+        _seed_craft_database(executable, user_root)
         return
     sources = [executable.parent / "_internal"]
     if legacy_root is not None and (legacy_root / "DOFUS.bat").is_file():
@@ -48,5 +88,6 @@ def prepare_user_data(executable: Path, user_root: Path,
                     output.parent.mkdir(parents=True, exist_ok=True)
                     if not output.exists():
                         shutil.copy2(child, output)
+    _seed_craft_database(executable, user_root)
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text("ready\n", encoding="utf-8")
