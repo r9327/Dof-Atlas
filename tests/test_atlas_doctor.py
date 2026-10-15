@@ -98,16 +98,30 @@ class AtlasDoctorTests(unittest.TestCase):
             self.assertIn("app/widgets/some_widget.py", flagged_without_getattr)
             # A stub __getattr__ also does not establish a callable API.
             (widgets / "__init__.py").write_text(
-                '_LAZY_EXPORT_MODULES = {"SomeWidget": "some_widget"}\\n'
-                '__all__ = ["SomeWidget"]\\n'
-                'def __getattr__(name):\\n'
-                '    raise AttributeError(name)\\n',
+                '_LAZY_EXPORT_MODULES = {"SomeWidget": "some_widget"}\n'
+                '__all__ = ["SomeWidget"]\n'
+                'def __getattr__(name):\n'
+                '    raise AttributeError(name)\n',
                 encoding="utf-8",
             )
             stub_issues = run_audit(root, save=False)["issues"]
             self.assertIn(
                 "app/widgets/some_widget.py",
                 {x["path"] for x in stub_issues if x["rule"] == "unreferenced_module"},
+            )
+            # Merely mentioning import_module as a variable is not a call.
+            (widgets / "__init__.py").write_text(
+                '_LAZY_EXPORT_MODULES = {"SomeWidget": "some_widget"}\n'
+                '__all__ = ["SomeWidget"]\n'
+                'def __getattr__(name):\n'
+                '    import_module = None\n'
+                '    return _LAZY_EXPORT_MODULES.get(name)\n',
+                encoding="utf-8",
+            )
+            false_dispatch = run_audit(root, save=False)["issues"]
+            self.assertIn(
+                "app/widgets/some_widget.py",
+                {x["path"] for x in false_dispatch if x["rule"] == "unreferenced_module"},
             )
         finally:
             directory.cleanup()

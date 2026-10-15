@@ -81,9 +81,17 @@ def _public_lazy_exports(root: Path, target: str) -> list[dict[str, Any]]:
         and n.name == "__getattr__"
     ]
     if not any(
-        {"_LAZY_EXPORT_MODULES", "import_module"} <= {
-            name.id for name in ast.walk(function) if isinstance(name, ast.Name)
-        }
+        any(
+            isinstance(node, ast.Name) and node.id == "_LAZY_EXPORT_MODULES"
+            and isinstance(node.ctx, ast.Load)
+            for node in ast.walk(function)
+        )
+        and any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "import_module"
+            for node in ast.walk(function)
+        )
         for function in facade_functions
     ):
         return []

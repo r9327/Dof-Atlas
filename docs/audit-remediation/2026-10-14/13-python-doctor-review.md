@@ -106,3 +106,13 @@ s'exécute, ni qu'un widget est affiché. Aucun import Qt n'est exécuté.
 
 Ce triage n'efface aucun diagnostic historique : il explicite les
 cas examinés et les preuves encore nécessaires.
+
+
+### Couverture négative complémentaire
+
+Le `__getattr__` ne doit pas seulement **mentionner** `import_module` :
+Doctor exige désormais un appel AST `import_module(...)` et une lecture de
+`_LAZY_EXPORT_MODULES`. Les fixtures couvrent la façade fonctionnelle,
+la façade muette et le faux dispatch qui attribue simplement
+`import_module = None`. Ce signal reste statique, jamais assimilé à une
+preuve d'exécution Qt.
