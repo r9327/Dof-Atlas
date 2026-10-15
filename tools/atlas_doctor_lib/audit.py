@@ -791,6 +791,10 @@ def run_audit(
             )
             issues.append(Issue(rule, 'legacy', 'INFO', confidence, path, lineno, title, f'{name} contient {marker}; references={references}', recommendation))
 
+    # Public lazy facades are intentionally free of static imports. They
+    # establish API reachability (not execution), so "unreferenced_module"
+    # would be a false dead-code lead for an exported implementation.
+    from .consumer_sites import _public_lazy_exports
     for path, fact in facts.items():
         if not fact["parsed"] or not path.startswith(('app/', 'local_dofus_data/')):
             continue
@@ -798,6 +802,8 @@ def run_audit(
             continue
         module = _module_name(path)
         if imported.get(module, 0) == 0 and not fact["main_guard"]:
+            if _public_lazy_exports(root, path):
+                continue
             issues.append(Issue('unreferenced_module', 'dead_code', 'LOW', 'suspect', path, None, 'Module sans import statique detecte', f'Aucun import statique de {module} dans les fichiers Python suivis.', 'Verifier wiring dynamique, signaux, importlib et usages externes avant toute suppression.'))
 
     symbols: defaultdict[str, list[str]] = defaultdict(list)
