@@ -123,6 +123,34 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_rapid_navigation_detaches_old_sheets_before_deferred_delete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            for guide_id in ("dofus_sylvestre", "guide_complet"):
+                self.assertTrue(view.select_guide(guide_id))
+                manual = view.stack.currentWidget()
+                self.assertIsInstance(manual, SharedGuideManualView)
+                previous = manual.findChild(QFrame, "GuideManualSheet")
+                self.assertIsNotNone(previous)
+                for index in (1, 2, 0, 1, 0):
+                    manual._show_index(index)
+                    # Deliberately no QApplication.processEvents(): the previous
+                    # widget must be detached before Qt processes DeferredDelete.
+                    sheets = manual.findChildren(QFrame, "GuideManualSheet")
+                    self.assertEqual(
+                        len(sheets), 1,
+                        f"{guide_id}: old GuideManualSheet still attached at page {index}",
+                    )
+                    if previous is not None:
+                        self.assertIsNone(
+                            previous.parentWidget(),
+                            f"{guide_id}: previous sheet was left as a child",
+                        )
+                    previous = sheets[0]
+                self.app.processEvents()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_prepare_rows_share_one_red_parent_instead_of_red_row_tiles(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
