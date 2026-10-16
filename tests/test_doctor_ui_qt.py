@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -86,6 +88,34 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.view.deleteLater()
         settle()
         self.temp.cleanup()
+
+    def test_settle_yields_to_python_background_workers(self):
+        completed = threading.Event()
+
+        def work():
+            deadline = time.monotonic() + 0.05
+            while time.monotonic() < deadline:
+                sum(range(100))
+            completed.set()
+
+        worker = threading.Thread(target=work, daemon=True)
+        worker.start()
+        self.assertTrue(settle(completed.is_set, timeout=0.5))
+        worker.join(0.5)
+        self.assertFalse(worker.is_alive())
+
+    def test_real_scene_prepares_disk_only_quest_indexes_before_interaction(self):
+        source = Path(
+            "tools/atlas_doctor_lib/doctor_ui_qt.py"
+        ).read_text(encoding="utf-8")
+        scene = source[source.index("def build_scene("):source.index("def open_guide(")]
+        self.assertIn("ensure_lazy_catalog_cache()", scene)
+        self.assertIn("ensure_detail_source_offsets()", scene)
+        self.assertLess(
+            scene.index("ensure_detail_source_offsets()"),
+            scene.index("quests = QuestProvider()"),
+        )
+        self.assertNotIn("get_detail(", scene)
 
     def test_healthy_real_renderer_click_changes_page_and_old_sheet_is_destroyed(self):
         from shiboken6 import isValid
