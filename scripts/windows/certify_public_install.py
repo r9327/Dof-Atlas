@@ -117,6 +117,21 @@ def interrupt_download(launcher: Path, root: Path, env: dict[str, str]) -> list[
             if any(p["size"] >= 1024 * 1024 for p in partials):
                 require(not read_state(root).get("active"),
                         "Cannot interrupt after application activation")
+                powershell = Path(env["SYSTEMROOT"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+                check = subprocess.run(
+                    [str(powershell), "-NoProfile", "-NonInteractive", "-Command", r'''
+$ErrorActionPreference = 'Stop'
+$windows = @(Get-Process DofusAtlas -ErrorAction SilentlyContinue | Where-Object {
+    $_.Path -eq $env:ATLAS_E2E_LAUNCHER -and $_.MainWindowHandle -ne 0 -and
+    $_.MainWindowTitle.Contains('Dofus Atlas')
+})
+if ($windows.Count -ne 1) { throw 'Published launcher UI is missing during real download' }
+$windows[0].MainWindowTitle
+'''], env=dict(env, ATLAS_E2E_LAUNCHER=str(launcher)),
+                    capture_output=True, text=True, errors="replace", timeout=30,
+                )
+                require(check.returncode == 0, "Public launcher GUI was not visible: " + check.stderr[-500:])
+                partials.append({"launcher_window": check.stdout.strip()})
                 taskkill = Path(env["SYSTEMROOT"]) / "System32/taskkill.exe"
                 result = subprocess.run(
                     [str(taskkill), "/PID", str(process.pid), "/T", "/F"],
