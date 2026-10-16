@@ -204,11 +204,27 @@ def command_certification(root: Path, args) -> dict[str, Any]:
 
 def command_capabilities(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.capability_matrix import capability_inventory
-    result = capability_inventory(root)
+    from tools.atlas_doctor_lib.capability_evidence import (
+        read_evidence, run_capability_witnesses, write_evidence,
+    )
+    evidence = None
+    evidence_path = None
+    if args.run_tests:
+        evidence = run_capability_witnesses(root, timeout=args.timeout)
+        evidence_path = write_evidence(root, args.output, evidence)
+    elif args.evidence:
+        evidence = read_evidence(args.evidence)
+        evidence_path = args.evidence
+    result = capability_inventory(root, evidence=evidence)
+    result["evidence_path"] = str(evidence_path) if evidence_path else None
     if not args.json:
         print(f"Doctor capabilities: {result['source_present']}/18 source anchors; "
               f"{result['call_sites_wired']}/18 wiring call-sites")
-        print("No behavioral certification was run by this inventory.")
+        print(f"Behavioral evidence: {result['tested_count']}/18 tested; "
+              "0/18 certified")
+        if evidence_path:
+            print(f"Evidence: {evidence_path}")
+        print("Local test evidence never grants runtime or release certification.")
     return result
 
 
@@ -681,7 +697,16 @@ def build_parser() -> argparse.ArgumentParser:
     ci_plan.add_argument('--event', choices=('pull_request', 'push', 'workflow_dispatch'), default='pull_request')
     ci_plan.add_argument('--output', type=Path, default=Path('artifacts/doctor_ci/plan.json'))
     ci_plan.add_argument('--github-output', type=Path)
-    sub.add_parser('capabilities', help='Inventaire AST des 18 capacites sans lancer de tests.')
+    capabilities = sub.add_parser(
+        'capabilities', help='Inventaire et preuves locales des 18 capacites.')
+    evidence_mode = capabilities.add_mutually_exclusive_group()
+    evidence_mode.add_argument('--run-tests', action='store_true',
+                               help='Executer les 18 temoins exacts une seule fois.')
+    evidence_mode.add_argument('--evidence', type=Path,
+                               help='Verifier une preuve JSON existante sans test.')
+    capabilities.add_argument('--output', type=Path,
+                              default=Path('artifacts/doctor_capabilities/evidence.json'))
+    capabilities.add_argument('--timeout', type=int, default=300)
     sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
     it = sub.add_parser('isolate-triage', help='Investiguer jusqu a 10 fichiers isoles en preservant leurs consommateurs.')
     it.add_argument('--limit', type=int, default=5)
