@@ -127,7 +127,7 @@
     },
     "requirements-pyside.txt": {
       "mode": "100644",
-      "sha": "d91459ed7002ed66d12f40061f65ab87e02bbb05",
+      "sha": "5d2b519bfac8982938c75950dc86a24058a4f636",
       "type": "blob"
     },
     "scripts": {
@@ -142,7 +142,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "93418ea7d77ba642b790a9fb2f9325cc7bb7b849",
+      "sha": "90448ce058d6c9fa2bd45928ea0a98b6862911a5",
       "type": "tree"
     },
     "tools": {
