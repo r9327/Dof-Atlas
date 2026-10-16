@@ -57,6 +57,7 @@ from app.modules.encyclopedia.widgets.dashboard import CollapsedColumnRail, Fixe
 from app.modules.encyclopedia.widgets.guide_card import (
     GUIDE_ID_ROLE,
     GuideCardDelegate,
+    GuideHomeColumns,
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
@@ -1166,6 +1167,7 @@ class GuidesView(QWidget):
         self.guides: list[Guide] = []
         self.visible_guides: list[Guide] = []
         self.result_model = GuideListModel(self)
+        self.home_dofus_model = GuideListModel(self)
         self.current_guide_id: str | None = None
         self.current_quest_id: int | None = None
         self.state = self.CATALOG
@@ -1205,11 +1207,13 @@ class GuidesView(QWidget):
 
     def _show_runtime_loading(self) -> None:
         self.home_list.setVisible(False)
+        self.home_dofus_list.setVisible(False)
         self.home_empty.setText("Chargement des guides…")
         self.home_empty.setVisible(True)
 
     def show_runtime_error(self, message: str) -> None:
         self.home_list.setVisible(False)
+        self.home_dofus_list.setVisible(False)
         self.home_empty.setText(str(message or "Chargement des guides impossible."))
         self.home_empty.setVisible(True)
 
@@ -1302,7 +1306,23 @@ class GuidesView(QWidget):
         self.home_list.setSpacing(4)
         self.home_list.clicked.connect(self._on_home_guide_clicked)
         self.home_list.activated.connect(self._on_home_guide_clicked)
-        self.home_layout.addWidget(self.home_list, 1)
+
+        self.home_dofus_list = QListView()
+        self.home_dofus_list.setObjectName("GuidesHomeDofusGrid")
+        self.home_dofus_list.setModel(self.home_dofus_model)
+        self.home_dofus_list.setItemDelegate(GuideCardDelegate(self.home_dofus_list))
+        self.home_dofus_list.setFrameShape(QFrame.NoFrame)
+        self.home_dofus_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.home_dofus_list.setMouseTracking(True)
+        self.home_dofus_list.setViewMode(QListView.IconMode)
+        self.home_dofus_list.setFlow(QListView.LeftToRight)
+        self.home_dofus_list.setWrapping(True)
+        self.home_dofus_list.setResizeMode(QListView.Adjust)
+        self.home_dofus_list.setGridSize(QSize(280, 96))
+        self.home_dofus_list.clicked.connect(self._on_home_guide_clicked)
+        self.home_dofus_list.activated.connect(self._on_home_guide_clicked)
+        self.home_columns = GuideHomeColumns(self.home_list, self.home_dofus_list)
+        self.home_layout.addWidget(self.home_columns, 1)
 
         self.home_empty = QLabel()
         self.home_empty.setObjectName("GuidesHomeEmptyText")
@@ -1501,10 +1521,12 @@ class GuidesView(QWidget):
 
     def _refresh_home_uncached(self) -> None:
         self.visible_guides = self.provider.search(self.search_text)
-        self.result_model.set_guides(self.visible_guides)
+        self.result_model.set_home_column(self.visible_guides, "left")
+        self.home_dofus_model.set_home_column(self.visible_guides, "right")
 
         if not self.visible_guides:
             self.home_list.setVisible(False)
+            self.home_dofus_list.setVisible(False)
             self.home_empty.setText("Aucun guide ne correspond à la recherche.")
             self.home_empty.setVisible(True)
             return
@@ -1516,8 +1538,10 @@ class GuidesView(QWidget):
                 for guide in self.visible_guides
             }
         self.result_model.set_progress(progress_by_guide)
+        self.home_dofus_model.set_progress(progress_by_guide)
         self.home_empty.setVisible(False)
-        self.home_list.setVisible(True)
+        self.home_list.setVisible(bool(self.result_model.guides))
+        self.home_dofus_list.setVisible(bool(self.home_dofus_model.guides))
 
     def _initial_home_progress_uncached(self) -> dict[str, tuple[int, int, str]] | None:
         if not self._initial_progress_by_guide:
