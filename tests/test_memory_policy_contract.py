@@ -762,6 +762,7 @@ def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> N
     assert "_build_manual_runtime_compact_cache_in_worker" in domain_worker
     assert "_build_guide_items_index" in domain_worker
     assert "ensure_lazy_catalog_cache()" in domain_worker
+    assert "ensure_detail_source_offsets()" in domain_worker
     assert "_build_compact_cache" in domain_worker
     assert "write_achievement_name_index()" in domain_worker
     assert "subprocess.run(" not in domain_worker

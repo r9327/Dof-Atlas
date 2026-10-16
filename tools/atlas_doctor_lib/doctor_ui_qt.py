@@ -20,7 +20,6 @@ from tools.atlas_doctor_lib.doctor_ui import required_assertions, verdict, write
 
 def settle(predicate=lambda: True, timeout=3.0) -> bool:
     from PySide6.QtCore import QCoreApplication, QEvent
-    from PySide6.QtTest import QTest
     from PySide6.QtWidgets import QApplication
 
     end = time.monotonic() + timeout
@@ -28,7 +27,14 @@ def settle(predicate=lambda: True, timeout=3.0) -> bool:
     while True:
         QApplication.processEvents()
         QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
-        QTest.qWait(10)
+        # The production event loop releases the GIL while it waits.  QTest's
+        # nested qWait can retain it on Windows and starve Atlas' Python detail
+        # workers, turning a sub-second load into a false UI timeout.
+        time.sleep(0.01)
+        # Deliver layout, scroll and timer work that became ready while the
+        # thread scheduler was yielded, matching the next real event-loop turn.
+        QApplication.processEvents()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
         if predicate():
             return True
         if time.monotonic() >= end:
@@ -236,12 +242,21 @@ def build_scene(temp: Path):
     from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
     from app.modules.encyclopedia.services import QuestGraphService
     from app.modules.encyclopedia.views import EncyclopediaPage
+    from app.quest_catalog_details import (
+        ensure_detail_source_offsets,
+        ensure_lazy_catalog_cache,
+    )
     from app.ui.theme import atlas_stylesheet
 
     app = QApplication.instance() or QApplication([])
     if QThread.currentThread() != app.thread():
         raise RuntimeError("Doctor UI must run on the Qt application thread")
     app.setStyleSheet(atlas_stylesheet())
+    # Production blocks on the reconstructible startup cache domains before
+    # exposing Encyclopedia.  Keep the Doctor scene equally cold and honest:
+    # prepare only disk indexes, never the rich record asserted below.
+    ensure_lazy_catalog_cache()
+    ensure_detail_source_offsets()
     quests = QuestProvider()
     if quests.count() == 0:
         raise RuntimeError("Real public Quest catalog is empty")
@@ -427,19 +442,24 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     automatic = view.service.card_auto_complete(view.character_key, card)
     session.check("no-game-proof", "Evaluate automatic completion on blank profile", False, automatic, not automatic, page)
     button = view.findChild(QPushButton, "GuideManualPageCheck")
+    initial = view.service.page_checked("character:990000001", card, 0)
+    expected_manual = not initial
     click = click_target(page, button)
     view.service.reload_progress()
     saved = view.service.page_checked("character:990000001", card, 0)
-    session.check("manual-persist", "QTest Valider then reload canonical services", "Page 1 persisted checked",
-                  {"click": click, "saved": saved}, click["accessible"] and saved, page)
+    session.check("manual-persist", "QTest Valider then reload canonical services", "Page 1 toggle persisted",
+                  {"click": click, "initial": initial, "saved": saved},
+                  click["accessible"] and saved == expected_manual, page)
     view.set_character_key("character:990000002")
     isolated = not view.service.page_checked("character:990000002", card, 0)
     view.set_character_key("character:990000001")
     view._show_index(0)
     settle()
     restored = view.findChild(QPushButton, "GuideManualPageCheck").isChecked()
-    session.check("character-isolation", "Switch character, reload then return", "Other character clear; original check restored",
-                  {"other_clear": isolated, "original_checked": restored}, isolated and restored, page)
+    session.check("character-isolation", "Switch character, reload then return", "Other character clear; original state restored",
+                  {"other_clear": isolated, "original_checked": restored,
+                   "expected_original_checked": expected_manual},
+                  isolated and restored == expected_manual, page)
     if not smoke:
         combat = None
         # Bound scene discovery; never traverse the entire Guide or hydrate all quests.

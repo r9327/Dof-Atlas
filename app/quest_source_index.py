@@ -9,10 +9,12 @@ import gzip
 import hashlib
 import json
 import re
+import sqlite3
 import tempfile
 import weakref
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
+from contextlib import closing
 from pathlib import Path
 from threading import RLock
 
@@ -198,11 +200,22 @@ def build_image_index(images_root: Path) -> dict[str, str]:
 
 
 class JsonSourceMapping(Mapping):
-    def __init__(self, path: Path, cache_root: Path, field: str, *, doduda=False, required=True):
+    def __init__(
+        self,
+        path: Path,
+        cache_root: Path,
+        field: str,
+        *,
+        doduda=False,
+        required=True,
+        disk_backed=False,
+    ):
         self.path, self.doduda, self.required = path, doduda, bool(required)
+        self.disk_backed = bool(disk_backed)
         self._lock = RLock()
         self._cache = OrderedDict()
         self._offsets = None
+        self._disk_index = None
         self._cache_root, self._field = cache_root, field
         self._stream = None
 
@@ -229,6 +242,16 @@ class JsonSourceMapping(Mapping):
         signature = [str(path.resolve()), *self._stamp, field, self.doduda, 1]
         digest = hashlib.sha256(json.dumps(signature).encode()).hexdigest()
         cache = cache_root / f"source_{digest}.json.gz"
+        disk_index = cache_root / f"source_{digest}.sqlite3"
+        if self.disk_backed and disk_index.is_file():
+            try:
+                with closing(sqlite3.connect(disk_index)) as connection:
+                    connection.execute("SELECT COUNT(*) FROM offsets").fetchone()
+                self._disk_index = disk_index
+                self._offsets = {}
+                return
+            except sqlite3.Error:
+                disk_index.unlink(missing_ok=True)
         offsets = None
         if cache.exists():
             try:
@@ -265,7 +288,38 @@ class JsonSourceMapping(Mapping):
                 temp_path.replace(cache)
             finally:
                 temp_path.unlink(missing_ok=True)
-        self._offsets = {int(key) if self.doduda else key: tuple(span) for key, span in offsets.items()}
+        normalized_offsets = {
+            int(key) if self.doduda else key: tuple(span)
+            for key, span in offsets.items()
+        }
+        if self.disk_backed:
+            cache_root.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                dir=cache_root,
+                suffix=".sqlite3.tmp",
+                delete=False,
+            ) as temporary:
+                temporary_path = Path(temporary.name)
+            try:
+                with closing(sqlite3.connect(temporary_path)) as connection:
+                    with connection:
+                        connection.execute(
+                            "CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)"
+                        )
+                        connection.executemany(
+                            "INSERT INTO offsets VALUES (?, ?, ?)",
+                            (
+                                (str(key), int(span[0]), int(span[1]))
+                                for key, span in normalized_offsets.items()
+                            ),
+                        )
+                temporary_path.replace(disk_index)
+            finally:
+                temporary_path.unlink(missing_ok=True)
+            self._disk_index = disk_index
+            self._offsets = {}
+        else:
+            self._offsets = normalized_offsets
 
     def _build_offsets(self, field):
         """Build byte spans without decoding the monolithic source as one string."""
@@ -477,7 +531,17 @@ class JsonSourceMapping(Mapping):
             if key in self._cache:
                 self._cache.move_to_end(key)
                 return self._cache[key]
-            start, end = self._offsets[key]
+            if self._disk_index is not None:
+                with closing(sqlite3.connect(self._disk_index)) as connection:
+                    row = connection.execute(
+                        "SELECT start, end FROM offsets WHERE key=?",
+                        (str(key),),
+                    ).fetchone()
+                if row is None:
+                    raise KeyError(key)
+                start, end = int(row[0]), int(row[1])
+            else:
+                start, end = self._offsets[key]
             if self._stream is None:
                 self._stream = self.path.open('rb')
                 self._close_stream = weakref.finalize(self, self._stream.close)
@@ -492,10 +556,21 @@ class JsonSourceMapping(Mapping):
 
     def __iter__(self):
         self._ensure()
+        if self._disk_index is not None:
+            with closing(sqlite3.connect(self._disk_index)) as connection:
+                rows = connection.execute("SELECT key FROM offsets").fetchall()
+            return iter(
+                int(row[0]) if self.doduda else row[0]
+                for row in rows
+            )
         return iter(self._offsets)
 
     def __len__(self):
         self._ensure()
+        if self._disk_index is not None:
+            with closing(sqlite3.connect(self._disk_index)) as connection:
+                row = connection.execute("SELECT COUNT(*) FROM offsets").fetchone()
+            return max(0, int(row[0] if row else 0))
         return len(self._offsets)
 
     def close(self):
@@ -511,8 +586,9 @@ class JsonSourceMapping(Mapping):
 
 
 class QuestSources:
-    def __init__(self, cache_root):
+    def __init__(self, cache_root, *, disk_backed=False):
         self.cache_root = cache_root
+        self.disk_backed = bool(disk_backed)
         self._mappings = {}
         self._objectives_by_step = None
         self._image_index = None
@@ -530,6 +606,7 @@ class QuestSources:
                 field,
                 doduda=doduda,
                 required=required,
+                disk_backed=self.disk_backed,
             )
         return self._mappings[key]
 
