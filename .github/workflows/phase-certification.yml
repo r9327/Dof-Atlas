@@ -164,6 +164,16 @@ jobs:
           '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Capture exact public dataset inputs before validation
+        id: inputs_before
+        if: steps.route.outputs.run_full == 'true'
+        continue-on-error: true
+        run: |
+          python -m tools.atlas_json_inventory --raw-inputs `
+            --candidate-sha "$env:CANDIDATE_SHA" `
+            --output "artifacts/phase_certification/inputs_before.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Measure canonical Encyclopedia user paths
         id: timing
         if: >-
@@ -225,7 +235,7 @@ jobs:
 
       - name: Run full Atlas phase certification gate
         id: certification
-        if: steps.route.outputs.run_full == 'true'
+        if: steps.route.outputs.run_full == 'true' && steps.inputs_before.outcome == 'success'
         continue-on-error: true
         run: |
           $report = "artifacts/phase_certification/03_atlas_integrity_full.json"
@@ -239,6 +249,17 @@ jobs:
           }
           Get-Content -LiteralPath $report | Write-Host
           if ($code -ne 0) { exit $code }
+
+      - name: Verify public dataset inputs did not change during validation
+        id: inputs_after
+        if: steps.route.outputs.run_full == 'true' && always()
+        continue-on-error: true
+        run: |
+          python -m tools.atlas_json_inventory --raw-inputs `
+            --candidate-sha "$env:CANDIDATE_SHA" `
+            --verify-against "artifacts/phase_certification/inputs_before.json" `
+            --output "artifacts/phase_certification/inputs_after.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Execute and verify exact-SHA targeted modules
         id: scoped
@@ -332,6 +353,8 @@ jobs:
           $failures = @()
           if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
           if ("${{ steps.catalog.outcome }}" -ne "success") { $failures += "Dofus catalog" }
+          if ("${{ steps.inputs_before.outcome }}" -ne "success") { $failures += "Public dataset provenance before validation" }
+          if ("${{ steps.inputs_after.outcome }}" -ne "success") { $failures += "Public dataset drift during validation" }
           if ("${{ steps.doctor_shadow.outcome }}" -eq "failure") { $failures += "Doctor same-SHA shadow verification" }
           $timingOutcome = "${{ steps.timing.outcome }}"
           if ($timingOutcome -and $timingOutcome -ne "success" -and $timingOutcome -ne "skipped") {
