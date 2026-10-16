@@ -482,8 +482,20 @@ def inspect_consumers(root: Path, candidates: list[dict[str, Any]], *, limit: in
     }
 
 
-def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVIEW) -> dict[str, Any]:
-    """Advisory cohesion signals only; never force merges based on IDs."""
+def _cohesion_runtime_source(path: str | None) -> bool:
+    """Runtime Python code, excluding test/tool-only clustering noise."""
+    return bool(
+        path and path.endswith(".py")
+        and (_production(path) or path.startswith("local_dofus_data/")
+             or path == "launch.py" or path == "sitecustomize.py")
+    )
+
+
+def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVIEW,
+                                 offset: int = 0) -> dict[str, Any]:
+    """Advisory cohesion signals only; paginate without rebuilding the graph."""
+    if limit < 1 or offset < 0:
+        raise ValueError("Cohesion pagination requires a positive limit and nonnegative offset")
     summarize_graph(graph)
     nodes = {n["id"]: n for n in graph["nodes"]}
     internal: Counter[Any] = Counter()
@@ -491,15 +503,26 @@ def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVI
     files: dict[Any, set[str]] = defaultdict(set)
     for node in nodes.values():
         path = _path(node.get("source_file"))
-        if _production(path) and node.get("file_type") == "code" and node.get("community") is not None:
+        if _cohesion_runtime_source(path) and node.get("file_type") == "code" and node.get("community") is not None:
             files[node["community"]].add(path)
+    # Leiden communities can also contain docs, tests and tool nodes.
+    # Count distinct production-file relationships only: repeated symbol edges
+    # and non-runtime nodes must not fabricate poor application cohesion.
+    seen_file_pairs: set[frozenset[tuple[Any, str]]] = set()
     for edge in graph["links"]:
         if edge.get("confidence") != "EXTRACTED" or edge.get("relation") not in RELEVANT_KINDS:
             continue
         left, right = nodes[edge["source"]], nodes[edge["target"]]
         lc, rc = left.get("community"), right.get("community")
-        if lc not in files or rc not in files:
+        lp, rp = _path(left.get("source_file")), _path(right.get("source_file"))
+        if (lc not in files or rc not in files
+                or left.get("file_type") != "code" or right.get("file_type") != "code"
+                or not _cohesion_runtime_source(lp) or not _cohesion_runtime_source(rp) or lp == rp):
             continue
+        pair = frozenset(((lc, lp), (rc, rp)))
+        if pair in seen_file_pairs:
+            continue
+        seen_file_pairs.add(pair)
         if lc == rc:
             internal[lc] += 1
         else:
@@ -517,12 +540,15 @@ def analyze_community_boundaries(graph: dict[str, Any], *, limit: int = MAX_REVI
             "external_extracted_edges": external[group],
             "sample_files": sorted(sources)[:8],
             "classification": "LOW_INTERNAL_HIGH_EXTERNAL_GRAPH_COHESION_REVIEW",
+            "evidence_scope": "DISTINCT_PRODUCTION_FILE_PAIRS",
             "automatic_merge": False,
         })
     rows.sort(key=lambda x: (-x["external_extracted_edges"], x["production_files"], str(x["community"])))
+    page = rows[offset:offset + limit]
+    truncated = offset + limit < len(rows)
     return {"status": "REVIEW" if rows else "PASS", "candidate_count": len(rows),
-            "candidates": rows[:limit], "truncated": len(rows) > limit,
-            "pagination": {"offset": 0, "total": len(rows), "returned": min(len(rows), limit), "truncated": len(rows) > limit},
+            "candidates": page, "truncated": truncated,
+            "pagination": {"offset": offset, "total": len(rows), "returned": len(page), "truncated": truncated},
             "limitation": "Leiden partitions are heuristics; domain ownership and runtime tests prevail."}
 
 
