@@ -1,18 +1,7 @@
 name: Graphify Focused Architecture
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "app/**"
-      - "tools/**"
-      - "tests/**"
-      - ".ai/context_index.json"
-      - ".github/workflows/graphify-targeted-ci.yml"
-  push:
-    branches:
-      - phase8/graphify-staged-cleanup-v1
+  workflow_call:
   workflow_dispatch:
 
 permissions:

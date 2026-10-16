@@ -675,6 +675,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest='command')
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
+    ci_plan = sub.add_parser('ci', help='Plan CI GitHub exact-SHA sans Qt ni execution de tests.')
+    ci_plan.add_argument('--base-ref', required=True)
+    ci_plan.add_argument('--expected-sha', required=True)
+    ci_plan.add_argument('--event', choices=('pull_request', 'push', 'workflow_dispatch'), default='pull_request')
+    ci_plan.add_argument('--output', type=Path, default=Path('artifacts/doctor_ci/plan.json'))
+    ci_plan.add_argument('--github-output', type=Path)
     sub.add_parser('capabilities', help='Inventaire AST des 18 capacites sans lancer de tests.')
     sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
     it = sub.add_parser('isolate-triage', help='Investiguer jusqu a 10 fichiers isoles en preservant leurs consommateurs.')
@@ -908,7 +914,9 @@ def main(argv: list[str] | None = None) -> int:
     root = project_root(Path(__file__))
     if not args.command:
         return menu(root)
+    from tools.atlas_doctor_lib.ci_orchestrator import command_ci
     handlers = {
+        'ci': command_ci,
         'quick': command_quick,
         'capabilities': command_capabilities,
         'graph': command_graph,

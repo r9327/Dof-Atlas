@@ -65,13 +65,15 @@ class AtlasMetaIntegrityTests(unittest.TestCase):
         tools.mkdir(parents=True)
         for relative in (
             ".github/workflows/app-ci.yml",
-            ".github/workflows/public-pr-ci.yml",
+            ".github/workflows/phase-certification.yml",
             ".github/workflows/guide-ultime-v5-ui.yml",
+            "tools/atlas_doctor_lib/ci_routes.json",
             "tools/atlas_integrity.py",
             "tools/atlas_integrity_policy.json",
             "tools/run_guide_ultime_ci.ps1",
         ):
             destination = root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / relative, destination)
 
     def test_current_inventory_is_valid(self) -> None:
@@ -199,8 +201,8 @@ class AtlasMetaIntegrityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_ci_fixture(root)
-            workflow = root / ".github/workflows/app-ci.yml"
-            source = workflow.read_text(encoding="utf-8").replace('      - "launch.py"\n', "")
+            workflow = root / "tools/atlas_doctor_lib/ci_routes.json"
+            source = workflow.read_text(encoding="utf-8").replace('    "launch.py",\n', "")
             workflow.write_text(source, encoding="utf-8")
             issues = check_ci_contracts(root)
         self.assertTrue(any('critical path missing "launch.py"' in issue for issue in issues), issues)

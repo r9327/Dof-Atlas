@@ -19,6 +19,10 @@ import urllib.request
 SHA = re.compile(r"^[0-9a-f]{40}$")
 REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 PHASE_JOB = "Phase Certification / Full Validation"
+FOCUSED_JOB = "Doctor / Focused CI Evidence"
+FOCUSED_STEPS = ("Checkout exact focused candidate", "Verify scope and execute focused contracts",
+              "Store focused evidence")
+
 REQUIRED_STEPS = (
     "Verify exact certification checkout",
     "Resolve adaptive Doctor route on exact SHA",
@@ -64,9 +68,36 @@ def verify_jobs(jobs_response: dict, *, head_sha: str) -> dict:
         raise ValueError("Missing host job result")
     jobs = jobs_response.get("jobs")
     if (not isinstance(jobs, list) or jobs_response.get("total_count") != len(jobs)
-            or len(jobs) != 1):
-        raise ValueError("Expected complete single-job Phase FULL response")
-    job = jobs[0]
+            or not jobs):
+        raise ValueError("Expected complete Doctor workflow jobs response")
+    full_jobs = [j for j in jobs if isinstance(j, dict) and j.get("name") == PHASE_JOB]
+    if len(full_jobs) != 1:
+        raise ValueError("Missing or ambiguous Phase FULL job")
+    job = full_jobs[0]
+    docs_jobs = [j for j in jobs if isinstance(j, dict) and j.get("name") == FOCUSED_JOB]
+    if job.get("status") == "completed" and job.get("conclusion") == "skipped":
+        plans = [j for j in jobs if isinstance(j, dict) and j.get("name") == "Doctor / CI Plan"]
+        if (job.get("steps") or job.get("head_sha") not in (None, head_sha)
+                or len(docs_jobs) != 1 or len(plans) != 1
+                or plans[0].get("status") != "completed" or plans[0].get("conclusion") != "success"):
+            raise ValueError("Missing or ambiguous focused scope")
+        docs = docs_jobs[0]
+        if (docs.get("status") != "completed" or docs.get("conclusion") != "success"
+                or docs.get("head_sha") not in (None, head_sha)):
+            raise ValueError("Focused job did not succeed at this SHA")
+        for name in FOCUSED_STEPS:
+            rows = [step for step in docs.get("steps", []) if step.get("name") == name]
+            if len(rows) != 1 or rows[0].get("conclusion") != "success":
+                raise ValueError("Missing independent focused evidence: " + name)
+        return {
+            "kind": "main_application_verified_focused", "candidate_sha": head_sha,
+            "phase_full_host_verified": False, "application_full_suite_executed": False,
+            "application_unique_lifecycle_pending": False, "cross_sha_reuse": False,
+            "phase_certified_by_this_script": False,
+            "independent_host_steps": list(FOCUSED_STEPS),
+        }
+    if any(j.get("conclusion") == "success" for j in docs_jobs):
+        raise ValueError("Focused evidence contradicts application validation")
     if (not isinstance(job, dict) or job.get("name") != PHASE_JOB
             or job.get("status") != "completed"
             or job.get("conclusion") != "success"

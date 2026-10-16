@@ -81,9 +81,12 @@ preuves hachées ; une ancienne capture seule n'est jamais réutilisable.
 
 ## CI par impact
 
-`.github/workflows/doctor-ui.yml` ajoute uniquement la campagne nouvelle.
-Doctor FAST, FULL, Adaptive et les certifications existantes ne sont pas
-modifiés. Aucun nouveau déclenchement sur push main.
+Le point d’entrée automatique est `Doctor / CI Plan` dans
+`.github/workflows/phase-certification.yml`. Doctor appelle le workflow
+réutilisable `doctor-ui.yml` selon les consommateurs modifiés. Les moteurs
+FAST/FULL restent les autorités de validation ; la sélection n’est jamais une
+certification. Voir `PHASE_CERTIFICATION.md` pour le routage PR/main, le cas
+documentation seule et les preuves nécessaires avant publication.
 
 Le plan standard-library réutilise le parseur `base...HEAD` de `ci_scope_gate`
 et AI Context. Il combine les liens runtime Qt explicitement maintenus avec

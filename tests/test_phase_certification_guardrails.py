@@ -19,7 +19,7 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         cls.contract = (ROOT / "PHASE_CERTIFICATION.md").read_text(encoding="utf-8")
         cls.agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
         cls.public_pr = (
-            ROOT / ".github" / "workflows" / "public-pr-ci.yml"
+            ROOT / ".github" / "workflows" / "phase-certification.yml"
         ).read_text(encoding="utf-8")
         cls.certification_workflow = (
             ROOT / ".github" / "workflows" / "phase-certification.yml"

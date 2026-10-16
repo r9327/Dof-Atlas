@@ -2,40 +2,10 @@ name: Graphify Code Map
 # Explicit final code-map certification of PR #123; keep this gate event-scoped.
 
 on:
+  workflow_call:
   # Manual exact-SHA certification of Graphify/Doctor after the structural
   # batches converge. Keep the expensive rebuild away from routine pushes.
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "app/**"
-      - "main.py"
-      - "launch.py"
-      - "sitecustomize.py"
-      - "local_dofus_data/**"
-      - "tools/atlas_doctor.py"
-      - "tools/atlas_doctor_lib/**"
-      - "tools/graphify.py"
-      - "tools/agent_graph.py"
-      - ".graphifyignore"
-      - ".github/workflows/graphify-map.yml"
-  push:
-    branches:
-      - main
-      - phase8/graphify-staged-cleanup-v1
-    paths:
-      - "app/**"
-      - "main.py"
-      - "launch.py"
-      - "sitecustomize.py"
-      - "local_dofus_data/**"
-      - "tools/atlas_doctor.py"
-      - "tools/atlas_doctor_lib/**"
-      - "tools/graphify.py"
-      - "tools/agent_graph.py"
-      - ".graphifyignore"
-      - ".github/workflows/graphify-map.yml"
 
 permissions:
   contents: read
@@ -49,7 +19,6 @@ env:
 
 jobs:
   graphify:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.ref != 'phase8/graphify-staged-cleanup-v1'
     name: Graphify / AST Code Map
     runs-on: ubuntu-latest
     timeout-minutes: 20

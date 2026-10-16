@@ -138,8 +138,10 @@ class AiContextTests(unittest.TestCase):
         self.assertIn("### IA-1 — NEXT —", roadmap)
         self.assertIn("Maximum 160 lignes", roadmap)
         workflow = (ROOT / ".github/workflows/ai-context-ci.yml").read_text(encoding="utf-8")
-        self.assertIn('"ROAD_IA.md"', workflow)
-        self.assertIn('      - "**"', workflow)  # all PR diffs guard index freshness
+        routes = json.loads((ROOT / "tools/atlas_doctor_lib/ci_routes.json").read_text(encoding="utf-8"))
+        self.assertIn("workflow_call:", workflow)
+        self.assertIn("ROAD_IA.md", routes["ai-context-ci"])
+        self.assertIn("**", routes["ai-context-ci"])  # all PR diffs guard index freshness
 
     def test_v2_scope_rule_routes_reference_existing_contracts(self) -> None:
         defaults, scopes = _context_map_lists(ROOT / ".ai/context-map.yaml")

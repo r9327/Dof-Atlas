@@ -42,8 +42,21 @@ UI_CONSUMERS = {
 INDEPENDENT_TOOLS = frozenset({
     "tools/atlas_json_raw.py", "tools/check_generated_files.py",
     "tools/agent_task_profiles.py",
+    "tools/atlas_meta_integrity.py", "tools/ci_main_phase_evidence.py",
+    "tools/ci_verified_pr_full.py",
+    "tools/ci_required_certification.py",
 })
-VALIDATOR_PATHS = frozenset({"tools/atlas_doctor.py", ".github/workflows/doctor-ui.yml"})
+VALIDATOR_PATHS = frozenset({
+    "tools/atlas_doctor.py", "tools/atlas_doctor_lib/ci_orchestrator.py",
+    "tools/atlas_doctor_lib/ci_routes.json", "tools/atlas_integrity_policy.json",
+    "tools/atlas_doctor_lib/ci_tooling_scope.py",
+})
+
+
+def _ci_workflow(path: str) -> bool:
+    # Workflow definitions change the validation environment, not product UI.
+    # They still select a real validator smoke; Doctor owns suite selection.
+    return path.startswith('.github/workflows/') and path.endswith(('.yml', '.yaml'))
 
 
 def _module(path: str) -> str:
@@ -86,8 +99,9 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
     uncertainty = []
     if not diff_valid or not base_sha or not candidate_sha:
         uncertainty.append("UNVERIFIED_DIFF_OR_SHA")
-    if deleted:
-        uncertainty.append("REMOVED_RENAMED_OR_TYPE_CHANGED: " + ", ".join(sorted(deleted)))
+    removed_runtime = [path for path in deleted if not _ci_workflow(path)]
+    if removed_runtime:
+        uncertainty.append("REMOVED_RENAMED_OR_TYPE_CHANGED: " + ", ".join(sorted(removed_runtime)))
     if len(changed) > 80:
         uncertainty.append("BROAD_CHANGE_REQUIRES_REVIEW")
     reverse = None
@@ -104,7 +118,7 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
             uncertainty.append("INVALID_PATH: " + path)
         elif path.endswith(".md") or path == ".ai/context_index.json":
             continue
-        elif path in VALIDATOR_PATHS or path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tests/test_doctor_ui")):
+        elif _ci_workflow(path) or path in VALIDATOR_PATHS or path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tests/test_doctor_ui")):
             include(("validator-smoke",), "Validator/selection contract changed: " + path, path)
         elif path in UI_CONSUMERS:
             include(UI_CONSUMERS[path], "Explicit Qt runtime consumer: " + path, path)
@@ -182,7 +196,25 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
     }
 
 
-def plan_ui(root: Path, base: str, candidate: str, forced=()) -> dict:
+def exhaustive_review_plan(report: dict) -> dict:
+    """Run every registered UI scenario when impact cannot safely narrow the set.
+
+    This never expands the evidence claim beyond the known scenario registry;
+    canonical FULL remains independently required for unknown product impact.
+    """
+    if report['status'] != 'REVIEW_REQUIRED':
+        return report
+    result = dict(report)
+    result.update(status='UI_REQUIRED', selected_scenarios=sorted(SCENARIOS),
+                  excluded_scenarios=[], exhaustive_on_review=True)
+    result['reason_per_scenario'] = {
+        scenario: ['Exhaustive registered UI campaign: impact uncertainty']
+        for scenario in SCENARIOS
+    }
+    return result
+
+
+def plan_ui(root: Path, base: str, candidate: str, forced=(), *, exhaustive_on_review=False) -> dict:
     actual = git_value(root, "rev-parse", "HEAD")
     valid = actual == candidate and not git_value(root, "status", "--porcelain")
     try:
@@ -190,8 +222,9 @@ def plan_ui(root: Path, base: str, candidate: str, forced=()) -> dict:
         paths, deleted = changed_paths(root, base_sha)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
         base_sha, paths, deleted, valid = "", [], [], False
-    return classify_ui(root, paths, candidate_sha=candidate, base_sha=base_sha,
-                       deleted=deleted, forced=forced, diff_valid=valid)
+    report = classify_ui(root, paths, candidate_sha=candidate, base_sha=base_sha,
+                         deleted=deleted, forced=forced, diff_valid=valid)
+    return exhaustive_review_plan(report) if valid and exhaustive_on_review else report
 
 
 def campaign_verdict(plan: dict, reports: list[dict], candidate: str) -> dict:
@@ -258,31 +291,37 @@ def main(argv=None) -> int:
     parser.add_argument("--plan", type=Path, default=ROOT / ".ai/runtime/atlas_doctor/ui_ci_selection.json")
     parser.add_argument("--force", choices=SCENARIOS, action="append", default=[])
     parser.add_argument("--github-output", type=Path)
+    parser.add_argument("--exhaustive-on-review", action="store_true", help="Run all registered scenarios for uncertain verified diffs; never waive FULL")
     parser.add_argument("--evidence-root", type=Path, default=ROOT / ".ai/runtime/atlas_doctor/ui")
     args = parser.parse_args(argv)
     if args.action == "plan":
         if not args.base_ref:
             parser.error("plan requires --base-ref")
-        report = plan_ui(ROOT, args.base_ref, args.candidate_sha, args.force)
+        report = plan_ui(ROOT, args.base_ref, args.candidate_sha, args.force, exhaustive_on_review=args.exhaustive_on_review)
         write_json(args.plan, report)
         if args.github_output:
             with args.github_output.open("a", encoding="utf-8") as stream:
                 stream.write(f"run_ui={str(bool(report['selected_scenarios'])).lower()}\n")
                 stream.write(f"ui_status={report['status']}\n")
     else:
-        plan = json.loads(args.plan.read_text(encoding="utf-8"))
         if args.action == "run":
-            checked = plan_ui(ROOT, plan["base_sha"], args.candidate_sha, plan.get("forced_scenarios", []))
+            plan = json.loads(args.plan.read_text(encoding="utf-8"))
+            checked = plan_ui(ROOT, plan["base_sha"], args.candidate_sha, plan.get("forced_scenarios", []), exhaustive_on_review=plan.get("exhaustive_on_review", False))
             if checked != plan or plan["status"] != "UI_REQUIRED":
                 raise ValueError("UI plan cannot be reproduced at the clean exact candidate")
             report = run_ui(ROOT, scenarios=plan["selected_scenarios"], mode="all")
         else:
             try:
+                plan = json.loads(args.plan.read_text(encoding="utf-8"))
+                if not isinstance(plan, dict):
+                    raise ValueError("UI selection must be a JSON object")
                 reports = [read_evidence(p.parent, args.candidate_sha)
                            for p in args.evidence_root.glob("*/ui_verdict.json")]
                 report = campaign_verdict(plan, reports, args.candidate_sha)
             except (OSError, ValueError, KeyError) as exc:
-                report = {"schema_version": 1, "status": "BLOCKED", "error": str(exc), "tests_executed": False}
+                report = {"schema_version": 1, "status": "BLOCKED", "error": str(exc),
+                          "candidate_sha": args.candidate_sha, "tests_executed": False,
+                          "phase_certified": False, "full_suite_waived": False}
             write_json(args.plan.with_name("ui_campaign_verdict.json"), report)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0 if report["status"] in {"PASS", "NOT_APPLICABLE", "UI_REQUIRED"} else 1

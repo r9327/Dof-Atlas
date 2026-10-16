@@ -1,5 +1,13 @@
 # Doctor Atlas — Adaptive Certification Architecture
 
+## Point d'entrée CI unique
+
+Le workflow historique `phase-certification.yml` commence par `Doctor / CI Plan`.
+Voir `PHASE_CERTIFICATION.md` pour le routage automatique PR/main, la sélection
+expliquée des workflows réutilisables et le verdict agrégé. Les anciens filtres
+par titre/branche sont remplacés par le diff exact-SHA. Les garanties de FULL et
+les budgets restent exigés ; un plan adaptatif ne certifie pas une phase.
+
 ## Goal
 
 Make Doctor the **single planning interface** for test selection and impact
@@ -590,3 +598,16 @@ time counted**. The Guide and Achievement probes also re-acquire their
 currently loaded pages after their own navigation. This corrects the
 instrumentation, not an application failure or an excuse to omit deferred
 work. The first failed run supplies no valid deep speed comparison.
+
+### Doctor-first CI tooling validation
+
+Doctor routes an exclusively known CI/tooling diff to the explicit contract suite
+in `tools/atlas_doctor_lib/ci_tooling_scope.py`, without an application FULL.
+The exact diff and SHA are checked again before those tests execute. Unknown
+files, runtime changes, certification executors, dependency changes and rulesets
+retain the canonical Phase decision. An integrity-policy diff is eligible only
+when it adds tested CI modules while preserving all existing policy and tests.
+This orchestration profile does not change the independent certification engine:
+its risk report remains visible, and a focused green PR is only VALIDATED.
+Manual Phase certification remains FULL. Post-merge release preparation requires
+real authenticated FULL evidence; focused validation cannot publish a release.
