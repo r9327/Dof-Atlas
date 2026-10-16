@@ -14,19 +14,31 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             root = Path(tmp)
             source = root / "rows.json"
             source.write_text(
-                json.dumps({"entries": {"101": "Quête", "102": "Étape"}}),
+                json.dumps({"entries": {
+                    "101": "Quête",
+                    "102": "Étape",
+                    "103": "Objectif",
+                    "104": "Récompense",
+                    "105": "Succès",
+                }}),
                 encoding="utf-8",
             )
             sources = QuestSources(root / "cache", disk_backed=True)
             try:
                 rows = sources.mapping(source, "entries")
                 self.assertEqual(rows["102"], "Étape")
+                self.assertIsNone(rows._disk_connection)
+                self.assertEqual(rows["103"], "Objectif")
+                self.assertIsNone(rows._disk_connection)
+                self.assertEqual(rows["104"], "Récompense")
+                self.assertIsNone(rows._disk_connection)
+                self.assertEqual(rows["101"], "Quête")
                 connection = rows._disk_connection
                 self.assertIsNotNone(connection)
-                self.assertEqual(rows["101"], "Quête")
+                self.assertEqual(rows["105"], "Succès")
                 self.assertIs(rows._disk_connection, connection)
-                self.assertEqual(len(rows), 2)
-                self.assertEqual(set(rows), {"101", "102"})
+                self.assertEqual(len(rows), 5)
+                self.assertEqual(set(rows), {"101", "102", "103", "104", "105"})
                 self.assertEqual(rows._offsets, {})
                 self.assertTrue(rows._disk_index.is_file())
             finally:

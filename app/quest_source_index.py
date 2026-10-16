@@ -200,6 +200,8 @@ def build_image_index(images_root: Path) -> dict[str, str]:
 
 
 class JsonSourceMapping(Mapping):
+    _DISK_REUSE_THRESHOLD = 4
+
     def __init__(
         self,
         path: Path,
@@ -229,6 +231,11 @@ class JsonSourceMapping(Mapping):
                 check_same_thread=False,
             )
         return self._disk_connection
+
+    def _close_disk_connection(self) -> None:
+        if self._disk_connection is not None:
+            self._disk_connection.close()
+            self._disk_connection = None
 
     def _source_failure(self, message: str, exc: BaseException | None = None):
         detail = f"{message}: {self.path}"
@@ -562,6 +569,11 @@ class JsonSourceMapping(Mapping):
             self._cache[key] = value
             while len(self._cache) > 128:
                 self._cache.popitem(last=False)
+            # One-off source lookups should not retain a SQLite connection.
+            # Once a mapping proves hot, reuse it for the rest of the bounded
+            # detail compilation instead of reconnecting for every key.
+            if len(self._cache) < self._DISK_REUSE_THRESHOLD:
+                self._close_disk_connection()
             return value
 
     def __iter__(self):
@@ -592,9 +604,7 @@ class JsonSourceMapping(Mapping):
             if self._stream is not None:
                 self._close_stream()
                 self._stream = None
-            if self._disk_connection is not None:
-                self._disk_connection.close()
-                self._disk_connection = None
+            self._close_disk_connection()
             # A completed Quest detail is already retained as a bounded rich
             # record (and stored in SQLite). Keeping its decoded source rows
             # too duplicates memory across the Guide/Quest/Home lifecycle.
