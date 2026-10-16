@@ -1,0 +1,94 @@
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+from tools.ui_lab.capture import load_request
+
+
+class UiLabCaptureTests(unittest.TestCase):
+    def test_default_capture_request_covers_main_groups_and_long_targets(self) -> None:
+        captures, include_lab_shell = load_request(Path("tools/ui_lab/capture_request.json"))
+        self.assertTrue(include_lab_shell)
+        self.assertEqual(len(captures), 23)
+        self.assertEqual(captures[0].screen, "home")
+        self.assertEqual(captures[1].screen, "organizer")
+
+        screens = {capture.screen for capture in captures}
+        self.assertTrue(
+            {
+                "encyclopedia.guides",
+                "encyclopedia.quests",
+                "encyclopedia.achievements",
+                "bestiary.dungeons",
+                "bestiary.monsters",
+                "bestiary.archmonsters",
+                "bestiary.wanted",
+                "tools.crafts",
+                "tools.world_map",
+                "tools.treasure_hunt",
+                "tools.ocre",
+                "stuffs.pvm",
+                "stuffs.pvp",
+                "stuffs.builders",
+                "almanax",
+                "tutorials.default",
+                "tutorials.dofus_noob",
+            }.issubset(screens)
+        )
+
+        for capture in captures:
+            self.assertGreaterEqual(capture.width, 320)
+            self.assertGreaterEqual(capture.height, 240)
+
+        gps_prepare = next(capture for capture in captures if capture.output_name == "guide-gps-prepare")
+        gps_combat = next(capture for capture in captures if capture.output_name == "guide-gps-combat")
+        self.assertEqual(gps_prepare.scenario, "gps_prepare")
+        self.assertEqual(gps_combat.scenario, "gps_combat")
+        self.assertTrue(gps_prepare.capture_segments and gps_prepare.capture_full_scroll)
+        self.assertTrue(gps_combat.capture_segments and gps_combat.capture_full_scroll)
+
+        quest_target = next(
+            capture
+            for capture in captures
+            if capture.output_name == "quest-1958"
+        )
+        self.assertEqual(quest_target.scenario, "target")
+        self.assertEqual(
+            quest_target.params["quest_name"],
+            "Les principes d'Archie m'aident",
+        )
+        self.assertTrue(quest_target.capture_segments)
+        self.assertTrue(quest_target.capture_full_scroll)
+        self.assertEqual(quest_target.segment_overlap, 80)
+
+        guide_target = next(
+            capture
+            for capture in captures
+            if capture.output_name == "guide-dofus-emeraude-quest-1958"
+        )
+        self.assertEqual(guide_target.params["guide_name"], "Dofus Émeraude")
+        self.assertEqual(
+            guide_target.params["quest_name"],
+            "Les principes d'Archie m'aident",
+        )
+        self.assertTrue(guide_target.capture_segments)
+        self.assertTrue(guide_target.capture_full_scroll)
+
+        achievement_target = next(
+            capture
+            for capture in captures
+            if capture.output_name == "achievement-1048"
+        )
+        self.assertEqual(achievement_target.params["achievement_name"], "Vert émeraude")
+        self.assertTrue(achievement_target.capture_segments)
+        self.assertTrue(achievement_target.capture_full_scroll)
+
+        home_progress = captures[-1]
+        self.assertEqual(home_progress.screen, "home")
+        self.assertEqual(home_progress.scenario, "saved_progress")
+        self.assertEqual(home_progress.params["percent"], 42)
+
+
+if __name__ == "__main__":
+    unittest.main()
