@@ -84,7 +84,7 @@ if ($appProcess.ExitCode -ne 0) { throw "Atlas exit code: $($appProcess.ExitCode
 @{pid=$appProcess.Id; exit_code=$appProcess.ExitCode; action='Quitter'} | ConvertTo-Json -Compress
 '''
     child_env = dict(env, ATLAS_E2E_EXECUTABLE=str(executable))
-    powershell = Path(env["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    powershell = Path(env["SYSTEMROOT"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
     result = subprocess.run(
         [str(powershell), "-NoProfile", "-NonInteractive", "-Command", command],
         env=child_env, capture_output=True, text=True, errors="replace", timeout=110,
@@ -117,7 +117,7 @@ def interrupt_download(launcher: Path, root: Path, env: dict[str, str]) -> list[
             if any(p["size"] >= 1024 * 1024 for p in partials):
                 require(not read_state(root).get("active"),
                         "Cannot interrupt after application activation")
-                taskkill = Path(env["SystemRoot"]) / "System32/taskkill.exe"
+                taskkill = Path(env["SYSTEMROOT"]) / "System32/taskkill.exe"
                 result = subprocess.run(
                     [str(taskkill), "/PID", str(process.pid), "/T", "/F"],
                     capture_output=True, timeout=30,
@@ -131,7 +131,7 @@ def interrupt_download(launcher: Path, root: Path, env: dict[str, str]) -> list[
         raise UpdateError("No real partial public download observed")
     finally:
         if not stopped and process.poll() is None:
-            taskkill = Path(env["SystemRoot"]) / "System32/taskkill.exe"
+            taskkill = Path(env["SYSTEMROOT"]) / "System32/taskkill.exe"
             subprocess.run([str(taskkill), "/PID", str(process.pid), "/T", "/F"],
                            capture_output=True, timeout=30, check=False)
             process.wait(timeout=30)
@@ -173,7 +173,7 @@ def certify(source_sha: str, source_root: Path, report: dict) -> None:
                QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --no-sandbox",
                QTWEBENGINE_DISABLE_SANDBOX="1")
     # Only Windows OS paths are available to the public EXEs, not the runner's Python.
-    env["PATH"] = str(Path(env["SystemRoot"]) / "System32") + os.pathsep + env["SystemRoot"]
+    env["PATH"] = str(Path(env["SYSTEMROOT"]) / "System32") + os.pathsep + env["SYSTEMROOT"]
     stages["interrupted_download"] = interrupt_download(launcher, root, env)
     launch(launcher, env)
     state = read_state(root)
