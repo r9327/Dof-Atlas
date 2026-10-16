@@ -248,22 +248,37 @@ def certify(source_sha: str, source_root: Path, report: dict) -> None:
     downloads_after = {str(p.relative_to(root)): (p.stat().st_size, p.stat().st_mtime_ns)
                        for p in (root / "downloads").rglob("*") if p.is_file()}
     require(downloads_before == downloads_after, "Relaunch downloaded or modified archives unnecessarily")
-    # Damage only this disposable runner's closed executable. The public
-    # launcher must rebuild the same release from verified cached bytes.
-    with executable.open("r+b") as damaged:
-        damaged.write(b"BROKEN-EXE")
-    launch(launcher, env, timeout=900)
-    repaired = active_executable(root)
-    require(repaired == executable, "Launcher did not repair the selected installation")
-    require(read_state(root).get("source_sha") == source_sha and not read_state(root).get("pending"),
-            "Repaired installation is not healthy for exact target SHA")
-    stages["repaired_shutdown"] = close_application(executable, env)
-    for entry in release.manifest.files:
-        require(verify_file(installed / entry.path, entry), "Repair left invalid file: " + entry.path)
-    require(marker.read_bytes() == b'{"preserve":"personal settings"}',
-            "Repair modified personal settings")
+    # Damage only closed files in this disposable runner. Same-length JSON
+    # corruption must be found even when the executable itself is intact.
+    stages["repairs"] = []
+    for name, target in (
+        ("executable", executable),
+        ("quest_source", executable.parent / "_internal" / RELATIVE_ROOT / "quest_categories.json"),
+    ):
+        with target.open("r+b") as damaged:
+            damaged.write(b"!")
+        launch(launcher, env, timeout=900)
+        repaired = active_executable(root)
+        require(repaired == executable, "Launcher did not repair the selected installation")
+        require(read_state(root).get("source_sha") == source_sha and not read_state(root).get("pending"),
+                "Repaired installation is not healthy for exact target SHA")
+        shutdown = close_application(executable, env)
+        for entry in release.manifest.files:
+            require(verify_file(installed / entry.path, entry), "Repair left invalid file: " + entry.path)
+        require(marker.read_bytes() == b'{"preserve":"personal settings"}',
+                "Repair modified personal settings")
+        stages["repairs"].append({"damaged_file": name, "shutdown": shutdown, "status": "PASS"})
+    repaired_worker_user = base / "Atlas repaired empty worker user"
+    require(not repaired_worker_user.exists(), "Post-repair Quest worker requires a new user root")
+    prepare_user_data(executable, repaired_worker_user)
+    result = subprocess.run(
+        [str(executable), "-m", "app.quest_catalog_details", "--ensure-cache"], cwd=base,
+        env=dict(env, DOFUS_ATLAS_USER_ROOT=str(repaired_worker_user)),
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=360,
+    )
+    require(result.returncode == 0, "Actual Quest worker failed after JSON repair")
     stages.update(custom_install_path=str(root), relaunch="PASS", personal_data="PASS",
-                  corrupted_executable_repair="PASS", no_unnecessary_download="PASS",
+                  post_repair_quest_worker="PASS", no_unnecessary_download="PASS",
                   no_python_in_application_path=True)
 
 
