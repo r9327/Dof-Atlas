@@ -102,7 +102,11 @@ class DoctorEvidenceContractsTests(unittest.TestCase):
             (pack / "__init__.py").write_text(
                 "_LAZY_EXPORT_MODULES = {'Widget': 'widget', 'Alias': 'unrelated'}\n"
                 "__all__ = ['Widget', 'Alias']\n"
-                "def __getattr__(name): return None\n",
+                "from importlib import import_module\n"
+                "def __getattr__(name):\n"
+                "    suffix = _LAZY_EXPORT_MODULES.get(name)\n"
+                "    if suffix is None: raise AttributeError(name)\n"
+                "    return getattr(import_module(f'{__name__}.{suffix}'), name)\n",
                 encoding="utf-8",
             )
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
@@ -116,6 +120,19 @@ class DoctorEvidenceContractsTests(unittest.TestCase):
             self.assertEqual(result["static_reference_kind"], "PUBLIC_LAZY_EXPORT")
             self.assertFalse(result["runtime_consumer_proven"])
             self.assertFalse(result["safe_to_delete"])
+            # A literal table plus a stub is not an importable public API.
+            (pack / "__init__.py").write_text(
+                "_LAZY_EXPORT_MODULES = {'Widget': 'widget'}\n"
+                "__all__ = ['Widget']\n"
+                "def __getattr__(name): return None\n", encoding="utf-8"
+            )
+            with patch("tools.agent.reverse_impact_payload", return_value={
+                "status": "PASS", "confirmed_relationships": []
+            }):
+                stub = inspect_consumer_sites(root, "app/widgets/widget.py")
+            self.assertEqual(stub["public_lazy_export_count"], 0)
+            self.assertFalse(stub["runtime_consumer_proven"])
+            self.assertFalse(stub["safe_to_delete"])
             (pack / "__init__.py").write_text(
                 "_LAZY_EXPORT_MODULES = {'Widget': 'widget'}\n"
                 "__all__ = ['Widget']\n", encoding="utf-8"

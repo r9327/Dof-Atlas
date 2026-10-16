@@ -1,0 +1,2660 @@
+{
+  "schema_version": 1,
+  "kind": "doctor_historical_diagnostic_review",
+  "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+  "original_count": 98,
+  "coverage": {
+    "CONSERVER_CAS_EXPLICITE": 9,
+    "CORRIGE_LOT_166": 2,
+    "CONSERVER_OUTIL_OU_FIXTURE": 8,
+    "CONSERVER_CONTRAT_DONNEES": 2,
+    "CONSERVER_IMPORT_EXPLICITE": 2,
+    "BLOCKED_VALIDATION_VISUELLE": 8,
+    "CONSERVER_API_LAZY": 7,
+    "CONSERVER_COMPATIBILITE": 29,
+    "BLOCKED_PARCOURS_NATIF_COMPLET": 17,
+    "BLOCKED_EQUIVALENCE_SEMANTIQUE": 7,
+    "CONSERVER_EXECUTOR_BORNE": 6,
+    "CONSERVER_LECTURE_COMPACTE": 1
+  },
+  "semantic_review_898_files_complete": false,
+  "historical_records_preserved": true,
+  "diagnostics": [
+    {
+      "rule": "silent_exception",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/providers/dofus_item_provider.py",
+      "line": 349,
+      "title": "Exception avalee silencieusement",
+      "evidence": "KeyError -> pass",
+      "recommendation": "Logger/remonter l erreur ou traiter explicitement le cas.",
+      "id": "4179a18929b349ab",
+      "audit_id": "DR-001",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "KeyError de type optionnel, cache best-effort ou arrêt KeyboardInterrupt explicites ; pas de panne démontrée.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "9bdde1887f3ec072f708da7debad5b8ac4d82e6e9c900929df741d5ca4e7386d",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CAS_EXPLICITE",
+        "reason": "KeyError de type optionnel ; les lignes et traductions obligatoires restent required=True."
+      }
+    },
+    {
+      "rule": "invalid_large_file_contract",
+      "category": "git",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "data/large_file_contracts.json",
+      "line": null,
+      "title": "Contrat de gros fichier invalide",
+      "evidence": "data/large_file_contracts.json files[0]: sha256 divergent",
+      "recommendation": "Corriger le hash, le role, le generateur ou les consommateurs prouves.",
+      "id": "cad8e520683a3aee",
+      "audit_id": "DR-002",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Corruption invalidée : CRLF reproduit exactement le hash. Portabilité à corriger AT-013 ; collision AT-014.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "a48f4a03b8c58a798d994f950f9a225526c7d668706d2d9f10a0dfe332dc26ed",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CORRIGE_LOT_166",
+        "reason": "AT-013 : hashing CRLF/LF canonique et identités distinctes ; contrats conservés et vérifiés par le gate, pas de corruption produit déduite du hash historique."
+      }
+    },
+    {
+      "rule": "invalid_large_file_contract",
+      "category": "git",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "data/large_file_contracts.json",
+      "line": null,
+      "title": "Contrat de gros fichier invalide",
+      "evidence": "data/large_file_contracts.json files[1]: sha256 divergent",
+      "recommendation": "Corriger le hash, le role, le generateur ou les consommateurs prouves.",
+      "id": "cad8e520683a3aee",
+      "audit_id": "DR-003",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Corruption invalidée : CRLF reproduit exactement le hash. Portabilité à corriger AT-013 ; collision AT-014.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "a48f4a03b8c58a798d994f950f9a225526c7d668706d2d9f10a0dfe332dc26ed",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CORRIGE_LOT_166",
+        "reason": "AT-013 : hashing CRLF/LF canonique et identités distinctes ; contrats conservés et vérifiés par le gate, pas de corruption produit déduite du hash historique."
+      }
+    },
+    {
+      "rule": "dynamic_exec",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tests/test_atlas_doctor_runtime_observation.py",
+      "line": 267,
+      "title": "Execution dynamique de code",
+      "evidence": "exec",
+      "recommendation": "Verifier si cette execution est indispensable; preferer une API structuree et validee.",
+      "id": "fc66ed7b69c1f36b",
+      "audit_id": "DR-004",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Fixture d’instrumentation/imports isolés relue ; aucune exécution dynamique produit démontrée.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "e7b26eee385937498f662f69205c36728695b284753bb9c9be09437cc3c7477e",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_OUTIL_OU_FIXTURE",
+        "reason": "Fixture isolée dans tests, sans exécution de source joueur."
+      }
+    },
+    {
+      "rule": "dynamic_exec",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tests/test_atlas_doctor_runtime_observation.py",
+      "line": 300,
+      "title": "Execution dynamique de code",
+      "evidence": "exec",
+      "recommendation": "Verifier si cette execution est indispensable; preferer une API structuree et validee.",
+      "id": "0120401a7fa2b90d",
+      "audit_id": "DR-005",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Fixture d’instrumentation/imports isolés relue ; aucune exécution dynamique produit démontrée.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "e7b26eee385937498f662f69205c36728695b284753bb9c9be09437cc3c7477e",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_OUTIL_OU_FIXTURE",
+        "reason": "Fixture isolée dans tests, sans exécution de source joueur."
+      }
+    },
+    {
+      "rule": "sys_path_hack",
+      "category": "architecture",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tests/test_atlas_doctor_runtime_observation.py",
+      "line": 625,
+      "title": "Mutation de sys.path detectee",
+      "evidence": "sys.path.insert",
+      "recommendation": "Corriger les imports/package plutot que modifier sys.path au runtime.",
+      "id": "8d0203651f16472d",
+      "audit_id": "DR-006",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Fixture d’instrumentation/imports isolés relue ; aucune exécution dynamique produit démontrée.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "e7b26eee385937498f662f69205c36728695b284753bb9c9be09437cc3c7477e",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_OUTIL_OU_FIXTURE",
+        "reason": "Fixture isolée dans tests, sans exécution de source joueur."
+      }
+    },
+    {
+      "rule": "dynamic_exec",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tests/test_encyclopedia_widgets_lazy_exports.py",
+      "line": 22,
+      "title": "Execution dynamique de code",
+      "evidence": "exec",
+      "recommendation": "Verifier si cette execution est indispensable; preferer une API structuree et validee.",
+      "id": "369135dc0a3913f3",
+      "audit_id": "DR-007",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Fixture d’instrumentation/imports isolés relue ; aucune exécution dynamique produit démontrée.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "4cda36aa7e4f159e7a39a7fedfd2842d7e9b274567ac091f6b520b31a6193992",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_OUTIL_OU_FIXTURE",
+        "reason": "Fixture isolée dans tests, sans exécution de source joueur."
+      }
+    },
+    {
+      "rule": "silent_exception",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/atlas_doctor_lib/audit.py",
+      "line": 686,
+      "title": "Exception avalee silencieusement",
+      "evidence": "OSError -> pass",
+      "recommendation": "Logger/remonter l erreur ou traiter explicitement le cas.",
+      "id": "ecf5322f1dfbf3a2",
+      "audit_id": "DR-008",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "KeyError de type optionnel, cache best-effort ou arrêt KeyboardInterrupt explicites ; pas de panne démontrée.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "3ba759ae65890d7b3f2fed44431cfc6724da85faf07bee1fd73130723c7654d8",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CAS_EXPLICITE",
+        "reason": "Échec d’écriture du cache AST reconstructible ; le calcul du verdict reste dans run_audit, hors du catch."
+      }
+    },
+    {
+      "rule": "silent_exception",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/atlas_doctor_lib/audit.py",
+      "line": 692,
+      "title": "Exception avalee silencieusement",
+      "evidence": "OSError -> pass",
+      "recommendation": "Logger/remonter l erreur ou traiter explicitement le cas.",
+      "id": "c98818cf696f62ae",
+      "audit_id": "DR-009",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "KeyError de type optionnel, cache best-effort ou arrêt KeyboardInterrupt explicites ; pas de panne démontrée.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "3ba759ae65890d7b3f2fed44431cfc6724da85faf07bee1fd73130723c7654d8",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CAS_EXPLICITE",
+        "reason": "Nettoyage du temporaire de cache AST dans finally ; aucun fichier joueur ni verdict supprimé."
+      }
+    },
+    {
+      "rule": "silent_exception",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/atlas_doctor_lib/live_graph.py",
+      "line": 306,
+      "title": "Exception avalee silencieusement",
+      "evidence": "KeyboardInterrupt -> pass",
+      "recommendation": "Logger/remonter l erreur ou traiter explicitement le cas.",
+      "id": "7c6bdbfd969d2dde",
+      "audit_id": "DR-010",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "KeyError de type optionnel, cache best-effort ou arrêt KeyboardInterrupt explicites ; pas de panne démontrée.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "18e596a98182769b18bd971d39ec838fc5a44b109c3ffabe8e1991ccce1b70a1",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CAS_EXPLICITE",
+        "reason": "KeyboardInterrupt du serveur live_graph termine normalement avec status STOPPED."
+      }
+    },
+    {
+      "rule": "silent_exception",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/atlas_full_suite_proof.py",
+      "line": 101,
+      "title": "Exception avalee silencieusement",
+      "evidence": "ValueError -> pass",
+      "recommendation": "Logger/remonter l erreur ou traiter explicitement le cas.",
+      "id": "d7f2cdce630496af",
+      "audit_id": "DR-011",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "47df05d900159a7625635c9e52b304ff9a20c6274c897b3b072dadaf3df66b84",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CAS_EXPLICITE",
+        "reason": "addError appelle super avant le catch ; _ErrorHolder reste une erreur unittest, pas un TestCase dans le ledger."
+      }
+    },
+    {
+      "rule": "silent_exception",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/atlas_integrity.py",
+      "line": 630,
+      "title": "Exception avalee silencieusement",
+      "evidence": "OSError -> pass",
+      "recommendation": "Logger/remonter l erreur ou traiter explicitement le cas.",
+      "id": "28cd9acb0e10a81f",
+      "audit_id": "DR-012",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "a9e3333facd6278f41149bb96b69e1f8a0ae39a8b3a48f1c948028553e34e851",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CAS_EXPLICITE",
+        "reason": "Breadcrumb optionnel ; le verdict de execute_gate est indépendant de cet append diagnostique."
+      }
+    },
+    {
+      "rule": "sys_path_hack",
+      "category": "architecture",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/benchmark_phase8_memory.py",
+      "line": 23,
+      "title": "Mutation de sys.path detectee",
+      "evidence": "sys.path.insert",
+      "recommendation": "Corriger les imports/package plutot que modifier sys.path au runtime.",
+      "id": "1516980b8045fd76",
+      "audit_id": "DR-013",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "4d6b01a04bc21649aa38187beb549f27bd8c21cbae5eabfbd400869a823debcc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_OUTIL_OU_FIXTURE",
+        "reason": "Entrypoint de benchmark ou mutation contrôlée du source du dépôt ; conserver le mode explicite et ses tests, ne pas assimiler à une exécution arbitraire produit."
+      }
+    },
+    {
+      "rule": "sys_path_hack",
+      "category": "architecture",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/benchmark_phase8_memory.py",
+      "line": 26,
+      "title": "Mutation de sys.path detectee",
+      "evidence": "sys.path.insert",
+      "recommendation": "Corriger les imports/package plutot que modifier sys.path au runtime.",
+      "id": "dfd89c4fd12de166",
+      "audit_id": "DR-014",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "4d6b01a04bc21649aa38187beb549f27bd8c21cbae5eabfbd400869a823debcc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_OUTIL_OU_FIXTURE",
+        "reason": "Entrypoint de benchmark ou mutation contrôlée du source du dépôt ; conserver le mode explicite et ses tests, ne pas assimiler à une exécution arbitraire produit."
+      }
+    },
+    {
+      "rule": "sys_path_hack",
+      "category": "architecture",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/benchmark_phase8_preload.py",
+      "line": 19,
+      "title": "Mutation de sys.path detectee",
+      "evidence": "sys.path.insert",
+      "recommendation": "Corriger les imports/package plutot que modifier sys.path au runtime.",
+      "id": "76a014c64da40936",
+      "audit_id": "DR-015",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "39d3be68197bbd119371e48164323e4a9112fb91df41088b88694efcc4b19df0",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_OUTIL_OU_FIXTURE",
+        "reason": "Entrypoint de benchmark ou mutation contrôlée du source du dépôt ; conserver le mode explicite et ses tests, ne pas assimiler à une exécution arbitraire produit."
+      }
+    },
+    {
+      "rule": "silent_exception",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/ci_guide_full_evidence.py",
+      "line": 215,
+      "title": "Exception avalee silencieusement",
+      "evidence": "OSError -> pass",
+      "recommendation": "Logger/remonter l erreur ou traiter explicitement le cas.",
+      "id": "be883a0e1b6cd1d3",
+      "audit_id": "DR-016",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "0821824a854ad78859b77520ca5826d4fe9123e26cf64fe68ae4ba9d0bcce8fa",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CAS_EXPLICITE",
+        "reason": "Reproduction PermissionError sur unlink : fichier stale conservé, mais main retourne 2 ; le caller PowerShell exige LASTEXITCODE=0 ET la présence du fichier avant lecture."
+      }
+    },
+    {
+      "rule": "silent_exception",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/doctor_policy_authority.py",
+      "line": 151,
+      "title": "Exception avalee silencieusement",
+      "evidence": "(urllib.error.HTTPError, ValueError) -> pass",
+      "recommendation": "Logger/remonter l erreur ou traiter explicitement le cas.",
+      "id": "ab3dbc96d2a19b9d",
+      "audit_id": "DR-017",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "3d4daff67a9aa87fe7a52ad479541b59d748f084adb57f19d7348f1e79cd5e23",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CAS_EXPLICITE",
+        "reason": "check_online : réponses protection 403 et 404 reproduites ; état initial interdit, verdict BLOCKED, aucune dispense FULL."
+      }
+    },
+    {
+      "rule": "silent_exception",
+      "category": "reliability",
+      "severity": "HIGH",
+      "confidence": "confirmed",
+      "path": "tools/phase_adaptive_gate.py",
+      "line": 181,
+      "title": "Exception avalee silencieusement",
+      "evidence": "(ValueError, OSError, json.JSONDecodeError) -> pass",
+      "recommendation": "Logger/remonter l erreur ou traiter explicitement le cas.",
+      "id": "596d0da5b3105406",
+      "audit_id": "DR-018",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "0d0ccff35b6c019c4aeff6794322c06ce79915998cd15f60273fab00ad17f501",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CAS_EXPLICITE",
+        "reason": "CLI decide : chargement du plan ValueError/OSError reproduit ; plan=None, route FULL et DOCTOR_PLAN_UNAVAILABLE."
+      }
+    },
+    {
+      "rule": "large_tracked_file",
+      "category": "git",
+      "severity": "MEDIUM",
+      "confidence": "confirmed",
+      "path": "data/encyclopedia/quests/image_manifest.json",
+      "line": null,
+      "title": "Gros fichier suivi par Git",
+      "evidence": "26.9 MiB",
+      "recommendation": "Verifier qu il s agit bien d une source necessaire et non d un artefact regenerable.",
+      "id": "e022219917c55402",
+      "audit_id": "DR-019",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "c2c32139d1a6d14cb77936aa586b7a34fcf3a0525e395c882f0902e6e9b6729d",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CONTRAT_DONNEES",
+        "reason": "Consumer catalogue/manifest réel ; contrat de gros fichier maintenu. #172 vérifie les entrées publiques, aucun découpage de JSON ou suppression autorisés."
+      }
+    },
+    {
+      "rule": "large_tracked_file",
+      "category": "git",
+      "severity": "MEDIUM",
+      "confidence": "confirmed",
+      "path": "data/encyclopedia/quests/quests_enriched.json",
+      "line": null,
+      "title": "Gros fichier suivi par Git",
+      "evidence": "69.0 MiB",
+      "recommendation": "Verifier qu il s agit bien d une source necessaire et non d un artefact regenerable.",
+      "id": "4de3f6eed33423f0",
+      "audit_id": "DR-020",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Voir preuve source de la ligne et registre principal ; aucune suppression automatique.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "e6d7c5b90ced5768c4b4f4b044146c9928bef23286547001ae0cff97a75bf165",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_CONTRAT_DONNEES",
+        "reason": "Consumer catalogue/manifest réel ; contrat de gros fichier maintenu. #172 vérifie les entrées publiques, aucun découpage de JSON ou suppression autorisés."
+      }
+    },
+    {
+      "rule": "qtwebengine_import_scope",
+      "category": "performance",
+      "severity": "MEDIUM",
+      "confidence": "suspect",
+      "path": "tools/atlas_doctor_lib/webengine_lifecycle_scenario.py",
+      "line": 17,
+      "title": "Import QtWebEngine hors zone attendue",
+      "evidence": "PySide6.QtWebEngineWidgets",
+      "recommendation": "Verifier qu il ne provoque pas le chargement de Chromium au demarrage.",
+      "id": "cf4c52acbf0fc881",
+      "audit_id": "DR-021",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Scénario Doctor explicitement opt-in ; pas un import au démarrage produit.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "d336663ba8faf8842dc9ba386e53fd733d86dc6b134845f13654be81de46c9b4",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_IMPORT_EXPLICITE",
+        "reason": "Imports locaux dans run(), après obligation active_observer ; scénario Doctor explicite, profil off-the-record. Aucun import WebEngine sur Home démontré ici."
+      }
+    },
+    {
+      "rule": "qtwebengine_import_scope",
+      "category": "performance",
+      "severity": "MEDIUM",
+      "confidence": "suspect",
+      "path": "tools/atlas_doctor_lib/webengine_lifecycle_scenario.py",
+      "line": 18,
+      "title": "Import QtWebEngine hors zone attendue",
+      "evidence": "PySide6.QtWebEngineCore",
+      "recommendation": "Verifier qu il ne provoque pas le chargement de Chromium au demarrage.",
+      "id": "e73ea72f7f12b641",
+      "audit_id": "DR-022",
+      "audit_status": "FAUX POSITIF",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Scénario Doctor explicitement opt-in ; pas un import au démarrage produit.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "d336663ba8faf8842dc9ba386e53fd733d86dc6b134845f13654be81de46c9b4",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_IMPORT_EXPLICITE",
+        "reason": "Imports locaux dans run(), après obligation active_observer ; scénario Doctor explicite, profil off-the-record. Aucun import WebEngine sur Home démontré ici."
+      }
+    },
+    {
+      "rule": "local_stylesheet",
+      "category": "ui",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+      "line": 260,
+      "title": "Style local a verifier",
+      "evidence": "frame.setStyleSheet",
+      "recommendation": "Verifier que ce style ne duplique pas theme.py/components.py; conserver si semantique locale legitime.",
+      "id": "b7cfa77e7a01c721",
+      "audit_id": "DR-023",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Style local à revue sémantique ; tokens PALETTE présents dans le renderer partagé. La présence de setStyleSheet ne prouve pas une duplication fautive.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f036deefcdb3bdedf0a25faec626332e91c821336d2cc144bb5a8d9f618164a1",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_VALIDATION_VISUELLE",
+        "reason": "Style local effectivement présent ; existence seule ne démontre ni incohérence ni défaut. Revue pixels/contraste sur bureau Windows absente ; conserver jusqu’au parcours #175."
+      }
+    },
+    {
+      "rule": "local_stylesheet",
+      "category": "ui",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+      "line": 285,
+      "title": "Style local a verifier",
+      "evidence": "row_widget.setStyleSheet",
+      "recommendation": "Verifier que ce style ne duplique pas theme.py/components.py; conserver si semantique locale legitime.",
+      "id": "21aecf73e24697f3",
+      "audit_id": "DR-024",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Style local à revue sémantique ; tokens PALETTE présents dans le renderer partagé. La présence de setStyleSheet ne prouve pas une duplication fautive.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f036deefcdb3bdedf0a25faec626332e91c821336d2cc144bb5a8d9f618164a1",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_VALIDATION_VISUELLE",
+        "reason": "Style local effectivement présent ; existence seule ne démontre ni incohérence ni défaut. Revue pixels/contraste sur bureau Windows absente ; conserver jusqu’au parcours #175."
+      }
+    },
+    {
+      "rule": "local_stylesheet",
+      "category": "ui",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+      "line": 289,
+      "title": "Style local a verifier",
+      "evidence": "row_widget.setStyleSheet",
+      "recommendation": "Verifier que ce style ne duplique pas theme.py/components.py; conserver si semantique locale legitime.",
+      "id": "18c6c0b7caccec65",
+      "audit_id": "DR-025",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Style local à revue sémantique ; tokens PALETTE présents dans le renderer partagé. La présence de setStyleSheet ne prouve pas une duplication fautive.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f036deefcdb3bdedf0a25faec626332e91c821336d2cc144bb5a8d9f618164a1",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_VALIDATION_VISUELLE",
+        "reason": "Style local effectivement présent ; existence seule ne démontre ni incohérence ni défaut. Revue pixels/contraste sur bureau Windows absente ; conserver jusqu’au parcours #175."
+      }
+    },
+    {
+      "rule": "local_stylesheet",
+      "category": "ui",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+      "line": 313,
+      "title": "Style local a verifier",
+      "evidence": "line.setStyleSheet",
+      "recommendation": "Verifier que ce style ne duplique pas theme.py/components.py; conserver si semantique locale legitime.",
+      "id": "d6d538a57fd96b48",
+      "audit_id": "DR-026",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Style local à revue sémantique ; tokens PALETTE présents dans le renderer partagé. La présence de setStyleSheet ne prouve pas une duplication fautive.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f036deefcdb3bdedf0a25faec626332e91c821336d2cc144bb5a8d9f618164a1",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_VALIDATION_VISUELLE",
+        "reason": "Style local effectivement présent ; existence seule ne démontre ni incohérence ni défaut. Revue pixels/contraste sur bureau Windows absente ; conserver jusqu’au parcours #175."
+      }
+    },
+    {
+      "rule": "local_stylesheet",
+      "category": "ui",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+      "line": 318,
+      "title": "Style local a verifier",
+      "evidence": "line.setStyleSheet",
+      "recommendation": "Verifier que ce style ne duplique pas theme.py/components.py; conserver si semantique locale legitime.",
+      "id": "5850ac1c4064dc8c",
+      "audit_id": "DR-027",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Style local à revue sémantique ; tokens PALETTE présents dans le renderer partagé. La présence de setStyleSheet ne prouve pas une duplication fautive.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f036deefcdb3bdedf0a25faec626332e91c821336d2cc144bb5a8d9f618164a1",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_VALIDATION_VISUELLE",
+        "reason": "Style local effectivement présent ; existence seule ne démontre ni incohérence ni défaut. Revue pixels/contraste sur bureau Windows absente ; conserver jusqu’au parcours #175."
+      }
+    },
+    {
+      "rule": "local_stylesheet",
+      "category": "ui",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+      "line": 540,
+      "title": "Style local a verifier",
+      "evidence": "row.setStyleSheet",
+      "recommendation": "Verifier que ce style ne duplique pas theme.py/components.py; conserver si semantique locale legitime.",
+      "id": "db747c8f3e5c7266",
+      "audit_id": "DR-028",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Style local à revue sémantique ; tokens PALETTE présents dans le renderer partagé. La présence de setStyleSheet ne prouve pas une duplication fautive.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f036deefcdb3bdedf0a25faec626332e91c821336d2cc144bb5a8d9f618164a1",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_VALIDATION_VISUELLE",
+        "reason": "Style local effectivement présent ; existence seule ne démontre ni incohérence ni défaut. Revue pixels/contraste sur bureau Windows absente ; conserver jusqu’au parcours #175."
+      }
+    },
+    {
+      "rule": "local_stylesheet",
+      "category": "ui",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+      "line": 560,
+      "title": "Style local a verifier",
+      "evidence": "checkbox.setStyleSheet",
+      "recommendation": "Verifier que ce style ne duplique pas theme.py/components.py; conserver si semantique locale legitime.",
+      "id": "2ee03e9d9feb34e8",
+      "audit_id": "DR-029",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Style local à revue sémantique ; tokens PALETTE présents dans le renderer partagé. La présence de setStyleSheet ne prouve pas une duplication fautive.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f036deefcdb3bdedf0a25faec626332e91c821336d2cc144bb5a8d9f618164a1",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_VALIDATION_VISUELLE",
+        "reason": "Style local effectivement présent ; existence seule ne démontre ni incohérence ni défaut. Revue pixels/contraste sur bureau Windows absente ; conserver jusqu’au parcours #175."
+      }
+    },
+    {
+      "rule": "unreferenced_module",
+      "category": "dead_code",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/widgets/achievement_summary_widget.py",
+      "line": null,
+      "title": "Module sans import statique detecte",
+      "evidence": "Aucun import statique de app.modules.encyclopedia.widgets.achievement_summary_widget dans les fichiers Python suivis.",
+      "recommendation": "Verifier wiring dynamique, signaux, importlib et usages externes avant toute suppression.",
+      "id": "83dee61d466931a1",
+      "audit_id": "DR-030",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Absence d’import statique observée ; module exposé par la façade lazy. Usage produit non prouvé, aucune suppression. AT-015.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "72cbf6321d8373f800190fa120833dd9146b5e8f7b788be8d3528b9bf77fa065",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_API_LAZY",
+        "reason": "Nom dans _LAZY_EXPORT_MODULES et __all__, dispatch __getattr__ avec appel import_module ; tests positifs/négatifs Doctor et contrat des exports publics. Reachability API, pas preuve d’affichage."
+      }
+    },
+    {
+      "rule": "unreferenced_module",
+      "category": "dead_code",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/widgets/filter_panel.py",
+      "line": null,
+      "title": "Module sans import statique detecte",
+      "evidence": "Aucun import statique de app.modules.encyclopedia.widgets.filter_panel dans les fichiers Python suivis.",
+      "recommendation": "Verifier wiring dynamique, signaux, importlib et usages externes avant toute suppression.",
+      "id": "e8cbbfced41f2dd6",
+      "audit_id": "DR-031",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Absence d’import statique observée ; module exposé par la façade lazy. Usage produit non prouvé, aucune suppression. AT-015.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "06937981661994c5d718f6ff25df32e8b070bcb049a1243ca233d95d9ab81bb8",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_API_LAZY",
+        "reason": "Nom dans _LAZY_EXPORT_MODULES et __all__, dispatch __getattr__ avec appel import_module ; tests positifs/négatifs Doctor et contrat des exports publics. Reachability API, pas preuve d’affichage."
+      }
+    },
+    {
+      "rule": "unreferenced_module",
+      "category": "dead_code",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/widgets/guide_progress_header.py",
+      "line": null,
+      "title": "Module sans import statique detecte",
+      "evidence": "Aucun import statique de app.modules.encyclopedia.widgets.guide_progress_header dans les fichiers Python suivis.",
+      "recommendation": "Verifier wiring dynamique, signaux, importlib et usages externes avant toute suppression.",
+      "id": "3d309de5992efe03",
+      "audit_id": "DR-032",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Absence d’import statique observée ; module exposé par la façade lazy. Usage produit non prouvé, aucune suppression. AT-015.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "37aeb3d86734c75dcdb9bd6f2d1ef4e2ff9317c13003096d949e20d96503e9cc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_API_LAZY",
+        "reason": "Nom dans _LAZY_EXPORT_MODULES et __all__, dispatch __getattr__ avec appel import_module ; tests positifs/négatifs Doctor et contrat des exports publics. Reachability API, pas preuve d’affichage."
+      }
+    },
+    {
+      "rule": "unreferenced_module",
+      "category": "dead_code",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/widgets/guide_section_widget.py",
+      "line": null,
+      "title": "Module sans import statique detecte",
+      "evidence": "Aucun import statique de app.modules.encyclopedia.widgets.guide_section_widget dans les fichiers Python suivis.",
+      "recommendation": "Verifier wiring dynamique, signaux, importlib et usages externes avant toute suppression.",
+      "id": "6a3f768614fcc5c6",
+      "audit_id": "DR-033",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Absence d’import statique observée ; module exposé par la façade lazy. Usage produit non prouvé, aucune suppression. AT-015.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "7e1179563e7316f84445a9c9eaa1d73e46c7439c47d57cd81fc880004d036741",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_API_LAZY",
+        "reason": "Nom dans _LAZY_EXPORT_MODULES et __all__, dispatch __getattr__ avec appel import_module ; tests positifs/négatifs Doctor et contrat des exports publics. Reachability API, pas preuve d’affichage."
+      }
+    },
+    {
+      "rule": "unreferenced_module",
+      "category": "dead_code",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/widgets/guide_step_widget.py",
+      "line": null,
+      "title": "Module sans import statique detecte",
+      "evidence": "Aucun import statique de app.modules.encyclopedia.widgets.guide_step_widget dans les fichiers Python suivis.",
+      "recommendation": "Verifier wiring dynamique, signaux, importlib et usages externes avant toute suppression.",
+      "id": "eca438a70cb9b061",
+      "audit_id": "DR-034",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Absence d’import statique observée ; module exposé par la façade lazy. Usage produit non prouvé, aucune suppression. AT-015.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "efd1e03d8fb08b32303956311662f01acc84b41acc95a0241653c4a80fab0efd",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_API_LAZY",
+        "reason": "Nom dans _LAZY_EXPORT_MODULES et __all__, dispatch __getattr__ avec appel import_module ; tests positifs/négatifs Doctor et contrat des exports publics. Reachability API, pas preuve d’affichage."
+      }
+    },
+    {
+      "rule": "unreferenced_module",
+      "category": "dead_code",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/widgets/progress_card.py",
+      "line": null,
+      "title": "Module sans import statique detecte",
+      "evidence": "Aucun import statique de app.modules.encyclopedia.widgets.progress_card dans les fichiers Python suivis.",
+      "recommendation": "Verifier wiring dynamique, signaux, importlib et usages externes avant toute suppression.",
+      "id": "f1846302336a3fd6",
+      "audit_id": "DR-035",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Absence d’import statique observée ; module exposé par la façade lazy. Usage produit non prouvé, aucune suppression. AT-015.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "6cd35e7427c796b5578178c995d7e485de78797496e28ebefd15bbca75efb989",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_API_LAZY",
+        "reason": "Nom dans _LAZY_EXPORT_MODULES et __all__, dispatch __getattr__ avec appel import_module ; tests positifs/négatifs Doctor et contrat des exports publics. Reachability API, pas preuve d’affichage."
+      }
+    },
+    {
+      "rule": "unreferenced_module",
+      "category": "dead_code",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/modules/encyclopedia/widgets/result_list.py",
+      "line": null,
+      "title": "Module sans import statique detecte",
+      "evidence": "Aucun import statique de app.modules.encyclopedia.widgets.result_list dans les fichiers Python suivis.",
+      "recommendation": "Verifier wiring dynamique, signaux, importlib et usages externes avant toute suppression.",
+      "id": "d8757c961e091955",
+      "audit_id": "DR-036",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Absence d’import statique observée ; module exposé par la façade lazy. Usage produit non prouvé, aucune suppression. AT-015.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "1868b8289b24084704734ccce80c9e5db45ea84fe90ead7950b004ad13ef7275",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_API_LAZY",
+        "reason": "Nom dans _LAZY_EXPORT_MODULES et __all__, dispatch __getattr__ avec appel import_module ; tests positifs/négatifs Doctor et contrat des exports publics. Reachability API, pas preuve d’affichage."
+      }
+    },
+    {
+      "rule": "local_stylesheet",
+      "category": "ui",
+      "severity": "LOW",
+      "confidence": "suspect",
+      "path": "app/ui/preload_popup.py",
+      "line": 109,
+      "title": "Style local a verifier",
+      "evidence": "self.setStyleSheet",
+      "recommendation": "Verifier que ce style ne duplique pas theme.py/components.py; conserver si semantique locale legitime.",
+      "id": "e5a8dd55aaa71b84",
+      "audit_id": "DR-037",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Style local à revue sémantique ; tokens PALETTE présents dans le renderer partagé. La présence de setStyleSheet ne prouve pas une duplication fautive.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "9769dc4d0b2bcc9fe8119fa6012ce46983af970d1d65e06c525a0b13a2814f1a",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_VALIDATION_VISUELLE",
+        "reason": "Style local effectivement présent ; existence seule ne démontre ni incohérence ni défaut. Revue pixels/contraste sur bureau Windows absente ; conserver jusqu’au parcours #175."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/cartography/map_asset_loader.py",
+      "line": 23,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "ensure_placeholder_asset contient placeholder; references=2",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "71caaa93a69f3c15",
+      "audit_id": "DR-038",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "87d8feaba8c902526ebce3ce86b4841558033f2b0c376c1895affe894df9a513",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/cartography/map_asset_loader.py",
+            "line": 62
+          },
+          {
+            "path": "app/cartography/map_asset_loader.py",
+            "line": 66
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "ensure_placeholder_asset : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/cartography/world_db.py",
+      "line": 102,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_rename_legacy_maps_if_needed contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "7539361f16343e22",
+      "audit_id": "DR-039",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "118137dbc7070e97ac2e23c87789e8c4ebd5cd1d5f722af31d18c5c522117e15",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/cartography/world_db.py",
+            "line": 132
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_rename_legacy_maps_if_needed : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/core/runtime_state.py",
+      "line": 278,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "threading.Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "0cb3fdf3ac72bb41",
+      "audit_id": "DR-040",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "70f692afcb0673c72fed94c914d9f5b23f722012d5021f6f9c07e251998ed595",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "_startup_cancel et _startup_thread, _cancel_startup_worker joint avec délai. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/core/runtime_state.py",
+      "line": 500,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "threading.Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "f2d178d3c4ec917a",
+      "audit_id": "DR-041",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "70f692afcb0673c72fed94c914d9f5b23f722012d5021f6f9c07e251998ed595",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "_threads garde les handles, stop appelle emergency_stop et _join_macro_threads. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "repeated_symbol_name",
+      "category": "architecture",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/craft_preload.py",
+      "line": null,
+      "title": "Nom de symbole courant dans plusieurs modules",
+      "evidence": "app/craft_preload.py, app/local_data_cache.py, app/modules/encyclopedia/services/achievement_index_warmup.py, app/modules/encyclopedia/tools/audit_achievements_lot7.py, app/modules/encyclopedia/tools/audit_duffus_guides.py, app/modules/encyclopedia/tools/audit_lot6_documentary_fidelity.py, app/modules/encyclopedia/tools/audit_quest_visuals.py, app/modules/encyclopedia/tools/audit_quests_guides.py",
+      "recommendation": "Observation uniquement: un nom repete ne prouve ni dependance ni duplication de responsabilite.",
+      "id": "a6f32b651f706eef",
+      "audit_id": "DR-042",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "7445afc15303f075ead7439f1628fd7b26dbc7968ad7775c5fe695ab8bcde963",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_EQUIVALENCE_SEMANTIQUE",
+        "reason": "Nom partagé dans les chemins historiques listés ; ni identité de nom ni clone AST ne prouve égalité des effets de bord/policies. Pas de nouvelle fusion sans parité ; AT-019/020 déjà livrés par #165."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/input/hotkeys.py",
+      "line": 420,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "threading.Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "eb5ac0f5e7718407",
+      "audit_id": "DR-043",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "3485fb720eb6f1cf5c173af02ff47902f43be591f4b8c0eb5ac04b1731914f8a",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "stop délègue à stop_message_hook : PostThreadMessage/unhook puis join borné. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/input/mouse_hooks.py",
+      "line": 124,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "threading.Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "00360de2c2f079bb",
+      "audit_id": "DR-044",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "71932b2d5d670e9a19e540fdbbad1a08e63ce7a61dd7abb02a9a3a47a8714e92",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "Même owner hook_lifecycle ; handles souris et thread natif spécifiques. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "repeated_symbol_name",
+      "category": "architecture",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/providers/achievement_provider.py",
+      "line": null,
+      "title": "Nom de symbole courant dans plusieurs modules",
+      "evidence": "app/modules/encyclopedia/providers/achievement_provider.py, app/modules/encyclopedia/services/quest_graph_service.py, app/quest_catalog.py, local_dofus_data/utils.py",
+      "recommendation": "Observation uniquement: un nom repete ne prouve ni dependance ni duplication de responsabilite.",
+      "id": "3fbaca0c3fdf57ee",
+      "audit_id": "DR-045",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "732d981bad8ed99aad00c3f839f98132a2ab91edb90492761a6def925ea83655",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_EQUIVALENCE_SEMANTIQUE",
+        "reason": "Nom partagé dans les chemins historiques listés ; ni identité de nom ni clone AST ne prouve égalité des effets de bord/policies. Pas de nouvelle fusion sans parité ; AT-019/020 déjà livrés par #165."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/services/guide_ultime_manual_conditions.py",
+      "line": 316,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_class_placeholder_line contient placeholder; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "d0f517ceb20ae28e",
+      "audit_id": "DR-046",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "a2ccd044405c6c5981c2b1c6e1d2a298229d5a027e3768761c8b5a9446c41406",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/modules/encyclopedia/services/guide_ultime_manual_conditions.py",
+            "line": 570
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_class_placeholder_line : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/services/guide_ultime_runtime_service.py",
+      "line": 74,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_legacy_manual_page_key contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "40519f6c9a4292b7",
+      "audit_id": "DR-047",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "b1493907d06f5814f0442dfbdc8c8b2098e76a76af16605d7f9bff0466167090",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/modules/encyclopedia/services/guide_ultime_runtime_service.py",
+            "line": 88
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_legacy_manual_page_key : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "repeated_symbol_name",
+      "category": "architecture",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/audit_achievements_lot7.py",
+      "line": null,
+      "title": "Nom de symbole courant dans plusieurs modules",
+      "evidence": "app/modules/encyclopedia/tools/audit_achievements_lot7.py, app/modules/encyclopedia/tools/audit_quest_visuals.py, app/modules/encyclopedia/tools/audit_quests_guides.py, app/modules/encyclopedia/tools/audit_quests_guides_semantic.py",
+      "recommendation": "Observation uniquement: un nom repete ne prouve ni dependance ni duplication de responsabilite.",
+      "id": "ffac453b55dce4bb",
+      "audit_id": "DR-048",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f2f33629d3252cc9f73f2d691c4877527cf30e327c0f7bd06adaf88b51bbb38a",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_EQUIVALENCE_SEMANTIQUE",
+        "reason": "Nom partagé dans les chemins historiques listés ; ni identité de nom ni clone AST ne prouve égalité des effets de bord/policies. Pas de nouvelle fusion sans parité ; AT-019/020 déjà livrés par #165."
+      }
+    },
+    {
+      "rule": "repeated_symbol_name",
+      "category": "architecture",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/audit_achievements_lot7.py",
+      "line": null,
+      "title": "Nom de symbole courant dans plusieurs modules",
+      "evidence": "app/modules/encyclopedia/tools/audit_achievements_lot7.py, app/modules/encyclopedia/tools/audit_lot6_documentary_fidelity.py, app/modules/encyclopedia/tools/audit_quest_visuals.py, app/modules/encyclopedia/tools/integrate_lot6_codex_candidates.py, app/modules/encyclopedia/tools/integrate_quest_visuals_lot6.py, app/modules/encyclopedia/tools/verify_quest_visuals_work.py",
+      "recommendation": "Observation uniquement: un nom repete ne prouve ni dependance ni duplication de responsabilite.",
+      "id": "ffac453b55dce4bb",
+      "audit_id": "DR-049",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f2f33629d3252cc9f73f2d691c4877527cf30e327c0f7bd06adaf88b51bbb38a",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_EQUIVALENCE_SEMANTIQUE",
+        "reason": "Nom partagé dans les chemins historiques listés ; ni identité de nom ni clone AST ne prouve égalité des effets de bord/policies. Pas de nouvelle fusion sans parité ; AT-019/020 déjà livrés par #165."
+      }
+    },
+    {
+      "rule": "repeated_symbol_name",
+      "category": "architecture",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/audit_duffus_guides.py",
+      "line": null,
+      "title": "Nom de symbole courant dans plusieurs modules",
+      "evidence": "app/modules/encyclopedia/tools/audit_duffus_guides.py, app/modules/encyclopedia/tools/audit_quests_guides.py, app/services/maps/map_manifest.py, app/storage.py",
+      "recommendation": "Observation uniquement: un nom repete ne prouve ni dependance ni duplication de responsabilite.",
+      "id": "10bd35224c0965e2",
+      "audit_id": "DR-050",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "1b5f10058c53a4c4c4e05750e05eb6b39731a34f6d533bbf6337cda956c187cc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_EQUIVALENCE_SEMANTIQUE",
+        "reason": "Nom partagé dans les chemins historiques listés ; ni identité de nom ni clone AST ne prouve égalité des effets de bord/policies. Pas de nouvelle fusion sans parité ; AT-019/020 déjà livrés par #165."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/audit_lot6_documentary_fidelity.py",
+      "line": 34,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "legacy_visual_count contient legacy; references=2",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "96d51f4a908457db",
+      "audit_id": "DR-051",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "c8893bfe86d0fa501da793f5069583f16c8c922f76f1e57e2852b54a59abd50f",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/modules/encyclopedia/tools/audit_lot6_documentary_fidelity.py",
+            "line": 76
+          },
+          {
+            "path": "app/modules/encyclopedia/tools/audit_lot6_documentary_fidelity.py",
+            "line": 146
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "legacy_visual_count : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "repeated_symbol_name",
+      "category": "architecture",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/audit_quests_guides_semantic.py",
+      "line": null,
+      "title": "Nom de symbole courant dans plusieurs modules",
+      "evidence": "app/modules/encyclopedia/tools/audit_quests_guides_semantic.py, app/modules/encyclopedia/tools/enrich_quests.py, app/modules/encyclopedia/tools/integrate_lot6_codex_candidates.py, app/modules/encyclopedia/tools/integrate_quest_visuals_lot6.py, app/modules/encyclopedia/tools/verify_quest_visuals_work.py, local_dofus_data/utils.py",
+      "recommendation": "Observation uniquement: un nom repete ne prouve ni dependance ni duplication de responsabilite.",
+      "id": "46a63cf713679683",
+      "audit_id": "DR-052",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f7b8746a717bfb443f6531d2f2bdb74d15810e7bf9592e69b596d98503479868",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_EQUIVALENCE_SEMANTIQUE",
+        "reason": "Nom partagé dans les chemins historiques listés ; ni identité de nom ni clone AST ne prouve égalité des effets de bord/policies. Pas de nouvelle fusion sans parité ; AT-019/020 déjà livrés par #165."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/audit_quests_guides_semantic.py",
+      "line": 576,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "ThreadPoolExecutor",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "75136582f06fd705",
+      "audit_id": "DR-053",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f7b8746a717bfb443f6531d2f2bdb74d15810e7bf9592e69b596d98503479868",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_EXECUTOR_BORNE",
+        "reason": "Executor sous with : shutdown(wait=True) au retour et futures consommées ; exception conservée dans erreurs/résultats. Pas de thread détaché démontré, pas de preuve du réseau/hardware externe."
+      }
+    },
+    {
+      "rule": "repeated_symbol_name",
+      "category": "architecture",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/enrich_quests.py",
+      "line": null,
+      "title": "Nom de symbole courant dans plusieurs modules",
+      "evidence": "app/modules/encyclopedia/tools/enrich_quests.py, app/modules/encyclopedia/tools/integrate_lot6_codex_candidates.py, app/modules/encyclopedia/tools/integrate_quest_visuals_lot6.py, app/network/deobfs_audit.py, app/network/deobfs_bundle.py, app/network/diagnostic_probe.py, app/network/discovery_consensus.py, app/network/discovery_probe.py",
+      "recommendation": "Observation uniquement: un nom repete ne prouve ni dependance ni duplication de responsabilite.",
+      "id": "9cffa2594b144e20",
+      "audit_id": "DR-054",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "261a93ef4973cdf7c7057342a8a1f78680a2e7271369a1743174b2b042f717c0",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_EQUIVALENCE_SEMANTIQUE",
+        "reason": "Nom partagé dans les chemins historiques listés ; ni identité de nom ni clone AST ne prouve égalité des effets de bord/policies. Pas de nouvelle fusion sans parité ; AT-019/020 déjà livrés par #165."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/enrich_quests.py",
+      "line": 601,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "ThreadPoolExecutor",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "625cb018d8b1b541",
+      "audit_id": "DR-055",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "261a93ef4973cdf7c7057342a8a1f78680a2e7271369a1743174b2b042f717c0",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_EXECUTOR_BORNE",
+        "reason": "Executor sous with : shutdown(wait=True) au retour et futures consommées ; exception conservée dans erreurs/résultats. Pas de thread détaché démontré, pas de preuve du réseau/hardware externe."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/integrate_lot6_codex_candidates.py",
+      "line": 99,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "ThreadPoolExecutor",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "8402ca60857de33f",
+      "audit_id": "DR-056",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f50a7c7e3b37e40bef5e0b9579abed74ebfcfed4156e704013afe7878f2bf2df",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_EXECUTOR_BORNE",
+        "reason": "Executor sous with : shutdown(wait=True) au retour et futures consommées ; exception conservée dans erreurs/résultats. Pas de thread détaché démontré, pas de preuve du réseau/hardware externe."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/tools/integrate_quest_visuals_lot6.py",
+      "line": 104,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "ThreadPoolExecutor",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "1f004d2f1604099a",
+      "audit_id": "DR-057",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "f229a52d918ca053cf97d1bb45fcdc5e242862a7631d685b467e7297ae6da260",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_EXECUTOR_BORNE",
+        "reason": "Executor sous with : shutdown(wait=True) au retour et futures consommées ; exception conservée dans erreurs/résultats. Pas de thread détaché démontré, pas de preuve du réseau/hardware externe."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/views/encyclopedia_page.py",
+      "line": 752,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "1fc1a299eb0be195",
+      "audit_id": "DR-058",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "c00d1b96694a5ef4cc5e7340fca9234f34787dda51a326abc9b60a58c1b2d94f",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "Lignes historiques déplacées ; chargements Quêtes de la vue et publication Qt différée à réexaminer sous fermeture. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/views/encyclopedia_page.py",
+      "line": 1030,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "f1672f4d010e13b7",
+      "audit_id": "DR-059",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "c00d1b96694a5ef4cc5e7340fca9234f34787dda51a326abc9b60a58c1b2d94f",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "Worker Guide ; PC-04 de #171 teste destruction de la vraie façade mémoire, sans couvrir toutes les instances. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/views/encyclopedia_page.py",
+      "line": 1163,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "1b4b67d7ed024389",
+      "audit_id": "DR-060",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "c00d1b96694a5ef4cc5e7340fca9234f34787dda51a326abc9b60a58c1b2d94f",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "Worker Succès ; synchronisation conditionnée à is_character_key ; fermeture interactive non observée. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/views/guides_view.py",
+      "line": 178,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "ThreadPoolExecutor",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "308274de14249c2b",
+      "audit_id": "DR-061",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "58e926fcaa64bcde3af222506af3ae3ec52eb67c0de5c6b44c730abda3b3b780",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "Pool partagé borné à quatre ; atexit.shutdown(cancel_futures=True), livraison weakref et isValid. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/modules/encyclopedia/widgets/quest_item_row.py",
+      "line": 15,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_fallback_item_icon contient fallback; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "f030cd47df9b8ec2",
+      "audit_id": "DR-062",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "74636f70ee93230ba1c802714f742378cd449159f4b812c5dcbaad00a5489365",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/modules/encyclopedia/widgets/quest_item_row.py",
+            "line": 65
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_fallback_item_icon : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/network/application_coordinator.py",
+      "line": 160,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "threading.Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "dead92d688cdf62e",
+      "audit_id": "DR-063",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "83f8663b39736fe2e084215b07bc0b289c2144fc5ae492696e83b9a1a70bda79",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "stop_event, stop capture/runtime/calibration et join_timeout ; résultat booléen remonte les survivants. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/network/calibrated_mapping_install.py",
+      "line": 198,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_is_known_legacy_lqn_mapping contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "9e8df0d5af30ff7b",
+      "audit_id": "DR-064",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "0e763de89c036d819e6e41ac0c7b0fc5243180274ca211950c1816b5716404dc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/network/calibrated_mapping_install.py",
+            "line": 116
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_is_known_legacy_lqn_mapping : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/network/calibrated_mapping_install.py",
+      "line": 245,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_is_known_legacy_snapshot contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "bc91cf02218be966",
+      "audit_id": "DR-065",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "0e763de89c036d819e6e41ac0c7b0fc5243180274ca211950c1816b5716404dc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/network/calibrated_mapping_install.py",
+            "line": 233
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_is_known_legacy_snapshot : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/network/calibration_runtime.py",
+      "line": 78,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "threading.Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "4af04fd5010982ff",
+      "audit_id": "DR-066",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "fdf72184a2ddc4d88eff5b0f08e6f1b617c41b88b7425ff1912fe7c6febccb83",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "stop_event, join et source.stop ; tests dédiés runtime_stop_lifecycle. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/network/character_resolver.py",
+      "line": 395,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_legacy_slot_for_identity_unlocked contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "d2b3944129340679",
+      "audit_id": "DR-067",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "9ebe6f9522f544aa5312336a89431a2f6bb838583d0c95faacaa586fc2cbe252",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/network/character_resolver.py",
+            "line": 249
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_legacy_slot_for_identity_unlocked : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/network/character_resolver.py",
+      "line": 412,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_migrate_legacy_progress_unlocked contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "3fa7c9f4c217dfbf",
+      "audit_id": "DR-068",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "9ebe6f9522f544aa5312336a89431a2f6bb838583d0c95faacaa586fc2cbe252",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/network/character_resolver.py",
+            "line": 266
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_migrate_legacy_progress_unlocked : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/network/runtime.py",
+      "line": 63,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "threading.Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "296f3f4c9fbde202",
+      "audit_id": "DR-069",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "c952696b8bb02041f085f52b57ee820af1116263eaec6e83524278373f226abc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "stop_event interdit la publication après stop ; join puis fermeture source ; tests stop lifecycle. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/pages/_quests_page_impl.py",
+      "line": 485,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_hierarchy_placeholder contient placeholder; references=2",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "550a9870acdc5097",
+      "audit_id": "DR-070",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "8aff06b5eb2ac9d1785ffcf8deec557a9ac81152a0ed30d3b1367c0044b658eb",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/pages/_quests_page_impl.py",
+            "line": 512
+          },
+          {
+            "path": "app/pages/_quests_page_impl.py",
+            "line": 573
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_hierarchy_placeholder : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "single_load_sync_io_ui",
+      "category": "performance",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/pages/home_page.py",
+      "line": 64,
+      "title": "I/O UI bornee a un chargement memoise",
+      "evidence": "_MANUAL_ROUTE_MANIFEST_PATH.read_text",
+      "recommendation": "Conserver uniquement pour une petite donnee froide avec contrat de taille; les lectures ordinaires restent MEDIUM.",
+      "id": "d18ef188c482f55c",
+      "audit_id": "DR-071",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "2a2dd46e66f7997a31ce397114fcf28158a52711d02522b35a7052ec2f7ff29b",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_LECTURE_COMPACTE",
+        "reason": "@lru_cache(maxsize=1) sur _manual_route_stage_total ; lecture du seul manifest compact, pas des chapitres ; coût froid Windows non mesuré, aucun gain ou blocage UI affirmé."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/pages/home_page.py",
+      "line": 823,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_legacy_tracking_guide contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "9a87f3abd6b9e5c2",
+      "audit_id": "DR-072",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "2a2dd46e66f7997a31ce397114fcf28158a52711d02522b35a7052ec2f7ff29b",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/pages/home_page.py",
+            "line": 702
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_legacy_tracking_guide : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/pages/lazy_quests_page.py",
+      "line": 161,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "33a14547c1fdbe8e",
+      "audit_id": "DR-073",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "a065d7e5bf37cee2b9b74f502c62b0b47853f2471bd935f612655564a8c94994",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "Worker détail publie dans Queue ; timer UI distinct ; erreur de démarrage remet le pending à False. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/pages/lazy_quests_page.py",
+      "line": 462,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "2bc7b018d2db0c6a",
+      "audit_id": "DR-074",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "a065d7e5bf37cee2b9b74f502c62b0b47853f2471bd935f612655564a8c94994",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "Worker index recherche publie dans Queue ; exception consignée, timer arrêté au terminal. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/preload.py",
+      "line": 76,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "9e30551ad3e50546",
+      "audit_id": "DR-075",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "bb2967bcc8fcb179d3d9f2f290cb8589095b8e28f061ce40af5f736e8230a00a",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "StartupPreloader conserve son API et sa Queue ; timeout documenté, pas une preuve de cancellation universelle. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/ui/map_canvas_widget.py",
+      "line": 69,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "set_map_placeholder contient placeholder; references=6",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "618704a28fdb6710",
+      "audit_id": "DR-076",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "258789e7947afca67c18e23cee1ccb9ad1c9151066ac732b6c263eddf90365e6",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 111
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 203
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 230
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 436
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 464
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 474
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "set_map_placeholder : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/ui/map_canvas_widget.py",
+      "line": 128,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_draw_placeholder_text contient placeholder; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "abde144864e68fed",
+      "audit_id": "DR-077",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "258789e7947afca67c18e23cee1ccb9ad1c9151066ac732b6c263eddf90365e6",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/ui/map_canvas_widget.py",
+            "line": 113
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_draw_placeholder_text : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/ui/world_scan_panel.py",
+      "line": 202,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "set_map_placeholder contient placeholder; references=6",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "51fe814d45bc14f4",
+      "audit_id": "DR-078",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "8e50acf0379543f92651c55d2b0f5aef07b5b9edf28bdf84ad1418cbba173e67",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 111
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 203
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 230
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 436
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 464
+          },
+          {
+            "path": "app/ui/world_scan_panel.py",
+            "line": 474
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "set_map_placeholder : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "app/ui/world_scan_panel.py",
+      "line": 309,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "6194d9eff4cdd4f0",
+      "audit_id": "DR-079",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "8e50acf0379543f92651c55d2b0f5aef07b5b9edf28bdf84ad1418cbba173e67",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "Worker cartographie ; delivery RuntimeError si receiver détruit est consignée ; test_world_scan_async_loading. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/compatibility_adapter.py",
+      "line": 187,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_legacy_recipe contient legacy; references=2",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "e39f8aaab1d92cf7",
+      "audit_id": "DR-080",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "270e55a5d6b9e594d9776475c80fc5d4f7b97a8b84507e71efd88ded5f3f6ecc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 112
+          },
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 140
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_legacy_recipe : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/compatibility_adapter.py",
+      "line": 221,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_legacy_item_from_row contient legacy; references=4",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "6b6d0ef3c0eeb04b",
+      "audit_id": "DR-081",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "270e55a5d6b9e594d9776475c80fc5d4f7b97a8b84507e71efd88ded5f3f6ecc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 93
+          },
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 125
+          },
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 152
+          },
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 135
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_legacy_item_from_row : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/image_downloader.py",
+      "line": 42,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "ThreadPoolExecutor",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "de99b68f02595d27",
+      "audit_id": "DR-082",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "b940d6fd9509150a4b3225a4d15a98a98c613ea1f66ffad63b3333a143600af1",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_EXECUTOR_BORNE",
+        "reason": "Executor sous with : shutdown(wait=True) au retour et futures consommées ; exception conservée dans erreurs/résultats. Pas de thread détaché démontré, pas de preuve du réseau/hardware externe."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/image_indexer.py",
+      "line": 65,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_copy_legacy_images contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "24a36e488d5e8725",
+      "audit_id": "DR-083",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "5d88d8937acfe5371e2f7a841d3bbf969248e78825c0a28c4bb6b73e715fb380",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "local_dofus_data/image_indexer.py",
+            "line": 20
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_copy_legacy_images : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/normalizer.py",
+      "line": 145,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "normalize_legacy_item contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "af6bea38b3ef7ea8",
+      "audit_id": "DR-084",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "8b61d1779d14e2d3d4beed17d43655db2aaa5742b5a76194a9d874e3552b843e",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "normalize_legacy_item : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/normalizer.py",
+      "line": 167,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "normalize_legacy_job contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "6e6c76a0872dabdf",
+      "audit_id": "DR-085",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "8b61d1779d14e2d3d4beed17d43655db2aaa5742b5a76194a9d874e3552b843e",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "normalize_legacy_job : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/normalizer.py",
+      "line": 186,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "normalize_legacy_recipe contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "2e356720978fa1f8",
+      "audit_id": "DR-086",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "8b61d1779d14e2d3d4beed17d43655db2aaa5742b5a76194a9d874e3552b843e",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "normalize_legacy_recipe : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/repositories.py",
+      "line": 25,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_legacy_item contient legacy; references=3",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "7fe817d1de30513c",
+      "audit_id": "DR-087",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "814c2cae813ea70b7a2a3ce757f9ba5b1334468b04aea8553c2f21d2ad05cc35",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "local_dofus_data/repositories.py",
+            "line": 133
+          },
+          {
+            "path": "local_dofus_data/repositories.py",
+            "line": 106
+          },
+          {
+            "path": "local_dofus_data/repositories.py",
+            "line": 109
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_legacy_item : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/repositories.py",
+      "line": 47,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_legacy_image_url_or_path contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "23ed6d4e59d7d3f8",
+      "audit_id": "DR-088",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "814c2cae813ea70b7a2a3ce757f9ba5b1334468b04aea8553c2f21d2ad05cc35",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "local_dofus_data/repositories.py",
+            "line": 41
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_legacy_image_url_or_path : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/repositories.py",
+      "line": 99,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "legacy_list contient legacy; references=2",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "f6701fab4db18eba",
+      "audit_id": "DR-089",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "814c2cae813ea70b7a2a3ce757f9ba5b1334468b04aea8553c2f21d2ad05cc35",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 121
+          },
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 143
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "legacy_list : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/repositories.py",
+      "line": 108,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "search_legacy contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "333b715cd24da4a6",
+      "audit_id": "DR-090",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "814c2cae813ea70b7a2a3ce757f9ba5b1334468b04aea8553c2f21d2ad05cc35",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 84
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "search_legacy : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "local_dofus_data/repositories.py",
+      "line": 111,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "search_craft_legacy contient legacy; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "fa08705f08daec9b",
+      "audit_id": "DR-091",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "814c2cae813ea70b7a2a3ce757f9ba5b1334468b04aea8553c2f21d2ad05cc35",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "local_dofus_data/compatibility_adapter.py",
+            "line": 87
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "search_craft_legacy : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "main.py",
+      "line": 1689,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "show_placeholder contient placeholder; references=4",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "869fe888e4e42277",
+      "audit_id": "DR-092",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "2e6a5a97b64b88773111326c4a9ebd6c3b33a9c5cb591c050771fbfc024ad758",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "main.py",
+            "line": 1649
+          },
+          {
+            "path": "main.py",
+            "line": 1657
+          },
+          {
+            "path": "main.py",
+            "line": 1007
+          },
+          {
+            "path": "main.py",
+            "line": 1010
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "show_placeholder : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "main.py",
+      "line": 1696,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "placeholder_page contient placeholder; references=2",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "ae5f430d512a883b",
+      "audit_id": "DR-093",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "2e6a5a97b64b88773111326c4a9ebd6c3b33a9c5cb591c050771fbfc024ad758",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "main.py",
+            "line": 828
+          },
+          {
+            "path": "main.py",
+            "line": 1692
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "placeholder_page : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "main.py",
+      "line": 2163,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "Thread",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "5e32b8adbe022d1f",
+      "audit_id": "DR-094",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "2e6a5a97b64b88773111326c4a9ebd6c3b33a9c5cb591c050771fbfc024ad758",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "Worker préchargement main ; Queue de résultat/error, suivi par preload_tasks ; lignes historiques déplacées. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "controlled_dynamic_exec",
+      "category": "reliability",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "tools/atlas_mutation.py",
+      "line": 109,
+      "title": "Execution dynamique controlee et isolee",
+      "evidence": "exec(compile(source, str(path), 'exec'), namespace)",
+      "recommendation": "Conserver uniquement pour un outil local teste; toute execution ordinaire reste interdite.",
+      "id": "1c581c2fbf9258df",
+      "audit_id": "DR-095",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "fde57724aa109bde2022f19ac651f79dc727861056a0b0ea9e0193f160b0b973",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_OUTIL_OU_FIXTURE",
+        "reason": "Entrypoint de benchmark ou mutation contrôlée du source du dépôt ; conserver le mode explicite et ses tests, ne pas assimiler à une exécution arbitraire produit."
+      }
+    },
+    {
+      "rule": "worker_lifecycle_review",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "suspect",
+      "path": "tools/benchmark_phase8_memory.py",
+      "line": 348,
+      "title": "Worker/thread a verifier",
+      "evidence": "threading.Thread",
+      "recommendation": "Verifier etat terminal, stop deterministe, join/quit et absence de worker orphelin.",
+      "id": "9a07d38c189c9f5a",
+      "audit_id": "DR-096",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "4d6b01a04bc21649aa38187beb549f27bd8c21cbae5eabfbd400869a823debcc",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "BLOCKED_PARCOURS_NATIF_COMPLET",
+        "reason": "MemorySampler utilise Event.wait, stop et join ; outil benchmark, pas worker de production. Structure relue, mais cela ne certifie pas l’arrêt sur toutes les fermetures/erreurs Win32 ; conserver, preuve intégration #175 requise."
+      }
+    },
+    {
+      "rule": "compatibility_symbol_contract",
+      "category": "legacy",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "tools/check_generated_files.py",
+      "line": 161,
+      "title": "Symbole de compatibilite/fallback consomme",
+      "evidence": "_looks_like_placeholder contient placeholder; references=1",
+      "recommendation": "Conserver avec son contrat/test; le nom seul ne prouve jamais du code mort.",
+      "id": "3617e4997b16f33c",
+      "audit_id": "DR-097",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "04a9888822c07d6d248108479868d9e91ef1de08c6c74829b15a2dbb0cf9b4d3",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "source_reference_candidates": [
+          {
+            "path": "tools/check_generated_files.py",
+            "line": 218
+          }
+        ],
+        "binding_proven": false,
+        "decision": "CONSERVER_COMPATIBILITE",
+        "reason": "_looks_like_placeholder : façade, migration ou fallback existant ; références source jointes (identité dynamique non prouvée). Un mot legacy/placeholder n’est pas un défaut ; préserver les anciens formats et APIs."
+      }
+    },
+    {
+      "rule": "managed_worker_lifecycle",
+      "category": "lifecycle",
+      "severity": "INFO",
+      "confidence": "confirmed",
+      "path": "tools/ci_dev_tests.py",
+      "line": 205,
+      "title": "Worker avec terminaison statiquement prouvee",
+      "evidence": "ThreadPoolExecutor",
+      "recommendation": "Conserver le stop/join/shutdown, la borne de concurrence et les tests de non-accumulation.",
+      "id": "367d1afb58cd945d",
+      "audit_id": "DR-098",
+      "audit_status": "NON CONFIRMÉ",
+      "disposition": "Conserver ; motif statique ou observation, pas une anomalie démontrée",
+      "verification": "Observation de compatibilité/lifecycle/nom répété ; pas une anomalie. Revoir les consommateurs avant toute action.",
+      "review_2026_10_16": {
+        "candidate_sha": "a88dcc1802e059259d5d053353504c43a31aad98",
+        "source_sha256": "90deda5279d9c7693d69ae1d084a8d9ca12baab75f26df2f10089a1422f06505",
+        "runtime_exhaustive": false,
+        "safe_to_delete": false,
+        "decision": "CONSERVER_EXECUTOR_BORNE",
+        "reason": "Executor sous with : shutdown(wait=True) au retour et futures consommées ; exception conservée dans erreurs/résultats. Pas de thread détaché démontré, pas de preuve du réseau/hardware externe."
+      }
+    }
+  ]
+}

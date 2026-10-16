@@ -178,6 +178,105 @@ class GraphIntelligenceTests(unittest.TestCase):
         result = analyze_community_boundaries(fixture())
         self.assertEqual(result["status"], "PASS")
 
+    def test_cohesion_excludes_nonproduction_and_repeated_symbol_edges(self):
+        nodes = [
+            {"id": "a1", "source_file": "app/pkg/a.py", "file_type": "code", "community": 0},
+            {"id": "a2", "source_file": "app/pkg/aa.py", "file_type": "code", "community": 0},
+            {"id": "b", "source_file": "app/pkg/b.py", "file_type": "code", "community": 1},
+            {"id": "tool", "source_file": "tools/debug.py", "file_type": "code", "community": 1},
+            {"id": "test", "source_file": "tests/test_debug.py", "file_type": "code", "community": 1},
+        ]
+        graph = {"nodes": nodes, "links": []}
+        for i in range(12):
+            # Formerly 24 external 'production' links, but all are tool/test traffic.
+            graph["links"].append({
+                "source": "a1", "target": "tool" if i % 2 else "test",
+                "relation": "imports", "confidence": "EXTRACTED",
+            })
+            # Many symbol edges between the *same* two application files.
+            graph["links"].append({
+                "source": "a2", "target": "b", "relation": "imports",
+                "confidence": "EXTRACTED",
+            })
+        result = analyze_community_boundaries(graph)
+        self.assertEqual(result["candidate_count"], 0)
+        self.assertEqual(result["status"], "PASS")
+
+    def test_cohesion_keeps_real_distinct_app_file_bridges_advisory(self):
+        nodes = [
+            {"id": f"a{i}", "source_file": f"app/a/a{i}.py", "file_type": "code", "community": 0}
+            for i in range(2)
+        ] + [
+            {"id": f"b{i}", "source_file": f"app/b/b{i}.py", "file_type": "code", "community": 1}
+            for i in range(3)
+        ]
+        graph = {"nodes": nodes, "links": [
+            {"source": f"a{i}", "target": f"b{j}", "relation": "imports_from", "confidence": "EXTRACTED"}
+            for i in range(2) for j in range(3)
+        ]}
+        result = analyze_community_boundaries(graph)
+        self.assertEqual(result["candidate_count"], 2)
+        row = next(x for x in result["candidates"] if x["community"] == 0)
+        self.assertEqual(row["external_extracted_edges"], 6)
+        self.assertEqual(row["evidence_scope"], "DISTINCT_PRODUCTION_FILE_PAIRS")
+        self.assertFalse(row["automatic_merge"])
+
+    def test_cohesion_includes_runtime_local_catalog_and_entrypoints(self):
+        # local_dofus_data is used by the application; it is not tooling.
+        nodes = [
+            {"id": "a", "source_file": "local_dofus_data/catalog.py", "file_type": "code", "community": 0},
+            {"id": "b", "source_file": "app/core/entry.py", "file_type": "code", "community": 0},
+            {"id": "c", "source_file": "app/pages/screen.py", "file_type": "code", "community": 1},
+            {"id": "d", "source_file": "app/pages/detail.py", "file_type": "code", "community": 1},
+            {"id": "e", "source_file": "launch.py", "file_type": "code", "community": 1},
+            {"id": "f", "source_file": "tools/catalog_debug.py", "file_type": "code", "community": 1},
+        ]
+        links = [
+            {"source": source, "target": dest, "relation": "imports", "confidence": "EXTRACTED"}
+            for source in ("a", "b") for dest in ("c", "d", "e")
+        ]
+        links.extend([
+            {"source": "a", "target": "f", "relation": "imports", "confidence": "EXTRACTED"}
+            for _ in range(20)
+        ])
+        result = analyze_community_boundaries({"nodes": nodes, "links": links})
+        self.assertEqual(result["candidate_count"], 2)
+        catalog = next(row for row in result["candidates"] if row["community"] == 0)
+        self.assertEqual(catalog["external_extracted_edges"], 6)
+        self.assertEqual(catalog["production_files"], 2)
+        self.assertFalse(catalog["automatic_merge"])
+
+    def test_cohesion_pages_are_complete_without_duplicate_candidates(self):
+        # 35 independent community IDs all have a distinct external bridge
+        # to the next group's two files; links from both sides produce
+        # enough distinct pairs for a genuine advisory review row.
+        nodes = [
+            {"id": f"{group}-{i}", "source_file": f"app/group{group}/f{i}.py",
+             "file_type": "code", "community": group}
+            for group in range(35) for i in range(2)
+        ]
+        links = [
+            {"source": f"{group}-{i}", "target": f"{(group + 1) % 35}-{j}",
+             "relation": "imports", "confidence": "EXTRACTED"}
+            for group in range(35) for i in range(2) for j in range(2)
+        ]
+        graph = {"nodes": nodes, "links": links}
+        expected = {i for i in range(35)}
+        seen = []
+        for offset in range(0, 40, 10):
+            response = analyze_community_boundaries(graph, limit=10, offset=offset)
+            self.assertEqual(response["candidate_count"], 35)
+            self.assertEqual(response["pagination"]["total"], 35)
+            self.assertEqual(response["pagination"]["offset"], offset)
+            seen.extend(row["community"] for row in response["candidates"])
+        self.assertEqual(set(seen), expected)
+        self.assertEqual(len(seen), len(expected))
+        self.assertFalse(analyze_community_boundaries(graph, offset=35)["pagination"]["truncated"])
+        with self.assertRaises(ValueError):
+            analyze_community_boundaries(graph, offset=-1)
+        with self.assertRaises(ValueError):
+            analyze_community_boundaries(graph, limit=0)
+
     def test_tracked_consumer_sweep_never_calls_absence_dead_code(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

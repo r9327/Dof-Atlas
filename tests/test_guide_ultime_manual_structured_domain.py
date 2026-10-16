@@ -185,6 +185,7 @@ class GuideUltimeManualStructuredDomainTests(unittest.TestCase):
             "conditional": {"warning": "N'exécuter cette action que si le prérequis runtime est vrai."},
             "branch_policy": {"policy": "N'afficher que la branche réellement sélectionnée."},
         }
+        authored_warning = stage["conditional"]["warning"]
 
         card = service._stage_to_card(
             "test_chapter",
@@ -203,7 +204,7 @@ class GuideUltimeManualStructuredDomainTests(unittest.TestCase):
             "passage Wabbit naturel",
             "réellement débloqué",
             "quotidienne",
-            "prérequis runtime",
+            "prérequis de progression",
             "branche réellement sélectionnée",
         ):
             self.assertIn(token, rendered)
@@ -212,6 +213,9 @@ class GuideUltimeManualStructuredDomainTests(unittest.TestCase):
         self.assertEqual(metadata["branch_file"], "astrub_class_branches_v1.json")
         self.assertEqual(metadata["capture_note"], stage["capture_note"])
         self.assertEqual(metadata["branch_policy"], stage["branch_policy"])
+        self.assertEqual(stage["conditional"]["warning"], authored_warning)
+        self.assertEqual(card["manual_stage_data"]["conditional"]["warning"], authored_warning)
+        self.assertNotIn("prérequis runtime", rendered)
         self.assertNotIn("astrub_class_branches_v1.json", rendered)
 
     def test_link_next_cards_uses_stable_manual_stage_identity(self) -> None:

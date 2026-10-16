@@ -27,6 +27,34 @@ class _SectionPolicyService(GuideUltimeManualRuntimeService):
 
 
 class GuideUltimePlayerPolicyTests(unittest.TestCase):
+    def test_player_wording_preserves_route_identity_names_and_source(self) -> None:
+        rows = [{"kind": "action", "text": "Vérifier la quête Épreuve : runtime confirme; sinon blocker exact.",
+                 "position": "[1,2]", "quest_ids": [42], "stage_id": "AST-11"},
+                {"kind": "warning", "text": "Bworker rerun causal, cleanup du reliquat pending."}]
+        original = copy.deepcopy(rows)
+        result = apply_player_line_policy(rows)
+        self.assertEqual(rows, original)
+        self.assertIn("suivi de progression", result[0]["text"])
+        self.assertIn("prérequis bloquant", result[0]["text"])
+        self.assertIn("Épreuve", result[0]["text"])
+        self.assertEqual(result[0]["quest_ids"], [42])
+        self.assertEqual(result[0]["position"], "[1,2]")
+        self.assertEqual(result[0]["stage_id"], "AST-11")
+        self.assertIn("nouveau passage causal", result[1]["text"])
+        self.assertIn("en attente", result[1]["text"])
+
+    def test_only_exact_author_notes_are_hidden_and_gameplay_warnings_survive(self) -> None:
+        author = "Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir la couverture Succès."
+        gameplay = "Ne pas sortir avant de parler à Sumens et récupérer son sigil."
+        result = apply_player_line_policy([
+            {"kind": "warning", "text": author},
+            {"kind": "warning", "text": gameplay},
+            {"kind": "action", "text": author},
+        ])
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]["text"], gameplay)
+        self.assertEqual(result[1]["text"], author)
+
     def test_public_runtime_wraps_the_canonical_core(self) -> None:
         self.assertTrue(issubclass(GuideUltimeManualRuntimeService, GuideUltimeManualRuntimeCore))
 

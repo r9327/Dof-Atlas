@@ -33,6 +33,42 @@ interactif exécuté. Le fingerprint global des 28 entrées avant/après n’ét
 pas capturé par cette ancienne run ; les vérifications des locks restent
 distinctes de ce nouveau contrat de provenance livré par #172.
 
+## Preuves automatisées du candidat cumulatif
+
+Le [registre de preuves automatisées](15-automated-evidence.json) porte sur
+`8e510c2b15621115c37df49d5016861336ddf2c3`. Les contrats Windows de la
+run `38893734856` passent ; la FULL `38893734852` est **PASS** :
+2 736 tests, tous les groupes obligatoires PASS, les 28 entrées publiques
+inchangées avant/après. La politique appliquée retourne
+`PASS_FULL_AUTHENTICATED`. #171 est fusionnée dans
+`b8d63e03711c65e5db85c72a5ab64378f5264713`, avec arbre Git identique
+au candidat certifié ; #170/#173/#174 sont fermées comme remplacées.
+
+- Mémoire Windows, [run 38893736034](https://github.com/r9327/Dof-Atlas/actions/runs/38893736034) :
+  budgets PASS, pic processus 99,91 MiB et arbre complet 213,99 MiB,
+  warmup inclus. Deux retours Guide → Home : dérive relevée de 0,40 MiB.
+  Il s’agit du protocole automatisé offscreen, pas d’une session en jeu.
+- Préchargement comparable, [run 38893739307](https://github.com/r9327/Dof-Atlas/actions/runs/38893739307) :
+  budgets PASS sur la même machine, base `2f621d74` / candidat `8e510c2b`.
+  Préchargement depuis le constructeur : 29 613,38 → 29 305,74 ms ; premier
+  parcours total mesuré : 48 920,98 → 48 682,39 ms. Un seul relevé, aucune
+  preuve statistique ni gain général attribué aux correctifs.
+- **Limite Craft de ce benchmark : `FAILED` avant et après.** Le workflow
+  prépare le raw Quêtes, pas une base Craft SQLite prête dans l’environnement
+  source isolé. Ce PASS de budgets ne prouve pas le parcours fonctionnel Craft.
+- Vérification séparée sur `120cf55f` (production identique au candidat final ;
+  seul le test Doctor et son index AI ont changé), Linux / Qt 6.12 offscreen, vrai seed public de
+  21 554 objets et vraie page Craft : catalogue absent → `_prepared=False`,
+  seed présent → `_prepared=True`, zéro erreur. Recherches Ressources « rune »,
+  Trophées/Prysmes « pry » et Équipements « co » : 80 / 25 / 80 candidats UI
+  valides. La base et les données personnelles sont isolées ; ce relevé ne
+  remplace pas le parcours Windows avec personnage de la matrice suivante.
+
+La FULL précédente `38889184116` sur `120cf55f` a échoué sur un test Doctor
+parmi 2 736 : une ancienne fixture définissait un faux `__getattr__`. Le
+correctif teste un import paresseux réel et le rejet du stub, sans modifier
+le code de production ni les gates ; 61 tests ciblés passent avant la relance.
+
 ## Scénarios natifs à exécuter après le candidat cumulatif
 
 Le poste disponible pour cette reprise est Linux. Les runners Windows de CI
@@ -52,7 +88,7 @@ profils personnels ne sont ni inventés ni copiés dans le dépôt.
 | Scan Monde | Charger une vue, modifier un état temporaire, Home, relance ; état conservé ; quitter pendant le chargement | BLOCKED parcours bureau ; tests transactionnels et worker existants ne sont pas un RSS global |
 | Équipement externe | Ouvrir la vue réelle, navigation disponible/indisponible, réseau coupé puis rétabli, fermeture WebEngine sans worker survivant | BLOCKED parcours complet du candidat final ; seule l’entrée de l’ancienne EXE a été testée publiquement |
 | Capture / UAC | Session Dofus, Npcap installé, accepter/refuser l’élévation, démarrage/arrêt capture, identité et progression sans doublons | BLOCKED environnement Npcap/UAC et personnage |
-| Lifecycle et mémoire | Répéter les changements de vues puis Home, attendre les workers, relever objets/threads/RSS/latences et comparer au même scénario avant correction | BLOCKED mesures Windows comparables du candidat final ; pas de plafond Home arbitraire ni de gain RAM déduit |
+| Lifecycle et mémoire | Répéter les changements de vues puis Home, attendre les workers, relever objets/threads/RSS/latences et comparer au même scénario avant correction | PARTIEL : budgets Windows et retours Home mesurés dans les scénarios automatisés ; BLOCKED pour tous les flux de la session en jeu, sans plafond Home arbitraire ni gain RAM déduit |
 | EXE final / mise à niveau / rollback | Build du SHA stabilisé, installer hors checkout, mise à niveau, échec contrôlé, rollback effectivement joué, paramètres conservés | BLOCKED binaire final non encore certifié par ce lot ; anciennes preuves ci-dessus conservées |
 
 ### Protocole commun de preuve

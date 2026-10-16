@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "kind": "native_audit_automated_evidence",
+  "candidate_sha": "8e510c2b15621115c37df49d5016861336ddf2c3",
+  "merged_main_sha": "b8d63e03711c65e5db85c72a5ab64378f5264713",
+  "overall_native_product_certified": false,
+  "full": {
+    "run_id": 38893734852,
+    "artifact_id": 12043324654,
+    "status": "PASS",
+    "candidate_sha": "8e510c2b15621115c37df49d5016861336ddf2c3",
+    "integrity_verdict": "PASS",
+    "suite_tests": 2736,
+    "suite_seconds": 1278.439,
+    "required_groups": {
+      "ARCHITECTURE": "PASS",
+      "ASYNC_LIFECYCLE": "PASS",
+      "CI_INTEGRITY": "PASS",
+      "DATA_INTEGRITY": "PASS",
+      "DIFF_TARGETS": "PASS",
+      "FULL_SUITE": "PASS",
+      "GENERATED_FILES": "PASS",
+      "GOLDEN_FLOWS": "PASS",
+      "IDENTITY": "PASS",
+      "LAZY_LOADING": "PASS",
+      "META_INTEGRITY": "PASS",
+      "PERSISTENCE": "PASS",
+      "RESOURCE_BUDGETS": "PASS",
+      "STARTUP": "PASS",
+      "SYNTAX": "PASS",
+      "TEST_INTEGRITY": "PASS"
+    },
+    "evidence_reused_groups": [
+      "ARCHITECTURE",
+      "IDENTITY",
+      "PERSISTENCE",
+      "RESOURCE_BUDGETS",
+      "CI_INTEGRITY",
+      "GOLDEN_FLOWS",
+      "DIFF_TARGETS"
+    ],
+    "verified_test_methods": [
+      "test_platform_probe_and_real_windows_mutex_across_two_processes",
+      "test_deleted_page_is_not_retained_after_real_guide_worker_finishes",
+      "test_public_lazy_exports_are_static_only_not_runtime_use"
+    ],
+    "public_dataset_fingerprint": "71082672c6e4bc43b6c4f529702a26483cb80b4cb50c1c0a227957768274d2af",
+    "public_input_files": 28,
+    "public_inputs_unchanged": true
+  },
+  "windows_contracts": {
+    "run_id": 38893734856,
+    "status": "PASS",
+    "scope": "Windows user journey integration/contract tests, not a real Dofus session"
+  },
+  "memory": {
+    "run_id": 38893736034,
+    "artifact_id": 12042957171,
+    "status": "PASS_BUDGETS",
+    "environment": {
+      "platform": "win32",
+      "python": "3.13.16",
+      "qt_qpa_platform": "offscreen"
+    },
+    "peak_process_rss_mb": 99.91,
+    "peak_tree_rss_mb": 213.99,
+    "round_trip_guide_tree_drift_mb": 0.4,
+    "round_trip_home": {
+      "quests": [
+        {
+          "tree_rss_mb": 97.83,
+          "process_rss_mb": 97.83,
+          "python_threads_alive": 3,
+          "qt_widgets_alive": 145
+        },
+        {
+          "tree_rss_mb": 99.52,
+          "process_rss_mb": 99.52,
+          "python_threads_alive": 3,
+          "qt_widgets_alive": 145
+        }
+      ],
+      "achievements": [
+        {
+          "tree_rss_mb": 98.12,
+          "process_rss_mb": 98.12,
+          "python_threads_alive": 3,
+          "qt_widgets_alive": 145
+        },
+        {
+          "tree_rss_mb": 99.53,
+          "process_rss_mb": 99.53,
+          "python_threads_alive": 3,
+          "qt_widgets_alive": 145
+        }
+      ],
+      "guide": [
+        {
+          "tree_rss_mb": 99.51,
+          "process_rss_mb": 99.51,
+          "python_threads_alive": 3,
+          "qt_widgets_alive": 145
+        },
+        {
+          "tree_rss_mb": 99.91,
+          "process_rss_mb": 99.91,
+          "python_threads_alive": 3,
+          "qt_widgets_alive": 145
+        }
+      ]
+    }
+  },
+  "preload": {
+    "run_id": 38893739307,
+    "artifact_id": 12042638938,
+    "status": "PASS_BUDGETS",
+    "base_sha": "2f621d74ed5fe13992df7562f222512d192cc231",
+    "before": {
+      "startup_stabilized_rss_mb": 72.7,
+      "preload_completed_from_constructor_ms": 29613.38,
+      "preload_states_after": {
+        "quests": "READY",
+        "encyclopedia": "READY",
+        "craft": "FAILED"
+      },
+      "peak_rss_mb": 203.11,
+      "deep_first_content_total_ms": 18897.42,
+      "total_first_path_ms": 48920.98
+    },
+    "after": {
+      "startup_stabilized_rss_mb": 71.56,
+      "preload_completed_from_constructor_ms": 29305.74,
+      "preload_states_after": {
+        "quests": "READY",
+        "encyclopedia": "READY",
+        "craft": "FAILED"
+      },
+      "peak_rss_mb": 198.61,
+      "deep_first_content_total_ms": 19051.59,
+      "total_first_path_ms": 48682.39
+    },
+    "single_run_not_statistical_proof": true,
+    "craft_functional_readiness_proven": false,
+    "limitation": "Craft=FAILED before and after in this source benchmark; the workflow prepares raw Quests, not the runtime Craft SQLite. This is not a successful functional Craft journey."
+  },
+  "local_public_craft": {
+    "candidate_sha": "120cf55fdcfb6333bc17888ceab2bd051eaf9ce2",
+    "environment": "Linux CPython 3.13 Qt 6.12 offscreen",
+    "public_seed_items": 21554,
+    "without_sqlite": {
+      "prepared": false,
+      "reason": "catalogue Craft local absent"
+    },
+    "with_public_sqlite": {
+      "prepared": true,
+      "errors": [],
+      "jobs": 15
+    },
+    "actual_craft_page_queries": [
+      {
+        "category": "resource",
+        "query": "rune",
+        "visible_candidates": 80,
+        "duration_ms": 38.124,
+        "sample_public_item_ids": [
+          25809,
+          1549,
+          1550
+        ]
+      },
+      {
+        "category": "trophy_prysma",
+        "query": "pry",
+        "visible_candidates": 25,
+        "duration_ms": 10.376,
+        "sample_public_item_ids": [
+          22022,
+          22018,
+          22014
+        ]
+      },
+      {
+        "category": "equipment",
+        "query": "co",
+        "visible_candidates": 80,
+        "duration_ms": 46.995,
+        "sample_public_item_ids": [
+          1698,
+          16503,
+          280
+        ]
+      }
+    ],
+    "limitation": "Real public data and Qt widget, not an interactive Windows/Dofus journey.",
+    "relationship_to_final_candidate": "Measured on 120cf55f; 120cf55f..8e510c2b changes only Doctor test fixture and generated AI context index. Not relabelled as a new execution."
+  },
+  "public_seed_sha256": "23add65b1219ed6900d0aac6fcc01592f05258613dd9ec595ec521ff0f0d7ea9",
+  "blocked_native_scope": [
+    "Real Dofus character identity and progression",
+    "Interactive manual/compact Guide business validation",
+    "Npcap and UAC capture",
+    "All-view lifecycle and comparable RSS/latency",
+    "New final frozen EXE install/update/actual rollback"
+  ],
+  "historical_full_failure": {
+    "candidate_sha": "120cf55fdcfb6333bc17888ceab2bd051eaf9ce2",
+    "run_id": 38889184116,
+    "artifact_id": 12042940434,
+    "status": "FAIL",
+    "tests": 2736,
+    "failures": 1,
+    "test_id": "tests.test_doctor_evidence_contracts.DoctorEvidenceContractsTests.test_public_lazy_exports_are_static_only_not_runtime_use",
+    "cause": "Old test fixture defined a stub __getattr__ returning None, but expected a reachable lazy API. Corrected fixture uses canonical import_module and separately asserts that the stub is rejected; production code and gates unchanged."
+  },
+  "merged_tree_matches_certified_candidate": true,
+  "merge_policy": {
+    "status": "PASS_FULL_AUTHENTICATED",
+    "risk": "CRITICAL",
+    "authenticated_run_id": 38893734852
+  }
+}

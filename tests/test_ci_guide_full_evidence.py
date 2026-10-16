@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import unittest
+import json
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
 
 from tools.ci_guide_full_evidence import prove, REUSED_MODULES
 
@@ -24,6 +28,23 @@ def _full(*, line_a="... ok", suffix="OK"):
 
 
 class GuideExactFullEvidenceTests(unittest.TestCase):
+    def test_failed_proof_cannot_authorize_reuse_when_stale_file_cannot_be_deleted(self):
+        from tools import ci_guide_full_evidence as evidence
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            proof = root / "full.json"
+            proof.write_text('{}', encoding="utf-8")
+            output = root / "reuse.json"
+            stale = {"status": "PROVEN", "head": "a" * 40}
+            output.write_text(json.dumps(stale), encoding="utf-8")
+            with patch.dict("os.environ", ATLAS_FULL_SUITE_SUCCESS="failure"), patch.object(Path, "unlink", side_effect=PermissionError("locked")):
+                code = evidence.main(["--root", str(root), "--proof", str(proof), "--sha", "a" * 40, "--out", str(output)])
+            self.assertEqual(code, 2)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8")), stale)
+            # The PowerShell caller must require both exit code zero and a file.
+            caller = (Path(__file__).resolve().parents[1] / "tools/run_guide_ultime_ci.ps1").read_text(encoding="utf-8-sig")
+            self.assertIn('if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $proofPath))', caller)
+
     def test_complete_full_exact_ids_can_be_reused(self):
         self.assertEqual(
             prove(_full(), _expected()),

@@ -23,6 +23,21 @@ def plan(status: str = "READY_TO_RUN_SCOPED"):
 
 
 class PhaseAdaptiveGateTests(unittest.TestCase):
+    def test_failed_plan_load_routes_actual_cli_to_full(self):
+        import contextlib
+        import io
+        import subprocess
+        from unittest.mock import patch
+        from tools import phase_adaptive_gate as gate
+
+        for error in (ValueError("invalid"), OSError("missing")):
+            stream = io.StringIO()
+            with self.subTest(error=type(error).__name__), patch.object(gate, "_git", side_effect=[HEAD, BASE, "app/pages/helper.py"]), patch.object(gate.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)), patch.object(gate, "_load", side_effect=error), contextlib.redirect_stdout(stream):
+                result = gate.main(["decide", "--base-ref", BASE, "--expected-sha", HEAD])
+            self.assertEqual(result, 0)
+            self.assertIn('"route": "FULL"', stream.getvalue())
+            self.assertIn('DOCTOR_PLAN_UNAVAILABLE', stream.getvalue())
+
     def test_scoped_for_low_risk_with_complete_doctor_plan(self):
         route = choose_route(plan(), ["app/pages/safe_helper.py"],
                              base_sha=BASE, candidate_sha=HEAD)

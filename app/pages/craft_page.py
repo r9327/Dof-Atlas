@@ -54,30 +54,12 @@ from app.storage import (
 from app.ui.components import AtlasButton
 
 
+from local_dofus_data.normalizer import craft_category_for_item
+
+
 LOGGER = logging.getLogger(__name__)
 
 _RESULT_BATCH_SIZE = 8
-
-
-def craft_category_for_item(item: dict[str, Any]) -> str:
-    text = normalize_key(
-        " ".join(str(item.get(key, "")) for key in ("name", "type", "family", "category"))
-    )
-    if any(token in text for token in ("trophee", "prysma", "prysmaradite")):
-        return "trophy_prysma"
-    equipment = (
-        "arme",
-        "coiffe",
-        "cape",
-        "ceinture",
-        "anneau",
-        "collier",
-        "amulette",
-        "botte",
-        "bouclier",
-        "dofus",
-    )
-    return "equipment" if any(token in text for token in equipment) else "resource"
 
 
 def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
@@ -806,7 +788,7 @@ class CraftPage(QWidget):
 
         if bool(self.preload.get("_lazy_items")) and hasattr(local_data_cache, "search_craft_items"):
             try:
-                candidates = local_data_cache.search_craft_items(raw_query, limit=160)
+                candidates = local_data_cache.search_craft_items(raw_query, limit=160, category=self.category)
             except Exception as exc:
                 LOGGER.debug("Recherche Craft SQLite indisponible: %s", exc)
                 candidates = []

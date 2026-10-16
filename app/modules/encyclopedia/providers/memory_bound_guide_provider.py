@@ -258,6 +258,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._ensure_loaded()
         wanted_type = str(entity_type)
         wanted_id = int(entity_id)
+        key = (wanted_type, wanted_id)
+        if key in self._by_entity:
+            return list(self._by_entity[key])
 
         if _guide_compact_cache_valid(
             GUIDE_COMPACT_CACHE,
@@ -291,10 +294,12 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                     guide = self._by_id.get(str(value.get("guide_id") or ""))
                     if guide is not None:
                         matches.append(guide)
-            return sorted(
+            matches = sorted(
                 matches,
                 key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
             )
+            self._remember_entity_query(key, matches)
+            return matches
 
         matches: list[Guide] = []
         for guide_id in tuple(self._by_id):
@@ -307,10 +312,21 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             ):
                 matches.append(self._by_id[guide_id])
         self.release_detail_cache()
-        return sorted(
+        matches = sorted(
             matches,
             key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
         )
+        self._remember_entity_query(key, matches)
+        return matches
+
+    def _remember_entity_query(self, key: tuple[str, int], matches: list[Guide]) -> None:
+        # Reuse the inherited relation index lazily, including negative results.
+        # Home still installs no bulk entity index. Catalogue release/reload
+        # clears this same owner; never retain heavyweight Guide details here.
+        self._by_entity[key] = list(matches)
+        if not bool(getattr(self, "_building_compact_cache", False)):
+            while len(self._by_entity) > 64:
+                self._by_entity.pop(next(iter(self._by_entity)))
 
     @staticmethod
     def _progress_quest_ids_from_row(row: dict[str, Any]) -> tuple[int, ...]:

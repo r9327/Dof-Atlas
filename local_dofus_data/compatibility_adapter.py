@@ -7,31 +7,7 @@ from typing import Any
 
 from .config import DEFAULT_CONFIG, LocalDataConfig
 from .utils import now_iso, slugify
-
-
-def craft_category_for_item(item: dict[str, Any]) -> str:
-    text = slugify(
-        " ".join(str(item.get(key, "")) for key in ("name", "type", "family", "category"))
-    )
-    if any(token in text for token in ("trophee", "prysma", "prysmaradite")):
-        return "trophy_prysma"
-    if any(
-        token in text
-        for token in (
-            "arme",
-            "coiffe",
-            "cape",
-            "ceinture",
-            "anneau",
-            "collier",
-            "amulette",
-            "botte",
-            "bouclier",
-            "dofus",
-        )
-    ):
-        return "equipment"
-    return "resource"
+from .normalizer import craft_category_for_item
 
 
 def decorate_craft_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -83,8 +59,8 @@ class LocalCompatibilityAdapter:
     def search_items(self, query: str, limit: int = 50) -> list[dict[str, Any]]:
         return self.items.search_legacy(query, limit)
 
-    def search_craft_items(self, query: str, limit: int = 80) -> list[dict[str, Any]]:
-        return decorate_craft_items(self.items.search_craft_legacy(query, limit))
+    def search_craft_items(self, query: str, limit: int = 80, *, category: str | None = None) -> list[dict[str, Any]]:
+        return decorate_craft_items(self.items.search_craft_legacy(query, limit, category=category))
 
     def get_item(self, item_id: int) -> dict[str, Any] | None:
         row = self.items.get_by_ankama_id(int(item_id)) or self.items.get_by_id(int(item_id))
@@ -269,8 +245,8 @@ def search_items(query: str, limit: int = 50) -> list[dict[str, Any]]:
     return get_adapter().search_items(query, limit)
 
 
-def search_craft_items(query: str, limit: int = 80) -> list[dict[str, Any]]:
-    return get_adapter().search_craft_items(query, limit)
+def search_craft_items(query: str, limit: int = 80, *, category: str | None = None) -> list[dict[str, Any]]:
+    return get_adapter().search_craft_items(query, limit, category=category)
 
 
 def release_adapter() -> None:

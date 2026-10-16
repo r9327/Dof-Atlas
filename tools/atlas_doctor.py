@@ -119,6 +119,7 @@ def command_graph_audit(root: Path, args) -> dict[str, Any]:
         root, deep=getattr(args, "deep", False), weak_offset=getattr(args, "offset", 0),
         community_offset=getattr(args, "community_offset", 0),
         orphan_offset=getattr(args, "orphan_offset", 0),
+        cohesion_offset=getattr(args, "cohesion_offset", 0),
         all_candidates=getattr(args, "all_candidates", False),
     )
     if not args.json:
@@ -702,6 +703,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help='Décalage parmi les communautés isolées (pages de 30).')
     ga.add_argument('--orphan-offset', type=int, default=0,
                     help='Décalage parmi les nœuds orphelins (pages de 30).')
+    ga.add_argument('--cohesion-offset', type=int, default=0,
+                    help='Décalage parmi les candidats de cohésion (pages de 30).')
     ga.add_argument('--all-candidates', action='store_true',
                     help='Exporter tous les candidats d’un graphe chargé une fois (résultat JSON potentiellement volumineux).')
     fa = sub.add_parser('file-audit', help='Enquete unifiee Doctor / Graphify, aucune execution de tests.')

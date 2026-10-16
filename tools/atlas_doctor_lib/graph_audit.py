@@ -262,7 +262,8 @@ def inspect_graph(graph: dict[str, Any], *, root: Path | None = None, weak_offse
 def audit_current_graph(
     root: Path, *, graph_evidence: dict[str, Any] | None = None,
     deep: bool = False, weak_offset: int = 0, community_offset: int = 0,
-    orphan_offset: int = 0, all_candidates: bool = False
+    orphan_offset: int = 0, cohesion_offset: int = 0,
+    all_candidates: bool = False
 ) -> dict[str, Any]:
     """Refuse stale graphs; reuse a validated status to avoid repeat Git work."""
     root = root.resolve()
@@ -286,7 +287,8 @@ def audit_current_graph(
             inspect_consumers, correlate_performance, remediation_plan,
         )
         cycles = inspect_import_cycles(raw, root=root)
-        cohesion = analyze_community_boundaries(raw, limit=page_limit)
+        cohesion = analyze_community_boundaries(raw, limit=page_limit,
+                                                offset=cohesion_offset)
         source_review = inspect_consumers(
             root, [*result["orphan_nodes"], *result["weak_production_candidates"]]
         ) if deep else {"status": "NOT_RUN", "reason": "Use --deep for tracked-source review."}
