@@ -601,6 +601,22 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     ROUTE_LOCK_PROGRESS_KEY = "__ui:shared_route_locked__"
 
+    def _clear_cards(self) -> None:
+        """Detach prior sheets immediately; Qt may defer their destruction.
+
+        Removing the layout item alone leaves the old sheet as a visible child
+        until DeferredDelete is processed. Rapid page changes then temporarily
+        paint both old and new guide pages.
+        """
+        while self.cards_layout.count():
+            item = self.cards_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
+        self.rendered_card_count = 0
+
     def _build_ui(self) -> None:
         self.filter_mode = "Tout"
         self.navigate_entity = None
