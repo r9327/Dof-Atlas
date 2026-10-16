@@ -321,13 +321,57 @@ class QuestCatalog:
         character_xp = load_character_xp_table(data_dir)
         record_phase("image_index_and_xp")
 
+        selected_quest_rows = (
+            {quest_id: quests[quest_id] for quest_id in quest_ids}
+            if quest_ids is not None
+            else None
+        )
+        selected_steps = {
+            int(step)
+            for quest in (selected_quest_rows or {}).values()
+            for step in array_value(quest.get("stepIds"))
+        }
+        objective_rows = (
+            list(
+                sources.objectives_for_steps(
+                    data_dir / "quest_objectives.json",
+                    selected_steps,
+                )
+            )
+            if sources is not None and quest_ids is not None
+            else list(objectives.values())
+        )
+
+        if selected_quest_rows is not None:
+            category_ids = {
+                category_id
+                for row in selected_quest_rows.values()
+                if (category_id := safe_int(row.get("categoryId"))) is not None
+            }
+            objective_type_ids = {
+                type_id
+                for row in objective_rows
+                if (type_id := safe_int(row.get("typeId"))) is not None
+            }
+            category_rows = (
+                (ident, categories.get(ident)) for ident in category_ids
+            )
+            objective_type_rows = (
+                (ident, objective_types.get(ident)) for ident in objective_type_ids
+            )
+        else:
+            category_rows = categories.items()
+            objective_type_rows = objective_types.items()
+
         category_names = {
             ident: localized_name(row, entries, f"Categorie {ident}")
-            for ident, row in categories.items()
+            for ident, row in category_rows
+            if row is not None
         }
         objective_type_names = {
             ident: text_for(entries, row.get("nameId"), f"Objectif {ident}")
-            for ident, row in objective_types.items()
+            for ident, row in objective_type_rows
+            if row is not None
         }
         context = sources.context if sources is not None else {}
         if not context:
@@ -348,10 +392,6 @@ class QuestCatalog:
         quest_to_achievements = context['quest_to_achievements']
         record_phase("global_names_and_links")
         objectives_by_step: dict[int, list[dict[str, Any]]] = defaultdict(list)
-        selected_steps = {int(step) for quest_id in (quest_ids or ())
-                          for step in array_value(quests[quest_id].get("stepIds"))}
-        objective_rows = (sources.objectives_for_steps(data_dir / "quest_objectives.json", selected_steps)
-                          if sources is not None and quest_ids is not None else objectives.values())
         for objective in objective_rows:
             try:
                 objectives_by_step[int(objective.get("stepId"))].append(objective)
@@ -361,7 +401,7 @@ class QuestCatalog:
         rewards_by_id = rewards
 
         records: list[QuestRecord] = []
-        quest_rows = ((key, quests[key]) for key in quest_ids) if quest_ids is not None else quests.items()
+        quest_rows = selected_quest_rows.items() if selected_quest_rows is not None else quests.items()
         for quest_id, quest in quest_rows:
             name = quest_names.get(quest_id) or f"Quete {quest_id}"
             steps: list[QuestStep] = []
