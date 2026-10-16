@@ -134,24 +134,27 @@ Accueil Guides desktop **en deux colonnes** : **gauche** Guide Succès → Guide
 **Critères de sortie :** diagnostiquer chaque retour CONFIRMED / NOT_REPRODUCED / BLOCKED, test reproduisant l'échec avant correction quand possible, assertion comportementale réelle après, captures Qt/arbre d'éléments/hit-tests deux tailles avec Doctor UI, preuves rattachées au SHA exact ; pas de PASS sur les tests hors périmètre. L'onglet Succès nécessite un vrai scénario Doctor UI dédié, pas seulement le smoke Guide existant. #201 reste DRAFT et non fusionnée tant que ce travail n'est pas validé. #202 demeure intacte.
 
 
-## Clarification propriétaire — converger les guides Dofus vers le style Lanyel existant
+## Décision finale du propriétaire — périmètre strict #201 (16/10)
 
-**Demande confirmée :** la cible visuelle n'est **PAS** la maquette générique à colonnes/cartes proposée dans la discussion : **réutiliser l'aspect et les composants du vrai guide Lanyel déjà présent dans l'application**. Les guides Dofus, Guide Succès et Lanyel doivent avoir une expérience cohérente. Ne pas entreprendre une refonte artistique ni inventer de nouveaux widgets lorsque les widgets canoniques existent.
+**La #201 est une PR de RÉPARATION, pas une refonte de l'architecture de tous les guides. La dernière décision remplace les demandes antérieures de migration visuelle globale.**
 
-### État architectural vérifié au 16/10
+### Ce qu'il faut réparer maintenant
 
-- \`SharedGuideManualView\` + \`SharedGuideManualCard\` dans \`app/modules/encyclopedia/views/shared_manual_guide_view.py\` affichent **déjà Guide Succès et Lanyel** : barre de progression en haut, bouton unique « Guide », pourcentage, cadenas et numéro de page, feuille centrale défilante, navigation Précédent / Valider / Suivant sous la feuille.
-- Sections canoniques déjà utilisées : \`À PRÉPARER\`, \`À FAIRE MAINTENANT\`, \`À PROFITER ICI\`, \`À CONSERVER POUR PLUS TARD\`, \`BOSS / CAPTURES\`, \`AVANT DE PARTIR\` ; légende sur la première page, coordonnées et liens en ligne, checkboxes liées aux objectifs. Ne pas afficher de section vide, doublée ou d'une ancienne page.
-- **Les guides Dofus ordinaires ne suivent pas cette même vue aujourd'hui :** \`GuidesView._show_guide_overview_standard\` assemble un détail avec \`FixedColumnSplitter\`, \`center_panel\`, \`right_panel\` et des panneaux récapitulatifs. La convergence vers Lanyel doit concerner **l'interface effectivement affichée** des guides Dofus, pas une simple modification stylistique hors du chemin utilisé.
+1. **Guide Succès en priorité** : conserver la feuille existante \`SharedGuideManualView\` / \`SharedGuideManualCard\` utilisée par Lanyel, et y corriger les problèmes identifiés : phrases mal composées, doublons/panneaux fantômes, sections de préparation répétées, ressources du trajet, verbes métier (« Récolter »), objectifs de combat (titre « Faire les combats : », case et quantité réelle par monstre), actions PNJ/quête regroupées et progression. **Pas de nouveau layout Guide Succès**.
+2. **Lanyel** : **figer son aspect et son architecture existants** et corriger seulement les bugs avérés qui l'affectent (ex. restes de l'ancienne page, liens Quêtes, infobulles, conflits d'état/combat, overflow). Si un correctif touche le moteur partagé, vérifier les deux parcours avec Doctor UI. Ne pas refaire le thème/les cartes/le cheminement de Lanyel.
+3. **Raccourcis Quêtes** : vraie icône, une seule occurrence **par quête et par page** (pas par map), nom de quête au survol près du pointeur, clic E2E qui affiche réellement l'onglet Quêtes et le détail exact avec chargement lazy.
+4. **Onglet Succès, P0** : reproduire puis corriger le clic sur un succès sans ouverture du panneau de détail ; test Qt réel de sélection, visibilité et contenu.
+5. **Accueil Guides** : restaurer/obtenir la composition demandée (colonne gauche : Guide Succès, puis Guides optimisés, puis Alignements, alignés ; colonne droite : grille Dofus) **sans redesign des fiches Dofus** ni perte de la virtualisation.
+6. **Prérequis des guides Dofus** : correction **fonctionnelle de contenu uniquement** : centraliser les prérequis dans la section « Prérequis », ne pas les présenter une seconde fois comme étapes à faire, privilégier les intitulés des Succès lorsque ceux-ci représentent vraiment la condition ; conserver les prérequis résiduels et les vraies étapes. **Conserver la présentation et la navigation actuelle des fiches Dofus ordinaires.**
+7. Tests ciblés Doctor UI et PySide6 **réels** de Guide Succès, Lanyel, Quêtes, Succès, accueil et prérequis Dofus, preuves PNG/arbres/assertions exact-SHA ; ne pas se satisfaire de \`validator-smoke\` seul.
 
-### Comportement cible des guides Dofus
+### Hors #201, à ne pas faire maintenant
 
-1. **Même squelette visuel que Lanyel** : en-tête Guide/progression/verrou/page ; **une fiche active au centre** dans le même style typographique, espacements, bordures, rubriques, icônes et navigation ; commandes Précédent, Valider, Suivant familières. Conserver l'identité et le titre du Dofus sans modifier la navigation existante silencieusement.
-2. Les **Prérequis** constituent un **bloc dédié et distinct**, rattaché à la présentation du guide (accessible en début de guide ou via une zone dédiée selon le contrat existant), non réinjecté comme tâches à accomplir au milieu du déroulé. Synthétiser en **Succès requis** quand pertinent, ne pas lister toutes les quêtes constitutives du Succès, ne pas supprimer les vrais prérequis non couverts.
-3. Les étapes courantes adoptent les **mêmes rubriques et éléments interactifs que Lanyel** uniquement quand sémantiquement applicables : \`À préparer\`, \`À faire maintenant\`, \`À profiter ici\`, \`À conserver\`, \`Boss/captures\`, \`Avant de partir\` ; actions claires, coordonnées, tooltip des quêtes, objectifs de combat quantifiés, progression. Les exigences métier propres aux guides Dofus restent vraies, sans inventer de trajets ou nouveaux objectifs.
-4. **Réutiliser le moteur/rendu Qt partagé ou ses composants visuels canoniques**, par adaptation légère des données Dofus si nécessaire. Éviter un rendu parallèle dupliqué et préserver les services, le graphe des dépendances, la persistance et le comportement lazy. Si une migration complète dans #201 présente un risque de régression, documenter le découpage minimal nécessaire sans masquer la demande.
-5. Le **Guide Succès n'a pas besoin d'un nouveau layout** puisqu'il partage déjà celui de Lanyel. Réparer plutôt son contenu et ses bugs : textes, doublons, interactions, combat/ressources et progression.
-6. Tests Qt et Doctor UI comparatifs **Lanyel / Succès / Dofus** sur le vrai chemin de rendu (captures, arborescences, états, hit-tests à deux résolutions, navigation, lazy, retour accueil). Contrôle visuel : un utilisateur doit reconnaître immédiatement le style de Lanyel, **pas un tableau de bord Dofus distinct**.
-7. **Ne pas réduire le nombre de pages** ni réorganiser les circuits de quête lors de cette passe : cette optimisation reste explicitement reportée.
+- **Ne pas migrer les guides Dofus ordinaires vers \`SharedGuideManualView\`** : pas de nouvelle barre Guide/progression/cadenas/page, pas de remplacement de leur \`GuidesView\` multi-panneaux par une fiche route Lanyel, pas de généralisation des six sections Lanyel à tous les guides. La demande de convergence visuelle, évoquée plus tôt, est **retirée du périmètre #201** après clarification.
+- **Ne pas retravailler l'apparence de Lanyel** et ne pas reconstruire son architecture ; seulement les réparations avérées.
+- **Ne pas réduire le nombre de pages** Guide Succès / Lanyel, ni modifier le parcours optimisé ou le nombre de segments.
+- **Ne pas introduire de fonctionnalités nouvelles #202** ni de refonte générale de l'outil Doctor.
 
-**Validation interdite sur capture artificielle ou seule égalité de noms de widgets.** Joindre avant/après, scénario couvert, constat exact-SHA, limites de validation Windows EXE s'il y en a.
+### Contrôle de cohérence avant fusion
+
+La correction doit être minimale et testable, préserver le moteur partagé Succès/Lanyel, la progression par personnage, les cartes/étapes et le lazy load. Toute évolution proposée des vues Dofus doit être traitée séparément et ne peut pas être utilisée pour justifier une fusion anticipée de la #201. Maintenir la PR en **DRAFT** jusqu'au code effectif et aux preuves de réparation.
