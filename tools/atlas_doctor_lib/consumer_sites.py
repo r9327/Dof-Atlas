@@ -72,8 +72,28 @@ def _public_lazy_exports(root: Path, target: str) -> list[dict[str, Any]]:
         tree = ast.parse(source)
     except (OSError, UnicodeError, SyntaxError):
         return []
-    if not any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-               and n.name == "__getattr__" for n in tree.body):
+    # Merely defining __getattr__ does not mean the export is reachable:
+    # an unrelated or stub facade may always raise AttributeError.
+    # Demand visible routing through the literal table and importlib.
+    facade_functions = [
+        n for n in tree.body
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and n.name == "__getattr__"
+    ]
+    if not any(
+        any(
+            isinstance(node, ast.Name) and node.id == "_LAZY_EXPORT_MODULES"
+            and isinstance(node.ctx, ast.Load)
+            for node in ast.walk(function)
+        )
+        and any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "import_module"
+            for node in ast.walk(function)
+        )
+        for function in facade_functions
+    ):
         return []
     exports: dict[str, str] = {}
     public: set[str] = set()

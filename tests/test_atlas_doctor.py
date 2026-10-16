@@ -58,6 +58,74 @@ class AtlasDoctorTests(unittest.TestCase):
         finally:
             directory.cleanup()
 
+    def test_lazy_public_widget_export_is_not_classified_as_unreferenced(self) -> None:
+        directory = self.make_repo()
+        try:
+            root = Path(directory.name)
+            widgets = root / "app" / "widgets"
+            widgets.mkdir()
+            (widgets / "__init__.py").write_text(
+                '_LAZY_EXPORT_MODULES: dict[str, str] = {"SomeWidget": "some_widget"}\n'
+                '__all__ = ["SomeWidget"]\n'
+                'from importlib import import_module\n'
+                'def __getattr__(name):\n'
+                '    suffix = _LAZY_EXPORT_MODULES.get(name)\n'
+                '    if suffix is None: raise AttributeError(name)\n'
+                '    return getattr(import_module(f"{__name__}.{suffix}"), name)\n',
+                encoding="utf-8",
+            )
+            (widgets / "some_widget.py").write_text(
+                "class SomeWidget:\n    pass\n", encoding="utf-8"
+            )
+            (widgets / "orphan.py").write_text(
+                "class Orphan:\n    pass\n", encoding="utf-8"
+            )
+            _git(root, "add", "-A")
+            _git(root, "commit", "-m", "lazy export fixture")
+            issues = run_audit(root, save=False)["issues"]
+            flagged = {x["path"] for x in issues if x["rule"] == "unreferenced_module"}
+            self.assertNotIn("app/widgets/some_widget.py", flagged)
+            self.assertIn("app/widgets/orphan.py", flagged)
+            # Removing the facade contract restores the advisory finding.
+            (widgets / "__init__.py").write_text(
+                '_LAZY_EXPORT_MODULES = {"SomeWidget": "some_widget"}\n',
+                encoding="utf-8",
+            )
+            flagged_without_getattr = {
+                x["path"] for x in run_audit(root, save=False)["issues"]
+                if x["rule"] == "unreferenced_module"
+            }
+            self.assertIn("app/widgets/some_widget.py", flagged_without_getattr)
+            # A stub __getattr__ also does not establish a callable API.
+            (widgets / "__init__.py").write_text(
+                '_LAZY_EXPORT_MODULES = {"SomeWidget": "some_widget"}\n'
+                '__all__ = ["SomeWidget"]\n'
+                'def __getattr__(name):\n'
+                '    raise AttributeError(name)\n',
+                encoding="utf-8",
+            )
+            stub_issues = run_audit(root, save=False)["issues"]
+            self.assertIn(
+                "app/widgets/some_widget.py",
+                {x["path"] for x in stub_issues if x["rule"] == "unreferenced_module"},
+            )
+            # Merely mentioning import_module as a variable is not a call.
+            (widgets / "__init__.py").write_text(
+                '_LAZY_EXPORT_MODULES = {"SomeWidget": "some_widget"}\n'
+                '__all__ = ["SomeWidget"]\n'
+                'def __getattr__(name):\n'
+                '    import_module = None\n'
+                '    return _LAZY_EXPORT_MODULES.get(name)\n',
+                encoding="utf-8",
+            )
+            false_dispatch = run_audit(root, save=False)["issues"]
+            self.assertIn(
+                "app/widgets/some_widget.py",
+                {x["path"] for x in false_dispatch if x["rule"] == "unreferenced_module"},
+            )
+        finally:
+            directory.cleanup()
+
     def test_ast_cache_preserves_exact_findings_and_invalidates_single_changed_file(self) -> None:
         directory = self.make_repo()
         try:
