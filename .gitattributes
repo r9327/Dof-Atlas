@@ -1,4 +1,7 @@
 * text=auto
+# Large JSON byte contracts are SHA-256 over LF checkout bytes, not CRLF.
+data/encyclopedia/quests/quests_enriched.json text eol=lf
+data/encyclopedia/quests/image_manifest.json text eol=lf
 *.webp filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text
 *.exe filter=lfs diff=lfs merge=lfs -text

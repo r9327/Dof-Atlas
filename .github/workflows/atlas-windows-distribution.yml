@@ -1,0 +1,676 @@
+name: Atlas Windows Distribution
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "app/distribution/**"
+      - "scripts/windows/package_release.py"
+      - "scripts/windows/quest_assets.py"
+      - "scripts/windows/quest_assets_lock.json"
+      - "scripts/windows/craft_seed.py"
+      - "scripts/windows/craft_assets_lock.json"
+      - "local_dofus_data/config.py"
+      - "app/craft_preload.py"
+      - "scripts/windows/repackage_data_only.py"
+      - "scripts/windows/export_app_repository.py"
+      - "scripts/windows/certify_app_export.py"
+      - "scripts/windows/atlas_launcher_entry.py"
+      - "tests/test_distribution_*.py"
+      - "main.py"
+      - "launch.py"
+      - "app/constants.py"
+      - ".github/workflows/atlas-windows-distribution.yml"
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Phase Certification"]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: atlas-distribution-${{ github.event_name == 'workflow_run' && 'release' || github.event_name == 'workflow_dispatch' && 'manual' || github.event.action == 'ready_for_review' && 'candidate' || 'focused' }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  focused:
+    name: Focused updater + transfer contracts
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          # Certify the exact PR HEAD, never GitHub's temporary merge commit.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Compile updater modules
+        run: python -m compileall -q app/distribution scripts/windows/package_release.py scripts/windows/export_app_repository.py scripts/windows/certify_app_export.py scripts/windows/atlas_setup_entry.py launch.py
+      - name: Focused updater tests
+        run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
+      - name: Certify real runtime export without publishing
+        run: |
+          # Only the essential LFS logo is necessary for the code/data mirror.
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png" --exclude=""
+          source_sha="$(git rev-parse HEAD)"
+          if test "${{ github.event_name }}" = "pull_request"; then
+            test "$source_sha" = "${{ github.event.pull_request.head.sha }}"
+          fi
+          python -m scripts.windows.export_app_repository \
+            --root . --destination "$RUNNER_TEMP/atlas-transfer-preview" --source-sha "$source_sha"
+          python -m scripts.windows.certify_app_export \
+            --root . --destination "$RUNNER_TEMP/atlas-transfer-preview" \
+            --source-sha "$source_sha" --output "$RUNNER_TEMP/atlas-transfer-certificate.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "atlas-transfer-certificate.json").read_text())
+          summary = (f"### Atlas App transfer certificate — {report['status']}\n"
+                     f"Source SHA: `{report['source_sha']}`\n\n"
+                     f"Allowlisted files: **{report['file_count']}**; "
+                     f"Python modules: **{report['python_modules']}**; "
+                     f"verified static import edges: **{report['static_import_edges']}**.\n\n"
+                     "Doctor/Graphify stay exclusively in the source repository. "
+                     "This certificate validates the transfer only, not dynamic Qt behavior or production rights.\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as output:
+              output.write(summary)
+          PY
+      - name: Archive reviewed App transfer certificate
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: atlas-app-transfer-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/atlas-transfer-certificate.json
+          retention-days: 7
+          if-no-files-found: error
+  classify-release:
+    name: Detect JSON-only certified changes
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      vars.ATLAS_DISTRIBUTION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      data_only: ${{ steps.detect.outputs.data_only }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Validate publishing destination before any Windows build
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          if test -z "$GH_TOKEN"; then
+            echo "::error::ATLAS_DISTRIBUTION_TOKEN is missing. Keep ATLAS_DISTRIBUTION_ENABLED=false until configured."
+            exit 1
+          fi
+          if ! gh api repos/r9327/Dof-Atlas-App --jq '.full_name' >/dev/null; then
+            echo "::error::Distribution repository r9327/Dof-Atlas-App is missing or the token lacks access."
+            exit 1
+          fi
+          if ! gh api repos/r9327/Dof-Atlas-App/branches/main --jq '.name' >/dev/null; then
+            echo "::error::Distribution repository needs an initialized main branch."
+            exit 1
+          fi
+      - name: Compare with last certified app release
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          echo "data_only=false" >> "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/previous"
+          if ! gh release download --repo r9327/Dof-Atlas-App \
+              --pattern atlas-manifest.json --dir "$RUNNER_TEMP/previous"; then
+            exit 0
+          fi
+          base="$(python -c 'import json,os;print(json.load(open(os.path.join(os.environ["RUNNER_TEMP"],"previous","atlas-manifest.json")))["source_sha"])')"
+          if ! [[ "$base" =~ ^[a-f0-9]{40}$ ]]; then exit 1; fi
+          if ! git fetch --no-tags --depth=1 origin "$base"; then exit 1; fi
+          git diff --name-only "$base" HEAD | awk '$0 != ".ai/context_index.json"'  > "$RUNNER_TEMP/data-changes.txt"
+          if python - "$RUNNER_TEMP/data-changes.txt" <<'PY'
+          import sys
+          from pathlib import Path
+          from scripts.windows.package_release import _publishable
+          paths = [s.strip() for s in Path(sys.argv[1]).read_text().splitlines() if s.strip()]
+          if not paths or any(not p.startswith("data/") or Path(p).suffix.lower() != ".json"
+                              or ".." in Path(p).parts
+                              or not _publishable(Path("_internal") / p) for p in paths):
+              raise SystemExit(1)
+          PY
+          then
+            echo "data_only=true" >> "$GITHUB_OUTPUT"
+          fi
+  windows-bundle:
+    name: Windows bundle (gated certification)
+    needs: [classify-release]
+    if: >-
+      always() &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'pull_request' &&
+         github.event.action == 'ready_for_review' &&
+         (github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
+          (github.head_ref == 'fix/windows-quest-assets-custom-runtime-root-20261015' ||
+           (github.head_ref == 'fix/frozen-guide-success-runtime-assets-20261015' ||
+           github.head_ref == 'fix/windows-craft-seed-and-full-prereqs-20261015' ||
+           github.head_ref == 'fix/windows-frozen-success-worker-gate-20261015' ||
+           github.head_ref == 'fix/windows-first-launch-candidate-clean-20261015')))) ||
+        (github.event_name == 'workflow_run' &&
+         needs.classify-release.result == 'success' &&
+         needs.classify-release.outputs.data_only != 'true' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main' &&
+         github.event.workflow_run.head_repository.full_name == github.repository &&
+         vars.ATLAS_DISTRIBUTION_ENABLED == 'true')
+      )
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || (github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha) }}
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+          # Avoid downloading all development/tooling Git-LFS files.
+          lfs: false
+          persist-credentials: false
+      - name: Ensure successful certification applies to current main HEAD
+        if: github.event_name == 'workflow_run'
+        run: |
+          current="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$current" = "$SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - name: Fetch only startup images for optional diagnostic build
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git lfs pull --include="data/images/misc/**,data/images/classes/**" --exclude=""
+      - name: Materialize complete application assets for candidate certification or release
+        if: >-
+          github.event_name == 'workflow_run' ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
+        run: |
+          # A ready-for-review build is a full, *unpublished* production candidate.
+          git lfs pull --include="data/**" --exclude=""
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Focused Windows tests
+        run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
+      - name: Acquire SHA-256 pinned, otherwise ignored Doduda quest sources
+        run: python -m scripts.windows.quest_assets --download
+      - name: Build public verified Craft SQLite seed from pinned recipes
+        run: python -m scripts.windows.craft_seed --download
+      - name: Install hashed runtime and pinned build tool
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          python -m pip install pyinstaller==6.16.0
+      - name: Compile application bundle with QtWebEngine and worker modules
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --name AtlasApp --paths . \
+            --hidden-import PySide6.QtWebEngineWidgets \
+            --hidden-import PySide6.QtWebEngineCore \
+            --hidden-import app.craft_preload \
+            --hidden-import app.quest_catalog_details \
+            --hidden-import app.startup_cache_warmup \
+            --hidden-import app.startup_cache_domain_worker \
+            --collect-submodules app \
+            --collect-submodules local_dofus_data \
+            --exclude-module app.modules.encyclopedia.tools \
+            --exclude-module tools \
+            --exclude-module tests \
+            --add-data "data;data" launch.py
+      - name: Reject developer modules inside actual frozen Python archive
+        run: |
+          python - <<'PY'
+          from PyInstaller.archive.readers import CArchiveReader
+          executable = CArchiveReader("dist/AtlasApp/AtlasApp.exe")
+          archive = executable.open_embedded_archive("PYZ.pyz")
+          forbidden = ("tools", "tests", "app.modules.encyclopedia.tools")
+          leaked = sorted(name for name in archive.toc
+                          if any(name == prefix or name.startswith(prefix + ".")
+                                 for prefix in forbidden))
+          if leaked:
+              raise SystemExit("Developer modules leaked into frozen application: " + ", ".join(leaked))
+          print("VERIFIED: actual frozen Python archive excludes developer tools and tests")
+          PY
+      - name: Certify actual frozen quest asset integrity
+        run: python -m scripts.windows.quest_assets --root dist/AtlasApp/_internal
+      - name: Certify packaged public Craft SQLite seed
+        run: python -m scripts.windows.craft_seed --verify --output dist/AtlasApp/_internal/data/bootstrap/craft_seed.sqlite
+      - name: Compile lightweight standalone launcher
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed \
+            --name DofusAtlas --paths . scripts/windows/atlas_launcher_entry.py
+      - name: Verify frozen launcher offline bootstrap startup
+        run: dist/DofusAtlas.exe --atlas-self-test
+      - name: Compile self-contained desktop shortcut installer
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed \
+            --name DofusAtlasSetup --paths . \
+            --icon data/images/misc/dofus_atlas.ico \
+            --add-binary "dist/DofusAtlas.exe;." scripts/windows/atlas_setup_entry.py
+      - name: Verify installer creates Windows Desktop shortcut
+        shell: pwsh
+        run: |
+          $setup = Start-Process -FilePath "dist/DofusAtlasSetup.exe" -ArgumentList "--no-launch" -PassThru
+          if (-not $setup.WaitForExit(180000)) {
+            Stop-Process -Id $setup.Id -Force -ErrorAction SilentlyContinue
+            throw "Atlas setup timed out during unattended Windows installation"
+          }
+          if ($setup.ExitCode -ne 0) { throw "Atlas setup failed: $($setup.ExitCode)" }
+          $installed = Join-Path $env:LOCALAPPDATA "Programs/DofusAtlas/DofusAtlas.exe"
+          if (-not (Test-Path -LiteralPath $installed)) { throw "Installed launcher missing" }
+          $shortcut = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'Dofus Atlas.lnk'
+          if (-not (Test-Path -LiteralPath $shortcut)) { throw "Desktop shortcut missing" }
+          $helper = Join-Path $env:LOCALAPPDATA "Programs/DofusAtlas/DofusAtlasMaintenance.exe"
+          if (-not (Test-Path -LiteralPath $helper)) { throw "Detached launcher repair helper missing" }
+          $shell = New-Object -ComObject WScript.Shell
+          $link = $shell.CreateShortcut($shortcut)
+          if ([IO.Path]::GetFullPath($link.TargetPath) -ne [IO.Path]::GetFullPath($installed)) {
+            throw "Desktop shortcut does not point to the installed Dofus Atlas launcher"
+          }
+      - name: Smoke check frozen QtWebEngine and assets
+        run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
+      - name: Smoke real frozen quest parser before accepting a Release
+        run: dist/AtlasApp/AtlasApp.exe --atlas-quest-smoke
+      - name: Smoke real frozen Guides and Guide-item indexes
+        run: dist/AtlasApp/AtlasApp.exe --atlas-domain-smoke guide
+      - name: Smoke real frozen Successes and retained catalog
+        run: dist/AtlasApp/AtlasApp.exe --atlas-domain-smoke success
+      - name: Smoke exact frozen Success worker on clean first installation
+        run: |
+          export DOFUS_ATLAS_USER_ROOT="$RUNNER_TEMP/atlas-success-worker-clean-user"
+          dist/AtlasApp/AtlasApp.exe -m app.modules.encyclopedia.providers.memory_bound_achievement_provider --ensure-compact-cache
+      - name: Smoke real frozen Success reward details
+        run: dist/AtlasApp/AtlasApp.exe --atlas-success-detail-smoke
+      - name: Smoke first-run persistent Craft seeding + real frozen search/recipes
+        run: |
+          export DOFUS_ATLAS_USER_ROOT="$RUNNER_TEMP/atlas-first-install-craft-user"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from app.distribution.user_data import prepare_user_data
+          executable = Path("dist/AtlasApp/AtlasApp.exe").resolve()
+          user = Path(os.environ["DOFUS_ATLAS_USER_ROOT"])
+          prepare_user_data(executable, user)
+          if not (user / "data/local/dofus_data.sqlite").is_file():
+              raise SystemExit("First-install Craft database missing")
+          PY
+          dist/AtlasApp/AtlasApp.exe --atlas-craft-smoke
+          dist/AtlasApp/AtlasApp.exe --atlas-map-state-smoke
+      - name: Real Qt window health smoke (no Python user installation)
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+          QTWEBENGINE_DISABLE_SANDBOX: "1"
+        run: |
+          $env:DOFUS_ATLAS_HEALTH_FILE = Join-Path $env:RUNNER_TEMP "atlas-window-health.ready"
+          $env:DOFUS_ATLAS_USER_ROOT = Join-Path $env:RUNNER_TEMP "atlas-smoke-user"
+          Remove-Item -LiteralPath $env:DOFUS_ATLAS_HEALTH_FILE -Force -ErrorAction SilentlyContinue
+          $process = Start-Process -FilePath "dist/AtlasApp/AtlasApp.exe" -PassThru
+          try {
+            $healthy = $false
+            for ($i = 0; $i -lt 450; $i++) {
+              if (Test-Path -LiteralPath $env:DOFUS_ATLAS_HEALTH_FILE) {
+                $healthy = $true
+                break
+              }
+              $process.Refresh()
+              if ($process.HasExited) {
+                throw "Frozen Atlas closed before the main window was ready: $($process.ExitCode)"
+              }
+              Start-Sleep -Milliseconds 200
+            }
+            if (-not $healthy) {
+              throw "Frozen Atlas did not acknowledge its main window after 90 seconds"
+            }
+            Write-Host "Frozen Atlas real Qt startup confirmed"
+          }
+          finally {
+            $process.Refresh()
+            if (-not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+          }
+      - name: Read previous certified distribution manifest (if available)
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/atlas-previous"
+          gh release download --repo r9327/Dof-Atlas-App \
+            --pattern atlas-manifest.json --dir "$RUNNER_TEMP/atlas-previous" || true
+      - name: Package ZIP, manifest and launcher
+        if: >-
+          github.event_name == 'workflow_run' ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
+        run: |
+          version="0.1.0-$(echo "$SOURCE_SHA" | cut -c1-12)"
+          python -m scripts.windows.package_release \
+            --payload dist/AtlasApp --output dist-release \
+            --source-sha "$SOURCE_SHA" --app-version "$version" \
+            --data-version "$(date -u +%Y.%m.%d)" --schema-version 1 \
+            --launcher dist/DofusAtlas.exe \
+            --base-manifest "$RUNNER_TEMP/atlas-previous/atlas-manifest.json"
+          cp dist/DofusAtlas.exe dist-release/DofusAtlas.exe
+          cp dist/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
+      - name: Require every pinned Quest source in the signed Release manifest
+        if: >-
+          github.event_name == 'workflow_run' ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from scripts.windows.quest_assets import read_lock, REPO_ROOT, RELATIVE_ROOT
+          from app.distribution.manifest import parse_manifest
+          manifest = parse_manifest(Path("dist-release/atlas-manifest.json").read_bytes())
+          packaged = {entry.path for entry in manifest.files}
+          mandatory = {"AtlasApp/_internal/" + (RELATIVE_ROOT / filename).as_posix()
+                       for filename in read_lock(REPO_ROOT)["assets"]}
+          missing = sorted(mandatory - packaged)
+          if missing:
+              raise SystemExit(f"Release manifest missing {len(missing)} mandatory Quest files: {missing[:5]}")
+          print(f"VERIFIED: {len(mandatory)} Quest data files in release manifest")
+          PY
+      - name: Require verified public Craft seed and exclude private local SQLite
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from scripts.windows.craft_seed import validate_seed
+          manifest = json.loads(Path("dist-release/atlas-manifest.json").read_text(encoding="utf-8"))
+          paths = {entry["path"] for entry in manifest["files"]}
+          expected = "AtlasApp/_internal/data/bootstrap/craft_seed.sqlite"
+          if expected not in paths:
+              raise SystemExit("Certified Windows ZIP lost the public Craft seed")
+          if any(p.endswith("/data/local/dofus_data.sqlite") for p in paths):
+              raise SystemExit("User's private SQLite included in public release")
+          validate_seed(Path("dist/AtlasApp/_internal/data/bootstrap/craft_seed.sqlite"))
+          print("VERIFIED: published Craft seed, private DB excluded")
+          PY
+      - name: Validate full candidate ZIP and manifest integrity
+        if: >-
+          github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
+        run: |
+          python - <<'PY'
+          import hashlib
+          import zipfile
+          from pathlib import Path
+          from app.distribution.manifest import parse_manifest
+          root = Path("dist-release")
+          archive_path = root / "atlas-windows.zip"
+          manifest = parse_manifest((root / "atlas-manifest.json").read_bytes())
+          assert manifest.source_sha == "${{ env.SOURCE_SHA }}", "Incorrect candidate source SHA"
+          expected = {item.path: item for item in manifest.files}
+          with zipfile.ZipFile(archive_path) as archive:
+              names = [item.filename for item in archive.infolist() if not item.is_dir()]
+              assert len(names) == len(expected) and set(names) == set(expected), "ZIP file list mismatch"
+              for item in manifest.files:
+                  digest = hashlib.sha256()
+                  total = 0
+                  with archive.open(item.path) as stream:
+                      for block in iter(lambda: stream.read(1024 * 1024), b""):
+                          digest.update(block)
+                          total += len(block)
+                  assert total == item.size and digest.hexdigest() == item.sha256, item.path
+          print(f"VERIFIED: {len(expected)} hashed files, source={manifest.source_sha}")
+          PY
+      - name: Ensure multipart pieces match the release manifest
+        if: >-
+          github.event_name == 'workflow_run' ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app.distribution.manifest import ReleaseFile, parse_manifest, verify_file
+          manifest = parse_manifest(Path("dist-release/atlas-manifest.json").read_bytes())
+          root = Path("dist-release")
+          if manifest.archive_parts:
+              assert manifest.archive_size == (root / "atlas-windows.zip").stat().st_size
+              assert verify_file(root / "atlas-windows.zip", ReleaseFile(
+                  "atlas-windows.zip", manifest.archive_size, manifest.archive_sha256
+              ))
+              for part in manifest.archive_parts:
+                  assert verify_file(root / part.name, ReleaseFile(part.name, part.size, part.sha256)), part.name
+              print(f"Verified {len(manifest.archive_parts)} multipart assets")
+          else:
+              assert (root / "atlas-windows.zip").is_file()
+          PY
+          # GitHub Releases limits individual files to <2 GiB. Never upload
+          # the oversized joined archive: only its individually hashed parts.
+          if ls dist-release/atlas-windows.part* >/dev/null 2>&1; then
+            rm dist-release/atlas-windows.zip
+          fi
+      - name: Upload unmerged full Windows distribution candidate
+        if: >-
+          github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: atlas-windows-full-candidate-${{ env.SOURCE_SHA }}
+          path: |
+            dist-release/atlas-windows.zip
+            dist-release/atlas-windows.part*
+            dist-release/atlas-manifest.json
+            dist-release/DofusAtlas.exe
+            dist-release/DofusAtlasSetup.exe
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload certified Windows release files
+        if: github.event_name == 'workflow_run'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: atlas-windows-${{ env.SOURCE_SHA }}
+          path: dist-release/*
+          retention-days: 14
+          if-no-files-found: error
+      - name: Upload frozen candidate launchers for diagnosis
+        if: github.event_name != 'workflow_run'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: atlas-frozen-launchers-${{ env.SOURCE_SHA }}
+          path: |
+            dist/DofusAtlas.exe
+            dist/DofusAtlasSetup.exe
+            dist/AtlasApp/AtlasApp.exe
+          retention-days: 7
+          if-no-files-found: error
+      - name: Checkout isolated application repository
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: r9327/Dof-Atlas-App
+          token: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+          path: app-publish
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Synchronize application-only source and data
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          gh auth setup-git
+          python -m scripts.windows.export_app_repository \
+            --root . --destination app-publish --source-sha "$SOURCE_SHA"
+          python -m scripts.windows.certify_app_export \
+            --root . --destination app-publish --source-sha "$SOURCE_SHA" \
+            --output "$RUNNER_TEMP/atlas-transfer-certificate.json"
+          git -C app-publish config user.name "github-actions[bot]"
+          git -C app-publish config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C app-publish add -A
+          if ! git -C app-publish diff --cached --quiet; then
+            git -C app-publish commit -m "sync: exact source $SOURCE_SHA"
+            git -C app-publish push origin HEAD:main
+          fi
+      - name: Publish certified stable release
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          tag="sha-$(echo "$SOURCE_SHA" | cut -c1-12)"
+          assets=(dist-release/atlas-manifest.json
+                  dist-release/DofusAtlas.exe dist-release/DofusAtlasSetup.exe)
+          shopt -s nullglob
+          parts=(dist-release/atlas-windows.part*)
+          if (( ${#parts[@]} )); then
+            assets+=("${parts[@]}")
+          else
+            assets+=(dist-release/atlas-windows.zip)
+          fi
+          if test -f dist-release/atlas-delta.zip; then
+            assets+=(dist-release/atlas-delta.zip)
+          fi
+          gh release create "$tag" "${assets[@]}" \
+            --repo r9327/Dof-Atlas-App \
+            --title "Dofus Atlas $tag" \
+            --notes "Certified source r9327/Dof-Atlas@$SOURCE_SHA" \
+            --latest
+
+  json-only-release:
+    name: Certified JSON-only update without PyInstaller
+    needs: [classify-release]
+    if: >-
+      github.event_name == 'workflow_run' &&
+      needs.classify-release.result == 'success' &&
+      needs.classify-release.outputs.data_only == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+    steps:
+      - name: Checkout exact certified source SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Ensure current main and fetch previous assets
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$SOURCE_SHA"
+          mkdir -p prior
+          gh release download --repo r9327/Dof-Atlas-App \
+            --pattern atlas-manifest.json --pattern atlas-windows.zip \
+            --pattern 'atlas-windows.part*' \
+            --pattern DofusAtlas.exe --pattern DofusAtlasSetup.exe --dir prior
+          base="$(python -c 'import json;print(json.load(open("prior/atlas-manifest.json"))["source_sha"])')"
+          if ! [[ "$base" =~ ^[a-f0-9]{40}$ ]]; then exit 1; fi
+          git fetch --no-tags --depth=1 origin "$base"
+          git diff --name-only "$base" HEAD | awk '$0 != ".ai/context_index.json"'  > data-changes.txt
+          python - data-changes.txt <<'PY'
+          import sys
+          from pathlib import Path
+          from scripts.windows.package_release import _publishable
+          names = [n.strip() for n in Path(sys.argv[1]).read_text().splitlines() if n.strip()]
+          if not names or any(not n.startswith("data/") or Path(n).suffix.lower() != ".json"
+                              or ".." in Path(n).parts
+                              or not _publishable(Path("_internal") / n) for n in names):
+              raise SystemExit("Source diff is no longer JSON-only")
+          PY
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Materialize selected Git LFS JSON
+        run: git lfs pull --include="data/**/*.json" --exclude=""
+      - name: Test standalone JSON repackaging contracts
+        run: python -m unittest tests.test_distribution_data_only tests.test_distribution_delta -v
+      - name: Rebuild only data archives (reuse frozen EXE)
+        run: |
+          python -m scripts.windows.repackage_data_only \
+            --previous-zip prior/atlas-windows.zip \
+            --previous-manifest prior/atlas-manifest.json \
+            --source . --changed-list data-changes.txt --output dist-release \
+            --source-sha "$SOURCE_SHA" --data-version "$(date -u +%Y.%m.%d)" \
+            --launcher prior/DofusAtlas.exe
+          cp prior/DofusAtlas.exe dist-release/DofusAtlas.exe
+          cp prior/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
+          python - <<'PY'
+          from pathlib import Path
+          from app.distribution.manifest import parse_manifest
+          from app.distribution.manifest import ReleaseFile, verify_file
+          root = Path("dist-release")
+          manifest = parse_manifest((root / "atlas-manifest.json").read_bytes())
+          if manifest.archive_parts:
+              assert verify_file(root / "atlas-windows.zip", ReleaseFile(
+                  "atlas-windows.zip", manifest.archive_size, manifest.archive_sha256
+              ))
+              for part in manifest.archive_parts:
+                  assert verify_file(root / part.name, ReleaseFile(part.name, part.size, part.sha256))
+              (root / "atlas-windows.zip").unlink()
+          PY
+      - name: Checkout minimal App distribution repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: r9327/Dof-Atlas-App
+          token: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+          path: app-publish
+          persist-credentials: false
+      - name: Sync only certified data and preserve application code
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+          destination = Path("app-publish")
+          for name in Path("data-changes.txt").read_text().splitlines():
+              if not name:
+                  continue
+              source = Path(name)
+              target = destination / name
+              if source.is_file():
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(source, target)
+              else:
+                  target.unlink(missing_ok=True)
+          provenance = destination / "SOURCE_PROVENANCE.json"
+          record = json.loads(provenance.read_text(encoding="utf-8"))
+          record["source_sha"] = "${{ env.SOURCE_SHA }}"
+          from scripts.windows.export_app_repository import selected_runtime_files
+          record["runtime_files"] = len(selected_runtime_files(Path(".")))
+          provenance.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+          PY
+          gh auth setup-git
+          git -C app-publish config user.name "github-actions[bot]"
+          git -C app-publish config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python -m scripts.windows.certify_app_export \
+            --root . --destination app-publish --source-sha "$SOURCE_SHA" \
+            --output "$RUNNER_TEMP/atlas-transfer-certificate.json"
+          git -C app-publish add -A
+          if ! git -C app-publish diff --cached --quiet; then
+            git -C app-publish commit -m "sync: certified JSON $SOURCE_SHA"
+            git -C app-publish push origin HEAD:main
+          fi
+      - name: Publish verified JSON-only release
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$SOURCE_SHA"
+          tag="sha-$(echo "$SOURCE_SHA" | cut -c1-12)"
+          assets=(dist-release/atlas-manifest.json
+                  dist-release/DofusAtlas.exe dist-release/DofusAtlasSetup.exe)
+          shopt -s nullglob
+          parts=(dist-release/atlas-windows.part*)
+          if (( ${#parts[@]} )); then
+            assets+=("${parts[@]}")
+          else
+            assets+=(dist-release/atlas-windows.zip)
+          fi
+          if test -f dist-release/atlas-delta.zip; then
+            assets+=(dist-release/atlas-delta.zip)
+          fi
+          gh release create "$tag" "${assets[@]}" \
+            --repo r9327/Dof-Atlas-App \
+            --title "Dofus Atlas data $tag" \
+            --notes "Certified JSON-only source r9327/Dof-Atlas@$SOURCE_SHA; executable reused" \
+            --latest

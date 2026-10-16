@@ -75,7 +75,7 @@ def _read_guide_items_index(
         return None
     if not isinstance(payload, dict):
         return None
-    if int(payload.get("schema_version") or 0) != _GUIDE_ITEMS_INDEX_SCHEMA:
+    if type(payload.get("schema_version")) is not int or payload["schema_version"] != _GUIDE_ITEMS_INDEX_SCHEMA:
         return None
     if payload.get("source_signature") != _guide_item_source_signature(data_dir):
         return None

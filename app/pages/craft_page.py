@@ -3,7 +3,7 @@ from __future__ import annotations
 import difflib
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QPixmap
@@ -421,9 +421,11 @@ class CraftPage(QWidget):
         preload: dict[str, Any] | None = None,
         *,
         defer_runtime: bool = False,
+        retry_preload_callback: Callable[[], None] | None = None,
     ):
         super().__init__(parent)
         self.status_callback = status_callback
+        self.retry_preload_callback = retry_preload_callback
         self.preload = preload if isinstance(preload, dict) else {}
         self.icon_cache = IconCache(32)
         self.items: list[dict[str, Any]] = []
@@ -458,6 +460,14 @@ class CraftPage(QWidget):
         title = QLabel("Craft")
         title.setObjectName("PageTitle")
         root.addWidget(title)
+        self.retry_preload_button = AtlasButton("Réessayer le chargement Craft")
+        self.retry_preload_button.setObjectName("CraftRetryPreload")
+        self.retry_preload_button.setToolTip(
+            "Réessayer le chargement du catalogue local après réparation des données."
+        )
+        self.retry_preload_button.setVisible(False)
+        self.retry_preload_button.clicked.connect(self.retry_preload)
+        root.addWidget(self.retry_preload_button, 0, Qt.AlignLeft)
 
         self.global_scroll = QScrollArea()
         self.global_scroll.setWidgetResizable(True)
@@ -571,6 +581,7 @@ class CraftPage(QWidget):
         return True
 
     def show_runtime_loading(self) -> None:
+        self.retry_preload_button.setVisible(False)
         self.search.setEnabled(False)
         for button in self.category_buttons.values():
             button.setEnabled(False)
@@ -581,17 +592,40 @@ class CraftPage(QWidget):
         self.status_callback("Craft disponible · données en arrière-plan...")
 
     def show_runtime_error(self, message: str) -> None:
+        self._runtime_ready = False
+        self.search.setEnabled(False)
+        for button in self.category_buttons.values():
+            button.setEnabled(False)
+        self.retry_preload_button.setVisible(callable(self.retry_preload_callback))
         self.results.clear()
         item = QListWidgetItem(str(message or "Chargement Craft impossible."))
         item.setFlags(Qt.NoItemFlags)
         self.results.addItem(item)
         self.status_callback(f"Chargement Craft impossible : {message}")
 
+    def retry_preload(self) -> None:
+        """Ask the owning Atlas shell to retry asynchronously, never block Qt."""
+        if not callable(self.retry_preload_callback):
+            return
+        self.show_runtime_loading()
+        self.retry_preload_callback()
+
     def hydrate_runtime(self, preload: dict[str, Any]) -> bool:
         if self._runtime_ready:
             return True
         if not isinstance(preload, dict) or not isinstance(preload.get("items"), list):
             return False
+        # An empty list is expected for a valid lazy SQLite catalogue, but
+        # not for the absent/corrupt-catalogue fallback.
+        if preload.get("_skipped_reason") or preload.get("errors"):
+            return False
+        if preload.get("_prepared") is False:
+            return False
+        if not preload.get("items") and not (
+            preload.get("_lazy_items") and preload.get("_prepared") is True
+        ):
+            return False
+        self.retry_preload_button.setVisible(False)
         self.preload = preload
         self.load_items()
         self.load_leveling_guides()
@@ -917,6 +951,11 @@ class CraftPage(QWidget):
             layout.addWidget(label, 1)
             qty = quantity_spinbox(int(row["quantity"]))
             delete = AtlasButton("x")
+            delete.setObjectName("CraftRemoveSelectionItem")
+            accessible_label = f"Retirer {item.get('name', 'Objet')} de la sélection"
+            delete.setToolTip(accessible_label)
+            delete.setAccessibleName(accessible_label)
+            delete.setFocusPolicy(Qt.StrongFocus)
             delete.setMaximumWidth(30)
             qty.valueChanged.connect(lambda value, target=ident: self.set_selection_quantity(target, value))
             delete.clicked.connect(lambda _checked=False, target=ident: self.remove_selection_item(target))

@@ -277,3 +277,39 @@ The Doctor shadow campaign is **advisory when the scope is FULL_REQUIRED**:
 it shows what was and was not checked, but cannot manufacture a Phase PASS.
 The authoritative Phase verdict still comes only from Atlas Integrity FULL,
 the critical Guide/data evidence and the phase verdict engine.
+
+
+## Certification Policy / Merge Gate (AT-026)
+
+The pull-request workflow exposes exactly one additional job/check context:
+`Certification Policy / Merge Gate`. Its executable policy lives in
+`tools/ci_required_certification.py` and writes
+`artifacts/cert_policy/merge_gate.json` bound to the checked-out **PR head SHA**
+and the exact PR base SHA.
+
+- **SCOPED** is permitted for docs-only or independently classified LOW/MEDIUM
+  diffs only if `Public PR / Safe Validation` on that head succeeded. The
+  decision is `PASS_SCOPED_NOT_FULL`, not a Phase/FULL certificate.
+- **FULL_REQUIRED** applies to HIGH/CRITICAL changes and any change of the
+  CI root of trust (workflows, certification policy, rulesets). The check accepts
+  only authenticated GitHub API results for
+  `.github/workflows/phase-certification.yml` with the exact candidate SHA,
+  a successful completed real FULL job and **every** mandatory stage (checkout
+  verification, LFS, Doduda catalog, Atlas FULL, final strict verdict) successful.
+  Stale runs older than seven days, wrong heads, failed/skipped stages, missing
+  API access or insufficient pagination remain BLOCKED.
+- The public PR FAST check remains required and distinct. A successful FAST
+  cannot waive a FULL that policy requires. Do not reuse same-named jobs from
+  other workflows as evidence.
+
+**Staged activation:** As initially delivered in PR #168, the new job uses
+`ATLAS_CERT_POLICY_ENFORCE=false`. It publishes the real candidate decision and
+job name for a smoke test but is NOT YET a mandatory merge gate.
+Before enforcement, verify a real LOW PR and a FULL_REQUIRED PR (both positive
+and negative cases), then change the workflow to `--enforce true` and update
+the remote ruleset **22696080** with context
+`Certification Policy / Merge Gate` in one reviewed administrative operation.
+Do not silently update remote rulesets, bypass actors or replace the existing
+`Public PR / Safe Validation` required check. A LOW smoke success and a
+FULL_REQUIRED missing-proof BLOCKED must be visible in the generated JSON;
+a green *advisory job* alone is not certification.

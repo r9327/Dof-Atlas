@@ -322,6 +322,27 @@ def test_achievement_sync_uses_compact_alignment_guide_ids() -> None:
     assert compact_pos < detail_pos
 
 
+
+def test_exported_achievement_sync_prefers_compact_guide_index() -> None:
+    # The services facade exports this override, NOT the legacy base helper.
+    source = (
+        ROOT
+        / "app"
+        / "modules"
+        / "encyclopedia"
+        / "services"
+        / "memory_bound_achievement_progress_service.py"
+    ).read_text(encoding="utf-8")
+    helper = source[
+        source.index("def _alignment_main_quest_ids"):
+        source.index("__all__", source.index("def _alignment_main_quest_ids"))
+    ]
+    assert 'getattr(guide_provider, "progress_quest_ids_for", None)' in helper
+    assert helper.index("compact_ids(guide_id)") < helper.index("guide = getter(guide_id)")
+    assert "if not callable(compact_ids)" in helper
+    assert 'getattr(guide_provider, "get_summary_by_id", None)' in helper
+
+
 def test_guide_home_worker_keeps_quest_catalogue_and_graph_cold() -> None:
     source = ENCYCLOPEDIA_PAGE.read_text(encoding="utf-8")
 
@@ -1053,12 +1074,11 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
         / "services"
         / "guide_ultime_manual_runtime_service.py"
     ).read_text(encoding="utf-8")
-    stage = wrapper_source[
-        wrapper_source.index("def _stage_to_card"):
-        wrapper_source.index("def _raw_stage_lines")
-    ]
-    assert "copy.deepcopy(stage)" not in stage
-    assert "copy.deepcopy(chapter_preparation" not in stage
+    # The refactored wrapper inherits _stage_to_card from the core. The
+    # memory rule must validate the canonical implementation, not a removed
+    # duplicate in the wrapper.
+    assert "def _stage_to_card" not in wrapper_source
+    assert "def _raw_stage_lines" in wrapper_source
 
     runtime_open = view_source[
         view_source.index("def ensure_guide_ultime_view"):

@@ -238,12 +238,12 @@ def restore_manual_runtime_compact_cache(
         return False
     if not isinstance(payload, dict):
         return False
-    if int(payload.get("schema_version") or 0) != _MANUAL_RUNTIME_COMPACT_SCHEMA:
+    if type(payload.get("schema_version")) is not int or payload["schema_version"] != _MANUAL_RUNTIME_COMPACT_SCHEMA:
         return False
     expected_source = _manual_runtime_source_signature(service, path)
     if payload.get("source_signature") != expected_source:
         return False
-    if int(payload.get("quest_signature") or 0) != _manual_runtime_quest_signature(service):
+    if type(payload.get("quest_signature")) is not int or payload["quest_signature"] != _manual_runtime_quest_signature(service):
         return False
 
     decoded_cards = _manual_runtime_json_decode(payload.get("cards"))
