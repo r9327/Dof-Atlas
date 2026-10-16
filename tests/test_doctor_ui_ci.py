@@ -32,6 +32,34 @@ class DoctorUiSelectionTests(unittest.TestCase):
                 self.assertFalse(plan["tests_executed"])
                 self.assertEqual(campaign_verdict(plan, [], SHA)["status"], "NOT_APPLICABLE")
 
+    def test_ci_infrastructure_selects_validator_without_unrelated_product_journeys(self):
+        paths = ['.github/workflows/phase-certification.yml', '.github/workflows/public-pr-ci.yml',
+                 'tools/atlas_doctor_lib/ci_orchestrator.py', 'tools/atlas_doctor_lib/ci_routes.json',
+                 'tools/atlas_meta_integrity.py', 'tools/ci_main_phase_evidence.py',
+                 'tools/ci_verified_pr_full.py', 'tools/atlas_integrity_policy.json']
+        plan = self.plan(*paths, deleted=['.github/workflows/public-pr-ci.yml'])
+        self.assertEqual(plan['status'], 'UI_REQUIRED')
+        self.assertEqual(plan['selected_scenarios'], ['validator-smoke'])
+        self.assertEqual(plan['uncertainty'], [])
+        self.assertEqual(plan['deleted_paths'], ['.github/workflows/public-pr-ci.yml'])
+
+    def test_infrastructure_does_not_hide_runtime_ui_or_unknown_deletion(self):
+        mixed = self.plan('.github/workflows/app-ci.yml', 'app/ui/theme.py')
+        self.assertEqual(set(mixed['selected_scenarios']), set(ALL_GUIDES) | {'validator-smoke'})
+        for path in ['app/ui/old_view.py', 'tools/unknown.py']:
+            plan = self.plan('.github/workflows/app-ci.yml', deleted=[path])
+            self.assertEqual(plan['status'], 'REVIEW_REQUIRED')
+
+    def test_ci_auditor_whitelist_rejects_new_application_or_dynamic_import(self):
+        for content in ['from app.ui import theme\n', 'from PySide6 import QtWidgets\n', '__import__("app.ui.theme")\n']:
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                target = root / 'tools/atlas_meta_integrity.py'
+                target.parent.mkdir()
+                target.write_text(content)
+                plan = classify_ui(root, ['tools/atlas_meta_integrity.py'], candidate_sha=SHA, base_sha=BASE)
+                self.assertEqual(plan['status'], 'REVIEW_REQUIRED')
+
     def test_both_real_renderers_selected_for_shared_view(self):
         plan = self.plan("app/modules/encyclopedia/views/shared_manual_guide_view.py")
         self.assertEqual(set(plan["selected_scenarios"]), set(ALL_GUIDES))
@@ -142,6 +170,29 @@ class DoctorUiVerdictTests(unittest.TestCase):
             (root / "capture.png").unlink()
             with self.assertRaises(OSError):
                 read_evidence(root, SHA)
+
+    def test_cli_writes_blocked_report_even_if_selection_artifact_is_missing(self):
+        import contextlib
+        import io
+        from tools.atlas_doctor_lib.doctor_ui_ci import main
+        for contents in (None, '[1]', 'not JSON'):
+            with tempfile.TemporaryDirectory() as folder, contextlib.redirect_stdout(io.StringIO()):
+                plan = Path(folder) / 'selection.json'
+                if contents is not None:
+                    plan.write_text(contents)
+                self.assertEqual(main(['verdict', '--candidate-sha', SHA, '--plan', str(plan),
+                                       '--evidence-root', str(Path(folder) / 'ui')]), 1)
+                report = json.loads(plan.with_name('ui_campaign_verdict.json').read_text())
+                self.assertEqual(report['status'], 'BLOCKED')
+                self.assertFalse(report['tests_executed'])
+                self.assertFalse(report['phase_certified'])
+                self.assertEqual(report['candidate_sha'], SHA)
+
+    def test_failed_ui_job_still_executes_evidence_verdict(self):
+        text = (ROOT / '.github/workflows/doctor-ui.yml').read_text()
+        block = text.split('      - name: Verify selection, assertions, real PNG and hashes at candidate SHA', 1)[1].split('      - uses:', 1)[0]
+        self.assertIn('if: always()', block)
+        self.assertIn('doctor_ui_ci verdict', block)
 
     def test_workflow_is_impact_selected_and_preserves_existing_gates(self):
         text = (ROOT / ".github/workflows/doctor-ui.yml").read_text()

@@ -34,7 +34,7 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertTrue(p['workflows']['phase8-memory-benchmark']['selected'])
 
     def test_unknown_or_deleted_changes_fall_back_to_real_full(self):
-        for kwargs in ({'route': {}}, {'deleted': ['app/old.py']},
+        for kwargs in ({'route': {}}, {'route': {'route': 'INVALID'}}, {'deleted': ['app/old.py']},
                        {'ui': {'status': 'REVIEW_REQUIRED'}}):
             with self.subTest(kwargs=kwargs):
                 p = self.select(['app/new.py'], **kwargs)
@@ -86,6 +86,30 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertFalse(p['workflows']['atlas-windows-distribution']['selected'])
         self.assertFalse(p['workflows']['doctor-certification']['selected'])
         self.assertTrue(p['workflows']['app-ci']['selected'])
+
+    def test_known_high_risk_full_does_not_replay_unrelated_specialists(self):
+        p = self.select(['app/core/json_store.py'], route={'route': 'FULL'},
+                        ui={'status': 'UI_REQUIRED', 'selected_scenarios': ['guides-success']})
+        self.assertTrue(p['full'])
+        self.assertTrue(p['phase'])
+        self.assertFalse(p['specialist_fallback'])
+        self.assertTrue(p['workflows']['phase8-memory-benchmark']['selected'])
+        self.assertTrue(p['workflows']['phase8-preload-benchmark']['selected'])
+        self.assertFalse(p['workflows']['json-focused-data-contract']['selected'])
+        self.assertFalse(p['workflows']['atlas-windows-distribution']['selected'])
+        self.assertFalse(p['workflows']['doctor-runtime-perf']['selected'])
+
+    def test_root_policy_changes_keep_full_and_broad_specialist_validation(self):
+        p = self.select(['.github/workflows/phase-certification.yml'])
+        self.assertTrue(p['full'])
+        self.assertTrue(p['specialist_fallback'])
+        self.assertTrue(p['workflows']['json-focused-data-contract']['selected'])
+
+    def test_provider_contract_is_selected_for_provider_changes(self):
+        p = self.select(['app/modules/encyclopedia/providers/quest_provider.py'])
+        self.assertTrue(p['workflows']['encyclopedia-provider-import']['selected'])
+        low = self.select(['tools/atlas_json_raw.py'])
+        self.assertFalse(low['workflows']['encyclopedia-provider-import']['selected'])
 
     def test_real_git_diff_rename_and_missing_planner_cannot_become_empty_scope(self):
         with tempfile.TemporaryDirectory() as folder:

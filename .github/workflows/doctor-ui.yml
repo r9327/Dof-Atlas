@@ -157,6 +157,7 @@ jobs:
           test "$PLAN_RESULT" = success
           if [ "$RUN_UI" = true ]; then test "$WINDOWS_RESULT" = success; else test "$WINDOWS_RESULT" = skipped; fi
       - name: Verify selection, assertions, real PNG and hashes at candidate SHA
+        if: always()
         run: python -m tools.atlas_doctor_lib.doctor_ui_ci verdict --candidate-sha "$CANDIDATE_SHA"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()

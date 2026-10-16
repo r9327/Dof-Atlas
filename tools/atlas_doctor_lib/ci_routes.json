@@ -70,7 +70,14 @@
     ".github/workflows/doctor-runtime-perf.yml"
   ],
   "doctor-ui": [],
-  "encyclopedia-provider-import": [],
+  "encyclopedia-provider-import": [
+    "app/modules/encyclopedia/providers/**",
+    "app/quest_catalog.py",
+    "app/quest_source_index.py",
+    "local_dofus_data/**",
+    "tests/test_encyclopedia_provider_lazy_boundary.py",
+    ".github/workflows/encyclopedia-provider-import.yml"
+  ],
   "graphify-map": [
     "app/**",
     "main.py",

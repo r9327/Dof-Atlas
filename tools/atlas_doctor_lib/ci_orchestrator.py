@@ -33,12 +33,18 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
         bool(deleted) or bool(critical_changed(paths)) or classify_risk(paths)["risk"] in {"HIGH", "CRITICAL"} or phase_route.get('route') != 'SCOPED'
         or ui_plan.get('status') == 'REVIEW_REQUIRED'))
     phase = not docs_only or event == 'workflow_dispatch'
+    # FULL is the canonical suite, not an instruction to replay every unrelated
+    # specialist. Unknown scope, removals and policy changes retain the broad fallback.
+    specialist_fallback = full and (event == 'workflow_dispatch'
+        or bool(critical_changed(paths)) or bool(deleted)
+        or phase_route.get('route') not in {'SCOPED', 'FULL'}
+        or ui_plan.get('status') == 'REVIEW_REQUIRED')
     decisions = {}
     for name, patterns in registry.items():
         hits = [p for p in paths if any(fnmatchcase(p, pat) for pat in patterns)]
-        selected = (bool(hits) and not docs_only) or full
+        selected = (bool(hits) and not docs_only) or specialist_fallback
         reasons = ['Changed paths: ' + ', '.join(hits)] if hits else []
-        if full:
+        if specialist_fallback:
             reasons.append('FULL_REQUIRED: preserve independent specialist validation')
         if name in {'ai-context-ci', 'signature-report'}:
             selected, reasons = True, ['Repository metadata checked on every candidate']
@@ -55,11 +61,12 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
                 reasons += ui_plan['uncertainty']
         elif name == 'atlas-windows-distribution':
             # A PR plan may validate packaging but cannot publish a release.
-            selected = event == 'pull_request' and (bool(hits) or full)
+            selected = event == 'pull_request' and (bool(hits) or specialist_fallback)
             reasons = ['PR packaging impact; publication retains independent host attestation']
         decisions[name] = {'selected': selected, 'reasons': reasons or ['No changed consumer']}
     return {
         'phase': phase, 'full': full, 'docs_only': docs_only,
+        'specialist_fallback': specialist_fallback,
         'workflows': decisions,
         'outputs': {'phase': phase, 'full': full, **{
             name.replace('-', '_'): row['selected'] for name, row in decisions.items()

@@ -100,6 +100,7 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
               f.write('## Doctor — CI selection\n')
               f.write(f"Candidate: `{p['candidate_sha']}`; base: `{p['base_sha']}`; risk: **{p['risk']}**\n\n")
+              f.write(f"FULL: {p['full']}; broad specialist fallback: {p['specialist_fallback']}\n\n")
               for name, route in p['workflows'].items():
                   f.write(f"- {name}: {'RUN' if route['selected'] else 'NOT_APPLICABLE'} — {'; '.join(route['reasons'])}\n")
               f.write('\nSelection is not execution or certification.\n')

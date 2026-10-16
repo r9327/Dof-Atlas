@@ -29,6 +29,14 @@ Un diff éligible exécute tous les tests ciblés canoniques ; les documents
 ordinaires seuls conservent les contrôles PR et métadonnées sans suite lourde.
 Les documents de politique ne bénéficient pas de cette exclusion.
 
+La FULL ne signifie pas rejouer tous les spécialistes : sur un périmètre connu,
+Doctor conserve la FULL canonique et les spécialistes des consommateurs touchés.
+Les suppressions incertaines, les modifications de politique et les périmètres
+inconnus conservent le repli large. Les fichiers d'infrastructure CI connus
+sélectionnent le smoke réel du validateur UI et gardent la FULL ; ils ne sont
+pas assimilés à un changement des écrans Guides/Quêtes. Un mélange avec une
+modification UI conserve tous les scénarios des consommateurs concernés.
+
 Les anciens filtres de chemins spécialisés résident dans
 `tools/atlas_doctor_lib/ci_routes.json`. Les workflows appelés n'ont plus de
 `pull_request` ou `push` indépendant. Les diagnostics manuels et les chaînes

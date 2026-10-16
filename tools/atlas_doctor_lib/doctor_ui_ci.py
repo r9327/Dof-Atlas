@@ -42,8 +42,19 @@ UI_CONSUMERS = {
 INDEPENDENT_TOOLS = frozenset({
     "tools/atlas_json_raw.py", "tools/check_generated_files.py",
     "tools/agent_task_profiles.py",
+    "tools/atlas_meta_integrity.py", "tools/ci_main_phase_evidence.py",
+    "tools/ci_verified_pr_full.py",
 })
-VALIDATOR_PATHS = frozenset({"tools/atlas_doctor.py", ".github/workflows/doctor-ui.yml"})
+VALIDATOR_PATHS = frozenset({
+    "tools/atlas_doctor.py", "tools/atlas_doctor_lib/ci_orchestrator.py",
+    "tools/atlas_doctor_lib/ci_routes.json", "tools/atlas_integrity_policy.json",
+})
+
+
+def _ci_workflow(path: str) -> bool:
+    # Workflow definitions change the validation environment, not product UI.
+    # They still select a real validator smoke and force the canonical FULL.
+    return path.startswith('.github/workflows/') and path.endswith(('.yml', '.yaml'))
 
 
 def _module(path: str) -> str:
@@ -86,8 +97,9 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
     uncertainty = []
     if not diff_valid or not base_sha or not candidate_sha:
         uncertainty.append("UNVERIFIED_DIFF_OR_SHA")
-    if deleted:
-        uncertainty.append("REMOVED_RENAMED_OR_TYPE_CHANGED: " + ", ".join(sorted(deleted)))
+    removed_runtime = [path for path in deleted if not _ci_workflow(path)]
+    if removed_runtime:
+        uncertainty.append("REMOVED_RENAMED_OR_TYPE_CHANGED: " + ", ".join(sorted(removed_runtime)))
     if len(changed) > 80:
         uncertainty.append("BROAD_CHANGE_REQUIRES_REVIEW")
     reverse = None
@@ -104,7 +116,7 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
             uncertainty.append("INVALID_PATH: " + path)
         elif path.endswith(".md") or path == ".ai/context_index.json":
             continue
-        elif path in VALIDATOR_PATHS or path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tests/test_doctor_ui")):
+        elif _ci_workflow(path) or path in VALIDATOR_PATHS or path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tests/test_doctor_ui")):
             include(("validator-smoke",), "Validator/selection contract changed: " + path, path)
         elif path in UI_CONSUMERS:
             include(UI_CONSUMERS[path], "Explicit Qt runtime consumer: " + path, path)
@@ -290,19 +302,24 @@ def main(argv=None) -> int:
                 stream.write(f"run_ui={str(bool(report['selected_scenarios'])).lower()}\n")
                 stream.write(f"ui_status={report['status']}\n")
     else:
-        plan = json.loads(args.plan.read_text(encoding="utf-8"))
         if args.action == "run":
+            plan = json.loads(args.plan.read_text(encoding="utf-8"))
             checked = plan_ui(ROOT, plan["base_sha"], args.candidate_sha, plan.get("forced_scenarios", []), exhaustive_on_review=plan.get("exhaustive_on_review", False))
             if checked != plan or plan["status"] != "UI_REQUIRED":
                 raise ValueError("UI plan cannot be reproduced at the clean exact candidate")
             report = run_ui(ROOT, scenarios=plan["selected_scenarios"], mode="all")
         else:
             try:
+                plan = json.loads(args.plan.read_text(encoding="utf-8"))
+                if not isinstance(plan, dict):
+                    raise ValueError("UI selection must be a JSON object")
                 reports = [read_evidence(p.parent, args.candidate_sha)
                            for p in args.evidence_root.glob("*/ui_verdict.json")]
                 report = campaign_verdict(plan, reports, args.candidate_sha)
             except (OSError, ValueError, KeyError) as exc:
-                report = {"schema_version": 1, "status": "BLOCKED", "error": str(exc), "tests_executed": False}
+                report = {"schema_version": 1, "status": "BLOCKED", "error": str(exc),
+                          "candidate_sha": args.candidate_sha, "tests_executed": False,
+                          "phase_certified": False, "full_suite_waived": False}
             write_json(args.plan.with_name("ui_campaign_verdict.json"), report)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0 if report["status"] in {"PASS", "NOT_APPLICABLE", "UI_REQUIRED"} else 1
