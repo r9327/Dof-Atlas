@@ -20,8 +20,6 @@ on:
       - reopened
       - synchronize
       - ready_for_review
-      - converted_to_draft
-      - edited
 
 permissions:
   contents: read

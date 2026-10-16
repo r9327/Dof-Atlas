@@ -134,6 +134,8 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
             self.assertNotIn('  push:', trigger, name)
         central = (ROOT / '.github/workflows/phase-certification.yml').read_text()
         self.assertIn('name: Public PR / Safe Validation', central)
+        self.assertNotIn('      - edited\n', central)
+        self.assertNotIn('      - converted_to_draft\n', central)
         self.assertIn('name: Require successful Doctor plan', central)
         self.assertIn('if: always() && github.event_name == \'pull_request\'', central)
         certify = central.split('  certify:', 1)[1].split('    steps:', 1)[0]
