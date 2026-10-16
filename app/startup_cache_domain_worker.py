@@ -127,6 +127,7 @@ def _quest_domain() -> dict[str, object]:
     from app import quest_catalog_details as details
 
     count = int(details.ensure_lazy_catalog_cache() or 0)
+    detail_source_index_count = int(details.ensure_detail_source_offsets() or 0)
     _signature, cache_path = details._cache_identity(
         details.qc.RAW_QUEST_DATA_DIR,
         details._CACHE_ROOT,
@@ -134,6 +135,7 @@ def _quest_domain() -> dict[str, object]:
     return {
         "domain": "quest",
         "quest_count": max(0, count),
+        "detail_source_index_count": max(0, detail_source_index_count),
         "cache_files": [_relative(cache_path)],
     }
 
