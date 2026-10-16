@@ -200,8 +200,6 @@ def build_image_index(images_root: Path) -> dict[str, str]:
 
 
 class JsonSourceMapping(Mapping):
-    _DISK_REUSE_THRESHOLD = 4
-
     def __init__(
         self,
         path: Path,
@@ -211,6 +209,7 @@ class JsonSourceMapping(Mapping):
         doduda=False,
         required=True,
         disk_backed=False,
+        disk_connection_observer=None,
     ):
         self.path, self.doduda, self.required = path, doduda, bool(required)
         self.disk_backed = bool(disk_backed)
@@ -219,6 +218,7 @@ class JsonSourceMapping(Mapping):
         self._offsets = None
         self._disk_index = None
         self._disk_connection = None
+        self._disk_connection_observer = disk_connection_observer
         self._cache_root, self._field = cache_root, field
         self._stream = None
 
@@ -230,6 +230,8 @@ class JsonSourceMapping(Mapping):
                 self._disk_index,
                 check_same_thread=False,
             )
+        if self._disk_connection_observer is not None:
+            self._disk_connection_observer(self)
         return self._disk_connection
 
     def _close_disk_connection(self) -> None:
@@ -569,11 +571,6 @@ class JsonSourceMapping(Mapping):
             self._cache[key] = value
             while len(self._cache) > 128:
                 self._cache.popitem(last=False)
-            # One-off source lookups should not retain a SQLite connection.
-            # Once a mapping proves hot, reuse it for the rest of the bounded
-            # detail compilation instead of reconnecting for every key.
-            if len(self._cache) < self._DISK_REUSE_THRESHOLD:
-                self._close_disk_connection()
             return value
 
     def __iter__(self):
@@ -613,13 +610,24 @@ class JsonSourceMapping(Mapping):
 
 
 class QuestSources:
+    MAX_OPEN_DISK_CONNECTIONS = 6
+
     def __init__(self, cache_root, *, disk_backed=False):
         self.cache_root = cache_root
         self.disk_backed = bool(disk_backed)
         self._mappings = {}
+        self._disk_connections = OrderedDict()
         self._objectives_by_step = None
         self._image_index = None
         self.context = {}
+
+    def _retain_disk_connection(self, mapping: JsonSourceMapping) -> None:
+        key = id(mapping)
+        self._disk_connections.pop(key, None)
+        self._disk_connections[key] = mapping
+        while len(self._disk_connections) > self.MAX_OPEN_DISK_CONNECTIONS:
+            _key, stale = self._disk_connections.popitem(last=False)
+            stale._close_disk_connection()
 
     def mapping(self, path, field, *, doduda=False, required=None):
         path = Path(path)
@@ -634,6 +642,9 @@ class QuestSources:
                 doduda=doduda,
                 required=required,
                 disk_backed=self.disk_backed,
+                disk_connection_observer=(
+                    self._retain_disk_connection if self.disk_backed else None
+                ),
             )
         return self._mappings[key]
 
@@ -671,3 +682,4 @@ class QuestSources:
     def close(self):
         for mapping in self._mappings.values():
             mapping.close()
+        self._disk_connections.clear()

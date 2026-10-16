@@ -27,14 +27,14 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             try:
                 rows = sources.mapping(source, "entries")
                 self.assertEqual(rows["102"], "Étape")
-                self.assertIsNone(rows._disk_connection)
-                self.assertEqual(rows["103"], "Objectif")
-                self.assertIsNone(rows._disk_connection)
-                self.assertEqual(rows["104"], "Récompense")
-                self.assertIsNone(rows._disk_connection)
-                self.assertEqual(rows["101"], "Quête")
                 connection = rows._disk_connection
                 self.assertIsNotNone(connection)
+                self.assertEqual(rows["103"], "Objectif")
+                self.assertIs(rows._disk_connection, connection)
+                self.assertEqual(rows["104"], "Récompense")
+                self.assertIs(rows._disk_connection, connection)
+                self.assertEqual(rows["101"], "Quête")
+                self.assertIs(rows._disk_connection, connection)
                 self.assertEqual(rows["105"], "Succès")
                 self.assertIs(rows._disk_connection, connection)
                 self.assertEqual(len(rows), 5)
@@ -44,6 +44,32 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 sources.close()
             self.assertIsNone(rows._disk_connection)
+
+    def test_disk_backed_connection_pool_is_bounded(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sources = QuestSources(root / "cache", disk_backed=True)
+            mappings = []
+            try:
+                for index in range(sources.MAX_OPEN_DISK_CONNECTIONS + 2):
+                    source = root / f"rows_{index}.json"
+                    source.write_text(
+                        json.dumps({"entries": {"1": index}}),
+                        encoding="utf-8",
+                    )
+                    mapping = sources.mapping(source, "entries")
+                    self.assertEqual(mapping["1"], index)
+                    mappings.append(mapping)
+
+                self.assertEqual(
+                    len(sources._disk_connections),
+                    sources.MAX_OPEN_DISK_CONNECTIONS,
+                )
+                self.assertIsNone(mappings[0]._disk_connection)
+                self.assertIsNone(mappings[1]._disk_connection)
+                self.assertIsNotNone(mappings[-1]._disk_connection)
+            finally:
+                sources.close()
 
     def test_required_rows_reject_missing_business_source(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
