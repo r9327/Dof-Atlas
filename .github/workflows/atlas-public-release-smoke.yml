@@ -1,10 +1,8 @@
 name: Atlas Public Release Smoke
 
 on:
-  # Temporary certification branch: test only the already-published SHA below.
-  # Product publication and FULL workflows are not triggered by this branch.
-  push:
-    branches: [cert/windows-public-installed-e2e-20261016]
+  # Do not test stale public artifacts on code push before publishing.
+  # The real public E2E runs only after a successful distribution workflow.
   workflow_dispatch:
     inputs:
       certify_installed_sha:
@@ -27,7 +25,7 @@ concurrency:
 jobs:
   supplemental-public-upgrade:
     name: Real public launcher update from previous verified public payload
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.certify_installed_sha != '')
+    if: github.event_name == 'workflow_dispatch' && inputs.certify_installed_sha != ''
     runs-on: windows-latest
     timeout-minutes: 70
     steps:
@@ -36,7 +34,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.certify_installed_sha || '204daf85ace85ea7501ab0bc6618d08588fc0ea4' }}
+          ref: ${{ inputs.certify_installed_sha }}
           path: certified-source
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
@@ -46,7 +44,7 @@ jobs:
         shell: pwsh
         env:
           ATLAS_CI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EXPECTED_SHA: ${{ inputs.certify_installed_sha || '204daf85ace85ea7501ab0bc6618d08588fc0ea4' }}
+          EXPECTED_SHA: ${{ inputs.certify_installed_sha }}
         run: |
           python -m scripts.windows.certify_public_install --upgrade --source-sha "$env:EXPECTED_SHA" --source-root certified-source --output artifacts/public-upgrade-e2e.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -61,7 +59,7 @@ jobs:
 
   supplemental-installed-e2e:
     name: Installed public EXEs — interruption, custom path, workers, normal quit, relaunch
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.certify_installed_sha != '')
+    if: github.event_name == 'workflow_dispatch' && inputs.certify_installed_sha != ''
     runs-on: windows-latest
     timeout-minutes: 70
     steps:
@@ -71,7 +69,7 @@ jobs:
       - name: Checkout exact certified source for locked data inventory
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.certify_installed_sha || '204daf85ace85ea7501ab0bc6618d08588fc0ea4' }}
+          ref: ${{ inputs.certify_installed_sha }}
           path: certified-source
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
@@ -81,7 +79,7 @@ jobs:
         shell: pwsh
         env:
           ATLAS_CI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EXPECTED_SHA: ${{ inputs.certify_installed_sha || '204daf85ace85ea7501ab0bc6618d08588fc0ea4' }}
+          EXPECTED_SHA: ${{ inputs.certify_installed_sha }}
         run: |
           python -m scripts.windows.certify_public_install --source-sha "$env:EXPECTED_SHA" --source-root certified-source --output artifacts/installed-public-e2e.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
