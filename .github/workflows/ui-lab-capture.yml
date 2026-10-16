@@ -2,6 +2,14 @@ name: UI Lab Capture
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - plan/atlas-audit-runtime-pc01-05-20261014
+    paths:
+      - ".github/workflows/ui-lab-capture.yml"
+      - "tools/ui_lab/**"
+      - "tests/test_ui_lab_registry.py"
+      - "tests/test_ui_lab_capture.py"
   push:
     branches:
       - tool/ui-lab-guides-20261016
