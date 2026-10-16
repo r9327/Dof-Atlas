@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "application_base": "e109913698ed84b25c7873d70303d83391732cce",
+  "local_environment": "Linux / CPython 3.13 / Qt 6.12 offscreen",
+  "data_source": "dofusdude/dofus3-main@3.7.10.10",
+  "PC-01": {
+    "status": "REPEATED_LOOKUP_CONFIRMED_AND_FIXED",
+    "before": {
+      "scope": "Production MemoryBoundGuideProvider through QuestGraphService.guide_ids(2464), three successive calls",
+      "provider": "app.modules.encyclopedia.providers.memory_bound_guide_provider.MemoryBoundGuideProvider",
+      "graph_eager_built": false,
+      "guide_ids": [
+        [
+          "dofus_dom_de_pin",
+          "dofus_sylvestre",
+          "guide_complet"
+        ],
+        [
+          "dofus_dom_de_pin",
+          "dofus_sylvestre",
+          "guide_complet"
+        ],
+        [
+          "dofus_dom_de_pin",
+          "dofus_sylvestre",
+          "guide_complet"
+        ]
+      ],
+      "compact_file_opens": 3,
+      "durations_ms": [
+        16275.988,
+        79.704,
+        89.777
+      ],
+      "compact_file_bytes": null,
+      "limitation": "Scoped relation query; no complete UI latency claim, and no new cache justified solely by repeated reads."
+    },
+    "after": {
+      "scope": "Production MemoryBoundGuideProvider through QuestGraphService, same three queries as baseline",
+      "guide_ids": [
+        [
+          "dofus_dom_de_pin",
+          "dofus_sylvestre",
+          "guide_complet"
+        ],
+        [
+          "dofus_dom_de_pin",
+          "dofus_sylvestre",
+          "guide_complet"
+        ],
+        [
+          "dofus_dom_de_pin",
+          "dofus_sylvestre",
+          "guide_complet"
+        ]
+      ],
+      "compact_file_open_attempts": 1,
+      "detail_materialization_calls": 26,
+      "durations_ms": [
+        13811.35,
+        0.011,
+        0.003
+      ],
+      "retained_explicit_query_keys": 1,
+      "claim": "Only repeated lookup reuse; first cold catalogue detail materialization is not eliminated."
+    },
+    "invalidation": "Existing catalogue release/reload owner; only explicitly requested relation results retained, at most 64 keys; no bulk Home index"
+  },
+  "PC-02": {
+    "status": "CONFIRMED_AND_FIXED",
+    "fixture": {
+      "fixture_matching_recipes": 181,
+      "category": "resource",
+      "result_ids": [
+        181
+      ],
+      "before_result_count": 0,
+      "after_result_count": 1,
+      "before_refresh_ms": 3.447,
+      "after_refresh_ms": 7.962,
+      "limitation": "Correctness regression fixture; timings are local samples, not an application performance certificate."
+    },
+    "real_dataset_queries": [
+      {
+        "query": "co",
+        "category": "resource",
+        "results": 113,
+        "durations_ms": [
+          31.474,
+          30.884
+        ]
+      },
+      {
+        "query": "co",
+        "category": "equipment",
+        "results": 160,
+        "durations_ms": [
+          33.047,
+          35.786
+        ]
+      },
+      {
+        "query": "ar",
+        "category": "resource",
+        "results": 160,
+        "durations_ms": [
+          62.573,
+          63.951
+        ]
+      },
+      {
+        "query": "pa",
+        "category": "equipment",
+        "results": 98,
+        "durations_ms": [
+          27.518,
+          25.569
+        ]
+      },
+      {
+        "query": "pry",
+        "category": "trophy_prysma",
+        "results": 25,
+        "durations_ms": [
+          3.891,
+          3.884
+        ]
+      },
+      {
+        "query": "rune",
+        "category": "resource",
+        "results": 141,
+        "durations_ms": [
+          9.298,
+          8.899
+        ]
+      }
+    ],
+    "category_parity_before_extraction": {
+      "items_checked": 21554,
+      "mismatches": 0
+    },
+    "implementation": "Canonical category predicate applied inside SQLite before LIMIT; bounded ordered result cursor"
+  },
+  "PC-03": {
+    "status_local": "BLOCKED_NATIVE",
+    "reason": "Real Win32 unavailable in Linux executor",
+    "native_probe": "tests.test_single_instance.SingleInstanceTests.test_platform_probe_and_real_windows_mutex_across_two_processes",
+    "checks": [
+      "Two child processes denied while a real Windows named mutex is held",
+      "Third child acquires after release",
+      "main acquires before QApplication/startup by existing AST contract"
+    ],
+    "limits": "Mutex integration plus source entry ordering; not two interactive game sessions or UAC/Npcap"
+  },
+  "PC-04": {
+    "status": "PASS_SCOPED_QT",
+    "probe": "tests.test_encyclopedia_cold_worker_release",
+    "actual_owner": "MemoryBound EncyclopediaPage + MemoryBoundGuideProvider + public QuestProvider",
+    "observations": [
+      "QObject destroyed while real provider worker is held at a bounded barrier",
+      "Python wrapper temporarily retained by active worker",
+      "Worker terminates after real data load; weakref becomes None after GC"
+    ],
+    "limits": "Cold provider/widget with filesystem caches allowed; does not certify process-tree RSS, every QThread or interactive gameplay"
+  },
+  "PC-05": {
+    "scope": "Tracked Python AST plus exact-SHA Graphify containment/call edges",
+    "direct_calls": {
+      "build_preload_payload": [],
+      "run_startup_preload": []
+    },
+    "symbol_references": {
+      "build_preload_payload": [],
+      "run_startup_preload": [
+        {
+          "path": "tests/test_shell_reliability.py",
+          "line": 262,
+          "kind": "attribute_reference"
+        },
+        {
+          "path": "tests/test_shell_reliability.py",
+          "line": 268,
+          "kind": "attribute_reference"
+        }
+      ]
+    },
+    "decision": "CONSERVER_API_LEGACY",
+    "limits": "No direct production caller found; tests/introspection are real consumers. Dynamic external consumers are not disproved. No deletion performed."
+  },
+  "evidence_boundary": "Local preliminary observations; CI on the final candidate binds the exact code SHA and dataset before/after. No Linux/native substitute and no global RAM/performance certificate."
+}

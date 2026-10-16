@@ -32,8 +32,8 @@ def search_items(query: str, limit: int = 50) -> list[dict[str, Any]]:
     return _compatibility_adapter().search_items(query, limit)
 
 
-def search_craft_items(query: str, limit: int = 80) -> list[dict[str, Any]]:
-    return _compatibility_adapter().search_craft_items(query, limit)
+def search_craft_items(query: str, limit: int = 80, *, category: str | None = None) -> list[dict[str, Any]]:
+    return _compatibility_adapter().search_craft_items(query, limit, category=category)
 
 
 def release_adapter() -> None:
