@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.network.contracts import _is_sha256
+
 import hashlib
 import threading
 from dataclasses import dataclass
@@ -234,14 +236,6 @@ class CorrelatedCharacterIdentityDecoder:
         return active == self.mapping_fingerprint
 
 
-def _is_sha256(value: str) -> bool:
-    if len(value) != 64:
-        return False
-    try:
-        bytes.fromhex(value)
-    except ValueError:
-        return False
-    return True
 
 
 __all__ = [

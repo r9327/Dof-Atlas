@@ -4,6 +4,7 @@ import copy
 import os
 import tempfile
 import unittest
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -31,15 +32,21 @@ from app.modules.encyclopedia.views.shared_manual_guide_view import (
 class LanyelSharedManualUiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        started = time.perf_counter()
         cls.app = QApplication.instance() or QApplication([])
         cls.quest_provider = QuestProvider()
         cls.achievement_provider = AchievementProvider(quest_provider=cls.quest_provider)
-        cls.achievement_provider.load_all()
+        # Load the lightweight retained achievement index only. Eager
+        # load_all() also builds heavy detail-source offsets unrelated to
+        # these Guide/route contracts; get_detail_by_id stays lazy.
+        cls.achievement_provider.load_retained()
         cls.guide_provider = GuideProvider(
             quest_provider=cls.quest_provider,
             achievement_provider=cls.achievement_provider,
         )
         cls.guide_provider.load_all()
+        cls.fixture_setup_ms = round((time.perf_counter() - started) * 1000, 1)
+        print(f"AT018 fixture=lanyel_ui setup_ms={cls.fixture_setup_ms}", flush=True)
 
     def _view(self, root: Path) -> DeferredAchievementGuidesView:
         quest_progress = root / "quest_progress.json"

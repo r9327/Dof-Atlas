@@ -167,7 +167,7 @@ jobs:
 
       - name: Upload fast code validation logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-fast-ci-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/ci_app_fast_logs/**
@@ -373,7 +373,7 @@ jobs:
 
       - name: Upload full validation logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-full-ci-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -513,7 +513,7 @@ jobs:
 
       - name: Upload exact-SHA reuse evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-main-phase-full-reuse-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/ci_app_main/phase_full_reuse.json

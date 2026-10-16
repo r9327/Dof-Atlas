@@ -10,10 +10,14 @@ on:
       - main
     paths:
       - "app/**"
+      - "main.py"
+      - "launch.py"
+      - "sitecustomize.py"
+      - "local_dofus_data/**"
+      - "tools/atlas_doctor.py"
+      - "tools/atlas_doctor_lib/**"
       - "tools/graphify.py"
       - "tools/agent_graph.py"
-      - "tools/atlas_doctor_lib/graph_audit.py"
-      - "tools/atlas_doctor_lib/graph_intelligence.py"
       - ".graphifyignore"
       - ".github/workflows/graphify-map.yml"
   push:
@@ -22,10 +26,14 @@ on:
       - phase8/graphify-staged-cleanup-v1
     paths:
       - "app/**"
+      - "main.py"
+      - "launch.py"
+      - "sitecustomize.py"
+      - "local_dofus_data/**"
+      - "tools/atlas_doctor.py"
+      - "tools/atlas_doctor_lib/**"
       - "tools/graphify.py"
       - "tools/agent_graph.py"
-      - "tools/atlas_doctor_lib/graph_audit.py"
-      - "tools/atlas_doctor_lib/graph_intelligence.py"
       - ".graphifyignore"
       - ".github/workflows/graphify-map.yml"
 
@@ -225,7 +233,7 @@ jobs:
           PY
 
       - name: Upload visual map and graph
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: graphify-code-map-${{ env.CANDIDATE_SHA }}
           path: graphify-out/

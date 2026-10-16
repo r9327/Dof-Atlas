@@ -8,9 +8,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.constants import DATA_DIR, LOGGER
+from app.constants import DATA_DIR, LOGGER, USER_DATA_ROOT
 
-WORLD_DB_PATH = DATA_DIR / "dofus_atlas_world.db"
+# Map scan/progress is personal state, not an immutable release asset.
+# Keep source-checkout behavior unchanged when no launcher user root exists.
+WORLD_DB_PATH = (USER_DATA_ROOT / "data" if USER_DATA_ROOT else DATA_DIR) / "dofus_atlas_world.db"
 VALID_MAP_STATUSES = {"unknown", "unverified", "verified", "current"}
 DB_BUSY_TIMEOUT_MS = 10_000
 _INIT_LOCK = threading.RLock()
@@ -260,6 +262,101 @@ def upsert_map_view(
             (clean_key,),
         ).fetchone()
         return row_to_dict(row) or {}
+
+
+
+def import_manifest_rows(views: list[dict[str, Any]]) -> None:
+    """Import immutable geography atomically without erasing live scan state.
+
+    The caller validates references before entry. A single SQLite transaction
+    covers *all* views/maps/links, including WAL rollback on a failed row. Maps
+    omitted by a new seed remain until a separate, explicit removal policy
+    (and backup) exists; they can contain irreplaceable player scan history.
+    """
+    init_db()
+    now = utc_now()
+    with connection_scope() as connection:
+        # Reserve the write slot before touching any tables.
+        connection.execute("BEGIN IMMEDIATE")
+        for index, view in enumerate(views):
+            connection.execute(
+                """
+                INSERT INTO map_views (
+                    view_key, parent_view_key, name, kind, asset_path,
+                    min_x, max_x, min_y, max_y, tile_width, tile_height,
+                    sort_order, raw_data, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(view_key) DO UPDATE SET
+                    parent_view_key=excluded.parent_view_key,
+                    name=excluded.name, kind=excluded.kind,
+                    asset_path=excluded.asset_path,
+                    min_x=excluded.min_x, max_x=excluded.max_x,
+                    min_y=excluded.min_y, max_y=excluded.max_y,
+                    tile_width=excluded.tile_width, tile_height=excluded.tile_height,
+                    sort_order=excluded.sort_order,
+                    raw_data=excluded.raw_data, updated_at=excluded.updated_at
+                """,
+                (
+                    str(view["view_key"]).strip(),
+                    str(view["parent_view_key"]).strip() if view.get("parent_view_key") else None,
+                    str(view["name"]).strip(),
+                    str(view.get("kind") or "world").strip() or "world",
+                    str(view["asset_path"]).strip() if view.get("asset_path") else None,
+                    optional_int(view.get("min_x")), optional_int(view.get("max_x")),
+                    optional_int(view.get("min_y")), optional_int(view.get("max_y")),
+                    int(view.get("tile_width") or 64),
+                    int(view.get("tile_height") or 32),
+                    int(view.get("sort_order") or index),
+                    encode_json(view), now, now,
+                ),
+            )
+
+        for view in views:
+            key = str(view["view_key"]).strip()
+            for row in view.get("maps") or ():
+                connection.execute(
+                    """
+                    INSERT INTO maps (
+                        view_key, map_id, x, y, status, scan_count,
+                        last_seen_at, polygon_json, rect_json, raw_data,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, ?, ?)
+                    ON CONFLICT(view_key, x, y) DO UPDATE SET
+                        map_id=COALESCE(excluded.map_id, maps.map_id),
+                        polygon_json=COALESCE(excluded.polygon_json, maps.polygon_json),
+                        rect_json=COALESCE(excluded.rect_json, maps.rect_json),
+                        raw_data=excluded.raw_data, updated_at=excluded.updated_at
+                    """,
+                    (
+                        key, str(row["map_id"]).strip() if row.get("map_id") not in (None, "") else None,
+                        int(row["x"]), int(row["y"]),
+                        normalize_status(row.get("status")),
+                        encode_json(row.get("polygon") or row.get("polygon_json")),
+                        encode_json(row.get("rect") or row.get("rect_json")),
+                        encode_json(row), now, now,
+                    ),
+                )
+            # Links describe seed geometry (not player state): replace them
+            # under the same transaction, after all target views exist.
+            connection.execute("DELETE FROM map_links WHERE from_view_key = ?", (key,))
+            for link in view.get("links") or ():
+                connection.execute(
+                    """
+                    INSERT INTO map_links (
+                        from_view_key, from_x, from_y, target_view_key,
+                        label, link_type, marker_x, marker_y, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        key, optional_int(link.get("from_x")), optional_int(link.get("from_y")),
+                        str(link["target_view_key"]).strip(),
+                        str(link.get("label") or "").strip(),
+                        str(link.get("link_type") or "entrance").strip() or "entrance",
+                        optional_int(link.get("marker_x")), optional_int(link.get("marker_y")),
+                        now, now,
+                    ),
+                )
+
 
 
 def get_map_views() -> list[dict[str, Any]]:

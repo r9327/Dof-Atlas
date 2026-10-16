@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import unittest
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -18,11 +19,14 @@ _LFS_POINTER_RE = re.compile(
 
 def _ci_image_source_is_valid(path: Path) -> bool:
     try:
-        payload = Path(path).read_bytes()
+        # Read one byte past the maximum LFS pointer size. A truncated
+        # 512-byte prefix of a larger malformed pointer must never pass.
+        with Path(path).open("rb") as stream:
+            prefix = stream.read(513)
     except OSError:
         return False
-    if len(payload) <= 512 and _LFS_POINTER_RE.fullmatch(payload):
-        return True
+    if prefix.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        return len(prefix) <= 512 and _LFS_POINTER_RE.fullmatch(prefix) is not None
     return _REAL_IMAGE_CHECK(Path(path))
 
 
@@ -33,12 +37,15 @@ class QuestsGuidesAuditTests(unittest.TestCase):
         # LFS payload. A strict, well-formed LFS pointer proves that the image is
         # versioned source data; malformed pointers and real corrupt images still
         # fail the same audit contract.
+        started = time.perf_counter()
         with patch.object(
             audit_module,
             "is_exploitable_image",
             side_effect=_ci_image_source_is_valid,
         ):
             cls.audit = audit_module.build_audit()
+        cls.fixture_setup_ms = round((time.perf_counter() - started) * 1000, 1)
+        print(f"AT018 fixture=quests_guides setup_ms={cls.fixture_setup_ms}", flush=True)
         cls.inventory = cls.audit["summary"]["inventory"]
         cls.severities = cls.audit["summary"]["issues_by_severity"]
 

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
+from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
+    AchievementProgressService,
+)
 
 
 class ProgressConcurrentInstanceTests(unittest.TestCase):
@@ -79,6 +84,96 @@ class ProgressConcurrentInstanceTests(unittest.TestCase):
                 reloaded.manual_steps("character:1", "guide"),
                 {"stage-a", "stage-b"},
             )
+
+
+    @staticmethod
+    def _external_write(path: Path, kind: str) -> None:
+        """Use a different Python process, not the shared in-process generation."""
+        scripts = {
+            "guide": (
+                "from app.modules.encyclopedia.services.guide_progress_service "
+                "import GuideProgressService; "
+                "import sys; "
+                "GuideProgressService(sys.argv[1]).set_manual_step_completed("
+                "'character:1', 'guide', 'from-peer', True)"
+            ),
+            "achievement": (
+                "from app.modules.encyclopedia.services.serialized_achievement_progress_service "
+                "import AchievementProgressService; "
+                "import sys; "
+                "AchievementProgressService(sys.argv[1]).set_achievement_completed("
+                "'character:1', 311, True)"
+            ),
+        }
+        subprocess.run(
+            [sys.executable, "-c", scripts[kind], str(path)],
+            check=True,
+            timeout=30,
+        )
+
+    def test_external_guide_write_blocks_stale_save_and_survives(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "guides.json"
+            stale = GuideProgressService(path)
+            self._external_write(path, "guide")
+            with self.assertRaisesRegex(RuntimeError, "stale"):
+                stale.save()
+            self.assertEqual(
+                GuideProgressService(path).manual_steps("character:1", "guide"),
+                {"from-peer"},
+            )
+            # Refresh does not merge a mutated stale snapshot behind the caller's back.
+            self.assertEqual(stale.manual_steps("character:1", "guide"), {"from-peer"})
+
+    def test_external_achievement_write_blocks_stale_save(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "achievements.json"
+            stale = AchievementProgressService(path)
+            self._external_write(path, "achievement")
+            with self.assertRaisesRegex(RuntimeError, "stale"):
+                stale.save()
+            self.assertTrue(
+                AchievementProgressService(path).is_achievement_completed("character:1", 311)
+            )
+
+    def test_external_character_deletion_is_not_resurrected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            for kind, constructor, initial in (
+                ("guide", GuideProgressService, lambda svc: svc.set_manual_step_completed(
+                    "character:1", "guide", "before-delete", True
+                )),
+                ("achievement", AchievementProgressService, lambda svc: svc.set_achievement_completed(
+                    "character:1", 99, True
+                )),
+            ):
+                path = Path(temp) / f"{kind}.json"
+                stale = constructor(path)
+                initial(stale)
+                path.write_text(
+                    json.dumps({"version": 1, "characters": {}}),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(RuntimeError, "stale"):
+                    stale.save()
+                self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["characters"], {})
+
+    def test_achievement_sync_refreshes_external_writer_before_computation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / "achievements.json"
+            stale = AchievementProgressService(path)
+            self._external_write(path, "achievement")
+
+            class EmptyAchievements:
+                def load_retained(self):
+                    return ()
+
+            stale.sync_from_quest_progress(
+                "character:1",
+                EmptyAchievements(),
+                QuestProgressService(root / "quests.json"),
+            )
+            self.assertTrue(stale.is_achievement_completed("character:1", 311))
 
 
 if __name__ == "__main__":

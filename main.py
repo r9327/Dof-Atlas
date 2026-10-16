@@ -227,7 +227,7 @@ def build_craft_preload() -> dict[str, Any]:
         "guides": {},
         "selection": {},
         "lookup_items": [],
-        "_prepared": True,
+        "_prepared": False,
         "_lazy_items": True,
         "errors": [],
     }
@@ -1932,16 +1932,36 @@ class AtlasWindow(QMainWindow):
 
     def create_craft_page(self) -> QWidget:
         preload = self.preload_results.get("craft")
-        ready = isinstance(preload, dict) and isinstance(preload.get("items"), list)
+        ready = (
+            isinstance(preload, dict)
+            and isinstance(preload.get("items"), list)
+            and not preload.get("errors")
+            and not preload.get("_skipped_reason")
+            and preload.get("_prepared") is not False
+            and (
+                bool(preload.get("items"))
+                or (
+                    preload.get("_lazy_items") is True
+                    and preload.get("_prepared") is True
+                )
+            )
+        )
         if ready:
             self.preload_results.pop("craft", None)
         else:
             self.start_preload("craft", user_requested=True)
-        return _resolve_craft_page()(
+        page = _resolve_craft_page()(
             self.set_status,
             preload=preload if ready else None,
             defer_runtime=not ready,
         )
+        # Keep the historical CraftPage constructor contract for legacy
+        # shell substitutes; the actual page exposes an optional retry hook.
+        if hasattr(page, "retry_preload_callback"):
+            page.retry_preload_callback = lambda: self.start_preload(
+                "craft", user_requested=True
+            )
+        return page
 
     def create_equipment_page(self) -> QWidget:
         return _resolve_equipment_page()(self.set_status)
@@ -2195,7 +2215,13 @@ class AtlasWindow(QMainWindow):
                 if isinstance(payload_errors, list) and payload_errors
                 else ""
             )
+            if task == "craft" and isinstance(task_payload, dict) and not payload_error:
+                payload_error = str(task_payload.get("_skipped_reason") or "")
+                if not payload_error and task_payload.get("_prepared") is not True:
+                    payload_error = "catalogue Craft non validé"
             task_failed = bool(task_error or payload_error)
+            if task == "craft" and payload_error and payload_error not in errors:
+                errors.append(payload_error)
             fatal_error = task_error or fatal_error
             if task:
                 completed_tasks.append(task)
@@ -2310,7 +2336,10 @@ class AtlasWindow(QMainWindow):
             self.preload_results.pop("craft", None)
             return
         errors = craft.get("errors") if isinstance(craft, dict) else None
-        message = str(errors[0]) if isinstance(errors, list) and errors else "données absentes"
+        message = (
+            str(errors[0]) if isinstance(errors, list) and errors
+            else str(craft.get("_skipped_reason") or "catalogue Craft indisponible")
+        )
         page.show_runtime_error(message)
 
     def apply_home_preload_update(self, quests: dict[str, Any]) -> None:
@@ -2634,6 +2663,8 @@ def main() -> int:
         LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
         window.show()
         LOGGER.info("[main] AtlasWindow shown visible=%s title=%r", window.isVisible(), window.windowTitle())
+        from app.distribution.health import announce_ready
+        QTimer.singleShot(0, announce_ready)
         if splash is not None and splash_started_at is not None:
             keep_splash_visible(app, splash_started_at)
             splash.finish(window)

@@ -92,6 +92,8 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
             "pyside6",
             "pyside6_addons",
             "pyside6_essentials",
+            "pyside6_webengine",
+            "pyside6_pdf",
             "shiboken6",
             "pillow",
             "pywin32",

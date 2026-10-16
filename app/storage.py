@@ -65,8 +65,9 @@ from app.constants import (
     ZAAP_SHORTCUTS_FILE,
 )
 from app.core.item_identity import item_id
+from app.core.profile_settings import default_profiles, profile_bool, parse_zaap_click_position
 from app.core.json_store import read_json_resilient, write_json_atomic
-from app.core.zaap_shortcuts import parse_unit_ratio, zaap_ratios_from_payload
+from app.core.zaap_shortcuts import parse_unit_ratio, update_zaap_shortcuts_field, zaap_ratios_from_payload
 from app.core.text import clean_auto_group_name, normalize_key, strip_accents
 from app.services.profile_settings_service import ProfileSettingsService
 from app.ui.components import AtlasButton
@@ -582,10 +583,8 @@ def save_zaap_favorites(
     path: Path | None = None,
 ) -> list[str]:
     path = path or ZAAP_SHORTCUTS_FILE
-    payload = read_zaap_shortcuts(path)
     cleaned = clean_zaap_favorites(favorites, zaaps)
-    payload[ZAAP_FAVORITES_KEY] = cleaned
-    write_json(path, payload)
+    update_zaap_shortcuts_field(path, ZAAP_FAVORITES_KEY, cleaned)
     return cleaned
 
 
@@ -595,12 +594,14 @@ def save_zaap_button_ratios(x_ratio: float, y_ratio: float, path: Path | None = 
     if parsed_x is None or parsed_y is None:
         raise ValueError("Ratios Zaap invalides.")
     path = path or ZAAP_SHORTCUTS_FILE
-    payload = read_zaap_shortcuts(path)
-    payload["zaap_button"] = {
-        "x_ratio": round(parsed_x, 6),
-        "y_ratio": round(parsed_y, 6),
-    }
-    write_json(path, payload)
+    update_zaap_shortcuts_field(
+        path,
+        "zaap_button",
+        {
+            "x_ratio": round(parsed_x, 6),
+            "y_ratio": round(parsed_y, 6),
+        },
+    )
     return (parsed_x, parsed_y)
 
 
@@ -617,40 +618,6 @@ def read_bootstrap_status() -> str:
     except Exception:
         return "Verification des prerequis..."
     return text or "Verification des prerequis..."
-
-
-def default_profiles() -> dict[str, Any]:
-    return {
-        KEY_SWITCH_CHARACTER: True,
-        KEY_SWITCH_CLICK: False,
-        KEY_SWITCH_DOUBLE_CLICK: False,
-        KEY_SWITCH_MOVEMENT: False,
-        KEY_STOP_SCRIPT_HOTKEY: "",
-        KEY_ZAAP_CLICK_POSITION: ZAAP_CLICK_POSITION_DEFAULT,
-        KEY_ZAAP_CLICK_LOCKED: True,
-        KEY_SESSION_ORDER: [],
-        KEY_TOPMOST: False,
-        KEY_SCRIPT_SPEED: "normal",
-        KEY_DEBUG_MODE: False,
-    }
-
-
-def profile_bool(payload: dict[str, Any], key: str, default: bool = False) -> bool:
-    value = payload.get(key, default)
-    if isinstance(value, str):
-        return value.strip().casefold() not in ("0", "false", "faux", "non", "off", "")
-    return bool(value)
-
-
-def parse_zaap_click_position(value: Any, default: tuple[int, int] = (ZAAP_CLICK_X, ZAAP_CLICK_Y)) -> tuple[int, int]:
-    text = str(value or "").strip()
-    match = re.search(r"(-?\d+)\s*[,;:xX ]\s*(-?\d+)", text)
-    if not match:
-        return default
-    try:
-        return (max(0, int(match.group(1))), max(0, int(match.group(2))))
-    except ValueError:
-        return default
 
 
 def format_zaap_click_position(position: tuple[int, int]) -> str:
