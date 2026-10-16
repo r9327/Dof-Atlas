@@ -7,10 +7,10 @@ from pathlib import Path
 
 from app.constants import (
     CRAFT_SELECTION_FILE,
-    DATA_DIR,
     JOB_RESOURCE_GROUPS,
     LEVELING_FILE,
 )
+from local_dofus_data.config import DEFAULT_CONFIG
 from app.core.item_identity import item_id
 from app.core.json_store import read_json_resilient as read_json
 from app.core.text import normalize_key
@@ -34,7 +34,7 @@ def build_compact_craft_preload() -> dict[str, object]:
         "errors": [],
     }
 
-    database_path = DATA_DIR / "local" / "dofus_data.sqlite"
+    database_path = DEFAULT_CONFIG.sqlite_path
     if not database_path.exists():
         payload["_skipped_reason"] = "catalogue Craft local absent"
         return payload

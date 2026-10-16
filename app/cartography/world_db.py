@@ -8,9 +8,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.constants import DATA_DIR, LOGGER
+from app.constants import DATA_DIR, LOGGER, USER_DATA_ROOT
 
-WORLD_DB_PATH = DATA_DIR / "dofus_atlas_world.db"
+# Map scan/progress is personal state, not an immutable release asset.
+# Keep source-checkout behavior unchanged when no launcher user root exists.
+WORLD_DB_PATH = (USER_DATA_ROOT / "data" if USER_DATA_ROOT else DATA_DIR) / "dofus_atlas_world.db"
 VALID_MAP_STATUSES = {"unknown", "unverified", "verified", "current"}
 DB_BUSY_TIMEOUT_MS = 10_000
 _INIT_LOCK = threading.RLock()

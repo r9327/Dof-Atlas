@@ -13,15 +13,17 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from .install import (
-    active_executable, install_release, mark_healthy, read_state, rollback_pending,
+    active_executable, install_release, mark_healthy, read_state, rollback_pending, slot_path,
 )
 from .release_client import UpdateError, download_archive, latest_release
 from .disk_space import ensure_space
 from .user_data import prepare_user_data
 from .self_update import schedule_launcher_upgrade
+from .install_location import runtime_root, set_runtime_root
+from .manifest import verify_file
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
-ROOT = APP_DIR / "runtime"
+ROOT = runtime_root()
 USER_DIR = APP_DIR / "user"
 LOG_DIR = APP_DIR / "logs"
 
@@ -61,7 +63,13 @@ def _run_lock():
 
 def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) -> bool:
     USER_DIR.mkdir(parents=True, exist_ok=True)
-    prepare_user_data(executable, USER_DIR, legacy_root=Path(sys.executable).resolve().parent)
+    install_state = read_state(ROOT)
+    previous = install_state.get("previous") if install_state.get("pending") else None
+    previous_root = (slot_path(ROOT, previous) / "AtlasApp" / "_internal"
+                     if previous else None)
+    prepare_user_data(executable, USER_DIR,
+                      legacy_root=Path(sys.executable).resolve().parent,
+                      previous_install_root=previous_root)
     health_dir = ROOT / ".health"
     health_dir.mkdir(parents=True, exist_ok=True)
     ready = health_dir / (uuid.uuid4().hex + ".ready")
@@ -111,6 +119,13 @@ def run_update(report) -> None:
                 current_exe = active_executable(ROOT)
             except UpdateError:
                 current_exe = None
+            if current_exe is not None and prior.get("source_sha") == remote.manifest.source_sha:
+                report("Verification de l'installation...", 7)
+                installed = slot_path(ROOT, prior["active"])
+                if any(not verify_file(installed / entry.path, entry)
+                       for entry in remote.manifest.files):
+                    current_exe = None
+                    report("Installation endommagee — reparation...", 9)
             if prior.get("blocked_source_sha") == remote.manifest.source_sha:
                 report("Mise a jour en attente de correction", 10)
             elif prior.get("source_sha") != remote.manifest.source_sha or current_exe is None:
@@ -227,7 +242,8 @@ def main() -> int:
             return 1
 
     window.title("Dofus Atlas — Mise a jour")
-    window.geometry("510x260")
+    choosing_install = not read_state(ROOT).get("active") and "--atlas-auto-install" not in sys.argv
+    window.geometry("590x370" if choosing_install else "510x260")
     window.resizable(False, False)
     window.configure(bg="#101826")
     try:
@@ -238,7 +254,35 @@ def main() -> int:
              font=("Segoe UI", 23, "bold")).pack(pady=(24, 4))
     tk.Label(window, text="Lancement et mises a jour automatiques",
              bg="#101826", fg="#8fa5bd", font=("Segoe UI", 10)).pack()
-    status = tk.StringVar(value="Initialisation...")
+    start_button = None
+    if choosing_install:
+        selection = tk.Frame(window, bg="#101826")
+        selection.pack(pady=(12, 2))
+        tk.Label(selection, text="Dossier des fichiers Atlas (~3 Go)", bg="#101826",
+                 fg="#d2deeb", font=("Segoe UI", 10)).pack()
+        chosen = tk.StringVar(value=str(ROOT))
+        tk.Label(selection, textvariable=chosen, bg="#101826",
+                 fg="#8fa5bd", font=("Segoe UI", 9), wraplength=545).pack()
+
+        def choose_install_folder():
+            global ROOT
+            from tkinter import filedialog, messagebox
+            folder = filedialog.askdirectory(parent=window, title="Choisir le disque / dossier Atlas",
+                                             initialdir=str(ROOT.parent))
+            if not folder:
+                return
+            target = Path(folder) / "DofusAtlas" / "runtime"
+            try:
+                if read_state(target).get("active"):
+                    raise UpdateError("Ce dossier contient deja une installation Atlas")
+                ROOT = set_runtime_root(target)
+                chosen.set(str(ROOT))
+            except (OSError, UpdateError) as exc:
+                messagebox.showerror("Emplacement Atlas", str(exc), parent=window)
+
+        tk.Button(selection, text="Changer de dossier...", command=choose_install_folder).pack(pady=5)
+    status = tk.StringVar(value="Choisissez le dossier puis lancez l'installation."
+                          if choosing_install else "Initialisation...")
     tk.Label(window, textvariable=status, bg="#101826", fg="#d2deeb",
              font=("Segoe UI", 10), wraplength=475, justify="center").pack(pady=(19, 7))
     style = ttk.Style(window)
@@ -288,7 +332,15 @@ def main() -> int:
         if not finished:
             window.after(70, poll)
 
-    threading.Thread(target=worker, name="atlas-updater", daemon=True).start()
+    if choosing_install:
+        def begin_install():
+            start_button.configure(state="disabled")
+            status.set("Installation en cours...")
+            threading.Thread(target=worker, name="atlas-updater", daemon=True).start()
+        start_button = tk.Button(window, text="Installer et lancer", command=begin_install)
+        start_button.pack(pady=(2, 4))
+    else:
+        threading.Thread(target=worker, name="atlas-updater", daemon=True).start()
     window.after(70, poll)
     window.mainloop()
     return 0 if percent.get() == 100 else 1

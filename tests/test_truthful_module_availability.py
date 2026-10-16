@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sqlite3
 from contextlib import closing
+from dataclasses import replace
 import tempfile
 import unittest
 from pathlib import Path
@@ -27,7 +28,7 @@ class CraftPreloadAvailabilityTests(unittest.TestCase):
     def test_missing_and_corrupt_catalogue_cannot_be_prepared(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            with patch.object(craft_preload, "DATA_DIR", root):
+            with patch.object(craft_preload, "DEFAULT_CONFIG", replace(craft_preload.DEFAULT_CONFIG, sqlite_path=root / "local" / "dofus_data.sqlite")):
                 missing = craft_preload.build_compact_craft_preload()
                 self.assertFalse(missing["_prepared"])
                 self.assertIn("absent", missing["_skipped_reason"])
@@ -62,7 +63,7 @@ class CraftPreloadAvailabilityTests(unittest.TestCase):
             fake.list_jobs.return_value = []
             fake.search_items.return_value = []
             with (
-                patch.object(craft_preload, "DATA_DIR", root),
+                patch.object(craft_preload, "DEFAULT_CONFIG", replace(craft_preload.DEFAULT_CONFIG, sqlite_path=root / "local" / "dofus_data.sqlite")),
                 patch("local_dofus_data.compatibility_adapter.LocalCompatibilityAdapter", return_value=fake),
             ):
                 result = craft_preload.build_compact_craft_preload()
