@@ -3,8 +3,9 @@ name: UI Lab Capture
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, reopened, synchronize, edited]
     branches:
-      - plan/atlas-audit-runtime-pc01-05-20261014
+      - tool/ui-lab-skeleton
     paths:
       - ".github/workflows/ui-lab-capture.yml"
       - "tools/ui_lab/**"
