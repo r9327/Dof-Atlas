@@ -216,8 +216,19 @@ class JsonSourceMapping(Mapping):
         self._cache = OrderedDict()
         self._offsets = None
         self._disk_index = None
+        self._disk_connection = None
         self._cache_root, self._field = cache_root, field
         self._stream = None
+
+    def _disk_offset_connection(self) -> sqlite3.Connection:
+        if self._disk_index is None:
+            raise RuntimeError("Disk-backed source index is not initialized")
+        if self._disk_connection is None:
+            self._disk_connection = sqlite3.connect(
+                self._disk_index,
+                check_same_thread=False,
+            )
+        return self._disk_connection
 
     def _source_failure(self, message: str, exc: BaseException | None = None):
         detail = f"{message}: {self.path}"
@@ -532,11 +543,10 @@ class JsonSourceMapping(Mapping):
                 self._cache.move_to_end(key)
                 return self._cache[key]
             if self._disk_index is not None:
-                with closing(sqlite3.connect(self._disk_index)) as connection:
-                    row = connection.execute(
-                        "SELECT start, end FROM offsets WHERE key=?",
-                        (str(key),),
-                    ).fetchone()
+                row = self._disk_offset_connection().execute(
+                    "SELECT start, end FROM offsets WHERE key=?",
+                    (str(key),),
+                ).fetchone()
                 if row is None:
                     raise KeyError(key)
                 start, end = int(row[0]), int(row[1])
@@ -555,29 +565,36 @@ class JsonSourceMapping(Mapping):
             return value
 
     def __iter__(self):
-        self._ensure()
-        if self._disk_index is not None:
-            with closing(sqlite3.connect(self._disk_index)) as connection:
-                rows = connection.execute("SELECT key FROM offsets").fetchall()
-            return iter(
-                int(row[0]) if self.doduda else row[0]
-                for row in rows
-            )
-        return iter(self._offsets)
+        with self._lock:
+            self._ensure()
+            if self._disk_index is not None:
+                rows = self._disk_offset_connection().execute(
+                    "SELECT key FROM offsets"
+                ).fetchall()
+                return iter(
+                    int(row[0]) if self.doduda else row[0]
+                    for row in rows
+                )
+            return iter(self._offsets)
 
     def __len__(self):
-        self._ensure()
-        if self._disk_index is not None:
-            with closing(sqlite3.connect(self._disk_index)) as connection:
-                row = connection.execute("SELECT COUNT(*) FROM offsets").fetchone()
-            return max(0, int(row[0] if row else 0))
-        return len(self._offsets)
+        with self._lock:
+            self._ensure()
+            if self._disk_index is not None:
+                row = self._disk_offset_connection().execute(
+                    "SELECT COUNT(*) FROM offsets"
+                ).fetchone()
+                return max(0, int(row[0] if row else 0))
+            return len(self._offsets)
 
     def close(self):
         with self._lock:
             if self._stream is not None:
                 self._close_stream()
                 self._stream = None
+            if self._disk_connection is not None:
+                self._disk_connection.close()
+                self._disk_connection = None
             # A completed Quest detail is already retained as a bounded rich
             # record (and stored in SQLite). Keeping its decoded source rows
             # too duplicates memory across the Guide/Quest/Home lifecycle.

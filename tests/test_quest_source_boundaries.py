@@ -21,12 +21,17 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             try:
                 rows = sources.mapping(source, "entries")
                 self.assertEqual(rows["102"], "Étape")
+                connection = rows._disk_connection
+                self.assertIsNotNone(connection)
+                self.assertEqual(rows["101"], "Quête")
+                self.assertIs(rows._disk_connection, connection)
                 self.assertEqual(len(rows), 2)
                 self.assertEqual(set(rows), {"101", "102"})
                 self.assertEqual(rows._offsets, {})
                 self.assertTrue(rows._disk_index.is_file())
             finally:
                 sources.close()
+            self.assertIsNone(rows._disk_connection)
 
     def test_required_rows_reject_missing_business_source(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
