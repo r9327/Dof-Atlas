@@ -20,6 +20,7 @@ from .disk_space import ensure_space
 from .user_data import prepare_user_data
 from .self_update import schedule_launcher_upgrade
 from .install_location import runtime_root, set_runtime_root
+from .manifest import verify_file
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
 ROOT = runtime_root()
@@ -118,6 +119,13 @@ def run_update(report) -> None:
                 current_exe = active_executable(ROOT)
             except UpdateError:
                 current_exe = None
+            if current_exe is not None and prior.get("source_sha") == remote.manifest.source_sha:
+                report("Verification de l'installation...", 7)
+                installed = slot_path(ROOT, prior["active"])
+                if any(not verify_file(installed / entry.path, entry)
+                       for entry in remote.manifest.files):
+                    current_exe = None
+                    report("Installation endommagee — reparation...", 9)
             if prior.get("blocked_source_sha") == remote.manifest.source_sha:
                 report("Mise a jour en attente de correction", 10)
             elif prior.get("source_sha") != remote.manifest.source_sha or current_exe is None:
