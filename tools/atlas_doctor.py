@@ -317,6 +317,16 @@ UI_SCENARIOS = {
 }
 
 
+def command_ui(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.doctor_ui import DEFAULT_SCENARIOS, run_ui
+
+    payload = run_ui(root, scenarios=args.select or DEFAULT_SCENARIOS,
+                     mode=args.mode, repeats=args.repeats, timeout=args.timeout)
+    if not args.json:
+        print(f"Doctor UI: {payload['status']} · {payload['session_path']}")
+    return payload
+
+
 def command_capture_ui(root: Path, args) -> dict[str, Any]:
     """Manually run one vetted offscreen Qt scenario; no normal app hooks."""
     if os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen":
@@ -665,6 +675,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest='command')
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
+    ci_plan = sub.add_parser('ci', help='Plan CI GitHub exact-SHA sans Qt ni execution de tests.')
+    ci_plan.add_argument('--base-ref', required=True)
+    ci_plan.add_argument('--expected-sha', required=True)
+    ci_plan.add_argument('--event', choices=('pull_request', 'push', 'workflow_dispatch'), default='pull_request')
+    ci_plan.add_argument('--output', type=Path, default=Path('artifacts/doctor_ci/plan.json'))
+    ci_plan.add_argument('--github-output', type=Path)
     sub.add_parser('capabilities', help='Inventaire AST des 18 capacites sans lancer de tests.')
     sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
     it = sub.add_parser('isolate-triage', help='Investiguer jusqu a 10 fichiers isoles en preservant leurs consommateurs.')
@@ -768,6 +784,14 @@ def build_parser() -> argparse.ArgumentParser:
     capture = sub.add_parser('capture-ui', help='Tracer un vrai scenario Qt offscreen explicitement, sans chargement complet.')
     capture.add_argument('scenario', choices=tuple(UI_SCENARIOS))
     capture.add_argument('--max-events', type=int, default=50000)
+    from tools.atlas_doctor_lib.doctor_ui import MODES, SCENARIOS
+    ui = sub.add_parser('ui', help='Valider, capturer et inspecter les vrais Guides dans une session Qt isolee.')
+    ui.add_argument('scene', choices=('guides',))
+    ui.add_argument('--mode', choices=MODES, default='all')
+    ui.add_argument('--select', choices=SCENARIOS, action='append',
+                    help='Scenario cible, repetable; defaut: les deux Guides et Guide → Quetes.')
+    ui.add_argument('--repeats', type=int, choices=range(1, 6), default=2)
+    ui.add_argument('--timeout', type=int, choices=range(1, 241), default=240)
     rt = sub.add_parser('runtime-trace', help='Tracer explicitement les appels Python d un module (mode instrumente).')
     rt.add_argument('--module', required=True, help='Module de scenario de test a executer.')
     rt.add_argument('--max-events', type=int, default=5000)
@@ -890,7 +914,9 @@ def main(argv: list[str] | None = None) -> int:
     root = project_root(Path(__file__))
     if not args.command:
         return menu(root)
+    from tools.atlas_doctor_lib.ci_orchestrator import command_ci
     handlers = {
+        'ci': command_ci,
         'quick': command_quick,
         'capabilities': command_capabilities,
         'graph': command_graph,
@@ -907,6 +933,7 @@ def main(argv: list[str] | None = None) -> int:
         'code-inspect': command_code_inspect,
         'runtime-trace': command_runtime_trace,
         'capture-ui': command_capture_ui,
+        'ui': command_ui,
         'graph-ui': command_graph_ui,
         'graph-live': command_graph_live,
         'dev-event': command_dev_event,
@@ -962,6 +989,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if payload['status'] == 'PASS' else 2
     if args.command == 'capture-ui':
         return 0 if payload['status'] == 'RECORDED' else 1
+    if args.command == 'ui':
+        return 0 if payload['status'] in {'PASS', 'RECORDED'} else 1
     if args.command == 'runtime-trace':
         return 0 if payload['status'] == 'RECORDED' else 1
     if args.command == 'code-inspect':

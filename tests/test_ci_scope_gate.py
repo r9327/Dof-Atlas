@@ -184,21 +184,23 @@ class ScopeGateTests(unittest.TestCase):
     def test_app_ci_watches_real_windows_launcher(self):
         root = Path(__file__).resolve().parents[1]
         self.assertTrue((root / "DOFUS.bat").is_file())
-        workflow = (root / ".github/workflows/app-ci.yml").read_text(
+        workflow = (root / "tools/atlas_doctor_lib/ci_routes.json").read_text(
             encoding="utf-8"
         )
-        self.assertIn('      - "DOFUS.bat"', workflow)
-        self.assertNotIn('      - "Dofus_Atlas.bat"', workflow)
+        self.assertIn('"DOFUS.bat"', workflow)
+        self.assertNotIn('"Dofus_Atlas.bat"', workflow)
 
     def test_scoped_pr_feedback_does_not_replace_doctor_fast(self):
         root = Path(__file__).resolve().parents[1]
         scoped = (root / ".github/workflows/scoped-pr-ci.yml").read_text(
             encoding="utf-8"
         )
-        pr = (root / ".github/workflows/public-pr-ci.yml").read_text(
+        pr = (root / ".github/workflows/phase-certification.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("pull_request:", scoped)
+        self.assertIn("workflow_dispatch:", scoped)
+        self.assertNotIn("pull_request:", scoped)
+        self.assertIn("tools.phase_adaptive_gate verify-scoped", pr)
         self.assertIn("ref: ${{ env.CANDIDATE_SHA }}", scoped)
         self.assertIn("fetch-depth: 0", scoped)
         self.assertIn("test_ci_scope_gate.py", scoped)

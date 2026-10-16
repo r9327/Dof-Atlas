@@ -1,15 +1,7 @@
 name: Phase 8 Memory Benchmark
 
 on:
-  pull_request:
-    branches:
-      - main
-      - phase8/peak250-guide-worker-v1
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -34,12 +26,6 @@ defaults:
 
 jobs:
   benchmark:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-       github.event.pull_request.head.repo.full_name == github.repository &&
-       (startsWith(github.event.pull_request.head.ref, 'perf/phase8-memory') ||
-        startsWith(github.event.pull_request.title, 'Phase 8')))
     name: Phase 8 / Staged Memory Benchmark
     runs-on: windows-latest
     timeout-minutes: 45

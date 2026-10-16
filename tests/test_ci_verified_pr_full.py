@@ -35,6 +35,16 @@ def result(steps, head=MAIN):
 
 
 class VerifiedMainFullReuseTests(unittest.TestCase):
+    def test_multi_job_doctor_run_does_not_allow_missing_or_ambiguous_full(self):
+        body = result({name: 'success' for name in MANDATORY_STEPS}, PR_HEAD)
+        body['jobs'].insert(0, {'name': 'Doctor / CI Plan', 'conclusion': 'success'})
+        body['total_count'] = 2
+        verify_job(body, PR_HEAD)
+        body['jobs'].append(body['jobs'][1].copy())
+        body['total_count'] = 3
+        with self.assertRaises(ValueError):
+            verify_job(body, PR_HEAD)
+
     def test_identical_tree_merge_has_verified_identity(self):
         with patch("tools.ci_verified_pr_full.git",
                    side_effect=[MAIN, BASE + " " + PR_HEAD,

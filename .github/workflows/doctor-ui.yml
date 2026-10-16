@@ -1,0 +1,168 @@
+name: Doctor UI / Impact-selected validation
+
+on:
+  workflow_call:
+    inputs:
+      base_ref:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Comparable base commit or ref
+        required: true
+        default: main
+      scenario:
+        description: Explicit bounded UI scenario
+        type: choice
+        options: [validator-smoke, guides-success, guides-lanyel, guide-quests]
+        default: validator-smoke
+
+permissions:
+  contents: read
+
+concurrency:
+  group: doctor-ui-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  BASE_SHA: ${{ github.event.pull_request.base.sha || inputs.base_ref }}
+  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  plan:
+    name: Doctor UI / Stdlib impact plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      run_ui: ${{ steps.plan.outputs.run_ui }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Test selection without Qt or LFS
+        run: |
+          python -m unittest discover -s tests -p test_doctor_ui_ci.py -v
+          python -m unittest discover -s tests -p test_doctor_ui.py -v
+      - name: Canonical exact-SHA UI impact decision
+        id: plan
+        shell: bash
+        env:
+          FORCED_SCENARIO: ${{ inputs.scenario }}
+        run: |
+          args=()
+          if [ -n "$FORCED_SCENARIO" ]; then args+=(--force "$FORCED_SCENARIO"); fi
+          python -m tools.atlas_doctor_lib.doctor_ui_ci plan --exhaustive-on-review --base-ref "$BASE_SHA" --candidate-sha "$CANDIDATE_SHA" --github-output "$GITHUB_OUTPUT" "${args[@]}"
+      - name: Upload selection even on uncertainty
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-ui-selection-${{ env.CANDIDATE_SHA }}
+          path: .ai/runtime/atlas_doctor/ui_ci_selection.json
+          include-hidden-files: true
+          if-no-files-found: error
+
+  windows:
+    name: Doctor UI / Selected real Qt scenarios
+    needs: plan
+    if: needs.plan.outputs.run_ui == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 18
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: doctor-ui-selection-${{ env.CANDIDATE_SHA }}
+          path: .ai/runtime/atlas_doctor
+      - name: Verify immutable candidate and selection before expensive setup
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne $env:CANDIDATE_SHA) { throw "Wrong UI candidate" }
+          python -c "import json, os; p=json.load(open('.ai/runtime/atlas_doctor/ui_ci_selection.json')); assert p['candidate_sha']==os.environ['CANDIDATE_SHA'] and p['status']=='UI_REQUIRED' and p['selected_scenarios']"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install pinned Qt only for selected UI impact
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+      - name: Test validator against isolated healthy and broken widgets
+        run: python -X faulthandler -m unittest discover -s tests -p test_doctor_ui_qt.py -v
+      - name: Materialize only public Guide catalog tool and UI assets
+        shell: pwsh
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & ".\tools\doduda\doduda.exe" --headless --output "data/cache/dofus_maps/raw/doduda_cli" -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run one session for the union of selected scenarios
+        run: python -X faulthandler -m tools.atlas_doctor_lib.doctor_ui_ci run --candidate-sha "$env:CANDIDATE_SHA"
+      - name: Upload unified UI evidence including failures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-ui-evidence-${{ env.CANDIDATE_SHA }}
+          path: .ai/runtime/atlas_doctor/ui
+          include-hidden-files: true
+          if-no-files-found: error
+
+  verdict:
+    name: Doctor UI / Verdict
+    if: always()
+    needs: [plan, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          lfs: false
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: doctor-ui-selection-${{ env.CANDIDATE_SHA }}
+          path: .ai/runtime/atlas_doctor
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        if: needs.windows.result == 'success' || needs.windows.result == 'failure'
+        with:
+          name: doctor-ui-evidence-${{ env.CANDIDATE_SHA }}
+          path: .ai/runtime/atlas_doctor/ui
+      - name: Reject skipped required job or failed plan
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          WINDOWS_RESULT: ${{ needs.windows.result }}
+          RUN_UI: ${{ needs.plan.outputs.run_ui }}
+        run: |
+          test "$PLAN_RESULT" = success
+          if [ "$RUN_UI" = true ]; then test "$WINDOWS_RESULT" = success; else test "$WINDOWS_RESULT" = skipped; fi
+      - name: Verify selection, assertions, real PNG and hashes at candidate SHA
+        if: always()
+        run: python -m tools.atlas_doctor_lib.doctor_ui_ci verdict --candidate-sha "$CANDIDATE_SHA"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: doctor-ui-verdict-${{ env.CANDIDATE_SHA }}
+          path: .ai/runtime/atlas_doctor/ui_campaign_verdict.json
+          include-hidden-files: true
+          if-no-files-found: error

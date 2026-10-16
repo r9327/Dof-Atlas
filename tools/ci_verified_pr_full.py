@@ -74,9 +74,12 @@ def verify_run(run: dict, pr: dict, identity: dict, repo: str) -> None:
 
 def verify_job(body: dict, head: str) -> None:
     jobs = body.get("jobs")
-    if not isinstance(jobs, list) or len(jobs) != 1 or body.get("total_count") != 1:
+    if not isinstance(jobs, list) or not jobs or body.get("total_count") != len(jobs):
         raise ValueError("Incomplete PR job results")
-    job = jobs[0]
+    full_jobs = [j for j in jobs if isinstance(j, dict) and j.get("name") == "Phase Certification / Full Validation"]
+    if len(full_jobs) != 1:
+        raise ValueError("Missing or ambiguous Phase FULL job")
+    job = full_jobs[0]
     if (job.get("name") != "Phase Certification / Full Validation"
             or job.get("head_sha") not in (None, head)
             or job.get("conclusion") != "success" or job.get("status") != "completed"):

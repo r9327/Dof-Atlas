@@ -1,15 +1,11 @@
 name: Phase 8 Preload Benchmark
 
 on:
-  pull_request:
-    branches:
-      - main
-      - phase8/peak250-guide-worker-v1
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
+  workflow_call:
+    inputs:
+      base_ref:
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       base_ref:
@@ -42,12 +38,6 @@ defaults:
 
 jobs:
   benchmark:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-       github.event.pull_request.head.repo.full_name == github.repository &&
-       (github.event.pull_request.head.ref == 'codex/phase8-startup-preload-v2' ||
-        startsWith(github.event.pull_request.title, 'Phase 8')))
     name: Phase 8 / Comparable Preload Benchmark
     runs-on: windows-latest
     timeout-minutes: 45

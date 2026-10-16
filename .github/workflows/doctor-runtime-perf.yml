@@ -1,15 +1,8 @@
 name: Doctor Runtime Performance
 
 on:
+  workflow_call:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "tools/atlas_doctor_lib/perf.py"
-      - "tools/atlas_doctor_lib/runtime_benchmark.py"
-      - "tests/test_atlas_doctor_runtime_benchmark.py"
-      - ".github/workflows/doctor-runtime-perf.yml"
 
 permissions:
   contents: read

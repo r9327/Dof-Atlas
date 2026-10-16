@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = ROOT / ".github" / "workflows" / "public-pr-ci.yml"
+WORKFLOW = ROOT / ".github" / "workflows" / "phase-certification.yml"
 POLICY = ROOT / "tools" / "atlas_integrity_policy.json"
 
 
@@ -148,7 +148,7 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         self.assertIn("changed-test DIFF_TARGETS are deferred", self.source)
 
     def test_dependency_review_failure_is_deferred_but_never_swallowed(self) -> None:
-        self.assertEqual(self.source.count("continue-on-error: true"), 1)
+        self.assertEqual(self.source.split("  pr-fast-validation:", 1)[1].split("  certification-policy:", 1)[0].count("continue-on-error: true"), 1)
         self.assertIn("id: dependency_review", self.source)
         self.assertIn("name: Enforce dependency review verdict", self.source)
         self.assertIn("if: ${{ always() }}", self.source)

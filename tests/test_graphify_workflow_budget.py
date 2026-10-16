@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,30 +12,26 @@ class GraphifyWorkflowBudgetTests(unittest.TestCase):
         code = (ROOT / ".github/workflows/graphify-map.yml").read_text(encoding="utf-8")
         trigger = code.split("permissions:", 1)[0]
         self.assertIn("workflow_dispatch:", trigger)
-        self.assertIn("paths:", trigger)
-        self.assertIn('"tools/graphify.py"', trigger)
-        self.assertIn('"tools/atlas_doctor_lib/**"', trigger)
-        self.assertNotIn('"tools/atlas_doctor_lib/live_graph.py"', trigger)
+        self.assertIn("workflow_call:", trigger)
+        self.assertNotIn("pull_request:", trigger)
+        paths = json.loads((ROOT / "tools/atlas_doctor_lib/ci_routes.json").read_text())["graphify-map"]
+        self.assertIn("tools/graphify.py", paths)
+        self.assertIn("tools/atlas_doctor_lib/**", paths)
         self.assertIn('timeout-minutes: 20', code)
 
     def test_graphify_structural_paths_are_triggered_for_pr_and_push(self):
         code = (ROOT / ".github/workflows/graphify-map.yml").read_text(encoding="utf-8")
         trigger = code.split("permissions:", 1)[0]
-        pull_request, push = trigger.split("  push:\n", 1)
-        structural = (
-            "app/**", "main.py", "launch.py", "sitecustomize.py",
-            "local_dofus_data/**", "tools/graphify.py",
-            "tools/agent_graph.py", "tools/atlas_doctor.py",
-            "tools/atlas_doctor_lib/**", ".graphifyignore",
-            ".github/workflows/graphify-map.yml",
-        )
-        for event, section in (("pull_request", pull_request), ("push", push)):
-            for path in structural:
-                with self.subTest(event=event, path=path):
-                    self.assertIn(f'      - "{path}"', section)
-            # A documentation-only change must not rebuild the full graph.
-            self.assertNotIn('      - "docs/**"', section)
-            self.assertNotIn('      - "**"', section)
+        paths = json.loads((ROOT / "tools/atlas_doctor_lib/ci_routes.json").read_text())["graphify-map"]
+        structural = ("app/**", "main.py", "launch.py", "sitecustomize.py", "local_dofus_data/**", "tools/graphify.py", "tools/agent_graph.py", "tools/atlas_doctor.py", "tools/atlas_doctor_lib/**", ".graphifyignore", ".github/workflows/graphify-map.yml")
+        for path in structural:
+            self.assertIn(path, paths)
+        self.assertNotIn("docs/**", paths)
+        self.assertNotIn("**", paths)
+        central = (ROOT / ".github/workflows/phase-certification.yml").read_text()
+        self.assertIn("pull_request:", central)
+        self.assertIn("push:", central)
+        self.assertIn("uses: ./.github/workflows/graphify-map.yml", central)
 
     def test_graph_provenance_never_passes_with_unknown_sha_or_wrong_tool(self):
         import hashlib
@@ -93,22 +90,25 @@ class GraphifyWorkflowBudgetTests(unittest.TestCase):
         self.assertIn("graphify-out/doctor_graph_ui_metrics.json", workflow)
         self.assertIn("source_scan_truncated", workflow)
 
-    def test_heavy_memory_and_preload_are_explicit_for_graphify_ui_only_changes(self):
-        # Graphify code/UI iterations must not re-run 45-minute Windows
-        # benchmarks every push. Manual final Phase 8 certification remains.
-        for name in ("phase8-memory-benchmark.yml", "phase8-preload-benchmark.yml"):
-            workflow = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
-            self.assertIn("workflow_dispatch:", workflow)
-            self.assertIn("github.event_name == 'workflow_dispatch'", workflow)
-            self.assertNotIn(
-                "github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1'",
-                workflow,
-            )
-            self.assertIn("startsWith(github.event.pull_request.title, 'Phase 8')", workflow)
+    def test_heavy_memory_and_preload_are_selected_by_doctor_impact(self):
+        from tools.atlas_doctor_lib.ci_orchestrator import select_workflows
+        low = select_workflows(["tools/atlas_json_raw.py"], event="pull_request",
+                               phase_route={"route": "SCOPED"}, ui_plan={"status": "NOT_APPLICABLE"})
+        high = select_workflows(["app/preload.py"], event="pull_request",
+                                phase_route={"route": "FULL"}, ui_plan={"status": "NOT_APPLICABLE"})
+        for name in ("phase8-memory-benchmark", "phase8-preload-benchmark"):
+            workflow = (ROOT / f".github/workflows/{name}.yml").read_text()
+            self.assertIn("workflow_call:", workflow)
+            self.assertIn("timeout-minutes: 45", workflow)
+            self.assertNotIn("startsWith(github.event.pull_request.title", workflow)
+            self.assertFalse(low["workflows"][name]["selected"])
+            self.assertTrue(high["workflows"][name]["selected"])
 
     def test_focused_ci_still_runs_on_every_dev_push(self):
         code = (ROOT / ".github/workflows/graphify-targeted-ci.yml").read_text(encoding="utf-8")
-        self.assertIn("phase8/graphify-staged-cleanup-v1", code)
+        self.assertIn("workflow_call:", code)
+        central = (ROOT / ".github/workflows/phase-certification.yml").read_text()
+        self.assertIn("uses: ./.github/workflows/graphify-targeted-ci.yml", central)
         self.assertIn("test_atlas_doctor_dev_events.py", code)
         self.assertIn("test_atlas_doctor_live_graph.py", code)
 

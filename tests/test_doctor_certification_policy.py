@@ -183,18 +183,21 @@ class PolicyAndPassportTests(unittest.TestCase):
         )
         self.assertIn("SCOPED_TESTS_PASS", engine)
 
-    def test_phase_draft_does_not_auto_launch_full(self):
+    def test_doctor_routes_every_pr_including_drafts_by_impact(self):
         root = Path(__file__).resolve().parents[1]
         phase = (root / ".github/workflows/phase-certification.yml").read_text(
             encoding="utf-8"
         )
         docs = (root / "PHASE_CERTIFICATION.md").read_text(encoding="utf-8")
-        self.assertIn("github.event.pull_request.draft == false", phase)
+        decision = phase.split("  certify:", 1)[1].split("    name:", 1)[0]
+        self.assertIn("needs: doctor-plan", decision)
+        self.assertNotIn("draft", decision)
+        self.assertNotIn("title", decision)
         self.assertIn("ready_for_review", phase)
         self.assertIn("github.event_name == 'push'", phase)
         self.assertIn("tools.atlas_integrity full", phase)
-        self.assertIn("Une **PR Phase en brouillon**", docs)
-        self.assertIn("FULL Phase n'est pas lancée automatiquement", docs)
+        self.assertIn("Doctor / CI Plan", docs)
+        self.assertIn("brouillon", docs)
 
     def test_plan_is_cheap_and_windows_only_if_scoped(self):
         root = Path(__file__).resolve().parents[1]

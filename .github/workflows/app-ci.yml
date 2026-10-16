@@ -1,41 +1,13 @@
 name: Dofus Atlas Application CI
 
 on:
+  workflow_call:
   workflow_dispatch:
   # Reuse completed, host-verified Phase FULL on the exact main push SHA.
   workflow_run:
     workflows: ["Phase Certification"]
     types: [completed]
     branches: [main]
-  push:
-    branches:
-      - main
-    paths:
-      - "app/**"
-      - "local_dofus_data/**"
-      - "data/encyclopedia/**"
-      - "data/cartography/**"
-      - "data/images/**"
-      - "data/routes/**"
-      - "data/dofus_atlas_world.db"
-      - "tools/**"
-      - "scripts/**"
-      - "config/**"
-      - "tests/**"
-      - "launch.py"
-      - "main.py"
-      - "sitecustomize.py"
-      - "requirements-pyside.txt"
-      - "DOFUS.bat"
-      - "Install_Dofus_Atlas.bat"
-      - "bootstrap_dofus_atlas.ps1"
-      - ".gitignore"
-      - ".gitattributes"
-      - "AGENTS.md"
-      - "DEVELOPMENT_GUARDRAILS.md"
-      - "PERFORMANCE_GUARDRAILS.md"
-      - ".github/workflows/**"
-      - ".github/dependabot.yml"
 
 concurrency:
   group: dofus-atlas-public-app-ci-${{ github.ref }}
@@ -433,7 +405,7 @@ jobs:
           if ($proof.phase_full_host_verified -eq $true) {
             Add-Content $env:GITHUB_OUTPUT "full_verified=true"
           } else {
-            if ($proof.kind -ne "main_application_verified_scoped") {
+            if ($proof.kind -notin @("main_application_verified_scoped", "main_application_verified_focused")) {
               throw "Untrusted Doctor scoped evidence"
             }
             Add-Content $env:GITHUB_OUTPUT "full_verified=false"
@@ -443,13 +415,13 @@ jobs:
         if: steps.proof.outputs.full_verified == 'false'
         run: |
           $proof = Get-Content "artifacts/ci_app_main/phase_full_reuse.json" -Raw | ConvertFrom-Json
-          if ($proof.phase_full_host_verified -ne $false -or $proof.kind -ne "main_application_verified_scoped") {
+          if ($proof.phase_full_host_verified -ne $false -or $proof.kind -notin @("main_application_verified_scoped", "main_application_verified_focused")) {
             throw "Scope result cannot claim FULL certification"
           }
-          Write-Host "APPLICATION POST-MERGE: Doctor scoped result verified. No FULL certification claimed."
+          Write-Host "APPLICATION POST-MERGE: $($proof.kind) verified. No FULL certification claimed."
           if ($env:GITHUB_STEP_SUMMARY) {
-            Add-Content $env:GITHUB_STEP_SUMMARY "## Doctor scoped main validation: PASS"
-            Add-Content $env:GITHUB_STEP_SUMMARY "- Verified same-SHA scoped tests; NOT a FULL or release certification."
+            Add-Content $env:GITHUB_STEP_SUMMARY "## Doctor main evidence: $($proof.kind)"
+            Add-Content $env:GITHUB_STEP_SUMMARY "- Verified same-SHA scoped tests or documentation-only applicability; NOT a FULL or release certification."
             Add-Content $env:GITHUB_STEP_SUMMARY "- Independent main fast checks run in the push workflow."
           }
 

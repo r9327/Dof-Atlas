@@ -34,14 +34,15 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
 
     def test_public_automatic_workflows_use_github_hosted_windows(self) -> None:
         app = self._workflow("app-ci.yml")
-        public_pr = self._workflow("public-pr-ci.yml")
+        public_pr = self._workflow("phase-certification.yml")
 
-        for label, source in (("app-ci.yml", app), ("public-pr-ci.yml", public_pr)):
+        for label, source in (("app-ci.yml", app), ("phase-certification.yml", public_pr)):
             self.assertIn("runs-on: windows-latest", source, label)
             self.assertNotIn("runs-on: [self-hosted, Windows, X64]", source, label)
             self.assertNotIn(FEATURE_BRANCH, source, label)
 
-        self.assertIn("push:", app)
+        self.assertIn("workflow_call:", app)
+        self.assertIn("push:", public_pr)
         self.assertNotIn("pull_request:", app)
         self.assertIn("pull_request:", public_pr)
         self.assertNotIn("pull_request_target:", public_pr)
@@ -102,7 +103,7 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
     def test_canonical_lock_ci_keeps_full_git_history(self) -> None:
         for name in (
             "app-ci.yml",
-            "public-pr-ci.yml",
+            "phase-certification.yml",
             "guide-ultime-v5-ui.yml",
             "deep-validation.yml",
         ):
@@ -214,7 +215,7 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("throw", final)
 
     def test_app_ci_trigger_scope_covers_public_sources_without_local_state(self) -> None:
-        source = self._workflow("app-ci.yml")
+        source = (ROOT / "tools/atlas_doctor_lib/ci_routes.json").read_text(encoding="utf-8")
         for data_path in (
             '"data/encyclopedia/**"',
             '"data/cartography/**"',
@@ -233,7 +234,7 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn('".github/dependabot.yml"', source)
 
     def test_public_pr_workflow_stays_read_only_and_public_safe(self) -> None:
-        source = self._workflow("public-pr-ci.yml")
+        source = self._workflow("phase-certification.yml")
         self.assertIn("pull_request:", source)
         self.assertIn("      - main", source)
         self.assertIn("runs-on: windows-latest", source)
@@ -247,7 +248,7 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
 
     def test_artifact_retention_matches_routine_and_certification_evidence(self) -> None:
         for name in (
-            "public-pr-ci.yml",
+            "phase-certification.yml",
             "doctor-runtime-perf.yml",
             "graphify-map.yml",
             "guide-ultime-v5-ui.yml",
