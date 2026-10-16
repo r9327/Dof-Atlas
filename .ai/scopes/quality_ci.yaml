@@ -2,11 +2,31 @@ schema_version: 1
 scope: quality_ci
 kind: shared_infrastructure
 working_set:
+  - tools/agent.py
+  - tools/agent_planner.py
+  - tools/agent_graph.py
+  - tools/guide_integrity.py
+  - tests/test_agent_verification.py
+  - tests/test_agent_work_depth.py
+  - tests/test_agent_planner_metadata.py
+  - tests/test_dofus_atlas_tools_skill.py
+  - tools/tool_catalog.py
+  - tools/tool_audit.py
+  - tools/ai_context.py
   - tools/atlas_integrity.py
   - tools/atlas_integrity_policy.json
+  - tools/atlas_lifecycle_soak.py
+  - tests/test_atlas_lifecycle_soak.py
   - tools/agent_hotspots.py
+  - tools/atlas_doctor.py
+  - tools/atlas_doctor_lib/
+  - tools/atlas_doctor_io_runner.py
+  - tools/graphify.py
+  - tools/graphify.ps1
 shared_dependencies: []
 context_entries:
+  - tools/skills/dofus-atlas-tools/SKILL.md
+  - GRAPHIFY.md
   - tests/
   - .github/workflows/
   - .githooks/

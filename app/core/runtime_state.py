@@ -24,6 +24,7 @@ from app.windows.unity_windows import enable_dpi_awareness
 StatusCallback = Callable[[str], None]
 ActiveCallback = Callable[[bool], None]
 RUNTIME_STARTUP_JOIN_TIMEOUT_SECONDS = 5.0
+MACRO_THREAD_JOIN_TIMEOUT_SECONDS = 2.0
 
 
 class _RuntimeCallbackBridge(QObject):
@@ -121,6 +122,10 @@ class AtlasRuntime:
         self._startup_thread: threading.Thread | None = None
         self._startup_reload_requested = False
         self._starting = False
+        # False means there is no live Dofus client to bind hooks to. Keep the
+        # Win32 hook backends completely cold in that state; a later start()
+        # reloads settings and enables them as soon as a session appears.
+        self._runtime_bindings_available = True
         self._threads: list[threading.Thread] = []
 
     @property
@@ -299,6 +304,10 @@ class AtlasRuntime:
             cancelled = self._startup_cancel.is_set()
             if cancelled:
                 return
+            if not self._runtime_bindings_available:
+                self.logger.info("Runtime Python en attente: aucune session Unity detectee.")
+                self._emit_active(False)
+                return
             if not self._admin_ok:
                 self.logger.error("Runtime Python non demarre: droits insuffisants pour les hooks.")
                 self._emit_active(False)
@@ -390,6 +399,7 @@ class AtlasRuntime:
     def stop(self) -> None:
         self._cancel_pending_startup()
         self.emergency_stop("arret runtime")
+        self._join_macro_threads()
         self.registry.stop()
         self.mouse_hook.stop()
         with self._state_lock:
@@ -398,9 +408,33 @@ class AtlasRuntime:
         self.logger.info("Runtime Python arrete.")
         self._emit_status("Runtime Python arrete.")
 
+    def _join_macro_threads(self) -> None:
+        current = threading.current_thread()
+        threads = [thread for thread in self._threads if thread is not current and thread.is_alive()]
+        for thread in threads:
+            thread.join(MACRO_THREAD_JOIN_TIMEOUT_SECONDS)
+        self._threads = [thread for thread in threads if thread.is_alive()]
+        if self._threads:
+            self.logger.error(
+                "Threads macro encore actifs apres arret: %s",
+                [thread.name for thread in self._threads],
+            )
+
     def reload_hotkeys(self, force_restart: bool = False) -> None:
         self.settings = load_settings()
         set_debug_logging(self.settings.debug_enabled)
+        if not self.settings.clients:
+            # No client means no keyboard/mouse action can target Dofus. Avoid
+            # importing/constructing the Win32 hook backends merely to wait.
+            self._runtime_bindings_available = False
+            self._admin_ok = True
+            self.synthetic_guard.reset()
+            self.input_state.reset_armed()
+            self._emit_active(False)
+            self._emit_status("Runtime Python en attente: aucune session Unity detectee.")
+            return
+
+        self._runtime_bindings_available = True
         report = self.registry.register_hotkeys(build_runtime_hotkey_actions(self.settings))
         admin_audit = audit_client_admin_rights((client.handle for client in self.settings.clients), self.logger)
         self._admin_ok = admin_audit.ok

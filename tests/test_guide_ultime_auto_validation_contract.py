@@ -13,8 +13,8 @@ from app.modules.encyclopedia.services.guide_auto_validation_contract import (
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideManualProgressBar,
     GuideUltimeManualCard,
-    GuideUltimeManualView,
 )
+from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
 
 
 class _AchievementProvider:
@@ -194,9 +194,10 @@ class GuideUltimeAutoValidationContractTests(unittest.TestCase):
         self.assertEqual(contract["summary"]["reserved_target_count"], 2)
 
     def test_manual_view_uses_clickable_progress_scrubber_and_only_bottom_arrows(self):
-        build = inspect.getsource(GuideUltimeManualView._build_ui)
-        self.assertIn("GuideManualProgressBar", build)
-        self.assertIn("navigationRequested.connect", build)
+        build = inspect.getsource(SharedGuideManualView._build_ui)
+        strip = inspect.getsource(SharedGuideManualView._build_progress_strip)
+        self.assertIn("GuideManualProgressBar", strip)
+        self.assertIn("navigationRequested.connect", strip)
         self.assertNotIn("current_button", build)
         self.assertIn("Précédent", build)
         self.assertIn("Suivant", build)

@@ -8,7 +8,21 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $LogDir = Join-Path $Root "artifacts\ci_guide_ultime_logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
+$OwnedValidationDir = $null
+if (-not $env:DOFUS_ATLAS_VALIDATION_DATA_DIR) {
+    $OwnedValidationDir = Join-Path ([IO.Path]::GetTempPath()) ("atlas-guide-data-" + [guid]::NewGuid().ToString("N"))
+    $env:DOFUS_ATLAS_VALIDATION_DATA_DIR = $OwnedValidationDir
+}
+$ValidationLocal = Join-Path $env:DOFUS_ATLAS_VALIDATION_DATA_DIR "local"
+New-Item -ItemType Directory -Force -Path $ValidationLocal | Out-Null
+$ZaapSeed = Join-Path $Root "data\local\zaaps.json"
+$ZaapSandbox = Join-Path $ValidationLocal "zaaps.json"
+if ((Test-Path $ZaapSeed) -and -not (Test-Path $ZaapSandbox)) {
+    Copy-Item -LiteralPath $ZaapSeed -Destination $ZaapSandbox
+}
+
 $results = [System.Collections.Generic.List[object]]::new()
+$script:VerifiedFullStages = @{}
 
 function Write-LogLine {
     param([string]$Path, [string]$Text)
@@ -68,6 +82,29 @@ function Invoke-PythonCheck {
     Invoke-LoggedNative $Name $PythonExecutable @($PythonPrefixArguments + $Arguments)
 }
 
+function Invoke-GuideTestOrReuse {
+    param(
+        [Parameter(Mandatory=$true)][string]$Name,
+        [Parameter(Mandatory=$true)][string[]]$Module
+    )
+    if ($script:VerifiedFullStages.ContainsKey($Name)) {
+        $logPath = Join-Path $LogDir ("{0}.log" -f $Name)
+        $proofCount = [int]$script:VerifiedFullStages[$Name]
+        if (Test-Path $logPath) { Remove-Item $logPath -Force }
+        Write-LogLine -Path $logPath -Text "REUSED_FROM_EXACT_FULL SHA=$env:ATLAS_FULL_SUITE_SHA module=$($Module -join ',') tests=$proofCount"
+        $results.Add([pscustomobject]@{
+            name = $Name
+            exit_code = 0
+            duration_seconds = 0.0
+            log = [IO.Path]::GetFileName($logPath)
+            reused_from_full = $true
+            exact_full_test_count = $proofCount
+        }) | Out-Null
+        return
+    }
+    Invoke-PythonCheck $Name (@("-m", "unittest") + $Module)
+}
+
 $diag = Join-Path $LogDir "00_environment.log"
 if (Test-Path $diag) { Remove-Item $diag -Force }
 Write-LogLine -Path $diag -Text "Guide Ultime CI diagnostics"
@@ -92,10 +129,49 @@ try {
     "--- canonical route files ---" | Tee-Object -FilePath $diag -Append
     Get-ChildItem "data\routes\guide_ultime_manual" -File | Sort-Object Name | Select-Object -ExpandProperty Name | Tee-Object -FilePath $diag -Append
 
-    Invoke-PythonCheck "01_install_dependencies" @("-m", "pip", "install", "-r", "requirements-pyside.txt")
+    # Optional, same-checkout FULL proof. Every missing or ambiguous test
+    # causes a normal, independent subprocess run of ALL Guide test modules.
+    if ($env:ATLAS_GUIDE_REUSE_FULL -eq "1" -and
+        $env:ATLAS_FULL_SUITE_SUCCESS -eq "success" -and
+        -not [string]::IsNullOrWhiteSpace($env:ATLAS_FULL_SUITE_SHA)) {
+        $proofPath = Join-Path $LogDir "exact_full_test_proof.json"
+        $fullLog = Join-Path $Root "artifacts/ci_app_logs/05_full_unittest_proof.json"
+        & $PythonExecutable @PythonPrefixArguments -m tools.ci_guide_full_evidence --root $Root --proof $fullLog --sha $env:ATLAS_FULL_SUITE_SHA --out $proofPath
+        if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $proofPath)) {
+            $proof = Get-Content -LiteralPath $proofPath -Raw | ConvertFrom-Json
+            if ($proof.status -eq "PROVEN" -and $proof.head -eq $env:ATLAS_FULL_SUITE_SHA) {
+                $required = @("02_guide_ultime_core_tests", "03_manual_route_composition_tests", "11_existing_guides_tests", "12_existing_success_tests", "13_existing_shell_tests")
+                foreach ($name in $required) {
+                    if ($proof.stages.PSObject.Properties.Name -contains $name -and [int]$proof.stages.$name -gt 0) {
+                        $script:VerifiedFullStages[$name] = [int]$proof.stages.$name
+                    }
+                }
+                if ($script:VerifiedFullStages.Count -ne $required.Count) {
+                    $script:VerifiedFullStages = @{}
+                }
+            }
+        }
+        if ($script:VerifiedFullStages.Count -ne 5) {
+            Write-Warning "Guide exact FULL evidence unavailable: execute original suites."
+        }
+    }
 
-    Invoke-PythonCheck "02_guide_ultime_core_tests" @(
-        "-m", "unittest",
+    if ($env:ATLAS_GUIDE_DEPENDENCIES_READY -eq "1" -and
+        $env:ATLAS_FULL_SUITE_SUCCESS -eq "success") {
+        $skipLog = Join-Path $LogDir "01_install_dependencies.log"
+        Write-LogLine -Path $skipLog -Text "REUSED_FROM_SAME_PYTHON_ENV pinned application dependencies already installed by Phase workflow"
+        $results.Add([pscustomobject]@{
+            name = "01_install_dependencies"
+            exit_code = 0
+            duration_seconds = 0.0
+            log = [IO.Path]::GetFileName($skipLog)
+            reused_from_phase = $true
+        }) | Out-Null
+    } else {
+        Invoke-PythonCheck "01_install_dependencies" @("-m", "pip", "install", "-r", "requirements-pyside.txt")
+    }
+
+    Invoke-GuideTestOrReuse "02_guide_ultime_core_tests" @(
         "tests.test_guide_ultime_v5_ui",
         "tests.test_guide_ultime_v5_runtime",
         "tests.test_guide_ultime_walkthrough",
@@ -121,8 +197,7 @@ try {
         "tests.test_guide_ultime_ocre_registry_runtime"
     )
 
-    Invoke-PythonCheck "03_manual_route_composition_tests" @(
-        "-m", "unittest",
+    Invoke-GuideTestOrReuse "03_manual_route_composition_tests" @(
         "tests.test_guide_ultime_manual_route_composition",
         "tests.test_guide_ultime_manual_stage_imports",
         "tests.test_guide_ultime_manual_astrub_v6",
@@ -137,7 +212,7 @@ try {
     Invoke-PythonCheck "03b_canonical_lock_audit" @("-m", "tools.audit_guide_ultime_canonical_lock", "--strict", "--output", ".\artifacts\ci_guide_ultime_logs\canonical_lock.json")
     Invoke-PythonCheck "03c_canonical_dependency_audit" @("-m", "tools.audit_guide_ultime_canonical_dependencies", "--strict", "--output", ".\artifacts\ci_guide_ultime_logs\canonical_dependencies.json")
     Invoke-PythonCheck "04_structural_audit" @("-m", "tools.validate_guide_ultime_manual_bundle", "--strict", "--skip-catalog")
-    Invoke-PythonCheck "05_transversal_v16_audit" @("-m", "tools.validate_guide_ultime_manual_transversals_v16", "--strict", "--skip-catalog")
+    Invoke-PythonCheck "05_transversal_canonical_audit" @("-m", "tools.validate_guide_ultime_manual_transversals", "--strict", "--skip-catalog")
     Invoke-PythonCheck "06_route_hook_resolution" @("-m", "tools.audit_guide_ultime_manual_route_hooks", "--strict")
     Invoke-PythonCheck "07_prerequisite_order_audit" @(
         "-m", "tools.audit_guide_ultime_manual_prerequisites",
@@ -152,13 +227,18 @@ try {
     )
     Invoke-PythonCheck "10_runtime_audit" @("-m", "tools.audit_guide_ultime_manual_runtime", "--strict-fields")
     Invoke-PythonCheck "10b_action_quality_inventory" @("-m", "tools.audit_guide_ultime_action_quality", "--strict-hard", "--output", ".\artifacts\ci_guide_ultime_logs\action_quality.json")
+    Invoke-PythonCheck "10c_player_contract_7e" @("-m", "tools.guide_player_contract", "--strict-hard", "--output", ".\artifacts\ci_guide_ultime_logs\player_contract_7e.json")
 
-    Invoke-PythonCheck "11_existing_guides_tests" @("-m", "unittest", "tests.test_guides_phase3")
-    Invoke-PythonCheck "12_existing_success_tests" @("-m", "unittest", "tests.test_achievements_lot7")
-    Invoke-PythonCheck "13_existing_shell_tests" @("-m", "unittest", "tests.test_pyside_shell")
+    Invoke-GuideTestOrReuse "11_existing_guides_tests" "tests.test_guides_phase3"
+    Invoke-GuideTestOrReuse "12_existing_success_tests" "tests.test_achievements_lot7"
+    Invoke-GuideTestOrReuse "13_existing_shell_tests" "tests.test_pyside_shell"
 }
 finally {
     Pop-Location
+    if ($OwnedValidationDir) {
+        Remove-Item -LiteralPath $OwnedValidationDir -Recurse -Force
+        Remove-Item Env:\DOFUS_ATLAS_VALIDATION_DATA_DIR
+    }
 }
 
 $summaryJson = Join-Path $LogDir "ci_summary.json"

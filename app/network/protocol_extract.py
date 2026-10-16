@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from app.network.contracts import _is_sha256
+
 import argparse
 import hashlib
 import json
 import subprocess
 import sys
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Sequence
@@ -301,10 +304,8 @@ def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
         )
         temporary.replace(path)
     except OSError as exc:
-        try:
+        with suppress(OSError):
             temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
         raise ProtocolExtractionError(f"cannot write extraction manifest: {path}") from exc
 
 
@@ -318,14 +319,6 @@ def _positive_int(value: object) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def _is_sha256(value: str) -> bool:
-    if len(value) != 64:
-        return False
-    try:
-        bytes.fromhex(value)
-    except ValueError:
-        return False
-    return True
 
 
 def build_parser() -> argparse.ArgumentParser:

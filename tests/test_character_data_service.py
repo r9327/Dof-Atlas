@@ -12,6 +12,14 @@ from app.services.character_data_service import CharacterDataService
 
 
 class CharacterDataServiceTests(unittest.TestCase):
+    def test_progress_coordinator_boundary_is_core_owned(self):
+        source = Path("app/services/character_data_service.py").read_text(encoding="utf-8")
+        self.assertIn("from app.core.progress_coordinator import coordinator_for", source)
+        self.assertNotIn("app.modules.encyclopedia.services.progress_coordinator", source)
+        self.assertFalse(
+            Path("app/modules/encyclopedia/services/progress_coordinator.py").exists()
+        )
+
     def test_delete_refuses_invalid_progress_without_rewriting_it(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

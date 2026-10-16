@@ -402,7 +402,10 @@ class GuideUltimeGeneratedView(QWidget):
 
 
     def set_character_key(self, character_key: str) -> None:
-        self.character_key = character_key or ""
+        normalized = character_key or ""
+        if normalized == self.character_key:
+            return
+        self.character_key = normalized
         self.refresh(reset_to_active=True)
 
     def refresh_external_progress(self) -> None:

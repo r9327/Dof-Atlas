@@ -265,11 +265,12 @@ class QuestVisualsLot6Tests(unittest.TestCase):
             self.dispose_widget(view)
 
     def test_solution_images_remain_compact_and_keep_their_aspect_ratio(self) -> None:
-        path = ROOT_DIR / "data/encyclopedia/images/quests/1760/step_01.webp"
-        label = SolutionImageLabel(str(path), "Test")
+        image = QImage(1040, 640, QImage.Format_ARGB32)
+        image.fill(0)
+        label = SolutionImageLabel("", "Test")
         label.resize(800, 500)
         label.show()
-        label.finish_image_load(QImage(str(path)))
+        label.finish_image_load(image)
         pixmap = label.pixmap()
         self.assertIsNotNone(pixmap)
         assert pixmap is not None

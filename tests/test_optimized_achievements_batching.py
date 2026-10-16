@@ -19,12 +19,30 @@ from app.modules.encyclopedia.views.achievements_view import (
 class _FakeProvider:
     def __init__(self, achievements) -> None:
         self.achievements = list(achievements)
+        self._by_id = {int(row.id): row for row in self.achievements}
 
     def is_retained(self, _achievement_id: int) -> bool:
         return True
 
     def get_by_category(self, _category_id: int):
         return list(self.achievements)
+
+    def search(self, text: str):
+        query = str(text or "").strip().casefold()
+        return [
+            row
+            for row in self.achievements
+            if query in str(row.name or "").casefold()
+        ]
+
+    def get_by_id(self, achievement_id: int):
+        return self._by_id.get(int(achievement_id))
+
+    def catalogue_row_by_id(self, achievement_id: int):
+        row = self.get_by_id(achievement_id)
+        if row is None:
+            return None
+        return (int(row.id), str(row.name), row.level, int(row.points))
 
 
 class _FakeProgressService:
@@ -57,6 +75,7 @@ class _LightAchievementsView(AchievementsView):
         self._achievement_pending_selected_id = None
         self._achievement_rows_dirty = False
         self._achievement_completed_ids = frozenset()
+        self._achievement_rendering_batch = False
         self._achievement_initializing = False
         self._detail_open = False
 
@@ -116,7 +135,7 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             view.hide()
             view.list_widget.clear()
             view._achievement_pending_rows = [
-                (int(row.id), view._achievement_row_text(row), row.name)
+                int(row.id)
                 for row in view.filtered
             ]
             view._achievement_rows_dirty = True
@@ -160,7 +179,12 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             self.assertGreater(view._achievement_render_generation, old_generation)
             self.assertEqual(view.list_widget.count(), 0)
             self.assertEqual(len(view._achievement_pending_rows), 40)
-            self.assertTrue(all(row[1].startswith("Beta succes") for row in view._achievement_pending_rows))
+            self.assertTrue(
+                all(
+                    view.provider.get_by_id(row_id).name.startswith("Beta succes")
+                    for row_id in view._achievement_pending_rows
+                )
+            )
         finally:
             view.close()
             view.deleteLater()

@@ -1,0 +1,35 @@
+name: Encyclopedia Provider Import Boundary
+
+on:
+  push:
+    branches:
+      - perf/encyclopedia-quest-provider-lazy-v1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-provider-boundary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Python provider import side-effect contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          lfs: false
+      - name: Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Run three fresh-process import contracts
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          python -X faulthandler -m unittest discover -s tests -p "test_encyclopedia_provider_lazy_boundary.py" -v

@@ -9,17 +9,22 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "tools" / "audit_guide_ultime_action_quality.py"
 
 
 class GuideUltimeActionQualityCliTests(unittest.TestCase):
-    def test_cli_runs_outside_repo_cwd_and_writes_report(self) -> None:
+    def test_canonical_module_cli_writes_report(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             output = tmp_path / "action_quality.json"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPT), "--output", str(output)],
-                cwd=tmp_path,
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.audit_guide_ultime_action_quality",
+                    "--output",
+                    str(output),
+                ],
+                cwd=ROOT,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",

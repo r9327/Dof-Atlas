@@ -37,16 +37,31 @@ class QuestHierarchy:
             for category in categories
             for series in category.series
         }
-        paths: dict[int, list[QuestHierarchyPath]] = defaultdict(list)
-        for category in categories:
+        # Path lookup is only needed for the currently selected Quest. Building a
+        # dict + tuple for every Quest/series incidence made the first Quests open
+        # allocate thousands of short-lived Python containers and raised the
+        # process watermark permanently. Keep only one selected-Quest snapshot.
+        self._path_cache_key: int | None = None
+        self._path_cache: tuple[QuestHierarchyPath, ...] = ()
+
+    def _paths_for_quest(self, quest_id: int) -> tuple[QuestHierarchyPath, ...]:
+        quest_id = int(quest_id)
+        if self._path_cache_key == quest_id:
+            return self._path_cache
+
+        paths: list[QuestHierarchyPath] = []
+        for category in self.categories:
             for series in category.series:
-                path = QuestHierarchyPath(category, series)
-                for quest_id in series.quest_ids:
-                    paths[int(quest_id)].append(path)
-        self.paths_by_quest = {quest_id: tuple(values) for quest_id, values in paths.items()}
+                if quest_id in series.quest_ids:
+                    paths.append(QuestHierarchyPath(category, series))
+
+        result = tuple(paths)
+        self._path_cache_key = quest_id
+        self._path_cache = result
+        return result
 
     def path_for(self, quest_id: int, preferred_series_id: str = "") -> QuestHierarchyPath | None:
-        paths = self.paths_by_quest.get(int(quest_id), ())
+        paths = self._paths_for_quest(int(quest_id))
         if preferred_series_id:
             preferred = next((path for path in paths if path.series.id == preferred_series_id), None)
             if preferred is not None:

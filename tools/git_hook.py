@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import py_compile
 import subprocess
 import sys
@@ -8,14 +9,15 @@ import tempfile
 from pathlib import Path
 
 from tools.ai_context import sync_index
+from tools.atlas_doctor_lib.dev_events import dev_event
 from tools.check_generated_files import find_forbidden, find_sensitive_content, git_paths
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(command: list[str], root: Path) -> int:
-    return subprocess.run(command, cwd=root, check=False).returncode
+def run(command: list[str], root: Path, *, env: dict[str, str] | None = None) -> int:
+    return subprocess.run(command, cwd=root, check=False, env=env).returncode
 
 
 def staged_python_files(root: Path) -> list[Path]:
@@ -66,23 +68,48 @@ def pre_commit(root: Path) -> int:
         if code:
             print(f"[pre-commit] BLOCKED: {label}", file=sys.stderr)
             return code
+    # Advisory only: do not duplicate tests or block commits for Graphify candidates.
+    try:
+        hints = dev_event(root, "pre-commit")
+        if hints["changed_count"]:
+            print(f"[pre-commit] Doctor hint: {hints['status']} | "
+                  f"{hints['changed_count']} files | "
+                  f"{len(hints['recommended_tests'])} proposed tests (not run)")
+            if hints["source_structural_total"]:
+                print("[pre-commit] Doctor: structural consumers require review.")
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(f"[pre-commit] Doctor advisory unavailable: {exc}", file=sys.stderr)
     print("[pre-commit] PASS")
     return 0
 
 
 def pre_push(root: Path) -> int:
+    # Git exports repository-local variables into hooks. The validation gate
+    # creates temporary repositories: inheriting GIT_DIR/INDEX_FILE/etc would
+    # redirect their commits and config writes into the repository being pushed.
+    # Let children discover this worktree from cwd, and foreign repos from theirs.
+    # Keep pre-commit's alternate-index environment unchanged.
+    local_vars = subprocess.run(
+        ["git", "rev-parse", "--local-env-vars"], cwd=root,
+        text=True, capture_output=True, check=True,
+    )
+    environment = os.environ.copy()
+    for name in local_vars.stdout.splitlines():
+        environment.pop(name, None)
     upstream = subprocess.run(
         ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
         cwd=root,
         text=True,
         capture_output=True,
         check=False,
+        env=environment,
     )
     base_ref = upstream.stdout.strip() if upstream.returncode == 0 else "HEAD^"
     print(f"[pre-push] Atlas Integrity FAST (base={base_ref})")
     return run(
         [sys.executable, "-X", "faulthandler", "-m", "tools.atlas_integrity", "fast", "--base-ref", base_ref],
         root,
+        env=environment,
     )
 
 

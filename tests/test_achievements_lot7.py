@@ -26,6 +26,15 @@ from app.modules.encyclopedia.widgets.achievement_detail_widget import Achieveme
 from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntityRow, AchievementEntitySection
 from app.modules.encyclopedia.widgets.achievement_objective_widget import AchievementObjectiveWidget
 from app.modules.encyclopedia.models.entity_ref import EntityRef
+from app.modules.encyclopedia.tools import audit_achievements_lot7
+
+
+class AchievementLot7AuditTests(unittest.TestCase):
+    def test_generated_reports_default_to_ignored_artifacts(self):
+        self.assertEqual(
+            audit_achievements_lot7.DEFAULT_OUTPUT_DIR,
+            Path(__file__).resolve().parents[1] / "artifacts" / "achievements_lot7",
+        )
 
 
 class AchievementLot7ProviderTests(unittest.TestCase):

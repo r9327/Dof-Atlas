@@ -298,15 +298,14 @@ class PySideShellTests(unittest.TestCase):
         self.assertTrue(any(quest.achievements for quest in catalog.quests))
 
     def test_quest_preload_builds_catalog(self):
-        preload = build_quest_preload(include_related=False)
-        catalog = preload.get("catalog")
+        with patch("main._warm_quest_catalogue", return_value=1976) as warm:
+            preload = build_quest_preload(include_related=False)
 
         self.assertEqual(preload.get("errors"), [])
-        self.assertIsInstance(catalog, QuestCatalog)
-        self.assertGreaterEqual(len(catalog.quests), 1900)
-        achievement_provider = preload.get("achievement_provider")
-        self.assertIsInstance(achievement_provider, AchievementProvider)
-        self.assertFalse(achievement_provider._loaded)
+        self.assertIsNone(preload.get("catalog"))
+        self.assertEqual(preload.get("catalog_count"), 1976)
+        self.assertIsNone(preload.get("achievement_provider"))
+        warm.assert_called_once_with()
 
     def test_quests_page_tracks_progress_per_character(self):
         app = QApplication.instance() or QApplication([])
@@ -642,8 +641,14 @@ class PySideShellTests(unittest.TestCase):
                         "Settings",
                     },
                 )
-                self.assertEqual(set(window.page_factories), {"Scan Monde", "Craft", "Quetes", "Equipement"})
-                self.assertEqual(type(window.page_widgets["Organizer"]).__name__, "OrganizerPage")
+                self.assertEqual(
+                    set(window.page_factories),
+                    {"Organizer", "Scan Monde", "Craft", "Quetes", "Equipement"},
+                )
+                self.assertNotEqual(
+                    type(window.page_widgets["Organizer"]).__name__,
+                    "OrganizerPage",
+                )
                 self.assertNotEqual(type(window.page_widgets["Scan Monde"]).__name__, "WorldScanPanel")
                 self.assertNotEqual(type(window.page_widgets["Equipement"]).__name__, "EquipmentPage")
                 self.assertEqual(window.page_nav_group["Quetes"], "Encyclopédie")
@@ -1038,8 +1043,13 @@ class PySideShellTests(unittest.TestCase):
                     101: {"item": {"name": "Anneau test", "ankama_id": 101}, "quantity": 3},
                 },
                 "lookup_items": [],
+                # A valid lazy-loaded catalogue is required by the truthful
+                # Craft availability contract before selection is hydrated.
+                "_prepared": True,
+                "_lazy_items": True,
             }
             page = CraftPage(lambda _text: None, preload=preload)
+            self.assertTrue(page._runtime_ready)
             page.show_resources()
             app.processEvents()
 
@@ -1690,7 +1700,7 @@ class PySideShellTests(unittest.TestCase):
                 self.assertEqual(window.character_combo.currentText(), "")
 
                 character_loader.return_value = [QuestCharacter("character:1", "Bob", 1, True)]
-                organizer_page = window.page_widgets["Organizer"]
+                organizer_page = window.ensure_page_loaded("Organizer")
                 organizer_page.sessions = organizer_page.build_session_slots(
                     [{"nom": "Bob - Pandawa", "hwnd": 10, "pid": 99}]
                 )

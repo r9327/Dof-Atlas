@@ -27,7 +27,7 @@ def get_runtime_logger() -> logging.Logger:
         try:
             RUNTIME_LOG_FILE.replace(LOG_DIR / "session_runtime.log.old")
         except OSError:
-            pass
+            logger.warning("Rotation du log runtime impossible.", exc_info=True)
 
     handler = logging.FileHandler(RUNTIME_LOG_FILE, encoding="utf-8")
     handler.setLevel(logging.INFO)

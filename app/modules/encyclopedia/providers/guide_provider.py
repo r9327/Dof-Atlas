@@ -25,7 +25,7 @@ from app.modules.encyclopedia.models import (
 from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider, safe_int
 from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON, DofusItemProvider
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 LOGGER = logging.getLogger(__name__)
 GUIDES_DIR = DATA_DIR / "encyclopedia" / "guides"

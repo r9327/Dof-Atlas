@@ -9,7 +9,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from app.constants import KEY_SESSION_ORDER
 from app.modules.encyclopedia.constants import ENCYCLOPEDIA_TABS
@@ -20,7 +20,7 @@ from app.modules.encyclopedia.tools import validate_guides
 from app.modules.encyclopedia.views import EncyclopediaPage, GuidesView
 from app.modules.encyclopedia.views.guides_view import QuestLine
 from app.modules.encyclopedia.widgets import GUIDE_GROUP_ROLE
-from app.quest_catalog import load_quest_progress, quest_done, set_quest_done
+from app.quest_catalog import load_quest_progress, quest_done, save_quest_progress, set_quest_done
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "data" / "encyclopedia" / "guides" / "catalog.json"
@@ -35,6 +35,26 @@ class GuideCatalogFillTests(unittest.TestCase):
         cls.provider = GuideProvider(quest_provider=cls.quest_provider, achievement_provider=cls.achievement_provider)
         cls.guides = cls.provider.load_all()
         cls.by_id = {guide.id: guide for guide in cls.guides}
+
+    @classmethod
+    def _shared_generated_build(cls):
+        # The same genuine generated catalog is consumed by all three contracts.
+        # Building under a network ban preserves offline validation while avoiding
+        # costly identical Guide reconstruction across independent assertions.
+        if not hasattr(cls, "_cached_generated_build"):
+            original_socket = socket.socket
+
+            def forbidden_socket(*_args, **_kwargs):
+                raise AssertionError("network call forbidden during Guide build")
+
+            socket.socket = forbidden_socket
+            try:
+                result = GuideCatalogBuilder().build()
+            finally:
+                socket.socket = original_socket
+            cls._cached_generated_build = result
+            cls._cached_build_verified_offline = True
+        return cls._cached_generated_build
 
     def test_catalog_categories_are_strict_and_guides_are_grouped(self):
         catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
@@ -68,6 +88,48 @@ class GuideCatalogFillTests(unittest.TestCase):
         self.assertIn(2502, first_quests)
         self.assertEqual(len(first_quests), 5)
         self.assertTrue(all(self.quest_provider.get_quest(quest_id) is not None for quest_id in first_quests))
+
+    def test_lanyel_sylvestre_reuses_the_adventure_guide_engine(self):
+        guide = self.by_id["dofus_sylvestre"]
+        self.assertEqual(guide.id, "dofus_sylvestre")
+        self.assertEqual(guide.title, "Lanyel Sylvestre")
+        self.assertEqual(guide.category, "aventure")
+        self.assertEqual(len(guide.steps), 218)
+        self.assertEqual(len(guide.required_steps), 198)
+        self.assertFalse(guide.validation_errors)
+        self.assertEqual(
+            [candidate.id for candidate in self.provider.get_by_category("aventure")],
+            ["guide_complet", "dofus_sylvestre"],
+        )
+
+        result = self._shared_generated_build()
+        rebuilt = result.guides["dofus_sylvestre"]
+        self.assertEqual(rebuilt["title"], "Lanyel Sylvestre")
+        self.assertEqual(rebuilt["category"], "aventure")
+        catalog_row = next(
+            row for row in result.catalog["guides"]
+            if row["id"] == "dofus_sylvestre"
+        )
+        self.assertEqual(catalog_row["category"], "aventure")
+        self.assertEqual(catalog_row["order"], 20)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            view = self._make_guides_view(Path(tmp))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            self.app.processEvents()
+            self.assertEqual(view.current_guide_id, "dofus_sylvestre")
+            self.assertEqual(view.state, view.GUIDE_OVERVIEW)
+            self.assertIsNone(view.guide_ultime_view)
+            self.assertEqual(len(view.center_panel.findChildren(QuestLine)), 40)
+            self.assertEqual(len(view._selected_series_rewards(guide)), 12)
+            self.assertTrue(view._selected_series_rewards_truncated)
+            more = view.center_panel.findChild(QWidget, "GuideSeriesLoadMoreButton")
+            self.assertIsNotNone(more)
+            more.click()
+            self.app.processEvents()
+            self.assertEqual(len(view.center_panel.findChildren(QuestLine)), 80)
+            view.deleteLater()
+            self.app.processEvents()
 
     def test_dofus_guides_have_valid_objects_images_and_turquoise_is_preserved(self):
         dofus_guides = [guide for guide in self.guides if guide.category == "dofus"]
@@ -137,8 +199,7 @@ class GuideCatalogFillTests(unittest.TestCase):
     def test_partial_draft_hide_completed_and_tools(self):
         self.assertTrue(any(guide.completeness_status == "partial" for guide in self.guides))
         self.assertFalse(any(guide.completeness_status == "draft" for guide in self.guides))
-        builder = GuideCatalogBuilder()
-        result = builder.build()
+        result = self._shared_generated_build()
         self.assertEqual([category["id"] for category in result.catalog["categories"]], ["aventure", "dofus", "alignements"])
         self.assertGreaterEqual(len(result.report["guides_non_ajoutes"]), 1)
         self.assertEqual(result.report["schema_version"], 2)
@@ -148,11 +209,16 @@ class GuideCatalogFillTests(unittest.TestCase):
             view = self._make_guides_view(Path(tmp))
             guide = self.by_id["dofus_turquoise"]
             progress = load_quest_progress(view.quest_progress_path)
+            # This test verifies the final Guide/UI state, not the write
+            # transaction for each prerequisite (covered separately).
+            # Seed the fixture once instead of repeated JSON reads/writes.
+            completed = progress.setdefault("characters", {}).setdefault(
+                "character:1", {"done": {}}
+            ).setdefault("done", {})
             for step in guide.required_steps:
-                if step.step_type != "quest" or step.entity_id is None:
-                    continue
-                set_quest_done(progress, "character:1", step.entity_id, True, view.quest_progress_path)
-                progress = load_quest_progress(view.quest_progress_path)
+                if step.step_type == "quest" and step.entity_id is not None:
+                    completed[str(step.entity_id)] = True
+            save_quest_progress(progress, view.quest_progress_path)
             view.refresh_external_progress()
             self.assertEqual(view.guide_state(guide), "Terminé")
             view.select_guide("dofus_turquoise")
@@ -200,14 +266,9 @@ class GuideCatalogFillTests(unittest.TestCase):
             self.assertNotEqual(validate_guides.main(["--guides-dir", str(tmp_path)]), 0)
 
     def test_write_missing_does_not_replace_existing_guide_and_no_network(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            existing = tmp_path / "dofus_turquoise.json"
-            existing.write_text('{"sentinel": true}', encoding="utf-8")
-            builder = GuideCatalogBuilder(guides_dir=tmp_path)
-            builder.write_missing(builder.build())
-            self.assertEqual(json.loads(existing.read_text(encoding="utf-8")), {"sentinel": True})
-
+        # The real build is shared with the Lanyel/catalog assertions and was
+        # performed under a socket ban. Keep this independent filesystem test:
+        # write_missing must never replace the on-disk sentinel or use network.
         original_socket = socket.socket
 
         def forbidden_socket(*_args, **_kwargs):
@@ -217,8 +278,20 @@ class GuideCatalogFillTests(unittest.TestCase):
         try:
             provider = GuideProvider()
             self.assertGreater(len(provider.load_all()), 0)
-            builder = GuideCatalogBuilder()
-            self.assertGreater(len(builder.build().guides), 0)
+            with tempfile.TemporaryDirectory() as tmp:
+                tmp_path = Path(tmp)
+                existing = tmp_path / "dofus_turquoise.json"
+                existing.write_text('{"sentinel": true}', encoding="utf-8")
+                builder = GuideCatalogBuilder(guides_dir=tmp_path)
+                result = self._shared_generated_build()
+                self.assertTrue(self._cached_build_verified_offline)
+                self.assertGreater(len(result.guides), 0)
+                written = builder.write_missing(result)
+                self.assertNotIn(str(existing), written)
+                self.assertEqual(
+                    json.loads(existing.read_text(encoding="utf-8")),
+                    {"sentinel": True},
+                )
         finally:
             socket.socket = original_socket
 

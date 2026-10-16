@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
 from app.modules.encyclopedia.services.adventure_route_adapter import AdventureRouteAdapter
 from app.modules.encyclopedia.services.adventure_route_engine import (
     AdventureRouteEngine,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 import unittest
+from unittest.mock import patch
 
 from app.core.runtime_state import AtlasRuntime
 from app.core.settings import AtlasSettings, MacroTimings, ZaapTimings
@@ -116,6 +117,18 @@ class RuntimeHookLifecycleTests(unittest.TestCase):
         self.assertIn("self._running and self._admin_ok", source)
         self.assertNotIn("active_callback(report.ok", source)
         self.assertIn("Raccourcis recharges avec avertissement", source)
+
+    def test_runtime_without_clients_keeps_hook_backends_cold(self) -> None:
+        runtime = AtlasRuntime()
+        with (
+            patch("app.core.runtime_state.load_settings", return_value=self._settings()),
+            patch("app.core.runtime_state.set_debug_logging"),
+        ):
+            runtime.reload_hotkeys()
+
+        self.assertFalse(runtime._runtime_bindings_available)
+        self.assertIsNone(runtime.registry._backend)
+        self.assertIsNone(runtime.mouse_hook._backend)
 
 
 if __name__ == "__main__":

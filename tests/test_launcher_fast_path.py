@@ -8,7 +8,7 @@ class LauncherFastPathTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.launcher = (
-            Path(__file__).resolve().parents[1] / "Dofus_Atlas.bat"
+            Path(__file__).resolve().parents[1] / "DOFUS.bat"
         ).read_text(encoding="utf-8")
 
     def test_launcher_uses_single_environment_and_syntax_preflight(self) -> None:
@@ -42,6 +42,37 @@ class LauncherFastPathTests(unittest.TestCase):
     def test_launcher_still_uses_supported_python_and_pythonw(self) -> None:
         self.assertIn('ok=sys.version_info[0] == 3 and sys.version_info[1] == 13', self.launcher)
         self.assertIn('start "" "%PYTHONW_EXE%" "%APP_SCRIPT%"', self.launcher)
+
+    def test_launcher_hides_only_root_technical_entries_after_app_launch(self) -> None:
+        self.assertIn("call :tidy_root_view", self.launcher)
+        self.assertIn(":tidy_root_view", self.launcher)
+        self.assertGreater(
+            self.launcher.index("call :tidy_root_view"),
+            self.launcher.index('start "" "%PYTHONW_EXE%" "%APP_SCRIPT%"'),
+        )
+        for entry in (
+            "AGENTS.md",
+            "AI_CONTEXT.md",
+            "DEVELOPMENT_GUARDRAILS.md",
+            "GRAPHIFY.md",
+            "PHASE_CERTIFICATION.md",
+            "ROAD_IA.md",
+            "launch.py",
+            "main.py",
+            "requirements-pyside.txt",
+            "sitecustomize.py",
+        ):
+            self.assertIn(f'"{entry}"', self.launcher)
+        for directory in (".ai", ".githooks", ".github"):
+            self.assertIn(f'"{directory}"', self.launcher)
+        self.assertIn('attrib +h "%ROOT%%%~F"', self.launcher)
+        self.assertIn('attrib +h "%ROOT%%%~D"', self.launcher)
+        self.assertIn('attrib -h "%ROOT%DOFUS.bat"', self.launcher)
+
+    def test_root_cleanup_preserves_canonical_root_paths(self) -> None:
+        self.assertIn('set "APP_SCRIPT=%ROOT%launch.py"', self.launcher)
+        self.assertNotIn("move ", self.launcher.casefold())
+        self.assertNotIn("ren ", self.launcher.casefold())
 
 
 if __name__ == "__main__":

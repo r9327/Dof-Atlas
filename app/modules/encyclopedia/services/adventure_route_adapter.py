@@ -13,7 +13,10 @@ from app.modules.encyclopedia.services.adventure_route_engine import (
     RouteCondition,
     RouteLocation,
 )
-from tools.guide_ultime_scope_v5 import mandatory_qf_ids, residual_qf_alternatives
+from app.modules.encyclopedia.services.guide_criterion_scope import (
+    mandatory_qf_ids,
+    residual_qf_alternatives,
+)
 
 
 QF_RE = re.compile(r"\bQf\s*=\s*(\d+)", re.IGNORECASE)

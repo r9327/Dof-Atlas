@@ -3,17 +3,18 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtWidgets import QApplication
 
 from app.constants import KEY_SESSION_ORDER
 from app.modules.encyclopedia.constants import ENCYCLOPEDIA_TABS, QUESTS_TAB
-from app.modules.encyclopedia.providers import GuideProvider, QuestProvider
+from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.views import EncyclopediaPage
 from app.pages.quests_page import QuestsPage
 from app.quest_catalog import QuestCatalog, QuestObjective, QuestRecord, QuestReward, QuestStep
@@ -93,12 +94,55 @@ class EncyclopediaPhase1Tests(unittest.TestCase):
         owned_items_path.write_text(json.dumps({"items": []}), encoding="utf-8")
         statuses: list[str] = []
         quest_provider = QuestProvider(catalog=self.make_catalog())
-        empty_guides_dir = tmp_path / "guides"
-        empty_guides_dir.mkdir()
+        # This UI navigation test must not accidentally launch the 1,976-quest
+        # production Successes/Guide ingest. Cold catalogue lifecycle has its
+        # own dedicated tests; here both background workers use a real, small
+        # per-test provider and finish before Windows removes the temp directory.
+        raw_dir = tmp_path / "achievement_sources"
+        (raw_dir / "languages").mkdir(parents=True)
+        (raw_dir / "languages" / "fr.json").write_text(
+            json.dumps({"entries": {"1": "Succès de test"}}), encoding="utf-8"
+        )
+        def rows(*values):
+            return {"references": {"RefIds": [{"data": value} for value in values]}}
+        fixtures = {
+            "achievements.json": rows({
+                "id": 10, "nameId": 1, "descriptionId": -1, "categoryId": 8,
+                "level": 1, "points": 5, "objectiveIds": [], "rewardIds": [],
+            }),
+            "achievement_categories.json": rows({
+                "id": 8, "nameId": 1, "parentId": 0, "achievementIds": [10],
+            }),
+        }
+        for name in ("achievement_objectives.json", "quests.json", "monsters.json",
+                     "dungeons.json", "achievement_rewards.json", "items.json",
+                     "spells.json", "titles.json", "emoticons.json", "ornaments.json",
+                     "alterations.json"):
+            fixtures[name] = rows()
+        for name, payload in fixtures.items():
+            (raw_dir / name).write_text(json.dumps(payload), encoding="utf-8")
+        achievement_provider = AchievementProvider(
+            data_dir=raw_dir, quest_provider=quest_provider,
+        )
+        guides_dir = tmp_path / "guides"
+        guides_dir.mkdir()
+        (guides_dir / "fixture.json").write_text(json.dumps({
+            "schema_version": 1, "id": "fixture", "title": "Guide de test",
+            "category": "aventure", "completeness_status": "complete",
+            "sections": [{"id": "intro", "title": "Départ", "steps": [
+                {"id": "read", "type": "info", "title": "Présentation"},
+            ]}],
+        }), encoding="utf-8")
         page = EncyclopediaPage(
             statuses.append,
             quest_provider=quest_provider,
-            guide_provider=GuideProvider(guides_dir=empty_guides_dir, quest_provider=quest_provider),
+            achievement_provider=achievement_provider,
+            guide_provider=GuideProvider(
+                guides_dir=guides_dir, quest_provider=quest_provider,
+                achievement_provider=achievement_provider,
+            ),
+            achievement_progress_path=tmp_path / "achievement_progress.json",
+            guide_progress_path=tmp_path / "guide_progress.json",
             progress_path=progress_path,
             profile_path=profile_path,
             client_index_path=client_index_path,
@@ -180,7 +224,33 @@ class EncyclopediaPhase1Tests(unittest.TestCase):
             self.assertTrue(statuses)
             self.assertEqual(page.current_tab_label(), ENCYCLOPEDIA_TABS[-1])
 
+            # Tab changes deliberately kick off Guide/Achievement background
+            # progress readers. On Windows an active quest_progress.json.lock
+            # cannot be deleted by TemporaryDirectory cleanup. Wait for the
+            # actual workers to finish instead of ignoring a leaked lock.
+            deadline = time.monotonic() + 15
+            busy_names = (
+                "_quest_load_started",
+                "_related_preload_started",
+                "_achievement_load_started",
+            )
+            while time.monotonic() < deadline:
+                app.processEvents()
+                if not any(bool(getattr(page, flag, False)) for flag in busy_names):
+                    break
+                time.sleep(0.02)
+            self.assertFalse(
+                any(bool(getattr(page, flag, False)) for flag in busy_names),
+                "Encyclopedia background worker remains active at test teardown: "
+                + repr({flag: getattr(page, flag, False) for flag in busy_names}),
+            )
+            self.assertFalse(
+                any("impossible" in message.lower() for message in statuses),
+                statuses,
+            )
+            page.close()
             page.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
             app.processEvents()
 
 

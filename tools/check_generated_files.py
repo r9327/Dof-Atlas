@@ -10,6 +10,7 @@ from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 FORBIDDEN_EXACT = {
+    "manifest.json",
     "logs/start_log.txt",
     ".coverage",
     "coverage.xml",
@@ -23,6 +24,7 @@ FORBIDDEN_EXACT = {
 }
 FORBIDDEN_PREFIXES = ("artifacts/", "htmlcov/")
 FORBIDDEN_SUFFIXES = (
+    ".json.lock",
     ".sqlite-wal",
     ".sqlite-shm",
     ".dmp",
@@ -102,6 +104,16 @@ SENSITIVE_TOKEN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
             rf"\s*[\"']?\s*[:=]\s*[\"']?({JWT_VALUE})"
         ),
     ),
+)
+
+# Cheap, deliberately broad superset of every supported secret signature.
+# A line without any marker cannot match SENSITIVE_TOKEN_PATTERNS, so do
+# not execute more than a dozen heavyweight regexes against ordinary code.
+# Always check Windows user paths and private-key headers independently.
+SECRET_CANDIDATE_MARKER = re.compile(
+    r"gh[pousr]_|github_pat_|sk-|sk_live_|akia|aiza|npm_|xox|sb_secret_|"
+    r"jwt|token|secret|role|key",
+    re.IGNORECASE,
 )
 
 
@@ -199,6 +211,10 @@ def find_sensitive_content(
                     {"path": relative_path, "reason": f"private key header at line {line_number}"}
                 )
                 break
+            # Fast rejection: lines that cannot contain a supported token
+            # never enter placeholder evaluation or per-signature regex scans.
+            if not SECRET_CANDIDATE_MARKER.search(line):
+                continue
             if _looks_like_placeholder(line):
                 continue
             token_reason = next(

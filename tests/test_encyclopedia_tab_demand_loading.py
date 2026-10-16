@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import unittest
 
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB
@@ -74,10 +75,19 @@ class EncyclopediaDemandLoadingTests(unittest.TestCase):
             "_on_guide_requested",
             "_on_achievement_requested",
             "_finish_pending_guide_request",
+            "_ensure_guides_view_base",
+            "_ensure_guides_view_progressive",
+            "_promote_guides_runtime_context",
+            "_on_tab_changed_progressive",
         )
         for name in obsolete:
             with self.subTest(name=name):
                 self.assertFalse(hasattr(EncyclopediaPage, name))
+
+    def test_obsolete_placeholder_view_is_not_public(self) -> None:
+        views = importlib.import_module("app.modules.encyclopedia.views")
+        self.assertNotIn("EncyclopediaPlaceholderView", views.__all__)
+        self.assertFalse(hasattr(views, "EncyclopediaPlaceholderView"))
 
 
 if __name__ == "__main__":

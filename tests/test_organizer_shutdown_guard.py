@@ -4,6 +4,9 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtWidgets import QApplication
+
 from app.pages.organizer_page import OrganizerPage
 
 
@@ -29,6 +32,14 @@ class OrganizerShutdownGuardTests(unittest.TestCase):
         OrganizerPage.stop_session_event_watcher(fake_page)
 
         self.assertEqual(stopped, ["window", "release", "watcher"])
+
+    def test_late_runtime_badge_callback_ignores_deleted_qt_owner(self) -> None:
+        QApplication.instance() or QApplication([])
+        page = OrganizerPage(lambda _text: None, lambda: None)
+        page.deleteLater()
+        QCoreApplication.sendPostedEvents(page, QEvent.DeferredDelete)
+
+        page.set_runtime_active(True)
 
 
 if __name__ == "__main__":

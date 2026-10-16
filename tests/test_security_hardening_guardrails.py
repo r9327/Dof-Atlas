@@ -92,6 +92,8 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
             "pyside6",
             "pyside6_addons",
             "pyside6_essentials",
+            "pyside6_webengine",
+            "pyside6_pdf",
             "shiboken6",
             "pillow",
             "pywin32",
@@ -119,7 +121,7 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
                 self.assertIn(command, source)
 
     def test_bootstrap_installs_and_validates_the_authenticated_runtime(self) -> None:
-        source = (ROOT / "bootstrap_dofus_atlas.ps1").read_text(encoding="utf-8-sig")
+        source = (ROOT / "scripts" / "windows" / "bootstrap_dofus_atlas.ps1").read_text(encoding="utf-8-sig")
         self.assertIn('$PythonPackageVersion = "3.13.15"', source)
         self.assertIn('python-3.13.15-amd64.exe', source)
         self.assertIn('edec09c4853aeae9ac36efb8c9f95b6b8e2fee65eee56d9767a8b7c69c574403', source)
@@ -131,16 +133,17 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
         self.assertIn("Get-FileHash -Path $installer -Algorithm SHA256", source)
         self.assertIn("$PythonInstallerSha256", source)
 
-    def test_equipment_webview_blocks_local_custom_and_popup_navigation(self) -> None:
+    def test_equipment_surface_is_external_and_has_no_embedded_web_runtime(self) -> None:
         source = (ROOT / "app" / "pages" / "equipment_page.py").read_text(encoding="utf-8")
-        self.assertIn('scheme in {"https", "about", "data", "blob"}', source)
-        self.assertIn('if scheme == "https" and (', source)
-        self.assertIn('NavigationTypeLinkClicked and scheme == "https"', source)
-        self.assertIn("def createWindow(self, _window_type):", source)
-        self.assertNotIn('scheme in {"http", "https"}', source)
+        self.assertIn("QDesktopServices.openUrl", source)
+        self.assertIn("QUrl(HUZOUNET_URL)", source)
+        self.assertNotIn("QWebEngineView", source)
+        self.assertNotIn("QWebEnginePage", source)
+        self.assertNotIn("QtWebEngine", source)
+        self.assertNotIn("NavigationTypeLinkClicked", source)
 
     def test_runtime_does_not_disable_qtwebengine_sandbox(self) -> None:
-        candidates = [ROOT / "main.py", ROOT / "launch.py", ROOT / "Dofus_Atlas.bat", ROOT / "bootstrap_dofus_atlas.ps1"]
+        candidates = [ROOT / "main.py", ROOT / "launch.py", ROOT / "DOFUS.bat", ROOT / "scripts" / "windows" / "bootstrap_dofus_atlas.ps1"]
         for path in candidates:
             if not path.is_file():
                 continue
@@ -157,7 +160,7 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
             ".github/SECURITY.md",
             ".github/rulesets/**",
             "requirements-pyside.txt",
-            "bootstrap_dofus_atlas.ps1",
+            "scripts/windows/bootstrap_dofus_atlas.ps1",
             "app/pages/equipment_page.py",
             "app/services/maps/cartography_asset_recovery.py",
             "local_dofus_data/data_store.py",

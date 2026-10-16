@@ -27,6 +27,11 @@ from app.modules.encyclopedia.constants import (
     GUIDES_TAB,
     QUESTS_TAB,
 )
+from app.modules.encyclopedia.services.quest_hierarchy_service import (
+    QuestCategoryGroup,
+    QuestHierarchy,
+    QuestSeries,
+)
 from app.pages.lazy_quests_page import LazyQuestsPage
 from app.pages.quests_page import HIERARCHY_ID_ROLE, HIERARCHY_KIND_ROLE
 from app.quest_catalog import QuestAchievementSeries, QuestCatalog, QuestRecord
@@ -59,10 +64,67 @@ def catalog_fixture() -> QuestCatalog:
     )
 
 
+class QuestHierarchyMemoryTests(unittest.TestCase):
+    def test_paths_are_materialized_only_for_selected_quest(self) -> None:
+        first = QuestSeries(
+            id="achievement:1",
+            name="Courte",
+            category="Zone",
+            quest_ids=(1, 2),
+            order=0,
+            source="achievement",
+        )
+        second = QuestSeries(
+            id="fallback:zone",
+            name="Longue",
+            category="Zone",
+            quest_ids=(2, 3, 4),
+            order=100,
+            source="fallback",
+        )
+        hierarchy = QuestHierarchy(
+            (QuestCategoryGroup(name="Zone", series=(first, second)),)
+        )
+
+        self.assertFalse(hasattr(hierarchy, "paths_by_quest"))
+        self.assertIsNone(hierarchy._path_cache_key)
+        self.assertEqual(hierarchy._path_cache, ())
+
+        preferred = hierarchy.path_for(2, "fallback:zone")
+        self.assertIsNotNone(preferred)
+        self.assertEqual(preferred.series.id, "fallback:zone")
+        self.assertEqual(hierarchy._path_cache_key, 2)
+        self.assertEqual(
+            {path.series.id for path in hierarchy._path_cache},
+            {"achievement:1", "fallback:zone"},
+        )
+
+        default = hierarchy.path_for(2)
+        self.assertIsNotNone(default)
+        self.assertEqual(default.series.id, "achievement:1")
+
+        other = hierarchy.path_for(4)
+        self.assertIsNotNone(other)
+        self.assertEqual(other.series.id, "fallback:zone")
+        self.assertEqual(hierarchy._path_cache_key, 4)
+        self.assertEqual(len(hierarchy._path_cache), 1)
+
+
 class LazyQuestsPagePerformanceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_encyclopedia_uses_canonical_lazy_page_without_progressive_shim(self) -> None:
+        source = Path(
+            "app/modules/encyclopedia/views/encyclopedia_page.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "from app.pages.lazy_quests_page import LazyQuestsPage",
+            source,
+        )
+        self.assertNotIn("app.pages.progressive_quests_page", source)
+        self.assertFalse(Path("app/pages/progressive_quests_page.py").exists())
 
     def build_page(self, root: Path) -> LazyQuestsPage:
         profile = root / "profiles.json"
@@ -548,7 +610,9 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             achievement_progress_service=SimpleNamespace(
                 path=Path("achievement_progress.json")
             ),
-            _build_guide_progress_snapshot=Mock(return_value={}),
+            _build_guide_progress_snapshot=Mock(
+                return_value={"guide_complet": (0, 0, "")}
+            ),
             guideRuntimeFinished=SimpleNamespace(emit=Mock()),
             open_pending_lazy_tab=Mock(),
             status_callback=Mock(),
@@ -558,23 +622,23 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             return SimpleNamespace(start=target)
 
         with patch(
-            "app.modules.encyclopedia.views.encyclopedia_page._warm_guide_ultime_runtime_cache"
-        ) as warm_cache, patch(
             "app.modules.encyclopedia.views.encyclopedia_page.Thread",
             side_effect=run_thread,
+        ), patch(
+            "app.modules.encyclopedia.views.encyclopedia_page.QuestGraphService",
+            return_value=Mock(),
         ):
             EncyclopediaPageImpl.request_related_preload(page, GUIDES_TAB)
 
         self.assertEqual(gate.state, RelatedPreloadState.LOADING)
         guide_provider.reload.assert_called_once_with()
         guide_provider.load_all.assert_not_called()
-        warm_cache.assert_called_once_with(
-            page.quest_provider,
-            quest_progress_path=page.quest_progress_path,
-            achievement_progress_path=page.achievement_progress_service.path,
-            guide_progress_path=page.guide_progress_service.path,
-        )
         page.guideRuntimeFinished.emit.assert_called_once()
+        payload = page.guideRuntimeFinished.emit.call_args.args[0]
+        self.assertEqual(
+            payload.progress_by_guide["guide_complet"],
+            (0, 0, ""),
+        )
 
     def test_guide_hydration_keeps_rich_detail_unbuilt(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import json
 import os
-import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
 from app.quest_catalog import QuestCatalog
+from app.pages import home_page
 from app.pages.home_page import GUIDE_ULTIME_LEGACY_ID, HomePage
 
 
@@ -30,6 +28,8 @@ class _FakeManualService:
 
 
 class _FakeGuideProvider:
+    _loaded = True
+
     def get_by_id(self, _guide_id: str):
         return None
 
@@ -126,41 +126,47 @@ class HomeGuideUltimeSourceTests(unittest.TestCase):
         refresh_progress.assert_called_once_with()
         page.deleteLater()
 
-    def test_rich_progress_is_saved_for_the_next_cold_start(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            cache_path = root / "home-progress.json"
-            quest_path = root / "quest-progress.json"
-            achievement_path = root / "achievement-progress.json"
-            guide_path = root / "guide-progress.json"
-            for path in (quest_path, achievement_path, guide_path):
-                path.write_text("{}", encoding="utf-8")
 
-            page = HomePage()
-            page.character_key = "character:7"
-            page.catalog = object()
-            page.guide_provider = _FakeGuideProvider()
-            page.guide_ultime_service = _FakeManualService()
+    def test_home_never_reloads_a_cold_guide_provider(self) -> None:
+        page = HomePage()
+        page.catalog = object()
+        page.guide_ultime_service = _FakeManualService()
+        cold = Mock()
+        cold._loaded = False
+        page.guide_provider = cold
 
-            with (
-                patch("app.pages.home_page._HOME_PROGRESS_CACHE_PATH", cache_path),
-                patch("app.pages.home_page.GUIDE_PROGRESS_FILE", guide_path),
-                patch("app.constants.QUEST_PROGRESS_FILE", quest_path),
-                patch(
-                    "app.modules.encyclopedia.services.ACHIEVEMENT_PROGRESS_FILE",
-                    achievement_path,
-                ),
-            ):
-                page.refresh_progress()
+        page.refresh_progress()
 
-            payload = json.loads(cache_path.read_text(encoding="utf-8"))
-            row = payload["characters"]["character:7"]
-            self.assertEqual(row["percent"], 30)
-            self.assertEqual(row["chapter"], "Astrub")
-            self.assertEqual(row["step"], "Boucle Forêt et Égouts")
-            self.assertEqual(row["zone"], "Astrub [5,-18]")
-            self.assertEqual(len(row["progress_signature"]), 3)
-            page.deleteLater()
+        cold.get_by_id.assert_not_called()
+        cold.load_all.assert_not_called()
+        self.assertEqual(page.progress_bar.value(), 30)
+        self.assertEqual(page.chapter_value.text(), "Astrub")
+        page.deleteLater()
+
+    def test_rich_progress_does_not_write_a_secondary_home_cache(self) -> None:
+        page = HomePage()
+        page.character_key = "character:7"
+        page.catalog = object()
+        page.guide_provider = _FakeGuideProvider()
+        page.guide_ultime_service = _FakeManualService()
+
+        with patch("pathlib.Path.write_text") as write_text:
+            page.refresh_progress()
+
+        write_text.assert_not_called()
+        self.assertEqual(page.progress_bar.value(), 30)
+        page.deleteLater()
+
+    def test_cold_manifest_read_is_small_and_cached_once(self) -> None:
+        self.assertLessEqual(home_page._MANUAL_ROUTE_MANIFEST_PATH.stat().st_size, 64 * 1024)
+        manifest = Mock()
+        manifest.read_text.return_value = '{"canonical":{"chapters":[{"stage_count":3}]}}'
+        home_page._manual_route_stage_total.cache_clear()
+        with patch.object(home_page, "_MANUAL_ROUTE_MANIFEST_PATH", manifest):
+            self.assertEqual(home_page._manual_route_stage_total(), 3)
+            self.assertEqual(home_page._manual_route_stage_total(), 3)
+        manifest.read_text.assert_called_once_with(encoding="utf-8")
+        home_page._manual_route_stage_total.cache_clear()
 
 
 if __name__ == "__main__":

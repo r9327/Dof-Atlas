@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from typing import Any
 
 
@@ -12,10 +13,13 @@ def _ensure_guide_view_loaded() -> None:
     if _GUIDE_VIEW_LOADED:
         return
 
-    from app.modules.encyclopedia.views.guides_view import GuideHomeCard
+    guides_module = importlib.import_module("app.modules.encyclopedia.views.guides_view")
+    from app.modules.encyclopedia.views.guide_image_runtime_policy import (
+        install_guide_image_runtime_policy,
+    )
 
-    # Load the canonical Guide primitives only when Guides are requested.
-    _ = GuideHomeCard
+    install_guide_image_runtime_policy(guides_module)
+    _ = guides_module.GuideHomeCard
     _GUIDE_VIEW_LOADED = True
 
 
@@ -25,11 +29,10 @@ def _load_encyclopedia_page_class() -> type:
     if real is not None:
         return real
 
-    from app.modules.encyclopedia.views.encyclopedia_page import (
-        EncyclopediaPage as RealEncyclopediaPage,
+    from app.modules.encyclopedia.views.memory_bound_encyclopedia_page import (
+        MemoryBoundEncyclopediaPage as RealEncyclopediaPage,
     )
 
-    _ensure_guide_view_loaded()
     _REAL_ENCYCLOPEDIA_PAGE = RealEncyclopediaPage
     return RealEncyclopediaPage
 
@@ -60,16 +63,9 @@ class EncyclopediaPage(metaclass=_LazyEncyclopediaPageMeta):
 def __getattr__(name: str):
     if name == "GuidesView":
         _ensure_guide_view_loaded()
-        from app.modules.encyclopedia.views.guides_view import GuidesView
-
-        return GuidesView
-    if name == "EncyclopediaPlaceholderView":
-        from app.modules.encyclopedia.views.placeholder_view import (
-            EncyclopediaPlaceholderView,
-        )
-
-        return EncyclopediaPlaceholderView
+        guides_module = importlib.import_module("app.modules.encyclopedia.views.guides_view")
+        return guides_module.GuidesView
     raise AttributeError(name)
 
 
-__all__ = ["EncyclopediaPage", "EncyclopediaPlaceholderView", "GuidesView"]
+__all__ = ["EncyclopediaPage", "GuidesView"]

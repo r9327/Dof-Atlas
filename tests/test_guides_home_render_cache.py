@@ -6,7 +6,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from app.modules.encyclopedia.views.guides_view import GuidesView
+from app.modules.encyclopedia.views.guides_view import (
+    GUIDE_ULTIME_LEGACY_ID,
+    GUIDE_ULTIME_TITLE,
+    GuidesView,
+)
 
 
 class _GuidesCacheHarness(GuidesView):
@@ -70,6 +74,37 @@ class GuidesHomeRenderCacheTests(unittest.TestCase):
                 third = view.guide_progress_tuple(guide)
                 self.assertEqual(third, (2, 5, "En cours"))
                 self.assertEqual(base_progress.call_count, 2)
+
+    def test_guide_ultime_card_is_selected_by_stable_id(self) -> None:
+        class _Model:
+            def __init__(self) -> None:
+                self.title_overrides: dict[str, str] = {}
+                self.subtitle_overrides: dict[str, str] = {}
+
+            def set_title_override(self, guide_id: str, title: str) -> None:
+                self.title_overrides[str(guide_id)] = str(title)
+
+            def set_subtitle_override(self, guide_id: str, subtitle: str) -> None:
+                self.subtitle_overrides[str(guide_id)] = str(subtitle)
+
+        view = _GuidesCacheHarness()
+        view.result_model = _Model()
+        view.guide_ultime_service = SimpleNamespace(
+            available=True,
+            route_sheet_progress=lambda _character: (12, 34),
+        )
+        view.current_character_key = "character:42"
+
+        view._refresh_guide_ultime_home_labels()
+
+        self.assertEqual(
+            view.result_model.title_overrides,
+            {GUIDE_ULTIME_LEGACY_ID: GUIDE_ULTIME_TITLE},
+        )
+        self.assertEqual(
+            view.result_model.subtitle_overrides,
+            {GUIDE_ULTIME_LEGACY_ID: "12 / 34 fiches"},
+        )
 
 
 if __name__ == "__main__":

@@ -2,6 +2,11 @@ name: Dofus Atlas Application CI
 
 on:
   workflow_dispatch:
+  # Reuse completed, host-verified Phase FULL on the exact main push SHA.
+  workflow_run:
+    workflows: ["Phase Certification"]
+    types: [completed]
+    branches: [main]
   push:
     branches:
       - main
@@ -21,7 +26,7 @@ on:
       - "main.py"
       - "sitecustomize.py"
       - "requirements-pyside.txt"
-      - "Dofus_Atlas.bat"
+      - "DOFUS.bat"
       - "Install_Dofus_Atlas.bat"
       - "bootstrap_dofus_atlas.ps1"
       - ".gitignore"
@@ -38,6 +43,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 env:
   QT_QPA_PLATFORM: offscreen
@@ -52,9 +58,13 @@ defaults:
 
 jobs:
   code-validation:
+    if: github.event_name != 'workflow_run'
     name: Integrity Policy / Fast Code Validation
     runs-on: windows-latest
     timeout-minutes: 30
+    outputs:
+      full_required: ${{ steps.scope.outputs.full_required }}
+      scope_status: ${{ steps.scope.outputs.scope_status }}
     steps:
       - name: Checkout repository without LFS payloads
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -144,9 +154,20 @@ jobs:
           if ($null -eq $code) { $code = 0 }
           if ($code -ne 0) { exit $code }
 
+      - name: Select test scope for routine main pushes
+        id: scope
+        run: |
+          # Unknown/broad/critical diffs or manual dispatch mandate the FULL
+          # job. For small, mapped changes this runs only the affected tests.
+          # All earlier fast guardrails still execute on every push.
+          $base = "${{ github.event.before }}"
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") { $base = "" }
+          python -X faulthandler -m tools.ci_scope_gate --base-ref "$base" --output "$env:GITHUB_OUTPUT" --run
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload fast code validation logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-fast-ci-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/ci_app_fast_logs/**
@@ -156,6 +177,9 @@ jobs:
   full-validation:
     name: Full Application Suite
     needs: code-validation
+    # This is a REAL defer, never a fake FULL PASS. High/critical/unknown
+    # diffs and manual dispatch retain every full validation requirement.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: windows-latest
     timeout-minutes: 120
     steps:
@@ -314,13 +338,16 @@ jobs:
         continue-on-error: true
         run: |
           $ErrorActionPreference = "Continue"
-          & py -3.13 -X faulthandler -m unittest discover -v -s tests -p "test_*.py" 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/05_full_unittest.log"
+          & py -3.13 -X faulthandler -m unittest discover -v -s tests -p "test_*.py" --durations=20 2>&1 | Tee-Object -FilePath "artifacts/ci_app_logs/05_full_unittest.log"
           $code = $LASTEXITCODE
           if ($null -eq $code) { $code = 0 }
           if ($code -ne 0) { exit $code }
 
       - name: Run canonical Guide and data integrity runner
         id: guide_data
+        env:
+          ATLAS_GUIDE_REUSE_FULL: "1"
+          ATLAS_FULL_SUITE_SUCCESS: ${{ steps.full_tests.outcome }}
         run: |
           & .\tools\run_guide_ultime_ci.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -346,7 +373,7 @@ jobs:
 
       - name: Upload full validation logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-full-ci-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -367,3 +394,128 @@ jobs:
             throw ("Full validation failed: " + ($failures -join ", "))
           }
           Write-Host "Full validation verdict: success"
+
+  post-phase-reuse:
+    name: Post-merge / Reused Phase FULL + Unique Lifecycle
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      CERTIFIED_MAIN_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Checkout exact certified main commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CERTIFIED_MAIN_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Independently verify exact-SHA Phase FULL or scoped result
+        id: proof
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -X faulthandler -m tools.ci_main_phase_evidence `
+            --repo "$env:GITHUB_REPOSITORY" `
+            --event-path "$env:GITHUB_EVENT_PATH" `
+            --candidate-sha "$env:CERTIFIED_MAIN_SHA" `
+            --output "artifacts/ci_app_main/phase_full_reuse.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $proof = Get-Content "artifacts/ci_app_main/phase_full_reuse.json" -Raw | ConvertFrom-Json
+          if ($proof.phase_full_host_verified -eq $true) {
+            Add-Content $env:GITHUB_OUTPUT "full_verified=true"
+          } else {
+            if ($proof.kind -ne "main_application_verified_scoped") {
+              throw "Untrusted Doctor scoped evidence"
+            }
+            Add-Content $env:GITHUB_OUTPUT "full_verified=false"
+          }
+
+      - name: Publish verified scoped main result
+        if: steps.proof.outputs.full_verified == 'false'
+        run: |
+          $proof = Get-Content "artifacts/ci_app_main/phase_full_reuse.json" -Raw | ConvertFrom-Json
+          if ($proof.phase_full_host_verified -ne $false -or $proof.kind -ne "main_application_verified_scoped") {
+            throw "Scope result cannot claim FULL certification"
+          }
+          Write-Host "APPLICATION POST-MERGE: Doctor scoped result verified. No FULL certification claimed."
+          if ($env:GITHUB_STEP_SUMMARY) {
+            Add-Content $env:GITHUB_STEP_SUMMARY "## Doctor scoped main validation: PASS"
+            Add-Content $env:GITHUB_STEP_SUMMARY "- Verified same-SHA scoped tests; NOT a FULL or release certification."
+            Add-Content $env:GITHUB_STEP_SUMMARY "- Independent main fast checks run in the push workflow."
+          }
+
+      - name: Install pinned application dependencies
+        if: steps.proof.outputs.full_verified == 'true'
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize isolated lifecycle fixtures and catalog
+        if: steps.proof.outputs.full_verified == 'true'
+        run: |
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Phase-reused lifecycle catalog: {count} quests")
+          if count < 1900:
+              raise SystemExit("Incomplete lifecycle catalog")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run unique same-process lifecycle contracts
+        if: steps.proof.outputs.full_verified == 'true'
+        run: |
+          # Independent contract of Application CI: these modules execute
+          # together, with shared Qt lifetime, unlike individual FULL tests.
+          python -X faulthandler -m unittest -v `
+            tests.test_pyside_shell `
+            tests.test_guide_home_async_images `
+            tests.test_world_scan_async_loading `
+            tests.test_runtime_async_startup `
+            tests.test_atlas_window_runtime_cleanup `
+            tests.test_qt_async_non_accumulation
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish independent application reuse verdict
+        if: steps.proof.outputs.full_verified == 'true'
+        run: |
+          $proof = Get-Content "artifacts/ci_app_main/phase_full_reuse.json" -Raw | ConvertFrom-Json
+          if ($proof.candidate_sha -ne $env:CERTIFIED_MAIN_SHA -or
+              $proof.phase_full_host_verified -ne $true -or
+              $proof.application_full_suite_executed -ne $false) {
+            throw "Untrusted or stale Phase FULL reuse report"
+          }
+          Write-Host "APPLICATION POST-MERGE PASS: exact-SHA Phase FULL reused; independent lifecycle PASS"
+          if ($env:GITHUB_STEP_SUMMARY) {
+            Add-Content $env:GITHUB_STEP_SUMMARY "## Application post-merge PASS"
+            Add-Content $env:GITHUB_STEP_SUMMARY "- SHA: ``$env:CERTIFIED_MAIN_SHA``"
+            Add-Content $env:GITHUB_STEP_SUMMARY "- Phase FULL independently host-verified: [run]($($proof.phase_run_url))"
+            Add-Content $env:GITHUB_STEP_SUMMARY "- Unique same-process Qt lifecycle: PASS"
+            Add-Content $env:GITHUB_STEP_SUMMARY "- Duplicate application FULL unittest/Guide replay: NOT RUN (covered by Phase FULL)"
+          }
+
+      - name: Upload exact-SHA reuse evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-main-phase-full-reuse-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ci_app_main/phase_full_reuse.json
+          if-no-files-found: warn
+          retention-days: 30

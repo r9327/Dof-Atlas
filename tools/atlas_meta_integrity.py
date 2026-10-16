@@ -50,6 +50,7 @@ HARD_REQUIRED_RULE_IDS = frozenset(
         "RANDOM_ORDER_RUNNER",
         "FAULT_INJECTION_CONTRACTS",
         "TARGETED_MUTATION_CONTRACT",
+        "LONG_LIFECYCLE_CONTRACT",
         "CRITICAL_COVERAGE_CONTRACT",
         "DEEP_VALIDATION_WORKFLOW",
     }
@@ -93,6 +94,7 @@ SENSITIVE_PATTERNS = (
     "tools/atlas_fault_injection.py",
     "tools/atlas_fault_injection.json",
     "tools/atlas_mutation.py",
+    "tools/atlas_lifecycle_soak.py",
     "tools/random_order_tests.py",
     "tools/check_generated_files.py",
     ".githooks/**",
@@ -118,6 +120,7 @@ ROOT_OF_TRUST_FILES = frozenset(
         "tests/test_startup_resource_contracts.py",
         "tools/atlas_meta_integrity.py",
         "tools/atlas_integrity.py",
+        "tools/ci_main_phase_evidence.py",
         "tools/atlas_integrity_policy.json",
         "tools/atlas_performance_budget.py",
         "tools/atlas_performance_budgets.json",
@@ -129,9 +132,11 @@ ROOT_OF_TRUST_FILES = frozenset(
         "tests/test_random_order_runner.py",
         "tests/test_fault_injection_contracts.py",
         "tests/test_targeted_mutation.py",
+        "tests/test_atlas_lifecycle_soak.py",
         "tools/atlas_fault_injection.py",
         "tools/atlas_fault_injection.json",
         "tools/atlas_mutation.py",
+        "tools/atlas_lifecycle_soak.py",
         "tools/random_order_tests.py",
         "tools/check_generated_files.py",
         ".github/workflows/deep-validation.yml",
@@ -432,6 +437,27 @@ def check_ci_contracts(root: Path) -> list[str]:
         issues.append("application CI automatic push trigger missing")
     if "pull_request:" in app:
         issues.append("self-hosted application CI must not run on pull_request")
+    # Main pushes are covered by the canonical Phase FULL; Application CI
+    # independently verifies the host result and runs only unique contracts.
+    if ('workflows: ["Phase Certification"]' not in app
+            or "types: [completed]" not in app
+            or "actions: read" not in app):
+        issues.append("main Phase FULL host trigger or read permission missing")
+    if ("if: github.event_name != 'workflow_run'" not in app
+            or "if: ${{ github.event_name == 'workflow_dispatch' }}" not in app
+            or "needs.code-validation.outputs.full_required == 'true'" in app):
+        issues.append("duplicate automatic Application FULL is not disabled")
+    for mandatory in (
+        "tools.ci_main_phase_evidence",
+        "github.event.workflow_run.head_sha",
+        "Run unique same-process lifecycle contracts",
+        "github.event.workflow_run.event == 'push'",
+        "github.event.workflow_run.head_branch == 'main'",
+    ):
+        if mandatory not in app:
+            issues.append("main Phase FULL reuse protection missing: " + mandatory)
+    if not (root / "tools/ci_main_phase_evidence.py").is_file():
+        issues.append("independent main Phase FULL verifier missing")
     if "pull_request:" not in public_pr:
         issues.append("public PR CI pull_request trigger missing")
     if "runs-on: windows-latest" not in public_pr or "self-hosted" in public_pr:

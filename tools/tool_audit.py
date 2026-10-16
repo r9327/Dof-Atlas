@@ -1,0 +1,842 @@
+from __future__ import annotations
+
+"""Read-only inventory of Dofus Atlas repository tooling.
+
+The audit is deliberately informational. It discovers consolidation candidates
+without deleting files, rewriting contracts or deciding that an unreferenced
+maintenance tool is dead. Deletion still requires an explicit zero-consumer
+review in a dedicated micro-lot.
+"""
+
+import argparse
+import ast
+import json
+import re
+import subprocess
+from collections import defaultdict
+from pathlib import Path
+from typing import Any, Iterable
+
+
+ROOT = Path(__file__).resolve().parents[1]
+_TOOL_SUFFIXES = {".py", ".ps1", ".sh", ".bat", ".cmd"}
+_TEXT_SUFFIXES = {
+    ".py",
+    ".ps1",
+    ".sh",
+    ".bat",
+    ".cmd",
+    ".yml",
+    ".yaml",
+    ".md",
+    ".json",
+    ".toml",
+    ".ini",
+    ".cfg",
+    ".txt",
+}
+_REFERENCE_ROOTS = ("tools/", "tests/", ".github/", ".githooks/", "scripts/", "app/", "local_dofus_data/")
+_MAX_TEXT_BYTES = 768 * 1024
+_VERSION_RE = re.compile(r"^(?P<base>.+)_v(?P<version>\d+)$", flags=re.IGNORECASE)
+_MUTATION_MARKERS = (
+    ".write_text(",
+    ".write_bytes(",
+    ".unlink(",
+    ".rename(",
+    "os.replace(",
+    "shutil.copy",
+    "shutil.move",
+    "set-content",
+    "remove-item",
+    "copy-item",
+    "move-item",
+)
+_MUTATION_GATES = (
+    "--apply",
+    "--write",
+    "--fix",
+    "--repair",
+    "--promote",
+    "--sync",
+    "--stage",
+    "--output",
+    "--json-output",
+)
+_PYTHON_EXECUTION_CALLS = {
+    "subprocess.run",
+    "subprocess.popen",
+    "subprocess.call",
+    "subprocess.check_call",
+    "subprocess.check_output",
+    "os.system",
+    "os.popen",
+}
+
+
+def _normalized(path: Path | str) -> str:
+    return str(path).replace("\\", "/")
+
+
+def _expression_name(node: ast.AST) -> str:
+    try:
+        return ast.unparse(node)
+    except Exception:
+        return ""
+
+
+def _git_tracked_paths(root: Path) -> list[str]:
+    completed = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=root,
+        text=False,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        return sorted(
+            item.decode("utf-8", errors="surrogateescape")
+            for item in completed.stdout.split(b"\0")
+            if item
+        )
+    result: list[str] = []
+    for path in root.rglob("*"):
+        try:
+            is_file = path.is_file()
+        except OSError:
+            continue
+        if not is_file or ".git" in path.parts:
+            continue
+        result.append(path.relative_to(root).as_posix())
+    return sorted(result)
+
+
+def _read_text(root: Path, relative: str) -> str:
+    path = root / relative
+    try:
+        if path.stat().st_size > _MAX_TEXT_BYTES:
+            return ""
+        # utf-8-sig accepts normal UTF-8 while stripping an optional BOM.
+        # Python itself accepts BOM-marked UTF-8 source, so the tooling audit
+        # must not report those files as AST parse errors.
+        return path.read_text(encoding="utf-8-sig", errors="replace")
+    except OSError:
+        return ""
+
+
+def _tool_paths(tracked: Iterable[str]) -> list[str]:
+    return sorted(
+        path
+        for path in tracked
+        if path.startswith("tools/") and Path(path).suffix.casefold() in _TOOL_SUFFIXES
+    )
+
+
+def _reference_paths(tracked: Iterable[str]) -> list[str]:
+    rows: list[str] = []
+    for path in tracked:
+        suffix = Path(path).suffix.casefold()
+        if suffix not in _TEXT_SUFFIXES and not (not suffix and path.startswith('.githooks/')):
+            continue
+        if path.startswith(_REFERENCE_ROOTS) or "/" not in path:
+            rows.append(path)
+    return rows
+
+
+def _python_shape(source: str) -> dict[str, Any]:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return {"parse_error": True, "has_main": False, "imports_tools": False}
+    has_main = any(
+        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "main"
+        for node in tree.body
+    )
+    has_main_guard = False
+    imports_tools = False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.If):
+            try:
+                test = ast.unparse(node.test)
+            except Exception:
+                test = ""
+            if "__name__" in test and "__main__" in test:
+                has_main_guard = True
+        elif isinstance(node, ast.Import):
+            imports_tools = imports_tools or any(
+                alias.name == "tools" or alias.name.startswith("tools.")
+                for alias in node.names
+            )
+        elif isinstance(node, ast.ImportFrom):
+            imports_tools = imports_tools or bool(
+                node.module and (node.module == "tools" or node.module.startswith("tools."))
+            )
+    return {
+        "parse_error": False,
+        "has_main": has_main or has_main_guard,
+        "imports_tools": imports_tools,
+    }
+
+
+def _nonblank_line_count(source: str) -> int:
+    return sum(1 for line in source.splitlines() if line.strip())
+
+
+def _is_executable(path: str, source: str, shape: dict[str, Any]) -> bool:
+    suffix = Path(path).suffix.casefold()
+    if suffix == ".py":
+        return bool(shape.get("has_main"))
+    return suffix in {".ps1", ".sh", ".bat", ".cmd"}
+
+
+def _is_wrapper(path: str, source: str, shape: dict[str, Any]) -> bool:
+    line_count = _nonblank_line_count(source)
+    suffix = Path(path).suffix.casefold()
+    lowered = source.casefold().replace("\\", "/")
+    if suffix == ".py":
+        delegates = (
+            ".main(" in source
+            or "raise systemexit(" in lowered
+            or "systemexit(main(" in lowered
+        )
+        return line_count <= 140 and bool(shape.get("imports_tools")) and delegates
+    if suffix in {".ps1", ".sh", ".bat", ".cmd"}:
+        delegates = "tools/" in lowered or "tools." in lowered
+        return line_count <= 40 and delegates
+    return False
+
+
+def _reference_tokens(path: str) -> tuple[str, ...]:
+    posix = _normalized(path)
+    tokens = [posix, posix.replace("/", "\\")]
+    if posix.endswith(".py"):
+        tokens.append(posix[:-3].replace("/", "."))
+    elif posix.endswith(".ps1"):
+        tokens.append(Path(posix).name)
+    # The stem alone is intentionally not used: short/generic stems generate
+    # too many false positives in docs and test names.
+    return tuple(dict.fromkeys(tokens))
+
+
+def _tool_module_path(module: str) -> str | None:
+    if not module.startswith("tools."):
+        return None
+    return module.replace(".", "/") + ".py"
+
+
+def _python_tool_import_paths(source: str) -> set[str]:
+    """Return explicit tools/*.py imports without executing repository code."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    result: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                relative = _tool_module_path(alias.name)
+                if relative:
+                    result.add(relative)
+            continue
+        if not isinstance(node, ast.ImportFrom) or not node.module:
+            continue
+        if node.module == "tools":
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                relative = _tool_module_path(f"tools.{alias.name}")
+                if relative:
+                    result.add(relative)
+            continue
+        relative = _tool_module_path(node.module)
+        if relative:
+            result.add(relative)
+    return result
+
+
+def _literal_command_tokens(node: ast.AST) -> list[str]:
+    if isinstance(node, (ast.List, ast.Tuple)):
+        values: list[str] = []
+        for item in node.elts:
+            if isinstance(item, ast.Constant) and isinstance(item.value, str):
+                values.append(item.value)
+        return values
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return re.findall(r"[^\s\"']+", node.value)
+    return []
+
+
+def _command_tool_paths(tokens: Iterable[str]) -> set[str]:
+    values = [str(value).strip().strip("\"'") for value in tokens if str(value).strip()]
+    normalized = [value.replace("\\", "/").removeprefix("./") for value in values]
+    result: set[str] = set()
+    for index, value in enumerate(normalized):
+        lowered = value.casefold()
+        if lowered == "-m" and index + 1 < len(normalized):
+            module_path = _tool_module_path(normalized[index + 1])
+            if module_path:
+                result.add(module_path)
+            continue
+        if lowered.startswith("tools/") and Path(lowered).suffix in _TOOL_SUFFIXES:
+            result.add(lowered)
+    return result
+
+
+def _python_tool_invocation_paths(source: str) -> set[str]:
+    """Return tools explicitly executed through Python process APIs."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    result: set[str] = set()
+    command_variables: dict[str, set[str]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and isinstance(node.value, (ast.List, ast.Tuple)):
+            paths = _command_tool_paths(_literal_command_tokens(node.value))
+            for target in node.targets:
+                if paths and isinstance(target, ast.Name):
+                    command_variables[target.id] = paths
+        elif isinstance(node, ast.Return) and isinstance(node.value, (ast.List, ast.Tuple)):
+            result.update(_command_tool_paths(_literal_command_tokens(node.value)))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        try:
+            function_name = ast.unparse(node.func).casefold()
+        except Exception:
+            function_name = ""
+        if function_name not in _PYTHON_EXECUTION_CALLS or not node.args:
+            continue
+        argument = node.args[0]
+        result.update(_command_tool_paths(_literal_command_tokens(argument)))
+        if isinstance(argument, ast.Name):
+            result.update(command_variables.get(argument.id, set()))
+    return result
+
+
+def _python_tool_contract_paths(source: str, tool_paths: Iterable[str]) -> set[str]:
+    """Find tests that inspect a tool file instead of merely naming it."""
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    result: set[str] = set()
+    tools = {path.replace('\\', '/'): path for path in tool_paths}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr not in {'read_text', 'read_bytes', 'is_file', 'exists', 'stat'}:
+            continue
+        values = [
+            str(child.value).replace('\\', '/').strip('/')
+            for child in ast.walk(node.func.value)
+            if isinstance(child, ast.Constant) and isinstance(child.value, str)
+        ]
+        evidence = '/'.join(value for value in values if value)
+        for normalized, original in tools.items():
+            if normalized in evidence or Path(normalized).name in values:
+                result.add(original)
+    return result
+
+
+def _line_invokes_tool(path: str, raw_line: str) -> bool:
+    """Conservatively detect shell/workflow execution, not prose mentions."""
+    line = raw_line.casefold().replace("\\", "/").strip()
+    if not line or line.startswith("#"):
+        return False
+    tool = path.casefold().replace("\\", "/")
+    suffix = Path(tool).suffix
+    optional_path = rf"(?:\./)?{re.escape(tool)}(?=$|[\s\"'`,)])"
+
+    if suffix == ".py":
+        module = tool[:-3].replace("/", ".")
+        module_pattern = re.escape(module)
+        if re.search(
+            rf"(?:^|[;&|]\s*)\&?\s*(?:py(?:\.exe)?|python(?:\.exe)?)\b(?:\s+-\S+)*\s+-m\s+{module_pattern}(?=$|[\s\"'`,)])",
+            line,
+        ):
+            return True
+        if re.search(
+            rf"(?:^|[;&|]\s*)\&?\s*(?:py(?:\.exe)?|python(?:\.exe)?)\b(?:\s+-\S+)*\s+{optional_path}",
+            line,
+        ):
+            return True
+        # PowerShell helper used by the Guide CI runner: @("-m", "tools.foo", ...)
+        if "invoke-pythoncheck" in line and re.search(
+            rf"[\"']-m[\"']\s*,\s*[\"']{module_pattern}[\"']",
+            line,
+        ):
+            return True
+        return False
+
+    if tool not in line and Path(tool).name not in line:
+        return False
+    if re.search(rf"(?:^|[;&|]\s*)\&?\s*{optional_path}", line):
+        return True
+    if suffix == ".ps1" and re.search(
+        rf"\b(?:pwsh|powershell)(?:\.exe)?\b.*{optional_path}",
+        line,
+    ):
+        return True
+    if suffix in {".bat", ".cmd"} and re.search(
+        rf"(?:^|[;&|]\s*)call\s+{optional_path}",
+        line,
+    ):
+        return True
+    if suffix == ".sh" and re.search(
+        rf"(?:^|[;&|]\s*)(?:bash|sh)\s+{optional_path}",
+        line,
+    ):
+        return True
+    return False
+
+
+def _text_tool_invocation_paths(source: str, tool_paths: Iterable[str]) -> set[str]:
+    # A shell invocation must contain the actual tools/... path; Python
+    # module invocations may instead use tools.foo. Reject unrelated lines
+    # before running the more expensive (and deliberately conservative)
+    # invocation regexes. Keep _line_invokes_tool as the single authority.
+    candidates = [
+        (
+            tool,
+            tool.casefold().replace("\\", "/"),
+            tool[:-3].casefold().replace("\\", "/").replace("/", ".")
+            if tool.casefold().endswith(".py") else "",
+        )
+        for tool in tool_paths
+    ]
+    result: set[str] = set()
+    for line in source.splitlines():
+        normalized = line.casefold().replace("\\", "/")
+        if "tools" not in normalized or normalized.lstrip().startswith("#"):
+            continue
+        for tool, path_needle, module_needle in candidates:
+            if path_needle not in normalized and (
+                not module_needle or module_needle not in normalized
+            ):
+                continue
+            if _line_invokes_tool(tool, line):
+                result.add(tool)
+    return result
+
+
+def _ui_scenario_routes(root: Path) -> dict[str, dict[str, Any]]:
+    """Resolve Doctor's literal opt-in UI scenario router without imports."""
+    route = "tools/atlas_doctor.py"
+    source = _read_text(root, route)
+    if "run_traced_module(root, module" not in source or "UI_SCENARIOS[args.scenario]" not in source:
+        return {}
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return {}
+    literal = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "UI_SCENARIOS" for t in node.targets
+        ):
+            try:
+                value = ast.literal_eval(node.value)
+                if isinstance(value, dict) and all(
+                    isinstance(key, str) and isinstance(val, str)
+                    for key, val in value.items()
+                ):
+                    literal = value
+            except (SyntaxError, ValueError, TypeError):
+                pass
+    result = {}
+    for scenario, module in literal.items():
+        if not module.startswith("tools.atlas_doctor_lib."):
+            continue
+        path = module.replace(".", "/") + ".py"
+        contents = _read_text(root, path)
+        if "active_observer()" not in contents or "observer is None" not in contents:
+            continue
+        tests = ["tests/test_atlas_doctor_capture_ui.py"]
+        specific = {
+            "equipment": "tests/test_atlas_doctor_app_ui_smoke.py",
+            "encyclopedia": "tests/test_atlas_doctor_encyclopedia_smoke.py",
+        }.get(scenario)
+        if specific and (root / specific).is_file():
+            tests.append(specific)
+        tests = [name for name in tests if (root / name).is_file()]
+        result[path] = {
+            "scenario": scenario,
+            "route": route,
+            "tests": tests,
+            "observer_required": True,
+            "fixture_scoped": (
+                "TemporaryDirectory(" in contents
+                or ("NamedTemporaryFile(" in contents and
+                    ".ai" in contents and "runtime" in contents)
+            ),
+        }
+    return result
+
+
+def _reference_counts(
+    *,
+    root: Path,
+    tool_paths: list[str],
+    reference_paths: list[str],
+) -> dict[str, dict[str, Any]]:
+    corpus: dict[str, tuple[str, set[str], set[str], set[str]]] = {}
+    for relative in reference_paths:
+        text = _read_text(root, relative)
+        if not text:
+            continue
+        suffix = Path(relative).suffix.casefold()
+        imported_tools = _python_tool_import_paths(text) if suffix == ".py" else set()
+        invoked_tools = (
+            _python_tool_invocation_paths(text)
+            if suffix == ".py"
+            else _text_tool_invocation_paths(text, tool_paths)
+        )
+        contracted_tools = (
+            _python_tool_contract_paths(text, tool_paths)
+            if suffix == ".py" and relative.startswith("tests/")
+            else set()
+        )
+        corpus[relative] = (text, imported_tools, invoked_tools, contracted_tools)
+
+    result: dict[str, dict[str, Any]] = {}
+    for tool in tool_paths:
+        tokens = _reference_tokens(tool)
+        import_refs: list[str] = []
+        invocation_refs: list[str] = []
+        text_refs: list[str] = []
+        all_refs: list[str] = []
+        test_refs: list[str] = []
+        test_consumer_refs: list[str] = []
+        contract_refs: list[str] = []
+        for relative, (text, imported_tools, invoked_tools, contracted_tools) in corpus.items():
+            if relative == tool:
+                continue
+            imported = tool in imported_tools
+            invoked = tool in invoked_tools
+            contracted = tool in contracted_tools
+            mentioned = any(token in text for token in tokens)
+            if not (imported or invoked or contracted or mentioned):
+                continue
+            all_refs.append(relative)
+            if imported:
+                import_refs.append(relative)
+            if invoked:
+                invocation_refs.append(relative)
+            if contracted:
+                contract_refs.append(relative)
+            if mentioned and not imported and not invoked:
+                text_refs.append(relative)
+            if relative.startswith("tests/"):
+                test_refs.append(relative)
+                if imported or invoked:
+                    test_consumer_refs.append(relative)
+        consumers = sorted(set(import_refs) | set(invocation_refs))
+        result[tool] = {
+            # Backward-compatible broad mentions for inventory/display purposes.
+            "references": sorted(set(all_refs)),
+            "import_references": sorted(set(import_refs)),
+            "invocation_references": sorted(set(invocation_refs)),
+            "consumer_references": consumers,
+            "text_references": sorted(set(text_refs)),
+            "test_references": sorted(set(test_refs)),
+            "test_consumer_references": sorted(set(test_consumer_refs)),
+            "contract_references": sorted(set(contract_refs)),
+        }
+    return result
+
+
+def _versioned_families(tool_paths: Iterable[str]) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str, str], list[tuple[int, str]]] = defaultdict(list)
+    for path in tool_paths:
+        candidate = Path(path)
+        match = _VERSION_RE.match(candidate.stem)
+        if not match:
+            continue
+        grouped[(candidate.parent.as_posix(), match.group("base"))].append(
+            (int(match.group("version")), path)
+        )
+
+    families: list[dict[str, Any]] = []
+    for (parent, base), rows in sorted(grouped.items()):
+        if len(rows) < 2:
+            continue
+        rows.sort()
+        families.append(
+            {
+                "family": f"{parent}/{base}" if parent != "." else base,
+                "versions": [version for version, _ in rows],
+                "members": [path for _, path in rows],
+                "recommendation": "consolidate_after_contract_and_consumer_review",
+            }
+        )
+    return families
+
+
+def _suggestion(row: dict[str, Any], version_members: set[str]) -> str:
+    path = str(row["path"])
+    if row.get("parse_error"):
+        return "review_parse_error"
+    has_contract = bool(row.get("consumer_references") or row.get("contract_references"))
+    if row.get("mutation_capable") and not row.get("explicit_mutation_gate") and not has_contract:
+        return "review_mutation_safety"
+    if path in version_members and not has_contract:
+        return "review_version_family"
+    if row.get("wrapper") and not has_contract:
+        return "review_wrapper_absorption"
+    if row.get("executable") and not has_contract:
+        return "review_unconsumed_entrypoint"
+    if row.get("path_hack"):
+        return "review_import_path_hack"
+    if row.get("cwd_dependency"):
+        return "review_cwd_dependency"
+    if row.get("executable") and not has_contract:
+        return "review_targeted_test_gap"
+    return "keep_or_review_manually"
+
+
+def _has_sys_path_mutation(source: str) -> bool:
+    """Detect executable sys.path mutations without matching audit literals."""
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr not in {"append", "insert", "extend"}:
+            continue
+        owner = node.func.value
+        if (
+            isinstance(owner, ast.Attribute)
+            and owner.attr == "path"
+            and isinstance(owner.value, ast.Name)
+            and owner.value.id == "sys"
+        ):
+            return True
+    return False
+
+
+def _tool_row(
+    *,
+    root: Path,
+    path: str,
+    references: dict[str, Any],
+) -> dict[str, Any]:
+    source = _read_text(root, path)
+    suffix = Path(path).suffix.casefold()
+    shape = _python_shape(source) if suffix == ".py" else {
+        "parse_error": False,
+        "has_main": False,
+        "imports_tools": False,
+    }
+    lowered = source.casefold()
+    mutation_capable = any(marker in lowered for marker in _MUTATION_MARKERS)
+    explicit_mutation_gate = mutation_capable and any(
+        marker in lowered for marker in _MUTATION_GATES
+    )
+    if suffix == ".py":
+        try:
+            parsed = ast.parse(source)
+        except SyntaxError:
+            parsed = None
+        cwd_dependency = bool(
+            parsed
+            and any(
+                isinstance(node, ast.Call)
+                and _expression_name(node.func) in {"Path.cwd", "pathlib.Path.cwd", "os.getcwd"}
+                for node in ast.walk(parsed)
+            )
+        )
+    else:
+        cwd_dependency = "get-location" in lowered or "$pwd" in lowered
+    path_hack = suffix == ".py" and _has_sys_path_mutation(source)
+    row = {
+        "path": path,
+        "kind": suffix.lstrip("."),
+        "line_count": _nonblank_line_count(source),
+        "parse_error": bool(shape.get("parse_error")),
+        "executable": _is_executable(path, source, shape),
+        "wrapper": _is_wrapper(path, source, shape),
+        "path_hack": path_hack,
+        "cwd_dependency": cwd_dependency,
+        "mutation_capable": mutation_capable,
+        "explicit_mutation_gate": explicit_mutation_gate,
+        "references": list(references.get("references", [])),
+        "import_references": list(references.get("import_references", [])),
+        "invocation_references": list(references.get("invocation_references", [])),
+        "consumer_references": list(references.get("consumer_references", [])),
+        "text_references": list(references.get("text_references", [])),
+        "test_references": list(references.get("test_references", [])),
+        "test_consumer_references": list(references.get("test_consumer_references", [])),
+        "contract_references": list(references.get("contract_references", [])),
+    }
+    return row
+
+
+def audit(root: Path = ROOT) -> dict[str, Any]:
+    root = root.resolve()
+    tracked = _git_tracked_paths(root)
+    tool_paths = _tool_paths(tracked)
+    reference_paths = _reference_paths(tracked)
+    references = _reference_counts(
+        root=root,
+        tool_paths=tool_paths,
+        reference_paths=reference_paths,
+    )
+    scenario_routes = _ui_scenario_routes(root)
+    for path, contract in scenario_routes.items():
+        if path not in references:
+            continue
+        refs = references[path]
+        route = contract["route"]
+        for key in ("references", "consumer_references"):
+            refs[key] = sorted(set(refs[key]) | {route})
+        refs["contract_references"] = sorted(set(refs["contract_references"]) | set(contract["tests"]))
+        refs["test_references"] = sorted(set(refs["test_references"]) | set(contract["tests"]))
+    families = _versioned_families(tool_paths)
+    version_members = {
+        path
+        for family in families
+        for path in family["members"]
+    }
+    tools = [
+        _tool_row(root=root, path=path, references=references[path])
+        for path in tool_paths
+    ]
+    for row in tools:
+        contract = scenario_routes.get(row["path"])
+        if contract:
+            row["ui_scenario_route"] = contract["scenario"]
+            row["scenario_route_evidence"] = "LITERAL_ROUTING_WITH_REQUIRED_ACTIVE_OBSERVER_NOT_RUNTIME_EXECUTION"
+            row["fixture_scoped_mutation"] = contract["fixture_scoped"]
+            # A write confined to temporary Doctor runtime fixtures is not a
+            # mutation of tracked application state. Do not alter actual
+            # mutation_capable or automation readiness heuristics elsewhere.
+            if row["mutation_capable"] and contract["fixture_scoped"]:
+                row["explicit_mutation_gate"] = True
+        row["recommendation"] = _suggestion(row, version_members)
+
+    parse_errors = [row["path"] for row in tools if row["parse_error"]]
+    wrappers = [row["path"] for row in tools if row["wrapper"]]
+    path_hacks = [row["path"] for row in tools if row["path_hack"]]
+    cwd_dependencies = [row["path"] for row in tools if row["cwd_dependency"]]
+    mutation_capable = [row["path"] for row in tools if row["mutation_capable"]]
+    mutation_without_gate = [
+        row["path"]
+        for row in tools
+        if row["mutation_capable"]
+        and not row["explicit_mutation_gate"]
+        and not (row["consumer_references"] or row["contract_references"])
+    ]
+    unreferenced_entrypoints = [
+        row["path"]
+        for row in tools
+        if row["executable"] and not (row["consumer_references"] or row["contract_references"])
+    ]
+    targeted_test_gaps = [
+        row["path"]
+        for row in tools
+        if row["executable"] and not (row["contract_references"] or row["consumer_references"])
+    ]
+    review_candidates = [
+        row["path"]
+        for row in tools
+        if row["recommendation"] != "keep_or_review_manually"
+    ]
+    return {
+        "schema_version": 1,
+        "source": "tracked-repository-tooling",
+        "read_only": True,
+        "blocking": False,
+        "status": "REVIEW_REQUIRED" if review_candidates else "CLEAN",
+        "note": (
+            "References are classified by evidence. consumer_references contains only "
+            "AST imports or conservative execution evidence; text_references are mentions only. "
+            "Even zero consumer references is a review signal, not standalone proof of deletion safety."
+        ),
+        "tool_count": len(tools),
+        "versioned_family_count": len(families),
+        "wrapper_count": len(wrappers),
+        "parse_error_count": len(parse_errors),
+        "path_hack_count": len(path_hacks),
+        "cwd_dependency_count": len(cwd_dependencies),
+        "mutation_capable_count": len(mutation_capable),
+        "mutation_without_gate_count": len(mutation_without_gate),
+        "unreferenced_entrypoint_count": len(unreferenced_entrypoints),
+        "targeted_test_gap_count": len(targeted_test_gaps),
+        "review_candidate_count": len(review_candidates),
+        "versioned_families": families,
+        "wrappers": wrappers,
+        "parse_errors": parse_errors,
+        "path_hacks": path_hacks,
+        "cwd_dependencies": cwd_dependencies,
+        "mutation_capable": mutation_capable,
+        "mutation_without_gate": mutation_without_gate,
+        "unreferenced_entrypoints": unreferenced_entrypoints,
+        "targeted_test_gaps": targeted_test_gaps,
+        "review_candidates": review_candidates,
+        "tools": tools,
+    }
+
+
+def _print_list(label: str, values: Iterable[str]) -> None:
+    rows = list(values)
+    if not rows:
+        return
+    print(f"{label} ({len(rows)}):")
+    for value in rows:
+        print(f"  - {value}")
+
+
+def _print_human(report: dict[str, Any]) -> None:
+    print("TOOLING CONSOLIDATION AUDIT")
+    print()
+    print(f"Tools                       {report['tool_count']}")
+    print(f"Versioned families          {report['versioned_family_count']}")
+    print(f"Thin wrappers               {report['wrapper_count']}")
+    print(f"Parse errors                {report['parse_error_count']}")
+    print(f"sys.path hacks              {report['path_hack_count']}")
+    print(f"cwd-coupled tools           {report['cwd_dependency_count']}")
+    print(f"Mutation-capable            {report['mutation_capable_count']}")
+    print(f"Mutators without gate       {report['mutation_without_gate_count']}")
+    print(f"Unconsumed entrypoints      {report['unreferenced_entrypoint_count']}")
+    print(f"Targeted-test gaps          {report['targeted_test_gap_count']}")
+    print(f"Review candidates           {report['review_candidate_count']}")
+    print()
+    for family in report["versioned_families"]:
+        print(
+            f"VERSION FAMILY {family['family']}: "
+            f"{', '.join(str(version) for version in family['versions'])}"
+        )
+        for member in family["members"]:
+            print(f"  - {member}")
+    _print_list("WRAPPERS", report["wrappers"])
+    _print_list("PARSE ERRORS", report["parse_errors"])
+    _print_list("PATH HACKS", report["path_hacks"])
+    _print_list("CWD DEPENDENCIES", report["cwd_dependencies"])
+    _print_list("MUTATORS WITHOUT EXPLICIT GATE", report["mutation_without_gate"])
+    _print_list("UNCONSUMED ENTRYPOINTS (review only)", report["unreferenced_entrypoints"])
+    _print_list("TARGETED TEST GAPS", report["targeted_test_gaps"])
+    print()
+    print("NOTE:")
+    print(report["note"])
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Read-only inventory of repository tooling consolidation candidates."
+    )
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    report = audit(ROOT)
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _print_human(report)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

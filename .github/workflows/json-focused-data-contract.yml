@@ -1,0 +1,94 @@
+name: JSON Focused Data Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/atlas_json_*.py"
+      - "tests/test_atlas_json_*.py"
+      - "app/quest_source_index.py"
+      - "app/modules/encyclopedia/services/guide_path_profiles.py"
+      - "tests/test_guide_prerequisite_lookup.py"
+      - "data/encyclopedia/quests/*.json"
+      - "data/large_file_contracts.json"
+      - ".github/workflows/json-focused-data-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dof-atlas-json-focused-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  json-targeted:
+    name: JSON / Parity and Lookup Comparison
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: "1"
+      PYTHONUNBUFFERED: "1"
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: "1"
+      CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          persist-credentials: false
+          lfs: false
+      - name: Verify candidate SHA
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne "$env:CANDIDATE_SHA") {
+            throw "JSON test checkout SHA mismatch"
+          }
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+      - name: Install pinned application dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run focused JSON/Guide tests
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v `
+            tests.test_atlas_json_inventory `
+            tests.test_atlas_json_shards `
+            tests.test_atlas_json_benchmark `
+            tests.test_guide_prerequisite_lookup `
+            tests.test_quest_source_boundaries
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify entire canonical Quest data and produce comparison
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/lot4" | Out-Null
+          python -m tools.atlas_json_inventory --include-local --output artifacts/lot4/json_inventory.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m tools.atlas_json_shards --output .cache/dofus_atlas/quests_shards
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m tools.atlas_json_benchmark --shards .cache/dofus_atlas/quests_shards --sample-count 64 --output artifacts/lot4/json_comparison.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $stats = Get-Content -LiteralPath artifacts/lot4/json_comparison.json -Raw | ConvertFrom-Json
+          if ($stats.lookup_values_equal -ne $true -or $stats.runtime_consumers_changed -ne $false) {
+            throw "JSON source/derived parity or runtime contract changed"
+          }
+          Write-Host "Actual matched records: $($stats.record_count)"
+          Write-Host "Offsets lookup (seconds): $($stats.source_offset_lookup_seconds)"
+          Write-Host "Derived lookup (seconds): $($stats.derived_shard_lookup_seconds)"
+      - name: Upload JSON evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: json-focused-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/lot4/*.json
+          if-no-files-found: warn
+          retention-days: 7

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -90,6 +91,35 @@ class ArtifactOrganizerTests(unittest.TestCase):
             moved_to = root / result["moved"][0]["to"]
             self.assertTrue(moved_to.exists())
             self.assertTrue((moved_to.parent / "manifest.json").exists())
+            self.assertEqual(result["archive_retention"], 4)
+            self.assertEqual(result["removed_archives"], [])
+
+    def test_archive_history_keeps_only_four_most_recent_runs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            artifacts = root / "artifacts"
+            archive_root = artifacts / "archive" / "guide_ultime"
+            archive_root.mkdir(parents=True)
+            for index in range(6):
+                stamp = (datetime(2026, 1, 1) + timedelta(days=index)).strftime("%Y%m%d-%H%M%S")
+                run = archive_root / stamp
+                run.mkdir()
+                (run / "audit.json").write_text("{}", encoding="utf-8")
+
+            with patch.object(organizer, "ROOT", root), patch.object(organizer, "ARTIFACTS", artifacts):
+                result = organizer.organize(apply=True)
+
+            remaining = sorted(path.name for path in archive_root.iterdir())
+            self.assertEqual(
+                remaining,
+                [
+                    "20260103-000000",
+                    "20260104-000000",
+                    "20260105-000000",
+                    "20260106-000000",
+                ],
+            )
+            self.assertEqual(len(result["removed_archives"]), 2)
 
 
 if __name__ == "__main__":

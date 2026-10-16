@@ -15,7 +15,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     quest_start_info,
 )
 from app.modules.encyclopedia.views.guide_ultime_generated_view import GuideUltimeCard
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 
 SENTINEL_COORD = -2147483648

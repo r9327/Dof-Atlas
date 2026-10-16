@@ -416,7 +416,7 @@ class CharacterSlotResolver:
             # Publish the migration through the same path-scoped coordinator as
             # the live services. Their cached snapshots then refresh before a
             # following network sync can write anything.
-            from app.modules.encyclopedia.services.progress_coordinator import coordinator_for
+            from app.core.progress_coordinator import coordinator_for
 
             coordinator = coordinator_for(progress_path)
             with coordinator.lock:

@@ -26,6 +26,13 @@
       "enabled": true
     },
     {
+      "id": "dofus_sylvestre",
+      "file": "dofus_sylvestre.json",
+      "category": "aventure",
+      "order": 20,
+      "enabled": true
+    },
+    {
       "id": "dofus_argente",
       "file": "dofus_argente.json",
       "category": "dofus",
@@ -156,13 +163,6 @@
       "file": "dofus_dom_de_pin.json",
       "category": "dofus",
       "order": 190,
-      "enabled": true
-    },
-    {
-      "id": "dofus_sylvestre",
-      "file": "dofus_sylvestre.json",
-      "category": "dofus",
-      "order": 200,
       "enabled": true
     },
     {

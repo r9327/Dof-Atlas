@@ -177,8 +177,9 @@
     },
     "MONOLITHIC_LIFECYCLE": {
       "critical": true,
-      "owner": "tests/test_qt_async_non_accumulation.py",
-      "runner": "unittest_modules",
+      "owner": "tools/atlas_lifecycle_soak.py",
+      "runner": "lifecycle_soak",
+      "cycles": 3,
       "modules": [
         "tests.test_pyside_shell",
         "tests.test_guide_home_async_images",

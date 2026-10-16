@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FEATURE_BRANCH = "feature/guide-ultime-v5-ui"
 CANONICAL_LOCK_MODULE = "tools.audit_guide_ultime_canonical_lock"
 CANONICAL_DEPENDENCY_MODULE = "tools.audit_guide_ultime_canonical_dependencies"
-FINAL_TRANSVERSAL_MODULE = "tools.validate_guide_ultime_manual_transversals_v16"
+FINAL_TRANSVERSAL_MODULE = "tools.validate_guide_ultime_manual_transversals"
 GUIDE_RUNNER = ".\\tools\\run_guide_ultime_ci.ps1"
 
 
@@ -131,6 +131,24 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertNotIn("git lfs pull", fast_block)
         self.assertNotIn("doduda.exe", fast_block)
 
+    def test_main_full_is_host_reused_once_with_independent_lifecycle(self) -> None:
+        source = self._workflow("app-ci.yml")
+        self.assertIn('workflows: ["Phase Certification"]', source)
+        self.assertIn("types: [completed]", source)
+        self.assertIn("actions: read", source)
+        self.assertIn("if: github.event_name != 'workflow_run'", source)
+        self.assertIn("github.event_name == 'workflow_dispatch'", source)
+        self.assertNotIn("needs.code-validation.outputs.full_required == 'true'", source)
+        self.assertIn("tools.ci_main_phase_evidence", source)
+        self.assertIn("github.event.workflow_run.head_sha", source)
+        self.assertIn("github.event.workflow_run.event == 'push'", source)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'", source)
+        self.assertIn("Run unique same-process lifecycle contracts", source)
+        self.assertIn("tests.test_pyside_shell", source)
+        self.assertIn("tests.test_qt_async_non_accumulation", source)
+        self.assertIn("Run full application test suite", source)  # manual diagnostic preserved
+        self.assertTrue((ROOT / "tools/ci_main_phase_evidence.py").is_file())
+
     def test_app_ci_full_gate_materializes_catalog_before_full_discovery(self) -> None:
         source = self._workflow("app-ci.yml")
         full = source[source.index("  full-validation:") :]
@@ -165,6 +183,23 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
                 source,
                 str(quest_id),
             )
+
+    def test_guide_full_evidence_is_exact_sha_and_falls_back_to_real_tests(self) -> None:
+        source = self._workflow("app-ci.yml")
+        guide = (ROOT / "tools/run_guide_ultime_ci.ps1").read_text(encoding="utf-8")
+        self.assertIn('ATLAS_GUIDE_REUSE_FULL: "1"', source)
+        self.assertIn("ATLAS_FULL_SUITE_SUCCESS: ${{ steps.full_tests.outcome }}", source)
+        self.assertIn("tools.ci_guide_full_evidence", guide)
+        self.assertIn('ATLAS_FULL_SUITE_SUCCESS -eq "success"', guide)
+        self.assertIn("if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $proofPath))", guide)
+        self.assertIn("REUSED_FROM_EXACT_FULL", guide)
+        for name, module in (
+            ("11_existing_guides_tests", "tests.test_guides_phase3"),
+            ("12_existing_success_tests", "tests.test_achievements_lot7"),
+            ("13_existing_shell_tests", "tests.test_pyside_shell"),
+        ):
+            self.assertIn(f'Invoke-GuideTestOrReuse "{name}" "{module}"', guide)
+        self.assertIn('Invoke-PythonCheck $Name (@("-m", "unittest") + $Module)', guide)
 
     def test_app_ci_full_verdict_propagates_every_heavy_failure(self) -> None:
         source = self._workflow("app-ci.yml")
@@ -209,6 +244,21 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("tests.test_project_guardrails", source)
         self.assertIn("tests.test_ci_runner_guardrails", source)
         self.assertIn("tests.test_security_hardening_guardrails", source)
+
+    def test_artifact_retention_matches_routine_and_certification_evidence(self) -> None:
+        for name in (
+            "public-pr-ci.yml",
+            "doctor-runtime-perf.yml",
+            "graphify-map.yml",
+            "guide-ultime-v5-ui.yml",
+        ):
+            source = self._workflow(name)
+            self.assertIn("retention-days: 4", source, name)
+
+        certification = self._workflow("phase-certification.yml")
+        self.assertIn("retention-days: 30", certification)
+        deep = self._workflow("deep-validation.yml")
+        self.assertIn("retention-days: 30", deep)
 
     def test_detailed_guide_ci_materializes_only_its_visual_fixture(self) -> None:
         source = self._workflow("guide-ultime-v5-ui.yml")
@@ -269,11 +319,10 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             self.assertNotIn(old_test_module, source, label)
 
     def test_module_safe_final_audits_have_no_path_hack(self) -> None:
-        for module in (
-            CANONICAL_LOCK_MODULE,
-            "tools.validate_guide_ultime_manual_transversals_v15",
-            FINAL_TRANSVERSAL_MODULE,
-        ):
+        # The versioned v15 wrapper is deliberately retired.
+        retired = ROOT / "tools/validate_guide_ultime_manual_transversals_v15.py"
+        self.assertFalse(retired.exists(), "retired validator must stay deleted")
+        for module in (CANONICAL_LOCK_MODULE, FINAL_TRANSVERSAL_MODULE):
             relative = Path(*module.split(".")).with_suffix(".py")
             source = (ROOT / relative).read_text(encoding="utf-8")
             self.assertTrue((ROOT / relative).is_file(), module)
@@ -282,15 +331,15 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
             if module != FINAL_TRANSVERSAL_MODULE:
                 self.assertIn("Path(__file__).resolve().parents[1]", source, module)
 
-    def test_remaining_direct_audits_bootstrap_repository_root(self) -> None:
+    def test_remaining_audits_are_module_safe(self) -> None:
         for relative in (
             "tools/audit_guide_ultime_manual_route_hooks.py",
             "tools/audit_guide_ultime_manual_prerequisites.py",
         ):
             source = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn("import sys", source, relative)
             self.assertIn("Path(__file__).resolve().parents[1]", source, relative)
-            self.assertIn("sys.path.insert(0, str(ROOT))", source, relative)
+            self.assertNotIn("import sys", source, relative)
+            self.assertNotIn("sys.path.insert", source, relative)
 
     def test_shell_route_path_contract_is_platform_neutral(self) -> None:
         source = (ROOT / "tests" / "_pyside_shell_base.py").read_text(encoding="utf-8-sig")
@@ -311,11 +360,15 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         local_source = self._local_runner()
         self.assertTrue(critical_modules.issubset(self._test_modules(local_source)))
         self.assertIn(
-            '"-m", "tools.validate_guide_ultime_manual_transversals_v16"',
+            '"-m", "tools.validate_guide_ultime_manual_transversals"',
             local_source,
         )
         self.assertNotIn(
             '"-m", "tools.validate_guide_ultime_manual_transversals_v15"',
+            local_source,
+        )
+        self.assertNotIn(
+            '"-m", "tools.validate_guide_ultime_manual_transversals_v16"',
             local_source,
         )
 
@@ -326,7 +379,8 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertGreaterEqual(len(self._test_modules(local_source)), 20)
         self.assertIn("tools.audit_guide_ultime_canonical_lock", local_source)
         self.assertIn("tools.audit_guide_ultime_canonical_dependencies", local_source)
-        self.assertIn("tools.validate_guide_ultime_manual_transversals_v16", local_source)
+        self.assertIn("tools.validate_guide_ultime_manual_transversals", local_source)
+        self.assertNotIn("tools.validate_guide_ultime_manual_transversals_v16", local_source)
 
     def test_guide_runner_fails_closed_on_hard_debt_and_missing_catalogs(self) -> None:
         source = self._local_runner()

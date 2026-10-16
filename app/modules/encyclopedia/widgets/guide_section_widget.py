@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from app.modules.encyclopedia.models import GuideSection
-from app.storage import AtlasButton
+from app.ui.components import AtlasButton
 
 
 class GuideSectionWidget(QFrame):

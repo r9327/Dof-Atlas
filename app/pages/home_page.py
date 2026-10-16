@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import unicodedata
+from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
@@ -20,125 +21,42 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
-from app.modules.encyclopedia.models import Guide, GuideStep
-from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
-from app.modules.encyclopedia.services import (
-    ACHIEVEMENT_PROGRESS_FILE,
-    GUIDE_PROGRESS_FILE,
-    AchievementProgressService,
-    GuideProgressCalculator,
-    GuideProgressService,
-    QuestProgressService,
-)
 from app.network.application_coordinator import NetworkApplicationStatus
-from app.quest_catalog import QuestCatalog
 from app.ui.network_bridge import network_ui_bridge
+
+if TYPE_CHECKING:
+    from app.modules.encyclopedia.models import Guide, GuideStep
+    from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
+    from app.modules.encyclopedia.services import (
+        AchievementProgressService,
+        GuideProgressCalculator,
+        GuideUltimeManualRuntimeService,
+    )
+    from app.quest_catalog import QuestCatalog
 
 
 HOME_GUIDE_BANNER_PATH = Path(LOGO_PATH).parent / "home_guide_banner.png"
 GUIDE_ULTIME_LEGACY_ID = "guide_complet"
-_HOME_PROGRESS_CACHE_PATH = ROOT_DIR / ".cache" / "dofus_atlas" / "home_progress_v1.json"
 _MANUAL_ROUTE_MANIFEST_PATH = (
     ROOT_DIR / "data" / "routes" / "guide_ultime_manual" / "manifest_v1.json"
 )
 _GUIDE_PROGRESS_ID = "guide_ultime_v5"
 
-
-def _file_stamp(path: Path) -> tuple[int, int]:
-    try:
-        stat = path.stat()
-    except OSError:
-        return (0, 0)
-    return int(stat.st_mtime_ns), int(stat.st_size)
+# Lazy compatibility patch point kept for focused Home tests. The concrete
+# provider remains outside the module import path until Guide is authorized.
+QuestProvider: Any = None
 
 
-def _saved_progress_signature() -> tuple[tuple[int, int], ...]:
-    # Import the canonical paths lazily without loading Encyclopedia providers.
-    from app.constants import QUEST_PROGRESS_FILE as quest_progress_file
-    from app.modules.encyclopedia.services import (
-        ACHIEVEMENT_PROGRESS_FILE as achievement_progress_file,
-    )
+def _resolve_quest_provider() -> type:
+    global QuestProvider
+    if QuestProvider is None:
+        from app.modules.encyclopedia.providers import QuestProvider as resolved
 
-    return (
-        _file_stamp(Path(quest_progress_file)),
-        _file_stamp(Path(achievement_progress_file)),
-        _file_stamp(Path(GUIDE_PROGRESS_FILE)),
-    )
+        QuestProvider = resolved
+    return QuestProvider
 
 
-def _read_home_progress_cache() -> dict[str, Any]:
-    try:
-        payload = json.loads(_HOME_PROGRESS_CACHE_PATH.read_text(encoding="utf-8"))
-    except Exception:
-        return {"version": 1, "characters": {}}
-    if not isinstance(payload, dict):
-        return {"version": 1, "characters": {}}
-    if not isinstance(payload.get("characters"), dict):
-        payload["characters"] = {}
-    payload["version"] = 1
-    return payload
-
-
-def _write_home_progress_cache(payload: dict[str, Any]) -> None:
-    try:
-        _HOME_PROGRESS_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        temporary = _HOME_PROGRESS_CACHE_PATH.with_suffix(
-            _HOME_PROGRESS_CACHE_PATH.suffix + ".tmp"
-        )
-        temporary.write_text(
-            json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
-            encoding="utf-8",
-        )
-        temporary.replace(_HOME_PROGRESS_CACHE_PATH)
-    except OSError:
-        # This cache is reconstructible display data, never progression truth.
-        return
-
-
-def _cached_home_progress(character_key: str) -> dict[str, Any] | None:
-    row = _read_home_progress_cache().get("characters", {}).get(character_key)
-    if not isinstance(row, dict):
-        return None
-    expected = [list(value) for value in _saved_progress_signature()]
-    if row.get("progress_signature") != expected:
-        return None
-    try:
-        percent = max(0, min(100, int(row.get("percent") or 0)))
-    except (TypeError, ValueError):
-        return None
-    return {
-        "percent": percent,
-        "chapter": str(row.get("chapter") or "Progression sauvegardée"),
-        "step": str(row.get("step") or "Progression locale disponible"),
-        "zone": str(row.get("zone") or "—"),
-        "guide_id": str(row.get("guide_id") or GUIDE_ULTIME_LEGACY_ID),
-    }
-
-
-def _save_home_progress(page: "HomePage") -> None:
-    character_key = str(page.character_key or "").strip()
-    if not character_key:
-        return
-    try:
-        percent = max(0, min(100, int(page.progress_bar.value())))
-    except Exception:
-        return
-    payload = _read_home_progress_cache()
-    characters = payload.setdefault("characters", {})
-    if not isinstance(characters, dict):
-        characters = {}
-        payload["characters"] = characters
-    characters[character_key] = {
-        "progress_signature": [list(value) for value in _saved_progress_signature()],
-        "percent": percent,
-        "chapter": str(page.chapter_value.text() or ""),
-        "step": str(page.step_value.text() or ""),
-        "zone": str(page.zone_value.text() or ""),
-        "guide_id": str(page.current_guide_id or GUIDE_ULTIME_LEGACY_ID),
-    }
-    _write_home_progress_cache(payload)
-
-
+@lru_cache(maxsize=1)
 def _manual_route_stage_total() -> int:
     """Read only compact manifest metadata, never route chapter bodies."""
 
@@ -163,6 +81,8 @@ def _manual_route_stage_total() -> int:
 
 def _persisted_manual_summary(character_key: str) -> dict[str, Any]:
     """Build the cheap cold-start projection from persisted manual checks."""
+
+    from app.modules.encyclopedia.services import GUIDE_PROGRESS_FILE, GuideProgressService
 
     total = _manual_route_stage_total()
     try:
@@ -589,6 +509,14 @@ class HomePage(QWidget):
         guide_provider: GuideProvider | None = None,
         achievement_provider: AchievementProvider | None = None,
     ) -> None:
+        # A disk-only preload has no live context. Return before the lazy imports
+        # so startup warmup cannot permanently raise the parent RSS watermark.
+        if catalog is None and guide_provider is None and achievement_provider is None:
+            return
+
+        from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
+        from app.quest_catalog import QuestCatalog
+
         catalog_changed = isinstance(catalog, QuestCatalog) and catalog is not self.catalog
         guide_provider_changed = isinstance(guide_provider, GuideProvider) and guide_provider is not self.guide_provider
         achievement_provider_changed = (
@@ -614,6 +542,17 @@ class HomePage(QWidget):
                 guide_provider=self.guide_provider,
             )
         if context_changed or needs_service_rebuild:
+            self.refresh_progress()
+
+    def release_encyclopedia_context(self, *, preserve_display: bool = True) -> None:
+        """Drop rich providers/catalogues; Home keeps only rendered/persisted state."""
+
+        self.catalog = None
+        self.guide_provider = None
+        self.achievement_provider = None
+        self.guide_ultime_service = None
+        self._last_progress_signature = None
+        if not preserve_display:
             self.refresh_progress()
 
     def _on_network_progress_changed(self, character_key: str) -> None:
@@ -669,11 +608,18 @@ class HomePage(QWidget):
         if self.catalog is None:
             return
         try:
+            from app.modules.encyclopedia.services import (
+                ACHIEVEMENT_PROGRESS_FILE,
+                GUIDE_PROGRESS_FILE,
+                AchievementProgressService,
+                GuideProgressService,
+                QuestProgressService,
+            )
             from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
                 GuideUltimeManualRuntimeService,
             )
 
-            quest_provider = QuestProvider(catalog=self.catalog)
+            quest_provider = _resolve_quest_provider()(catalog=self.catalog)
             service = GuideUltimeManualRuntimeService(
                 QuestProgressService(QUEST_PROGRESS_FILE),
                 AchievementProgressService(ACHIEVEMENT_PROGRESS_FILE),
@@ -700,6 +646,11 @@ class HomePage(QWidget):
         return (int(stat.st_mtime_ns), int(stat.st_size))
 
     def _progress_input_signature(self) -> tuple[object, ...]:
+        from app.modules.encyclopedia.services import (
+            ACHIEVEMENT_PROGRESS_FILE,
+            GUIDE_PROGRESS_FILE,
+        )
+
         return (
             self.character_key,
             id(self.catalog),
@@ -713,17 +664,22 @@ class HomePage(QWidget):
     def refresh_progress(self) -> None:
         character_key = str(self.character_key or "").strip()
         if character_key and (self.catalog is None or self.guide_provider is None):
-            summary = _cached_home_progress(character_key)
-            if summary is None:
-                summary = _persisted_manual_summary(character_key)
+            summary = _persisted_manual_summary(character_key)
             _apply_saved_progress(self, summary)
             return
 
         self._refresh_rich_progress()
-        if character_key and self.catalog is not None and self.guide_provider is not None:
-            _save_home_progress(self)
 
     def _refresh_rich_progress(self) -> None:
+        from app.modules.encyclopedia.services import (
+            ACHIEVEMENT_PROGRESS_FILE,
+            GUIDE_PROGRESS_FILE,
+            AchievementProgressService,
+            GuideProgressCalculator,
+            GuideProgressService,
+            QuestProgressService,
+        )
+
         # The canonical manual route only needs the quest catalog. The legacy
         # GuideProvider is optional and must never gate primary Home progression.
         if self.catalog is None:
@@ -865,14 +821,17 @@ class HomePage(QWidget):
         self.continue_button.setEnabled(False)
 
     def _legacy_tracking_guide(self) -> Guide | None:
-        if self.guide_provider is None:
+        provider = self.guide_provider
+        if provider is None or not bool(getattr(provider, "_loaded", False)):
+            # Home must never warm a cold Guide catalogue. The canonical manual
+            # route and persisted progress remain sufficient for the dashboard.
             return None
-        guide = self.guide_provider.get_by_id(GUIDE_ULTIME_LEGACY_ID)
+        guide = provider.get_by_id(GUIDE_ULTIME_LEGACY_ID)
         if guide is not None:
             return guide
         guides = [
             candidate
-            for candidate in self.guide_provider.load_all()
+            for candidate in provider.load_all()
             if str(candidate.category or "").strip().casefold() == "aventure"
         ]
         return guides[0] if guides else None

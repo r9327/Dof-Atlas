@@ -21,6 +21,9 @@ class _Coordinator:
     def latest_status(self):
         return SimpleNamespace(reason="idle")
 
+    def has_pending_ui_events(self):
+        return bool(self.results)
+
     def drain_statuses(self, _limit):
         return []
 

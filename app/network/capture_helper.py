@@ -5,6 +5,7 @@ import base64
 import logging
 import os
 import socket
+from contextlib import suppress
 from time import monotonic
 from typing import Iterable
 
@@ -147,10 +148,8 @@ def run_capture_helper(port: int, token: str) -> int:
     except (CaptureIpcError, OSError, ValueError):
         return 6
     finally:
-        try:
+        with suppress(OSError):
             sock.close()
-        except OSError:
-            pass
 
 
 def main(argv: list[str] | None = None) -> int:

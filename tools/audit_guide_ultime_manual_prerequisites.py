@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
 from app.quest_catalog import normalize_text
@@ -148,16 +144,16 @@ def _flatten_strings(value: Any, result: list[str]) -> None:
 def stage_order_evidence(stage: dict[str, Any], prerequisite: str, dependent: str) -> dict[str, Any]:
     """Return conservative textual evidence for ordering inside one macro-stage."""
 
+    # Only executable player instructions can prove that one quest is done
+    # before another. The old scan included preparation ("for Quest B") and
+    # hard_exit ("Quest A completed"), which are META references and often
+    # made the first occurrence of B appear before the actual action for A.
+    # This produced false inverted-order leads even for correctly routed stages.
     ordered_fields = (
-        "entry",
         "activation",
-        "preparation",
         "take",
         "route",
         "instructions",
-        "progress_also",
-        "before_leaving",
-        "hard_exit",
     )
     lines: list[str] = []
     for field in ordered_fields:
@@ -169,9 +165,13 @@ def stage_order_evidence(stage: dict[str, Any], prerequisite: str, dependent: st
     dep_index: int | None = None
     for index, line in enumerate(lines):
         key = quest_key(line)
-        if pre_index is None and pre_key and pre_key in key:
+        # normalize_key joins whole words with underscores. A plain substring
+        # search confuses e.g. "Quête A" with "Quête Aventure" and invents a
+        # same-stage order proof. Match whole normalized token sequences only.
+        tokenized = f"_{key}_"
+        if pre_index is None and pre_key and f"_{pre_key}_" in tokenized:
             pre_index = index
-        if dep_index is None and dep_key and dep_key in key:
+        if dep_index is None and dep_key and f"_{dep_key}_" in tokenized:
             dep_index = index
 
     demonstrated = pre_index is not None and dep_index is not None and pre_index < dep_index
@@ -180,6 +180,8 @@ def stage_order_evidence(stage: dict[str, Any], prerequisite: str, dependent: st
         "prerequisite_line_index": pre_index,
         "dependent_line_index": dep_index,
         "ordered_line_count": len(lines),
+        "proof_scope": "PLAYER_ACTION_FIELDS_ONLY",
+        "ignored_meta_fields": ["entry", "preparation", "progress_also", "before_leaving", "hard_exit"],
     }
 
 

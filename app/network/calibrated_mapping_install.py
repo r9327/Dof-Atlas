@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from app.network.contracts import _is_sha256
+
 import json
+from contextlib import suppress
 from pathlib import Path
 
 from app.network.contracts import (
@@ -182,10 +185,8 @@ def install_calibrated_current_profile(
                 ) from rollback_exc
         raise ProtocolMappingError(f"cannot install calibrated protocol mapping: {destination}") from exc
     finally:
-        try:
+        with suppress(OSError):
             temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
 
     return ProtocolMappingInstallResult(
         True,
@@ -332,10 +333,8 @@ def _rollback(
             f"cannot rollback calibrated protocol mapping after {reason}: {destination}"
         ) from exc
     finally:
-        try:
+        with suppress(OSError):
             rollback_temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
     if previous_bytes is None and destination.exists():
         raise ProtocolMappingError(
             f"calibrated mapping still exists after rollback ({reason}): {destination}"
@@ -374,14 +373,6 @@ def _positive_int(value: object) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def _is_sha256(value: str) -> bool:
-    if len(value) != 64:
-        return False
-    try:
-        bytes.fromhex(value)
-    except ValueError:
-        return False
-    return True
 
 
 __all__ = ["install_calibrated_current_profile"]

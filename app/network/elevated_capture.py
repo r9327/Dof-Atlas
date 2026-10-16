@@ -5,6 +5,7 @@ import ctypes
 import ctypes.wintypes
 import hmac
 import os
+from contextlib import suppress
 from pathlib import Path
 import secrets
 import socket
@@ -237,10 +238,8 @@ class ElevatedWindowsProtocolSource:
         except Exception as exc:
             reason = str(getattr(exc, "reason", "") or "capture_helper_start_failed")
             self.start_failure_reason = reason
-            try:
+            with suppress(OSError):
                 server.close()
-            except OSError:
-                pass
             if connection is not None:
                 connection.close()
             if process is not None:
@@ -304,16 +303,12 @@ class ElevatedWindowsProtocolSource:
                 buffered_count=buffered_count,
             )
         if connection is not None:
-            try:
+            with suppress(CaptureIpcError):
                 connection.send({"kind": "stop"})
-            except CaptureIpcError:
-                pass
             connection.close()
         if server is not None:
-            try:
+            with suppress(OSError):
                 server.close()
-            except OSError:
-                pass
         if process is not None:
             self._finish_process(process)
 

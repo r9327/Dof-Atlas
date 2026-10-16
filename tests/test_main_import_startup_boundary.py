@@ -27,6 +27,11 @@ names = (
     "local_dofus_data.data_store",
     "local_dofus_data.repositories",
     "app.network.windows_capture",
+    "app.core.runtime_state",
+    "app.pages.organizer_page",
+    "app.pages.character_page_modern",
+    "app.pages.craft_page",
+    "app.pages.equipment_page",
     "PySide6.QtWebEngineCore",
     "PySide6.QtWebEngineWidgets",
 )

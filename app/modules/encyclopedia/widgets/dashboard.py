@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.storage import AtlasButton
+from app.ui.components import AtlasButton
 
 
 class HideCompletedButton(AtlasButton):

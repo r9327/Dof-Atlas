@@ -4,7 +4,15 @@ Install the repository-local Git hooks once with `powershell -NoProfile -Executi
 
 For every non-trivial task, first run `py -3.13 -m tools.ai_context status` and use `AI_CONTEXT.md` as the compact navigation layer. This does not replace the permanent project contracts below. The generated `.ai/context_index.json` is maintained by the pre-commit hook and must not be edited manually.
 
+Before executing non-trivial AI work, establish a quality/consumption work card with `py -3.13 -m tools.agent_task_profiles`. Use the task topology to propose a sensible `economy`, `balanced` or `best` quality, but honor an explicitly requested quality even when it differs from the recommendation. The router selects the lowest-consumption configured tier that satisfies the chosen quality. This routing is independent from Atlas Doctor SOFT/MEDIUM/HARD validation levels: never use one system to infer, lower or replace the other. Actual provider model IDs are environment-specific; `.ai/task_profiles.json` is the stable routing policy, not a provider price list.
+
+For every non-trivial structural task, Graphify is mandatory before modifying code. This includes refactors, code deletion or moves, dependency/cycle analysis, consumer discovery, architecture cleanup and blast-radius analysis. Read `GRAPHIFY.md`, use a graph built for the exact current candidate SHA when available, and inspect the relevant graph/report before editing. Use Graphify to discover relationships, then confirm important consumers and runtime behavior against the current source and tests. A text search alone is not sufficient justification for structural deletion. Trivial edits that do not change code structure do not require Graphify. If the environment cannot run Graphify and cannot access an exact-SHA Graphify artifact, stop before a structural refactor and report that limitation rather than pretending the graph was used.
+
 Read `ZERO_TRUST_RULES.md` for the permanent short contribution contract.
+
+## Library documentation (Context7)
+
+When an external library or API detail matters, prefer Context7 MCP (if available) for up-to-date, version-specific documentation before changing code. If MCP is unavailable, Codex can use the repository-scoped `.agents/skills/find-docs/SKILL.md` with the `npx ctx7@latest` CLI (Node.js 18+ required). Do not query both modes for the same answer. For example, verify PySide6 / QtWebEngine usage against the relevant version. Prefer focused documentation queries; cross-check the current code and tests. Context7 never overrides Atlas guardrails or becomes a source of Dofus game data. Never send secrets, personal data, or proprietary source to external documentation services. If neither Context7 mode is available, use official docs; do not block runtime or CI.
 
 ## Mandatory project contract
 
@@ -45,6 +53,19 @@ For non-trivial tasks:
 Do not blindly follow a proposed technical implementation when a better solution exists.
 
 Focus on the requested outcome.
+
+### Ponytail discipline (repository-level)
+
+For agents working directly from the repository, apply Ponytail-style minimalism as an additional decision filter. Project-specific Atlas guardrails always take precedence. The shared machine-readable profile is `tools/ponytail_policy.json`; Atlas Doctor consumes the same profile through `py -3.13 -m tools.atlas_doctor ponytail --json`.
+
+Before adding code:
+
+1. Skip work that is not actually required by the requested outcome.
+2. Reuse the current canonical implementation before creating another one.
+3. Prefer the standard library, native platform features or an already-installed dependency before adding a new dependency or abstraction.
+4. Use the smallest coherent implementation that fully solves the current problem.
+5. Do not generalize for hypothetical future needs or create parallel systems "just in case".
+6. Never trade away validation, security, data-loss protection, accessibility or project guardrails merely to make the diff smaller.
 
 ---
 

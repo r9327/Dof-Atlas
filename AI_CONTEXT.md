@@ -16,6 +16,21 @@ py -3.13 -m tools.ai_context status
 
 Ensuite lire le code réellement concerné, rechercher ses appels/consommateurs et identifier la source de vérité avant de modifier quoi que ce soit.
 
+## Analyse structurelle avec Graphify
+
+Pour tout refactor non trivial, suppression ou déplacement de code, analyse de dépendances/cycles, recherche de consommateurs, nettoyage d'architecture ou estimation de blast radius, Graphify fait partie du préflight obligatoire.
+
+- Lire `GRAPHIFY.md`.
+- Utiliser un graphe correspondant au SHA candidat exact quand il existe.
+- En local, consulter `tools.atlas_doctor graph --json`, puis générer/rafraîchir explicitement avec `tools.atlas_doctor graph --rebuild` avant la modification structurelle.
+- Utiliser `tools.agent plan --structural --json` pour les refactors, suppressions/déplacements, recherches de consommateurs, dépendances/cycles et consolidations ; le plan courant sans ce flag ne force pas de scan coûteux.
+- Sur GitHub sans shell local, utiliser l'artifact `Graphify Code Map` du SHA exact si disponible.
+- Inspecter le sous-graphe pertinent, les hubs, cycles et liaisons inter-domaines avant d'éditer.
+- Vérifier ensuite les relations importantes dans le code courant et les tests : Graphify guide l'analyse, il ne remplace pas la preuve runtime.
+- Une simple recherche texte ne suffit pas pour conclure qu'un composant structurel est sans consommateurs.
+
+Si aucun graphe du SHA exact ne peut être exécuté ou consulté, ne pas prétendre avoir utilisé Graphify et ne pas lancer un refactor structurel risqué sans signaler explicitement cette limite.
+
 ## Carte rapide
 
 - `main.py`, `launch.py`, `app/preload.py`, `app/background_work.py` : démarrage, orchestration et cycle de vie.

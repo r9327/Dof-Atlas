@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "policy_id": "atlas-ponytail-v1",
+  "mode": "advisory",
+  "authority": {
+    "takes_precedence": [
+      "ZERO_TRUST_RULES.md",
+      "DEVELOPMENT_GUARDRAILS.md",
+      "PERFORMANCE_GUARDRAILS.md",
+      "PHASE_CERTIFICATION.md"
+    ],
+    "rule": "Ponytail is a minimalism decision filter. It never overrides correctness, validation, security, accessibility, persistence safety or Atlas-specific guardrails."
+  },
+  "principles": [
+    {
+      "id": "required_scope_only",
+      "summary": "Skip work that is not required by the requested outcome."
+    },
+    {
+      "id": "reuse_canonical_owner",
+      "summary": "Reuse the current canonical implementation before creating another owner or parallel system."
+    },
+    {
+      "id": "native_before_dependency",
+      "summary": "Prefer the standard library, native platform features or an already-installed dependency before adding another dependency."
+    },
+    {
+      "id": "smallest_coherent_solution",
+      "summary": "Use the smallest coherent implementation that fully solves the current problem."
+    },
+    {
+      "id": "no_hypothetical_generalization",
+      "summary": "Do not generalize for hypothetical future needs or add wrappers, factories or compatibility layers just in case."
+    },
+    {
+      "id": "preserve_safety",
+      "summary": "Never trade away tests, diagnostics, data protection or project guardrails merely to shrink a diff."
+    }
+  ],
+  "doctor": {
+    "graph_evidence": "optional_additive",
+    "review_thresholds": {
+      "changed_files": 24,
+      "added_lines": 1000
+    },
+    "abstraction_suffixes": [
+      "Adapter",
+      "Coordinator",
+      "Facade",
+      "Factory",
+      "Manager",
+      "Provider",
+      "Registry",
+      "Service",
+      "Wrapper"
+    ],
+    "parallel_path_markers": [
+      "alternate",
+      "backup",
+      "compat",
+      "copy",
+      "fallback",
+      "legacy",
+      "new",
+      "old",
+      "v2",
+      "v3"
+    ],
+    "dependency_manifests": [
+      "pyproject.toml",
+      "requirements.txt",
+      "requirements-dev.txt",
+      "requirements-pyside.txt"
+    ],
+    "checks": {
+      "dependency_manifest_change": {
+        "severity": "MEDIUM",
+        "title": "Dependency manifest changed",
+        "recommendation": "Confirm that the new or changed dependency is necessary and that an existing/native solution is not already sufficient."
+      },
+      "low_fanin_abstraction": {
+        "severity": "LOW",
+        "title": "New abstraction has low static fan-in",
+        "recommendation": "Confirm that the abstraction has a real current consumer and is simpler than using the existing canonical owner directly."
+      },
+      "parallel_path_marker": {
+        "severity": "LOW",
+        "title": "New path looks like a parallel or compatibility implementation",
+        "recommendation": "Confirm that this is not a second implementation kept just in case and that any compatibility layer has a real boundary and removal plan."
+      },
+      "broad_diff": {
+        "severity": "INFO",
+        "title": "Change is broad enough to review scope explicitly",
+        "recommendation": "Confirm that the changed files and added code are necessary for the requested outcome; split unrelated work into another lot."
+      }
+    }
+  }
+}

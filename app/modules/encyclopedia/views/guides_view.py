@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import atexit
 import re
 import logging
 import time
 import weakref
 from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
 from pathlib import Path
@@ -20,6 +22,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLayout,
+    QListView,
     QProgressBar,
     QScrollArea,
     QSizePolicy,
@@ -45,41 +48,107 @@ from app.modules.encyclopedia.services import (
     QuestGraphService,
     QuestProgressService,
 )
-from app.modules.encyclopedia.services.guide_auto_validation_contract import (
-    build_route_auto_validation_contract,
-)
-from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
-    GuideUltimeManualRuntimeService,
-)
-from app.modules.encyclopedia.services.guide_quest_view_model import (
-    DisplayItem,
-    DisplayReward,
-    DisplaySolutionBlock,
-    SolutionObjective,
-    activity_labels,
-    clean_text,
-    clean_requirement_line,
-    first_position_from_quest,
-    format_number,
-    guide_activities,
-    guide_items,
-    guide_rewards,
-    quest_rewards,
-    quest_solution_blocks,
-    quest_solution_steps,
-    reward_label,
-)
 from app.modules.encyclopedia.views.guide_home_image_cache import (
     get_cached_scaled_pixmap,
     store_scaled_pixmap,
 )
 from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_state
-from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
-from app.modules.encyclopedia.widgets import CollapsedColumnRail, FixedColumnSplitter, GuideListModel
-from app.modules.encyclopedia.widgets.quest_item_row import item_row
-from app.quest_catalog import normalize_text
-from app.storage import AtlasButton
+from app.modules.encyclopedia.widgets.dashboard import CollapsedColumnRail, FixedColumnSplitter
+from app.modules.encyclopedia.widgets.guide_card import (
+    GUIDE_ID_ROLE,
+    GuideCardDelegate,
+    GuideListModel,
+)
+from app.core.text import normalize_key as normalize_text
+from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE, render_theme_template
+
+if TYPE_CHECKING:
+    from app.modules.encyclopedia.services.guide_quest_view_model import (
+        DisplayItem,
+        DisplayReward,
+        DisplaySolutionBlock,
+        SolutionObjective,
+    )
+    from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+        GuideUltimeManualRuntimeService,
+    )
+    from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
+
+
+_GUIDE_QUEST_VM = None
+
+
+def _guide_quest_vm():
+    global _GUIDE_QUEST_VM
+    if _GUIDE_QUEST_VM is None:
+        from app.modules.encyclopedia.services import guide_quest_view_model
+
+        _GUIDE_QUEST_VM = guide_quest_view_model
+    return _GUIDE_QUEST_VM
+
+
+def _vm_call(name: str, *args, **kwargs):
+    return getattr(_guide_quest_vm(), name)(*args, **kwargs)
+
+
+def activity_labels(*args, **kwargs):
+    return _vm_call("activity_labels", *args, **kwargs)
+
+
+def clean_text(*args, **kwargs):
+    return _vm_call("clean_text", *args, **kwargs)
+
+
+def clean_requirement_line(*args, **kwargs):
+    return _vm_call("clean_requirement_line", *args, **kwargs)
+
+
+def first_position_from_quest(*args, **kwargs):
+    return _vm_call("first_position_from_quest", *args, **kwargs)
+
+
+def format_number(*args, **kwargs):
+    return _vm_call("format_number", *args, **kwargs)
+
+
+def guide_activities(*args, **kwargs):
+    return _vm_call("guide_activities", *args, **kwargs)
+
+
+def guide_items(*args, **kwargs):
+    return _vm_call("guide_items", *args, **kwargs)
+
+
+def guide_rewards(*args, **kwargs):
+    return _vm_call("guide_rewards", *args, **kwargs)
+
+
+def quest_rewards(*args, **kwargs):
+    return _vm_call("quest_rewards", *args, **kwargs)
+
+
+def quest_solution_blocks(*args, **kwargs):
+    return _vm_call("quest_solution_blocks", *args, **kwargs)
+
+
+def quest_solution_steps(*args, **kwargs):
+    return _vm_call("quest_solution_steps", *args, **kwargs)
+
+
+def reward_label(*args, **kwargs):
+    return _vm_call("reward_label", *args, **kwargs)
+
+
+def DisplaySolutionBlock(*args, **kwargs):  # noqa: N802 - compatibility constructor
+    return _vm_call("DisplaySolutionBlock", *args, **kwargs)
+
+
+def item_row(*args, **kwargs):
+    from app.modules.encyclopedia.widgets.quest_item_row import item_row as build_item_row
+
+    return build_item_row(*args, **kwargs)
+
 
 Navigator = Callable[..., bool]
 TravelLauncher = Callable[[str], None]
@@ -104,10 +173,13 @@ HOME_GUIDE_LEFT_MIN_WIDTH = 285
 HOME_GUIDE_LEFT_MAX_WIDTH = 360
 GUIDE_STEPS_OPEN_WIDTH = 190
 GUIDE_STEPS_COLLAPSED_WIDTH = 44
+GUIDE_SERIES_INITIAL_STEP_LIMIT = 40
+GUIDE_OVERVIEW_REWARD_LIMIT = 12
 SOLUTION_IMAGE_EXECUTOR = ThreadPoolExecutor(
     max_workers=4,
     thread_name_prefix="DofusAtlasQuestImage",
 )
+atexit.register(SOLUTION_IMAGE_EXECUTOR.shutdown, wait=False, cancel_futures=True)
 
 
 class _AsyncImageDelivery(QObject):
@@ -1102,6 +1174,8 @@ class GuidesView(QWidget):
         self.quest_nav_scroll_positions: dict[str, int] = {}
         self.current_series_by_guide: dict[str, str] = {}
         self.guide_prerequisites_expanded: dict[str, bool] = {}
+        self.series_step_limits: dict[tuple[str, str], int] = {}
+        self._selected_series_rewards_truncated = False
         self.steps_collapsed = False
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = initial_progress_character_key or ""
@@ -1130,23 +1204,14 @@ class GuidesView(QWidget):
             )
 
     def _show_runtime_loading(self) -> None:
-        clear_layout(self.home_layout)
-        loading = QLabel("Chargement des guides…")
-        loading.setObjectName("GuidesHomeEmptyText")
-        loading.setAlignment(Qt.AlignCenter)
-        self.home_layout.addStretch(1)
-        self.home_layout.addWidget(loading)
-        self.home_layout.addStretch(1)
+        self.home_list.setVisible(False)
+        self.home_empty.setText("Chargement des guides…")
+        self.home_empty.setVisible(True)
 
     def show_runtime_error(self, message: str) -> None:
-        clear_layout(self.home_layout)
-        error = QLabel(str(message or "Chargement des guides impossible."))
-        error.setObjectName("GuidesHomeEmptyText")
-        error.setAlignment(Qt.AlignCenter)
-        error.setWordWrap(True)
-        self.home_layout.addStretch(1)
-        self.home_layout.addWidget(error)
-        self.home_layout.addStretch(1)
+        self.home_list.setVisible(False)
+        self.home_empty.setText(str(message or "Chargement des guides impossible."))
+        self.home_empty.setVisible(True)
 
     def hydrate_runtime(
         self,
@@ -1159,22 +1224,11 @@ class GuidesView(QWidget):
 
         if self._runtime_ready:
             return True
-        catalog = self.quest_provider.get_catalog()
         guides = self.provider.load_all()
         if not guides:
             raise RuntimeError("Aucun guide chargé depuis catalog.json")
-        self.quest_catalog = catalog
-        self.progress_calculator = GuideProgressCalculator(
-            self.quest_progress_service,
-            self.guide_progress_service,
-            self.achievement_progress_service,
-            catalog.by_id,
-        )
-        self.graph = graph or QuestGraphService(
-            self.quest_provider,
-            self.provider,
-            self.achievement_provider,
-        )
+        if graph is not None:
+            self.graph = graph
         self.guides = list(guides)
         self.visible_guides = list(guides)
         if initial_progress_by_guide is not None:
@@ -1188,10 +1242,36 @@ class GuidesView(QWidget):
         self.status_callback(f"{len(self.guides)} guide(s) chargés.")
         return True
 
+    def _ensure_progress_runtime(self) -> None:
+        """Materialize Quest data only when Guide progress really needs it."""
+
+        if self.quest_catalog is None:
+            self.quest_catalog = self.quest_provider.get_catalog()
+        if self.progress_calculator is None:
+            self.progress_calculator = GuideProgressCalculator(
+                self.quest_progress_service,
+                self.guide_progress_service,
+                self.achievement_progress_service,
+                self.quest_catalog.by_id,
+            )
+
+    def _ensure_detail_runtime(self) -> None:
+        """Keep the Guide catalogue light; hydrate detail dependencies on demand."""
+
+        self._ensure_progress_runtime()
+        if self.graph is None:
+            self.graph = QuestGraphService(
+                self.quest_provider,
+                self.provider,
+                self.achievement_provider,
+                eager=False,
+            )
+
     def _ensure_detail_page(self) -> QWidget:
         """Build the rich three-column Guide detail only on first navigation."""
 
         if self.detail_page is None:
+            self._ensure_detail_runtime()
             self.detail_page = self.build_detail_page()
             self.stack.addWidget(self.detail_page)
         return self.detail_page
@@ -1210,8 +1290,34 @@ class GuidesView(QWidget):
         self.home_layout.setContentsMargins(2, 2, 2, 2)
         self.home_layout.setSpacing(8)
 
+        # One model + delegate keeps the Guide catalogue virtualized. Rich card
+        # widgets are detail-only helpers and must never form a Home widget forest.
+        self.home_list = QListView()
+        self.home_list.setObjectName("GuidesHomeList")
+        self.home_list.setModel(self.result_model)
+        self.home_list.setItemDelegate(GuideCardDelegate(self.home_list))
+        self.home_list.setFrameShape(QFrame.NoFrame)
+        self.home_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.home_list.setMouseTracking(True)
+        self.home_list.setSpacing(4)
+        self.home_list.clicked.connect(self._on_home_guide_clicked)
+        self.home_list.activated.connect(self._on_home_guide_clicked)
+        self.home_layout.addWidget(self.home_list, 1)
+
+        self.home_empty = QLabel()
+        self.home_empty.setObjectName("GuidesHomeEmptyText")
+        self.home_empty.setAlignment(Qt.AlignCenter)
+        self.home_empty.setWordWrap(True)
+        self.home_empty.setVisible(False)
+        self.home_layout.addWidget(self.home_empty, 1)
+
         root.addWidget(self.home_content, 1)
         return page
+
+    def _on_home_guide_clicked(self, index) -> None:
+        guide_id = index.data(GUIDE_ID_ROLE)
+        if guide_id:
+            self.select_guide(str(guide_id))
 
     def build_detail_page(self) -> QWidget:
         from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
@@ -1394,25 +1500,15 @@ class GuidesView(QWidget):
             self.show_guide_overview(self.current_guide_id, preserve_scroll=True)
 
     def _refresh_home_uncached(self) -> None:
-        clear_layout(self.home_layout)
         self.visible_guides = self.provider.search(self.search_text)
         self.result_model.set_guides(self.visible_guides)
+
         if not self.visible_guides:
-            empty = QFrame()
-            empty.setObjectName("GuidesHomeEmpty")
-            empty_layout = QVBoxLayout(empty)
-            empty_layout.setContentsMargins(20, 30, 20, 30)
-            message = QLabel("Aucun guide ne correspond à la recherche.")
-            message.setObjectName("GuidesHomeEmptyText")
-            message.setAlignment(Qt.AlignCenter)
-            empty_layout.addWidget(message)
-            self.home_layout.addWidget(empty)
-            self.home_layout.addStretch(1)
+            self.home_list.setVisible(False)
+            self.home_empty.setText("Aucun guide ne correspond à la recherche.")
+            self.home_empty.setVisible(True)
             return
 
-        grouped: dict[str, list[Guide]] = {}
-        for guide in self.visible_guides:
-            grouped.setdefault(guide.category, []).append(guide)
         progress_by_guide = self.initial_home_progress()
         if progress_by_guide is None:
             progress_by_guide = {
@@ -1420,36 +1516,8 @@ class GuidesView(QWidget):
                 for guide in self.visible_guides
             }
         self.result_model.set_progress(progress_by_guide)
-
-        catalog = QFrame()
-        catalog.setObjectName("GuidesCatalogGrid")
-        catalog.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        catalog_layout = QGridLayout(catalog)
-        catalog_layout.setContentsMargins(0, 0, 0, 0)
-        catalog_layout.setHorizontalSpacing(8)
-        catalog_layout.setVerticalSpacing(8)
-        catalog_layout.setRowStretch(0, 1)
-
-        column = 0
-        if grouped.get("aventure") or grouped.get("alignements"):
-            catalog_layout.addWidget(self.build_progression_column(grouped, progress_by_guide), 0, column)
-            catalog_layout.setColumnMinimumWidth(column, HOME_GUIDE_LEFT_MIN_WIDTH)
-            catalog_layout.setColumnStretch(column, 0)
-            column += 1
-
-        dofus_guides = grouped.get("dofus", [])
-        if dofus_guides:
-            catalog_layout.addWidget(self.build_category_section("dofus", dofus_guides, progress_by_guide=progress_by_guide), 0, column)
-            catalog_layout.setColumnStretch(column, 1)
-            column += 1
-
-        for category, guides in grouped.items():
-            if category not in CATEGORY_ORDER:
-                catalog_layout.addWidget(self.build_category_section(category, guides, progress_by_guide=progress_by_guide), 0, column)
-                catalog_layout.setColumnStretch(column, 1)
-                column += 1
-
-        self.home_layout.addWidget(catalog, 1)
+        self.home_empty.setVisible(False)
+        self.home_list.setVisible(True)
 
     def _initial_home_progress_uncached(self) -> dict[str, tuple[int, int, str]] | None:
         if not self._initial_progress_by_guide:
@@ -1594,8 +1662,8 @@ class GuidesView(QWidget):
         self.current_guide_id = guide.id
         self.current_quest_id = None
         self.state = self.GUIDE_OVERVIEW
-        self._ensure_chapters_initialized(guide)
         self._ensure_selected_series(guide)
+        self._ensure_chapters_initialized(guide)
         self._configure_detail_layout(guide, False)
         self.detail_header.setVisible(True)
         self._render_header(guide)
@@ -1629,10 +1697,12 @@ class GuidesView(QWidget):
         previous_left = self.quest_nav_scroll_positions.get(guide.id, 0) if preserve_scroll else self.left_scroll.verticalScrollBar().value()
         self.current_quest_id = quest.id
         self.state = self.QUEST_DETAIL
-        self._ensure_chapters_initialized(guide)
         series_ref = self._series_ref_for_quest(guide, quest.id)
         if series_ref is not None:
             self.current_series_by_guide[guide.id] = series_ref[2].id
+            self.expanded_chapters[guide.id] = {series_ref[1].id}
+        else:
+            self._ensure_chapters_initialized(guide)
         self._configure_detail_layout(guide, True)
         self._render_header(guide)
         self.detail_header.setVisible(True)
@@ -2045,7 +2115,19 @@ class GuidesView(QWidget):
             self.show_guide_overview(self.current_guide_id, preserve_scroll=preserve_scroll)
 
     def _guide_progress_tuple_uncached(self, guide: Guide) -> tuple[int, int, str]:
-        progress = self.progress_calculator.guide_progress(guide, self.current_character_key)
+        self._ensure_progress_runtime()
+        compact_quest_ids = getattr(self.provider, "progress_quest_ids_for", None)
+        if callable(compact_quest_ids):
+            progress = self.progress_calculator.quest_ids_progress(
+                guide.id,
+                compact_quest_ids(guide.id),
+                self.current_character_key,
+            )
+        else:
+            progress = self.progress_calculator.guide_progress(
+                guide,
+                self.current_character_key,
+            )
         return progress.completed, progress.total, self._state(progress.completed, progress.total)
 
     def guide_state(self, guide: Guide) -> str:
@@ -2055,9 +2137,11 @@ class GuidesView(QWidget):
         guide = self.current_guide()
         if guide is None:
             return
-        if self._series_ref_by_id(guide, str(series_id)) is None:
+        ref = self._series_ref_by_id(guide, str(series_id))
+        if ref is None:
             return
         self.current_series_by_guide[guide.id] = str(series_id)
+        self.expanded_chapters[guide.id] = {ref[1].id}
         self.show_guide_overview(guide.id, preserve_scroll=False)
 
     def _configure_detail_layout(self, guide: Guide, quest_detail: bool) -> None:
@@ -2564,10 +2648,16 @@ class GuidesView(QWidget):
         header_layout.addWidget(title, 1)
         self.center_layout.addWidget(header)
 
-        for step in sorted(
+        ordered_steps = sorted(
             series.steps,
             key=lambda item: item.order,
-        ):
+        )
+        limit_key = (guide.id, series.id)
+        visible_limit = self.series_step_limits.get(
+            limit_key,
+            GUIDE_SERIES_INITIAL_STEP_LIMIT,
+        )
+        for step in ordered_steps[:visible_limit]:
             quest = (
                 self.quest_catalog.by_id.get(
                     int(step.entity_id)
@@ -2602,7 +2692,31 @@ class GuidesView(QWidget):
 
             self.center_layout.addWidget(line)
 
+        if visible_limit < len(ordered_steps):
+            remaining = len(ordered_steps) - visible_limit
+            increment = min(GUIDE_SERIES_INITIAL_STEP_LIMIT, remaining)
+            more = AtlasButton(f"Afficher {increment} quêtes supplémentaires")
+            more.setObjectName("GuideSeriesLoadMoreButton")
+            more.setToolTip(f"{remaining} quête(s) restent dans cette série")
+            more.clicked.connect(
+                lambda _checked=False, key=limit_key: self._show_more_series_steps(key)
+            )
+            self.center_layout.addWidget(more)
+
         self.center_layout.addStretch(1)
+
+    def _show_more_series_steps(self, key: tuple[str, str]) -> None:
+        guide = self.current_guide()
+        if guide is None or key[0] != guide.id:
+            return
+        series_ref = self._selected_series_ref(guide)
+        if series_ref is None or series_ref[2].id != key[1]:
+            return
+        self.series_step_limits[key] = self.series_step_limits.get(
+            key,
+            GUIDE_SERIES_INITIAL_STEP_LIMIT,
+        ) + GUIDE_SERIES_INITIAL_STEP_LIMIT
+        self._populate_series_quests(guide)
 
     def _populate_guide_navigation(
         self,
@@ -2691,6 +2805,7 @@ class GuidesView(QWidget):
         self,
         guide: Guide,
     ) -> list[DisplayReward]:
+        self._selected_series_rewards_truncated = False
         series_ref = self._selected_series_ref(guide)
 
         if series_ref is None:
@@ -2718,11 +2833,7 @@ class GuidesView(QWidget):
             if quest is None:
                 continue
 
-            achievements = tuple(
-                self.achievement_provider.get_by_quest(
-                    int(quest.id)
-                )
-            )
+            achievements = self._achievement_rewards_for_quest(quest)
 
             for reward in quest_rewards(
                 quest,
@@ -2744,9 +2855,15 @@ class GuidesView(QWidget):
                     continue
 
                 seen.add(key)
+                if len(rewards) >= GUIDE_OVERVIEW_REWARD_LIMIT:
+                    self._selected_series_rewards_truncated = True
+                    return rewards
                 rewards.append(reward)
 
         return rewards
+
+    def _achievement_rewards_for_quest(self, quest) -> tuple:
+        return tuple(self.achievement_provider.get_by_quest(int(quest.id)))
 
     def _populate_guide_info(self, guide: Guide) -> None:
         clear_layout(self.right_layout)
@@ -2792,13 +2909,18 @@ class GuidesView(QWidget):
             )
 
         if rewards:
+            reward_widgets = [reward_row(reward) for reward in rewards]
+            if self._selected_series_rewards_truncated:
+                reward_widgets.append(
+                    text_label(
+                        "Ouvrez une quête pour consulter toutes ses récompenses.",
+                        "MutedLabel",
+                    )
+                )
             self.right_layout.addWidget(
                 info_section(
                     "R\u00c9COMPENSES",
-                    [
-                        reward_row(reward)
-                        for reward in rewards
-                    ],
+                    reward_widgets,
                 )
             )
 
@@ -2888,9 +3010,9 @@ class GuidesView(QWidget):
             return
         opened = self.expanded_chapters.setdefault(guide.id, set())
         if chapter_id in opened:
-            opened.remove(chapter_id)
+            opened.clear()
         else:
-            opened.add(chapter_id)
+            self.expanded_chapters[guide.id] = {str(chapter_id)}
         if self.state == self.QUEST_DETAIL and self.current_quest_id is not None:
             self.show_quest_detail(self.current_quest_id, preserve_scroll=True)
         else:
@@ -2915,11 +3037,23 @@ class GuidesView(QWidget):
     def _ensure_chapters_initialized(self, guide: Guide) -> None:
         if guide.id in self.expanded_chapters:
             return
-        self.expanded_chapters[guide.id] = {
-            chapter.id
-            for part in guide.parts
-            for chapter in part.chapters
-        }
+        selected = self._selected_series_ref(guide)
+        if selected is not None:
+            self.expanded_chapters[guide.id] = {selected[1].id}
+            return
+        first_chapter = next(
+            (
+                chapter
+                for part in guide.parts
+                for chapter in part.chapters
+            ),
+            None,
+        )
+        self.expanded_chapters[guide.id] = (
+            {first_chapter.id}
+            if first_chapter is not None
+            else set()
+        )
 
     @staticmethod
     def _series_title_useful(part: GuidePart, chapter: GuideChapter, series: GuideSeries) -> bool:
@@ -3007,6 +3141,16 @@ class GuidesView(QWidget):
         if self.guide_ultime_view is not None:
             return self.guide_ultime_view
 
+        from app.modules.encyclopedia.services.guide_auto_validation_contract import (
+            build_route_auto_validation_contract,
+        )
+        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+            GuideUltimeManualRuntimeService,
+        )
+        from app.modules.encyclopedia.views.guide_ultime_manual_view import (
+            GuideUltimeManualView,
+        )
+
         service = self.guide_ultime_service
         if service is None:
             service = GuideUltimeManualRuntimeService(
@@ -3051,21 +3195,18 @@ class GuidesView(QWidget):
         return view
 
     def _refresh_guide_ultime_home_labels(self) -> None:
-        if not hasattr(self, "home_content"):
-            return
-        for label in self.home_content.findChildren(QLabel):
-            text = label.text().strip().casefold()
-            if "aventure de zéro" in text or "aventure de zero" in text:
-                label.setText(GUIDE_ULTIME_TITLE)
+        self.result_model.set_title_override(
+            GUIDE_ULTIME_LEGACY_ID,
+            GUIDE_ULTIME_TITLE,
+        )
         service = self.guide_ultime_service
         if service is None or not service.available:
             return
         completed, total = service.route_sheet_progress(self.current_character_key)
-        for label in self.home_content.findChildren(QLabel, "GuideHomeProgress"):
-            parent = label.parentWidget()
-            title = parent.findChild(QLabel, "GuideHomeCardTitle") if parent is not None else None
-            if title is not None and title.text().strip() == GUIDE_ULTIME_TITLE:
-                label.setText(f"{completed} / {total} fiches")
+        self.result_model.set_subtitle_override(
+            GUIDE_ULTIME_LEGACY_ID,
+            f"{completed} / {total} fiches",
+        )
 
     def refresh_home(self) -> None:
         signature = self._current_home_render_signature()

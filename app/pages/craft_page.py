@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import difflib
+import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QPixmap
@@ -53,28 +54,12 @@ from app.storage import (
 from app.ui.components import AtlasButton
 
 
+from local_dofus_data.normalizer import craft_category_for_item
+
+
+LOGGER = logging.getLogger(__name__)
+
 _RESULT_BATCH_SIZE = 8
-
-
-def craft_category_for_item(item: dict[str, Any]) -> str:
-    text = normalize_key(
-        " ".join(str(item.get(key, "")) for key in ("name", "type", "family", "category"))
-    )
-    if any(token in text for token in ("trophee", "prysma", "prysmaradite")):
-        return "trophy_prysma"
-    equipment = (
-        "arme",
-        "coiffe",
-        "cape",
-        "ceinture",
-        "anneau",
-        "collier",
-        "amulette",
-        "botte",
-        "bouclier",
-        "dofus",
-    )
-    return "equipment" if any(token in text for token in equipment) else "resource"
 
 
 def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
@@ -418,9 +403,11 @@ class CraftPage(QWidget):
         preload: dict[str, Any] | None = None,
         *,
         defer_runtime: bool = False,
+        retry_preload_callback: Callable[[], None] | None = None,
     ):
         super().__init__(parent)
         self.status_callback = status_callback
+        self.retry_preload_callback = retry_preload_callback
         self.preload = preload if isinstance(preload, dict) else {}
         self.icon_cache = IconCache(32)
         self.items: list[dict[str, Any]] = []
@@ -445,6 +432,9 @@ class CraftPage(QWidget):
         self.jobs_resize_timer = QTimer(self)
         self.jobs_resize_timer.setSingleShot(True)
         self.jobs_resize_timer.timeout.connect(self.refresh_jobs)
+        self.layout_timer = QTimer(self)
+        self.layout_timer.setSingleShot(True)
+        self.layout_timer.timeout.connect(self.apply_craft_body_layout)
         self.resource_dialog: CraftResourceDialog | None = None
 
         root = QVBoxLayout(self)
@@ -452,6 +442,14 @@ class CraftPage(QWidget):
         title = QLabel("Craft")
         title.setObjectName("PageTitle")
         root.addWidget(title)
+        self.retry_preload_button = AtlasButton("Réessayer le chargement Craft")
+        self.retry_preload_button.setObjectName("CraftRetryPreload")
+        self.retry_preload_button.setToolTip(
+            "Réessayer le chargement du catalogue local après réparation des données."
+        )
+        self.retry_preload_button.setVisible(False)
+        self.retry_preload_button.clicked.connect(self.retry_preload)
+        root.addWidget(self.retry_preload_button, 0, Qt.AlignLeft)
 
         self.global_scroll = QScrollArea()
         self.global_scroll.setWidgetResizable(True)
@@ -559,12 +557,13 @@ class CraftPage(QWidget):
             self.show_runtime_loading()
         else:
             self.hydrate_runtime(self.preload)
-        QTimer.singleShot(0, self.apply_craft_body_layout)
+        self.layout_timer.start(0)
 
     def is_navigation_ready(self) -> bool:
         return True
 
     def show_runtime_loading(self) -> None:
+        self.retry_preload_button.setVisible(False)
         self.search.setEnabled(False)
         for button in self.category_buttons.values():
             button.setEnabled(False)
@@ -575,17 +574,40 @@ class CraftPage(QWidget):
         self.status_callback("Craft disponible · données en arrière-plan...")
 
     def show_runtime_error(self, message: str) -> None:
+        self._runtime_ready = False
+        self.search.setEnabled(False)
+        for button in self.category_buttons.values():
+            button.setEnabled(False)
+        self.retry_preload_button.setVisible(callable(self.retry_preload_callback))
         self.results.clear()
         item = QListWidgetItem(str(message or "Chargement Craft impossible."))
         item.setFlags(Qt.NoItemFlags)
         self.results.addItem(item)
         self.status_callback(f"Chargement Craft impossible : {message}")
 
+    def retry_preload(self) -> None:
+        """Ask the owning Atlas shell to retry asynchronously, never block Qt."""
+        if not callable(self.retry_preload_callback):
+            return
+        self.show_runtime_loading()
+        self.retry_preload_callback()
+
     def hydrate_runtime(self, preload: dict[str, Any]) -> bool:
         if self._runtime_ready:
             return True
         if not isinstance(preload, dict) or not isinstance(preload.get("items"), list):
             return False
+        # An empty list is expected for a valid lazy SQLite catalogue, but
+        # not for the absent/corrupt-catalogue fallback.
+        if preload.get("_skipped_reason") or preload.get("errors"):
+            return False
+        if preload.get("_prepared") is False:
+            return False
+        if not preload.get("items") and not (
+            preload.get("_lazy_items") and preload.get("_prepared") is True
+        ):
+            return False
+        self.retry_preload_button.setVisible(False)
         self.preload = preload
         self.load_items()
         self.load_leveling_guides()
@@ -599,10 +621,44 @@ class CraftPage(QWidget):
         self.refresh_results()
         self.refresh_selection()
         self.refresh_jobs()
-        self.status_callback(
-            f"Craft prêt · {len(self.items)} objets, {len(self.jobs)} métiers."
-        )
+        if bool(self.preload.get("_lazy_items")):
+            self.status_callback(
+                f"Craft prêt · recherche SQLite à la demande, {len(self.jobs)} métiers."
+            )
+        else:
+            self.status_callback(
+                f"Craft prêt · {len(self.items)} objets, {len(self.jobs)} métiers."
+            )
         return True
+
+    def release_runtime(self) -> None:
+        """Drop reconstructible Craft UI/data before the page is destroyed."""
+
+        for timer_name in (
+            "search_timer",
+            "result_batch_timer",
+            "jobs_resize_timer",
+            "layout_timer",
+        ):
+            timer = getattr(self, timer_name, None)
+            if timer is not None:
+                timer.stop()
+        if self.resource_dialog is not None:
+            self.resource_dialog.close()
+            self.resource_dialog = None
+        self.items.clear()
+        self.items_by_name.clear()
+        self.item_lookup_cache.clear()
+        clear_icons = getattr(self.icon_cache, "clear", None)
+        if callable(clear_icons):
+            clear_icons()
+        self.selection.clear()
+        self.jobs.clear()
+        self._pending_result_items.clear()
+        self.preload = {}
+        release = getattr(local_data_cache, "release_adapter", None)
+        if callable(release):
+            release()
 
     def restyle_button(self, button: QPushButton) -> None:
         button.style().unpolish(button)
@@ -723,15 +779,34 @@ class CraftPage(QWidget):
     def refresh_results(self) -> None:
         self._result_generation += 1
         self.result_batch_timer.stop()
-        query = normalize_key(self.search.text())
+        raw_query = self.search.text().strip()
+        query = normalize_key(raw_query)
         self.results.clear()
         self._pending_result_items = []
         if not self._runtime_ready or len(query) < 2:
             return
-        for item in self.items:
-            if item.get("_craft_category") != self.category:
+
+        if bool(self.preload.get("_lazy_items")) and hasattr(local_data_cache, "search_craft_items"):
+            try:
+                candidates = local_data_cache.search_craft_items(raw_query, limit=160, category=self.category)
+            except Exception as exc:
+                LOGGER.debug("Recherche Craft SQLite indisponible: %s", exc)
+                candidates = []
+        else:
+            candidates = self.items
+
+        for item in candidates:
+            if not isinstance(item, dict):
                 continue
-            if query not in item.get("_search_name", ""):
+            search_name = item.get("_search_name")
+            if not isinstance(search_name, str):
+                search_name = normalize_key(item.get("name"))
+                item["_search_name"] = search_name
+            category = item.get("_craft_category")
+            if category not in {"equipment", "trophy_prysma", "resource"}:
+                category = self.category_for_item(item)
+                item["_craft_category"] = category
+            if category != self.category or query not in search_name:
                 continue
             self._pending_result_items.append(item)
             if len(self._pending_result_items) >= 80:
@@ -858,6 +933,11 @@ class CraftPage(QWidget):
             layout.addWidget(label, 1)
             qty = quantity_spinbox(int(row["quantity"]))
             delete = AtlasButton("x")
+            delete.setObjectName("CraftRemoveSelectionItem")
+            accessible_label = f"Retirer {item.get('name', 'Objet')} de la sélection"
+            delete.setToolTip(accessible_label)
+            delete.setAccessibleName(accessible_label)
+            delete.setFocusPolicy(Qt.StrongFocus)
             delete.setMaximumWidth(30)
             qty.valueChanged.connect(lambda value, target=ident: self.set_selection_quantity(target, value))
             delete.clicked.connect(lambda _checked=False, target=ident: self.remove_selection_item(target))
@@ -951,14 +1031,21 @@ class CraftPage(QWidget):
             item = self.items_by_name[key]
             self.item_lookup_cache[key] = item
             return item
+        if bool(self.preload.get("_prepared")) and not bool(self.preload.get("_lazy_items")):
+            self.item_lookup_cache[key] = None
+            return None
         if hasattr(local_data_cache, "search_items"):
             try:
                 results = local_data_cache.search_items(name, limit=8)
                 if results:
                     self.item_lookup_cache[key] = results[0]
                     return results[0]
-            except Exception:
-                pass
+            except Exception as exc:
+                LOGGER.debug(
+                    "Recherche cache local indisponible pour %r; fallback index mémoire: %s",
+                    name,
+                    exc,
+                )
 
         # The old fallback returned the first substring match, making results
         # depend on insertion order. Accept a partial only when it is unique;
@@ -1084,11 +1171,11 @@ class CraftPage(QWidget):
                 button.setObjectName("ActiveButton")
             else:
                 button.setObjectName("SecondaryButton")
-            icon_source = self.job_icon_source(job)
-            icon = self.icon_cache.icon_for_item(icon_source)
-            if not icon.isNull() and key != "recolte":
-                button.setIcon(icon)
-                button.setIconSize(QSize(22, 22))
+            # Keep the initial Craft surface independent from the local-data
+            # adapter. Resolving a decorative job icon used to open the whole
+            # SQLite/repository stack before the user had searched or selected
+            # anything, permanently raising the process high-water mark.
+            # Functional item/resource icons remain loaded on explicit demand.
             button.clicked.connect(lambda _checked=False, target=name: self.set_job(target))
             self.job_buttons_layout.addWidget(button, index // button_columns, index % button_columns)
         for column in range(button_columns):
@@ -1178,6 +1265,7 @@ class CraftPage(QWidget):
             return
         resources: dict[str, dict[str, Any]] = {}
         missing = []
+        lookup_errors = 0
         for row in self.selection.values():
             item = row["item"]
             ident = item_id(item)
@@ -1187,6 +1275,8 @@ class CraftPage(QWidget):
             try:
                 recipe = local_data_cache.get_recipe_for_item(ident)
             except Exception:
+                LOGGER.exception("Craft recipe lookup failed for item %s", ident)
+                lookup_errors += 1
                 recipe = {"found": False, "ingredients": []}
             if not recipe.get("found") or not recipe.get("ingredients"):
                 missing.append(item.get("name", str(ident)))
@@ -1207,4 +1297,7 @@ class CraftPage(QWidget):
         self.resource_dialog = dialog
         dialog.show()
         dialog.raise_()
-        self.status_callback(f"{len(resources)} ressource(s) agregee(s).")
+        message = f"{len(resources)} ressource(s) agregee(s)."
+        if lookup_errors:
+            message += f" {lookup_errors} recette(s) indisponible(s) (erreur de lecture)."
+        self.status_callback(message)

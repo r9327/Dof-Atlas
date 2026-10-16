@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+from contextlib import closing
 import tempfile
 import threading
 import time
 import unittest
+import weakref
 from dataclasses import asdict
 from pathlib import Path
 from unittest.mock import patch
@@ -12,7 +15,11 @@ from unittest.mock import patch
 from app import quest_catalog as qc
 from app.quest_catalog import QuestCatalog, QuestRecord, QuestStep
 from app.quest_catalog_details import load_lazy_catalog
-from app.quest_source_index import JsonSourceMapping, QuestSources
+from app.quest_source_index import (
+    JsonSourceMapping,
+    QuestSources,
+    read_selected_json_object_values,
+)
 
 
 def record(quest_id):
@@ -32,6 +39,109 @@ class QuestDetailsTests(unittest.TestCase):
         for row in records:
             row.steps = [QuestStep(row.id * 10, 'Étape', 'Détail')]
         return QuestCatalog(records)
+
+    def test_guide_evidence_reads_sqlite_without_hydrating_detail(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cache_root = root / "cache"
+
+            def write_rows(name, rows):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps({"references": {"RefIds": [
+                    {"rid": row["id"], "data": row} for row in rows
+                ]}}, ensure_ascii=False), encoding="utf-8")
+
+            language = root / "languages/fr.json"
+            language.parent.mkdir(parents=True)
+            language.write_text(json.dumps({"entries": {
+                "101": "Quête", "110": "Catégorie",
+                "201": "Objet compact", "301": "Monstre compact",
+            }}, ensure_ascii=False), encoding="utf-8")
+            write_rows("quests.json", [{"id": 1, "nameId": 101, "categoryId": 10, "stepIds": {"Array": [10]}}])
+            write_rows("quest_categories.json", [{"id": 10, "nameId": 110}])
+            write_rows("achievements.json", [])
+            write_rows("achievement_objectives.json", [])
+            write_rows("achievement_categories.json", [])
+            write_rows("items.json", [{"id": 20, "nameId": 201}])
+            write_rows("monsters.json", [{"id": 30, "nameId": 301}])
+            write_rows("quest_objectives.json", [
+                {"id": 40, "stepId": 10, "typeId": 17, "parameters": {"parameter0": 20, "parameter1": 3}},
+                {"id": 41, "stepId": 10, "typeId": 6, "parameters": {"parameter0": 30, "parameter1": 2}},
+            ])
+
+            catalog = load_lazy_catalog(root, cache_root=cache_root)
+            evidence = catalog.guide_evidence(1)
+
+            self.assertEqual(evidence["items"][0]["name"], "Objet compact")
+            self.assertEqual(evidence["items"][0]["quantity"], 3)
+            self.assertEqual(evidence["combats"][0]["monster"], "Monstre compact")
+            self.assertEqual(evidence["combats"][0]["objective_id"], 41)
+
+            # The Guide indexer already read all objectives during preload.
+            # Cold Quest details must reuse that signed SQLite step lookup,
+            # not iterate through the whole source a second time.
+            details = catalog.by_id[1]._details
+            self.assertIsNone(details._sources._objectives_by_step)
+            with patch.object(QuestCatalog, "_load_source", side_effect=self.compile):
+                catalog.get_detail(1)
+            self.assertEqual(
+                details._sources._objectives_by_step[10], [40, 41]
+            )
+            # An explicit source read after get_detail() reopens the JSON
+            # stream. Close it before TemporaryDirectory cleanup on Windows.
+            with closing(details._sources):
+                rows = details._sources.rows(root / "quest_objectives.json")
+                with patch.object(
+                    rows,
+                    "items",
+                    side_effect=AssertionError("unexpected full objective scan"),
+                ):
+                    selected = list(
+                        details._sources.objectives_for_steps(
+                            root / "quest_objectives.json", {10}
+                        )
+                    )
+                self.assertEqual([row["id"] for row in selected], [40, 41])
+
+            # Force a genuinely cold detail in the reopened catalogue:
+            # otherwise the stored rich record would bypass the index lookup.
+            # sqlite3.Connection.__exit__ commits but does NOT close the file.
+            # Windows refuses TemporaryDirectory cleanup while it is open.
+            with closing(sqlite3.connect(details.path)) as connection:
+                with connection:
+                    connection.execute("UPDATE quests SET detail=NULL WHERE id=1")
+            reopened = load_lazy_catalog(root, cache_root=cache_root)
+            reopened_details = reopened.by_id[1]._details
+            with patch.object(QuestCatalog, "_load_source", side_effect=self.compile):
+                reopened.get_detail(1)
+            self.assertEqual(
+                reopened_details._sources._objectives_by_step[10], [40, 41]
+            )
+
+    def test_detail_cache_profile_exposes_source_phases_without_loading(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            catalog = self.build(Path(tmp))
+            details = catalog.quests[0]._details
+            self.assertEqual(catalog.detail_cache_info()["last_source_phases_ms"], {})
+            details._sources.last_detail_phase_ms = {"objective_lookup": 9.5}
+            self.assertEqual(
+                catalog.detail_cache_info()["last_source_phases_ms"],
+                {"objective_lookup": 9.5},
+            )
+            # No real detail, source traversal, or cache warmup is triggered.
+            self.assertEqual(catalog.detail_cache_info()["loads"], 0)
+
+    def test_runtime_details_reuse_preload_source_offset_namespace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cache_root = root / "cache"
+            catalog = self.build(root)
+            details = catalog.quests[0]._details
+            self.assertEqual(
+                details._sources.cache_root,
+                (root / "cache" / "source_offsets"),
+            )
 
     def test_index_does_not_compile_details_and_a_b_a_reuses_data(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(QuestCatalog, '_load_source', side_effect=self.compile) as load:
@@ -161,13 +271,24 @@ class QuestDetailsTests(unittest.TestCase):
             self.assertEqual(summary.category, 'Catégorie test')
             self.assertEqual((summary.level_min, summary.level_max), (5, 20))
             self.assertEqual(summary.start_criterion, 'Qf=2')
-            self.assertEqual(summary.zones, [])
-            self.assertEqual(summary.achievements, ['Succès test'])
-            self.assertEqual(summary.prerequisites, ['Quete terminee: Prérequis'])
-            self.assertEqual(summary.info, ['Combat de groupe / quete de groupe'])
+            self.assertEqual(summary.zones, ())
+            self.assertEqual(summary.achievements, ('Succès test',))
+            self.assertEqual(summary.prerequisites, ('Quete terminee: Prérequis',))
+            self.assertEqual(summary.info, ('Combat de groupe / quete de groupe',))
             self.assertEqual(catalog.detail_cache_info()['loads'], 0)
             self.assertEqual(len(catalog.achievement_series), 1)
             self.assertEqual(catalog.achievement_series[0].quest_ids, (1,))
+
+    def test_lazy_catalog_search_callback_does_not_pin_released_catalogue(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            catalogue = self.build(Path(tmp))
+            search = catalogue.load_search_documents
+            reference = weakref.ref(catalogue)
+            del catalogue
+            # No gc.collect(): the catalogue must be freed by reference-count
+            # ownership when Home releases it, not at a later GC cycle.
+            self.assertIsNone(reference())
+            self.assertTrue(callable(search))
 
     def test_explicit_search_compiles_bounded_batches_without_filling_details(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -225,6 +346,38 @@ class DeferredQuestUiTests(unittest.TestCase):
                 app.processEvents()
 
 
+class SelectedJsonValueTests(unittest.TestCase):
+    def test_selected_object_values_preserve_localized_text(self):
+        payload = {
+            "metadata": {"entries": {"999": "nested decoy"}},
+            "entries": {
+                "101": "Quêtes",
+                "102": "Donjons",
+                "103": "Texte avec \"guillemets\" et été",
+                "104": {"nested": [1, True, None]},
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "fr.json"
+            path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            selected = read_selected_json_object_values(
+                path,
+                "entries",
+                {"101", "103", "104"},
+            )
+        self.assertEqual(
+            selected,
+            {
+                "101": "Quêtes",
+                "103": "Texte avec \"guillemets\" et été",
+                "104": {"nested": [1, True, None]},
+            },
+        )
+
+
 class JsonSourceIndexTests(unittest.TestCase):
     def test_unicode_escaped_quotes_nested_values_and_cache_round_trip(self):
         values = {'1': {'text': 'été \\" [ }', 'nested': [True, None, {'id': 4}]}, '2': 'bonjour'}
@@ -236,6 +389,29 @@ class JsonSourceIndexTests(unittest.TestCase):
                 mapping = JsonSourceMapping(path, root, 'quests')
                 self.assertEqual(dict(mapping), values)
                 mapping.close()
+
+    def test_offset_index_build_never_reads_whole_source_bytes(self):
+        values = {
+            "1": {"text": "été", "nested": [1, {"x": True}]},
+            "2": {"text": "bonjour"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "source.json"
+            path.write_text(
+                json.dumps({"quests": values}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            with patch.object(
+                Path,
+                "read_bytes",
+                side_effect=AssertionError("monolithic source read forbidden"),
+            ):
+                mapping = JsonSourceMapping(path, root / "offsets", "quests")
+                try:
+                    self.assertEqual(dict(mapping), values)
+                finally:
+                    mapping.close()
 
     def test_doduda_reads_data_ids_without_confusing_nested_ids(self):
         rows = [{'data': {'nested': {'id': 999}, 'id': 7}}, {'data': {'id': 8}}, {'data': {'value': 3}}]

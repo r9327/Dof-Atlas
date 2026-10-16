@@ -64,8 +64,16 @@ class MainStartupFastPathTests(unittest.TestCase):
             if isinstance(node, ast.FunctionDef) and node.name == "__init__"
         )
         segment = ast.get_source_segment(self.source, constructor) or ""
-        self.assertIn("self._schedule_owned_callback(0, self.setup_tray)", segment)
+        self.assertIn(
+            "self._schedule_owned_callback(POST_RENDER_TRAY_DELAY_MS, self.setup_tray)",
+            segment,
+        )
         self.assertNotIn("\n        self.setup_tray()", segment)
+
+    def test_secondary_services_are_staggered_after_first_render(self) -> None:
+        self.assertIn("POST_RENDER_TRAY_DELAY_MS = 75", self.source)
+        self.assertIn("POST_RENDER_RUNTIME_DELAY_MS = 150", self.source)
+        self.assertIn("POST_RENDER_NETWORK_DELAY_MS = 300", self.source)
 
 
 if __name__ == "__main__":

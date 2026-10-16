@@ -13,6 +13,10 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
     GuideUltimeManualView,
 )
+from app.modules.encyclopedia.views.shared_manual_guide_view import (
+    SharedGuideManualCard,
+    SharedGuideManualView,
+)
 from app.modules.encyclopedia.views.guides_view import GuidesView
 from app.quest_catalog import normalize_text
 
@@ -248,36 +252,22 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         self.assertIn("manual_manifest", source)
         self.assertIn("empty_cards", source)
 
-    def test_breadcrumb_matches_quests_page_construction_and_uses_theme_tokens(self):
-        source = inspect.getsource(GuideUltimeManualView._build_ui)
-        render = inspect.getsource(GuideUltimeManualView._render_breadcrumb)
-        view_source = inspect.getsource(GuideUltimeManualView)
-        style_source = (ROOT / "app" / "ui" / "theme.py").read_text(encoding="utf-8")
+    def test_manual_ui_uses_single_guide_button_without_breadcrumb(self):
+        source = inspect.getsource(SharedGuideManualView._build_ui)
+        strip_source = inspect.getsource(SharedGuideManualView._build_progress_strip)
+        button_source = inspect.getsource(GuideUltimeManualView._guide_button_clicked)
 
-        self.assertIn('setObjectName("GuideBreadcrumb")', source)
-        self.assertIn("setContentsMargins(8, 5, 8, 5)", source)
-        self.assertIn("setSpacing(5)", source)
-        self.assertIn('setObjectName("GuideBreadcrumbButton")', render)
-        self.assertIn(
-            'setObjectName("GuideBreadcrumbSeparator")',
-            inspect.getsource(GuideUltimeManualView._add_breadcrumb_separator),
-        )
-        self.assertIn('setObjectName("GuideBreadcrumbCurrent")', render)
-        self.assertNotIn("setStyleSheet(", view_source)
-        self.assertNotIn("_apply_manual_style", view_source)
-
-        self.assertIn("QFrame#GuideBreadcrumb", style_source)
-        self.assertIn("QPushButton#GuideBreadcrumbButton", style_source)
-        self.assertIn("background: @PANEL;", style_source)
-        self.assertIn("border: 1px solid @BORDER;", style_source)
-        self.assertIn("background: transparent;", style_source)
-        self.assertIn("font-size: @FONT_SMALL;", style_source)
-        self.assertIn("min-height: 22px;", style_source)
-        self.assertIn("max-height: 22px;", style_source)
+        self.assertNotIn('setObjectName("GuideBreadcrumb")', source)
+        self.assertIn('AtlasButton("Guide")', strip_source)
+        self.assertIn('setObjectName("GuideManualGuideButton")', strip_source)
+        self.assertIn("self.view_index != self.active_index", button_source)
+        self.assertIn("self.go_active()", button_source)
+        self.assertIn("self._return_to_guides_catalog()", button_source)
+        self.assertNotIn("_apply_manual_style", inspect.getsource(SharedGuideManualView))
 
     def test_no_permanent_order_picker_and_no_old_section_titles(self):
-        build = inspect.getsource(GuideUltimeManualView._build_ui)
-        whole = inspect.getsource(GuideUltimeManualView)
+        build = inspect.getsource(SharedGuideManualView._build_ui)
+        whole = inspect.getsource(SharedGuideManualView)
         inline = inspect.getsource(GuideUltimeManualView._add_manual_order_choice)
         self.assertNotIn("order_combo", build)
         self.assertNotIn("GuideManualOrderChoice", build)
@@ -285,7 +275,6 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         self.assertIn("Choisis ton Ordre Bonta", inline)
         self.assertNotIn("FAIS ÇA ICI", whole)
         self.assertNotIn('"ENSUITE"', whole)
-
 
     def test_7d_walkthrough_sections_keep_authored_intent_separate(self):
         service = self._bare_service()
@@ -330,9 +319,9 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         self.assertIn("Dialogue final", text["before_leave"])
 
     def test_7d_manual_ui_has_bottom_page_marker_and_navigation_resets_scroll(self):
-        build = inspect.getsource(GuideUltimeManualView._build_ui)
+        build = inspect.getsource(SharedGuideManualView._build_progress_strip)
         refresh = inspect.getsource(GuideUltimeManualView._refresh_header)
-        render = inspect.getsource(GuideUltimeManualView._render_window)
+        render = inspect.getsource(SharedGuideManualView._render_window)
         show_index = inspect.getsource(GuideUltimeManualView._show_index)
 
         self.assertIn('setObjectName("GuideManualNavPage")', build)
@@ -341,15 +330,15 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         self.assertIn("_reset_scroll_to_top", render)
 
     def test_7d_manual_card_uses_semantic_walkthrough_sections(self):
-        source = inspect.getsource(GuideUltimeManualCard.__init__)
+        source = inspect.getsource(SharedGuideManualCard.__init__)
         self.assertIn("manual_sections_for_card", source)
         self.assertIn("À FAIRE MAINTENANT", source)
         self.assertIn("À PROFITER ICI", source)
         self.assertIn("À CONSERVER POUR PLUS TARD", source)
         self.assertIn("BOSS / CAPTURES", source)
         self.assertIn("AVANT DE PARTIR", source)
-        self.assertIn("DESTINATION SUIVANTE", inspect.getsource(GuideUltimeManualCard._add_destination_section))
-
+        self.assertNotIn("DESTINATION SUIVANTE", source)
+        self.assertFalse(hasattr(SharedGuideManualCard, "_add_destination_section"))
 
 
 if __name__ == "__main__":

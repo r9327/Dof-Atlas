@@ -130,8 +130,12 @@ def activate_window(
         try:
             try:
                 ctypes.windll.user32.AllowSetForegroundWindow(-1)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug(
+                    "%s activation AllowSetForegroundWindow indisponible: %s",
+                    action_label,
+                    exc,
+                )
 
             attached = attach_threads()
 

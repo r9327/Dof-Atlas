@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
+import weakref
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from app.modules.encyclopedia.services import guide_ultime_manual_runtime_service as manual_runtime
+from app.modules.encyclopedia.services import guide_ultime_manual_runtime_core as manual_runtime
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
     GuideUltimeManualRuntimeService,
 )
@@ -65,6 +70,80 @@ class GuideManualBundleCacheTests(unittest.TestCase):
 
         first.cards[0]["rows"].append(999)
         self.assertEqual(second.cards[0]["rows"], [1])
+
+    def test_cache_key_does_not_keep_quest_catalog_alive(self) -> None:
+        class Catalog:
+            pass
+
+        class Provider:
+            def __init__(self, catalog):
+                self.catalog = catalog
+
+            def get_catalog(self):
+                return self.catalog
+
+        catalog = Catalog()
+        provider = Provider(catalog)
+        service = SimpleNamespace(quest_provider=provider)
+        signature = manual_runtime._manual_bundle_catalog_signature(service)
+        self.assertEqual(signature[0], "catalog")
+        self.assertIs(signature[1](), catalog)
+        self.assertEqual(
+            manual_runtime._manual_bundle_catalog_signature(service), signature
+        )
+
+        # Store the actual signature as a global cache key, then release its
+        # owner: cache reuse must not keep the entire Quest catalogue resident.
+        manual_runtime._MANUAL_BUNDLE_CACHE[("manual", signature)] = {"route": {}}
+        catalog_ref = weakref.ref(catalog)
+        provider.catalog = None
+        del catalog
+        self.assertIsNone(catalog_ref())
+
+    def test_compact_route_writer_keeps_exact_bytes_and_nested_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manual_dir = root / "manual"
+            manual_dir.mkdir()
+            (manual_dir / "manifest_v1.json").write_text("{}", encoding="utf-8")
+            sidecar = root / "compact.json"
+            encoded_sheet = bytes.fromhex("0001f09f9089") * 4096
+            card = {
+                "manual_stage_id": "test",
+                "_manual_stage_payload": encoded_sheet,
+                "_manual_chapter_preparation_payload": bytearray(bytes.fromhex("0203")),
+                "nested": [{"id": 18, "quests": (18, 19)}],
+            }
+            service = SimpleNamespace(
+                manual_dir=manual_dir,
+                route={"steps": [card], "chapter": {"id": "test"}},
+                cards=[card],
+                manual_audit_data={"source": {"ok": True}},
+                manual_preview_active=True,
+                manual_preview_chapters=("test",),
+                manual_manifest_active=True,
+                manual_chapters=("test",),
+                _quest_name_to_id={"Test": 18},
+                _common_quest_ids=(18,),
+                _full_success_ids=(),
+            )
+            self.assertEqual(
+                manual_runtime.write_manual_runtime_compact_cache(service, sidecar),
+                1,
+            )
+            stored = json.loads(sidecar.read_text(encoding="utf-8"))
+            self.assertEqual(
+                stored["cards"],
+                manual_runtime._manual_runtime_json_encode(service.cards),
+            )
+            self.assertEqual(
+                manual_runtime._manual_runtime_json_decode(stored["cards"])[0][
+                    "_manual_stage_payload"
+                ],
+                encoded_sheet,
+            )
+            self.assertEqual(stored["route"], {"chapter": {"id": "test"}})
+            self.assertEqual(stored["manual_audit_data"], service.manual_audit_data)
 
     def test_route_or_catalog_revision_change_recomposes_bundle(self) -> None:
         calls = 0

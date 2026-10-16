@@ -6,29 +6,23 @@ import re
 import unicodedata
 from collections import defaultdict, deque
 from dataclasses import dataclass
+from functools import lru_cache
+from heapq import heapify, heappop, heappush
 from typing import Any, Iterable
 
-from app.constants import DATA_DIR
+from app.constants import DATA_DIR, ROOT_DIR
+from app.quest_source_index import QuestSources
+from app.modules.encyclopedia.achievement_catalog_policy import (
+    ALIGNMENT_ORDER_QUEST_IDS as ORDER_QUEST_IDS,
+)
 from app.modules.encyclopedia.providers.achievement_provider import safe_int
-from app.quest_catalog import normalize_text
+from app.core.text import normalize_key as normalize_text
 
 
 # The profiles below are deliberately conservative: they enumerate the route/success
 # families that are actually mandatory for the Dofus, then resolve them against the
 # LOCAL quest/achievement catalogue. We never invent quest IDs.
 
-ORDER_QUEST_IDS: dict[str, dict[str, tuple[int, ...]]] = {
-    "bonta": {
-        "Ordre du Cœur Vaillant": (433, 109, 120, 421, 1916),
-        "Ordre de l'Esprit Salvateur": (434, 111, 121, 423, 1917),
-        "Ordre de l'Œil Attentif": (435, 110, 122, 425, 1918),
-    },
-    "brakmar": {
-        "Ordre du Cœur Saignant": (436, 112, 123, 422, 1919),
-        "Ordre de l'Esprit Malsain": (437, 114, 124, 424, 1920),
-        "Ordre de l'Œil Putride": (438, 113, 125, 426, 1921),
-    },
-}
 
 ORDER_QUESTS: dict[str, dict[str, tuple[str, ...]]] = {
     "bonta": {
@@ -340,6 +334,11 @@ def _loose_name(value: Any) -> str:
     return " ".join(re.findall(r"[a-z0-9]+", text))
 
 
+# A builder spans many guides, but these caches must die with the resolver.
+# Keep them bounded to avoid turning Guide generation into a steady-RAM cache.
+_MAX_PREREQUISITE_LOOKUP_CACHE = 4096
+
+
 class GuidePathResolver:
     def __init__(self, quest_provider: Any, achievement_provider: Any) -> None:
         self.quest_provider = quest_provider
@@ -376,54 +375,86 @@ class GuidePathResolver:
                     continue
                 self.quest_source_name_to_ids[normalize_text(name)].append(int(qid))
                 self.quest_source_loose_to_ids[_loose_name(name)].append(int(qid))
+        self._prerequisite_text_cache: dict[str, frozenset[int]] = {}
+        self._direct_quest_reference_cache: dict[
+            tuple[int, str, tuple[str, ...]], frozenset[int]
+        ] = {}
         self._load_enriched_prerequisites()
 
     def _load_enriched_prerequisites(self) -> None:
         self.enriched_quest_prerequisites: dict[int, set[int]] = defaultdict(set)
         path = DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json"
+        # Reuse the byte-offset index already shared by Quest details and preload.
+        # A Guide resolver needs only prerequisite strings, never the 72 MB
+        # documentary payload nor a retained collection of enriched rows.
+        cache_root = (
+            ROOT_DIR / ".cache" / "dofus_atlas" / "quest_details_v1" / "source_offsets"
+        )
+        sources = QuestSources(cache_root)
         try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+            rows = sources.mapping(path, "quests", required=False)
+            for raw_id, row in rows.items():
+                if not isinstance(row, dict):
+                    continue
+                qid = safe_int(raw_id)
+                if qid is None or qid not in self.quest_by_id:
+                    continue
+                for value in row.get("prerequisites", []) or []:
+                    self.enriched_quest_prerequisites[int(qid)].update(
+                        self._quest_ids_from_prerequisite_text(str(value or ""))
+                    )
+        except (OSError, ValueError, TypeError):
+            # Enrichment is optional; local quest prerequisites remain canonical.
             return
-        rows = payload.get("quests", {}) if isinstance(payload, dict) else {}
-        if not isinstance(rows, dict):
-            return
-        for raw_id, row in rows.items():
-            if not isinstance(row, dict):
-                continue
-            qid = safe_int(raw_id)
-            if qid is None or qid not in self.quest_by_id:
-                continue
-            for value in row.get("prerequisites", []) or []:
-                self.enriched_quest_prerequisites[int(qid)].update(
-                    self._quest_ids_from_prerequisite_text(str(value or ""))
-                )
+        finally:
+            sources.close()
 
     def _quest_ids_from_prerequisite_text(self, text: str) -> set[int]:
+        # Repeated prerequisites occur across Dofus guides and expanded routes.
+        # A frozen, per-resolver result makes every caller receive its own set.
+        cache = self._prerequisite_text_cache
+        cached = cache.get(text)
+        if cached is not None:
+            return set(cached)
         normalized = normalize_text(text)
         loose = _loose_name(text)
-        if not normalized and not loose:
-            return set()
         result: set[int] = set()
-        # Exact source-name resolution first.
-        result.update(self.quest_source_name_to_ids.get(normalized, ()))
-        result.update(self.quest_source_loose_to_ids.get(loose, ()))
-        # DPLN prerequisite lines often contain prefixes such as "Quête :" or
-        # "Avoir terminé ...". Match canonical quest titles only inside this
-        # dedicated prerequisite field, longest names first to avoid pollution.
-        if not result:
-            candidates = sorted(
-                self.quest_source_name_to_ids.items(),
-                key=lambda item: len(item[0]),
-                reverse=True,
-            )
-            padded = f"_{normalized}_"
-            for name_key, ids in candidates:
-                if len(name_key) < 8:
-                    continue
-                if f"_{name_key}_" in padded or normalized.endswith(name_key):
-                    result.update(int(value) for value in ids)
-        return {qid for qid in result if qid in self.quest_by_id}
+        if normalized or loose:
+            # Exact source-name resolution first.
+            result.update(self.quest_source_name_to_ids.get(normalized, ()))
+            result.update(self.quest_source_loose_to_ids.get(loose, ()))
+            # DPLN lines often prefix a title with "Quête :" / "Avoir
+            # terminé ...". Enumerate just the possible normalized substrings
+            # instead of scanning EVERY source quest title. Include arbitrary
+            # suffixes to preserve the older .endswith() contract, even if a
+            # title begins in the middle of the last normalized token.
+            if not result:
+                result.update(self._source_prerequisite_matches(normalized))
+        matches = frozenset(qid for qid in result if qid in self.quest_by_id)
+        if len(cache) < _MAX_PREREQUISITE_LOOKUP_CACHE:
+            cache[text] = matches
+        return set(matches)
+
+    def _source_prerequisite_matches(self, normalized: str) -> set[int]:
+        """Resolve prefixed local quest names without a whole-catalog scan.
+
+        Matches normalized token runs and arbitrary text suffixes, preserving
+        the previous name-key substring and suffix semantics.
+        """
+        result: set[int] = set()
+        lookup = self.quest_source_name_to_ids
+        delimiters = [i for i, char in enumerate(normalized) if char == "_"]
+        starts = [0, *(i + 1 for i in delimiters)]
+        ends = [*delimiters, len(normalized)]
+        # Match a whole run of normalized tokens, including one-token titles.
+        for start in starts:
+            for end in ends:
+                if end - start >= 8:
+                    result.update(lookup.get(normalized[start:end], ()))
+        # Historical suffix matching did not require a left token boundary.
+        for start in range(len(normalized) - 7):
+            result.update(lookup.get(normalized[start:], ()))
+        return result
 
     def _direct_quest_prerequisites(
         self,
@@ -431,13 +462,31 @@ class GuidePathResolver:
         *,
         include_enriched: bool = False,
     ) -> set[int]:
-        qrefs, _srefs = mandatory_references(str(getattr(quest, "start_criterion", "") or ""))
-        result = set(qrefs)
+        # Include the current criterion and prerequisite strings in the key:
+        # refreshing a QuestRecord cannot return a stale prerequisite result.
+        quest_id = int(quest.id)
+        criterion = str(getattr(quest, "start_criterion", "") or "")
+        prerequisites = tuple(
+            str(value or "") for value in (getattr(quest, "prerequisites", ()) or ())
+        )
+        key = (quest_id, criterion, prerequisites)
+        cache = self._direct_quest_reference_cache
+        cached = cache.get(key)
+        if cached is None:
+            qrefs, _srefs = mandatory_references(criterion)
+            result = set(qrefs)
+            for value in prerequisites:
+                result.update(self._quest_ids_from_prerequisite_text(value))
+            result.discard(quest_id)
+            cached = frozenset(qid for qid in result if qid in self.quest_by_id)
+            if len(cache) < _MAX_PREREQUISITE_LOOKUP_CACHE:
+                cache[key] = cached
+        result = set(cached)
+        # Enriched prerequisites can be refreshed independently of the quest
+        # record. Read them live instead of retaining an outdated snapshot.
         if include_enriched:
-            result.update(self.enriched_quest_prerequisites.get(int(quest.id), set()))
-        for value in getattr(quest, "prerequisites", ()) or ():
-            result.update(self._quest_ids_from_prerequisite_text(str(value or "")))
-        result.discard(int(quest.id))
+            result.update(self.enriched_quest_prerequisites.get(quest_id, ()))
+        result.discard(quest_id)
         return {qid for qid in result if qid in self.quest_by_id}
 
     @staticmethod
@@ -939,16 +988,18 @@ class GuidePathResolver:
             level = safe_int(getattr(quest, "level_min", 0), 0) or 0
             return level, normalize_text(getattr(quest, "name", "")), qid
 
-        ready = sorted((qid for qid, count in incoming.items() if count == 0), key=key)
+        # Identical priority as the sorted list, without repeatedly sorting
+        # every pending quest when a new prerequisite becomes ready.
+        ready = [(key(qid), qid) for qid, count in incoming.items() if count == 0]
+        heapify(ready)
         result: list[int] = []
         while ready:
-            qid = ready.pop(0)
+            _priority, qid = heappop(ready)
             result.append(qid)
             for child in sorted(children.get(qid, ()), key=key):
                 incoming[child] -= 1
                 if incoming[child] == 0:
-                    ready.append(child)
-                    ready.sort(key=key)
+                    heappush(ready, (key(child), child))
         result.extend(sorted(ids - set(result), key=key))
         return result
 
@@ -960,6 +1011,17 @@ _SUCCESS_EQ_RE = re.compile(r"\b(?:Sc|OA)\s*(?:==|=)\s*(\d+)\b", re.IGNORECASE)
 
 
 def mandatory_references(criterion: str) -> tuple[set[int], set[int]]:
+    """Return fresh mutable copies of the mandatory Qf/Sc/OA references.
+
+    A bounded cache stores only frozen parse results. Callers can mutate their
+    returned sets without contaminating the next Guide or test.
+    """
+    quests, achievements = _cached_mandatory_references(str(criterion or ""))
+    return set(quests), set(achievements)
+
+
+@lru_cache(maxsize=8192)
+def _cached_mandatory_references(criterion: str) -> tuple[frozenset[int], frozenset[int]]:
     """Return references that are mandatory in every valid branch.
 
     AND => union; OR => intersection. This is intentionally stricter than a
@@ -969,7 +1031,7 @@ def mandatory_references(criterion: str) -> tuple[set[int], set[int]]:
 
     text = str(criterion or "").replace("&&", "&").replace("||", "|").strip()
     if not text:
-        return set(), set()
+        return frozenset(), frozenset()
 
     def strip_outer(value: str) -> str:
         value = value.strip()
@@ -1035,4 +1097,5 @@ def mandatory_references(criterion: str) -> tuple[set[int], set[int]]:
             {int(match.group(1)) for match in _SUCCESS_EQ_RE.finditer(value)},
         )
 
-    return parse(text)
+    quests, achievements = parse(text)
+    return frozenset(quests), frozenset(achievements)

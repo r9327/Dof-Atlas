@@ -1,9 +1,21 @@
 from __future__ import annotations
 
+import re
+
 from types import MappingProxyType
 from typing import Iterable, Mapping
 
 from app.constants import DATA_DIR
+
+
+def _is_sha256(value: object) -> bool:
+    """True only for exactly 32 bytes represented as 64 ASCII hex digits.
+
+    bytes.fromhex is not suitable as a validator: it silently accepts spaces
+    inside a 64-character input and may decode far fewer than 32 bytes.
+    Preserve uppercase hexadecimal without trimming or coercing the input.
+    """
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-fA-F]{64}", value) is not None
 
 
 DEFAULT_PROTOCOL_MAPPING_DIR = DATA_DIR / "network" / "protocol_mappings"

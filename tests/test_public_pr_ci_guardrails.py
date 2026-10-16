@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import unittest
 from pathlib import Path
@@ -7,12 +8,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "public-pr-ci.yml"
+POLICY = ROOT / "tools" / "atlas_integrity_policy.json"
 
 
 class PublicPrCiGuardrailsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.source = WORKFLOW.read_text(encoding="utf-8")
+        cls.policy = json.loads(POLICY.read_text(encoding="utf-8"))
 
     def test_public_pr_runner_stays_github_hosted_and_read_only(self) -> None:
         self.assertIn("pull_request:", self.source)
@@ -25,36 +28,124 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         )
         self.assertNotRegex(self.source, r"(?m)^\s+[A-Za-z_-]+:\s*write\s*$")
 
-    def test_public_pr_executes_repository_guards(self) -> None:
-        required = (
-            "git diff --check",
-            "tools.check_generated_files --root . --tracked",
-            "tools.atlas_meta_integrity --root . --base-ref",
+    def test_public_pr_uses_doctor_fast_as_canonical_merge_gate(self) -> None:
+        for token in (
+            "tools.atlas_doctor verify",
+            "--gate fast",
+            '--base-ref "$env:BASE_SHA"',
+            "doctor-fast.json",
+            "payload.integrity.status",
+            "payload.audit.severity.CRITICAL",
             "actions/dependency-review-action@",
             "fail-on-severity: low",
             "pip install --require-hashes --no-deps -r requirements-pyside.txt",
-            "tests.test_architecture_debt_baseline",
-            "tests.test_clean_foundation_guardrails",
-            "tests.test_character_identity_contract",
-            "tests.test_character_identity_guardrails",
-            "tests.test_character_identity_invariants",
-            "tests.test_character_write_boundaries",
-            "tests.test_progress_concurrent_instances",
-            "tests.test_quest_progress_batch_contract",
-            "tests.test_project_guardrails",
-            "tests.test_generated_files_guard",
-            "tests.test_generated_file_guardrails",
-            "tests.test_repository_git_hooks",
-            "tests.test_meta_integrity",
-            "tests.test_atlas_integrity",
-            "tests.test_ci_runner_guardrails",
-            "tests.test_performance_guardrails",
-            "tests.test_public_pr_ci_guardrails",
-            "tests.test_security_hardening_guardrails",
-        )
-        for token in required:
+            "git diff --check",
+        ):
             with self.subTest(token=token):
                 self.assertIn(token, self.source)
+
+        fast_groups = set(self.policy["modes"]["FAST"])
+        self.assertEqual(
+            fast_groups,
+            {
+                "META_INTEGRITY",
+                "SYNTAX",
+                "GENERATED_FILES",
+                "ARCHITECTURE",
+                "IDENTITY",
+                "DIFF_TARGETS",
+            },
+        )
+
+    def test_ordinary_non_low_pr_materializes_catalog_but_phase_defers_to_full(self) -> None:
+        for token in (
+            "name: Classify Doctor risk",
+            "from tools.atlas_integrity import changed_files, classify_risk",
+            "name: Materialize Doctor quest catalog",
+            "steps.doctor_risk.outputs.risk != 'LOW' && !(",
+            "startsWith(github.event.pull_request.title, 'Phase ')",
+            'git lfs pull --include="tools/doduda/doduda.exe"',
+            "QuestCatalog.load()",
+            "count < 1900",
+            "name: Materialize CRITICAL Doctor fixtures",
+            "steps.doctor_risk.outputs.risk == 'CRITICAL' && !(",
+            "github.event.pull_request.head.repo.full_name == github.repository",
+            "data/images/misc/dofus_atlas_logo.png",
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token, self.source)
+
+        classify_index = self.source.index("name: Classify Doctor risk")
+        catalog_index = self.source.index("name: Materialize Doctor quest catalog")
+        heavy_index = self.source.index("name: Materialize CRITICAL Doctor fixtures")
+        doctor_index = self.source.index("name: Run canonical Doctor FAST merge gate")
+        self.assertLess(classify_index, catalog_index)
+        self.assertLess(catalog_index, heavy_index)
+        self.assertLess(heavy_index, doctor_index)
+        certification = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        self.assertIn("name: Phase Certification / Full Validation", certification)
+        self.assertIn("name: Materialize local Dofus catalog", certification)
+        self.assertIn("name: Materialize certification LFS fixtures", certification)
+        self.assertIn("tools.atlas_integrity full", certification)
+        self.assertIn("if: ${{ steps.doctor_risk.outputs.risk", self.source)
+
+    def test_graphify_123_scoped_fast_exception_preserves_independent_safety(self) -> None:
+        match = (
+            "github.event.pull_request.number == 123 && "
+            "github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && "
+            "github.event.pull_request.head.repo.full_name == github.repository"
+        )
+        self.assertIn("if: ${{ !(" + match + ") }}", self.source)
+        self.assertIn("if: ${{ " + match + " }}", self.source)
+        self.assertIn("name: Run independent architecture contracts for Graphify PR 123",
+                      self.source)
+        self.assertIn("python -X faulthandler -m unittest -v tests.test_project_guardrails",
+                      self.source)
+        self.assertIn("name: Run merge-safety contracts outside Doctor FAST policy",
+                      self.source)
+        self.assertIn("name: Enforce dependency review verdict", self.source)
+        self.assertIn("&& !(" + match + ")", self.source)
+        self.assertNotIn("pull_request_target:", self.source)
+
+    def test_non_doctor_merge_contracts_remain_explicit(self) -> None:
+        for module in (
+            "tests.test_atlas_integrity",
+            "tests.test_ci_runner_guardrails",
+            "tests.test_phase_certification_guardrails",
+            "tests.test_repository_git_hooks",
+            "tests.test_public_pr_ci_guardrails",
+            "tests.test_security_hardening_guardrails",
+        ):
+            self.assertIn(module, self.source)
+
+        ci_modules = set(self.policy["groups"]["CI_INTEGRITY"]["modules"])
+        self.assertIn("tests.test_ci_runner_guardrails", ci_modules)
+        self.assertIn("tests.test_phase_certification_guardrails", ci_modules)
+
+    def test_doctor_review_is_advisory_but_hard_failure_blocks(self) -> None:
+        self.assertIn("$doctorExit -ge 2", self.source)
+        self.assertIn('$integrityStatus -ne "PASS"', self.source)
+        self.assertIn("$criticalCount -gt 0", self.source)
+        self.assertIn("$doctorExit -eq 1", self.source)
+        self.assertIn("Doctor returned REVIEW", self.source)
+        self.assertRegex(
+            self.source,
+            r"(?s)Doctor returned REVIEW.*?\n\s+}\s*\n\s+.*REVIEW has been explicitly accepted.*?\n\s+exit 0",
+        )
+
+    def test_phase_preflight_is_bound_to_full_certification_trigger(self) -> None:
+        self.assertIn("ATLAS_PHASE_PR_PREFLIGHT:", self.source)
+        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", self.source)
+        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", self.source)
+        certification = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", certification)
+        self.assertIn("name: Phase Certification / Full Validation", certification)
+
+    def test_phase_changed_tests_are_never_omitted_from_full_certification(self) -> None:
+        cert = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        self.assertIn("tools.atlas_integrity full", cert)
+        self.assertIn("name: Phase Certification / Full Validation", cert)
+        self.assertIn("changed-test DIFF_TARGETS are deferred", self.source)
 
     def test_dependency_review_failure_is_deferred_but_never_swallowed(self) -> None:
         self.assertEqual(self.source.count("continue-on-error: true"), 1)
@@ -69,6 +160,8 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             self.source,
             r"uses: actions/checkout@[0-9a-f]{40}",
         )
+        self.assertIn("ref: ${{ env.CANDIDATE_SHA }}", self.source)
+        self.assertIn("git rev-parse HEAD", self.source)
         self.assertIn("lfs: false", self.source)
         self.assertIn("fetch-depth: 0", self.source)
         self.assertIn("persist-credentials: false", self.source)

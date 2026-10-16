@@ -4,7 +4,7 @@ from __future__ import annotations
 
 Run from the repository root AFTER build_guide_ultime_final.py:
 
-    py -3.13 .\tools\build_guide_ultime_gps_route.py --strict
+    py -3.13 -m tools.guide_gps --strict
 
 V5 UNIVERSAL:
 - consumes guide_ultime_final.json (single content-lock source of truth);
@@ -31,11 +31,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Iterable
 
-ROOT = Path.cwd()
-if not (ROOT / "app").exists():
-    ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parents[1]
 
 from app.constants import RAW_QUEST_DATA_DIR
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
@@ -805,9 +801,11 @@ def full_success_context_for_step(step: RouteStep, targets: dict[str, Any]) -> d
     for action in step.actions:
         if action.dungeon_id is not None:
             try:
-                dungeon_ids.add(int(action.dungeon_id))
+                dungeon_id = int(action.dungeon_id)
             except (TypeError, ValueError):
-                pass
+                dungeon_id = None
+            if dungeon_id is not None:
+                dungeon_ids.add(dungeon_id)
         if action.dungeon_name:
             dungeon_names.add(norm(action.dungeon_name))
         monster_ids.update(int(v) for v in (action.monster_ids or ()) if str(v).lstrip("-").isdigit())
@@ -941,7 +939,7 @@ def main() -> None:
     if not GUIDE_PATH.exists():
         raise SystemExit(
             "artifacts/guide_ultime_final.json absent. "
-            "Lance d'abord tools/build_guide_ultime_final.py --strict"
+            "Lance d'abord py -3.13 -m tools.build_guide_ultime_final --strict"
         )
 
     guide = load_json(GUIDE_PATH)
@@ -1406,8 +1404,8 @@ if __name__ == "__main__":
         }
         try:
             CRASH_AUDIT.write_text(json.dumps(crash, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        except Exception:
-            pass
+        except Exception as audit_exc:
+            print(f"GPS crash audit unavailable: {audit_exc}", file=sys.stderr, flush=True)
         print(f"GPS ERROR [{_GPS_STAGE}] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
         traceback.print_exc()
         if isinstance(exc, SystemExit):

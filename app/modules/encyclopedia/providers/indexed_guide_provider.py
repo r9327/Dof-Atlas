@@ -1,27 +1,28 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from threading import Lock
 from typing import Any
 
+from app.constants import ROOT_DIR
 from app.modules.encyclopedia.models import EntityRef, GuideSection
 from app.modules.encyclopedia.providers.achievement_provider import safe_int
 from app.modules.encyclopedia.providers.guide_provider import GuideProvider
-from app.quest_catalog import doduda_rows, read_json_file, text_for
 
 
 _ACHIEVEMENT_NAME_CACHE: dict[str, dict[int, str]] = {}
 _ACHIEVEMENT_NAME_LOCK = Lock()
+_ACHIEVEMENT_NAMES_FILE = (
+    ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1" / "achievement_names.json"
+)
+
 
 
 def _achievement_name_index(data_dir: Path) -> dict[int, str]:
-    """Load only the two sources needed to resolve achievement labels in Guides.
+    """Read the compact name index prepared by preload; never start a runtime worker."""
 
-    Guide parsing only needs achievement ids/names for links. Loading the complete
-    AchievementProvider here would also parse objectives, rewards, monsters,
-    dungeons, items, spells and other large sources before the Successes tab is
-    requested.
-    """
+    from app.constants import RAW_QUEST_DATA_DIR
 
     root = Path(data_dir)
     key = str(root.resolve(strict=False))
@@ -33,38 +34,55 @@ def _achievement_name_index(data_dir: Path) -> dict[int, str]:
         cached = _ACHIEVEMENT_NAME_CACHE.get(key)
         if cached is not None:
             return cached
-
-        language = read_json_file(root / "languages" / "fr.json", {"entries": {}})
-        entries = language.get("entries", {}) if isinstance(language, dict) else {}
-        if not isinstance(entries, dict):
-            entries = {}
-        rows = doduda_rows(root / "achievements.json")
+        if root.resolve(strict=False) != Path(RAW_QUEST_DATA_DIR).resolve(strict=False):
+            return {}
+        try:
+            payload = json.loads(_ACHIEVEMENT_NAMES_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            return {}
+        if not isinstance(payload, dict):
+            return {}
         names = {
-            int(achievement_id): text_for(
-                entries,
-                row.get("nameId"),
-                f"Succès {achievement_id}",
-            )
-            for achievement_id, row in rows.items()
+            int(achievement_id): str(name)
+            for achievement_id, name in payload.items()
+            if str(achievement_id).lstrip("-").isdigit()
         }
         _ACHIEVEMENT_NAME_CACHE[key] = names
         return names
 
+def _drop_nested_raw(value: object, *keys: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    excluded = set(keys)
+    return {key: item for key, item in value.items() if key not in excluded}
+
 
 class IndexedGuideProvider(GuideProvider):
-    """Guide provider that does not force the rich Success catalogue to load.
+    """Guide provider with compact link indexes and non-duplicated raw trees."""
 
-    GuideProvider historically resolved achievement links through get_by_id(),
-    which materializes the whole AchievementProvider. For Guide construction we
-    only need a stable id and localized label, so this provider uses a small name
-    index until the shared AchievementProvider has genuinely been loaded.
-    """
+    def _load(self) -> None:
+        super()._load()
+        # Guide JSON already has typed models for every structural child. Keeping
+        # those same child arrays inside each parent's raw dict pins the original
+        # parsed JSON tree in memory a second time. Preserve scalar/metadata raw
+        # fields used by compatibility code, but cut only structural duplicates.
+        for guide in self._guides:
+            object.__setattr__(guide, "raw", _drop_nested_raw(guide.raw, "sections", "parts"))
+            for section in guide.sections:
+                object.__setattr__(section, "raw", _drop_nested_raw(section.raw, "steps"))
+            for part in guide.parts:
+                object.__setattr__(part, "raw", _drop_nested_raw(part.raw, "chapters"))
+                for chapter in part.chapters:
+                    object.__setattr__(chapter, "raw", _drop_nested_raw(chapter.raw, "series"))
+                    for series in chapter.series:
+                        object.__setattr__(series, "raw", _drop_nested_raw(series.raw, "steps"))
 
     def _achievement_name(self, achievement_id: int) -> str | None:
         provider = self.achievement_provider
         if getattr(provider, "_loaded", False):
             achievement = provider.get_by_id(int(achievement_id))
-            return achievement.name if achievement is not None else None
+            if achievement is not None:
+                return achievement.name
         return _achievement_name_index(provider.data_dir).get(int(achievement_id))
 
     def _context_entities(

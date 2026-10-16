@@ -12,6 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QComboBox
 
 from app.constants import KEY_SELECTED_CHARACTER, KEY_SESSION_ORDER
+import app.network.character_runtime_state as character_runtime_state_module
 from app.network.character_runtime_state import CharacterRuntimeStateStore
 from app.pages.character_page import CharacterPage as RealCharacterPage
 from app.quest_catalog import QuestCharacter
@@ -101,6 +102,20 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                     self.quit_requested = False
                     self._background_services_stopped = False
                     self.runtime = None
+                    self.runtime_start_calls = 0
+
+                def _ensure_runtime(self):
+                    # This isolated shell fixture must model the actual lazy
+                    # runtime activation without starting native Windows hooks.
+                    class RuntimeStub:
+                        _running = False
+
+                        def start(_runtime):
+                            _runtime._running = True
+                            self.runtime_start_calls += 1
+
+                    self.runtime = RuntimeStub()
+                    return self.runtime
 
                 open_character_selector = app_main.AtlasWindow.open_character_selector
                 refresh_global_characters = app_main.AtlasWindow.refresh_global_characters
@@ -159,7 +174,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                 patch.object(app_main, "CLIENT_INDEX_JSON", clients),
                 patch.object(app_main, "NETWORK_CHARACTER_BINDINGS_FILE", bindings),
                 patch.object(
-                    app_main,
+                    character_runtime_state_module,
                     "character_runtime_state",
                     return_value=CharacterRuntimeStateStore(),
                 ),
@@ -175,6 +190,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                 self.assertIs(DummyWindow.open_character_selector, original_selector)
                 window = DummyWindow()
                 window.refresh_global_characters()
+                self.assertEqual(window.runtime_start_calls, 1)
 
                 self.assertEqual(
                     [window.character_combo.itemText(index) for index in range(window.character_combo.count())],
@@ -252,7 +268,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
             with (
                 patch.object(app_main, "CLIENT_INDEX_JSON", client_index),
                 patch.object(
-                    app_main,
+                    character_runtime_state_module,
                     "character_runtime_state",
                     return_value=runtime_state,
                 ),

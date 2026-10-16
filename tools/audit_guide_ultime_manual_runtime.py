@@ -2,14 +2,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
 from app.modules.encyclopedia.services.guide_auto_validation_contract import (
     build_card_auto_validation_contract,
 )
@@ -43,6 +39,9 @@ def audit() -> dict:
     service = object.__new__(GuideUltimeManualRuntimeService)
     service.quest_provider = None
     service._quest_name_to_id = {}
+    # The audit exercises the full authored-card contract directly instead of
+    # the UI's compact runtime path, so initialize that mode explicitly.
+    service.compact_runtime = False
 
     empty_cards: list[str] = []
     count_mismatches: list[dict] = []

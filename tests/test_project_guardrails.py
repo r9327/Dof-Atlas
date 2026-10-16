@@ -37,11 +37,25 @@ class ProjectGuardrailsTests(unittest.TestCase):
 
     def test_manual_runtime_preserves_structured_domain_data(self) -> None:
         runtime = self._text("app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py")
-        self.assertIn('"manual_stage_data": copy.deepcopy(stage)', runtime)
-        self.assertIn('"manual_chapter_preparation": copy.deepcopy', runtime)
-        self.assertIn("_structured_rows_from_fields", runtime)
-        self.assertIn("_link_next_cards(cards)", runtime)
-        self.assertIn('"manual_stage_id": str(nxt.get("manual_stage_id")', runtime)
+        core = self._text("app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py")
+        self.assertIn('"manual_stage_data": stage', core)
+        self.assertIn('"manual_chapter_preparation": chapter_preparation or []', core)
+        self.assertIn("def _hydrate_manual_card_source", core)
+        self.assertIn('card["manual_stage_data"] = stage', core)
+        self.assertIn('card["manual_chapter_preparation"] = preparation', core)
+        # The canonical core now owns all three neutral implementations.
+        # Verify the structured fields remain there and the Phase 7E façade
+        # inherits them rather than rebuilding heavy cards a second time.
+        self.assertIn("_structured_rows_from_fields", core)
+        self.assertIn("def _link_next_cards(", core)
+        self.assertIn('"manual_stage_id": str(nxt.get("manual_stage_id")', core)
+        self.assertIn(
+            "class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService)",
+            runtime,
+        )
+        self.assertNotIn("def _structured_rows_from_fields(", runtime)
+        self.assertNotIn("def _link_next_cards(", runtime)
+        self.assertNotIn("def _stage_to_card(", runtime)
 
     def test_home_uses_manual_guide_runtime_for_primary_progress(self) -> None:
         home = self._text("app/pages/home_page.py")
@@ -144,8 +158,12 @@ class ProjectGuardrailsTests(unittest.TestCase):
         coordinator = self._text("app/core/progress_coordinator.py")
         self.assertIn("ProgressFileCoordinator", coordinator)
         self.assertIn("mark_changed", coordinator)
-        compatibility = self._text("app/modules/encyclopedia/services/progress_coordinator.py")
-        self.assertIn("from app.core.progress_coordinator import", compatibility)
+        # The old module was retired: all producers and migration must
+        # import the same canonical coordinator registry (no shadow locks).
+        resolver = self._text("app/network/character_resolver.py")
+        self.assertIn("from app.core.progress_coordinator import coordinator_for", resolver)
+        self.assertNotIn("services.progress_coordinator import coordinator_for", resolver)
+        self.assertFalse((ROOT / "app/modules/encyclopedia/services/progress_coordinator.py").exists())
         for relative in (
             "app/modules/encyclopedia/services/quest_progress_service.py",
             "app/modules/encyclopedia/services/guide_progress_service.py",
@@ -191,7 +209,7 @@ class ProjectGuardrailsTests(unittest.TestCase):
 
     def test_legacy_callback_compatibility_is_checked_before_invocation(self) -> None:
         storage = self._text("app/storage.py")
-        organizer = self._text("app/pages/organizer_page.py")
+        organizer = self._text("app/pages/organizer/character_sessions.py")
         self.assertIn("def invoke_compatible_callback", storage)
         self.assertIn("signature.bind(*args)", storage)
         self.assertIn("invoke_compatible_callback(self.reload_runtime_callback, True)", organizer)
@@ -244,13 +262,15 @@ class ProjectGuardrailsTests(unittest.TestCase):
                         )
         self.assertEqual([], violations, f"Callbacks rejoués après TypeError: {violations}")
 
-    def test_equipment_webview_restricts_main_frame_navigation(self) -> None:
+    def test_equipment_huzounet_stays_external_and_webengine_free(self) -> None:
         equipment = self._text("app/pages/equipment_page.py")
-        self.assertIn("acceptNavigationRequest", equipment)
-        self.assertIn("self.allowed_host", equipment)
-        self.assertIn("NavigationTypeLinkClicked", equipment)
         self.assertIn("QDesktopServices.openUrl", equipment)
-        self.assertIn("self.web.setPage(page_class(self.web))", equipment)
+        self.assertIn("HUZOUNET_URL", equipment)
+        self.assertIn("def set_section", equipment)
+        self.assertNotIn("QWebEngineView", equipment)
+        self.assertNotIn("QWebEnginePage", equipment)
+        self.assertNotIn("QtWebEngine", equipment)
+        self.assertNotIn("self.web", equipment)
 
     def test_cartography_recovery_never_uses_command_shell(self) -> None:
         recovery = self._text("app/services/maps/cartography_asset_recovery.py")
@@ -261,9 +281,9 @@ class ProjectGuardrailsTests(unittest.TestCase):
         self.assertIn('"command_args"', sources)
 
     def test_normal_launcher_is_offline_and_installer_is_explicit(self) -> None:
-        launcher = self._text("Dofus_Atlas.bat").casefold()
-        installer = self._text("Install_Dofus_Atlas.bat").casefold()
-        bootstrap = self._text("bootstrap_dofus_atlas.ps1")
+        launcher = self._text("DOFUS.bat").casefold()
+        installer = self._text("scripts/windows/Install_Dofus_Atlas.bat").casefold()
+        bootstrap = self._text("scripts/windows/bootstrap_dofus_atlas.ps1")
 
         self.assertNotIn("pip install", launcher)
         self.assertNotIn("ensurepip", launcher)
@@ -300,9 +320,7 @@ class ProjectGuardrailsTests(unittest.TestCase):
 
     def test_no_wildcard_imports_in_application_code(self) -> None:
         candidates = [ROOT / "main.py", *(ROOT / "app").rglob("*.py")]
-        existing_baseline = {
-            "app/pages/quests_page.py:from app.pages._quests_page_impl import *",
-        }
+        existing_baseline: set[str] = set()
         found: set[str] = set()
         diagnostics: list[str] = []
         for path in candidates:

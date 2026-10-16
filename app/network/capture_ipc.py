@@ -4,6 +4,7 @@ import json
 import select
 import socket
 import threading
+from contextlib import suppress
 from time import monotonic
 from typing import Any
 
@@ -75,14 +76,10 @@ class FramedJsonConnection:
                     raise CaptureIpcError("capture_ipc_frame_too_large")
 
     def close(self) -> None:
-        try:
+        with suppress(OSError):
             self.socket.shutdown(socket.SHUT_RDWR)
-        except OSError:
-            pass
-        try:
+        with suppress(OSError):
             self.socket.close()
-        except OSError:
-            pass
 
     def _take_frame(self) -> dict[str, Any] | None:
         if len(self._buffer) < 4:

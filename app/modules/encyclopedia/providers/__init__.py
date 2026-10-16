@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.modules.encyclopedia.providers.quest_provider import QuestProvider
-
-
 _REAL_ACHIEVEMENT_PROVIDER: type | None = None
 _REAL_GUIDE_PROVIDER: type | None = None
 
@@ -14,8 +11,8 @@ def _load_achievement_provider_class() -> type:
     real = _REAL_ACHIEVEMENT_PROVIDER
     if real is not None:
         return real
-    from app.modules.encyclopedia.providers.achievement_provider import (
-        AchievementProvider as RealAchievementProvider,
+    from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+        MemoryBoundAchievementProvider as RealAchievementProvider,
     )
 
     _REAL_ACHIEVEMENT_PROVIDER = RealAchievementProvider
@@ -71,6 +68,14 @@ class GuideProvider(metaclass=_LazyGuideProviderMeta):
 
 
 def __getattr__(name: str):
+    if name == "QuestProvider":
+        # Do not hydrate the Quest catalog simply by importing the provider
+        # package for Guide or Achievement facades. Resolve the *real* class
+        # on first request; preserve isinstance/subclass identity.
+        from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+
+        globals()[name] = QuestProvider
+        return QuestProvider
     if name == "DofusItemProvider":
         from app.modules.encyclopedia.providers.dofus_item_provider import DofusItemProvider
 

@@ -56,6 +56,23 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("CERTIFIED", self.agents)
         self.assertIn("phase terminée", self.agents)
 
+    def test_full_validation_binds_public_inputs_before_and_after_tests(self) -> None:
+        workflow = self.certification_workflow
+        before = workflow.index("name: Capture exact public dataset inputs before validation")
+        full = workflow.index("name: Run full Atlas phase certification gate")
+        after = workflow.index("name: Verify public dataset inputs did not change during validation")
+        archive = workflow.index("name: Upload certification logs")
+        enforce = workflow.index("name: Enforce phase certification verdict")
+        self.assertLess(before, full)
+        self.assertLess(full, after)
+        self.assertLess(after, archive)
+        self.assertLess(archive, enforce)
+        self.assertIn("steps.inputs_before.outcome == 'success'", workflow[full:after])
+        self.assertIn("&& always()", workflow[after:archive])
+        self.assertIn('--verify-against "artifacts/phase_certification/inputs_before.json"', workflow)
+        self.assertIn('steps.inputs_before.outcome }}" -ne "success"', workflow[enforce:])
+        self.assertIn('steps.inputs_after.outcome }}" -ne "success"', workflow[enforce:])
+
     def test_policy_declares_machine_readable_certification_contract(self) -> None:
         certification = self.policy["certification"]
         self.assertEqual(certification["scope"], "APPLICATION")
@@ -467,12 +484,14 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("NOT PHASE CERTIFICATION", self.public_pr)
         self.assertIn("tests.test_phase_certification_guardrails", self.public_pr)
 
-    def test_phase_certification_is_exact_head_full_gate_for_phase_prs(self) -> None:
+    def test_phase_certification_is_exact_head_full_gate_for_phase_prs_and_main(self) -> None:
         source = self.certification_workflow
         self.assertIn("workflow_dispatch:", source)
+        self.assertIn("push:\n    branches:\n      - main", source)
         self.assertIn("pull_request:", source)
-        self.assertNotIn("push:\n", source)
         self.assertIn("synchronize", source)
+        self.assertIn("github.event_name == 'push'", source)
+        self.assertIn("github.event.before", source)
         self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", source)
         self.assertIn(
             "github.event.pull_request.head.repo.full_name == github.repository",

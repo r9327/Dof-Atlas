@@ -397,8 +397,11 @@ class HotkeyRegistry:
                     if modifier_pressed != (modifier_vk in spec.keys):
                         return False
                 return True
-            except Exception:
-                pass
+            except Exception as exc:
+                self.logger.debug(
+                    "Lecture physique des touches indisponible; fallback InputState: %s",
+                    exc,
+                )
         return spec.matches(self.input_state.snapshot())
 
     def start(self) -> bool:

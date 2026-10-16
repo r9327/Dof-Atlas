@@ -13,11 +13,6 @@ from app.ui.styles.guide import (
     guide_universal_stylesheet as canonical_universal_stylesheet,
     guide_v5_stylesheet as canonical_v5_stylesheet,
 )
-from app.ui.styles.guide_manual import guide_manual_stylesheet as legacy_manual_stylesheet
-from app.ui.styles.guide_universal import (
-    guide_universal_stylesheet as legacy_universal_stylesheet,
-)
-from app.ui.styles.guide_v5 import guide_v5_stylesheet as legacy_v5_stylesheet
 
 
 class GuideStyleSingleSourceTests(unittest.TestCase):
@@ -25,9 +20,9 @@ class GuideStyleSingleSourceTests(unittest.TestCase):
         self.assertIs(guide_manual_stylesheet, canonical_manual_stylesheet)
         self.assertIs(guide_universal_stylesheet, canonical_universal_stylesheet)
         self.assertIs(guide_v5_stylesheet, canonical_v5_stylesheet)
-        self.assertIs(legacy_manual_stylesheet, canonical_manual_stylesheet)
-        self.assertIs(legacy_universal_stylesheet, canonical_universal_stylesheet)
-        self.assertIs(legacy_v5_stylesheet, canonical_v5_stylesheet)
+        self.assertFalse(Path("app/ui/styles/guide_manual.py").exists())
+        self.assertFalse(Path("app/ui/styles/guide_universal.py").exists())
+        self.assertFalse(Path("app/ui/styles/guide_v5.py").exists())
 
     def test_guide_styles_render_global_theme_tokens(self) -> None:
         for renderer in (

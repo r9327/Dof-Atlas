@@ -3,13 +3,18 @@
 
 from __future__ import annotations
 
-from app.pages._quests_page_impl import *  # noqa: F401,F403
+from contextlib import suppress
+
 from app.pages._quests_page_impl import (
     HIERARCHY_ID_ROLE,
     HIERARCHY_KIND_ROLE,
+    MIN_QUEST_SEARCH_CHARS,
     NativeQuestDetailPanel,
     QuestsPage as _EagerQuestsPage,
+    linkify_travel_coordinates,
+    load_owned_items,
     quest_detail_html,
+    quest_required_items,
 )
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QTreeWidgetItem
@@ -18,6 +23,16 @@ from PySide6.QtWidgets import QTreeWidgetItem
 _MIN_LAZY_QUESTS = 500
 _LAZY_POPULATED_ROLE = HIERARCHY_ID_ROLE + 1000
 _LARGE_CATALOG_SEARCH_DEBOUNCE_MS = 120
+
+__all__ = [
+    "HIERARCHY_ID_ROLE",
+    "HIERARCHY_KIND_ROLE",
+    "MIN_QUEST_SEARCH_CHARS",
+    "QuestsPage",
+    "linkify_travel_coordinates",
+    "quest_detail_html",
+    "quest_required_items",
+]
 
 
 class _LazyCompatQuestDetailPanel(NativeQuestDetailPanel):
@@ -74,6 +89,16 @@ class QuestsPage(_EagerQuestsPage):
     def __init__(self, *args, **kwargs) -> None:
         self._quest_search_text_cache: dict[int, str] = {}
         self._owned_items_file_signature: tuple[int, int] | None = None
+        detail_view_defaulted = "defer_detail_view" not in kwargs
+        kwargs.setdefault("defer_detail_view", True)
+        if detail_view_defaulted:
+            candidate_catalog = kwargs.get("catalog")
+            if candidate_catalog is None:
+                provider = kwargs.get("quest_provider")
+                candidate_catalog = getattr(provider, "_catalog", None)
+            quest_count = len(getattr(candidate_catalog, "quests", ()) or ())
+            if candidate_catalog is not None and quest_count < _MIN_LAZY_QUESTS:
+                kwargs["defer_detail_view"] = False
         super().__init__(*args, **kwargs)
 
         old_detail = self.detail
@@ -85,10 +110,8 @@ class QuestsPage(_EagerQuestsPage):
         self._search_debounce_timer.setSingleShot(True)
         self._search_debounce_timer.setInterval(_LARGE_CATALOG_SEARCH_DEBOUNCE_MS)
         self._search_debounce_timer.timeout.connect(self._flush_search_refresh)
-        try:
+        with suppress(RuntimeError, TypeError):
             self.search.textChanged.disconnect()
-        except (RuntimeError, TypeError):
-            pass
         self.search.textChanged.connect(self._on_search_text_changed)
 
     def _large_hierarchy_catalog(self) -> bool:
@@ -383,9 +406,12 @@ class QuestsPage(_EagerQuestsPage):
                 achievement_state,
             )
         )
-        self.quest_detail_view.set_character_key(self.current_character_key)
+        view = self._ensure_quest_detail_view()
+        from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
+
+        view.set_character_key(self.current_character_key)
         active_series = self.hierarchy.series_by_id.get(self.active_series_id)
-        self.quest_detail_view.show_quest(
+        view.show_quest(
             int(quest.id),
             QuestViewContext(
                 host="quests",

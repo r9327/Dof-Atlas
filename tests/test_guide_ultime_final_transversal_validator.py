@@ -4,8 +4,7 @@ from pathlib import Path
 import unittest
 
 from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
-from tools import validate_guide_ultime_manual_transversals_v15 as validator
-from tools import validate_guide_ultime_manual_transversals_v16 as validator_v16
+from tools import validate_guide_ultime_manual_transversals as validator
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,17 +49,11 @@ class GuideUltimeFinalTransversalValidatorTests(unittest.TestCase):
         self.assertIn("Qui nous protège du Protecteur ?", flovoraison.get("quests", []))
         self.assertIn("Flovoraison", flovoraison.get("quests", []))
 
-    def test_validator_is_module_safe(self) -> None:
+    def test_canonical_validator_is_module_safe(self) -> None:
         source = Path(validator.__file__).read_text(encoding="utf-8")
         self.assertNotIn("sys.path.insert", source)
         self.assertNotIn("import sys", source)
-
-    def test_v16_validator_is_module_safe(self) -> None:
-        source = Path(validator_v16.__file__).read_text(encoding="utf-8")
-        self.assertIn("from tools import validate_guide_ultime_manual_transversals_v15 as v15", source)
-        self.assertNotIn("sys.path.insert", source)
-        self.assertNotIn("import sys", source)
-        self.assertIs(validator_v16.v15, validator)
+        self.assertFalse(hasattr(validator, "_impl"))
 
 
 if __name__ == "__main__":

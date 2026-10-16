@@ -1,229 +1,453 @@
 from __future__ import annotations
 
+"""Canonical Guide Ultime transversal validator.
+
+This unversioned module owns the current transversal validation contract.
+Versioned implementation wrappers are intentionally retired: changes belong here.
+"""
+
 import argparse
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from app.constants import RAW_QUEST_DATA_DIR
-from app.modules.encyclopedia.providers import QuestProvider
+from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
+from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import GuideUltimeManualRuntimeService
+from app.modules.encyclopedia.services.guide_ultime_temporal_registry import load_temporal_registry
 from app.quest_catalog import normalize_text
 
 
+ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "data" / "routes" / "guide_ultime_manual"
 MANIFEST = BASE / "manifest_v1.json"
-EXPECTED_ORDER_KEYS = {"coeur vaillant", "oeil attentif", "esprit salvateur"}
-EXPECTED_EARLY_OCRE = {
-    "Shin Larve",
-    "Rakoopeur",
-    "Scarabosse Doré",
-    "Bworkette",
-    "Craqueleur Légendaire",
-    "Corailleur Magistral",
+
+EXPECTED_CHAPTERS: tuple[tuple[str, str, int], ...] = (
+    ("incarnam", "incarnam_v2.json", 9),
+    ("astrub", "astrub_v5.json", 16),
+    ("pandala_access", "pandala_access_v1.json", 2),
+    ("amakna_40_60", "amakna_40_60_v5.json", 10),
+    ("level_51_70", "level_51_70_v4.json", 7),
+    ("level_70_100", "level_70_100_v10.json", 17),
+    ("level_100_120", "level_100_120_v9.json", 17),
+    ("level_120_150", "level_120_150_v21.json", 37),
+    ("level_150_170", "level_150_170_v21.json", 24),
+    ("level_171_180", "level_171_180_v13.json", 30),
+    ("level_181_190", "level_181_190_v15.json", 24),
+    ("level_191_200", "level_191_200_v22.json", 62),
+    ("level_200_plus", "level_200_plus_v11.json", 12),
+)
+EXPECTED_STAGE_COUNT = 267
+EXPECTED_BONTA_FILE = "bonta_1_100_v17.json"
+EXPECTED_TEMPORAL_FILE = "temporal_registry_v15.json"
+EXPECTED_OCRE_CAPTURE_FILE = "ocre_capture_registry_v1.json"
+EXPECTED_OCRE_FINAL_FILE = "ocre_final_route_v2.json"
+EXPECTED_OCRE_COMPLETION_FILE = "ocre_completion_route_v2.json"
+EXPECTED_SUCCESS_CONTRACTS_FILE = "success_contracts_v2.json"
+EXPECTED_ORDER_FILES = {
+    20: "bonta_order_rank20_v1.json",
+    40: "bonta_order_rank40_v1.json",
+    60: "bonta_order_rank60_v1.json",
+    80: "bonta_order_rank80_v1.json",
+    100: "bonta_order_rank100_v1.json",
 }
 
 
-def load(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"Objet JSON attendu: {path}")
-    return payload
+def _load(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
-def catalog_index() -> dict[str, list[int]]:
-    catalog = QuestProvider(data_dir=RAW_QUEST_DATA_DIR).get_catalog()
-    result: dict[str, list[int]] = {}
-    for quest in catalog.quests:
-        result.setdefault(normalize_text(quest.name), []).append(int(quest.id))
-    return result
+def _error(hard: list[dict[str, Any]], code: str, **details: Any) -> None:
+    hard.append({"code": code, **details})
 
 
-def first_rank_order(stages: list[dict[str, Any]]) -> list[int]:
-    result: list[int] = []
-    seen: set[int] = set()
-    for stage in stages:
-        for raw in stage.get("ranks", []) or []:
-            if not isinstance(raw, int):
-                continue
-            if raw not in seen:
-                seen.add(raw)
-                result.append(raw)
-    return result
+def _quest_values(stage: dict[str, Any]) -> list[str]:
+    values: list[str] = []
+    for field in ("quests", "quest_sequence", "parallel_quests"):
+        raw = stage.get(field)
+        rows = raw if isinstance(raw, list) else [raw] if raw else []
+        for value in rows:
+            if isinstance(value, str) and value.strip():
+                values.append(value.strip())
+    return values
 
 
-def explicit_bonta_names(payload: dict[str, Any]) -> set[str]:
-    names: set[str] = set()
-    for row in payload.get("rank_contract", []) or []:
-        if isinstance(row, dict):
-            name = str(row.get("quest") or "").strip()
-            if name:
-                names.add(name)
-    for stage in payload.get("stages", []) or []:
-        if not isinstance(stage, dict):
+def _stage_index(payload: dict[str, Any]) -> tuple[list[str], dict[str, dict[str, Any]]]:
+    stages = [row for row in payload.get("stages", []) or [] if isinstance(row, dict)]
+    ids = [str(row.get("id") or "").strip() for row in stages]
+    return ids, {stage_id: stage for stage_id, stage in zip(ids, stages) if stage_id}
+
+
+def _need_stage(hard: list[dict[str, Any]], by: dict[str, dict[str, Any]], stage_id: str) -> dict[str, Any] | None:
+    stage = by.get(stage_id)
+    if stage is None:
+        _error(hard, "required_stage_missing", stage=stage_id)
+    return stage
+
+
+def _need_quests(
+    hard: list[dict[str, Any]],
+    by: dict[str, dict[str, Any]],
+    stage_id: str,
+    wanted: set[str],
+) -> None:
+    stage = _need_stage(hard, by, stage_id)
+    if stage is None:
+        return
+    actual = set(_quest_values(stage))
+    missing = sorted(wanted - actual)
+    if missing:
+        _error(hard, "required_quests_missing", stage=stage_id, missing=missing)
+
+
+def _success_values(stage: dict[str, Any]) -> list[str]:
+    raw = stage.get("successes")
+    rows = raw if isinstance(raw, list) else [raw] if raw else []
+    return [value.strip() for value in rows if isinstance(value, str) and value.strip()]
+
+
+def _need_successes(
+    hard: list[dict[str, Any]],
+    by: dict[str, dict[str, Any]],
+    stage_id: str,
+    wanted: set[str],
+) -> None:
+    stage = _need_stage(hard, by, stage_id)
+    if stage is None:
+        return
+    missing = sorted(wanted - set(_success_values(stage)))
+    if missing:
+        _error(hard, "required_successes_missing", stage=stage_id, missing=missing)
+
+
+def _before(hard: list[dict[str, Any]], ids: list[str], left: str, right: str) -> None:
+    if left not in ids or right not in ids:
+        _error(hard, "ordering_stage_missing", left=left, right=right)
+        return
+    if ids.index(left) >= ids.index(right):
+        _error(hard, "causal_order_invalid", left=left, right=right)
+
+
+def _forbid_unconditional(
+    hard: list[dict[str, Any]],
+    by: dict[str, dict[str, Any]],
+    stage_id: str,
+    forbidden: set[str],
+) -> None:
+    stage = _need_stage(hard, by, stage_id)
+    if stage is None:
+        return
+    actual = {value for value in _quest_values(stage) if not value.startswith("conditional:")}
+    leaked = sorted(forbidden & actual)
+    if leaked:
+        _error(hard, "conditional_quest_leaked_to_common_route", stage=stage_id, quests=leaked)
+
+
+def _canonical_rows(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    canonical = manifest.get("canonical") if isinstance(manifest.get("canonical"), dict) else {}
+    rows = [row for row in canonical.get("chapters", []) or [] if isinstance(row, dict)]
+    rows.sort(key=lambda row: int(row.get("order") or 0))
+    return rows
+
+
+def _validate_chapters(
+    hard: list[dict[str, Any]], manifest: dict[str, Any]
+) -> dict[str, dict[str, Any]]:
+    rows = _canonical_rows(manifest)
+    expected_ids = [chapter_id for chapter_id, _, _ in EXPECTED_CHAPTERS]
+    actual_ids = [str(row.get("id") or "").strip() for row in rows]
+    if actual_ids != expected_ids:
+        _error(hard, "canonical_chapter_order_invalid", expected=expected_ids, actual=actual_ids)
+
+    resolved: dict[str, dict[str, Any]] = {}
+    total = 0
+    by_id = {str(row.get("id") or "").strip(): row for row in rows}
+    for chapter_id, filename, stage_count in EXPECTED_CHAPTERS:
+        row = by_id.get(chapter_id)
+        if row is None:
+            _error(hard, "canonical_chapter_missing", chapter=chapter_id)
             continue
-        for raw in stage.get("quests", []) or []:
-            name = str(raw or "").strip()
-            if name and not name.startswith("conditional:"):
-                names.add(name)
-    return names
+        if row.get("file") != filename:
+            _error(hard, "canonical_chapter_file_stale", chapter=chapter_id, expected=filename, actual=row.get("file"))
+            continue
+        if int(row.get("stage_count") or -1) != stage_count:
+            _error(hard, "canonical_manifest_stage_count_invalid", chapter=chapter_id, expected=stage_count, actual=row.get("stage_count"))
+        try:
+            payload = load_manual_chapter(BASE / filename)
+        except Exception as exc:
+            _error(hard, "canonical_chapter_resolution_failed", chapter=chapter_id, file=filename, error=f"{type(exc).__name__}: {exc}")
+            continue
+        stages = [stage for stage in payload.get("stages", []) or [] if isinstance(stage, dict)]
+        total += len(stages)
+        if len(stages) != stage_count:
+            _error(hard, "canonical_resolved_stage_count_invalid", chapter=chapter_id, expected=stage_count, actual=len(stages))
+        ids = [str(stage.get("id") or "").strip() for stage in stages]
+        missing_ids = [index for index, stage_id in enumerate(ids) if not stage_id]
+        if missing_ids:
+            _error(hard, "canonical_stage_id_missing", chapter=chapter_id, indexes=missing_ids)
+        duplicates = sorted({stage_id for stage_id in ids if stage_id and ids.count(stage_id) > 1})
+        if duplicates:
+            _error(hard, "canonical_stage_id_duplicate", chapter=chapter_id, ids=duplicates)
+        resolved[chapter_id] = payload
+
+    if total != EXPECTED_STAGE_COUNT:
+        _error(hard, "canonical_total_stage_count_invalid", expected=EXPECTED_STAGE_COUNT, actual=total)
+    return resolved
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Valide les fils transversaux du Guide Ultime manuel.")
+def _validate_bonta(hard: list[dict[str, Any]], canonical: dict[str, Any]) -> None:
+    rows = [row for row in canonical.get("transversal_routes", []) or [] if isinstance(row, dict)]
+    row = next((item for item in rows if item.get("id") == "bonta_1_100"), None)
+    if row is None or row.get("file") != EXPECTED_BONTA_FILE:
+        _error(hard, "bonta100_manifest_invalid", expected=EXPECTED_BONTA_FILE, actual=row)
+        return
+    if row.get("alignment") != "Bonta" or row.get("mandatory") is not True or row.get("alignment_complete") is not True:
+        _error(hard, "bonta100_manifest_contract_invalid", row=row)
+
+    payload = load_manual_chapter(BASE / EXPECTED_BONTA_FILE)
+    stages = [stage for stage in payload.get("stages", []) or [] if isinstance(stage, dict)]
+    if len(stages) != 49 or int(payload.get("macro_stage_count") or -1) != 49:
+        _error(hard, "bonta100_macro_count_invalid", resolved=len(stages), declared=payload.get("macro_stage_count"))
+    if payload.get("quest_range") != [1, 100]:
+        _error(hard, "bonta100_range_invalid", actual=payload.get("quest_range"))
+    _, by = _stage_index(payload)
+    _need_quests(hard, by, "BNT-46", {"À glacer le sang"})
+    _need_quests(hard, by, "BNT-48", {"Fée d'hiver", "L'exorciste"})
+
+
+def _validate_orders(hard: list[dict[str, Any]], canonical: dict[str, Any]) -> None:
+    rows = [row for row in canonical.get("conditional_routes", []) or [] if isinstance(row, dict)]
+    class_row = next((row for row in rows if row.get("id") == "astrub_class_branches"), None)
+    if class_row is None or class_row.get("file") != "astrub_class_branches_v1.json":
+        _error(hard, "class_branch_manifest_invalid", row=class_row)
+    elif class_row.get("selector") != "actual_character_class" or class_row.get("manual_selection_forbidden") is not True or int(class_row.get("option_count") or 0) != 19:
+        _error(hard, "class_branch_selector_contract_invalid", row=class_row)
+
+    for rank, filename in EXPECTED_ORDER_FILES.items():
+        route_id = f"bonta_order_rank{rank}"
+        row = next((item for item in rows if item.get("id") == route_id), None)
+        if row is None or row.get("file") != filename:
+            _error(hard, "order_manifest_invalid", rank=rank, expected=filename, actual=row)
+            continue
+        if row.get("selector") != "persisted_bonta_order" or row.get("exactly_one") is not True or row.get("unselected_hidden") is not True or int(row.get("option_count") or 0) != 3:
+            _error(hard, "order_selector_contract_invalid", rank=rank, row=row)
+        for previous_rank in (20, 40, 60, 80):
+            if previous_rank >= rank:
+                break
+            field = f"same_order_as_rank{previous_rank}"
+            if row.get(field) is not True:
+                _error(hard, "order_continuity_not_locked", rank=rank, field=field)
+        payload = _load(BASE / filename)
+        options = payload.get("options") if isinstance(payload.get("options"), dict) else {}
+        if set(options) != {"coeur vaillant", "oeil attentif", "esprit salvateur"}:
+            _error(hard, "order_options_invalid", rank=rank, actual=sorted(options))
+        policy = payload.get("selection_policy") if isinstance(payload.get("selection_policy"), dict) else {}
+        hidden = policy.get("unselected_hidden") is True or policy.get("unselected_routes_hidden") is True
+        if policy.get("exactly_one") is not True or not hidden:
+            _error(hard, "order_payload_policy_invalid", rank=rank, policy=policy)
+        if rank > 20 and policy.get("order_change_forbidden") is not True:
+            _error(hard, "order_change_not_forbidden", rank=rank)
+
+
+def _temporal_hooks(resolved: dict[str, dict[str, Any]]) -> set[str]:
+    hooks: set[str] = set()
+    for payload in resolved.values():
+        for stage in payload.get("stages", []) or []:
+            if not isinstance(stage, dict):
+                continue
+            raw_values: list[Any] = []
+            if stage.get("temporal_hook") not in (None, "", []):
+                raw_values.append(stage.get("temporal_hook"))
+            raw = stage.get("temporal_hooks")
+            if isinstance(raw, list):
+                raw_values.extend(raw)
+            elif raw not in (None, ""):
+                raw_values.append(raw)
+            hooks.update(str(value).strip() for value in raw_values if str(value or "").strip())
+    return hooks
+
+
+def _validate_temporal(
+    hard: list[dict[str, Any]], canonical: dict[str, Any], resolved: dict[str, dict[str, Any]]
+) -> None:
+    if canonical.get("temporal_registry") != EXPECTED_TEMPORAL_FILE:
+        _error(hard, "temporal_registry_manifest_stale", expected=EXPECTED_TEMPORAL_FILE, actual=canonical.get("temporal_registry"))
+        return
+    payload = load_temporal_registry(BASE / EXPECTED_TEMPORAL_FILE)
+    rows = [row for row in payload.get("entries", []) or [] if isinstance(row, dict)]
+    entries = {str(row.get("id") or "").strip(): row for row in rows if str(row.get("id") or "").strip()}
+    if len(entries) != len(rows):
+        _error(hard, "temporal_duplicate_ids")
+
+    service = object.__new__(GuideUltimeManualRuntimeService)
+    for hook in sorted(_temporal_hooks(resolved)):
+        entry = entries.get(hook)
+        if entry is None:
+            _error(hard, "temporal_hook_missing", hook=hook)
+            continue
+        if not service._temporal_player_instruction(entry):
+            _error(hard, "temporal_hook_without_player_instruction", hook=hook)
+
+    for hook in ("frigost_hunter_blessure_to_chasse", "frigost_hunter_chasse_to_brocouille"):
+        text = str(entries.get(hook, {}).get("route_policy") or "")
+        if "13 h" not in text:
+            _error(hard, "frigost_13h_delay_missing", hook=hook)
+    bonmonstres = str(entries.get("frigost_bonmonstres_attempt_window", {}).get("route_policy") or "")
+    if "5 minutes" not in bonmonstres or "1 h" not in bonmonstres:
+        _error(hard, "bonmonstres_retry_contract_invalid")
+
+
+def _validate_ocre(hard: list[dict[str, Any]], canonical: dict[str, Any]) -> None:
+    if canonical.get("ocre_capture_registry") != EXPECTED_OCRE_CAPTURE_FILE:
+        _error(hard, "ocre_capture_manifest_stale", expected=EXPECTED_OCRE_CAPTURE_FILE, actual=canonical.get("ocre_capture_registry"))
+    if canonical.get("ocre_final_route") != EXPECTED_OCRE_FINAL_FILE:
+        _error(hard, "ocre_final_manifest_stale", expected=EXPECTED_OCRE_FINAL_FILE, actual=canonical.get("ocre_final_route"))
+        return
+    if canonical.get("success_contracts") != EXPECTED_SUCCESS_CONTRACTS_FILE:
+        _error(hard, "success_contracts_manifest_stale", expected=EXPECTED_SUCCESS_CONTRACTS_FILE, actual=canonical.get("success_contracts"))
+
+    alias = _load(BASE / EXPECTED_OCRE_FINAL_FILE)
+    if alias.get("base_file") != EXPECTED_OCRE_COMPLETION_FILE:
+        _error(hard, "ocre_final_base_invalid", expected=EXPECTED_OCRE_COMPLETION_FILE, actual=alias.get("base_file"))
+    completion = _load(BASE / EXPECTED_OCRE_COMPLETION_FILE)
+    expected_deps = {EXPECTED_OCRE_CAPTURE_FILE, EXPECTED_TEMPORAL_FILE}
+    actual_deps = {str(value) for value in completion.get("depends_on", []) or []}
+    if actual_deps != expected_deps:
+        _error(hard, "ocre_completion_dependencies_invalid", expected=sorted(expected_deps), actual=sorted(actual_deps))
+
+    resolved = load_manual_chapter(BASE / EXPECTED_OCRE_FINAL_FILE)
+    stages = [stage for stage in resolved.get("stages", []) or [] if isinstance(stage, dict)]
+    if len(stages) != 5:
+        _error(hard, "ocre_final_stage_count_invalid", expected=5, actual=len(stages))
+    _, by = _stage_index(resolved)
+    kral = _need_stage(hard, by, "OCRE-F4")
+    if kral is not None and kral.get("temporal_hook") != "kralamoure_server_opening":
+        _error(hard, "ocre_kralamoure_temporal_hook_invalid", actual=kral.get("temporal_hook"))
+
+
+def _validate_key_causality(hard: list[dict[str, Any]], resolved: dict[str, dict[str, Any]]) -> None:
+    astrub_ids, astrub = _stage_index(resolved.get("astrub", {}))
+    del astrub_ids
+    for stage_id in ("AST-06", "AST-08", "AST-09"):
+        _need_quests(hard, astrub, stage_id, {"Le tour du monde"})
+    _need_quests(hard, astrub, "AST-14", {"L'invasion des profanateurs de sépultures"})
+
+    _, level100 = _stage_index(resolved.get("level_100_120", {}))
+    _need_quests(hard, level100, "L100-00", {"À la croisée des mondes"})
+    _need_quests(hard, level100, "L100-15", {
+        "Sous le bois de sa colère", "Infâme pourriture",
+        "Le Saule du Promeneur", "Dites-le avec des fleurs",
+    })
+
+    _, level120 = _stage_index(resolved.get("level_120_150", {}))
+    _need_quests(hard, level120, "L120-00", {"La terre banquise", "La maire de glace", "Full Contact", "Bienvenue à Frigost"})
+    _need_quests(hard, level120, "L120-21", {"Qu'est-ce qu'on a fait des tuyaux ?", "Lâcher les gaz"})
+
+    ids150, level150 = _stage_index(resolved.get("level_150_170", {}))
+    _need_quests(hard, level150, "L150-13", {"Si loin, si proches", "Où est mon samouraï ?", "Sombre mystère", "Sécurité routière", "Gobstination d'un Grobelin"})
+    _need_quests(hard, level150, "L150-15", {"Anomalies temporelles", "C'est ton destin", "Retour vers le présent", "Prisonniers du temps"})
+    _before(hard, ids150, "L150-15", "L150-17")
+    for stage_id in ("L150-07", "L150-08"):
+        _forbid_unconditional(hard, level150, stage_id, {"Complètement givré", "L'appel de la forêt", "Crocs en jambes", "Ourse molle"})
+
+    _, level190 = _stage_index(resolved.get("level_181_190", {}))
+    _need_quests(hard, level190, "L190-00", {"Développement durable", "Le champ des héros", "La transe du crystal"})
+    _need_quests(hard, level190, "L190-04", {"Porte, Kolosso, trésor", "C'est Rébro", "Le champ des héros", "La transe du crystal"})
+    _need_quests(hard, level190, "L190-05", {"Le pic qui glace", "Mission Solution"})
+    _need_quests(hard, level190, "L190-06", {"Porte, Glourséleste, trésor", "Glourson et lumière", "L'arène et le roi"})
+    for stage_id in ("L190-00", "L190-04"):
+        _forbid_unconditional(hard, level190, stage_id, {"Crocs en jambes"})
+    for stage_id in ("L190-05", "L190-06"):
+        _forbid_unconditional(hard, level190, stage_id, {"Ourse molle"})
+
+    ids200, level200 = _stage_index(resolved.get("level_191_200", {}))
+    _need_quests(hard, level200, "P200-07-PREP", {"S'armer contre le destin"})
+    _need_quests(hard, level200, "P200-14", {"La loi du plus faible", "Leçon d'histoire"})
+    _need_quests(hard, level200, "L200-ENUT-PREP", {"Reconnaissance de dette"})
+    _need_successes(hard, level200, "L200-ENUT-CLOSE", {"Le roi et moi"})
+    _before(hard, ids200, "P200-06", "P200-07-PREP")
+    _before(hard, ids200, "P200-13", "P200-14")
+
+    ids_post, post = _stage_index(resolved.get("level_200_plus", {}))
+    required_post = [
+        "P200-08", "P200-AU-DETOUR", "P200-16", "P200-17", "P200-18", "P200-20",
+        "P200-19", "P200-21", "P200-22", "P200-23", "P200-24", "P200-25",
+    ]
+    for stage_id in required_post:
+        _need_stage(hard, post, stage_id)
+    for left, right in zip(required_post, required_post[1:]):
+        _before(hard, ids_post, left, right)
+    _need_quests(hard, post, "P200-AU-DETOUR", {"Au détour d'un rêve perdu"})
+    _need_quests(hard, post, "P200-19", {"La graine de la révolte", "Par l'héritage qui vous lie", "Une dernière volonté"})
+    _need_quests(hard, post, "P200-24", {"Flovoraison", "Qui nous protège du Protecteur ?"})
+
+
+def _catalog_names() -> set[str]:
+    provider = QuestProvider()
+    return {
+        normalize_text(getattr(quest, "name", ""))
+        for quest in provider.list_quests()
+        if normalize_text(getattr(quest, "name", ""))
+    }
+
+
+def _validate_catalog(hard: list[dict[str, Any]], resolved: dict[str, dict[str, Any]]) -> None:
+    try:
+        catalog = _catalog_names()
+    except Exception as exc:
+        _error(hard, "quest_catalog_load_failed", error=f"{type(exc).__name__}: {exc}")
+        return
+    for chapter_id, payload in resolved.items():
+        for stage in payload.get("stages", []) or []:
+            if not isinstance(stage, dict):
+                continue
+            for raw in _quest_values(stage):
+                name = raw.split(":", 1)[1].strip() if raw.startswith("conditional:") else raw
+                if normalize_text(name) not in catalog:
+                    _error(hard, "quest_missing_from_catalog", chapter=chapter_id, stage=stage.get("id"), quest=name)
+
+
+def audit(*, skip_catalog: bool = False) -> dict[str, Any]:
+    manifest = _load(MANIFEST)
+    canonical = manifest.get("canonical") if isinstance(manifest.get("canonical"), dict) else {}
+    hard: list[dict[str, Any]] = []
+
+    resolved = _validate_chapters(hard, manifest)
+    _validate_bonta(hard, canonical)
+    _validate_orders(hard, canonical)
+    _validate_temporal(hard, canonical, resolved)
+    _validate_ocre(hard, canonical)
+    _validate_key_causality(hard, resolved)
+    if not skip_catalog:
+        _validate_catalog(hard, resolved)
+
+    return {
+        "schema_version": 16,
+        "status": "STRICT_PASS" if not hard else "STRICT_FAIL",
+        "hard_error_count": len(hard),
+        "hard_errors": hard,
+        "canonical_chapter_count": len(resolved),
+        "canonical_stage_count": sum(len(payload.get("stages", []) or []) for payload in resolved.values()),
+        "canonical_chapters_checked": [chapter_id for chapter_id, _, _ in EXPECTED_CHAPTERS if chapter_id in resolved],
+        "bonta_file": EXPECTED_BONTA_FILE,
+        "temporal_file": EXPECTED_TEMPORAL_FILE,
+        "ocre_final_file": EXPECTED_OCRE_FINAL_FILE,
+        "catalog_skipped": bool(skip_catalog),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Audit transversal final du Guide Ultime manuel canonique.")
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--skip-catalog", action="store_true")
     args = parser.parse_args()
 
-    hard: list[dict[str, Any]] = []
-    warn: list[dict[str, Any]] = []
-    manifest = load(MANIFEST)
-    canonical = manifest.get("canonical") if isinstance(manifest.get("canonical"), dict) else {}
-
-    transversal_rows = [row for row in canonical.get("transversal_routes", []) or [] if isinstance(row, dict)]
-    bonta_row = next((row for row in transversal_rows if str(row.get("id") or "").startswith("bonta_")), None)
-    if bonta_row is None:
-        hard.append({"code": "bonta_transversal_missing"})
-        bonta: dict[str, Any] = {}
-    else:
-        bonta_path = BASE / str(bonta_row.get("file") or "")
-        if not bonta_path.is_file():
-            hard.append({"code": "bonta_file_missing", "file": bonta_path.name})
-            bonta = {}
-        else:
-            bonta = load_manual_chapter(bonta_path)
-
-    if bonta:
-        quest_range = bonta.get("quest_range")
-        if quest_range != [1, 22]:
-            hard.append({"code": "bonta_range_invalid", "expected": [1, 22], "actual": quest_range})
-        stages = [row for row in bonta.get("stages", []) or [] if isinstance(row, dict)]
-        rank_order = first_rank_order(stages)
-        expected = list(range(1, 23))
-        if rank_order != expected:
-            hard.append({"code": "bonta_rank_first_appearance_invalid", "expected": expected, "actual": rank_order})
-        rank_values = {
-            raw
-            for stage in stages
-            for raw in (stage.get("ranks", []) or [])
-            if isinstance(raw, int)
-        }
-        if rank_values != set(expected):
-            hard.append({"code": "bonta_rank_coverage_invalid", "missing": sorted(set(expected) - rank_values), "extra": sorted(rank_values - set(expected))})
-        ids = [str(stage.get("id") or "").strip() for stage in stages]
-        if len(ids) != len(set(ids)) or any(not value for value in ids):
-            hard.append({"code": "bonta_stage_ids_invalid", "ids": ids})
-        if not any("BNT-07" == value for value in ids):
-            hard.append({"code": "bonta_order_gate_stage_missing"})
-        if not any("BNT-08" == value for value in ids):
-            hard.append({"code": "bonta_21_22_stage_missing"})
-
-    conditional_rows = [row for row in canonical.get("conditional_routes", []) or [] if isinstance(row, dict)]
-    order_row = next((row for row in conditional_rows if row.get("id") == "bonta_order_rank20"), None)
-    if order_row is None:
-        hard.append({"code": "bonta_order_route_missing_from_manifest"})
-        order_payload: dict[str, Any] = {}
-    else:
-        order_path = BASE / str(order_row.get("file") or "")
-        if not order_path.is_file():
-            hard.append({"code": "bonta_order_file_missing", "file": order_path.name})
-            order_payload = {}
-        else:
-            order_payload = load(order_path)
-
-    order_names: set[str] = set()
-    if order_payload:
-        options = order_payload.get("options") if isinstance(order_payload.get("options"), dict) else {}
-        if set(options) != EXPECTED_ORDER_KEYS:
-            hard.append({"code": "bonta_order_options_invalid", "expected": sorted(EXPECTED_ORDER_KEYS), "actual": sorted(options)})
-        quest_keys: set[str] = set()
-        for order_name, option in options.items():
-            if not isinstance(option, dict):
-                hard.append({"code": "bonta_order_option_invalid", "order": order_name})
-                continue
-            quest = str(option.get("quest") or "").strip()
-            if not quest:
-                hard.append({"code": "bonta_order_quest_missing", "order": order_name})
-            else:
-                key = normalize_text(quest)
-                if key in quest_keys:
-                    hard.append({"code": "bonta_order_quest_duplicate", "quest": quest})
-                quest_keys.add(key)
-                order_names.add(quest)
-            route = option.get("route") if isinstance(option.get("route"), list) else []
-            if not route:
-                hard.append({"code": "bonta_order_route_empty", "order": order_name})
-            gate = option.get("next_order_gate") if isinstance(option.get("next_order_gate"), dict) else {}
-            if gate.get("alignment_rank") != 40:
-                hard.append({"code": "bonta_next_order_gate_invalid", "order": order_name, "gate": gate})
-        selection = order_payload.get("selection_policy") if isinstance(order_payload.get("selection_policy"), dict) else {}
-        if selection.get("exactly_one") is not True:
-            hard.append({"code": "bonta_order_exactly_one_not_locked"})
-
-    ocre_name = str(canonical.get("ocre_capture_registry") or "").strip()
-    ocre_path = BASE / ocre_name
-    if not ocre_name or not ocre_path.is_file():
-        hard.append({"code": "ocre_registry_missing", "file": ocre_name})
-        ocre: dict[str, Any] = {}
-    else:
-        ocre = load(ocre_path)
-
-    if ocre:
-        rules = ocre.get("rules") if isinstance(ocre.get("rules"), dict) else {}
-        if rules.get("classic_monsters_required") is not False:
-            hard.append({"code": "ocre_classic_monster_policy_stale"})
-        if rules.get("bosses_required") is not True or rules.get("archimonsters_required") is not True:
-            hard.append({"code": "ocre_required_sections_invalid"})
-        boss_steps = ocre.get("boss_steps") if isinstance(ocre.get("boss_steps"), dict) else {}
-        if set(boss_steps) != {"1", "2", "3"}:
-            hard.append({"code": "ocre_boss_steps_invalid", "actual": sorted(boss_steps)})
-        flattened: list[str] = [str(name) for key in ("1", "2", "3") for name in boss_steps.get(key, []) or []]
-        normalized = [normalize_text(name) for name in flattened]
-        if len(normalized) != len(set(normalized)):
-            hard.append({"code": "ocre_boss_duplicate"})
-        missing_early = sorted(EXPECTED_EARLY_OCRE - set(flattened))
-        if missing_early:
-            hard.append({"code": "ocre_early_boss_missing", "bosses": missing_early})
-        early_rows = [row for row in ocre.get("early_route_state", []) or [] if isinstance(row, dict)]
-        early_named = {str(row.get("boss") or "") for row in early_rows}
-        for required in EXPECTED_EARLY_OCRE:
-            if required not in early_named:
-                hard.append({"code": "ocre_early_route_state_missing", "boss": required})
-
-    if not args.skip_catalog:
-        try:
-            index = catalog_index()
-        except Exception as exc:
-            hard.append({"code": "local_catalog_unavailable", "error": repr(exc)})
-            index = {}
-        if index:
-            names = explicit_bonta_names(bonta) | order_names
-            for name in sorted(names, key=normalize_text):
-                matches = index.get(normalize_text(name), [])
-                if not matches:
-                    hard.append({"code": "transversal_quest_not_in_local_catalog", "quest": name})
-                elif len(matches) > 1:
-                    warn.append({"code": "transversal_quest_name_ambiguous", "quest": name, "ids": matches})
-
-    result = {
-        "ok": not hard,
-        "bonta_rank_first_appearance": first_rank_order([row for row in bonta.get("stages", []) or [] if isinstance(row, dict)]) if bonta else [],
-        "bonta_order_options": sorted((order_payload.get("options") or {}).keys()) if order_payload else [],
-        "ocre_boss_count": sum(len(ocre.get("boss_steps", {}).get(key, []) or []) for key in ("1", "2", "3")) if ocre else 0,
-        "hard_error_count": len(hard),
-        "warning_count": len(warn),
-        "hard_errors": hard,
-        "warnings": warn,
-    }
+    result = audit(skip_catalog=args.skip_catalog)
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    if args.strict and hard:
-        raise SystemExit(1)
+    if args.strict and result["hard_error_count"]:
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

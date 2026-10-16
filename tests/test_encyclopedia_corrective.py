@@ -91,7 +91,9 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
         page._related_ready = page._guide_runtime_ready
         if page._guide_runtime_ready:
             page._related_preload_gate.mark_ready()
-        return view
+        # These suites validate the historical rich Guide dashboard. The Phase 8
+        # catalogue is intentionally lightweight and upgrades only on selection.
+        return page.ensure_full_guides_view()
 
     def make_page(self, tmp_path: Path) -> EncyclopediaPage:
         profile, client_index, quest_progress, achievement_progress, guide_progress, owned = self.temp_paths(tmp_path)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 
 from app.modules.encyclopedia.models.entity_ref import EntityRef
-from app.storage import AtlasButton
+from app.ui.components import AtlasButton
 
 
 class EntityLinkButton(AtlasButton):

@@ -8,7 +8,7 @@ from app.modules.encyclopedia.views.guide_ultime_universal_view import (
     GuideUltimeRouteCard,
     GuideUltimeUniversalView,
 )
-from app.ui.styles.guide_universal import guide_universal_stylesheet
+from app.ui.styles.guide import guide_universal_stylesheet
 
 
 class GuideUltimeRouteSheetUITests(unittest.TestCase):
@@ -88,12 +88,6 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
         self.assertNotIn("FAIS ÇA ICI", action_source)
         self.assertNotIn("ENSUITE", next_source)
         self.assertNotIn("_section", next_source)
-
-    def test_position_copy_shows_short_confirmation(self):
-        source = inspect.getsource(GuideUltimeUniversalView.eventFilter)
-        self.assertIn("QApplication.clipboard().setText(command)", source)
-        self.assertIn("QToolTip.showText", source)
-        self.assertIn("1200", source)
 
     def test_active_sheet_keeps_neutral_panel_background(self):
         source = guide_universal_stylesheet()

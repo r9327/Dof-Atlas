@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from html import escape
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from PySide6.QtCore import QModelIndex, Qt, QUrl
 from PySide6.QtWidgets import (
@@ -28,29 +28,23 @@ from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE,
 from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
-    ACHIEVEMENT_PROGRESS_FILE,
-    AchievementProgressService,
     QuestGraphService,
     QuestHierarchyPath,
     QuestHierarchyService,
     QuestProgressService,
 )
-from app.modules.encyclopedia.services.guide_quest_view_model import (
-    DisplayItem,
-    clean_requirement_line,
-    format_number,
+from app.modules.encyclopedia.services.lazy_progress_service import (
+    ACHIEVEMENT_PROGRESS_FILE,
+    lazy_achievement_progress_service,
 )
-from app.modules.encyclopedia.widgets import (
+from app.modules.encyclopedia.widgets.dashboard import (
     CollapsedColumnRail,
-    DetailPanel,
     EncyclopediaPanel,
     FixedColumnSplitter,
     HideCompletedButton,
-    QUEST_ID_ROLE,
-    QuestListModel,
 )
-from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView, QuestViewContext
-from app.modules.encyclopedia.widgets.quest_item_row import item_row
+from app.modules.encyclopedia.widgets.detail_panel import DetailPanel
+from app.modules.encyclopedia.widgets.quest_widgets import QUEST_ID_ROLE, QuestListModel
 from app.quest_catalog import (
     QuestCatalog,
     QuestCharacter,
@@ -61,6 +55,39 @@ from app.quest_catalog import (
 from app.storage import IconCache, read_json, write_json
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE, render_theme_template
+
+if TYPE_CHECKING:
+    from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
+
+
+_QUEST_VM = None
+
+
+def _quest_vm():
+    global _QUEST_VM
+    if _QUEST_VM is None:
+        from app.modules.encyclopedia.services import guide_quest_view_model
+
+        _QUEST_VM = guide_quest_view_model
+    return _QUEST_VM
+
+
+def clean_requirement_line(*args, **kwargs):
+    return _quest_vm().clean_requirement_line(*args, **kwargs)
+
+
+def format_number(*args, **kwargs):
+    return _quest_vm().format_number(*args, **kwargs)
+
+
+def _display_item(*args, **kwargs):
+    return _quest_vm().DisplayItem(*args, **kwargs)
+
+
+def _quest_item_row(*args, **kwargs):
+    from app.modules.encyclopedia.widgets.quest_item_row import item_row
+
+    return item_row(*args, **kwargs)
 
 
 TRAVEL_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
@@ -158,10 +185,11 @@ class QuestsPage(QWidget):
         owned_items_path: Path = CRAFT_SELECTION_FILE,
         guide_provider: Any = None,
         achievement_provider: AchievementProvider | None = None,
-        achievement_progress_service: AchievementProgressService | None = None,
+        achievement_progress_service: Any = None,
         achievement_progress_path: Path = ACHIEVEMENT_PROGRESS_FILE,
         graph: QuestGraphService | None = None,
         navigate_callback: Callable[[str, int | str], bool] | None = None,
+        defer_detail_view: bool = False,
     ):
         super().__init__(parent)
         self.setObjectName("QuestsPage")
@@ -172,8 +200,14 @@ class QuestsPage(QWidget):
         self.owned_items_path = owned_items_path
         self.guide_provider = guide_provider
         self.achievement_provider = achievement_provider
-        self.achievement_progress_service = achievement_progress_service or AchievementProgressService(achievement_progress_path)
+        self.achievement_progress_service = (
+            achievement_progress_service
+            or lazy_achievement_progress_service(achievement_progress_path)
+        )
         self.navigate_callback = navigate_callback
+        self._defer_detail_view = bool(defer_detail_view)
+        self.quest_detail_view: QuestDetailView | None = None
+        self._quest_detail_placeholder: QWidget | None = None
         if quest_provider is not None:
             self.quest_provider = quest_provider
             self.catalog = quest_provider.get_catalog()
@@ -193,6 +227,9 @@ class QuestsPage(QWidget):
         self.category_items: dict[str, QTreeWidgetItem] = {}
         self.series_items: dict[str, QTreeWidgetItem] = {}
         self.quest_tree_items: dict[int, list[QTreeWidgetItem]] = {}
+        self._loaded_category_names: set[str] = set()
+        self._loaded_series_ids: set[str] = set()
+        self._hierarchy_completed_quest_ids: frozenset[int] = frozenset()
         self.current_mode = "TOUTES"
         self.refreshing = False
         self.object_rows_refreshing = False
@@ -204,12 +241,14 @@ class QuestsPage(QWidget):
 
         self._init_hidden_controls()
         self._build_search_ui(root)
-        self._build_detail_view()
+        if not self._defer_detail_view:
+            self._build_detail_view()
         self._build_hierarchy_ui(root)
 
         self.refresh_characters()
         self._sync_achievement_progress()
-        self.quest_detail_view.set_character_key(self.current_character_key)
+        if self.quest_detail_view is not None:
+            self.quest_detail_view.set_character_key(self.current_character_key)
         self.rebuild_hierarchy()
         self.refresh_quests()
         self.restore_last_quest()
@@ -269,6 +308,10 @@ class QuestsPage(QWidget):
         self.detail.setVisible(False)
 
     def _build_detail_view(self) -> None:
+        if self.quest_detail_view is not None:
+            return
+        from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
+
         self.quest_detail_view = QuestDetailView(
             self.quest_provider,
             self.graph,
@@ -281,6 +324,48 @@ class QuestsPage(QWidget):
             navigate_entity=self.navigate_callback,
         )
         self.quest_detail_view.questProgressChanged.connect(self.on_shared_quest_progress_changed)
+
+    def _bind_detail_view_aliases(self) -> None:
+        view = self.quest_detail_view
+        if view is None:
+            self.splitter = None
+            self.center_panel = None
+            self.center_scroll = None
+            self.center_layout = None
+            self.right_panel = None
+            self.right_scroll = None
+            self.right_layout = None
+            return
+        self.splitter = view.splitter
+        self.center_panel = view.center_panel
+        self.center_scroll = view.center_scroll
+        self.center_layout = view.center_layout
+        self.right_panel = view.right_panel
+        self.right_scroll = view.right_scroll
+        self.right_layout = view.right_layout
+
+    def _ensure_quest_detail_view(self):
+        if self.quest_detail_view is not None:
+            return self.quest_detail_view
+        self._build_detail_view()
+        view = self.quest_detail_view
+        if view is None:
+            raise RuntimeError("QuestDetailView indisponible")
+        placeholder = self._quest_detail_placeholder
+        if placeholder is not None and hasattr(self, "body_splitter"):
+            index = self.body_splitter.indexOf(placeholder)
+            if index >= 0:
+                replaced = self.body_splitter.replaceWidget(index, view)
+                if replaced is not None:
+                    replaced.deleteLater()
+            else:
+                self.body_splitter.addWidget(view)
+            self._quest_detail_placeholder = None
+            self.body_splitter.setStretchFactor(1, 1)
+            self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, 900])
+        self._bind_detail_view_aliases()
+        view.set_character_key(self.current_character_key)
+        return view
 
     def _build_hierarchy_ui(self, root: QVBoxLayout) -> None:
         self.body_splitter = FixedColumnSplitter(Qt.Horizontal)
@@ -319,6 +404,7 @@ class QuestsPage(QWidget):
         self.hierarchy_tree.setUniformRowHeights(True)
         self.hierarchy_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.hierarchy_tree.itemClicked.connect(self.on_hierarchy_item_clicked)
+        self.hierarchy_tree.itemExpanded.connect(self.on_hierarchy_item_expanded)
         hierarchy_content_layout.addWidget(self.hierarchy_tree, 1)
         self.hierarchy_panel.root.addWidget(self.hierarchy_content, 1)
         self.hierarchy_collapsed_rail = CollapsedColumnRail("Afficher les catégories et suites")
@@ -326,18 +412,27 @@ class QuestsPage(QWidget):
         self.hierarchy_collapsed_rail.setVisible(False)
         self.hierarchy_panel.root.addWidget(self.hierarchy_collapsed_rail, 1)
         self.body_splitter.addWidget(self.hierarchy_panel)
-        self.body_splitter.addWidget(self.quest_detail_view)
+        if self.quest_detail_view is not None:
+            self.body_splitter.addWidget(self.quest_detail_view)
+        else:
+            placeholder = QFrame()
+            placeholder.setObjectName("QuestDetailDeferred")
+            placeholder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            placeholder_layout = QVBoxLayout(placeholder)
+            placeholder_layout.setContentsMargins(18, 18, 18, 18)
+            hint = QLabel("Sélectionnez une quête pour afficher sa fiche.")
+            hint.setObjectName("MutedLabel")
+            hint.setAlignment(Qt.AlignCenter)
+            placeholder_layout.addStretch(1)
+            placeholder_layout.addWidget(hint)
+            placeholder_layout.addStretch(1)
+            self._quest_detail_placeholder = placeholder
+            self.body_splitter.addWidget(placeholder)
         self.body_splitter.setStretchFactor(0, 0)
         self.body_splitter.setStretchFactor(1, 1)
         self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, 900])
         root.addWidget(self.body_splitter, 1)
-        self.splitter = self.quest_detail_view.splitter
-        self.center_panel = self.quest_detail_view.center_panel
-        self.center_scroll = self.quest_detail_view.center_scroll
-        self.center_layout = self.quest_detail_view.center_layout
-        self.right_panel = self.quest_detail_view.right_panel
-        self.right_scroll = self.quest_detail_view.right_scroll
-        self.right_layout = self.quest_detail_view.right_layout
+        self._bind_detail_view_aliases()
 
     def set_hierarchy_collapsed(self, collapsed: bool) -> None:
         collapsed = bool(collapsed)
@@ -376,14 +471,79 @@ class QuestsPage(QWidget):
             self.graph = graph
         elif guide_provider is not None or achievement_provider is not None:
             self.graph = QuestGraphService(self.quest_provider, self.guide_provider, self.achievement_provider)
-        self.quest_detail_view.update_related_context(
-            guide_provider=guide_provider,
-            achievement_provider=achievement_provider,
-            graph=self.graph,
-        )
+        if self.quest_detail_view is not None:
+            self.quest_detail_view.update_related_context(
+                guide_provider=guide_provider,
+                achievement_provider=achievement_provider,
+                graph=self.graph,
+            )
         self._sync_achievement_progress()
         self.hierarchy = QuestHierarchyService(self.catalog, self.graph).build()
         self.rebuild_hierarchy()
+
+    @staticmethod
+    def _hierarchy_placeholder() -> QTreeWidgetItem:
+        item = QTreeWidgetItem([""])
+        item.setData(0, HIERARCHY_KIND_ROLE, "placeholder")
+        item.setFlags(Qt.NoItemFlags)
+        return item
+
+    def _hierarchy_category(self, name: str):
+        return next(
+            (category for category in self.hierarchy.categories if category.name == name),
+            None,
+        )
+
+    def _materialize_hierarchy_category(self, item: QTreeWidgetItem) -> None:
+        name = str(item.data(0, HIERARCHY_ID_ROLE) or "")
+        if not name or name in self._loaded_category_names:
+            return
+        category = self._hierarchy_category(name)
+        if category is None:
+            return
+
+        item.takeChildren()
+        for series in category.series:
+            series_item = QTreeWidgetItem([series.name])
+            series_item.setData(0, HIERARCHY_KIND_ROLE, "series")
+            series_item.setData(0, HIERARCHY_ID_ROLE, series.id)
+            series_item.setToolTip(0, f"{len(series.quest_ids)} quêtes")
+            if series.quest_ids:
+                series_item.addChild(self._hierarchy_placeholder())
+            item.addChild(series_item)
+            self.series_items[series.id] = series_item
+        self._loaded_category_names.add(name)
+
+    def _materialize_hierarchy_series(self, item: QTreeWidgetItem) -> None:
+        series_id = str(item.data(0, HIERARCHY_ID_ROLE) or "")
+        if not series_id or series_id in self._loaded_series_ids:
+            return
+        series = self.hierarchy.series_by_id.get(series_id)
+        if series is None:
+            return
+
+        item.takeChildren()
+        completed_quest_ids = self._hierarchy_completed_quest_ids
+        for quest_id in series.quest_ids:
+            quest = self.catalog.by_id.get(int(quest_id))
+            if quest is None:
+                continue
+            quest_item = QTreeWidgetItem(
+                [self.hierarchy_quest_label(quest, completed_quest_ids)]
+            )
+            quest_item.setData(0, HIERARCHY_KIND_ROLE, "quest")
+            quest_item.setData(0, HIERARCHY_ID_ROLE, int(quest.id))
+            quest_item.setToolTip(0, quest.name)
+            item.addChild(quest_item)
+            self.quest_tree_items.setdefault(int(quest.id), []).append(quest_item)
+        self._loaded_series_ids.add(series_id)
+
+    def on_hierarchy_item_expanded(self, item: QTreeWidgetItem) -> None:
+        kind = str(item.data(0, HIERARCHY_KIND_ROLE) or "")
+        if kind == "category":
+            self._materialize_hierarchy_category(item)
+        elif kind == "series":
+            self._materialize_hierarchy_series(item)
 
     def rebuild_hierarchy(self) -> None:
         selected_id = self.selected_quest_id
@@ -393,6 +553,9 @@ class QuestsPage(QWidget):
             if self.current_character_key
             else set()
         )
+        self._hierarchy_completed_quest_ids = frozenset(
+            int(value) for value in completed_quest_ids
+        )
         self.hierarchy_tree.blockSignals(True)
         self.hierarchy_tree.setUpdatesEnabled(False)
         try:
@@ -400,30 +563,16 @@ class QuestsPage(QWidget):
             self.category_items.clear()
             self.series_items.clear()
             self.quest_tree_items.clear()
+            self._loaded_category_names.clear()
+            self._loaded_series_ids.clear()
             for category in self.hierarchy.categories:
                 category_item = QTreeWidgetItem([category.name])
                 category_item.setData(0, HIERARCHY_KIND_ROLE, "category")
                 category_item.setData(0, HIERARCHY_ID_ROLE, category.name)
                 category_item.setToolTip(0, f"{len(category.series)} suites")
+                category_item.addChild(self._hierarchy_placeholder())
                 self.hierarchy_tree.addTopLevelItem(category_item)
                 self.category_items[category.name] = category_item
-                for series in category.series:
-                    series_item = QTreeWidgetItem([series.name])
-                    series_item.setData(0, HIERARCHY_KIND_ROLE, "series")
-                    series_item.setData(0, HIERARCHY_ID_ROLE, series.id)
-                    series_item.setToolTip(0, f"{len(series.quest_ids)} quêtes")
-                    category_item.addChild(series_item)
-                    self.series_items[series.id] = series_item
-                    for quest_id in series.quest_ids:
-                        quest = self.catalog.by_id.get(int(quest_id))
-                        if quest is None:
-                            continue
-                        quest_item = QTreeWidgetItem([self.hierarchy_quest_label(quest, completed_quest_ids)])
-                        quest_item.setData(0, HIERARCHY_KIND_ROLE, "quest")
-                        quest_item.setData(0, HIERARCHY_ID_ROLE, int(quest.id))
-                        quest_item.setToolTip(0, quest.name)
-                        series_item.addChild(quest_item)
-                        self.quest_tree_items.setdefault(int(quest.id), []).append(quest_item)
         finally:
             self.hierarchy_tree.blockSignals(False)
             self.hierarchy_tree.setUpdatesEnabled(True)
@@ -431,7 +580,11 @@ class QuestsPage(QWidget):
             self.sync_hierarchy_selection(selected_id, preferred_series)
         self.render_breadcrumb()
 
-    def hierarchy_quest_label(self, quest: QuestRecord, completed_quest_ids: set[int] | None = None) -> str:
+    def hierarchy_quest_label(
+        self,
+        quest: QuestRecord,
+        completed_quest_ids: set[int] | frozenset[int] | None = None,
+    ) -> str:
         if completed_quest_ids is None:
             completed = bool(self.current_character_key and self.is_quest_done(int(quest.id)))
         else:
@@ -453,11 +606,19 @@ class QuestsPage(QWidget):
         if path is None:
             self.active_series_id = ""
             return None
+
         self.active_series_id = path.series.id
+        category_item = self.category_items.get(path.category.name)
+        if category_item is None:
+            return path
+        self._materialize_hierarchy_category(category_item)
+
         series_item = self.series_items.get(path.series.id)
         if series_item is None:
             return path
-        series_item.parent().setExpanded(True)
+        self._materialize_hierarchy_series(series_item)
+
+        category_item.setExpanded(True)
         series_item.setExpanded(True)
         quest_item = next(
             (
@@ -783,7 +944,8 @@ class QuestsPage(QWidget):
 
     def clear_detail_columns(self) -> None:
         self.detail.set_compat_html("")
-        self.quest_detail_view.clear()
+        if self.quest_detail_view is not None:
+            self.quest_detail_view.clear()
 
     def on_shared_quest_progress_changed(self, quest_id: int) -> None:
         quest_id = int(quest_id)
@@ -835,9 +997,11 @@ class QuestsPage(QWidget):
                 achievement_state=achievement_state,
             )
         )
-        self.quest_detail_view.set_character_key(self.current_character_key)
+        view = self._ensure_quest_detail_view()
+        from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
+
         active_series = self.hierarchy.series_by_id.get(self.active_series_id)
-        self.quest_detail_view.show_quest(
+        view.show_quest(
             int(quest.id),
             QuestViewContext(
                 host="quests",
@@ -847,7 +1011,8 @@ class QuestsPage(QWidget):
 
     def render_empty_detail(self, message: str) -> None:
         self.detail.set_compat_html(empty_detail_html(message))
-        self.quest_detail_view.clear(message)
+        if self.quest_detail_view is not None:
+            self.quest_detail_view.clear(message)
 
     def on_detail_link_clicked(self, url: QUrl) -> None:
         if url.scheme() == "atlas-guide":
@@ -887,12 +1052,12 @@ class QuestsPage(QWidget):
         item_id_value = int(item["item_id"])
         required = max(1, int(item["quantity"]))
         owned = min(required, int(self.owned_items.get(item_id_value, 0)))
-        display_item = DisplayItem(
+        display_item = _display_item(
             item_id=item_id_value,
             name=str(item["name"]),
             image_path=str(item.get("image_path") or ""),
         )
-        row = item_row(
+        row = _quest_item_row(
             display_item,
             checked=self.quest_progress_service.is_item_completed(
                 self.current_character_key,

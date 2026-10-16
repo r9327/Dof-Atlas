@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "id": "dofus_sylvestre",
-  "title": "Dofus Sylvestre",
-  "category": "dofus",
-  "description": "Parcours local fondé sur le succès Doduda et ses méta-succès pour Dofus Sylvestre.",
+  "title": "Lanyel Sylvestre",
+  "category": "aventure",
+  "description": "Aventure fondée sur le succès Doduda et ses méta-succès pour le Dofus Sylvestre.",
   "recommended_level_min": 2,
   "recommended_level_max": 200,
   "reward_item_id": 29136,

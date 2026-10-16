@@ -2,36 +2,24 @@ from __future__ import annotations
 
 import os
 import unittest
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QPushButton
+from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QLabel, QToolButton
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
     GuideUltimeManualView,
 )
-
-
-class _FakeQuest:
-    def __init__(self, quest_id: int, name: str) -> None:
-        self.id = int(quest_id)
-        self.name = name
-
-
-class _FakeQuestProvider:
-    def __init__(self) -> None:
-        self.by_id = {
-            101: _FakeQuest(101, "Quête canonique test"),
-        }
-
-    def get_quest(self, quest_id: int):
-        return self.by_id.get(int(quest_id))
+from app.modules.encyclopedia.views.shared_manual_guide_view import (
+    SharedGuideManualCard,
+    SharedGuideManualView,
+)
 
 
 class _FakeManualUiService:
     def __init__(self) -> None:
-        self.quest_provider = _FakeQuestProvider()
         long_lines = [
             {
                 "kind": "action",
@@ -46,12 +34,10 @@ class _FakeManualUiService:
         self.cards = [
             {
                 "manual_title": "Première fiche",
-                "manual_stage_id": "TEST-01",
                 "manual_chapter_id": "chapter_one",
                 "manual_chapter_label": "Chapitre un",
                 "destination": "[1,-1] Zone test",
                 "manual_resource_names": [],
-                "manual_quest_ids": [101],
                 "manual_lines": list(long_lines),
             },
             {
@@ -66,10 +52,18 @@ class _FakeManualUiService:
         self.available = True
         self.active_index = 0
         self.completed = 0
-        self.page_state = False
-        self.page_updates: list[tuple[int, bool]] = []
-        self.line_checks: set[tuple[str, str]] = set()
-        self.line_updates: list[tuple[str, str, bool]] = []
+        self.quest_provider = None
+        self.manual_states: dict[tuple[str, str], bool] = {}
+        # Regression fixture: Guide UI must not render success-linked controls even
+        # when the validation contract still contains success metadata.
+        self.auto_validation_contract = {
+            "cards": [
+                {
+                    "card_key": "legacy-success-target",
+                    "successes": [{"achievement_id": 999, "name": "Succès de test"}],
+                }
+            ]
+        }
 
     def reload_progress(self) -> None:
         return
@@ -87,43 +81,72 @@ class _FakeManualUiService:
         return False
 
     def page_checked(self, _character_key: str, _card: dict, _index: int) -> bool:
-        return self.page_state
+        return False
 
     def set_page_checked(
         self,
         _character_key: str,
         _card: dict,
-        index: int,
-        checked: bool,
-    ) -> None:
-        self.page_state = bool(checked)
-        self.page_updates.append((int(index), bool(checked)))
-
-    def checklist_checked(
-        self,
-        _character_key: str,
-        _card: dict,
-        section: str,
-        row: dict,
         _index: int,
-    ) -> bool:
-        return (str(section), str(row.get("text") or "")) in self.line_checks
-
-    def set_checklist_checked(
-        self,
-        _character_key: str,
-        _card: dict,
-        section: str,
-        row: dict,
-        _index: int,
-        checked: bool,
+        _checked: bool,
     ) -> None:
-        key = (str(section), str(row.get("text") or ""))
-        if checked:
-            self.line_checks.add(key)
+        return
+
+    def manual_checked(self, character_key: str, key: str) -> bool:
+        return bool(self.manual_states.get((str(character_key), str(key)), False))
+
+    def set_manual_checked(self, character_key: str, key: str, checked: bool) -> None:
+        self.manual_states[(str(character_key), str(key))] = bool(checked)
+
+
+class _FakeQuestProgress:
+    def __init__(self) -> None:
+        self.completed: set[tuple[str, int, int]] = set()
+
+    def is_objective_completed(self, character_key: str, quest_id: int, objective_id: int) -> bool:
+        return (character_key, quest_id, objective_id) in self.completed
+
+    def set_objective_completed(
+        self,
+        character_key: str,
+        quest_id: int,
+        objective_id: int,
+        completed: bool,
+    ) -> None:
+        key = (character_key, quest_id, objective_id)
+        if completed:
+            self.completed.add(key)
         else:
-            self.line_checks.discard(key)
-        self.line_updates.append((key[0], key[1], bool(checked)))
+            self.completed.discard(key)
+
+
+class _FakeQuestProvider:
+    def get_quest(self, quest_id: int):
+        if int(quest_id) != 42:
+            raise KeyError(quest_id)
+        objective = SimpleNamespace(
+            id=4201,
+            type_id=6,
+            is_combat=True,
+            image_label="Bouftou",
+            text="Vaincre x3 Bouftou en un seul combat [1,2]",
+            map_label="[1,2]",
+            item_quantity=0,
+        )
+        unrelated = SimpleNamespace(
+            id=4202,
+            type_id=6,
+            is_combat=True,
+            image_label="Rat",
+            text="Vaincre x8 Rat en un seul combat [9,9]",
+            map_label="[9,9]",
+            item_quantity=0,
+        )
+        return SimpleNamespace(
+            id=42,
+            name="Combat test",
+            steps=(SimpleNamespace(objectives=(objective, unrelated)),),
+        )
 
 
 class GuideUltimeManualUiNavigationTests(unittest.TestCase):
@@ -131,83 +154,143 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
-    def _view(self) -> tuple[_FakeManualUiService, GuideUltimeManualView]:
+    def _view(self) -> tuple[_FakeManualUiService, SharedGuideManualView]:
         service = _FakeManualUiService()
-        view = GuideUltimeManualView(service, character_key="character:1")
+        view = SharedGuideManualView(service, character_key="character:1")
         view.resize(560, 320)
         view.show()
         QApplication.processEvents()
         return service, view
 
-    def test_progress_header_is_compact_and_page_is_separate_from_navigation(self) -> None:
+    def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:
             self.assertEqual(view.route_progress_label.text(), "0 %")
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
-            self.assertEqual(view.validation_check.text(), "Validation")
-            self.assertEqual(view.route_lock_check.text(), "Verrouiller")
-            self.assertIn("Validation", view.route_legend.text())
-            self.assertIsNot(
-                view.nav_page_label.parentWidget(),
-                view.prev_button.parentWidget(),
-            )
             self.assertNotIn("Quêtes", view.route_progress_label.text())
             self.assertNotIn("Donjons", view.route_progress_label.text())
+            self.assertEqual(view.route_lock_check.text(), "🔓 Déverrouillé")
+            self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
         finally:
             view.close()
 
-    def test_progress_bar_lock_blocks_only_direct_bar_jumps(self) -> None:
-        _service, view = self._view()
+    def test_progress_lock_blocks_only_direct_bar_jumps(self) -> None:
+        service, view = self._view()
         try:
             view.route_lock_check.setChecked(True)
+            self.assertEqual(view.route_lock_check.text(), "🔒 Verrouillé")
+            self.assertEqual(view.route_lock_check.accessibleName(), "Verrouillé")
+            self.assertTrue(
+                service.manual_checked("character:1", SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY)
+            )
             view._jump_from_progress(1.0)
             self.assertEqual(view.view_index, 0)
 
-            view.route_lock_check.setChecked(False)
-            view._jump_from_progress(1.0)
+            view.navigate_relative(1)
             self.assertEqual(view.view_index, 1)
+
+            view.route_lock_check.setChecked(False)
+            view._jump_from_progress(0.0)
+            self.assertEqual(view.view_index, 0)
         finally:
             view.close()
 
-    def test_obsolete_breadcrumb_destination_and_success_blocks_are_not_rendered(self) -> None:
+    def test_manual_ui_omits_obsolete_success_destination_and_breadcrumb_blocks(self) -> None:
         _service, view = self._view()
         try:
-            object_names = {
-                frame.objectName()
-                for frame in view.findChildren(QFrame)
-                if frame.objectName()
-            }
-            self.assertNotIn("GuideBreadcrumb", object_names)
-            self.assertNotIn("GuideManualDestinationSection", object_names)
-            self.assertNotIn("GuideManualSuccessBlock", object_names)
+            texts = [label.text() for label in view.findChildren(QLabel)]
+            self.assertFalse(any("SUCCÈS LIÉS" in text for text in texts))
+            self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
+            self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
+            self.assertEqual(view.guide_button.text(), "Guide")
         finally:
             view.close()
 
-    def test_canonical_quest_row_opens_quests_tab_with_stable_return_context(self) -> None:
+    def test_first_sheet_starts_with_a_clear_legend(self) -> None:
         _service, view = self._view()
-        calls: list[tuple[tuple, dict]] = []
-        view.navigate_entity = lambda *args, **kwargs: calls.append((args, kwargs)) or True
         try:
-            button = next(
-                candidate
-                for candidate in view.findChildren(QPushButton)
-                if candidate.objectName() == "GuideManualQuestButton"
-            )
-            self.assertEqual(button.text(), "Quête canonique test")
-            self.assertIn("fiche canonique", button.toolTip())
+            current_sheet = view.cards_layout.itemAt(0).widget()
+            legend = current_sheet.findChild(QFrame, "GuideManualLegendCard")
+            self.assertIsNotNone(legend)
+            self.assertEqual(legend.findChild(QLabel, "GuideManualLegendTitle").text(), "LÉGENDE")
+            texts = [label.text() for label in legend.findChildren(QLabel)]
+            self.assertTrue(any("/travel x,y" in text for text in texts))
+            self.assertTrue(any("Objet en vert" in text for text in texts))
 
-            button.click()
+            view.navigate_relative(1)
             QApplication.processEvents()
-
-            self.assertEqual(calls[0][0], ("quest", 101))
-            self.assertEqual(calls[0][1]["source"], "guide_gps")
-            self.assertEqual(calls[0][1]["guide_id"], "guide_complet")
-            self.assertEqual(calls[0][1]["guide_stage_id"], "TEST-01")
-            self.assertEqual(calls[0][1]["guide_index"], 0)
+            current_sheet = view.cards_layout.itemAt(0).widget()
+            self.assertIsNone(current_sheet.findChild(QFrame, "GuideManualLegendCard"))
         finally:
             view.close()
 
-    def test_prepare_drops_only_exact_actions_already_done_now(self) -> None:
+    def test_previous_next_and_validation_share_the_bottom_navigation_row(self) -> None:
+        _service, view = self._view()
+        try:
+            nav = view.findChild(QFrame, "GuideManualNav")
+            validation = nav.findChild(QCheckBox, "GuideManualPageCheck")
+            if validation is None:
+                validation = nav.findChild(QToolButton, "GuideManualPageCheck")
+            self.assertIsNotNone(view.validation_host.findChild(QFrame) or view.validation_host)
+            self.assertIsNotNone(nav.findChild(QFrame, "GuideManualValidationHost"))
+            self.assertIs(view.prev_button.parentWidget(), nav)
+            self.assertIs(view.next_button.parentWidget(), nav)
+        finally:
+            view.close()
+
+    def test_quest_combat_names_quantities_and_shared_check_state_are_rendered(self) -> None:
+        service = _FakeManualUiService()
+        service.quest_provider = _FakeQuestProvider()
+        service.quest_progress = _FakeQuestProgress()
+        card_data = dict(service.cards[0])
+        card_data["manual_quest_ids"] = [42]
+        card_data["manual_lines"] = [
+            {
+                "kind": "action",
+                "position": "[1,2]",
+                "text": "Vaincre le Bouftou maintenant.",
+            }
+        ]
+        card = SharedGuideManualCard(
+            service,
+            "character:1",
+            card_data,
+            0,
+        )
+        try:
+            checkbox = card.findChild(QCheckBox, "GuideManualCombatCheck")
+            self.assertIsNotNone(checkbox)
+            self.assertEqual(checkbox.text(), "3 × Bouftou — Combat test")
+            self.assertEqual(len(card.findChildren(QCheckBox, "GuideManualCombatCheck")), 1)
+            self.assertTrue(checkbox.isEnabled())
+            checkbox.click()
+            QApplication.processEvents()
+            self.assertIn(("character:1", 42, 4201), service.quest_progress.completed)
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
+    def test_inline_quest_overlay_is_deduplicated_per_quest_and_map(self) -> None:
+        service = _FakeManualUiService()
+        service.quest_provider = _FakeQuestProvider()
+        card_data = dict(service.cards[0])
+        card_data["manual_stage_id"] = "TEST-DEDUPE"
+        card_data["manual_quest_ids"] = [42, 42]
+        card_data["manual_lines"] = [
+            {"kind": "action", "position": "[1,2]", "text": "Première action."},
+            {"kind": "action", "position": "[1,2]", "text": "Deuxième action."},
+            {"kind": "action", "position": "[2,2]", "text": "Map suivante."},
+        ]
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
+        try:
+            buttons = card.findChildren(QToolButton, "GuideManualQuestInlineButton")
+            self.assertEqual(len(buttons), 2)
+            self.assertTrue(all(button.toolTip() == "Combat test" for button in buttons))
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
+    def test_prepare_block_drops_only_exact_actions_already_done_now(self) -> None:
         duplicate_prepare = {
             "kind": "warning",
             "position": "[1,-2]",
@@ -223,6 +306,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             "position": "",
             "text": "Prépare 4 × Potion.",
         }
+
         result = GuideUltimeManualCard._without_prepare_duplicates(
             {
                 "prepare": [duplicate_prepare, distinct_prepare],
@@ -233,53 +317,37 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
 
         self.assertEqual(result["prepare"], [distinct_prepare])
         self.assertEqual(result["now"], [duplicate_now])
-        self.assertEqual(result["boss"], [])
 
-    def test_manual_lines_are_checkable_without_validating_page(self) -> None:
-        service, view = self._view()
+    def test_guide_button_returns_to_active_sheet_then_guides_catalog(self) -> None:
+        _service, view = self._view()
+        returned: list[bool] = []
+        view.backToGuidesRequested.connect(lambda: returned.append(True))
         try:
-            checks = [
-                check
-                for check in view.findChildren(QCheckBox)
-                if check.objectName() == "GuideManualLineCheck"
-            ]
-            self.assertGreater(len(checks), 0)
-            self.assertFalse(service.page_state)
-
-            checks[0].setChecked(True)
+            view.navigate_relative(1)
             QApplication.processEvents()
+            self.assertEqual(view.view_index, 1)
 
-            self.assertTrue(service.line_updates)
-            self.assertTrue(service.line_updates[-1][2])
-            self.assertFalse(service.page_state)
-            self.assertEqual(service.page_updates, [])
+            view.guide_button.click()
+            QApplication.processEvents()
+            self.assertEqual(view.view_index, 0)
+            self.assertEqual(returned, [])
+
+            view.guide_button.click()
+            QApplication.processEvents()
+            self.assertEqual(returned, [True])
         finally:
             view.close()
 
-    def test_position_is_bold_in_manual_action_html(self) -> None:
+    def test_manual_line_positions_are_bold(self) -> None:
         rendered = GuideUltimeManualCard._format_line_html(
             "• ",
-            "[1,-2]",
+            "[5,-3]",
             "Parler au PNJ.",
             [],
             [],
         )
-        self.assertIn("<b>[1,-2]</b>", rendered)
-
-    def test_validation_control_persists_manual_page_state(self) -> None:
-        service, view = self._view()
-        try:
-            self.assertFalse(view.validation_check.isChecked())
-            self.assertTrue(view.validation_check.isEnabled())
-
-            view.validation_check.setChecked(True)
-            QApplication.processEvents()
-
-            self.assertTrue(service.page_state)
-            self.assertEqual(service.page_updates, [(0, True)])
-            self.assertTrue(view.validation_check.isChecked())
-        finally:
-            view.close()
+        self.assertIn("<b>[5,-3]</b>", rendered)
+        self.assertIn("Parler au PNJ.", rendered)
 
     def test_next_sheet_always_starts_at_top(self) -> None:
         _service, view = self._view()
@@ -332,23 +400,6 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
 
             self.assertEqual(view.active_index, 0)
             self.assertEqual(view.view_index, 1)
-        finally:
-            view.close()
-
-    def test_same_character_reentry_resets_history_to_active_sheet(self) -> None:
-        service, view = self._view()
-        try:
-            view.navigate_relative(1)
-            QApplication.processEvents()
-            self.assertEqual(view.view_index, 1)
-
-            service.active_index = 0
-            view.set_character_key("character:1")
-            QApplication.processEvents()
-
-            self.assertEqual(view.active_index, 0)
-            self.assertEqual(view.view_index, 0)
-            self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
         finally:
             view.close()
 

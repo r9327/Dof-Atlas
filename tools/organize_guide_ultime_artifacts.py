@@ -9,6 +9,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "artifacts"
+ARCHIVE_RETENTION = 4
 
 CANONICAL = {
     "guide_ultime_final.json",
@@ -43,6 +44,24 @@ def _unique_destination(folder: Path, name: str) -> Path:
         index += 1
 
 
+def _prune_archive_history(archive_root: Path, *, keep: int = ARCHIVE_RETENTION) -> list[str]:
+    if keep < 1:
+        raise ValueError("archive retention must keep at least one run")
+    if not archive_root.is_dir():
+        return []
+
+    runs = sorted(
+        (path for path in archive_root.iterdir() if path.is_dir()),
+        key=lambda path: path.name,
+        reverse=True,
+    )
+    removed: list[str] = []
+    for path in runs[keep:]:
+        shutil.rmtree(path)
+        removed.append(str(path.relative_to(ROOT)))
+    return removed
+
+
 def organize(*, apply: bool) -> dict[str, Any]:
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     candidates = sorted(
@@ -55,6 +74,7 @@ def organize(*, apply: bool) -> dict[str, Any]:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     archive_dir = ARTIFACTS / "archive" / "guide_ultime" / timestamp
     moved: list[dict[str, str]] = []
+    removed_archives: list[str] = []
 
     if apply and archive:
         archive_dir.mkdir(parents=True, exist_ok=True)
@@ -80,6 +100,11 @@ def organize(*, apply: bool) -> dict[str, Any]:
             encoding="utf-8",
         )
 
+    if apply:
+        removed_archives = _prune_archive_history(
+            ARTIFACTS / "archive" / "guide_ultime"
+        )
+
     return {
         "mode": "apply" if apply else "preview",
         "canonical_present": sorted(path.name for path in keep if path.name in CANONICAL),
@@ -88,12 +113,17 @@ def organize(*, apply: bool) -> dict[str, Any]:
         "archive_candidates": [path.name for path in archive],
         "archive_directory": str(archive_dir.relative_to(ROOT)) if archive else None,
         "moved": moved,
+        "archive_retention": ARCHIVE_RETENTION,
+        "removed_archives": removed_archives,
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Range les anciens artefacts Guide Ultime sans rien supprimer définitivement."
+        description=(
+            "Range les anciens artefacts Guide Ultime et conserve les quatre "
+            "archives d'audit les plus recentes."
+        )
     )
     parser.add_argument(
         "--apply",

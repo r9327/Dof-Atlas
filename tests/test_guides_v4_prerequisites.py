@@ -5,9 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from app.modules.encyclopedia.services.guide_catalog_builder import GuideBuildResult, GuideCatalogBuilder
-from app.modules.encyclopedia.services.quest_graph_service import QuestGraphService
+from app.modules.encyclopedia.services.quest_graph_service import QuestClosure, QuestGraphService
 from app.quest_catalog import QuestCatalog, QuestRecord
 
 
@@ -47,6 +48,31 @@ def achievement(achievement_id: int, *criteria: str) -> SimpleNamespace:
 
 
 class GuidesV4PrerequisitesTests(unittest.TestCase):
+    def test_closure_steps_preserve_sorted_edges_without_full_edge_rescans(self):
+        closure = QuestClosure(
+            ordered_quest_ids=[1, 2, 3],
+            hard_edges={(3, 2), (1, 2)},
+            context_edges={(1, 3)},
+            context_quests={3},
+            quest_alternative_groups={3: {"achievement:20:or:1"}},
+        )
+        builder = object.__new__(GuideCatalogBuilder)
+        with patch.object(QuestClosure, "hard_prerequisites",
+                          side_effect=AssertionError("unexpected full-edge rescan")), patch.object(
+            QuestClosure, "context_predecessors",
+            side_effect=AssertionError("unexpected full-edge rescan")
+        ):
+            steps = builder._closure_steps("demo", closure, {2: "fixture note"})
+        self.assertEqual([row["entity_id"] for row in steps], [1, 2, 3])
+        self.assertEqual(
+            steps[1]["prerequisites"],
+            [{"type": "quest", "entity_id": 1}, {"type": "quest", "entity_id": 3}],
+        )
+        self.assertEqual(steps[1]["notes"], "fixture note")
+        self.assertEqual(steps[2]["relation"], "context")
+        self.assertEqual(steps[2]["context_quests"], [1])
+        self.assertEqual(steps[2]["alternative_groups"], ["achievement:20:or:1"])
+
     def test_qf_qa_sc_and_or_are_not_flattened(self):
         refs = QuestGraphService.criterion_references("Qf=1&Qa=2&Sc=3")
         self.assertEqual(refs.mandatory_hard_quests, {1})

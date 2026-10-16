@@ -8,6 +8,9 @@ on:
         required: true
         default: origin/main
         type: string
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -19,6 +22,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  pull-requests: read
 
 concurrency:
   group: dof-atlas-phase-certification-${{ github.event.pull_request.number || github.ref }}
@@ -31,7 +36,7 @@ env:
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
   CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-  CERT_BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.base_ref }}
+  CERT_BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'push' && github.event.before || inputs.base_ref }}
 
 defaults:
   run:
@@ -41,7 +46,9 @@ jobs:
   certify:
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
       (github.event_name == 'pull_request' &&
+       github.event.pull_request.draft == false &&
        startsWith(github.event.pull_request.title, 'Phase ') &&
        github.event.pull_request.head.repo.full_name == github.repository)
     name: Phase Certification / Full Validation
@@ -72,7 +79,32 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-pyside.txt
 
+      - name: Check merged PR FULL provenance
+        id: reuse
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m tools.ci_verified_pr_full --repo "$env:GITHUB_REPOSITORY" --candidate-sha "$env:CANDIDATE_SHA" --output "artifacts/phase_certification/verified_pr_full.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Resolve adaptive Doctor route on exact SHA
+        id: route
+        if: steps.reuse.outputs.reuse_full != 'true'
+        run: |
+          $forced = @()
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            # Explicit manual phase certification remains exhaustive; main pushes use Doctor.
+            $forced += "--force-full"
+          }
+          & python -X faulthandler -m tools.phase_adaptive_gate decide `
+            --base-ref "$env:CERT_BASE_REF" `
+            --expected-sha "$env:CANDIDATE_SHA" `
+            --output "artifacts/phase_certification/adaptive_route.json" `
+            --github-output "$env:GITHUB_OUTPUT" @forced
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Install application dependencies
+        if: steps.reuse.outputs.reuse_full != 'true'
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -82,6 +114,7 @@ jobs:
 
       - name: Materialize certification LFS fixtures
         id: lfs
+        if: steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/01_lfs.log"
@@ -110,6 +143,7 @@ jobs:
 
       - name: Materialize local Dofus catalog
         id: catalog
+        if: steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/02_catalog.log"
@@ -130,11 +164,23 @@ jobs:
           '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Capture exact public dataset inputs before validation
+        id: inputs_before
+        if: steps.route.outputs.run_full == 'true'
+        continue-on-error: true
+        run: |
+          python -m tools.atlas_json_inventory --raw-inputs `
+            --candidate-sha "$env:CANDIDATE_SHA" `
+            --output "artifacts/phase_certification/inputs_before.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Measure canonical Encyclopedia user paths
         id: timing
         if: >-
-          github.event_name == 'workflow_dispatch' ||
-          (github.event_name == 'pull_request' && startsWith(github.event.pull_request.title, 'Phase 7B'))
+          steps.route.outputs.run_full == 'true' &&
+          (github.event_name == 'workflow_dispatch' ||
+           github.event_name == 'push' ||
+           (github.event_name == 'pull_request' && startsWith(github.event.pull_request.title, 'Phase 7B')))
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/06_timing_performance.log"
@@ -189,6 +235,7 @@ jobs:
 
       - name: Run full Atlas phase certification gate
         id: certification
+        if: steps.route.outputs.run_full == 'true' && steps.inputs_before.outcome == 'success'
         continue-on-error: true
         run: |
           $report = "artifacts/phase_certification/03_atlas_integrity_full.json"
@@ -203,9 +250,53 @@ jobs:
           Get-Content -LiteralPath $report | Write-Host
           if ($code -ne 0) { exit $code }
 
+      - name: Verify public dataset inputs did not change during validation
+        id: inputs_after
+        if: steps.route.outputs.run_full == 'true' && always()
+        continue-on-error: true
+        run: |
+          python -m tools.atlas_json_inventory --raw-inputs `
+            --candidate-sha "$env:CANDIDATE_SHA" `
+            --verify-against "artifacts/phase_certification/inputs_before.json" `
+            --output "artifacts/phase_certification/inputs_after.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Execute and verify exact-SHA targeted modules
+        id: scoped
+        if: steps.route.outputs.run_scoped == 'true'
+        run: |
+          & python -X faulthandler -m tools.doctor_certification `
+            --base-ref "$env:CERT_BASE_REF" `
+            --expected-sha "$env:CANDIDATE_SHA" --run `
+            --output "artifacts/phase_certification/doctor_scoped_report.json" `
+            --passport-output "artifacts/phase_certification/doctor_scoped_passport.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & python -X faulthandler -m tools.phase_adaptive_gate verify-scoped `
+            --route "artifacts/phase_certification/adaptive_route.json" `
+            --report "artifacts/phase_certification/doctor_scoped_report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Compare Doctor plan with actual exact-SHA FULL evidence
+        id: doctor_shadow
+        if: steps.route.outputs.run_full == 'true' && always()
+        continue-on-error: true
+        run: |
+          $full = "artifacts/phase_certification/03_atlas_integrity_full.json"
+          if (-not (Test-Path -LiteralPath $full)) {
+            Write-Host "Doctor shadow: FULL JSON unavailable, no comparison possible"
+            exit 0
+          }
+          $plan = "artifacts/phase_certification/doctor_same_sha_plan.json"
+          $campaign = "artifacts/phase_certification/doctor_same_sha_shadow.json"
+          python -X faulthandler -m tools.doctor_certification --base-ref "$env:CERT_BASE_REF" --expected-sha "$env:CANDIDATE_SHA" --output $plan
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -X faulthandler -m tools.doctor_shadow_campaign --pair $plan $full --output $campaign
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host "Doctor exact-SHA shadow pair recorded; no FULL waiver granted"
+
       - name: Upload certification logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: phase-certification-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -217,9 +308,54 @@ jobs:
       - name: Enforce phase certification verdict
         if: always()
         run: |
+          if ("${{ steps.reuse.outputs.reuse_full }}" -eq "true") {
+            if ("${{ steps.reuse.outcome }}" -ne "success" -or
+                "${{ steps.route.outcome }}" -ne "skipped" -or
+                "${{ steps.certification.outcome }}" -ne "skipped") {
+              throw "PHASE CERTIFICATION: invalid reused FULL route"
+            }
+            $proof = Get-Content "artifacts/phase_certification/verified_pr_full.json" -Raw | ConvertFrom-Json
+            if ($proof.status -ne "VERIFIED_PR_FULL_SAME_TREE" -or
+                $proof.main_sha -ne $env:CANDIDATE_SHA -or
+                $proof.host_verified_real_full -ne $true) {
+              throw "PHASE CERTIFICATION: invalid merged PR FULL provenance"
+            }
+            Write-Host "PHASE CERTIFICATION: PASS - host-verified PR FULL with identical merged Git tree"
+            Write-Host "Certified source: $($proof.source_run_url)"
+            if ($env:GITHUB_STEP_SUMMARY) {
+              Add-Content $env:GITHUB_STEP_SUMMARY "## PASS - verified tree-identical PR FULL"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Main SHA: $env:CANDIDATE_SHA"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Real successful PR FULL: $($proof.source_run_url)"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- No duplicate FULL rerun; exact tree equivalence verified."
+            }
+            exit 0
+          }
+          if ("${{ steps.route.outcome }}" -ne "success") {
+            throw "PHASE CERTIFICATION: BLOCKED - adaptive routing failed"
+          }
+          if ("${{ steps.route.outputs.run_scoped }}" -eq "true") {
+            if ("${{ steps.scoped.outcome }}" -ne "success") {
+              throw "ADAPTIVE CERTIFICATION: BLOCKED - canonical scoped tests failed"
+            }
+            Write-Host "ADAPTIVE CERTIFICATION: SCOPED_TESTS_PASS_NOT_PHASE_CERTIFIED"
+            if ($env:GITHUB_STEP_SUMMARY) {
+              Add-Content $env:GITHUB_STEP_SUMMARY "## ADAPTIVE CERTIFICATION: SCOPED TESTS PASS"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Exact SHA: ``$env:CANDIDATE_SHA``"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Doctor chose low-risk targeted execution and every selected test passed."
+              Add-Content $env:GITHUB_STEP_SUMMARY "- This is **not** a FULL or release/phase certification."
+              Add-Content $env:GITHUB_STEP_SUMMARY "- No historical/cross-SHA evidence reused; no required FULL waived."
+            }
+            exit 0
+          }
+          if ("${{ steps.route.outputs.run_full }}" -ne "true") {
+            throw "PHASE CERTIFICATION: BLOCKED - invalid routing outputs"
+          }
           $failures = @()
           if ("${{ steps.lfs.outcome }}" -ne "success") { $failures += "LFS fixtures" }
           if ("${{ steps.catalog.outcome }}" -ne "success") { $failures += "Dofus catalog" }
+          if ("${{ steps.inputs_before.outcome }}" -ne "success") { $failures += "Public dataset provenance before validation" }
+          if ("${{ steps.inputs_after.outcome }}" -ne "success") { $failures += "Public dataset drift during validation" }
+          if ("${{ steps.doctor_shadow.outcome }}" -eq "failure") { $failures += "Doctor same-SHA shadow verification" }
           $timingOutcome = "${{ steps.timing.outcome }}"
           if ($timingOutcome -and $timingOutcome -ne "success" -and $timingOutcome -ne "skipped") {
             $failures += "Encyclopedia timing performance"

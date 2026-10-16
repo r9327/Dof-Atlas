@@ -15,7 +15,6 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 os.environ['QT_QPA_PLATFORM'] = 'offscreen'
 os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = '--disable-gpu'
 for name in ('dofus_atlas_runtime', 'dofus_atlas_pyside'):

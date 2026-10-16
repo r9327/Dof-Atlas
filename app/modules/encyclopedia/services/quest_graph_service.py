@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+import heapq
 import re
 from collections import defaultdict, deque
+from functools import lru_cache
 from dataclasses import dataclass, field
 from itertools import product
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
-from app.modules.encyclopedia.providers.achievement_provider import safe_int
 from app.quest_catalog import QuestRecord, normalize_text
+
+
+def safe_int(value: Any, default: int | None = None) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 _REFERENCE_RE = re.compile(r"\b(Qf|Qa|Sc|OA)\s*(?:==|=)\s*(\d+)\b", re.IGNORECASE)
@@ -73,6 +81,14 @@ class CriterionReferences:
         return tuple(rows)
 
 
+
+@lru_cache(maxsize=8192)
+def _cached_criterion_references(criterion: str) -> CriterionReferences:
+    # Pure criterion syntax only. Never cache provider data, graph closures or
+    # mutable per-run state across tests or application updates.
+    return CriterionReferences(tuple(_criterion_branches(criterion) or [CriterionBranch()]))
+
+
 @dataclass(slots=True)
 class QuestClosure:
     ordered_quest_ids: list[int] = field(default_factory=list)
@@ -101,6 +117,8 @@ class QuestGraphService:
         quest_provider: QuestProvider,
         guide_provider: GuideProvider | None = None,
         achievement_provider: AchievementProvider | None = None,
+        *,
+        eager: bool = True,
     ) -> None:
         self.quest_provider = quest_provider
         self.guide_provider = guide_provider
@@ -115,16 +133,47 @@ class QuestGraphService:
         self.alternative_previous_by_quest: dict[int, set[int]] = defaultdict(set)
         self.guide_ids_by_quest: dict[int, set[str]] = defaultdict(set)
         self.achievement_names_by_quest: dict[int, set[str]] = defaultdict(set)
-        self._build()
+        self._built = False
+        if eager:
+            self._build()
+            self._built = True
 
     def previous_ids(self, quest_id: int) -> list[int]:
-        return sorted(self.previous_by_quest.get(int(quest_id), set()))
+        quest_id = int(quest_id)
+        if self._built:
+            return sorted(self.previous_by_quest.get(quest_id, set()))
+        quest = self.catalog.by_id.get(quest_id)
+        if quest is None:
+            return []
+        return sorted(
+            previous
+            for previous in self.criterion_references(quest.start_criterion).mandatory_hard_quests
+            if previous in self.catalog.by_id and previous != quest_id
+        )
 
     def next_ids(self, quest_id: int) -> list[int]:
-        return sorted(self.next_by_quest.get(int(quest_id), set()))
+        quest_id = int(quest_id)
+        if self._built:
+            return sorted(self.next_by_quest.get(quest_id, set()))
+        return sorted(
+            int(quest.id)
+            for quest in self.catalog.quests
+            if int(quest.id) != quest_id
+            and quest_id in self.criterion_references(quest.start_criterion).mandatory_hard_quests
+        )
 
     def context_previous_ids(self, quest_id: int) -> list[int]:
-        return sorted(self.context_previous_by_quest.get(int(quest_id), set()))
+        quest_id = int(quest_id)
+        if self._built:
+            return sorted(self.context_previous_by_quest.get(quest_id, set()))
+        quest = self.catalog.by_id.get(quest_id)
+        if quest is None:
+            return []
+        return sorted(
+            previous
+            for previous in self.criterion_references(quest.start_criterion).mandatory_context_quests
+            if previous in self.catalog.by_id and previous != quest_id
+        )
 
     def reliable_neighbors(self, quest_id: int, guide_id: str = "") -> tuple[int | None, int | None]:
         """Return navigation only when its provenance is explicit.
@@ -141,14 +190,14 @@ class QuestGraphService:
                 try:
                     index = ordered.index(quest_id)
                 except ValueError:
-                    pass
-                else:
+                    index = -1
+                if index >= 0:
                     previous = ordered[index - 1] if index > 0 else None
                     following = ordered[index + 1] if index + 1 < len(ordered) else None
                     return previous, following
 
-        previous_rows = self.criterion_previous_by_quest.get(quest_id, set())
-        next_rows = self.criterion_next_by_quest.get(quest_id, set())
+        previous_rows = set(self.previous_ids(quest_id))
+        next_rows = set(self.next_ids(quest_id))
         previous = next(iter(previous_rows)) if len(previous_rows) == 1 else None
         following = next(iter(next_rows)) if len(next_rows) == 1 else None
         return previous, following
@@ -157,20 +206,50 @@ class QuestGraphService:
         """Order a known group from explicit Qf dependencies, then stable local data."""
 
         ids = {int(quest_id) for quest_id in quest_ids if int(quest_id) in self.catalog.by_id}
-        edges = {
-            (previous, quest_id)
-            for quest_id in ids
-            for previous in self.criterion_previous_by_quest.get(quest_id, set())
-            if previous in ids
-        }
+        if self._built:
+            edges = {
+                (previous, quest_id)
+                for quest_id in ids
+                for previous in self.criterion_previous_by_quest.get(quest_id, set())
+                if previous in ids
+            }
+        else:
+            edges = {
+                (previous, quest_id)
+                for quest_id in ids
+                for previous in self.criterion_references(
+                    self.catalog.by_id[quest_id].start_criterion
+                ).mandatory_hard_quests
+                if previous in ids
+            }
         ordered, _cycles = self._topological_order(ids, edges)
         return ordered
 
     def guide_ids(self, quest_id: int) -> list[str]:
-        return sorted(self.guide_ids_by_quest.get(int(quest_id), set()))
+        quest_id = int(quest_id)
+        if self._built:
+            return sorted(self.guide_ids_by_quest.get(quest_id, set()))
+        if self.guide_provider is None:
+            return []
+        getter = getattr(self.guide_provider, "get_guides_for_entity", None)
+        if callable(getter):
+            return sorted(
+                str(guide.id)
+                for guide in getter("quest", quest_id)
+                if getattr(guide, "id", None)
+            )
+        return []
 
     def achievement_names(self, quest_id: int) -> list[str]:
-        return sorted(self.achievement_names_by_quest.get(int(quest_id), set()), key=normalize_text)
+        if self._built:
+            return sorted(
+                self.achievement_names_by_quest.get(int(quest_id), set()),
+                key=normalize_text,
+            )
+        quest = self.catalog.by_id.get(int(quest_id))
+        if quest is None:
+            return []
+        return sorted((str(name) for name in quest.achievements), key=normalize_text)
 
     def is_repeatable(self, quest: QuestRecord) -> bool:
         text = normalize_text(" ".join([quest.category, quest.start_criterion, *quest.info]))
@@ -178,8 +257,7 @@ class QuestGraphService:
 
     @classmethod
     def criterion_references(cls, criterion: str) -> CriterionReferences:
-        branches = _criterion_branches(str(criterion or ""))
-        return CriterionReferences(tuple(branches or [CriterionBranch()]))
+        return _cached_criterion_references(str(criterion or ""))
 
     def prerequisite_closure(
         self,
@@ -188,6 +266,7 @@ class QuestGraphService:
         *,
         seed_context_quests: Iterable[int] = (),
         seed_optional_quests: Iterable[int] = (),
+        achievement_catalog: Mapping[int, Any] | None = None,
     ) -> QuestClosure:
         """Resolve recursive Qf/Qa/Sc/OA relations without flattening OR.
 
@@ -196,10 +275,16 @@ class QuestGraphService:
         found only in OR branches remain optional alternatives.
         """
 
-        achievements = {
-            int(row.id): row
-            for row in (self.achievement_provider.load_all() if self.achievement_provider is not None else ())
-        }
+        # A builder may hand in one snapshot shared by its consecutive
+        # closures. Standalone calls still load fresh provider state.
+        achievements = (
+            achievement_catalog
+            if achievement_catalog is not None
+            else {
+                int(row.id): row
+                for row in (self.achievement_provider.load_all() if self.achievement_provider is not None else ())
+            }
+        )
         quest_mode: dict[int, int] = {}  # 2 mandatory, 1 context, 0 optional
         achievement_mode: dict[int, int] = {}
         quest_queue: deque[tuple[int, int]] = deque()
@@ -366,17 +451,30 @@ class QuestGraphService:
                 result.update(achievement_quest_ids(child_id, seen))
             return result & all_ids
 
+        # Repeated Sc/OA references to the same success must not recursively
+        # rebuild its quest descendants for every following quest. Cache only
+        # this closure's immutable root result: the all_ids filter is local,
+        # and recursive cycle detection still receives a fresh 'seen' set.
+        achievement_root_cache: dict[int, frozenset[int]] = {}
+
+        def root_achievement_quest_ids(achievement_id: int) -> frozenset[int]:
+            result = achievement_root_cache.get(achievement_id)
+            if result is None:
+                result = frozenset(achievement_quest_ids(achievement_id))
+                achievement_root_cache[achievement_id] = result
+            return result
+
         # A Sc/OA condition is ordered after the quests that make up that
         # achievement, while the quest steps keep only Qf in prerequisites.
         for following in all_ids:
             refs = self.criterion_references(self.catalog.by_id[following].start_criterion)
             for achievement_id in refs.mandatory_achievements:
-                for previous in achievement_quest_ids(achievement_id):
+                for previous in root_achievement_quest_ids(achievement_id):
                     if previous != following:
                         hard_edges.add((previous, following))
             for branch in refs.alternative_branches:
                 for achievement_id in branch.achievements:
-                    for previous in achievement_quest_ids(achievement_id):
+                    for previous in root_achievement_quest_ids(achievement_id):
                         if previous != following:
                             alternative_edges.add((previous, following))
 
@@ -443,16 +541,16 @@ class QuestGraphService:
             quest = self.catalog.by_id[quest_id]
             return int(getattr(quest, "level_min", 0) or 0), normalize_text(quest.name), quest_id
 
-        ready = sorted((quest_id for quest_id, count in incoming.items() if count == 0), key=key)
+        ready = [(key(quest_id), quest_id) for quest_id, count in incoming.items() if count == 0]
+        heapq.heapify(ready)
         result: list[int] = []
         while ready:
-            quest_id = ready.pop(0)
+            _, quest_id = heapq.heappop(ready)
             result.append(quest_id)
-            for child in sorted(children.get(quest_id, ()), key=key):
+            for child in children.get(quest_id, ()):
                 incoming[child] -= 1
                 if incoming[child] == 0:
-                    ready.append(child)
-                    ready.sort(key=key)
+                    heapq.heappush(ready, (key(child), child))
 
         remaining = ids - set(result)
         cycles = _cycle_components(remaining, children)

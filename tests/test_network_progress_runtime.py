@@ -21,6 +21,7 @@ from app.modules.encyclopedia.services.serialized_achievement_progress_service i
 from app.network.character_resolver import CharacterSlotResolver
 from app.network.events import (
     AchievementCompletedEvent,
+    AchievementObjectiveCompletedEvent,
     CharacterIdentifiedEvent,
     NetworkEvent,
     QuestCompletedEvent,
@@ -146,6 +147,7 @@ class NetworkProgressRuntimeTests(unittest.TestCase):
         self.achievement = SimpleNamespace(
             id=500,
             category_name="Quêtes",
+            objective_ids=(501,),
             objectives=(achievement_objective,),
         )
         self.provider = FakeAchievementProvider((self.achievement,))
@@ -298,6 +300,27 @@ class NetworkProgressRuntimeTests(unittest.TestCase):
         self.assertTrue(result.changed)
         self.assertTrue(self.quest_progress.is_objective_completed("character:1001", 10, 100))
         self.assertFalse(self.quest_progress.is_quest_completed("character:1001", 10))
+
+    def test_achievement_objective_event_accepts_compact_objective_ids(self) -> None:
+        self.identify("session-a", "Alpha")
+        self.achievement.objectives = ()
+        result = self.bridge.handle(
+            AchievementObjectiveCompletedEvent(
+                session_id="session-a",
+                reliable=True,
+                achievement_id=500,
+                objective_id=501,
+            )
+        )
+        self.assertTrue(result.accepted)
+        self.assertTrue(result.changed)
+        self.assertTrue(
+            self.achievement_progress.is_objective_completed(
+                "character:1001",
+                500,
+                501,
+            )
+        )
 
     def test_reliable_achievement_event_uses_existing_achievement_service(self) -> None:
         self.identify("session-a", "Alpha")

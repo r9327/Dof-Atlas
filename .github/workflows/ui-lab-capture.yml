@@ -65,7 +65,7 @@ jobs:
 
       - name: Generate requested UI captures
         run: |
-          python -m tools.ui_lab.capture --request tools/ui_lab/capture_request.json --output-dir artifacts/ui_lab
+          python -m tools.ui_lab.capture --request tools/ui_lab/fresh_merged_guide_request.json --output-dir artifacts/ui_lab
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-Content artifacts/ui_lab/manifest.json
           $pngs = @(Get-ChildItem artifacts/ui_lab -Filter *.png)

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
+from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR
 from app.modules.encyclopedia.providers import AchievementProvider
 from app.modules.encyclopedia.achievement_catalog_policy import (
     ALIGNMENT_GUIDE_IDS,
@@ -28,6 +28,8 @@ SOURCE_FILES = (
     "monsters.json",
     "languages/fr.json",
 )
+
+DEFAULT_OUTPUT_DIR = ROOT_DIR / "artifacts" / "achievements_lot7"
 
 
 def file_evidence(path: Path) -> dict[str, Any]:
@@ -384,7 +386,7 @@ def main() -> int:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=DATA_DIR / "encyclopedia" / "achievements",
+        default=DEFAULT_OUTPUT_DIR,
     )
     args = parser.parse_args()
     output_dir = args.output_dir

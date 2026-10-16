@@ -11,7 +11,7 @@ from threading import local
 from typing import Any, Callable
 
 from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, QUrl
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QKeySequence, QPainter, QPen, QPixmap
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImageReader, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QAbstractItemView,
@@ -64,7 +64,10 @@ from app.constants import (
     ZAAP_FAVORITES_KEY,
     ZAAP_SHORTCUTS_FILE,
 )
+from app.core.item_identity import item_id
+from app.core.profile_settings import default_profiles, profile_bool, parse_zaap_click_position
 from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.zaap_shortcuts import parse_unit_ratio, update_zaap_shortcuts_field, zaap_ratios_from_payload
 from app.core.text import clean_auto_group_name, normalize_key, strip_accents
 from app.services.profile_settings_service import ProfileSettingsService
 from app.ui.components import AtlasButton
@@ -516,16 +519,6 @@ def invoke_compatible_callback(callback, *args):
     return callback(*args)
 
 
-def parse_unit_ratio(value: Any) -> float | None:
-    try:
-        ratio = float(str(value).strip())
-    except (TypeError, ValueError):
-        return None
-    if 0.0 <= ratio <= 1.0:
-        return ratio
-    return None
-
-
 def format_zaap_ratio(value: float) -> str:
     return f"{float(value):.6f}".rstrip("0").rstrip(".")
 
@@ -536,15 +529,9 @@ def read_zaap_shortcuts(path: Path | None = None) -> dict[str, Any]:
 
 
 def read_zaap_button_ratios(payload: dict[str, Any] | None = None) -> tuple[float, float] | None:
+    # Keep the legacy UI reader's injectable path and storage semantics.
     payload = payload if isinstance(payload, dict) else read_zaap_shortcuts()
-    button = payload.get("zaap_button")
-    if not isinstance(button, dict):
-        return None
-    x_ratio = parse_unit_ratio(button.get("x_ratio"))
-    y_ratio = parse_unit_ratio(button.get("y_ratio"))
-    if x_ratio is None or y_ratio is None:
-        return None
-    return (x_ratio, y_ratio)
+    return zaap_ratios_from_payload(payload)
 
 
 def zaap_favorite_lookup(zaaps: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -596,10 +583,8 @@ def save_zaap_favorites(
     path: Path | None = None,
 ) -> list[str]:
     path = path or ZAAP_SHORTCUTS_FILE
-    payload = read_zaap_shortcuts(path)
     cleaned = clean_zaap_favorites(favorites, zaaps)
-    payload[ZAAP_FAVORITES_KEY] = cleaned
-    write_json(path, payload)
+    update_zaap_shortcuts_field(path, ZAAP_FAVORITES_KEY, cleaned)
     return cleaned
 
 
@@ -609,12 +594,14 @@ def save_zaap_button_ratios(x_ratio: float, y_ratio: float, path: Path | None = 
     if parsed_x is None or parsed_y is None:
         raise ValueError("Ratios Zaap invalides.")
     path = path or ZAAP_SHORTCUTS_FILE
-    payload = read_zaap_shortcuts(path)
-    payload["zaap_button"] = {
-        "x_ratio": round(parsed_x, 6),
-        "y_ratio": round(parsed_y, 6),
-    }
-    write_json(path, payload)
+    update_zaap_shortcuts_field(
+        path,
+        "zaap_button",
+        {
+            "x_ratio": round(parsed_x, 6),
+            "y_ratio": round(parsed_y, 6),
+        },
+    )
     return (parsed_x, parsed_y)
 
 
@@ -631,40 +618,6 @@ def read_bootstrap_status() -> str:
     except Exception:
         return "Verification des prerequis..."
     return text or "Verification des prerequis..."
-
-
-def default_profiles() -> dict[str, Any]:
-    return {
-        KEY_SWITCH_CHARACTER: True,
-        KEY_SWITCH_CLICK: False,
-        KEY_SWITCH_DOUBLE_CLICK: False,
-        KEY_SWITCH_MOVEMENT: False,
-        KEY_STOP_SCRIPT_HOTKEY: "",
-        KEY_ZAAP_CLICK_POSITION: ZAAP_CLICK_POSITION_DEFAULT,
-        KEY_ZAAP_CLICK_LOCKED: True,
-        KEY_SESSION_ORDER: [],
-        KEY_TOPMOST: False,
-        KEY_SCRIPT_SPEED: "normal",
-        KEY_DEBUG_MODE: False,
-    }
-
-
-def profile_bool(payload: dict[str, Any], key: str, default: bool = False) -> bool:
-    value = payload.get(key, default)
-    if isinstance(value, str):
-        return value.strip().casefold() not in ("0", "false", "faux", "non", "off", "")
-    return bool(value)
-
-
-def parse_zaap_click_position(value: Any, default: tuple[int, int] = (ZAAP_CLICK_X, ZAAP_CLICK_Y)) -> tuple[int, int]:
-    text = str(value or "").strip()
-    match = re.search(r"(-?\d+)\s*[,;:xX ]\s*(-?\d+)", text)
-    if not match:
-        return default
-    try:
-        return (max(0, int(match.group(1))), max(0, int(match.group(2))))
-    except ValueError:
-        return default
 
 
 def format_zaap_click_position(position: tuple[int, int]) -> str:
@@ -771,8 +724,8 @@ def dofus_window_from_point(mouse_x: int, mouse_y: int) -> dict[str, Any] | None
         root = int(win32gui.GetAncestor(hwnd, win32con.GA_ROOT)) if hwnd else 0
         if root:
             candidates.append(root)
-    except Exception:
-        pass
+    except Exception as exc:
+        LOGGER.debug("WindowFromPoint Unity indisponible pour %s: %s", point, exc)
 
     def enum_callback(hwnd: int, _extra: Any) -> bool:
         try:
@@ -788,8 +741,8 @@ def dofus_window_from_point(mouse_x: int, mouse_y: int) -> dict[str, Any] | None
 
     try:
         win32gui.EnumWindows(enum_callback, None)
-    except Exception:
-        pass
+    except Exception as exc:
+        LOGGER.debug("EnumWindows Unity interrompu pour %s: %s", point, exc)
 
     seen: set[int] = set()
     for hwnd in candidates:
@@ -888,14 +841,6 @@ def load_zaap_index(path: Path = ZAAPS_FILE) -> list[dict[str, Any]]:
     return sorted(zaaps, key=lambda entry: normalize_key(entry.get("label")))
 
 
-def item_id(item: dict[str, Any]) -> int | None:
-    value = item.get("id_dofus") or item.get("ankama_id") or item.get("id")
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def local_image_path(item: dict[str, Any]) -> Path | None:
     raw = item.get("image_path") or item.get("local_image_path") or ""
     if not raw:
@@ -950,16 +895,36 @@ class IconCache:
             return self.cache[key]
         if not path.exists():
             return fallback or QIcon()
-        pixmap = QPixmap(key)
-        if pixmap.isNull():
+        reader = QImageReader(key)
+        source_size = reader.size()
+        if source_size.isValid():
+            reader.setScaledSize(
+                source_size.scaled(
+                    QSize(self.size, self.size),
+                    Qt.KeepAspectRatio,
+                )
+            )
+        image = reader.read()
+        if image.isNull():
             return fallback or QIcon()
-        icon = QIcon(pixmap.scaled(self.size, self.size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        if image.width() > self.size or image.height() > self.size:
+            image = image.scaled(
+                self.size,
+                self.size,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+        icon = QIcon(QPixmap.fromImage(image))
         self.cache[key] = icon
         self.order.append(key)
         while len(self.order) > self.max_items:
             old = self.order.pop(0)
             self.cache.pop(old, None)
         return icon
+
+    def clear(self) -> None:
+        self.cache.clear()
+        self.order.clear()
 
 
 def lock_icon(locked: bool) -> QIcon:

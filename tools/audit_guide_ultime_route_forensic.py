@@ -30,8 +30,6 @@ from types import SimpleNamespace
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 from app.constants import RAW_QUEST_DATA_DIR
 from app.modules.encyclopedia.providers import QuestProvider
