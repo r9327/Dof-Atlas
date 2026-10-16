@@ -47,9 +47,11 @@ désormais `local_dofus_data.normalizer`, réexporté par les anciens modules.
 Recherche et affichage utilisent donc la même règle, sans nouvelle colonne,
 migration, cache ou version de base.
 
-Les timings de la fixture sont 3,447 ms avant / 7,962 ms après pour 0 puis
-1 résultat correct : c'est une correction fonctionnelle, pas une promesse
-d'accélération. Six recherches sur le vrai seed public sont relevées dans le
+La fixture donne 0 résultat avant et 1 après. Le relevé initial avant est
+3,447 ms ; trois passages du correctif SQL final sur la vraie page donnent
+3,046 / 1,392 / 1,302 ms. Le relevé intermédiaire de 7,962 ms est conservé
+et identifié comme tel dans le registre. C'est une correction fonctionnelle,
+pas une promesse d'accélération. Six recherches sur le vrai seed public sont relevées dans le
 registre (environ 4–64 ms selon requête/catégorie), sans certificat de latence UI.
 
 ### PC-03 — concurrence de lancement : preuve Win32 séparée

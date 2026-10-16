@@ -77,8 +77,16 @@
       "before_result_count": 0,
       "after_result_count": 1,
       "before_refresh_ms": 3.447,
-      "after_refresh_ms": 7.962,
-      "limitation": "Correctness regression fixture; timings are local samples, not an application performance certificate."
+      "limitation": "Local real CraftPage/SQLite fixture; no Windows or whole-application performance certificate.",
+      "intermediate_after_refresh_ms": 7.962,
+      "intermediate_implementation": "Python cursor category predicate, before final SQL predicate",
+      "after_refresh_samples_ms": [
+        3.046,
+        1.392,
+        1.302
+      ],
+      "implementation": "canonical SQLite category predicate before LIMIT",
+      "code_sha": "d8de0b71e774c9a8e14de5151d52a876ceb4343b"
     },
     "real_dataset_queries": [
       {
