@@ -19,6 +19,25 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POLICY = Path("tools/atlas_integrity_policy.json")
 RISK_ORDER = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
 
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "atlas-integrity",
+    "role": "repository_validation_orchestrator",
+    "capabilities": ["validation"],
+    "modes": ["fast", "critical", "full", "deep"],
+    "cost_hint": "variable",
+    "side_effects": "artifact_output",
+    "artifact_roots": ["artifacts/"],
+    "structured_output": True,
+    "canonical": True,
+    "recommended_tests": [
+        "tests.test_atlas_integrity",
+        "tests.test_meta_integrity",
+        "tests.test_doctor_verification_contract",
+    ],
+    "target_scopes": [],
+}
+
 CRITICAL_PATTERNS = (
     ".github/workflows/**",
     "DEVELOPMENT_GUARDRAILS.md",
