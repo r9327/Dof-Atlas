@@ -51,7 +51,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 $processes = @(Get-Process AtlasApp -ErrorAction SilentlyContinue | Where-Object {
-    $_.Path -eq $env:ATLAS_E2E_EXECUTABLE
+    $_.Path -eq $env:ATLAS_E2E_EXECUTABLE -and $_.MainWindowHandle -ne 0
 })
 if ($processes.Count -ne 1) { throw "Expected exactly one installed AtlasApp process" }
 $appProcess = $processes[0]
@@ -81,13 +81,22 @@ $invoke = $quit.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pat
 $invoke.Invoke()
 if (-not $appProcess.WaitForExit(60000)) { throw "Atlas did not terminate normally" }
 if ($appProcess.ExitCode -ne 0) { throw "Atlas exit code: $($appProcess.ExitCode)" }
-@{pid=$appProcess.Id; exit_code=$appProcess.ExitCode; action='Quitter'} | ConvertTo-Json -Compress
+$deadline = [DateTime]::UtcNow.AddSeconds(60)
+do {
+    $workers = @(Get-Process AtlasApp -ErrorAction SilentlyContinue | Where-Object {
+        $_.Path -eq $env:ATLAS_E2E_EXECUTABLE
+    })
+    if ($workers.Count -eq 0) { break }
+    Start-Sleep -Milliseconds 250
+} while ([DateTime]::UtcNow -lt $deadline)
+if ($workers.Count -ne 0) { throw 'Frozen Atlas workers remained after normal GUI exit' }
+@{pid=$appProcess.Id; exit_code=$appProcess.ExitCode; action='Quitter'; remaining_workers=0} | ConvertTo-Json -Compress
 '''
     child_env = dict(env, ATLAS_E2E_EXECUTABLE=str(executable))
     powershell = Path(env["SYSTEMROOT"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
     result = subprocess.run(
         [str(powershell), "-NoProfile", "-NonInteractive", "-Command", command],
-        env=child_env, capture_output=True, text=True, errors="replace", timeout=110,
+        env=child_env, capture_output=True, text=True, errors="replace", timeout=180,
     )
     require(result.returncode == 0, "Normal GUI shutdown failed: " + result.stderr[-1500:])
     return json.loads(result.stdout)
