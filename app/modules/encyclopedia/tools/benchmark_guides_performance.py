@@ -261,7 +261,9 @@ def first_achievement_detail(
     view = page.get_achievements_view()
     if view is None or not bool(getattr(view, "_runtime_ready", False)):
         raise RuntimeError("Canonical Success view is not hydrated.")
-    achievements = list(getattr(view, "achievements", ()) or ())
+    # The paginated view keeps full Achievement objects out of its resident
+    # catalogue. Select a real displayed reference, as a user would.
+    achievements = getattr(view, "filtered", ()) or ()
     if not achievements:
         raise RuntimeError("Canonical Success view contains no selectable achievement.")
     achievement_id = int(getattr(achievements[0], "id", 0) or 0)

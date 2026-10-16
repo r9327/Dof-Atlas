@@ -56,6 +56,23 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("CERTIFIED", self.agents)
         self.assertIn("phase terminée", self.agents)
 
+    def test_full_validation_binds_public_inputs_before_and_after_tests(self) -> None:
+        workflow = self.certification_workflow
+        before = workflow.index("name: Capture exact public dataset inputs before validation")
+        full = workflow.index("name: Run full Atlas phase certification gate")
+        after = workflow.index("name: Verify public dataset inputs did not change during validation")
+        archive = workflow.index("name: Upload certification logs")
+        enforce = workflow.index("name: Enforce phase certification verdict")
+        self.assertLess(before, full)
+        self.assertLess(full, after)
+        self.assertLess(after, archive)
+        self.assertLess(archive, enforce)
+        self.assertIn("steps.inputs_before.outcome == 'success'", workflow[full:after])
+        self.assertIn("&& always()", workflow[after:archive])
+        self.assertIn('--verify-against "artifacts/phase_certification/inputs_before.json"', workflow)
+        self.assertIn('steps.inputs_before.outcome }}" -ne "success"', workflow[enforce:])
+        self.assertIn('steps.inputs_after.outcome }}" -ne "success"', workflow[enforce:])
+
     def test_policy_declares_machine_readable_certification_contract(self) -> None:
         certification = self.policy["certification"]
         self.assertEqual(certification["scope"], "APPLICATION")

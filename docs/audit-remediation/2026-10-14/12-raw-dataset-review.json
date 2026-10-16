@@ -1,0 +1,2152 @@
+{
+  "schema_version": 1,
+  "kind": "public_raw_inputs",
+  "status": "PASS",
+  "source": {
+    "repository": "dofusdude/dofus3-main",
+    "tag": "3.7.10.10"
+  },
+  "dataset_fingerprint": "71082672c6e4bc43b6c4f529702a26483cb80b4cb50c1c0a227957768274d2af",
+  "files": [
+    {
+      "path": "achievement_categories.json",
+      "bytes": 54517,
+      "sha256": "a4c9e369311659ceccd28b23b29f4153a5ddb7d3d1885a1cdcaa76f00c824bf3",
+      "references": 133,
+      "entity_ids": 133,
+      "classes": {
+        "AchievementCategoryData": 133
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "achievement_objectives.json",
+      "bytes": 2429504,
+      "sha256": "c6b33716959e28522663469ad90891cf50cac07f7623dc1140ece979f2db5d99",
+      "references": 8923,
+      "entity_ids": 8923,
+      "classes": {
+        "AchievementObjectiveData": 8923
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "achievement_rewards.json",
+      "bytes": 3368096,
+      "sha256": "4623a62d7a20d3b017afd3bde84a937ab8923d8f4ed066b0618277c6e789ad6f",
+      "references": 6392,
+      "entity_ids": 6392,
+      "classes": {
+        "AchievementRewardData": 6392
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "achievements.json",
+      "bytes": 1074814,
+      "sha256": "8c79d4dc84236b977b348ca70908e70896bad93ba417254c6be825ffac485b03",
+      "references": 2775,
+      "entity_ids": 2775,
+      "classes": {
+        "AchievementData": 2775
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "alterations.json",
+      "bytes": 712327,
+      "sha256": "b26c8344bbaf6bc4f3cc8f8740a15bf5d825be170229bba35182189bb3c1ff03",
+      "references": 1286,
+      "entity_ids": 538,
+      "classes": {
+        "AlterationData": 538,
+        "EffectInstanceDice": 748
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "areas.json",
+      "bytes": 28108,
+      "sha256": "0bf7732c85563b26e5598d70064ccf54ab3645d498cd8a158a4a6b86c62236c6",
+      "references": 69,
+      "entity_ids": 69,
+      "classes": {
+        "AreaData": 69
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "char_xp_mappings.json",
+      "bytes": 514283,
+      "sha256": "a4ce0fb85b52af4c5635a249a9b4bfe92040659d59ebe473d6908c0915b58b86",
+      "references": 2339,
+      "entity_ids": 0,
+      "classes": {
+        "CharacterXpMappingData": 2339
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "dungeons.json",
+      "bytes": 104719,
+      "sha256": "9828b6a1bcb75ef2209fe7da9454df91151f04cbd82c460c5fd122327546a456",
+      "references": 187,
+      "entity_ids": 187,
+      "classes": {
+        "DungeonData": 187
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "effects.json",
+      "bytes": 595220,
+      "sha256": "77cbfb3b1d7bce41ca43b3330b9a3c210610f06ea16e4f6acdcbb5832b183b41",
+      "references": 884,
+      "entity_ids": 884,
+      "classes": {
+        "EffectData": 884
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "emoticons.json",
+      "bytes": 147526,
+      "sha256": "5cd30fe562465020128a928c6500464f4c2cf21599d62176f8fbe7417872f9c0",
+      "references": 326,
+      "entity_ids": 326,
+      "classes": {
+        "EmoticonData": 326
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "item_types.json",
+      "bytes": 71162,
+      "sha256": "60cf02e678aea185214cd3b61553e86b758536e92822e1d0eed112635068cea7",
+      "references": 236,
+      "entity_ids": 236,
+      "classes": {
+        "ItemTypeData": 236
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "items.json",
+      "bytes": 51319323,
+      "sha256": "bb5a759feba52b3c091b4572092db792c5ea1beb92b67e930c4ec9cc0d9a67a2",
+      "references": 66694,
+      "entity_ids": 21554,
+      "classes": {
+        "WeaponData": 769,
+        "ItemData": 20785,
+        "EffectInstanceDice": 45140
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "jobs.json",
+      "bytes": 5354,
+      "sha256": "e56f2a9867a7e331a15913bf211b447f89014b3ea19a140954b9501230c075ca",
+      "references": 23,
+      "entity_ids": 23,
+      "classes": {
+        "JobData": 23
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "languages/fr.json",
+      "bytes": 30976385,
+      "sha256": "fb0359e5cf00a9f1fb2daec64502101eb99259fae0b5a72203bf5f47167eb720",
+      "entries": 339912,
+      "schema": "entries"
+    },
+    {
+      "path": "maps_information.json",
+      "bytes": 4741573,
+      "sha256": "43f06fdcd00cb27ad485f7e19c736f16d32f475698eff1e9652aea77a38b94dc",
+      "references": 15409,
+      "entity_ids": 15409,
+      "classes": {
+        "MapInformationData": 15409
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "monsters.json",
+      "bytes": 63149738,
+      "sha256": "301629bc89fbe5543448fcb3ba14b8d155102483c6d51f975b675a3f2c0d62ba",
+      "references": 5129,
+      "entity_ids": 5129,
+      "classes": {
+        "MonsterData": 5129
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "npcs.json",
+      "bytes": 7838078,
+      "sha256": "81c1bfabdc124795ee6fc9e529e6e28e67153b451d6c80f5cac8f29cfafb6e03",
+      "references": 6472,
+      "entity_ids": 6472,
+      "classes": {
+        "NpcData": 6472
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "ornaments.json",
+      "bytes": 42196,
+      "sha256": "e1dae3fc32dbe4b8ef2240277878234c0b0563282a92694a7e702deb6dd10950",
+      "references": 167,
+      "entity_ids": 167,
+      "classes": {
+        "OrnamentData": 167
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "quest_categories.json",
+      "bytes": 19868,
+      "sha256": "979d6083f31099d0d5ef84d45464325cd517b150d37b55bc8f9e047713a32400",
+      "references": 44,
+      "entity_ids": 44,
+      "classes": {
+        "QuestCategoryData": 44
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "quest_objective_types.json",
+      "bytes": 3951,
+      "sha256": "4b9fca4b48301cdbd0a412947a5ce3520d3c74f257d792b87ac16e2f9eb1a74d",
+      "references": 18,
+      "entity_ids": 18,
+      "classes": {
+        "QuestObjectiveTypeData": 18
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "quest_objectives.json",
+      "bytes": 6677333,
+      "sha256": "9a58b68ce4b4e3fcfbab3998f3519da1f239d6946d6d6039c485f552e9c84348",
+      "references": 15547,
+      "entity_ids": 15547,
+      "classes": {
+        "QuestObjectiveDiscoverMapData": 874,
+        "QuestObjectiveBringItemToNpcData": 2469,
+        "QuestObjectiveFightMonsterData": 788,
+        "QuestObjectiveFreeFormData": 5696,
+        "QuestObjectiveGoToNpcData": 5012,
+        "QuestObjectiveFightMonstersOnMapData": 88,
+        "QuestObjectiveBringSoulToNpcData": 363,
+        "QuestObjectiveCraftItemData": 109,
+        "QuestObjectiveMultiFightMonsterData": 143,
+        "QuestObjectiveDiscoverSubAreaData": 5
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "quest_step_rewards.json",
+      "bytes": 3140729,
+      "sha256": "8ef5a487e40af3ebd3a761b830f967915a6946b6198e72ed9abaa6a81ecbcc40",
+      "references": 6723,
+      "entity_ids": 6723,
+      "classes": {
+        "QuestStepRewardData": 6723
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "quest_steps.json",
+      "bytes": 869531,
+      "sha256": "8f3f3d17450976b3c72d5a8983c7d140ba20a8d0d35a224a125ba99f554d5448",
+      "references": 2225,
+      "entity_ids": 2225,
+      "classes": {
+        "QuestStepData": 2225
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "quests.json",
+      "bytes": 961363,
+      "sha256": "d57b5f1ca46ff3d841c1cecf3835a3d2f5cc7df554a7147bd51da0f5ca088a1b",
+      "references": 1976,
+      "entity_ids": 1976,
+      "classes": {
+        "QuestData": 1976
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "recipes.json",
+      "bytes": 1730082,
+      "sha256": "d01cb14bd3dc41b7110f1bc818e976c8da7328a4bfcfe51b99e6e427124a9456",
+      "references": 4743,
+      "entity_ids": 0,
+      "classes": {
+        "RecipeData": 4743
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "spells.json",
+      "bytes": 19116508,
+      "sha256": "5f283c46632a1b066b1ed395df3027638eb65ef8a1e10040042519472001e158",
+      "references": 17006,
+      "entity_ids": 17006,
+      "classes": {
+        "SpellData": 17006
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "subareas.json",
+      "bytes": 744233,
+      "sha256": "a80ce1e8d367906be731976de74419c64e19e2c99d91a8d5b4bdeee28493d00d",
+      "references": 567,
+      "entity_ids": 567,
+      "classes": {
+        "SubAreaData": 567
+      },
+      "schema": "references.RefIds"
+    },
+    {
+      "path": "titles.json",
+      "bytes": 141446,
+      "sha256": "5c76c6fb662a2151d286fa9a1779cd87cee7bc88d2a7c1ba6f88436a0ced6676",
+      "references": 546,
+      "entity_ids": 546,
+      "classes": {
+        "TitleData": 546
+      },
+      "schema": "references.RefIds"
+    }
+  ],
+  "errors": [],
+  "duplicate_entity_ids": [],
+  "relations": [
+    {
+      "relation": "quests.categoryId",
+      "target": "quest_categories",
+      "checked": 1976,
+      "missing_count": 0,
+      "missing": [],
+      "status": "PASS"
+    },
+    {
+      "relation": "quests.stepIds",
+      "target": "quest_steps",
+      "checked": 2225,
+      "missing_count": 0,
+      "missing": [],
+      "status": "PASS"
+    },
+    {
+      "relation": "quest_steps.questId",
+      "target": "quests",
+      "checked": 2225,
+      "missing_count": 0,
+      "missing": [],
+      "status": "PASS"
+    },
+    {
+      "relation": "quest_steps.objectiveIds",
+      "target": "quest_objectives",
+      "checked": 15543,
+      "missing_count": 0,
+      "missing": [],
+      "status": "PASS"
+    },
+    {
+      "relation": "quest_objectives.stepId",
+      "target": "quest_steps",
+      "checked": 15547,
+      "missing_count": 4,
+      "missing": [
+        {
+          "source_id": 19530,
+          "target_id": 3225
+        },
+        {
+          "source_id": 19531,
+          "target_id": 3225
+        },
+        {
+          "source_id": 19532,
+          "target_id": 3225
+        },
+        {
+          "source_id": 19533,
+          "target_id": 3225
+        }
+      ],
+      "status": "REVIEW",
+      "follow_up": "Source observations for #170/#175; no fabricated objective or deleted raw record."
+    },
+    {
+      "relation": "achievements.categoryId",
+      "target": "achievement_categories",
+      "checked": 2775,
+      "missing_count": 0,
+      "missing": [],
+      "status": "PASS"
+    },
+    {
+      "relation": "achievements.objectiveIds",
+      "target": "achievement_objectives",
+      "checked": 9143,
+      "missing_count": 322,
+      "missing": [
+        {
+          "source_id": 3,
+          "target_id": 185
+        },
+        {
+          "source_id": 4,
+          "target_id": 190
+        },
+        {
+          "source_id": 5,
+          "target_id": 187
+        },
+        {
+          "source_id": 6,
+          "target_id": 191
+        },
+        {
+          "source_id": 7,
+          "target_id": 183
+        },
+        {
+          "source_id": 8,
+          "target_id": 189
+        },
+        {
+          "source_id": 9,
+          "target_id": 184
+        },
+        {
+          "source_id": 10,
+          "target_id": 188
+        },
+        {
+          "source_id": 11,
+          "target_id": 186
+        },
+        {
+          "source_id": 12,
+          "target_id": 192
+        },
+        {
+          "source_id": 13,
+          "target_id": 193
+        },
+        {
+          "source_id": 14,
+          "target_id": 85
+        },
+        {
+          "source_id": 15,
+          "target_id": 87
+        },
+        {
+          "source_id": 16,
+          "target_id": 86
+        },
+        {
+          "source_id": 74,
+          "target_id": 338
+        },
+        {
+          "source_id": 75,
+          "target_id": 339
+        },
+        {
+          "source_id": 76,
+          "target_id": 340
+        },
+        {
+          "source_id": 77,
+          "target_id": 341
+        },
+        {
+          "source_id": 78,
+          "target_id": 342
+        },
+        {
+          "source_id": 79,
+          "target_id": 343
+        },
+        {
+          "source_id": 80,
+          "target_id": 344
+        },
+        {
+          "source_id": 81,
+          "target_id": 345
+        },
+        {
+          "source_id": 82,
+          "target_id": 346
+        },
+        {
+          "source_id": 83,
+          "target_id": 347
+        },
+        {
+          "source_id": 84,
+          "target_id": 348
+        },
+        {
+          "source_id": 85,
+          "target_id": 349
+        },
+        {
+          "source_id": 86,
+          "target_id": 350
+        },
+        {
+          "source_id": 87,
+          "target_id": 351
+        },
+        {
+          "source_id": 88,
+          "target_id": 352
+        },
+        {
+          "source_id": 107,
+          "target_id": 79
+        },
+        {
+          "source_id": 113,
+          "target_id": 88
+        },
+        {
+          "source_id": 118,
+          "target_id": 93
+        },
+        {
+          "source_id": 120,
+          "target_id": 122
+        },
+        {
+          "source_id": 124,
+          "target_id": 126
+        },
+        {
+          "source_id": 236,
+          "target_id": 890
+        },
+        {
+          "source_id": 237,
+          "target_id": 891
+        },
+        {
+          "source_id": 238,
+          "target_id": 892
+        },
+        {
+          "source_id": 239,
+          "target_id": 893
+        },
+        {
+          "source_id": 240,
+          "target_id": 894
+        },
+        {
+          "source_id": 241,
+          "target_id": 895
+        },
+        {
+          "source_id": 242,
+          "target_id": 896
+        },
+        {
+          "source_id": 243,
+          "target_id": 897
+        },
+        {
+          "source_id": 244,
+          "target_id": 898
+        },
+        {
+          "source_id": 245,
+          "target_id": 899
+        },
+        {
+          "source_id": 246,
+          "target_id": 900
+        },
+        {
+          "source_id": 247,
+          "target_id": 901
+        },
+        {
+          "source_id": 248,
+          "target_id": 902
+        },
+        {
+          "source_id": 249,
+          "target_id": 903
+        },
+        {
+          "source_id": 250,
+          "target_id": 904
+        },
+        {
+          "source_id": 251,
+          "target_id": 905
+        },
+        {
+          "source_id": 252,
+          "target_id": 906
+        },
+        {
+          "source_id": 253,
+          "target_id": 907
+        },
+        {
+          "source_id": 254,
+          "target_id": 908
+        },
+        {
+          "source_id": 255,
+          "target_id": 909
+        },
+        {
+          "source_id": 256,
+          "target_id": 910
+        },
+        {
+          "source_id": 257,
+          "target_id": 911
+        },
+        {
+          "source_id": 258,
+          "target_id": 912
+        },
+        {
+          "source_id": 259,
+          "target_id": 913
+        },
+        {
+          "source_id": 260,
+          "target_id": 914
+        },
+        {
+          "source_id": 261,
+          "target_id": 915
+        },
+        {
+          "source_id": 262,
+          "target_id": 916
+        },
+        {
+          "source_id": 263,
+          "target_id": 917
+        },
+        {
+          "source_id": 264,
+          "target_id": 918
+        },
+        {
+          "source_id": 265,
+          "target_id": 919
+        },
+        {
+          "source_id": 266,
+          "target_id": 920
+        },
+        {
+          "source_id": 267,
+          "target_id": 921
+        },
+        {
+          "source_id": 268,
+          "target_id": 922
+        },
+        {
+          "source_id": 269,
+          "target_id": 923
+        },
+        {
+          "source_id": 270,
+          "target_id": 924
+        },
+        {
+          "source_id": 271,
+          "target_id": 925
+        },
+        {
+          "source_id": 272,
+          "target_id": 926
+        },
+        {
+          "source_id": 273,
+          "target_id": 927
+        },
+        {
+          "source_id": 274,
+          "target_id": 928
+        },
+        {
+          "source_id": 275,
+          "target_id": 929
+        },
+        {
+          "source_id": 276,
+          "target_id": 930
+        },
+        {
+          "source_id": 277,
+          "target_id": 931
+        },
+        {
+          "source_id": 278,
+          "target_id": 932
+        },
+        {
+          "source_id": 279,
+          "target_id": 933
+        },
+        {
+          "source_id": 280,
+          "target_id": 934
+        },
+        {
+          "source_id": 281,
+          "target_id": 935
+        },
+        {
+          "source_id": 282,
+          "target_id": 936
+        },
+        {
+          "source_id": 283,
+          "target_id": 937
+        },
+        {
+          "source_id": 284,
+          "target_id": 938
+        },
+        {
+          "source_id": 285,
+          "target_id": 939
+        },
+        {
+          "source_id": 287,
+          "target_id": 941
+        },
+        {
+          "source_id": 300,
+          "target_id": 954
+        },
+        {
+          "source_id": 301,
+          "target_id": 955
+        },
+        {
+          "source_id": 302,
+          "target_id": 956
+        },
+        {
+          "source_id": 303,
+          "target_id": 957
+        },
+        {
+          "source_id": 304,
+          "target_id": 958
+        },
+        {
+          "source_id": 305,
+          "target_id": 959
+        },
+        {
+          "source_id": 307,
+          "target_id": 961
+        },
+        {
+          "source_id": 308,
+          "target_id": 962
+        },
+        {
+          "source_id": 309,
+          "target_id": 963
+        },
+        {
+          "source_id": 310,
+          "target_id": 964
+        },
+        {
+          "source_id": 312,
+          "target_id": 966
+        },
+        {
+          "source_id": 313,
+          "target_id": 967
+        },
+        {
+          "source_id": 314,
+          "target_id": 968
+        },
+        {
+          "source_id": 316,
+          "target_id": 970
+        },
+        {
+          "source_id": 317,
+          "target_id": 971
+        },
+        {
+          "source_id": 319,
+          "target_id": 973
+        },
+        {
+          "source_id": 333,
+          "target_id": 987
+        },
+        {
+          "source_id": 334,
+          "target_id": 988
+        },
+        {
+          "source_id": 335,
+          "target_id": 989
+        },
+        {
+          "source_id": 336,
+          "target_id": 990
+        },
+        {
+          "source_id": 337,
+          "target_id": 991
+        },
+        {
+          "source_id": 338,
+          "target_id": 992
+        },
+        {
+          "source_id": 339,
+          "target_id": 993
+        },
+        {
+          "source_id": 340,
+          "target_id": 994
+        },
+        {
+          "source_id": 341,
+          "target_id": 995
+        },
+        {
+          "source_id": 344,
+          "target_id": 998
+        },
+        {
+          "source_id": 345,
+          "target_id": 999
+        },
+        {
+          "source_id": 358,
+          "target_id": 1012
+        },
+        {
+          "source_id": 359,
+          "target_id": 1013
+        },
+        {
+          "source_id": 360,
+          "target_id": 1014
+        },
+        {
+          "source_id": 373,
+          "target_id": 1027
+        },
+        {
+          "source_id": 374,
+          "target_id": 1028
+        },
+        {
+          "source_id": 375,
+          "target_id": 1029
+        },
+        {
+          "source_id": 376,
+          "target_id": 1030
+        },
+        {
+          "source_id": 377,
+          "target_id": 1031
+        },
+        {
+          "source_id": 378,
+          "target_id": 1032
+        },
+        {
+          "source_id": 379,
+          "target_id": 1033
+        },
+        {
+          "source_id": 380,
+          "target_id": 1034
+        },
+        {
+          "source_id": 381,
+          "target_id": 1035
+        },
+        {
+          "source_id": 382,
+          "target_id": 1036
+        },
+        {
+          "source_id": 383,
+          "target_id": 1037
+        },
+        {
+          "source_id": 384,
+          "target_id": 1038
+        },
+        {
+          "source_id": 385,
+          "target_id": 1039
+        },
+        {
+          "source_id": 386,
+          "target_id": 1040
+        },
+        {
+          "source_id": 387,
+          "target_id": 1041
+        },
+        {
+          "source_id": 388,
+          "target_id": 1042
+        },
+        {
+          "source_id": 389,
+          "target_id": 1043
+        },
+        {
+          "source_id": 390,
+          "target_id": 1044
+        },
+        {
+          "source_id": 391,
+          "target_id": 1045
+        },
+        {
+          "source_id": 392,
+          "target_id": 1046
+        },
+        {
+          "source_id": 393,
+          "target_id": 1047
+        },
+        {
+          "source_id": 394,
+          "target_id": 1048
+        },
+        {
+          "source_id": 395,
+          "target_id": 1049
+        },
+        {
+          "source_id": 396,
+          "target_id": 1050
+        },
+        {
+          "source_id": 397,
+          "target_id": 1051
+        },
+        {
+          "source_id": 398,
+          "target_id": 1052
+        },
+        {
+          "source_id": 399,
+          "target_id": 1053
+        },
+        {
+          "source_id": 400,
+          "target_id": 1054
+        },
+        {
+          "source_id": 401,
+          "target_id": 1055
+        },
+        {
+          "source_id": 402,
+          "target_id": 1056
+        },
+        {
+          "source_id": 403,
+          "target_id": 1057
+        },
+        {
+          "source_id": 404,
+          "target_id": 1058
+        },
+        {
+          "source_id": 405,
+          "target_id": 1059
+        },
+        {
+          "source_id": 406,
+          "target_id": 1060
+        },
+        {
+          "source_id": 407,
+          "target_id": 1061
+        },
+        {
+          "source_id": 408,
+          "target_id": 1062
+        },
+        {
+          "source_id": 409,
+          "target_id": 1063
+        },
+        {
+          "source_id": 410,
+          "target_id": 1064
+        },
+        {
+          "source_id": 411,
+          "target_id": 1065
+        },
+        {
+          "source_id": 412,
+          "target_id": 1066
+        },
+        {
+          "source_id": 413,
+          "target_id": 1067
+        },
+        {
+          "source_id": 414,
+          "target_id": 1068
+        },
+        {
+          "source_id": 415,
+          "target_id": 1069
+        },
+        {
+          "source_id": 416,
+          "target_id": 1070
+        },
+        {
+          "source_id": 417,
+          "target_id": 1071
+        },
+        {
+          "source_id": 419,
+          "target_id": 1073
+        },
+        {
+          "source_id": 420,
+          "target_id": 1074
+        },
+        {
+          "source_id": 422,
+          "target_id": 1076
+        },
+        {
+          "source_id": 423,
+          "target_id": 1077
+        },
+        {
+          "source_id": 424,
+          "target_id": 1078
+        },
+        {
+          "source_id": 454,
+          "target_id": 1132
+        },
+        {
+          "source_id": 455,
+          "target_id": 1131
+        },
+        {
+          "source_id": 456,
+          "target_id": 1130
+        },
+        {
+          "source_id": 457,
+          "target_id": 1129
+        },
+        {
+          "source_id": 466,
+          "target_id": 1103
+        },
+        {
+          "source_id": 474,
+          "target_id": 1095
+        },
+        {
+          "source_id": 556,
+          "target_id": 1375
+        },
+        {
+          "source_id": 565,
+          "target_id": 1416
+        },
+        {
+          "source_id": 569,
+          "target_id": 1421
+        },
+        {
+          "source_id": 615,
+          "target_id": 1613
+        },
+        {
+          "source_id": 633,
+          "target_id": 1655
+        },
+        {
+          "source_id": 635,
+          "target_id": 1657
+        },
+        {
+          "source_id": 636,
+          "target_id": 1658
+        },
+        {
+          "source_id": 637,
+          "target_id": 1659
+        },
+        {
+          "source_id": 638,
+          "target_id": 1660
+        },
+        {
+          "source_id": 641,
+          "target_id": 1671
+        },
+        {
+          "source_id": 766,
+          "target_id": 2048
+        },
+        {
+          "source_id": 767,
+          "target_id": 2049
+        },
+        {
+          "source_id": 904,
+          "target_id": 2680
+        },
+        {
+          "source_id": 905,
+          "target_id": 2681
+        },
+        {
+          "source_id": 906,
+          "target_id": 2682
+        },
+        {
+          "source_id": 907,
+          "target_id": 2683
+        },
+        {
+          "source_id": 908,
+          "target_id": 2684
+        },
+        {
+          "source_id": 909,
+          "target_id": 2685
+        },
+        {
+          "source_id": 927,
+          "target_id": 2783
+        },
+        {
+          "source_id": 1027,
+          "target_id": 3120
+        },
+        {
+          "source_id": 1028,
+          "target_id": 3121
+        },
+        {
+          "source_id": 1029,
+          "target_id": 3122
+        },
+        {
+          "source_id": 1037,
+          "target_id": 3171
+        },
+        {
+          "source_id": 1038,
+          "target_id": 3172
+        },
+        {
+          "source_id": 1039,
+          "target_id": 3173
+        },
+        {
+          "source_id": 1046,
+          "target_id": 3191
+        },
+        {
+          "source_id": 1097,
+          "target_id": 3381
+        },
+        {
+          "source_id": 1098,
+          "target_id": 3382
+        },
+        {
+          "source_id": 1099,
+          "target_id": 3383
+        },
+        {
+          "source_id": 1110,
+          "target_id": 3441
+        },
+        {
+          "source_id": 1111,
+          "target_id": 3442
+        },
+        {
+          "source_id": 1112,
+          "target_id": 3443
+        },
+        {
+          "source_id": 1135,
+          "target_id": 3509
+        },
+        {
+          "source_id": 1176,
+          "target_id": 3650
+        },
+        {
+          "source_id": 1177,
+          "target_id": 3651
+        },
+        {
+          "source_id": 1178,
+          "target_id": 3652
+        },
+        {
+          "source_id": 1190,
+          "target_id": 3690
+        },
+        {
+          "source_id": 1407,
+          "target_id": 4387
+        },
+        {
+          "source_id": 1428,
+          "target_id": 4450
+        },
+        {
+          "source_id": 1429,
+          "target_id": 4451
+        },
+        {
+          "source_id": 1430,
+          "target_id": 4452
+        },
+        {
+          "source_id": 1501,
+          "target_id": 4696
+        },
+        {
+          "source_id": 1502,
+          "target_id": 4697
+        },
+        {
+          "source_id": 1503,
+          "target_id": 4698
+        },
+        {
+          "source_id": 1504,
+          "target_id": 4699
+        },
+        {
+          "source_id": 1505,
+          "target_id": 4700
+        },
+        {
+          "source_id": 1506,
+          "target_id": 4701
+        },
+        {
+          "source_id": 1507,
+          "target_id": 4702
+        },
+        {
+          "source_id": 1508,
+          "target_id": 4703
+        },
+        {
+          "source_id": 1509,
+          "target_id": 4704
+        },
+        {
+          "source_id": 1524,
+          "target_id": 4807
+        },
+        {
+          "source_id": 1525,
+          "target_id": 4808
+        },
+        {
+          "source_id": 1526,
+          "target_id": 4809
+        },
+        {
+          "source_id": 1549,
+          "target_id": 4903
+        },
+        {
+          "source_id": 1550,
+          "target_id": 4904
+        },
+        {
+          "source_id": 1551,
+          "target_id": 4905
+        },
+        {
+          "source_id": 1578,
+          "target_id": 4984
+        },
+        {
+          "source_id": 1581,
+          "target_id": 4989
+        },
+        {
+          "source_id": 1603,
+          "target_id": 5074
+        },
+        {
+          "source_id": 1604,
+          "target_id": 5077
+        },
+        {
+          "source_id": 1631,
+          "target_id": 5173
+        },
+        {
+          "source_id": 1632,
+          "target_id": 5176
+        },
+        {
+          "source_id": 1633,
+          "target_id": 5178
+        },
+        {
+          "source_id": 1680,
+          "target_id": 5381
+        },
+        {
+          "source_id": 2113,
+          "target_id": 6522
+        },
+        {
+          "source_id": 2428,
+          "target_id": 7161
+        },
+        {
+          "source_id": 2429,
+          "target_id": 7162
+        },
+        {
+          "source_id": 2430,
+          "target_id": 7163
+        },
+        {
+          "source_id": 2431,
+          "target_id": 7164
+        },
+        {
+          "source_id": 2432,
+          "target_id": 7165
+        },
+        {
+          "source_id": 2433,
+          "target_id": 7166
+        },
+        {
+          "source_id": 2434,
+          "target_id": 7167
+        },
+        {
+          "source_id": 2435,
+          "target_id": 7168
+        },
+        {
+          "source_id": 2436,
+          "target_id": 7169
+        },
+        {
+          "source_id": 2437,
+          "target_id": 7170
+        },
+        {
+          "source_id": 2438,
+          "target_id": 7171
+        },
+        {
+          "source_id": 2439,
+          "target_id": 7172
+        },
+        {
+          "source_id": 2440,
+          "target_id": 7173
+        },
+        {
+          "source_id": 2441,
+          "target_id": 7174
+        },
+        {
+          "source_id": 2442,
+          "target_id": 7175
+        },
+        {
+          "source_id": 2443,
+          "target_id": 7176
+        },
+        {
+          "source_id": 2444,
+          "target_id": 7177
+        },
+        {
+          "source_id": 2445,
+          "target_id": 7178
+        },
+        {
+          "source_id": 2446,
+          "target_id": 7179
+        },
+        {
+          "source_id": 2447,
+          "target_id": 7180
+        },
+        {
+          "source_id": 2448,
+          "target_id": 7181
+        },
+        {
+          "source_id": 2449,
+          "target_id": 7182
+        },
+        {
+          "source_id": 2450,
+          "target_id": 7183
+        },
+        {
+          "source_id": 2451,
+          "target_id": 7184
+        },
+        {
+          "source_id": 2452,
+          "target_id": 7185
+        },
+        {
+          "source_id": 2453,
+          "target_id": 7186
+        },
+        {
+          "source_id": 2454,
+          "target_id": 7187
+        },
+        {
+          "source_id": 2455,
+          "target_id": 7188
+        },
+        {
+          "source_id": 2456,
+          "target_id": 7189
+        },
+        {
+          "source_id": 2457,
+          "target_id": 7190
+        },
+        {
+          "source_id": 2458,
+          "target_id": 7191
+        },
+        {
+          "source_id": 2459,
+          "target_id": 7192
+        },
+        {
+          "source_id": 2460,
+          "target_id": 7193
+        },
+        {
+          "source_id": 2461,
+          "target_id": 7194
+        },
+        {
+          "source_id": 2462,
+          "target_id": 7195
+        },
+        {
+          "source_id": 2463,
+          "target_id": 7196
+        },
+        {
+          "source_id": 3036,
+          "target_id": 8779
+        },
+        {
+          "source_id": 3047,
+          "target_id": 8811
+        },
+        {
+          "source_id": 3048,
+          "target_id": 8812
+        },
+        {
+          "source_id": 3049,
+          "target_id": 8813
+        },
+        {
+          "source_id": 3050,
+          "target_id": 8814
+        },
+        {
+          "source_id": 3051,
+          "target_id": 8815
+        },
+        {
+          "source_id": 3052,
+          "target_id": 8816
+        },
+        {
+          "source_id": 3053,
+          "target_id": 8817
+        },
+        {
+          "source_id": 3081,
+          "target_id": 8934
+        },
+        {
+          "source_id": 3102,
+          "target_id": 8953
+        },
+        {
+          "source_id": 3103,
+          "target_id": 8954
+        },
+        {
+          "source_id": 3114,
+          "target_id": 9045
+        },
+        {
+          "source_id": 3115,
+          "target_id": 9046
+        },
+        {
+          "source_id": 3116,
+          "target_id": 9047
+        },
+        {
+          "source_id": 5079,
+          "target_id": 10959
+        },
+        {
+          "source_id": 5080,
+          "target_id": 10960
+        },
+        {
+          "source_id": 5176,
+          "target_id": 11144
+        },
+        {
+          "source_id": 5177,
+          "target_id": 11145
+        },
+        {
+          "source_id": 5178,
+          "target_id": 11146
+        },
+        {
+          "source_id": 5179,
+          "target_id": 11147
+        },
+        {
+          "source_id": 5180,
+          "target_id": 11148
+        },
+        {
+          "source_id": 5182,
+          "target_id": 11157
+        },
+        {
+          "source_id": 5183,
+          "target_id": 11158
+        },
+        {
+          "source_id": 5184,
+          "target_id": 11159
+        },
+        {
+          "source_id": 5185,
+          "target_id": 11160
+        },
+        {
+          "source_id": 5186,
+          "target_id": 11161
+        },
+        {
+          "source_id": 5202,
+          "target_id": 11200
+        },
+        {
+          "source_id": 5918,
+          "target_id": 13082
+        },
+        {
+          "source_id": 5919,
+          "target_id": 13083
+        },
+        {
+          "source_id": 5920,
+          "target_id": 13084
+        },
+        {
+          "source_id": 5921,
+          "target_id": 13085
+        },
+        {
+          "source_id": 5922,
+          "target_id": 13086
+        },
+        {
+          "source_id": 5923,
+          "target_id": 13087
+        },
+        {
+          "source_id": 5924,
+          "target_id": 13088
+        },
+        {
+          "source_id": 5927,
+          "target_id": 13098
+        },
+        {
+          "source_id": 8832,
+          "target_id": 17708
+        },
+        {
+          "source_id": 8862,
+          "target_id": 17783
+        },
+        {
+          "source_id": 8863,
+          "target_id": 17784
+        },
+        {
+          "source_id": 8864,
+          "target_id": 17785
+        },
+        {
+          "source_id": 8865,
+          "target_id": 17786
+        },
+        {
+          "source_id": 8866,
+          "target_id": 17787
+        },
+        {
+          "source_id": 8867,
+          "target_id": 17788
+        },
+        {
+          "source_id": 8990,
+          "target_id": 18054
+        },
+        {
+          "source_id": 8991,
+          "target_id": 18055
+        },
+        {
+          "source_id": 8992,
+          "target_id": 18056
+        },
+        {
+          "source_id": 8993,
+          "target_id": 18057
+        },
+        {
+          "source_id": 8994,
+          "target_id": 18058
+        },
+        {
+          "source_id": 8995,
+          "target_id": 18059
+        },
+        {
+          "source_id": 8996,
+          "target_id": 18060
+        },
+        {
+          "source_id": 9024,
+          "target_id": 18177
+        }
+      ],
+      "status": "REVIEW",
+      "follow_up": "Source observations for #170/#175; no fabricated objective or deleted raw record."
+    },
+    {
+      "relation": "achievement_objectives.achievementId",
+      "target": "achievements",
+      "checked": 8923,
+      "missing_count": 102,
+      "missing": [
+        {
+          "source_id": 7286,
+          "target_id": 2553
+        },
+        {
+          "source_id": 8587,
+          "target_id": 2903
+        },
+        {
+          "source_id": 8588,
+          "target_id": 2904
+        },
+        {
+          "source_id": 8589,
+          "target_id": 2905
+        },
+        {
+          "source_id": 8590,
+          "target_id": 2906
+        },
+        {
+          "source_id": 8591,
+          "target_id": 2907
+        },
+        {
+          "source_id": 8592,
+          "target_id": 2908
+        },
+        {
+          "source_id": 8593,
+          "target_id": 2909
+        },
+        {
+          "source_id": 8594,
+          "target_id": 2910
+        },
+        {
+          "source_id": 8595,
+          "target_id": 2911
+        },
+        {
+          "source_id": 8596,
+          "target_id": 2912
+        },
+        {
+          "source_id": 8597,
+          "target_id": 2913
+        },
+        {
+          "source_id": 8598,
+          "target_id": 2914
+        },
+        {
+          "source_id": 8599,
+          "target_id": 2915
+        },
+        {
+          "source_id": 8600,
+          "target_id": 2916
+        },
+        {
+          "source_id": 8601,
+          "target_id": 2917
+        },
+        {
+          "source_id": 8602,
+          "target_id": 2918
+        },
+        {
+          "source_id": 8603,
+          "target_id": 2919
+        },
+        {
+          "source_id": 8604,
+          "target_id": 2920
+        },
+        {
+          "source_id": 8605,
+          "target_id": 2921
+        },
+        {
+          "source_id": 8606,
+          "target_id": 2922
+        },
+        {
+          "source_id": 8607,
+          "target_id": 2923
+        },
+        {
+          "source_id": 8608,
+          "target_id": 2924
+        },
+        {
+          "source_id": 8609,
+          "target_id": 2925
+        },
+        {
+          "source_id": 8610,
+          "target_id": 2926
+        },
+        {
+          "source_id": 8611,
+          "target_id": 2927
+        },
+        {
+          "source_id": 8612,
+          "target_id": 2928
+        },
+        {
+          "source_id": 8613,
+          "target_id": 2929
+        },
+        {
+          "source_id": 8614,
+          "target_id": 2930
+        },
+        {
+          "source_id": 8615,
+          "target_id": 2931
+        },
+        {
+          "source_id": 8616,
+          "target_id": 2932
+        },
+        {
+          "source_id": 8617,
+          "target_id": 2933
+        },
+        {
+          "source_id": 8618,
+          "target_id": 2934
+        },
+        {
+          "source_id": 8619,
+          "target_id": 2935
+        },
+        {
+          "source_id": 8620,
+          "target_id": 2936
+        },
+        {
+          "source_id": 8621,
+          "target_id": 2937
+        },
+        {
+          "source_id": 8622,
+          "target_id": 2938
+        },
+        {
+          "source_id": 8623,
+          "target_id": 2939
+        },
+        {
+          "source_id": 8624,
+          "target_id": 2940
+        },
+        {
+          "source_id": 8625,
+          "target_id": 2941
+        },
+        {
+          "source_id": 8626,
+          "target_id": 2942
+        },
+        {
+          "source_id": 8627,
+          "target_id": 2943
+        },
+        {
+          "source_id": 8628,
+          "target_id": 2944
+        },
+        {
+          "source_id": 8629,
+          "target_id": 2945
+        },
+        {
+          "source_id": 8630,
+          "target_id": 2946
+        },
+        {
+          "source_id": 8631,
+          "target_id": 2947
+        },
+        {
+          "source_id": 8632,
+          "target_id": 2948
+        },
+        {
+          "source_id": 8633,
+          "target_id": 2949
+        },
+        {
+          "source_id": 8634,
+          "target_id": 2950
+        },
+        {
+          "source_id": 8635,
+          "target_id": 2951
+        },
+        {
+          "source_id": 8636,
+          "target_id": 2952
+        },
+        {
+          "source_id": 8637,
+          "target_id": 2953
+        },
+        {
+          "source_id": 8638,
+          "target_id": 2954
+        },
+        {
+          "source_id": 8639,
+          "target_id": 2955
+        },
+        {
+          "source_id": 8640,
+          "target_id": 2956
+        },
+        {
+          "source_id": 8641,
+          "target_id": 2957
+        },
+        {
+          "source_id": 8642,
+          "target_id": 2958
+        },
+        {
+          "source_id": 8643,
+          "target_id": 2959
+        },
+        {
+          "source_id": 8644,
+          "target_id": 2960
+        },
+        {
+          "source_id": 8645,
+          "target_id": 2961
+        },
+        {
+          "source_id": 8646,
+          "target_id": 2962
+        },
+        {
+          "source_id": 8647,
+          "target_id": 2963
+        },
+        {
+          "source_id": 8648,
+          "target_id": 2964
+        },
+        {
+          "source_id": 8649,
+          "target_id": 2965
+        },
+        {
+          "source_id": 8650,
+          "target_id": 2967
+        },
+        {
+          "source_id": 8651,
+          "target_id": 2968
+        },
+        {
+          "source_id": 8652,
+          "target_id": 2969
+        },
+        {
+          "source_id": 8653,
+          "target_id": 2970
+        },
+        {
+          "source_id": 8654,
+          "target_id": 2971
+        },
+        {
+          "source_id": 8655,
+          "target_id": 2972
+        },
+        {
+          "source_id": 11340,
+          "target_id": 5256
+        },
+        {
+          "source_id": 11346,
+          "target_id": 5262
+        },
+        {
+          "source_id": 11352,
+          "target_id": 5268
+        },
+        {
+          "source_id": 11358,
+          "target_id": 5274
+        },
+        {
+          "source_id": 11373,
+          "target_id": 5289
+        },
+        {
+          "source_id": 11385,
+          "target_id": 5301
+        },
+        {
+          "source_id": 11400,
+          "target_id": 5316
+        },
+        {
+          "source_id": 11415,
+          "target_id": 5331
+        },
+        {
+          "source_id": 11430,
+          "target_id": 5346
+        },
+        {
+          "source_id": 11448,
+          "target_id": 5364
+        },
+        {
+          "source_id": 11466,
+          "target_id": 5382
+        },
+        {
+          "source_id": 11478,
+          "target_id": 5394
+        },
+        {
+          "source_id": 11487,
+          "target_id": 5403
+        },
+        {
+          "source_id": 11505,
+          "target_id": 5421
+        },
+        {
+          "source_id": 11523,
+          "target_id": 5439
+        },
+        {
+          "source_id": 11535,
+          "target_id": 5451
+        },
+        {
+          "source_id": 11547,
+          "target_id": 5463
+        },
+        {
+          "source_id": 11568,
+          "target_id": 5484
+        },
+        {
+          "source_id": 11580,
+          "target_id": 5496
+        },
+        {
+          "source_id": 11592,
+          "target_id": 5508
+        },
+        {
+          "source_id": 11613,
+          "target_id": 5529
+        },
+        {
+          "source_id": 11625,
+          "target_id": 5541
+        },
+        {
+          "source_id": 11637,
+          "target_id": 5553
+        },
+        {
+          "source_id": 11661,
+          "target_id": 5577
+        },
+        {
+          "source_id": 11673,
+          "target_id": 5589
+        },
+        {
+          "source_id": 11688,
+          "target_id": 5604
+        },
+        {
+          "source_id": 11700,
+          "target_id": 5616
+        },
+        {
+          "source_id": 11715,
+          "target_id": 5631
+        },
+        {
+          "source_id": 11739,
+          "target_id": 5655
+        },
+        {
+          "source_id": 17868,
+          "target_id": 8899
+        },
+        {
+          "source_id": 17872,
+          "target_id": 8901
+        },
+        {
+          "source_id": 17878,
+          "target_id": 8904
+        }
+      ],
+      "status": "REVIEW",
+      "follow_up": "Source observations for #170/#175; no fabricated objective or deleted raw record."
+    },
+    {
+      "relation": "recipes.resultId",
+      "target": "items",
+      "checked": 4743,
+      "missing_count": 0,
+      "missing": [],
+      "status": "PASS"
+    },
+    {
+      "relation": "recipes.jobId",
+      "target": "jobs",
+      "checked": 4743,
+      "missing_count": 0,
+      "missing": [],
+      "status": "PASS"
+    },
+    {
+      "relation": "recipes.ingredientIds",
+      "target": "items",
+      "checked": 24591,
+      "missing_count": 0,
+      "missing": [],
+      "status": "PASS"
+    },
+    {
+      "relation": "recipes.quantities",
+      "checked": 4743,
+      "invalid_result_ids": [],
+      "status": "PASS"
+    }
+  ],
+  "relation_status": "REVIEW",
+  "limitations": [
+    "Only public sources explicitly owned by Quest/Craft build locks are read.",
+    "Missing raw links are observations, not proof of a player-visible defect.",
+    "Private progression/configuration is neither read nor fingerprinted."
+  ],
+  "application_base_sha": "e109913698ed84b25c7873d70303d83391732cce",
+  "evidence_scope": "Preliminary public dataset audit; final exact-candidate before/after evidence is emitted by Phase Certification CI."
+}

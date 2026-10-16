@@ -172,7 +172,8 @@ def finish_launcher_upgrade(candidate: Path, digest: str, parent_pid: int,
     local = os.environ.get("LOCALAPPDATA")
     if not local:
         raise RuntimeError("LOCALAPPDATA missing")
-    allowed = (Path(local) / "DofusAtlas" / "runtime" / "downloads").resolve()
+    from .install_location import runtime_root
+    allowed = (runtime_root() / "downloads").resolve()
     if candidate.is_symlink() or not candidate.is_file() or not candidate.resolve().is_relative_to(allowed):
         raise ValueError("Upgrade source is outside verified updater cache")
     if target.is_symlink() or not target.is_file():
@@ -255,7 +256,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"Installation Atlas impossible : {exc}", file=sys.stderr)
-        if os.name == "nt":
+        # Automated --no-launch installs must fail via exit code, never a modal
+        # dialog that can block the headless Windows release certification.
+        if os.name == "nt" and not args.no_launch:
             import ctypes
             ctypes.windll.user32.MessageBoxW(
                 None, str(exc), "Installation Dofus Atlas", 0x10

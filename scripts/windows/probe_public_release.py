@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import urllib.request
 import os
 import subprocess
 import sys
@@ -102,7 +103,7 @@ def download_public_setup(doc: dict, release, folder: Path) -> Path:
 def verify_frozen_setup(setup: Path, release) -> None:
     if os.name != "nt":
         raise UpdateError("Frozen Setup smoke requires a Windows runner")
-    result = subprocess.run([str(setup), "--no-launch"], timeout=150,
+    result = subprocess.run([str(setup), "--no-launch"], cwd=setup.parent, timeout=150,
                             capture_output=True, text=True, check=False)
     if result.returncode != 0:
         raise UpdateError(f"Published Setup failed: {result.returncode}: {result.stderr[-400:]}")
@@ -148,7 +149,9 @@ def verify_full_first_install(release, *, deadline_seconds: int = 2700) -> None:
         "QTWEBENGINE_DISABLE_SANDBOX": "1",
     })
     print("Starting actual public launcher and multi-GB first installation", flush=True)
-    proc = subprocess.Popen([str(launcher)], cwd=str(launcher.parent), env=env)
+    # CI runs unattended; interactive installs offer a directory picker instead.
+    proc = subprocess.Popen([str(launcher), "--atlas-auto-install"],
+                            cwd=str(launcher.parent), env=env)
     deadline = time.monotonic() + deadline_seconds
     try:
         while time.monotonic() < deadline:
@@ -182,6 +185,26 @@ def verify_full_first_install(release, *, deadline_seconds: int = 2700) -> None:
         if proc.poll() is None:
             proc.terminate()
 
+def _ci_release_metadata() -> dict:
+    """Use the Actions token for API metadata only; never send it to CDN assets."""
+    token = os.environ.get("ATLAS_CI_GITHUB_TOKEN", "")
+    if not token:
+        return json.loads(_read_limited(API_URL, 1024 * 1024))
+    request = urllib.request.Request(API_URL, headers={
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "DofusAtlas-PublicSmoke/1",
+    })
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            payload = response.read(1024 * 1024 + 1)
+    except (OSError, urllib.error.URLError) as exc:
+        raise UpdateError(f"Authenticated GitHub release metadata failed: {exc}") from exc
+    if len(payload) > 1024 * 1024:
+        raise UpdateError("Authenticated release metadata exceeds limit")
+    return json.loads(payload)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--expected-source-sha", default="")
@@ -195,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
         report["source_sha"] = release.manifest.source_sha
         if args.expected_source_sha and release.manifest.source_sha != args.expected_source_sha:
             raise UpdateError("Latest public Release is not the certified distribution SHA")
-        doc = json.loads(_read_limited(API_URL, 1024 * 1024))
+        doc = _ci_release_metadata()
         if doc.get("draft") or doc.get("prerelease") or doc.get("tag_name") != release.tag:
             raise UpdateError("Public API release tag does not match latest stable manifest")
         verify_published_digests(doc, release)
