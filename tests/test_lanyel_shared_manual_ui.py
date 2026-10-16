@@ -197,6 +197,17 @@ class LanyelSharedManualUiTests(unittest.TestCase):
 
             combat_checks = card.findChildren(QCheckBox, "GuideManualCombatCheck")
             self.assertTrue(combat_checks)
+            headings = card.findChildren(QLabel, "GuideManualCombatTargetsTitle")
+            self.assertTrue(headings)
+            self.assertTrue(all(heading.text() == "Faire les combats :" for heading in headings))
+            self.assertTrue(
+                all(
+                    checkbox.text().startswith("×")
+                    and " — " not in checkbox.text()
+                    and checkbox.toolTip()
+                    for checkbox in combat_checks
+                )
+            )
             self.assertTrue(
                 all(
                     checkbox.parentWidget() is not None
