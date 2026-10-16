@@ -23,6 +23,19 @@ exige également le code zéro) ; DR-017 reste BLOCKED devant protection GitHub
 403/404 ; DR-018 impose FULL quand le plan Doctor est illisible. Les nouveaux
 tests couvrent ces cas sans changer ou affaiblir les gates.
 
+Le passage réel par pre-push a également reproduit une contamination des dépôts
+temporaires Doctor par les variables Git héritées du hook (`GIT_DIR`, index,
+worktree et common-dir). Le contrôle refuse alors l’envoi ; des commits et
+configurations de fixture peuvent viser le dépôt appelant. Le candidat propre
+a été restauré depuis son commit conservé, sans envoi distant de ces fixtures.
+Le hook transmet maintenant au gate une copie de l’environnement nettoyée de
+la liste canonique `git rev-parse --local-env-vars`. Le contexte du pré-commit,
+y compris son index alternatif, reste conservé. Une régression avec deux vrais
+dépôts Git vérifie HEAD, index et configuration du dépôt externe inchangés.
+34 tests hooks/Doctor passent. Graphify avant ce correctif sur le SHA propre
+`6e6347c11438d3d90d5198b8d87919c039f826e2` : 16 nœuds / 52 arêtes du périmètre
+hook/test/entrypoints examinés, puis consumers shell/PowerShell relus.
+
 PC-09 : les sept modules widgets sont exposés par le contrat public lazy ;
 tests de dispatch réel Qt et d’identité de type préservés. Les scans
 `consumer-sites` des huit candidats atteignent leur budget : ils ne prouvent
