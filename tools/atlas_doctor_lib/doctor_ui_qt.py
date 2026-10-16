@@ -427,19 +427,24 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     automatic = view.service.card_auto_complete(view.character_key, card)
     session.check("no-game-proof", "Evaluate automatic completion on blank profile", False, automatic, not automatic, page)
     button = view.findChild(QPushButton, "GuideManualPageCheck")
+    initial = view.service.page_checked("character:990000001", card, 0)
+    expected_manual = not initial
     click = click_target(page, button)
     view.service.reload_progress()
     saved = view.service.page_checked("character:990000001", card, 0)
-    session.check("manual-persist", "QTest Valider then reload canonical services", "Page 1 persisted checked",
-                  {"click": click, "saved": saved}, click["accessible"] and saved, page)
+    session.check("manual-persist", "QTest Valider then reload canonical services", "Page 1 toggle persisted",
+                  {"click": click, "initial": initial, "saved": saved},
+                  click["accessible"] and saved == expected_manual, page)
     view.set_character_key("character:990000002")
     isolated = not view.service.page_checked("character:990000002", card, 0)
     view.set_character_key("character:990000001")
     view._show_index(0)
     settle()
     restored = view.findChild(QPushButton, "GuideManualPageCheck").isChecked()
-    session.check("character-isolation", "Switch character, reload then return", "Other character clear; original check restored",
-                  {"other_clear": isolated, "original_checked": restored}, isolated and restored, page)
+    session.check("character-isolation", "Switch character, reload then return", "Other character clear; original state restored",
+                  {"other_clear": isolated, "original_checked": restored,
+                   "expected_original_checked": expected_manual},
+                  isolated and restored == expected_manual, page)
     if not smoke:
         combat = None
         # Bound scene discovery; never traverse the entire Guide or hydrate all quests.

@@ -58,6 +58,26 @@ class QuestDetails:
         # so the first rich Quest detail rebuilt indexes from monolithic JSON in
         # Atlas' long-lived process and caused the Guide memory spike.
         self._sources = QuestSources(path.parent / "source_offsets")
+        with _connect(path) as connection:
+            context_row = connection.execute(
+                "SELECT value FROM metadata WHERE key='detail_context'"
+            ).fetchone()
+        if context_row is not None:
+            raw_context = json.loads(context_row[0])
+            self._sources.context.update(
+                achievement_names={
+                    int(key): str(value)
+                    for key, value in raw_context.get("achievement_names", {}).items()
+                },
+                quest_names={
+                    int(key): str(value)
+                    for key, value in raw_context.get("quest_names", {}).items()
+                },
+                quest_to_achievements={
+                    int(key): [str(value) for value in values]
+                    for key, values in raw_context.get("quest_to_achievements", {}).items()
+                },
+            )
         self._objective_step_index_checked = False
         self._records: OrderedDict[int, qc.QuestRecord] = OrderedDict()
         self._summaries: OrderedDict[
@@ -273,7 +293,7 @@ def ensure_lazy_catalog_cache(
         connection.execute("BEGIN IMMEDIATE")
         ready = connection.execute("SELECT value FROM metadata WHERE key='ready'").fetchone()
         if ready is None:
-            records, series = _source_index(data_dir)
+            records, series, detail_context = _source_index(data_dir)
             objective_step_ids: dict[int, list[int]] = {}
             guide_evidence = _guide_evidence_index(
                 data_dir, objective_step_ids=objective_step_ids
@@ -301,6 +321,10 @@ def ensure_lazy_catalog_cache(
             connection.execute(
                 "INSERT OR REPLACE INTO metadata VALUES ('series', ?)",
                 (_json([asdict(item) for item in series]),),
+            )
+            connection.execute(
+                "INSERT OR REPLACE INTO metadata VALUES ('detail_context', ?)",
+                (_json(detail_context),),
             )
             # Guide evidence already scanned the objective source. Persist its
             # tiny step -> objective-id lookup in the same signed SQLite cache,
@@ -605,7 +629,12 @@ def _source_index(data_dir):
             achievement_names,
             entries,
         )
-        return records, series
+        detail_context = {
+            "achievement_names": achievement_names,
+            "quest_names": quest_names,
+            "quest_to_achievements": linked_achievements,
+        }
+        return records, series, detail_context
     finally:
         sources.close()
 

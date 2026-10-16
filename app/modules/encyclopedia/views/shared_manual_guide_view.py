@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -557,6 +558,11 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             text += f" — {quest_name}"
         checkbox = QCheckBox(text)
         checkbox.setObjectName("GuideManualCombatCheck")
+        # Long quest names must not impose their unbounded sizeHint on the
+        # complete route sheet. The full label remains available as text and
+        # tooltip while the row follows the viewport width.
+        checkbox.setMinimumWidth(0)
+        checkbox.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         checkbox.setStyleSheet(
             "QCheckBox#GuideManualCombatCheck { background: transparent; border: none; }"
         )
@@ -572,7 +578,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         )
         checkbox.setChecked(checked)
         checkbox.setProperty("state", "done" if checked else "todo")
-        checkbox.setToolTip("Progression partagée avec l’objectif de la fiche Quête.")
+        checkbox.setToolTip(
+            f"{text}\nProgression partagée avec l’objectif de la fiche Quête."
+        )
         checkbox.toggled.connect(
             lambda value, qid=quest_id, oid=objective_id, box=checkbox: self._combat_toggled(
                 qid,

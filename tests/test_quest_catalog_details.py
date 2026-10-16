@@ -28,7 +28,15 @@ def record(quest_id):
 
 class QuestDetailsTests(unittest.TestCase):
     def build(self, root, limit=32):
-        with patch("app.quest_catalog_details._source_index", return_value=([record(1), record(2), record(3)], ())):
+        context = {
+            "achievement_names": {10: "Succès test"},
+            "quest_names": {1: "Quête 1", 2: "Quête 2", 3: "Quête 3"},
+            "quest_to_achievements": {1: ["Succès test"]},
+        }
+        with patch(
+            "app.quest_catalog_details._source_index",
+            return_value=([record(1), record(2), record(3)], (), context),
+        ):
             catalog = load_lazy_catalog(root, cache_root=root / 'cache')
         catalog.quests[0]._details.limit = limit
         return catalog
@@ -141,6 +149,11 @@ class QuestDetailsTests(unittest.TestCase):
             self.assertEqual(
                 details._sources.cache_root,
                 (root / "cache" / "source_offsets"),
+            )
+            self.assertEqual(details._sources.context["quest_names"][1], "Quête 1")
+            self.assertEqual(
+                details._sources.context["quest_to_achievements"][1],
+                ["Succès test"],
             )
 
     def test_index_does_not_compile_details_and_a_b_a_reuses_data(self):
@@ -293,7 +306,14 @@ class QuestDetailsTests(unittest.TestCase):
     def test_explicit_search_compiles_bounded_batches_without_filling_details(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            with patch('app.quest_catalog_details._source_index', return_value=([record(i) for i in range(70)], ())):
+            with patch(
+                'app.quest_catalog_details._source_index',
+                return_value=([record(i) for i in range(70)], (), {
+                    "achievement_names": {},
+                    "quest_names": {},
+                    "quest_to_achievements": {},
+                }),
+            ):
                 catalog = load_lazy_catalog(root, cache_root=root / 'cache')
             with patch.object(QuestCatalog, '_load_source', side_effect=self.compile) as load:
                 self.assertEqual(len(catalog.load_search_documents()), 70)
