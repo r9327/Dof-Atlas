@@ -1,17 +1,7 @@
 name: JSON Focused Data Contract
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "tools/atlas_json_*.py"
-      - "tests/test_atlas_json_*.py"
-      - "app/quest_source_index.py"
-      - "app/modules/encyclopedia/services/guide_path_profiles.py"
-      - "tests/test_guide_prerequisite_lookup.py"
-      - "data/encyclopedia/quests/*.json"
-      - "data/large_file_contracts.json"
-      - ".github/workflows/json-focused-data-contract.yml"
+  workflow_call:
   workflow_dispatch:
 
 permissions:

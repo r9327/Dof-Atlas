@@ -52,6 +52,16 @@ def jobs(*, failed_step=None, skipped_full=False):
 
 
 class MainPhaseEvidenceTests(unittest.TestCase):
+    def test_full_proof_with_doctor_jobs_still_requires_unique_complete_full(self):
+        body = jobs()
+        body['jobs'].insert(0, {'name': 'Doctor / CI Plan', 'conclusion': 'success'})
+        body['total_count'] = 2
+        self.assertTrue(verify_jobs(body, head_sha=SHA)['phase_full_host_verified'])
+        body['jobs'].append(body['jobs'][1].copy())
+        body['total_count'] = 3
+        with self.assertRaises(ValueError):
+            verify_jobs(body, head_sha=SHA)
+
     def test_verified_exact_sha_host_success_reuses_only_full(self):
         run_id = verify_event(event(), repository=REPO, head_sha=SHA)
         proof = verify_jobs(jobs(), head_sha=SHA)

@@ -1,25 +1,6 @@
 name: Atlas Windows Distribution
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - "app/distribution/**"
-      - "scripts/windows/package_release.py"
-      - "scripts/windows/quest_assets.py"
-      - "scripts/windows/quest_assets_lock.json"
-      - "scripts/windows/craft_seed.py"
-      - "scripts/windows/craft_assets_lock.json"
-      - "local_dofus_data/config.py"
-      - "app/craft_preload.py"
-      - "scripts/windows/repackage_data_only.py"
-      - "scripts/windows/export_app_repository.py"
-      - "scripts/windows/certify_app_export.py"
-      - "scripts/windows/atlas_launcher_entry.py"
-      - "tests/test_distribution_*.py"
-      - "main.py"
-      - "launch.py"
-      - "app/constants.py"
-      - ".github/workflows/atlas-windows-distribution.yml"
+  workflow_call:
   workflow_dispatch:
   workflow_run:
     workflows: ["Phase Certification"]

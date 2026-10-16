@@ -47,12 +47,12 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
                     self.assertIn("contents: read", source)
 
     def test_public_pr_blocks_vulnerable_dependency_changes_fail_closed(self) -> None:
-        source = self._workflow("public-pr-ci.yml")
+        source = self._workflow("phase-certification.yml")
         self.assertIn("actions/dependency-review-action@", source)
         self.assertIn("fail-on-severity: low", source)
         self.assertIn("fail-on-scopes: development, runtime, unknown", source)
         self.assertIn("id: dependency_review", source)
-        self.assertEqual(source.count("continue-on-error: true"), 1)
+        self.assertEqual(source.split("  pr-fast-validation:", 1)[1].split("  certification-policy:", 1)[0].count("continue-on-error: true"), 1)
         self.assertIn("steps.dependency_review.outcome", source)
         self.assertIn("throw \"Dependency Review must succeed", source)
         self.assertIn("tests.test_security_hardening_guardrails", source)
@@ -115,7 +115,7 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
 
     def test_ci_installs_authenticated_lock_without_dependency_resolution(self) -> None:
         command = "pip install --require-hashes --no-deps -r requirements-pyside.txt"
-        for name in ("app-ci.yml", "public-pr-ci.yml", "deep-validation.yml"):
+        for name in ("app-ci.yml", "phase-certification.yml", "deep-validation.yml"):
             source = self._workflow(name)
             with self.subTest(name=name):
                 self.assertIn(command, source)

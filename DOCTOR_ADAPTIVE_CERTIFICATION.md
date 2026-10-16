@@ -1,5 +1,13 @@
 # Doctor Atlas — Adaptive Certification Architecture
 
+## Point d'entrée CI unique
+
+Le workflow historique `phase-certification.yml` commence par `Doctor / CI Plan`.
+Voir `PHASE_CERTIFICATION.md` pour le routage automatique PR/main, la sélection
+expliquée des workflows réutilisables et le verdict agrégé. Les anciens filtres
+par titre/branche sont remplacés par le diff exact-SHA. Les garanties de FULL et
+les budgets restent exigés ; un plan adaptatif ne certifie pas une phase.
+
 ## Goal
 
 Make Doctor the **single planning interface** for test selection and impact

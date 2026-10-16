@@ -64,9 +64,12 @@ def verify_jobs(jobs_response: dict, *, head_sha: str) -> dict:
         raise ValueError("Missing host job result")
     jobs = jobs_response.get("jobs")
     if (not isinstance(jobs, list) or jobs_response.get("total_count") != len(jobs)
-            or len(jobs) != 1):
-        raise ValueError("Expected complete single-job Phase FULL response")
-    job = jobs[0]
+            or not jobs):
+        raise ValueError("Expected complete Doctor workflow jobs response")
+    full_jobs = [j for j in jobs if isinstance(j, dict) and j.get("name") == PHASE_JOB]
+    if len(full_jobs) != 1:
+        raise ValueError("Missing or ambiguous Phase FULL job")
+    job = full_jobs[0]
     if (not isinstance(job, dict) or job.get("name") != PHASE_JOB
             or job.get("status") != "completed"
             or job.get("conclusion") != "success"

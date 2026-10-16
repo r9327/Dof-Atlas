@@ -182,7 +182,25 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
     }
 
 
-def plan_ui(root: Path, base: str, candidate: str, forced=()) -> dict:
+def exhaustive_review_plan(report: dict) -> dict:
+    """Run every registered UI scenario when impact cannot safely narrow the set.
+
+    This never expands the evidence claim beyond the known scenario registry;
+    canonical FULL remains independently required for unknown product impact.
+    """
+    if report['status'] != 'REVIEW_REQUIRED':
+        return report
+    result = dict(report)
+    result.update(status='UI_REQUIRED', selected_scenarios=sorted(SCENARIOS),
+                  excluded_scenarios=[], exhaustive_on_review=True)
+    result['reason_per_scenario'] = {
+        scenario: ['Exhaustive registered UI campaign: impact uncertainty']
+        for scenario in SCENARIOS
+    }
+    return result
+
+
+def plan_ui(root: Path, base: str, candidate: str, forced=(), *, exhaustive_on_review=False) -> dict:
     actual = git_value(root, "rev-parse", "HEAD")
     valid = actual == candidate and not git_value(root, "status", "--porcelain")
     try:
@@ -190,8 +208,9 @@ def plan_ui(root: Path, base: str, candidate: str, forced=()) -> dict:
         paths, deleted = changed_paths(root, base_sha)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
         base_sha, paths, deleted, valid = "", [], [], False
-    return classify_ui(root, paths, candidate_sha=candidate, base_sha=base_sha,
-                       deleted=deleted, forced=forced, diff_valid=valid)
+    report = classify_ui(root, paths, candidate_sha=candidate, base_sha=base_sha,
+                         deleted=deleted, forced=forced, diff_valid=valid)
+    return exhaustive_review_plan(report) if valid and exhaustive_on_review else report
 
 
 def campaign_verdict(plan: dict, reports: list[dict], candidate: str) -> dict:
@@ -258,12 +277,13 @@ def main(argv=None) -> int:
     parser.add_argument("--plan", type=Path, default=ROOT / ".ai/runtime/atlas_doctor/ui_ci_selection.json")
     parser.add_argument("--force", choices=SCENARIOS, action="append", default=[])
     parser.add_argument("--github-output", type=Path)
+    parser.add_argument("--exhaustive-on-review", action="store_true", help="Run all registered scenarios for uncertain verified diffs; never waive FULL")
     parser.add_argument("--evidence-root", type=Path, default=ROOT / ".ai/runtime/atlas_doctor/ui")
     args = parser.parse_args(argv)
     if args.action == "plan":
         if not args.base_ref:
             parser.error("plan requires --base-ref")
-        report = plan_ui(ROOT, args.base_ref, args.candidate_sha, args.force)
+        report = plan_ui(ROOT, args.base_ref, args.candidate_sha, args.force, exhaustive_on_review=args.exhaustive_on_review)
         write_json(args.plan, report)
         if args.github_output:
             with args.github_output.open("a", encoding="utf-8") as stream:
@@ -272,7 +292,7 @@ def main(argv=None) -> int:
     else:
         plan = json.loads(args.plan.read_text(encoding="utf-8"))
         if args.action == "run":
-            checked = plan_ui(ROOT, plan["base_sha"], args.candidate_sha, plan.get("forced_scenarios", []))
+            checked = plan_ui(ROOT, plan["base_sha"], args.candidate_sha, plan.get("forced_scenarios", []), exhaustive_on_review=plan.get("exhaustive_on_review", False))
             if checked != plan or plan["status"] != "UI_REQUIRED":
                 raise ValueError("UI plan cannot be reproduced at the clean exact candidate")
             report = run_ui(ROOT, scenarios=plan["selected_scenarios"], mode="all")

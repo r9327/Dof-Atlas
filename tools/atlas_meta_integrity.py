@@ -427,14 +427,16 @@ def check_ci_contracts(root: Path) -> list[str]:
     runner = runner_path.read_text(encoding="utf-8-sig")
     issues.extend(check_full_discovery_source(app))
 
-    public_pr_path = root / ".github/workflows/public-pr-ci.yml"
+    public_pr_path = root / ".github/workflows/phase-certification.yml"
     if not public_pr_path.is_file():
-        issues.append("CI owner missing: .github/workflows/public-pr-ci.yml")
+        issues.append("CI owner missing: .github/workflows/phase-certification.yml")
         return issues
     public_pr = public_pr_path.read_text(encoding="utf-8-sig")
 
-    if re.search(r"^\s*push:\s*$", app, re.MULTILINE) is None:
-        issues.append("application CI automatic push trigger missing")
+    if "workflow_call:" not in app:
+        issues.append("application CI Doctor callable entry missing")
+    if re.search(r"^\s*push:\s*$", public_pr, re.MULTILINE) is None:
+        issues.append("Doctor automatic main push trigger missing")
     if "pull_request:" in app:
         issues.append("self-hosted application CI must not run on pull_request")
     # Main pushes are covered by the canonical Phase FULL; Application CI
@@ -462,12 +464,20 @@ def check_ci_contracts(root: Path) -> list[str]:
         issues.append("public PR CI pull_request trigger missing")
     if "runs-on: windows-latest" not in public_pr or "self-hosted" in public_pr:
         issues.append("public PR CI must stay on GitHub-hosted windows-latest")
-    for required_path in ('"tools/**"', '"tests/**"', '".github/workflows/**"'):
-        if required_path not in app:
-            issues.append(f"app CI trigger scope missing {required_path}")
-    for required_path in ('"launch.py"', '"main.py"', '"sitecustomize.py"', '"scripts/**"', '"config/**"'):
-        if required_path not in app:
-            issues.append(f"app CI critical path missing {required_path}")
+    registry_path = root / "tools/atlas_doctor_lib/ci_routes.json"
+    try:
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        application_paths = registry["app-ci"]
+    except (OSError, ValueError, KeyError, TypeError):
+        application_paths = []
+        issues.append("Doctor CI routing registry missing or invalid")
+    for required_path in ("tools/**", "tests/**", ".github/workflows/**", "launch.py", "main.py", "sitecustomize.py", "scripts/**", "config/**"):
+        if required_path not in application_paths:
+            issues.append(f'app CI critical path missing "{required_path}"')
+    if ("name: Doctor / CI Plan" not in public_pr
+            or "needs: doctor-plan" not in public_pr
+            or "tools.atlas_doctor ci" not in public_pr):
+        issues.append("Doctor-first CI planning protection missing")
     if ".\\tools\\run_guide_ultime_ci.ps1" not in app:
         issues.append("app CI no longer invokes the canonical Guide runner")
     if "-m tools.atlas_integrity fast" not in app:

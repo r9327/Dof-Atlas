@@ -1,41 +1,13 @@
 name: Dofus Atlas Application CI
 
 on:
+  workflow_call:
   workflow_dispatch:
   # Reuse completed, host-verified Phase FULL on the exact main push SHA.
   workflow_run:
     workflows: ["Phase Certification"]
     types: [completed]
     branches: [main]
-  push:
-    branches:
-      - main
-    paths:
-      - "app/**"
-      - "local_dofus_data/**"
-      - "data/encyclopedia/**"
-      - "data/cartography/**"
-      - "data/images/**"
-      - "data/routes/**"
-      - "data/dofus_atlas_world.db"
-      - "tools/**"
-      - "scripts/**"
-      - "config/**"
-      - "tests/**"
-      - "launch.py"
-      - "main.py"
-      - "sitecustomize.py"
-      - "requirements-pyside.txt"
-      - "DOFUS.bat"
-      - "Install_Dofus_Atlas.bat"
-      - "bootstrap_dofus_atlas.ps1"
-      - ".gitignore"
-      - ".gitattributes"
-      - "AGENTS.md"
-      - "DEVELOPMENT_GUARDRAILS.md"
-      - "PERFORMANCE_GUARDRAILS.md"
-      - ".github/workflows/**"
-      - ".github/dependabot.yml"
 
 concurrency:
   group: dofus-atlas-public-app-ci-${{ github.ref }}

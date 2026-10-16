@@ -14,76 +14,47 @@ Les états officiels sont :
 
 Seul l'état `CERTIFIED` autorise les formulations « phase terminée », « phase validée définitivement », « 100 % terminée » ou équivalent.
 
-## Activation explicite du contrôle FULL pour les PR Phase
+## Doctor en premier : orchestration automatique
 
-Pour déclencher automatiquement `Phase Certification / Full Validation` sur une
-PR interne prête à relire, **le titre doit commencer exactement par `Phase `**.
-Un titre descriptif sans ce préfixe rend le job `skipped`, ce qui **n'est
-pas une certification**. Modifier uniquement le titre ne relance pas un
-workflow déjà créé ; il faut un nouvel événement `synchronize` (un commit
-poussé sur la branche), un nouveau passage `ready_for_review`, ou un
-déclenchement manuel explicite selon les droits disponibles.
+`Doctor / CI Plan` est le premier job de chaque PR et push sur `main`.
+Le workflow conserve son nom historique `Phase Certification` et son chemin
+`phase-certification.yml` pour préserver les attestations GitHub et les chaînes
+de publication existantes. Il orchestre désormais la CI entière.
 
-Avant de déclarer `CERTIFIED`, vérifier sur le **dernier SHA exact** :
-- `Phase Certification / Full Validation` réellement exécuté et `PASS` ;
-- `Doctor / Windows User Journey Contracts` `PASS` sur la même révision ;
-- budgets Phase 8 RAM / preload réellement exécutés et `PASS` ;
-- tests Doctor / Graphify / AI Context / Public PR sans échec ;
-- artefact FULL, verdict de phase et shadow comparés sur ce même SHA.
+Doctor compare le SHA de base au SHA candidat exact, réutilise la politique
+adaptative canonique et les consommateurs UI, puis appelle les validations
+nécessaires. Le titre et le statut brouillon de la PR ne décident plus de la
+validation : un changement critique ou incertain exige FULL, même en brouillon.
+Un diff éligible exécute tous les tests ciblés canoniques ; les documents
+ordinaires seuls conservent les contrôles PR et métadonnées sans suite lourde.
+Les documents de politique ne bénéficient pas de cette exclusion.
 
-Les tests `skipped` et les anciennes exécutions vertes ne sont jamais
-des preuves de cette révision. Les preuves d'une ancienne PR ne peuvent
-pas remplacer les contrôles du nouveau commit.
+Les anciens filtres de chemins spécialisés résident dans
+`tools/atlas_doctor_lib/ci_routes.json`. Les workflows appelés n'ont plus de
+`pull_request` ou `push` indépendant. Les diagnostics manuels et les chaînes
+post-validation de publication restent explicites ; Doctor ne publie rien
+sur une PR. `Scoped PR Feedback` reste un diagnostic manuel, son exécution
+ciblée automatique étant déjà portée par le gate Phase canonique.
 
-## Calendrier des certifications automatiques
+Une analyse absente ou un mauvais SHA bloque le contrôle PR requis. Une
+incertitude de périmètre ou un fichier supprimé impose FULL ; une sélection
+UI ambiguë exécute tous les scénarios UI enregistrés en plus de FULL, sans
+étendre leur portée de preuve. Un diff ou SHA invalide reste bloquant. Le résumé
+Doctor indique les chemins, le risque, les CI retenues et leurs raisons.
+`Doctor / CI Verdict` refuse une validation sélectionnée mais ignorée, annulée
+ou en échec. Une sélection n'est jamais un résultat d'exécution.
 
-- Une **PR Phase en brouillon** est en développement : Doctor Adaptive
-  Certification, Doctor FAST, Graphify et les contrôles ciblés peuvent
-  donner du feedback, mais la FULL Phase n'est pas lancée automatiquement
-  à chaque commit du brouillon.
-- Le passage à **ready for review** (ou une PR Phase déjà non-brouillon)
-  déclenche la **décision adaptative de Doctor** sur le SHA candidat exact.
-  La FULL est exécutée seulement si le diff touche un composant critique,
-  les workflows ou la politique de certification, si Doctor la juge
-  nécessaire, ou s'il manque une preuve fiable. Un diff éligible exécute
-  **tous** les tests canoniques ciblés sélectionnés par Doctor et vérifie
-  les preuves du SHA exact, sans FULL.
-- Un **push sur main** et le déclenchement manuel explicite conservent
-  leur FULL historique. La validation finale d'une phase n'est **jamais**
-  remplacée par un passeport Doctor ciblé.
-- Un brouillon ne peut pas être déclaré `CERTIFIED` uniquement parce que
-  le nouveau workflow adaptatif est vert. Une sortie de brouillon, puis
-  un rapport FULL PASS sur le bon SHA, restent nécessaires.
+`Public PR / Safe Validation` garde exactement son nom requis et devient le
+verdict agrégé PR : il exige Doctor FAST (`Doctor / PR FAST`) et toutes les CI
+sélectionnées. Aucun changement de ruleset distant n’est nécessaire.
+`Phase Certification / Full Validation` reste le seul propriétaire de la FULL
+automatique ; la vérification de provenance exige l'unique job de ce nom et
+toutes ses étapes obligatoires parmi la liste complète des jobs GitHub.
 
-## Mode CI adaptatif, indépendant de la certification finale
-
-Le contrôle `Phase Certification / Full Validation` peut produire deux types
-de preuves **explicitement différents** :
-
-- **`FULL`** : le changement touche les règles d'audit, la politique, les
-  workflows ou une zone risquée ; un push sur `main` ou une
-  `workflow_dispatch` demande aussi une FULL. Le workflow exécute le
-  `tools.atlas_integrity full` et le verdict historique
-  `tools.phase_certification_verdict`. Lui seul peut produire un verdict
-  `CERTIFIED` selon les contrats existants.
-- **`SCOPED`** : Doctor juge le diff éligible, la politique indépendante est
-  conforme, aucun fichier de confiance n'a changé et les identités Git SHA
-  sont exactes. Le workflow exécute réellement tous les modules retenus
-  via le sélecteur canonique, puis valide le plan, la liste des tests,
-  les résultats et le passeport du même SHA. La sortie
-  `SCOPED_TESTS_PASS_NOT_PHASE_CERTIFIED` signifie **`VALIDATED`**,
-  **pas `CERTIFIED`**, ni autorisation automatique de fusion.
-
-La route est calculée avant les préparations coûteuses sur Windows et reste
-fail-closed : toute incertitude, modification des règles, du Doctor ou des
-workflows déclenche `FULL`. Aucune preuve inter-SHA n'est réutilisée. Les
-budgets mémoire ne sont ni relevés ni cachés : leurs gates GitHub restent
-indépendants, et une demande de ne pas les optimiser ne modifie pas les
-conditions officielles de fusion.
-
-Cette distinction permet d'éviter de répéter une FULL pendant le
-développement ordinaire ; **la clôture officielle d'une phase** exige
-toujours la FULL et les autres preuves obligatoires sur le SHA final.
+Pour déclarer `CERTIFIED`, il faut toujours la FULL réelle, les parcours Doctor
+et les budgets RAM/preload PASS sur le même SHA exact. Une route SCOPED et un
+verdict Doctor vert signifient seulement VALIDATED ; ils n'autorisent pas la
+fusion automatique et ne certifient pas une phase.
 
 ## Réutilisation contrôlée des tests dans la FULL
 
@@ -119,7 +90,7 @@ constatée. Aucun gain de temps n'est affirmé avant mesure Windows.
 Sur `main`, `Phase Certification` reste propriétaire de l'unique
 `tools.atlas_integrity full` et du verdict de phase, avec les audits Guide,
 le catalogue et l'inventaire critique. La CI applicative conserve son job
-rapide de push, mais **ne relance plus une FULL automatiquement**.
+rapide de push appelé après le plan Doctor, mais **ne relance plus une FULL automatiquement**.
 
 Après la conclusion de `Phase Certification`, `Dofus Atlas Application CI`
 reçoit l'événement GitHub `workflow_run`. Un job indépendant vérifie
@@ -188,7 +159,7 @@ certification.
 
 `Public PR / Safe Validation` est un garde-fou de PR. Même entièrement vert, il ne constitue pas une certification de phase.
 
-Le contrôle adaptatif (FULL ou tests ciblés avec attestation explicite) est porté par `Phase Certification / Full Validation` (`.github/workflows/phase-certification.yml`). Elle peut être lancée manuellement, mais elle est aussi déclenchée automatiquement à chaque mise à jour d'une PR interne dont le titre commence par `Phase ` et dont la branche source appartient au dépôt lui-même.
+Le contrôle adaptatif (FULL ou tests ciblés avec attestation explicite) est porté par `Phase Certification / Full Validation` (`.github/workflows/phase-certification.yml`). Elle peut être lancée manuellement, mais Doctor la sélectionne désormais automatiquement selon les changements de chaque PR, sans condition sur le titre.
 
 Pour une PR de phase, le workflow checkout explicitement le SHA de tête de la PR et utilise le SHA de base de la PR pour classifier le diff courant. Lorsqu'une dette figée est transportée par non-régression, le validateur contrôle en plus la descendance depuis l'ancre du baseline et les changements de fichiers protégés entre cette ancre et la base courante. La certification suit donc le candidat exact ; une nouvelle modification rend l'ancien résultat obsolète et déclenche une nouvelle validation.
 

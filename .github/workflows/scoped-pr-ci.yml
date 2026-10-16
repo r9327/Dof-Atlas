@@ -1,10 +1,12 @@
 name: Scoped PR Feedback
 
 on:
-  pull_request:
-    branches:
-      - main
-      - phase8/peak250-guide-worker-v1
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        type: string
+        required: true
+        default: main
 
 permissions:
   contents: read
@@ -16,8 +18,8 @@ concurrency:
 env:
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
-  CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
-  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+  CANDIDATE_SHA: ${{ github.sha }}
+  BASE_SHA: ${{ inputs.base_ref }}
 
 jobs:
   plan:

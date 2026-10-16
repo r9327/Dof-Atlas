@@ -65,7 +65,7 @@ class CertificationMergeGateTests(unittest.TestCase):
         self.assertIn("no successful", result["reasons"][0])
 
     def test_trust_workflow_and_ruleset_always_need_full(self):
-        for path in (".github/workflows/public-pr-ci.yml",
+        for path in (".github/workflows/phase-certification.yml",
                      ".github/rulesets/integration-branch.json",
                      "PHASE_CERTIFICATION.md"):
             with self.subTest(path=path):
