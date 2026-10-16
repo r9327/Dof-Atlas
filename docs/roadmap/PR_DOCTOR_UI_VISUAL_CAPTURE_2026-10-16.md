@@ -1,4 +1,4 @@
-# Doctor Atlas — capture et diagnostic UI réel (outil réutilisable)
+# Doctor Atlas — UI Inspector & Validator (captures, tests et diagnostics intégrés)
 
 **Statut : spécification / à implémenter.** Cette PR ne doit pas toucher à la PR #202 (nouveautés non définies). C'est un outil de développement transversal, distinct des corrections du runtime des guides (#201).
 
@@ -94,3 +94,31 @@ Le scénario `encyclopedia` actuel (`tools/atlas_doctor_lib/encyclopedia_deferre
 - **#202** : nouveautés non spécifiées, inchangée.
 
 **État actuel : exigences documentées, pas encore d'implémentation de vérification fonctionnelle.**
+
+
+## Architecture unifiée et contrôle de bout en bout — exigence confirmée
+
+**Un seul outil Doctor UI**, composé de modes sur un exécuteur de scénarios commun : `all` (par défaut), `verify`, `capture`, `inspect`. La commande historique `capture-ui` garde sa compatibilité. Tous les modes réutilisent **exactement la même identité de scène, fenêtre, éléments Qt, scénario et session d'artefacts** ; aucune séparation entre outil à screenshots et outil à tests. Les PNG, l'arbre Qt, les interactions et verdicts doivent être interconsultables par ID d'étape/action. Proposer par exemple `python -m tools.atlas_doctor ui guides --mode all` une fois implémenté (syntaxe indicative, pas une commande actuellement disponible).
+
+### Comment trouver un vrai bouton défectueux
+
+- Générer l'inventaire des contrôles Qt réels de l'écran : identité stable (`objectName` + ancrage métier quand disponible), parent, visible/enabled/checkable, géométrie écran, tooltip/accessibilityName, destination attendue et fournisseur de l'oracle.
+- Exécuter les actions de manière bornée avec QTest (`mouseClick`, touches, scroll). Attendre la fin **effective** des rafraîchissements Qt et chargements différés avec un timeout explicite, puis comparer état avant/après. Un signal `clicked` ou la simple invocation d'un callback n'est jamais une preuve d'effet métier.
+- **Cas obligatoire de bout en bout : lien Guide → onglet Quêtes.** La vraie chaîne actuelle est `GuideManualQuestInlineButton` → `questRequested` → `SharedGuideManualView._open_quest_from_card` → `LinkService.navigate_to_entity` → `EncyclopediaPage.navigate_to_entity` → `QUESTS_TAB` / `quest_page.select_quest`. Le test existant `tests/test_guide_ultime_manual_quest_links.py` remplace la navigation finale par un mock : il prouve les arguments émis **mais pas** le changement d'onglet ni l'affichage du bon détail.
+- Dans un scénario intégré reposant sur la **vraie** `EncyclopediaPage` et une quête connue, cliquer sur le bouton de Guide Succès puis de Lanyel, vérifier successivement : signal correct, résultat de navigation, onglet Quêtes vraiment actif, onglet réellement initialisé (pas une vue lazy d'attente), `selected_quest_id` égal à l'ID attendu, panneau de détail visible et correspondant à la même quête. Tester aussi premier chargement à froid, changements d'onglet multiples, chargements différés et retour Guide. Si le clic ne produit aucun changement observable, signaler `FAIL` et la première transition non satisfaite.
+- Tester le bouton sans signal, mauvais ID de quête, mauvais onglet, détail absent ou mauvais, et chargement lazy bloqué via injections isolées de test : le validateur **doit** produire un `FAIL` localisable sur chaque cas.
+- Étendre progressivement aux boutons `Précédent`, `Suivant`, `Valider`, `Guide`, combat, verrouillage, lien PNJ/objet/coordonnées : oracle métier explicite par famille de contrôles. Les éléments sans contrat machine vérifiable portent `NOT_COVERED` ou `REVIEW`, **jamais PASS implicite**.
+
+### Comment détecter chevauchements, boutons inaccessibles et mises en page cassées
+
+- Après affichage réel/stabilisation, recueillir les `QRect` des QWidgets pertinents, transformés dans le **même repère global ou viewport** par `mapToGlobal/mapTo`, plus taille du viewport, scroll et régions visibles. Comparer seulement les éléments interactifs ou régions censées ne pas se chevaucher ; les badges, icônes internes, descendants et overlays volontaires doivent être explicitement exemptés, sinon faux positifs.
+- Signaler la collision réelle si deux éléments interactifs **distincts et supposés séparés** se recouvrent avec une surface significative et que le recouvrement n'est pas permis ; vérifier aussi les boutons hors écran après scroll, clippés par un parent, superposés par un overlay, hors du viewport, ou cachés par une autre fenêtre/widget.
+- Vérifier une zone de clic choisie (centre ou plusieurs points visibles) par **hit-test QWidget** et tenter le clic QTest sur le contrôle cible ; si le point frappe un autre widget ou n'active pas le contrôle attendu, `FAIL` si son contrat exige l'accessibilité. Ne pas confondre un rect intersecté avec un dysfonctionnement prouvé.
+- Vérifier textes tronqués, label/widget géométriquement insuffisant, horizontaux/verticals scrolls et éléments nécessaires hors zone visible à deux tailles de fenêtre. Les heuristiques typographiques ou pixel visuel non certifiables doivent produire `REVIEW` avec capture, pas un `FAIL` inventé.
+- Une vue scrollable peut avoir un contenu naturellement hors écran : ne jamais la déclarer défectueuse si le bouton devient accessible après scroll et si ce comportement est prévu.
+
+### Exigence de verdict vérifiable
+
+Chaque règle explicitement définie : `control_id`, `scenario_id`, `action`, `expected`, `observed`, `assertion_status`, `evidence_ids`, `source_widget_path`. Le rapport unique comprend vérification, **PNG du même instant**, arbre Qt, étapes/actions et diagnostic. L'outil doit indiquer quelle famille de contrôles est couverte, tester qu'il sait détecter des bugs volontaires et **refuser le vert global si un scénario obligatoire a été sauté**. Une belle capture, un slot appelé, un oracle simulé ou un check statique ne prouvent pas un bouton fonctionnel. Les tests offscreen n'attestent pas à eux seuls le binaire EXE Windows.
+
+**Livrable bloquant :** commande Doctor UI unifiée opérante avec tests d'interactions réelles, preuve de détection des défauts et captures intégrées, sans double infrastructure.
