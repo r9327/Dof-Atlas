@@ -58,26 +58,6 @@ class QuestDetails:
         # so the first rich Quest detail rebuilt indexes from monolithic JSON in
         # Atlas' long-lived process and caused the Guide memory spike.
         self._sources = QuestSources(path.parent / "source_offsets")
-        with _connect(path) as connection:
-            context_row = connection.execute(
-                "SELECT value FROM metadata WHERE key='detail_context'"
-            ).fetchone()
-        if context_row is not None:
-            raw_context = json.loads(context_row[0])
-            self._sources.context.update(
-                achievement_names={
-                    int(key): str(value)
-                    for key, value in raw_context.get("achievement_names", {}).items()
-                },
-                quest_names={
-                    int(key): str(value)
-                    for key, value in raw_context.get("quest_names", {}).items()
-                },
-                quest_to_achievements={
-                    int(key): [str(value) for value in values]
-                    for key, values in raw_context.get("quest_to_achievements", {}).items()
-                },
-            )
         self._objective_step_index_checked = False
         self._records: OrderedDict[int, qc.QuestRecord] = OrderedDict()
         self._summaries: OrderedDict[
@@ -85,6 +65,33 @@ class QuestDetails:
             tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]],
         ] = OrderedDict()
         self.loads = self.hits = 0
+
+    def _load_source_context(self) -> None:
+        """Hydrate precomputed global names only for the first rich detail."""
+
+        if self._sources.context:
+            return
+        with _connect(self.path) as connection:
+            context_row = connection.execute(
+                "SELECT value FROM metadata WHERE key='detail_context'"
+            ).fetchone()
+        if context_row is None:
+            return
+        raw_context = json.loads(context_row[0])
+        self._sources.context.update(
+            achievement_names={
+                int(key): str(value)
+                for key, value in raw_context.get("achievement_names", {}).items()
+            },
+            quest_names={
+                int(key): str(value)
+                for key, value in raw_context.get("quest_names", {}).items()
+            },
+            quest_to_achievements={
+                int(key): [str(value) for value in values]
+                for key, values in raw_context.get("quest_to_achievements", {}).items()
+            },
+        )
 
     def summary_fields(
         self,
@@ -179,6 +186,7 @@ class QuestDetails:
                     raise RuntimeError("Les sources Quêtes ont changé ; rechargez le catalogue.")
                 try:
                     self._prime_objective_step_index()
+                    self._load_source_context()
                     record = qc.QuestCatalog._load_source(self.data_dir, quest_ids={quest_id}, sources=self._sources).by_id[quest_id]
                 finally:
                     self._sources.close()

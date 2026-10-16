@@ -150,6 +150,9 @@ class QuestDetailsTests(unittest.TestCase):
                 details._sources.cache_root,
                 (root / "cache" / "source_offsets"),
             )
+            self.assertEqual(details._sources.context, {})
+            with patch.object(QuestCatalog, '_load_source', side_effect=self.compile):
+                catalog.get_detail(1)
             self.assertEqual(details._sources.context["quest_names"][1], "Quête 1")
             self.assertEqual(
                 details._sources.context["quest_to_achievements"][1],
