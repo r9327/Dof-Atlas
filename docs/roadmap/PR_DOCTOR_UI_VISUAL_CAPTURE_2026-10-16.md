@@ -122,3 +122,48 @@ Le scénario `encyclopedia` actuel (`tools/atlas_doctor_lib/encyclopedia_deferre
 Chaque règle explicitement définie : `control_id`, `scenario_id`, `action`, `expected`, `observed`, `assertion_status`, `evidence_ids`, `source_widget_path`. Le rapport unique comprend vérification, **PNG du même instant**, arbre Qt, étapes/actions et diagnostic. L'outil doit indiquer quelle famille de contrôles est couverte, tester qu'il sait détecter des bugs volontaires et **refuser le vert global si un scénario obligatoire a été sauté**. Une belle capture, un slot appelé, un oracle simulé ou un check statique ne prouvent pas un bouton fonctionnel. Les tests offscreen n'attestent pas à eux seuls le binaire EXE Windows.
 
 **Livrable bloquant :** commande Doctor UI unifiée opérante avec tests d'interactions réelles, preuve de détection des défauts et captures intégrées, sans double infrastructure.
+
+
+## Routage CI intelligent obligatoire — n'exécuter Doctor UI que sur impact UI (16/10)
+
+**Principe demandé :** les scénarios Doctor UI (vérification/capture/squelette) sont des tests **déclenchés par impact**, jamais un test global ajouté à tous les pushes/PR. Une modification sans dépendance UI prouvée ne doit pas installer Qt, démarrer les guides ou générer de PNG Doctor UI.
+
+### Intégration avec la CI existante
+
+- Réutiliser le sélecteur de chemins/dépendances existant (`tools/ai_context.py`, `tools/ci_scope_gate.py`, `tools/doctor_certification.py`, Doctor/Graphify à preuve exacte-SHA lorsque disponibles). Une seule décision canonique pour les scénarios UI à ajouter, ne pas créer un deuxième calcul contradictoire dans les workflows.
+- **Important — ne pas toucher aux garanties actuelles :** `Public PR / Safe Validation` (Doctor FAST), `Doctor Adaptive Certification`, `Phase Certification`, `FULL_SUITE` et autres tests d'intégrité obligatoires restent gouvernés par leurs propres contrats. Le nouveau routage ne désactive **que les nouvelles campagnes Doctor UI facultatives/ciblées**, sauf décision de politique séparée, revue et testée.
+- Planifier la sélection dans un job **léger sans PySide6 ni LFS** sur le diff PR `base...HEAD` vérifié ; vérifier SHA du candidat. Garder le plan et les raisons dans des artefacts JSON exact-SHA ; ne pas charger les fixtures si aucun scénario n'est sélectionné.
+- Le job Windows Doctor UI n'est lancé que si `selected_scenarios` est non vide. Le job de verdict lit la décision et distingue `NOT_APPLICABLE` (saut justifié) de `PASS` (tests réellement exécutés). Si un scénario obligatoire est sélectionné, son échec ou son non-démarrage bloque le verdict.
+- Déclenchement manuel `workflow_dispatch` possible pour forcer une famille/un scénario UI, avec plafond de charge. Une FULL explicitement requise ne doit jamais perdre ses tests Qt préexistants au motif que Doctor UI est `NOT_APPLICABLE`.
+
+### Classification exacte par dépendance, pas par nom de dossier seul
+
+1. **Aucun impact** : modifications purement docs, outil indépendant (ex. calcul/JSON auditor), fichiers de tests non-UI, métadonnées non exécutables ; ne pas lancer Doctor UI, enregistrer `NOT_APPLICABLE` et la justification. Ne pas prendre `classify_path(...)=guide` comme preuve universelle d'impact visuel.
+2. **UI locale** : fichiers des vues/widgets, styles, resources, contrôles et tests UI → ne lancer que les scénarios correspondants (Guides / Quêtes / etc.), avec assertions d'effets et captures dans **le même outil**.
+3. **Chaîne métier vers UI** : services/signaux de navigation, sélection de quête, progression et callbacks, routeur `LinkService`, `EncyclopediaPage.navigate_to_entity` → sélectionner les parcours **bouton Guide → onglet Quêtes → détail**, et toute autre interaction réellement impactée.
+4. **Données qui déterminent le rendu** : JSON/manifestes/étapes/transformations du Guide ou quêtes utilisées dans la vue → sélectionner les scénarios ciblés si l'impact sur le rendu/lien est prouvé ; ne pas lancer toutes les interfaces pour un fichier de données sans consommateur UI touché.
+5. **Fondation partagée** : thème Qt, contrôles communs, base `QWidget`, gestion des onglets, chargement différé, layout, événements Qt → scénarios UI consommateurs plus larges, via liens import/runtime et cartographie explicitement maintenue.
+6. **Modification du validateur lui-même** : tests du moteur Doctor UI, cas sain/cassé, et un contrôle d'intégration minimal ; ne pas lancer par défaut toutes les pages et captures. La modification de la table de routage/CI déclenche toujours ses propres tests de sélection.
+7. **Incertitude réelle** : diff incomplet, fichier inconnu, import dynamique/signal Qt non couvert par le mapping, suppression/renommage/large changement, absence de preuve critique → `REVIEW_REQUIRED` ou `UI_REQUIRED` selon politique, **jamais `NOT_APPLICABLE` par défaut**. Graphify est un indice d'impact, pas preuve absolue d'absence de consommateur.
+
+### Exemples exigés en tests de sélection
+
+- Documentation seule : `selected_scenarios=[]`, `NOT_APPLICABLE`, Windows UI non démarré.
+- Service d'audit JSON sans rapport UI : idem.
+- `shared_manual_guide_view.py` : scénario du moteur partagé sur Guide Succès et Lanyel.
+- `guide_ultime_manual_view.py` ou `manual_route_guides_view.py` : scénarios guides ciblés + navigation pertinente.
+- `link_service.py` ou `encyclopedia_page.py` pour navigation : test intégré Guide → Quêtes et consommateurs connus.
+- `app/ui/theme.py` : scénario de style/layout des vues affectées.
+- Un fichier de données Guide canonique : scénario des étapes qu'il impacte, plus contrôle de données ; ne pas déclencher Équipement.
+- `tools/atlas_doctor_lib/doctor_ui_*.py` : tests du validateur lui-même (y compris bugs injectés), et scénario de fumée ciblé.
+- Changement non classé / suppression d'interface : impossibilité de sauter sans justification et examen.
+
+### Rapport et non-régression
+
+- Produire un plan machine `ui_ci_selection.json` contenant : `candidate_sha`, `base_sha`, `changed_paths`, `impacted_ui_paths`, `selected_scenarios`, `excluded_scenarios`, `reason_per_scenario`, `status`, `policy_version` et `tests_executed=false`.
+- Sur exécution : `ui_verdict.json` inclut les tests réellement exécutés, les captures correspondantes, les erreurs et la couverture. Aucun `PASS` si scénario obligatoire manquant ; `NOT_APPLICABLE` n'est pas une certification UI.
+- Vérifier les diffs mixtes (documentation + UI, outils + UI, guide + quêtes), extensions/renommages, priorité des déclencheurs et sélection sans doublon.
+- Réutiliser les passeports/artefacts au **même SHA** suivant politique existante, sans refaire les mêmes scénarios ni les captures par deux workflows concurrents. Contrôler aussi les frais de setup Python/Qt et de préparation Doduda.
+- Ajouter des tests ciblés du routeur, du YAML de workflow et de la compatibilité avec le plan Doctor ; aucune nouvelle campagne UI systématique sur push main.
+
+**Livrable :** une CI réellement modifiée et testée en plus du validateur. Le seul ajout de ce texte ne vaut pas mise en œuvre ; toute nouvelle PR en dehors du périmètre UI doit pouvoir prouver que Doctor UI a été **écarté volontairement et correctement**, et non exécuté malgré l'absence de changement UI.
