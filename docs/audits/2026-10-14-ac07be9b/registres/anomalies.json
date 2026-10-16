@@ -1,0 +1,554 @@
+[
+  {
+    "id": "AT-001",
+    "priority": "P1",
+    "status": "CONFIRMÉ",
+    "title": "Les succès d’alignement perdent les IDs des guides compacts",
+    "scope": "main",
+    "locations": [
+      "app/modules/encyclopedia/services/memory_bound_achievement_progress_service.py:15 _alignment_main_quest_ids",
+      "app/modules/encyclopedia/providers/memory_bound_guide_provider.py:523 _summary_from_compact_row",
+      "app/modules/encyclopedia/services/progress_service.py:305 sync_from_quest_progress",
+      "tests/test_memory_bound_achievement_progress.py:66 test_alignment_progress_uses_compact_guide_summaries",
+      "tests/test_memory_policy_contract.py:306 test_achievement_sync_uses_compact_alignment_guide_ids"
+    ],
+    "problem": "La classe réellement exportée par services/__init__.py surcharge le helper corrigé de la classe de base. Elle lit required_steps dans les résumés compacts, qui n’exposent plus les étapes. Le compteur Pa reste à zéro malgré des quêtes d’alignement terminées. Le témoin actuel utilise un fake qui conserve required_steps ; le garde source vérifie la classe de base, pas l’override actif.",
+    "proof": "alignment-contract-reproduction.json : construction réelle des résumés, IDs extraits des deux JSON canoniques ; index compact 109 IDs par guide, helper actif retourne deux tuples vides, helper de base retrouve les IDs. Critère isolé Pa>0 : false dans le service actif, true avec la base. Ces IDs ne représentent pas une nouvelle règle métier de 109 niveaux.",
+    "fix": "Lire progress_quest_ids_for en priorité dans le helper actif ; conserver le fallback get_summary_by_id pour les providers de compatibilité. Réutiliser la logique déjà présente dans progress_service, sans réhydrater les détails et sans changer les quêtes canoniques.",
+    "impact": "Service Succès, provider Guide compact, synchronisation Quêtes→Succès, panneaux d’alignement ; tests ci-dessus.",
+    "gain": "Rétablit la propagation réelle et conserve l’économie mémoire des résumés. Aucun chiffre de RAM gagné n’est avancé.",
+    "risk": "Moyen : distinguer alignement principal, quêtes optionnelles et choix d’ordre ; ne pas modifier le sens des critères Pa/Pr.",
+    "validation": "Un test avec vrais Guide metadata-only et index compact ; Pa>0, Pa aux limites, Bonta/Brâkmar, décochage ; espion interdisant get_by_id et lecture des détails ; tests.test_memory_bound_achievement_progress, tests.test_achievements_lot7, tests.test_progress_concurrent_instances."
+  },
+  {
+    "id": "AT-002",
+    "priority": "P1",
+    "status": "CONFIRMÉ",
+    "title": "Guide save() écrase un changement publié par un autre processus",
+    "scope": "main",
+    "locations": [
+      "app/modules/encyclopedia/services/guide_progress_service.py:145 GuideProgressService.save"
+    ],
+    "problem": "Le verrou interprocessus sérialise l’écriture mais la validation de fraîcheur ne compare que generation, qui est locale au processus. Une écriture externe reste invisible à save() alors que _disk_signature existe déjà.",
+    "proof": "reproductions.json/external_snapshot_guide : parent chargé vide, enfant utilisant le vrai setter enregistre une étape, parent save() remet characters à {}. Aucun conflit de verrou ni JSON invalide : perte logique du changement externe.",
+    "fix": "Sous le verrou, vérifier aussi la signature disque avant toute écriture de snapshot ; refuser et recharger le snapshot obsolète. Continuer à utiliser les setters ciblés pour les mutations ; ne pas fusionner aveuglément deux arbres complets.",
+    "impact": "GuideProgressService, appels de compatibilité de save(), services de suppression et tests de concurrence. Le démarrage mono-instance réduit l’exposition ordinaire mais ne prouve pas l’absence d’écrivain externe.",
+    "gain": "Empêche un écrasement de progression ; coût d’un stat seulement au save, pas à chaque consultation.",
+    "risk": "Faible à moyen : des appelants de save devront réappliquer explicitement leur mutation après le rejet.",
+    "validation": "Deux processus réels : écriture enfant puis save parent doit être refusé, données enfant conservées ; mutations ciblées doivent toujours se composer ; corruption et version inconnue restent refusées ; tests.test_guide_progress_persistence, tests.test_progress_concurrent_instances."
+  },
+  {
+    "id": "AT-003",
+    "priority": "P1",
+    "status": "CONFIRMÉ",
+    "title": "Succès save() présente le même conflit interprocessus",
+    "scope": "main",
+    "locations": [
+      "app/modules/encyclopedia/services/serialized_achievement_progress_service.py:168 AchievementProgressService.save"
+    ],
+    "problem": "Le service coordonné compare uniquement la génération locale avant de publier le snapshot ; le verrou ne constitue pas une détection de modification antérieure par un autre processus.",
+    "proof": "reproductions.json/external_snapshot_achievement : un succès écrit par le setter enfant disparaît après save parent. La perte de snapshot est prouvée ; une fréquence de perte en session normale n’est pas mesurée.",
+    "fix": "Même garde disque sous verrou que AT-002. Examiner aussi sync_from_quest_progress : sa lecture à génération locale ne suffit pas à certifier la fraîcheur face à un écrivain externe. Conserver l’optimisation des lectures chaudes, faire le refresh au point de transaction.",
+    "impact": "Succès manuels, objectifs, dérivations automatiques, suppression de personnage et classes mémoire/serialized/base.",
+    "gain": "Préserve les validations concurrentes ; pas de nouveau parse à chaque is_achievement_completed.",
+    "risk": "Moyen : la signature de synchronisation automatique doit être invalidée après reload ; garder la distinction choix manuel/dérivé.",
+    "validation": "Processus indépendants ; alternance setter objectif/succès et sync ; refus save obsolète ; suppression externe d’un personnage ne doit pas le ressusciter ; tests.test_progress_concurrent_instances et tests.test_network_character_id_progress_storage."
+  },
+  {
+    "id": "AT-004",
+    "priority": "P1",
+    "status": "CONFIRMÉ",
+    "title": "La distribution ne rend pas toute la progression durable",
+    "scope": "PR #159",
+    "locations": [
+      "app/distribution/user_data.py:8 _USER_PATHS",
+      "app/constants.py:12 USER_DATA_ROOT",
+      "app/modules/encyclopedia/services/guide_progress_service.py:12 GUIDE_PROGRESS_FILE",
+      "app/modules/encyclopedia/services/progress_service.py:18 ACHIEVEMENT_PROGRESS_FILE",
+      "app/modules/encyclopedia/services/lazy_progress_service.py:9 constantes",
+      "app/cartography/world_db.py:13 WORLD_DB_PATH",
+      "local_dofus_data/config.py:10 DATA_DIR"
+    ],
+    "problem": "La PR redirige les profils, Quêtes et la sélection Craft mais Guide/Succès et la base Scan Monde restent dans le dossier de version. La migration n’inclut pas ces trois documents. La base Craft reste également liée à la version : reconstruisible, mais son caractère durable ne doit pas être annoncé.",
+    "proof": "reproductions.json/pr159_actual_persistence_paths et pr159_migration_missing : avec DOFUS_ATLAS_USER_ROOT défini, seule QUEST_PROGRESS_FILE va dans user ; les trois fichiers legacy ne sont pas copiés. Ce constat concerne la PR en brouillon, pas une release stable déjà déployée.",
+    "fix": "Définir des chemins canoniques explicites de progression et de base Scan Monde sous USER_DATA_ROOT, les utiliser dans les façades lazy et les services. Migrer les anciens fichiers sans écrasement ; sauvegarder la base SQLite via backup/checkpoint compatible WAL. Ne pas rediriger DATA_DIR entier, qui contient les ressources canoniques.",
+    "impact": "Constantes, services Guide/Succès/lazy, CharacterDataService, Home, Scan Monde, migration installateur ; tests.test_distribution_user_data.",
+    "gain": "Conserve les validations et scans lors des upgrades/rollback, évite des données métier dans les slots réputés immuables.",
+    "risk": "Élevé : persistence, reprise legacy, WAL et priorités de copies. Backup préalable et migration idempotente indispensables.",
+    "validation": "V1 écrit Quêtes+Guide+Succès+Scan ; V2 lit exactement les mêmes états ; rollback V1 les conserve. Migration source legacy, fichiers déjà existants, base avec WAL, interruption, corruption et backups. Vérification des chemins dans un vrai bundle Windows."
+  },
+  {
+    "id": "AT-005",
+    "priority": "P1",
+    "status": "CONFIRMÉ",
+    "title": "Le helper réseau élevé ne peut pas être lancé par l’EXE",
+    "scope": "PR #159",
+    "locations": [
+      "launch.py:15 routeur frozen",
+      "app/network/elevated_capture.py:114 launch_elevated_capture_helper",
+      "app/network/capture_helper.py:150 main",
+      "tests/test_distribution_worker_dispatch.py:1 contrats"
+    ],
+    "problem": "Le producteur utilise -B -m app.network.capture_helper. Le routeur frozen reconnaît uniquement -m en première position ; capture_helper est en outre absent de l’allowlist. La capture nécessitant une élévation ne peut donc pas atteindre son handshake IPC.",
+    "proof": "pr159-worker-data-probes.json : -m capture_helper retourne 2 sans dispatch ; les vrais arguments -B -m aboutissent au chemin GUI (témoin isolé 977, aucune UAC exécutée). Lecture du producteur et du routeur concordante.",
+    "fix": "Adapter la commande frozen du producteur pour respecter le protocole explicite du routeur et ajouter seulement le helper de capture autorisé. Préserver le refus des modules arbitraires et le token IPC ; ne pas traiter l’EXE comme un interpréteur Python général.",
+    "impact": "EXE, capture élevée/Npcap, bootstrap et calibration, propagation réseau Quêtes/identité ; packaging hidden imports déjà largement collectés, à vérifier réellement.",
+    "gain": "Rétablit la capture et la progression automatique dans le mode nécessitant des droits élevés.",
+    "risk": "Moyen/élevé : séparation de privilèges et arrêt du helper ; ne pas élargir l’exécution arbitraire.",
+    "validation": "Test producteur→argv→routeur avec les arguments réels ; refus worker inconnu ; Windows standard user + Npcap admin-only, annulation UAC, token erroné, démarrage, changement personnage, arrêt/reconnexion ; tests.test_network_elevated_capture et tests.test_distribution_worker_dispatch."
+  },
+  {
+    "id": "AT-006",
+    "priority": "P1",
+    "status": "CONFIRMÉ",
+    "title": "Le build Windows ne matérialise pas les catalogues métier requis",
+    "scope": "PR #159",
+    "locations": [
+      ".github/workflows/atlas-windows-distribution.yml:184 materialize assets",
+      " .github/workflows/atlas-windows-distribution.yml:206 PyInstaller",
+      "app/constants.py:37 RAW_QUEST_DATA_DIR",
+      "app/quest_catalog.py:261 QuestCatalog.load",
+      "app/craft_preload.py:37 database_path"
+    ],
+    "problem": "git lfs pull data/** matérialise les ressources suivies, mais pas les JSON Doduda ignorés ni dofus_data.sqlite. Aucune étape de ce workflow ne lance Doduda ou l’importeur local avant --add-data data. Le smoke vérifie une fenêtre et un répertoire data, pas la disponibilité des modules métier.",
+    "proof": "Inventaire Git : aucun fichier sous data/cache/dofus_maps/raw/doduda_cli ni data/local/dofus_data.sqlite. Fresh checkout : QuestSourceError sur quest_categories.json, Craft _skipped_reason=«catalogue Craft local absent». Recette de workflow relue. L’intérieur du gros artefact Windows candidat n’a pas été téléchargé : l’omission est prouvée dans la recette, pas une inspection binaire exhaustive de cet artefact.",
+    "fix": "Matérialiser/valider les données runtime nécessaires avant packaging et les inclure explicitement, avec provenance de version et inventaire hashé. Exécuter un parcours réel Quêtes/Succès/Guide/Craft depuis le bundle sans accès au checkout source. Ne pas embarquer les outils Doctor/Graphify pour combler cette absence.",
+    "impact": "Workflow Windows, bundle, importeurs/caches, release manifest et smoke ; export App-only n’est pas la preuve de disponibilité des données générées.",
+    "gain": "Permet une application réellement utilisable sans Python ni dépôt source ; le coût disque exact nécessite le bundle corrigé.",
+    "risk": "Élevé : formats externes, taille d’archive et distribution des ressources ; réutiliser le protocole multipart déjà réalisé.",
+    "validation": "Machine Windows vierge et offline après installation : catalogues non vides, détail d’une quête, succès et guide liés, recette et recherche ; chaque chemin lu doit être sous bundle/user. Inventaire raw/SQLite et vérification de leur provenance avant build."
+  },
+  {
+    "id": "AT-007",
+    "priority": "P1",
+    "status": "CONFIRMÉ",
+    "title": "Les quatre entrées Bestiaire ouvrent des onglets vides",
+    "scope": "main",
+    "locations": [
+      "main.py:965 menu Bestiaire",
+      "app/modules/encyclopedia/constants.py:6 onglets Bestiaire",
+      "app/modules/encyclopedia/views/encyclopedia_page.py:245 création des slots",
+      "app/modules/encyclopedia/views/encyclopedia_page.py:265 ensure_tab_loaded",
+      "app/modules/encyclopedia/views/encyclopedia_page.py:451 on_search_changed"
+    ],
+    "problem": "DONJONS, MONSTRES, ARCHIMONSTRES et AVIS DE RECHERCHE sont proposés par la navigation, mais aucun constructeur de vue ne remplace leurs EncyclopediaLazySlot. La recherche commune reste visible sans consumer pour ces widgets.",
+    "proof": "ui-probe.json : pour chacun, QWidget sans layout ni enfants ; capture bestiary-empty.png inspectée. Catalogue vide injecté pour isoler le shell ; le code de chargement ne contient aucune branche Bestiaire, quel que soit le contenu du catalogue.",
+    "fix": "Correction immédiate minimale : état «module en préparation» explicite, recherche désactivée, retour/navigation cohérents. La construction d’un vrai Bestiaire constitue ensuite un lot fonctionnel distinct fondé sur les données existantes, pas une fusion opportuniste de widgets.",
+    "impact": "Menu main, slots Encyclopédie et recherche ; futurs providers monstres/donjons. Conserver les onglets utiles et ne pas faire croire qu’ils sont implémentés.",
+    "gain": "Supprime un parcours sans résultat et une recherche inerte ; rend le statut fonctionnel honnête.",
+    "risk": "Faible pour l’état indisponible ; élevé pour une implémentation complète hors correction minimale.",
+    "validation": "Ouvrir les quatre commandes depuis main et vérifier un état explicite ; retour Home ; pas de spinner infini ni recherche active sans consumer ; tests de navigation du shell + scénario Qt ciblé."
+  },
+  {
+    "id": "AT-008",
+    "priority": "P1",
+    "status": "CONFIRMÉ",
+    "title": "L’import explicite de cartographie efface les états des maps",
+    "scope": "main",
+    "locations": [
+      "app/cartography/map_view_manifest.py:92 import_map_view_manifest",
+      "app/cartography/map_view_manifest.py:126 replace_view_children",
+      "app/cartography/world_db.py:370 replace_view_children",
+      "app/cartography/world_db.py:318 upsert_map",
+      "app/ui/world_scan_panel.py:237 import_manifest"
+    ],
+    "problem": "L’import supprime maps/map_links puis réinsère les seeds ; status, scan_count, last_seen_at sont perdus. Les nombreuses connexions_scope indépendantes rendent aussi l’ensemble non transactionnel en cas d’erreur intermédiaire. Aucun import automatique au démarrage ni bouton connecté à import_manifest n’a été démontré : le risque actuel est sur l’API/outil d’import explicite.",
+    "proof": "reproductions.json/world_reimport : current/scan_count=1 devient unverified/0/last_seen_at=null sans erreur. Lecture des DELETE et des transactions séparées. Une perte sur démarrage ordinaire serait un diagnostic inventé.",
+    "fix": "Importer la géométrie et les liens dans une seule transaction ; préserver les colonnes de progression des maps existantes. Suppression des maps disparues seulement sous une politique explicite avec backup. Ne pas reconnecter cette méthode à l’UI avant correction.",
+    "impact": "WorldService, importeur, World DB, Scan Monde ; futur outil de reconstruction de seed.",
+    "gain": "Préserve l’historique et rend un import interrompu récupérable.",
+    "risk": "Moyen/élevé : distinguer seed de données et états utilisateur ; migrations SQLite testées.",
+    "validation": "Réimport idempotent d’une base scannée ; conserver statut/compteurs/date ; injection d’erreur après quelques lignes : rollback complet ; géométrie changée ; liens modifiés ; sauvegarde préalable ; tests.test_world_db + nouveau test importeur."
+  },
+  {
+    "id": "AT-009",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Le validateur cartographique ne vérifie pas les références",
+    "scope": "main",
+    "locations": [
+      "app/cartography/map_view_manifest.py:35 validate_manifest",
+      "app/cartography/world_db.py:135 schéma maps/map_links"
+    ],
+    "problem": "Il exige un target_view_key non vide mais accepte une cible inexistante, des parents absents et n’écarte pas les coordonnées dupliquées. PRAGMA foreign_keys est activé sans contraintes de références dans ce schéma.",
+    "proof": "reproductions.json/world_reference_validator retourne [] pour un lien vers missing_target. Les JSON actuels contrôlés ne contiennent aucun parent/cible manquant, doublon de coordonnées ou map hors bornes : lacune de validation confirmée, corruption actuelle non confirmée.",
+    "fix": "Validation en deux passes des clés de vues et des liens/parents ; détection des doublons (view,x,y), cycles parent et coordonnées invalides. Les liens externes autorisés doivent être déclarés explicitement, pas refusés arbitrairement.",
+    "impact": "Manifestes Scan Monde, importeur et tests ; contraintes SQL seulement si une migration simple est justifiée.",
+    "gain": "Empêche de futures navigations cassées et évite une importation partielle.",
+    "risk": "Faible/moyen : certains liens externes peuvent être légitimes ; vérifier leur contrat avant de bloquer.",
+    "validation": "Cible/parent absents, cycle parent, doublons, bool/float/coordonnées invalides ; manifeste actuel toujours PASS ; dry-run ne doit pas modifier la DB."
+  },
+  {
+    "id": "AT-010",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Seize validateurs SHA-256 acceptent des empreintes de deux octets",
+    "scope": "main",
+    "locations": [
+      "app/network/mapping_manifest.py:493 _is_sha256",
+      "app/network/mapping_registry.py:84 _is_sha256",
+      "app/network/bootstrap.py:273 _is_sha256",
+      "app/network/current_protocol_profile.py:210 _is_sha256",
+      "app/network/quest_snapshot_decoder.py:260 _is_sha256"
+    ],
+    "problem": "len(value)==64 + bytes.fromhex(value) ne garantit pas 32 octets hexadécimaux : fromhex ignore les espaces internes. La même fonction est dupliquée dans seize modules ; la liste complète des chemins/lignes est dans reproductions.json/sha256_validators.",
+    "proof": "«aa» + 60 espaces + «bb» a longueur 64 et décode 2 octets. Les seize helpers l’acceptent. sha-parser-reproduction.json : parse_protocol_mapping accepte le manifeste et ProtocolMappingRegistry.select retourne usable=true/exact_match pour cette fausse empreinte. Aucun contournement avec une vraie empreinte Unity n’a été démontré.",
+    "fix": "Valider exactement 64 caractères ASCII hexadécimaux et/ou exactement 32 octets sans whitespace. Réutiliser une unique fonction légère dans app/network/contracts.py ; garder les règles de normalisation aux frontières et les types stricts.",
+    "impact": "Tous les validateurs listés, mapping registry/manifests, décodeurs, calibration et bootstrap. Tester les consommateurs, pas uniquement le helper.",
+    "gain": "Contrat d’intégrité exact et suppression d’une duplication qui a propagé le défaut.",
+    "risk": "Faible/moyen : majuscules historiquement acceptées à normaliser ; ne pas refuser un format réellement supporté sans migration.",
+    "validation": "Whitespace interne, non-ASCII, mauvaise longueur, bool/None, uppercase supporté ; parser et registry doivent rejeter ; tests.test_network_mapping_registry, tests.test_network_mapped_decoder, tests.test_network_protocol_calibration."
+  },
+  {
+    "id": "AT-011",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Les caches JSON valides mais de mauvais schéma ne se reconstruisent pas",
+    "scope": "main",
+    "locations": [
+      "app/modules/encyclopedia/providers/dofus_item_provider.py:78 _read_guide_items_index",
+      "app/modules/encyclopedia/providers/memory_bound_guide_provider.py:47 _guide_compact_cache_valid",
+      "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py:68 _achievement_compact_cache_valid",
+      "app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py:228 restore_manual_runtime_compact_cache",
+      "app/startup_cache_warmup.py:161 _load_manifest"
+    ],
+    "problem": "Les try/except protègent le parsing JSON, puis int(schema_version) est appelé hors du bloc protégé. Un cache reconstruisible avec schema_version=\"broken\" provoque ValueError plutôt qu’un miss/fallback.",
+    "proof": "reproductions.json/guide_item_cache_recovery et cache-recovery-probes.json : exception réelle dans les cinq lecteurs. Le fichier source canonique n’est pas corrompu ; seul le cache isolé l’est.",
+    "fix": "Valider type et version sans conversion risquée, considérer un mauvais cache comme miss et reconstruire une seule fois. Conserver le refus strict des documents persistants utilisateur : ne pas généraliser ce fallback à leur progression.",
+    "impact": "Warmup et providers compacts ; lecteurs de cartes manuelles ; tests de corruption de cache.",
+    "gain": "Récupération après corruption logique d’un cache, au lieu d’un chargement impossible.",
+    "risk": "Faible : garder une trace claire et borner les retries ; une source réellement absente doit rester une erreur.",
+    "validation": "Versions non numériques, bool, float, liste ; JSON tronqué ; index sidecar absent/incohérent ; rebuild unique ; progression corrompue toujours sauvegardée/refusée."
+  },
+  {
+    "id": "AT-012",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Lire un préfixe lit actuellement le fichier entier",
+    "scope": "main",
+    "locations": [
+      "local_dofus_data/utils.py:18 detect_encoding",
+      "app/modules/encyclopedia/tools/audit_quests_guides.py:848 is_exploitable_image",
+      "tests/test_quests_guides_audit.py:19 _ci_image_source_is_valid"
+    ],
+    "problem": "read_bytes()[:4] et read_bytes()[:16] allouent et lisent tout le contenu avant de couper le préfixe. Le wrapper de test relit aussi le fichier entier avant le contrôleur image. SVG read_text()[:512] présente le même problème.",
+    "proof": "reproductions.json/encoding_probe : fichier de 72 317 050 octets, pic tracemalloc 72 321 995 octets pour détecter UTF-8. Mesure isolée de la fonction, pas RSS de l’application. Recherche des consommateurs : importeurs JSON/maps/d2i/cache.",
+    "fix": "Ouvrir en binaire et lire 4/16/513 octets selon le contrat ; pour SVG limiter réellement la lecture. Le test LFS doit conserver la validation du pointeur entier borné et refuser les pointeurs malformés. Ne pas annoncer qu’une signature PNG prouve tout le décodage.",
+    "impact": "Importeurs local_dofus_data et audit images/tests ; aucun changement de format disque.",
+    "gain": "Supprime jusqu’à environ 69 MiB d’allocation transitoire sur le cas mesuré ; réduction I/O directe. Le gain global de démarrage et les secondes CI restent à mesurer après correction.",
+    "risk": "Faible : BOM UTF-8/UTF-16, fichiers vides/courts et svg/pointeurs LFS à préserver.",
+    "validation": "Spy sur read(n) et gros fichier ; BOM ; pointeurs LFS valides/malformés ; signatures image ; tests.test_quests_guides_audit ne doit pas assouplir ses assertions métier."
+  },
+  {
+    "id": "AT-013",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Les contrats des gros JSON dépendent des fins de ligne Windows",
+    "scope": "main",
+    "locations": [
+      "data/large_file_contracts.json:6 sha256 de quests_enriched",
+      "data/large_file_contracts.json:19 sha256 de image_manifest",
+      "tools/atlas_doctor_lib/audit.py:395 _validated_large_file_contracts",
+      "tools/atlas_json_inventory.py:24 _sha256",
+      ".gitattributes:1 text=auto"
+    ],
+    "problem": "Les empreintes du contrat sont celles des fichiers CRLF, alors que Git fournit LF ici. Doctor et l’inventaire affichent deux contrats invalides sur le même contenu logique du commit.",
+    "proof": "SHA LF quests=e6d7c5b90ced5768c4b4f4b044146c9928bef23286547001ae0cff97a75bf165 ; image=c2c32139d1a6d14cb77936aa586b7a34fcf3a0525e395c882f0902e6e9b6729d. Conversion LF→CRLF reproduit exactement les deux empreintes attendues. Faux positif de corruption, vrai défaut de portabilité du contrat.",
+    "fix": "Choisir une représentation byte canonique explicite (eol=lf pour ces JSON et régénération autorisée des empreintes) ou un hash du blob Git canonique clairement séparé de l’intégrité disque. Éviter un hash JSON sémantique qui pourrait masquer une corruption.",
+    "impact": "gitattributes, producteurs des contrats, Doctor et inventaire/shards si leurs identités byte changent ; tous les consommateurs métier doivent conserver la parité.",
+    "gain": "Diagnostics concordants Linux/Windows ; aucune réduction RAM prétendue.",
+    "risk": "Moyen : invalidation attendue de caches/shards et index AI Context ; préserver la provenance des données.",
+    "validation": "Checkout LF/CRLF, altération réelle rejetée, JSON sémantiquement identique ; tests.test_atlas_doctor, tests.test_atlas_json_inventory et parité du source entier."
+  },
+  {
+    "id": "AT-014",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Deux diagnostics distincts partagent le même identifiant Doctor",
+    "scope": "main",
+    "locations": [
+      "tools/atlas_doctor_lib/core.py:29 Issue.id",
+      "tools/atlas_doctor_lib/audit.py:713 émission invalid_large_file_contract"
+    ],
+    "problem": "L’ID ne contient que rule/path/line/title. Les deux entrées de large_file_contracts.json ont toutes ces valeurs identiques et donc le même ID, malgré des cibles différentes. Une comparaison/indexation par ID peut les écraser.",
+    "proof": "doctor-fast-py313.json contient deux erreurs files[0]/files[1] avec id=cad8e520683a3aee. La collision est prouvée ; une perte effective dans une UI particulière n’est pas prétendue.",
+    "fix": "Ajouter un sujet stable (chemin du fichier contracté ou JSON pointer de l’entrée) à l’identité. Garder l’identité stable quand le texte de preuve/digest change.",
+    "impact": "Issue, comparateurs de rapports, triage, UI Doctor et tests d’IDs.",
+    "gain": "Registre complet et comparaison fiable, sans masquer une alerte derrière l’autre.",
+    "risk": "Faible/moyen : anciennes baselines auront des IDs différents ; prévoir une lecture compatible si nécessaire.",
+    "validation": "Deux contrats distincts donnent deux IDs ; réordonner le manifeste ne change pas l’ID basé sur le sujet ; changer le hash ne crée pas une fausse nouvelle cible ; comparaison avant/après corrige une seule entrée."
+  },
+  {
+    "id": "AT-015",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "La découverte de consumers ne résout pas les façades lazy pourtant explicites",
+    "scope": "main",
+    "locations": [
+      "tools/atlas_doctor_lib/consumer_sites.py:55 inspect_consumer_sites",
+      "app/modules/encyclopedia/widgets/__init__.py:16 _LAZY_EXPORT_MODULES",
+      "app/modules/encyclopedia/widgets/__init__.py:104 __getattr__"
+    ],
+    "problem": "Pour GuideStepWidget le rapport n’établit aucun consumer statique, cite l’import f-string comme UNKNOWN_TARGET et s’arrête à 120 fichiers sur 176 candidats. La table littérale locale indique pourtant exactement le module exporté. Cela ne prouve pas que ce widget est utilisé dans un parcours produit, mais permet de prouver l’exposition publique.",
+    "proof": "consumer-lazy-widget.out et façade relue : GuideStepWidget→guide_step_widget. Les sept alertes unreferenced_module concernent des modules exportés dans la même table. Tests des exports lazy PASS ; aucun de ces fichiers n’est déclaré mort dans ce rapport.",
+    "fix": "Compléter l’analyse AST par la résolution limitée des dictionnaires littéraux de façades du dépôt ; étiqueter PUBLIC_LAZY_EXPORT séparément de RUNTIME_CONSUMER. Garder l’état REVIEW pour les appels réellement dynamiques ; proposer une pagination/partition des candidats.",
+    "impact": "Consumer-sites, source-impact et triage Graphify ; facades modèles/services/pages et leurs tests.",
+    "gain": "Moins de faux soupçons d’orphelins, meilleure preuve de compatibilité publique, sans hydrater Qt ni les catalogues.",
+    "risk": "Faible/moyen : résolution limitée et sans exécution, éviter de transformer une API exposée en preuve de fonctionnalité utilisée.",
+    "validation": "Dict littéral + f-string package, alias et clé inconnue ; exports réels sans import préalable ; aucun safe_to_delete si preuve dynamique incomplète ; tests.test_atlas_doctor_consumer_sites et tests.test_encyclopedia_widgets_lazy_exports."
+  },
+  {
+    "id": "AT-016",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "La CLI Graph-audit masque une partie des communautés candidates",
+    "scope": "main",
+    "locations": [
+      "tools/atlas_doctor.py:700 graph-audit parser",
+      "tools/atlas_doctor_lib/graph_audit.py:54 inspect_graph",
+      "tools/atlas_doctor_lib/graph_audit.py:235 sections paginées",
+      "tools/atlas_doctor_lib/graph_intelligence.py:484 analyze_community_boundaries"
+    ],
+    "problem": "La CLI expose --offset pour les weak nodes seulement ; inspect_graph permet pourtant community_offset/orphan_offset. La cohésion et le plan limitent aussi l’affichage à 30. Un seul graph-audit --deep n’est pas l’exhaustivité annoncée par une utilisation superficielle.",
+    "proof": "graph-audit-0.json/limits : 334 candidats weak, 107 communautés isolées, 77 communautés non rapportées. La pagination API a été effectuée dans cet audit ; graph-all-candidates.json et graph-communities.json contiennent toutes les sections. Il ne s’agit pas de 107 défauts.",
+    "fix": "Exposer les offsets de sections existants ou un export intégral borné explicite. Marquer la troncature et le total dans chaque section ; réutiliser un graphe chargé une seule fois, sans refaire une lourde recherche globale par page.",
+    "impact": "CLI Doctor, Graph-audit/cohésion/plan et UI ; garder FAST peu coûteux.",
+    "gain": "Permet une couverture reviewable de tous les candidats, évite l’arrêt sur les trente premiers.",
+    "risk": "Faible : budgets et statut advisory inchangés.",
+    "validation": "Plus de 30 communautés et 30 weak : union des pages exactement égale à l’ensemble attendu, sans doublon ni oubli ; tests.test_atlas_doctor_graph_audit et tests.test_atlas_doctor_graph_intelligence."
+  },
+  {
+    "id": "AT-017",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Le workflow Graphify omet des chemins d’architecture",
+    "scope": "main",
+    "locations": [
+      ".github/workflows/graphify-map.yml:10 pull_request.paths",
+      ".github/workflows/graphify-map.yml:22 push.paths"
+    ],
+    "problem": "Les filtres contiennent app/** et quelques outils, mais omettent main.py, launch.py et local_dofus_data/** ainsi que de nombreux moteurs Doctor. Une modification de ces points d’entrée/providers peut ne pas produire de carte exacte-SHA.",
+    "proof": "Filtres YAML relus ; aucune run Graphify Code Map n’est associée au HEAD ac07be9b, qui change principalement tools/tests. La carte du lot 4 a dû être comparée à un graphe local du HEAD. Ce manque d’artefact ne signifie pas une régression du produit.",
+    "fix": "Étendre les chemins structuraux pertinents (entrées, données locales, Doctor/Agent/Graphify). Garder les docs/données-only et les petites modifications hors rebuild coûteux lorsque la politique le permet ; signaler clairement STALE/MISSING et le besoin de rebuild local.",
+    "impact": "Workflow Graphify, contrat exact-SHA des plans structuraux, tests de routage/budget.",
+    "gain": "Couvre les changements d’architecture omis, sans obliger une FULL ni un rebuild sur chaque commentaire documentaire.",
+    "risk": "Faible/moyen : augmentation limitée des runs AST, surveiller le budget existant.",
+    "validation": "Changements isolés de main.py, launch.py, local_dofus_data et moteurs Doctor déclenchent le bon routage ; docs-only ne déclenchent pas un rebuild non justifié ; tests.test_graphify_workflow_budget et tests.test_ci_runner_guardrails."
+  },
+  {
+    "id": "AT-018",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Les chronométrages FULL montrent encore des fixtures coûteuses ciblables",
+    "scope": "main",
+    "locations": [
+      "tests/test_quests_guides_audit.py:34 QuestsGuidesAuditTests.setUpClass",
+      "tests/test_lanyel_home_route_map_count.py:26 setUpClass",
+      "tests/test_lanyel_shared_manual_ui.py:36 setUpClass",
+      "tests/test_encyclopedia_final_mission.py:28 setUpClass"
+    ],
+    "problem": "L’audit de cohérence global et plusieurs classes UI reconstruisent leurs providers/catal ogues. Le lot 5 a déjà supprimé des répétitions de stages et amélioré test_guides_catalog_fill : ne pas refaire ce travail.",
+    "proof": "Artefact GitHub exact ac07be9b : fixture avant test_active_quest_catalog_identity_is_consistent=226,708 s ; Lanyel map count=44,775 s ; Lanyel shared UI=46,098 s. FULL=1 490,593 s au niveau groupe, 2 555 tests. Les temps de fixtures sont mesurés ; la part réellement évitable n’est pas isolée.",
+    "fix": "Traiter d’abord les lectures de préfixes AT-012 puis comparer les phases de build_audit. Réutiliser les caches disque/artefacts déjà disponibles et les fixtures immuables réellement partageables ; garder les états de progression/Qt isolés et les assertions de richesse. Éviter un nouveau singleton mutable global.",
+    "impact": "Tests cités et auditeur, timing ledger ; aucune modification de budgets produit.",
+    "gain": "Gain probable sur I/O et setup ; ne pas promettre 226 s supprimées ni additionner tous les temps comme économie certaine.",
+    "risk": "Moyen : contamination entre tests, fixtures stale et mémoire de suite ; validation d’ordre et signatures nécessaires.",
+    "validation": "Comparer les mêmes fixtures sur un candidat stabilisé, garder tous les tests/IDs et un ledger exact ; parité audit complet ; ordre aléatoire ciblé pour une fixture partagée. Une seule FULL finale si le lot la justifie, aucune boucle benchmark."
+  },
+  {
+    "id": "AT-019",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Les primitives de profil ont deux propriétaires identiques",
+    "scope": "main",
+    "locations": [
+      "app/storage.py:622 default_profiles",
+      "app/storage.py:638 profile_bool",
+      "app/storage.py:645 parse_zaap_click_position",
+      "app/core/profile_settings.py:27 default_profiles",
+      "app/core/profile_settings.py:43 profile_bool",
+      "app/core/profile_settings.py:50 parse_zaap_click_position",
+      "app/core/profile_settings.py:64 parse_unit_ratio",
+      "app/core/zaap_shortcuts.py:12 parse_unit_ratio"
+    ],
+    "problem": "Les corps AST sont identiques pour les defaults, conversion bool, coordonnées et ratio. Le découplage léger du core est utile ; conserver deux implémentations métier n’est pas nécessaire.",
+    "proof": "exact-duplicates.json et code relu ; source-impact-storage.out liste les chemins consommateurs. storage utilise déjà le parseur ratio canonique Zaap.",
+    "fix": "Importer/re-exporter les trois primitives depuis core/profile_settings dans storage, puis faire utiliser le parseur ratio existant de core/zaap_shortcuts par profile_settings. Conserver les noms publics et ne jamais faire importer storage/Qt par le core.",
+    "impact": "Runtime macros/settings, Organizer, main, façade session_manager_pyside et tests de shell ; pas de fusion de storage.py avec le core.",
+    "gain": "Une seule règle de réglages ; moins de dérive ; gain mémoire marginal, non mesuré.",
+    "risk": "Faible : respecter signatures/defaults et seams de monkeypatch tests.",
+    "validation": "Parité table de bool/coordonnées/ratios, identité des defaults, chemins injectés ; tests.test_profile_settings_service et tests.test_zaap_shortcut_import_boundary ; imports core sans Qt."
+  },
+  {
+    "id": "AT-020",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Le runtime manuel surcharge inutilement trois méthodes du core",
+    "scope": "main",
+    "locations": [
+      "app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py:18 _structured_rows_from_fields",
+      "app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py:28 _link_next_cards",
+      "app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py:44 _stage_to_card",
+      "app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py:1604 _link_next_cards"
+    ],
+    "problem": "Deux overrides se contentent d’appeler super avec les mêmes arguments ; _link_next_cards recopie exactement le corps du core. Les vraies adaptations _stage_lines/manual_sections_for_card sont utiles et doivent rester.",
+    "proof": "AST exact du corps _link_next_cards et lecture des deux forwarding overrides. La séparation policy/core n’est pas déclarée inutile.",
+    "fix": "Supprimer uniquement les overrides neutres dans un lot ciblé ; garder la classe, la façade de compatibilité et les transformations Phase 7E.",
+    "impact": "Runtime Guide manuel et tests de texte/sections/next-card ; pas de refonte des chapitres ni du renderer partagé.",
+    "gain": "Réduit le risque de divergence et quelques détours ; aucune économie RAM significative annoncée.",
+    "risk": "Faible/moyen : usages class-level et signatures à conserver ; tests structurels peuvent demander une mise à jour intentionnelle.",
+    "validation": "Mêmes cartes/ensuite/sections avant-après, termes structurés, ressources, ordre de fiches et progression ; tests Guide manual runtime text/structured domain/player policy."
+  },
+  {
+    "id": "AT-021",
+    "priority": "P2",
+    "status": "PROBABLE",
+    "title": "Les signatures de caches ne couvrent pas tous leurs inputs",
+    "scope": "main",
+    "locations": [
+      "app/startup_cache_warmup.py:185 _source_paths",
+      "app/startup_cache_warmup.py:62 _DOMAIN_IMPLEMENTATION_FILES",
+      "app/modules/encyclopedia/providers/memory_bound_guide_provider.py:32 _guide_compact_source_signature",
+      "app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py:160 _manual_runtime_source_signature",
+      "app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py:104 _manual_runtime_quest_signature"
+    ],
+    "problem": "Le stamp warmup omet quests_enriched et la policy joueur ; le cache de résumés Guide valide seulement les JSON guides ; le cache manuel valide les JSON et un CRC noms→IDs. Un changement de raw data/enrichissement/implémentation peut ne pas invalider certains artefacts. Certaines couches en aval ont leur propre signature : une stale lecture de production n’a pas été reproduite.",
+    "proof": "Listes source et helpers relus, comparés aux imports/appels. QuestCatalog inclut correctement enrichment dans sa propre signature : ne pas présenter tous les caches comme défectueux.",
+    "fix": "Avant patch, test de changement d’un input pertinent sur copie temporaire et observation du cache réellement consommé. Compléter la signature ciblée ou version de schéma du seul artefact démontré stale ; ne pas hasher tous les gros fichiers à chaque lookup.",
+    "impact": "Warmup guide/quest, carte manuelle, résumés et tests de lifecycle/cache.",
+    "gain": "Fiabilité des rebuilds après update ; coût/gain non mesuré.",
+    "risk": "Moyen : sur-invalidation rend les ouvertures froides coûteuses ; réutiliser les stamps existants.",
+    "validation": "Modifier isolément enrichissement, policy, données d’item/quête et noms ; l’artefact concerné se reconstruit une fois, les autres restent réutilisables ; test warmup rapide et profile ciblé."
+  },
+  {
+    "id": "AT-022",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "L’ouverture du navigateur annonce un succès en cas d’échec",
+    "scope": "main",
+    "locations": [
+      "app/pages/equipment_page.py:91 EquipmentPage.open_huzounet"
+    ],
+    "problem": "La valeur booléenne de QDesktopServices.openUrl est ignorée ; le message «Huzounet ouvert» est toujours affiché.",
+    "proof": "reproductions.json/external_browser_failure : openUrl retourne False, statut de succès malgré tout. Le navigateur réel n’a pas été lancé dans cette probe.",
+    "fix": "Distinguer le retour vrai/faux et afficher une erreur actionable ; conserver Huzounet externe et la page légère volontaire.",
+    "impact": "Équipement et callback de statut du shell ; pas de réintroduction de Chromium.",
+    "gain": "Feedback honnête, diagnostic simple lorsqu’aucun navigateur n’est associé.",
+    "risk": "Très faible.",
+    "validation": "Mock openUrl False/True ; vérification du message ; Windows avec association absente ; tests.test_equipment_deferred_start et scénario equipment."
+  },
+  {
+    "id": "AT-023",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Craft peut être déclaré prêt avec un catalogue absent",
+    "scope": "main",
+    "locations": [
+      "app/craft_preload.py:37 build_compact_craft_preload",
+      "app/pages/craft_page.py:590 CraftPage.hydrate_runtime",
+      "main.py:2192 collect_preload_result"
+    ],
+    "problem": "Le preload absent renvoie items=[], _prepared=true, _lazy_items=true, _skipped_reason et errors=[]. hydrate_runtime accepte la liste vide et annonce «Craft prêt». Le shell traite errors, mais pas _skipped_reason. L’absence de données n’est donc pas un état terminal explicite.",
+    "proof": "pr159-worker-data-probes.json : catalogue absent et aucune erreur ; conditions hydrate_runtime/collect_preload_result relues. Le cas d’un catalogue présent mais volontairement sans sélection doit rester READY.",
+    "fix": "Séparer résultat prêt et indisponible à la frontière existante ; propager le motif absent/vide en UI, avec retry après restauration. Ne pas déclencher un gros import SQLite sur le thread Qt pour cacher l’absence.",
+    "impact": "Craft preload, page et état de preload shell ; livraison datasets de AT-006.",
+    "gain": "Évite une page vide annoncée prête et facilite la réparation des données.",
+    "risk": "Faible/moyen : empty selection n’est pas empty catalogue.",
+    "validation": "Catalogue manquant, vide, corrompu, restauration puis retry ; catalogue valide avec sélection vide ; erreurs de recette conservées ; tests.test_craft_minimal_lazy et tests.test_craft_compatibility_adapter."
+  },
+  {
+    "id": "AT-024",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Favoris et calibration Zaap peuvent écraser leurs modifications",
+    "scope": "main",
+    "locations": [
+      "app/storage.py:579 save_zaap_favorites",
+      "app/storage.py:592 save_zaap_button_ratios"
+    ],
+    "problem": "Ces deux fonctions relisent puis réécrivent le même document sans transaction coordonnée ; l’atomicité du replace ne protège pas le read-modify-write. Les événements Qt normaux sont séquentiels : une collision en session ordinaire n’est pas mesurée.",
+    "proof": "reproductions.json/zaap_interleaved_writes : une calibration 0.7/0.8 effectuée entre lecture et sauvegarde des favoris revient à 0.1/0.2. Interleaving déterministe isolé, pas un signal de fréquence en production.",
+    "fix": "Réutiliser coordinator_for(path).lock, recharger sous verrou et ne muter que le champ attendu avant write atomique/generation. Conserver les paths injectables et les frontières de compatibilité.",
+    "impact": "ZaapWidget, calibration Organizer, config/zaap_shortcuts.json, callbacks et lecteur léger core.",
+    "gain": "Préserve les champs indépendants en présence d’écrivains multiples.",
+    "risk": "Faible/moyen : lock interprocessus, éviter réentrance incompatible et perte de données corrompues.",
+    "validation": "Deux écrivains favoris/ratios, test interleaving et processus indépendants ; valeurs invalides, corruption sauvegardée ; tests du shell Zaap et persistence."
+  },
+  {
+    "id": "AT-025",
+    "priority": "P2",
+    "status": "PROBABLE",
+    "title": "Les EXE contournent encore les chemins compacts",
+    "scope": "PR #159",
+    "locations": [
+      "app/modules/encyclopedia/providers/memory_bound_guide_provider.py:346 _load",
+      "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py:854 _load",
+      "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py:1298 _load_detail",
+      "app/modules/encyclopedia/services/related_data_service.py:57 _warm_achievement_source_indexes"
+    ],
+    "problem": "Les gardes frozen remontant à l’absence d’interpréteur helper subsistent, alors que la PR implémente désormais un routeur de workers. Guide/Succès prennent le chemin in-process au lieu des voies compactes/subprocess et le warmup frozen peut être ignoré. Une régression RAM réelle du bundle n’a pas été mesurée.",
+    "proof": "Branches frozen relues contre l’allowlist de launch.py ; aucune mesure Linux n’est présentée comme mesure EXE Windows.",
+    "fix": "Après AT-004/005/006, valider les workers compilés puis évaluer si les gardes frozen sont encore nécessaires. Retirer seulement les gardes dont le chemin compact est prouvé fonctionnel ; préserver le fallback terminal si nécessaire.",
+    "impact": "Providers, warmup, routeur PyInstaller et budgets mémoire de modules.",
+    "gain": "Gain plausible RAM/réactivité en bundle ; estimation sans chiffre.",
+    "risk": "Moyen/élevé : récursion EXE, chemins _internal et IPC/result files.",
+    "validation": "Windows bundle : premier détail et ouverture Succès/Guide, sortie helper, process-tree RSS, retour Home, erreurs source et arrêt ; comparer mêmes parcours source/EXE une fois sur candidat stabilisé."
+  },
+  {
+    "id": "AT-026",
+    "priority": "P1",
+    "status": "CONFIRMÉ",
+    "title": "GitHub n’impose que Public PR / Safe Validation",
+    "scope": "main",
+    "locations": [
+      ".github/rulesets/integration-branch.json:1 politique préparée",
+      "PHASE_CERTIFICATION.md:1 contrat",
+      "ruleset GitHub 22696080"
+    ],
+    "problem": "Le ruleset actif de la branche par défaut demande un seul contexte de check, Public PR / Safe Validation ; la certification Phase exacte-SHA n’est pas imposée par les required checks. Le propriétaire dispose d’un bypass always. Ce constat de configuration ne prouve pas qu’une fusion invalide a eu lieu : la FULL actuelle est PASS.",
+    "proof": "ruleset-details.json récupéré via GitHub : required_status_checks=[Public PR / Safe Validation], actor User bypass always. L’ancienne API branches/main/protection est 403 ; la lecture réussie du ruleset n’est pas remplacée par le statut local NOT_VERIFIED.",
+    "fix": "Préparer un gate agrégé de certification policy requis : passe si FULL non requise selon le routage autorisé, sinon exige preuve exacte-SHA authentifiée. Puis configuration du ruleset à effectuer dans un futur lot autorisé ; ne pas imposer FULL à toutes les PR et ne pas changer les droits durant l’audit.",
+    "impact": "Ruleset distant, routage Phase/Public PR, contrat de certification et checks ; action d’administration séparée après correction concrète.",
+    "gain": "Enforcement automatique du contrat, sans lancer inutilement une FULL.",
+    "risk": "Moyen : mauvais nom de contexte peut bloquer toutes les PR ; bypass propriétaire relève d’un choix de gouvernance à confirmer.",
+    "validation": "Phase requise sans preuve, preuve stale/étrangère, FULL FAIL doivent bloquer ; LOW/doc sans FULL justifiée reste fusionnable ; vérifier le vrai ruleset et un scénario PR avant activation."
+  },
+  {
+    "id": "AT-027",
+    "priority": "P3",
+    "status": "CONFIRMÉ",
+    "title": "Les suppressions de sélection Craft sont étiquetées seulement x",
+    "scope": "main",
+    "locations": [
+      "app/pages/craft_page.py:919 CraftPage.refresh_selection"
+    ],
+    "problem": "Le bouton AtlasButton(\"x\") n’ajoute ni tooltip ni accessibleName qui explique quelle ligne sera supprimée. Le nom de l’objet apparaît dans la ligne, mais le contrôle lui-même reste ambigu au lecteur d’écran.",
+    "proof": "Composition du widget relue : la quantité a un tooltip, le bouton delete n’en a pas et ne définit pas de libellé accessible spécifique.",
+    "fix": "Tooltip «Retirer <nom> de la sélection» et accessibleName équivalent ; conserver le bouton compact et le comportement actuel.",
+    "impact": "Sélection Craft uniquement, composant AtlasButton réutilisé.",
+    "gain": "Meilleure découvrabilité et accessibilité pour un coût minimal ; aucun gain de performance attendu.",
+    "risk": "Très faible.",
+    "validation": "Inspection Qt du tooltip/name sur deux lignes ; activation clavier et suppression de la bonne ligne ; pas besoin d’un nouveau composant."
+  },
+  {
+    "id": "AT-028",
+    "priority": "P2",
+    "status": "CONFIRMÉ",
+    "title": "Le catalogue heuristique sous-estime l’intégration des scénarios Doctor",
+    "scope": "main",
+    "locations": [
+      "tools/tool_audit.py:1 audit heuristique",
+      "tools/tool_catalog.py:85 _literal_tool_spec",
+      "tools/atlas_doctor.py:1 UI_SCENARIOS",
+      "tools/atlas_doctor_lib/app_ui_smoke_scenario.py:1 main",
+      "tools/atlas_doctor_lib/encyclopedia_deferred_smoke.py:1 main"
+    ],
+    "problem": "tool-audit déclare les scénarios non référencés/sans tests ciblés et deux comme mutation sans gate. Ils sont pourtant routés par capture-ui, testés et exigent un active_observer ; leurs écritures sont des fixtures temporaires. Les diagnostics heuristiques sont annoncés advisory, donc ne doivent pas autoriser une suppression.",
+    "proof": "tool-audit.json ; quatre captures effectivement enregistrées, tests.test_atlas_doctor_capture_ui, *_app_ui_smoke, *_encyclopedia_smoke PASS et source des scénarios relue. La preuve invalide l’absence d’usage de ces quatre scénarios, pas celle de tout outil classé heuristic.",
+    "fix": "Ajouter les contrats explicites/relations de routage aux seuls entry points récurrents mal classés ; distinguer fixture temporaire de mutation du dépôt canonique. Ne pas recopier une seconde liste de commandes dans le skill.",
+    "impact": "Tool audit/catalog, playbook de routage et scénarios ; aucun changement de l’instrumentation normale de l’application.",
+    "gain": "Inventaire d’outils plus fiable, moins de consolidation inutile et meilleur ciblage agent.",
+    "risk": "Faible : ne jamais augmenter safe_for_agent ou automation_ready sans contrat/test réel.",
+    "validation": "Routage UI_SCENARIOS reconnu, fixtures confinées et exigence observer ; outils réellement non référencés restent REVIEW ; tests.test_tool_catalog, tests.test_tool_audit, tests.test_atlas_doctor_capture_ui."
+  }
+]

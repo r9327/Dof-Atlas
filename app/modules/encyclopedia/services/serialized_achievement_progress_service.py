@@ -168,7 +168,10 @@ class AchievementProgressService(LegacyAchievementProgressService):
     def save(self) -> None:
         """Persist a compatibility snapshot only when no peer changed the file."""
         with self._coordinator.lock:
-            if self._seen_generation != self._coordinator.generation:
+            if (
+                self._seen_generation != self._coordinator.generation
+                or self._disk_signature != self._current_disk_signature()
+            ):
                 self.progress = self._load()
                 self._seen_generation = self._coordinator.generation
                 self._disk_signature = self._current_disk_signature()
@@ -279,7 +282,7 @@ class AchievementProgressService(LegacyAchievementProgressService):
             # disk parse when no peer published a newer generation. The inherited
             # input signature then skips the expensive achievement graph pass when
             # quest/manual inputs are unchanged.
-            self._ensure_fresh()
+            self.refresh_if_changed()
             return super().sync_from_quest_progress(
                 key,
                 achievement_provider,

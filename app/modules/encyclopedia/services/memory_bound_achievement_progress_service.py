@@ -20,14 +20,37 @@ class AchievementProgressService(SerializedAchievementProgressService):
         except Exception:
             return {}
 
+        # Compact Guide summaries deliberately have no required_steps. The
+        # progress index is the authoritative lightweight quest-ID source.
+        compact_ids = getattr(guide_provider, "progress_quest_ids_for", None)
         summary_getter = getattr(guide_provider, "get_summary_by_id", None)
-        detail_getter = getattr(guide_provider, "get_by_id", None)
-        getter = summary_getter if callable(summary_getter) else detail_getter
-        if not callable(getter):
+        # Only detail-only legacy providers may use get_by_id. Never hydrate a
+        # Guide when the production compact index is available.
+        getter = (
+            summary_getter
+            if callable(summary_getter)
+            else getattr(guide_provider, "get_by_id", None)
+            if not callable(compact_ids)
+            else None
+        )
+        if not callable(compact_ids) and not callable(getter):
             return {}
 
         result: dict[str, tuple[int, ...]] = {}
         for side, guide_id in ALIGNMENT_GUIDE_IDS.items():
+            if callable(compact_ids):
+                try:
+                    quest_ids = tuple(
+                        dict.fromkeys(int(value) for value in compact_ids(guide_id))
+                    )
+                except (TypeError, ValueError):
+                    quest_ids = ()
+                if quest_ids:
+                    result[str(side)] = quest_ids
+                    continue
+
+            if not callable(getter):
+                continue
             try:
                 guide = getter(guide_id)
             except Exception:

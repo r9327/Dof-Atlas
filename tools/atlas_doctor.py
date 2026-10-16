@@ -116,7 +116,10 @@ def command_graph(root: Path, args) -> dict[str, Any]:
 def command_graph_audit(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.graph_audit import audit_current_graph
     result = audit_current_graph(
-        root, deep=getattr(args, "deep", False), weak_offset=getattr(args, "offset", 0)
+        root, deep=getattr(args, "deep", False), weak_offset=getattr(args, "offset", 0),
+        community_offset=getattr(args, "community_offset", 0),
+        orphan_offset=getattr(args, "orphan_offset", 0),
+        all_candidates=getattr(args, "all_candidates", False),
     )
     if not args.json:
         metrics = result.get("metrics") or {}
@@ -695,6 +698,12 @@ def build_parser() -> argparse.ArgumentParser:
     ga = sub.add_parser('graph-audit', help='Audit Graphify : cycles, communautés, consommateurs, plan et RAM.')
     ga.add_argument('--deep', action='store_true', help='Rechercher les consommateurs dans les sources suivies.')
     ga.add_argument('--offset', type=int, default=0, help='Décalage parmi les candidats faiblement connectés (pages de 30).')
+    ga.add_argument('--community-offset', type=int, default=0,
+                    help='Décalage parmi les communautés isolées (pages de 30).')
+    ga.add_argument('--orphan-offset', type=int, default=0,
+                    help='Décalage parmi les nœuds orphelins (pages de 30).')
+    ga.add_argument('--all-candidates', action='store_true',
+                    help='Exporter tous les candidats d’un graphe chargé une fois (résultat JSON potentiellement volumineux).')
     fa = sub.add_parser('file-audit', help='Enquete unifiee Doctor / Graphify, aucune execution de tests.')
     fa.add_argument('paths', nargs='+', help='Un a huit fichiers Python actuels.')
     fa.add_argument('--trace', type=Path, help='Trace existante exacte-SHA sous .ai/runtime (optionnelle).')

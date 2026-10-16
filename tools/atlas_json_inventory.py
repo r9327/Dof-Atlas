@@ -15,6 +15,18 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "data/large_file_contracts.json"
 LFS_HEADER = b"version https://git-lfs.github.com/spec/v1"
 CODE_SUFFIXES = {".py", ".ps1", ".sh", ".bat", ".js", ".ts", ".yml", ".yaml"}
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "public_json_inventory",
+    "role": "tracked JSON inventory and public raw dataset provenance",
+    "capabilities": ["tracked_json_inventory", "public_raw_inputs", "dataset_drift_verification"],
+    "modes": ["tracked", "include_local_metadata", "raw_inputs", "verify_against"],
+    "cost_hint": "variable",
+    "side_effects": "artifact_output",
+    "structured_output": True,
+    "canonical": True,
+    "recommended_tests": ["tests.test_atlas_json_inventory", "tests.test_atlas_json_raw"],
+}
 
 
 def tracked_files(root: Path) -> list[str]:
@@ -301,9 +313,35 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--include-local", action="store_true",
                         help="Compter les JSON générés/non suivis par famille, sans lire leur contenu")
+    parser.add_argument("--raw-inputs", action="store_true",
+                        help="Auditer uniquement les sources publiques Doduda des locks Quest/Craft")
+    parser.add_argument("--candidate-sha", help="SHA exact du code consommant les inputs publics")
+    parser.add_argument("--verify-against", type=Path,
+                        help="Comparer les inputs publics au snapshot pris avant les tests")
     parser.add_argument("--output", type=Path, help="Rapport JSON (ne pas placer dans data/)")
     args = parser.parse_args()
-    report = audit(args.root, include_local=args.include_local)
+    if args.raw_inputs:
+        from tools.atlas_json_raw import audit_raw_inputs, verify_raw_inputs
+
+        actual = subprocess.run(["git", "-C", str(args.root), "rev-parse", "HEAD"],
+                                check=True, capture_output=True, text=True).stdout.strip()
+        if args.candidate_sha != actual:
+            parser.error("Le SHA des inputs doit être le HEAD réellement testé")
+        if args.include_local:
+            parser.error("Les inputs publics ne doivent pas inclure l'état privé local")
+        report = audit_raw_inputs(args.root, actual)
+        if args.verify_against:
+            try:
+                before = json.loads(args.verify_against.read_text(encoding="utf-8-sig"))
+                verify_raw_inputs(before, report)
+                report["unchanged_during_validation"] = True
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                report["status"] = "BLOCKED"
+                report["errors"].append({"source": "before_snapshot", "reason": str(exc)})
+    else:
+        if args.verify_against or args.candidate_sha:
+            parser.error("--candidate-sha et --verify-against exigent --raw-inputs")
+        report = audit(args.root, include_local=args.include_local)
     content = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         output = args.output.resolve()
@@ -312,10 +350,13 @@ def main() -> int:
             parser.error("Ne pas écrire un rapport généré dans data/")
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(content, encoding="utf-8")
-        print(f"{report['json_count']} JSON, rapport : {output}")
+        if args.raw_inputs:
+            print(f"Inputs publics {report['status']}, {len(report['files'])} fichiers, rapport : {output}")
+        else:
+            print(f"{report['json_count']} JSON, rapport : {output}")
     else:
         print(content, end="")
-    return 0
+    return 1 if args.raw_inputs and report["status"] != "PASS" else 0
 
 
 if __name__ == "__main__":

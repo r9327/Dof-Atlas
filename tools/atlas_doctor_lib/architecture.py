@@ -114,10 +114,21 @@ def graph_status(root: Path, *, state: dict[str, Any] | None = None) -> dict[str
         and cached.get("version") == graphify.PINNED_VERSION
     )
     graph_head = raw.get("built_at_commit")
-    if graph_head:
-        resolved = run_git(root, "rev-parse", "--verify", graph_head + "^{commit}", check=False) if isinstance(graph_head, str) and re.fullmatch(r"[0-9a-fA-F]{7,40}", graph_head) else ""
-        if resolved != current["head"]:
-            matches = False
+    if not isinstance(graph_head, str) or not re.fullmatch(r"[0-9a-fA-F]{7,40}", graph_head):
+        matches = False
+    elif run_git(root, "rev-parse", "--verify", graph_head + "^{commit}", check=False) != current["head"]:
+        matches = False
+    if payload["tool"].get("status") != "PASS":
+        matches = False
+    payload["provenance"] = {
+        "status": "EXACT" if matches else "STALE",
+        "candidate_sha": current["head"],
+        "graph_sha": graph_head,
+        "graph_signature": signature,
+        "analyzer_version": cached.get("version") if cached else None,
+        "expected_analyzer_version": graphify.PINNED_VERSION,
+        "tool_status": payload["tool"].get("status"),
+    }
     payload["status"] = "PASS" if matches else "STALE"
     payload["reason"] = "Graph current for HEAD/worktree." if matches else "Graph perime ou sans provenance Doctor HEAD/worktree. Utiliser --rebuild."
     return payload

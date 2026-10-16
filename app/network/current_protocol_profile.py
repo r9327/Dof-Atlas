@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.network.contracts import _is_sha256
+
 import hashlib
 import json
 from dataclasses import asdict, dataclass
@@ -207,14 +209,6 @@ def _is_current_type_url(value: str) -> bool:
     return len(alias) == 3 and alias.isascii() and alias.isalpha() and alias.islower()
 
 
-def _is_sha256(value: str) -> bool:
-    if len(value) != 64:
-        return False
-    try:
-        bytes.fromhex(value)
-    except ValueError:
-        return False
-    return True
 
 
 __all__ = [

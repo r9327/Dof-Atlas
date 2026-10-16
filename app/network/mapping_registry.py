@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.network.contracts import _is_sha256
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -81,14 +83,6 @@ class ProtocolMappingRegistry:
         return tuple(sorted(candidates, key=lambda path: str(path).casefold()))
 
 
-def _is_sha256(value: str) -> bool:
-    if len(value) != 64:
-        return False
-    try:
-        bytes.fromhex(value)
-    except ValueError:
-        return False
-    return True
 
 
 __all__ = ["ProtocolMappingRegistry", "ProtocolMappingSelection"]

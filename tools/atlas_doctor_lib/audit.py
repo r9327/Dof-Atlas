@@ -411,6 +411,7 @@ def _validated_large_file_contracts(root: Path) -> tuple[dict[str, dict[str, Any
             errors.append(f'{label}: objet attendu')
             continue
         path = str(row.get('path') or '').replace('\\', '/').strip('/')
+        label = f'{LARGE_FILE_CONTRACT_PATH.as_posix()} files[{index}] target={path or "<missing>"}'
         role = str(row.get('role') or '')
         expected_sha = str(row.get('sha256') or '').casefold()
         generator = str(row.get('generator') or '').replace('\\', '/').strip('/')
@@ -584,7 +585,7 @@ def _valid_ast_fact(fact: Any, digest: str) -> bool:
         return False
     required_issue_keys = {
         "rule", "category", "severity", "confidence", "path", "line",
-        "title", "evidence", "recommendation",
+        "title", "evidence", "recommendation", "subject",
     }
     if any(
         not isinstance(issue, dict)
@@ -710,7 +711,9 @@ def run_audit(
     scan_started = time.perf_counter()
     issues: list[Issue] = []
     for error in contract_errors:
-        issues.append(Issue('invalid_large_file_contract', 'git', 'HIGH', 'confirmed', LARGE_FILE_CONTRACT_PATH.as_posix(), None, 'Contrat de gros fichier invalide', error, 'Corriger le hash, le role, le generateur ou les consommateurs prouves.'))
+        # Stable issue subject: target file, not entry position or hash digest.
+        subject = error.split(" target=", 1)[1].split(":", 1)[0] if " target=" in error else error.split(":", 1)[0]
+        issues.append(Issue('invalid_large_file_contract', 'git', 'HIGH', 'confirmed', LARGE_FILE_CONTRACT_PATH.as_posix(), None, 'Contrat de gros fichier invalide', error, 'Corriger le hash, le role, le generateur ou les consommateurs prouves.', subject=subject))
     identity = _ast_cache_identity()
     old_cache = _load_ast_cache(root, identity)
     new_cache: dict[str, dict[str, Any]] = {}

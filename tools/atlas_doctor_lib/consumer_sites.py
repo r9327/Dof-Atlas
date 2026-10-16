@@ -54,6 +54,67 @@ def _literal_string(node: ast.AST | None) -> str | None:
     return None
 
 
+def _public_lazy_exports(root: Path, target: str) -> list[dict[str, Any]]:
+    """Resolve only a literal package export table with an actual __getattr__.
+
+    A public lazy export proves API reachability, not that any user journey
+    constructed the widget. Read AST only; never import PySide modules.
+    """
+    path = Path(target)
+    facade = path.parent / "__init__.py"
+    full = root / facade
+    if not full.is_file() or full.is_symlink():
+        return []
+    try:
+        source = full.read_text(encoding="utf-8-sig")
+        if len(source.encode("utf-8")) > MAX_SIZE:
+            return []
+        tree = ast.parse(source)
+    except (OSError, UnicodeError, SyntaxError):
+        return []
+    if not any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+               and n.name == "__getattr__" for n in tree.body):
+        return []
+    exports: dict[str, str] = {}
+    public: set[str] = set()
+    for node in tree.body:
+        value = None
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "_LAZY_EXPORT_MODULES"
+            for t in node.targets
+        ):
+            value = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == "_LAZY_EXPORT_MODULES":
+            value = node.value
+        if value is not None:
+            try:
+                candidate = ast.literal_eval(value)
+                if isinstance(candidate, dict) and all(
+                    isinstance(key, str) and isinstance(val, str)
+                    for key, val in candidate.items()
+                ):
+                    exports = candidate
+            except (SyntaxError, TypeError, ValueError):
+                pass
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "__all__" for t in node.targets
+        ):
+            try:
+                names = ast.literal_eval(node.value)
+                if isinstance(names, (list, tuple)) and all(isinstance(n, str) for n in names):
+                    public = set(names)
+            except (SyntaxError, ValueError, TypeError):
+                pass
+    leads = []
+    for symbol, suffix in exports.items():
+        if suffix == path.stem and symbol in public:
+            leads.append({
+                "source": facade.as_posix(), "line": 1, "kind": "PUBLIC_LAZY_EXPORT",
+                "symbol": symbol, "confidence": "STATIC_LITERAL_FACADE_NOT_RUNTIME_USE",
+            })
+    return leads
+
+
 def inspect_consumer_sites(root: Path, target: str) -> dict[str, Any]:
     """Search actual source candidates, without loading application modules."""
     from tools import agent
@@ -65,6 +126,7 @@ def inspect_consumer_sites(root: Path, target: str) -> dict[str, Any]:
     module = target.removesuffix(".py").removesuffix("/__init__").replace("/", ".")
     leaf = module.rsplit(".", 1)[-1]
     candidates = _candidate_files(root, leaf)
+    public_exports = _public_lazy_exports(root, target)
     leads, errors = [], []
     for name in candidates[:MAX_FILES]:
         p = (root / name).resolve()
@@ -149,6 +211,10 @@ def inspect_consumer_sites(root: Path, target: str) -> dict[str, Any]:
         "static_status": static.get("status"), "static_confirmed": confirmed[:MAX_ROWS],
         "static_confirmed_count": len(confirmed),
         "dynamic_leads": leads[:MAX_ROWS], "dynamic_lead_count": len(leads),
+        "public_lazy_exports": public_exports, "public_lazy_export_count": len(public_exports),
+        "static_reference_kind": "PUBLIC_LAZY_EXPORT" if public_exports else "UNKNOWN",
+        "runtime_consumer_proven": False,
+        "evidence_classification": "STATIC_LITERAL" if public_exports else "UNVERIFIED",
         "candidate_files": len(candidates),
         "truncated": len(candidates) > MAX_FILES or len(leads) > MAX_ROWS,
         "candidate_scan_complete": len(candidates) <= MAX_FILES and not errors,

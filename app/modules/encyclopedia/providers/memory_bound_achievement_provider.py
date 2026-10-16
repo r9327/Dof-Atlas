@@ -78,7 +78,8 @@ def _achievement_compact_cache_valid(
     return bool(
         isinstance(meta, dict)
         and meta.get("kind") == "meta"
-        and int(meta.get("schema_version") or 0) == _ACHIEVEMENT_COMPACT_SCHEMA
+        and type(meta.get("schema_version")) is int
+        and meta["schema_version"] == _ACHIEVEMENT_COMPACT_SCHEMA
         and meta.get("source_signature") == _achievement_compact_source_signature(data_dir)
         and _achievement_compact_index_path(path).is_file()
     )
