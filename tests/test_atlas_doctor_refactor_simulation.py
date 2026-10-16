@@ -54,8 +54,13 @@ class RefactorSimulationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cannot overwrite"):
             simulate_refactor(self.root, ["app/mod.py"],
                               action="move", replacement="app/mod.py")
-        (self.root / "app/alias.py").symlink_to(self.root / "app/existing.py")
-        with self.assertRaisesRegex(ValueError, "symlink"):
+        alias = self.root / "app/alias.py"
+        alias.write_text("pass\n")
+        native_is_symlink = Path.is_symlink
+        with patch.object(
+            Path, "is_symlink", autospec=True,
+            side_effect=lambda path: path == alias or native_is_symlink(path),
+        ), self.assertRaisesRegex(ValueError, "symlink"):
             simulate_refactor(self.root, ["app/mod.py"],
                               action="consolidate", replacement="app/alias.py")
         with self.assertRaisesRegex(ValueError, "multiple files"):
