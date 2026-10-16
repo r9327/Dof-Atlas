@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from app import quest_catalog as qc
 from app.quest_catalog import QuestCatalog, QuestRecord, QuestStep
-from app.quest_catalog_details import load_lazy_catalog
+from app.quest_catalog_details import ensure_detail_source_offsets, load_lazy_catalog
 from app.quest_source_index import (
     JsonSourceMapping,
     QuestSources,
@@ -158,6 +158,34 @@ class QuestDetailsTests(unittest.TestCase):
                 details._sources.context["quest_to_achievements"][1],
                 ["Succès test"],
             )
+
+    def test_controlled_preload_primes_detail_offsets_one_mapping_at_a_time(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            created = []
+
+            class Mapping:
+                def __len__(self):
+                    return 1
+
+            class Sources:
+                def __init__(self, cache_root):
+                    self.cache_root = cache_root
+                    self.closed = False
+                    created.append(self)
+
+                def mapping(self, *_args, **_kwargs):
+                    return Mapping()
+
+                def close(self):
+                    self.closed = True
+
+            with patch("app.quest_catalog_details.QuestSources", Sources):
+                count = ensure_detail_source_offsets(root, cache_root=root / "cache")
+
+            self.assertEqual(count, 12)
+            self.assertEqual(len(created), count)
+            self.assertTrue(all(source.closed for source in created))
 
     def test_index_does_not_compile_details_and_a_b_a_reuses_data(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(QuestCatalog, '_load_source', side_effect=self.compile) as load:

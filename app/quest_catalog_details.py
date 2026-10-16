@@ -24,6 +24,20 @@ _DETAIL_FIELDS = frozenset({"steps", "source_solution_steps", "solution_blocks",
 _SUMMARY_FIELDS = {"achievements": 0, "prerequisites": 1, "info": 2}
 _CACHE_ROOT = qc.ROOT_DIR / ".cache" / "dofus_atlas" / "quest_details_v1"
 
+_DETAIL_OFFSET_SOURCES = (
+    ("quest_steps.json", "RefIds", True),
+    ("quest_step_rewards.json", "RefIds", True),
+    ("quest_objective_types.json", "RefIds", True),
+    ("jobs.json", "RefIds", True),
+    ("spells.json", "RefIds", True),
+    ("titles.json", "RefIds", True),
+    ("emoticons.json", "RefIds", True),
+    ("npcs.json", "RefIds", True),
+    ("areas.json", "RefIds", True),
+    ("subareas.json", "RefIds", True),
+    ("maps_information.json", "RefIds", True),
+)
+
 
 class DeferredQuestRecord(qc.QuestRecord):
     __slots__ = ("_details",)
@@ -345,6 +359,48 @@ def ensure_lazy_catalog_cache(
             connection.execute("INSERT OR REPLACE INTO metadata VALUES ('ready', '1')")
         row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
         return max(0, int(row[0] if row else 0))
+
+
+def ensure_detail_source_offsets(
+    data_dir: Path = qc.RAW_QUEST_DATA_DIR,
+    *,
+    cache_root: Path = _CACHE_ROOT,
+) -> int:
+    """Prepare disk-only indexes used by the first rich Quest detail.
+
+    Each mapping is released before the next one is opened.  The controlled
+    preload therefore pays the source scan once without retaining the offset
+    dictionaries in Atlas' long-lived process.
+    """
+
+    prepared = 0
+    offset_root = Path(cache_root) / "source_offsets"
+    for filename, field, doduda in _DETAIL_OFFSET_SOURCES:
+        sources = QuestSources(offset_root)
+        try:
+            mapping = sources.mapping(
+                Path(data_dir) / filename,
+                field,
+                doduda=doduda,
+                required=True,
+            )
+            len(mapping)
+            prepared += 1
+        finally:
+            sources.close()
+
+    enrichment_sources = QuestSources(offset_root)
+    try:
+        enrichment = enrichment_sources.mapping(
+            qc.DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json",
+            "quests",
+            required=False,
+        )
+        len(enrichment)
+        prepared += 1
+    finally:
+        enrichment_sources.close()
+    return prepared
 
 
 def load_quest_name_index(
