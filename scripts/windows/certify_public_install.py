@@ -83,7 +83,15 @@ if ($env:ATLAS_E2E_TEST_EQUIPMENT -eq '1') {
     if ($null -eq $huz -or -not $huz.Current.IsEnabled) { throw 'Actual Equipment page did not become ready' }
     $equipmentTested = $true
 }
-if (-not $appProcess.CloseMainWindow()) { throw "Atlas main window cannot be closed" }
+$closeDeadline = [DateTime]::UtcNow.AddSeconds(30)
+$closeRequested = $false
+while ([DateTime]::UtcNow -lt $closeDeadline) {
+    $appProcess.Refresh()
+    if ($appProcess.HasExited) { throw 'Atlas exited before the normal close request' }
+    if ($appProcess.CloseMainWindow()) { $closeRequested = $true; break }
+    Start-Sleep -Milliseconds 250
+}
+if (-not $closeRequested) { throw "Atlas main window cannot be closed after navigation settles" }
 $quit = $null
 $deadline = [DateTime]::UtcNow.AddSeconds(30)
 $root = [System.Windows.Automation.AutomationElement]::RootElement
