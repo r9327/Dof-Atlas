@@ -78,3 +78,5 @@ jobs:
           path: artifacts/ui_lab/**
           if-no-files-found: error
           retention-days: 30
+
+# Run live Guide captures from 2026-10-16 current candidate.
