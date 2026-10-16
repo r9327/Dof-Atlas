@@ -48,3 +48,49 @@ Le scénario `encyclopedia` actuel (`tools/atlas_doctor_lib/encyclopedia_deferre
 - [ ] CI ciblée verte + limites des vérifications clairement déclarées.
 
 **État du commit initial : uniquement ce cahier des charges, pas encore le code de l'outil.**
+
+## Rectificatif prioritaire — VALIDATION FONCTIONNELLE, pas seulement capture
+
+**Ce chapitre prévaut sur toute interprétation « PNG + arbre Qt = UI validée » dans le reste du document.** La mission est un **Doctor UI Validator** : exécuter des interactions réelles et comparer leurs résultats à des attentes vérifiables. Capture PNG/JSON uniquement comme preuves, pas comme critère de PASS.
+
+### Architecture minimale ciblée
+
+- Préserver `capture-ui` et ses contrats existants. Ajouter une entrée explicitement distincte de validation (proposition : `doctor verify-ui guides`, sous-commande exacte à fixer en conformité avec le CLI). Le module de scénario et les assertions doivent être réutilisables ; éviter un nouveau framework/runner général s'il existe déjà un exécuteur de scénarios Doctor.
+- Utiliser **les vrais** `SharedGuideManualView`, `SharedGuideManualCard`, routeur/services existants et `QTest`/événements Qt. Pas de faux bouton sans lien avec la production. Fixtures injectées uniquement pour le stockage/profil, dans un répertoire temporaire. Certains contrôles de données peuvent utiliser un service stub déterministe en complément : indiquer précisément quelles preuves reposent sur données réelles vs fixture.
+- En V1, inclure des scénarios connus des deux guides (succès page 1 / page ressources, Lanyel page 1 / transition vers Fécaline) et un **socle générique** sur les widgets Qt réels ; hors périmètre d'implémentation actuelle : toutes les autres vues de l'application.
+
+### Assertions attendues, avec actions puis état vérifié
+
+1. **Ouverture et identité** : ouvrir le guide via l'entrée réellement utilisée par l'app ; vérifier bon guide, bon `stage_id` canonique, bon titre, bonnes sections/row IDs. Le texte affiché doit être attribuable à la carte active ; aucun texte d'ancienne page sauf s'il est aussi attendu sur la nouvelle.
+2. **Navigation effective** : cliquer vraiment Précédent/Suivant/Guide ; contrôler la page obtenue et sa progression, enchaîner des aller-retours rapides, changement de guide puis retour, Home puis réouverture, pages longues et courtes. Faire les assertions **après livraison des événements Qt**, et après traitement des destructions différées.
+3. **Arbre et cycle de vie Qt** : compter les `GuideManualSheet` et sections réellement montées/visibles, leurs parents, ordre des layouts, objets en attente de destruction, signaux/callbacks répétitifs ; montrer que les anciens widgets ne restent pas affichés ou connectés. `rendered_card_count=1` seul est insuffisant.
+4. **Action réelle des contrôles** : déclencher boutons et cases avec QTest ; vérifier le bon identifiant/cible, l'état du service et l'état visuel après action, puis réouverture. Vérifier verrouillage/déverrouillage, navigation autorisée/interdite selon le contrat existant, labels/icônes/accessibilityName cohérents.
+5. **Progression / isolation** : valider manuellement une page et un combat sur un profil temporaire, naviguer, changer de personnage fictif, recharger les services ; vérifier persistance et absence de contamination entre personnages. Tester explicitement que les validations automatiques n'acceptent pas d'étape sans preuve ; ne jamais simuler comme vérifié un signal DOFUS réel indisponible.
+6. **Interactions spécifiques** : clics sur liens de quête/PNJ/objet, copie /travel/coordonnées quand la fonctionnalité existe, noms et quantités de combats ; vérifier callbacks/arguments ou effets observables avec espion isolé, sans déclencher d'action externe ou macro réelle.
+7. **Géométrie et accessibilité** : sous deux dimensions, vérifier widget contenu dans le viewport, absence de scroll horizontal involontaire, aucun chevauchement de composants interactifs, contrôle toujours accessible après scroll, textes importants non masqués ; contrôle visuel/PNG *en complément* pour les défauts impossibles à conclure par la géométrie seule.
+8. **Robustesse** : N répétitions bornées de render/navigation/resize/refresh et ouverture/fermeture, vérifier que le nombre de widgets vivants, connexions et références utiles revient à la normale ; surveiller exceptions Qt, timeout, latence grossière et destruction. Pas de bench RAM/FULL systématique.
+9. **Provenance et contenu** : distinguer doublon de QWidget, doublon de ligne et consigne répétée légitimement à deux moments distincts ; signaler comme `REVIEW` une anomalie sémantique sans oracle fiable, jamais supprimer des données sur simple similitude de texte.
+
+### Véritable oracle / statuts — aucun faux vert
+
+- Chaque contrôle doit contenir : `scenario_id`, `action`, `expected`, `observed`, `status`, `evidence_path` et identifiant de guide/carte. Ne pas confondre `test_executed` avec `test_passed`.
+- Statuts individuels : `PASS` (assertion exécutée et vérifiée), `FAIL` (comportement observé contraire au contrat), `BLOCKED` (impossible à exécuter), `REVIEW` (preuve insuffisante, notamment jugement sémantique), `NOT_COVERED` (périmètre non testé).
+- Verdict global `PASS` **uniquement** lorsque toutes les assertions obligatoires applicables sont réellement exécutées, que zéro `FAIL/BLOCKED/REVIEW` obligatoire subsiste et que le rapport porte sur le SHA contrôlé. Sinon `FAIL`, `BLOCKED` ou `REVIEW`, avec couverture exacte (nombre passé/échoué/non couvert). Une capture réussie ne peut jamais émettre `PASS` de validation.
+- Différencier **Qt offscreen test** du **binaire Windows installé avec parcours utilisateur réel** : fournir deux niveaux de preuve et une limite explicite. Le PASS offscreen ne prétend pas prouver l'affichage ni l'intégration EXE Windows.
+- Artefacts : `verdict.json` lisible par machine, journal chronologique actions/assertions avec IDs, arbre Qt avant/après, traces/exceptions, captures optionnelles, manifeste exact-SHA + environnement. Un rapport doit être suffisant pour retrouver le widget, la page et la première assertion en échec.
+
+### Tests du validateur lui-même (preuve qu'il détecte un bug)
+
+- **Cas sains** : pages courtes/longues réelles, transitions, clics/persistance, retour à l'état attendu.
+- **Cas volontairement cassés** (fixtures ou injection isolée hors production) : seconde feuille visible, ancienne ligne rémanente, mauvais lien/checkbox → objectif, bouton qui ne change pas la page, non-persistance, débordement et statut de verrouillage incohérent. Chacun doit conduire à `FAIL` avec raison ciblée ; pas de `PASS` si une assertion obligatoire ne tourne pas.
+- **Cas empêchés** : PySide6 indisponible, service impossible à charger, timeout, environnement Qt non compatible, artefact manquant → `BLOCKED` ou `REVIEW` ; jamais `PASS`.
+- **Compatibilité** : conserver tous les anciens tests Doctor (`capture-ui`, runtime-trace, Qt scenarios), pas de migration destructive.
+- **Certification** : CI ciblée au SHA, et validation Windows installée séparée si disponible. **Aucune auto-fusion basée sur une image.**
+
+### Articulation des PR
+
+- **#203** : construire le validateur réutilisable et prouver que ses contrôles détectent des défauts, *sans corriger le guide lui-même*.
+- **#201** : corriger les guides, utiliser les tests Qt comportementaux dès maintenant ; exploiter le validateur #203 quand disponible, mais ne pas rendre #201 artificiellement bloquée par une PR externe.
+- **#202** : nouveautés non spécifiées, inchangée.
+
+**État actuel : exigences documentées, pas encore d'implémentation de vérification fonctionnelle.**
