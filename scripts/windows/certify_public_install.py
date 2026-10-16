@@ -233,8 +233,23 @@ def certify(source_sha: str, source_root: Path, report: dict) -> None:
     downloads_after = {str(p.relative_to(root)): (p.stat().st_size, p.stat().st_mtime_ns)
                        for p in (root / "downloads").rglob("*") if p.is_file()}
     require(downloads_before == downloads_after, "Relaunch downloaded or modified archives unnecessarily")
+    # Damage only this disposable runner's closed executable. The public
+    # launcher must rebuild the same release from verified cached bytes.
+    with executable.open("r+b") as damaged:
+        damaged.write(b"BROKEN-EXE")
+    launch(launcher, env, timeout=900)
+    repaired = active_executable(root)
+    require(repaired == executable, "Launcher did not repair the selected installation")
+    require(read_state(root).get("source_sha") == source_sha and not read_state(root).get("pending"),
+            "Repaired installation is not healthy for exact target SHA")
+    stages["repaired_shutdown"] = close_application(executable, env)
+    for entry in release.manifest.files:
+        require(verify_file(installed / entry.path, entry), "Repair left invalid file: " + entry.path)
+    require(marker.read_bytes() == b'{"preserve":"personal settings"}',
+            "Repair modified personal settings")
     stages.update(custom_install_path=str(root), relaunch="PASS", personal_data="PASS",
-                  no_unnecessary_download="PASS", no_python_in_application_path=True)
+                  corrupted_executable_repair="PASS", no_unnecessary_download="PASS",
+                  no_python_in_application_path=True)
 
 
 def main() -> int:
