@@ -1,0 +1,8 @@
+---
+description: Route Dofus Atlas changes through Atlas Doctor
+alwaysApply: true
+---
+
+Read `AI_ENTRYPOINT.md` first. For non-trivial edits, run Atlas Doctor's
+`agent plan`, `agent check` and `agent validate` protocol. Never reinterpret a
+`REVIEW`, `BLOCKED` or scoped result as FULL certification.
