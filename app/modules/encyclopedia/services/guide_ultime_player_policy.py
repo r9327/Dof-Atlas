@@ -189,6 +189,7 @@ def preparation_resource_name(text: str) -> str:
 
 _PLAYER_WORDING = (
     (re.compile(r"\bparler au walkthrough local pour\b", re.IGNORECASE), "consulter la fiche détaillée de la quête pour"),
+    (re.compile(r"\bprérequis runtime\b", re.IGNORECASE), "prérequis de progression"),
     (re.compile(r"\bruntime\b", re.IGNORECASE), "suivi de progression"),
     (re.compile(r"\bblockers\b", re.IGNORECASE), "prérequis bloquants"),
     (re.compile(r"\bblocker\b", re.IGNORECASE), "prérequis bloquant"),
