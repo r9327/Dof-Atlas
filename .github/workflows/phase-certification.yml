@@ -169,6 +169,7 @@ jobs:
         if: >-
           steps.route.outputs.run_full == 'true' &&
           (github.event_name == 'workflow_dispatch' ||
+           github.event_name == 'push' ||
            (github.event_name == 'pull_request' && startsWith(github.event.pull_request.title, 'Phase 7B')))
         continue-on-error: true
         run: |
