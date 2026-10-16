@@ -56,10 +56,9 @@ class RefactorSimulationTests(unittest.TestCase):
                               action="move", replacement="app/mod.py")
         alias = self.root / "app/alias.py"
         alias.write_text("pass\n")
-        native_is_symlink = Path.is_symlink
-        with patch.object(
-            Path, "is_symlink", autospec=True,
-            side_effect=lambda path: path == alias or native_is_symlink(path),
+        with patch(
+            "tools.atlas_doctor_lib.refactor_simulation._path_uses_symlink",
+            side_effect=lambda _root, relative: relative.as_posix() == "app/alias.py",
         ), self.assertRaisesRegex(ValueError, "symlink"):
             simulate_refactor(self.root, ["app/mod.py"],
                               action="consolidate", replacement="app/alias.py")
