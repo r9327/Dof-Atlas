@@ -79,4 +79,4 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-# Run live Guide captures from 2026-10-16 current candidate.
+# Live Qt screenshots: both Lanyel Sylvestre and Guide Complet, 2026-10-16.
