@@ -72,11 +72,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Audit local des modules Quetes et Guides.")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--markdown-output", type=Path, default=None)
+    parser.add_argument("--decode-images", action="store_true",
+                        help="Décoder réellement les images référencées, au-delà de leur signature")
     parser.add_argument("--compare-before", type=Path, default=None)
     parser.add_argument("--fail-on-critical", action="store_true")
     args = parser.parse_args(argv)
 
-    payload = build_audit()
+    if args.decode_images:
+        from PySide6.QtGui import QGuiApplication
+
+        # SVG/text image plugins need a GUI application even in an offline
+        # audit. Keep it alive for the duration of this explicit decode run.
+        decode_application = QGuiApplication.instance() or QGuiApplication([])
+    payload = build_audit(decode_images=args.decode_images)
     write_json(args.output, payload)
     if args.markdown_output is not None:
         before_payload = read_json_file(args.compare_before, {}) if args.compare_before is not None else {}
@@ -97,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def build_audit() -> dict[str, Any]:
+def build_audit(*, decode_images: bool = False) -> dict[str, Any]:
     quest_provider = QuestProvider()
     catalog = quest_provider.get_catalog()
     achievement_provider = AchievementProvider(quest_provider=quest_provider)
@@ -115,7 +123,8 @@ def build_audit() -> dict[str, Any]:
     issues.extend(guide_issues)
     progress_inventory, progress_issues = audit_progress(catalog, guides, achievement_provider)
     issues.extend(progress_issues)
-    image_inventory, image_issues = audit_images(catalog, guides, quest_ref_images | guide_ref_images)
+    image_inventory, image_issues = audit_images(catalog, guides, quest_ref_images | guide_ref_images,
+                                                decode_images=decode_images)
     issues.extend(image_issues)
     graph_inventory, graph_issues = audit_graph(catalog, graph)
     issues.extend(graph_issues)
@@ -639,7 +648,9 @@ def audit_images(
     catalog: QuestCatalog,
     guides: list[Any],
     referenced_images: set[str],
-) -> tuple[dict[str, int], list[Issue]]:
+    *,
+    decode_images: bool = False,
+) -> tuple[dict[str, Any], list[Issue]]:
     issues: list[Issue] = []
     active_paths = {normalize_path(path) for path in referenced_images if str(path or "").strip()}
     missing = 0
@@ -653,6 +664,10 @@ def audit_images(
         if path.suffix.casefold() not in ALLOWED_IMAGE_SUFFIXES or not is_exploitable_image(path):
             bad_format += 1
             issues.append(Issue("critical", "images", "image", image_path, Path(image_path).name, relative_path(path), "image_path", "Image referencee non exploitable."))
+        elif decode_images and not is_exploitable_image(path, decode=True):
+            bad_format += 1
+            issues.append(Issue("critical", "images", "image", image_path, path.name,
+                                relative_path(path), "image_decode", "Le décodage réel de l'image a échoué."))
     quest_files = set(file for file in image_files(QUEST_IMAGE_ROOT))
     guide_files = set(file for file in image_files(GUIDE_IMAGE_ROOT))
     active_file_paths = {Path(path).resolve() for path in active_paths if Path(path).exists()}
@@ -666,6 +681,8 @@ def audit_images(
         "bad_format_referenced_images": bad_format,
         "orphan_quest_guide_images": len(orphan_files),
         "duplicate_active_image_hashes": len(duplicate_hashes),
+        "image_decode_requested": decode_images,
+        "image_validation_level": "DECODE" if decode_images else "SIGNATURE_ONLY",
     }, issues
 
 
@@ -848,7 +865,16 @@ def image_files(root: Path) -> Iterable[Path]:
     return [path.resolve() for path in root.rglob("*") if path.is_file() and path.suffix.casefold() in ALLOWED_IMAGE_SUFFIXES]
 
 
-def is_exploitable_image(path: Path) -> bool:
+def is_exploitable_image(path: Path, *, decode: bool = False) -> bool:
+    if decode:
+        if not is_exploitable_image(path):
+            return False
+        from PySide6.QtCore import QSize
+        from app.modules.encyclopedia.views.guide_image_runtime_policy import decode_scaled_image
+
+        # Exercise the same decoder as the application, at a bounded display
+        # size. A plausible header alone cannot pass this explicit audit mode.
+        return not decode_scaled_image(path, QSize(64, 64), kind="audit").isNull()
     try:
         if path.stat().st_size <= 0:
             return False

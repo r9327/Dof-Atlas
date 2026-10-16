@@ -187,6 +187,34 @@ def preparation_resource_name(text: str) -> str:
     return payload
 
 
+_PLAYER_WORDING = (
+    (re.compile(r"\bparler au walkthrough local pour\b", re.IGNORECASE), "consulter la fiche détaillée de la quête pour"),
+    (re.compile(r"\bprérequis runtime\b", re.IGNORECASE), "prérequis de progression"),
+    (re.compile(r"\bruntime\b", re.IGNORECASE), "suivi de progression"),
+    (re.compile(r"\bblockers\b", re.IGNORECASE), "prérequis bloquants"),
+    (re.compile(r"\bblocker\b", re.IGNORECASE), "prérequis bloquant"),
+    (re.compile(r"\breruns\b", re.IGNORECASE), "nouveaux passages"),
+    (re.compile(r"\brerun\b", re.IGNORECASE), "nouveau passage"),
+    (re.compile(r"\bcleanup\b", re.IGNORECASE), "recherche ciblée des éléments manquants"),
+    (re.compile(r"\bpending\b", re.IGNORECASE), "en attente"),
+    (re.compile(r"\bstartCriterion\b", re.IGNORECASE), "condition de démarrage"),
+    (re.compile(r"\bwalkthroughs\b", re.IGNORECASE), "fiches détaillées"),
+    (re.compile(r"\bwalkthrough local\b", re.IGNORECASE), "fiche détaillée de la quête"),
+    (re.compile(r"\bJSON\b"), "catalogue"),
+)
+_AUTHOR_ONLY_WARNINGS = frozenset({
+    normalize_text("Ne supprimer ni ne remplacer une quête de la route principale pour raccourcir la couverture Succès."),
+    normalize_text("Le total canonique reste 267 fiches : la campagne est absorbée dans L190-09."),
+})
+
+
+def player_facing_text(text: str) -> str:
+    """Clarify presentation only; quest names, stage IDs and route data stay intact."""
+    for pattern, replacement in _PLAYER_WORDING:
+        text = pattern.sub(replacement, text)
+    return text
+
+
 def apply_player_line_policy(lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Apply Phase 7E player-facing rules without mutating canonical route data."""
     expanded: list[dict[str, Any]] = []
@@ -196,6 +224,9 @@ def apply_player_line_policy(lines: list[dict[str, Any]]) -> list[dict[str, Any]
         row = copy.deepcopy(raw)
         kind = str(row.get("kind") or "").strip()
         text = " ".join(str(row.get("text") or "").split()).strip()
+        if kind == "warning" and normalize_text(text) in _AUTHOR_ONLY_WARNINGS:
+            continue
+        text = player_facing_text(text)
         if kind != "action":
             row["text"] = text
             expanded.append(row)
