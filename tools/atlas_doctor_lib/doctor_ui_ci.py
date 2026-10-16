@@ -44,16 +44,18 @@ INDEPENDENT_TOOLS = frozenset({
     "tools/agent_task_profiles.py",
     "tools/atlas_meta_integrity.py", "tools/ci_main_phase_evidence.py",
     "tools/ci_verified_pr_full.py",
+    "tools/ci_required_certification.py",
 })
 VALIDATOR_PATHS = frozenset({
     "tools/atlas_doctor.py", "tools/atlas_doctor_lib/ci_orchestrator.py",
     "tools/atlas_doctor_lib/ci_routes.json", "tools/atlas_integrity_policy.json",
+    "tools/atlas_doctor_lib/ci_tooling_scope.py",
 })
 
 
 def _ci_workflow(path: str) -> bool:
     # Workflow definitions change the validation environment, not product UI.
-    # They still select a real validator smoke and force the canonical FULL.
+    # They still select a real validator smoke; Doctor owns suite selection.
     return path.startswith('.github/workflows/') and path.endswith(('.yml', '.yaml'))
 
 

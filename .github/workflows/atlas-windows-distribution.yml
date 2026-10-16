@@ -79,12 +79,29 @@ jobs:
     timeout-minutes: 8
     outputs:
       data_only: ${{ steps.detect.outputs.data_only }}
+      certified_full: ${{ steps.proof.outputs.certified_full }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
+      - name: Verify real exact-SHA FULL before preparing publication
+        id: proof
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          python -m tools.ci_main_phase_evidence --repo "$GITHUB_REPOSITORY" --event-path "$GITHUB_EVENT_PATH" --candidate-sha "$SOURCE_SHA" --output "$RUNNER_TEMP/phase-proof.json"
+          python - <<'PYPROOF'
+          import json, os
+          from pathlib import Path
+          p = json.loads((Path(os.environ['RUNNER_TEMP']) / 'phase-proof.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('certified_full=' + str(p['phase_full_host_verified']).lower() + '\n')
+          print('Publication FULL evidence:', p['phase_full_host_verified'], p['kind'])
+          PYPROOF
       - name: Validate publishing destination before any Windows build
+        if: steps.proof.outputs.certified_full == 'true'
         env:
           GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
         run: |
@@ -101,6 +118,7 @@ jobs:
             exit 1
           fi
       - name: Compare with last certified app release
+        if: steps.proof.outputs.certified_full == 'true'
         id: detect
         env:
           GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
@@ -145,6 +163,7 @@ jobs:
            github.head_ref == 'fix/windows-first-launch-candidate-clean-20261015')))) ||
         (github.event_name == 'workflow_run' &&
          needs.classify-release.result == 'success' &&
+      needs.classify-release.outputs.certified_full == 'true' &&
          needs.classify-release.outputs.data_only != 'true' &&
          github.event.workflow_run.conclusion == 'success' &&
          github.event.workflow_run.head_branch == 'main' &&
@@ -525,6 +544,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_run' &&
       needs.classify-release.result == 'success' &&
+      needs.classify-release.outputs.certified_full == 'true' &&
       needs.classify-release.outputs.data_only == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45

@@ -27,14 +27,14 @@ nécessaires. Le titre et le statut brouillon de la PR ne décident plus de la
 validation : un changement critique ou incertain exige FULL, même en brouillon.
 Un diff éligible exécute tous les tests ciblés canoniques ; les documents
 ordinaires seuls conservent les contrôles PR et métadonnées sans suite lourde.
-Les documents de politique ne bénéficient pas de cette exclusion.
+Les documents de politique seuls ne bénéficient pas de cette exclusion.
 
 La FULL ne signifie pas rejouer tous les spécialistes : sur un périmètre connu,
 Doctor conserve la FULL canonique et les spécialistes des consommateurs touchés.
-Les suppressions incertaines, les modifications de politique et les périmètres
-inconnus conservent le repli large. Les fichiers d'infrastructure CI connus
-sélectionnent le smoke réel du validateur UI et gardent la FULL ; ils ne sont
-pas assimilés à un changement des écrans Guides/Quêtes. Un mélange avec une
+Les suppressions incertaines, les modifications de l'exécuteur de certification
+et les périmètres inconnus conservent le repli large. Les fichiers CI connus
+sélectionnent les contrats CI ciblés et le smoke réel du validateur UI, sans
+FULL applicative ; ils ne sont pas assimilés à un changement des écrans Guides/Quêtes. Un mélange avec une
 modification UI conserve tous les scénarios des consommateurs concernés.
 
 Les anciens filtres de chemins spécialisés résident dans
@@ -44,8 +44,22 @@ post-validation de publication restent explicites ; Doctor ne publie rien
 sur une PR. `Scoped PR Feedback` reste un diagnostic manuel, son exécution
 ciblée automatique étant déjà portée par le gate Phase canonique.
 
+Les changements limités aux documents ordinaires ou aux propriétaires CI connus
+produisent une preuve hôte `Doctor / Focused CI Evidence`. Le diff Git exact
+est revérifié sans Qt ; pour le tooling, tous les contrats CI du registre
+`ci_tooling_scope.py` sont réellement exécutés. La FULL reste non exécutée.
+La liste est explicite : aucun fichier applicatif, dépendance, ruleset ou outil
+inconnu n'est admis. Une suppression de code impose FULL ; seule la suppression
+du workflow public remplacé est prévue. Le JSON d'intégrité n'est admis que
+pour ajouter des modules CI testés, sans retirer de tests ni modifier la politique.
+Un mélange avec un changement applicatif réutilise le gate Phase canonique.
+Après fusion, la CI applicative accepte cette preuve comme validation ciblée,
+jamais comme FULL. La distribution
+exige une vraie preuve FULL avant tout téléchargement ou préparation de publication ;
+un résultat SCOPED ou documentation seule ne déclenche pas de release.
+
 Une analyse absente ou un mauvais SHA bloque le contrôle PR requis. Une
-incertitude de périmètre ou un fichier supprimé impose FULL ; une sélection
+incertitude de périmètre ou une suppression non prévue impose FULL ; une sélection
 UI ambiguë exécute tous les scénarios UI enregistrés en plus de FULL, sans
 étendre leur portée de preuve. Un diff ou SHA invalide reste bloquant. Le résumé
 Doctor indique les chemins, le risque, les CI retenues et leurs raisons.
@@ -269,8 +283,11 @@ and the exact PR base SHA.
 - **SCOPED** is permitted for docs-only or independently classified LOW/MEDIUM
   diffs only if `Public PR / Safe Validation` on that head succeeded. The
   decision is `PASS_SCOPED_NOT_FULL`, not a Phase/FULL certificate.
-- **FULL_REQUIRED** applies to HIGH/CRITICAL changes and any change of the
-  CI root of trust (workflows, certification policy, rulesets). The check accepts
+- Known CI-only owners use the explicit `ci_tooling_scope.py` contracts and
+  successful aggregate Safe Validation. Their original risk classification is
+  retained; this is targeted validation, never a Phase certificate.
+- **FULL_REQUIRED** applies to application HIGH/CRITICAL changes, unknown scope,
+  certification executor/policy changes outside that bounded profile and rulesets. The check accepts
   only authenticated GitHub API results for
   `.github/workflows/phase-certification.yml` with the exact candidate SHA,
   a successful completed real FULL job and **every** mandatory stage (checkout

@@ -59,25 +59,32 @@ class CertificationMergeGateTests(unittest.TestCase):
         self.assertIsNone(result["full_evidence_run"])
 
     def test_required_full_without_proof_fails_closed(self):
-        result = decide(["tools/ci_required_certification.py"])
+        result = decide(["tools/atlas_integrity.py"])
         self.assertEqual(result["route"]["route"], "FULL_REQUIRED")
         self.assertEqual(result["status"], "BLOCKED")
         self.assertIn("no successful", result["reasons"][0])
 
-    def test_trust_workflow_and_ruleset_always_need_full(self):
-        for path in (".github/workflows/phase-certification.yml",
-                     ".github/rulesets/integration-branch.json",
+    def test_uncertified_policy_and_ruleset_still_need_full(self):
+        for path in (".github/rulesets/integration-branch.json",
                      "PHASE_CERTIFICATION.md"):
             with self.subTest(path=path):
                 self.assertEqual(classify_merge_route([path])["route"], "FULL_REQUIRED")
 
+    def test_known_ci_tooling_requires_successful_safe_validation_without_full_claim(self):
+        path = '.github/workflows/phase-certification.yml'
+        result = decide([path])
+        self.assertTrue(result['route']['tooling_only'])
+        self.assertEqual(result['status'], 'PASS_SCOPED_NOT_FULL')
+        self.assertEqual(decide([path], safe='failure')['status'], 'BLOCKED')
+        self.assertEqual(classify_merge_route([path, 'app/core/json_store.py'])['route'], 'FULL_REQUIRED')
+
     def test_safe_validation_failed_blocks_even_valid_full(self):
-        result = decide(["tools/ci_required_certification.py"],
+        result = decide(["tools/atlas_integrity.py"],
                         runs=[full_record()], jobs={418: [full_job()]}, safe="failure")
         self.assertEqual(result["status"], "BLOCKED")
 
     def test_full_exact_head_complete_stage_success(self):
-        result = decide(["tools/ci_required_certification.py"],
+        result = decide(["tools/atlas_integrity.py"],
                         runs=[full_record()], jobs={418: [full_job()]})
         self.assertEqual(result["status"], "PASS_FULL_AUTHENTICATED")
         self.assertEqual(result["full_evidence_run"], 418)
@@ -85,15 +92,15 @@ class CertificationMergeGateTests(unittest.TestCase):
     def test_wrong_head_failed_full_and_skipped_required_stage_fail(self):
         invalid = full_record()
         invalid["head_sha"] = "c" * 40
-        self.assertEqual(decide(["tools/ci_required_certification.py"],
+        self.assertEqual(decide(["tools/atlas_integrity.py"],
                                 runs=[invalid], jobs={418: [full_job()]})["status"], "BLOCKED")
         failed = full_record()
         failed["conclusion"] = "failure"
-        self.assertEqual(decide(["tools/ci_required_certification.py"],
+        self.assertEqual(decide(["tools/atlas_integrity.py"],
                                 runs=[failed], jobs={418: [full_job()]})["status"], "BLOCKED")
         step = full_job()
         step["steps"][3]["conclusion"] = "skipped"
-        self.assertEqual(decide(["tools/ci_required_certification.py"],
+        self.assertEqual(decide(["tools/atlas_integrity.py"],
                                 runs=[full_record()], jobs={418: [step]})["status"], "BLOCKED")
 
     def test_unauthorized_repo_job_and_workflow_rejected(self):
@@ -122,7 +129,7 @@ class CertificationMergeGateTests(unittest.TestCase):
                 run = full_record()
                 run["created_at"] = created.isoformat()
                 run["updated_at"] = updated.isoformat()
-                self.assertEqual(decide(["tools/ci_required_certification.py"],
+                self.assertEqual(decide(["tools/atlas_integrity.py"],
                                         runs=[run], jobs={418: [full_job()]})["status"], "BLOCKED")
 
     def test_github_unavailable_and_incomplete_listing_fail_closed(self):

@@ -99,11 +99,57 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertFalse(p['workflows']['atlas-windows-distribution']['selected'])
         self.assertFalse(p['workflows']['doctor-runtime-perf']['selected'])
 
-    def test_root_policy_changes_keep_full_and_broad_specialist_validation(self):
+    def test_known_workflow_uses_focused_ci_contracts_without_application_full(self):
         p = self.select(['.github/workflows/phase-certification.yml'])
-        self.assertTrue(p['full'])
-        self.assertTrue(p['specialist_fallback'])
-        self.assertTrue(p['workflows']['json-focused-data-contract']['selected'])
+        self.assertFalse(p['full'])
+        self.assertFalse(p['phase'])
+        self.assertTrue(p['tooling_only'])
+        self.assertFalse(p['specialist_fallback'])
+        self.assertFalse(p['workflows']['json-focused-data-contract']['selected'])
+
+    def test_small_router_change_is_focused_but_runtime_mixture_or_unknown_is_not(self):
+        for path in ('tools/atlas_doctor_lib/ci_orchestrator.py',
+                     'tools/atlas_doctor_lib/ci_routes.json', 'tests/test_doctor_ui_ci.py'):
+            with self.subTest(path=path):
+                p = self.select([path], route={'route': 'FULL'})
+                self.assertFalse(p['full'])
+                self.assertTrue(p['tooling_only'])
+        for extra in ('app/core/json_store.py', 'tools/new_router.py',
+                      'tools/atlas_integrity.py', '.github/rulesets/main.json',
+                      'requirements-pyside.txt', '.github/workflows/unknown.yml'):
+            with self.subTest(extra=extra):
+                self.assertTrue(self.select(['tools/atlas_doctor_lib/ci_orchestrator.py', extra],
+                                            route={'route': 'FULL'})['full'])
+        self.assertTrue(self.select(['tools/atlas_doctor_lib/ci_orchestrator.py'], route={})['full'])
+        self.assertTrue(self.select(['tools/atlas_doctor_lib/ci_orchestrator.py'],
+                                    deleted=['tools/old.py'])['full'])
+        self.assertTrue(self.select(['tools/atlas_doctor_lib/ci_orchestrator.py'],
+                                    event='workflow_dispatch')['full'])
+
+    def test_integrity_policy_only_allows_additive_ci_test_wiring(self):
+        from tools.atlas_doctor_lib.ci_tooling_scope import eligible
+        from unittest.mock import patch
+        paths = ['tools/atlas_integrity_policy.json']
+        original = {'groups': {'CI_INTEGRITY': {'modules': ['tests.existing']}},
+                    'certification': {'minimum_mode': 'FULL'}}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'tools').mkdir()
+            policy = root / paths[0]
+            def accepts(body):
+                policy.write_text(json.dumps(body))
+                with patch('tools.atlas_doctor_lib.ci_tooling_scope.subprocess.check_output',
+                           return_value=json.dumps(original)):
+                    return eligible(paths, root=root, base_sha='a' * 40)
+            updated = json.loads(json.dumps(original))
+            updated['groups']['CI_INTEGRITY']['modules'].append('tests.test_doctor_ci_orchestrator')
+            self.assertTrue(accepts(updated))
+            updated['certification']['minimum_mode'] = 'FAST'
+            self.assertFalse(accepts(updated))
+            updated = json.loads(json.dumps(original))
+            updated['groups']['CI_INTEGRITY']['modules'] = ['tests.test_doctor_ci_orchestrator']
+            self.assertFalse(accepts(updated))
+            self.assertFalse(eligible(paths))
 
     def test_provider_contract_is_selected_for_provider_changes(self):
         p = self.select(['app/modules/encyclopedia/providers/quest_provider.py'])

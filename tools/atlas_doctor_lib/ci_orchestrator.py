@@ -2,8 +2,9 @@ from __future__ import annotations
 
 """Doctor-first GitHub CI selection, without Qt, installs, tests or dispatch APIs.
 
-The existing Phase adaptive gate owns FULL eligibility. This module composes
-that decision with the existing UI impact engine and specialist path contracts.
+The existing Phase adaptive gate owns application certification eligibility.
+Known CI-only changes run tooling contracts without certifying the application.
+This module composes those decisions with UI impact and specialist contracts.
 A selected job must actually finish successfully; this plan grants no PASS.
 """
 import json
@@ -16,12 +17,13 @@ from tools.atlas_integrity import classify_risk
 from tools.ci_scope_gate import changed_paths
 from tools.phase_adaptive_gate import critical_changed
 from tools.atlas_doctor_lib.doctor_ui_ci import classify_ui
+from tools.atlas_doctor_lib.ci_tooling_scope import eligible as tooling_eligible
 
 REGISTRY = Path(__file__).with_name('ci_routes.json')
 
 
 def select_workflows(paths: list[str], *, event: str, phase_route: dict,
-                     ui_plan: dict, deleted=()) -> dict:
+                     ui_plan: dict, deleted=(), tooling_scope=None) -> dict:
     if event not in {'pull_request', 'push', 'workflow_dispatch'}:
         raise ValueError('Unsupported Doctor CI event')
     registry = json.loads(REGISTRY.read_text(encoding='utf-8'))
@@ -29,10 +31,13 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
         (p.startswith('docs/') and p.endswith('.md')) or p in {'README.md', '.ai/context_index.json'} for p in paths
     )
     docs_only = docs_only and not critical_changed(paths)
-    full = event == 'workflow_dispatch' or (not docs_only and (
+    tooling_only = (tooling_eligible(paths, deleted=deleted) if tooling_scope is None else tooling_scope)
+    tooling_only = (tooling_only and phase_route.get('route') in {'FULL', 'SCOPED'}
+                    and ui_plan.get('status') != 'REVIEW_REQUIRED' and event != 'workflow_dispatch')
+    full = event == 'workflow_dispatch' or (not docs_only and not tooling_only and (
         bool(deleted) or bool(critical_changed(paths)) or classify_risk(paths)["risk"] in {"HIGH", "CRITICAL"} or phase_route.get('route') != 'SCOPED'
         or ui_plan.get('status') == 'REVIEW_REQUIRED'))
-    phase = not docs_only or event == 'workflow_dispatch'
+    phase = (not docs_only and not tooling_only) or event == 'workflow_dispatch'
     # FULL is the canonical suite, not an instruction to replay every unrelated
     # specialist. Unknown scope, removals and policy changes retain the broad fallback.
     specialist_fallback = full and (event == 'workflow_dispatch'
@@ -65,10 +70,10 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
             reasons = ['PR packaging impact; publication retains independent host attestation']
         decisions[name] = {'selected': selected, 'reasons': reasons or ['No changed consumer']}
     return {
-        'phase': phase, 'full': full, 'docs_only': docs_only,
+        'phase': phase, 'full': full, 'docs_only': docs_only, 'tooling_only': tooling_only,
         'specialist_fallback': specialist_fallback,
         'workflows': decisions,
-        'outputs': {'phase': phase, 'full': full, **{
+        'outputs': {'phase': phase, 'full': full, 'tooling_only': tooling_only, **{
             name.replace('-', '_'): row['selected'] for name, row in decisions.items()
         }},
     }
@@ -105,7 +110,8 @@ def plan_ci(root: Path, *, base_ref: str, candidate_sha: str, event: str,
     except (OSError, ValueError, subprocess.SubprocessError):
         route = {}  # Missing/unreadable canonical decision mandates a real FULL.
     ui = classify_ui(root, paths, candidate_sha=candidate_sha, base_sha=base, deleted=deleted)
-    result = select_workflows(paths, event=event, phase_route=route, ui_plan=ui, deleted=deleted)
+    result = select_workflows(paths, event=event, phase_route=route, ui_plan=ui, deleted=deleted,
+        tooling_scope=tooling_eligible(paths, deleted=deleted, root=root, base_sha=base))
     return {
         'schema_version': 1, 'status': 'PLANNED', 'candidate_sha': candidate_sha,
         'base_sha': base, 'event': event, 'risk': classify_risk(paths)['risk'],
@@ -118,7 +124,7 @@ def plan_ci(root: Path, *, base_ref: str, candidate_sha: str, event: str,
 def command_ci(root: Path, args) -> dict:
     report = plan_ci(root, base_ref=args.base_ref, candidate_sha=args.expected_sha,
                      event=args.event, output=args.output)
-    report['required_jobs'] = ['certify'] if report['phase'] else []
+    report['required_jobs'] = ['certify'] if report['phase'] else ['focused-validation']
     report['required_jobs'] += [name.replace('-', '_') for name, row in report['workflows'].items() if row['selected']]
     if args.event == 'pull_request':
         report['required_jobs'].append('pr-fast-validation')

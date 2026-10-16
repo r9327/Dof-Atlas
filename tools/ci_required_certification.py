@@ -21,6 +21,7 @@ from urllib.request import Request, urlopen
 
 from tools.atlas_integrity import classify_risk
 from tools.phase_adaptive_gate import critical_changed
+from tools.atlas_doctor_lib.ci_tooling_scope import eligible as tooling_eligible
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 _REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -35,7 +36,7 @@ _REQUIRED_FULL_STEPS = (
 )
 
 
-def classify_merge_route(paths: list[str]) -> dict[str, Any]:
+def classify_merge_route(paths: list[str], *, root: Path | None = None, base_sha='') -> dict[str, Any]:
     """A risk route independent of text/metadata supplied by the PR author."""
     paths = sorted(set(paths))
     if not paths or any(not isinstance(p, str) or not p or p.startswith("/") or ".." in p.split("/") for p in paths):
@@ -52,14 +53,17 @@ def classify_merge_route(paths: list[str]) -> dict[str, Any]:
         or p in {".ai/context_index.json", "README.md"}
         for p in paths
     )
-    full_required = bool(trust) or risk["risk"] in ("HIGH", "CRITICAL")
+    tooling_only = tooling_eligible(paths, root=root, base_sha=base_sha)
+    full_required = not tooling_only and (bool(trust) or risk["risk"] in ("HIGH", "CRITICAL"))
     return {
         "route": "FULL_REQUIRED" if full_required else "SCOPED",
         "risk": risk["risk"],
         "changed_files": paths,
         "root_of_trust_changes": trust,
         "docs_only": docs_only,
-        "reason": "root of trust" if trust else
+        "tooling_only": tooling_only,
+        "reason": "bounded CI contracts; Safe Validation must pass; not Phase certification" if tooling_only else
+                  "root of trust" if trust else
                   "high/critical risk" if full_required else
                   "docs-only low risk" if docs_only else
                   "ordinary low/medium risk; safe-validation required",
@@ -134,12 +138,13 @@ def evaluate_merge(
     now: datetime,
     runs: list[dict[str, Any]] | None = None,
     jobs_by_run: dict[int, list[dict[str, Any]]] | None = None,
+    root: Path | None = None,
 ) -> dict[str, Any]:
     if not _SHA.fullmatch(candidate_sha) or not _SHA.fullmatch(base_sha):
         raise ValueError("Expected exact 40-digit candidate/base SHA")
     if candidate_sha == base_sha or not _REPO.fullmatch(repo):
         raise ValueError("Invalid PR candidate identity")
-    route = classify_merge_route(paths)
+    route = classify_merge_route(paths, root=root, base_sha=base_sha)
     result: dict[str, Any] = {
         "schema_version": 1,
         "candidate_sha": candidate_sha,
@@ -231,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
     if candidate != args.candidate_sha:
         raise ValueError("Checkout differs from PR's exact HEAD")
     paths = git("diff", "--name-only", "--no-renames", args.base_sha, candidate).splitlines()
-    route = classify_merge_route(paths)
+    route = classify_merge_route(paths, root=Path.cwd(), base_sha=args.base_sha)
     runs: list[dict[str, Any]] = []
     jobs: dict[int, list[dict[str, Any]]] = {}
     if route["route"] == "FULL_REQUIRED":
@@ -241,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"FULL proof retrieval failed closed: {exc}")
     result = evaluate_merge(candidate_sha=candidate, base_sha=args.base_sha,
                             paths=paths, safe_validation=args.safe_result, repo=args.repo,
-                            now=datetime.now(timezone.utc), runs=runs, jobs_by_run=jobs)
+                            now=datetime.now(timezone.utc), runs=runs, jobs_by_run=jobs, root=Path.cwd())
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, ensure_ascii=False))

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import copy
 import unittest
 from pathlib import Path
 
-from tools.ci_main_phase_evidence import REQUIRED_STEPS, verify_event, verify_jobs
+from tools.ci_main_phase_evidence import REQUIRED_STEPS, FOCUSED_JOB, FOCUSED_STEPS, verify_event, verify_jobs
 
 SHA = "a" * 40
 REPO = "r9327/Dof-Atlas"
@@ -118,6 +119,34 @@ class MainPhaseEvidenceTests(unittest.TestCase):
         not_done["jobs"][0]["conclusion"] = "failure"
         with self.assertRaises(ValueError):
             verify_jobs(not_done, head_sha=SHA)
+
+    def test_focused_host_evidence_never_claims_application_full(self):
+        body = jobs()
+        body['jobs'][0].update(conclusion='skipped', steps=[])
+        body['jobs'] += [
+            {'name': 'Doctor / CI Plan', 'status': 'completed', 'conclusion': 'success'},
+            {'name': FOCUSED_JOB, 'status': 'completed', 'conclusion': 'success',
+             'head_sha': SHA, 'steps': [{'name': name, 'conclusion': 'success'} for name in FOCUSED_STEPS]},
+        ]
+        body['total_count'] = len(body['jobs'])
+        proof = verify_jobs(body, head_sha=SHA)
+        self.assertEqual(proof['kind'], 'main_application_verified_focused')
+        self.assertFalse(proof['phase_full_host_verified'])
+        self.assertFalse(proof['application_unique_lifecycle_pending'])
+        for step in FOCUSED_STEPS:
+            with self.subTest(step=step):
+                broken = copy.deepcopy(body)
+                next(row for row in broken['jobs'][-1]['steps'] if row['name'] == step)['conclusion'] = 'skipped'
+                with self.assertRaises(ValueError):
+                    verify_jobs(broken, head_sha=SHA)
+        for change in ({'head_sha': 'b' * 40}, {'conclusion': 'failure'}):
+            broken = copy.deepcopy(body)
+            broken['jobs'][-1].update(change)
+            with self.assertRaises(ValueError):
+                verify_jobs(broken, head_sha=SHA)
+        body['jobs'][0].update(conclusion='success', steps=jobs()['jobs'][0]['steps'])
+        with self.assertRaises(ValueError):
+            verify_jobs(body, head_sha=SHA)
 
     def test_workflow_retains_manual_full_and_main_fast_separate(self):
         src = (Path(__file__).resolve().parents[1]

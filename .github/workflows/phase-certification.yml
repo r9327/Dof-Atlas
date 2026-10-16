@@ -53,6 +53,7 @@ jobs:
       required_jobs: ${{ steps.plan.outputs.required_jobs }}
       phase: ${{ steps.plan.outputs.phase }}
       full: ${{ steps.plan.outputs.full }}
+      tooling_only: ${{ steps.plan.outputs.tooling_only }}
       ai_context_ci: ${{ steps.plan.outputs.ai_context_ci }}
       app_ci: ${{ steps.plan.outputs.app_ci }}
       atlas_windows_distribution: ${{ steps.plan.outputs.atlas_windows_distribution }}
@@ -112,6 +113,48 @@ jobs:
         with:
           name: doctor-ci-plan-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/doctor_ci/plan.json
+          if-no-files-found: error
+
+  focused-validation:
+    name: Doctor / Focused CI Evidence
+    needs: doctor-plan
+    if: needs.doctor-plan.outputs.phase == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact focused candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - name: Set up stdlib-only focused checks
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Verify scope and execute focused contracts
+        shell: bash
+        env:
+          DOCTOR_EVENT: ${{ github.event_name }}
+        run: |
+          python -m tools.atlas_doctor ci --base-ref "$BASE_SHA" --expected-sha "$CANDIDATE_SHA" --event "$DOCTOR_EVENT" --output artifacts/doctor_ci/focused.json --json
+          python - <<'PYDOC'
+          import json
+          from pathlib import Path
+          p = json.loads(Path('artifacts/doctor_ci/focused.json').read_text())
+          if p['phase'] is not False or p['full'] is not False or not (p['docs_only'] or p['tooling_only']):
+              raise SystemExit('Not a verified focused diff')
+          if p['tooling_only']:
+              from tools.atlas_doctor_lib.ci_tooling_scope import run_checks
+              run_checks(Path.cwd())
+          print('FOCUSED_VALIDATED_NOT_FULL: no application or release certification')
+          PYDOC
+      - name: Store focused evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-focused-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/doctor_ci/focused.json
           if-no-files-found: error
 
   certify:
@@ -556,7 +599,7 @@ jobs:
       - name: Materialize Doctor quest catalog
         # Phase PR FAST no longer invokes data-heavy flows. An independent,
         # required exact-SHA Phase Certification materializes this catalog.
-        if: ${{ steps.doctor_risk.outputs.risk != 'LOW' && !(startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) }}
+        if: ${{ steps.doctor_risk.outputs.risk != 'LOW' && !(startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) && needs.doctor-plan.outputs.phase == 'true' }}
         shell: pwsh
         run: |
           git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
@@ -582,7 +625,7 @@ jobs:
       - name: Materialize CRITICAL Doctor fixtures
         # Required for the risk-expanded ordinary FAST; Phase PR FULL retains
         # the heavy fixtures in its own exact-SHA certification job.
-        if: ${{ steps.doctor_risk.outputs.risk == 'CRITICAL' && !(startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) }}
+        if: ${{ steps.doctor_risk.outputs.risk == 'CRITICAL' && !(startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) && needs.doctor-plan.outputs.phase == 'true' }}
         shell: pwsh
         run: |
           git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude=""
@@ -816,7 +859,7 @@ jobs:
   safe-validation:
     name: Public PR / Safe Validation
     if: always() && github.event_name == 'pull_request'
-    needs: [doctor-plan, certify, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
+    needs: [doctor-plan, focused-validation, certify, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -841,7 +884,7 @@ jobs:
   doctor-verdict:
     name: Doctor / CI Verdict
     if: always()
-    needs: [doctor-plan, certify, pr-fast-validation, safe-validation, certification-policy, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
+    needs: [doctor-plan, focused-validation, certify, pr-fast-validation, safe-validation, certification-policy, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
