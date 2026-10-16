@@ -77,3 +77,20 @@ Cette section complète les corrections précédentes ; elle ne transforme pas c
 ### Hors périmètre explicite
 
 Pas de nouvelle navigation par chapitre, de refonte de légende, de redesign, ni de nouveau moteur de vues dans cette PR. La PR #202 demeure **sans spécification**. Ne pas rendre les réparations dépendantes d'un futur outil Doctor si les tests Qt ciblés suffisent à confirmer le correctif.
+
+
+## Anomalie supplémentaire signalée — boutons de quête vers l'onglet Quêtes
+
+**Régression fonctionnelle signalée par l'utilisateur :** les boutons/liens de quête issus des fiches Guides ne dirigent pas correctement vers l'onglet Quêtes. Ce défaut fait partie des **réparations** #201 ; ne pas attendre la livraison de #203 pour le corriger.
+
+### Vérifications obligatoires avant correction
+
+1. Reproduire par **clic réel**, dans l'Encyclopédie assemblée (Guide Succès + Lanyel), avec une quête ID connue, et obtenir un état observable de l'onglet Quêtes et du détail. Ne pas se contenter d'un `navigate_entity` remplacé par un mock.
+2. Chaîne à suivre dans le code existant : `GuideManualQuestInlineButton` → `questRequested` → `SharedGuideManualView._open_quest_from_card` → `LinkService.navigate_to_entity` → `EncyclopediaPage.navigate_to_entity` → `QUESTS_TAB` → `quest_page.select_quest`.
+3. Le test `tests/test_guide_ultime_manual_quest_links.py` existant ne valide que l'appel au callback simulé ; ajouter **une intégration Qt bout en bout** avec la vraie page Encyclopédie, y compris chemin cold/lazy, et vérifier **onglet actif, ID sélectionné et détail visible**.
+4. Isoler la première étape qui échoue, puis corriger minimalement sans changer le contrat des autres navigations (Guides, Succès, Quêtes) ni forcer un chargement lourd systématique.
+5. Vérifier à nouveau les liens pour les deux guides, successivement, après retour dans Guide, et sous deux états de chargement. Un clic qui émet correctement un signal mais n'ouvre pas la quête doit être `FAIL`, non `PASS`.
+
+Critère de sortie : [ ] le lien de chaque guide testé ouvre réellement la **bonne** quête dans le **bon** onglet, sans bouton inerte ni simple callback simulé. Préserver la navigation des autres types d'entités.
+
+**Distinction :** le bug rapporté est à reproduire ; la lecture du code prouve déjà une **lacune de couverture du test actuel**, mais ne prouve pas encore la cause du dysfonctionnement dans le binaire de l'utilisateur.
