@@ -1,0 +1,2 @@
+Guide UI capture on 2026-10-16, based on PR #171 head 120cf55fdcfb6333bc17888ceab2bd051eaf9ce2.
+Independent ephemeral branch; screenshot workflow should run on this push.
