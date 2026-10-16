@@ -227,7 +227,24 @@ jobs:
             --hidden-import app.startup_cache_domain_worker \
             --collect-submodules app \
             --collect-submodules local_dofus_data \
+            --exclude-module app.modules.encyclopedia.tools \
+            --exclude-module tools \
+            --exclude-module tests \
             --add-data "data;data" launch.py
+      - name: Reject developer modules inside actual frozen Python archive
+        run: |
+          python - <<'PY'
+          from PyInstaller.archive.readers import CArchiveReader
+          executable = CArchiveReader("dist/AtlasApp/AtlasApp.exe")
+          archive = executable.open_embedded_archive("PYZ.pyz")
+          forbidden = ("tools", "tests", "app.modules.encyclopedia.tools")
+          leaked = sorted(name for name in archive.toc
+                          if any(name == prefix or name.startswith(prefix + ".")
+                                 for prefix in forbidden))
+          if leaked:
+              raise SystemExit("Developer modules leaked into frozen application: " + ", ".join(leaked))
+          print("VERIFIED: actual frozen Python archive excludes developer tools and tests")
+          PY
       - name: Certify actual frozen quest asset integrity
         run: python -m scripts.windows.quest_assets --root dist/AtlasApp/_internal
       - name: Certify packaged public Craft SQLite seed
