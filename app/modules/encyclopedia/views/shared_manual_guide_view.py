@@ -57,7 +57,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.card = card
         self.index = index
         self._quest_rows = self._canonical_quest_rows()
-        self._shown_quest_map_links: set[tuple[int, str]] = set()
+        # One visible quest shortcut per quest and per rendered guide sheet.
+        self._shown_quest_ids: set[int] = set()
         self._resource_names = self._clickable_resource_names(service, card)
         self._combat_targets: list[dict[str, Any]] = []
         self._rendered_combat_keys: set[tuple[int, int]] = set()
