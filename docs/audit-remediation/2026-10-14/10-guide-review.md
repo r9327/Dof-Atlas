@@ -6,6 +6,14 @@
 
 ## Travail réalisé
 
+La première FULL Windows `38882896957` sur `9042707` a exécuté 2 718 tests
+avec un échec : le contrat de narration exigeait encore « prérequis runtime ».
+Le candidat cumulatif #171 exige maintenant « prérequis de progression » dans
+le rendu, et vérifie explicitement la conservation du texte source dans les
+données et métadonnées. 18 tests ciblés passent après correction ; cette
+première FULL reste un échec, remplacé uniquement par une nouvelle preuve
+exacte-SHA réussie. #170/#173/#174 sont regroupées dans #171.
+
 - [Registre des 341 décisions](10-guide-decisions.json), sans IDs supprimés :
   86 remarques de présentation corrigées, 18 conditions de gameplay conservées
   avec une justification propre, 37 références/consignes encore à revoir et
