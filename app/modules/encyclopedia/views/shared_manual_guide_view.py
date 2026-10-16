@@ -273,6 +273,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         heading.setObjectName("GuideManualSectionTitle")
         layout.addWidget(heading)
 
+        combat_heading_added = False
         for row in visible:
             text = str(row.get("text") or "").strip()
             position = self._display_position(str(row.get("position") or ""))
@@ -329,7 +330,13 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 self._add_inline_quest_links(row_layout, row)
             layout.addWidget(row_widget)
 
-            for target in self._combat_targets_for_row(row, section_key):
+            combat_targets = self._combat_targets_for_row(row, section_key)
+            if combat_targets and not combat_heading_added:
+                combat_heading = QLabel("Faire les combats :")
+                combat_heading.setObjectName("GuideManualCombatTargetsTitle")
+                layout.addWidget(combat_heading)
+                combat_heading_added = True
+            for target in combat_targets:
                 self._add_combat_target(layout, target)
 
         root.addWidget(frame)
@@ -553,10 +560,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         quantity = int(target["quantity"])
         monster = str(target["monster"])
         quest_name = str(target["quest_name"])
-        text = f"{quantity} × {monster}"
-        if quest_name:
-            text += f" — {quest_name}"
-        checkbox = QCheckBox(text)
+        # The source objective supplies the quantity and monster identity.
+        # Keep the action legible: quest identity belongs in the tooltip.
+        checkbox = QCheckBox(f"×{quantity} {monster}")
         checkbox.setObjectName("GuideManualCombatCheck")
         checkbox.setStyleSheet(
             "QCheckBox#GuideManualCombatCheck { background: transparent; border: none; }"
@@ -573,7 +579,11 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         )
         checkbox.setChecked(checked)
         checkbox.setProperty("state", "done" if checked else "todo")
-        checkbox.setToolTip("Progression partagée avec l’objectif de la fiche Quête.")
+        checkbox.setToolTip(
+            f"{quest_name} — progression partagée avec l’objectif de la fiche Quête."
+            if quest_name
+            else "Progression partagée avec l’objectif de la fiche Quête."
+        )
         checkbox.toggled.connect(
             lambda value, qid=quest_id, oid=objective_id, box=checkbox: self._combat_toggled(
                 qid,
