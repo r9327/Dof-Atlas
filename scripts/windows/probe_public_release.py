@@ -103,7 +103,7 @@ def download_public_setup(doc: dict, release, folder: Path) -> Path:
 def verify_frozen_setup(setup: Path, release) -> None:
     if os.name != "nt":
         raise UpdateError("Frozen Setup smoke requires a Windows runner")
-    result = subprocess.run([str(setup), "--no-launch"], timeout=150,
+    result = subprocess.run([str(setup), "--no-launch"], cwd=setup.parent, timeout=150,
                             capture_output=True, text=True, check=False)
     if result.returncode != 0:
         raise UpdateError(f"Published Setup failed: {result.returncode}: {result.stderr[-400:]}")
