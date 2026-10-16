@@ -169,8 +169,9 @@ class QuestDetailsTests(unittest.TestCase):
                     return 1
 
             class Sources:
-                def __init__(self, cache_root):
+                def __init__(self, cache_root, *, disk_backed=False):
                     self.cache_root = cache_root
+                    self.disk_backed = disk_backed
                     self.closed = False
                     created.append(self)
 
@@ -183,9 +184,10 @@ class QuestDetailsTests(unittest.TestCase):
             with patch("app.quest_catalog_details.QuestSources", Sources):
                 count = ensure_detail_source_offsets(root, cache_root=root / "cache")
 
-            self.assertEqual(count, 12)
+            self.assertEqual(count, 21)
             self.assertEqual(len(created), count)
             self.assertTrue(all(source.closed for source in created))
+            self.assertTrue(all(source.disk_backed for source in created))
 
     def test_index_does_not_compile_details_and_a_b_a_reuses_data(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(QuestCatalog, '_load_source', side_effect=self.compile) as load:

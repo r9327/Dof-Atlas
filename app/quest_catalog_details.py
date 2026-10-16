@@ -24,18 +24,14 @@ _DETAIL_FIELDS = frozenset({"steps", "source_solution_steps", "solution_blocks",
 _SUMMARY_FIELDS = {"achievements": 0, "prerequisites": 1, "info": 2}
 _CACHE_ROOT = qc.ROOT_DIR / ".cache" / "dofus_atlas" / "quest_details_v1"
 
-_DETAIL_OFFSET_SOURCES = (
-    ("quest_steps.json", "RefIds", True),
-    ("quest_step_rewards.json", "RefIds", True),
-    ("quest_objective_types.json", "RefIds", True),
-    ("jobs.json", "RefIds", True),
-    ("spells.json", "RefIds", True),
-    ("titles.json", "RefIds", True),
-    ("emoticons.json", "RefIds", True),
-    ("npcs.json", "RefIds", True),
-    ("areas.json", "RefIds", True),
-    ("subareas.json", "RefIds", True),
-    ("maps_information.json", "RefIds", True),
+_DETAIL_OFFSET_SOURCES = tuple(
+    (
+        relative_path,
+        "entries" if label == "language" else "RefIds",
+        label != "language",
+    )
+    for label, relative_path in qc.QUEST_CATALOG_SOURCE_FILES
+    if label != "char_xp_mappings"
 )
 
 
@@ -71,7 +67,10 @@ class QuestDetails:
         # Using the SQLite parent directly created a second offset-cache namespace,
         # so the first rich Quest detail rebuilt indexes from monolithic JSON in
         # Atlas' long-lived process and caused the Guide memory spike.
-        self._sources = QuestSources(path.parent / "source_offsets")
+        self._sources = QuestSources(
+            path.parent / "source_offsets",
+            disk_backed=True,
+        )
         self._objective_step_index_checked = False
         self._records: OrderedDict[int, qc.QuestRecord] = OrderedDict()
         self._summaries: OrderedDict[
@@ -376,7 +375,7 @@ def ensure_detail_source_offsets(
     prepared = 0
     offset_root = Path(cache_root) / "source_offsets"
     for filename, field, doduda in _DETAIL_OFFSET_SOURCES:
-        sources = QuestSources(offset_root)
+        sources = QuestSources(offset_root, disk_backed=True)
         try:
             mapping = sources.mapping(
                 Path(data_dir) / filename,
@@ -389,7 +388,7 @@ def ensure_detail_source_offsets(
         finally:
             sources.close()
 
-    enrichment_sources = QuestSources(offset_root)
+    enrichment_sources = QuestSources(offset_root, disk_backed=True)
     try:
         enrichment = enrichment_sources.mapping(
             qc.DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json",
