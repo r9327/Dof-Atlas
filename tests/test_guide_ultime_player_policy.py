@@ -73,6 +73,25 @@ class GuideUltimePlayerPolicyTests(unittest.TestCase):
             ],
         )
 
+    def test_npc_talk_and_accept_quest_stays_one_action(self) -> None:
+        single = "Parler à Fécaline la Sage et prendre la quête « Espoir et tragédie »."
+        self.assertEqual(split_real_actions(single), [single])
+        with_travel = (
+            "Aller en [1,2], parler à Fécaline la Sage et prendre la quête "
+            "« Espoir et tragédie »."
+        )
+        self.assertEqual(
+            split_real_actions(with_travel),
+            [
+                "Aller en [1,2]",
+                "parler à Fécaline la Sage et prendre la quête « Espoir et tragédie ».",
+            ],
+        )
+        self.assertEqual(
+            [row["text"] for row in apply_player_line_policy([{"kind": "action", "text": single}])],
+            [single],
+        )
+
     def test_quest_title_commas_do_not_create_fake_actions(self) -> None:
         text = "Après Monarchie parlementaire et Fais dodo, t'auras du gâteau, prendre Piwates."
         self.assertEqual(split_real_actions(text), [text])
