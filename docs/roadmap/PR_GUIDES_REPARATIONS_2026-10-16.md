@@ -94,3 +94,41 @@ Pas de nouvelle navigation par chapitre, de refonte de légende, de redesign, ni
 Critère de sortie : [ ] le lien de chaque guide testé ouvre réellement la **bonne** quête dans le **bon** onglet, sans bouton inerte ni simple callback simulé. Préserver la navigation des autres types d'entités.
 
 **Distinction :** le bug rapporté est à reproduire ; la lecture du code prouve déjà une **lacune de couverture du test actuel**, mais ne prouve pas encore la cause du dysfonctionnement dans le binaire de l'utilisateur.
+
+
+## Revue UI supplémentaire — 16 octobre 2026
+
+**Retours utilisateur sur l'application installée : à reproduire et corriger dans #201. Ces points sont des réparations, pas des nouveautés #202.** La preuve Doctor UI \`validator-smoke\` ne les certifie pas.
+
+### Critique P0 — Succès : clic sans affichage de la fiche
+
+**Symptôme rapporté :** lorsqu'on clique sur un succès dans l'onglet Succès, son détail ne s'affiche plus du tout. Reproduire sur le vrai widget et la version exacte. Tracer \`AchievementsView.list_widget.itemClicked\` → \`on_achievement_clicked\` → \`show_achievement\` → \`get_detail_by_id\` → \`AchievementDetailStack\`/\`detail_scroll\`/\`AchievementDetailWidget\`. Le code branche un callback mais cela ne prouve pas un panneau visible : contrôler création, visibilité, largeur du splitter, focus, données, erreurs Qt, état sélectionné et chargement différé. Tester un succès normal, un succès lié à des quêtes et un succès d'alignement, premier chargement puis retours; clic réel + capture + texte/objectif du détail, pas de simple mock.
+
+### P1 — combats à faire
+
+Afficher un titre explicite **« Faire les combats : »**, puis **une case cochable et une ligne par objectif réel**, sous la forme \`☐ ×5 Tournesol sauvage\`, \`☐ ×5 [nom du monstre]\`. Quantité/nom exacts selon l'objectif de quête, aucune cible inventée, pas de bloc vague. Réutiliser les \`GuideManualCombatCheck\` déjà implémentés et leur progression partagée \`(quest_id, objective_id)\`, sans créer un doublon de case ni perdre la validation. Vérifier chaque case, objectif et enregistrement après navigation/rechargement pour Guide Succès et Lanyel.
+
+### P1 — ressources, métiers, préparation et trajet
+
+- Pour une ressource acquise par récolte de métier (paysan, alchimiste, etc.), formuler **« Récolter [quantité] [nom] »** et non « monter le stock ». Vérifier réellement la méthode d'obtention : ne pas dire récolter pour drop/achat/craft.
+- Une ressource prévue à la collecte **pendant le trajet optimisé et avant son utilisation** ne doit **pas** apparaître en double dans **« À préparer »**. La laisser uniquement dans l'étape correcte de collecte ; préserver la quantité et vérifier sa disponibilité à l'heure requise. Si la quantité disponible sur le trajet est insuffisante, pré-remplir « À préparer » uniquement avec le manque indispensable. Garder les vrais blocages avant départ dans ce bloc.
+- Corriger les formulations à la source dans les données ou le composeur, sans masquer les actions réellement nécessaires.
+
+### P1 — quêtes, infobulles et lignes cohérentes
+
+- Au survol de chaque quête/raccourci de quête dans une page de guide, afficher une **mini-infobulle immédiatement près du curseur** avec le **nom exact de la quête**. Préserver le clic et l'icône réelle et lisible déjà demandés ; vérifier tooltip/captures/hit-tests en différentes tailles/scroll.
+- Quand un PNJ permet au même dialogue de démarrer une quête, afficher **une seule ligne** du type « Parler à Fécaline la Sage et accepter la quête “Espoir et tragédie” » plutôt que deux consignes fragmentées. Le retour utilisateur écrit « Décaline » : **vérifier le PNJ canonique et la relation exacte avec la quête** dans la source avant de fusionner les actions, ne rien inventer.
+- Reproduire et corriger les phrases incompréhensibles, par exemple **« prendre la galette secrète avant le passage aux champs afin que les œufs chimériques puissent tomber »**. Vérifier l'identité des objets, le mécanisme de drop, le timing, et les données/texte source ; réécrire en français clair « action → lieu/condition → résultat » sans inventer les conditions du jeu.
+- **Lanyel est la référence architecturale souhaitée** pour la présentation et l'enchaînement des informations ; garder **un moteur partagé** pour Guide Succès et Lanyel, sans dupliquer les composants.
+
+### P1 — guides Dofus : ne pas répéter les prérequis
+
+Tous les prérequis des guides Dofus doivent être affichés **uniquement dans la section « Prérequis »**, pas parmi les étapes à faire comme s'il fallait recommencer des quêtes/succès. Privilégier **le nom du Succès prérequis** aux longues listes de toutes ses quêtes lorsque le Succès couvre effectivement la condition ; offrir accès à son détail plutôt que saturer le guide. Préserver les conditions restantes non incluses dans ce succès et l'état de progression réel ; ne pas supprimer les quêtes qui sont **de véritables actions propres à l'étape courante**. Tester prérequis terminés et non terminés, guides Dofus différents, retour à l'écran et preuve UI.
+
+### Conserver les demandes précédentes
+
+Accueil Guides desktop **en deux colonnes** : **gauche** Guide Succès → Guides optimisés → Alignements empilés et alignés ; **droite** grille Dofus. Raccourci vers l'onglet Quêtes : icône véritable, **un seul par quête et par page à la première occurrence utile**, clic de bout en bout jusque dans le détail réel, même après initialisation lazy. Corriger également les doublons de blocs, pages fantômes, textes répétés, état du cadenas, combats, débordement Lanyel et persistance de progression.
+
+**Hors périmètre immédiat :** réduction et regroupement du **nombre de pages** des deux guides. Le propriétaire demande expressément de reporter l'optimisation du parcours et du nombre de pages à une phase suivante, après fiabilisation de cette UI. Ne pas utiliser cette réparation pour restructurer la route.
+
+**Critères de sortie :** diagnostiquer chaque retour CONFIRMED / NOT_REPRODUCED / BLOCKED, test reproduisant l'échec avant correction quand possible, assertion comportementale réelle après, captures Qt/arbre d'éléments/hit-tests deux tailles avec Doctor UI, preuves rattachées au SHA exact ; pas de PASS sur les tests hors périmètre. L'onglet Succès nécessite un vrai scénario Doctor UI dédié, pas seulement le smoke Guide existant. #201 reste DRAFT et non fusionnée tant que ce travail n'est pas validé. #202 demeure intacte.
