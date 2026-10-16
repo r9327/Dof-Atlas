@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import unittest
+import os
+import urllib.error
+from unittest.mock import patch
 
 from tools import doctor_policy_authority as trust
 
@@ -23,6 +26,19 @@ def protected():
 
 
 class IndependentAuthorityTests(unittest.TestCase):
+    def test_unavailable_host_protection_fails_closed_online(self):
+        for status in (403, 404):
+            def api(url, token):
+                if url.endswith('/protection'):
+                    raise urllib.error.HTTPError(url, status, 'unavailable', {}, None)
+                return {"sha": "c" * 40}
+
+            with self.subTest(status=status), patch.dict(os.environ, GITHUB_TOKEN="test-only"), patch.object(trust, "_api", side_effect=api):
+                out = trust.check_online("owner/repo", candidate_sha=SHA, trusted_main_sha=MAIN)
+                self.assertEqual(out["status"], "BLOCKED")
+                self.assertFalse(out["full_suite_waived"])
+                self.assertFalse(out["automated_test_reuse_authorized"])
+
     def assess(self, *, candidate=None, trusted=None, protection=None):
         return trust.assess_policy_authority(
             candidate_sha=SHA, trusted_main_sha=MAIN,

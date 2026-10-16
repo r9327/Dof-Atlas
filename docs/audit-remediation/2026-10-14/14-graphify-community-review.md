@@ -1,6 +1,62 @@
-# [PLAN 14] Audit des communautés, nœuds faibles et fusions Graphify vérifiables
+# Revue des communautés et candidats Graphify
 
-> PR DRAFT de triage — rapport et plan, **aucun refactor ou suppression autorisés sans preuve**. Source : [audit PR #160](https://github.com/r9327/Dof-Atlas/pull/160), main `ac07be9b894718f5e68e7c3a91016d7651e3065b`.
+> Résultats du 16 octobre 2026, regroupés dans #173 avec la revue Doctor.
+> Le plan historique est conservé ci-dessous ; aucune suppression ou fusion
+> de code produit n’est déduite des métriques seules.
+
+## Résultat et couverture réelle
+
+[Registre nominatif](14-graph-decisions.json), Graphify 0.9.72 sur le candidat
+propre `a88dcc1802e059259d5d053353504c43a31aad98`, avant les nouvelles preuves
+et tests de ce lot. Le périmètre tooling examiné compte 103 nœuds / 341 arêtes.
+Le graphe entier compte 13 215 nœuds / 38 459 liens et 483 communautés.
+
+Les 496 communautés historiques sont rapprochées par **chemins de fichiers**,
+avec les absences explicites. Les 483 communautés courantes ont leur liste de
+membres et une empreinte stable de cette liste : leurs numéros Leiden ne sont
+pas des identités persistantes. La décision de conservation ne prétend pas que
+toutes leurs fonctions ont subi une revue sémantique.
+
+104 communautés isolées et 334 nœuds faibles sont exportés sans troncature,
+avec décision **INVESTIGATION BLOQUÉE** sur l’identité des bindings dynamiques,
+la reachability complète et l’absence de gain mesuré. Ce sont des pistes ouvertes,
+pas des anomalies garanties ni des suppressions prouvées. Les 64 candidats de
+cohésion courants restent sans fusion ; le compteur historique de 76 ne peut
+pas être remplacé par ces nouveaux IDs (sa liste nominative n’est pas dans
+`graph-all-candidates.json` archivé).
+
+Quatre cycles vérifiés dans les sources courantes : runtime/macros avec retour
+TYPE_ONLY ; vue manuelle/shared avec import DEFERRED ; guides/détail de quête
+avec import DEFERRED ; catalogue/détails avec import DEFERRED. **Zéro sous-cycle
+IMPORT_TIME confirmé** par l’analyse AST ; cela ne certifie pas les imports
+dynamiques. Aucun import runtime app → tools confirmé.
+
+Les six orphelins de degré zéro sont conservés avec leur entrée réelle : deux
+`__init__.py` de packages, `graphify.ps1` et `install_git_hooks.ps1` documentés
+dans AGENTS/GRAPHIFY, `pre_commit.ps1` et `pre_push.ps1` appelés par `.githooks`.
+
+### Huit candidats de suppression : consommateurs vérifiés
+
+| Fichier | Consumer source confirmé ; décision CONSERVER |
+|---|---|
+| `app/distribution/health.py` | `main.py:2666`, import différé `announce_ready` |
+| `services/link_service.py` | table lazy `services/__init__.py:72`, `guides_view.py:1156` construit LinkService |
+| `widgets/progress_card.py` | table publique `_LAZY_EXPORT_MODULES` et `__all__`, contrat lazy testé |
+| `app/preload.py` | `main.py:60` importe PreloadTask/StartupPreloader, tests et introspection |
+| `app/startup_cache_warmup.py` | `DOFUS.bat:67` et `launch.py:133`, entrée `-m` |
+| `app/startup_preflight.py` | `DOFUS.bat:47`, entrée `-m` et tests preflight |
+| `app/ui/splash_image.py` | `main.py:66`, helper de splash et test dédié |
+| `app/windows/single_instance.py` | `main.py:69`, mutex avant QApplication ; probe multi-processus #171 |
+
+Les huit scans automatiques `consumer-sites` ont atteint leur budget : leur
+absence de relation retournée ne remplace pas ces consumers manuels vérifiés.
+Les limites sont conservées dans le registre ; aucune preuve de code mort.
+
+Correctifs de l’outil : cohésion calculée sur paires distinctes de fichiers
+runtime (y compris local_dofus_data/launch/sitecustomize), exclusion du bruit
+tests/tools et pagination indépendante `--cohesion-offset`. Les cas négatifs
+et l’union exacte de pages sont testés. Aucun refactor applicatif, migration,
+nouveau cache ou gain RAM prétendu ; les blocages natifs restent dans #175.
 
 ## Objectif
 Traiter les registres Graphify individuels restés hors des 28 anomalies ciblées, sans confondre métrique de graphe et architecture réellement défectueuse.

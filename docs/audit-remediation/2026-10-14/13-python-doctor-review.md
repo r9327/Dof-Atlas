@@ -1,6 +1,47 @@
-# [PLAN 13] Revue Python réelle, 98 diagnostics Doctor et consumers dynamiques
+# Revue Python ciblée, 98 diagnostics Doctor et consumers dynamiques
 
-> **PLAN PRÉPARATOIRE — zéro correctif implémenté ici.** Aucun constat non confirmé ne doit être promu en bug sans reproduction.
+> **Résultats du 16 octobre 2026.** Le plan historique ci-dessous reste traçable ;
+> le registre de décision final distingue corrections, conservation et blocages.
+> Les 898 fichiers ne sont pas certifiés sémantiquement par cette revue ciblée.
+
+## Résultat final de ce lot
+
+[98 décisions individuelles](13-doctor-decisions.json), sans suppression des IDs,
+preuves ni statuts historiques. Base de revue et Graphify 0.9.72 :
+`a88dcc1802e059259d5d053353504c43a31aad98` ; fichiers consommateurs et hashes
+de source joints. Ce SHA intègre #172 et le correctif Graphify de #174.
+La preuve finale CI porte sur le candidat publié, pas sur cette base d’analyse.
+
+66 cas ont une décision de conservation ou un correctif déjà livré ; **32 restent
+explicitement BLOCKED** : 17 parcours complets de workers, huit vérifications
+visuelles et sept équivalences sémantiques de noms partagés. BLOCKED signifie
+preuve manquante, pas défaut confirmé ni autorisation de supprimer.
+
+Trois risques de verdict ouvert ont été reproduits jusqu’au caller : DR-016
+retourne 2 même si le fichier de preuve périmé ne peut être effacé (PowerShell
+exige également le code zéro) ; DR-017 reste BLOCKED devant protection GitHub
+403/404 ; DR-018 impose FULL quand le plan Doctor est illisible. Les nouveaux
+tests couvrent ces cas sans changer ou affaiblir les gates.
+
+PC-09 : les sept modules widgets sont exposés par le contrat public lazy ;
+tests de dispatch réel Qt et d’identité de type préservés. Les scans
+`consumer-sites` des huit candidats atteignent leur budget : ils ne prouvent
+pas l’absence de consumers. La revue manuelle de leurs entrées est dans
+[le rapport Graphify](14-graphify-community-review.md).
+
+PC-10 : les règles d’objectifs du calculator et du view model appellent toutes
+deux `solution_objective`, dédoublonnent les IDs et préservent leur ordre.
+Leur corps AST est identique ; comparaison exécutée sur les 1 976 vraies
+quêtes publiques : zéro divergence des listes ordonnées d’objectifs.
+PC-11 : `_sleep_ms` et `windows.timing.wait_ms` ont un corps AST identique,
+y compris le test final d’arrêt et l’horloge monotone. **CONSERVER** ces
+candidats facultatifs : aucun défaut ni gain mesuré n’impose une migration.
+Les seules consolidations obligatoires AT-019/020 ont déjà été livrées par #165.
+
+Validation locale : 95 tests Doctor/Graphify/policy et lifecycle, puis 24 tests
+des trois gates incluant les nouveaux cas négatifs, et 20 contrats lazy/
+réutilisation du ledger/profils/runtime manuel, tous réussis. Ces suites sont
+des preuves ciblées ; elles ne remplacent pas une FULL Windows exacte-SHA.
 
 Référence : [PR #160](https://github.com/r9327/Dof-Atlas/pull/160), SHA du code audité `ac07be9b894718f5e68e7c3a91016d7651e3065b`.
 
@@ -26,9 +67,9 @@ Compléter l'analyse sémantique ciblée du code Python et des avertissements Do
 7. Distinguer analyse ciblée menée ici et exhaustivité sémantique impossible ; éviter de refaire Doctor #166 pour la mécanique de pagination/ID.
 
 ## Sortie vérifiable
-- [ ] 98 DR individuellement conservés dans le registre de décision, dont 86 investigués ou explicitement BLOCKED
+- [x] 98 DR individuellement conservés dans le registre de décision, dont 86 investigués ou explicitement BLOCKED
 - [ ] Candidats Python à fusion/suppression avec consommateurs et tests ; rien supprimé d'après un seul degré
-- [ ] PC-09/10/11 documentés ; évolution dans #165 ou une PR de correction après preuve
+- [x] PC-09/10/11 documentés ; évolution dans #165 ou une PR de correction après preuve
 - [ ] Sorties de couverture réelles et insuffisances clairement visibles pour tous les fichiers
 
 ## Dépendances et conflits à éviter
