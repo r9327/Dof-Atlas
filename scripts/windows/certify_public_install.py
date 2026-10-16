@@ -59,6 +59,28 @@ $appProcess = $processes[0]
 $null = $appProcess.Handle
 $appProcess.Refresh()
 $equipmentTested = $false
+$root = [System.Windows.Automation.AutomationElement]::RootElement
+$processCondition = New-Object System.Windows.Automation.PropertyCondition -ArgumentList @(
+    [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $appProcess.Id)
+$initialWindows = @($root.FindAll([System.Windows.Automation.TreeScope]::Children, $processCondition) |
+    ForEach-Object { @{name=$_.Current.Name; enabled=$_.Current.IsEnabled;
+                     handle=$_.Current.NativeWindowHandle; class=$_.Current.ClassName} })
+$readyDeadline = [DateTime]::UtcNow.AddSeconds(180)
+$readyStarted = [DateTime]::UtcNow
+$mainEnabled = $false
+while ([DateTime]::UtcNow -lt $readyDeadline) {
+    $appProcess.Refresh()
+    if ($appProcess.HasExited) { throw 'Atlas exited during startup preparation' }
+    $appElement = [System.Windows.Automation.AutomationElement]::FromHandle($appProcess.MainWindowHandle)
+    if ($null -ne $appElement -and $appElement.Current.IsEnabled) {
+        $mainEnabled = $true; break
+    }
+    Start-Sleep -Milliseconds 250
+}
+if (-not $mainEnabled) {
+    throw ('Startup main window remained disabled: ' + ($initialWindows | ConvertTo-Json -Compress))
+}
+$startupWaitSeconds = ([DateTime]::UtcNow - $readyStarted).TotalSeconds
 if ($env:ATLAS_E2E_TEST_EQUIPMENT -eq '1') {
     $appElement = [System.Windows.Automation.AutomationElement]::FromHandle($appProcess.MainWindowHandle)
     $stuffsCondition = New-Object System.Windows.Automation.AndCondition -ArgumentList @(
@@ -91,7 +113,14 @@ while ([DateTime]::UtcNow -lt $closeDeadline) {
     if ($appProcess.CloseMainWindow()) { $closeRequested = $true; break }
     Start-Sleep -Milliseconds 250
 }
-if (-not $closeRequested) { throw "Atlas main window cannot be closed after navigation settles" }
+if (-not $closeRequested) {
+    $currentWindows = @($root.FindAll([System.Windows.Automation.TreeScope]::Children, $processCondition) |
+        ForEach-Object { @{name=$_.Current.Name; enabled=$_.Current.IsEnabled;
+                         handle=$_.Current.NativeWindowHandle; class=$_.Current.ClassName} })
+    throw ('Atlas main window cannot be closed. Initial: ' +
+        ($initialWindows | ConvertTo-Json -Compress) + '; Current: ' +
+        ($currentWindows | ConvertTo-Json -Compress))
+}
 $quit = $null
 $deadline = [DateTime]::UtcNow.AddSeconds(30)
 $root = [System.Windows.Automation.AutomationElement]::RootElement
@@ -125,14 +154,15 @@ do {
 } while ([DateTime]::UtcNow -lt $deadline)
 if ($workers.Count -ne 0) { throw 'Frozen Atlas workers remained after normal GUI exit' }
 @{pid=$appProcess.Id; exit_code=$appProcess.ExitCode; action='Quitter'; remaining_workers=0;
-  equipment_entry=$equipmentTested} | ConvertTo-Json -Compress
+  equipment_entry=$equipmentTested; startup_wait_seconds=$startupWaitSeconds;
+  initial_windows=$initialWindows} | ConvertTo-Json -Compress -Depth 4
 '''
     child_env = dict(env, ATLAS_E2E_EXECUTABLE=str(executable),
                      ATLAS_E2E_TEST_EQUIPMENT="1" if verify_equipment else "0")
     powershell = Path(env["SYSTEMROOT"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
     result = subprocess.run(
         [str(powershell), "-NoProfile", "-NonInteractive", "-Command", command],
-        env=child_env, capture_output=True, text=True, errors="replace", timeout=250,
+        env=child_env, capture_output=True, text=True, errors="replace", timeout=440,
     )
     require(result.returncode == 0, "Normal GUI shutdown failed: " + result.stderr[-1500:])
     return json.loads(result.stdout)
