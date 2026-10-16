@@ -1,6 +1,6 @@
 # PR 1 — Réparations Guide Succès + Lanyel Sylvestre
 
-**Statut : cadrage à implémenter — aucun correctif de code n'est encore intégré.**  
+**Statut : corrections initiales engagées — vérifications ciblées et CI non validées, PR toujours en brouillon.**  
 **Base :** `main` @ `b8d63e03711c65e5db85c72a5ab64378f5264713` (constat du 16 octobre 2026).  
 **Périmètre strict :** anomalies et régressions des guides existants ; **aucune nouvelle fonctionnalité ou refonte visuelle**.
 
@@ -47,7 +47,7 @@ Captures fournies le 16/10/2026 (ne pas supposer que leur binaire correspond au 
 
 ## Contexte / limites
 
-PR de cadrage préparée à la demande du propriétaire, **pas une réparation déjà effectuée**. Les preuves sont les cinq captures partagées dans la conversation du 16 octobre ; ne pas inventer d'URL GitHub pour ces images. Le développement reste à réaliser sur cette branche et la PR doit rester en brouillon jusque-là.
+PR initialement créée comme cadrage, avec désormais de premiers correctifs Python et des tests sur sa branche. **Ne pas considérer la réparation globale comme effectuée avant validations.** Les preuves sont les cinq captures partagées dans la conversation du 16 octobre ; ne pas inventer d'URL GitHub pour ces images. Le développement reste à réaliser sur cette branche et la PR doit rester en brouillon jusque-là.
 
 ## Complément de périmètre — inspection UI et preuves de non-régression (16/10)
 
@@ -158,3 +158,18 @@ Accueil Guides desktop **en deux colonnes** : **gauche** Guide Succès → Guide
 ### Contrôle de cohérence avant fusion
 
 La correction doit être minimale et testable, préserver le moteur partagé Succès/Lanyel, la progression par personnage, les cartes/étapes et le lazy load. Toute évolution proposée des vues Dofus doit être traitée séparément et ne peut pas être utilisée pour justifier une fusion anticipée de la #201. Maintenir la PR en **DRAFT** jusqu'au code effectif et aux preuves de réparation.
+
+
+## Journal du premier lot de code — 16/10/2026
+
+**Corrections déjà poussées sur la branche #201 (non encore certifiées) :**
+
+1. \`app/modules/encyclopedia/providers/memory_bound_achievement_provider.py\` : la phase de warmup \`load_runtime()\` prépare désormais, **en arrière-plan**, les index de détail pour l'EXE gelé (\`sys.frozen\`) et les data dirs non standard. **Cause constatée dans le code :** le worker appelle \`load_runtime()\` au lieu de \`load_all()\`, et \`get_detail_by_id()\` est en mode in-process pour un EXE, mais levait un \`RuntimeError\` si \`_detail_sources_ready\` était faux. Sur Python développement, la voie subprocess reste froide.
+2. \`app/modules/encyclopedia/views/guide_ultime_manual_view.py\` et \`shared_manual_guide_view.py\` : déduplication **par quest_id pour la fiche entière** au lieu du couple quête/carte ; éviter de coller tous les liens d'une étape multiquêtes sur une action sans relation prouvée. Icône standard Qt réelle (au lieu du glyphe \`↗\`), nom de la quête en tooltip + accessibleName.
+3. Tests ciblés : \`tests/test_achievement_frozen_detail_runtime.py\` (3 modes de préparation), \`tests/test_achievements_lot7.py\` (clic Qt dans la liste + titre/détail réellement visibles), \`tests/test_guide_ultime_manual_quest_links.py\` (unicité malgré deux coordonnées et association à la bonne ligne lorsque plusieurs quêtes).
+
+**Critères non encore validés** : aucune campagne Windows réelle sur EXE installé ; nouveaux tests PySide6 non exécutés localement ; pas de verdict Doctor UI dédié ; navigation complète Guide→onglet Quêtes pas encore prouvée, seulement tests des callbacks ; le logo de quête personnalisé n'est pas créé (icône standard Qt provisoire), et le tooltip Qt est standard (pas encore vérifié par capture près du curseur). Les autres bugs Guide Succès, prérequis et accueil n'ont pas encore été corrigés.
+
+**Blocage CI transversal observé sur des runs antérieurs :** \`Doctor / CI Plan\` lance \`python -m unittest discover -s tests -p test_doctor_ci_orchestrator.py -v\` puis échoue avec \`Ran 0 tests / NO TESTS RAN\` ; son artefact \`artifacts/doctor_ci/plan.json\` est absent et les autres jobs sont refusés/skippés. Le problème était déjà présent avant les correctifs de ce lot, donc ne pas l'attribuer aux modifications actuelles sans preuve. Respecter l'isolation de périmètre : réparation Doctor CI distincte si nécessaire, ne pas contourner les exigences pour faire passer #201.
+
+**Prochaine validation minimale :** lancer les trois suites ciblées du lot, vérifier en environnement Qt réel la visibilité Succès et l'icône/infobulle/raccourcis Guide, puis contrôler le workflow exact-SHA et la sortie Doctor UI. Pas de fusion tant que la validation n'est pas réelle et verte.
