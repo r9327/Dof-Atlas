@@ -13,7 +13,10 @@ from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QLineEdit, QTabWid
 from app.background_work import background_io_priority
 from app.core.character_identity import is_character_key
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
-from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, DEFAULT_TAB, ENCYCLOPEDIA_TABS, GUIDES_TAB, QUESTS_TAB
+from app.modules.encyclopedia.constants import (
+    ACHIEVEMENTS_TAB, ARCHMONSTERS_TAB, DEFAULT_TAB, DUNGEONS_TAB,
+    ENCYCLOPEDIA_TABS, GUIDES_TAB, MONSTERS_TAB, QUESTS_TAB, WANTED_TAB,
+)
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
     EncyclopediaService,
@@ -46,6 +49,7 @@ if TYPE_CHECKING:
 
 LOGGER = logging.getLogger(__name__)
 GUIDE_SUCCESS_CATALOG_ID = "guide_complet"
+_BESTIARY_TABS = frozenset({DUNGEONS_TAB, MONSTERS_TAB, ARCHMONSTERS_TAB, WANTED_TAB})
 
 _ACHIEVEMENTS_VIEW_TYPE: type | None = None
 _GUIDE_CATALOG_VIEW_TYPE: type | None = None
@@ -263,6 +267,30 @@ class EncyclopediaPage(QWidget):
 
 
     def ensure_tab_loaded(self, label: str) -> QWidget:
+        if label in _BESTIARY_TABS:
+            index = self.tab_labels().index(label)
+            widget = self.tabs.widget(index)
+            if self._lazy_slots.get(label) is widget:
+                # No Bestiary business view is available yet. Never expose
+                # an empty lazy slot or imply the section has loaded.
+                page = QWidget()
+                page.setObjectName("EncyclopediaUnavailableBestiary")
+                layout = QVBoxLayout(page)
+                layout.setContentsMargins(24, 24, 24, 24)
+                title = QLabel(label.title())
+                title.setObjectName("PageTitle")
+                layout.addWidget(title)
+                message = QLabel(
+                    "Module en préparation : ce volet du Bestiaire n'est pas encore "
+                    "disponible. Revenez à Quêtes, Succès ou Guides."
+                )
+                message.setObjectName("EncyclopediaUnavailableMessage")
+                message.setWordWrap(True)
+                layout.addWidget(message)
+                layout.addStretch(1)
+                self.replace_tab_widget(label, page)
+                return page
+            return widget
         if label == GUIDES_TAB:
             return self.ensure_guides_view()
         if label == ACHIEVEMENTS_TAB:
@@ -482,7 +510,10 @@ class EncyclopediaPage(QWidget):
                 refresh()
             self.sync_character_to_children()
         self.on_search_changed(self.search.text())
-        self.status_callback(f"Encyclopédie : {label}")
+        self.status_callback(
+            f"Encyclopédie : {label} · module en préparation"
+            if label in _BESTIARY_TABS else f"Encyclopédie : {label}"
+        )
 
     def sync_tab_accent(self, label: str | None = None) -> None:
         active = (label if label is not None else self.current_tab_label()) == GUIDES_TAB
@@ -497,9 +528,10 @@ class EncyclopediaPage(QWidget):
     def _sync_search_visibility_base(self) -> None:
         widget = self.tabs.currentWidget()
         embedded_search_active = _has_embedded_search(widget)
-        self.search.setVisible(not embedded_search_active)
-        self.search.setEnabled(not embedded_search_active)
-        if embedded_search_active and self.search.text():
+        unavailable = self.current_tab_label() in _BESTIARY_TABS
+        self.search.setVisible(not (embedded_search_active or unavailable))
+        self.search.setEnabled(not (embedded_search_active or unavailable))
+        if (embedded_search_active or unavailable) and self.search.text():
             self.search.clear()
 
     def navigate_to_entity(self, entity_type: str, entity_id: int | str, **context: object) -> bool:

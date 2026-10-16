@@ -57,7 +57,8 @@ def _guide_compact_cache_valid(
     return bool(
         isinstance(meta, dict)
         and meta.get("kind") == "meta"
-        and int(meta.get("schema_version") or 0) == _GUIDE_COMPACT_SCHEMA
+        and type(meta.get("schema_version")) is int
+        and meta["schema_version"] == _GUIDE_COMPACT_SCHEMA
         and meta.get("source_signature") == _guide_compact_source_signature(guides_dir)
     )
 

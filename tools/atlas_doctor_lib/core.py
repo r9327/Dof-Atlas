@@ -24,10 +24,15 @@ class Issue:
     title: str
     evidence: str
     recommendation: str
+    subject: str = ""
 
     @property
     def id(self) -> str:
-        raw = f'{self.rule}|{self.path}|{self.line or 0}|{self.title}'.encode('utf-8')
+        # A stable subject (contract target / JSON pointer) disambiguates
+        # findings on the same rule and line. The evidence text is intentionally
+        # excluded: a corrected digest must not become a new finding identity.
+        identity = self.subject if self.subject else self.title
+        raw = f'{self.rule}|{self.path}|{self.line or 0}|{identity}'.encode('utf-8')
         return hashlib.sha1(raw).hexdigest()[:16]
 
     def to_dict(self) -> dict[str, Any]:

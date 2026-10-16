@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_repo": "dofusdude/dofus3-main",
+  "tag": "3.7.10.10",
+  "assets": {
+    "recipes.json": {
+      "asset": "recipes.json",
+      "size": 1730082,
+      "sha256": "d01cb14bd3dc41b7110f1bc818e976c8da7328a4bfcfe51b99e6e427124a9456"
+    }
+  }
+}

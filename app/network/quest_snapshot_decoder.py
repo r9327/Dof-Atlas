@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.network.contracts import _is_sha256 as _strict_sha256
+
 import hashlib
 from dataclasses import dataclass
 from typing import Callable
@@ -258,13 +260,8 @@ class FinishedQuestsSnapshotDecoder:
 
     @staticmethod
     def _is_sha256(value: str) -> bool:
-        if len(value) != 64:
-            return False
-        try:
-            bytes.fromhex(value)
-        except ValueError:
-            return False
-        return True
+        """Compatibility method delegating to the single network contract."""
+        return _strict_sha256(value)
 
 
 __all__ = ["FinishedQuestsSnapshotDecoder", "FinishedQuestsSnapshotRule"]

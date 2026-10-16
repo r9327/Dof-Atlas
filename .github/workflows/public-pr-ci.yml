@@ -199,7 +199,7 @@ jobs:
 
       - name: Upload Doctor merge evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pr-doctor-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/pr_doctor/**
@@ -239,3 +239,55 @@ jobs:
             throw "Dependency Review must succeed; enable Dependency Graph and resolve any reported vulnerable dependency before merge."
           }
           Write-Host "Dependency Review verdict: success"
+
+  certification-policy:
+    # Stage 1: expose and smoke-test the *real check context* on PRs without
+    # updating remote branch protection. Stage 2 (admin operation) activates
+    # --enforce true and adds this context to the ruleset after a real PR smoke.
+    name: Certification Policy / Merge Gate
+    needs: safe-validation
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      - name: Checkout exact certification policy candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+          lfs: false
+
+      - name: Run focused certification policy contracts
+        shell: bash
+        run: python -m unittest discover -s tests -p test_ci_required_certification.py -v
+
+      - name: Verify candidate identity and authenticated FULL/SCOPED evidence
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SAFE_VALIDATION: ${{ needs.safe-validation.result }}
+          ATLAS_CERT_POLICY_ENFORCE: "false"
+        run: |
+          python -m tools.ci_required_certification \
+            --candidate-sha "$CANDIDATE_SHA" \
+            --base-sha "$BASE_SHA" \
+            --repo "$GITHUB_REPOSITORY" \
+            --safe-result "$SAFE_VALIDATION" \
+            --enforce "$ATLAS_CERT_POLICY_ENFORCE" \
+            --output artifacts/cert_policy/merge_gate.json
+
+      - name: Upload certification policy decision
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: certification-policy-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cert_policy/merge_gate.json
+          if-no-files-found: warn
+          retention-days: 7
