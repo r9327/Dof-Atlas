@@ -157,12 +157,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "d125f841104f4c862d9f9ab35e1d231fb2e282dd",
+      "sha": "3f7ccb46286999c1b2bb9dbed0177ea9bc61eae1",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "af5c5c421a4df6728ba23858d746ed73c2cd98d1",
+      "sha": "608ea99a50f443e57af77c9fb6f156c385c8a458",
       "type": "tree"
     }
   },
