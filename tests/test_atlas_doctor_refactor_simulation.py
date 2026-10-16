@@ -54,8 +54,12 @@ class RefactorSimulationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cannot overwrite"):
             simulate_refactor(self.root, ["app/mod.py"],
                               action="move", replacement="app/mod.py")
-        (self.root / "app/alias.py").symlink_to(self.root / "app/existing.py")
-        with self.assertRaisesRegex(ValueError, "symlink"):
+        alias = self.root / "app/alias.py"
+        alias.write_text("pass\n")
+        with patch(
+            "tools.atlas_doctor_lib.refactor_simulation._path_uses_symlink",
+            side_effect=lambda _root, relative: relative.as_posix() == "app/alias.py",
+        ), self.assertRaisesRegex(ValueError, "symlink"):
             simulate_refactor(self.root, ["app/mod.py"],
                               action="consolidate", replacement="app/alias.py")
         with self.assertRaisesRegex(ValueError, "multiple files"):
