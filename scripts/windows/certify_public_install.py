@@ -45,7 +45,7 @@ def verify_release_inventory(release, source_root: Path) -> dict:
     return lock
 
 
-def close_application(executable: Path, env: dict[str, str]) -> dict:
+def close_application(executable: Path, env: dict[str, str], *, verify_equipment: bool = False) -> dict:
     """Click the real Quitter button, then require normal process termination."""
     command = r'''
 $ErrorActionPreference = 'Stop'
@@ -58,6 +58,31 @@ if ($processes.Count -ne 1) { throw "Expected exactly one installed AtlasApp pro
 $appProcess = $processes[0]
 $null = $appProcess.Handle
 $appProcess.Refresh()
+$equipmentTested = $false
+if ($env:ATLAS_E2E_TEST_EQUIPMENT -eq '1') {
+    $appElement = [System.Windows.Automation.AutomationElement]::FromHandle($appProcess.MainWindowHandle)
+    $stuffsCondition = New-Object System.Windows.Automation.AndCondition -ArgumentList @(
+        (New-Object System.Windows.Automation.PropertyCondition -ArgumentList @(
+            [System.Windows.Automation.AutomationElement]::NameProperty, 'Stuffs')),
+        (New-Object System.Windows.Automation.PropertyCondition -ArgumentList @(
+            [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+            [System.Windows.Automation.ControlType]::Button))
+    )
+    $stuffs = $appElement.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $stuffsCondition)
+    if ($null -eq $stuffs) { throw 'Real equipment navigation button missing' }
+    $stuffs.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+    $equipmentDeadline = [DateTime]::UtcNow.AddSeconds(60)
+    $huzCondition = New-Object System.Windows.Automation.PropertyCondition -ArgumentList @(
+        [System.Windows.Automation.AutomationElement]::NameProperty, 'Ouvrir Huzounet dans le navigateur')
+    $huz = $null
+    while ([DateTime]::UtcNow -lt $equipmentDeadline) {
+        $huz = $appElement.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $huzCondition)
+        if ($null -ne $huz -and $huz.Current.IsEnabled) { break }
+        Start-Sleep -Milliseconds 250
+    }
+    if ($null -eq $huz -or -not $huz.Current.IsEnabled) { throw 'Actual Equipment page did not become ready' }
+    $equipmentTested = $true
+}
 if (-not $appProcess.CloseMainWindow()) { throw "Atlas main window cannot be closed" }
 $quit = $null
 $deadline = [DateTime]::UtcNow.AddSeconds(30)
@@ -91,13 +116,15 @@ do {
     Start-Sleep -Milliseconds 250
 } while ([DateTime]::UtcNow -lt $deadline)
 if ($workers.Count -ne 0) { throw 'Frozen Atlas workers remained after normal GUI exit' }
-@{pid=$appProcess.Id; exit_code=$appProcess.ExitCode; action='Quitter'; remaining_workers=0} | ConvertTo-Json -Compress
+@{pid=$appProcess.Id; exit_code=$appProcess.ExitCode; action='Quitter'; remaining_workers=0;
+  equipment_entry=$equipmentTested} | ConvertTo-Json -Compress
 '''
-    child_env = dict(env, ATLAS_E2E_EXECUTABLE=str(executable))
+    child_env = dict(env, ATLAS_E2E_EXECUTABLE=str(executable),
+                     ATLAS_E2E_TEST_EQUIPMENT="1" if verify_equipment else "0")
     powershell = Path(env["SYSTEMROOT"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
     result = subprocess.run(
         [str(powershell), "-NoProfile", "-NonInteractive", "-Command", command],
-        env=child_env, capture_output=True, text=True, errors="replace", timeout=180,
+        env=child_env, capture_output=True, text=True, errors="replace", timeout=250,
     )
     require(result.returncode == 0, "Normal GUI shutdown failed: " + result.stderr[-1500:])
     return json.loads(result.stdout)
@@ -206,7 +233,7 @@ def certify(source_sha: str, source_root: Path, report: dict) -> None:
             and not state.get("pending"), "Installed state is not healthy for exact target SHA")
     executable = active_executable(root)
     require(executable is not None, "Installed executable is absent")
-    stages["first_shutdown"] = close_application(executable, env)
+    stages["first_shutdown"] = close_application(executable, env, verify_equipment=True)
     installed = slot_path(root, state["active"])
     for entry in release.manifest.files:
         require(verify_file(installed / entry.path, entry),
@@ -368,7 +395,7 @@ def certify_upgrade(source_sha: str, source_root: Path, report: dict) -> None:
             "Actual update did not retain the previous public version")
     executable = active_executable(root)
     require(executable is not None, "Updated public executable is absent")
-    stages["updated_shutdown"] = close_application(executable, env)
+    stages["updated_shutdown"] = close_application(executable, env, verify_equipment=True)
     installed = slot_path(root, state["active"])
     for entry in release.manifest.files:
         require(verify_file(installed / entry.path, entry), "Updated file is invalid: " + entry.path)
