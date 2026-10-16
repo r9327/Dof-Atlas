@@ -189,13 +189,13 @@ class DoctorUiVerdictTests(unittest.TestCase):
                 self.assertEqual(report['candidate_sha'], SHA)
 
     def test_failed_ui_job_still_executes_evidence_verdict(self):
-        text = (ROOT / '.github/workflows/doctor-ui.yml').read_text()
+        text = (ROOT / '.github/workflows/doctor-ui.yml').read_text(encoding='utf-8')
         block = text.split('      - name: Verify selection, assertions, real PNG and hashes at candidate SHA', 1)[1].split('      - uses:', 1)[0]
         self.assertIn('if: always()', block)
         self.assertIn('doctor_ui_ci verdict', block)
 
     def test_workflow_is_impact_selected_and_preserves_existing_gates(self):
-        text = (ROOT / ".github/workflows/doctor-ui.yml").read_text()
+        text = (ROOT / ".github/workflows/doctor-ui.yml").read_text(encoding="utf-8")
         self.assertIn("needs.plan.outputs.run_ui == 'true'", text)
         self.assertIn("tools.atlas_doctor_lib.doctor_ui_ci plan", text)
         self.assertIn("tools.atlas_doctor_lib.doctor_ui_ci verdict", text)
