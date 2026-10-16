@@ -80,7 +80,7 @@ jobs:
           PY
       - name: Archive reviewed App transfer certificate
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: atlas-app-transfer-${{ github.event.pull_request.head.sha }}
           path: ${{ runner.temp }}/atlas-transfer-certificate.json
@@ -457,7 +457,7 @@ jobs:
       - name: Upload unmerged full Windows distribution candidate
         if: >-
           github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: atlas-windows-full-candidate-${{ env.SOURCE_SHA }}
           path: |
@@ -470,7 +470,7 @@ jobs:
           if-no-files-found: error
       - name: Upload certified Windows release files
         if: github.event_name == 'workflow_run'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: atlas-windows-${{ env.SOURCE_SHA }}
           path: dist-release/*
@@ -478,7 +478,7 @@ jobs:
           if-no-files-found: error
       - name: Upload frozen candidate launchers for diagnosis
         if: github.event_name != 'workflow_run'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: atlas-frozen-launchers-${{ env.SOURCE_SHA }}
           path: |
