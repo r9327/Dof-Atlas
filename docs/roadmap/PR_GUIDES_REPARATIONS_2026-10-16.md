@@ -1,7 +1,7 @@
 # PR 1 — Réparations Guide Succès + Lanyel Sylvestre
 
-**Statut : corrections initiales engagées — vérifications ciblées et CI non validées, PR toujours en brouillon.**  
-**Base :** `main` @ `b8d63e03711c65e5db85c72a5ab64378f5264713` (constat du 16 octobre 2026).  
+**Statut : corrections initiales engagées — vérifications ciblées et CI non validées, PR toujours en brouillon.**
+**Base :** `main` @ `b8d63e03711c65e5db85c72a5ab64378f5264713` (constat du 16 octobre 2026).
 **Périmètre strict :** anomalies et régressions des guides existants ; **aucune nouvelle fonctionnalité ou refonte visuelle**.
 
 ## Constats à reproduire avant de modifier
