@@ -6,6 +6,7 @@ import sqlite3
 import tempfile
 import unittest
 from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 from queue import Queue
 from threading import Lock
@@ -51,8 +52,7 @@ class ShellReliabilityTests(unittest.TestCase):
         import app.craft_preload as craft_preload
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            data_dir = Path(temp_dir)
-            database_path = data_dir / "local" / "dofus_data.sqlite"
+            database_path = Path(temp_dir) / "custom-user" / "data" / "local" / "dofus_data.sqlite"
             database_path.parent.mkdir(parents=True)
             connection = sqlite3.connect(database_path)
             try:
@@ -61,8 +61,15 @@ class ShellReliabilityTests(unittest.TestCase):
             finally:
                 connection.close()
 
-            with patch.object(craft_preload, "DATA_DIR", data_dir):
+            # The launcher selects the persistent user database through the
+            # canonical config; bundled data is immutable after installation.
+            config = replace(craft_preload.DEFAULT_CONFIG, sqlite_path=database_path)
+            with (
+                patch.object(craft_preload, "DEFAULT_CONFIG", config),
+                patch("local_dofus_data.compatibility_adapter.LocalCompatibilityAdapter") as adapter,
+            ):
                 payload = craft_preload.build_compact_craft_preload()
+                adapter.assert_not_called()
 
         self.assertEqual(payload["items"], [])
         # An existing but empty SQLite catalogue must not report Craft ready.
