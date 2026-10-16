@@ -173,6 +173,7 @@ class AiContextTests(unittest.TestCase):
             "windows_qt_runtime",
             "input_hotkeys",
             "macro_runtime",
+            "project_docs",
             "quality_ci",
         }
         self.assertEqual(set(scopes), expected_scopes)
