@@ -24,6 +24,16 @@ _DETAIL_FIELDS = frozenset({"steps", "source_solution_steps", "solution_blocks",
 _SUMMARY_FIELDS = {"achievements": 0, "prerequisites": 1, "info": 2}
 _CACHE_ROOT = qc.ROOT_DIR / ".cache" / "dofus_atlas" / "quest_details_v1"
 
+_DETAIL_OFFSET_SOURCES = tuple(
+    (
+        relative_path,
+        "entries" if label == "language" else "RefIds",
+        label != "language",
+    )
+    for label, relative_path in qc.QUEST_CATALOG_SOURCE_FILES
+    if label != "char_xp_mappings"
+)
+
 
 class DeferredQuestRecord(qc.QuestRecord):
     __slots__ = ("_details",)
@@ -57,7 +67,10 @@ class QuestDetails:
         # Using the SQLite parent directly created a second offset-cache namespace,
         # so the first rich Quest detail rebuilt indexes from monolithic JSON in
         # Atlas' long-lived process and caused the Guide memory spike.
-        self._sources = QuestSources(path.parent / "source_offsets")
+        self._sources = QuestSources(
+            path.parent / "source_offsets",
+            disk_backed=True,
+        )
         self._objective_step_index_checked = False
         self._records: OrderedDict[int, qc.QuestRecord] = OrderedDict()
         self._summaries: OrderedDict[
@@ -65,6 +78,33 @@ class QuestDetails:
             tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]],
         ] = OrderedDict()
         self.loads = self.hits = 0
+
+    def _load_source_context(self) -> None:
+        """Hydrate precomputed global names only for the first rich detail."""
+
+        if self._sources.context:
+            return
+        with _connect(self.path) as connection:
+            context_row = connection.execute(
+                "SELECT value FROM metadata WHERE key='detail_context'"
+            ).fetchone()
+        if context_row is None:
+            return
+        raw_context = json.loads(context_row[0])
+        self._sources.context.update(
+            achievement_names={
+                int(key): str(value)
+                for key, value in raw_context.get("achievement_names", {}).items()
+            },
+            quest_names={
+                int(key): str(value)
+                for key, value in raw_context.get("quest_names", {}).items()
+            },
+            quest_to_achievements={
+                int(key): [str(value) for value in values]
+                for key, values in raw_context.get("quest_to_achievements", {}).items()
+            },
+        )
 
     def summary_fields(
         self,
@@ -159,6 +199,7 @@ class QuestDetails:
                     raise RuntimeError("Les sources Quêtes ont changé ; rechargez le catalogue.")
                 try:
                     self._prime_objective_step_index()
+                    self._load_source_context()
                     record = qc.QuestCatalog._load_source(self.data_dir, quest_ids={quest_id}, sources=self._sources).by_id[quest_id]
                 finally:
                     self._sources.close()
@@ -273,7 +314,7 @@ def ensure_lazy_catalog_cache(
         connection.execute("BEGIN IMMEDIATE")
         ready = connection.execute("SELECT value FROM metadata WHERE key='ready'").fetchone()
         if ready is None:
-            records, series = _source_index(data_dir)
+            records, series, detail_context = _source_index(data_dir)
             objective_step_ids: dict[int, list[int]] = {}
             guide_evidence = _guide_evidence_index(
                 data_dir, objective_step_ids=objective_step_ids
@@ -302,6 +343,10 @@ def ensure_lazy_catalog_cache(
                 "INSERT OR REPLACE INTO metadata VALUES ('series', ?)",
                 (_json([asdict(item) for item in series]),),
             )
+            connection.execute(
+                "INSERT OR REPLACE INTO metadata VALUES ('detail_context', ?)",
+                (_json(detail_context),),
+            )
             # Guide evidence already scanned the objective source. Persist its
             # tiny step -> objective-id lookup in the same signed SQLite cache,
             # so opening a Quest does not scan all objectives a second time.
@@ -313,6 +358,48 @@ def ensure_lazy_catalog_cache(
             connection.execute("INSERT OR REPLACE INTO metadata VALUES ('ready', '1')")
         row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
         return max(0, int(row[0] if row else 0))
+
+
+def ensure_detail_source_offsets(
+    data_dir: Path = qc.RAW_QUEST_DATA_DIR,
+    *,
+    cache_root: Path = _CACHE_ROOT,
+) -> int:
+    """Prepare disk-only indexes used by the first rich Quest detail.
+
+    Each mapping is released before the next one is opened.  The controlled
+    preload therefore pays the source scan once without retaining the offset
+    dictionaries in Atlas' long-lived process.
+    """
+
+    prepared = 0
+    offset_root = Path(cache_root) / "source_offsets"
+    for filename, field, doduda in _DETAIL_OFFSET_SOURCES:
+        sources = QuestSources(offset_root, disk_backed=True)
+        try:
+            mapping = sources.mapping(
+                Path(data_dir) / filename,
+                field,
+                doduda=doduda,
+                required=True,
+            )
+            len(mapping)
+            prepared += 1
+        finally:
+            sources.close()
+
+    enrichment_sources = QuestSources(offset_root, disk_backed=True)
+    try:
+        enrichment = enrichment_sources.mapping(
+            qc.DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json",
+            "quests",
+            required=False,
+        )
+        len(enrichment)
+        prepared += 1
+    finally:
+        enrichment_sources.close()
+    return prepared
 
 
 def load_quest_name_index(
@@ -605,7 +692,12 @@ def _source_index(data_dir):
             achievement_names,
             entries,
         )
-        return records, series
+        detail_context = {
+            "achievement_names": achievement_names,
+            "quest_names": quest_names,
+            "quest_to_achievements": linked_achievements,
+        }
+        return records, series, detail_context
     finally:
         sources.close()
 

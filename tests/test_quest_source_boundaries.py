@@ -9,6 +9,25 @@ from app.quest_source_index import QuestSourceError, QuestSources
 
 
 class QuestSourceBoundaryTests(unittest.TestCase):
+    def test_disk_backed_offsets_answer_selected_rows_without_heap_index(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "rows.json"
+            source.write_text(
+                json.dumps({"entries": {"101": "Quête", "102": "Étape"}}),
+                encoding="utf-8",
+            )
+            sources = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = sources.mapping(source, "entries")
+                self.assertEqual(rows["102"], "Étape")
+                self.assertEqual(len(rows), 2)
+                self.assertEqual(set(rows), {"101", "102"})
+                self.assertEqual(rows._offsets, {})
+                self.assertTrue(rows._disk_index.is_file())
+            finally:
+                sources.close()
+
     def test_required_rows_reject_missing_business_source(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
