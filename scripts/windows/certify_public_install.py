@@ -1,0 +1,259 @@
+"""Supplemental Windows-only certification of the published installed binaries.
+
+This test driver is kept on a certification branch. It never publishes, patches
+the application, or treats the tester's Python environment as the user runtime.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import time
+
+from app.distribution.install import active_executable, read_state, slot_path
+from app.distribution.install_location import set_runtime_root, runtime_root
+from app.distribution.manifest import ReleaseFile, verify_file, valid_source_sha
+from app.distribution.release_client import latest_release, UpdateError
+from app.distribution.user_data import prepare_user_data
+from scripts.windows.probe_public_release import (
+    _ci_release_metadata, download_public_setup, verify_frozen_setup,
+    verify_published_digests, probe_parts,
+)
+from scripts.windows.quest_assets import read_lock, RELATIVE_ROOT
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise UpdateError(message)
+
+
+def verify_release_inventory(release, source_root: Path) -> dict:
+    """Reject an incomplete public bundle before starting a multi-GB install."""
+    lock = read_lock(source_root)
+    files = {entry.path: entry for entry in release.manifest.files}
+    for name, pin in lock["assets"].items():
+        path = (Path("AtlasApp/_internal") / RELATIVE_ROOT / name).as_posix()
+        entry = files.get(path)
+        require(entry is not None and entry.size == pin["size"]
+                and entry.sha256 == pin["sha256"], "Public locked JSON missing/corrupt: " + name)
+    require("AtlasApp/_internal/data/bootstrap/craft_seed.sqlite" in files,
+            "Public Craft seed is missing")
+    return lock
+
+
+def close_application(executable: Path, env: dict[str, str]) -> dict:
+    """Click the real Quitter button, then require normal process termination."""
+    command = r'''
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+$processes = @(Get-Process AtlasApp -ErrorAction SilentlyContinue | Where-Object {
+    $_.Path -eq $env:ATLAS_E2E_EXECUTABLE
+})
+if ($processes.Count -ne 1) { throw "Expected exactly one installed AtlasApp process" }
+$appProcess = $processes[0]
+$null = $appProcess.Handle
+$appProcess.Refresh()
+if (-not $appProcess.CloseMainWindow()) { throw "Atlas main window cannot be closed" }
+$quit = $null
+$deadline = [DateTime]::UtcNow.AddSeconds(30)
+$root = [System.Windows.Automation.AutomationElement]::RootElement
+$condition = New-Object System.Windows.Automation.AndCondition -ArgumentList @(
+    (New-Object System.Windows.Automation.PropertyCondition -ArgumentList @(
+        [System.Windows.Automation.AutomationElement]::NameProperty, 'Quitter')),
+    (New-Object System.Windows.Automation.PropertyCondition -ArgumentList @(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::Button))
+)
+while ([DateTime]::UtcNow -lt $deadline) {
+    $buttons = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    foreach ($button in $buttons) {
+        if ($button.Current.ProcessId -eq $appProcess.Id) { $quit = $button; break }
+    }
+    if ($null -ne $quit) { break }
+    Start-Sleep -Milliseconds 250
+}
+if ($null -eq $quit) { throw "Real Atlas Quitter button not found" }
+$invoke = $quit.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+$invoke.Invoke()
+if (-not $appProcess.WaitForExit(60000)) { throw "Atlas did not terminate normally" }
+if ($appProcess.ExitCode -ne 0) { throw "Atlas exit code: $($appProcess.ExitCode)" }
+@{pid=$appProcess.Id; exit_code=$appProcess.ExitCode; action='Quitter'} | ConvertTo-Json -Compress
+'''
+    child_env = dict(env, ATLAS_E2E_EXECUTABLE=str(executable))
+    powershell = Path(env["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    result = subprocess.run(
+        [str(powershell), "-NoProfile", "-NonInteractive", "-Command", command],
+        env=child_env, capture_output=True, text=True, errors="replace", timeout=110,
+    )
+    require(result.returncode == 0, "Normal GUI shutdown failed: " + result.stderr[-1500:])
+    return json.loads(result.stdout)
+
+
+def launch(launcher: Path, env: dict[str, str], *, timeout: int = 2700) -> None:
+    # Do not capture pipes inherited by the child GUI: its lifetime outlasts
+    # the launcher, and pipe EOF would otherwise wait for the GUI to exit.
+    result = subprocess.run(
+        [str(launcher), "--atlas-auto-install"], cwd=launcher.parent, env=env,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout,
+    )
+    require(result.returncode == 0, f"Published launcher failed: {result.returncode}")
+
+
+def interrupt_download(launcher: Path, root: Path, env: dict[str, str]) -> list[dict]:
+    process = subprocess.Popen(
+        [str(launcher), "--atlas-auto-install"], cwd=launcher.parent, env=env,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    stopped = False
+    try:
+        deadline = time.monotonic() + 240
+        while time.monotonic() < deadline:
+            partials = [{"name": str(p.relative_to(root)), "size": p.stat().st_size}
+                        for p in (root / "downloads").rglob("*.download") if p.is_file()]
+            if any(p["size"] >= 1024 * 1024 for p in partials):
+                require(not read_state(root).get("active"),
+                        "Cannot interrupt after application activation")
+                taskkill = Path(env["SystemRoot"]) / "System32/taskkill.exe"
+                result = subprocess.run(
+                    [str(taskkill), "/PID", str(process.pid), "/T", "/F"],
+                    capture_output=True, timeout=30,
+                )
+                require(result.returncode == 0, "Could not interrupt launcher process tree")
+                process.wait(timeout=30)
+                stopped = True
+                return partials
+            require(process.poll() is None, "Launcher exited before download interruption")
+            time.sleep(0.25)
+        raise UpdateError("No real partial public download observed")
+    finally:
+        if not stopped and process.poll() is None:
+            taskkill = Path(env["SystemRoot"]) / "System32/taskkill.exe"
+            subprocess.run([str(taskkill), "/PID", str(process.pid), "/T", "/F"],
+                           capture_output=True, timeout=30, check=False)
+            process.wait(timeout=30)
+
+
+def certify(source_sha: str, source_root: Path, report: dict) -> None:
+    require(os.name == "nt", "Installed binary certification requires Windows")
+    valid_source_sha(source_sha)
+    release = latest_release()
+    require(release.manifest.source_sha == source_sha, "Public latest SHA differs from target")
+    actual_source = subprocess.run(["git", "-C", str(source_root), "rev-parse", "HEAD"],
+                                   capture_output=True, text=True, check=True).stdout.strip()
+    require(actual_source == source_sha, "Tester lock checkout is not the certified source SHA")
+    lock = verify_release_inventory(release, source_root)
+    report.update(source_sha=source_sha, release=release.tag,
+                  archive_size=release.archive_size, stages={})
+    stages = report["stages"]
+    metadata = _ci_release_metadata()
+    require(metadata.get("tag_name") == release.tag and not metadata.get("draft")
+            and not metadata.get("prerelease"), "Stable public metadata mismatch")
+    verify_published_digests(metadata, release)
+    stages["public_parts"] = probe_parts(release)
+    with tempfile.TemporaryDirectory(prefix="atlas-published-setup-") as folder:
+        setup = download_public_setup(metadata, release, Path(folder))
+        verify_frozen_setup(setup, release)
+    stages["public_setup"] = "PASS"
+
+    base = Path(os.environ["RUNNER_TEMP"])
+    root = base / "Atlas custom install — espace et accent"
+    require(not root.exists(), "Custom installation root must be new")
+    root = set_runtime_root(root)
+    require(runtime_root() == root, "Custom install location was not persisted")
+    local = Path(os.environ["LOCALAPPDATA"])
+    launcher = local / "Programs/DofusAtlas/DofusAtlas.exe"
+    user = local / "DofusAtlas/user"
+    require(not user.exists(), "First installation requires no existing user cache")
+    env = os.environ.copy()
+    env.update(QT_QPA_PLATFORM="windows", QT_ACCESSIBILITY="1",
+               QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --no-sandbox",
+               QTWEBENGINE_DISABLE_SANDBOX="1")
+    # Only Windows OS paths are available to the public EXEs, not the runner's Python.
+    env["PATH"] = str(Path(env["SystemRoot"]) / "System32") + os.pathsep + env["SystemRoot"]
+    stages["interrupted_download"] = interrupt_download(launcher, root, env)
+    launch(launcher, env)
+    state = read_state(root)
+    require(state.get("source_sha") == source_sha and state.get("active")
+            and not state.get("pending"), "Installed state is not healthy for exact target SHA")
+    executable = active_executable(root)
+    require(executable is not None, "Installed executable is absent")
+    stages["first_shutdown"] = close_application(executable, env)
+    installed = slot_path(root, state["active"])
+    for entry in release.manifest.files:
+        require(verify_file(installed / entry.path, entry),
+                "Installed manifest file invalid: " + entry.path)
+    stages["installed_files_verified"] = len(release.manifest.files)
+    mandatory = []
+    for name, info in lock["assets"].items():
+        asset = executable.parent / "_internal" / RELATIVE_ROOT / name
+        require(verify_file(asset, ReleaseFile(name, info["size"], info["sha256"])),
+                "Installed locked JSON missing/corrupt: " + name)
+        mandatory.append({"name": name, "size": info["size"], "sha256": info["sha256"]})
+    stages["quest_sources"] = mandatory
+    stages["quest_source_tag"] = lock["tag"]
+
+    worker_user = base / "Atlas worker empty user"
+    require(not worker_user.exists(), "Worker certification requires an empty user root")
+    prepare_user_data(executable, worker_user)
+    worker_env = dict(env, DOFUS_ATLAS_USER_ROOT=str(worker_user))
+    commands = (
+        ("quest_worker", ["-m", "app.quest_catalog_details", "--ensure-cache"]),
+        ("quest_index", ["--atlas-quest-smoke"]),
+        ("package", ["--atlas-package-smoke"]),
+        ("guide", ["--atlas-domain-smoke", "guide"]),
+        ("success_worker", ["-m", "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+                            "--ensure-compact-cache"]),
+        ("success", ["--atlas-domain-smoke", "success"]),
+        ("success_detail", ["--atlas-success-detail-smoke"]),
+        ("items_worker", ["-m", "app.modules.encyclopedia.providers.dofus_item_provider",
+                          "--ensure-guide-index"]),
+        ("craft", ["--atlas-craft-smoke"]),
+        ("map_sqlite", ["--atlas-map-state-smoke"]),
+    )
+    stages["frozen_commands"] = []
+    for name, args in commands:
+        result = subprocess.run([str(executable), *args], cwd=base, env=worker_env,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=360)
+        stages["frozen_commands"].append({"name": name, "args": args, "exit_code": result.returncode})
+        require(result.returncode == 0, f"Real installed command failed: {name}: {result.returncode}")
+
+    marker = user / "e2e-personal-settings.json"
+    marker.write_bytes(b'{"preserve":"personal settings"}')
+    downloads_before = {str(p.relative_to(root)): (p.stat().st_size, p.stat().st_mtime_ns)
+                        for p in (root / "downloads").rglob("*") if p.is_file()}
+    launch(launcher, env, timeout=180)
+    require(read_state(root).get("source_sha") == source_sha,
+            "Source SHA changed during launcher relaunch")
+    stages["second_shutdown"] = close_application(executable, env)
+    require(marker.read_bytes() == b'{"preserve":"personal settings"}', "Personal data was changed")
+    downloads_after = {str(p.relative_to(root)): (p.stat().st_size, p.stat().st_mtime_ns)
+                       for p in (root / "downloads").rglob("*") if p.is_file()}
+    require(downloads_before == downloads_after, "Relaunch downloaded or modified archives unnecessarily")
+    stages.update(custom_install_path=str(root), relaunch="PASS", personal_data="PASS",
+                  no_unnecessary_download="PASS", no_python_in_application_path=True)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source-sha", required=True)
+    parser.add_argument("--source-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    report = {"schema_version": 1, "status": "FAILED"}
+    try:
+        certify(args.source_sha, args.source_root, report)
+        report["status"] = "PASS"
+    except (OSError, ValueError, UpdateError, subprocess.SubprocessError) as exc:
+        report["error"] = str(exc)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(json.dumps(report, indent=2, ensure_ascii=False), flush=True)
+    return 0 if report["status"] == "PASS" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
