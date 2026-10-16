@@ -23,6 +23,40 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  supplemental-public-upgrade:
+    name: Real public launcher update from previous verified public payload
+    if: github.event_name == 'workflow_dispatch' && inputs.certify_installed_sha != ''
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.certify_installed_sha }}
+          path: certified-source
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Require actual public auto-update, exact SHA and personal data preservation
+        shell: pwsh
+        env:
+          ATLAS_CI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPECTED_SHA: ${{ inputs.certify_installed_sha }}
+        run: |
+          python -m scripts.windows.certify_public_install --upgrade --source-sha "$env:EXPECTED_SHA" --source-root certified-source --output artifacts/public-upgrade-e2e.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Retain public auto-update evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: atlas-public-upgrade-e2e-${{ github.run_id }}
+          path: artifacts/public-upgrade-e2e.json
+          if-no-files-found: error
+          retention-days: 30
+
   supplemental-installed-e2e:
     name: Installed public EXEs — interruption, custom path, workers, normal quit, relaunch
     if: github.event_name == 'workflow_dispatch' && inputs.certify_installed_sha != ''

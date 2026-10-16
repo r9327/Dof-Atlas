@@ -6,6 +6,7 @@ the application, or treats the tester's Python environment as the user runtime.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -13,10 +14,10 @@ import subprocess
 import tempfile
 import time
 
-from app.distribution.install import active_executable, read_state, slot_path
+from app.distribution.install import active_executable, read_state, slot_path, install_release, mark_healthy
 from app.distribution.install_location import set_runtime_root, runtime_root
-from app.distribution.manifest import ReleaseFile, verify_file, valid_source_sha
-from app.distribution.release_client import latest_release, UpdateError
+from app.distribution.manifest import ReleaseFile, verify_file, valid_source_sha, parse_manifest
+from app.distribution.release_client import latest_release, UpdateError, RemoteRelease, download_archive, _read_limited
 from app.distribution.user_data import prepare_user_data
 from scripts.windows.probe_public_release import (
     _ci_release_metadata, download_public_setup, verify_frozen_setup,
@@ -291,15 +292,113 @@ def certify(source_sha: str, source_root: Path, report: dict) -> None:
                   no_python_in_application_path=True)
 
 
+def certify_upgrade(source_sha: str, source_root: Path, report: dict) -> None:
+    """Restore a verified previous public install, then run the public updater.
+
+    The previous payload is a test fixture of an already installed, closed
+    application. Only the new public launcher performs the actual upgrade.
+    """
+    require(os.name == "nt", "Native public update certification requires Windows")
+    valid_source_sha(source_sha)
+    actual_source = subprocess.run(["git", "-C", str(source_root), "rev-parse", "HEAD"],
+                                   capture_output=True, text=True, check=True).stdout.strip()
+    require(actual_source == source_sha, "Tester lock checkout is not the target source SHA")
+    release = latest_release()
+    require(release.manifest.source_sha == source_sha, "Public latest SHA differs from upgrade target")
+    verify_release_inventory(release, source_root)
+    metadata = _ci_release_metadata()
+    require(metadata.get("tag_name") == release.tag and not metadata.get("draft")
+            and not metadata.get("prerelease"), "Stable upgrade metadata mismatch")
+    verify_published_digests(metadata, release)
+    report.update(source_sha=source_sha, release=release.tag, stages={})
+    stages = report["stages"]
+
+    # Immutable historical public fixture, verified live earlier in this mission.
+    old_tag = "sha-e8ab23c925cb"
+    old_sha = "e8ab23c925cbfe3606d876c79712f20ea09d46f4"
+    base_url = "https://github.com/r9327/Dof-Atlas-App/releases/download/" + old_tag + "/"
+    payload = _read_limited(base_url + "atlas-manifest.json", 32 * 1024 * 1024)
+    require(hashlib.sha256(payload).hexdigest() ==
+            "d1fecc4725d465d5ae7d5568e75adf4caed296fe8cdf91c6253fe7cac0d136d6",
+            "Historical fixture manifest changed")
+    old_manifest = parse_manifest(payload)
+    require(old_manifest.source_sha == old_sha and bool(old_manifest.archive_parts),
+            "Historical public fixture SHA or multipart layout mismatch")
+    old = RemoteRelease(old_tag, "", old_manifest.archive_size, old_manifest,
+                        part_urls=tuple(base_url + part.name for part in old_manifest.archive_parts))
+    root = Path(os.environ["RUNNER_TEMP"]) / "Atlas native public update — custom folder"
+    require(not root.exists(), "Native update fixture root must be new")
+    root = set_runtime_root(root)
+    local = Path(os.environ["LOCALAPPDATA"])
+    user = local / "DofusAtlas/user"
+    require(not user.exists(), "Native update fixture requires no preexisting user cache")
+    archive = download_archive(old, root / "downloads")
+    install_release(root, archive, old_manifest)
+    mark_healthy(root)
+    old_state = read_state(root)
+    previous_executable = active_executable(root)
+    require(old_state.get("source_sha") == old_sha and previous_executable is not None,
+            "Verified previous public fixture was not installed")
+    stages["previous_public_fixture"] = {
+        "source_sha": old_sha, "release": old_tag,
+        "archive_bytes": old_manifest.archive_size, "archive_sha256": old_manifest.archive_sha256,
+        "verified_installed_files": len(old_manifest.files),
+        "fixture_method": "canonical installer, all public file hashes verified; previous GUI not rerun",
+    }
+    # Free only the verified input archive from this disposable fixture.
+    # The entire previous installation stays available for real rollback.
+    archive.unlink()
+    user.mkdir(parents=True)
+    marker = user / "e2e-personal-settings.json"
+    marker.write_bytes(b'{"previous_user_setting":true}')
+    with tempfile.TemporaryDirectory(prefix="atlas-update-public-setup-") as folder:
+        setup = download_public_setup(metadata, release, Path(folder))
+        verify_frozen_setup(setup, release)
+    require(runtime_root() == root, "Setup overwrote the existing custom installation location")
+    env = os.environ.copy()
+    env.update(QT_QPA_PLATFORM="windows", QT_ACCESSIBILITY="1",
+               QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --no-sandbox", QTWEBENGINE_DISABLE_SANDBOX="1")
+    env["PATH"] = str(Path(env["SYSTEMROOT"]) / "System32") + os.pathsep + env["SYSTEMROOT"]
+    launcher = local / "Programs/DofusAtlas/DofusAtlas.exe"
+    launch(launcher, env)
+    state = read_state(root)
+    require(state.get("source_sha") == source_sha and not state.get("pending"),
+            "Actual public launcher did not activate the exact new source")
+    require(state.get("previous") == old_state["active"] and previous_executable.is_file(),
+            "Actual update did not retain the previous public version")
+    executable = active_executable(root)
+    require(executable is not None, "Updated public executable is absent")
+    stages["updated_shutdown"] = close_application(executable, env)
+    installed = slot_path(root, state["active"])
+    for entry in release.manifest.files:
+        require(verify_file(installed / entry.path, entry), "Updated file is invalid: " + entry.path)
+    require(marker.read_bytes() == b'{"previous_user_setting":true}', "Actual update lost personal settings")
+    require(runtime_root() == root, "Actual update changed the selected installation location")
+    worker_env = dict(env, DOFUS_ATLAS_USER_ROOT=str(user))
+    for name, args in (("quest_worker", ["-m", "app.quest_catalog_details", "--ensure-cache"]),
+                       ("quest_index", ["--atlas-quest-smoke"]), ("craft", ["--atlas-craft-smoke"])):
+        result = subprocess.run([str(executable), *args], cwd=root.parent, env=worker_env,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=360)
+        require(result.returncode == 0, f"Updated frozen command failed: {name}: {result.returncode}")
+        stages[name] = {"exit_code": result.returncode}
+    stages.update(activated_source_sha=state["source_sha"], previous_slot_retained=state["previous"],
+                  installed_files_verified=len(release.manifest.files), personal_data="PASS",
+                  persisted_custom_path=str(root),
+                  update_archives=[{"name": p.name, "size": p.stat().st_size}
+                                   for p in (root / "downloads").glob("*.zip")])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-sha", required=True)
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--upgrade", action="store_true")
     args = parser.parse_args()
     report = {"schema_version": 1, "status": "FAILED"}
     try:
-        certify(args.source_sha, args.source_root, report)
+        action = certify_upgrade if args.upgrade else certify
+        action(args.source_sha, args.source_root, report)
         report["status"] = "PASS"
     except (OSError, ValueError, UpdateError, subprocess.SubprocessError) as exc:
         report["error"] = str(exc)
