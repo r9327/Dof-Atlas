@@ -104,6 +104,17 @@ class PublicProbeContracts(unittest.TestCase):
         self.assertEqual(result["status"], "NO_RELEASE")
         self.assertFalse(result["published"])
 
+    def test_publication_helper_checkout_is_pinned_to_workflow_definition(self):
+        source = (Path(__file__).resolve().parents[1] /
+                  ".github/workflows/atlas-public-release-smoke.yml").read_text(
+                      encoding="utf-8"
+                  )
+        proof_job = source.split("  detect-publication:", 1)[1].split(
+            "  supplemental-public-upgrade:", 1)[0]
+        self.assertIn("ref: ${{ github.workflow_sha }}", proof_job)
+        self.assertNotIn("ref: ${{ github.event.workflow_run.head_sha }}", proof_job)
+        self.assertIn("python -m tools.ci_distribution_publication", proof_job)
+
     def test_only_host_successful_publish_step_unlocks_public_smoke(self):
         result = classify_publication({"total_count": 1, "jobs": [{
             "name": "Windows bundle (gated certification)",
