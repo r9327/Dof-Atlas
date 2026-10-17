@@ -872,6 +872,53 @@ def achievement_layout_observations(page, view) -> dict:
     }
 
 
+
+def achievement_title_contrast(page, view) -> dict:
+    """Measure actual visible title RGB pixels, not QPalette promises.
+
+    Intentionally scoped to a single plain-text QLabel. Other text, disabled
+    controls and rich HTML are NOT_COVERED until they have real pixel oracles.
+    """
+    from PySide6.QtCore import QPoint, Qt
+    from PySide6.QtWidgets import QLabel
+    from tools.atlas_doctor_lib.ui_contrast_oracle import inspect_label_pixels
+
+    label = view.detail_content.findChild(QLabel, "AchievementDetailTitle")
+    if label is None or not label.isVisible() or not label.text().strip():
+        return {"status": "BLOCKED", "reason": "MISSING_VISIBLE_TITLE"}
+    if label.textFormat() == Qt.RichText or "<" in label.text():
+        return {"status": "BLOCKED", "reason": "RICH_TEXT_REQUIRES_SEPARATE_ORACLE"}
+    top = label.mapTo(page, QPoint(0, 0))
+    image = page.grab().toImage()
+    if image.isNull() or page.width() <= 0 or page.height() <= 0:
+        return {"status": "BLOCKED", "reason": "INVALID_REAL_SCREENSHOT"}
+    scale_x = image.width() / page.width()
+    scale_y = image.height() / page.height()
+    # Never accidentally certify other widgets/borders behind this title.
+    x0 = max(0, int((top.x() + 2) * scale_x))
+    y0 = max(0, int((top.y() + 1) * scale_y))
+    x1 = min(image.width(), int((top.x() + min(label.width() - 2, 500)) * scale_x))
+    y1 = min(image.height(), int((top.y() + min(label.height() - 1, 100)) * scale_y))
+    if x1 - x0 < 40 or y1 - y0 < 12:
+        return {"status": "BLOCKED", "reason": "TITLE_CROP_TOO_SMALL",
+                "crop": [x0, y0, x1, y1]}
+    rgb = []
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            pixel = image.pixelColor(x, y)
+            rgb.append((pixel.red(), pixel.green(), pixel.blue()))
+    outcome = inspect_label_pixels(rgb, minimum_ratio=4.5)
+    return {
+        **outcome, "widget": "AchievementDetailTitle",
+        "expected_visible_text": label.text()[:160],
+        "crop": [x0, y0, x1 - x0, y1 - y0],
+        "capture_pixel_size": [image.width(), image.height()],
+        "coverage": "one visible plain-text Success title in actual Qt screenshot",
+        "not_covered": ["body rich text", "other tabs", "below-fold text", "color vision accessibility"],
+    }
+
+
+
 def first_achievement_layout_failure(observed: dict) -> str | None:
     """Distinguish an absent oracle from a genuine geometric pass."""
     if observed.get("status") != "OBSERVED":
@@ -1004,6 +1051,14 @@ def exercise_achievement_detail(session, page):
             "No clipped title, horizontal overflow, button collision or occlusion",
             {**layout_state, "first_failed_transition": layout_issue},
             layout_issue is None, page,
+        )
+        contrast = achievement_title_contrast(page, view)
+        session.check(
+            f"contrast-{width}",
+            "Sample actual screenshot RGB inside the visible Success title",
+            "At least 4.5:1 foreground/background contrast with visible ink",
+            contrast, contrast["status"] == "PASS", page,
+            status="BLOCKED" if contrast["status"] == "BLOCKED" else None,
         )
 
 
