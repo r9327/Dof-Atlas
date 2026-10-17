@@ -20,7 +20,9 @@ from .capability_matrix import BEHAVIOR_ANCHORS, NEGATIVE_BEHAVIOR_ANCHORS, capa
 from .core import git_state, utc_now
 
 SCHEMA_VERSION = 2
-MAX_LOG_CHARS = 12_000
+# Keep the full bounded unittest -v transcript for per-method attestation.
+# 12 KiB truncated ordinary 36-witness runs; exceeding this larger limit still blocks.
+MAX_LOG_CHARS = 256_000
 
 
 def _tail(value: str | bytes | None) -> str:
@@ -136,6 +138,8 @@ def run_capability_witnesses(root: Path, *, timeout: int = 300) -> dict[str, Any
         "return_code": return_code,
         "timed_out": timed_out,
         "log_truncated": log_truncated,
+        "log_limit_chars": MAX_LOG_CHARS,
+        "raw_stderr_chars": raw_log_size,
         "missing_witnesses": missing,
         "duplicate_test_ids": duplicate_ids,
         "witnesses": _evidence_rows(test_ids, observed, suite_pass=aggregate_pass),
