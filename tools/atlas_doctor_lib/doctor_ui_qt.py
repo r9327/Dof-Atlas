@@ -273,7 +273,7 @@ def _glyph_signature(font, letter: str) -> str:
     return hashlib.sha256(canvas.bits().tobytes()).hexdigest()
 
 
-def glyph_legibility_probe(page) -> dict:
+def glyph_legibility_probe(page, *, screenshots=()) -> dict:
     """Reject square/tofu substitutions for text in actual live widget fonts."""
     from PySide6.QtGui import QFont, QFontInfo, QFontMetrics
     from PySide6.QtWidgets import QLabel
@@ -303,13 +303,32 @@ def glyph_legibility_probe(page) -> dict:
     from PySide6.QtGui import QImage
     from tools.atlas_doctor_lib.ui_raster_oracle import detect_replacement_squares
 
-    image = page.grab().toImage().convertToFormat(QImage.Format_Grayscale8)
-    raster = detect_replacement_squares(
-        image.bits().tobytes(), image.width(), image.height(),
-        image.bytesPerLine(),
-    )
+    files = list(dict.fromkeys(Path(name) for name in screenshots))
+    # Exactly the PNGs actually attached to all prior assertions: a clean
+    # final screen must not hide an earlier unreadable capture.
+    if not files:
+        frames = [("live-grab", page.grab().toImage())]
+    else:
+        frames = [(path.name, QImage(str(path))) for path in files]
+    raster_checks = []
+    for name, image in frames:
+        if image.isNull():
+            raster = {"status": "BLOCKED", "reason": "MISSING_OR_INVALID_PNG"}
+        else:
+            image = image.convertToFormat(QImage.Format_Grayscale8)
+            raster = detect_replacement_squares(
+                image.bits().tobytes(), image.width(), image.height(),
+                image.bytesPerLine(),
+            )
+        raster_checks.append({"capture": name, **raster})
+    failed_captures = [row for row in raster_checks if row["status"] != "PASS"]
     font_passed = bool(results) and all(r["passed"] for r in results)
-    passed = font_passed and raster["status"] == "PASS"
+    passed = font_passed and not failed_captures
+    raster = {"status": "FAIL" if failed_captures else "PASS",
+              "captures_checked": len(raster_checks),
+              "total_hollow_boxes": sum(row.get("box_count", 0) for row in raster_checks),
+              "bad_captures": failed_captures[:20],
+              "captures": raster_checks}
     return {"status": "PASS" if passed else "FAIL",
             "reason": ("REPEATED_SCREENSHOT_TOFU" if raster["status"] != "PASS"
                        else "FONT_RASTER_OK" if font_passed
@@ -924,7 +943,11 @@ def worker(folder: Path) -> int:
         if report["tests_executed"]:
             session.scenario = "session"
             session.check("qt-exceptions", "Deliver all Qt callbacks", "No callback exception", qt_errors, not qt_errors, page)
-            typography = glyph_legibility_probe(page)
+            typography = glyph_legibility_probe(
+                page,
+                screenshots=[folder / name for name in session.evidence
+                             if name.endswith(".png") and not name.endswith("-blocks.png")],
+            )
             session.check("glyph-rendering", "Render live Qt font samples",
                           "ASCII and French glyphs distinct, without tofu squares",
                           typography, typography["status"] == "PASS", page)
