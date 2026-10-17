@@ -563,7 +563,10 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         click = click_target(page, button, view.scroll)
         view.service.reload_progress()
         saved = view.service.page_checked(character, card, 0)
-        checked = button.isChecked()
+        # Valider rebuilds the real Guide sheet synchronously. The clicked
+        # C++ button may already have been DeferredDeleted by Qt.
+        live_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        checked = live_button.isChecked() if live_button else None
         session.check(
             "manual-persist", "QTest Valider then reload canonical persisted Guide progress",
             "Real button, display and disk all toggle to the same explicit state",
@@ -572,19 +575,20 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             click["accessible"] and initial_visual == initial
             and checked == expected_manual and saved == expected_manual, page,
         )
-        previous_button = button
+        previous_button = live_button
         view._show_index(0)
         settle()
         view.service.reload_progress()
         fresh = view.findChild(QPushButton, "GuideManualPageCheck")
-        real_reopen = (fresh is not None and fresh is not previous_button
+        real_reopen = (previous_button is not None and fresh is not None
+                       and fresh is not previous_button
                        and not isValid(previous_button)
                        and fresh.isChecked() == expected_manual
                        and view.service.page_checked(character, card, 0) == expected_manual)
         session.check(
             "manual-reopen", "Destroy and recreate actual Guide sheet, then reload saved progress",
             "Previous control destroyed and fresh checkbox retains disk completion",
-            {"destroyed_previous": not isValid(previous_button),
+            {"destroyed_previous": previous_button is not None and not isValid(previous_button),
              "fresh_widget": fresh is not previous_button,
              "reopened_checked": fresh.isChecked() if fresh else None,
              "disk_checked": view.service.page_checked(character, card, 0),
@@ -617,7 +621,8 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
                 if back_button is not None else {"accessible": False})
         view.service.reload_progress()
         undo_saved = view.service.page_checked(character, card, 0)
-        undo_visual = back_button.isChecked() if back_button else None
+        undo_live = view.findChild(QPushButton, "GuideManualPageCheck")
+        undo_visual = undo_live.isChecked() if undo_live else None
         view._show_index(0)
         settle()
         view.service.reload_progress()
@@ -765,7 +770,9 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
                 rollback_toggles = rollback_spy.count() if rollback_spy else 0
                 view.service.quest_progress.reload()
                 undo_saved = view.service.quest_progress.is_objective_completed(character, qid, oid)
-                undo_checked = back_box.isChecked() if back_box else None
+                undo_boxes = view.findChildren(QCheckBox, "GuideManualCombatCheck")
+                undo_live = undo_boxes[0] if undo_boxes else None
+                undo_checked = undo_live.isChecked() if undo_live else None
                 view._show_index(combat_index)
                 settle()
                 view.service.quest_progress.reload()
