@@ -621,6 +621,172 @@ def exercise_quest_links(session, page, owner):
             settle()
 
 
+
+def achievement_outcome(page, view, expected_id: int, expected_name: str) -> dict:
+    """Observe the final *visible* result, not the selection signal alone."""
+    from PySide6.QtCore import QPoint
+    from PySide6.QtWidgets import QLabel, QFrame
+    from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB
+
+    body = view.detail_content.findChild(QFrame, "AchievementDetailBody")
+    title = body.findChild(QLabel, "AchievementDetailTitle") if body else None
+    stack = view.detail_stack
+    scroll = view.detail_scroll
+    viewport = scroll.viewport()
+    title_hit = None
+    if title is not None and title.isVisible():
+        hit = page.childAt(title.mapTo(page, title.rect().center()))
+        title_hit = bool(hit is title or (hit is not None and title.isAncestorOf(hit)))
+    return {
+        "active_tab": page.current_tab_label(),
+        "expected_tab": ACHIEVEMENTS_TAB,
+        "expected_id": int(expected_id),
+        "current_achievement_id": view.current_achievement_id,
+        "detail_open": view._detail_open,
+        "detail_stack_active": stack.currentWidget() is scroll,
+        "stack_visible": stack.isVisible(),
+        "stack_width": stack.width(), "stack_height": stack.height(),
+        "scroll_visible": scroll.isVisible(), "viewport_visible": viewport.isVisible(),
+        "viewport_width": viewport.width(), "viewport_height": viewport.height(),
+        "detail_body_count": len(view.detail_content.findChildren(QFrame, "AchievementDetailBody")),
+        "body_visible": bool(body and body.isVisible()),
+        "body_achievement_id": getattr(getattr(body, "achievement", None), "id", None),
+        "title": title.text() if title else None,
+        "expected_title": expected_name,
+        "title_visible": bool(title and title.isVisible()),
+        "title_hit": title_hit,
+    }
+
+
+def first_achievement_failure(observed: dict) -> str | None:
+    """First failed transition in the real list -> selected detail pipeline."""
+    checks = (
+        (observed.get("active_tab") == observed.get("expected_tab"), "SUCCES_TAB"),
+        (observed.get("current_achievement_id") == observed.get("expected_id"), "selected_achievement_id"),
+        (observed.get("detail_open") is True, "detail_open"),
+        (observed.get("detail_stack_active") is True, "detail_stack_active"),
+        (observed.get("stack_visible") is True and observed.get("scroll_visible") is True
+         and observed.get("viewport_visible") is True, "detail_visible"),
+        (observed.get("stack_width", 0) >= 160 and observed.get("stack_height", 0) >= 100
+         and observed.get("viewport_width", 0) >= 150, "detail_geometry"),
+        (observed.get("detail_body_count") == 1 and observed.get("body_visible") is True
+         and observed.get("body_achievement_id") == observed.get("expected_id"), "detail_body"),
+        (observed.get("title") == observed.get("expected_title")
+         and observed.get("title_visible") is True and observed.get("title_hit") is True,
+         "detail_title"),
+    )
+    return next((reason for passed, reason in checks if not passed), None)
+
+
+def click_achievement_row(page, view, item) -> dict:
+    """QTest click on the real QListWidget viewport, not a mocked itemClicked."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    listing = view.list_widget
+    viewport = listing.viewport()
+    listing.scrollToItem(item)
+    settle()
+    center = listing.visualItemRect(item).center()
+    local_target = listing.itemAt(center)
+    point = viewport.mapTo(page, center)
+    hit = page.childAt(point)
+    accessible = (
+        view.isVisible() and listing.isEnabled() and viewport.isVisible()
+        and local_target is item and viewport.rect().contains(center)
+        and hit is not None and (hit is viewport or listing.isAncestorOf(hit))
+    )
+    result = {
+        "accessible": bool(accessible), "target": listing.objectName(),
+        "row": listing.row(item),
+        "item_id": int(item.data(Qt.UserRole) or 0),
+        "hit": hit.objectName() if hit is not None else None,
+        "point": [center.x(), center.y()],
+        "source_widget_path": "EncyclopediaPage/AchievementsView/QuestResultList/viewport",
+    }
+    if accessible:
+        QTest.mouseClick(viewport, Qt.LeftButton, Qt.NoModifier, center)
+        settle()
+    return result
+
+
+def exercise_achievement_detail(session, page):
+    """Cold-first Success tab then physical list click, real provider & PNG oracle."""
+    from PySide6.QtCore import Qt
+    from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB
+
+    session.guide_id = "achievement-catalog"
+    never_opened = page.get_achievements_view() is None
+    tab = page.tab_labels().index(ACHIEVEMENTS_TAB)
+    page.tabs.setCurrentIndex(tab)
+    loaded = settle(
+        lambda: bool(
+            (view := page.get_achievements_view()) is not None
+            and view._runtime_ready and view.list_widget.count() > 0
+            and page.current_tab_label() == ACHIEVEMENTS_TAB
+        ), timeout=10)
+    view = page.get_achievements_view()
+    if not loaded or view is None or view.list_widget.count() == 0:
+        raise RuntimeError("Real Success tab did not materialize a clickable achievement")
+
+    item = view.list_widget.item(0)
+    achievement_id = int(item.data(Qt.UserRole) or 0)
+    achievement = page.service.achievement_provider.get_by_id(achievement_id)
+    if not achievement or not page.service.achievement_provider.is_retained(achievement_id):
+        raise RuntimeError("First Success row lacks a real retained provider oracle")
+
+    title = str(achievement.name)
+    cold_state = {
+        "view_absent_before_first_open": never_opened,
+        "view_runtime_ready": view._runtime_ready,
+        "public_catalogue_id": achievement_id,
+        "public_catalogue_name": title,
+        "row_count": view.list_widget.count(),
+        "detail_already_open": view._detail_open,
+    }
+    click = click_achievement_row(page, view, item)
+    settled = settle(
+        lambda: first_achievement_failure(
+            achievement_outcome(page, view, achievement_id, title)
+        ) is None,
+        timeout=5,
+    )
+    observed = achievement_outcome(page, view, achievement_id, title)
+    failure = first_achievement_failure(observed)
+    observed.update(click=click, settled=settled, first_failed_transition=failure)
+    session.card_id = str(achievement_id)
+    session.check(
+        "first-open-lazy",
+        "First Success tab open then QTest click a real first row",
+        "Cold tab hydrates visible list and opens correct detail without a mock",
+        {"cold": cold_state, "final": observed},
+        bool(never_opened and loaded and cold_state["view_runtime_ready"]
+             and not cold_state["detail_already_open"]
+             and click["accessible"] and failure is None), page,
+    )
+    session.check(
+        "click-opens-detail",
+        "QTest mouse click on actual Success list item",
+        {"id": achievement_id, "title": title, "visible_detail": True},
+        observed, click["accessible"] and failure is None, page,
+    )
+
+    for width, height in ((1200, 800), (960, 640)):
+        page.resize(width, height)
+        view.detail_scroll.verticalScrollBar().setValue(0)
+        settle()
+        size_state = achievement_outcome(page, view, achievement_id, title)
+        issue = first_achievement_failure(size_state)
+        session.check(
+            f"geometry-{width}",
+            "Resize the real selected Success detail and hit-test the title",
+            "Unclipped visible panel/title with matching ID, sufficient dimensions",
+            {**size_state, "first_failed_transition": issue},
+            issue is None, page,
+        )
+
+
+
 def worker(folder: Path) -> int:
     request = json.loads((folder / "request.json").read_text(encoding="utf-8"))
     manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
@@ -659,6 +825,11 @@ def worker(folder: Path) -> int:
             if name == "guide-quests":
                 if request["mode"] in {"all", "verify"}:
                     exercise_quest_links(session, page, owner)
+                else:
+                    session.snapshot(page)
+            elif name == "achievement-detail":
+                if request["mode"] in {"all", "verify"}:
+                    exercise_achievement_detail(session, page)
                 else:
                     session.snapshot(page)
             else:
