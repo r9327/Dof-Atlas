@@ -147,6 +147,11 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         required = required_assertions(["guides-success", "guides-lanyel", "guide-quests"])
         self.assertEqual(len(required), len(set(required)))
         self.assertIn("guides-lanyel/combat", required)
+        for guide in ("guides-success", "guides-lanyel"):
+            for check in ("manual-persist", "manual-reopen",
+                          "character-isolation", "manual-restore",
+                          "combat", "combat-character", "combat-restore"):
+                self.assertIn(f"{guide}/{check}", required)
         self.assertIn("guides-success/geometry-3-960", required)
         self.assertIn("guide-quests/dofus_sylvestre-quest-1", required)
         success = required_assertions(["achievement-detail"])
@@ -173,6 +178,9 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
                          required_assertions(["validator-smoke"]))
         smoke = required_assertions(["validator-smoke"])
         self.assertNotIn("validator-smoke/guide-return", smoke)
+        self.assertIn("validator-smoke/manual-reopen", smoke)
+        self.assertIn("validator-smoke/manual-restore", smoke)
+        self.assertNotIn("validator-smoke/combat-restore", smoke)
         self.assertIn("validator-smoke/manual-persist", smoke)
 
     def test_timeout_or_native_crash_without_report_is_blocked_with_manifest_and_log(self):
