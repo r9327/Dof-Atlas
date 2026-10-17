@@ -69,3 +69,36 @@ python -m tools.atlas_doctor --json agent plan tools/atlas_doctor_lib/capability
 - Le format est du JSON ordinaire, sans API propriétaire. Codex, ChatGPT et d'autres clients peuvent le lire sous réserve d'accès aux fichiers, mais leur consommation réelle en dehors de cette vérification reste à tester séparément ; aucune intégration externe n'est prétendue ici.
 
 **État de sortie :** nouveaux artefacts et contrats en cours de validation au prochain HEAD de la PR. Aucune de ces mesures ne prouve à elle seule les quatre parcours UI sur Windows ni ne remplace la certification indépendante exigée pour les modifications produit.
+
+## Validation CI indépendante du 17/10 — SHA 097425e4
+
+Run GitHub [39048421383](https://github.com/r9327/Dof-Atlas/actions/runs/39048421383) **SUCCESS global**, y compris `Doctor / CI Verdict`, `Doctor / PR FAST`, AI Context, Graphify, Doctor UI Qt et `Doctor / Focused CI Evidence`. Le workflow déclenche bien le chemin `tooling_only`, sans FULL produit. Les jobs volontairement non sélectionnés sont **skipped**, pas PASS.
+
+Le job ciblé a effectivement exécuté **18/18 témoins positifs + 18/18 contrôles négatifs** et vérifié le JSON de preuve, ainsi que l'export/relecture de `agent_plan.json` sur un vrai fichier source. Les 380 tests de contrats du job sont PASS. Voir l'[artefact 12107090329](https://github.com/r9327/Dof-Atlas/actions/runs/39048421383/artifacts/12107090329) : `focused.json`, `capability_evidence.json`, `agent_plan.json` (associés au SHA `097425e4b081b586231a3e9dd32db292422221d5`).
+
+Limites persistantes : `TESTED` au titre des 36 témoins n'est pas `FULL_CERTIFIED` ; cela ne prouve pas le comportement d'un EXE installé. L'export JSON est consommable par un agent classique et reproduit automatiquement par la CI, mais l'intégration d'un agent connecté extérieur au workflow n'est pas attestée.
+
+## P3-12 — garde indépendant de comparaison des quatre régressions
+
+Un nouveau consommateur **en lecture seule**, `doctor_ui_ci regression-watch`, compare deux **sessions UI réelles et hash-vérifiées** : état sain avant correction, candidat à un autre SHA. Le rapport `doctor_ui_regression_watch/v1` contient pour chaque parcours les assertions de base/candidat, les absences et un verdict distinct, sans modifier ni remplacer les correctifs de la #201 ou les générateurs de preuves de la #216.
+
+Assertions contractuelles requises :
+- Clic sur une fiche Succès : `achievement-detail/click-opens-detail`.
+- Guide vers le détail Quêtes : `guide-quests/guide_complet-quest-0` ET `guide-quests/dofus_sylvestre-quest-0`.
+- Premier chargement paresseux du détail Succès : `achievement-detail/first-open-lazy`.
+- Rendu/captures : géométrie du Guide Succès et de Lanyel en largeur 1200 et 960 (`guides-success/geometry-1-{1200,960}`, `guides-lanyel/geometry-1-{1200,960}`) **et** deux géométries du détail Succès (`achievement-detail/geometry-{1200,960}`).
+
+Les assertions `achievement-detail/...` sont des **contrats attendus**, **pas** des contrôles actuellement prouvés ; leur production réelle et leurs oracles relèvent de la #216, tandis que les correctifs produit relèvent de la #201. Une campagne `validator-smoke` verte, une capture sans assertion rattachée ou la seule réussite `guides-success` ne peuvent valider P3-12.
+
+Après livraison et extraction des sessions de baseline/candidat :
+
+```bash
+python -m tools.atlas_doctor_lib.doctor_ui_ci regression-watch \
+  --baseline-sha SHA_AVANT --baseline-session CHEMIN_SESSION_AVANT \
+  --candidate-sha SHA_APRES --candidate-session CHEMIN_SESSION_APRES \
+  --watch-output artifacts/doctor_ui/regression_watch.json
+```
+
+Des sessions supplémentaires de la même version peuvent être déclarées en répétant `--baseline-session` ou `--candidate-session`. Les dossiers doivent inclure leur `manifest.json`, `ui_verdict.json`, `actions.json`, `request.json`, `worker.log` et les PNG d'assertion. La lecture revalide les empreintes, la cohérence du SHA, les IDs exacts, les verdicts, les doublons et le rattachement explicite des captures. Une preuve manquante → `NOT_COVERED` ; une incohérence/altération → `BLOCKED` ; une assertion précédemment PASS devenue FAIL → `REGRESSION_REVIEW` ; uniquement les quatre parcours observés PASS aux deux SHAs → `NO_REGRESSION_OBSERVED`. Le CLI sort non-zéro tant que les quatre parcours ne sont pas couverts et stables.
+
+**À ne pas confondre :** une comparaison de sessions hors parcours installé n'est pas une certification produit et ne doit pas ouvrir le merge gate. Les preuves avant/après du détail Succès ne sont pas encore disponibles pour cette PR ; conserver `P3-12 = NOT_COVERED` tant qu'elles manquent.
