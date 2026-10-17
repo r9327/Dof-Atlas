@@ -10,6 +10,7 @@ from unittest.mock import patch
 from app.distribution.manifest import ArchivePart, ReleaseManifest
 from app.distribution.release_client import RemoteRelease, UpdateError
 from scripts.windows.probe_public_release import probe_parts, _published_asset
+from tools.ci_distribution_publication import classify_publication, verify_event
 
 
 class Response(io.BytesIO):
@@ -67,9 +68,9 @@ class PublicProbeContracts(unittest.TestCase):
                       encoding="utf-8"
                   )
         full_job = source.split("  complete-first-install:", 1)[1]
-        self.assertIn("github.event_name == 'workflow_run'", full_job)
-        self.assertIn("github.event.workflow_run.conclusion == 'success'", full_job)
-        self.assertIn("needs: [public-windows-install]", full_job)
+        self.assertIn("needs.detect-publication.outputs.published == 'true'", full_job)
+        self.assertIn("needs.public-windows-install.result == 'success'", full_job)
+        self.assertIn("needs: [detect-publication, public-windows-install]", full_job)
         self.assertNotIn("if: github.event_name == 'push'", full_job)
 
 
@@ -85,11 +86,59 @@ class PublicProbeContracts(unittest.TestCase):
         public = text.split("  public-windows-install:", 1)[1].split(
             "  complete-first-install:", 1)[0]
         self.assertNotIn("github.event_name == 'push'", public)
+        self.assertIn("needs: [detect-publication]", public)
+        self.assertIn("needs.detect-publication.outputs.published == 'true'", public)
         full = text.split("  complete-first-install:", 1)[1]
         self.assertIn("ref: ${{ github.event.workflow_run.head_sha }}", full)
         self.assertIn("EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}", full)
         self.assertIn('--expected-source-sha "$env:EXPECTED_SHA" --full-install', full)
         self.assertIn("cancel-in-progress: false", text)
+
+    def test_successful_distribution_without_publish_is_no_release(self):
+        result = classify_publication({"total_count": 2, "jobs": [
+            {"name": "Windows bundle (gated certification)",
+             "run_id": 123, "conclusion": "skipped"},
+            {"name": "Certified JSON-only update without PyInstaller",
+             "run_id": 123, "conclusion": "skipped"},
+        ]}, run_id=123, source_sha="a" * 40)
+        self.assertEqual(result["status"], "NO_RELEASE")
+        self.assertFalse(result["published"])
+
+    def test_only_host_successful_publish_step_unlocks_public_smoke(self):
+        result = classify_publication({"total_count": 1, "jobs": [{
+            "name": "Windows bundle (gated certification)",
+            "run_id": 123,
+            "head_sha": "a" * 40,
+            "status": "completed",
+            "conclusion": "success",
+            "steps": [{"name": "Publish certified stable release",
+                       "status": "completed", "conclusion": "success"}],
+        }]}, run_id=123, source_sha="a" * 40)
+        self.assertEqual(result["status"], "PUBLISHED")
+        self.assertTrue(result["published"])
+
+    def test_distribution_event_identity_is_fail_closed(self):
+        event = {
+            "repository": {"full_name": "r9327/Dof-Atlas"},
+            "workflow_run": {
+                "id": 123,
+                "name": "Atlas Windows Distribution",
+                "path": ".github/workflows/atlas-windows-distribution.yml@main",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "main",
+                "head_sha": "a" * 40,
+                "repository": {"full_name": "r9327/Dof-Atlas"},
+                "head_repository": {"full_name": "r9327/Dof-Atlas"},
+            },
+        }
+        self.assertEqual(
+            verify_event(event, repository="r9327/Dof-Atlas"),
+            (123, "a" * 40),
+        )
+        event["workflow_run"]["head_repository"]["full_name"] = "fork/Dof-Atlas"
+        with self.assertRaisesRegex(ValueError, "another repository"):
+            verify_event(event, repository="r9327/Dof-Atlas")
 
     def test_actual_cdn_ranges_required_for_both_parts(self):
         def serve(url, headers):

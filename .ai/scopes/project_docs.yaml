@@ -1,0 +1,12 @@
+schema_version: 1
+scope: project_docs
+kind: feature
+working_set:
+  - README.md
+  - docs/CONTRIBUTING.md
+shared_dependencies: []
+context_entries:
+  - AI_ENTRYPOINT.md
+  - DEVELOPMENT_GUARDRAILS.md
+  - PHASE_CERTIFICATION.md
+  - ZERO_TRUST_RULES.md
