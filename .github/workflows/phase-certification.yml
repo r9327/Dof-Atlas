@@ -148,13 +148,23 @@ jobs:
           if p['tooling_only']:
               from tools.atlas_doctor_lib.ci_tooling_scope import run_checks
               run_checks(Path.cwd())
+              from tools.atlas_doctor_lib.capability_evidence import (
+                  run_capability_witnesses, validate_capability_evidence, write_evidence,
+              )
+              witness = run_capability_witnesses(Path.cwd(), timeout=240)
+              write_evidence(Path.cwd(), Path('artifacts/doctor_ci/capability_evidence.json'), witness)
+              checked = validate_capability_evidence(Path.cwd(), witness)
+              if witness['status'] != 'PASS' or checked['status'] != 'PASS':
+                  raise SystemExit('Doctor 18x2 witnesses unverified: ' + str(checked['errors']))
           print('FOCUSED_VALIDATED_NOT_FULL: no application or release certification')
           PYDOC
       - name: Store focused evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: doctor-focused-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/doctor_ci/focused.json
+          path: |
+            artifacts/doctor_ci/focused.json
+            artifacts/doctor_ci/capability_evidence.json
           if-no-files-found: error
 
   certify:
