@@ -147,13 +147,13 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
             tests = root / "tests"
             tests.mkdir()
             (tests / "__init__.py").write_text(
-                'raise AssertionError("tests package must not be imported")\\n',
+                'raise AssertionError("tests package must not be imported")\n',
                 encoding="utf-8",
             )
             (tests / "test_smoke.py").write_text(
-                "import unittest\\n"
-                "class SmokeCase(unittest.TestCase):\\n"
-                "    def test_ok(self): self.assertTrue(True)\\n",
+                "import unittest\n"
+                "class SmokeCase(unittest.TestCase):\n"
+                "    def test_ok(self): self.assertTrue(True)\n",
                 encoding="utf-8",
             )
             env = dict(os.environ)
