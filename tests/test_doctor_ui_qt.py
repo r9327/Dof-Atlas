@@ -21,6 +21,7 @@ from tools.atlas_doctor_lib.doctor_ui_qt import (
     UiSession, click_target, click_achievement_row, first_quest_failure,
     first_achievement_failure, achievement_layout_observations,
     first_achievement_layout_failure, achievement_title_contrast,
+    achievement_readable_text_observations,
     geometry_observations, settle,
     quest_outcome, sheet_observations, widget_tree, glyph_legibility_probe,
 )
@@ -318,6 +319,89 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         witness.check("glyph-rendering", "Font renderer", "Unique glyph pixels", probe,
                       probe["status"] == "PASS", self.view)
         self.assertEqual(verdict(witness.assertions, ["session/glyph-rendering"]), "FAIL")
+
+    def test_real_qt_success_description_progress_and_checkbox_contrast(self):
+        from PySide6.QtGui import QFont
+        from PySide6.QtWidgets import QCheckBox, QLabel, QScrollArea, QVBoxLayout
+
+        page = QWidget()
+        page.setStyleSheet(
+            "QWidget { background-color: #081113; color: #f5f7f2; }"
+        )
+        layout = QVBoxLayout(page)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        layout.addWidget(scroll)
+        content = QFrame()
+        content_layout = QVBoxLayout(content)
+        values = (
+            ("AchievementDetailTitle", "Premier temps"),
+            ("AchievementDescription", "Terminer la première partie du tutoriel."),
+            ("AchievementProgressText", "Progression • 0 / 2 objectif(s) • 0 %"),
+        )
+        labels = {}
+        for name, text in values:
+            label = QLabel(text)
+            label.setObjectName(name)
+            label.setFont(QFont("Arial", 12))
+            label.setWordWrap(False)
+            content_layout.addWidget(label)
+            labels[name] = label
+        check = QCheckBox("Succès terminé")
+        check.setObjectName("AchievementDoneCheck")
+        check.setFont(QFont("Arial", 12))
+        content_layout.addWidget(check)
+        content_layout.addStretch(1)
+        scroll.setWidget(content)
+        view = SimpleNamespace(detail_content=content, detail_scroll=scroll)
+        page.resize(720, 400)
+        page.show()
+        settle()
+        try:
+            description = values[1][1]
+            healthy = achievement_readable_text_observations(
+                page, view, expected_description=description,
+            )
+            self.assertEqual(healthy["status"], "PASS", healthy)
+            self.assertEqual(
+                set(healthy["statuses"]),
+                {"title", "description", "progress", "completion_label"},
+            )
+            self.assertTrue(all(value == "PASS" for value in healthy["statuses"].values()))
+
+            progress = labels["AchievementProgressText"]
+            progress.setStyleSheet("color: #182123")
+            progress.repaint()
+            settle()
+            too_faint = achievement_readable_text_observations(
+                page, view, expected_description=description,
+            )
+            self.assertEqual(too_faint["status"], "FAIL", too_faint)
+            self.assertEqual(too_faint["statuses"]["progress"], "FAIL")
+            self.assertEqual(too_faint["statuses"]["title"], "PASS")
+            progress.setStyleSheet("color: #f5f7f2")
+            settle()
+
+            labels["AchievementDescription"].hide()
+            settle()
+            missing = achievement_readable_text_observations(
+                page, view, expected_description=description,
+            )
+            self.assertEqual(missing["status"], "BLOCKED")
+            self.assertEqual(missing["statuses"]["description"], "BLOCKED")
+            labels["AchievementDescription"].show()
+            settle()
+
+            check.setText("Texte incorrect")
+            wrong = achievement_readable_text_observations(
+                page, view, expected_description=description,
+            )
+            self.assertEqual(wrong["status"], "FAIL")
+            self.assertEqual(wrong["statuses"]["completion_label"], "FAIL")
+        finally:
+            page.close()
+            page.deleteLater()
+            settle()
 
     def test_real_qt_screenshot_contrast_uses_actual_title_pixels(self):
         from PySide6.QtGui import QFont
