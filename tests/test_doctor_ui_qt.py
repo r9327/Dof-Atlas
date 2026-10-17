@@ -21,7 +21,7 @@ from tools.atlas_doctor_lib.doctor_ui_qt import (
     UiSession, click_target, click_achievement_row, first_quest_failure,
     first_achievement_failure, achievement_layout_observations,
     first_achievement_layout_failure, achievement_title_contrast,
-    achievement_readable_text_observations,
+    achievement_readable_text_observations, detailed_achievement_oracle,
     geometry_observations, settle,
     quest_outcome, sheet_observations, widget_tree, glyph_legibility_probe,
 )
@@ -319,6 +319,28 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         witness.check("glyph-rendering", "Font renderer", "Unique glyph pixels", probe,
                       probe["status"] == "PASS", self.view)
         self.assertEqual(verdict(witness.assertions, ["session/glyph-rendering"]), "FAIL")
+
+    def test_detailed_success_description_oracle_never_uses_catalog_summary(self):
+        class Provider:
+            def __init__(self, detail):
+                self.detail = detail
+                self.calls = []
+
+            def get_detail_by_id(self, achievement_id):
+                self.calls.append(achievement_id)
+                return self.detail
+
+        full = Provider(SimpleNamespace(id=8518, name="Premier temps",
+                                        description="Véritable description détaillée"))
+        actual = detailed_achievement_oracle(full, 8518, "Premier temps")
+        self.assertEqual(full.calls, [8518])
+        self.assertEqual(actual["description"], "Véritable description détaillée")
+        self.assertEqual(actual["id"], 8518)
+        for bad in (None, SimpleNamespace(id=999, name="Premier temps", description="x"),
+                    SimpleNamespace(id=8518, name="Autre nom", description="x")):
+            with self.subTest(bad=bad):
+                with self.assertRaisesRegex(RuntimeError, "Detailed Success"):
+                    detailed_achievement_oracle(Provider(bad), 8518, "Premier temps")
 
     def test_real_qt_success_description_progress_and_checkbox_contrast(self):
         from PySide6.QtGui import QFont
