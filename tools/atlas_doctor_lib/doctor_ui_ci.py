@@ -223,6 +223,49 @@ REGRESSION_REQUIREMENTS = {
 }
 
 
+
+def _valid_png_capture(path: Path) -> bool:
+    """Verify actual PNG chunks and CRC, not just a hash-valid .png filename."""
+    import zlib
+
+    try:
+        if path.stat().st_size > 32_000_000:
+            return False
+        payload = path.read_bytes()
+    except OSError:
+        return False
+    if not payload.startswith(bytes.fromhex("89504e470d0a1a0a")):
+        return False
+    offset = 8
+    header_seen = image_seen = False
+    while offset + 12 <= len(payload):
+        size = int.from_bytes(payload[offset:offset + 4], "big")
+        end = offset + 12 + size
+        if size > 32_000_000 or end > len(payload):
+            return False
+        kind = payload[offset + 4:offset + 8]
+        data = payload[offset + 8:offset + 8 + size]
+        actual_crc = int.from_bytes(payload[end - 4:end], "big")
+        if zlib.crc32(kind + data) & 0xFFFFFFFF != actual_crc:
+            return False
+        if not header_seen:
+            if kind != b"IHDR" or size != 13:
+                return False
+            width, height = (int.from_bytes(data[:4], "big"),
+                             int.from_bytes(data[4:8], "big"))
+            if not (0 < width <= 8192 and 0 < height <= 8192):
+                return False
+            header_seen = True
+        elif kind == b"IHDR":
+            return False
+        if kind == b"IDAT":
+            image_seen = True
+        if kind == b"IEND":
+            return image_seen and size == 0 and end == len(payload)
+        offset = end
+    return False
+
+
 def _regression_assertions(folders: list[Path], sha: str) -> tuple[dict, list[str]]:
     """Read only hash-verified real sessions for an exact SHA, never bare JSON."""
     rows: dict[str, dict] = {}
@@ -270,14 +313,8 @@ def _regression_assertions(folders: list[Path], sha: str) -> tuple[dict, list[st
                 # not merely an unrelated screenshot in the session manifest.
                 errors.append("ASSERTION_MISSING_CAPTURE: " + ident)
             for name in linked:
-                # A forged text file with a .png extension and a correct digest
-                # cannot count as an actual rendered screenshot.
-                with (folder / name).open("rb") as stream:
-                    header = stream.read(24)
-                if (len(header) < 24 or header[:8] != bytes.fromhex("89504e470d0a1a0a")
-                        or header[8:16] != bytes.fromhex("0000000d") + b"IHDR"
-                        or not (0 < int.from_bytes(header[16:20], "big") <= 8192)
-                        or not (0 < int.from_bytes(header[20:24], "big") <= 8192)):
+                # A hash-valid but corrupted/fabricated screenshot never grants PASS.
+                if not _valid_png_capture(folder / name):
                     errors.append("INVALID_SCREENSHOT_PNG: " + name)
             rows[ident] = {**row, "_session_status": report["status"]}
     return rows, errors
