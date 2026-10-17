@@ -1222,7 +1222,7 @@ def exercise_achievement_completion(session, page, view, achievement_id: int):
     The scene's DOFUS_ATLAS_USER_ROOT is a temporary isolated profile. The
     final QTest click must undo the first change and then reload the file.
     """
-    from PySide6.QtWidgets import QCheckBox, QProgressBar
+    from PySide6.QtWidgets import QCheckBox, QProgressBar, QFrame
     from shiboken6 import isValid
 
     key = view.character_key
@@ -1232,7 +1232,8 @@ def exercise_achievement_completion(session, page, view, achievement_id: int):
     before = service.is_achievement_completed(key, achievement_id)
     button = view.detail_content.findChild(QCheckBox, "AchievementDoneCheck")
     bar = view.detail_content.findChild(QProgressBar, "EncyclopediaProgressBar")
-    if button is None or bar is None:
+    body = view.detail_content.findChild(QFrame, "AchievementDetailBody")
+    if button is None or bar is None or body is None:
         session.check("complete-click", "Find real Success checkbox",
                       "Checkbox and progress widget available",
                       {"reason": "MISSING_REAL_COMPLETION_CONTROL"}, False, page,
@@ -1248,7 +1249,10 @@ def exercise_achievement_completion(session, page, view, achievement_id: int):
         "expected_after": expected, "after_checkbox": button.isChecked(),
         "after_service": service.is_achievement_completed(key, achievement_id),
         "progress_bar": bar.value(),
-        "expected_progress_bar": 100 if expected else bar.value(),
+        "expected_progress_bar": (
+            100 if expected else int(round(100 * body._progress_done / body._progress_total))
+            if body._progress_total else 0
+        ),
         "source_widget_path": clicked.get("source_widget_path"),
         "character": key, "achievement_id": achievement_id,
     }
