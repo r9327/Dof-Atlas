@@ -59,3 +59,13 @@ python -m tools.atlas_doctor --json agent plan tools/atlas_doctor_lib/capability
 ```
 
 **Limites** : les témoins restent des tests du code et de ses garde-fous, pas une certification des comportements réels sur le Windows installé ; les quatre régressions UI et l'attestation indépendante CI restent à établir. Aucun résultat de commande ci-dessus n'est affirmé PASS sans exécution vérifiée.
+
+## Validation supplémentaire — CI et contrat agents
+
+- Incident réellement reproduit : run [39046923009](https://github.com/r9327/Dof-Atlas/actions/runs/39046923009), `Doctor / Focused CI Evidence` en échec car un journal de 36 témoins dépassait la limite historique de 12 000 caractères. Ce FAIL était correct (aucun faux PASS), mais empêchait d'examiner les verdicts complets.
+- Correctif : transcription `unittest -v` conservée jusqu'à une **limite bornée de 256 000 caractères** ; au-delà, verdict `BLOCKED` inchangé, sans réutilisation de journal incomplet. Les champs `raw_stderr_chars` et `log_limit_chars` documentent la longueur observée. Le job envoie aussi les diagnostics et archive le JSON en cas d'échec, sans masquer le FAIL CI.
+- La CI ciblée appelle et valide le rapport `doctor_capability_test_evidence/v2` au SHA exact (18 cas positifs + 18 contrôles négatifs). Le fichier `artifacts/doctor_ci/capability_evidence.json` est publié dans l'artefact `doctor-focused-<run>-<attempt>`.
+- En parallèle, Doctor produit `artifacts/doctor_ci/agent_plan.json` par `run_agent_action(action="plan")` sur **un vrai fichier Python du dépôt**, puis le recharge via `json.loads` comme le ferait un client standard. La vérification impose `protocol=atlas-doctor-agent/v1`, SHA identique, ancrage de la fonction `run_capability_witnesses` avec ligne strictement positive et `SOURCE_DEFINITION_ONLY`, sans attribuer à ce simple export une certification FULL ou une attestation GitHub indépendante.
+- Le format est du JSON ordinaire, sans API propriétaire. Codex, ChatGPT et d'autres clients peuvent le lire sous réserve d'accès aux fichiers, mais leur consommation réelle en dehors de cette vérification reste à tester séparément ; aucune intégration externe n'est prétendue ici.
+
+**État de sortie :** nouveaux artefacts et contrats en cours de validation au prochain HEAD de la PR. Aucune de ces mesures ne prouve à elle seule les quatre parcours UI sur Windows ni ne remplace la certification indépendante exigée pour les modifications produit.
