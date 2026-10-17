@@ -121,7 +121,7 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
             uncertainty.append("INVALID_PATH: " + path)
         elif path.endswith(".md") or path == ".ai/context_index.json":
             continue
-        elif path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tools/atlas_doctor_lib/ui_raster_oracle", "tests/test_doctor_ui")):
+        elif path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tools/atlas_doctor_lib/ui_raster_oracle", "tools/atlas_doctor_lib/ui_contrast_oracle", "tests/test_doctor_ui")):
             # The new detector must run the actual Success journey in its own
             # PR: a green self-test alone does not prove its Qt integration.
             include(("validator-smoke", "achievement-detail"),
