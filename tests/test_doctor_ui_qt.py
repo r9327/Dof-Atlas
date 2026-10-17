@@ -18,7 +18,8 @@ from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QToolButton, QW
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
 from tools.atlas_doctor_lib.doctor_ui import verdict
 from tools.atlas_doctor_lib.doctor_ui_qt import (
-    UiSession, click_target, first_quest_failure, geometry_observations, settle,
+    UiSession, click_target, click_achievement_row, first_quest_failure,
+    first_achievement_failure, geometry_observations, settle,
     quest_outcome, sheet_observations, widget_tree,
 )
 
@@ -226,6 +227,77 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         # cannot prove a tab/detail effect. This must fail at the tab transition.
         self.assertEqual(first_quest_failure({**healthy, "active_tab": "GUIDES",
                                              "detail_visible": False}), "QUESTS_TAB")
+
+    def test_real_qt_success_list_mouse_event_does_not_fake_detail_effect(self):
+        from PySide6.QtWidgets import QListWidget, QListWidgetItem, QVBoxLayout
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        listing = QListWidget()
+        listing.setObjectName("QuestResultList")
+        host.list_widget = listing
+        layout.addWidget(listing)
+        item = QListWidgetItem("Achievement from test public-style row")
+        item.setData(Qt.UserRole, 321)
+        listing.addItem(item)
+        triggered = []
+        listing.itemClicked.connect(
+            lambda selected: triggered.append(int(selected.data(Qt.UserRole)))
+        )
+        host.resize(700, 450)
+        host.show()
+        settle()
+        try:
+            click = click_achievement_row(host, host, item)
+            self.assertTrue(click["accessible"])
+            self.assertEqual(click["item_id"], 321)
+            self.assertEqual(triggered, [321])
+            listing.itemClicked.disconnect()
+            click = click_achievement_row(host, host, item)
+            self.assertTrue(click["accessible"])
+            # QTest injected another real click but no final signal consumer.
+            self.assertEqual(triggered, [321])
+        finally:
+            host.close()
+            host.deleteLater()
+            settle()
+
+    def test_success_detail_oracle_localizes_hidden_and_wrong_details(self):
+        healthy = {
+            "active_tab": "SUCCÈS", "expected_tab": "SUCCÈS",
+            "expected_id": 321, "current_achievement_id": 321,
+            "detail_open": True, "detail_stack_active": True,
+            "stack_visible": True, "scroll_visible": True,
+            "viewport_visible": True, "stack_width": 350, "stack_height": 550,
+            "viewport_width": 330, "viewport_height": 530,
+            "detail_body_count": 1, "body_visible": True,
+            "body_achievement_id": 321, "title": "Test success",
+            "expected_title": "Test success", "title_visible": True, "title_hit": True,
+        }
+        self.assertIsNone(first_achievement_failure(healthy))
+        failures = [
+            ({"active_tab": "GUIDES"}, "SUCCES_TAB"),
+            ({"current_achievement_id": 999}, "selected_achievement_id"),
+            ({"detail_open": False}, "detail_open"),
+            ({"detail_stack_active": False}, "detail_stack_active"),
+            ({"scroll_visible": False}, "detail_visible"),
+            ({"viewport_visible": False}, "detail_visible"),
+            ({"stack_width": 0}, "detail_geometry"),
+            ({"viewport_width": 0}, "detail_geometry"),
+            ({"detail_body_count": 0}, "detail_body"),
+            ({"body_visible": False}, "detail_body"),
+            ({"body_achievement_id": 999}, "detail_body"),
+            ({"title": "Wrong detail"}, "detail_title"),
+            ({"title_hit": False}, "detail_title"),
+        ]
+        for alteration, expected in failures:
+            with self.subTest(alteration=alteration):
+                self.assertEqual(
+                    first_achievement_failure({**healthy, **alteration}), expected,
+                )
+        self.assertEqual(
+            verdict([], ["achievement-detail/click-opens-detail"]), "BLOCKED",
+        )
 
     def test_real_png_and_tree_share_action_ids_and_verify_mode_omits_images(self):
         session = UiSession(self.folder, "all")
