@@ -22,7 +22,7 @@ from tools.atlas_doctor_lib.doctor_ui_qt import (
     first_achievement_failure, achievement_layout_observations,
     first_achievement_layout_failure, achievement_title_contrast,
     achievement_readable_text_observations, detailed_achievement_oracle,
-    geometry_observations, settle,
+    completion_transition_failure, geometry_observations, settle,
     quest_outcome, sheet_observations, widget_tree, glyph_legibility_probe,
 )
 
@@ -319,6 +319,43 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         witness.check("glyph-rendering", "Font renderer", "Unique glyph pixels", probe,
                       probe["status"] == "PASS", self.view)
         self.assertEqual(verdict(witness.assertions, ["session/glyph-rendering"]), "FAIL")
+
+    def test_real_checkbox_click_cannot_hide_broken_progress_persistence(self):
+        from PySide6.QtWidgets import QCheckBox, QVBoxLayout
+
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        checkbox = QCheckBox("Succès terminé")
+        checkbox.setObjectName("AchievementDoneCheck")
+        layout.addWidget(checkbox)
+        page.resize(400, 200)
+        page.show()
+        settle()
+        try:
+            click = click_target(page, checkbox)
+            self.assertTrue(click["accessible"], click)
+            self.assertTrue(checkbox.isChecked())
+            valid = {
+                "click": click, "before": False, "expected_before": False,
+                "expected_after": True, "after_checkbox": True,
+                "after_service": True, "progress_bar": 100,
+                "expected_progress_bar": 100,
+            }
+            self.assertIsNone(completion_transition_failure(valid))
+            for change, expected in (
+                ({"click": {"accessible": False}}, "BUTTON_NOT_ACCESSIBLE"),
+                ({"before": True}, "BASELINE_MISMATCH"),
+                ({"after_checkbox": False}, "CHECKBOX_DID_NOT_TOGGLE"),
+                ({"after_service": False}, "SERVICE_DID_NOT_PERSIST"),
+                ({"progress_bar": 0}, "PROGRESS_BAR_NOT_UPDATED"),
+            ):
+                with self.subTest(change=change):
+                    broken = dict(valid, **change)
+                    self.assertEqual(completion_transition_failure(broken), expected)
+        finally:
+            page.close()
+            page.deleteLater()
+            settle()
 
     def test_detailed_success_description_oracle_never_uses_catalog_summary(self):
         class Provider:
