@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.atlas_doctor_lib.capability_matrix import CAPABILITIES, BEHAVIOR_ANCHORS, capability_inventory, _call_names, _test_case_defined
+from tools.atlas_doctor_lib.capability_matrix import CAPABILITIES, BEHAVIOR_ANCHORS, capability_inventory, capability_test_ids, _call_names, _test_case_defined
 
 
 class DoctorCapabilityContractsTests(unittest.TestCase):
@@ -26,19 +26,30 @@ class DoctorCapabilityContractsTests(unittest.TestCase):
             self.assertTrue(row["callsite_lines"])
             self.assertTrue(all(isinstance(line, int) and line > 0 for line in row["callsite_lines"]))
             self.assertEqual(row["callsite_resolution"], "AST_NAME_ONLY_UNVERIFIED")
-            self.assertEqual(row["proof_status"], "UNVERIFIED")
+            self.assertEqual(row["proof_status"], "WIRED")
+            self.assertEqual(row["proof_level"], "WIRED")
             self.assertFalse(row["proven_defect"])
             self.assertFalse(row["behavior_certified"])
             self.assertEqual(row["behavior_test_anchor"], "DEFINED")
             self.assertTrue(row["behavior_test"].startswith("tests/test_atlas_doctor_"))
             self.assertFalse(row["behavior_test_executed"])
             self.assertEqual(row["behavior_test_result"], "UNVERIFIED")
-        self.assertEqual(result["status"], "REVIEW_PENDING_FINAL_CERTIFICATION")
+        self.assertEqual(result["status"], "REVIEW_PENDING_TEST_EVIDENCE")
         self.assertEqual(result["certified_count"], 0)
         self.assertFalse(result["tests_executed"])
         self.assertFalse(result["graph_rebuilt"])
+        self.assertEqual(result["tested_count"], 0)
+        self.assertEqual(result["evidence_validation"]["status"], "NOT_PROVIDED")
         self.assertEqual({row["engine"] for row in result["capabilities"]},
                          {"Graph", "Runtime", "Change", "Test", "UI"})
+
+    def test_each_behavior_anchor_resolves_to_one_exact_unittest(self):
+        root = Path(__file__).resolve().parents[1]
+        test_ids = capability_test_ids(root)
+        self.assertEqual(set(test_ids), set(BEHAVIOR_ANCHORS))
+        self.assertEqual(len(set(test_ids.values())), 18)
+        self.assertTrue(all(value.startswith("tests.test_atlas_doctor_")
+                            for value in test_ids.values()))
 
     def test_behavior_witness_requires_actual_method_not_text_match(self):
         with tempfile.TemporaryDirectory() as folder:

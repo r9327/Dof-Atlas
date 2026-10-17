@@ -98,6 +98,30 @@ def _test_case_defined(root: Path, file: str, name: str) -> bool:
     )
 
 
+def capability_test_ids(root: Path) -> dict[str, str]:
+    """Resolve each declared witness to one exact unittest method."""
+    root = root.resolve()
+    resolved: dict[str, str] = {}
+    for ident, (file, name) in BEHAVIOR_ANCHORS.items():
+        source = root / "tests" / file
+        try:
+            if (source.is_symlink() or not source.is_file()
+                    or not source.resolve().is_relative_to(root)
+                    or source.stat().st_size > 512 * 1024):
+                continue
+            tree = ast.parse(source.read_text(encoding="utf-8-sig"), filename=file)
+        except (OSError, ValueError, SyntaxError, UnicodeError):
+            continue
+        owners = [
+            cls.name for cls in tree.body if isinstance(cls, ast.ClassDef)
+            if any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                   and node.name == name for node in cls.body)
+        ]
+        if len(owners) == 1:
+            resolved[ident] = f"tests.{Path(file).stem}.{owners[0]}.{name}"
+    return resolved
+
+
 def _call_names(root: Path, path: str) -> dict[str, list[int]] | None:
     root = root.resolve()
     source = root / path
@@ -121,7 +145,7 @@ def _call_names(root: Path, path: str) -> dict[str, list[int]] | None:
     return {name: sorted(set(lines)) for name, lines in found.items()}
 
 
-def capability_inventory(root: Path) -> dict[str, Any]:
+def capability_inventory(root: Path, *, evidence: dict[str, Any] | None = None) -> dict[str, Any]:
     root = root.resolve()
     library = root / "tools" / "atlas_doctor_lib"
     symbols: dict[str, dict[str, int] | None] = {}
@@ -132,6 +156,12 @@ def capability_inventory(root: Path) -> dict[str, Any]:
     }
     wiring_cache = {path: _call_names(root, path)
                     for path in {path for path, _ in WIRED_AT.values()}}
+    evidence_check = None
+    tested_ids: set[str] = set()
+    if evidence is not None:
+        from .capability_evidence import validate_capability_evidence
+        evidence_check = validate_capability_evidence(root, evidence)
+        tested_ids = set(evidence_check["tested_capability_ids"])
     for ident, engine, name, file, symbol in CAPABILITIES:
         if file not in symbols:
             candidate = library / file
@@ -157,6 +187,9 @@ def capability_inventory(root: Path) -> dict[str, Any]:
         calls = wiring_cache.get(site)
         callsite_lines = calls.get(called, [])[:20] if calls is not None else []
         wired = bool(callsite_lines)
+        tested = ident in tested_ids
+        proof_level = ("TESTED" if tested else "WIRED" if present and wired
+                       else "PRESENT" if present else "MISSING")
         rows.append({
             "id": ident, "engine": engine, "name": name,
             "wiring_status": "AST_CALLSITE_PRESENT" if wired else "CALLSITE_NOT_FOUND",
@@ -166,25 +199,35 @@ def capability_inventory(root: Path) -> dict[str, Any]:
             "definition_line": symbols[file].get(symbol) if symbols[file] else None,
             "callsite_lines": callsite_lines,
             "callsite_resolution": "AST_NAME_ONLY_UNVERIFIED" if wired else "UNAVAILABLE",
-            "proof_status": "UNVERIFIED", "proven_defect": False,
+            "proof_status": proof_level, "proof_level": proof_level,
+            "proven_defect": False,
             "behavior_test": "tests/" + BEHAVIOR_ANCHORS[ident][0] + "::" + BEHAVIOR_ANCHORS[ident][1],
             "behavior_test_anchor": "DEFINED" if test_cache[ident] else "MISSING",
-            "behavior_test_executed": False,
-            "behavior_test_result": "UNVERIFIED",
+            "behavior_test_executed": tested,
+            "behavior_test_result": "PASS" if tested else "UNVERIFIED",
             "callable": symbol, "behavior_certified": False,
         })
     missing = sum(row["source_anchor"] == "MISSING" for row in rows)
     unwired = sum(row["wiring_status"] != "AST_CALLSITE_PRESENT" for row in rows)
     missing_behavior_anchors = sum(row["behavior_test_anchor"] != "DEFINED" for row in rows)
+    tested_count = len(tested_ids)
     return {
         "kind": "doctor_capabilities", "count": len(rows),
         "source_present": len(rows) - missing, "source_missing": missing,
         "call_sites_wired": len(rows) - unwired, "call_sites_missing": unwired,
         "behavior_test_anchors_defined": len(rows) - missing_behavior_anchors,
         "behavior_test_anchors_missing": missing_behavior_anchors,
-        "status": "BLOCKED" if missing or unwired or missing_behavior_anchors
-                  else "REVIEW_PENDING_FINAL_CERTIFICATION",
+        "status": "BLOCKED" if (missing or unwired or missing_behavior_anchors
+                                   or evidence_check is not None
+                                   and evidence_check["status"] != "PASS")
+                  else "TESTED_NOT_CERTIFIED" if tested_count == len(rows)
+                  else "REVIEW_PENDING_TEST_EVIDENCE",
         "capabilities": rows, "certified_count": 0,
-        "tests_executed": False, "graph_rebuilt": False,
+        "tested_count": tested_count,
+        "tests_executed": tested_count == len(rows), "graph_rebuilt": False,
+        "evidence_validation": evidence_check or {
+            "status": "NOT_PROVIDED", "errors": [],
+            "tested_capability_ids": [], "certification": "NOT_CERTIFIED",
+        },
         "limits": "AST definitions, call-sites and test-case names are only source anchors. Run evidence must be checked separately on the same SHA. Simulated Qt tests do not prove live Windows behavior, and test presence cannot certify test results.",
     }
