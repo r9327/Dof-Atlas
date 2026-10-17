@@ -235,12 +235,19 @@ def _regression_assertions(folders: list[Path], sha: str) -> tuple[dict, list[st
             errors.append("INVALID_SESSION: " + str(exc))
             continue
         if (report.get("candidate_sha") != sha or report.get("dirty") is not False
-                or report.get("status") != "PASS" or report.get("tests_executed") is not True):
+                or report.get("status") not in {"PASS", "FAIL", "BLOCKED", "REVIEW"}
+                or report.get("tests_executed") is not True):
             errors.append("UNTRUSTED_OR_UNEXECUTED_SESSION")
             continue
         assertions = report.get("assertions")
-        if not isinstance(assertions, list):
-            errors.append("ASSERTIONS_NOT_LIST")
+        required = report.get("required_assertions")
+        if not isinstance(assertions, list) or not isinstance(required, list):
+            errors.append("MISSING_REQUIRED_ASSERTION_INVENTORY")
+            continue
+        from tools.atlas_doctor_lib.doctor_ui import verdict
+        computed = verdict(assertions, required)
+        if report["status"] == "PASS" and computed != "PASS":
+            errors.append("INCONSISTENT_PASS_REPORT")
             continue
         artifacts = manifest.get("artifacts", {})
         for row in assertions:
@@ -262,7 +269,7 @@ def _regression_assertions(folders: list[Path], sha: str) -> tuple[dict, list[st
                 # A positive control must have a real linked, hashed PNG,
                 # not just an unrelated screenshot in the session manifest.
                 errors.append("ASSERTION_MISSING_CAPTURE: " + ident)
-            rows[ident] = row
+            rows[ident] = {**row, "_session_status": report["status"]}
     return rows, errors
 
 
@@ -293,10 +300,15 @@ def watch_ui_regressions(*, baseline_sha: str, candidate_sha: str,
             status = "NOT_COVERED"
         elif any(after[key].get("assertion_status") != "PASS" for key in required):
             status = "REGRESSION_REVIEW" if all(
-                before[key].get("assertion_status") == "PASS" for key in required
+                before[key].get("assertion_status") == "PASS"
+                and before[key].get("_session_status") == "PASS"
+                for key in required
             ) else "UNVERIFIED"
-        elif all(before[key].get("assertion_status") == "PASS" for key in required):
-            status = "NO_REGRESSION_OBSERVED"
+        elif all(before[key].get("assertion_status") == "PASS"
+                 and before[key].get("_session_status") == "PASS" for key in required):
+            status = "NO_REGRESSION_OBSERVED" if all(
+                after[key].get("_session_status") == "PASS" for key in required
+            ) else "UNVERIFIED"
         else:
             status = "UNVERIFIED"
         controls[label] = {
