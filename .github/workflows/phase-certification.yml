@@ -181,6 +181,23 @@ jobs:
                       or parsed.get('source_evidence', {}).get('independent_ci_attested') is not False
                       or parsed.get('certification', {}).get('full_certified') is not False):
                   raise SystemExit('Doctor agent JSON round-trip lacks verified source provenance')
+              # Record outstanding UI regressions honestly on every tool-only
+              # PR: a green validator-smoke cannot stand in for 4 E2E journeys.
+              import os
+              from tools.atlas_doctor_lib.doctor_ui_ci import watch_ui_regressions
+              from tools.atlas_doctor_lib.doctor_ui import write_json
+              watch = watch_ui_regressions(
+                  baseline_sha=os.environ['BASE_SHA'],
+                  candidate_sha=git_state(Path.cwd())['head'],
+                  baseline_sessions=[], candidate_sessions=[],
+              )
+              watch_path = Path('artifacts/doctor_ci/ui_regression_watch.json')
+              write_json(watch_path, watch)
+              if (watch['status'] != 'NOT_COVERED'
+                      or len(watch['controls']) != 4
+                      or any(item['status'] != 'NOT_COVERED' for item in watch['controls'].values())):
+                  raise SystemExit('Unexpected P3-12 status with no real UI E2E sessions')
+              print('P3-12 NOT_COVERED: awaiting real baseline/candidate UI traces for #201/#216')
           print('FOCUSED_VALIDATED_NOT_FULL: no application or release certification')
           PYDOC
       - name: Store focused evidence
@@ -192,6 +209,7 @@ jobs:
             artifacts/doctor_ci/focused.json
             artifacts/doctor_ci/capability_evidence.json
             artifacts/doctor_ci/agent_plan.json
+            artifacts/doctor_ci/ui_regression_watch.json
           if-no-files-found: error
 
   certify:
