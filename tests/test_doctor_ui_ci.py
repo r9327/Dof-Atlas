@@ -60,6 +60,71 @@ class DoctorUiSelectionTests(unittest.TestCase):
                 plan = classify_ui(root, ['tools/atlas_meta_integrity.py'], candidate_sha=SHA, base_sha=BASE)
                 self.assertEqual(plan['status'], 'REVIEW_REQUIRED')
 
+    def test_doctor_capability_ci_scope_uses_real_ui_planner_without_full(self):
+        # Regression: the previous exact-SHA PR plan was REVIEW_REQUIRED and FULL
+        # for changes confined to Doctor diagnostics and their source tests.
+        from tools.atlas_doctor_lib.ci_orchestrator import select_workflows
+
+        paths = [
+            "tools/atlas_doctor.py",
+            "tools/atlas_doctor_lib/capability_matrix.py",
+            "tools/atlas_doctor_lib/capability_evidence.py",
+            "tools/atlas_doctor_lib/agent_protocol.py",
+            "tools/atlas_doctor_lib/doctor_ui_ci.py",
+            "tests/test_atlas_doctor_capabilities.py",
+            "tests/test_atlas_doctor_capability_evidence.py",
+            "tests/test_atlas_doctor_agent_protocol.py",
+            "tests/test_doctor_ci_orchestrator.py",
+            "tests/test_doctor_ui_ci.py",
+            ".ai/context_index.json",
+            "docs/audit-remediation/2026-10-17/07-doctor-capability-ci-evidence.md",
+        ]
+        ui = self.plan(*paths)
+        self.assertEqual(ui["status"], "UI_REQUIRED")
+        self.assertEqual(ui["selected_scenarios"], ["validator-smoke"])
+        self.assertEqual(ui["uncertainty"], [])
+        routed = select_workflows(
+            paths, event="pull_request", phase_route={"route": "FULL"}, ui_plan=ui,
+        )
+        self.assertTrue(routed["tooling_only"])
+        self.assertFalse(routed["full"])
+        self.assertFalse(routed["phase"])
+        self.assertFalse(routed["specialist_fallback"])
+        self.assertTrue(routed["workflows"]["doctor-ui"]["selected"])
+        for extra in ("app/ui/theme.py", "tools/atlas_doctor_lib/runtime_observation.py"):
+            with self.subTest(extra=extra):
+                changed = [*paths, extra]
+                impacted_ui = self.plan(*changed)
+                mixed = select_workflows(
+                    changed, event="pull_request", phase_route={"route": "FULL"},
+                    ui_plan=impacted_ui,
+                )
+                self.assertTrue(mixed["full"])
+                self.assertTrue(mixed["phase"])
+
+    def test_doctor_diagnostic_import_boundary_stays_fail_closed(self):
+        for path in (
+            "tools/atlas_doctor_lib/capability_matrix.py",
+            "tools/atlas_doctor_lib/capability_evidence.py",
+            "tools/atlas_doctor_lib/agent_protocol.py",
+        ):
+            for source in (
+                "from app.ui import theme\n",
+                "from PySide6 import QtWidgets\n",
+                "__import__(\"app.ui.theme\")\n",
+                "import importlib\nimportlib.import_module(\"unknown\")\n",
+            ):
+                with self.subTest(path=path, source=source):
+                    with tempfile.TemporaryDirectory() as folder:
+                        root = Path(folder)
+                        target = root / path
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_text(source)
+                        plan = classify_ui(
+                            root, [path], candidate_sha=SHA, base_sha=BASE,
+                        )
+                        self.assertEqual(plan["status"], "REVIEW_REQUIRED")
+
     def test_both_real_renderers_selected_for_shared_view(self):
         plan = self.plan("app/modules/encyclopedia/views/shared_manual_guide_view.py")
         self.assertEqual(set(plan["selected_scenarios"]), set(ALL_GUIDES))
