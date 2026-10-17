@@ -133,6 +133,7 @@ def _validated_tool_spec(source: str, path: str) -> tuple[dict[str, Any] | None,
     modes = _string_list(payload, "modes", errors)
     recommended_tests = _string_list(payload, "recommended_tests", errors)
     target_scopes = _string_list(payload, "target_scopes", errors) if "target_scopes" in payload else []
+    artifact_roots = _string_list(payload, "artifact_roots", errors) if "artifact_roots" in payload else []
     cost_hint = payload.get("cost_hint")
     if cost_hint not in _COST_ORDER:
         errors.append(f"TOOL_SPEC.cost_hint must be one of {sorted(_COST_ORDER)}")
@@ -163,6 +164,7 @@ def _validated_tool_spec(source: str, path: str) -> tuple[dict[str, Any] | None,
         "canonical": canonical,
         "recommended_tests": recommended_tests,
         "target_scopes": target_scopes,
+        "artifact_roots": artifact_roots,
     }, []
 
 
@@ -177,6 +179,14 @@ def _tool_spec_evidence_errors(
     errors: list[str] = []
     if tool_spec["side_effects"] == "read_only" and row.get("mutation_capable"):
         errors.append("TOOL_SPEC.side_effects=read_only conflicts with detected mutation evidence")
+    if (tool_spec["side_effects"] == "artifact_output"
+            and row.get("mutation_capable") and not row.get("explicit_mutation_gate")):
+        roots = tool_spec.get("artifact_roots", [])
+        if (not roots or any(not root.startswith("artifacts/") or ".." in Path(root).parts
+                             for root in roots)):
+            errors.append(
+                "Unguarded artifact_output requires repository-relative artifact_roots under artifacts/"
+            )
     if tool_spec["canonical"] and legacy:
         errors.append("TOOL_SPEC.canonical=true is forbidden on versioned or wrapper legacy tools")
     return errors
@@ -246,6 +256,7 @@ def _upgrade_actions(
     source: str,
     version_members: set[str],
     tool_spec_errors: list[str],
+    tool_spec: dict[str, Any] | None = None,
 ) -> list[str]:
     actions: list[str] = []
     path = str(row["path"])
@@ -257,7 +268,9 @@ def _upgrade_actions(
         actions.append("remove_sys_path_hack")
     if row.get("cwd_dependency"):
         actions.append("anchor_paths_to_repository_root")
-    if row.get("mutation_capable") and not row.get("explicit_mutation_gate"):
+    declared_artifacts = bool(tool_spec and tool_spec.get("side_effects") == "artifact_output")
+    if (row.get("mutation_capable") and not row.get("explicit_mutation_gate")
+            and not declared_artifacts):
         actions.append("make_default_read_only_and_require_explicit_apply_flag")
     if row.get("executable") and not _supports_json(source):
         actions.append("add_stable_json_output")
@@ -277,6 +290,7 @@ def _readiness_score(
     source: str,
     version_members: set[str],
     tool_spec_errors: list[str],
+    tool_spec: dict[str, Any] | None = None,
 ) -> int:
     score = 100
     if row.get("parse_error"):
@@ -287,7 +301,9 @@ def _readiness_score(
         score -= 15
     if row.get("cwd_dependency"):
         score -= 15
-    if row.get("mutation_capable") and not row.get("explicit_mutation_gate"):
+    declared_artifacts = bool(tool_spec and tool_spec.get("side_effects") == "artifact_output")
+    if (row.get("mutation_capable") and not row.get("explicit_mutation_gate")
+            and not declared_artifacts):
         score -= 30
     if row.get("executable") and not _supports_json(source):
         score -= 15
@@ -350,8 +366,11 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
             source=source,
             version_members=version_members,
             tool_spec_errors=tool_spec_errors,
+            tool_spec=tool_spec,
         )
-        score = _readiness_score(row, source, version_members, tool_spec_errors)
+        score = _readiness_score(
+            row, source, version_members, tool_spec_errors, tool_spec=tool_spec,
+        )
         readiness = _readiness_label(score, actions)
         fallback_preferred_role = _PREFERRED_ENTRYPOINTS.get(path)
         spec_is_canonical = bool(tool_spec and tool_spec["canonical"])
@@ -371,8 +390,11 @@ def catalog(root: Path = ROOT) -> dict[str, Any]:
             else _derived_side_effects(mutation_state)
         )
         role = "entrypoint" if row.get("executable") else "library"
+        declared_artifacts = bool(
+            tool_spec and tool_spec["side_effects"] == "artifact_output"
+        )
         safe_for_agent = (
-            mutation_state != "unguarded"
+            (mutation_state != "unguarded" or declared_artifacts)
             and side_effects != "mutation_unknown"
             and readiness != "review_before_agent_use"
         )

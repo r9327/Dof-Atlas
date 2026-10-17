@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from app import quest_catalog as qc
 from app.quest_catalog import QuestCatalog, QuestRecord, QuestStep
-from app.quest_catalog_details import load_lazy_catalog
+from app.quest_catalog_details import ensure_detail_source_offsets, load_lazy_catalog
 from app.quest_source_index import (
     JsonSourceMapping,
     QuestSources,
@@ -28,7 +28,15 @@ def record(quest_id):
 
 class QuestDetailsTests(unittest.TestCase):
     def build(self, root, limit=32):
-        with patch("app.quest_catalog_details._source_index", return_value=([record(1), record(2), record(3)], ())):
+        context = {
+            "achievement_names": {10: "Succès test"},
+            "quest_names": {1: "Quête 1", 2: "Quête 2", 3: "Quête 3"},
+            "quest_to_achievements": {1: ["Succès test"]},
+        }
+        with patch(
+            "app.quest_catalog_details._source_index",
+            return_value=([record(1), record(2), record(3)], (), context),
+        ):
             catalog = load_lazy_catalog(root, cache_root=root / 'cache')
         catalog.quests[0]._details.limit = limit
         return catalog
@@ -142,6 +150,44 @@ class QuestDetailsTests(unittest.TestCase):
                 details._sources.cache_root,
                 (root / "cache" / "source_offsets"),
             )
+            self.assertEqual(details._sources.context, {})
+            with patch.object(QuestCatalog, '_load_source', side_effect=self.compile):
+                catalog.get_detail(1)
+            self.assertEqual(details._sources.context["quest_names"][1], "Quête 1")
+            self.assertEqual(
+                details._sources.context["quest_to_achievements"][1],
+                ["Succès test"],
+            )
+
+    def test_controlled_preload_primes_detail_offsets_one_mapping_at_a_time(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            created = []
+
+            class Mapping:
+                def __len__(self):
+                    return 1
+
+            class Sources:
+                def __init__(self, cache_root, *, disk_backed=False):
+                    self.cache_root = cache_root
+                    self.disk_backed = disk_backed
+                    self.closed = False
+                    created.append(self)
+
+                def mapping(self, *_args, **_kwargs):
+                    return Mapping()
+
+                def close(self):
+                    self.closed = True
+
+            with patch("app.quest_catalog_details.QuestSources", Sources):
+                count = ensure_detail_source_offsets(root, cache_root=root / "cache")
+
+            self.assertEqual(count, 21)
+            self.assertEqual(len(created), count)
+            self.assertTrue(all(source.closed for source in created))
+            self.assertTrue(all(source.disk_backed for source in created))
 
     def test_index_does_not_compile_details_and_a_b_a_reuses_data(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(QuestCatalog, '_load_source', side_effect=self.compile) as load:
@@ -293,7 +339,14 @@ class QuestDetailsTests(unittest.TestCase):
     def test_explicit_search_compiles_bounded_batches_without_filling_details(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            with patch('app.quest_catalog_details._source_index', return_value=([record(i) for i in range(70)], ())):
+            with patch(
+                'app.quest_catalog_details._source_index',
+                return_value=([record(i) for i in range(70)], (), {
+                    "achievement_names": {},
+                    "quest_names": {},
+                    "quest_to_achievements": {},
+                }),
+            ):
                 catalog = load_lazy_catalog(root, cache_root=root / 'cache')
             with patch.object(QuestCatalog, '_load_source', side_effect=self.compile) as load:
                 self.assertEqual(len(catalog.load_search_documents()), 70)
