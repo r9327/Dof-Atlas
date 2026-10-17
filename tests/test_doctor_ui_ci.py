@@ -87,8 +87,8 @@ class DoctorUiSelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(
                     self.plan(path)["selected_scenarios"],
-                    ["guides-success", "guides-lanyel", "validator-smoke",
-                     "achievement-detail"],
+                    ["achievement-detail", "guides-lanyel", "guides-success",
+                     "validator-smoke"],
                 )
         for path in (
             "tools/atlas_doctor_lib/doctor_ui_ci.py",
