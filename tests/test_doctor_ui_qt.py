@@ -19,7 +19,8 @@ from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideM
 from tools.atlas_doctor_lib.doctor_ui import verdict
 from tools.atlas_doctor_lib.doctor_ui_qt import (
     UiSession, click_target, click_achievement_row, first_quest_failure,
-    first_achievement_failure, geometry_observations, settle,
+    first_achievement_failure, achievement_layout_observations,
+    first_achievement_layout_failure, geometry_observations, settle,
     quest_outcome, sheet_observations, widget_tree, glyph_legibility_probe,
 )
 
@@ -316,6 +317,77 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         witness.check("glyph-rendering", "Font renderer", "Unique glyph pixels", probe,
                       probe["status"] == "PASS", self.view)
         self.assertEqual(verdict(witness.assertions, ["session/glyph-rendering"]), "FAIL")
+
+    def test_real_qt_success_layout_oracle_rejects_clipped_title_and_scroll(self):
+        from PySide6.QtWidgets import QCheckBox, QLabel, QScrollArea, QVBoxLayout
+
+        page = QWidget()
+        outer = QVBoxLayout(page)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        outer.addWidget(scroll)
+        content = QFrame()
+        inner = QVBoxLayout(content)
+        title = QLabel("Succès terminé")
+        title.setObjectName("AchievementDetailTitle")
+        title.setWordWrap(True)
+        inner.addWidget(title)
+        checkbox = QCheckBox("Succès terminé")
+        checkbox.setObjectName("AchievementDoneCheck")
+        inner.addWidget(checkbox)
+        inner.addStretch(1)
+        scroll.setWidget(content)
+        probe_view = SimpleNamespace(detail_scroll=scroll, detail_content=content)
+        page.resize(650, 440)
+        page.show()
+        settle()
+        try:
+            healthy = achievement_layout_observations(page, probe_view)
+            self.assertIsNone(first_achievement_layout_failure(healthy), healthy)
+            self.assertEqual(healthy["control_count_in_viewport"], 1)
+
+            title.setFixedHeight(3)
+            settle()
+            truncated = achievement_layout_observations(page, probe_view)
+            self.assertTrue(truncated["title_clipped"])
+            self.assertEqual(first_achievement_layout_failure(truncated), "TITLE_CLIPPED")
+            title.setMinimumHeight(0)
+            title.setMaximumHeight(16777215)
+            settle()
+
+            scroll.setWidgetResizable(False)
+            content.setMinimumWidth(1500)
+            content.resize(1500, 430)
+            settle()
+            overflow = achievement_layout_observations(page, probe_view)
+            self.assertGreater(overflow["horizontal_scroll_max"], 2)
+            self.assertEqual(first_achievement_layout_failure(overflow),
+                             "HORIZONTAL_OVERFLOW")
+        finally:
+            page.close()
+            page.deleteLater()
+            settle()
+
+    def test_success_layout_oracle_refuses_missing_control_or_detected_overlap(self):
+        base = {
+            "status": "OBSERVED",
+            "title_clipped": False,
+            "horizontal_overflow": False,
+            "control_count_in_viewport": 2,
+            "overlaps": [],
+            "inaccessible_controls": [],
+        }
+        self.assertIsNone(first_achievement_layout_failure(base))
+        cases = [
+            ({"control_count_in_viewport": 0}, "NO_EXPOSED_DETAIL_CONTROLS"),
+            ({"overlaps": [{"left": "a", "right": "b"}]}, "BUTTON_OVERLAP"),
+            ({"inaccessible_controls": ["AchievementDoneCheck"]}, "BUTTON_OCCLUDED"),
+            ({"status": "BLOCKED", "reason": "MISSING_ACHIEVEMENT_TITLE"},
+             "MISSING_ACHIEVEMENT_TITLE"),
+        ]
+        for fault, expected in cases:
+            with self.subTest(fault=fault):
+                self.assertEqual(first_achievement_layout_failure({**base, **fault}), expected)
 
     def test_screen_pixels_override_successful_font_metric_checks(self):
         from unittest.mock import patch
