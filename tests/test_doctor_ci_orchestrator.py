@@ -150,6 +150,10 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertIn("parsed.get('source_evidence', {}).get('independent_ci_attested') is not False", focused)
         self.assertIn("parsed.get('certification', {}).get('full_certified') is not False", focused)
         self.assertIn('artifacts/doctor_ci/agent_plan.json', focused)
+        self.assertIn('watch_ui_regressions(', focused)
+        self.assertIn('baseline_sessions=[], candidate_sessions=[]', focused)
+        self.assertIn("watch['status'] != 'NOT_COVERED'", focused)
+        self.assertIn('artifacts/doctor_ci/ui_regression_watch.json', focused)
 
     def test_doctor_only_behavior_evidence_is_focused_not_app_release_certification(self):
         paths = [
