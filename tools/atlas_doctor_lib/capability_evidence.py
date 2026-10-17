@@ -55,7 +55,7 @@ def _verbose_verdicts(stderr: Any) -> dict[str, list[str]]:
         return verdicts
     for line in stderr.splitlines():
         matched = re.fullmatch(
-            r"(test_[A-Za-z0-9_]+) \\(tests\\.test_[A-Za-z0-9_]+\\.[A-Za-z0-9_]+\\) \\.\\.\\. (ok|FAIL|ERROR|skipped .+|expected failure|unexpected success)",
+            r"(test_[A-Za-z0-9_]+) \((tests\.test_[A-Za-z0-9_]+\.[A-Za-z0-9_]+)\) \.\.\. (ok|FAIL|ERROR|skipped .+|expected failure|unexpected success)",
             line.strip(),
         )
         if matched:
