@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -41,7 +42,7 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
             "return_code": 0,
             "timed_out": False,
             "log_truncated": False,
-            "command": [__import__("sys").executable, "-m", "unittest", "-v", *tests],
+            "command": [sys.executable, "-m", "unittest", "-v", *tests],
             "stderr_tail": self._passing_log(),
             "witnesses": [
                 {"capability_id": ident, "test_id": test_ids[ident], "result": "PASS"}
