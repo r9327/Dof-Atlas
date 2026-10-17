@@ -31,8 +31,8 @@ def required_assertions(scenarios, repeats=2) -> list[str]:
             keys = [f"{gid}-quest-{turn}" for gid in ("guide_complet", "dofus_sylvestre") for turn in range(2)]
         elif name == "achievement-detail":
             keys = ["first-open-lazy", "click-opens-detail",
-                    "geometry-1200", "layout-1200", "contrast-1200",
-                    "geometry-960", "layout-960", "contrast-960"]
+                    "geometry-1200", "layout-1200", "contrast-1200", "text-regions-1200",
+                    "geometry-960", "layout-960", "contrast-960", "text-regions-960"]
         else:
             smoke = name == "validator-smoke"
             pages = (1,) if smoke else (1, 8) if name == "guides-lanyel" else (1, 3)
