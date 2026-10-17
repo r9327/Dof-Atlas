@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -42,7 +43,8 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
             "return_code": 0,
             "timed_out": False,
             "log_truncated": False,
-            "command": [sys.executable, "-m", "unittest", "-v", *tests],
+            "command": [sys.executable, "-m", "unittest", "-v",
+                        *[test.removeprefix("tests.") for test in tests]],
             "stderr_tail": self._passing_log(),
             "witnesses": [
                 {"capability_id": ident, "test_id": test_ids[ident], "result": "PASS"}
@@ -103,8 +105,39 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
         self.assertEqual(payload["certification"], "NOT_CERTIFIED")
         self.assertEqual(run.call_count, 1)
         self.assertIn("-v", run.call_args.args[0])
+        self.assertEqual(run.call_args.args[0][:4],
+                         [sys.executable, "-m", "unittest", "-v"])
+        self.assertTrue(all(not test.startswith("tests.") for test in run.call_args.args[0][4:]))
+        self.assertEqual(run.call_args.kwargs["env"]["PYTHONPATH"].split(os.pathsep)[0],
+                         str(self.root / "tests"))
         self.assertEqual(run.call_args.kwargs["timeout"], 42)
         self.assertEqual(payload["evidence_digest"], _digest(payload))
+
+    @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_bare_module_unittest_verdicts_match_canonical_ids_exactly(self, state, run):
+        # Simulate the stdout of 'python -m unittest -v test_file.Class.method':
+        # it must be accepted without importing tests/__init__.py / PySide6.
+        state.return_value = self.state
+        run.return_value.returncode = 0
+        run.return_value.stdout = ""
+        run.return_value.stderr = self._passing_log().replace(" (tests.", " (")
+        payload = run_capability_witnesses(self.root)
+        self.assertEqual(payload["status"], "PASS")
+        self.assertEqual(len(payload["witnesses"]), 18)
+        self.assertEqual(len(payload["control_witnesses"]), 18)
+        self.assertTrue(all(w["observed_result"] == ["ok"] for w in
+                            payload["witnesses"] + payload["control_witnesses"]))
+        self.assertEqual(validate_capability_evidence(self.root, payload)["status"], "PASS")
+        self.assertFalse(payload["certification"] == "CERTIFIED")
+        self.assertEqual(payload["certification"], "NOT_CERTIFIED")
+
+        # Duplicate or absent canonical verdict is never a successful suite.
+        previous = run.return_value.stderr
+        first = previous.splitlines()[0]
+        run.return_value.stderr = previous.replace(first, "foreign " + first, 1)
+        self.assertEqual(run_capability_witnesses(self.root)["status"], "FAIL")
+        run.return_value.stderr = previous
 
     @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
     @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
