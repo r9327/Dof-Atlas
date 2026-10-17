@@ -919,6 +919,110 @@ def achievement_title_contrast(page, view) -> dict:
 
 
 
+
+def achievement_readable_text_observations(page, view, *, expected_description: str) -> dict:
+    """Per-widget RGB legibility of *actual* screenshot text at the top of Success.
+
+    A single title PASS is insufficient: the description, progress and the
+    completion checkbox caption are independently required. Measure the text
+    region, not the icon, progress bar or a neighboring bright border.
+    """
+    from PySide6.QtCore import QPoint, Qt
+    from PySide6.QtWidgets import QCheckBox, QLabel, QStyle, QStyleOptionButton
+    from tools.atlas_doctor_lib.ui_contrast_oracle import inspect_label_pixels
+
+    image = page.grab().toImage()
+    if image.isNull() or page.width() <= 0 or page.height() <= 0:
+        return {"status": "BLOCKED", "reason": "SCREENSHOT_NOT_AVAILABLE"}
+    content = view.detail_content
+    title = content.findChild(QLabel, "AchievementDetailTitle")
+    progress = content.findChild(QLabel, "AchievementProgressText")
+    description = content.findChild(QLabel, "AchievementDescription")
+    checkbox = content.findChild(QCheckBox, "AchievementDoneCheck")
+    targets = [("title", title, True), ("progress", progress, True),
+               ("completion_label", checkbox, True)]
+    if expected_description:
+        targets.insert(1, ("description", description, True))
+    elif description is not None:
+        # An unexpected stale description is a data mismatch, not proof.
+        return {"status": "BLOCKED", "reason": "UNEXPECTED_DESCRIPTION_WIDGET"}
+
+    viewport = view.detail_scroll.viewport()
+    vtop = viewport.mapTo(page, QPoint())
+    visible_vp = viewport.rect().translated(vtop)
+    sx, sy = image.width() / page.width(), image.height() / page.height()
+    results = []
+    for role, widget, required in targets:
+        if widget is None or not widget.isVisible() or not widget.text().strip():
+            results.append({"role": role, "status": "BLOCKED", "reason": "MISSING_VISIBLE_TEXT"})
+            continue
+        if widget.textFormat() == Qt.RichText if isinstance(widget, QLabel) else False:
+            results.append({"role": role, "status": "BLOCKED", "reason": "RICH_TEXT_UNSUPPORTED"})
+            continue
+        actual = widget.text()
+        if role == "description" and actual != expected_description:
+            results.append({"role": role, "status": "FAIL", "reason": "WRONG_DESCRIPTION"})
+            continue
+        if role == "progress" and not actual.startswith("Progression"):
+            results.append({"role": role, "status": "FAIL", "reason": "WRONG_PROGRESS_TEXT"})
+            continue
+        if role == "completion_label" and actual != "Succès terminé":
+            results.append({"role": role, "status": "FAIL", "reason": "WRONG_CHECKBOX_CAPTION"})
+            continue
+        if isinstance(widget, QCheckBox):
+            option = QStyleOptionButton()
+            option.initFrom(widget)
+            option.text = actual
+            region = widget.style().subElementRect(QStyle.SE_CheckBoxContents, option, widget)
+        else:
+            region = widget.contentsRect()
+        point = widget.mapTo(page, region.topLeft())
+        real_rect = region.translated(point - region.topLeft()).intersected(visible_vp)
+        if real_rect.width() < 35 or real_rect.height() < 12:
+            results.append({"role": role, "status": "BLOCKED", "reason": "TEXT_OUTSIDE_VIEWPORT"})
+            continue
+        # Crop only text advance rather than an entire right-hand pane;
+        # otherwise very short, unreadable captions could go undetected.
+        advance = widget.fontMetrics().horizontalAdvance(actual.splitlines()[0])
+        if advance <= 0:
+            results.append({"role": role, "status": "BLOCKED", "reason": "NO_TEXT_ADVANCE"})
+            continue
+        text_width = min(540, real_rect.width(), advance + 12)
+        x0 = max(0, int(real_rect.left() * sx))
+        y0 = max(0, int(real_rect.top() * sy))
+        x1 = min(image.width(), int((real_rect.left() + text_width) * sx))
+        y1 = min(image.height(), int((real_rect.top() + min(real_rect.height(), 100)) * sy))
+        if x1 - x0 < 35 or y1 - y0 < 12 or (x1-x0)*(y1-y0) > 150000:
+            results.append({"role": role, "status": "BLOCKED", "reason": "TEXT_CROP_INVALID"})
+            continue
+        rgb = [(image.pixelColor(x, y).red(),
+                image.pixelColor(x, y).green(),
+                image.pixelColor(x, y).blue())
+               for y in range(y0, y1) for x in range(x0, x1)]
+        checked = inspect_label_pixels(rgb, minimum_ratio=4.5)
+        results.append({**checked, "role": role,
+                        "widget": widget.objectName(),
+                        "text": actual[:160],
+                        "crop": [x0, y0, x1 - x0, y1 - y0]})
+    statuses = {item["role"]: item["status"] for item in results}
+    if len(results) != len(targets) or any(item["status"] == "BLOCKED" for item in results):
+        status = "BLOCKED"
+    elif any(item["status"] == "FAIL" for item in results):
+        status = "FAIL"
+    else:
+        status = "PASS"
+    return {
+        "status": status,
+        "reason": "MULTIPLE_REAL_TEXT_REGIONS_VERIFIED" if status == "PASS"
+                  else "MISSING_UNREADABLE_OR_UNVERIFIABLE_TEXT",
+        "expected_roles": [role for role, _, _ in targets],
+        "per_widget": results, "statuses": statuses,
+        "screenshot_size": [image.width(), image.height()],
+        "not_covered": ["rich HTML", "below-fold text", "other modules", "icon contrast"],
+    }
+
+
+
 def first_achievement_layout_failure(observed: dict) -> str | None:
     """Distinguish an absent oracle from a genuine geometric pass."""
     if observed.get("status") != "OBSERVED":
@@ -1059,6 +1163,16 @@ def exercise_achievement_detail(session, page):
             "At least 4.5:1 foreground/background contrast with visible ink",
             contrast, contrast["status"] == "PASS", page,
             status="BLOCKED" if contrast["status"] == "BLOCKED" else None,
+        )
+        readable = achievement_readable_text_observations(
+            page, view, expected_description=str(achievement.description or ""),
+        )
+        session.check(
+            f"text-regions-{width}",
+            "Inspect RGB text regions for title, description, progress and checkbox",
+            "Each required real visible text region is readable at >=4.5:1",
+            readable, readable["status"] == "PASS", page,
+            status="BLOCKED" if readable["status"] == "BLOCKED" else None,
         )
 
 
