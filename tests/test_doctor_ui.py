@@ -38,7 +38,8 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
              "achievement-detail/click-opens-detail",
              "achievement-detail/geometry-1200",
              "achievement-detail/geometry-960",
-             "session/qt-exceptions"],
+             "session/qt-exceptions",
+             "session/glyph-rendering"],
         )
         self.assertNotIn("achievement-detail/click-opens-detail",
                          required_assertions(["validator-smoke"]))
