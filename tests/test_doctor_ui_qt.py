@@ -166,6 +166,33 @@ class DoctorUiQtFaultTests(unittest.TestCase):
                       self.view.view_index == 1, self.view)
         self.assertEqual(verdict(session.assertions, session.required), "FAIL")
 
+    def test_guide_manual_click_rebuilds_and_destroys_clicked_qt_button(self):
+        from shiboken6 import isValid
+
+        character = "character:doctor-fixture"
+        card = self.service.cards[0]
+        old = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertFalse(self.service.page_checked(character, card, 0))
+        # Simulate production's synchronous widget replacement after saving
+        # without mocking the real QPushButton, its mouse click or persistence.
+        old.toggled.connect(lambda _checked: self.view._show_index(0))
+        click = click_target(self.view, old, self.view.scroll)
+        self.service.reload_progress()
+        new = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertTrue(click["accessible"])
+        self.assertFalse(isValid(old))
+        self.assertIsNotNone(new)
+        self.assertIsNot(new, old)
+        self.assertTrue(self.service.page_checked(character, card, 0))
+        self.assertTrue(new.isChecked())
+        # The next click uses the *new* widget; never read the deleted handle.
+        click_back = click_target(self.view, new, self.view.scroll)
+        self.service.reload_progress()
+        self.assertTrue(click_back["accessible"])
+        self.assertFalse(self.service.page_checked(character, card, 0))
+        current = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertFalse(current.isChecked())
+
     def test_wrong_validation_target_and_non_persistence_are_observable(self):
         check = self.view.findChild(QPushButton, "GuideManualPageCheck")
         check.toggled.disconnect()
