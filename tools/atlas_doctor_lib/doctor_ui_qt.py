@@ -648,6 +648,11 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         if combat is None:
             session.check("combat", "Find combat in first 32 canonical pages", "Real combat checkbox with public objective oracle",
                           "No combat found within V1 bound", False, page, status="BLOCKED")
+            for missing in ("combat-character", "combat-restore"):
+                session.check(missing, "Combat objective not materialized in bounded pages",
+                              "Independent saved objective and undo must be observable",
+                              {"reason": "NO_CANONICAL_COMBAT_WITHIN_FIRST_32"}, False, page,
+                              status="BLOCKED")
         else:
             combat_index, sheet, checkbox = combat
             session.card_id = str(sheet.card.get("manual_stage_id") or "")
@@ -678,9 +683,21 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
                 session.check("combat", "Resolve rendered combat objective provenance", "One canonical objective",
                               {"expected_labels": expected_labels, "observed_labels": observed_labels,
                                "rendered_targets": targets}, False, page, status="REVIEW")
+                for missing in ("combat-character", "combat-restore"):
+                    session.check(missing, "Combat provenance mismatch",
+                                  "Require a resolved canonical combat target before mutation",
+                                  {"reason": "COMBAT_TARGET_PROVENANCE_MISMATCH"},
+                                  False, page, status="REVIEW")
             else:
                 qid, oid = sheet._combat_key(targets[0])
-                expected_checked = not checkbox.isChecked()
+                character = view.character_key
+                other_character = "character:990000002"
+                view.service.quest_progress.reload()
+                original_saved = view.service.quest_progress.is_objective_completed(
+                    character, qid, oid,
+                )
+                original_checked = checkbox.isChecked()
+                expected_checked = not original_saved
                 from PySide6.QtTest import QSignalSpy
 
                 toggled = QSignalSpy(checkbox.toggled)
@@ -688,20 +705,90 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
                 toggled_count = toggled.count()
                 session.snapshot(page)
                 view.service.quest_progress.reload()
-                saved = view.service.quest_progress.is_objective_completed(view.character_key, qid, oid)
+                saved = view.service.quest_progress.is_objective_completed(character, qid, oid)
                 view._show_index(combat_index)
                 settle()
                 boxes = view.findChildren(QCheckBox, "GuideManualCombatCheck")
-                restored = bool(boxes and boxes[0].text() == expected_labels[0]
-                                and boxes[0].isChecked() == expected_checked
-                                and boxes[0].property("state") == ("done" if expected_checked else "todo"))
-                session.check("combat", "QTest combat checkbox, reload service and reopen page",
-                              {"quest_id": qid, "objective_id": oid, "checked": expected_checked},
-                              {"click": click, "toggled_count": toggled_count,
-                               "saved": saved, "restored": restored,
-                               "first_failed_transition": "checkbox-toggled" if toggled_count != 1
-                               else "objective-persistence" if saved != expected_checked else None},
-                              click["accessible"] and toggled_count == 1 and saved == expected_checked and restored, page)
+                reopened_box = boxes[0] if boxes else None
+                restored = bool(
+                    reopened_box is not None
+                    and reopened_box.text() == expected_labels[0]
+                    and reopened_box.isChecked() == expected_checked
+                    and reopened_box.property("state") == ("done" if expected_checked else "todo")
+                )
+                session.check(
+                    "combat", "QTest combat checkbox, reload objective service and rebuild page",
+                    {"quest_id": qid, "objective_id": oid, "checked": expected_checked},
+                    {"click": click, "toggled_count": toggled_count,
+                     "original_saved": original_saved, "original_checked": original_checked,
+                     "saved": saved, "restored": restored,
+                     "first_failed_transition": "unexpected-baseline" if original_checked != original_saved
+                     else "checkbox-toggled" if toggled_count != 1
+                     else "objective-persistence" if saved != expected_checked else None},
+                    click["accessible"] and original_checked == original_saved
+                    and toggled_count == 1 and saved == expected_checked and restored, page,
+                )
+                view.set_character_key(other_character)
+                view._show_index(combat_index)
+                settle()
+                view.service.quest_progress.reload()
+                other_boxes = view.findChildren(QCheckBox, "GuideManualCombatCheck")
+                other_box = other_boxes[0] if other_boxes else None
+                other_checked = other_box.isChecked() if other_box else None
+                other_saved = view.service.quest_progress.is_objective_completed(
+                    other_character, qid, oid,
+                )
+                view.set_character_key(character)
+                view._show_index(combat_index)
+                settle()
+                view.service.quest_progress.reload()
+                back_boxes = view.findChildren(QCheckBox, "GuideManualCombatCheck")
+                back_box = back_boxes[0] if back_boxes else None
+                original_restored = back_box.isChecked() if back_box else None
+                original_disk = view.service.quest_progress.is_objective_completed(character, qid, oid)
+                isolated = (
+                    other_box is not None and other_checked is False and not other_saved
+                    and back_box is not None and original_restored == expected_checked
+                    and original_disk == expected_checked
+                )
+                session.check(
+                    "combat-character", "Switch character while canonical combat objective is marked",
+                    "Other character UI/disk clear; first character UI/disk persists",
+                    {"quest_id": qid, "objective_id": oid,
+                     "other_visual": other_checked, "other_saved": other_saved,
+                     "first_visual": original_restored, "first_saved": original_disk,
+                     "expected_first": expected_checked}, isolated, page,
+                )
+                rollback_spy = QSignalSpy(back_box.toggled) if back_box else None
+                undo = (click_target(page, back_box, view.scroll)
+                        if back_box is not None else {"accessible": False})
+                rollback_toggles = rollback_spy.count() if rollback_spy else 0
+                view.service.quest_progress.reload()
+                undo_saved = view.service.quest_progress.is_objective_completed(character, qid, oid)
+                undo_checked = back_box.isChecked() if back_box else None
+                view._show_index(combat_index)
+                settle()
+                view.service.quest_progress.reload()
+                final_boxes = view.findChildren(QCheckBox, "GuideManualCombatCheck")
+                final_box = final_boxes[0] if final_boxes else None
+                final_checked = final_box.isChecked() if final_box else None
+                final_saved = view.service.quest_progress.is_objective_completed(character, qid, oid)
+                final_state = final_box.property("state") if final_box else None
+                session.check(
+                    "combat-restore", "QTest reverse combat objective, reload and rebuild real guide",
+                    "Two real clicks restore original persisted objective and checkbox",
+                    {"undo": undo, "undo_signal_count": rollback_toggles,
+                     "initial_saved": original_saved, "initial_visual": original_checked,
+                     "undo_saved": undo_saved, "undo_visual": undo_checked,
+                     "final_saved": final_saved, "final_visual": final_checked,
+                     "final_property_state": final_state},
+                    undo["accessible"] and rollback_toggles == 1
+                    and undo_saved == original_saved and undo_checked == original_checked
+                    and final_box is not None and final_saved == original_saved
+                    and final_checked == original_checked
+                    and final_state == ("done" if original_checked else "todo"),
+                    page,
+                )
         for width, height in ((1200, 800), (960, 640)):
             page.resize(width, height)
             settle()
