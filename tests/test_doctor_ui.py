@@ -31,6 +31,17 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         self.assertIn("guides-lanyel/combat", required)
         self.assertIn("guides-success/geometry-3-960", required)
         self.assertIn("guide-quests/dofus_sylvestre-quest-1", required)
+        success = required_assertions(["achievement-detail"])
+        self.assertEqual(
+            success,
+            ["achievement-detail/first-open-lazy",
+             "achievement-detail/click-opens-detail",
+             "achievement-detail/geometry-1200",
+             "achievement-detail/geometry-960",
+             "session/qt-exceptions"],
+        )
+        self.assertNotIn("achievement-detail/click-opens-detail",
+                         required_assertions(["validator-smoke"]))
         smoke = required_assertions(["validator-smoke"])
         self.assertNotIn("validator-smoke/guide-return", smoke)
         self.assertIn("validator-smoke/manual-persist", smoke)
