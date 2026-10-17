@@ -20,7 +20,7 @@ from tools.atlas_doctor_lib.doctor_ui import verdict
 from tools.atlas_doctor_lib.doctor_ui_qt import (
     UiSession, click_target, click_achievement_row, first_quest_failure,
     first_achievement_failure, geometry_observations, settle,
-    quest_outcome, sheet_observations, widget_tree,
+    quest_outcome, sheet_observations, widget_tree, glyph_legibility_probe,
 )
 
 
@@ -298,6 +298,24 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertEqual(
             verdict([], ["achievement-detail/click-opens-detail"]), "BLOCKED",
         )
+
+    def test_to_fu_squares_cannot_pass_as_legible_qt_capture(self):
+        from unittest.mock import patch
+
+        # Rendered fonts can be available or missing on a given CI host. A
+        # known tofu renderer (all glyphs identical) must ALWAYS fail.
+        with patch("tools.atlas_doctor_lib.doctor_ui_qt._glyph_signature",
+                   return_value="identical-missing-glyph"):
+            probe = glyph_legibility_probe(self.view)
+        self.assertEqual(probe["status"], "FAIL")
+        self.assertEqual(probe["reason"], "MISSING_OR_SQUARE_FONT_GLYPHS")
+        self.assertTrue(probe["labels"])
+        self.assertTrue(all(row["unique_raster_glyphs"] == 1 for row in probe["labels"]))
+        witness = UiSession(self.folder, "all")
+        witness.scenario = "session"
+        witness.check("glyph-rendering", "Font renderer", "Unique glyph pixels", probe,
+                      probe["status"] == "PASS", self.view)
+        self.assertEqual(verdict(witness.assertions, ["session/glyph-rendering"]), "FAIL")
 
     def test_real_png_and_tree_share_action_ids_and_verify_mode_omits_images(self):
         session = UiSession(self.folder, "all")
