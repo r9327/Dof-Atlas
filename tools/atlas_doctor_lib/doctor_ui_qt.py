@@ -661,20 +661,50 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         initial = view.service.page_checked(character, card, 0)
         expected_manual = not initial
         initial_visual = button.isChecked()
+        before_index = view.view_index
+        before_active_index = view.active_index
         click = click_target(page, button, view.scroll)
         view.service.reload_progress()
         saved = view.service.page_checked(character, card, 0)
-        # Valider rebuilds the real Guide sheet synchronously. The clicked
-        # C++ button may already have been DeferredDeleted by Qt.
+        # Valider synchronously rebuilds the sheet AND may advance to the next
+        # incomplete card. Its NEW button can legitimately be unchecked.
         live_button = view.findChild(QPushButton, "GuideManualPageCheck")
         checked = live_button.isChecked() if live_button else None
+        after_index = view.view_index
+        expected_active_index = view.service.first_incomplete_index(character)
+        visible_card = view.service.cards[after_index] if 0 <= after_index < len(view.service.cards) else None
+        visible_saved = (
+            view.service.page_checked(character, visible_card, after_index)
+            if visible_card is not None else None
+        )
+        mounted = (
+            sheet_observations(view, visible_card)
+            if visible_card is not None else {"sheet_count": 0, "stage_ids": []}
+        )
+        stage_matches = (
+            visible_card is not None
+            and mounted["sheet_count"] == 1
+            and mounted["stage_ids"] == [visible_card.get("manual_stage_id")]
+        )
+        advanced = after_index != before_index
+        destination_ok = (
+            after_index == expected_active_index
+            and stage_matches
+            and checked == (visible_saved if advanced else expected_manual)
+            and (not advanced or before_index == before_active_index)
+        )
         session.check(
             "manual-persist", "QTest Valider then reload canonical persisted Guide progress",
-            "Real button, display and disk all toggle to the same explicit state",
+            "Source page saved; rendered page matches canonical next incomplete stage",
             {"click": click, "initial": initial, "initial_visual": initial_visual,
-             "saved": saved, "checked": checked, "expected": expected_manual},
+             "saved": saved, "checked": checked, "expected": expected_manual,
+             "source_index": before_index, "old_active_index": before_active_index,
+             "after_index": after_index, "expected_active_index": expected_active_index,
+             "advanced": advanced, "visible_card_saved": visible_saved,
+             "visible_stage": mounted.get("stage_ids"),
+             "expected_visible_stage": visible_card.get("manual_stage_id") if visible_card else None},
             click["accessible"] and initial_visual == initial
-            and checked == expected_manual and saved == expected_manual, page,
+            and saved == expected_manual and destination_ok, page,
         )
         previous_button = live_button
         view._show_index(0)
