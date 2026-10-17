@@ -1,5 +1,8 @@
 # AGENTS.md — Dofus Atlas
 
+Canonical AI entrypoint: read `AI_ENTRYPOINT.md` first and route non-trivial
+changes through `py -3.13 -X utf8 -m tools.atlas_doctor agent plan ... --json`.
+
 Install the repository-local Git hooks once with `powershell -NoProfile -ExecutionPolicy Bypass -File tools/install_git_hooks.ps1`.
 
 For every non-trivial task, first run `py -3.13 -m tools.ai_context status` and use `AI_CONTEXT.md` as the compact navigation layer. This does not replace the permanent project contracts below. The generated `.ai/context_index.json` is maintained by the pre-commit hook and must not be edited manually.

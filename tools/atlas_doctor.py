@@ -228,6 +228,16 @@ def command_capabilities(root: Path, args) -> dict[str, Any]:
     return result
 
 
+def command_agent(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.agent_protocol import run_agent_action
+    return run_agent_action(
+        root, action=args.agent_action, paths=args.paths,
+        base_ref=args.base_ref, structural=args.structural,
+        level=args.level, run_tests=args.run_tests,
+        max_tests=args.max_tests, timeout_seconds=args.timeout_seconds,
+    )
+
+
 def command_file_audit(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.integrated_investigation import investigate_files
     report = investigate_files(root, args.paths, trace_path=args.trace,
@@ -707,6 +717,15 @@ def build_parser() -> argparse.ArgumentParser:
     capabilities.add_argument('--output', type=Path,
                               default=Path('artifacts/doctor_capabilities/evidence.json'))
     capabilities.add_argument('--timeout', type=int, default=300)
+    agent = sub.add_parser('agent', help='Protocole JSON compact pour agents IA.')
+    agent.add_argument('agent_action', choices=('plan', 'check', 'validate', 'explain'))
+    agent.add_argument('paths', nargs='*', help='Chemins relatifs du changement.')
+    agent.add_argument('--base-ref', default='HEAD')
+    agent.add_argument('--structural', action='store_true')
+    agent.add_argument('--level', choices=('SOFT', 'MEDIUM', 'HARD'))
+    agent.add_argument('--run-tests', action='store_true', help='Autoriser les tests cibles pour check.')
+    agent.add_argument('--max-tests', type=int, choices=range(1, 9), default=8)
+    agent.add_argument('--timeout-seconds', type=int, choices=range(10, 181), default=90)
     sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
     it = sub.add_parser('isolate-triage', help='Investiguer jusqu a 10 fichiers isoles en preservant leurs consommateurs.')
     it.add_argument('--limit', type=int, default=5)
@@ -944,6 +963,7 @@ def main(argv: list[str] | None = None) -> int:
         'ci': command_ci,
         'quick': command_quick,
         'capabilities': command_capabilities,
+        'agent': command_agent,
         'graph': command_graph,
         'graph-audit': command_graph_audit,
         'test-costs': command_test_costs,
@@ -998,6 +1018,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
     if args.command == 'capabilities':
         return 2 if payload['status'] == 'BLOCKED' else 0
+    if args.command == 'agent':
+        return int(payload.get('exit_code', 2))
     if args.command == 'source-impact':
         return 2 if payload.get('status') == 'BLOCKED' else 0
     if args.command == 'file-audit':

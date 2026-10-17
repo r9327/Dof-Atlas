@@ -761,6 +761,7 @@ def verify_payload(
     root: Path, paths: Iterable[str], *, level: str | None = None,
     structural: bool = False, base_ref: str = "HEAD", rebuild_graph: bool = False,
     baseline_name: str | None = None, save_baseline: str | None = None,
+    prepared_plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     from tools.atlas_doctor_lib.verification import execute_plan
     from tools.atlas_doctor_lib.verification_evidence import prepare_baseline, finalize_evidence
@@ -780,7 +781,9 @@ def verify_payload(
                 raise RuntimeError(generated.get("reason") or "Explicit graph rebuild failed.")
         graph_ms = milliseconds(graph_started) if rebuild_graph else 0.0
         planning_started = time.perf_counter()
-        plan = plan_payload(root, paths, level=level, structural=structural, base_ref=base_ref)
+        plan = prepared_plan or plan_payload(
+            root, paths, level=level, structural=structural, base_ref=base_ref,
+        )
         preflight = doctor_payload(root)
         planning_ms = milliseconds(planning_started)
         payload = execute_plan(root, plan, base_ref=base_ref, preflight=preflight)
