@@ -140,6 +140,17 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertIn("witness['raw_stderr_chars']", focused)
         self.assertIn("Doctor stderr tail:", focused)
 
+    def test_focused_ci_exports_public_real_agent_json_round_trip(self):
+        workflow = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
+        focused = workflow.split('  focused-validation:', 1)[1].split('  certify:', 1)[0]
+        self.assertIn("run_agent_action(Path.cwd(), action='plan'", focused)
+        self.assertIn("json.loads(output_path.read_text(encoding='utf-8'))", focused)
+        self.assertIn("parsed.get('exact_sha') != git_state(Path.cwd())['head']", focused)
+        self.assertIn("a.get('symbol') == 'run_capability_witnesses'", focused)
+        self.assertIn("parsed.get('source_evidence', {}).get('independent_ci_attested') is not False", focused)
+        self.assertIn("parsed.get('certification', {}).get('full_certified') is not False", focused)
+        self.assertIn('artifacts/doctor_ci/agent_plan.json', focused)
+
     def test_doctor_only_behavior_evidence_is_focused_not_app_release_certification(self):
         paths = [
             'tools/atlas_doctor.py',
