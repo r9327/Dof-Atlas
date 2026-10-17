@@ -20,11 +20,17 @@ TESTS = (
     'phase8_memory_policy_advisory', 'phase8_deep_comparison',
     'phase8_preload_benchmark_contract', 'doctor_github_provenance',
     'phase8_memory_benchmark_contract', 'doctor_policy_authority', 'ai_context', 'doctor_ui',
+    # Developer-facing diagnosis only: tested but never application-certified.
+    'atlas_doctor_capabilities', 'atlas_doctor_capability_evidence',
+    'atlas_doctor_agent_protocol',
 )
 OWNERS = frozenset({
     'tools/atlas_doctor.py', 'tools/atlas_doctor_lib/ci_orchestrator.py',
     'tools/atlas_doctor_lib/ci_tooling_scope.py', 'tools/atlas_doctor_lib/ci_routes.json',
     'tools/atlas_doctor_lib/doctor_ui_ci.py', 'tools/atlas_meta_integrity.py',
+    'tools/atlas_doctor_lib/capability_matrix.py',
+    'tools/atlas_doctor_lib/capability_evidence.py',
+    'tools/atlas_doctor_lib/agent_protocol.py',
     'tools/ci_main_phase_evidence.py', 'tools/ci_verified_pr_full.py',
     'tools/ci_required_certification.py',
     'tests/test_ai_context.py',

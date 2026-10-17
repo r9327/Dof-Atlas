@@ -16,11 +16,13 @@ import time
 from pathlib import Path
 from typing import Any
 
-from .capability_matrix import BEHAVIOR_ANCHORS, capability_test_ids
+from .capability_matrix import BEHAVIOR_ANCHORS, NEGATIVE_BEHAVIOR_ANCHORS, capability_test_ids, capability_control_ids
 from .core import git_state, utc_now
 
-SCHEMA_VERSION = 1
-MAX_LOG_CHARS = 12_000
+SCHEMA_VERSION = 2
+# Keep the full bounded unittest -v transcript for per-method attestation.
+# 12 KiB truncated ordinary 36-witness runs; exceeding this larger limit still blocks.
+MAX_LOG_CHARS = 256_000
 
 
 def _tail(value: str | bytes | None) -> str:
@@ -48,42 +50,91 @@ def _witness_suite_passed(stderr: Any, expected_count: int) -> bool:
     return bool(summary and summary[1] == str(expected_count) and summary[2] == "OK")
 
 
+def _verbose_verdicts(stderr: Any) -> dict[str, list[str]]:
+    """Observe exact unittest methods, not just a green aggregate count."""
+    verdicts: dict[str, list[str]] = {}
+    if not isinstance(stderr, str):
+        return verdicts
+    for line in stderr.splitlines():
+        matched = re.fullmatch(
+            r"(test_[A-Za-z0-9_]+) \(((?:tests\.)?test_[A-Za-z0-9_]+\.[A-Za-z0-9_]+)\.(test_[A-Za-z0-9_]+)\) \.\.\. (ok|FAIL|ERROR|skipped .+|expected failure|unexpected success)",
+            line.strip(),
+        )
+        if matched and matched[1] == matched[3]:
+            # unittest -v writes method (module.Class.method) ... verdict.
+            # Require matching method names in both positions and normalize
+            # the top-level module form to the canonical tests.* ID.
+            ident = ("tests." if not matched[2].startswith("tests.") else "") + matched[2] + "." + matched[1]
+            verdicts.setdefault(ident, []).append(matched[4])
+    return verdicts
+
+
+def _evidence_rows(mapping: dict[str, str], verdicts: dict[str, list[str]], *, suite_pass: bool) -> list[dict[str, str]]:
+    return [
+        {"capability_id": ident, "test_id": test_id,
+         "observed_result": verdicts.get(test_id, ["NOT_OBSERVED"]),
+         "result": "PASS" if suite_pass and verdicts.get(test_id) == ["ok"] else "UNVERIFIED"}
+        for ident, test_id in sorted(mapping.items())
+    ]
+
+
 def run_capability_witnesses(root: Path, *, timeout: int = 300) -> dict[str, Any]:
-    """Run all 18 exact witness methods once and bind the result to the tree."""
+    """Execute positive + negative controls in one bounded fresh process."""
     root = root.resolve()
     before = git_state(root)
     test_ids = capability_test_ids(root)
-    missing = sorted(set(BEHAVIOR_ANCHORS) - set(test_ids))
+    control_ids = capability_control_ids(root)
+    missing = sorted((set(BEHAVIOR_ANCHORS) - set(test_ids))
+                     | (set(NEGATIVE_BEHAVIOR_ANCHORS) - set(control_ids)))
+    duplicate_ids = len(set([*test_ids.values(), *control_ids.values()])) != len(test_ids) + len(control_ids)
+    requested = sorted([*test_ids.values(), *control_ids.values()])
     started_at = utc_now()
     started = time.monotonic()
-    command = [sys.executable, "-m", "unittest",
-               *(test_ids[ident] for ident in sorted(test_ids))]
+    # Import the test files as top-level modules. Importing "tests.<module>" would
+    # execute tests/__init__.py, which eagerly requires a Qt QApplication.
+    # The focused stdlib job deliberately has no PySide6 installed.
+    command = [sys.executable, "-m", "unittest", "-v",
+               *[test_id.removeprefix("tests.") for test_id in requested]]
     return_code: int | None = None
     stdout = ""
     stderr = ""
     timed_out = False
-    if not missing:
+    raw_log_size = 0
+    if not missing and not duplicate_ids:
         env = os.environ.copy()
         env["PYTHONUTF8"] = "1"
+        # Make bare test modules importable; preserve the repository imports.
+        env["PYTHONPATH"] = os.pathsep.join(filter(None, (
+            str(root / "tests"), str(root), env.get("PYTHONPATH", ""),
+        )))
         try:
             completed = subprocess.run(
                 command, cwd=root, env=env, text=True, capture_output=True,
                 check=False, timeout=max(1, min(timeout, 900)),
             )
             return_code = completed.returncode
+            raw_log_size = len(completed.stderr or "")
             stdout = _tail(completed.stdout)
             stderr = _tail(completed.stderr)
         except subprocess.TimeoutExpired as exc:
             timed_out = True
             stdout = _tail(exc.stdout)
             stderr = _tail(exc.stderr)
+            raw_log_size = MAX_LOG_CHARS + 1
     after = git_state(root)
     unchanged = (before["head"] == after["head"]
                  and before["dirty_digest"] == after["dirty_digest"])
-    aggregate_pass = (not missing and not timed_out and return_code == 0 and unchanged
-                      and _witness_suite_passed(stderr, len(test_ids)))
+    log_truncated = raw_log_size > MAX_LOG_CHARS
+    observed = _verbose_verdicts(stderr)
+    exact_results = all(observed.get(test_id) == ["ok"] for test_id in requested)
+    aggregate_pass = (
+        not missing and not duplicate_ids and not timed_out and not log_truncated
+        and return_code == 0 and unchanged
+        and _witness_suite_passed(stderr, len(requested)) and exact_results
+    )
     status = ("PASS" if aggregate_pass else "BLOCKED"
-              if missing or timed_out or not unchanged else "FAIL")
+              if missing or duplicate_ids or timed_out or log_truncated or not unchanged
+              else "FAIL")
     result = {
         "schema_version": SCHEMA_VERSION,
         "kind": "doctor_capability_test_evidence",
@@ -97,21 +148,20 @@ def run_capability_witnesses(root: Path, *, timeout: int = 300) -> dict[str, Any
         "command": command,
         "return_code": return_code,
         "timed_out": timed_out,
+        "log_truncated": log_truncated,
+        "log_limit_chars": MAX_LOG_CHARS,
+        "raw_stderr_chars": raw_log_size,
         "missing_witnesses": missing,
-        "witnesses": [
-            {
-                "capability_id": ident,
-                "test_id": test_ids[ident],
-                "result": "PASS" if aggregate_pass else "UNVERIFIED",
-            }
-            for ident in sorted(test_ids)
-        ],
+        "duplicate_test_ids": duplicate_ids,
+        "witnesses": _evidence_rows(test_ids, observed, suite_pass=aggregate_pass),
+        "control_witnesses": _evidence_rows(control_ids, observed, suite_pass=aggregate_pass),
         "stdout_tail": stdout,
         "stderr_tail": stderr,
         "certification": "NOT_CERTIFIED",
         "limits": (
-            "A local exact-worktree behavioral test result is not runtime "
-            "observation, independent CI attestation, or release certification."
+            "These are fresh exact-worktree unittest witnesses including boundary "
+            "controls, not production Qt/Windows runtime observations, independent "
+            "CI attestation or release certification."
         ),
     }
     result["evidence_digest"] = _digest(result)
@@ -119,7 +169,7 @@ def run_capability_witnesses(root: Path, *, timeout: int = 300) -> dict[str, Any
 
 
 def validate_capability_evidence(root: Path, payload: Any) -> dict[str, Any]:
-    """Validate provenance and completeness without executing supplied data."""
+    """Validate every executed method and same-worktree provenance; fail closed."""
     errors: list[str] = []
     if not isinstance(payload, dict):
         return {"status": "BLOCKED", "errors": ["EVIDENCE_NOT_OBJECT"]}
@@ -140,15 +190,31 @@ def validate_capability_evidence(root: Path, payload: Any) -> dict[str, Any]:
         errors.append("WORKTREE_CHANGED_DURING_RUN")
     if payload.get("status") != "PASS" or payload.get("return_code") != 0:
         errors.append("WITNESS_SUITE_NOT_PASS")
+    if payload.get("log_truncated") is not False or payload.get("timed_out") is not False:
+        errors.append("WITNESS_LOG_TRUNCATED_OR_TIMED_OUT")
     expected = capability_test_ids(root.resolve())
-    if not _witness_suite_passed(payload.get("stderr_tail"), len(expected)):
+    controls = capability_control_ids(root.resolve())
+    requested = sorted([*expected.values(), *controls.values()])
+    if len(expected) != len(BEHAVIOR_ANCHORS) or len(controls) != len(NEGATIVE_BEHAVIOR_ANCHORS):
+        errors.append("WITNESS_ANCHOR_MISSING")
+    if len(requested) != len(set(requested)):
+        errors.append("WITNESS_TEST_DUPLICATE")
+    if payload.get("command") != [sys.executable, "-m", "unittest", "-v",
+                                  *[test_id.removeprefix("tests.") for test_id in requested]]:
+        errors.append("WITNESS_COMMAND_MISMATCH")
+    log = payload.get("stderr_tail")
+    if not _witness_suite_passed(log, len(requested)):
         errors.append("WITNESS_SUITE_INCOMPLETE_OR_NOT_ALL_PASSED")
-    supplied: dict[str, str] = {}
-    witnesses = payload.get("witnesses")
-    if not isinstance(witnesses, list):
-        errors.append("WITNESSES_NOT_LIST")
-    else:
-        for row in witnesses:
+    observed = _verbose_verdicts(log)
+    if any(observed.get(test_id) != ["ok"] for test_id in requested):
+        errors.append("WITNESS_VERBOSE_VERDICTS_INCOMPLETE")
+    for key, required in (("witnesses", expected), ("control_witnesses", controls)):
+        supplied: dict[str, str] = {}
+        rows = payload.get(key)
+        if not isinstance(rows, list):
+            errors.append(key.upper() + "_NOT_LIST")
+            continue
+        for row in rows:
             if not isinstance(row, dict) or not isinstance(row.get("capability_id"), str):
                 errors.append("WITNESS_INVALID")
                 continue
@@ -158,8 +224,8 @@ def validate_capability_evidence(root: Path, payload: Any) -> dict[str, Any]:
             supplied[ident] = row.get("test_id", "")
             if row.get("result") != "PASS":
                 errors.append("WITNESS_NOT_PASS")
-    if supplied != expected:
-        errors.append("WITNESS_SET_MISMATCH")
+        if supplied != required:
+            errors.append(key.upper() + "_SET_MISMATCH")
     return {
         "status": "PASS" if not errors else "BLOCKED",
         "errors": sorted(set(errors)),

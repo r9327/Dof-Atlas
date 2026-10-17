@@ -148,13 +148,50 @@ jobs:
           if p['tooling_only']:
               from tools.atlas_doctor_lib.ci_tooling_scope import run_checks
               run_checks(Path.cwd())
+              from tools.atlas_doctor_lib.capability_evidence import (
+                  run_capability_witnesses, validate_capability_evidence, write_evidence,
+              )
+              witness = run_capability_witnesses(Path.cwd(), timeout=240)
+              write_evidence(Path.cwd(), Path('artifacts/doctor_ci/capability_evidence.json'), witness)
+              checked = validate_capability_evidence(Path.cwd(), witness)
+              if witness['status'] != 'PASS' or checked['status'] != 'PASS':
+                  print('Doctor witness status:', witness['status'])
+                  print('Doctor log length/limit:', witness['raw_stderr_chars'], witness['log_limit_chars'])
+                  print('Doctor observed tests:', sum(row['result'] == 'PASS' for row in witness['witnesses'] + witness['control_witnesses']), '/ 36')
+                  print('Doctor stderr tail:', witness['stderr_tail'][-2500:])
+                  raise SystemExit('Doctor 18x2 witnesses unverified: ' + str(checked['errors']))
+              # Exercise the public, plain-JSON agent protocol against real source.
+              # No remote Codex/ChatGPT access or fabricated CI attestation is required.
+              from tools.atlas_doctor_lib.agent_protocol import run_agent_action
+              from tools.atlas_doctor_lib.core import git_state
+              agent_path = 'tools/atlas_doctor_lib/capability_evidence.py'
+              agent = run_agent_action(Path.cwd(), action='plan', paths=[agent_path], base_ref='HEAD')
+              output_path = Path('artifacts/doctor_ci/agent_plan.json')
+              output_path.write_text(json.dumps(agent, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+              # Parse from disk as an independent JSON consumer would.
+              parsed = json.loads(output_path.read_text(encoding='utf-8'))
+              anchors = parsed.get('source_evidence', {}).get('source_anchors', [])
+              if (parsed.get('protocol') != 'atlas-doctor-agent/v1'
+                      or parsed.get('exact_sha') != git_state(Path.cwd())['head']
+                      or parsed.get('source_evidence', {}).get('source_sha') != parsed.get('exact_sha')
+                      or parsed.get('source_evidence', {}).get('source_inventory_status') != 'PASS'
+                      or not any(a.get('path') == agent_path and a.get('symbol') == 'run_capability_witnesses'
+                                 and type(a.get('line')) is int and a['line'] > 0
+                                 and a.get('evidence_level') == 'SOURCE_DEFINITION_ONLY' for a in anchors)
+                      or parsed.get('source_evidence', {}).get('independent_ci_attested') is not False
+                      or parsed.get('certification', {}).get('full_certified') is not False):
+                  raise SystemExit('Doctor agent JSON round-trip lacks verified source provenance')
           print('FOCUSED_VALIDATED_NOT_FULL: no application or release certification')
           PYDOC
       - name: Store focused evidence
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: doctor-focused-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/doctor_ci/focused.json
+          path: |
+            artifacts/doctor_ci/focused.json
+            artifacts/doctor_ci/capability_evidence.json
+            artifacts/doctor_ci/agent_plan.json
           if-no-files-found: error
 
   certify:
