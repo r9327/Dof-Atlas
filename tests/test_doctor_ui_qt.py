@@ -317,6 +317,29 @@ class DoctorUiQtFaultTests(unittest.TestCase):
                       probe["status"] == "PASS", self.view)
         self.assertEqual(verdict(witness.assertions, ["session/glyph-rendering"]), "FAIL")
 
+    def test_screen_pixels_override_successful_font_metric_checks(self):
+        from unittest.mock import patch
+
+        screenshot = {
+            "status": "FAIL", "reason": "REPEATED_HOLLOW_SQUARE_GLYPHS",
+            "box_count": 730, "failure_threshold": 16,
+        }
+        with (
+            patch("tools.atlas_doctor_lib.doctor_ui_qt._glyph_signature",
+                  side_effect=lambda _font, letter: "unique-" + letter),
+            patch("tools.atlas_doctor_lib.ui_raster_oracle.detect_replacement_squares",
+                  return_value=screenshot),
+        ):
+            probe = glyph_legibility_probe(self.view)
+        self.assertEqual(probe["status"], "FAIL")
+        self.assertEqual(probe["reason"], "REPEATED_SCREENSHOT_TOFU")
+        self.assertEqual(probe["screenshot_raster"]["box_count"], 730)
+        judge = UiSession(self.folder, "all")
+        judge.scenario = "session"
+        judge.check("glyph-rendering", "Actual screen raster", "No repeated tofu",
+                    probe, probe["status"] == "PASS", self.view)
+        self.assertEqual(verdict(judge.assertions, ["session/glyph-rendering"]), "FAIL")
+
     def test_real_png_and_tree_share_action_ids_and_verify_mode_omits_images(self):
         session = UiSession(self.folder, "all")
         session.scenario = "fixture"
