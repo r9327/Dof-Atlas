@@ -57,13 +57,15 @@ def _verbose_verdicts(stderr: Any) -> dict[str, list[str]]:
         return verdicts
     for line in stderr.splitlines():
         matched = re.fullmatch(
-            r"(test_[A-Za-z0-9_]+) \(((?:tests\.)?test_[A-Za-z0-9_]+\.[A-Za-z0-9_]+)\) \.\.\. (ok|FAIL|ERROR|skipped .+|expected failure|unexpected success)",
+            r"(test_[A-Za-z0-9_]+) \(((?:tests\.)?test_[A-Za-z0-9_]+\.[A-Za-z0-9_]+)\.(test_[A-Za-z0-9_]+)\) \.\.\. (ok|FAIL|ERROR|skipped .+|expected failure|unexpected success)",
             line.strip(),
         )
-        if matched:
-            # Rebuild the canonical ID even when the tests package is not imported.
+        if matched and matched[1] == matched[3]:
+            # unittest -v writes method (module.Class.method) ... verdict.
+            # Require matching method names in both positions and normalize
+            # the top-level module form to the canonical tests.* ID.
             ident = ("tests." if not matched[2].startswith("tests.") else "") + matched[2] + "." + matched[1]
-            verdicts.setdefault(ident, []).append(matched[3])
+            verdicts.setdefault(ident, []).append(matched[4])
     return verdicts
 
 
