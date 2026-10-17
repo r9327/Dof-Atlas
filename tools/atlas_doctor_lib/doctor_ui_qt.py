@@ -174,6 +174,102 @@ def geometry_observations(root, view) -> dict:
             "content_width": view.content.width()}
 
 
+def bottom_guide_observations(root, view, expected_card) -> dict:
+    """Inspect bottom viewport after a *real* scroll, not just saved PNGs.
+
+    A full row's source text was verified separately by sheet_observations.
+    This verifies which rows/buttons survive viewport clipping and hit testing.
+    """
+    from PySide6.QtCore import QPoint, QRect
+    from PySide6.QtWidgets import QAbstractButton, QFrame, QLabel
+
+    scroll = view.scroll
+    viewport = scroll.viewport()
+    bar = scroll.verticalScrollBar()
+    bar.setValue(bar.maximum())
+    settle()
+    extent = bar.maximum()
+    position = bar.value()
+    origin = viewport.mapTo(root, QPoint(0, 0))
+    viewport_rect = QRect(origin, viewport.size())
+    sheet = view.findChild(QFrame, "GuideManualSheet")
+    if sheet is None or not sheet.isVisible():
+        return {"status": "BLOCKED", "reason": "MISSING_REAL_GUIDE_SHEET"}
+    stage_id = str(sheet.card.get("manual_stage_id") or "")
+    expected_id = str(expected_card.get("manual_stage_id") or "")
+    if not stage_id or stage_id != expected_id:
+        return {"status": "FAIL", "reason": "BOTTOM_STAGE_CHANGED",
+                "stage_id": stage_id, "expected_id": expected_id}
+    rows = sheet.findChildren(QFrame, "GuideManualLineRow")
+    visible_rows = []
+    text_labels = 0
+    for line in rows:
+        if not line.isVisible():
+            continue
+        region = line.visibleRegion().boundingRect()
+        pos = line.mapTo(root, region.topLeft())
+        exposed = QRect(pos, region.size()).intersected(viewport_rect)
+        if exposed.width() < 12 or exposed.height() < 6:
+            continue
+        labels = [label for label in line.findChildren(QLabel)
+                  if label.isVisible() and label.text().strip()]
+        text_labels += len(labels)
+        visible_rows.append({
+            "y": exposed.y(), "height": exposed.height(), "text_label_count": len(labels),
+            "source_widget_path": line.objectName(),
+        })
+    buttons = []
+    occluded = []
+    for button in sheet.findChildren(QAbstractButton):
+        if not button.isVisible() or not button.isEnabled():
+            continue
+        region = button.visibleRegion().boundingRect()
+        pos = button.mapTo(root, region.topLeft())
+        exposed = QRect(pos, region.size()).intersected(viewport_rect)
+        if exposed.width() < 9 or exposed.height() < 9:
+            continue
+        # Use the center of the actually exposed area rather than a logical
+        # center potentially outside the viewport after scroll clipping.
+        hit = root.childAt(exposed.center())
+        reachable = bool(hit is button or
+                         (hit is not None and button.isAncestorOf(hit)))
+        name = button.objectName() or type(button).__name__
+        buttons.append({"name": name, "reachable": reachable,
+                        "hit": hit.objectName() if hit is not None else None})
+        if not reachable:
+            occluded.append(name)
+    hidden_horizontal = (view.content.width() > viewport.width() + 2
+                         or scroll.horizontalScrollBar().maximum() > 2)
+    # A page that fits needs no scrolling; expose the reason rather than
+    # calling it evidence of below-fold coverage.
+    issues = []
+    if position != extent:
+        issues.append("BOTTOM_NOT_REACHED")
+    if hidden_horizontal:
+        issues.append("HIDDEN_HORIZONTAL_OVERFLOW")
+    if rows and not visible_rows and extent > 0:
+        issues.append("BOTTOM_LINES_CLIPPED")
+    if visible_rows and text_labels == 0:
+        issues.append("BOTTOM_LINE_TEXT_NOT_VISIBLE")
+    if occluded:
+        issues.append("BOTTOM_BUTTON_OCCLUDED")
+    status = "FAIL" if issues else "PASS"
+    return {
+        "status": status, "reason": issues[0] if issues else
+        "BOTTOM_CONTENT_EXPOSED" if extent > 0 else "PAGE_FITS_WITHOUT_SCROLL",
+        "stage_id": stage_id, "expected_stage_id": expected_id,
+        "scroll_position": position, "scroll_max": extent,
+        "scroll_needed": bool(extent), "horizontal_overflow": hidden_horizontal,
+        "line_rows_total": len(rows), "visible_line_rows": len(visible_rows),
+        "visible_line_details": visible_rows[:10],
+        "visible_line_text_labels": text_labels,
+        "visible_buttons": buttons[:24], "occluded_buttons": occluded,
+        "viewport": [viewport_rect.x(), viewport_rect.y(),
+                     viewport_rect.width(), viewport_rect.height()],
+        "limits": "Geometric viewport and hit-test evidence only; rich text pixel contrast under scroll is not certified.",
+    }
+
+
 class UiSession:
     def __init__(self, folder: Path, mode: str):
         self.folder = folder
@@ -491,9 +587,14 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             session.check(f"geometry-{index + 1}-{width}", "Resize, scroll each interactive target, Qt hit-test",
                           "No collision, inaccessible control or hidden horizontal overflow", observed,
                           not any(observed[k] for k in ("collisions", "inaccessible", "horizontal_overflow")), page)
-            view.scroll.verticalScrollBar().setValue(view.scroll.verticalScrollBar().maximum())
-            settle()
-            session.snapshot(page)
+            bottom = bottom_guide_observations(page, view, view.service.cards[index])
+            session.check(
+                f"bottom-{index + 1}-{width}",
+                "Scroll real Guide to viewport bottom and inspect visible row text and button hit-tests",
+                "Bottom reached; visible lines remain exposed, controls reachable, no horizontal overflow",
+                bottom, bottom["status"] == "PASS", page,
+                status="BLOCKED" if bottom["status"] == "BLOCKED" else None,
+            )
             view.scroll.verticalScrollBar().setValue(0)
             settle()
     view._show_index(0)
