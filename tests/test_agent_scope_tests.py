@@ -13,9 +13,25 @@ ROOT = Path(__file__).resolve().parents[1]
 class AgentScopeTestMappingTests(unittest.TestCase):
     def test_current_scope_test_map_is_explicit_and_resolves_existing_modules(self) -> None:
         context_map = agent._load_context_map(ROOT)
-        self.assertEqual(len(context_map["scopes"]), 23)
+        self.assertEqual(len(context_map["scopes"]), 24)
         self.assertEqual(agent._scope_test_mapping_errors(ROOT, context_map), [])
         self.assertTrue(all("test_entries" in config for config in context_map["scopes"].values()))
+
+    def test_public_docs_have_owned_paths_and_targeted_contract_tests(self) -> None:
+        paths = ["README.md", "docs/CONTRIBUTING.md"]
+        payload = agent.impact_payload(ROOT, paths)
+
+        self.assertEqual(payload["scopes"], ["project_docs"])
+        self.assertEqual(payload["unowned_paths"], [])
+        self.assertEqual(payload["ambiguous_paths"], [])
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(payload["ownership"][path]["status"], "OWNED")
+                self.assertEqual(payload["ownership"][path]["primary_scope"], "project_docs")
+        self.assertEqual(
+            payload["scope_tests"],
+            ["tests.test_ai_context", "tests.test_agent_scope_tests"],
+        )
 
     def test_inspect_exposes_scope_tests_without_inventing_placeholder_tests(self) -> None:
         guide = agent.inspect_scope(ROOT, "encyclopedia_guide")
