@@ -63,3 +63,14 @@ Les quatre assertions exigées par `required_assertions` sont `achievement-detai
 **Tests négatifs nouveaux** : une `QListWidget` réelle dont le signal `itemClicked` a été déconnecté reçoit toujours le clic, mais ne prouve plus aucun effet ; un inspecteur de la chaîne finale signale à quelle étape une mauvaise destination, une mauvaise ID, un panneau de largeur nulle, une fiche absente, un titre incorrect ou un hit-test masqué casse l'interaction.
 
 **Limites** : cela est une **implémentation candidate**, pas un PASS CI ni la réparation du produit. La régression utilisateur est encore à prouver sur l'EXE installé ; toute rupture réellement observée doit rester FAIL. La production de la session Qt au SHA exact et son artefact PNG dépend du run Windows, tandis que les réparations restent exclusivement dans la #201. Les autres tâches de la #216 (glyphes/typographie, autres familles d'écrans, seuils de contraste) ne sont pas déclarées achevées.
+
+## Routage CI du détecteur Doctor UI sans certification inutile
+
+Le premier run du nouveau détecteur a prouvé deux points : le routage de l'Encyclopédie inclut désormais `achievement-detail` (ancien test d'ensemble mis à jour), mais l'ancien `ci_tooling_scope` ne connaissait pas `doctor_ui.py`, `doctor_ui_qt.py` et `test_doctor_ui_qt.py` comme outillage isolé, et avait déclenché le fallback **FULL_REQUIRED / DOCTOR_PLAN_UNAVAILABLE** sur des fichiers n'appartenant pas au produit.
+
+Un contrat ciblé et *fail-closed* a été ajouté :
+- Ces **trois chemins précis** peuvent être reconnus comme changements du détecteur uniquement après lecture AST valide de la source locale (racine vérifiée, taille bornée, pas de symlink, pas d'import `app`/`PySide6` au chargement des modules de coordination, pas d'`__import__` dynamique au niveau module).
+- Le plan `Doctor CI` ne peut conclure `tooling_only` que si le plan UI exact du candidat est `UI_REQUIRED` et sélectionne **à la fois `validator-smoke` et `achievement-detail`**. Le job Windows réel reste obligatoire. Les chemins produit, les changements mixtes, l'absence de source vérifiable, les scénarios non sélectionnés ou `REVIEW_REQUIRED` conservent la FULL.
+- Des tests de contrat vérifient la route ciblée, la route FULL de repli et l'injection d'imports non autorisés. Une FULL automatique n'est pas requalifiée rétroactivement en PASS par ce changement.
+
+Cette sélection ne certifie ni l'EXE installé ni la correction du défaut utilisateur ; le scénario réel peut parfaitement échouer et ses preuves doivent alors rester visibles. La validation est à constater par la CI du SHA **après** la modification et par l'artefact d'impact ciblé.
