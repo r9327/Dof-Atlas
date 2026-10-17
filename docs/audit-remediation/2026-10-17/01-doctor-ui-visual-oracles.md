@@ -143,3 +143,15 @@ Le run [39063447986](https://github.com/r9327/Dof-Atlas/actions/runs/39063447986
 Correctif Doctor uniquement : `detailed_achievement_oracle()` lit explicitement **`get_detail_by_id(id)`**, valide ID + titre contre le catalogue, puis fournit la description exacte attendue. Un détail absent, l'ID erroné ou un titre différent provoque BLOCKED/erreur, jamais un PASS déduit de la vue elle-même. Le pixel raster indépendant reste requis pour le rendu réel des quatre zones visibles. Test négatif ciblé `test_detailed_success_description_oracle_never_uses_catalog_summary`. Aucune modification des fichiers produit de la #201.
 
 Attendre l'exécution des contrôles au **SHA corrigé exact** ; ni le vert historique du titre ni un test de composant synthétique ne remplace la preuve du clic + fiche + pixels Windows.
+
+## P1-06 — preuve d'effet des clics, persistance et isolation (candidat)
+
+La validation UI ne s'arrête plus à `childAt()` ni à la modification visuelle du bouton. Le scénario `achievement-detail` exécute quatre assertions **obligatoires** après les captures et contrôles de contraste :
+- `complete-click` : interaction physique `QTest.mouseClick` sur le vrai `AchievementDoneCheck` du Succès public sélectionné ; état du `QCheckBox`, avancement `QProgressBar` et progression relue du **service sérialisé** concordent après le clic ;
+- `complete-reopen` : l'ancienne fiche est démontée et le contrôle détruit avec `DeferredDelete` ; un nouveau widget reflète la sauvegarde, sans état UI ancien ;
+- `complete-character` : passage à un deuxième personnage vide, preuve d'absence de contamination de progression, retour au premier et vérification de son état précédemment enregistré ;
+- `complete-restore` : second clic physique pour remettre la progression initiale, relecture du service puis réouverture, vérification de l'absence de changement résiduel dans le profil isolé.
+
+Tous les écrans et fichiers concernés tournent dans `DOFUS_ATLAS_USER_ROOT` temporaire du runner Windows, jamais sur le profil de l'utilisateur ou le stockage réel de DOFUS. Les quatre assertions sont requises par le coordinateur et sont accompagnées de captures PNG, du chemin du widget et de l'état observé. Un test Qt injecte les pannes de clic, d'état visuel, de persistance et de mise à jour de barre ; il doit faire échouer l'oracle même lorsqu'un clic physique s'est réellement produit.
+
+**Pas de promesse prématurée** : les assertions constituent un candidat jusqu'à obtention d'un résultat Windows SUCCESS lié au nouveau SHA. L'absence d'autres interactions dans les guides et les sections sous le scroll reste `NOT_COVERED`. Aucun code de la PR produit #201 n'est modifié ; PR #216 toujours Draft.
