@@ -167,6 +167,32 @@ class DoctorUiQtFaultTests(unittest.TestCase):
                       self.view.view_index == 1, self.view)
         self.assertEqual(verdict(session.assertions, session.required), "FAIL")
 
+    def test_real_guide_validation_persists_source_and_advances_to_unchecked_next_card(self):
+        from shiboken6 import isValid
+
+        character = "character:doctor-fixture"
+        self.assertEqual(self.view.view_index, 0)
+        self.assertEqual(self.view.active_index, 0)
+        old = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertFalse(old.isChecked())
+        click = click_target(self.view, old, self.view.scroll)
+        self.service.reload_progress()
+        self.assertTrue(click["accessible"])
+        self.assertFalse(isValid(old))
+        self.assertTrue(self.service.page_checked(character, self.service.cards[0], 0))
+        self.assertEqual(self.view.view_index, 1)
+        self.assertEqual(self.view.active_index, 1)
+        next_button = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertFalse(next_button.isChecked())
+        self.assertFalse(self.service.page_checked(character, self.service.cards[1], 1))
+        self.assertEqual(sheet_observations(self.view, self.service.cards[1])["stage_ids"],
+                         ["TEST-B"])
+        # Reopening the SOURCE must show the saved check, not the destination's.
+        self.view._show_index(0)
+        settle()
+        source_button = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertTrue(source_button.isChecked())
+
     def test_guide_manual_click_rebuilds_and_destroys_clicked_qt_button(self):
         from shiboken6 import isValid
 
