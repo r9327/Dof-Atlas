@@ -11,7 +11,8 @@ from pathlib import Path
 
 from tools.atlas_doctor_lib.doctor_ui import required_assertions, verdict
 from tools.atlas_doctor_lib.doctor_ui_ci import (
-    ALL_GUIDES, ROOT, campaign_verdict, classify_ui, dependency_map, read_evidence,
+    ALL_GUIDES, ROOT, REGRESSION_REQUIREMENTS, campaign_verdict, classify_ui,
+    dependency_map, read_evidence, watch_ui_regressions,
 )
 
 SHA = "a" * 40
@@ -191,6 +192,108 @@ class DoctorUiSelectionTests(unittest.TestCase):
                 "assert not any(x.startswith(('PySide6','app.')) for x in sys.modules)")
         completed = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)
+
+
+
+class DoctorUiRegressionWatchTests(unittest.TestCase):
+    def make_session(self, root: Path, sha: str, *, scenario_ids=None,
+                     status="PASS", failed_id=None, missing_capture=False):
+        import hashlib
+
+        folder = root / sha[:4]
+        folder.mkdir(parents=True, exist_ok=True)
+        ids = list(scenario_ids if scenario_ids is not None else dict.fromkeys(
+            ident for controls in REGRESSION_REQUIREMENTS.values() for ident in controls
+        ))
+        rows = [{"assertion_id": ident, "scenario_id": ident.split("/")[0],
+                 "assertion_status": "FAIL" if ident == failed_id else "PASS",
+                 "evidence_ids": [] if missing_capture and ident == ids[0] else ["capture.png"]}
+                for ident in ids]
+        report = {
+            "candidate_sha": sha, "dirty": False, "status": status,
+            "tests_executed": True, "selected_scenarios": sorted({i.split("/")[0] for i in ids}),
+            "assertions": rows, "required_assertions": ids,
+            "required_evidence": ["capture.png"],
+        }
+        files = {"ui_verdict.json": json.dumps(report), "actions.json": "[]",
+                 "request.json": "{}", "worker.log": "log", "capture.png": "PNG fixture"}
+        for name, content in files.items():
+            (folder / name).write_text(content, encoding="utf-8")
+        manifest = {"candidate_sha": sha, "dirty": False,
+                    "artifacts": {name: hashlib.sha256((folder / name).read_bytes()).hexdigest()
+                                  for name in files}}
+        (folder / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        return folder
+
+    def test_smoke_success_and_no_baseline_do_not_certify_four_journeys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            smoke = self.make_session(root, SHA, scenario_ids=["validator-smoke/open"])
+            report = watch_ui_regressions(
+                baseline_sha=BASE, candidate_sha=SHA,
+                baseline_sessions=[], candidate_sessions=[smoke],
+            )
+            self.assertEqual(report["status"], "NOT_COVERED")
+            self.assertEqual(len(report["controls"]), 4)
+            self.assertTrue(all(row["status"] == "NOT_COVERED"
+                                for row in report["controls"].values()))
+            self.assertFalse(report["phase_certified"])
+            self.assertFalse(report["release_certified"])
+            self.assertFalse(report["tests_executed"])
+
+    def test_exact_sha_evidence_compares_all_four_controls_and_detects_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            baseline = self.make_session(root, BASE)
+            candidate = self.make_session(root, SHA)
+            kw = {"baseline_sha": BASE, "candidate_sha": SHA,
+                  "baseline_sessions": [baseline], "candidate_sessions": [candidate]}
+            good = watch_ui_regressions(**kw)
+            self.assertEqual(good["status"], "NO_REGRESSION_OBSERVED")
+            self.assertTrue(all(row["status"] == "NO_REGRESSION_OBSERVED"
+                                for row in good["controls"].values()))
+
+            failed = "achievement-detail/click-opens-detail"
+            candidate = self.make_session(root, SHA, status="FAIL", failed_id=failed)
+            bad = watch_ui_regressions(**kw)
+            self.assertEqual(bad["status"], "REGRESSION_REVIEW")
+            self.assertEqual(bad["controls"]["achievement-click"]["status"], "REGRESSION_REVIEW")
+            self.assertNotEqual(bad["controls"]["achievement-first-open"]["status"], "REGRESSION_REVIEW")
+
+            # Report claims PASS despite an observed failed mandatory assertion:
+            # hash consistency alone must not launder the false PASS.
+            self.make_session(root, SHA, status="PASS", failed_id=failed)
+            forged = watch_ui_regressions(**kw)
+            self.assertEqual(forged["status"], "BLOCKED")
+            self.assertIn("INCONSISTENT_PASS_REPORT", " ".join(forged["errors"]))
+
+            self.assertEqual(watch_ui_regressions(**{**kw, "baseline_sha": SHA})["status"], "BLOCKED")
+
+    def test_no_cross_sha_stale_or_missing_png_for_regression_watch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            baseline = self.make_session(root, BASE)
+            candidate = self.make_session(root, SHA)
+            kw = {"baseline_sha": BASE, "candidate_sha": SHA,
+                  "baseline_sessions": [baseline], "candidate_sessions": [candidate]}
+            (candidate / "capture.png").unlink()
+            self.assertEqual(watch_ui_regressions(**kw)["status"], "BLOCKED")
+            self.make_session(root, SHA, missing_capture=True)
+            self.assertEqual(watch_ui_regressions(**kw)["status"], "BLOCKED")
+
+    def test_regression_watch_cli_is_fail_closed_until_evidence_exists(self):
+        from tools.atlas_doctor_lib.doctor_ui_ci import main
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            output = Path(tmp) / "watch.json"
+            code = main(["regression-watch", "--baseline-sha", BASE,
+                         "--candidate-sha", SHA, "--watch-output", str(output)])
+            self.assertEqual(code, 2)
+            report = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(report["status"], "NOT_COVERED")
+
 
 
 class DoctorUiVerdictTests(unittest.TestCase):
