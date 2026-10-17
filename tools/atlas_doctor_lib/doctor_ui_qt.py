@@ -545,24 +545,95 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     automatic = view.service.card_auto_complete(view.character_key, card)
     session.check("no-game-proof", "Evaluate automatic completion on blank profile", False, automatic, not automatic, page)
     button = view.findChild(QPushButton, "GuideManualPageCheck")
-    initial = view.service.page_checked("character:990000001", card, 0)
-    expected_manual = not initial
-    click = click_target(page, button)
-    view.service.reload_progress()
-    saved = view.service.page_checked("character:990000001", card, 0)
-    session.check("manual-persist", "QTest Valider then reload canonical services", "Page 1 toggle persisted",
-                  {"click": click, "initial": initial, "saved": saved},
-                  click["accessible"] and saved == expected_manual, page)
-    view.set_character_key("character:990000002")
-    isolated = not view.service.page_checked("character:990000002", card, 0)
-    view.set_character_key("character:990000001")
-    view._show_index(0)
-    settle()
-    restored = view.findChild(QPushButton, "GuideManualPageCheck").isChecked()
-    session.check("character-isolation", "Switch character, reload then return", "Other character clear; original state restored",
-                  {"other_clear": isolated, "original_checked": restored,
-                   "expected_original_checked": expected_manual},
-                  isolated and restored == expected_manual, page)
+    character = view.character_key
+    other_character = "character:990000002"
+    if button is None:
+        session.check("manual-persist", "Find current validation control",
+                      "Real GuideManualPageCheck mounted", {"reason": "MISSING_PAGE_CHECK"},
+                      False, page, status="BLOCKED")
+        for required in ("manual-reopen", "character-isolation", "manual-restore"):
+            session.check(required, "Unable to verify missing Guide validation control",
+                          "Physical validation and durable undo required",
+                          {"reason": "MISSING_PAGE_CHECK"}, False, page, status="BLOCKED")
+    else:
+        view.service.reload_progress()
+        initial = view.service.page_checked(character, card, 0)
+        expected_manual = not initial
+        initial_visual = button.isChecked()
+        click = click_target(page, button, view.scroll)
+        view.service.reload_progress()
+        saved = view.service.page_checked(character, card, 0)
+        checked = button.isChecked()
+        session.check(
+            "manual-persist", "QTest Valider then reload canonical persisted Guide progress",
+            "Real button, display and disk all toggle to the same explicit state",
+            {"click": click, "initial": initial, "initial_visual": initial_visual,
+             "saved": saved, "checked": checked, "expected": expected_manual},
+            click["accessible"] and initial_visual == initial
+            and checked == expected_manual and saved == expected_manual, page,
+        )
+        previous_button = button
+        view._show_index(0)
+        settle()
+        view.service.reload_progress()
+        fresh = view.findChild(QPushButton, "GuideManualPageCheck")
+        real_reopen = (fresh is not None and fresh is not previous_button
+                       and not isValid(previous_button)
+                       and fresh.isChecked() == expected_manual
+                       and view.service.page_checked(character, card, 0) == expected_manual)
+        session.check(
+            "manual-reopen", "Destroy and recreate actual Guide sheet, then reload saved progress",
+            "Previous control destroyed and fresh checkbox retains disk completion",
+            {"destroyed_previous": not isValid(previous_button),
+             "fresh_widget": fresh is not previous_button,
+             "reopened_checked": fresh.isChecked() if fresh else None,
+             "disk_checked": view.service.page_checked(character, card, 0),
+             "expected": expected_manual}, real_reopen, page,
+        )
+        view.set_character_key(other_character)
+        settle()
+        view.service.reload_progress()
+        other_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        other_saved = view.service.page_checked(other_character, card, 0)
+        other_visual = other_button.isChecked() if other_button else None
+        view.set_character_key(character)
+        view._show_index(0)
+        settle()
+        view.service.reload_progress()
+        back_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        back_saved = view.service.page_checked(character, card, 0)
+        back_visual = back_button.isChecked() if back_button else None
+        isolated = (other_button is not None and not other_saved
+                    and other_visual is False and back_button is not None
+                    and back_saved == expected_manual and back_visual == expected_manual)
+        session.check(
+            "character-isolation", "Switch real Guide to another character then return",
+            "Other character UI/disk clear; original UI/disk retains saved progress",
+            {"other_saved": other_saved, "other_visual": other_visual,
+             "original_saved": back_saved, "original_visual": back_visual,
+             "expected_original": expected_manual}, isolated, page,
+        )
+        undo = (click_target(page, back_button, view.scroll)
+                if back_button is not None else {"accessible": False})
+        view.service.reload_progress()
+        undo_saved = view.service.page_checked(character, card, 0)
+        undo_visual = back_button.isChecked() if back_button else None
+        view._show_index(0)
+        settle()
+        view.service.reload_progress()
+        final_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        final_saved = view.service.page_checked(character, card, 0)
+        final_visual = final_button.isChecked() if final_button else None
+        session.check(
+            "manual-restore", "QTest inverse Valider, persist, rebuild Guide card and reload",
+            "Original saved and displayed completion fully restored after two physical clicks",
+            {"undo": undo, "original": initial, "undo_saved": undo_saved,
+             "undo_visual": undo_visual, "final_saved": final_saved,
+             "final_visual": final_visual},
+            undo["accessible"] and undo_saved == initial and undo_visual == initial
+            and final_button is not None and final_saved == initial and final_visual == initial,
+            page,
+        )
     if not smoke:
         combat = None
         # Bound scene discovery; never traverse the entire Guide or hydrate all quests.
