@@ -64,10 +64,11 @@ def _verbose_verdicts(stderr: Any) -> dict[str, list[str]]:
     return verdicts
 
 
-def _evidence_rows(mapping: dict[str, str], verdicts: dict[str, list[str]]) -> list[dict[str, str]]:
+def _evidence_rows(mapping: dict[str, str], verdicts: dict[str, list[str]], *, suite_pass: bool) -> list[dict[str, str]]:
     return [
         {"capability_id": ident, "test_id": test_id,
-         "result": "PASS" if verdicts.get(test_id) == ["ok"] else "UNVERIFIED"}
+         "observed_result": verdicts.get(test_id, ["NOT_OBSERVED"]),
+         "result": "PASS" if suite_pass and verdicts.get(test_id) == ["ok"] else "UNVERIFIED"}
         for ident, test_id in sorted(mapping.items())
     ]
 
@@ -137,8 +138,8 @@ def run_capability_witnesses(root: Path, *, timeout: int = 300) -> dict[str, Any
         "log_truncated": log_truncated,
         "missing_witnesses": missing,
         "duplicate_test_ids": duplicate_ids,
-        "witnesses": _evidence_rows(test_ids, observed),
-        "control_witnesses": _evidence_rows(control_ids, observed),
+        "witnesses": _evidence_rows(test_ids, observed, suite_pass=aggregate_pass),
+        "control_witnesses": _evidence_rows(control_ids, observed, suite_pass=aggregate_pass),
         "stdout_tail": stdout,
         "stderr_tail": stderr,
         "certification": "NOT_CERTIFIED",
