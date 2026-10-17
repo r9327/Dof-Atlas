@@ -1117,6 +1117,16 @@ def exercise_achievement_detail(session, page):
     observed = achievement_outcome(page, view, achievement_id, title)
     failure = first_achievement_failure(observed)
     observed.update(click=click, settled=settled, first_failed_transition=failure)
+    # The catalog's get_by_id() supplies the *summary*, without the rich
+    # description. The production detail widget renders get_detail_by_id().
+    # Keep the independent oracle on that authoritative detailed record:
+    # missing/wrong detail must BLOCK rather than certify the UI against itself.
+    detailed_achievement = page.service.achievement_provider.get_detail_by_id(achievement_id)
+    if (detailed_achievement is None
+            or int(detailed_achievement.id) != achievement_id
+            or str(detailed_achievement.name) != title):
+        raise RuntimeError("Detailed Success provider record mismatch after real click")
+    expected_description = str(detailed_achievement.description or "")
     session.card_id = str(achievement_id)
     session.check(
         "first-open-lazy",
@@ -1165,7 +1175,7 @@ def exercise_achievement_detail(session, page):
             status="BLOCKED" if contrast["status"] == "BLOCKED" else None,
         )
         readable = achievement_readable_text_observations(
-            page, view, expected_description=str(achievement.description or ""),
+            page, view, expected_description=expected_description,
         )
         session.check(
             f"text-regions-{width}",
