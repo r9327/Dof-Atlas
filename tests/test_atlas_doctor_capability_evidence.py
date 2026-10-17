@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import copy
 import os
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -138,6 +140,34 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
         run.return_value.stderr = previous.replace(first, "foreign " + first, 1)
         self.assertEqual(run_capability_witnesses(self.root)["status"], "FAIL")
         run.return_value.stderr = previous
+
+    def test_unittest_bare_module_does_not_import_qt_test_package(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            tests = root / "tests"
+            tests.mkdir()
+            (tests / "__init__.py").write_text(
+                'raise AssertionError("tests package must not be imported")\\n',
+                encoding="utf-8",
+            )
+            (tests / "test_smoke.py").write_text(
+                "import unittest\\n"
+                "class SmokeCase(unittest.TestCase):\\n"
+                "    def test_ok(self): self.assertTrue(True)\\n",
+                encoding="utf-8",
+            )
+            env = dict(os.environ)
+            env["PYTHONPATH"] = os.pathsep.join([str(tests), str(root)])
+            completed = subprocess.run(
+                [sys.executable, "-m", "unittest", "-v",
+                 "test_smoke.SmokeCase.test_ok"],
+                cwd=root, env=env, capture_output=True, text=True, timeout=30,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn(
+                "test_ok (test_smoke.SmokeCase.test_ok) ... ok", completed.stderr,
+            )
+            self.assertIn("Ran 1 test", completed.stderr)
 
     @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
     @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
