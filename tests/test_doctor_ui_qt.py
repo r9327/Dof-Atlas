@@ -20,7 +20,8 @@ from tools.atlas_doctor_lib.doctor_ui import verdict
 from tools.atlas_doctor_lib.doctor_ui_qt import (
     UiSession, click_target, click_achievement_row, first_quest_failure,
     first_achievement_failure, achievement_layout_observations,
-    first_achievement_layout_failure, geometry_observations, settle,
+    first_achievement_layout_failure, achievement_title_contrast,
+    geometry_observations, settle,
     quest_outcome, sheet_observations, widget_tree, glyph_legibility_probe,
 )
 
@@ -317,6 +318,46 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         witness.check("glyph-rendering", "Font renderer", "Unique glyph pixels", probe,
                       probe["status"] == "PASS", self.view)
         self.assertEqual(verdict(witness.assertions, ["session/glyph-rendering"]), "FAIL")
+
+    def test_real_qt_screenshot_contrast_uses_actual_title_pixels(self):
+        from PySide6.QtGui import QFont
+        from PySide6.QtWidgets import QLabel, QVBoxLayout
+
+        page = QWidget()
+        page.setStyleSheet("background-color: #081113;")
+        layout = QVBoxLayout(page)
+        content = QFrame()
+        inner = QVBoxLayout(content)
+        title = QLabel("Premier temps")
+        title.setObjectName("AchievementDetailTitle")
+        title.setFont(QFont("Arial", 15))
+        title.setStyleSheet("color: #f5f7f2; background-color: transparent;")
+        inner.addWidget(title)
+        inner.addStretch(1)
+        layout.addWidget(content)
+        view = SimpleNamespace(detail_content=content)
+        page.resize(580, 250)
+        page.show()
+        settle()
+        try:
+            good = achievement_title_contrast(page, view)
+            self.assertEqual(good["status"], "PASS", good)
+            self.assertGreaterEqual(good["above_minimum_ratio_pixels"],
+                                    good["required_ink_pixels"])
+            self.assertEqual(good["widget"], "AchievementDetailTitle")
+
+            title.setStyleSheet("color: #182123; background-color: transparent;")
+            title.repaint()
+            page.repaint()
+            settle()
+            bad = achievement_title_contrast(page, view)
+            self.assertEqual(bad["status"], "FAIL", bad)
+            self.assertIn(bad["reason"],
+                          ("TEXT_INVISIBLE_OR_TOO_FAINT", "INSUFFICIENT_PIXEL_CONTRAST"))
+        finally:
+            page.close()
+            page.deleteLater()
+            settle()
 
     def test_real_qt_success_layout_oracle_rejects_clipped_title_and_scroll(self):
         from PySide6.QtWidgets import QCheckBox, QLabel, QScrollArea, QVBoxLayout
