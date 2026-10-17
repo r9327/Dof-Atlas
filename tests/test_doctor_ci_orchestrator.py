@@ -126,6 +126,35 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertTrue(self.select(['tools/atlas_doctor_lib/ci_orchestrator.py'],
                                     event='workflow_dispatch')['full'])
 
+    def test_doctor_only_behavior_evidence_is_focused_not_app_release_certification(self):
+        paths = [
+            'tools/atlas_doctor.py',
+            'tools/atlas_doctor_lib/capability_matrix.py',
+            'tools/atlas_doctor_lib/capability_evidence.py',
+            'tools/atlas_doctor_lib/agent_protocol.py',
+            'tests/test_atlas_doctor_capabilities.py',
+            'tests/test_atlas_doctor_capability_evidence.py',
+            'tests/test_atlas_doctor_agent_protocol.py',
+            '.ai/context_index.json',
+            'docs/audit-remediation/2026-10-17/07-doctor-capability-ci-evidence.md',
+        ]
+        result = self.select(paths, route={'route': 'FULL'})
+        self.assertTrue(result['tooling_only'])
+        self.assertFalse(result['full'])
+        self.assertFalse(result['phase'])
+        self.assertFalse(result['workflows']['doctor-ui']['selected'])
+        self.assertTrue(result['workflows']['graphify-targeted-ci']['selected'])
+        for mixed in ['app/modules/encyclopedia/views/guides_view.py',
+                      'tools/atlas_doctor_lib/runtime_observation.py',
+                      'tests/test_guide_ultime_v5_ui.py']:
+            with self.subTest(mixed=mixed):
+                result = self.select([*paths, mixed], route={'route': 'FULL'})
+                self.assertTrue(result['full'])
+                self.assertTrue(result['phase'])
+        self.assertTrue(self.select(paths, route={'route': 'INVALID'})['full'])
+        self.assertTrue(self.select(paths, deleted=['tools/old_capability.py'])['full'])
+        self.assertTrue(self.select(paths, event='workflow_dispatch')['full'])
+
     def test_integrity_policy_only_allows_additive_ci_test_wiring(self):
         from tools.atlas_doctor_lib.ci_tooling_scope import eligible
         from unittest.mock import patch
