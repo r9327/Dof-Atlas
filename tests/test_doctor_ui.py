@@ -157,9 +157,11 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
              "achievement-detail/geometry-1200",
              "achievement-detail/layout-1200",
              "achievement-detail/contrast-1200",
+             "achievement-detail/text-regions-1200",
              "achievement-detail/geometry-960",
              "achievement-detail/layout-960",
              "achievement-detail/contrast-960",
+             "achievement-detail/text-regions-960",
              "session/qt-exceptions",
              "session/glyph-rendering"],
         )
