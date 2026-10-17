@@ -289,6 +289,18 @@ scopes:
       - tests.test_direction_macro
       - tests.test_runtime_lazy_macros
 
+  project_docs:
+    kind: feature
+    manifest: .ai/scopes/project_docs.yaml
+    rule_entries:
+      - PHASE_CERTIFICATION.md
+    canonical_entries:
+      - README.md
+      - docs/CONTRIBUTING.md
+    test_entries:
+      - tests.test_ai_context
+      - tests.test_agent_scope_tests
+
   quality_ci:
     kind: shared_infrastructure
     manifest: .ai/scopes/quality_ci.yaml

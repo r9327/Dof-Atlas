@@ -39,6 +39,9 @@ class _CatalogProvider:
         value = str(query or "").casefold().strip()
         return [guide for guide in self.guides if not value or value in guide.search_text]
 
+    def load_all(self):
+        return list(self.guides)
+
 
 class GuideHomeTwoColumnsTests(unittest.TestCase):
     @classmethod
@@ -92,8 +95,8 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                     quest_progress_path=Path(directory) / "quest_progress.json",
                     defer_runtime=True,
                 )
-                view._runtime_ready = True
                 view._progress_snapshot = lambda: {}
+                view.hydrate_runtime()
                 view.resize(1200, 750)
                 view.show()
                 view.refresh_home()

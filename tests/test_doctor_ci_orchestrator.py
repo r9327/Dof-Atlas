@@ -183,7 +183,7 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
                 plan_ci(root, base_ref=base, candidate_sha=head, event='pull_request', output=root / 'plan.json')
 
     def test_actual_final_verdict_rejects_skipped_failed_or_cancelled_selected_ci(self):
-        source = (ROOT / '.github/workflows/phase-certification.yml').read_text()
+        source = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
         script = textwrap.dedent(source.rsplit('        run: |\n', 1)[1])
         for result, expected in [('success', 0), ('skipped', 1), ('failure', 1), ('cancelled', 1)]:
             env = {**os.environ, 'DOCTOR_REQUIRED': '["certify"]',
@@ -195,14 +195,14 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
             self.assertNotEqual(subprocess.run([sys.executable, '-c', script], env=env, capture_output=True).returncode, 0)
 
     def test_single_automatic_entry_and_no_required_public_check_rename(self):
-        registry = json.loads((ROOT / 'tools/atlas_doctor_lib/ci_routes.json').read_text())
+        registry = json.loads((ROOT / 'tools/atlas_doctor_lib/ci_routes.json').read_text(encoding='utf-8'))
         for name in registry:
-            source = (ROOT / f'.github/workflows/{name}.yml').read_text()
+            source = (ROOT / f'.github/workflows/{name}.yml').read_text(encoding='utf-8')
             trigger = source.split('permissions:', 1)[0]
             self.assertIn('  workflow_call:', trigger, name)
             self.assertNotIn('  pull_request:', trigger, name)
             self.assertNotIn('  push:', trigger, name)
-        central = (ROOT / '.github/workflows/phase-certification.yml').read_text()
+        central = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
         self.assertIn('name: Public PR / Safe Validation', central)
         self.assertNotIn('      - edited\n', central)
         self.assertNotIn('      - converted_to_draft\n', central)

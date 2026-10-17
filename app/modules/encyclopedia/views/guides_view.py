@@ -2967,6 +2967,7 @@ class GuidesView(QWidget):
         """
         rows: list[tuple[str, int | None, int | None]] = []
         seen: set[str] = set()
+        seen_entities: set[tuple[str, int]] = set()
         guide_keys = {
             (step.step_type, int(step.entity_id))
             for step in guide.steps if step.entity_id is not None
@@ -2986,9 +2987,17 @@ class GuidesView(QWidget):
         ) -> None:
             clean = clean_requirement_line(text)
             key = normalize_text(clean)
-            if clean and key not in seen:
-                seen.add(key)
-                rows.append((clean, quest_id, success_id))
+            entity_key = (
+                ("quest", int(quest_id)) if quest_id is not None
+                else ("achievement", int(success_id)) if success_id is not None
+                else None
+            )
+            if not clean or key in seen or entity_key in seen_entities:
+                return
+            seen.add(key)
+            if entity_key is not None:
+                seen_entities.add(entity_key)
+            rows.append((clean, quest_id, success_id))
 
         for ref in success_refs:
             success_id = int(ref.entity_id)

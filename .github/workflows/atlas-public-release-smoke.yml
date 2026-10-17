@@ -17,12 +17,50 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: atlas-public-release-smoke-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
+  detect-publication:
+    name: Verify upstream release publication
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      published: ${{ steps.proof.outputs.published }}
+      status: ${{ steps.proof.outputs.status }}
+      source_sha: ${{ steps.proof.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          # The publication helper ships with this workflow; older sources may predate it.
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Require host proof of a successful publication step
+        id: proof
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          python -m tools.ci_distribution_publication
+          --event-path "$GITHUB_EVENT_PATH"
+          --repo "$GITHUB_REPOSITORY"
+          --output artifacts/publication-proof.json
+          --github-output "$GITHUB_OUTPUT"
+      - name: Keep publication routing evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: atlas-publication-proof-${{ github.run_id }}
+          path: artifacts/publication-proof.json
+          if-no-files-found: warn
+          retention-days: 30
+
   supplemental-public-upgrade:
     name: Real public launcher update from previous verified public payload
     if: github.event_name == 'workflow_dispatch' && inputs.certify_installed_sha != ''
@@ -94,13 +132,13 @@ jobs:
 
   public-windows-install:
     name: Public GitHub CDN + Frozen Setup on fresh Windows
+    needs: [detect-publication]
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.event == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'workflow_run' &&
+        needs.detect-publication.result == 'success' &&
+        needs.detect-publication.outputs.published == 'true'))
     runs-on: windows-latest
     timeout-minutes: 18
     steps:
@@ -132,16 +170,15 @@ jobs:
 
   complete-first-install:
     name: E2E first boot — public 2.66 GB download + Qt-ready activation
-    needs: [public-windows-install]
+    needs: [detect-publication, public-windows-install]
     # Exercise the entire real Windows first-install path only AFTER a
     # successful distribution run, not before a Release exists. An ordinary
     # code push cannot certify a not-yet-published EXE or 2.66 GB archive.
     if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.event == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      always() &&
+      needs.detect-publication.result == 'success' &&
+      needs.detect-publication.outputs.published == 'true' &&
+      needs.public-windows-install.result == 'success'
     runs-on: windows-latest
     timeout-minutes: 70
     steps:
