@@ -24,6 +24,9 @@ route is unclear; do not guess around `REVIEW` or `BLOCKED`.
 - Exit `2`: `BLOCKED` or `FAIL`; do not continue automatically.
 - `edit_contract` limits the initial paths and identifies protected areas.
 - `selected_checks` is the minimum validation, not permission to skip failures.
+- `guardians` selects the relevant UI, quest/guide, network, persistence,
+  performance, release, security and simplicity review lenses. Their tests are
+  deduplicated into the existing execution batch; they are not parallel gates.
 - `certification.full_certified` remains false until the independent exact-SHA
   Phase Certification workflow proves FULL.
 

@@ -33,6 +33,8 @@ class DoctorAgentProtocolTests(unittest.TestCase):
         self.assertFalse(result["certification"]["full_certified"])
         self.assertTrue(result["edit_contract"]["expansion_requires_replan"])
         self.assertIn("data/local/zaaps.json", result["edit_contract"]["protected_paths"])
+        self.assertEqual(result["guardians"]["selected_ids"], ["core", "simplicity"])
+        self.assertTrue(result["guardians"]["execution"]["deduplicated"])
 
     def test_empty_path_request_fails_closed(self):
         result = run_agent_action(Path("."), action="plan", paths=[])
