@@ -11,6 +11,34 @@ from tools.atlas_doctor import build_parser
 from tools.atlas_doctor_lib.doctor_ui import required_assertions, run_ui
 
 
+class ScreenshotContrastOracleTests(unittest.TestCase):
+    def test_real_color_math_white_on_dark_and_dark_on_dark(self):
+        from tools.atlas_doctor_lib.ui_contrast_oracle import inspect_label_pixels
+
+        dark = (8, 17, 19)
+        bright = (245, 247, 242)
+        faint = (24, 33, 35)
+        normal = [dark] * 880 + [bright] * 120
+        weak = [dark] * 880 + [faint] * 120
+        good = inspect_label_pixels(normal)
+        bad = inspect_label_pixels(weak)
+        self.assertEqual(good["status"], "PASS")
+        self.assertGreater(good["contrast_ratio_q95"], 4.5)
+        self.assertEqual(bad["status"], "FAIL")
+        self.assertEqual(bad["reason"], "TEXT_INVISIBLE_OR_TOO_FAINT")
+        self.assertEqual(bad["above_minimum_ratio_pixels"], 0)
+
+    def test_uniform_missing_text_and_complex_background_never_pass(self):
+        from tools.atlas_doctor_lib.ui_contrast_oracle import inspect_label_pixels
+
+        bg = (8, 17, 19)
+        self.assertEqual(inspect_label_pixels([bg] * 1000)["status"], "FAIL")
+        complicated = [(0, 0, 0)] * 400 + [(255, 255, 255)] * 400
+        self.assertEqual(inspect_label_pixels(complicated)["status"], "BLOCKED")
+        for pixels in ([], [(999, 0, 0)] * 200, [(1, 2)] * 200):
+            self.assertEqual(inspect_label_pixels(pixels)["status"], "BLOCKED")
+
+
 class ScreenshotRasterOracleTests(unittest.TestCase):
     """Synthetic real pixel buffers, not QFont claims or predeclared PASS."""
 
