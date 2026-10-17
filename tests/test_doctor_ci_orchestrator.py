@@ -136,6 +136,9 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertIn('artifacts/doctor_ci/capability_evidence.json', focused)
         self.assertIn("if p['tooling_only']:", focused)
         self.assertIn('if-no-files-found: error', focused)
+        self.assertIn('if: always()', focused)
+        self.assertIn("witness['raw_stderr_chars']", focused)
+        self.assertIn("Doctor stderr tail:", focused)
 
     def test_doctor_only_behavior_evidence_is_focused_not_app_release_certification(self):
         paths = [
