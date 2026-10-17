@@ -77,15 +77,27 @@ class DoctorUiSelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(set(self.plan(path)["selected_scenarios"]), selected)
 
-    def test_validator_changes_also_select_real_success_journey(self):
-        for path in ("tools/atlas_doctor_lib/doctor_ui_qt.py", "tools/atlas_doctor_lib/doctor_ui_ci.py",
-                     "tests/test_doctor_ui_qt.py", "tools/atlas_doctor_lib/doctor_ui.py",
-                     "tools/atlas_doctor_lib/ui_raster_oracle.py",
-                     "tools/atlas_doctor_lib/ui_contrast_oracle.py"):
-            self.assertEqual(
-                self.plan(path)["selected_scenarios"],
-                ["achievement-detail", "validator-smoke"],
-            )
+    def test_shared_validator_changes_execute_real_success_and_both_guides(self):
+        for path in (
+            "tools/atlas_doctor_lib/doctor_ui_qt.py",
+            "tools/atlas_doctor_lib/doctor_ui.py",
+            "tests/test_doctor_ui_qt.py",
+            "tests/test_doctor_ui.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(
+                    self.plan(path)["selected_scenarios"],
+                    ["guides-success", "guides-lanyel", "validator-smoke",
+                     "achievement-detail"],
+                )
+        for path in (
+            "tools/atlas_doctor_lib/doctor_ui_ci.py",
+            "tools/atlas_doctor_lib/ui_raster_oracle.py",
+            "tools/atlas_doctor_lib/ui_contrast_oracle.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.plan(path)["selected_scenarios"],
+                                 ["achievement-detail", "validator-smoke"])
         self.assertEqual(
             self.plan(".github/workflows/doctor-ui.yml")["selected_scenarios"],
             ["validator-smoke"],
