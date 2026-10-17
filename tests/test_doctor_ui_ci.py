@@ -68,7 +68,7 @@ class DoctorUiSelectionTests(unittest.TestCase):
     def test_quest_bridge_theme_and_canonical_data_have_explicit_consumers(self):
         cases = {
             "app/modules/encyclopedia/services/link_service.py": {"guide-quests"},
-            "app/modules/encyclopedia/views/encyclopedia_page.py": set(ALL_GUIDES),
+            "app/modules/encyclopedia/views/encyclopedia_page.py": set(ALL_GUIDES) | {"achievement-detail"},
             "app/ui/theme.py": set(ALL_GUIDES),
             "data/routes/guide_ultime_manual/chapter_01.json": {"guides-success", "guide-quests"},
             "data/encyclopedia/guides/dofus_sylvestre.json": {"guides-lanyel", "guide-quests"},
