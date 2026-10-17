@@ -148,6 +148,32 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
         self.assertIn("WITNESS_VERBOSE_VERDICTS_INCOMPLETE",
                       validate_capability_evidence(self.root, payload)["errors"])
 
+    @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_large_verbose_transcript_is_retained_but_oversize_blocks(self, state, run):
+        from tools.atlas_doctor_lib.capability_evidence import MAX_LOG_CHARS
+
+        state.return_value = self.state
+        run.return_value.returncode = 0
+        run.return_value.stdout = ""
+        # Diagnostic output may precede the 36 method results. The old 12 KiB
+        # cap discarded valid individual verdicts and rejected routine runs.
+        run.return_value.stderr = ("diagnostic context\n" * 900) + self._passing_log()
+        self.assertGreater(len(run.return_value.stderr), 12_000)
+        self.assertLess(len(run.return_value.stderr), MAX_LOG_CHARS)
+        good = run_capability_witnesses(self.root)
+        self.assertEqual(good["status"], "PASS")
+        self.assertFalse(good["log_truncated"])
+        self.assertEqual(good["raw_stderr_chars"], len(run.return_value.stderr))
+        self.assertEqual(validate_capability_evidence(self.root, good)["status"], "PASS")
+
+        # A truncated transcript cannot be made PASS by a forged summary.
+        run.return_value.stderr = ("context\n" * (MAX_LOG_CHARS // 8 + 2)) + self._passing_log()
+        huge = run_capability_witnesses(self.root)
+        self.assertEqual(huge["status"], "BLOCKED")
+        self.assertTrue(huge["log_truncated"])
+        self.assertEqual(validate_capability_evidence(self.root, huge)["status"], "BLOCKED")
+
     @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
     def test_reader_rejects_skip_hidden_by_passing_fields_and_valid_digest(self, state):
         state.return_value = self.state
