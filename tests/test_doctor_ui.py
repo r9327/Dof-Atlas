@@ -162,6 +162,10 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
              "achievement-detail/layout-960",
              "achievement-detail/contrast-960",
              "achievement-detail/text-regions-960",
+             "achievement-detail/complete-click",
+             "achievement-detail/complete-reopen",
+             "achievement-detail/complete-character",
+             "achievement-detail/complete-restore",
              "session/qt-exceptions",
              "session/glyph-rendering"],
         )
