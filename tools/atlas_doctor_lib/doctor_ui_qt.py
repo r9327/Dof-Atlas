@@ -236,6 +236,74 @@ class UiSession:
         write_json(self.folder / "actions.json", self.journal)
 
 
+
+def configure_validation_fonts(app) -> dict:
+    """Register Windows fonts for Qt's isolated offscreen scene, without app changes."""
+    from PySide6.QtGui import QFont, QFontDatabase
+
+    font_dir = Path(os.environ.get("WINDIR") or os.environ.get("SystemRoot") or "C:/Windows") / "Fonts"
+    registered = []
+    for filename in ("segoeui.ttf", "arial.ttf", "tahoma.ttf", "calibri.ttf"):
+        path = font_dir / filename
+        if path.is_file():
+            token = QFontDatabase.addApplicationFont(str(path))
+            if token >= 0:
+                families = list(QFontDatabase.applicationFontFamilies(token))
+                registered.append({"file": filename, "families": families})
+    if registered and registered[0]["families"]:
+        app.setFont(QFont(registered[0]["families"][0], 10))
+    return {"windows_font_dir": font_dir.is_dir(), "loaded": registered,
+            "application_font_family": app.font().family()}
+
+
+def _glyph_signature(font, letter: str) -> str:
+    import hashlib
+    from PySide6.QtCore import QRect, Qt
+    from PySide6.QtGui import QImage, QPainter
+
+    canvas = QImage(96, 72, QImage.Format_ARGB32)
+    canvas.fill(Qt.white)
+    painter = QPainter(canvas)
+    try:
+        painter.setPen(Qt.black)
+        painter.setFont(font)
+        painter.drawText(QRect(0, 0, 96, 72), Qt.AlignCenter, letter)
+    finally:
+        painter.end()
+    return hashlib.sha256(canvas.bits().tobytes()).hexdigest()
+
+
+def glyph_legibility_probe(page) -> dict:
+    """Reject square/tofu substitutions for text in actual live widget fonts."""
+    from PySide6.QtGui import QFont, QFontInfo, QFontMetrics
+    from PySide6.QtWidgets import QLabel
+
+    labels = [label for label in page.findChildren(QLabel)
+              if label.isVisible() and label.text().strip()]
+    title = next((label for label in labels if label.objectName() == "AchievementDetailTitle"), None)
+    chosen = ([title] if title is not None else []) + [label for label in labels if label is not title][:3]
+    samples = ("A", "W", "m", "é", "ç", "8")
+    results = []
+    for label in chosen:
+        font = QFont(label.font())
+        font.setPixelSize(34)
+        metrics = QFontMetrics(font)
+        signatures = {char: _glyph_signature(font, char) for char in samples}
+        coverage = {char: bool(metrics.inFontUcs4(ord(char))) for char in samples}
+        results.append({
+            "widget": label.objectName(), "requested_font": font.family(),
+            "resolved_font": QFontInfo(font).family(),
+            "unique_raster_glyphs": len(set(signatures.values())),
+            "glyph_coverage": coverage, "raster_sha256": signatures,
+            "passed": all(coverage.values()) and len(set(signatures.values())) == len(samples),
+        })
+    passed = bool(results) and all(r["passed"] for r in results)
+    return {"status": "PASS" if passed else "FAIL",
+            "reason": "FONT_RASTER_OK" if passed else "MISSING_OR_SQUARE_FONT_GLYPHS",
+            "sample_chars": list(samples), "labels": results,
+            "limits": "Only sampled glyph rendering; no OCR or full visual/contrast certification."}
+
+
 def build_scene(temp: Path):
     from PySide6.QtCore import QThread
     from PySide6.QtWidgets import QApplication
@@ -249,6 +317,7 @@ def build_scene(temp: Path):
     from app.ui.theme import atlas_stylesheet
 
     app = QApplication.instance() or QApplication([])
+    app._doctor_font_registration = configure_validation_fonts(app)
     if QThread.currentThread() != app.thread():
         raise RuntimeError("Doctor UI must run on the Qt application thread")
     app.setStyleSheet(atlas_stylesheet())
@@ -818,7 +887,8 @@ def worker(folder: Path) -> int:
                         qt_platform=app.platformName(), dpi=screen.logicalDotsPerInch(),
                         device_pixel_ratio=screen.devicePixelRatio(),
                         data_source="canonical local public catalog + authored Guide data",
-                        progress_source="temporary isolated canonical services")
+                        progress_source="temporary isolated canonical services",
+                        validation_fonts=getattr(app, "_doctor_font_registration", {}))
         write_json(folder / "manifest.json", manifest)
         for name in request["scenarios"]:
             session.scenario = name
@@ -839,6 +909,10 @@ def worker(folder: Path) -> int:
         if report["tests_executed"]:
             session.scenario = "session"
             session.check("qt-exceptions", "Deliver all Qt callbacks", "No callback exception", qt_errors, not qt_errors, page)
+            typography = glyph_legibility_probe(page)
+            session.check("glyph-rendering", "Render live Qt font samples",
+                          "ASCII and French glyphs distinct, without tofu squares",
+                          typography, typography["status"] == "PASS", page)
         page.close()
         page.deleteLater()
         settle()
