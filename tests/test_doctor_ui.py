@@ -153,6 +153,8 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
                           "combat", "combat-character", "combat-restore"):
                 self.assertIn(f"{guide}/{check}", required)
         self.assertIn("guides-success/geometry-3-960", required)
+        self.assertIn("guides-success/bottom-3-960", required)
+        self.assertIn("guides-lanyel/bottom-8-1200", required)
         self.assertIn("guide-quests/dofus_sylvestre-quest-1", required)
         success = required_assertions(["achievement-detail"])
         self.assertEqual(
