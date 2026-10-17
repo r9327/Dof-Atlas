@@ -35,7 +35,7 @@ def _status(value: str, *, automation_safe: bool = False) -> str:
         return "FAIL"
     if value in {"BLOCKED"}:
         return "BLOCKED"
-    if value in {"PASS"}:
+    if value in {"PASS", "FOCUSED_CHECKED"}:
         return "PASS"
     if value in {"READY", "READY_TO_RUN_SCOPED"} and automation_safe:
         return "READY"
@@ -59,6 +59,32 @@ def _plan_summary(plan: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _review_causes(plan: dict[str, Any], result: dict[str, Any]) -> list[str]:
+    causes: list[str] = []
+    direct = result.get("primary_cause") or result.get("reason") or plan.get("reason")
+    if direct:
+        causes.append(str(direct))
+    ownership = plan.get("ownership") or {}
+    unresolved = _unique([
+        *ownership.get("unowned_paths", []),
+        *ownership.get("ambiguous_paths", []),
+    ], limit=20)
+    if unresolved:
+        causes.append("Resolve scope ownership before editing: " + ", ".join(unresolved))
+    for field, label in (
+        ("unsafe_recommended_tools", "Unsafe tools require review"),
+        ("non_automated_recommended_tools", "Tools are not automation-ready"),
+        ("missing_validation_tools", "Required validation tools are missing"),
+    ):
+        values = _unique(plan.get(field, []), limit=20)
+        if values:
+            causes.append(label + ": " + ", ".join(values))
+    source = plan.get("source_diagnostics") or {}
+    if source.get("status") in {"FAIL", "REVIEW"}:
+        causes.append("Inspect incomplete or invalid source diagnostics before editing.")
+    return _unique(causes, limit=10)
+
+
 def _envelope(root: Path, *, action: str, paths: list[str], base_ref: str,
               plan: dict[str, Any], result: dict[str, Any] | None = None) -> dict[str, Any]:
     from .guardian_packs import guardian_plan
@@ -74,11 +100,18 @@ def _envelope(root: Path, *, action: str, paths: list[str], base_ref: str,
     if checks["graph_required"] and checks["graph_status"] != "PASS":
         next_actions.append("Rebuild and inspect exact-SHA Graphify evidence before structural edits.")
     if status in {"BLOCKED", "FAIL", "REVIEW"}:
-        cause = result.get("primary_cause") or plan.get("reason")
-        if cause:
-            next_actions.append(str(cause))
+        next_actions.extend(_review_causes(plan, result))
     if not next_actions:
-        next_actions.append("Apply only the requested change, then run `doctor agent check`.")
+        if status == "READY":
+            next_actions.append("Apply only the requested change, then run `doctor agent check`.")
+        elif status == "PASS" and action == "validate":
+            next_actions.append("Scoped validation passed; await required CI and exact-SHA certification.")
+        elif status == "PASS":
+            next_actions.append("Focused checks passed; run `doctor agent validate` before proposing merge.")
+        else:
+            next_actions.append(
+                "Inspect the full plan evidence; automatic editing is not authorized while status is REVIEW."
+            )
     certification = "SCOPED_VALIDATED" if action == "validate" and status == "PASS" else "NOT_RUN"
     payload = {
         "schema_version": 1,
