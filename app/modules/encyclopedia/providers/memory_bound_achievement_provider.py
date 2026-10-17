@@ -1253,9 +1253,18 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         return tuple(rows)
 
     def load_runtime(self) -> None:
-        """Warm only the compact resident catalogue used by Atlas runtime."""
+        """Warm the catalogue and prepare details for in-process runtimes."""
 
         self._ensure_loaded()
+        # The installed Windows EXE runs Success detail lookups in-process.
+        # Unlike the development subprocess path, that requires the detail
+        # source indexes to have been prepared before a Qt click invokes
+        # get_detail_by_id(). Do it in the existing background stage, not
+        # synchronously inside AchievementsView.show_achievement().
+        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
+        current_data_dir = Path(self.data_dir).resolve(strict=False)
+        if bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir:
+            self.prepare_detail_sources()
 
     def _compat_achievement(self, summary: Achievement) -> Achievement:
         achievement_id = int(summary.id)

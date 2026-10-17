@@ -54,6 +54,15 @@ _CONSEQUENCE_LEFT_RE = re.compile(
     r"\b(?:se\s+(?:termine|ferme)|(?:la|cette|ce)\s+(?:qu[êe]te|victoire|combat|mission|[ée]tape)\b|cela\s+(?:permet|ouvre|d[ée]bloque)|\bpermet\b)",
     flags=re.IGNORECASE,
 )
+_SAME_DIALOGUE_QUEST_RE = re.compile(
+    r"^(?:prends|prendre|accepte|accepter)\s+(?:la\s+)?qu[êe]te\b",
+    flags=re.IGNORECASE,
+)
+_TALK_TO_NPC_RE = re.compile(
+    r"\b(?:parle|parler|parlez|discute|discuter|discutez)\s+"
+    r"(?:à|a|au|aux|avec)\b",
+    flags=re.IGNORECASE,
+)
 _DROP_ACTION_RE = re.compile(r"\b(?:drop|droppe|dropper)\b", flags=re.IGNORECASE)
 _PURCHASE_RE = re.compile(
     r"\b(?:achet\w*|ach[èe]t\w*|achat\w*|hdv|h[ôo]tel\s+de\s+vente)\b",
@@ -122,6 +131,14 @@ def split_real_actions(text: str) -> list[str]:
                 after_intro_comma = local_left.split(",", 1)[1].strip() if "," in local_left else ""
                 if not after_intro_comma or _ACTION_START_RE.match(after_intro_comma) is None:
                     continue
+            # Talking to the NPC and accepting the quest in the same dialogue
+            # is one player action. Do not split it into two confusing rows.
+            if (
+                sep in {"et", "puis"}
+                and _TALK_TO_NPC_RE.search(local_left)
+                and _SAME_DIALOGUE_QUEST_RE.match(sentence[match.end():].strip())
+            ):
+                continue
             if _is_consequence_boundary(sentence, match.start()):
                 continue
             result.append(left.rstrip(" ,;"))

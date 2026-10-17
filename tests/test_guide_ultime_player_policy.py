@@ -9,6 +9,9 @@ from app.modules.encyclopedia.services.guide_ultime_manual_runtime_core import (
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
     GuideUltimeManualRuntimeService,
 )
+from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+    GuideCatalogManualRuntimeService,
+)
 from app.modules.encyclopedia.services.guide_ultime_player_policy import (
     apply_player_line_policy,
     ensure_drop_purchase_alternative,
@@ -73,6 +76,25 @@ class GuideUltimePlayerPolicyTests(unittest.TestCase):
             ],
         )
 
+    def test_npc_talk_and_accept_quest_stays_one_action(self) -> None:
+        single = "Parler à Fécaline la Sage et prendre la quête « Espoir et tragédie »."
+        self.assertEqual(split_real_actions(single), [single])
+        with_travel = (
+            "Aller en [1,2], parler à Fécaline la Sage et prendre la quête "
+            "« Espoir et tragédie »."
+        )
+        self.assertEqual(
+            split_real_actions(with_travel),
+            [
+                "Aller en [1,2]",
+                "parler à Fécaline la Sage et prendre la quête « Espoir et tragédie ».",
+            ],
+        )
+        self.assertEqual(
+            [row["text"] for row in apply_player_line_policy([{"kind": "action", "text": single}])],
+            [single],
+        )
+
     def test_quest_title_commas_do_not_create_fake_actions(self) -> None:
         text = "Après Monarchie parlementaire et Fais dodo, t'auras du gâteau, prendre Piwates."
         self.assertEqual(split_real_actions(text), [text])
@@ -110,6 +132,29 @@ class GuideUltimePlayerPolicyTests(unittest.TestCase):
             ]
         )
         self.assertEqual([row["kind"] for row in rows], ["warning", "action"])
+
+    def test_lanyel_does_not_repeat_resources_acquired_on_current_route_sheet(self) -> None:
+        service = object.__new__(GuideCatalogManualRuntimeService)
+        card = {
+            "manual_sections": {
+                "prepare": [
+                    {"kind": "warning", "text": "Prépare 5 × Tournesol sauvage."},
+                    {"kind": "warning", "text": "Prépare 3 × Poudre magique."},
+                ],
+                "now": [
+                    {"kind": "action", "text": "Récolte 5 × Tournesol sauvage sur place."},
+                    {"kind": "action", "text": "Donne 3 × Poudre magique au PNJ."},
+                ],
+            }
+        }
+        original = copy.deepcopy(card)
+        sections = service.manual_sections_for_card("character:1", card)
+        self.assertEqual(
+            [row["text"] for row in sections["prepare"]],
+            ["Prépare 3 × Poudre magique."],
+        )
+        self.assertEqual(len(sections["now"]), 2)
+        self.assertEqual(card, original)
 
     def test_section_classification_survives_action_splitting_and_global_preparation_dedupe(self) -> None:
         service = object.__new__(_SectionPolicyService)

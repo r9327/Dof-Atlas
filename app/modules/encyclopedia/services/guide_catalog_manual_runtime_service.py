@@ -14,6 +14,10 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
     GuideUltimeManualRuntimeService,
 )
+from app.modules.encyclopedia.services.guide_ultime_player_policy import (
+    line_acquires_resource,
+    preparation_resource_name,
+)
 from app.core.text import normalize_key as normalize_text
 
 
@@ -400,7 +404,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             if isinstance(card.get("manual_sections"), dict)
             else {}
         )
-        return {
+        sections = {
             key: [
                 copy.deepcopy(row)
                 for row in source.get(key, ())
@@ -415,6 +419,23 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                 "before_leave",
             )
         }
+        # The Lanyel catalogue supplies authored sections directly and thus
+        # bypasses the shared player-facing preparation policy. Keep the
+        # authored steps, but do not demand an item "before departure" when the
+        # very same route sheet explicitly obtains it on this map.
+        acquisitions = [
+            str(row.get("text") or "")
+            for section in ("now", "opportunity")
+            for row in sections[section]
+        ]
+        sections["prepare"] = [
+            row for row in sections["prepare"]
+            if not (
+                (name := preparation_resource_name(str(row.get("text") or "")))
+                and any(line_acquires_resource(text, name) for text in acquisitions)
+            )
+        ]
+        return sections
 
     def manual_checked(self, character_key: str, key: str) -> bool:
         return self.guide_progress.is_manual_step_completed(
