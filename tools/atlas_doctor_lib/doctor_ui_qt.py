@@ -1073,6 +1073,22 @@ def click_achievement_row(page, view, item) -> dict:
     return result
 
 
+
+def detailed_achievement_oracle(provider, achievement_id: int, summary_name: str) -> dict:
+    """Read canonical production detail record, independent of rendered widget.
+
+    The first catalog row is an abbreviated summary and is never sufficient
+    to assert presence or absence of rich description text.
+    """
+    rich = provider.get_detail_by_id(int(achievement_id))
+    if (rich is None or int(rich.id) != int(achievement_id)
+            or str(rich.name) != str(summary_name)):
+        raise RuntimeError("Detailed Success provider record mismatch after real click")
+    return {"id": int(rich.id), "title": str(rich.name),
+            "description": str(rich.description or "")}
+
+
+
 def exercise_achievement_detail(session, page):
     """Cold-first Success tab then physical list click, real provider & PNG oracle."""
     from PySide6.QtCore import Qt
@@ -1117,16 +1133,12 @@ def exercise_achievement_detail(session, page):
     observed = achievement_outcome(page, view, achievement_id, title)
     failure = first_achievement_failure(observed)
     observed.update(click=click, settled=settled, first_failed_transition=failure)
-    # The catalog's get_by_id() supplies the *summary*, without the rich
-    # description. The production detail widget renders get_detail_by_id().
-    # Keep the independent oracle on that authoritative detailed record:
-    # missing/wrong detail must BLOCK rather than certify the UI against itself.
-    detailed_achievement = page.service.achievement_provider.get_detail_by_id(achievement_id)
-    if (detailed_achievement is None
-            or int(detailed_achievement.id) != achievement_id
-            or str(detailed_achievement.name) != title):
-        raise RuntimeError("Detailed Success provider record mismatch after real click")
-    expected_description = str(detailed_achievement.description or "")
+    # The catalog row is only a summary; compare the screen with the same
+    # *detailed provider API* used by the production renderer.
+    detailed = detailed_achievement_oracle(
+        page.service.achievement_provider, achievement_id, title
+    )
+    expected_description = detailed["description"]
     session.card_id = str(achievement_id)
     session.check(
         "first-open-lazy",
