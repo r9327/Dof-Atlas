@@ -106,3 +106,18 @@ Des sessions supplémentaires de la même version peuvent être déclarées en r
 ## Blocage P3-12 rendu visible par la CI ciblée
 
 Pour chaque PR outillage `tooling_only`, le job `Doctor / Focused CI Evidence` produit désormais `artifacts/doctor_ci/ui_regression_watch.json`. Tant que les sessions avant/après du détail Succès ne sont pas fournies, ce JSON porte **quatre statuts `NOT_COVERED`** (`achievement-click`, `guide-to-quests`, `achievement-first-open`, `render-and-capture`) ; il enregistre le SHA de base et le SHA courant, et indique `tests_executed=false` / `release_certified=false`. Ce n'est pas un échec de l'outillage : la CI vérifie que le rapport n'invente aucun PASS. Ce n'est **pas** non plus un feu vert pour fusionner les réparations UI ; il faudra fournir les sessions réelles de la #201 et les oracles de la #216, puis lancer `regression-watch` avec les deux révisions et des captures valides.
+
+## Relecture des sessions Windows et contrôle des pixels (17/10)
+
+Le comparateur a été exécuté sur les véritables sessions de la #216 :
+
+- Baseline `11fa494c21cf16d36947b305f437c514f835001e`, [run 39068683990, artefact 12114745940](https://github.com/r9327/Dof-Atlas/actions/runs/39068683990/artifacts/12114745940), session `11fa494c21cf-5eb9af551792`.
+- Candidat `e6180236b1baf2c2ab606992d747288be9a3165a`, [run 39072143751, artefact 12115473578](https://github.com/r9327/Dof-Atlas/actions/runs/39072143751/artifacts/12115473578), session `e6180236b1ba-7c9e822beeb9`.
+
+Les empreintes de tous les fichiers des manifestes et les captures rattachées aux assertions sont vérifiées. `achievement-click` et `achievement-first-open` donnent **NO_REGRESSION_OBSERVED**. Le bilan global reste **NOT_COVERED** : la baseline ne contient pas les quatre géométries Guides requises, et aucune des deux sessions ne contient les deux assertions `guide-quests/...`. Les fichiers de session ne sont ni modifiés ni complétés artificiellement. Ces observations comparent les détecteurs de #216 ; elles ne certifient pas les correctifs produit de #201.
+
+Un défaut supplémentaire du comparateur a été reproduit : des chunks PNG avec SHA et CRC corrects pouvaient contenir un flux IDAT illisible et obtenir `NO_REGRESSION_OBSERVED`. Sept contrôles négatifs échouaient avant correction : zlib invalide, ligne trop courte, données supplémentaires, filtre de ligne invalide, flux tronqué, octets après le flux et expansion excessive.
+
+`_valid_png_capture` décompresse désormais sous une limite fixée **avant** décompression, impose la taille exacte des lignes et leurs filtres PNG, et exige un flux zlib complet sans suffixe. Le profil accepté est celui des captures Qt observées : RGB/RGBA 8 bits non entrelacés, au plus 32 Mo décompressés ; tout autre encodage reste non vérifié et bloque la preuve. Cela ne prouve ni la lisibilité du texte ni la vérité sémantique de l'écran, qui relèvent de #216.
+
+Validation locale Python 3.13 : **25 tests `test_doctor_ui_ci` PASS**, dont les sept témoins cassés, et **146 vrais PNG Windows** des deux artefacts acceptés par le nouveau contrôle. La CI au nouveau SHA reste à vérifier avant de qualifier ce candidat de validé sur GitHub. PR maintenue en brouillon, aucune fusion ni certification FULL/EXE.

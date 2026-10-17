@@ -225,7 +225,7 @@ REGRESSION_REQUIREMENTS = {
 
 
 def _valid_png_capture(path: Path) -> bool:
-    """Verify actual PNG chunks and CRC, not just a hash-valid .png filename."""
+    """Verify chunks and bounded RGB/RGBA pixels from non-interlaced Qt PNGs."""
     import zlib
 
     try:
@@ -238,6 +238,8 @@ def _valid_png_capture(path: Path) -> bool:
         return False
     offset = 8
     header_seen = image_seen = False
+    compressed = bytearray()
+    stride = expected_bytes = 0
     while offset + 12 <= len(payload):
         size = int.from_bytes(payload[offset:offset + 4], "big")
         end = offset + 12 + size
@@ -255,13 +257,34 @@ def _valid_png_capture(path: Path) -> bool:
                              int.from_bytes(data[4:8], "big"))
             if not (0 < width <= 8192 and 0 < height <= 8192):
                 return False
+            # Qt's captures are 8-bit RGB/RGBA. Unsupported encodings cannot
+            # establish a usable screenshot without a matching pixel decoder.
+            depth, color, compression, filtering, interlace = data[8:]
+            if depth != 8 or color not in (2, 6) or (compression, filtering, interlace) != (0, 0, 0):
+                return False
+            stride = 1 + width * (3 if color == 2 else 4)
+            expected_bytes = height * stride
+            if expected_bytes > 32_000_000:
+                return False
             header_seen = True
         elif kind == b"IHDR":
             return False
         if kind == b"IDAT":
             image_seen = True
+            compressed.extend(data)
         if kind == b"IEND":
-            return image_seen and size == 0 and end == len(payload)
+            if not (image_seen and size == 0 and end == len(payload)):
+                return False
+            # CRC and SHA integrity do not prove that IDAT contains pixels.
+            # Limit output before decompression to reject compressed bombs.
+            try:
+                decoder = zlib.decompressobj()
+                pixels = decoder.decompress(compressed, expected_bytes + 1)
+            except zlib.error:
+                return False
+            return (decoder.eof and not decoder.unused_data
+                    and not decoder.unconsumed_tail and len(pixels) == expected_bytes
+                    and all(pixels[row] <= 4 for row in range(0, expected_bytes, stride)))
         offset = end
     return False
 

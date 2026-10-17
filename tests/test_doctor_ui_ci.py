@@ -322,6 +322,45 @@ class DoctorUiRegressionWatchTests(unittest.TestCase):
             report = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(report["status"], "NOT_COVERED")
 
+    def test_hash_valid_png_with_invalid_pixel_stream_cannot_certify(self):
+        import hashlib
+        import struct
+        import zlib
+
+        def chunk(kind, data):
+            return (struct.pack(">I", len(data)) + kind + data
+                    + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            baseline = self.make_session(root, BASE)
+            candidate = self.make_session(root, SHA)
+            cases = {
+                "not-zlib": b"not compressed pixels",
+                "short-scanline": zlib.compress(b"\x00\x00"),
+                "extra-scanline": zlib.compress(b"\x00" * 10),
+                "invalid-filter": zlib.compress(b"\x05\x00\x00\x00\xff"),
+                "truncated-stream": zlib.compress(b"\x00\x00\x00\x00\xff")[:-1],
+                "trailing-stream": zlib.compress(b"\x00\x00\x00\x00\xff") + b"trailing",
+                "oversized-stream": zlib.compress(b"\x00" * 100_000),
+            }
+            for label, compressed in cases.items():
+                with self.subTest(label=label):
+                    png = (bytes.fromhex("89504e470d0a1a0a")
+                           + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+                           + chunk(b"IDAT", compressed) + chunk(b"IEND", b""))
+                    (candidate / "capture.png").write_bytes(png)
+                    manifest_path = candidate / "manifest.json"
+                    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    manifest["artifacts"]["capture.png"] = hashlib.sha256(png).hexdigest()
+                    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                    result = watch_ui_regressions(
+                        baseline_sha=BASE, candidate_sha=SHA,
+                        baseline_sessions=[baseline], candidate_sessions=[candidate],
+                    )
+                    self.assertEqual(result["status"], "BLOCKED")
+                    self.assertIn("INVALID_SCREENSHOT_PNG", " ".join(result["errors"]))
+
 
 
 class DoctorUiVerdictTests(unittest.TestCase):
