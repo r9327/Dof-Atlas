@@ -133,6 +133,7 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
             'tools/atlas_doctor_lib/doctor_ui.py',
             'tools/atlas_doctor_lib/doctor_ui_qt.py',
             'tools/atlas_doctor_lib/ui_raster_oracle.py',
+            'tools/atlas_doctor_lib/ui_contrast_oracle.py',
             'tools/atlas_doctor_lib/doctor_ui_ci.py',
             'tests/test_doctor_ui.py',
             'tests/test_doctor_ui_ci.py',
@@ -143,7 +144,7 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
             '.github/workflows/doctor-ui.yml',
             '.ai/context_index.json',
         ]
-        self.assertEqual(len(QT_DETECTOR_PATHS), 4)
+        self.assertEqual(len(QT_DETECTOR_PATHS), 5)
         self.assertTrue(eligible(paths, root=ROOT, base_sha='HEAD'))
         # Caller without a verified local source may not downscope.
         self.assertFalse(eligible(paths))
