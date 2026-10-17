@@ -263,12 +263,22 @@ def _regression_assertions(folders: list[Path], sha: str) -> tuple[dict, list[st
                     errors.append("QT_EXCEPTION_IN_SESSION")
                 continue
             captures = row.get("evidence_ids")
-            if (not isinstance(captures, list) or not any(
-                    isinstance(name, str) and name.endswith(".png")
-                    and name in artifacts for name in captures)):
-                # A positive control must have a real linked, hashed PNG,
-                # not just an unrelated screenshot in the session manifest.
+            linked = [name for name in captures if isinstance(name, str)
+                      and name.endswith(".png") and name in artifacts] if isinstance(captures, list) else []
+            if not linked:
+                # A positive control must have a linked, hash-verified PNG,
+                # not merely an unrelated screenshot in the session manifest.
                 errors.append("ASSERTION_MISSING_CAPTURE: " + ident)
+            for name in linked:
+                # A forged text file with a .png extension and a correct digest
+                # cannot count as an actual rendered screenshot.
+                with (folder / name).open("rb") as stream:
+                    header = stream.read(24)
+                if (len(header) < 24 or header[:8] != b"\\x89PNG\\r\\n\\x1a\\n"
+                        or header[8:16] != b"\\x00\\x00\\x00\\rIHDR"
+                        or not (0 < int.from_bytes(header[16:20], "big") <= 8192)
+                        or not (0 < int.from_bytes(header[20:24], "big") <= 8192)):
+                    errors.append("INVALID_SCREENSHOT_PNG: " + name)
             rows[ident] = {**row, "_session_status": report["status"]}
     return rows, errors
 
