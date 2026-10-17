@@ -39,6 +39,7 @@ RETIRED_WORKFLOWS = frozenset({'.github/workflows/public-pr-ci.yml'})
 QT_DETECTOR_PATHS = frozenset({
     'tools/atlas_doctor_lib/doctor_ui.py',
     'tools/atlas_doctor_lib/doctor_ui_qt.py',
+    'tools/atlas_doctor_lib/ui_raster_oracle.py',
     'tests/test_doctor_ui_qt.py',
 })
 
@@ -58,6 +59,18 @@ def _qt_detector_boundary(root: Path | None, path: str) -> bool:
         return False
     if path.startswith('tests/'):
         return True  # Real Qt test runs on Windows; not imported by stdlib.
+    if path.endswith('/ui_raster_oracle.py'):
+        # The screenshot raster analyzer must remain completely stdlib-only.
+        forbidden = ('app', 'PySide6', 'shiboken6')
+        for node in ast.walk(ast_tree):
+            if isinstance(node, ast.Import) and any(
+                alias.name.split('.')[0] in forbidden for alias in node.names
+            ):
+                return False
+            if isinstance(node, ast.ImportFrom) and (
+                (node.module or '').split('.')[0] in forbidden
+            ):
+                return False
     # Imports of PySide/app are allowed inside *executed isolated functions*.
     # At module import time the Doctor orchestrator must remain stdlib-only.
     top_level = []
