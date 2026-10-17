@@ -200,6 +200,127 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
     }
 
 
+
+# Cross-PR regression watch: evidence IDs for four distinct product journeys.
+# These are NOT synonyms for validator-smoke or a successful Guide-only run.
+# Achievement-detail assertions are owned by Doctor UI PR #216; while absent,
+# every corresponding control stays explicitly NOT_COVERED.
+REGRESSION_REQUIREMENTS = {
+    "achievement-click": ("achievement-detail/click-opens-detail",),
+    "guide-to-quests": (
+        "guide-quests/guide_complet-quest-0",
+        "guide-quests/dofus_sylvestre-quest-0",
+    ),
+    "achievement-first-open": ("achievement-detail/first-open-lazy",),
+    "render-and-capture": (
+        "guides-success/geometry-1-1200",
+        "guides-success/geometry-1-960",
+        "guides-lanyel/geometry-1-1200",
+        "guides-lanyel/geometry-1-960",
+        "achievement-detail/geometry-1200",
+        "achievement-detail/geometry-960",
+    ),
+}
+
+
+def _regression_assertions(folders: list[Path], sha: str) -> tuple[dict, list[str]]:
+    """Read only hash-verified real sessions for an exact SHA, never bare JSON."""
+    rows: dict[str, dict] = {}
+    errors: list[str] = []
+    for folder in folders:
+        try:
+            report = read_evidence(folder, sha)
+            manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            errors.append("INVALID_SESSION: " + str(exc))
+            continue
+        if (report.get("candidate_sha") != sha or report.get("dirty") is not False
+                or report.get("status") != "PASS" or report.get("tests_executed") is not True):
+            errors.append("UNTRUSTED_OR_UNEXECUTED_SESSION")
+            continue
+        assertions = report.get("assertions")
+        if not isinstance(assertions, list):
+            errors.append("ASSERTIONS_NOT_LIST")
+            continue
+        artifacts = manifest.get("artifacts", {})
+        for row in assertions:
+            if not isinstance(row, dict) or not isinstance(row.get("assertion_id"), str):
+                errors.append("INVALID_ASSERTION")
+                continue
+            ident = row["assertion_id"]
+            if ident in rows and ident != "session/qt-exceptions":
+                errors.append("DUPLICATE_ASSERTION: " + ident)
+                continue
+            if ident == "session/qt-exceptions" and ident in rows:
+                if row.get("assertion_status") != "PASS":
+                    errors.append("QT_EXCEPTION_IN_SESSION")
+                continue
+            captures = row.get("evidence_ids")
+            if (not isinstance(captures, list) or not any(
+                    isinstance(name, str) and name.endswith(".png")
+                    and name in artifacts for name in captures)):
+                # A positive control must have a real linked, hashed PNG,
+                # not just an unrelated screenshot in the session manifest.
+                errors.append("ASSERTION_MISSING_CAPTURE: " + ident)
+            rows[ident] = row
+    return rows, errors
+
+
+def watch_ui_regressions(*, baseline_sha: str, candidate_sha: str,
+                         baseline_sessions: list[Path],
+                         candidate_sessions: list[Path]) -> dict:
+    """Compare four observable UI contracts without claiming release certification.
+
+    PASS on a smoke test cannot cover a missing real achievement journey.
+    A missing baseline/candidate produces NOT_COVERED, not an invented delta.
+    """
+    errors = []
+    if (len(baseline_sha) != 40 or len(candidate_sha) != 40
+            or not all(c in "0123456789abcdef" for c in (baseline_sha + candidate_sha).lower())
+            or baseline_sha == candidate_sha):
+        errors.append("INVALID_OR_IDENTICAL_SHAS")
+    if len(baseline_sessions) > 8 or len(candidate_sessions) > 8:
+        errors.append("SESSION_BUDGET_EXCEEDED")
+    before, before_errors = _regression_assertions(baseline_sessions[:8], baseline_sha) if not errors else ({}, [])
+    after, after_errors = _regression_assertions(candidate_sessions[:8], candidate_sha) if not errors else ({}, [])
+    errors.extend("baseline: " + e for e in before_errors)
+    errors.extend("candidate: " + e for e in after_errors)
+    controls = {}
+    for label, required in REGRESSION_REQUIREMENTS.items():
+        missing_before = [key for key in required if key not in before]
+        missing_after = [key for key in required if key not in after]
+        if missing_before or missing_after:
+            status = "NOT_COVERED"
+        elif any(after[key].get("assertion_status") != "PASS" for key in required):
+            status = "REGRESSION_REVIEW" if all(
+                before[key].get("assertion_status") == "PASS" for key in required
+            ) else "UNVERIFIED"
+        elif all(before[key].get("assertion_status") == "PASS" for key in required):
+            status = "NO_REGRESSION_OBSERVED"
+        else:
+            status = "UNVERIFIED"
+        controls[label] = {
+            "status": status, "required_assertions": list(required),
+            "baseline_missing": missing_before, "candidate_missing": missing_after,
+            "baseline_verdicts": {key: before[key].get("assertion_status") for key in required if key in before},
+            "candidate_verdicts": {key: after[key].get("assertion_status") for key in required if key in after},
+        }
+    result_status = ("BLOCKED" if errors else
+                     "REGRESSION_REVIEW" if any(c["status"] == "REGRESSION_REVIEW" for c in controls.values()) else
+                     "NO_REGRESSION_OBSERVED" if all(c["status"] == "NO_REGRESSION_OBSERVED" for c in controls.values()) else
+                     "NOT_COVERED")
+    return {
+        "schema_version": 1, "kind": "doctor_ui_regression_watch",
+        "status": result_status, "baseline_sha": baseline_sha,
+        "candidate_sha": candidate_sha, "controls": controls,
+        "errors": errors, "tests_executed": False,
+        "phase_certified": False, "release_certified": False,
+        "limits": ("Only exact-SHA, hash-verified UI session assertions and linked PNGs "
+                   "are compared. This does not execute UI, prove semantic correctness "
+                   "or certify an installed Windows application."),
+    }
+
+
 def exhaustive_review_plan(report: dict) -> dict:
     """Run every registered UI scenario when impact cannot safely narrow the set.
 
@@ -289,7 +410,7 @@ def read_evidence(folder: Path, candidate: str) -> dict:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("plan", "run", "verdict"))
+    parser.add_argument("action", choices=("plan", "run", "verdict", "regression-watch"))
     parser.add_argument("--base-ref")
     parser.add_argument("--candidate-sha", required=True)
     parser.add_argument("--plan", type=Path, default=ROOT / ".ai/runtime/atlas_doctor/ui_ci_selection.json")
@@ -297,7 +418,20 @@ def main(argv=None) -> int:
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--exhaustive-on-review", action="store_true", help="Run all registered scenarios for uncertain verified diffs; never waive FULL")
     parser.add_argument("--evidence-root", type=Path, default=ROOT / ".ai/runtime/atlas_doctor/ui")
+    parser.add_argument("--baseline-sha", default="")
+    parser.add_argument("--baseline-session", type=Path, action="append", default=[])
+    parser.add_argument("--candidate-session", type=Path, action="append", default=[])
+    parser.add_argument("--watch-output", type=Path, default=ROOT / "artifacts/doctor_ui/regression_watch.json")
     args = parser.parse_args(argv)
+    if args.action == "regression-watch":
+        report = watch_ui_regressions(
+            baseline_sha=args.baseline_sha, candidate_sha=args.candidate_sha,
+            baseline_sessions=args.baseline_session,
+            candidate_sessions=args.candidate_session,
+        )
+        write_json(args.watch_output, report)
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0 if report["status"] == "NO_REGRESSION_OBSERVED" else 2
     if args.action == "plan":
         if not args.base_ref:
             parser.error("plan requires --base-ref")
