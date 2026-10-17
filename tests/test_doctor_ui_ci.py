@@ -79,7 +79,8 @@ class DoctorUiSelectionTests(unittest.TestCase):
 
     def test_validator_changes_also_select_real_success_journey(self):
         for path in ("tools/atlas_doctor_lib/doctor_ui_qt.py", "tools/atlas_doctor_lib/doctor_ui_ci.py",
-                     "tests/test_doctor_ui_qt.py", "tools/atlas_doctor_lib/doctor_ui.py"):
+                     "tests/test_doctor_ui_qt.py", "tools/atlas_doctor_lib/doctor_ui.py",
+                     "tools/atlas_doctor_lib/ui_raster_oracle.py"):
             self.assertEqual(
                 self.plan(path)["selected_scenarios"],
                 ["achievement-detail", "validator-smoke"],
