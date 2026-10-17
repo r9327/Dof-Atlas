@@ -297,11 +297,26 @@ def glyph_legibility_probe(page) -> dict:
             "glyph_coverage": coverage, "raster_sha256": signatures,
             "passed": all(coverage.values()) and len(set(signatures.values())) == len(samples),
         })
-    passed = bool(results) and all(r["passed"] for r in results)
+    # Actual PNG pixels are authoritative. Qt can report distinct available
+    # glyphs while its live stylesheet still paints hundreds of identical
+    # fallback squares, as observed in the old success screenshots.
+    from PySide6.QtGui import QImage
+    from tools.atlas_doctor_lib.ui_raster_oracle import detect_replacement_squares
+
+    image = page.grab().toImage().convertToFormat(QImage.Format_Grayscale8)
+    raster = detect_replacement_squares(
+        image.bits().tobytes(), image.width(), image.height(),
+        image.bytesPerLine(),
+    )
+    font_passed = bool(results) and all(r["passed"] for r in results)
+    passed = font_passed and raster["status"] == "PASS"
     return {"status": "PASS" if passed else "FAIL",
-            "reason": "FONT_RASTER_OK" if passed else "MISSING_OR_SQUARE_FONT_GLYPHS",
+            "reason": ("REPEATED_SCREENSHOT_TOFU" if raster["status"] != "PASS"
+                       else "FONT_RASTER_OK" if font_passed
+                       else "MISSING_OR_SQUARE_FONT_GLYPHS"),
             "sample_chars": list(samples), "labels": results,
-            "limits": "Only sampled glyph rendering; no OCR or full visual/contrast certification."}
+            "screenshot_raster": raster,
+            "limits": "Actual rendered raster plus sampled Qt font glyphs; not OCR or full visual/contrast certification."}
 
 
 def build_scene(temp: Path):
