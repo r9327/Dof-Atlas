@@ -89,6 +89,66 @@ class ToolCatalogTests(unittest.TestCase):
         )
         self.assertEqual(report["unguarded_mutator_count"], 1)
 
+    def test_explicit_artifact_contract_is_automation_ready_not_repo_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/reporter.py",
+                "import argparse, json\n"
+                "from pathlib import Path\n"
+                "TOOL_SPEC = {'schema_version': 1, 'id': 'reporter', "
+                "'role': 'validation_orchestrator', 'capabilities': ['validation'], "
+                "'modes': ['fast'], 'cost_hint': 'cheap', "
+                "'side_effects': 'artifact_output', 'artifact_roots': ['artifacts/'], "
+                "'structured_output': True, "
+                "'canonical': True, 'recommended_tests': ['tests.test_reporter']}\n"
+                "def main():\n"
+                "    p = argparse.ArgumentParser()\n"
+                "    p.add_argument('--json', action='store_true')\n"
+                "    Path('artifacts').mkdir(exist_ok=True)\n"
+                "    Path('artifacts/report.json').write_text('{}')\n"
+                "    print(json.dumps({'ok': True}))\n"
+                "if __name__ == '__main__': main()\n",
+            )
+            self._write(root, "tests/test_reporter.py", "from tools.reporter import main\n")
+            row = catalog(root)["tools"][0]
+
+        self.assertEqual(row["mutation_state"], "unguarded")
+        self.assertEqual(row["side_effects"], "artifact_output")
+        self.assertEqual(row["tool_spec_source"], "explicit")
+        self.assertTrue(row["safe_for_agent"])
+        self.assertTrue(row["automation_ready"])
+        self.assertNotIn("make_default_read_only_and_require_explicit_apply_flag",
+                         row["upgrade_actions"])
+
+    def test_unbounded_artifact_claim_cannot_make_unguarded_mutator_safe(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "tools/reporter.py",
+                "import argparse, json\nfrom pathlib import Path\n"
+                "TOOL_SPEC = {'schema_version': 1, 'id': 'reporter', "
+                "'role': 'validation_orchestrator', 'capabilities': ['validation'], "
+                "'modes': ['fast'], 'cost_hint': 'cheap', "
+                "'side_effects': 'artifact_output', 'structured_output': True, "
+                "'canonical': True, 'recommended_tests': ['tests.test_reporter']}\n"
+                "def main():\n"
+                "    p = argparse.ArgumentParser()\n"
+                "    p.add_argument('--json', action='store_true')\n"
+                "    Path('result.json').write_text('{}')\n"
+                "    print(json.dumps({'ok': True}))\n"
+                "if __name__ == '__main__': main()\n",
+            )
+            self._write(root, "tests/test_reporter.py", "from tools.reporter import main\n")
+            row = catalog(root)["tools"][0]
+
+        self.assertEqual(row["tool_spec_source"], "invalid")
+        self.assertFalse(row["safe_for_agent"])
+        self.assertFalse(row["automation_ready"])
+        self.assertTrue(any("artifact_roots" in error for error in row["tool_spec_errors"]))
+
     def test_safe_and_ready_selection_filters_out_unsafe_tools(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
