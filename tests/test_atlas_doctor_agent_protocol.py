@@ -36,10 +36,34 @@ class DoctorAgentProtocolTests(unittest.TestCase):
         self.assertEqual(result["guardians"]["selected_ids"], ["core", "simplicity"])
         self.assertTrue(result["guardians"]["execution"]["deduplicated"])
 
+    def test_agent_json_preserves_source_lines_without_inventing_corroboration(self):
+        state = {"head": "e" * 40, "dirty": False, "dirty_digest": ""}
+        plan = {**self.plan(), "source_diagnostics": {
+            "status": "FAIL", "files": [
+                {"path": "app/example.py", "symbols": [
+                    {"name": "compute", "kind": "function", "line": 42}],
+                 "status": "FAIL", "reason": "Cannot parse file"},
+            ]}}
+        with mock.patch("tools.agent.plan_payload", return_value=plan), mock.patch(
+            "tools.atlas_doctor_lib.agent_protocol.git_state", return_value=state
+        ):
+            payload = run_agent_action(Path("."), action="plan", paths=["app/example.py"])
+        evidence = payload["source_evidence"]
+        self.assertEqual(evidence["source_sha"], "e" * 40)
+        self.assertEqual(evidence["source_anchors"][0]["line"], 42)
+        self.assertEqual(evidence["source_anchors"][0]["symbol"], "compute")
+        self.assertEqual(evidence["source_anchors"][0]["evidence_level"], "SOURCE_DEFINITION_ONLY")
+        self.assertEqual(evidence["diagnostics"][0]["status"], "FAIL")
+        self.assertEqual(evidence["diagnostics"][0]["priority"], "UNASSESSED")
+        self.assertIsNone(evidence["diagnostics"][0]["ci_run_url"])
+        self.assertFalse(evidence["independent_ci_attested"])
+        self.assertFalse(payload["certification"]["full_certified"])
+
     def test_empty_path_request_fails_closed(self):
         result = run_agent_action(Path("."), action="plan", paths=[])
         self.assertEqual(result["status"], "BLOCKED")
         self.assertEqual(result["exit_code"], 2)
+        self.assertFalse(result["source_evidence"]["independent_ci_attested"])
 
     def test_validate_pass_is_scoped_not_full(self):
         state = {"head": "b" * 40, "dirty": True, "dirty_digest": "digest"}

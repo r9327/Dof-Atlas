@@ -43,3 +43,19 @@ Docteur ne renvoie jamais 18/18 PASS à partir d'un inventaire AST; vrai witness
 - Nouveautés non spécifiées : **#202** (ne pas toucher).
 - Audit natif historique : **#175 FERMÉE sans fusion** ; relayée par lot natif distinct.
 - Les autres travaux sont répartis en PR brouillon indépendantes créées dans la même campagne. Le programme couvre 51/51 IDs sans duplication de responsabilité.
+
+## Livraison intermédiaire de la PR #222 (non certifiée)
+
+- Matrice de **18 témoins positifs et 18 contrôles négatifs** rattachés à des méthodes `unittest` distinctes. La présence des fonctions n'est pas une preuve d'exécution.
+- Contrat `doctor_capability_test_evidence` **schema_version 2** : exécute les 36 méthodes en un sous-processus `unittest -v`; associe les verdicts aux IDs exacts, rejette skipped / xfail / doublon / sortie 0 sans compte correct / log tronqué / changement de SHA ou de worktree. L'ancien JSON v1 ne peut pas être réutilisé comme preuve v2.
+- Contrat existant `atlas-doctor-agent/v1` enrichi du champ optionnel `source_evidence` : SHA source, symboles AST avec fichier et ligne, erreurs explicites, tests conseillés, statut d'exécution et absence de preuve CI indiquée par des valeurs nulles. Ni Codex ni ChatGPT n'ont besoin d'accès privés supplémentaires pour interpréter ce JSON ; ils doivent appliquer leur politique d'accès au dépôt pour les liens non publics.
+
+Commandes de reproduction (lancer sur le clone au **HEAD exact**, propre, dépendances Python nécessaires installées) :
+
+```bash
+python -m unittest -v tests.test_atlas_doctor_capabilities tests.test_atlas_doctor_capability_evidence tests.test_atlas_doctor_agent_protocol
+python -m tools.atlas_doctor --json capabilities --run-tests --timeout 300
+python -m tools.atlas_doctor --json agent plan tools/atlas_doctor_lib/capability_evidence.py --base-ref HEAD
+```
+
+**Limites** : les témoins restent des tests du code et de ses garde-fous, pas une certification des comportements réels sur le Windows installé ; les quatre régressions UI et l'attestation indépendante CI restent à établir. Aucun résultat de commande ci-dessus n'est affirmé PASS sans exécution vérifiée.
