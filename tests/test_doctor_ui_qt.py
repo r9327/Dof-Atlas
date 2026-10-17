@@ -333,12 +333,45 @@ class DoctorUiQtFaultTests(unittest.TestCase):
             probe = glyph_legibility_probe(self.view)
         self.assertEqual(probe["status"], "FAIL")
         self.assertEqual(probe["reason"], "REPEATED_SCREENSHOT_TOFU")
-        self.assertEqual(probe["screenshot_raster"]["box_count"], 730)
+        self.assertEqual(probe["screenshot_raster"]["total_hollow_boxes"], 730)
+        self.assertEqual(probe["screenshot_raster"]["bad_captures"][0]["box_count"], 730)
         judge = UiSession(self.folder, "all")
         judge.scenario = "session"
         judge.check("glyph-rendering", "Actual screen raster", "No repeated tofu",
                     probe, probe["status"] == "PASS", self.view)
         self.assertEqual(verdict(judge.assertions, ["session/glyph-rendering"]), "FAIL")
+
+    def test_stored_bad_png_does_not_get_laundered_by_later_good_screen(self):
+        from PySide6.QtCore import QRect
+        from PySide6.QtGui import QColor, QImage, QPainter, QPen
+
+        image = QImage(350, 120, QImage.Format_RGB32)
+        image.fill(QColor(12, 12, 12))
+        painter = QPainter(image)
+        painter.setPen(QPen(QColor(220, 220, 220), 1))
+        for index in range(25):
+            x, y = 7 + (index % 20) * 15, 8 + (index // 20) * 17
+            painter.drawRect(QRect(x, y, 7, 7))
+        painter.end()
+        bad = self.folder / "historic-tofu.png"
+        self.assertTrue(image.save(str(bad)))
+
+        good = QImage(350, 120, QImage.Format_RGB32)
+        good.fill(QColor(12, 12, 12))
+        normal = self.folder / "later-good.png"
+        self.assertTrue(good.save(str(normal)))
+
+        observed = glyph_legibility_probe(self.view, screenshots=[bad, normal])
+        self.assertEqual(observed["status"], "FAIL")
+        self.assertEqual(observed["reason"], "REPEATED_SCREENSHOT_TOFU")
+        self.assertEqual(observed["screenshot_raster"]["captures_checked"], 2)
+        self.assertEqual(
+            [x["capture"] for x in observed["screenshot_raster"]["bad_captures"]],
+            ["historic-tofu.png"],
+        )
+        self.assertGreaterEqual(
+            observed["screenshot_raster"]["bad_captures"][0]["box_count"], 20,
+        )
 
     def test_real_png_and_tree_share_action_ids_and_verify_mode_omits_images(self):
         session = UiSession(self.folder, "all")
