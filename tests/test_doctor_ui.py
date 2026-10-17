@@ -11,6 +11,67 @@ from tools.atlas_doctor import build_parser
 from tools.atlas_doctor_lib.doctor_ui import required_assertions, run_ui
 
 
+class ScreenshotRasterOracleTests(unittest.TestCase):
+    """Synthetic real pixel buffers, not QFont claims or predeclared PASS."""
+
+    @staticmethod
+    def pixels(boxes=24, *, stride_pad=4):
+        width, height = 264, 90
+        stride = width + stride_pad
+        data = bytearray([13] * (stride * height))
+        for i in range(boxes):
+            x = 4 + (i % 18) * 14
+            y = 5 + (i // 18) * 17
+            for dx in range(8):
+                data[y * stride + x + dx] = 220
+                data[(y + 7) * stride + x + dx] = 220
+            for dy in range(1, 7):
+                data[(y + dy) * stride + x] = 220
+                data[(y + dy) * stride + x + 7] = 220
+        return bytes(data), width, height, stride
+
+    def test_real_grayscale_hollow_box_pattern_is_visual_failure(self):
+        from tools.atlas_doctor_lib.ui_raster_oracle import detect_replacement_squares
+
+        frame, width, height, stride = self.pixels(24)
+        result = detect_replacement_squares(frame, width, height, stride)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["reason"], "REPEATED_HOLLOW_SQUARE_GLYPHS")
+        self.assertEqual(result["box_count"], 24)
+        self.assertEqual(result["sizes"], {8: 24})
+        self.assertTrue(result["examples"])
+
+    def test_legitimate_few_control_squares_do_not_trigger_false_failure(self):
+        from tools.atlas_doctor_lib.ui_raster_oracle import detect_replacement_squares
+
+        frame, width, height, stride = self.pixels(4)
+        result = detect_replacement_squares(frame, width, height, stride)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["box_count"], 4)
+        # A normal glyph stroke is not a hollow square substitution.
+        mutable = bytearray(frame)
+        for i in range(24):
+            x = 4 + (i % 18) * 14
+            y = 5 + (i // 18) * 17
+            for dy in range(8):
+                mutable[(y + dy) * stride + x + 3] = 220
+        self.assertEqual(
+            detect_replacement_squares(bytes(mutable), width, height, stride)["status"],
+            "PASS",
+        )
+
+    def test_truncated_or_oversized_raster_fails_closed(self):
+        from tools.atlas_doctor_lib.ui_raster_oracle import detect_replacement_squares
+
+        frame, width, height, stride = self.pixels(24)
+        for args in (
+            (frame[:100], width, height, stride),
+            (frame, width, height, width - 1),
+            (frame, 12000, 12000, 12000),
+        ):
+            self.assertEqual(detect_replacement_squares(*args)["status"], "BLOCKED")
+
+
 class DoctorUiCoordinatorTests(unittest.TestCase):
     def test_cli_is_opt_in_bounded_and_preserves_historical_capture_scenarios(self):
         parser = build_parser()
