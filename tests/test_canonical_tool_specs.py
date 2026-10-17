@@ -10,6 +10,20 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CanonicalToolSpecTests(unittest.TestCase):
+    def test_atlas_integrity_uses_explicit_bounded_artifact_contract(self) -> None:
+        report = catalog(ROOT)
+        rows = {row["path"]: row for row in report["tools"]}
+        integrity = rows["tools/atlas_integrity.py"]
+
+        self.assertEqual(integrity["tool_spec_source"], "explicit")
+        self.assertEqual(integrity["preferred_role"], "repository_validation_orchestrator")
+        self.assertEqual(integrity["capabilities"], ["validation"])
+        self.assertEqual(integrity["modes"], ["fast", "critical", "full", "deep"])
+        self.assertEqual(integrity["side_effects"], "artifact_output")
+        self.assertEqual(integrity["tool_spec"]["artifact_roots"], ["artifacts/"])
+        self.assertTrue(integrity["safe_for_agent"])
+        self.assertTrue(integrity["automation_ready"])
+
     def test_guide_integrity_uses_explicit_static_tool_spec(self) -> None:
         report = catalog(ROOT)
         rows = {row["path"]: row for row in report["tools"]}
