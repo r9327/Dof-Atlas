@@ -46,3 +46,20 @@ Tests synthétiques sains et cassés + vraies fenêtres Qt, cold et hot, capture
 - Nouveautés non spécifiées : **#202** (ne pas toucher).
 - Audit natif historique : **#175 FERMÉE sans fusion** ; relayée par lot natif distinct.
 - Les autres travaux sont répartis en PR brouillon indépendantes créées dans la même campagne. Le programme couvre 51/51 IDs sans duplication de responsabilité.
+
+## Implémentation en cours — oracle Succès réel (17/10/2026)
+
+**Nouveau scénario Doctor UI** `achievement-detail` : il est ajouté au catalogue des scénarios et sélectionnable explicitement dans le workflow Windows. Le plan d'impact choisit désormais également ce scénario lorsque le détecteur Doctor UI ou un des consommateurs réels du détail Succès change, en plus du `validator-smoke` lorsque pertinent.
+
+Le worker `doctor_ui_qt.py` :
+1. vérifie que `AchievementsView` n'avait pas été matérialisée avant le premier accès à l'onglet Succès ;
+2. ouvre l'onglet **réel** de l'Encyclopédie et attend une liste non vide issue du fournisseur de données publiques ;
+3. choisit une ligne existante `QListWidgetItem`, lit son véritable `Qt.UserRole` et le nom dans le fournisseur ; `QTest.mouseClick` est envoyé sur le vrai viewport après contrôle du hit-test ; aucun callback n'est mocké ;
+4. compare l'ID courant, le statut d'ouverture, le widget actif du `AchievementDetailStack`, la visibilité de `GuideRightPanelScroll`, de `AchievementDetailBody` et du libellé `AchievementDetailTitle`, l'ID du modèle présent dans le corps et le titre réel du fournisseur ;
+5. vérifie aux **deux tailles 1200×800 et 960×640** que le panneau a une largeur/hauteur utilisable et que le titre est réellement atteignable au hit-test Qt, avec arbre de widgets et PNG produit par la session.
+
+Les quatre assertions exigées par `required_assertions` sont `achievement-detail/first-open-lazy`, `achievement-detail/click-opens-detail`, `achievement-detail/geometry-1200`, `achievement-detail/geometry-960`. Elles correspondent exactement aux références consommées par le comparateur P3-12 de la #222. L'absence d'une assertion ou un échec bloque le verdict comme auparavant.
+
+**Tests négatifs nouveaux** : une `QListWidget` réelle dont le signal `itemClicked` a été déconnecté reçoit toujours le clic, mais ne prouve plus aucun effet ; un inspecteur de la chaîne finale signale à quelle étape une mauvaise destination, une mauvaise ID, un panneau de largeur nulle, une fiche absente, un titre incorrect ou un hit-test masqué casse l'interaction.
+
+**Limites** : cela est une **implémentation candidate**, pas un PASS CI ni la réparation du produit. La régression utilisateur est encore à prouver sur l'EXE installé ; toute rupture réellement observée doit rester FAIL. La production de la session Qt au SHA exact et son artefact PNG dépend du run Windows, tandis que les réparations restent exclusivement dans la #201. Les autres tâches de la #216 (glyphes/typographie, autres familles d'écrans, seuils de contraste) ne sont pas déclarées achevées.
