@@ -491,18 +491,26 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
                     sheet._rendered_combat_keys.update(sheet._combat_key(target) for target in found)
             sheet._rendered_combat_keys = rendered_keys
             expected_labels = []
+            expected_tooltips = []
             for target in targets:
-                text = f"{int(target['quantity'])} × {target['monster']}"
+                text = f"×{int(target['quantity'])} {target['monster']}"
+                tooltip = text
                 if target.get("quest_name"):
-                    text += " — " + target["quest_name"]
+                    tooltip += " — " + target["quest_name"]
                 expected_labels.append(text)
+                expected_tooltips.append(
+                    tooltip + "\nProgression partagée avec l’objectif de la fiche Quête."
+                )
             observed_labels = [box.text() for box in checks]
+            observed_tooltips = [box.toolTip() for box in checks]
             # Two distinct objectives may legitimately have the same label.
             # Canonical allocation order + objective keys is the oracle, not
             # text uniqueness or a guessed callback target.
-            if not targets or observed_labels != expected_labels:
+            if (not targets or observed_labels != expected_labels
+                    or observed_tooltips != expected_tooltips):
                 session.check("combat", "Resolve rendered combat objective provenance", "One canonical objective",
                               {"expected_labels": expected_labels, "observed_labels": observed_labels,
+                               "expected_tooltips": expected_tooltips, "observed_tooltips": observed_tooltips,
                                "rendered_targets": targets}, False, page, status="REVIEW")
             else:
                 qid, oid = sheet._combat_key(targets[0])
@@ -581,19 +589,28 @@ def first_quest_failure(observed: dict) -> str | None:
     return next((label for ok, label in checks if not ok), None)
 
 
+def first_quest_link_page(view, max_pages: int = 64):
+    """Return the first bounded canonical page that actually renders a quest link."""
+    from PySide6.QtWidgets import QFrame, QToolButton
+
+    page_count = min(len(view.service.cards), max_pages)
+    for index in range(page_count):
+        view._show_index(index)
+        settle()
+        sheet = view.findChild(QFrame, "GuideManualSheet")
+        buttons = sheet.findChildren(QToolButton, "GuideManualQuestInlineButton")
+        if buttons:
+            return index, sheet, buttons
+    raise RuntimeError("Required canonical guide has no quest link")
+
+
 def exercise_quest_links(session, page, owner):
     from PySide6.QtTest import QSignalSpy
-    from PySide6.QtWidgets import QFrame, QToolButton
 
     for guide_id in ("guide_complet", "dofus_sylvestre"):
         session.guide_id = guide_id
         view = open_guide(page, owner, guide_id)
-        view._show_index(0)
-        settle()
-        sheet = view.findChild(QFrame, "GuideManualSheet")
-        buttons = sheet.findChildren(QToolButton, "GuideManualQuestInlineButton")
-        if not buttons:
-            raise RuntimeError("Required canonical page has no quest link")
+        link_index, sheet, buttons = first_quest_link_page(view)
         button = buttons[0]
         candidates = [int(qid) for qid in sheet.card.get("manual_quest_ids", [])
                       if (quest := page.quest_provider.get_quest(int(qid))) is not None
@@ -603,10 +620,10 @@ def exercise_quest_links(session, page, owner):
         quest_id = candidates[0]
         session.card_id = str(sheet.card.get("manual_stage_id"))
         for iteration in range(2):
-            view._show_index(0)
+            view._show_index(link_index)
             settle()
-            sheet = view.findChild(QFrame, "GuideManualSheet")
-            button = sheet.findChildren(QToolButton, "GuideManualQuestInlineButton")[0]
+            _, sheet, buttons = first_quest_link_page(view, max_pages=link_index + 1)
+            button = buttons[0]
             spy = QSignalSpy(sheet.questRequested)
             click = click_target(page, button, view.scroll)
             settle(lambda: first_quest_failure(quest_outcome(

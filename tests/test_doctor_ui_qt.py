@@ -18,8 +18,8 @@ from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QToolButton, QW
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
 from tools.atlas_doctor_lib.doctor_ui import verdict
 from tools.atlas_doctor_lib.doctor_ui_qt import (
-    UiSession, click_target, first_quest_failure, geometry_observations, settle,
-    quest_outcome, sheet_observations, widget_tree,
+    UiSession, click_target, first_quest_failure, first_quest_link_page,
+    geometry_observations, quest_outcome, settle, sheet_observations, widget_tree,
 )
 
 
@@ -128,6 +128,14 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertEqual(sheet_observations(self.view, self.service.cards[1])["stale_or_duplicate_lines"], [])
         click_target(self.view, self.view.prev_button)
         self.assertEqual(self.view.view_index, 0)
+
+    def test_quest_scenario_finds_first_page_with_a_real_link(self):
+        self.service.cards[0]["manual_quest_ids"] = []
+        self.service.cards[1]["manual_quest_ids"] = [321]
+        index, sheet, buttons = first_quest_link_page(self.view)
+        self.assertEqual(index, 1)
+        self.assertEqual(sheet.card["manual_stage_id"], "TEST-B")
+        self.assertEqual(len(buttons), 1)
 
     def test_duplicate_sheet_and_stale_line_detected_from_real_qt_tree(self):
         sheet = self.view.findChild(QFrame, "GuideManualSheet")
