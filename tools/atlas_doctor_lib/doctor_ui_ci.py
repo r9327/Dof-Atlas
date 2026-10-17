@@ -45,6 +45,10 @@ INDEPENDENT_TOOLS = frozenset({
     "tools/atlas_meta_integrity.py", "tools/ci_main_phase_evidence.py",
     "tools/ci_verified_pr_full.py",
     "tools/ci_required_certification.py",
+    # Source-only Doctor diagnostics, checked for Qt/app or dynamic imports.
+    "tools/atlas_doctor_lib/capability_matrix.py",
+    "tools/atlas_doctor_lib/capability_evidence.py",
+    "tools/atlas_doctor_lib/agent_protocol.py",
 })
 VALIDATOR_PATHS = frozenset({
     "tools/atlas_doctor.py", "tools/atlas_doctor_lib/ci_orchestrator.py",
