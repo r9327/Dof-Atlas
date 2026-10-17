@@ -781,6 +781,115 @@ def first_achievement_failure(observed: dict) -> str | None:
     return next((reason for passed, reason in checks if not passed), None)
 
 
+
+def achievement_layout_observations(page, view) -> dict:
+    """Measure the rendered Success title and actually exposed controls.
+
+    Only the visible portion of the detail viewport is actionable. Controls
+    legitimately below the fold aren't failures until scrolled into view.
+    """
+    from PySide6.QtCore import QPoint, QRect, Qt
+    from PySide6.QtWidgets import QAbstractButton, QLabel
+
+    scroll = view.detail_scroll
+    viewport = scroll.viewport()
+    content = view.detail_content
+    title = content.findChild(QLabel, "AchievementDetailTitle")
+    if title is None:
+        return {"status": "BLOCKED", "reason": "MISSING_ACHIEVEMENT_TITLE"}
+    title_rect = title.contentsRect()
+    available_width = max(1, title_rect.width())
+    flags = Qt.TextWordWrap if title.wordWrap() else Qt.TextSingleLine
+    required = title.fontMetrics().boundingRect(
+        QRect(0, 0, available_width, 4096), flags, title.text()
+    )
+    required_height = required.height()
+    clipped_title = bool(
+        not title.text().strip() or available_width < 40
+        or required_height > title_rect.height() + 5
+        or (not title.wordWrap() and title.fontMetrics().horizontalAdvance(title.text())
+            > available_width + 5)
+    )
+    viewport_top_left = viewport.mapTo(page, QPoint(0, 0))
+    viewport_rect = QRect(viewport_top_left, viewport.size())
+
+    # Scrolling containers are allowed to clip offscreen children. Use
+    # visibleRegion(), never bare QWidget.isVisible(), to avoid spurious
+    # inaccessible-button reports for legitimate below-fold objectives.
+    controls = []
+    for button in content.findChildren(QAbstractButton):
+        if not button.isVisible() or not button.isEnabled():
+            continue
+        clipped = button.visibleRegion().boundingRect()
+        if clipped.width() < 8 or clipped.height() < 8:
+            continue
+        top_left = button.mapTo(page, clipped.topLeft())
+        region = QRect(top_left, clipped.size()).intersected(viewport_rect)
+        if region.width() < 8 or region.height() < 8:
+            continue
+        local = button.mapFrom(page, region.center())
+        hit = page.childAt(button.mapTo(page, local))
+        reachable = bool(
+            hit is button or (hit is not None and button.isAncestorOf(hit))
+        )
+        controls.append({
+            "name": button.objectName() or type(button).__name__,
+            "rect": [region.x(), region.y(), region.width(), region.height()],
+            "reachable": reachable,
+            "hit": hit.objectName() if hit else None,
+            "source": type(button).__module__ + "." + type(button).__qualname__,
+        })
+    inaccessible = [c["name"] for c in controls if not c["reachable"]]
+    overlaps = []
+    for i, left in enumerate(controls):
+        a = QRect(*left["rect"])
+        for right in controls[i + 1:]:
+            b = QRect(*right["rect"])
+            intersection = a.intersected(b)
+            if intersection.width() > 2 and intersection.height() > 2:
+                overlaps.append({
+                    "left": left["name"], "right": right["name"],
+                    "intersection": [intersection.x(), intersection.y(),
+                                     intersection.width(), intersection.height()],
+                })
+    horizontal_overflow = scroll.horizontalScrollBar().maximum() > 2
+    return {
+        "status": "OBSERVED", "title": title.text()[:160],
+        "title_word_wrap": title.wordWrap(),
+        "title_available_width": available_width,
+        "title_available_height": title_rect.height(),
+        "title_required_height": required_height,
+        "title_clipped": clipped_title,
+        "horizontal_overflow": horizontal_overflow,
+        "horizontal_scroll_max": scroll.horizontalScrollBar().maximum(),
+        "control_count_in_viewport": len(controls),
+        "visible_controls": controls[:48],
+        "inaccessible_controls": inaccessible,
+        "overlaps": overlaps[:24],
+        "viewport": [viewport_rect.x(), viewport_rect.y(),
+                     viewport_rect.width(), viewport_rect.height()],
+        "limits": "Title and visible detail controls; below-fold controls, rich HTML and full pixel contrast not certified.",
+    }
+
+
+def first_achievement_layout_failure(observed: dict) -> str | None:
+    """Distinguish an absent oracle from a genuine geometric pass."""
+    if observed.get("status") != "OBSERVED":
+        return observed.get("reason", "LAYOUT_ORACLE_UNAVAILABLE")
+    for key, reason in (
+        ("title_clipped", "TITLE_CLIPPED"),
+        ("horizontal_overflow", "HORIZONTAL_OVERFLOW"),
+        ("overlaps", "BUTTON_OVERLAP"),
+        ("inaccessible_controls", "BUTTON_OCCLUDED"),
+    ):
+        if observed.get(key):
+            return reason
+    if observed.get("control_count_in_viewport", 0) < 1:
+        return "NO_EXPOSED_DETAIL_CONTROLS"
+    return None
+
+
+
 def click_achievement_row(page, view, item) -> dict:
     """QTest click on the real QListWidget viewport, not a mocked itemClicked."""
     from PySide6.QtCore import Qt
@@ -886,6 +995,15 @@ def exercise_achievement_detail(session, page):
             "Unclipped visible panel/title with matching ID, sufficient dimensions",
             {**size_state, "first_failed_transition": issue},
             issue is None, page,
+        )
+        layout_state = achievement_layout_observations(page, view)
+        layout_issue = first_achievement_layout_failure(layout_state)
+        session.check(
+            f"layout-{width}",
+            "Inspect real title wrapping, viewport and button hit-tests",
+            "No clipped title, horizontal overflow, button collision or occlusion",
+            {**layout_state, "first_failed_transition": layout_issue},
+            layout_issue is None, page,
         )
 
 
