@@ -10,6 +10,11 @@
       "sha": "9d1a91cf04dbd57611db7d0c710671e502b3984f",
       "type": "tree"
     },
+    ".cursor": {
+      "mode": "040000",
+      "sha": "45ea194fa76ce6aedad186f024467966b7c1c9fd",
+      "type": "tree"
+    },
     ".gitattributes": {
       "mode": "100644",
       "sha": "b6e33ec00935afc2113f6565c3934b2b68854b82",
@@ -22,7 +27,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "050272ed21e98644b83115f66374645c7a09fa7d",
+      "sha": "b667fdc1e74f35ad02dccfd0870daf7d17d27799",
       "type": "tree"
     },
     ".gitignore": {
@@ -37,12 +42,22 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "fc26dd6714b198c9081abbb71c422edcc0887659",
+      "sha": "f6c759dc76f6b8ea7d7d4f7533ec66999c1e0da4",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
       "mode": "100644",
       "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
+      "type": "blob"
+    },
+    "AI_ENTRYPOINT.md": {
+      "mode": "100644",
+      "sha": "8b4056f969ab0a1c0d6923f2904e72b29cad9901",
+      "type": "blob"
+    },
+    "CLAUDE.md": {
+      "mode": "100644",
+      "sha": "80ceaca71cb653324ad58d0893d6c966ae646d96",
       "type": "blob"
     },
     "DEVELOPMENT_GUARDRAILS.md": {
@@ -142,12 +157,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "fd918bbe43fab32099623a3fbc195703cf07bb5a",
+      "sha": "ca39ba6dff90f13536d11dc04b08a5568804487a",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "e9008b9a4920acbe2ac3a1ddb884438d4c95942d",
+      "sha": "0074f075a7cae5c5687f55beba68ae75a22c0d7a",
       "type": "tree"
     }
   },
