@@ -297,7 +297,9 @@ scopes:
     canonical_entries:
       - README.md
       - docs/CONTRIBUTING.md
-    test_entries: []
+    test_entries:
+      - tests.test_ai_context
+      - tests.test_agent_scope_tests
 
   quality_ci:
     kind: shared_infrastructure

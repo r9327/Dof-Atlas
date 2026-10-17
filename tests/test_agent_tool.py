@@ -16,7 +16,7 @@ class AgentToolTests(unittest.TestCase):
         payload = agent.doctor_payload(ROOT)
         self.assertEqual(payload["status"], "PASS")
         self.assertTrue(payload["context_index_current"])
-        self.assertEqual(payload["scope_count"], 23)
+        self.assertEqual(payload["scope_count"], 24)
         self.assertEqual(payload["ownership_conflicts"], [])
         self.assertEqual(payload["errors"], [])
 
