@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCENARIOS = ("guides-success", "guides-lanyel", "guide-quests", "validator-smoke")
+SCENARIOS = ("guides-success", "guides-lanyel", "guide-quests", "validator-smoke", "achievement-detail")
 DEFAULT_SCENARIOS = SCENARIOS[:3]
 MODES = ("all", "verify", "capture", "inspect")
 MAX_SECONDS = 240
@@ -29,6 +29,9 @@ def required_assertions(scenarios, repeats=2) -> list[str]:
     for name in scenarios:
         if name == "guide-quests":
             keys = [f"{gid}-quest-{turn}" for gid in ("guide_complet", "dofus_sylvestre") for turn in range(2)]
+        elif name == "achievement-detail":
+            keys = ["first-open-lazy", "click-opens-detail",
+                    "geometry-1200", "geometry-960"]
         else:
             smoke = name == "validator-smoke"
             pages = (1,) if smoke else (1, 8) if name == "guides-lanyel" else (1, 3)
