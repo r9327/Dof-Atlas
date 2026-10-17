@@ -126,6 +126,17 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertTrue(self.select(['tools/atlas_doctor_lib/ci_orchestrator.py'],
                                     event='workflow_dispatch')['full'])
 
+    def test_focused_ci_runs_and_stores_real_36_capability_witnesses(self):
+        workflow = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
+        focused = workflow.split('  focused-validation:', 1)[1].split('  certify:', 1)[0]
+        self.assertIn('run_capability_witnesses(Path.cwd(), timeout=240)', focused)
+        self.assertIn('validate_capability_evidence(Path.cwd(), witness)', focused)
+        self.assertIn("witness['status'] != 'PASS'", focused)
+        self.assertIn("checked['status'] != 'PASS'", focused)
+        self.assertIn('artifacts/doctor_ci/capability_evidence.json', focused)
+        self.assertIn("if p['tooling_only']:", focused)
+        self.assertIn('if-no-files-found: error', focused)
+
     def test_doctor_only_behavior_evidence_is_focused_not_app_release_certification(self):
         paths = [
             'tools/atlas_doctor.py',
