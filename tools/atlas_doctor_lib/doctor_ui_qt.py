@@ -1197,6 +1197,133 @@ def exercise_achievement_detail(session, page):
             status="BLOCKED" if readable["status"] == "BLOCKED" else None,
         )
 
+    exercise_achievement_completion(session, page, view, achievement_id)
+
+
+
+def completion_transition_failure(observed: dict) -> str | None:
+    """Fail if a click did not survive the canonical persistence boundary."""
+    if not observed.get("click", {}).get("accessible"):
+        return "BUTTON_NOT_ACCESSIBLE"
+    if observed.get("before") != observed.get("expected_before"):
+        return "BASELINE_MISMATCH"
+    if observed.get("after_checkbox") != observed.get("expected_after"):
+        return "CHECKBOX_DID_NOT_TOGGLE"
+    if observed.get("after_service") != observed.get("expected_after"):
+        return "SERVICE_DID_NOT_PERSIST"
+    if observed.get("progress_bar") != observed.get("expected_progress_bar"):
+        return "PROGRESS_BAR_NOT_UPDATED"
+    return None
+
+
+def exercise_achievement_completion(session, page, view, achievement_id: int):
+    """QTest real Success checkbox, durable persistence and character isolation.
+
+    The scene's DOFUS_ATLAS_USER_ROOT is a temporary isolated profile. The
+    final QTest click must undo the first change and then reload the file.
+    """
+    from PySide6.QtWidgets import QCheckBox, QProgressBar
+    from shiboken6 import isValid
+
+    key = view.character_key
+    other_key = "character:990000002"
+    service = view.progress_service
+    service.reload()
+    before = service.is_achievement_completed(key, achievement_id)
+    button = view.detail_content.findChild(QCheckBox, "AchievementDoneCheck")
+    bar = view.detail_content.findChild(QProgressBar, "EncyclopediaProgressBar")
+    if button is None or bar is None:
+        session.check("complete-click", "Find real Success checkbox",
+                      "Checkbox and progress widget available",
+                      {"reason": "MISSING_REAL_COMPLETION_CONTROL"}, False, page,
+                      status="BLOCKED")
+        return
+    # QTest clicks the real child and the real signal writes to isolated disk.
+    expected = not before
+    before_visible = button.isChecked()
+    clicked = click_target(page, button, view.detail_scroll)
+    service.reload()
+    observed = {
+        "click": clicked, "before": before_visible, "expected_before": before,
+        "expected_after": expected, "after_checkbox": button.isChecked(),
+        "after_service": service.is_achievement_completed(key, achievement_id),
+        "progress_bar": bar.value(),
+        "expected_progress_bar": 100 if expected else bar.value(),
+        "source_widget_path": clicked.get("source_widget_path"),
+        "character": key, "achievement_id": achievement_id,
+    }
+    failure = completion_transition_failure(observed)
+    session.check(
+        "complete-click", "QTest actual 'Succès terminé' checkbox, reload serialized service",
+        "One physical click persists exactly one toggle and updates progress",
+        {**observed, "first_failed_transition": failure}, failure is None, page,
+    )
+
+    previous = button
+    view.show_achievement(achievement_id)
+    settle()
+    service.reload()
+    reopened = view.detail_content.findChild(QCheckBox, "AchievementDoneCheck")
+    fresh = (
+        reopened is not None and reopened is not previous and not isValid(previous)
+        and reopened.isChecked() == expected
+        and service.is_achievement_completed(key, achievement_id) == expected
+    )
+    session.check(
+        "complete-reopen", "Destroy and recreate the real Success detail from disk",
+        "Old checkbox destroyed, fresh instance reflects saved completion",
+        {"old_destroyed": not isValid(previous), "new_instance": reopened is not previous,
+         "reopened_checked": reopened.isChecked() if reopened else None,
+         "saved_completed": service.is_achievement_completed(key, achievement_id),
+         "expected": expected}, fresh, page,
+    )
+    # A second character must never inherit the first one's manual completion.
+    view.set_character_key(other_key)
+    settle()
+    service.reload()
+    other = view.detail_content.findChild(QCheckBox, "AchievementDoneCheck")
+    other_saved = service.is_achievement_completed(other_key, achievement_id)
+    other_ui = other.isChecked() if other else None
+    view.set_character_key(key)
+    settle()
+    back = view.detail_content.findChild(QCheckBox, "AchievementDoneCheck")
+    isolated = (
+        other is not None and other_saved is False and other_ui is False
+        and back is not None and back.isChecked() == expected
+        and service.is_achievement_completed(key, achievement_id) == expected
+    )
+    session.check(
+        "complete-character", "Change character, then return to previous profile",
+        "Manual completion belongs only to character; restoring retains first profile",
+        {"other_character": other_key, "other_checked": other_ui,
+         "other_saved": other_saved,
+         "original_restored": back.isChecked() if back else None,
+         "expected_original": expected}, isolated, page,
+    )
+
+    # Restore initial state via QTest, not a service mutation or file deletion.
+    click_back = click_target(page, back, view.detail_scroll) if back else {"accessible": False}
+    service.reload()
+    restored = (
+        back is not None and click_back["accessible"]
+        and back.isChecked() == before
+        and service.is_achievement_completed(key, achievement_id) == before
+    )
+    view.show_achievement(achievement_id)
+    settle()
+    original = view.detail_content.findChild(QCheckBox, "AchievementDoneCheck")
+    restored = (
+        restored and original is not None and original.isChecked() == before
+        and service.is_achievement_completed(key, achievement_id) == before
+    )
+    session.check(
+        "complete-restore", "QTest undo completion, reload service and reopen Success",
+        "No dirty state remains in isolated test profile",
+        {"undo_click": click_back, "reopened_checked": original.isChecked() if original else None,
+         "saved_completed": service.is_achievement_completed(key, achievement_id),
+         "initial": before, "restored": restored},
+        restored, page,
+    )
 
 
 def worker(folder: Path) -> int:
