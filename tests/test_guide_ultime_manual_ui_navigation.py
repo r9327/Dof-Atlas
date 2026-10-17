@@ -6,7 +6,14 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QLabel, QToolButton
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QFrame,
+    QLabel,
+    QSizePolicy,
+    QToolButton,
+)
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
@@ -261,6 +268,12 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             checkbox = card.findChild(QCheckBox, "GuideManualCombatCheck")
             self.assertIsNotNone(checkbox)
             self.assertEqual(checkbox.text(), "3 × Bouftou — Combat test")
+            self.assertEqual(checkbox.minimumWidth(), 0)
+            self.assertEqual(
+                checkbox.sizePolicy().horizontalPolicy(),
+                QSizePolicy.Ignored,
+            )
+            self.assertIn(checkbox.text(), checkbox.toolTip())
             self.assertEqual(len(card.findChildren(QCheckBox, "GuideManualCombatCheck")), 1)
             self.assertTrue(checkbox.isEnabled())
             checkbox.click()

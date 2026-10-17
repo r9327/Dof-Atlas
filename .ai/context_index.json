@@ -52,7 +52,7 @@
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "73a18e90d639fa2a30c653038905ecbb688ec119",
+      "sha": "8b4056f969ab0a1c0d6923f2904e72b29cad9901",
       "type": "blob"
     },
     "CLAUDE.md": {
@@ -117,7 +117,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "5224ca59f3894c53206b10a18372a9cfeab5cb64",
+      "sha": "78762bd550843c13b19a7b0a7de51699f10fd3d5",
       "type": "tree"
     },
     "data": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "882e9e1a49e8b7ed30641bf8d02685290a17f0db",
+      "sha": "ba7da764adbe08c77b29faebb992dddf5811fd24",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "af5c5c421a4df6728ba23858d746ed73c2cd98d1",
+      "sha": "562fa3c69fddf8168366afcdd0bab0bd6501e54d",
       "type": "tree"
     }
   },

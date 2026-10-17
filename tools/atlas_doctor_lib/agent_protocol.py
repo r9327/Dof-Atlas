@@ -61,6 +61,8 @@ def _plan_summary(plan: dict[str, Any]) -> dict[str, Any]:
 
 def _envelope(root: Path, *, action: str, paths: list[str], base_ref: str,
               plan: dict[str, Any], result: dict[str, Any] | None = None) -> dict[str, Any]:
+    from .guardian_packs import guardian_plan
+
     state = git_state(root)
     result = result or {}
     raw_status = result.get("status", plan.get("status", "REVIEW"))
@@ -94,6 +96,7 @@ def _envelope(root: Path, *, action: str, paths: list[str], base_ref: str,
             "protected_paths": list(PROTECTED_PATHS),
         },
         "selected_checks": checks,
+        "guardians": guardian_plan(plan),
         "budgets": {
             "save_seconds": 1,
             "pre_commit_seconds": 10,
