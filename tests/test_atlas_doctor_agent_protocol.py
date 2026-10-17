@@ -56,6 +56,41 @@ class DoctorAgentProtocolTests(unittest.TestCase):
         self.assertEqual(result["certification"]["status"], "SCOPED_VALIDATED")
         self.assertFalse(result["certification"]["full_certified"])
         self.assertIs(verify.call_args.kwargs["prepared_plan"], prepared)
+        self.assertIn("await required CI", result["next_actions"][0])
+
+    def test_review_never_advises_editing_and_explains_blockers(self):
+        state = {"head": "c" * 40, "dirty": False, "dirty_digest": ""}
+        plan = {
+            **self.plan(), "status": "REVIEW_REQUIRED", "automation_safe": False,
+            "ownership": {"unowned_paths": ["misc/new.py"], "ambiguous_paths": []},
+            "unsafe_recommended_tools": ["tools/unsafe.py"],
+            "non_automated_recommended_tools": [], "missing_validation_tools": [],
+        }
+        with mock.patch("tools.agent.plan_payload", return_value=plan), mock.patch(
+            "tools.atlas_doctor_lib.agent_protocol.git_state", return_value=state
+        ):
+            result = run_agent_action(Path("."), action="plan", paths=["misc/new.py"])
+        self.assertEqual(result["status"], "REVIEW")
+        actions = " ".join(result["next_actions"])
+        self.assertIn("Resolve scope ownership", actions)
+        self.assertIn("Unsafe tools require review", actions)
+        self.assertNotIn("Apply only", actions)
+
+    def test_focused_check_is_pass_but_not_certified(self):
+        state = {"head": "d" * 40, "dirty": True, "dirty_digest": "work"}
+        checked = {"status": "FOCUSED_CHECKED", "checks": [],
+                   "tests_executed": True, "duration_ms": 10}
+        with mock.patch("tools.agent.plan_payload", return_value=self.plan()), mock.patch(
+            "tools.atlas_doctor_lib.development_preflight.development_preflight",
+            return_value=checked,
+        ), mock.patch(
+            "tools.atlas_doctor_lib.agent_protocol.git_state", return_value=state
+        ):
+            result = run_agent_action(Path("."), action="check",
+                                      paths=["app/example.py"], run_tests=True)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["certification"]["status"], "NOT_RUN")
+        self.assertIn("run `doctor agent validate`", result["next_actions"][0])
 
     def test_cli_exposes_four_agent_actions(self):
         parser = atlas_doctor.build_parser()
