@@ -26,7 +26,7 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
     def _passing_log(self):
         tests = sorted([*capability_test_ids(self.root).values(),
                         *capability_control_ids(self.root).values()])
-        lines = [f"{test.rsplit('.', 1)[1]} ({test.rsplit('.', 1)[0]}) ... ok"
+        lines = [f"{test.rsplit('.', 1)[1]} ({test}) ... ok"
                  for test in tests]
         return "\n".join(lines) + f"\n\nRan {len(tests)} tests in 0.1s\n\nOK\n"
 
@@ -171,6 +171,21 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
 
     @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
     @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_verbose_method_in_parentheses_must_match_reported_method(self, state, run):
+        state.return_value = self.state
+        run.return_value.returncode = 0
+        run.return_value.stdout = ""
+        passing = self._passing_log().replace(" (tests.", " (")
+        first = passing.splitlines()[0]
+        # The aggregate OK never proves a method whose qualified ID differs.
+        forged = first.replace(") ... ok", "_different) ... ok")
+        run.return_value.stderr = passing.replace(first, forged, 1)
+        result = run_capability_witnesses(self.root)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(validate_capability_evidence(self.root, result)["status"], "BLOCKED")
+
+    @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
     def test_zero_exit_with_skipped_witness_is_not_passing_evidence(self, state, run):
         state.return_value = self.state
         run.return_value.returncode = 0
@@ -204,8 +219,8 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
         payload = self._passing_evidence()
         test_id = payload["control_witnesses"][0]["test_id"]
         payload["stderr_tail"] = payload["stderr_tail"].replace(
-            f"{test_id.rsplit('.', 1)[1]} ({test_id.rsplit('.', 1)[0]}) ... ok",
-            f"{test_id.rsplit('.', 1)[1]} ({test_id.rsplit('.', 1)[0]}) ... skipped 'disabled'",
+            f"{test_id.rsplit('.', 1)[1]} ({test_id}) ... ok",
+            f"{test_id.rsplit('.', 1)[1]} ({test_id}) ... skipped 'disabled'",
         )
         payload["evidence_digest"] = _digest(payload)
         self.assertIn("WITNESS_VERBOSE_VERDICTS_INCOMPLETE",
