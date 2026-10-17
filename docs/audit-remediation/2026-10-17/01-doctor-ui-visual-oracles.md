@@ -94,3 +94,18 @@ Correctif complémentaire : module stdlib `ui_raster_oracle.py` qui inspecte les
 Ce résultat est combiné à `session/glyph-rendering` : le rendu d'une police Qt annoncé « disponible » n'annule **jamais** une défaillance constatée directement dans les pixels. Tests : images synthétiques de 24 carrés et 4 cases légitimes en stdlib ; sur le vrai moteur Qt, injection d'un ancien PNG fautif suivi d'une image saine, et démonstration qu'une métrique de police favorable ne peut pas effacer `REPEATED_SCREENSHOT_TOFU`.
 
 Il s'agit d'un garde anti-faux PASS et non d'une réparation de toutes les fontes. Après réussite de la CI au **nouveau SHA exact**, télécharger et inspecter les PNG récents : si ceux-ci contiennent encore les carrés, **CI UI doit être rouge** et le correctif des fontes reste à établir. La certification de l'EXE installé n'est pas implicite.
+
+## Tests d'acceptation sur les vraies captures historiques — preuve P1-02
+
+Le module `ui_raster_oracle.py` a été exécuté directement sur les captures extraites, sans Qt ni simulation :
+
+| Archive GitHub exacte | Capture | Boîtes détectées | Oracle raster |
+| --- | --- | ---: | --- |
+| run 39055013074, commit `0b8ffdc2`, artefact 12109118441 | `001-achievement-detail.png` (1200×800) | 730 | FAIL |
+| même run | `004-achievement-detail.png` (960×640) | 618 | FAIL |
+| run 39056401360, commit `0817129f`, artefact 12109508669 | `001-achievement-detail.png` (1200×800) | 1 | PASS |
+| même run | `004-achievement-detail.png` (960×640) | 1 | PASS |
+
+La suite stdlib contient à présent **deux témoins issus des vrais pixels Windows**, en plus des cas synthétiques : un extrait gris **420×75** du premier PNG illisible (64 carrés mesurés, FAIL attendu) et un extrait **200×45** du PNG corrigé (0 carré, PASS attendu). Ces extraits sont stockés en chaînes zlib+base85 avec empreinte SHA256 des octets décompressés ; les commentaires du test enregistrent également le SHA256 du PNG original et le run source. Toute régression de l'algorithme sur ces témoins casse les tests, sans exiger une installation Qt. Ce sont des témoins historiques, **pas** un substitut à l'analyse des captures produites sur le nouveau HEAD.
+
+Conclusion limitée : le correctif du chargement de polices a rendu lisibles les captures inspectées à `0817129f` et l'oracle détecte l'ancienne anomalie. Les tests de contraste, toutes les polices de l'EXE et tous les écrans métier ne sont pas couverts par ces deux extraits.
