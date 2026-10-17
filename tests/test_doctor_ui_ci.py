@@ -215,10 +215,25 @@ class DoctorUiRegressionWatchTests(unittest.TestCase):
             "assertions": rows, "required_assertions": ids,
             "required_evidence": ["capture.png"],
         }
+        import struct
+        import zlib
+
         files = {"ui_verdict.json": json.dumps(report), "actions.json": "[]",
-                 "request.json": "{}", "worker.log": "log", "capture.png": "PNG fixture"}
+                 "request.json": "{}", "worker.log": "log", "capture.png": ""}
         for name, content in files.items():
-            (folder / name).write_text(content, encoding="utf-8")
+            if name != "capture.png":
+                (folder / name).write_text(content, encoding="utf-8")
+
+        def png_chunk(kind, data):
+            signed = kind + data
+            return (struct.pack(">I", len(data)) + signed
+                    + struct.pack(">I", zlib.crc32(signed) & 0xFFFFFFFF))
+
+        png = (bytes.fromhex("89504e470d0a1a0a")
+               + png_chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+               + png_chunk(b"IDAT", zlib.compress(bytes.fromhex("00000000ff")))
+               + png_chunk(b"IEND", b""))
+        (folder / "capture.png").write_bytes(png)
         manifest = {"candidate_sha": sha, "dirty": False,
                     "artifacts": {name: hashlib.sha256((folder / name).read_bytes()).hexdigest()
                                   for name in files}}
@@ -280,6 +295,19 @@ class DoctorUiRegressionWatchTests(unittest.TestCase):
             self.assertEqual(watch_ui_regressions(**kw)["status"], "BLOCKED")
             self.make_session(root, SHA, missing_capture=True)
             self.assertEqual(watch_ui_regressions(**kw)["status"], "BLOCKED")
+
+            # Recalculate the hash of a fake image: integrity alone is not
+            # evidence of a valid screenshot.
+            import hashlib
+            self.make_session(root, SHA)
+            (candidate / "capture.png").write_bytes(b"not an image")
+            manifest_path = candidate / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["artifacts"]["capture.png"] = hashlib.sha256(b"not an image").hexdigest()
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            result = watch_ui_regressions(**kw)
+            self.assertEqual(result["status"], "BLOCKED")
+            self.assertIn("INVALID_SCREENSHOT_PNG", " ".join(result["errors"]))
 
     def test_regression_watch_cli_is_fail_closed_until_evidence_exists(self):
         from tools.atlas_doctor_lib.doctor_ui_ci import main
