@@ -274,8 +274,8 @@ def _regression_assertions(folders: list[Path], sha: str) -> tuple[dict, list[st
                 # cannot count as an actual rendered screenshot.
                 with (folder / name).open("rb") as stream:
                     header = stream.read(24)
-                if (len(header) < 24 or header[:8] != b"\\x89PNG\\r\\n\\x1a\\n"
-                        or header[8:16] != b"\\x00\\x00\\x00\\rIHDR"
+                if (len(header) < 24 or header[:8] != bytes.fromhex("89504e470d0a1a0a")
+                        or header[8:16] != bytes.fromhex("0000000d") + b"IHDR"
                         or not (0 < int.from_bytes(header[16:20], "big") <= 8192)
                         or not (0 < int.from_bytes(header[20:24], "big") <= 8192)):
                     errors.append("INVALID_SCREENSHOT_PNG: " + name)
