@@ -121,9 +121,15 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
             uncertainty.append("INVALID_PATH: " + path)
         elif path.endswith(".md") or path == ".ai/context_index.json":
             continue
+        elif path in ("tools/atlas_doctor_lib/doctor_ui_qt.py",
+                       "tools/atlas_doctor_lib/doctor_ui.py",
+                       "tests/test_doctor_ui_qt.py", "tests/test_doctor_ui.py"):
+            # Changes to shared UI assertions must exercise both production
+            # Guides as well as the smoke and Success journeys; otherwise
+            # manual/combat persistence could silently pass via smoke alone.
+            include(("guides-success", "guides-lanyel", "validator-smoke", "achievement-detail"),
+                    "Shared Doctor Qt validator changed: " + path, path)
         elif path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tools/atlas_doctor_lib/ui_raster_oracle", "tools/atlas_doctor_lib/ui_contrast_oracle", "tests/test_doctor_ui")):
-            # The new detector must run the actual Success journey in its own
-            # PR: a green self-test alone does not prove its Qt integration.
             include(("validator-smoke", "achievement-detail"),
                     "Validator and real Success journey changed: " + path, path)
         elif _ci_workflow(path) or path in VALIDATOR_PATHS:
