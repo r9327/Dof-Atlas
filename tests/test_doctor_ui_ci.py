@@ -77,10 +77,33 @@ class DoctorUiSelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(set(self.plan(path)["selected_scenarios"]), selected)
 
-    def test_validator_change_selects_self_tests_and_one_smoke(self):
+    def test_validator_changes_also_select_real_success_journey(self):
         for path in ("tools/atlas_doctor_lib/doctor_ui_qt.py", "tools/atlas_doctor_lib/doctor_ui_ci.py",
-                     "tests/test_doctor_ui_qt.py", ".github/workflows/doctor-ui.yml"):
-            self.assertEqual(self.plan(path)["selected_scenarios"], ["validator-smoke"])
+                     "tests/test_doctor_ui_qt.py", "tools/atlas_doctor_lib/doctor_ui.py"):
+            self.assertEqual(
+                self.plan(path)["selected_scenarios"],
+                ["achievement-detail", "validator-smoke"],
+            )
+        self.assertEqual(
+            self.plan(".github/workflows/doctor-ui.yml")["selected_scenarios"],
+            ["validator-smoke"],
+        )
+
+    def test_success_specific_changes_select_end_to_end_detail(self):
+        for path in (
+            "app/modules/encyclopedia/views/achievements_view.py",
+            "app/modules/encyclopedia/widgets/achievement_detail_widget.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.plan(path)["selected_scenarios"], ["achievement-detail"])
+        self.assertIn(
+            "achievement-detail",
+            self.plan("app/modules/encyclopedia/views/encyclopedia_page.py")["selected_scenarios"],
+        )
+        self.assertIn(
+            "achievement-detail",
+            self.plan("app/modules/encyclopedia/providers/achievement_provider.py")["selected_scenarios"],
+        )
 
     def test_independent_tool_cannot_silently_introduce_a_qt_dependency(self):
         with tempfile.TemporaryDirectory() as folder:
