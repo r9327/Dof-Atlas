@@ -155,3 +155,22 @@ La validation UI ne s'arrête plus à `childAt()` ni à la modification visuelle
 Tous les écrans et fichiers concernés tournent dans `DOFUS_ATLAS_USER_ROOT` temporaire du runner Windows, jamais sur le profil de l'utilisateur ou le stockage réel de DOFUS. Les quatre assertions sont requises par le coordinateur et sont accompagnées de captures PNG, du chemin du widget et de l'état observé. Un test Qt injecte les pannes de clic, d'état visuel, de persistance et de mise à jour de barre ; il doit faire échouer l'oracle même lorsqu'un clic physique s'est réellement produit.
 
 **Pas de promesse prématurée** : les assertions constituent un candidat jusqu'à obtention d'un résultat Windows SUCCESS lié au nouveau SHA. L'absence d'autres interactions dans les guides et les sections sous le scroll reste `NOT_COVERED`. Aucun code de la PR produit #201 n'est modifié ; PR #216 toujours Draft.
+
+## P1-06 — certification réelle des sauvegardes des DEUX Guides (candidat)
+
+Le seul `validator-smoke` n'attestait pas les deux parcours de production. La sélection des changements de l'orchestrateur et des tests Qt inclut donc les **quatre scénarios** `guides-success`, `guides-lanyel`, `validator-smoke` et `achievement-detail`, sans FULL ni benchmarks RAM hors périmètre.
+
+**Étape Guide** (les deux guides réels, services canoniques et profil jetable) :
+- `manual-persist` : vrai clic `QTest` sur `GuideManualPageCheck`, cohérence de l'état initial, de la coche et de la progression relue après `reload_progress()`.
+- `manual-reopen` : destruction Qt de l'ancienne page, reconstruction, nouvelle case cochée conformément au fichier rechargé (pas simple état local de l'ancien widget).
+- `character-isolation` : deuxième personnage vide à l'écran et dans le service, puis retour au premier dont la sauvegarde reste intacte.
+- `manual-restore` : second clic physique `QTest` sur le bouton, reload, recréation de la page : progression et coche à leur valeur **initiale**.
+
+**Combat du Guide** (premier objectif de quête à provenance résolue parmi les 32 premières étapes, lorsque le contexte réel en contient) :
+- `combat` : un signal `toggled`, relecture de l'ID quête/objectif du service sérialisé et réouverture de la case avec le bon état et libellé ;
+- `combat-character` : absence d'héritage de cet objectif par le deuxième personnage, retour au premier état enregistré ;
+- `combat-restore` : second `QTest`, signal et service vérifiés, nouvelle case avec l'état initial et la propriété visuelle `done/todo`.
+
+L'absence d'un combat ou une correspondance de provenance non sûre bloque les **trois** assertions combat, pas de PASS implicite. Chaque contrôle obligatoire conserve capture réelle, preuve du clic, valeurs service et résultat. Aucun correctif de l'application de la PR #201. Les données de test sont exclusivement dans `DOFUS_ATLAS_USER_ROOT` isolé.
+
+**Critère de sortie** : succès des quatre scènes réelles, tests statiques et Qt, et verdict de CI **au nouveau SHA exact**. Les contenus sous le scroll et les autres modules restent non certifiés à cette étape.
