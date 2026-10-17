@@ -11,13 +11,16 @@ This file is a routing playbook, not a second registry. The canonical machine-re
 
 ## Start here
 
-1. Read the root `AGENTS.md` and `tools/AGENTS.md`.
+1. Read `AI_ENTRYPOINT.md`, the root `AGENTS.md` and `tools/AGENTS.md`.
 2. For non-trivial work, run `py -3.13 -m tools.ai_context status` and use the current ROAD IA scope.
 3. Discover the current tool surface from the repository itself:
 
 ```powershell
 py -3.13 -m tools.tool_catalog --json
 ```
+
+For non-trivial coding work, use the stable Doctor agent protocol before broad
+tool discovery: `agent plan`, then `agent check`, then `agent validate`.
 
 For automatic agent execution, prefer canonical entry points that are both safe and automation-ready:
 
