@@ -22,7 +22,8 @@ from tools.atlas_doctor_lib.doctor_ui_qt import (
     first_achievement_failure, achievement_layout_observations,
     first_achievement_layout_failure, achievement_title_contrast,
     achievement_readable_text_observations, detailed_achievement_oracle,
-    completion_transition_failure, geometry_observations, settle,
+    completion_transition_failure, bottom_guide_observations,
+    geometry_observations, settle,
     quest_outcome, sheet_observations, widget_tree, glyph_legibility_probe,
 )
 
@@ -210,6 +211,44 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.service.reload_progress()
         self.assertTrue(check.isChecked())
         self.assertFalse(self.service.page_checked("character:doctor-fixture", self.service.cards[0]))
+
+    def test_real_guide_bottom_scroll_checks_rows_and_button_occlusion(self):
+        from PySide6.QtWidgets import QHBoxLayout, QLabel
+        from PySide6.QtCore import QRect
+
+        sheet = self.view.findChild(QFrame, "GuideManualSheet")
+        for index in range(45):
+            line = QFrame()
+            line.setObjectName("GuideManualLineRow")
+            row = QHBoxLayout(line)
+            row.addWidget(QLabel(f"Contenu du guide, ligne {index}"))
+            sheet.layout().addWidget(line)
+        target = QPushButton("Bouton en bas de page")
+        target.setObjectName("GuideBottomAction")
+        sheet.layout().addWidget(target)
+        self.view.resize(640, 460)
+        settle()
+        healthy = bottom_guide_observations(self.view, self.view, self.service.cards[0])
+        self.assertEqual(healthy["status"], "PASS", healthy)
+        self.assertGreater(healthy["scroll_max"], 0)
+        self.assertEqual(healthy["scroll_position"], healthy["scroll_max"])
+        self.assertGreater(healthy["visible_line_rows"], 0)
+        self.assertGreater(healthy["visible_line_text_labels"], 0)
+        self.assertIn("GuideBottomAction",
+                      [item["name"] for item in healthy["visible_buttons"]])
+
+        point = target.mapTo(self.view, target.rect().topLeft())
+        overlay = QPushButton("Intercept", self.view)
+        overlay.setGeometry(QRect(point, target.size()))
+        overlay.show()
+        overlay.raise_()
+        settle()
+        broken = bottom_guide_observations(self.view, self.view, self.service.cards[0])
+        self.assertEqual(broken["status"], "FAIL", broken)
+        self.assertIn("GuideBottomAction", broken["occluded_buttons"])
+        overlay.close()
+        overlay.deleteLater()
+        settle()
 
     def test_collision_overlay_hidden_scroll_and_wrong_lock_are_detectable(self):
         overlay = QPushButton("Occluding overlay", self.view)
