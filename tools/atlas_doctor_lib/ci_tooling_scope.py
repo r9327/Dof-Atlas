@@ -40,6 +40,7 @@ QT_DETECTOR_PATHS = frozenset({
     'tools/atlas_doctor_lib/doctor_ui.py',
     'tools/atlas_doctor_lib/doctor_ui_qt.py',
     'tools/atlas_doctor_lib/ui_raster_oracle.py',
+    'tools/atlas_doctor_lib/ui_contrast_oracle.py',
     'tests/test_doctor_ui_qt.py',
 })
 
@@ -59,7 +60,7 @@ def _qt_detector_boundary(root: Path | None, path: str) -> bool:
         return False
     if path.startswith('tests/'):
         return True  # Real Qt test runs on Windows; not imported by stdlib.
-    if path.endswith('/ui_raster_oracle.py'):
+    if path.endswith(('/ui_raster_oracle.py', '/ui_contrast_oracle.py')):
         # The screenshot raster analyzer must remain completely stdlib-only.
         forbidden = ('app', 'PySide6', 'shiboken6')
         for node in ast.walk(ast_tree):
