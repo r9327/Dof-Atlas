@@ -57,11 +57,12 @@ def _verbose_verdicts(stderr: Any) -> dict[str, list[str]]:
         return verdicts
     for line in stderr.splitlines():
         matched = re.fullmatch(
-            r"(test_[A-Za-z0-9_]+) \((tests\.test_[A-Za-z0-9_]+\.[A-Za-z0-9_]+)\) \.\.\. (ok|FAIL|ERROR|skipped .+|expected failure|unexpected success)",
+            r"(test_[A-Za-z0-9_]+) \(((?:tests\.)?test_[A-Za-z0-9_]+\.[A-Za-z0-9_]+)\) \.\.\. (ok|FAIL|ERROR|skipped .+|expected failure|unexpected success)",
             line.strip(),
         )
         if matched:
-            ident = matched[2] + "." + matched[1]
+            # Rebuild the canonical ID even when the tests package is not imported.
+            ident = ("tests." if not matched[2].startswith("tests.") else "") + matched[2] + "." + matched[1]
             verdicts.setdefault(ident, []).append(matched[3])
     return verdicts
 
@@ -87,7 +88,11 @@ def run_capability_witnesses(root: Path, *, timeout: int = 300) -> dict[str, Any
     requested = sorted([*test_ids.values(), *control_ids.values()])
     started_at = utc_now()
     started = time.monotonic()
-    command = [sys.executable, "-m", "unittest", "-v", *requested]
+    # Import the test files as top-level modules. Importing "tests.<module>" would
+    # execute tests/__init__.py, which eagerly requires a Qt QApplication.
+    # The focused stdlib job deliberately has no PySide6 installed.
+    command = [sys.executable, "-m", "unittest", "-v",
+               *[test_id.removeprefix("tests.") for test_id in requested]]
     return_code: int | None = None
     stdout = ""
     stderr = ""
@@ -96,6 +101,10 @@ def run_capability_witnesses(root: Path, *, timeout: int = 300) -> dict[str, Any
     if not missing and not duplicate_ids:
         env = os.environ.copy()
         env["PYTHONUTF8"] = "1"
+        # Make bare test modules importable; preserve the repository imports.
+        env["PYTHONPATH"] = os.pathsep.join(filter(None, (
+            str(root / "tests"), str(root), env.get("PYTHONPATH", ""),
+        )))
         try:
             completed = subprocess.run(
                 command, cwd=root, env=env, text=True, capture_output=True,
@@ -188,7 +197,8 @@ def validate_capability_evidence(root: Path, payload: Any) -> dict[str, Any]:
         errors.append("WITNESS_ANCHOR_MISSING")
     if len(requested) != len(set(requested)):
         errors.append("WITNESS_TEST_DUPLICATE")
-    if payload.get("command") != [sys.executable, "-m", "unittest", "-v", *requested]:
+    if payload.get("command") != [sys.executable, "-m", "unittest", "-v",
+                                  *[test_id.removeprefix("tests.") for test_id in requested]]:
         errors.append("WITNESS_COMMAND_MISMATCH")
     log = payload.get("stderr_tail")
     if not _witness_suite_passed(log, len(requested)):
