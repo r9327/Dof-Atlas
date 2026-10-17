@@ -9,6 +9,7 @@ repository snapshot.  It deliberately cannot issue release certification.
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -34,6 +35,17 @@ def _digest(payload: dict[str, Any]) -> str:
     raw = json.dumps(unsigned, ensure_ascii=False, sort_keys=True,
                      separators=(",", ":")).encode("utf-8")
     return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def _witness_suite_passed(stderr: Any, expected_count: int) -> bool:
+    """A zero exit can include skips/expected failures; require all witnesses."""
+    if not isinstance(stderr, str):
+        return False
+    summary = re.search(
+        r"(?:^|\n)Ran ([0-9]+) tests? in [^\r\n]+\r?\n\r?\n([^\r\n]+)\r?\n?\Z",
+        stderr,
+    )
+    return bool(summary and summary[1] == str(expected_count) and summary[2] == "OK")
 
 
 def run_capability_witnesses(root: Path, *, timeout: int = 300) -> dict[str, Any]:
@@ -68,7 +80,8 @@ def run_capability_witnesses(root: Path, *, timeout: int = 300) -> dict[str, Any
     after = git_state(root)
     unchanged = (before["head"] == after["head"]
                  and before["dirty_digest"] == after["dirty_digest"])
-    aggregate_pass = not missing and not timed_out and return_code == 0 and unchanged
+    aggregate_pass = (not missing and not timed_out and return_code == 0 and unchanged
+                      and _witness_suite_passed(stderr, len(test_ids)))
     status = ("PASS" if aggregate_pass else "BLOCKED"
               if missing or timed_out or not unchanged else "FAIL")
     result = {
@@ -128,6 +141,8 @@ def validate_capability_evidence(root: Path, payload: Any) -> dict[str, Any]:
     if payload.get("status") != "PASS" or payload.get("return_code") != 0:
         errors.append("WITNESS_SUITE_NOT_PASS")
     expected = capability_test_ids(root.resolve())
+    if not _witness_suite_passed(payload.get("stderr_tail"), len(expected)):
+        errors.append("WITNESS_SUITE_INCOMPLETE_OR_NOT_ALL_PASSED")
     supplied: dict[str, str] = {}
     witnesses = payload.get("witnesses")
     if not isinstance(witnesses, list):

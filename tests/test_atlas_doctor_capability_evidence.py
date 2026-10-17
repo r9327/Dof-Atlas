@@ -30,6 +30,7 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
             "dirty_digest": self.state["dirty_digest"],
             "worktree_unchanged": True,
             "return_code": 0,
+            "stderr_tail": "Ran 18 tests in 0.1s\n\nOK\n",
             "witnesses": [
                 {"capability_id": ident, "test_id": test_ids[ident], "result": "PASS"}
                 for ident in sorted(test_ids)
@@ -77,7 +78,7 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
         state.return_value = self.state
         run.return_value.returncode = 0
         run.return_value.stdout = "ok"
-        run.return_value.stderr = ""
+        run.return_value.stderr = "Ran 18 tests in 0.1s\n\nOK\n"
         payload = run_capability_witnesses(self.root, timeout=42)
         self.assertEqual(payload["status"], "PASS")
         self.assertEqual(len(payload["witnesses"]), 18)
@@ -85,6 +86,40 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
         self.assertEqual(run.call_count, 1)
         self.assertEqual(run.call_args.kwargs["timeout"], 42)
         self.assertEqual(payload["evidence_digest"], _digest(payload))
+
+    @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_zero_exit_with_skipped_witness_is_not_passing_evidence(self, state, run):
+        state.return_value = self.state
+        run.return_value.returncode = 0
+        run.return_value.stdout = ""
+        run.return_value.stderr = "Ran 18 tests in 0.1s\n\nOK (skipped=1)\n"
+        payload = run_capability_witnesses(self.root)
+        self.assertEqual(payload["status"], "FAIL")
+        self.assertTrue(all(row["result"] == "UNVERIFIED" for row in payload["witnesses"]))
+        self.assertEqual(validate_capability_evidence(self.root, payload)["status"], "BLOCKED")
+
+    @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_missing_incomplete_or_expected_failure_summary_is_not_pass(self, state, run):
+        state.return_value = self.state
+        run.return_value.returncode = 0
+        run.return_value.stdout = ""
+        for summary in ("", "Ran 0 tests in 0.1s\n\nOK\n",
+                        "Ran 17 tests in 0.1s\n\nOK\n",
+                        "Ran 18 tests in 0.1s\n\nOK (expected failures=1)\n"):
+            with self.subTest(summary=summary):
+                run.return_value.stderr = summary
+                self.assertEqual(run_capability_witnesses(self.root)["status"], "FAIL")
+
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_reader_rejects_skip_hidden_by_passing_fields_and_valid_digest(self, state):
+        state.return_value = self.state
+        payload = self._passing_evidence()
+        payload["stderr_tail"] = "Ran 18 tests in 0.1s\n\nOK (skipped=1)\n"
+        payload["evidence_digest"] = _digest(payload)
+        checked = validate_capability_evidence(self.root, payload)
+        self.assertEqual(checked["status"], "BLOCKED")
 
 
 if __name__ == "__main__":
