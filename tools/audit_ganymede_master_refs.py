@@ -16,7 +16,7 @@ MASTER = Path("data/encyclopedia/guides/ganymede_master_observed_links.json")
 LINK_TYPES = ("quest", "dungeon", "object", "monster")
 
 
-def audit_ganymede_master_refs(root: Path) -> dict[str, object]:
+def audit_ganymede_master_refs(root: Path, *, snapshot: Path = MASTER) -> dict[str, object]:
     issues: list[dict[str, str]] = []
 
     def issue(code: str, detail: str) -> None:
@@ -24,7 +24,7 @@ def audit_ganymede_master_refs(root: Path) -> dict[str, object]:
 
     try:
         index = json.loads((root / INDEX).read_text(encoding="utf-8"))
-        doc = json.loads((root / MASTER).read_text(encoding="utf-8"))
+        doc = json.loads((root / snapshot).read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         return {
             "status": "FAIL",
@@ -41,9 +41,10 @@ def audit_ganymede_master_refs(root: Path) -> dict[str, object]:
     if not isinstance(coverage, dict):
         issue("coverage", "coverage must be an object")
         coverage = {}
+    guide_id = source.get("guide_id")
     if (
-        source.get("guide_id") != 2251
-        or source.get("source_url") != "https://ganymede-app.com/guides/2251"
+        type(guide_id) is not int or guide_id <= 0
+        or source.get("source_url") != f"https://ganymede-app.com/guides/{guide_id}"
         or source.get("extraction_scope") != "factual_link_occurrences_only"
         or source.get("editorial_text_imported") is not False
     ):
@@ -68,11 +69,11 @@ def audit_ganymede_master_refs(root: Path) -> dict[str, object]:
     main_ids = {r["ganymede_guide_id"] for r in main_guides
                 if isinstance(r, dict)
                 and type(r.get("ganymede_guide_id")) is int}
-    master_index_rows = [r for r in main_guides
-                         if isinstance(r, dict) and r.get("ganymede_guide_id") == 2251]
-    expected_steps = master_index_rows[0].get("listed_step_count") if len(master_index_rows) == 1 else None
+    guide_index_rows = [r for r in main_guides
+                        if isinstance(r, dict) and r.get("ganymede_guide_id") == guide_id]
+    expected_steps = guide_index_rows[0].get("listed_step_count") if len(guide_index_rows) == 1 else None
     if type(expected_steps) is not int or expected_steps <= 0:
-        issue("index_master_count", "missing MG0 count in public tree index")
+        issue("index_guide_count", "missing guide step count in public tree index")
 
     rows = doc.get("steps", [])
     if not isinstance(rows, list):
@@ -144,7 +145,7 @@ def audit_ganymede_master_refs(root: Path) -> dict[str, object]:
     return {
         "status": "FAIL" if issues else "PASS_OBSERVED_LINKS_ONLY",
         "evidence_type": "observed_external_links_only",
-        "master_guide_id": 2251,
+        "source_guide_id": guide_id,
         "observed_steps": len(rows),
         "referenced_main_guides": len(all_links & main_ids),
         "unclassified_non_main_guide_ids": outside,
@@ -159,9 +160,10 @@ def audit_ganymede_master_refs(root: Path) -> dict[str, object]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument("--snapshot", type=Path, default=MASTER)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    report = audit_ganymede_master_refs(args.root.resolve())
+    report = audit_ganymede_master_refs(args.root.resolve(), snapshot=args.snapshot)
     output = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
