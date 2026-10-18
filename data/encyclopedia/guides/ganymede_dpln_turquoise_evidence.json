@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2217,
+  "atlas_guide_id": "dofus_turquoise",
+  "checked_on": "2026-10-18",
+  "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+  "quest_objectives_verified": false,
+  "route_verified": false,
+  "sources": {
+    "dpln_quest_list": "https://www.dofuspourlesnoobs.com/quecirctes-du-dofus-turquoise.html",
+    "dpln_achievement": "https://www.dofuspourlesnoobs.com/bleu-turquoise.html",
+    "ganymede_guide": "https://ganymede-app.com/guides/2217"
+  },
+  "main_quests": [
+    {
+      "quest_id": 1653,
+      "name": "Plongeon et dragon",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1653",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1654,
+      "name": "Extinction des feux",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1654",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1656,
+      "name": "On dirait le Sud",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1656",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1657,
+      "name": "La méchante sorcière de l'Est",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1657",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1658,
+      "name": "Autel du Nord",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1658",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1659,
+      "name": "Il était une foi dans l'Ouest",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1659",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1660,
+      "name": "La bénédiction de Viti",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1660",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1661,
+      "name": "La bénédiction de Thomahon",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1661",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1662,
+      "name": "La bénédiction de Foluk",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1662",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1663,
+      "name": "Une âme en colère",
+      "achievement_group": "Bleu turquoise",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1663",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    }
+  ],
+  "access_and_prerequisites": [],
+  "non_main_references": [
+    {
+      "quest_id": 1462,
+      "name": "La magicienne des marécages",
+      "status": "CONTEXT_UNCLASSIFIED",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1462",
+      "reason": "Ganymède reference linked, present in Atlas guide; not in DPLN's ten primary quests. Mandatory role not established."
+    }
+  ],
+  "preparation_evidence": {
+    "resources": [
+      {
+        "name": "Pépite",
+        "quantity": 600
+      },
+      {
+        "name": "Os de Sramouraï",
+        "quantity": 15
+      },
+      {
+        "name": "Plume de Gobvious",
+        "quantity": 10
+      }
+    ],
+    "combat_review": {
+      "solo": 3,
+      "group_possible": 6,
+      "tactical_solo": 2,
+      "random_additional": true,
+      "zone_monsters_additional": true
+    },
+    "dungeons_count_review": 12,
+    "requires_dungeon_modifiers_review": true,
+    "modifier_source_label": "Altérations, intitulées Idoles sur certaines pages ; contrôle de compatibilité/version à effectuer avant activation.",
+    "planning_note": "Snapshot of source-global requirements only. Check canonical objectives and route timing before listing À préparer. Multi-character amounts and existing inventory must be respected."
+  }
+}

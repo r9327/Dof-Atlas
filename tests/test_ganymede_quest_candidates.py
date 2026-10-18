@@ -338,7 +338,23 @@ class GanymedeQuestCandidateAuditTests(unittest.TestCase):
         report = audit_ganymede_quest_candidates(ROOT)
         self.assertEqual(report["status"], "REVIEW_REQUIRED", report["issues"])
         self.assertEqual(report["guide_snapshots_checked"], 95)
-        self.assertEqual(report["triangulated_named_quest_candidates"], 33)
+        self.assertEqual(report["triangulated_named_quest_candidates"], 43)
+        turquoise = next(r for r in report["guide_reports"] if r["source_guide_id"] == 2217)
+        self.assertEqual(turquoise["triangulated_named_quest_candidates"], 10)
+        self.assertEqual(
+            {p["candidate_atlas_quest_id"] for p in turquoise["candidate_pairs"]
+             if p["status"] == "REVIEW_TRIANGULATED_SOURCES"},
+            {1653, 1654, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663},
+        )
+        self.assertEqual(turquoise["non_main_source_quest_ids"], [1462])
+        self.assertTrue(
+            turquoise["non_main_reference_review"][0]["mentioned_in_atlas_guide"]
+        )
+        self.assertEqual(
+            next(p for p in turquoise["candidate_pairs"]
+                 if p["candidate_atlas_quest_id"] == 1462)["status"],
+            "REVIEW_NON_MAIN_REFERENCE",
+        )
         pourpre = next(r for r in report["guide_reports"] if r["source_guide_id"] == 2276)
         self.assertEqual(pourpre["triangulated_named_quest_candidates"], 8)
         self.assertEqual(

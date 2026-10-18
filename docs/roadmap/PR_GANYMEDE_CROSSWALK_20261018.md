@@ -611,3 +611,43 @@ canonique et le refus des instantanés non validés.
 Le dépôt GitHub ne contient pas les fichiers bruts Doduda installés :
 il serait **trompeur** d'affirmer les 33 noms confirmés par le jeu tant
 que cet audit n'a pas été exécuté avec les fichiers runtime réels.
+
+
+### Sixième rapprochement nominatif : Dofus Turquoise (10 quêtes)
+
+Le succès DPLN **Bleu turquoise** comporte **10 quêtes
+principales**. Les quêtes ayant les IDs DofusDB 1653, 1654,
+1656, 1657, 1658, 1659, 1660, 1661, 1662 et 1663
+sont toutes référencées dans les 87 étapes Ganymède 2217
+et présentes comme étapes de quêtes dans le guide Atlas
+`dofus_turquoise`. Les noms DPLN et DofusDB ont été recoupés.
+
+La source Ganymède contient aussi le lien vers la quête 1462
+« La magicienne des marécages » : ce lien est aussi présent
+dans le guide Atlas, mais il ne figure **pas** parmi les dix
+quêtes du succès Bleu turquoise. Il est donc déclaré
+`CONTEXT_UNCLASSIFIED`, pas « objectif obligatoire ».
+La quête spéciale « L'ombre et la proie » est également
+mentionnée séparément par DPLN et ne doit pas être assimilée
+à une onzième quête du succès sans vérification d'identité.
+
+Dans `ganymede_dpln_turquoise_evidence.json` sont consignés
+à titre de **données de source non activées** les besoins
+globaux DPLN (notamment 600 Pépites, 15 Os de Sramouraï,
+10 Plumes de Gobvious), les types de combats (3 seuls,
+6 possibles en groupe, 2 tactiques seuls, autres aléatoires)
+et les **12 passages de donjon** mentionnés par DPLN.
+Les altérations/anciennes appellations « idoles »
+nécessitent une validation de version avant toute
+automatisation dans #226. Aucun achat automatique ni
+multiplication des ressources par personnage sans évaluation
+des objectifs réels n'est autorisé.
+
+**Total des noms/IDs candidats recoupés : 43**
+(Cawotte 11, Dolmanax 1, Dokoko 5, Émeraude 8,
+Pourpre 8, Turquoise 10). Aucune de ces égalités ne constitue
+une certification des objectifs ou des itinéraires.
+
+Sources : [DPLN Turquoise](https://www.dofuspourlesnoobs.com/quecirctes-du-dofus-turquoise.html),
+[Bleu turquoise](https://www.dofuspourlesnoobs.com/bleu-turquoise.html),
+[guide Ganymède 2217](https://ganymede-app.com/guides/2217).
