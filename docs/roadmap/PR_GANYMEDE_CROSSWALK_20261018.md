@@ -401,3 +401,9 @@ Atoll of the Possessed (2291, 41), Evil Forest (2255, 43), Misery (2279, 43), Ca
 Xélorium 2 (2241, 61), Dofus Tacheté (2271, 62), Dorigami (2221, 64), Royaume d'Amakna (2231, 65), Aube Pourpre / Crimson Dawn (2286, 65), Enudorado 3 (2239, 65), Nimaltopia (2229, 67) et Fleaster (2595, 67). **8 guides, 516 étapes**, chacune rattachée à la page et au numéro source.
 
 La couverture factuelle atteint **66/95 guides, 3 147 étapes observées**, avec **29 guides restant à parcourir en détail**. Les autres travaux (qualification des 12 noms de quêtes Cawotte/Dolmanax, prérequis, ID/objectifs canoniques Atlas, vérification DPLN et génération #226) demeurent des verrous indépendants. Ne pas convertir ces observations en ordre de trajet ni déduire leur caractère obligatoire.
+
+### Onzième lot — 17 guides de progression (18/10/2026)
+
+Toutes les étapes des guides suivants ont été relevées sur deux ou trois pages avec contrôle de continuité : After the Rain (2281, 69), Srambad 2 (2245, 71), Ohwymi 3 (2266, 71), Kingdom of Freezammer (2292, 72), Srambad 3 (2246, 73), Xélorium 3 (2243, 73), Ohwymi 2 (2222, 74), Ohwymi 1 (2210, 76), Cania 3 (2262, 79), Valonia 3 (2288, 79), Brotherhood of the Forgotten (2233, 87), Ecaflipus 2 (2257, 91), Osavora (3738, 97), Frigost 2 (2215, 101), Eliocalypse: Resonance (2268, 101), Kwismas (3795, 103) et Tree Hiding the Forest (2289, 112).
+
+**1 429 étapes observées supplémentaires, couverture cumulée 83/95 guides et 4 576 étapes**, restant 12 guides sources à inventorier. Le guide Eliocalypse a été relu entièrement après une limite de requêtes sur l'une de ses pages ; aucun instantané tronqué n'a été enregistré. Les grandes séries restantes comprennent notamment les alignements complets Bonta et Brâkmar. Aucune de ces observations n'est une validation de parcours ni un remplacement des guides Atlas.
