@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 CROSSWALK = Path("data/encyclopedia/guides/ganymede_source_crosswalk.json")
 CATALOG = Path("data/encyclopedia/guides/catalog.json")
+MAIN_INDEX = Path("data/encyclopedia/guides/ganymede_main_index.json")
 _SOURCE_PATH = re.compile(r"^/guides/([1-9][0-9]*)/?$")
 
 
@@ -22,7 +23,7 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
     """Validate URLs, canonical guide IDs and explicit non-certified states."""
     issues: list[dict[str, str]] = []
     crosswalk_path, catalog_path = root / CROSSWALK, root / CATALOG
-    for filename, path in (("crosswalk", crosswalk_path), ("catalog", catalog_path)):
+    for filename, path in (("crosswalk", crosswalk_path), ("catalog", catalog_path), ("main_index", root / MAIN_INDEX)):
         if not path.is_file():
             return {
                 "status": "FAIL",
@@ -34,6 +35,7 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
     try:
         payload = json.loads(crosswalk_path.read_text(encoding="utf-8"))
         catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        index_payload = json.loads((root / MAIN_INDEX).read_text(encoding="utf-8"))
     except (ValueError, OSError) as exc:
         return {
             "status": "FAIL",
@@ -97,10 +99,46 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
     coverage = payload.get("coverage", {})
     if not isinstance(coverage, dict) or coverage.get("asserted_complete") is not False:
         issues.append({"code": "invalid_coverage", "detail": "inventory must not claim exhaustive coverage"})
+    index_rows = index_payload.get("guides", [])
+    index_ids: set[int] = set()
+    if not isinstance(index_rows, list) or not index_rows:
+        issues.append({"code": "empty_main_index", "detail": "source index absent/empty"})
+        index_rows = []
+    for index, row in enumerate(index_rows):
+        where = f"main_index[{index}]"
+        if not isinstance(row, dict):
+            issues.append({"code": "invalid_main_index_row", "detail": where})
+            continue
+        external_id = row.get("ganymede_guide_id")
+        parsed = urlparse(str(row.get("source_url", "")))
+        match = _SOURCE_PATH.fullmatch(parsed.path)
+        if (type(external_id) is not int or external_id <= 0
+                or external_id in index_ids):
+            issues.append({"code": "main_index_id", "detail": where})
+        else:
+            index_ids.add(external_id)
+        if (parsed.scheme != "https" or parsed.netloc != "ganymede-app.com"
+                or not match or type(external_id) is not int
+                or int(match.group(1)) != external_id
+                or parsed.query or parsed.fragment):
+            issues.append({"code": "main_index_url", "detail": where})
+        if row.get("status") != "metadata_only":
+            issues.append({"code": "main_index_false_certification", "detail": where})
+    snapshot = index_payload.get("snapshot", {})
+    if not isinstance(snapshot, dict) or snapshot.get("total_main_guides") != len(index_rows):
+        issues.append({"code": "index_count_mismatch", "detail": "total_main_guides differs from indexed rows"})
+    if not isinstance(snapshot, dict) or snapshot.get("guide_routes_certified") != 0:
+        issues.append({"code": "index_false_route_certification", "detail": "no routes verified"})
+    absent = sorted(seen_ids - index_ids)
+    if absent:
+        issues.append({"code": "crosswalk_guide_absent_from_index", "detail": str(absent)})
+
     return {
         "status": "FAIL" if issues else "PASS_METADATA_ONLY",
         "evidence_type": "metadata_only",
         "entries": len(rows),
+        "indexed_main_guides": len(index_rows),
+        "unmapped_main_guides": len(index_ids - seen_ids),
         "mapped_atlas_guides": len({
             target for row in rows if isinstance(row, dict)
             for target in row.get("atlas_guide_ids", [])
