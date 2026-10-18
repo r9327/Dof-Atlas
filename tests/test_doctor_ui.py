@@ -156,6 +156,8 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         self.assertIn("guides-success/bottom-3-960", required)
         self.assertIn("guides-lanyel/bottom-8-1200", required)
         self.assertIn("guide-quests/dofus_sylvestre-quest-1", required)
+        self.assertIn("session/glyph-rendering", required)
+        self.assertIn("session/glyph-rendering", required_assertions(["validator-smoke"]))
         success = required_assertions(["achievement-detail"])
         self.assertEqual(
             success,

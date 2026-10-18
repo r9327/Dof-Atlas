@@ -57,6 +57,7 @@ from app.modules.encyclopedia.widgets.dashboard import CollapsedColumnRail, Fixe
 from app.modules.encyclopedia.widgets.guide_card import (
     GUIDE_ID_ROLE,
     GuideCardDelegate,
+    GuideHomeColumns,
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
@@ -1166,6 +1167,7 @@ class GuidesView(QWidget):
         self.guides: list[Guide] = []
         self.visible_guides: list[Guide] = []
         self.result_model = GuideListModel(self)
+        self.home_dofus_model = GuideListModel(self)
         self.current_guide_id: str | None = None
         self.current_quest_id: int | None = None
         self.state = self.CATALOG
@@ -1205,11 +1207,13 @@ class GuidesView(QWidget):
 
     def _show_runtime_loading(self) -> None:
         self.home_list.setVisible(False)
+        self.home_dofus_list.setVisible(False)
         self.home_empty.setText("Chargement des guides…")
         self.home_empty.setVisible(True)
 
     def show_runtime_error(self, message: str) -> None:
         self.home_list.setVisible(False)
+        self.home_dofus_list.setVisible(False)
         self.home_empty.setText(str(message or "Chargement des guides impossible."))
         self.home_empty.setVisible(True)
 
@@ -1302,7 +1306,23 @@ class GuidesView(QWidget):
         self.home_list.setSpacing(4)
         self.home_list.clicked.connect(self._on_home_guide_clicked)
         self.home_list.activated.connect(self._on_home_guide_clicked)
-        self.home_layout.addWidget(self.home_list, 1)
+
+        self.home_dofus_list = QListView()
+        self.home_dofus_list.setObjectName("GuidesHomeDofusGrid")
+        self.home_dofus_list.setModel(self.home_dofus_model)
+        self.home_dofus_list.setItemDelegate(GuideCardDelegate(self.home_dofus_list))
+        self.home_dofus_list.setFrameShape(QFrame.NoFrame)
+        self.home_dofus_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.home_dofus_list.setMouseTracking(True)
+        self.home_dofus_list.setViewMode(QListView.IconMode)
+        self.home_dofus_list.setFlow(QListView.LeftToRight)
+        self.home_dofus_list.setWrapping(True)
+        self.home_dofus_list.setResizeMode(QListView.Adjust)
+        self.home_dofus_list.setGridSize(QSize(280, 96))
+        self.home_dofus_list.clicked.connect(self._on_home_guide_clicked)
+        self.home_dofus_list.activated.connect(self._on_home_guide_clicked)
+        self.home_columns = GuideHomeColumns(self.home_list, self.home_dofus_list)
+        self.home_layout.addWidget(self.home_columns, 1)
 
         self.home_empty = QLabel()
         self.home_empty.setObjectName("GuidesHomeEmptyText")
@@ -1501,10 +1521,12 @@ class GuidesView(QWidget):
 
     def _refresh_home_uncached(self) -> None:
         self.visible_guides = self.provider.search(self.search_text)
-        self.result_model.set_guides(self.visible_guides)
+        self.result_model.set_home_column(self.visible_guides, "left")
+        self.home_dofus_model.set_home_column(self.visible_guides, "right")
 
         if not self.visible_guides:
             self.home_list.setVisible(False)
+            self.home_dofus_list.setVisible(False)
             self.home_empty.setText("Aucun guide ne correspond à la recherche.")
             self.home_empty.setVisible(True)
             return
@@ -1516,8 +1538,10 @@ class GuidesView(QWidget):
                 for guide in self.visible_guides
             }
         self.result_model.set_progress(progress_by_guide)
+        self.home_dofus_model.set_progress(progress_by_guide)
         self.home_empty.setVisible(False)
-        self.home_list.setVisible(True)
+        self.home_list.setVisible(bool(self.result_model.guides))
+        self.home_dofus_list.setVisible(bool(self.home_dofus_model.guides))
 
     def _initial_home_progress_uncached(self) -> dict[str, tuple[int, int, str]] | None:
         if not self._initial_progress_by_guide:
@@ -2927,32 +2951,86 @@ class GuidesView(QWidget):
         self.right_layout.addStretch(1)
 
     def _guide_prerequisite_widgets(self, guide: Guide) -> list[QWidget]:
-        rows: list[tuple[str, int | None]] = []
+        return [
+            self._guide_prerequisite_row(text, quest_id, success_id)
+            for text, quest_id, success_id in self._guide_prerequisite_entries(guide)
+        ]
+
+    def _guide_prerequisite_entries(
+        self, guide: Guide,
+    ) -> list[tuple[str, int | None, int | None]]:
+        """List actual external requirements, preferring explicitly required Succès.
+
+        Do not infer a Success requirement merely because a quest participates
+        in a linked achievement. Only a declared achievement prerequisite
+        authorizes suppressing constituent quest names.
+        """
+        rows: list[tuple[str, int | None, int | None]] = []
         seen: set[str] = set()
+        seen_entities: set[tuple[str, int]] = set()
         guide_keys = {
             (step.step_type, int(step.entity_id))
-            for step in guide.steps
-            if step.entity_id is not None
+            for step in guide.steps if step.entity_id is not None
         }
+        success_refs = [
+            ref
+            for step in guide.steps
+            for ref in step.prerequisites
+            if ref.entity_type == "achievement"
+            and (ref.entity_type, int(ref.entity_id)) not in guide_keys
+        ]
+        covered_quests: set[int] = set()
+        getter = getattr(self.achievement_provider, "get_by_id", None)
 
-        def add(text: str, quest_id: int | None = None) -> None:
+        def add(
+            text: str, quest_id: int | None = None, success_id: int | None = None,
+        ) -> None:
             clean = clean_requirement_line(text)
             key = normalize_text(clean)
-            if clean and key not in seen:
-                seen.add(key)
-                rows.append((clean, quest_id))
+            entity_key = (
+                ("quest", int(quest_id)) if quest_id is not None
+                else ("achievement", int(success_id)) if success_id is not None
+                else None
+            )
+            if not clean or key in seen or entity_key in seen_entities:
+                return
+            seen.add(key)
+            if entity_key is not None:
+                seen_entities.add(entity_key)
+            rows.append((clean, quest_id, success_id))
+
+        for ref in success_refs:
+            success_id = int(ref.entity_id)
+            success = getter(success_id) if callable(getter) else None
+            label = str(getattr(success, "name", "") or ref.label)
+            add(label, success_id=success_id)
+            # Only use explicit achievement-to-quest relations to omit
+            # redundant quest prerequisites; never guess from quest titles.
+            if guide.category == "dofus" and success is not None:
+                links = (
+                    tuple(getattr(success, "linked_quests", ()) or ())
+                    + tuple(getattr(success, "resolved_linked_quests", ()) or ())
+                )
+                for link in links:
+                    if getattr(link, "entity_type", "") == "quest":
+                        covered_quests.add(int(link.entity_id))
 
         for step in guide.steps:
             for ref in step.prerequisites:
+                if ref.entity_type == "achievement":
+                    continue
                 if (ref.entity_type, ref.entity_id) in guide_keys:
                     continue
-                add(ref.label, int(ref.entity_id) if ref.entity_type == "quest" else None)
+                quest_id = int(ref.entity_id) if ref.entity_type == "quest" else None
+                if quest_id in covered_quests:
+                    continue
+                add(ref.label, quest_id=quest_id)
 
         first_quest = next(
             (
-                step
-                for step in guide.steps
-                if step.step_type == "quest" and step.entity_id is not None and step.counts_for_completion
+                step for step in guide.steps
+                if step.step_type == "quest" and step.entity_id is not None
+                and step.counts_for_completion
             ),
             None,
         )
@@ -2960,15 +3038,20 @@ class GuidesView(QWidget):
             quest = self.quest_catalog.by_id.get(int(first_quest.entity_id))
             if quest is not None:
                 for line in quest.prerequisites:
-                    add(line, self._quest_id_from_requirement_line(line))
-            for quest_id in self.graph.previous_ids(int(first_quest.entity_id)):
-                if quest_id in guide.quest_ids:
-                    continue
-                record = self.quest_catalog.by_id.get(int(quest_id))
-                if record is not None:
-                    add(record.name, int(quest_id))
+                    quest_id = self._quest_id_from_requirement_line(line)
+                    if quest_id not in covered_quests:
+                        add(line, quest_id=quest_id)
+            if self.graph is not None:
+                for quest_id in self.graph.previous_ids(int(first_quest.entity_id)):
+                    if quest_id in guide.quest_ids or int(quest_id) in covered_quests:
+                        continue
+                    record = self.quest_catalog.by_id.get(int(quest_id))
+                    if record is not None:
+                        add(record.name, quest_id=int(quest_id))
 
-        return [self._guide_prerequisite_row(text, quest_id) for text, quest_id in rows[:8]]
+        # The section is already collapsible. An arbitrary [:8] cap silently
+        # hid required conditions and prevented players from checking them.
+        return rows
 
     def _quest_id_from_requirement_line(self, line: str) -> int | None:
         clean = clean_text(line)
@@ -2983,8 +3066,10 @@ class GuidesView(QWidget):
                 return int(quest.id)
         return None
 
-    def _guide_prerequisite_row(self, text: str, quest_id: int | None) -> QWidget:
-        if quest_id is None:
+    def _guide_prerequisite_row(
+        self, text: str, quest_id: int | None, success_id: int | None = None,
+    ) -> QWidget:
+        if quest_id is None and success_id is None:
             return prerequisite_row(text, None)
         row = QFrame()
         row.setObjectName("GuidePrerequisiteRow")
@@ -2998,9 +3083,22 @@ class GuidesView(QWidget):
         marker.setAlignment(Qt.AlignCenter)
         layout.addWidget(marker, 0, Qt.AlignTop)
         button = AtlasButton(clean_text(text))
-        button.setObjectName("GuideInlineQuestButton")
-        button.setToolTip("Ouvrir cette quête")
-        button.clicked.connect(lambda _checked=False, qid=int(quest_id): self.open_prerequisite_from_guide(qid))
+        if success_id is not None:
+            button.setObjectName("GuideInlineAchievementButton")
+            button.setToolTip("Ouvrir ce succès")
+            button.clicked.connect(
+                lambda _checked=False, sid=int(success_id):
+                self.link_service.navigate_to_entity(
+                    "achievement", sid, source="guide_prerequisite",
+                )
+            )
+        else:
+            button.setObjectName("GuideInlineQuestButton")
+            button.setToolTip("Ouvrir cette quête")
+            button.clicked.connect(
+                lambda _checked=False, qid=int(quest_id):
+                self.open_prerequisite_from_guide(qid)
+            )
         layout.addWidget(button, 1)
         return row
 

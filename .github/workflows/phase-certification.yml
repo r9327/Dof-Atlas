@@ -652,9 +652,9 @@ jobs:
           "risk=$risk" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Materialize Doctor quest catalog
-        # Phase PR FAST no longer invokes data-heavy flows. An independent,
-        # required exact-SHA Phase Certification materializes this catalog.
-        if: ${{ steps.doctor_risk.outputs.risk != 'LOW' && !(startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) && needs.doctor-plan.outputs.phase == 'true' }}
+        # A phase-routed PR receives an independent exact-SHA FULL gate;
+        # only ordinary FAST PRs need this local catalog fixture.
+        if: ${{ steps.doctor_risk.outputs.risk != 'LOW' && !(needs.doctor-plan.outputs.phase == 'true' && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) }}
         shell: pwsh
         run: |
           git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
@@ -678,9 +678,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Materialize CRITICAL Doctor fixtures
-        # Required for the risk-expanded ordinary FAST; Phase PR FULL retains
-        # the heavy fixtures in its own exact-SHA certification job.
-        if: ${{ steps.doctor_risk.outputs.risk == 'CRITICAL' && !(startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) && needs.doctor-plan.outputs.phase == 'true' }}
+        # Required for risk-expanded ordinary FAST; the mandatory exact-SHA
+        # FULL gate handles these fixtures for phase-routed PRs.
+        if: ${{ steps.doctor_risk.outputs.risk == 'CRITICAL' && !(needs.doctor-plan.outputs.phase == 'true' && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) }}
         shell: pwsh
         run: |
           git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude=""
@@ -692,10 +692,10 @@ jobs:
         if: ${{ !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) }}
         id: doctor
         shell: pwsh
-        # The independent exact-SHA FULL certification covers risk-expanded
-        # groups on Phase PRs. Ordinary PRs retain their full FAST scope.
+        # Doctor CI's exact-diff phase route also owns an independent mandatory
+        # FULL certification. Do not infer preflight scope from the PR title.
         env:
-          ATLAS_PHASE_PR_PREFLIGHT: ${{ startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository && '1' || '0' }}
+          ATLAS_PHASE_PR_PREFLIGHT: ${{ needs.doctor-plan.outputs.phase == 'true' && github.event.pull_request.head.repo.full_name == github.repository && '1' || '0' }}
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts/pr_doctor" | Out-Null
           $report = "artifacts/pr_doctor/doctor-fast.json"

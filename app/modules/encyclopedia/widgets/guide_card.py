@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QAbstractListModel, QModelIndex, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import QStyle, QStyledItemDelegate
+from PySide6.QtWidgets import QBoxLayout, QListView, QStyle, QStyledItemDelegate, QWidget
 
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.models import Guide
@@ -16,6 +16,30 @@ GUIDE_ROLE = Qt.UserRole + 12
 GUIDE_PROGRESS_ROLE = Qt.UserRole + 13
 GUIDE_GROUP_ROLE = Qt.UserRole + 14
 DOFUS_UNKNOWN_ICON = DATA_DIR / "encyclopedia" / "images" / "guides" / "dofus_unknown.svg"
+
+
+class GuideHomeColumns(QWidget):
+    """Two virtualized columns; stack them when the available width is narrow."""
+
+    def __init__(self, left: QListView, right: QListView, parent=None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuidesHomeColumns")
+        layout = QBoxLayout(QBoxLayout.LeftToRight, self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+        layout.addWidget(left, 1)
+        layout.addWidget(right, 2)
+        self._columns_layout = layout
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        direction = (
+            QBoxLayout.LeftToRight
+            if event.size().width() >= 730
+            else QBoxLayout.TopToBottom
+        )
+        if self._columns_layout.direction() != direction:
+            self._columns_layout.setDirection(direction)
 
 
 class GuideListModel(QAbstractListModel):
@@ -76,6 +100,31 @@ class GuideListModel(QAbstractListModel):
         self.beginResetModel()
         self.guides = list(guides)
         self.entries = self._grouped_entries(self.guides)
+        self.endResetModel()
+
+    def set_home_column(self, guides: list[Guide], column: str) -> None:
+        """Partition Home without materializing a QWidget for every guide."""
+        self.beginResetModel()
+        if column == "left":
+            sections = (
+                ("GUIDE SUCCÈS", [guide for guide in guides if guide.id == "guide_complet"]),
+                ("GUIDES OPTIMISÉS", [
+                    guide for guide in guides
+                    if guide.category == "aventure" and guide.id != "guide_complet"
+                ]),
+                ("ALIGNEMENTS", [guide for guide in guides if guide.category == "alignements"]),
+            )
+        elif column == "right":
+            sections = (("DOFUS", [guide for guide in guides if guide.category == "dofus"]),)
+        else:
+            raise ValueError(f"Unknown Guide Home column: {column}")
+        self.guides = []
+        self.entries = []
+        for title, section in sections:
+            if section:
+                self.entries.append(title)
+                self.entries.extend(section)
+                self.guides.extend(section)
         self.endResetModel()
 
     def set_progress(self, progress_by_guide: dict[str, tuple[int, int, str]]) -> None:
