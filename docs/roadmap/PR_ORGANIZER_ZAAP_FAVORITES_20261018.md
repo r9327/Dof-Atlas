@@ -23,6 +23,14 @@ Diagnostic dans `app/pages/organizer/character_sessions.py` : `set_primary_windo
 - Supprimer **uniquement les numéros visuels** des slots vides et remplis dans `app/pages/organizer/organizer_ui.py`. Garder slots internes, indices de raccourcis clavier, order/export et drag&drop inchangés.
 - Vérifier aucune perte d'alignement, aucun bouton invisible ou conflit de largeur.
 
+## Persistance et routage : cas à ne surtout pas oublier
+- **Favori de personnage (étoile)** : distinguer « favori choisi », identité de personnage stable et fenêtre actuellement reconnue. Après fermeture et réouverture d'Atlas, le même personnage doit garder son étoile active ; après redémarrage de DOFUS, résoudre le NOUVEAU HWND et restaurer la sélection sans attribuer l'étoile à une mauvaise fenêtre.
+- **Favoris Zaap** : conserver les étoiles de Zaaps et vérifier la **sélection visible du Zaap favori actif** après redémarrage, si cette sélection était enregistrée. Distinguer la persistance de la liste des favoris, du choix courant et de la préférence de fenêtre principale : ces états ne doivent pas s'écraser mutuellement lors de la sauvegarde.
+- **Déplacement de guide** : aucun participant sélectionné, tous hors ligne ou identités ambiguës => zéro commande envoyée et retour explicite ; ne jamais passer silencieusement à « tous les clients ». Les participants sélectionnés qui sont hors ligne gardent leur participation au guide.
+- **Un clic sur une coordonnée** dans Guide Succès ou Lanyel => **une seule exécution** qui envoie sur chaque fenêtre Unity vérifiée au plus une séquence `/travel x,y` OU `/zaap zx,zy ; /travel x,y`, selon le plan pré-calculé. Pas de panneau ou bouton additionnel, pas d'envoi aux fenêtres d'autres personnages, et arrêt d'urgence utilisable.
+- **Macro Zaap Organizer autonome** : la sélection d'un Zaap continue de fonctionner hors guide et utilise les coordonnées de l'index, non le nom collé dans l'ancien champ Havre-Sac. Échec sûr si coordonnées manquantes ou Zaap invalide ; pas de repli silencieux aux clics hasardeux.
+- **Tests ciblés** : préférences enregistrées puis deux redémarrages successifs, inversion de slots et HWND, plusieurs personnages de même classe, 0/1/5 cibles, fenêtres disparues entre planification et exécution, favoris Zaap choisis et retrouvés, et aucune numérotation visuelle malgré les raccourcis internes préservés.
+
 ## Tests et preuves
 - Unitaires parse de `/zaap`, commandes combinées, collisions ciblage, favori et migration ; Qt Organizer redémarrage et structure slots ; Windows réel multi-fenêtres (1/2/5), avec logs par HWND résolu, aucune fenêtre supplémentaire ciblée.
 - CI ciblée, Doctor UI/raster, tests persistance et intégration Guide, réseau ID fail-closed ; validation Windows nécessaire avant fusion.
