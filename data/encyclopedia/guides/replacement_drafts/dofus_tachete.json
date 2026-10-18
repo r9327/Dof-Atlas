@@ -1316,10 +1316,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner l'enseigne du temple"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Zangzang"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la crypte"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0022",
@@ -1352,10 +1368,39 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Tareo Dokodo"
+            },
+            {
+              "kind": "combat",
+              "label": "Survivre à quatre vagues et protéger Tareo",
+              "monster_id": 6545,
+              "group_mode": "solo",
+              "waves": 4,
+              "ally_must_survive": true
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Éviter les renvois de dégâts",
+              "monster_id": 6546
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler à Tareo après le combat"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner à l'auberge interdite"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0023",
@@ -1385,10 +1430,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Traverser le passage caché de l'auberge"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Shufamukin"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner au temple"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0024",
@@ -1422,10 +1483,38 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Retrouver Wanglong et Zangzang"
+            },
+            {
+              "kind": "interact",
+              "label": "Ouvrir la trappe derrière l'enseigne"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat collectif en protégeant Zangzang",
+              "monster_id": 6308,
+              "group_mode": "group",
+              "ally_must_survive": true
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Shun Gokong"
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier le nouveau groupe de compagnons",
+              "object_id": 23726
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0025",
@@ -1457,10 +1546,27 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Shun Gokong"
+            },
+            {
+              "kind": "check_object",
+              "label": "Récupérer le moine et sa garde",
+              "object_id": 23726
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Porco"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0026",
@@ -1495,10 +1601,37 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Aider le Porco de Pandala"
+            },
+            {
+              "kind": "combat",
+              "label": "Gagner le combat de groupe en protégeant Porco",
+              "monster_id": 6620,
+              "group_mode": "group"
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler à Zangzang puis Zhuba Jin"
+            },
+            {
+              "kind": "check_object",
+              "label": "Obtenir les trois compagnons",
+              "object_id": 23727
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Tanuha Ping"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0027",
@@ -1543,17 +1676,50 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Tanuha Ping"
+            },
+            {
+              "kind": "interact",
+              "label": "Inspecter le vase antique"
+            },
+            {
+              "kind": "combat",
+              "label": "Voie A : combattre immédiatement",
+              "monster_id": 6550,
+              "alternative_group": "vase_fleur",
+              "branch": "combat"
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Voie B : avoir fini la quête des fleurs",
+              "quest_id": 2164,
+              "alternative_group": "vase_fleur",
+              "branch": "fleur"
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Voie B : obtenir une campanule timide",
+              "object_id": 23983,
+              "alternative_group": "vase_fleur",
+              "branch": "fleur"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0028",
           "type": "info",
           "title": "Étape 28",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2271,
           "source_step_number": 28,
           "source_page": 1,
@@ -1578,10 +1744,32 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Voie fleur : ouvrir la grille"
+            },
+            {
+              "kind": "talk",
+              "label": "Demander une campanule à l'apprentie Fleurawa"
+            },
+            {
+              "kind": "check_object",
+              "label": "Obtenir la campanule timide",
+              "object_id": 23983,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Retourner au vase"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0029",
@@ -1617,10 +1805,35 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "optional_delivery",
+              "label": "Utiliser la campanule si choisie",
+              "object_id": 23983,
+              "alternative_group": "vase_fleur",
+              "branch": "fleur"
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner le vase antique"
+            },
+            {
+              "kind": "combat",
+              "label": "Vaincre les shinobis dans le combat individuel",
+              "monster_id": 6552,
+              "group_mode": "solo"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Wujinsha"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0030",
@@ -1655,10 +1868,38 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Vérifier les compagnons requis",
+              "object_id": 23727
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Wujinsha"
+            },
+            {
+              "kind": "combat",
+              "label": "Combattre en protégeant Shun Gokong",
+              "monster_id": 6307,
+              "group_mode": "solo",
+              "ally_must_survive": true
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler à Wujinsha et Zangzang"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner aux inscriptions"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0031",
@@ -1690,10 +1931,31 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner les inscriptions anciennes"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Wujinsha puis Zangzang"
+            },
+            {
+              "kind": "check_object",
+              "label": "Récupérer les quatre voyageurs extraordinaires",
+              "object_id": 23728
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'auberge"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0032",
@@ -1723,10 +1985,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Traverser le passage caché"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Shufamukin"
+            },
+            {
+              "kind": "move",
+              "label": "Aller au palais de bambou"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0033",
@@ -2969,7 +3247,7 @@
     "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
     "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED"
   ],
-  "factual_action_reviewed_step_count": 20,
-  "source_action_candidate_steps": 20,
-  "source_action_candidate_actions": 72
+  "factual_action_reviewed_step_count": 32,
+  "source_action_candidate_steps": 32,
+  "source_action_candidate_actions": 121
 }
