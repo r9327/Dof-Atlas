@@ -103,6 +103,11 @@ class GanymedeMasterReferenceAuditTests(unittest.TestCase):
             ("argente", 237, 2203),
             ("cawotte", 64, 2205),
             ("emeraude", 52, 2211),
+            ("dolmanax", 9, 2248),
+            ("ou_sont_les_dofus", 26, 2204),
+            ("dokoko", 49, 2208),
+            ("pourpre", 45, 2276),
+            ("veilleurs", 88, 2209),
         ):
             with self.subTest(guide=name):
                 path = Path(f"data/encyclopedia/guides/ganymede_{name}_observed_links.json")
