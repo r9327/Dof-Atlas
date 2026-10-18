@@ -152,6 +152,7 @@ class GuideCaptureRequirement:
     kind: CaptureKind
     quantity: int = 1
     consumable_item_id: int | None = None
+    consumable_name: str = ""
     evidence: str = ""
 
     def __post_init__(self) -> None:
@@ -159,9 +160,12 @@ class GuideCaptureRequirement:
             raise ValueError("capture requirement requires stable ids")
         if self.quantity < 1 or not self.evidence.strip():
             raise ValueError("capture requirement requires quantity and evidence")
-        if self.kind is CaptureKind.SOUL_STONE and self.consumable_item_id is None:
-            raise ValueError("soul-stone capture requires an explicit consumable item id")
-        if self.kind is not CaptureKind.SOUL_STONE and self.consumable_item_id is not None:
+        if self.kind is CaptureKind.SOUL_STONE:
+            if self.consumable_item_id is None or not self.consumable_name.strip():
+                raise ValueError(
+                    "soul-stone capture requires an explicit consumable id and name"
+                )
+        elif self.consumable_item_id is not None or self.consumable_name.strip():
             raise ValueError("only soul-stone capture may require a soul stone")
 
 
@@ -340,7 +344,7 @@ class GuideRoutePlanner:
                 )
             )
 
-        stock = self._stock(participant_plans, states)
+        stock = self._stock(participant_plans, states, capture_by_action)
         return GlobalGuidePlan(
             participants=participant_plans,
             activities=tuple(activities),
@@ -412,6 +416,7 @@ class GuideRoutePlanner:
         self,
         participant_plans: tuple[ParticipantRoutePlan, ...],
         states: tuple[GuideParticipantState, ...],
+        capture_by_action: Mapping[str, list[GuideCaptureRequirement]],
     ) -> tuple[GuideStockNeed, ...]:
         state_by_key = {state.character_key: state for state in states}
         required: dict[tuple[int | None, str], Counter[str]] = defaultdict(Counter)
@@ -430,6 +435,15 @@ class GuideRoutePlanner:
                     item_key = (normalized.item_id, " ".join(normalized.name.casefold().split()))
                     required[item_key][participant.character_key] += normalized.quantity
                     display_names[item_key] = normalized.name
+                for capture in capture_by_action.get(action_id, ()):
+                    if capture.kind is not CaptureKind.SOUL_STONE:
+                        continue
+                    item_key = (
+                        capture.consumable_item_id,
+                        " ".join(capture.consumable_name.casefold().split()),
+                    )
+                    required[item_key][participant.character_key] += capture.quantity
+                    display_names[item_key] = capture.consumable_name
 
         rows: list[GuideStockNeed] = []
         for item_key, per_character in required.items():
