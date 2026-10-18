@@ -11,6 +11,8 @@ import re
 from pathlib import Path
 from urllib.parse import urlparse
 
+from tools.audit_ganymede_master_refs import audit_ganymede_master_refs
+
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 CROSSWALK = Path("data/encyclopedia/guides/ganymede_source_crosswalk.json")
@@ -199,6 +201,30 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
                 or listed_step_counts != len(index_rows)):
             issues.append({"code": "tree_snapshot_mismatch", "detail": "tree metadata coverage/counts"})
 
+    # Source-link inventory can grow independently, guide by guide. Each
+    # snapshot is validated on its own. Never equate a link with an objective.
+    observed_sources: dict[int, dict[str, object]] = {}
+    for path in sorted((root / MAIN_INDEX).parent.glob("ganymede_*_observed_links.json")):
+        report = audit_ganymede_master_refs(root, snapshot=path.relative_to(root))
+        gid = report.get("source_guide_id")
+        if report.get("status") != "PASS_OBSERVED_LINKS_ONLY":
+            issues.append({
+                "code": "source_link_snapshot_invalid",
+                "detail": f"{path.name}: {report.get('issues', [])}",
+            })
+            continue
+        if type(gid) is not int or gid not in index_ids or gid in observed_sources:
+            issues.append({
+                "code": "source_link_snapshot_guide_id",
+                "detail": f"{path.name}: {gid}",
+            })
+            continue
+        observed_sources[gid] = {
+            "source_file": path.name,
+            "observed_steps": report["observed_steps"],
+            "evidence_type": "observed_external_links_only",
+        }
+
     crosswalk_by_id = {
         row["ganymede_guide_id"]: row
         for row in rows if isinstance(row, dict)
@@ -209,6 +235,11 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
             "ganymede_guide_id": item["ganymede_guide_id"],
             "title": item.get("title", ""),
             "listed_step_count": item.get("listed_step_count"),
+            "source_link_status": (
+                "OBSERVED_UNCLASSIFIED" if item["ganymede_guide_id"] in observed_sources
+                else "NOT_INGESTED"
+            ),
+            "source_link_observed_steps": observed_sources.get(item["ganymede_guide_id"], {}).get("observed_steps", 0),
             "public_tree_prerequisite_guide_ids": item.get("public_tree_prerequisite_guide_ids", []),
             "atlas_guide_ids": crosswalk_by_id.get(item["ganymede_guide_id"], {}).get("atlas_guide_ids", []),
             "mapping_status": (
@@ -232,6 +263,9 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
             for target in row.get("atlas_guide_ids", [])
         }),
         "verified_routes": 0,
+        "observed_source_guides": len(observed_sources),
+        "observed_source_steps": sum(int(row["observed_steps"]) for row in observed_sources.values()),
+        "observed_source_snapshots": observed_sources,
         "tree_prerequisite_edges": sum(len(deps) for deps in prerequisites_by_id.values()),
         "tree_guides_with_dependencies": sum(bool(deps) for deps in prerequisites_by_id.values()),
         "guide_coverage": guide_coverage,
