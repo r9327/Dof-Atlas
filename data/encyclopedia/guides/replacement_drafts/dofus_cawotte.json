@@ -1326,7 +1326,7 @@
               "label": "Rejoindre la zone des maisons"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1367,7 +1367,7 @@
               "label": "Descendre dans les souterrains d'une maison"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1404,7 +1404,7 @@
               "label": "Traverser les dalles sûres en évitant les trous"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1449,7 +1449,7 @@
               "label": "Rejoindre les Cawottes en surface"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1494,7 +1494,7 @@
               "label": "Poursuivre vers le prochain PNJ"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1539,7 +1539,7 @@
               "label": "Retourner voir Lilou"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1644,7 +1644,7 @@
               "label": "Rejoindre l'entrée du terrier"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1697,7 +1697,7 @@
               "label": "Rejoindre le PNJ de l'île"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1742,7 +1742,7 @@
               "label": "Retourner vers Lilou"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1787,7 +1787,7 @@
               "label": "Rejoindre le Lenald suivant"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1832,7 +1832,7 @@
               "label": "Rejoindre le capitaine"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1877,7 +1877,7 @@
               "label": "Retourner aux souterrains"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1914,7 +1914,7 @@
               "label": "Traverser le couloir à trous pour rejoindre le passage suivant"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -1968,7 +1968,7 @@
               "label": "Retourner à Lilou"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2063,7 +2063,7 @@
               "label": "Rejoindre le capitaine"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2117,7 +2117,7 @@
               "label": "Rejoindre le PNJ suivant"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2162,7 +2162,7 @@
               "label": "Rejoindre la zone de récolte"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2225,7 +2225,7 @@
               "label": "Passer par les souterrains vers le point de cuisson"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2278,7 +2278,7 @@
               "label": "Poursuivre vers le laboratoire"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2323,7 +2323,7 @@
               "label": "Revenir vers le PNJ"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2368,7 +2368,7 @@
               "label": "Rejoindre l'île des tombeaux"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2467,7 +2467,7 @@
               "label": "Se rendre au combat suivant"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2574,7 +2574,7 @@
               "label": "Atteindre le passage secret"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2615,7 +2615,7 @@
               "label": "Utiliser la Cawotte pour descendre dans le passage"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2685,7 +2685,7 @@
               "label": "Terminer Voyage au centre du Wabbit"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2763,7 +2763,7 @@
               "label": "Retourner vers Lilou"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2844,7 +2844,7 @@
               "label": "Se rendre au château"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -2965,7 +2965,7 @@
               ]
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3010,7 +3010,7 @@
               "label": "Rejoindre Wanald"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3123,7 +3123,7 @@
               "label": "Rejoindre le terrier du Wa"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3196,7 +3196,7 @@
               "label": "Rejoindre Wanald"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3268,7 +3268,7 @@
               "object_id": 972
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3346,7 +3346,7 @@
               "label": "Rejoindre Logel"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3451,7 +3451,7 @@
               "label": "Rejoindre le passage secret"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3502,7 +3502,7 @@
               "label": "Démarrer Les pwinces déchus"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3562,7 +3562,7 @@
               "label": "Rejoindre la zone des Wabbits squelettes"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3624,7 +3624,7 @@
               "label": "Retourner au village"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3691,7 +3691,7 @@
               "label": "Rejoindre la zone de chasse"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3749,7 +3749,7 @@
               "label": "Retourner auprès de Logel"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3816,7 +3816,7 @@
               "label": "Rejoindre la prochaine zone de chasse"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3923,7 +3923,7 @@
               "label": "Revenir au village"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -3990,7 +3990,7 @@
               "label": "Aller voir le capitaine"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -4060,7 +4060,7 @@
               "label": "Retourner au vieux Lenald"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
@@ -4134,7 +4134,7 @@
               "label": "Terminer les jeux Lenald"
             }
           ],
-          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_review_status": "REVIEW_SOURCE_ACTION"
         }
       ]
@@ -4145,7 +4145,7 @@
     "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
     "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED"
   ],
-  "source_action_candidate_steps": 20,
-  "source_action_candidate_actions": 53,
+  "source_action_candidate_steps": 64,
+  "source_action_candidate_actions": 191,
   "factual_action_reviewed_step_count": 64
 }
