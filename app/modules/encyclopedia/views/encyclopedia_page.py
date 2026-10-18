@@ -144,6 +144,14 @@ def _join_runtime_threads(threads: list[Thread]) -> None:
             thread.join()
 
 
+def _start_runtime_thread(owner: object, target, name: str) -> None:
+    thread = Thread(target=target, name=name, daemon=True)
+    threads = getattr(owner, "_runtime_threads", None)
+    if isinstance(threads, list):
+        threads.append(thread)
+    thread.start()
+
+
 class EncyclopediaPage(QWidget):
     guideRuntimeFinished = Signal(object)
     achievementRuntimeFinished = Signal(object)
@@ -637,11 +645,6 @@ class EncyclopediaPage(QWidget):
             self._related_preload_gate.mark_ready()
         self._stabilize_header_geometry()
 
-    def _start_runtime_thread(self, target, name: str) -> None:
-        thread = Thread(target=target, name=name, daemon=True)
-        self._runtime_threads.append(thread)
-        thread.start()
-
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
         if hasattr(self, "_quest_load_timer"):
             self._quest_load_timer.stop()
@@ -803,7 +806,7 @@ class EncyclopediaPage(QWidget):
                     result = exc
                 results.put(result)
 
-        self._start_runtime_thread(worker, "DofusAtlasQuestIndex")
+        _start_runtime_thread(self, worker, "DofusAtlasQuestIndex")
         self._quest_load_timer.start()
 
     def _collect_quest_runtime(self) -> None:
@@ -1081,7 +1084,7 @@ class EncyclopediaPage(QWidget):
                     )
 
         try:
-            self._start_runtime_thread(worker, "DofusAtlasGuideStage")
+            _start_runtime_thread(self, worker, "DofusAtlasGuideStage")
         except Exception as exc:  # pragma: no cover - defensive runtime guard
             LOGGER.exception("Démarrage du worker Guide impossible")
             self._related_preload_started = False
@@ -1214,7 +1217,7 @@ class EncyclopediaPage(QWidget):
                     )
 
         try:
-            self._start_runtime_thread(worker, "DofusAtlasAchievementStage")
+            _start_runtime_thread(self, worker, "DofusAtlasAchievementStage")
         except Exception as exc:  # pragma: no cover - defensive runtime guard
             self._achievement_load_started = False
             self.status_callback(f"Chargement Succès impossible : {exc}")
