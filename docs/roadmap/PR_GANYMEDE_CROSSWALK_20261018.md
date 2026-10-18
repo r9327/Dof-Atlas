@@ -28,7 +28,7 @@ Catalogue original : https://ganymede-app.com/tree?view=list
 La page publique annonçait **95 guides** au moment de l'inventaire. Les
 **95 fiches de métadonnées** publiques (noms, liens, niveaux affichés) sont
 maintenant inventoriées dans data/encyclopedia/guides/ganymede_main_index.json.
-En revanche, seules **13 correspondances initiales** avec des guides Atlas
+En revanche, **24 correspondances** avec des guides Atlas (13 liens initiaux et **11 candidats thématiques** sans rapprochement des quêtes)
 existants sont établies dans data/encyclopedia/guides/ganymede_source_crosswalk.json.
 **Aucun des 95 parcours ni texte d'étape n'est importé ou certifié.**
 
@@ -46,8 +46,16 @@ existants sont établies dans data/encyclopedia/guides/ganymede_source_crosswalk
   prérequis, absence de dépendance à soi-même, absence de cycle, cohérence des
   totaux et **interdiction de certifier des itinéraires depuis les métadonnées**.
 - Le rapport JSON expose désormais `guide_coverage` pour les 95 entrées,
-  `unmapped_guide_ids` (actuellement **82**), et
+  `unmapped_guide_ids` (actuellement **71**), et
   `tree_prerequisite_edges` (57) pour piloter l'enrichissement par guide.
+
+Les **11 correspondances thématiques candidates** portent sur Pourpre, Domakuro,
+Dorigami, Turquoise, Nébuleux, Abyssal, Vulbis, Tacheté, Dom de Pin,
+Cauchemar et Forgelave. Elles rapprochent les identités de guides existants
+du catalogue Atlas et les références de l'arbre Ganymède, **sans** comparaison
+d'IDs de quêtes/étapes. Le rapport distingue `CANDIDATE_METADATA_ONLY`
+de `CROSSWALK_METADATA_ONLY` et `UNMAPPED`. **Sylvestre Opti** reste
+un guide Atlas distinct : ne pas le confondre avec le « Sylvan Dofus » de l'arbre.
 
 **Limite importante :** le graphe de l'arbre Ganymède est un graphe de
 **prérequis de guides**. Il ne démontre pas les prérequis **de quêtes**,
@@ -79,7 +87,7 @@ les prérequis ni l'ordre des étapes de Ganymède sont vérifiés.
    actuel (titre, langue/version, ID de guide, URL, niveau, prérequis externes,
    guide maître ou sous-guide, date) ; distinguer les guides principaux de la
    communauté et les variantes obsolètes. Générer un rapport de couverture
-   13/N puis N/N, pas un faux PASS.
+   24/N puis N/N, pas un faux PASS.
 2. **Graphe inter-guides.** Représenter les renvois du guide complet vers les
    guides détaillés : prérequis, tranches d'étapes, étapes optionnelles, ordres,
    alignements et choix mutuellement exclusifs. Détecter les cycles et les
