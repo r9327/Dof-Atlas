@@ -53,7 +53,11 @@ def audit_action_candidates(root: Path, path: Path = DEFAULT) -> dict:
                     step.get("quest_objectives_verified") is not False):
                 issues.append(f"false objective certification: {num}")
             for name in ("at", "next"):
-                if step.get(name) not in source["coordinate_mentions"]:
+                mentions = source["coordinate_mentions"]
+                coordinate = step.get(name)
+                # Some information stages have no map location at all.
+                # Missing coordinates must stay unknown, not become [0,0].
+                if (coordinate not in mentions if mentions else coordinate is not None):
                     issues.append(f"unobserved {name} coordinate: {num}")
             actions = step.get("actions")
             if not isinstance(actions, list) or not actions:
