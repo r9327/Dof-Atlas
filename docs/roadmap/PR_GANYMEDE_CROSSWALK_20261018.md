@@ -297,3 +297,17 @@ La **prochaine validation** doit relier les candidats aux fiches de
 quête canoniques Atlas/Doduda et vérifier nom, version et objectifs
 contre DPLN et si besoin Tougli/JOL. En cas de divergence :
 `REVIEW` ou `BLOCKED`, sans basculer la nouvelle route #226.
+
+
+### Cinquième lot — premières dimensions, Île d'Otomaï et Ecaflipus
+
+Cinq guides supplémentaires ont leurs étapes et références structurées :
+**Enudorado 1** (29), **Ecaflipus 1** (48), **Otomaï 2** (7),
+**Xélorium 1** (27) et **Otomaï 3** (13).
+
+Le total passe à **24 guides sur 95**, pour **1 371 étapes sources
+inventoriées**. **71 guides** restent à inventorier. La vérification
+des correspondances de quêtes (nouvel audit) conserve tous ses résultats
+au statut `REVIEW_NUMERIC_ID_ONLY` tant que les données canoniques et
+les détails DPLN n'ont pas été recoupés. Aucun nouvel itinéraire Atlas
+n'est activé.

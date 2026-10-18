@@ -155,7 +155,7 @@ class GanymedeQuestCandidateAuditTests(unittest.TestCase):
     def test_repository_snapshots_are_discovery_not_gameplay_proof(self) -> None:
         report = audit_ganymede_quest_candidates(ROOT)
         self.assertEqual(report["status"], "REVIEW_REQUIRED", report["issues"])
-        self.assertGreaterEqual(report["guide_snapshots_checked"], 19)
+        self.assertGreaterEqual(report["guide_snapshots_checked"], 24)
         self.assertEqual(report["certified_quest_mappings"], 0)
         self.assertEqual(report["certified_quest_objectives"], 0)
 

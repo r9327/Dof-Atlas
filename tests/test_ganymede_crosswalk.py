@@ -67,8 +67,8 @@ class GanymedeCrosswalkAuditTests(unittest.TestCase):
     def test_repo_source_link_coverage_is_explicit_and_not_certified(self) -> None:
         report = audit_ganymede_crosswalk(DEFAULT_ROOT)
         self.assertEqual(report["status"], "PASS_METADATA_ONLY", report["issues"])
-        self.assertGreaterEqual(report["observed_source_guides"], 19)
-        self.assertGreaterEqual(report["observed_source_steps"], 1247)
+        self.assertGreaterEqual(report["observed_source_guides"], 24)
+        self.assertGreaterEqual(report["observed_source_steps"], 1371)
         self.assertEqual(report["indexed_main_guides"], 95)
         self.assertEqual(report["verified_routes"], 0)
         self.assertEqual(
