@@ -205,6 +205,47 @@ class GanymedeReplacementPreviewTests(unittest.TestCase):
         self.assertTrue(any(a.get("quest_id") == 836
                             for a in steps[9]["source_action_candidates"]))
 
+    def test_committed_cawotte_emerald_dolmanax_drafts_match_source(self) -> None:
+        review = build_dofus_replacement_previews(ROOT)
+        self.assertEqual(review["status"], "PREVIEWS_READY_NOT_PLAYABLE",
+                         review["issues"])
+        for name, count, actions in (
+            ("dofus_cawotte", 64, 191),
+            ("dofus_emeraude", 52, 179),
+            ("dolmanax", 9, 23),
+        ):
+            with self.subTest(guide=name):
+                generated = review["previews"][name]
+                path = ROOT / GUIDES_DIR / "replacement_drafts" / f"{name}.json"
+                stored = json.loads(path.read_text(encoding="utf-8"))
+                self.assertEqual(stored["source_action_candidate_steps"], count)
+                self.assertEqual(stored["source_action_candidate_actions"], actions)
+                self.assertEqual(
+                    generated["source_action_candidate_steps"], count
+                )
+                self.assertEqual(
+                    generated["source_action_candidate_actions"], actions
+                )
+                source_steps = generated["sections"][0]["steps"]
+                saved_steps = stored["sections"][0]["steps"]
+                self.assertEqual(len(source_steps), count)
+                self.assertEqual(len(saved_steps), count)
+                self.assertEqual(
+                    [row["id"] for row in saved_steps],
+                    [row["id"] for row in source_steps],
+                )
+                self.assertEqual(
+                    [row["source_action_candidates"] for row in saved_steps],
+                    [row["source_action_candidates"] for row in source_steps],
+                )
+                self.assertTrue(all(
+                    not row["manual_completion_allowed"]
+                    and not row["auto_completion_allowed"]
+                    and not row["verified_actions"]
+                    for row in saved_steps
+                ))
+                self.assertFalse(stored["replacement_active"])
+
     def test_repository_dofus_guide_step_continuity(self) -> None:
         result = build_dofus_replacement_previews(ROOT)
         self.assertEqual(result["status"], "PREVIEWS_READY_NOT_PLAYABLE",

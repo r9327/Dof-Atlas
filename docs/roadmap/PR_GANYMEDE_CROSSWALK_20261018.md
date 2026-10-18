@@ -909,3 +909,7 @@ ne satisfait pas les conditions de bascule atomique.
 Les tests du générateur vérifient explicitement les
 **20 étapes candidates / 53 actions / 44 étapes restantes**
 et l'absence de validation de progression induite.
+
+### Synchronisation Cawotte, Émeraude et Dolmanax — 125 fiches (18/10/2026)
+
+Le générateur n'utilise plus qu'un seul ensemble d'actions candidates par étape, audité par `tools.audit_ganymede_step_actions` avec contrôle des IDs DofusDB et des coordonnées de source. Les trois routes Dofus stockées dans `replacement_drafts` sont à jour : **Cawotte 64 étapes / 191 actions candidates**, **Émeraude 52 / 179**, **Dolmanax 9 / 23**, soit **125 étapes et 393 actions candidates**. Le test de parité régénère chaque parcours depuis les données sources et interdit toute divergence du nombre d'étapes, de leur identité, de leurs actions ou de leur statut de validation. Les objectifs canoniques Doduda et les prérequis réels restent non certifiés ; aucun ancien parcours ou état des personnages n'a été effacé, `replacement_active=false` dans tous les fichiers.
