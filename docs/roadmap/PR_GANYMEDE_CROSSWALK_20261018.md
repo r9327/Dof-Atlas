@@ -681,3 +681,42 @@ invalides et refus de transformer une quête extérieure en obligation.
 Le moteur #226 reste bloqué jusqu'au recoupement des prérequis et
 objectifs réellement interprétés ; la présentation #225 ne doit pas
 convertir ces constats d'audit en tâches « À préparer ».
+
+
+### Registre unique par IDs — Ganymède + Atlas + DPLN (18/10/2026)
+
+La commande `tools.build_ganymede_id_registry` rassemble **toutes les
+références d'IDs typés** des 95 instantanés Ganymède, des **26 guides
+Atlas** listés dans `catalog.json`, et de chaque dossier de preuves DPLN.
+
+    python -m tools.build_ganymede_id_registry --output artifacts/guides/by_id_review.json
+
+Le rapport regroupe séparément sous `quest_by_id`, `dungeon_by_id`,
+`object_by_id` et `monster_by_id` : un ID de monstre ne peut jamais
+devenir un ID de quête/objet, même si sa valeur numérique est la même.
+
+Chaque quête conserve **toutes** les apparitions Ganymède (guide,
+étape et page), **toutes** les occurrences Atlas (guide, section, étape,
+caractère facultatif, dépendances déclarées, groupes `OR`) ainsi que
+les preuves DPLN (quête principale, prérequis d'accès ou référence
+annexe/contextuelle). Les liens guide Ganymède → guide Atlas sont
+identifiés comme **indices** de correspondance, pas comme équivalences
+de quêtes certifiées.
+
+Les besoins matériels, combats, donjons, métiers, montures et contraintes
+de calendrier de DPLN sont conservés **au niveau de leur guide source**.
+Une référence Ganymède à une quête ne les attribue pas automatiquement
+à cette quête. Aucun approvisionnement « À préparer » automatique,
+aucune multiplication par personnage, aucune progression ni donnée
+utilisateur modifiée.
+
+Huit tests ciblés couvrent les collisions de nombres entre types
+d'entités, les occurrences répétées, les références entre guides,
+le maintien du `optional/OR`, les données malformées, les besoins au bon
+niveau et la couverture complète du dépôt réel. Le statut est
+`REVIEW_REQUIRED` ou `FAIL`, jamais « route certifiée ».
+
+**Prochaine couche :** confronter chaque déclaration de prérequis Atlas,
+ses groupes alternatifs et le `startCriterion` canonique Doduda, en
+respectant les expressions `AND/OR` plutôt que d'exiger toutes les
+branches.
