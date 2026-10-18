@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCENARIOS = ("guides-success", "guides-lanyel", "guide-quests", "validator-smoke")
+SCENARIOS = ("guides-success", "guides-lanyel", "guide-quests", "validator-smoke", "achievement-detail")
 DEFAULT_SCENARIOS = SCENARIOS[:3]
 MODES = ("all", "verify", "capture", "inspect")
 MAX_SECONDS = 240
@@ -29,18 +29,28 @@ def required_assertions(scenarios, repeats=2) -> list[str]:
     for name in scenarios:
         if name == "guide-quests":
             keys = [f"{gid}-quest-{turn}" for gid in ("guide_complet", "dofus_sylvestre") for turn in range(2)]
+        elif name == "achievement-detail":
+            keys = ["first-open-lazy", "click-opens-detail",
+                    "geometry-1200", "layout-1200", "contrast-1200", "text-regions-1200",
+                    "geometry-960", "layout-960", "contrast-960", "text-regions-960",
+                    "complete-click", "complete-reopen", "complete-character",
+                    "complete-restore"]
         else:
             smoke = name == "validator-smoke"
             pages = (1,) if smoke else (1, 8) if name == "guides-lanyel" else (1, 3)
             keys = ["open"]
             for page in pages:
                 for width in (1200, 960):
-                    keys.extend((f"page-{page}-{width}", f"geometry-{page}-{width}"))
+                    keys.extend((f"page-{page}-{width}", f"geometry-{page}-{width}",
+                                 f"bottom-{page}-{width}"))
             for turn in range(1 if smoke else repeats):
                 keys.extend(f"{action}-{turn}" for action in ("next", "destroy", "previous", "refresh"))
-            keys.extend(("lock", "unlock", "no-game-proof", "manual-persist", "character-isolation"))
+            keys.extend(("lock", "unlock", "no-game-proof",
+                         "manual-persist", "manual-reopen", "character-isolation",
+                         "manual-restore"))
             if not smoke:
-                keys.extend(("combat", "combat-geometry-1200", "combat-geometry-960"))
+                keys.extend(("combat", "combat-character", "combat-restore",
+                             "combat-geometry-1200", "combat-geometry-960"))
             keys.append("home-reopen")
             if not smoke:
                 keys.append("guide-return")

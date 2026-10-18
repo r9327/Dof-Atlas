@@ -31,7 +31,10 @@ UI_CONSUMERS = {
     "app/modules/encyclopedia/views/manual_route_guides_view.py": ALL_GUIDES,
     "app/modules/encyclopedia/views/deferred_achievement_guides_view.py": ALL_GUIDES,
     "app/modules/encyclopedia/views/guides_view.py": ALL_GUIDES,
-    "app/modules/encyclopedia/views/encyclopedia_page.py": ALL_GUIDES,
+    "app/modules/encyclopedia/views/encyclopedia_page.py": (*ALL_GUIDES, "achievement-detail"),
+    "app/modules/encyclopedia/views/achievements_view.py": ("achievement-detail",),
+    "app/modules/encyclopedia/widgets/achievement_detail_widget.py": ("achievement-detail",),
+    "app/modules/encyclopedia/providers/achievement_provider.py": (*ALL_GUIDES, "achievement-detail"),
     "app/modules/encyclopedia/services/link_service.py": ("guide-quests",),
     "app/pages/quests_page.py": ("guide-quests",),
     "app/pages/lazy_quests_page.py": ("guide-quests",),
@@ -45,6 +48,10 @@ INDEPENDENT_TOOLS = frozenset({
     "tools/atlas_meta_integrity.py", "tools/ci_main_phase_evidence.py",
     "tools/ci_verified_pr_full.py",
     "tools/ci_required_certification.py",
+    # Source-only Doctor diagnostics, checked for Qt/app or dynamic imports.
+    "tools/atlas_doctor_lib/capability_matrix.py",
+    "tools/atlas_doctor_lib/capability_evidence.py",
+    "tools/atlas_doctor_lib/agent_protocol.py",
 })
 VALIDATOR_PATHS = frozenset({
     "tools/atlas_doctor.py", "tools/atlas_doctor_lib/ci_orchestrator.py",
@@ -118,7 +125,18 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
             uncertainty.append("INVALID_PATH: " + path)
         elif path.endswith(".md") or path == ".ai/context_index.json":
             continue
-        elif _ci_workflow(path) or path in VALIDATOR_PATHS or path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tests/test_doctor_ui")):
+        elif path in ("tools/atlas_doctor_lib/doctor_ui_qt.py",
+                       "tools/atlas_doctor_lib/doctor_ui.py",
+                       "tests/test_doctor_ui_qt.py", "tests/test_doctor_ui.py"):
+            # Changes to shared UI assertions must exercise both production
+            # Guides as well as the smoke and Success journeys; otherwise
+            # manual/combat persistence could silently pass via smoke alone.
+            include(("guides-success", "guides-lanyel", "validator-smoke", "achievement-detail"),
+                    "Shared Doctor Qt validator changed: " + path, path)
+        elif path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tools/atlas_doctor_lib/ui_raster_oracle", "tools/atlas_doctor_lib/ui_contrast_oracle", "tests/test_doctor_ui")):
+            include(("validator-smoke", "achievement-detail"),
+                    "Validator and real Success journey changed: " + path, path)
+        elif _ci_workflow(path) or path in VALIDATOR_PATHS:
             include(("validator-smoke",), "Validator/selection contract changed: " + path, path)
         elif path in UI_CONSUMERS:
             include(UI_CONSUMERS[path], "Explicit Qt runtime consumer: " + path, path)
@@ -193,6 +211,209 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
         "uncertainty": uncertainty, "forced_scenarios": list(forced),
         "tests_executed": False, "full_suite_waived": False,
         "reuse_policy": "One campaign per PR head; reuse requires the same SHA, clean tree, selected assertions and hashed artifacts",
+    }
+
+
+
+# Cross-PR regression watch: evidence IDs for four distinct product journeys.
+# These are NOT synonyms for validator-smoke or a successful Guide-only run.
+# Achievement-detail assertions are owned by Doctor UI PR #216; while absent,
+# every corresponding control stays explicitly NOT_COVERED.
+REGRESSION_REQUIREMENTS = {
+    "achievement-click": ("achievement-detail/click-opens-detail",),
+    "guide-to-quests": (
+        "guide-quests/guide_complet-quest-0",
+        "guide-quests/dofus_sylvestre-quest-0",
+    ),
+    "achievement-first-open": ("achievement-detail/first-open-lazy",),
+    "render-and-capture": (
+        "guides-success/geometry-1-1200",
+        "guides-success/geometry-1-960",
+        "guides-lanyel/geometry-1-1200",
+        "guides-lanyel/geometry-1-960",
+        "achievement-detail/geometry-1200",
+        "achievement-detail/geometry-960",
+    ),
+}
+
+
+
+def _valid_png_capture(path: Path) -> bool:
+    """Verify chunks and bounded RGB/RGBA pixels from non-interlaced Qt PNGs."""
+    import zlib
+
+    try:
+        if path.stat().st_size > 32_000_000:
+            return False
+        payload = path.read_bytes()
+    except OSError:
+        return False
+    if not payload.startswith(bytes.fromhex("89504e470d0a1a0a")):
+        return False
+    offset = 8
+    header_seen = image_seen = False
+    compressed = bytearray()
+    stride = expected_bytes = 0
+    while offset + 12 <= len(payload):
+        size = int.from_bytes(payload[offset:offset + 4], "big")
+        end = offset + 12 + size
+        if size > 32_000_000 or end > len(payload):
+            return False
+        kind = payload[offset + 4:offset + 8]
+        data = payload[offset + 8:offset + 8 + size]
+        actual_crc = int.from_bytes(payload[end - 4:end], "big")
+        if zlib.crc32(kind + data) & 0xFFFFFFFF != actual_crc:
+            return False
+        if not header_seen:
+            if kind != b"IHDR" or size != 13:
+                return False
+            width, height = (int.from_bytes(data[:4], "big"),
+                             int.from_bytes(data[4:8], "big"))
+            if not (0 < width <= 8192 and 0 < height <= 8192):
+                return False
+            # Qt's captures are 8-bit RGB/RGBA. Unsupported encodings cannot
+            # establish a usable screenshot without a matching pixel decoder.
+            depth, color, compression, filtering, interlace = data[8:]
+            if depth != 8 or color not in (2, 6) or (compression, filtering, interlace) != (0, 0, 0):
+                return False
+            stride = 1 + width * (3 if color == 2 else 4)
+            expected_bytes = height * stride
+            if expected_bytes > 32_000_000:
+                return False
+            header_seen = True
+        elif kind == b"IHDR":
+            return False
+        if kind == b"IDAT":
+            image_seen = True
+            compressed.extend(data)
+        if kind == b"IEND":
+            if not (image_seen and size == 0 and end == len(payload)):
+                return False
+            # CRC and SHA integrity do not prove that IDAT contains pixels.
+            # Limit output before decompression to reject compressed bombs.
+            try:
+                decoder = zlib.decompressobj()
+                pixels = decoder.decompress(compressed, expected_bytes + 1)
+            except zlib.error:
+                return False
+            return (decoder.eof and not decoder.unused_data
+                    and not decoder.unconsumed_tail and len(pixels) == expected_bytes
+                    and all(pixels[row] <= 4 for row in range(0, expected_bytes, stride)))
+        offset = end
+    return False
+
+
+def _regression_assertions(folders: list[Path], sha: str) -> tuple[dict, list[str]]:
+    """Read only hash-verified real sessions for an exact SHA, never bare JSON."""
+    rows: dict[str, dict] = {}
+    errors: list[str] = []
+    for folder in folders:
+        try:
+            report = read_evidence(folder, sha)
+            manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            errors.append("INVALID_SESSION: " + str(exc))
+            continue
+        if (report.get("candidate_sha") != sha or report.get("dirty") is not False
+                or report.get("status") not in {"PASS", "FAIL", "BLOCKED", "REVIEW"}
+                or report.get("tests_executed") is not True):
+            errors.append("UNTRUSTED_OR_UNEXECUTED_SESSION")
+            continue
+        assertions = report.get("assertions")
+        required = report.get("required_assertions")
+        if not isinstance(assertions, list) or not isinstance(required, list):
+            errors.append("MISSING_REQUIRED_ASSERTION_INVENTORY")
+            continue
+        from tools.atlas_doctor_lib.doctor_ui import verdict
+        computed = verdict(assertions, required)
+        if report["status"] == "PASS" and computed != "PASS":
+            errors.append("INCONSISTENT_PASS_REPORT")
+            continue
+        artifacts = manifest.get("artifacts", {})
+        for row in assertions:
+            if not isinstance(row, dict) or not isinstance(row.get("assertion_id"), str):
+                errors.append("INVALID_ASSERTION")
+                continue
+            ident = row["assertion_id"]
+            if ident in rows and ident != "session/qt-exceptions":
+                errors.append("DUPLICATE_ASSERTION: " + ident)
+                continue
+            if ident == "session/qt-exceptions" and ident in rows:
+                if row.get("assertion_status") != "PASS":
+                    errors.append("QT_EXCEPTION_IN_SESSION")
+                continue
+            captures = row.get("evidence_ids")
+            linked = [name for name in captures if isinstance(name, str)
+                      and name.endswith(".png") and name in artifacts] if isinstance(captures, list) else []
+            if not linked:
+                # A positive control must have a linked, hash-verified PNG,
+                # not merely an unrelated screenshot in the session manifest.
+                errors.append("ASSERTION_MISSING_CAPTURE: " + ident)
+            for name in linked:
+                # A hash-valid but corrupted/fabricated screenshot never grants PASS.
+                if not _valid_png_capture(folder / name):
+                    errors.append("INVALID_SCREENSHOT_PNG: " + name)
+            rows[ident] = {**row, "_session_status": report["status"]}
+    return rows, errors
+
+
+def watch_ui_regressions(*, baseline_sha: str, candidate_sha: str,
+                         baseline_sessions: list[Path],
+                         candidate_sessions: list[Path]) -> dict:
+    """Compare four observable UI contracts without claiming release certification.
+
+    PASS on a smoke test cannot cover a missing real achievement journey.
+    A missing baseline/candidate produces NOT_COVERED, not an invented delta.
+    """
+    errors = []
+    if (len(baseline_sha) != 40 or len(candidate_sha) != 40
+            or not all(c in "0123456789abcdef" for c in (baseline_sha + candidate_sha).lower())
+            or baseline_sha == candidate_sha):
+        errors.append("INVALID_OR_IDENTICAL_SHAS")
+    if len(baseline_sessions) > 8 or len(candidate_sessions) > 8:
+        errors.append("SESSION_BUDGET_EXCEEDED")
+    before, before_errors = _regression_assertions(baseline_sessions[:8], baseline_sha) if not errors else ({}, [])
+    after, after_errors = _regression_assertions(candidate_sessions[:8], candidate_sha) if not errors else ({}, [])
+    errors.extend("baseline: " + e for e in before_errors)
+    errors.extend("candidate: " + e for e in after_errors)
+    controls = {}
+    for label, required in REGRESSION_REQUIREMENTS.items():
+        missing_before = [key for key in required if key not in before]
+        missing_after = [key for key in required if key not in after]
+        if missing_before or missing_after:
+            status = "NOT_COVERED"
+        elif any(after[key].get("assertion_status") != "PASS" for key in required):
+            status = "REGRESSION_REVIEW" if all(
+                before[key].get("assertion_status") == "PASS"
+                and before[key].get("_session_status") == "PASS"
+                for key in required
+            ) else "UNVERIFIED"
+        elif all(before[key].get("assertion_status") == "PASS"
+                 and before[key].get("_session_status") == "PASS" for key in required):
+            status = "NO_REGRESSION_OBSERVED" if all(
+                after[key].get("_session_status") == "PASS" for key in required
+            ) else "UNVERIFIED"
+        else:
+            status = "UNVERIFIED"
+        controls[label] = {
+            "status": status, "required_assertions": list(required),
+            "baseline_missing": missing_before, "candidate_missing": missing_after,
+            "baseline_verdicts": {key: before[key].get("assertion_status") for key in required if key in before},
+            "candidate_verdicts": {key: after[key].get("assertion_status") for key in required if key in after},
+        }
+    result_status = ("BLOCKED" if errors else
+                     "REGRESSION_REVIEW" if any(c["status"] == "REGRESSION_REVIEW" for c in controls.values()) else
+                     "NO_REGRESSION_OBSERVED" if all(c["status"] == "NO_REGRESSION_OBSERVED" for c in controls.values()) else
+                     "NOT_COVERED")
+    return {
+        "schema_version": 1, "kind": "doctor_ui_regression_watch",
+        "status": result_status, "baseline_sha": baseline_sha,
+        "candidate_sha": candidate_sha, "controls": controls,
+        "errors": errors, "tests_executed": False,
+        "phase_certified": False, "release_certified": False,
+        "limits": ("Only exact-SHA, hash-verified UI session assertions and linked PNGs "
+                   "are compared. This does not execute UI, prove semantic correctness "
+                   "or certify an installed Windows application."),
     }
 
 
@@ -285,7 +506,7 @@ def read_evidence(folder: Path, candidate: str) -> dict:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("plan", "run", "verdict"))
+    parser.add_argument("action", choices=("plan", "run", "verdict", "regression-watch"))
     parser.add_argument("--base-ref")
     parser.add_argument("--candidate-sha", required=True)
     parser.add_argument("--plan", type=Path, default=ROOT / ".ai/runtime/atlas_doctor/ui_ci_selection.json")
@@ -293,7 +514,20 @@ def main(argv=None) -> int:
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--exhaustive-on-review", action="store_true", help="Run all registered scenarios for uncertain verified diffs; never waive FULL")
     parser.add_argument("--evidence-root", type=Path, default=ROOT / ".ai/runtime/atlas_doctor/ui")
+    parser.add_argument("--baseline-sha", default="")
+    parser.add_argument("--baseline-session", type=Path, action="append", default=[])
+    parser.add_argument("--candidate-session", type=Path, action="append", default=[])
+    parser.add_argument("--watch-output", type=Path, default=ROOT / "artifacts/doctor_ui/regression_watch.json")
     args = parser.parse_args(argv)
+    if args.action == "regression-watch":
+        report = watch_ui_regressions(
+            baseline_sha=args.baseline_sha, candidate_sha=args.candidate_sha,
+            baseline_sessions=args.baseline_session,
+            candidate_sessions=args.candidate_session,
+        )
+        write_json(args.watch_output, report)
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0 if report["status"] == "NO_REGRESSION_OBSERVED" else 2
     if args.action == "plan":
         if not args.base_ref:
             parser.error("plan requires --base-ref")

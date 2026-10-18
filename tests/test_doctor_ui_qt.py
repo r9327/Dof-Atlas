@@ -18,8 +18,13 @@ from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QToolButton, QW
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
 from tools.atlas_doctor_lib.doctor_ui import verdict
 from tools.atlas_doctor_lib.doctor_ui_qt import (
-    UiSession, click_target, first_quest_failure, first_quest_link_page,
-    geometry_observations, quest_outcome, settle, sheet_observations, widget_tree,
+    UiSession, click_target, click_achievement_row, first_quest_failure,
+    first_achievement_failure, achievement_layout_observations,
+    first_achievement_layout_failure, achievement_title_contrast,
+    achievement_readable_text_observations, detailed_achievement_oracle,
+    completion_transition_failure, bottom_guide_observations,
+    first_quest_link_page, geometry_observations, settle,
+    quest_outcome, sheet_observations, widget_tree, glyph_legibility_probe,
 )
 
 
@@ -170,6 +175,59 @@ class DoctorUiQtFaultTests(unittest.TestCase):
                       self.view.view_index == 1, self.view)
         self.assertEqual(verdict(session.assertions, session.required), "FAIL")
 
+    def test_real_guide_validation_persists_source_and_advances_to_unchecked_next_card(self):
+        from shiboken6 import isValid
+
+        character = "character:doctor-fixture"
+        self.assertEqual(self.view.view_index, 0)
+        self.assertEqual(self.view.active_index, 0)
+        old = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertFalse(old.isChecked())
+        click = click_target(self.view, old, self.view.scroll)
+        self.service.reload_progress()
+        self.assertTrue(click["accessible"])
+        self.assertFalse(isValid(old))
+        self.assertTrue(self.service.page_checked(character, self.service.cards[0], 0))
+        self.assertEqual(self.view.view_index, 1)
+        self.assertEqual(self.view.active_index, 1)
+        next_button = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertFalse(next_button.isChecked())
+        self.assertFalse(self.service.page_checked(character, self.service.cards[1], 1))
+        self.assertEqual(sheet_observations(self.view, self.service.cards[1])["stage_ids"],
+                         ["TEST-B"])
+        # Reopening the SOURCE must show the saved check, not the destination's.
+        self.view._show_index(0)
+        settle()
+        source_button = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertTrue(source_button.isChecked())
+
+    def test_guide_manual_click_rebuilds_and_destroys_clicked_qt_button(self):
+        from shiboken6 import isValid
+
+        character = "character:doctor-fixture"
+        card = self.service.cards[0]
+        old = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertFalse(self.service.page_checked(character, card, 0))
+        # Simulate production's synchronous widget replacement after saving
+        # without mocking the real QPushButton, its mouse click or persistence.
+        old.toggled.connect(lambda _checked: self.view._show_index(0))
+        click = click_target(self.view, old, self.view.scroll)
+        self.service.reload_progress()
+        new = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertTrue(click["accessible"])
+        self.assertFalse(isValid(old))
+        self.assertIsNotNone(new)
+        self.assertIsNot(new, old)
+        self.assertTrue(self.service.page_checked(character, card, 0))
+        self.assertTrue(new.isChecked())
+        # The next click uses the *new* widget; never read the deleted handle.
+        click_back = click_target(self.view, new, self.view.scroll)
+        self.service.reload_progress()
+        self.assertTrue(click_back["accessible"])
+        self.assertFalse(self.service.page_checked(character, card, 0))
+        current = self.view.findChild(QPushButton, "GuideManualPageCheck")
+        self.assertFalse(current.isChecked())
+
     def test_wrong_validation_target_and_non_persistence_are_observable(self):
         check = self.view.findChild(QPushButton, "GuideManualPageCheck")
         check.toggled.disconnect()
@@ -187,6 +245,44 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.service.reload_progress()
         self.assertTrue(check.isChecked())
         self.assertFalse(self.service.page_checked("character:doctor-fixture", self.service.cards[0]))
+
+    def test_real_guide_bottom_scroll_checks_rows_and_button_occlusion(self):
+        from PySide6.QtWidgets import QHBoxLayout, QLabel
+        from PySide6.QtCore import QRect
+
+        sheet = self.view.findChild(QFrame, "GuideManualSheet")
+        for index in range(45):
+            line = QFrame()
+            line.setObjectName("GuideManualLineRow")
+            row = QHBoxLayout(line)
+            row.addWidget(QLabel(f"Contenu du guide, ligne {index}"))
+            sheet.layout().addWidget(line)
+        target = QPushButton("Bouton en bas de page")
+        target.setObjectName("GuideBottomAction")
+        sheet.layout().addWidget(target)
+        self.view.resize(640, 460)
+        settle()
+        healthy = bottom_guide_observations(self.view, self.view, self.service.cards[0])
+        self.assertEqual(healthy["status"], "PASS", healthy)
+        self.assertGreater(healthy["scroll_max"], 0)
+        self.assertEqual(healthy["scroll_position"], healthy["scroll_max"])
+        self.assertGreater(healthy["visible_line_rows"], 0)
+        self.assertGreater(healthy["visible_line_text_labels"], 0)
+        self.assertIn("GuideBottomAction",
+                      [item["name"] for item in healthy["visible_buttons"]])
+
+        point = target.mapTo(self.view, target.rect().topLeft())
+        overlay = QPushButton("Intercept", self.view)
+        overlay.setGeometry(QRect(point, target.size()))
+        overlay.show()
+        overlay.raise_()
+        settle()
+        broken = bottom_guide_observations(self.view, self.view, self.service.cards[0])
+        self.assertEqual(broken["status"], "FAIL", broken)
+        self.assertIn("GuideBottomAction", broken["occluded_buttons"])
+        overlay.close()
+        overlay.deleteLater()
+        settle()
 
     def test_collision_overlay_hidden_scroll_and_wrong_lock_are_detectable(self):
         overlay = QPushButton("Occluding overlay", self.view)
@@ -234,6 +330,404 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         # cannot prove a tab/detail effect. This must fail at the tab transition.
         self.assertEqual(first_quest_failure({**healthy, "active_tab": "GUIDES",
                                              "detail_visible": False}), "QUESTS_TAB")
+
+    def test_real_qt_success_list_mouse_event_does_not_fake_detail_effect(self):
+        from PySide6.QtWidgets import QListWidget, QListWidgetItem, QVBoxLayout
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        listing = QListWidget()
+        listing.setObjectName("QuestResultList")
+        host.list_widget = listing
+        layout.addWidget(listing)
+        item = QListWidgetItem("Achievement from test public-style row")
+        item.setData(Qt.UserRole, 321)
+        listing.addItem(item)
+        triggered = []
+        listing.itemClicked.connect(
+            lambda selected: triggered.append(int(selected.data(Qt.UserRole)))
+        )
+        host.resize(700, 450)
+        host.show()
+        settle()
+        try:
+            click = click_achievement_row(host, host, item)
+            self.assertTrue(click["accessible"])
+            self.assertEqual(click["item_id"], 321)
+            self.assertEqual(triggered, [321])
+            listing.itemClicked.disconnect()
+            click = click_achievement_row(host, host, item)
+            self.assertTrue(click["accessible"])
+            # QTest injected another real click but no final signal consumer.
+            self.assertEqual(triggered, [321])
+        finally:
+            host.close()
+            host.deleteLater()
+            settle()
+
+    def test_success_detail_oracle_localizes_hidden_and_wrong_details(self):
+        healthy = {
+            "active_tab": "SUCCÈS", "expected_tab": "SUCCÈS",
+            "expected_id": 321, "current_achievement_id": 321,
+            "detail_open": True, "detail_stack_active": True,
+            "stack_visible": True, "scroll_visible": True,
+            "viewport_visible": True, "stack_width": 350, "stack_height": 550,
+            "viewport_width": 330, "viewport_height": 530,
+            "detail_body_count": 1, "body_visible": True,
+            "body_achievement_id": 321, "title": "Test success",
+            "expected_title": "Test success", "title_visible": True, "title_hit": True,
+        }
+        self.assertIsNone(first_achievement_failure(healthy))
+        failures = [
+            ({"active_tab": "GUIDES"}, "SUCCES_TAB"),
+            ({"current_achievement_id": 999}, "selected_achievement_id"),
+            ({"detail_open": False}, "detail_open"),
+            ({"detail_stack_active": False}, "detail_stack_active"),
+            ({"scroll_visible": False}, "detail_visible"),
+            ({"viewport_visible": False}, "detail_visible"),
+            ({"stack_width": 0}, "detail_geometry"),
+            ({"viewport_width": 0}, "detail_geometry"),
+            ({"detail_body_count": 0}, "detail_body"),
+            ({"body_visible": False}, "detail_body"),
+            ({"body_achievement_id": 999}, "detail_body"),
+            ({"title": "Wrong detail"}, "detail_title"),
+            ({"title_hit": False}, "detail_title"),
+        ]
+        for alteration, expected in failures:
+            with self.subTest(alteration=alteration):
+                self.assertEqual(
+                    first_achievement_failure({**healthy, **alteration}), expected,
+                )
+        self.assertEqual(
+            verdict([], ["achievement-detail/click-opens-detail"]), "BLOCKED",
+        )
+
+    def test_to_fu_squares_cannot_pass_as_legible_qt_capture(self):
+        from unittest.mock import patch
+
+        # Rendered fonts can be available or missing on a given CI host. A
+        # known tofu renderer (all glyphs identical) must ALWAYS fail.
+        with patch("tools.atlas_doctor_lib.doctor_ui_qt._glyph_signature",
+                   return_value="identical-missing-glyph"):
+            probe = glyph_legibility_probe(self.view)
+        self.assertEqual(probe["status"], "FAIL")
+        self.assertEqual(probe["reason"], "MISSING_OR_SQUARE_FONT_GLYPHS")
+        self.assertTrue(probe["labels"])
+        self.assertTrue(all(row["unique_raster_glyphs"] == 1 for row in probe["labels"]))
+        witness = UiSession(self.folder, "all")
+        witness.scenario = "session"
+        witness.check("glyph-rendering", "Font renderer", "Unique glyph pixels", probe,
+                      probe["status"] == "PASS", self.view)
+        self.assertEqual(verdict(witness.assertions, ["session/glyph-rendering"]), "FAIL")
+
+    def test_real_checkbox_click_cannot_hide_broken_progress_persistence(self):
+        from PySide6.QtWidgets import QCheckBox, QVBoxLayout
+
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        checkbox = QCheckBox("Succès terminé")
+        checkbox.setObjectName("AchievementDoneCheck")
+        layout.addWidget(checkbox)
+        page.resize(400, 200)
+        page.show()
+        settle()
+        try:
+            click = click_target(page, checkbox)
+            self.assertTrue(click["accessible"], click)
+            self.assertTrue(checkbox.isChecked())
+            valid = {
+                "click": click, "before": False, "expected_before": False,
+                "expected_after": True, "after_checkbox": True,
+                "after_service": True, "progress_bar": 100,
+                "expected_progress_bar": 100,
+            }
+            self.assertIsNone(completion_transition_failure(valid))
+            for change, expected in (
+                ({"click": {"accessible": False}}, "BUTTON_NOT_ACCESSIBLE"),
+                ({"before": True}, "BASELINE_MISMATCH"),
+                ({"after_checkbox": False}, "CHECKBOX_DID_NOT_TOGGLE"),
+                ({"after_service": False}, "SERVICE_DID_NOT_PERSIST"),
+                ({"progress_bar": 0}, "PROGRESS_BAR_NOT_UPDATED"),
+            ):
+                with self.subTest(change=change):
+                    broken = dict(valid, **change)
+                    self.assertEqual(completion_transition_failure(broken), expected)
+        finally:
+            page.close()
+            page.deleteLater()
+            settle()
+
+    def test_detailed_success_description_oracle_never_uses_catalog_summary(self):
+        class Provider:
+            def __init__(self, detail):
+                self.detail = detail
+                self.calls = []
+
+            def get_detail_by_id(self, achievement_id):
+                self.calls.append(achievement_id)
+                return self.detail
+
+        full = Provider(SimpleNamespace(id=8518, name="Premier temps",
+                                        description="Véritable description détaillée"))
+        actual = detailed_achievement_oracle(full, 8518, "Premier temps")
+        self.assertEqual(full.calls, [8518])
+        self.assertEqual(actual["description"], "Véritable description détaillée")
+        self.assertEqual(actual["id"], 8518)
+        for bad in (None, SimpleNamespace(id=999, name="Premier temps", description="x"),
+                    SimpleNamespace(id=8518, name="Autre nom", description="x")):
+            with self.subTest(bad=bad):
+                with self.assertRaisesRegex(RuntimeError, "Detailed Success"):
+                    detailed_achievement_oracle(Provider(bad), 8518, "Premier temps")
+
+    def test_real_qt_success_description_progress_and_checkbox_contrast(self):
+        from PySide6.QtGui import QFont
+        from PySide6.QtWidgets import QCheckBox, QLabel, QScrollArea, QVBoxLayout
+
+        page = QWidget()
+        page.setStyleSheet(
+            "QWidget { background-color: #081113; color: #f5f7f2; }"
+        )
+        layout = QVBoxLayout(page)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        layout.addWidget(scroll)
+        content = QFrame()
+        content_layout = QVBoxLayout(content)
+        values = (
+            ("AchievementDetailTitle", "Premier temps"),
+            ("AchievementDescription", "Terminer la première partie du tutoriel."),
+            ("AchievementProgressText", "Progression • 0 / 2 objectif(s) • 0 %"),
+        )
+        labels = {}
+        for name, text in values:
+            label = QLabel(text)
+            label.setObjectName(name)
+            label.setFont(QFont("Arial", 12))
+            label.setWordWrap(False)
+            content_layout.addWidget(label)
+            labels[name] = label
+        check = QCheckBox("Succès terminé")
+        check.setObjectName("AchievementDoneCheck")
+        check.setFont(QFont("Arial", 12))
+        content_layout.addWidget(check)
+        content_layout.addStretch(1)
+        scroll.setWidget(content)
+        view = SimpleNamespace(detail_content=content, detail_scroll=scroll)
+        page.resize(720, 400)
+        page.show()
+        settle()
+        try:
+            description = values[1][1]
+            healthy = achievement_readable_text_observations(
+                page, view, expected_description=description,
+            )
+            self.assertEqual(healthy["status"], "PASS", healthy)
+            self.assertEqual(
+                set(healthy["statuses"]),
+                {"title", "description", "progress", "completion_label"},
+            )
+            self.assertTrue(all(value == "PASS" for value in healthy["statuses"].values()))
+
+            progress = labels["AchievementProgressText"]
+            progress.setStyleSheet("color: #182123")
+            progress.repaint()
+            settle()
+            too_faint = achievement_readable_text_observations(
+                page, view, expected_description=description,
+            )
+            self.assertEqual(too_faint["status"], "FAIL", too_faint)
+            self.assertEqual(too_faint["statuses"]["progress"], "FAIL")
+            self.assertEqual(too_faint["statuses"]["title"], "PASS")
+            progress.setStyleSheet("color: #f5f7f2")
+            settle()
+
+            labels["AchievementDescription"].hide()
+            settle()
+            missing = achievement_readable_text_observations(
+                page, view, expected_description=description,
+            )
+            self.assertEqual(missing["status"], "BLOCKED")
+            self.assertEqual(missing["statuses"]["description"], "BLOCKED")
+            labels["AchievementDescription"].show()
+            settle()
+
+            check.setText("Texte incorrect")
+            wrong = achievement_readable_text_observations(
+                page, view, expected_description=description,
+            )
+            self.assertEqual(wrong["status"], "FAIL")
+            self.assertEqual(wrong["statuses"]["completion_label"], "FAIL")
+        finally:
+            page.close()
+            page.deleteLater()
+            settle()
+
+    def test_real_qt_screenshot_contrast_uses_actual_title_pixels(self):
+        from PySide6.QtGui import QFont
+        from PySide6.QtWidgets import QLabel, QVBoxLayout
+
+        page = QWidget()
+        page.setStyleSheet("background-color: #081113;")
+        layout = QVBoxLayout(page)
+        content = QFrame()
+        inner = QVBoxLayout(content)
+        title = QLabel("Premier temps")
+        title.setObjectName("AchievementDetailTitle")
+        title.setFont(QFont("Arial", 15))
+        title.setStyleSheet("color: #f5f7f2; background-color: transparent;")
+        inner.addWidget(title)
+        inner.addStretch(1)
+        layout.addWidget(content)
+        view = SimpleNamespace(detail_content=content)
+        page.resize(580, 250)
+        page.show()
+        settle()
+        try:
+            good = achievement_title_contrast(page, view)
+            self.assertEqual(good["status"], "PASS", good)
+            self.assertGreaterEqual(good["above_minimum_ratio_pixels"],
+                                    good["required_ink_pixels"])
+            self.assertEqual(good["widget"], "AchievementDetailTitle")
+
+            title.setStyleSheet("color: #182123; background-color: transparent;")
+            title.repaint()
+            page.repaint()
+            settle()
+            bad = achievement_title_contrast(page, view)
+            self.assertEqual(bad["status"], "FAIL", bad)
+            self.assertIn(bad["reason"],
+                          ("TEXT_INVISIBLE_OR_TOO_FAINT", "INSUFFICIENT_PIXEL_CONTRAST"))
+        finally:
+            page.close()
+            page.deleteLater()
+            settle()
+
+    def test_real_qt_success_layout_oracle_rejects_clipped_title_and_scroll(self):
+        from PySide6.QtWidgets import QCheckBox, QLabel, QScrollArea, QVBoxLayout
+
+        page = QWidget()
+        outer = QVBoxLayout(page)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        outer.addWidget(scroll)
+        content = QFrame()
+        inner = QVBoxLayout(content)
+        title = QLabel("Succès terminé")
+        title.setObjectName("AchievementDetailTitle")
+        title.setWordWrap(True)
+        inner.addWidget(title)
+        checkbox = QCheckBox("Succès terminé")
+        checkbox.setObjectName("AchievementDoneCheck")
+        inner.addWidget(checkbox)
+        inner.addStretch(1)
+        scroll.setWidget(content)
+        probe_view = SimpleNamespace(detail_scroll=scroll, detail_content=content)
+        page.resize(650, 440)
+        page.show()
+        settle()
+        try:
+            healthy = achievement_layout_observations(page, probe_view)
+            self.assertIsNone(first_achievement_layout_failure(healthy), healthy)
+            self.assertEqual(healthy["control_count_in_viewport"], 1)
+
+            title.setFixedHeight(3)
+            settle()
+            truncated = achievement_layout_observations(page, probe_view)
+            self.assertTrue(truncated["title_clipped"])
+            self.assertEqual(first_achievement_layout_failure(truncated), "TITLE_CLIPPED")
+            title.setMinimumHeight(0)
+            title.setMaximumHeight(16777215)
+            settle()
+
+            scroll.setWidgetResizable(False)
+            content.setMinimumWidth(1500)
+            content.resize(1500, 430)
+            settle()
+            overflow = achievement_layout_observations(page, probe_view)
+            self.assertGreater(overflow["horizontal_scroll_max"], 2)
+            self.assertEqual(first_achievement_layout_failure(overflow),
+                             "HORIZONTAL_OVERFLOW")
+        finally:
+            page.close()
+            page.deleteLater()
+            settle()
+
+    def test_success_layout_oracle_refuses_missing_control_or_detected_overlap(self):
+        base = {
+            "status": "OBSERVED",
+            "title_clipped": False,
+            "horizontal_overflow": False,
+            "control_count_in_viewport": 2,
+            "overlaps": [],
+            "inaccessible_controls": [],
+        }
+        self.assertIsNone(first_achievement_layout_failure(base))
+        cases = [
+            ({"control_count_in_viewport": 0}, "NO_EXPOSED_DETAIL_CONTROLS"),
+            ({"overlaps": [{"left": "a", "right": "b"}]}, "BUTTON_OVERLAP"),
+            ({"inaccessible_controls": ["AchievementDoneCheck"]}, "BUTTON_OCCLUDED"),
+            ({"status": "BLOCKED", "reason": "MISSING_ACHIEVEMENT_TITLE"},
+             "MISSING_ACHIEVEMENT_TITLE"),
+        ]
+        for fault, expected in cases:
+            with self.subTest(fault=fault):
+                self.assertEqual(first_achievement_layout_failure({**base, **fault}), expected)
+
+    def test_screen_pixels_override_successful_font_metric_checks(self):
+        from unittest.mock import patch
+
+        screenshot = {
+            "status": "FAIL", "reason": "REPEATED_HOLLOW_SQUARE_GLYPHS",
+            "box_count": 730, "failure_threshold": 16,
+        }
+        with (
+            patch("tools.atlas_doctor_lib.doctor_ui_qt._glyph_signature",
+                  side_effect=lambda _font, letter: "unique-" + letter),
+            patch("tools.atlas_doctor_lib.ui_raster_oracle.detect_replacement_squares",
+                  return_value=screenshot),
+        ):
+            probe = glyph_legibility_probe(self.view)
+        self.assertEqual(probe["status"], "FAIL")
+        self.assertEqual(probe["reason"], "REPEATED_SCREENSHOT_TOFU")
+        self.assertEqual(probe["screenshot_raster"]["total_hollow_boxes"], 730)
+        self.assertEqual(probe["screenshot_raster"]["bad_captures"][0]["box_count"], 730)
+        judge = UiSession(self.folder, "all")
+        judge.scenario = "session"
+        judge.check("glyph-rendering", "Actual screen raster", "No repeated tofu",
+                    probe, probe["status"] == "PASS", self.view)
+        self.assertEqual(verdict(judge.assertions, ["session/glyph-rendering"]), "FAIL")
+
+    def test_stored_bad_png_does_not_get_laundered_by_later_good_screen(self):
+        from PySide6.QtCore import QRect
+        from PySide6.QtGui import QColor, QImage, QPainter, QPen
+
+        image = QImage(350, 120, QImage.Format_RGB32)
+        image.fill(QColor(12, 12, 12))
+        painter = QPainter(image)
+        painter.setPen(QPen(QColor(220, 220, 220), 1))
+        for index in range(25):
+            x, y = 7 + (index % 20) * 15, 8 + (index // 20) * 17
+            painter.drawRect(QRect(x, y, 7, 7))
+        painter.end()
+        bad = self.folder / "historic-tofu.png"
+        self.assertTrue(image.save(str(bad)))
+
+        good = QImage(350, 120, QImage.Format_RGB32)
+        good.fill(QColor(12, 12, 12))
+        normal = self.folder / "later-good.png"
+        self.assertTrue(good.save(str(normal)))
+
+        observed = glyph_legibility_probe(self.view, screenshots=[bad, normal])
+        self.assertEqual(observed["status"], "FAIL")
+        self.assertEqual(observed["reason"], "REPEATED_SCREENSHOT_TOFU")
+        self.assertEqual(observed["screenshot_raster"]["captures_checked"], 2)
+        self.assertEqual(
+            [x["capture"] for x in observed["screenshot_raster"]["bad_captures"]],
+            ["historic-tofu.png"],
+        )
+        self.assertGreaterEqual(
+            observed["screenshot_raster"]["bad_captures"][0]["box_count"], 20,
+        )
 
     def test_real_png_and_tree_share_action_ids_and_verify_mode_omits_images(self):
         session = UiSession(self.folder, "all")

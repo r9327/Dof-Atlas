@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import copy
+import os
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -8,7 +12,7 @@ from unittest.mock import patch
 from tools.atlas_doctor_lib.capability_evidence import (
     _digest, run_capability_witnesses, validate_capability_evidence,
 )
-from tools.atlas_doctor_lib.capability_matrix import capability_inventory, capability_test_ids
+from tools.atlas_doctor_lib.capability_matrix import capability_inventory, capability_test_ids, capability_control_ids
 
 
 class DoctorCapabilityEvidenceTests(unittest.TestCase):
@@ -19,10 +23,19 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
             "dirty": False, "dirty_digest": "b" * 64, "status_lines": [],
         }
 
+    def _passing_log(self):
+        tests = sorted([*capability_test_ids(self.root).values(),
+                        *capability_control_ids(self.root).values()])
+        lines = [f"{test.rsplit('.', 1)[1]} ({test}) ... ok"
+                 for test in tests]
+        return "\n".join(lines) + f"\n\nRan {len(tests)} tests in 0.1s\n\nOK\n"
+
     def _passing_evidence(self):
         test_ids = capability_test_ids(self.root)
+        control_ids = capability_control_ids(self.root)
+        tests = sorted([*test_ids.values(), *control_ids.values()])
         payload = {
-            "schema_version": 1,
+            "schema_version": 2,
             "kind": "doctor_capability_test_evidence",
             "status": "PASS",
             "candidate_sha": self.state["head"],
@@ -30,10 +43,18 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
             "dirty_digest": self.state["dirty_digest"],
             "worktree_unchanged": True,
             "return_code": 0,
-            "stderr_tail": "Ran 18 tests in 0.1s\n\nOK\n",
+            "timed_out": False,
+            "log_truncated": False,
+            "command": [sys.executable, "-m", "unittest", "-v",
+                        *[test.removeprefix("tests.") for test in tests]],
+            "stderr_tail": self._passing_log(),
             "witnesses": [
                 {"capability_id": ident, "test_id": test_ids[ident], "result": "PASS"}
                 for ident in sorted(test_ids)
+            ],
+            "control_witnesses": [
+                {"capability_id": ident, "test_id": control_ids[ident], "result": "PASS"}
+                for ident in sorted(control_ids)
             ],
             "certification": "NOT_CERTIFIED",
         }
@@ -78,14 +99,90 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
         state.return_value = self.state
         run.return_value.returncode = 0
         run.return_value.stdout = "ok"
-        run.return_value.stderr = "Ran 18 tests in 0.1s\n\nOK\n"
+        run.return_value.stderr = self._passing_log()
         payload = run_capability_witnesses(self.root, timeout=42)
         self.assertEqual(payload["status"], "PASS")
         self.assertEqual(len(payload["witnesses"]), 18)
+        self.assertEqual(len(payload["control_witnesses"]), 18)
         self.assertEqual(payload["certification"], "NOT_CERTIFIED")
         self.assertEqual(run.call_count, 1)
+        self.assertIn("-v", run.call_args.args[0])
+        self.assertEqual(run.call_args.args[0][:4],
+                         [sys.executable, "-m", "unittest", "-v"])
+        self.assertTrue(all(not test.startswith("tests.") for test in run.call_args.args[0][4:]))
+        self.assertEqual(run.call_args.kwargs["env"]["PYTHONPATH"].split(os.pathsep)[0],
+                         str(self.root / "tests"))
         self.assertEqual(run.call_args.kwargs["timeout"], 42)
         self.assertEqual(payload["evidence_digest"], _digest(payload))
+
+    @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_bare_module_unittest_verdicts_match_canonical_ids_exactly(self, state, run):
+        # Simulate the stdout of 'python -m unittest -v test_file.Class.method':
+        # it must be accepted without importing tests/__init__.py / PySide6.
+        state.return_value = self.state
+        run.return_value.returncode = 0
+        run.return_value.stdout = ""
+        run.return_value.stderr = self._passing_log().replace(" (tests.", " (")
+        payload = run_capability_witnesses(self.root)
+        self.assertEqual(payload["status"], "PASS")
+        self.assertEqual(len(payload["witnesses"]), 18)
+        self.assertEqual(len(payload["control_witnesses"]), 18)
+        self.assertTrue(all(w["observed_result"] == ["ok"] for w in
+                            payload["witnesses"] + payload["control_witnesses"]))
+        self.assertEqual(validate_capability_evidence(self.root, payload)["status"], "PASS")
+        self.assertFalse(payload["certification"] == "CERTIFIED")
+        self.assertEqual(payload["certification"], "NOT_CERTIFIED")
+
+        # Duplicate or absent canonical verdict is never a successful suite.
+        previous = run.return_value.stderr
+        first = previous.splitlines()[0]
+        run.return_value.stderr = previous.replace(first, "foreign " + first, 1)
+        self.assertEqual(run_capability_witnesses(self.root)["status"], "FAIL")
+        run.return_value.stderr = previous
+
+    def test_unittest_bare_module_does_not_import_qt_test_package(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            tests = root / "tests"
+            tests.mkdir()
+            (tests / "__init__.py").write_text(
+                'raise AssertionError("tests package must not be imported")\n',
+                encoding="utf-8",
+            )
+            (tests / "test_smoke.py").write_text(
+                "import unittest\n"
+                "class SmokeCase(unittest.TestCase):\n"
+                "    def test_ok(self): self.assertTrue(True)\n",
+                encoding="utf-8",
+            )
+            env = dict(os.environ)
+            env["PYTHONPATH"] = os.pathsep.join([str(tests), str(root)])
+            completed = subprocess.run(
+                [sys.executable, "-m", "unittest", "-v",
+                 "test_smoke.SmokeCase.test_ok"],
+                cwd=root, env=env, capture_output=True, text=True, timeout=30,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn(
+                "test_ok (test_smoke.SmokeCase.test_ok) ... ok", completed.stderr,
+            )
+            self.assertIn("Ran 1 test", completed.stderr)
+
+    @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_verbose_method_in_parentheses_must_match_reported_method(self, state, run):
+        state.return_value = self.state
+        run.return_value.returncode = 0
+        run.return_value.stdout = ""
+        passing = self._passing_log().replace(" (tests.", " (")
+        first = passing.splitlines()[0]
+        # The aggregate OK never proves a method whose qualified ID differs.
+        forged = first.replace(") ... ok", "_different) ... ok")
+        run.return_value.stderr = passing.replace(first, forged, 1)
+        result = run_capability_witnesses(self.root)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(validate_capability_evidence(self.root, result)["status"], "BLOCKED")
 
     @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
     @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
@@ -93,7 +190,7 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
         state.return_value = self.state
         run.return_value.returncode = 0
         run.return_value.stdout = ""
-        run.return_value.stderr = "Ran 18 tests in 0.1s\n\nOK (skipped=1)\n"
+        run.return_value.stderr = self._passing_log().replace("\n\nOK\n", "\n\nOK (skipped=1)\n")
         payload = run_capability_witnesses(self.root)
         self.assertEqual(payload["status"], "FAIL")
         self.assertTrue(all(row["result"] == "UNVERIFIED" for row in payload["witnesses"]))
@@ -106,17 +203,60 @@ class DoctorCapabilityEvidenceTests(unittest.TestCase):
         run.return_value.returncode = 0
         run.return_value.stdout = ""
         for summary in ("", "Ran 0 tests in 0.1s\n\nOK\n",
-                        "Ran 17 tests in 0.1s\n\nOK\n",
-                        "Ran 18 tests in 0.1s\n\nOK (expected failures=1)\n"):
+                        "Ran 35 tests in 0.1s\n\nOK\n",
+                        "Ran 36 tests in 0.1s\n\nOK (expected failures=1)\n"):
             with self.subTest(summary=summary):
                 run.return_value.stderr = summary
                 self.assertEqual(run_capability_witnesses(self.root)["status"], "FAIL")
 
     @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_missing_or_tampered_negative_control_fails_closed(self, state):
+        state.return_value = self.state
+        payload = self._passing_evidence()
+        payload["control_witnesses"].pop()
+        payload["evidence_digest"] = _digest(payload)
+        self.assertEqual(validate_capability_evidence(self.root, payload)["status"], "BLOCKED")
+        payload = self._passing_evidence()
+        test_id = payload["control_witnesses"][0]["test_id"]
+        payload["stderr_tail"] = payload["stderr_tail"].replace(
+            f"{test_id.rsplit('.', 1)[1]} ({test_id}) ... ok",
+            f"{test_id.rsplit('.', 1)[1]} ({test_id}) ... skipped 'disabled'",
+        )
+        payload["evidence_digest"] = _digest(payload)
+        self.assertIn("WITNESS_VERBOSE_VERDICTS_INCOMPLETE",
+                      validate_capability_evidence(self.root, payload)["errors"])
+
+    @patch("tools.atlas_doctor_lib.capability_evidence.subprocess.run")
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
+    def test_large_verbose_transcript_is_retained_but_oversize_blocks(self, state, run):
+        from tools.atlas_doctor_lib.capability_evidence import MAX_LOG_CHARS
+
+        state.return_value = self.state
+        run.return_value.returncode = 0
+        run.return_value.stdout = ""
+        # Diagnostic output may precede the 36 method results. The old 12 KiB
+        # cap discarded valid individual verdicts and rejected routine runs.
+        run.return_value.stderr = ("diagnostic context\n" * 900) + self._passing_log()
+        self.assertGreater(len(run.return_value.stderr), 12_000)
+        self.assertLess(len(run.return_value.stderr), MAX_LOG_CHARS)
+        good = run_capability_witnesses(self.root)
+        self.assertEqual(good["status"], "PASS")
+        self.assertFalse(good["log_truncated"])
+        self.assertEqual(good["raw_stderr_chars"], len(run.return_value.stderr))
+        self.assertEqual(validate_capability_evidence(self.root, good)["status"], "PASS")
+
+        # A truncated transcript cannot be made PASS by a forged summary.
+        run.return_value.stderr = ("context\n" * (MAX_LOG_CHARS // 8 + 2)) + self._passing_log()
+        huge = run_capability_witnesses(self.root)
+        self.assertEqual(huge["status"], "BLOCKED")
+        self.assertTrue(huge["log_truncated"])
+        self.assertEqual(validate_capability_evidence(self.root, huge)["status"], "BLOCKED")
+
+    @patch("tools.atlas_doctor_lib.capability_evidence.git_state")
     def test_reader_rejects_skip_hidden_by_passing_fields_and_valid_digest(self, state):
         state.return_value = self.state
         payload = self._passing_evidence()
-        payload["stderr_tail"] = "Ran 18 tests in 0.1s\n\nOK (skipped=1)\n"
+        payload["stderr_tail"] = self._passing_log().replace("\n\nOK\n", "\n\nOK (skipped=1)\n")
         payload["evidence_digest"] = _digest(payload)
         checked = validate_capability_evidence(self.root, payload)
         self.assertEqual(checked["status"], "BLOCKED")

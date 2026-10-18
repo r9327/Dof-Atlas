@@ -15,7 +15,7 @@ on:
       scenario:
         description: Explicit bounded UI scenario
         type: choice
-        options: [validator-smoke, guides-success, guides-lanyel, guide-quests]
+        options: [validator-smoke, guides-success, guides-lanyel, guide-quests, achievement-detail]
         default: validator-smoke
 
 permissions:

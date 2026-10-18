@@ -11,7 +11,8 @@ from pathlib import Path
 
 from tools.atlas_doctor_lib.doctor_ui import required_assertions, verdict
 from tools.atlas_doctor_lib.doctor_ui_ci import (
-    ALL_GUIDES, ROOT, campaign_verdict, classify_ui, dependency_map, read_evidence,
+    ALL_GUIDES, ROOT, REGRESSION_REQUIREMENTS, campaign_verdict, classify_ui,
+    dependency_map, read_evidence, watch_ui_regressions,
 )
 
 SHA = "a" * 40
@@ -60,6 +61,75 @@ class DoctorUiSelectionTests(unittest.TestCase):
                 plan = classify_ui(root, ['tools/atlas_meta_integrity.py'], candidate_sha=SHA, base_sha=BASE)
                 self.assertEqual(plan['status'], 'REVIEW_REQUIRED')
 
+    def test_doctor_capability_ci_scope_uses_real_ui_planner_without_full(self):
+        # Regression: the previous exact-SHA PR plan was REVIEW_REQUIRED and FULL
+        # for changes confined to Doctor diagnostics and their source tests.
+        from tools.atlas_doctor_lib.ci_orchestrator import select_workflows
+
+        paths = [
+            "tools/atlas_doctor.py",
+            "tools/atlas_doctor_lib/capability_matrix.py",
+            "tools/atlas_doctor_lib/capability_evidence.py",
+            "tools/atlas_doctor_lib/agent_protocol.py",
+            "tools/atlas_doctor_lib/doctor_ui_ci.py",
+            "tests/test_atlas_doctor_capabilities.py",
+            "tests/test_atlas_doctor_capability_evidence.py",
+            "tests/test_atlas_doctor_agent_protocol.py",
+            "tests/test_doctor_ci_orchestrator.py",
+            "tests/test_doctor_ui_ci.py",
+            ".ai/context_index.json",
+            "docs/audit-remediation/2026-10-17/07-doctor-capability-ci-evidence.md",
+        ]
+        ui = self.plan(*paths)
+        self.assertEqual(ui["status"], "UI_REQUIRED")
+        # doctor_ui_ci.py is itself part of this PR.  The merged visual-oracle
+        # contract therefore requires the real Success detail journey in
+        # addition to the validator smoke; retaining the old smoke-only
+        # expectation would silently downscope the stronger detector.
+        self.assertEqual(ui["selected_scenarios"], ["achievement-detail", "validator-smoke"])
+        self.assertEqual(ui["uncertainty"], [])
+        routed = select_workflows(
+            paths, event="pull_request", phase_route={"route": "FULL"}, ui_plan=ui,
+        )
+        self.assertTrue(routed["tooling_only"])
+        self.assertFalse(routed["full"])
+        self.assertFalse(routed["phase"])
+        self.assertFalse(routed["specialist_fallback"])
+        self.assertTrue(routed["workflows"]["doctor-ui"]["selected"])
+        for extra in ("app/ui/theme.py", "tools/atlas_doctor_lib/runtime_observation.py"):
+            with self.subTest(extra=extra):
+                changed = [*paths, extra]
+                impacted_ui = self.plan(*changed)
+                mixed = select_workflows(
+                    changed, event="pull_request", phase_route={"route": "FULL"},
+                    ui_plan=impacted_ui,
+                )
+                self.assertTrue(mixed["full"])
+                self.assertTrue(mixed["phase"])
+
+    def test_doctor_diagnostic_import_boundary_stays_fail_closed(self):
+        for path in (
+            "tools/atlas_doctor_lib/capability_matrix.py",
+            "tools/atlas_doctor_lib/capability_evidence.py",
+            "tools/atlas_doctor_lib/agent_protocol.py",
+        ):
+            for source in (
+                "from app.ui import theme\n",
+                "from PySide6 import QtWidgets\n",
+                "__import__(\"app.ui.theme\")\n",
+                "import importlib\nimportlib.import_module(\"unknown\")\n",
+            ):
+                with self.subTest(path=path, source=source):
+                    with tempfile.TemporaryDirectory() as folder:
+                        root = Path(folder)
+                        target = root / path
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_text(source)
+                        plan = classify_ui(
+                            root, [path], candidate_sha=SHA, base_sha=BASE,
+                        )
+                        self.assertEqual(plan["status"], "REVIEW_REQUIRED")
+
     def test_both_real_renderers_selected_for_shared_view(self):
         plan = self.plan("app/modules/encyclopedia/views/shared_manual_guide_view.py")
         self.assertEqual(set(plan["selected_scenarios"]), set(ALL_GUIDES))
@@ -68,7 +138,7 @@ class DoctorUiSelectionTests(unittest.TestCase):
     def test_quest_bridge_theme_and_canonical_data_have_explicit_consumers(self):
         cases = {
             "app/modules/encyclopedia/services/link_service.py": {"guide-quests"},
-            "app/modules/encyclopedia/views/encyclopedia_page.py": set(ALL_GUIDES),
+            "app/modules/encyclopedia/views/encyclopedia_page.py": set(ALL_GUIDES) | {"achievement-detail"},
             "app/ui/theme.py": set(ALL_GUIDES),
             "data/routes/guide_ultime_manual/chapter_01.json": {"guides-success", "guide-quests"},
             "data/encyclopedia/guides/dofus_sylvestre.json": {"guides-lanyel", "guide-quests"},
@@ -77,10 +147,47 @@ class DoctorUiSelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(set(self.plan(path)["selected_scenarios"]), selected)
 
-    def test_validator_change_selects_self_tests_and_one_smoke(self):
-        for path in ("tools/atlas_doctor_lib/doctor_ui_qt.py", "tools/atlas_doctor_lib/doctor_ui_ci.py",
-                     "tests/test_doctor_ui_qt.py", ".github/workflows/doctor-ui.yml"):
-            self.assertEqual(self.plan(path)["selected_scenarios"], ["validator-smoke"])
+    def test_shared_validator_changes_execute_real_success_and_both_guides(self):
+        for path in (
+            "tools/atlas_doctor_lib/doctor_ui_qt.py",
+            "tools/atlas_doctor_lib/doctor_ui.py",
+            "tests/test_doctor_ui_qt.py",
+            "tests/test_doctor_ui.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(
+                    self.plan(path)["selected_scenarios"],
+                    ["achievement-detail", "guides-lanyel", "guides-success",
+                     "validator-smoke"],
+                )
+        for path in (
+            "tools/atlas_doctor_lib/doctor_ui_ci.py",
+            "tools/atlas_doctor_lib/ui_raster_oracle.py",
+            "tools/atlas_doctor_lib/ui_contrast_oracle.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.plan(path)["selected_scenarios"],
+                                 ["achievement-detail", "validator-smoke"])
+        self.assertEqual(
+            self.plan(".github/workflows/doctor-ui.yml")["selected_scenarios"],
+            ["validator-smoke"],
+        )
+
+    def test_success_specific_changes_select_end_to_end_detail(self):
+        for path in (
+            "app/modules/encyclopedia/views/achievements_view.py",
+            "app/modules/encyclopedia/widgets/achievement_detail_widget.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.plan(path)["selected_scenarios"], ["achievement-detail"])
+        self.assertIn(
+            "achievement-detail",
+            self.plan("app/modules/encyclopedia/views/encyclopedia_page.py")["selected_scenarios"],
+        )
+        self.assertIn(
+            "achievement-detail",
+            self.plan("app/modules/encyclopedia/providers/achievement_provider.py")["selected_scenarios"],
+        )
 
     def test_independent_tool_cannot_silently_introduce_a_qt_dependency(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -126,6 +233,175 @@ class DoctorUiSelectionTests(unittest.TestCase):
                 "assert not any(x.startswith(('PySide6','app.')) for x in sys.modules)")
         completed = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)
+
+
+
+class DoctorUiRegressionWatchTests(unittest.TestCase):
+    def make_session(self, root: Path, sha: str, *, scenario_ids=None,
+                     status="PASS", failed_id=None, missing_capture=False):
+        import hashlib
+
+        folder = root / sha[:4]
+        folder.mkdir(parents=True, exist_ok=True)
+        ids = list(scenario_ids if scenario_ids is not None else dict.fromkeys(
+            ident for controls in REGRESSION_REQUIREMENTS.values() for ident in controls
+        ))
+        rows = [{"assertion_id": ident, "scenario_id": ident.split("/")[0],
+                 "assertion_status": "FAIL" if ident == failed_id else "PASS",
+                 "evidence_ids": [] if missing_capture and ident == ids[0] else ["capture.png"]}
+                for ident in ids]
+        report = {
+            "candidate_sha": sha, "dirty": False, "status": status,
+            "tests_executed": True, "selected_scenarios": sorted({i.split("/")[0] for i in ids}),
+            "assertions": rows, "required_assertions": ids,
+            "required_evidence": ["capture.png"],
+        }
+        import struct
+        import zlib
+
+        files = {"ui_verdict.json": json.dumps(report), "actions.json": "[]",
+                 "request.json": "{}", "worker.log": "log", "capture.png": ""}
+        for name, content in files.items():
+            if name != "capture.png":
+                (folder / name).write_text(content, encoding="utf-8")
+
+        def png_chunk(kind, data):
+            signed = kind + data
+            return (struct.pack(">I", len(data)) + signed
+                    + struct.pack(">I", zlib.crc32(signed) & 0xFFFFFFFF))
+
+        png = (bytes.fromhex("89504e470d0a1a0a")
+               + png_chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+               + png_chunk(b"IDAT", zlib.compress(bytes.fromhex("00000000ff")))
+               + png_chunk(b"IEND", b""))
+        (folder / "capture.png").write_bytes(png)
+        manifest = {"candidate_sha": sha, "dirty": False,
+                    "artifacts": {name: hashlib.sha256((folder / name).read_bytes()).hexdigest()
+                                  for name in files}}
+        (folder / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        return folder
+
+    def test_smoke_success_and_no_baseline_do_not_certify_four_journeys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            smoke = self.make_session(root, SHA, scenario_ids=["validator-smoke/open"])
+            report = watch_ui_regressions(
+                baseline_sha=BASE, candidate_sha=SHA,
+                baseline_sessions=[], candidate_sessions=[smoke],
+            )
+            self.assertEqual(report["status"], "NOT_COVERED")
+            self.assertEqual(len(report["controls"]), 4)
+            self.assertTrue(all(row["status"] == "NOT_COVERED"
+                                for row in report["controls"].values()))
+            self.assertFalse(report["phase_certified"])
+            self.assertFalse(report["release_certified"])
+            self.assertFalse(report["tests_executed"])
+
+    def test_exact_sha_evidence_compares_all_four_controls_and_detects_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            baseline = self.make_session(root, BASE)
+            candidate = self.make_session(root, SHA)
+            kw = {"baseline_sha": BASE, "candidate_sha": SHA,
+                  "baseline_sessions": [baseline], "candidate_sessions": [candidate]}
+            good = watch_ui_regressions(**kw)
+            self.assertEqual(good["status"], "NO_REGRESSION_OBSERVED")
+            self.assertTrue(all(row["status"] == "NO_REGRESSION_OBSERVED"
+                                for row in good["controls"].values()))
+
+            failed = "achievement-detail/click-opens-detail"
+            candidate = self.make_session(root, SHA, status="FAIL", failed_id=failed)
+            bad = watch_ui_regressions(**kw)
+            self.assertEqual(bad["status"], "REGRESSION_REVIEW")
+            self.assertEqual(bad["controls"]["achievement-click"]["status"], "REGRESSION_REVIEW")
+            self.assertNotEqual(bad["controls"]["achievement-first-open"]["status"], "REGRESSION_REVIEW")
+
+            # Report claims PASS despite an observed failed mandatory assertion:
+            # hash consistency alone must not launder the false PASS.
+            self.make_session(root, SHA, status="PASS", failed_id=failed)
+            forged = watch_ui_regressions(**kw)
+            self.assertEqual(forged["status"], "BLOCKED")
+            self.assertIn("INCONSISTENT_PASS_REPORT", " ".join(forged["errors"]))
+
+            self.assertEqual(watch_ui_regressions(**{**kw, "baseline_sha": SHA})["status"], "BLOCKED")
+
+    def test_no_cross_sha_stale_or_missing_png_for_regression_watch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            baseline = self.make_session(root, BASE)
+            candidate = self.make_session(root, SHA)
+            kw = {"baseline_sha": BASE, "candidate_sha": SHA,
+                  "baseline_sessions": [baseline], "candidate_sessions": [candidate]}
+            (candidate / "capture.png").unlink()
+            self.assertEqual(watch_ui_regressions(**kw)["status"], "BLOCKED")
+            self.make_session(root, SHA, missing_capture=True)
+            self.assertEqual(watch_ui_regressions(**kw)["status"], "BLOCKED")
+
+            # Recalculate the hash of a fake image: integrity alone is not
+            # evidence of a valid screenshot.
+            import hashlib
+            self.make_session(root, SHA)
+            (candidate / "capture.png").write_bytes(b"not an image")
+            manifest_path = candidate / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["artifacts"]["capture.png"] = hashlib.sha256(b"not an image").hexdigest()
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            result = watch_ui_regressions(**kw)
+            self.assertEqual(result["status"], "BLOCKED")
+            self.assertIn("INVALID_SCREENSHOT_PNG", " ".join(result["errors"]))
+
+    def test_regression_watch_cli_is_fail_closed_until_evidence_exists(self):
+        from tools.atlas_doctor_lib.doctor_ui_ci import main
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            output = Path(tmp) / "watch.json"
+            code = main(["regression-watch", "--baseline-sha", BASE,
+                         "--candidate-sha", SHA, "--watch-output", str(output)])
+            self.assertEqual(code, 2)
+            report = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(report["status"], "NOT_COVERED")
+
+    def test_hash_valid_png_with_invalid_pixel_stream_cannot_certify(self):
+        import hashlib
+        import struct
+        import zlib
+
+        def chunk(kind, data):
+            return (struct.pack(">I", len(data)) + kind + data
+                    + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            baseline = self.make_session(root, BASE)
+            candidate = self.make_session(root, SHA)
+            cases = {
+                "not-zlib": b"not compressed pixels",
+                "short-scanline": zlib.compress(b"\x00\x00"),
+                "extra-scanline": zlib.compress(b"\x00" * 10),
+                "invalid-filter": zlib.compress(b"\x05\x00\x00\x00\xff"),
+                "truncated-stream": zlib.compress(b"\x00\x00\x00\x00\xff")[:-1],
+                "trailing-stream": zlib.compress(b"\x00\x00\x00\x00\xff") + b"trailing",
+                "oversized-stream": zlib.compress(b"\x00" * 100_000),
+            }
+            for label, compressed in cases.items():
+                with self.subTest(label=label):
+                    png = (bytes.fromhex("89504e470d0a1a0a")
+                           + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+                           + chunk(b"IDAT", compressed) + chunk(b"IEND", b""))
+                    (candidate / "capture.png").write_bytes(png)
+                    manifest_path = candidate / "manifest.json"
+                    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    manifest["artifacts"]["capture.png"] = hashlib.sha256(png).hexdigest()
+                    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                    result = watch_ui_regressions(
+                        baseline_sha=BASE, candidate_sha=SHA,
+                        baseline_sessions=[baseline], candidate_sessions=[candidate],
+                    )
+                    self.assertEqual(result["status"], "BLOCKED")
+                    self.assertIn("INVALID_SCREENSHOT_PNG", " ".join(result["errors"]))
+
 
 
 class DoctorUiVerdictTests(unittest.TestCase):

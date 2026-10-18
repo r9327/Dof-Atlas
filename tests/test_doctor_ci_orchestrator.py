@@ -126,6 +126,133 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertTrue(self.select(['tools/atlas_doctor_lib/ci_orchestrator.py'],
                                     event='workflow_dispatch')['full'])
 
+    def test_focused_ci_runs_and_stores_real_36_capability_witnesses(self):
+        workflow = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
+        focused = workflow.split('  focused-validation:', 1)[1].split('  certify:', 1)[0]
+        self.assertIn('run_capability_witnesses(Path.cwd(), timeout=240)', focused)
+        self.assertIn('validate_capability_evidence(Path.cwd(), witness)', focused)
+        self.assertIn("witness['status'] != 'PASS'", focused)
+        self.assertIn("checked['status'] != 'PASS'", focused)
+        self.assertIn('artifacts/doctor_ci/capability_evidence.json', focused)
+        self.assertIn("if p['tooling_only']:", focused)
+        self.assertIn('if-no-files-found: error', focused)
+        self.assertIn('if: always()', focused)
+        self.assertIn("witness['raw_stderr_chars']", focused)
+        self.assertIn("Doctor stderr tail:", focused)
+
+    def test_focused_ci_exports_public_real_agent_json_round_trip(self):
+        workflow = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
+        focused = workflow.split('  focused-validation:', 1)[1].split('  certify:', 1)[0]
+        self.assertIn("run_agent_action(Path.cwd(), action='plan'", focused)
+        self.assertIn("json.loads(output_path.read_text(encoding='utf-8'))", focused)
+        self.assertIn("parsed.get('exact_sha') != git_state(Path.cwd())['head']", focused)
+        self.assertIn("a.get('symbol') == 'run_capability_witnesses'", focused)
+        self.assertIn("parsed.get('source_evidence', {}).get('independent_ci_attested') is not False", focused)
+        self.assertIn("parsed.get('certification', {}).get('full_certified') is not False", focused)
+        self.assertIn('artifacts/doctor_ci/agent_plan.json', focused)
+        self.assertIn('watch_ui_regressions(', focused)
+        self.assertIn('baseline_sessions=[], candidate_sessions=[]', focused)
+        self.assertIn("watch['status'] != 'NOT_COVERED'", focused)
+        self.assertIn('artifacts/doctor_ci/ui_regression_watch.json', focused)
+
+    def test_doctor_only_behavior_evidence_is_focused_not_app_release_certification(self):
+        paths = [
+            'tools/atlas_doctor.py',
+            'tools/atlas_doctor_lib/capability_matrix.py',
+            'tools/atlas_doctor_lib/capability_evidence.py',
+            'tools/atlas_doctor_lib/agent_protocol.py',
+            'tests/test_atlas_doctor_capabilities.py',
+            'tests/test_atlas_doctor_capability_evidence.py',
+            'tests/test_atlas_doctor_agent_protocol.py',
+            '.ai/context_index.json',
+            'docs/audit-remediation/2026-10-17/07-doctor-capability-ci-evidence.md',
+        ]
+        result = self.select(paths, route={'route': 'FULL'})
+        self.assertTrue(result['tooling_only'])
+        self.assertFalse(result['full'])
+        self.assertFalse(result['phase'])
+        self.assertFalse(result['workflows']['doctor-ui']['selected'])
+        self.assertTrue(result['workflows']['graphify-targeted-ci']['selected'])
+        for mixed in ['app/modules/encyclopedia/views/guides_view.py',
+                      'tools/atlas_doctor_lib/runtime_observation.py',
+                      'tests/test_guide_ultime_v5_ui.py']:
+            with self.subTest(mixed=mixed):
+                result = self.select([*paths, mixed], route={'route': 'FULL'})
+                self.assertTrue(result['full'])
+                self.assertTrue(result['phase'])
+        self.assertTrue(self.select(paths, route={'route': 'INVALID'})['full'])
+        self.assertTrue(self.select(paths, deleted=['tools/old_capability.py'])['full'])
+        self.assertTrue(self.select(paths, event='workflow_dispatch')['full'])
+    def test_real_ui_detector_is_focused_only_with_success_and_smoke_evidence(self):
+        from tools.atlas_doctor_lib.ci_tooling_scope import eligible, QT_DETECTOR_PATHS
+
+        paths = [
+            'tools/atlas_doctor_lib/doctor_ui.py',
+            'tools/atlas_doctor_lib/doctor_ui_qt.py',
+            'tools/atlas_doctor_lib/ui_raster_oracle.py',
+            'tools/atlas_doctor_lib/ui_contrast_oracle.py',
+            'tools/atlas_doctor_lib/doctor_ui_ci.py',
+            'tests/test_doctor_ui.py',
+            'tests/test_doctor_ui_ci.py',
+            'tests/test_doctor_ui_qt.py',
+            'tools/atlas_doctor_lib/ci_tooling_scope.py',
+            'tools/atlas_doctor_lib/ci_orchestrator.py',
+            'tests/test_doctor_ci_orchestrator.py',
+            '.github/workflows/doctor-ui.yml',
+            '.ai/context_index.json',
+        ]
+        self.assertEqual(len(QT_DETECTOR_PATHS), 5)
+        self.assertTrue(eligible(paths, root=ROOT, base_sha='HEAD'))
+        # Caller without a verified local source may not downscope.
+        self.assertFalse(eligible(paths))
+        ui = {'status': 'UI_REQUIRED',
+              'selected_scenarios': ['validator-smoke', 'achievement-detail']}
+        good = select_workflows(paths, event='pull_request',
+                                phase_route={'route': 'FULL'}, ui_plan=ui,
+                                tooling_scope=eligible(paths, root=ROOT, base_sha='HEAD'))
+        self.assertTrue(good['tooling_only'])
+        self.assertFalse(good['full'])
+        self.assertFalse(good['phase'])
+        self.assertFalse(good['specialist_fallback'])
+        self.assertTrue(good['workflows']['doctor-ui']['selected'])
+        self.assertFalse(good['workflows']['phase8-memory-benchmark']['selected'])
+        self.assertFalse(good['workflows']['json-focused-data-contract']['selected'])
+        for bad_ui in (
+            {'status': 'UI_REQUIRED', 'selected_scenarios': ['validator-smoke']},
+            {'status': 'UI_REQUIRED', 'selected_scenarios': ['achievement-detail']},
+            {'status': 'REVIEW_REQUIRED', 'selected_scenarios': ['validator-smoke', 'achievement-detail']},
+        ):
+            with self.subTest(bad_ui=bad_ui):
+                result = select_workflows(
+                    paths, event='pull_request', phase_route={'route': 'FULL'},
+                    ui_plan=bad_ui, tooling_scope=True,
+                )
+                self.assertTrue(result['full'])
+                self.assertTrue(result['phase'])
+        self.assertFalse(eligible(paths + ['app/modules/encyclopedia/views/achievements_view.py'],
+                                  root=ROOT))
+
+    def test_tooling_scope_rejects_unsafe_module_import_in_qt_detector(self):
+        from tools.atlas_doctor_lib.ci_tooling_scope import eligible
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            target = root / 'tools/atlas_doctor_lib/doctor_ui_qt.py'
+            target.parent.mkdir(parents=True)
+            for content in (
+                'from app.ui import theme\\n',
+                'from PySide6.QtWidgets import QWidget\\n',
+                '__import__("app.ui.theme")\\n',
+            ):
+                target.write_text(content.replace('\\n', '\n'), encoding='utf-8')
+                self.assertFalse(eligible(['tools/atlas_doctor_lib/doctor_ui_qt.py'],
+                                          root=root, base_sha='HEAD'))
+            target.write_text(
+                'def worker():\\n    from PySide6.QtWidgets import QWidget\\n'.replace('\\n', '\n'),
+                encoding='utf-8',
+            )
+            self.assertTrue(eligible(['tools/atlas_doctor_lib/doctor_ui_qt.py'],
+                                     root=root, base_sha='HEAD'))
+
     def test_integrity_policy_only_allows_additive_ci_test_wiring(self):
         from tools.atlas_doctor_lib.ci_tooling_scope import eligible
         from unittest.mock import patch
