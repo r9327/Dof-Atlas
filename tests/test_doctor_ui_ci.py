@@ -68,7 +68,7 @@ class DoctorUiSelectionTests(unittest.TestCase):
     def test_quest_bridge_theme_and_canonical_data_have_explicit_consumers(self):
         cases = {
             "app/modules/encyclopedia/services/link_service.py": {"guide-quests"},
-            "app/modules/encyclopedia/views/encyclopedia_page.py": set(ALL_GUIDES),
+            "app/modules/encyclopedia/views/encyclopedia_page.py": set(ALL_GUIDES) | {"achievement-detail"},
             "app/ui/theme.py": set(ALL_GUIDES),
             "data/routes/guide_ultime_manual/chapter_01.json": {"guides-success", "guide-quests"},
             "data/encyclopedia/guides/dofus_sylvestre.json": {"guides-lanyel", "guide-quests"},
@@ -77,10 +77,47 @@ class DoctorUiSelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(set(self.plan(path)["selected_scenarios"]), selected)
 
-    def test_validator_change_selects_self_tests_and_one_smoke(self):
-        for path in ("tools/atlas_doctor_lib/doctor_ui_qt.py", "tools/atlas_doctor_lib/doctor_ui_ci.py",
-                     "tests/test_doctor_ui_qt.py", ".github/workflows/doctor-ui.yml"):
-            self.assertEqual(self.plan(path)["selected_scenarios"], ["validator-smoke"])
+    def test_shared_validator_changes_execute_real_success_and_both_guides(self):
+        for path in (
+            "tools/atlas_doctor_lib/doctor_ui_qt.py",
+            "tools/atlas_doctor_lib/doctor_ui.py",
+            "tests/test_doctor_ui_qt.py",
+            "tests/test_doctor_ui.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(
+                    self.plan(path)["selected_scenarios"],
+                    ["achievement-detail", "guides-lanyel", "guides-success",
+                     "validator-smoke"],
+                )
+        for path in (
+            "tools/atlas_doctor_lib/doctor_ui_ci.py",
+            "tools/atlas_doctor_lib/ui_raster_oracle.py",
+            "tools/atlas_doctor_lib/ui_contrast_oracle.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.plan(path)["selected_scenarios"],
+                                 ["achievement-detail", "validator-smoke"])
+        self.assertEqual(
+            self.plan(".github/workflows/doctor-ui.yml")["selected_scenarios"],
+            ["validator-smoke"],
+        )
+
+    def test_success_specific_changes_select_end_to_end_detail(self):
+        for path in (
+            "app/modules/encyclopedia/views/achievements_view.py",
+            "app/modules/encyclopedia/widgets/achievement_detail_widget.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.plan(path)["selected_scenarios"], ["achievement-detail"])
+        self.assertIn(
+            "achievement-detail",
+            self.plan("app/modules/encyclopedia/views/encyclopedia_page.py")["selected_scenarios"],
+        )
+        self.assertIn(
+            "achievement-detail",
+            self.plan("app/modules/encyclopedia/providers/achievement_provider.py")["selected_scenarios"],
+        )
 
     def test_independent_tool_cannot_silently_introduce_a_qt_dependency(self):
         with tempfile.TemporaryDirectory() as folder:
