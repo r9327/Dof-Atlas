@@ -98,6 +98,20 @@ class GanymedeMasterReferenceAuditTests(unittest.TestCase):
         self.assertEqual(report["unclassified_non_main_guide_ids"], [3238, 3768])
         self.assertEqual(report["verified_routes"], 0)
 
+    def test_priority_source_guides_have_complete_step_sequences(self) -> None:
+        for name, expected, guide_id in (
+            ("argente", 237, 2203),
+            ("cawotte", 64, 2205),
+            ("emeraude", 52, 2211),
+        ):
+            with self.subTest(guide=name):
+                path = Path(f"data/encyclopedia/guides/ganymede_{name}_observed_links.json")
+                report = audit_ganymede_master_refs(ROOT, snapshot=path)
+                self.assertEqual(report["status"], "PASS_OBSERVED_LINKS_ONLY", report["issues"])
+                self.assertEqual(report["source_guide_id"], guide_id)
+                self.assertEqual(report["observed_steps"], expected)
+                self.assertEqual(report["verified_routes"], 0)
+
     def test_missing_source_step_fails(self) -> None:
         self.master["steps"].pop()
         self._write()
