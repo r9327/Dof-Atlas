@@ -3,6 +3,32 @@
 Date : 18 octobre 2026. Branche : `feature/guide-ui-compact-20261018`.
 **ÉTAT : design verrouillé, NON implémenté. Ne pas fusionner sans comparaison visuelle avec la maquette validée.**
 
+## VERSION FINALE DE LA MAQUETTE — VALIDÉE AVEC L'UTILISATEUR LE 18/10/2026
+
+Cette section synthétise les corrections successives et **prime sur toute maquette illustrative ou instruction antérieure contradictoire**. Elle décrit le comportement attendu, **pas un écran déjà implémenté**.
+
+- **Identité** : titre principal EXACT du guide ouvert (ex. `Guide Succès`, `Dofus Sylvestre`), petit engrenage. Pas de `Guide optimisé`, ni de sous-titre `Progression générale du parcours`. Conserver le donut général, les trois barres `Route / Préparation / Succès`, leurs quantités réelles et leur emplacement.
+- **Actions principales** : `Aller à la fiche`, juste à côté `Actuelle` (ou libellé complet `Retour à l'actuelle` selon la place validée), puis petite icône Overlay sans texte. `Actuelle` = **REVENIR À L'ÉTAPE ACTUELLE RÉELLE du guide**, établie par les objectifs/progressions, **jamais** le dernier numéro visité dans le Sommaire, jamais un numéro fixe comme `643`, jamais seulement la fiche ouverte au chargement. Voir contrat complet ci-dessous.
+- **Préparation générale du guide** : bandeau de la capture fournie, sous-titre et déroulant. Vue `Préparation complète` avec filtres `Tout (résumé) / Métiers / Potions / Objets`. Des listes ultra-compactes, hauteur plafonnée et scroll. Chaque potion dans Potions, pierres d'âme seulement sous Objets. Chaque ligne montre un vrai besoin, une quantité et une **mini-coche ✓ Prêt en un clic**, avant le mini-chevron de détail ; la coche est une déclaration de couverture par participant, sans fausse preuve réseau, sans saisir un chiffre. Un clic sur le chevron déplie seulement le détail de CET article, par personnage. Catégorisation exacte et absence de doublons.
+- **Multicomptes** : recalcul par personnage choisi et par objectif réellement restant, non par multiplication naïve des quantités ; stock déclaré/confirmé par personnage, distinction partageable/non partageable, confirmation `Prêt` conservée uniquement pour les participants/besoins couverts. Une sélection nouvelle ne devient pas automatiquement prête.
+- **Navigation avant la fiche** : uniquement petits boutons `Mes personnages` (icône) et `Sommaire` à droite ; ni titre `Mon parcours`, ni sous-titre `Fiche n / total` redondant. `Mes personnages` est le nom du menu déroulant : portraits circulaires de VRAIES classes PNG, anneau de progression, sélection par clic, pseudo exact + pourcentage au survol. Aucun message `Appuie sur un portrait…` et aucun formulaire de `progression antérieure`.
+- **Sommaire ouvert** : chapitre/fiches cliquables, **NE SE REFERME PAS au choix d'une fiche**, ni sur Précédent/Suivant ni sur `Actuelle`. Fermeture volontaire exclusivement au clic explicite du bouton/chevron Sommaire. La consultation libre d'une fiche ne change PAS ce qu'Atlas estime être l'étape actuelle.
+- **Fiche dans le style Lanyel** : titre court et exact, mêmes coordonnées `[x,y]` et même style de lien (macro travel/zaap invisible sur la bonne sélection), actions courtes et réelles, combats `×N monstre` cochables, récoltes/drops/donjons/captures. **Survol de CHAQUE ligne** = nom de la/des quêtes liées, et **un seul petit accès à l'onglet Quêtes par quête ET par fiche**, sur la première ligne pertinente. Ne pas ajouter de panneau `Quêtes liées`, ni `Sources`, ni `Pourquoi cet ordre ?`.
+- **`À prévoir` local JUSTE À TEMPS, pas bloc `À préparer`** : seul un rappel en une ligne au niveau de l'action critique si un objet indispensable manque effectivement à un personnage concerné et n'a pas été déclaré prêt ; pas de répétition globale, pas de fausse préparation des drops/récoltes déjà prévus sur la route.
+- **Bas de fiche** : `Précédent / Valider / Suivant`. Progression réseau prioritaire et `Valider` manuel en secours uniquement, sans validation de quête/succès causée par la mini-coche d'objet.
+
+### Contrat non négociable du bouton « Actuelle »
+
+1. Distinguer deux états : **`viewed_stage_id`** = fiche que l'utilisateur regarde via sommaire/navigation, et **`actual_stage_id`** = étape courante de progression du guide selon la source métier. Ne jamais inférer l'étape actuelle depuis la vue (`view_index`), le dernier clic, un numéro codé en dur ou la première fiche visible à l'ouverture.
+2. **Résolution en temps réel** : à chaque clic `Actuelle`, demander au moteur de guide, selon **le guide sélectionné et les personnages sélectionnés**, l'étape actionable réellement en cours, à partir des objectifs et validations réseau fiables, plus les validations manuelles de secours déjà persistées. Une étape visitée mais non validée reste à faire. Après validation de l'étape actuelle, `Actuelle` doit rejoindre la nouvelle étape du parcours. Préserver l'ID stable de fiche/stage plutôt qu'un numéro fragile.
+3. **Plusieurs personnages avec progression différente** : chercher **la première étape encore nécessaire dans l'ordre prévu pour les participants sélectionnés** (ou utiliser l'arbitre métier existant qui construit leur parcours commun). Un participant plus avancé ne doit pas supprimer l'étape requise par un autre ; le résultat doit être déterministe et explicable en interne. Sélection/désélection d'un portrait puis `Actuelle` doit refléter immédiatement la nouvelle progression commune, sans changer automatiquement la fiche consultée avant que l'utilisateur clique.
+4. **Incertitude / réseau déconnecté** : utiliser uniquement la dernière progression persistée **fiable et datée** et les validations manuelles explicites si disponibles ; si le moteur ne peut pas établir l'étape actuelle avec suffisamment de certitude, désactiver `Actuelle` / afficher un statut court non trompeur, **ne pas afficher une fausse étape 643 par défaut**. Si le guide est entièrement validé, revenir à l'état terminé / dernière fiche pertinente selon le contrat existant et le signaler sans inventer une étape non faite.
+5. **Clic** : placer la vue sur `actual_stage_id` et scroller en haut de cette fiche, sans cocher de combat, valider d'objectif ou de quête, lancer de macro Travel/Zaap, modifier les sélections, refermer Sommaire/Préparation/Mes personnages ou altérer les stocks/états `Prêt`. Le bouton peut être désactivé lorsque la vue est déjà à l'étape actuelle, mais l'étape métier doit continuer à être tenue à jour.
+6. **Tests Qt/réseau obligatoires** : depuis une étape actuelle 643, consulter 641 puis cliquer `Actuelle` → 643 ; valider 643 (réseau ou secours manuel) puis cliquer `Actuelle` → **étape suivante réellement nécessaire** ; deux participants divergents → première action nécessaire dans leur route commune ; retirer le participant en retard → étape recalculée ; changer de guide → référence isolée ; déconnexion/absence de preuve → pas de saut arbitraire ; Sommaire reste ouvert et aucune macro n'est lancée. Tester également navigation Précédent/Suivant et saisie Aller à la fiche : **consultation ≠ progression**.
+
+**État des travaux : la PR #225 est une PR de spécification, pas une fonctionnalité certifiée. Conserver les captures Doctor UI sur le vrai Windows Qt comme critère de sortie.**
+
+
 ## CONSIGNE ABSOLUE — pas de liberté sur l'UI
 
 L'interface doit **ressembler exactement à la dernière maquette validée avec l'utilisateur**, en conservant le style visuel déjà en place du guide Lanyel (couleurs, fonds, composants, typographie, espacements, cartes et contrôles). Les maquettes précédentes ne priment pas sur les dernières corrections. Cette PR NE DOIT PAS être interprétée comme « refaire un design inspiré de ». **C'est une reproduction 1:1 de la composition acceptée, à l'exception des suppressions explicites ci-dessous.**
@@ -17,7 +43,7 @@ Si un détail visuel n'est pas explicitement documenté ici, **préserver l'exis
 
 ## STRUCTURE VISUELLE EXACTE, DANS CET ORDRE
 
-\`\`\`text
+```text
 ┌─────────────────────────────────────────────────────────┐
 │ Guide Succès / Dofus Sylvestre                    [⚙]   │
 │                                                         │
@@ -49,7 +75,7 @@ Si un détail visuel n'est pas explicitement documenté ici, **préserver l'exis
 │ │ [ Précédent ] [ Valider ] [ Suivant ]               │ │
 │ └─────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
-\`\`\`
+```
 
 Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign graphique**. Le rendu visuel réel doit conserver les composants, mesures et apparences approuvés de la maquette de conversation et du Guide Lanyel.
 
