@@ -492,7 +492,9 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("synchronize", source)
         self.assertIn("github.event_name == 'push'", source)
         self.assertIn("github.event.before", source)
-        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", source)
+        self.assertNotIn("startsWith(github.event.pull_request.title, 'Phase ')", source)
+        self.assertIn("ATLAS_PHASE_PR_PREFLIGHT: ${{ needs.doctor-plan.outputs.phase == 'true' && github.event.pull_request.head.repo.full_name == github.repository && '1' || '0' }}", source)
+        self.assertIn("!(needs.doctor-plan.outputs.phase == 'true' && github.event.pull_request.head.repo.full_name == github.repository)", source)
         self.assertIn(
             "github.event.pull_request.head.repo.full_name == github.repository",
             source,
