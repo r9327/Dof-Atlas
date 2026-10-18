@@ -119,3 +119,45 @@ les prérequis ni l'ordre des étapes de Ganymède sont vérifiés.
 Le rapprochement des métadonnées appartient à cette PR indépendante ; la
 génération V2 et la validation bout en bout restent dans **#226**.
 Ne pas fusionner ce registre avec une promesse implicite de guides terminés.
+
+
+## Graphe de renvois du guide maître Ganymède MG0 — données observées
+
+Le guide complet public \`https://ganymede-app.com/guides/2251\` a été lu
+sur **4 pages** de 50 étapes (dernière page : 6). Son index contient **156
+étapes numérotées, sans trou**. Le fichier
+\`data/encyclopedia/guides/ganymede_master_observed_links.json\` enregistre
+uniquement des faits structurés observables, sans reproduire la rédaction :
+
+- étape source, page de provenance, IDs des autres guides liés ;
+- IDs de liens DOFUSDB identifiés par type (quête/donjon/objet/monstre) ;
+- coordonnées mentionnées comme **données non interprétées**, pas comme
+  commandes Travel ni positions certifiées d'actions.
+
+Mesures de cet instantané : **234 occurrences de liens de guides**, **91
+guides liés distincts**, dont **89 dans l'arbre principal** ; les IDs
+**3238** et **3768** sont des liens hors de ses 95 entrées et restent à
+qualifier. Le guide contient également **84 occurrences d'IDs de quêtes**,
+**123 donjons**, **359 objets**, **110 monstres** et **81 mentions de
+coordonnées**. Les comptages sont par étape après déduplication **dans
+chaque étape**, pas des objectifs de jeu uniques.
+
+Audit dédié :
+
+    py -3.13 -m tools.audit_ganymede_master_refs --output artifacts/guides/ganymede_master_refs_audit.json
+
+La vérification impose : couverture 1→156, ordre et pagination exacts,
+références numériques valides, absence de duplications au sein d'une étape,
+totaux cohérents, et traçabilité des IDs hors index. Le statut positif
+\`PASS_OBSERVED_LINKS_ONLY\` **ne certifie ni prérequis de quête ni
+itinéraire**. Les liens peuvent correspondre à des conseils, exemples,
+options, étapes futures ou contenus requis : aucun automatisme ne les
+transforme en actions obligatoires avant analyse sémantique contrôlée.
+DofusDB n'est pas traité comme preuve que son ID est identique à l'ID
+canonique Atlas : le rapprochement reste à effectuer et vérifier.
+
+**Prochain verrou de #229** : qualifier chaque liaison du guide maître
+(obligatoire / optionnelle / information), extraire les intervalles
+d'étapes des sous-guides et rattacher les actions aux véritables
+\`quest_id\` / \`objective_id\` d'Atlas, avec provenance et validation DPLN.
+Le moteur #226 ne doit pas optimiser sur des liens encore non qualifiés.
