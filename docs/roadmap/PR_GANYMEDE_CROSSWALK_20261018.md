@@ -783,3 +783,59 @@ Un contrôle de non-effacement `tools.audit_ganymede_replacement_readiness` inve
 **Conditions de bascule future par guide :** N/N étapes complètes dans l'ordre source, actions Atlas originales avec ID de quête/objectif valide, prérequis et choix vérifiés, sauvegarde/rollback de l'ancien guide, migration explicite des `manual_steps` par personnage, suivi Actuelle/Suivant/Précédent jusqu'à la dernière étape, tests offline et multi-personnages. Ne pas supprimer `sections[].steps` tant que toutes ces garanties ne sont pas démontrées. Après bascule, ne plus montrer les anciens pas dans l'UI.
 
 Les tests `tests/test_ganymede_replacement_readiness.py` contrôlent l'interdiction de remplacer avec des snapshots partiels, les guides sans correspondance, la conservation des sauvegardes et le cas d'un ancien guide invalide.
+
+
+### Remplacement continu : 20 nouveaux parcours Dofus préparés (18/10/2026)
+
+Le générateur `tools.build_ganymede_replacement_previews` fournit
+**20 guides Dofus reconstruits en séquences numérotées Ganymède**,
+soit **1 694 fiches de suivi stables**. Les fichiers de prévisualisation
+versionnés se trouvent dans
+`data/encyclopedia/guides/replacement_drafts/<atlas_guide_id>.json`.
+Chaque guide conserve son **ID Atlas** mais ses fiches internes
+suivent seulement les étapes Ganymède
+`ganymede_<source_guide_id>_step_<nnnn>` de 1 à N ;
+aucune ancienne fiche Atlas n'est recopiée dans la nouvelle
+séquence. Les coordonnées, IDs DofusDB (quête / donjon / objet /
+monstre), pages sources, références de quêtes locales, dépendances
+déclarées et alternatives sont conservés **avec leur provenance**.
+
+Les **22 guides Dofus actuels** sont tous conservés à l'identique en
+production ; **20** disposent d'une source Ganymède directe et
+**2** (`dofoozbz`, `dokille`) n'ont pas encore de parcours direct.
+Ces deux guides ne sont pas désactivés et aucun guide n'est vidé
+avant certification et bascule atomique.
+
+**Limitation explicite non négociable :** les 1 694 fiches sont des
+ébauches structurelles, **pas 1 694 actions jouables**. Les fichiers
+sources Ganymède collectés contiennent les liens/coordonnées
+observés, mais **pas leurs consignes éditoriales ni les objectifs
+canoniques de chaque action**. On ne peut pas déduire « Parler à X »,
+« Faire le combat Y » ou « Acheter Z » d'un simple lien de quête.
+Ainsi, chaque fiche possède `verified_actions=[]`,
+`manual_completion_allowed=false`, `auto_completion_allowed=false`,
+et chaque guide `replacement_status=DRAFT_NOT_PLAYABLE` /
+`replacement_active=false`. Les fichiers vivent dans
+`replacement_drafts/` et ne sont **pas** dans le catalogue actif.
+
+Reproduire / inspecter le résultat sans écraser les anciens guides :
+
+    python -m tools.build_ganymede_replacement_previews --output-dir artifacts/guides/replacement_drafts --report artifacts/guides/replacement_preview_report.json
+
+Les tests `test_ganymede_replacement_previews.py` vérifient la
+numérotation continue, les IDs stables, les 20 guides / 1 694 fiches,
+les références canoniques locales, l'exclusion des deux guides sans
+source, le maintien des progressions et le refus d'une source invalide
+ou d'une écriture dans le répertoire actif.
+
+**Pour activer une bascule :** (1) reconstituer **chaque action
+originale** à partir des données de jeu/Doduda/Atlas recoupées,
+sans reprendre le texte éditorial tiers ; (2) vérifier les
+prérequis et branches OR par ID, les combats, objets et itinéraires
+dans le contexte des personnages ; (3) intégrer les fiches au
+moteur #226 et la navigation/progression #225 ; (4) assurer
+une migration des validations existantes, par personnage, qui ne
+transforme jamais une ancienne validation en nouvelle fiche achevée
+sans preuve ; (5) certifier toutes les étapes et faire **une seule
+bascule réversible** par guide. Ne jamais afficher une fiche vide
+ou un parcours parallèle à l'ancien guide comme s'il était prêt.

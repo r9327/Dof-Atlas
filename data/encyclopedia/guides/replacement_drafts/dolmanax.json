@@ -1,0 +1,291 @@
+{
+  "schema_version": 1,
+  "id": "dolmanax",
+  "title": "Dolmanax",
+  "category": "dofus",
+  "completeness_status": "draft",
+  "description": "Prévisualisation technique des étapes Ganymède (références uniquement).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "DRAFT_NOT_PLAYABLE",
+  "replacement_active": false,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2248,
+  "source_guide_url": "https://ganymede-app.com/guides/2248",
+  "source_prerequisite_guide_ids": [],
+  "expected_source_step_count": 9,
+  "playable_step_count": 0,
+  "source_link_snapshot": "ganymede_dolmanax_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2248_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2248_step_0001",
+          "type": "info",
+          "title": "Étape 1",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              13344,
+              13442,
+              13330
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false
+        },
+        {
+          "id": "ganymede_2248_step_0002",
+          "type": "info",
+          "title": "Étape 2",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              954
+            ],
+            "dungeon": [],
+            "object": [
+              13345,
+              13344,
+              13330
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 954,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dolmanax_quest_954",
+                  "atlas_section_id": "dolmanax_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false
+        },
+        {
+          "id": "ganymede_2248_step_0003",
+          "type": "info",
+          "title": "Étape 3",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              13330,
+              721,
+              28285,
+              27982,
+              29735,
+              13365,
+              13366,
+              13367
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false
+        },
+        {
+          "id": "ganymede_2248_step_0004",
+          "type": "info",
+          "title": "Étape 4",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              13442
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false
+        },
+        {
+          "id": "ganymede_2248_step_0005",
+          "type": "info",
+          "title": "Étape 5",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false
+        },
+        {
+          "id": "ganymede_2248_step_0006",
+          "type": "info",
+          "title": "Étape 6",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false
+        },
+        {
+          "id": "ganymede_2248_step_0007",
+          "type": "info",
+          "title": "Étape 7",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 7,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false
+        },
+        {
+          "id": "ganymede_2248_step_0008",
+          "type": "info",
+          "title": "Étape 8",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 8,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false
+        },
+        {
+          "id": "ganymede_2248_step_0009",
+          "type": "info",
+          "title": "Étape 9",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 9,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [
+    "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
+    "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
+    "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED"
+  ]
+}
