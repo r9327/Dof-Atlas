@@ -439,3 +439,65 @@ Le corpus de références structurées couvre **95/95 guides, 7 705/7 705 étape
 Les gros guides ont été lus avec `stepsPerPage=250` ; l'outil de collecte supporte désormais explicitement `--steps-per-page 250` (50 par défaut) et ses tests couvrent ce choix. Chaque instantané contient uniquement les identifiants de liens, les coordonnées mentionnées, la provenance page/étape et la date, **jamais les textes éditoriaux ni des actions automatiquement obligatoires**.
 
 L'audit de couverture doit confirmer **95 sources et 7 705 étapes** au SHA final. Les contrôles d'identité des quêtes, d'objectifs, de prérequis, de branchement Bonta/Brâkmar et de ressources par personnage restent à réaliser avec Atlas/Doduda, DPLN et les sources croisées. Les **12 rapprochements nom/ID** Cawotte/Dolmanax restent en revue. Le planificateur #226 et la nouvelle interface #225 ne doivent pas consommer ces références comme des parcours certifiés. Garder la PR #229 en brouillon avant validation FULL.
+
+
+### Rapprochement avec les véritables données Doduda — outil CLI indépendant
+
+Le nouvel audit **`tools.audit_ganymede_doduda_ids`** parcourt les 95
+instantanés de références de quêtes et confronte chaque **ID numérique**
+à la table `RefIds` de `quests.json` issue de **l'installation canonique
+Doduda d'Atlas**. Il réutilise `QuestSources` et ses index sur disque avec
+répertoire temporaire libéré à la fin : pas d'importation des 72 Mo
+d'enrichissements dans la mémoire principale et aucune modification
+des quêtes, guides ni sauvegardes.
+
+Sur une installation disposant des données runtime :
+
+    python -m tools.audit_ganymede_doduda_ids --raw-quests CHEMIN/quests.json --output artifacts/guides/doduda_id_review.json
+
+Résultats strictement différenciés :
+
+- `PASS_RAW_ID_EXISTENCE_ONLY` : les numéros cités sont présents parmi
+  les `RefIds` canoniques ; **cela ne confirme aucun nom, aucune étape ni
+  aucun objectif**.
+- `REVIEW_RAW_ID_GAPS` : des références externes ne figurent pas dans
+  la version installée de Doduda ; investigation de version/correspondance
+  nécessaire.
+- `BLOCKED_CANONICAL_SOURCE_UNAVAILABLE` : `quests.json` manque, donc
+  **aucune absence de quête n'est déduite** (code de sortie 2).
+- `FAIL` : index/snapshot invalide ou source canonique corrompue.
+
+Le dépôt source ne distribue pas `data/cache/dofus_maps/raw/doduda_cli/quests.json` ;
+une CI sans installation runtime ne peut **pas** déclarer le recoupement
+avec les données du jeu effectué. Les 7 tests utilisent une petite source
+Doduda factice pour prouver le classement, l'absence de fausse
+certification et le comportement en cas de fichier manquant.
+
+**Prochaine couche** : noms localisés via `languages/fr.json`, objectifs
+réels depuis `quest_steps.json` / `quest_objectives.json`, critères de
+lancement, branches OR, nombre de personnages, ressources et combats.
+Sans ces preuves, #226 ne doit pas réordonner les étapes.
+
+### Troisième rapprochement nominatif : Dokoko (5 quêtes)
+
+DPLN cite les cinq quêtes du succès **Koko Boy** ;
+DofusDB fournit les IDs 1666 à 1670. Les cinq références apparaissent
+également dans le guide Ganymède 2208 et dans les 5 quêtes du
+guide Atlas `dokoko`.
+
+Le nouvel inventaire `ganymede_dpln_dokoko_evidence.json` associe
+ces cinq noms et URLs à **`REVIEW_TRIANGULATED_SOURCES`** sans certifier
+les actions. Il conserve explicitement la variante de nom de l'ID
+1669 : DPLN « Squelettes et amulettes » / DofusDB
+« Squelettes et amulette » ; la version localisée Doduda reste à contrôler.
+Les préparations DPLN (1 Casque, 1 Ailes en bois, donjons Village
+Kanniboul / Bateau du Chouque / Arbre de Moon, combats) sont listées
+comme besoins de source **et non comme achats ou combats à programmer
+sans contrôle**.
+
+Cela porte à **17** le nombre de références nominatives recoupées :
+11 Cawotte, 1 Dolmanax, 5 Dokoko ; zéro objectif ni itinéraire certifié.
+
+Références : [quêtes du Dokoko](https://www.dofuspourlesnoobs.com/quecirctes-du-dokoko.html),
+[succès Koko Boy](https://www.dofuspourlesnoobs.com/koko-boy.html),
+[guide public Ganymède 2208](https://ganymede-app.com/guides/2208).

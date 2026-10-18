@@ -262,7 +262,14 @@ class GanymedeQuestCandidateAuditTests(unittest.TestCase):
         report = audit_ganymede_quest_candidates(ROOT)
         self.assertEqual(report["status"], "REVIEW_REQUIRED", report["issues"])
         self.assertEqual(report["guide_snapshots_checked"], 95)
-        self.assertEqual(report["triangulated_named_quest_candidates"], 12)
+        self.assertEqual(report["triangulated_named_quest_candidates"], 17)
+        dokoko = next(r for r in report["guide_reports"] if r["source_guide_id"] == 2208)
+        self.assertEqual(dokoko["triangulated_named_quest_candidates"], 5)
+        self.assertEqual(
+            {p["candidate_atlas_quest_id"] for p in dokoko["candidate_pairs"]
+             if p["status"] == "REVIEW_TRIANGULATED_SOURCES"},
+            {1666, 1667, 1668, 1669, 1670},
+        )
         dolmanax = next(r for r in report["guide_reports"] if r["source_guide_id"] == 2248)
         self.assertEqual(dolmanax["triangulated_named_quest_candidates"], 1)
         self.assertEqual(
