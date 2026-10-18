@@ -5,12 +5,12 @@
     "guide_id": 2234,
     "source_url": "https://ganymede-app.com/guides/2234",
     "checked_on": "2026-10-18",
-    "page_count": 5,
-    "steps_per_page": 50,
+    "page_count": 1,
+    "steps_per_page": 250,
     "route_role": "specialized_guide",
     "extraction_scope": "factual_link_occurrences_only",
     "editorial_text_imported": false,
-    "notice": "Observed public factual link references and coordinates only; not certified Atlas objectives or routes."
+    "notice": "Observed public links and coordinates; no game actions or objective coverage certified."
   },
   "coverage": {
     "observed_steps": 212,
@@ -1230,7 +1230,7 @@
     },
     {
       "source_step_number": 51,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1251,7 +1251,7 @@
     },
     {
       "source_step_number": 52,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1274,7 +1274,7 @@
     },
     {
       "source_step_number": 53,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -1297,7 +1297,7 @@
     },
     {
       "source_step_number": 54,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1318,7 +1318,7 @@
     },
     {
       "source_step_number": 55,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1343,7 +1343,7 @@
     },
     {
       "source_step_number": 56,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1364,7 +1364,7 @@
     },
     {
       "source_step_number": 57,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1385,7 +1385,7 @@
     },
     {
       "source_step_number": 58,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1410,7 +1410,7 @@
     },
     {
       "source_step_number": 59,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1431,7 +1431,7 @@
     },
     {
       "source_step_number": 60,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1452,7 +1452,7 @@
     },
     {
       "source_step_number": 61,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1475,7 +1475,7 @@
     },
     {
       "source_step_number": 62,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -1500,7 +1500,7 @@
     },
     {
       "source_step_number": 63,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -1523,7 +1523,7 @@
     },
     {
       "source_step_number": 64,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1552,7 +1552,7 @@
     },
     {
       "source_step_number": 65,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1580,7 +1580,7 @@
     },
     {
       "source_step_number": 66,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [
         2212
       ],
@@ -1605,7 +1605,7 @@
     },
     {
       "source_step_number": 67,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1626,7 +1626,7 @@
     },
     {
       "source_step_number": 68,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1647,7 +1647,7 @@
     },
     {
       "source_step_number": 69,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1668,7 +1668,7 @@
     },
     {
       "source_step_number": 70,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1689,7 +1689,7 @@
     },
     {
       "source_step_number": 71,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -1718,7 +1718,7 @@
     },
     {
       "source_step_number": 72,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -1741,7 +1741,7 @@
     },
     {
       "source_step_number": 73,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1762,7 +1762,7 @@
     },
     {
       "source_step_number": 74,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1783,7 +1783,7 @@
     },
     {
       "source_step_number": 75,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1804,7 +1804,7 @@
     },
     {
       "source_step_number": 76,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1823,7 +1823,7 @@
     },
     {
       "source_step_number": 77,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1844,7 +1844,7 @@
     },
     {
       "source_step_number": 78,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1865,7 +1865,7 @@
     },
     {
       "source_step_number": 79,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1886,7 +1886,7 @@
     },
     {
       "source_step_number": 80,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1907,7 +1907,7 @@
     },
     {
       "source_step_number": 81,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1928,7 +1928,7 @@
     },
     {
       "source_step_number": 82,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -1951,7 +1951,7 @@
     },
     {
       "source_step_number": 83,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1972,7 +1972,7 @@
     },
     {
       "source_step_number": 84,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -1993,7 +1993,7 @@
     },
     {
       "source_step_number": 85,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2014,7 +2014,7 @@
     },
     {
       "source_step_number": 86,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2035,7 +2035,7 @@
     },
     {
       "source_step_number": 87,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2056,7 +2056,7 @@
     },
     {
       "source_step_number": 88,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2077,7 +2077,7 @@
     },
     {
       "source_step_number": 89,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2098,7 +2098,7 @@
     },
     {
       "source_step_number": 90,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2119,7 +2119,7 @@
     },
     {
       "source_step_number": 91,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2140,7 +2140,7 @@
     },
     {
       "source_step_number": 92,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2161,7 +2161,7 @@
     },
     {
       "source_step_number": 93,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2182,7 +2182,7 @@
     },
     {
       "source_step_number": 94,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2205,7 +2205,7 @@
     },
     {
       "source_step_number": 95,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2226,7 +2226,7 @@
     },
     {
       "source_step_number": 96,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2247,7 +2247,7 @@
     },
     {
       "source_step_number": 97,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2270,7 +2270,7 @@
     },
     {
       "source_step_number": 98,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2291,7 +2291,7 @@
     },
     {
       "source_step_number": 99,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2314,7 +2314,7 @@
     },
     {
       "source_step_number": 100,
-      "source_page": 2,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2335,7 +2335,7 @@
     },
     {
       "source_step_number": 101,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2356,7 +2356,7 @@
     },
     {
       "source_step_number": 102,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2377,7 +2377,7 @@
     },
     {
       "source_step_number": 103,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2398,7 +2398,7 @@
     },
     {
       "source_step_number": 104,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2419,7 +2419,7 @@
     },
     {
       "source_step_number": 105,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2442,7 +2442,7 @@
     },
     {
       "source_step_number": 106,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2463,7 +2463,7 @@
     },
     {
       "source_step_number": 107,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2487,7 +2487,7 @@
     },
     {
       "source_step_number": 108,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2514,7 +2514,7 @@
     },
     {
       "source_step_number": 109,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2537,7 +2537,7 @@
     },
     {
       "source_step_number": 110,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2560,7 +2560,7 @@
     },
     {
       "source_step_number": 111,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2583,7 +2583,7 @@
     },
     {
       "source_step_number": 112,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2612,7 +2612,7 @@
     },
     {
       "source_step_number": 113,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2641,7 +2641,7 @@
     },
     {
       "source_step_number": 114,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2664,7 +2664,7 @@
     },
     {
       "source_step_number": 115,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2695,7 +2695,7 @@
     },
     {
       "source_step_number": 116,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2716,7 +2716,7 @@
     },
     {
       "source_step_number": 117,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2739,7 +2739,7 @@
     },
     {
       "source_step_number": 118,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2764,7 +2764,7 @@
     },
     {
       "source_step_number": 119,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2785,7 +2785,7 @@
     },
     {
       "source_step_number": 120,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2806,7 +2806,7 @@
     },
     {
       "source_step_number": 121,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2830,7 +2830,7 @@
     },
     {
       "source_step_number": 122,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [
         2293
       ],
@@ -2856,7 +2856,7 @@
     },
     {
       "source_step_number": 123,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2879,7 +2879,7 @@
     },
     {
       "source_step_number": 124,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2902,7 +2902,7 @@
     },
     {
       "source_step_number": 125,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2923,7 +2923,7 @@
     },
     {
       "source_step_number": 126,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2946,7 +2946,7 @@
     },
     {
       "source_step_number": 127,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -2970,7 +2970,7 @@
     },
     {
       "source_step_number": 128,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -2993,7 +2993,7 @@
     },
     {
       "source_step_number": 129,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3032,7 +3032,7 @@
     },
     {
       "source_step_number": 130,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3053,7 +3053,7 @@
     },
     {
       "source_step_number": 131,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3074,7 +3074,7 @@
     },
     {
       "source_step_number": 132,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [
         2212
       ],
@@ -3100,7 +3100,7 @@
     },
     {
       "source_step_number": 133,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3121,7 +3121,7 @@
     },
     {
       "source_step_number": 134,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3142,7 +3142,7 @@
     },
     {
       "source_step_number": 135,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3165,7 +3165,7 @@
     },
     {
       "source_step_number": 136,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3188,7 +3188,7 @@
     },
     {
       "source_step_number": 137,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3209,7 +3209,7 @@
     },
     {
       "source_step_number": 138,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3233,7 +3233,7 @@
     },
     {
       "source_step_number": 139,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3259,7 +3259,7 @@
     },
     {
       "source_step_number": 140,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3280,7 +3280,7 @@
     },
     {
       "source_step_number": 141,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3305,7 +3305,7 @@
     },
     {
       "source_step_number": 142,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3331,7 +3331,7 @@
     },
     {
       "source_step_number": 143,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3354,7 +3354,7 @@
     },
     {
       "source_step_number": 144,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3375,7 +3375,7 @@
     },
     {
       "source_step_number": 145,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [
         2212
       ],
@@ -3400,7 +3400,7 @@
     },
     {
       "source_step_number": 146,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3421,7 +3421,7 @@
     },
     {
       "source_step_number": 147,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3440,7 +3440,7 @@
     },
     {
       "source_step_number": 148,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3470,7 +3470,7 @@
     },
     {
       "source_step_number": 149,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3493,7 +3493,7 @@
     },
     {
       "source_step_number": 150,
-      "source_page": 3,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3514,7 +3514,7 @@
     },
     {
       "source_step_number": 151,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3535,7 +3535,7 @@
     },
     {
       "source_step_number": 152,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3556,7 +3556,7 @@
     },
     {
       "source_step_number": 153,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3577,7 +3577,7 @@
     },
     {
       "source_step_number": 154,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3600,7 +3600,7 @@
     },
     {
       "source_step_number": 155,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3621,7 +3621,7 @@
     },
     {
       "source_step_number": 156,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3643,7 +3643,7 @@
     },
     {
       "source_step_number": 157,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3672,7 +3672,7 @@
     },
     {
       "source_step_number": 158,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3695,7 +3695,7 @@
     },
     {
       "source_step_number": 159,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3727,7 +3727,7 @@
     },
     {
       "source_step_number": 160,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3748,7 +3748,7 @@
     },
     {
       "source_step_number": 161,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3773,7 +3773,7 @@
     },
     {
       "source_step_number": 162,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3801,7 +3801,7 @@
     },
     {
       "source_step_number": 163,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3818,7 +3818,7 @@
     },
     {
       "source_step_number": 164,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [
         2212
       ],
@@ -3861,7 +3861,7 @@
     },
     {
       "source_step_number": 165,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3878,7 +3878,7 @@
     },
     {
       "source_step_number": 166,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3900,7 +3900,7 @@
     },
     {
       "source_step_number": 167,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -3923,7 +3923,7 @@
     },
     {
       "source_step_number": 168,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3944,7 +3944,7 @@
     },
     {
       "source_step_number": 169,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3965,7 +3965,7 @@
     },
     {
       "source_step_number": 170,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -3990,7 +3990,7 @@
     },
     {
       "source_step_number": 171,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4011,7 +4011,7 @@
     },
     {
       "source_step_number": 172,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -4039,7 +4039,7 @@
     },
     {
       "source_step_number": 173,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4064,7 +4064,7 @@
     },
     {
       "source_step_number": 174,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4087,7 +4087,7 @@
     },
     {
       "source_step_number": 175,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4104,7 +4104,7 @@
     },
     {
       "source_step_number": 176,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4123,7 +4123,7 @@
     },
     {
       "source_step_number": 177,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [
         2212
       ],
@@ -4149,7 +4149,7 @@
     },
     {
       "source_step_number": 178,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4170,7 +4170,7 @@
     },
     {
       "source_step_number": 179,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4191,7 +4191,7 @@
     },
     {
       "source_step_number": 180,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4232,7 +4232,7 @@
     },
     {
       "source_step_number": 181,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4251,7 +4251,7 @@
     },
     {
       "source_step_number": 182,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -4276,7 +4276,7 @@
     },
     {
       "source_step_number": 183,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4301,7 +4301,7 @@
     },
     {
       "source_step_number": 184,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4322,7 +4322,7 @@
     },
     {
       "source_step_number": 185,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -4351,7 +4351,7 @@
     },
     {
       "source_step_number": 186,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4372,7 +4372,7 @@
     },
     {
       "source_step_number": 187,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4393,7 +4393,7 @@
     },
     {
       "source_step_number": 188,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4414,7 +4414,7 @@
     },
     {
       "source_step_number": 189,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4435,7 +4435,7 @@
     },
     {
       "source_step_number": 190,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4456,7 +4456,7 @@
     },
     {
       "source_step_number": 191,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4479,7 +4479,7 @@
     },
     {
       "source_step_number": 192,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -4508,7 +4508,7 @@
     },
     {
       "source_step_number": 193,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4543,7 +4543,7 @@
     },
     {
       "source_step_number": 194,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4567,7 +4567,7 @@
     },
     {
       "source_step_number": 195,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4584,7 +4584,7 @@
     },
     {
       "source_step_number": 196,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -4607,7 +4607,7 @@
     },
     {
       "source_step_number": 197,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4628,7 +4628,7 @@
     },
     {
       "source_step_number": 198,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4649,7 +4649,7 @@
     },
     {
       "source_step_number": 199,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4670,7 +4670,7 @@
     },
     {
       "source_step_number": 200,
-      "source_page": 4,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4691,7 +4691,7 @@
     },
     {
       "source_step_number": 201,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4712,7 +4712,7 @@
     },
     {
       "source_step_number": 202,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4733,7 +4733,7 @@
     },
     {
       "source_step_number": 203,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4754,7 +4754,7 @@
     },
     {
       "source_step_number": 204,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4775,7 +4775,7 @@
     },
     {
       "source_step_number": 205,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4796,7 +4796,7 @@
     },
     {
       "source_step_number": 206,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [
@@ -4817,7 +4817,7 @@
     },
     {
       "source_step_number": 207,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4842,7 +4842,7 @@
     },
     {
       "source_step_number": 208,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4865,7 +4865,7 @@
     },
     {
       "source_step_number": 209,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4902,7 +4902,7 @@
     },
     {
       "source_step_number": 210,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4961,7 +4961,7 @@
     },
     {
       "source_step_number": 211,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [],
       "external_dofusdb_ids": {
         "quest": [],
@@ -4982,7 +4982,7 @@
     },
     {
       "source_step_number": 212,
-      "source_page": 5,
+      "source_page": 1,
       "linked_guide_ids": [
         2212
       ],

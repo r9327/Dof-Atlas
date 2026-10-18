@@ -189,6 +189,12 @@ class GanymedeMasterReferenceAuditTests(unittest.TestCase):
             ("2213", 181, 2213),
             ("2270", 141, 2270),
             ("2234", 212, 2234),
+            ("2249", 774, 2249),
+            ("2263", 696, 2263),
+            ("2287", 150, 2287),
+            ("2293", 138, 2293),
+            ("3794", 288, 3794),
+            ("2234", 212, 2234),
         ):
             with self.subTest(guide=name):
                 path = Path(f"data/encyclopedia/guides/ganymede_{name}_observed_links.json")

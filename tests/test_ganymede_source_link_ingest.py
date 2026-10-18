@@ -82,6 +82,27 @@ class GanymedeSourceLinkImportTests(unittest.TestCase):
                 _page(1), '<article id="step-51"></article>'
             ], checked_on="2026-10-18")
 
+    def test_extended_250_step_page_size_is_supported(self) -> None:
+        combined = _page(1) + _page(2)
+        result = build_snapshot(
+            2203, _catalog(100), [combined],
+            checked_on="2026-10-18", per_page=250,
+        )
+        self.assertEqual(result["source"]["steps_per_page"], 250)
+        self.assertEqual(result["source"]["page_count"], 1)
+        self.assertEqual(result["coverage"]["observed_steps"], 100)
+        with self.assertRaisesRegex(ValueError, "supported steps per page"):
+            build_snapshot(2203, _catalog(100), [combined],
+                           checked_on="2026-10-18", per_page=1000)
+
+    def test_extended_page_numbering(self) -> None:
+        row = parse_reference_page(
+            '<article id="step-251"></article>', page=2, per_page=250,
+        )
+        self.assertEqual(row[0]["source_step_number"], 251)
+        with self.assertRaisesRegex(ValueError, "unexpected step number"):
+            parse_reference_page('<article id="step-251"></article>', page=2)
+
     def test_snapshot_rejects_missing_page(self) -> None:
         with self.assertRaisesRegex(ValueError, "expected 2 pages"):
             build_snapshot(2203, _catalog(100), [_page(1)], checked_on="2026-10-18")

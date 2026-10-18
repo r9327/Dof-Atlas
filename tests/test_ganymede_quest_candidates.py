@@ -261,7 +261,7 @@ class GanymedeQuestCandidateAuditTests(unittest.TestCase):
     def test_repository_snapshots_are_discovery_not_gameplay_proof(self) -> None:
         report = audit_ganymede_quest_candidates(ROOT)
         self.assertEqual(report["status"], "REVIEW_REQUIRED", report["issues"])
-        self.assertGreaterEqual(report["guide_snapshots_checked"], 90)
+        self.assertEqual(report["guide_snapshots_checked"], 95)
         self.assertEqual(report["triangulated_named_quest_candidates"], 12)
         dolmanax = next(r for r in report["guide_reports"] if r["source_guide_id"] == 2248)
         self.assertEqual(dolmanax["triangulated_named_quest_candidates"], 1)

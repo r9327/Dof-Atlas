@@ -431,3 +431,11 @@ Le guide Ganymède 2270 « Four Over Five » est observé sur **trois pages, 141
 ### Seizième lot — Pandala 1 (18/10/2026)
 
 Le guide public Ganymède **Pandala 1 / ID 2234** est documenté sur **5 pages, 212 étapes** numérotées sans trou. Couverture cumulée : **90 des 95 guides**, **5 659 étapes** de références observées, **5 guides** sans instantané : Pandala 3, Forgelave, Frigost complémentaire et les deux alignements Bonta/Brâkmar. Les descriptions externes ne sont pas importées et les actions ne sont pas classifiées comme objectives de quête certifiées.
+
+### Collecte des 95 guides terminée au niveau des références publiques — 18/10/2026
+
+Le corpus de références structurées couvre **95/95 guides, 7 705/7 705 étapes numérotées**. Le travail déjà intégré en parallèle a apporté Vulkania (113), Domakuro (120), Ébène (142), Abyssal (174), Frigost 1 (181) et Quatre sur cinq (141). Le dernier lot contient Forgelave (150), Pandala 3 (138), Pandala 1 (212), Frigost complémentaire (288), **Alignement Bonta complet (774)** et **Alignement Brâkmar complet (696)**. Les deux alignements sont distincts du guide d'introduction Bonta/Brâkmar ID 2226.
+
+Les gros guides ont été lus avec `stepsPerPage=250` ; l'outil de collecte supporte désormais explicitement `--steps-per-page 250` (50 par défaut) et ses tests couvrent ce choix. Chaque instantané contient uniquement les identifiants de liens, les coordonnées mentionnées, la provenance page/étape et la date, **jamais les textes éditoriaux ni des actions automatiquement obligatoires**.
+
+L'audit de couverture doit confirmer **95 sources et 7 705 étapes** au SHA final. Les contrôles d'identité des quêtes, d'objectifs, de prérequis, de branchement Bonta/Brâkmar et de ressources par personnage restent à réaliser avec Atlas/Doduda, DPLN et les sources croisées. Les **12 rapprochements nom/ID** Cawotte/Dolmanax restent en revue. Le planificateur #226 et la nouvelle interface #225 ne doivent pas consommer ces références comme des parcours certifiés. Garder la PR #229 en brouillon avant validation FULL.

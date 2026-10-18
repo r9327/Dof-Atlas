@@ -111,6 +111,7 @@ def build_snapshot(
     pages: list[str],
     *,
     checked_on: str,
+    per_page: int = _PER_PAGE,
 ) -> dict[str, object]:
     if type(guide_id) is not int or guide_id <= 0:
         raise ValueError("invalid Ganymède guide ID")
@@ -123,11 +124,13 @@ def build_snapshot(
     expected = matching[0].get("listed_step_count")
     if type(expected) is not int or expected <= 0:
         raise ValueError("missing public tree step count")
-    expected_pages = (expected + _PER_PAGE - 1) // _PER_PAGE
+    if type(per_page) is not int or per_page not in (50, 250):
+        raise ValueError("supported steps per page: 50 or 250")
+    expected_pages = (expected + per_page - 1) // per_page
     if len(pages) != expected_pages:
         raise ValueError(f"guide {guide_id}: expected {expected_pages} pages, got {len(pages)}")
     steps = [step for n, html in enumerate(pages, 1)
-             for step in parse_reference_page(html, page=n)]
+             for step in parse_reference_page(html, page=n, per_page=per_page)]
     if len(steps) != expected:
         raise ValueError(f"guide {guide_id}: expected {expected} steps, got {len(steps)}")
     main_ids = {r["ganymede_guide_id"] for r in sources
@@ -143,7 +146,7 @@ def build_snapshot(
             "source_url": f"https://ganymede-app.com/guides/{guide_id}",
             "checked_on": checked_on,
             "page_count": expected_pages,
-            "steps_per_page": _PER_PAGE,
+            "steps_per_page": per_page,
             "route_role": "orchestrator_master_guide" if guide_id == 2251 else "specialized_guide",
             "extraction_scope": "factual_link_occurrences_only",
             "editorial_text_imported": False,
@@ -164,8 +167,8 @@ def build_snapshot(
     }
 
 
-def _fetch_page(guide_id: int, page: int, *, timeout: int) -> str:
-    url = f"https://ganymede-app.com/guides/{guide_id}?page={page}&stepsPerPage={_PER_PAGE}"
+def _fetch_page(guide_id: int, page: int, *, timeout: int, per_page: int = _PER_PAGE) -> str:
+    url = f"https://ganymede-app.com/guides/{guide_id}?page={page}&stepsPerPage={per_page}"
     request = Request(url, headers={"User-Agent": "DofusAtlasReferenceAudit/1.0"})
     with urlopen(request, timeout=timeout) as response:
         if response.geturl().split("?")[0] != f"https://ganymede-app.com/guides/{guide_id}":
@@ -181,6 +184,8 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true", help="write a verified JSON snapshot")
     parser.add_argument("--checked-on", required=True, help="source observation date YYYY-MM-DD")
     parser.add_argument("--output", type=Path, help="destination JSON path (requires --apply)")
+    parser.add_argument("--steps-per-page", type=int, choices=(50, 250), default=_PER_PAGE,
+                        help="public step page size: 50 (default) or 250 (large guides)")
     parser.add_argument("--timeout", type=int, default=20)
     parser.add_argument("--delay", type=float, default=3.0, help="seconds between public requests")
     args = parser.parse_args()
@@ -200,15 +205,16 @@ def main() -> int:
         parser.error("guide ID is absent from the public source catalog")
     count = guide["listed_step_count"]
     pages: list[str] = []
-    for page in range(1, (count + _PER_PAGE - 1) // _PER_PAGE + 1):
+    for page in range(1, (count + args.steps_per_page - 1) // args.steps_per_page + 1):
         if args.fetch:
             if page > 1:
                 time.sleep(args.delay)
-            pages.append(_fetch_page(args.guide_id, page, timeout=args.timeout))
+            pages.append(_fetch_page(args.guide_id, page, timeout=args.timeout, per_page=args.steps_per_page))
         else:
             path = args.html_dir / f"{args.guide_id}-{page}.html"
             pages.append(path.read_text(encoding="utf-8"))
-    snapshot = build_snapshot(args.guide_id, index, pages, checked_on=args.checked_on)
+    snapshot = build_snapshot(args.guide_id, index, pages, checked_on=args.checked_on,
+                              per_page=args.steps_per_page)
     print(json.dumps({"status": "OBSERVED_UNCLASSIFIED", "guide_id": args.guide_id,
                       "steps": snapshot["coverage"]["observed_steps"],
                       "apply": args.apply}, ensure_ascii=False))
