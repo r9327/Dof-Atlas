@@ -536,6 +536,165 @@
           "label": "Rejoindre l'éleveur de dragodindes"
         }
       ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2271_step_0016",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -29
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à l'éleveur de dragodindes"
+        },
+        {
+          "kind": "check_object",
+          "label": "Obtenir Wanglong comme suiveur",
+          "object_id": 23724
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge interdite"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2271_step_0017",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Passer par le mécanisme secret"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer une bière forte",
+          "object_id": 23733
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer les Deux Souffles",
+          "quest_id": 2201
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2271_step_0018",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        21,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Emprunter le passage vers Shufamukin"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Shufamukin"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter la bière spéciale",
+          "object_id": 24021
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la bibliothèque"
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2271_step_0019",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -27
+      ],
+      "next": [
+        23,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Monter à la bibliothèque"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Chochi"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Zangzang"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2271_step_0020",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -29
+      ],
+      "next": [
+        25,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Conserver Wanglong comme compagnon",
+          "object_id": 23724
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Zangzang"
+        },
+        {
+          "kind": "check_object",
+          "label": "Obtenir Zangzang comme compagnon",
+          "object_id": 23725
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le temple"
+        }
+      ]
     }
   ]
 }
