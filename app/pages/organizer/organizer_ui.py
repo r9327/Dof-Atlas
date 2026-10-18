@@ -494,13 +494,6 @@ class OrganizerUiMixin:
         while len(self.sessions) < slot_count:
             self.sessions.append(empty_session_slot())
 
-        def slot_index_badge(slot_index: int) -> QLabel:
-            badge = QLabel(str(slot_index + 1))
-            badge.setObjectName("slotIndexBadge")
-            badge.setFixedSize(24, KEY_BADGE_HEIGHT)
-            badge.setAlignment(Qt.AlignCenter)
-            return badge
-
         for index in range(slot_count):
             session = self.sessions[index]
             name = session_name(session)
@@ -532,7 +525,6 @@ class OrganizerUiMixin:
                 empty_label.setObjectName("MutedLabel")
                 empty_label.setAlignment(Qt.AlignVCenter)
                 slot_layout.addWidget(empty_label, 1)
-                slot_layout.addWidget(slot_index_badge(index))
                 self.sessions_panel.add_slot(slot, index)
                 self.session_slot_widgets.append((slot, index))
                 continue
@@ -620,9 +612,6 @@ class OrganizerUiMixin:
             shortcut_grid.addWidget(remove, 0, 0, alignment=Qt.AlignTop | Qt.AlignRight)
             remove.raise_()
             layout.addWidget(shortcut_wrap)
-            index_badge = slot_index_badge(index)
-            self.bind_session_drag_events(index_badge, index, row)
-            layout.addWidget(index_badge)
             self.sessions_panel.add_slot(row, index)
             row.setCursor(Qt.OpenHandCursor)
             self.bind_session_drag_events(row, index, row)
