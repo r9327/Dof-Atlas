@@ -44,6 +44,13 @@ from app.modules.encyclopedia.services.adventure_route_engine import (
     RouteProgress,
     RouteStep,
 )
+from app.modules.encyclopedia.services.guide_route_naming import (
+    audit_title_decisions,
+    title_for_route_step,
+)
+from app.modules.encyclopedia.services.guide_route_planner import (
+    unbound_direct_travel_payload,
+)
 
 ARTIFACTS = ROOT / "artifacts"
 GUIDE_PATH = ARTIFACTS / "guide_ultime_final.json"
@@ -850,6 +857,7 @@ def route_step_payload(
     runtime_gates_by_quest: dict[int, list[dict[str, Any]]] | None = None,
     conditional_gates_by_quest: dict[int, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
+    title_decision = title_for_route_step(step)
     take, do_here = [], []
     for action in step.actions:
         row = {
@@ -869,6 +877,8 @@ def route_step_payload(
     _gps_stage("building_route_payload")
     payload = {
         "index": int(step.index),
+        "title": title_decision.text,
+        "title_contract": title_decision.to_payload(),
         "planned_at_level": int(planned_at_level),
         "destination": loc.display(),
         "map_id": loc.map_id,
@@ -876,6 +886,7 @@ def route_step_payload(
         "y": loc.y,
         "zone": loc.zone,
         "subzone": loc.subzone,
+        "travel_plan": unbound_direct_travel_payload(loc),
         "a_prendre": take,
         "a_faire_ici": do_here,
         "progresse_aussi": {
@@ -1046,6 +1057,17 @@ def main() -> None:
         )
         for index, step in enumerate(plan.steps)
     ]
+    title_violations = [
+        {
+            "code": row.code,
+            "step_index": int(plan.steps[row.index].index),
+            "title": row.title,
+            "detail": row.detail,
+        }
+        for row in audit_title_decisions(
+            title_for_route_step(step) for step in plan.steps
+        )
+    ]
     success_cards = full_success_cards(guide, route_steps_payload)
     expected_reference_ids, skipped_choice_variant_ids = reference_route_expected_ids(scope, choice_audit)
 
@@ -1075,6 +1097,13 @@ def main() -> None:
         "full_success_cards": success_cards,
         "catalog_total_dynamic": int(guide.get("guide_ultime_policy", {}).get("quest_manifest_count") or 0),
         "contract": master.get("route_contract") or master.get("optimizer_rules") or {},
+        "planner_contract": {
+            "schema_version": 1,
+            "participant_identity": "character:<id>",
+            "travel_modes": ["direct", "zaap_then_travel"],
+            "static_route_requires_runtime_participant_binding": True,
+            "zaap_requires_verified_world_and_character_eligibility": True,
+        },
         "resource_policy": master.get("inventory_and_bank_policy") or {},
         "monocompte_policy": master.get("monocompte_policy") or {},
         "endgame_order": master.get("endgame_order") or [],
@@ -1253,6 +1282,7 @@ def main() -> None:
         "blocked_action_count": len(plan.blocked),
         "blocked_actions": dict(plan.blocked),
         "unknown_location_step_count": unknown_locations,
+        "title_review_findings": title_violations,
         "level_milestones": milestones,
         "metrics": plan.metrics.as_dict(),
         "choice_groups": choice_audit,

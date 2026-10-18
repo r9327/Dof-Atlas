@@ -78,8 +78,8 @@ class GuideRoutePlannerTests(unittest.TestCase):
 
     def test_zaap_requires_verified_route_and_every_participant(self) -> None:
         participants = [
-            GuideParticipantState("character:1"),
-            GuideParticipantState("character:2"),
+            GuideParticipantState("character:1", world="Monde des Douze"),
+            GuideParticipantState("character:2", world="Monde des Douze"),
         ]
         incomplete = VerifiedZaapRoute(
             destination=DESTINATION,
@@ -113,6 +113,21 @@ class GuideRoutePlannerTests(unittest.TestCase):
             start.travel_plan.participant_keys,
             ("character:1", "character:2"),
         )
+
+    def test_zaap_fails_closed_when_world_is_unknown(self) -> None:
+        route = VerifiedZaapRoute(
+            destination=DESTINATION,
+            zaap=RouteLocation(map_id=2, x=0, y=0, zone="Amakna"),
+            world="Monde des Douze",
+            eligible_character_keys=frozenset({"character:1"}),
+            evidence="verified:test",
+        )
+        plan = GuideRoutePlanner(_engine()).plan(
+            [GuideParticipantState("character:1")],
+            verified_zaap_routes=[route],
+        )
+        start = next(row for row in plan.activities if row.action.action_id == "quest:start")
+        self.assertEqual(start.travel_plan.mode, TravelMode.DIRECT)
 
     def test_capture_kind_is_explicit_and_never_inferred_from_title(self) -> None:
         planner = GuideRoutePlanner(_engine())

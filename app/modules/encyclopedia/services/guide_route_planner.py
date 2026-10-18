@@ -43,6 +43,7 @@ class GuideParticipantState:
     profile: RouteProfile = RouteProfile()
     progress: RouteProgress | None = None
     start_location: RouteLocation | None = None
+    world: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "character_key", require_character_key(self.character_key))
@@ -116,6 +117,32 @@ class GuideTravelPlan:
                 "subzone": self.zaap.subzone,
             }
         return payload
+
+
+def unbound_direct_travel_payload(destination: RouteLocation) -> dict[str, object]:
+    """Describe a static direct route without inventing runtime participants."""
+
+    if destination.x is None or destination.y is None:
+        return {
+            "status": "unavailable",
+            "reason": "destination_without_exact_coordinates",
+            "participant_keys": [],
+            "requires_explicit_participants": True,
+        }
+    return {
+        "status": "template",
+        "mode": TravelMode.DIRECT.value,
+        "participant_keys": [],
+        "requires_explicit_participants": True,
+        "destination": {
+            "map_id": destination.map_id,
+            "x": destination.x,
+            "y": destination.y,
+            "zone": destination.zone,
+            "subzone": destination.subzone,
+        },
+        "evidence": "exact_destination_coordinates",
+    }
 
 
 @dataclass(frozen=True, slots=True)
@@ -238,6 +265,9 @@ class GuideRoutePlanner:
             )
             for state in states
         )
+        worlds_by_character = {
+            state.character_key: state.world.strip() for state in states
+        }
         issues: list[GuidePlanningIssue] = []
         for participant in participant_plans:
             for action_id, reason in sorted(participant.route.blocked.items()):
@@ -285,6 +315,7 @@ class GuideRoutePlanner:
             travel = self._travel_plan(
                 action,
                 participant_keys,
+                worlds_by_character,
                 zaap_routes,
                 issues,
             )
@@ -321,6 +352,7 @@ class GuideRoutePlanner:
         self,
         action: RouteAction,
         participant_keys: tuple[str, ...],
+        worlds_by_character: Mapping[str, str],
         zaap_routes: tuple[VerifiedZaapRoute, ...],
         issues: list[GuidePlanningIssue],
     ) -> GuideTravelPlan | None:
@@ -341,6 +373,10 @@ class GuideRoutePlanner:
                 for route in zaap_routes
                 if route.destination.key == destination.key
                 and set(participant_keys).issubset(route.eligible_character_keys)
+                and all(
+                    worlds_by_character.get(key) == route.world
+                    for key in participant_keys
+                )
             ),
             key=lambda route: (route.world.casefold(), route.zaap.display()),
         )
@@ -355,10 +391,18 @@ class GuideRoutePlanner:
                 evidence=route.evidence,
             )
         if any(route.destination.key == destination.key for route in zaap_routes):
+            supplied_worlds = {
+                worlds_by_character.get(key, "") for key in participant_keys
+            }
+            reason = (
+                "world missing or inconsistent; safe direct fallback"
+                if "" in supplied_worlds or len(supplied_worlds) != 1
+                else "Zaap eligibility does not cover every participant; safe direct fallback"
+            )
             issues.append(
                 GuidePlanningIssue(
                     "zaap_ineligible_participant",
-                    "safe direct fallback",
+                    reason,
                     action_id=action.action_id,
                 )
             )
@@ -424,4 +468,5 @@ __all__ = [
     "TravelMode",
     "VerifiedZaapRoute",
     "schedule_success_passes",
+    "unbound_direct_travel_payload",
 ]
