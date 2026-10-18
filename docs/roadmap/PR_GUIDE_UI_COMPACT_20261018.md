@@ -11,7 +11,7 @@ Ne pas inventer :
 - panneau dédié aux déplacements / Zaaps, boutons « Copier la commande », badges sur les coordonnées, statut macro permanent, légende supplémentaire de transport ;
 - bloc « Quêtes liées à cette fiche », bloc local « À préparer », « Sources du guide », « Succès liés », « Pourquoi cet ordre ? », « Étapes précédentes », « À suivre » ou « Destination suivante » ;
 - grosse liste de personnages, cartes individuelles de personnages ou tableau multicomptes toujours visible ;
-- variantes visuelles du menu de préparation générale, nouveaux onglets ou présentation en pleine page.
+- changement de structure par rapport à la capture validée du panneau **Préparation générale du guide** : conserver la carte ouverte, ses quatre filtres, ses lignes concrètes et le bloc Pierres d'âme ; ne pas substituer l'ancien menu générique « PRÉREQUIS » du catalogue.
 
 Si un détail visuel n'est pas explicitement documenté ici, **préserver l'existant/maquette**, ne pas improviser ; confronter les captures Doctor UI à la composition validée avant de déclarer PASS.
 
@@ -30,7 +30,10 @@ Si un détail visuel n'est pas explicitement documenté ici, **préserver l'exis
 │                                                         │
 │ [      Aller à la fiche      ] [Retour actuelle] [🗺]   │
 ├─────────────────────────────────────────────────────────┤
-│ [ ○ PRÉREQUIS                   n                 ▾ ]    │
+│ [ ▤ Préparation générale du guide              ▾ ]    │
+│   (ouvert : Préparation complète ; Tout · Métiers ·      │
+│    Potions · Objets ; exigences réelles ; pierres)       │
+│    Pierres d'âme : possédé 50 | besoin 150 | manque 100 │
 ├─────────────────────────────────────────────────────────┤
 │                                       [👥] [Sommaire ▾]  │
 │       (Mes personnages : portraits si menu ouvert)       │
@@ -58,14 +61,56 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 - **Ligne des boutons** : `Aller à la fiche` (large), immédiatement à côté `Retour à l'actuelle` (bouton visible avec libellé et icône retour), puis petit bouton Overlay icon-only. Ce bouton revient instantanément à la fiche active courante, par opposition à la fiche parcourue via Sommaire, flèches ou accès direct. Ne pas modifier la sélection active ni les validations ; bouton désactivé ou neutre si déjà sur l'actuelle.
 - **En-tête non repliable, ne disparaît pas au scroll**. Pas de quatrième barre. Progression Route = fiches réellement validées / total, jamais index de navigation ; ne pas coder en dur les comptes fictifs de la maquette.
 
-### 2. VRAI menu déroulant d'origine `PRÉREQUIS` — NE PAS RÉINVENTER
-- **IMPORTANT : la maquette conversationnelle qui montrait une carte `Préparation générale du guide` avec des cases génériques `Vérifier les métiers`, `Prévoir les potions`, `Acheter les ressources` et deux gros champs de pierres EST FAUSSE ET NON VALIDÉE. NE PAS L'IMPLÉMENTER.** L'utilisateur a explicitement rejeté ce dessin.
-- Le composant existant réel est `CollapsibleInfoSection` dans `app/modules/encyclopedia/views/guides_view.py`, construit pour `PRÉREQUIS` dans `GuidesView._populate_guide_info`. **Le reproduire/réutiliser graphiquement à l'identique**, dans l'emplacement global du guide retenu, sans le transformer en formulaire avec onglets ou checklist fictive.
-- En état fermé : bande compacte avec **pastille état (✓/●/○), vrai titre `PRÉREQUIS`, compteur réel à droite, petit chevron ▾**, même bordure, style, hauteur et espacement que le composant précédent. Fermé par défaut ; clic sur bande ou chevron l'ouvre ; état retenu pendant la session.
-- À l'ouverture : **les vraies lignes de prérequis du guide** dans leur ordre, dédupliquées et liées aux vrais IDs. Les noms exacts des quêtes et succès préalables sont des boutons/lignes ouvrant leur fiche lorsque disponible, conformément à `_guide_prerequisite_entries`, `_guide_prerequisite_row` et `prerequisite_row`. **Ne pas inventer des cases à cocher globales** ni de fausses lignes. Les états observés sont affichés sans valider automatiquement des quêtes.
-- Les besoins globaux réellement préparables et le stock des pierres restent une exigence du moteur et peuvent être **présentés de manière très compacte dans le menu d'origine**, à partir de données vérifiées, mais **pas en remplaçant le menu par la carte formulaire erronée**. Préserver la présentation existante tant que la variation d'une ligne n'a pas été comparée/validée. Ex. une ligne discrète du stock déclaré `Pierres : 50/150 · manque 100`, seulement si un besoin vérifié existe, saisie de la quantité possédée via le mécanisme original à définir, sans inventer la disposition.
-- Afficher les **prérequis externes réels du guide** (succès/quête à réaliser AVANT ce parcours), pas ceux qui seront accomplis au fil des fiches déjà ordonnées par #226. Les données de préparation, métiers et achats n'apparaissent que si réellement nécessaires au départ, selon les informations fiables du moteur.
-- Aucun bloc `À préparer` sur chaque fiche : cette suppression ne supprime **pas** le vrai menu global `PRÉREQUIS`. Tests Doctor UI : comparer état fermé + ouvert au composant `CollapsibleInfoSection` courant et rejeter toute liste générique ou formulaire inventé.
+### 2. Préparation générale du guide — LA CAPTURE FOURNIE EST LA RÉFÉRENCE
+
+**CORRECTION PRIORITAIRE (18 octobre 2026) : l'utilisateur a fourni une capture d'écran de la vraie maquette. Les précédentes instructions qui imposaient le mini-menu `PRÉREQUIS` de `GuidesView.CollapsibleInfoSection` étaient une mauvaise interprétation et sont annulées.** Ne pas conserver ce vieux menu à la place de la préparation complète. La composition souhaitée est celle de la capture utilisateur, **« à peu près »**, avec ses éléments distinctifs, dans le style Qt/Atlas/Lanyel. Cette section n'est pas la liste de prérequis de la fiche.
+
+**Structure exacte du bandeau fermé :**
+- Une seule bande arrondie compactement placée sous la rangée `Aller à la fiche` / `Retour à l'actuelle` / Overlay.
+- À gauche, une **icône clipboard/liste** ; au centre le **titre `Préparation générale du guide`**, puis en gris la description **`Métiers, potions et objets · Parcours complet`** ; à droite chevron ouvrir/fermer.
+- Ne pas afficher de remplacement `PRÉREQUIS`, de pastille de statut d'un guide du catalogue ou de compteur des prérequis du catalogue en lieu du vrai titre. Fermé par défaut ; clic sur la bande/chevron ouvre la carte complète, clic à nouveau referme.
+
+**Structure exacte du contenu déroulé, comme la capture :**
+- Une carte encadrée à l'intérieur du panneau, titre **`Préparation complète`** en haut.
+- Sous le titre, sur **une même ligne** : onglets/filtre **`Tout` / `Métiers` / `Potions` / `Objets`**. `Tout` sélectionné par défaut ; changement de filtre sans refermer le menu ni modifier la fiche. Pas d'onglets hors de cette carte ni de recherche/formulaire géant.
+- En dessous, lignes de **vraies exigences globales du parcours** avec petit rond de statut à gauche, une exigence concise et sa valeur calculée. Catégories possibles : `Alignement requis : Bonta`, `Métier requis : Alchimiste niveau 40`, `Potions de rappel et de cité`, `Ressources à acheter et à récolter` ; **ces exemples de la capture ne sont PAS des données réelles à hardcoder**. Afficher les noms/quantités réellement nécessaires pour le guide et ses personnages, regrouper/filtrer sans perdre des éléments. `Tout` affiche toutes les catégories ; `Métiers` uniquement les exigences métiers ; `Potions` les consommables/transport ; `Objets` les ressources/objets/captures, avec l'alignement et conditions d'accès dans `Tout` (ou sous-catégorie fiable si modèle prévu).
+- Les ronds de statut ne sont pas des confirmations réseau fictives ni des validations de fiche ; ne montrer accompli que ce qui est prouvé ou déclaré de façon explicite. Ne pas inventer `Vérifier les métiers`, `Prévoir des potions` génériques à la place de vraies quantités et noms. Eviter les doublons et les objets acquis naturellement sur le trajet : cohérence avec #226.
+- Après la liste, **fine séparation horizontale**, puis un bloc intégré **`Pierres d'âme du guide`** avec petite icône pierre et sous-titre **`Inventaire déclaré manuellement`**.
+- Deux contrôles côte à côte à contour discret et coins très arrondis, tels que la capture : **`J'en possède`** = valeur saisissable (exemple 50), **`Total nécessaire`** = total affiché par le moteur (exemple 150, non modifiable si calcul fiable ; ne pas le déduire du seul nombre de fiches).
+- En dessous : **`Stock disponible`** à gauche, **`50 / 150`** à droite, **barre de progression horizontale ambrée**, puis **`100 pierres manquantes`** avec icône d'attention. `manquantes = max(0, nécessaires − possédées)`; afficher 0 proprement si surplus. Afficher les types/puissances/besoins réels lorsqu'ils sont connus, sans remplacer le récapitulatif de la capture par une liste illisible.
+- Petit texte de contexte tout en bas, discret : besoins calculés selon captures restantes, stock saisi **non présenté comme preuve d'inventaire réseau**. Pas de prérequis immotivés ni contenu hardcodé.
+- Toutes les quantités et filtres sont **réellement fonctionnels** : mise à jour immédiate, saisie valide et non négative, sauvegarde après relance, recalcul si modification de progression réseau / participants / route. Métiers, potions, objets et accès ne doivent pas être traités comme des cases manuelles destinées à valider des quêtes.
+
+**État ouvert, représentation textuelle de la capture :**
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│ ▤  Préparation générale du guide                           ⌃ │
+│    Métiers, potions et objets · Parcours complet              │
+├───────────────────────────────────────────────────────────────┤
+│  Préparation complète                                        │
+│                                                               │
+│  [ Tout ]    Métiers    Potions    Objets                      │
+│                                                               │
+│  ● Alignement requis : Bonta                         (exemple)│
+│  ● Métier requis : Alchimiste niveau 40              (exemple)│
+│  ● Potions de rappel et de cité                      (exemple)│
+│  ● Ressources à acheter et à récolter                (exemple)│
+│  ─────────────────────────────────────────────────────────── │
+│  ◉ Pierres d'âme du guide                                    │
+│    Inventaire déclaré manuellement                           │
+│                                                               │
+│  J'en possède                 Total nécessaire                │
+│  [         50         ]       [         150         ]         │
+│                                                               │
+│  Stock disponible                               50 / 150       │
+│  ━━━━━━━━━━━━━━━━━━━───────────────────────────────────────  │
+│  ⚠ 100 pierres manquantes                                   │
+│  Texte discret expliquant que le stock est déclaré           │
+└───────────────────────────────────────────────────────────────┘
+```
+
+**Tests de fidélité :** capture d'état fermé et d'état ouvert confrontées à la capture de référence de l'utilisateur ; vérifier titre/sous-titre, filtres en ligne, statut circulaire par exigence, séparateur, deux champs, barre et manque. Tests filtrage (Tout/Métiers/Potions/Objets), besoins non fictifs, quantité exacte, persistance `50/150 -> manque 100`, 0 besoin, 0 stock, surplus, progression réseau, absence de bloc `À préparer` par fiche. FAIL si remplacé par l'ancien mini-menu `PRÉREQUIS` ou par une simple liste générique.
 
 ### 3. Commandes Personnages / Sommaire — SANS `Mon parcours`
 - **SUPPRIMER complètement le titre `Mon parcours` et son commentaire/sous-titre `Fiche N / total` placé dessous. Le numéro de fiche est déjà visible dans l'en-tête/contrôle de pagination de la fiche : ne jamais le dupliquer.
@@ -112,7 +157,7 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 | En-tête à droite | **Petit engrenage paramètres** | Ouvrir réglages | Même pictogramme et dimensions que la maquette ; utiliser icône valide, pas « ⚙ » en texte si fonte incertaine |
 | Ligne navigation | Bouton **Aller à la fiche** + bouton **Retour à l'actuelle** juste à côté | Accès direct + retour à la fiche active après exploration | Garder la disposition compacte et l'icône de retour cohérente |
 | À sa droite | **Bouton Overlay : icône carte uniquement** | Afficher/masquer l'overlay | Petit carré, pas de libellé ajouté, état actif/inactif |
-| PRÉREQUIS du guide | **Pastille d'état ✓/●/○, titre PRÉREQUIS, compteur, chevron** | Ouvrir/fermer le CollapsibleInfoSection existant | Ne PAS substituer le clipboard/list inventé par la maquette ; vraies lignes et vrais liens |
+| Préparation générale du guide | **Icône clipboard/liste + titre, sous-titre « Métiers, potions et objets · Parcours complet », chevron** | Dérouler/fermer la carte « Préparation complète » avec les filtres Tout/Métiers/Potions/Objets, vraies exigences et Pierres d'âme | Respecter la capture du 18/10, pas le menu catalogue « PRÉREQUIS » |
 | Ligne avant fiche (sans titre) | **Icône personnages (groupe)**, icône seule | Afficher/masquer le menu **Mes personnages** | Juste avant Sommaire, même taille que bouton Overlay |
 | Ligne avant fiche (sans titre) | **Icône sommaire/liste** + texte `Sommaire` + chevron | Ouvrir/fermer manuellement, **ne pas fermer sur sélection fiche** | Même ligne, pas de bouton de remplacement |
 | Liste chapitres | Coche/cercle de progression + chevrons | Dérouler / aller à une fiche | Icônes discrètes et cohérentes avec les couleurs du thème |
@@ -127,7 +172,7 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 - Boutons icône-seule : `setAccessibleName`, vrai tooltip, état de bascule lisible ; éviter les signaux déclenchés au survol. Les zones cliquables restent suffisantes sans agrandir visuellement les icônes.
 
 ### Validation visuelle et packaging graphique
-- Screenshots Doctor UI **avant/après** pour : (1) état initial menus fermés ; (2) préparation ouverte ; (3) personnes ouvertes, avec vrais portraits de 5 classes différentes ; (4) un portrait déselectionné et deux de même classe avec progression distincte ; (5) sommaire ouvert ; (6) fiche Lanyel et Succès ; (7) zoom/HDPI, écran minimal.
+- Screenshots Doctor UI **avant/après** pour : (1) état initial menus fermés ; (2) Préparation générale du guide ouverte ; (3) personnes ouvertes, avec vrais portraits de 5 classes différentes ; (4) un portrait déselectionné et deux de même classe avec progression distincte ; (5) sommaire ouvert ; (6) fiche Lanyel et Succès ; (7) zoom/HDPI, écran minimal.
 - Checks Qt d'existence d'image réelle : `QPixmap.isNull() == False`, taille lisible, décodage de tous les assets utilisés, absence de pointeur Git LFS dans la version Windows distribuée ; contrôles interactifs associés aux bonnes fonctions ; pas d'icône invisible ni de texte tronqué.
 - Comparer **la forme, l'espacement, la position et le contenu** de chaque bouton et portrait à la maquette approuvée, pas simplement la présence d'un widget portant le bon objectName.
 - Faire échouer la certification UI si des portraits/boutons sont des carrés ou du texte de remplacement, si le panneau Personnages a été changé en liste, ou si la sélection ne survit pas au redémarrage.
@@ -172,7 +217,7 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 
 ## Contrôle de fidélité obligatoire
 1. Rendre une capture COMPLÈTE en **état par défaut** : en-tête fixe, préparation refermée, personnages refermés, sommaire refermé, une fiche seule. Comparer visuellement à la **dernière maquette approuvée dans le fil de discussion**, pas à un mockup plus ancien.
-2. Rendre des captures distinctes **PRÉREQUIS ouvert**, **Personnages ouvert**, **Sommaire ouvert**, **Fiche Lanyel**, **Fiche Succès**, **état scrollé**. Comparer disposition, ordre, marges, largeurs, typographies, positions, boutons, couleurs, aucune zone superflue.
+2. Rendre des captures distinctes **Préparation générale du guide ouverte**, **Personnages ouvert**, **Sommaire ouvert**, **Fiche Lanyel**, **Fiche Succès**, **état scrollé**. Comparer disposition, ordre, marges, largeurs, typographies, positions, boutons, couleurs, aucune zone superflue.
 3. Tests d'absence explicite des sections interdites, tests screenshot Doctor Atlas produisant de VRAIS pixels lisibles (pas des carrés), détection des contrôles et de leurs chevauchements ; petit écran et minimum 900 px.
 4. Tests Qt interaction : aucune macro déclenchée par hover, une seule macro par clic gauche, position identique, sélection de 0/1/5 participants, mêmes classes, offline/online, migration des IDs, progression réseau et secours manuel, persistance du stock 50/150 après redémarrage.
 5. Tests de non-régression des progressions Quêtes/Succès, Guide Lanyel/Guide Succès, de l'intégration du rendu partagé #201 et de la libération Qt au retour Home. Rebaser après #201, puis validation Doctor/Graphify et CI au HEAD final.
