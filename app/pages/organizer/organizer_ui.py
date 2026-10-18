@@ -500,7 +500,7 @@ class OrganizerUiMixin:
             hwnd = session_hwnd(session)
             is_empty = session_is_empty(session)
             is_detected = session_is_detected(session)
-            is_primary = is_detected and self.session_is_primary(name, hwnd, primary)
+            is_primary = is_detected and self.session_is_primary(name, hwnd, primary, session)
             if is_primary and not primary.startswith("hwnd:"):
                 if primary_matched:
                     is_primary = False
