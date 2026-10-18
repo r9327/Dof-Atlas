@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QApplication
 
 import app.storage as storage
 from app.core.runtime_state import AtlasRuntime
+from app.macros.zaap import parse_zaap_command, zaap_command
 from main import AtlasWindow, find_lookup_item
 
 
@@ -51,6 +52,7 @@ class RuntimeRegressionContractTests(unittest.TestCase):
                     }
                 )
             self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0], ("/zaap 5,-18", None, None))
         finally:
             # Reset only this widget. A global processEvents() here also runs
             # unrelated callbacks left by earlier Qt tests and can make the
@@ -68,12 +70,33 @@ class RuntimeRegressionContractTests(unittest.TestCase):
 
         widget = storage.ZaapWidget(lambda _text: None, callback)
         try:
-            widget.launch_zaap({"label": "Bonta [-32,-56]", "search": "Bonta"})
+            widget.launch_zaap(
+                {"label": "Bonta [-32,-56]", "search": "Bonta", "posX": -32, "posY": -56}
+            )
             self.assertEqual(calls, ["called"])
         finally:
             widget.reset_launch_guard()
             widget.deleteLater()
             QCoreApplication.sendPostedEvents(widget, QEvent.DeferredDelete)
+
+    def test_zaap_widget_refuses_missing_coordinates(self) -> None:
+        calls: list[tuple[object, ...]] = []
+        statuses: list[str] = []
+        widget = storage.ZaapWidget(statuses.append, lambda *args: calls.append(args))
+        try:
+            widget.launch_zaap({"label": "Zaap sans coordonnees", "search": "Zaap"})
+            self.assertEqual(calls, [])
+            self.assertIn("coordonnees absentes", statuses[-1])
+        finally:
+            widget.reset_launch_guard()
+            widget.deleteLater()
+            QCoreApplication.sendPostedEvents(widget, QEvent.DeferredDelete)
+
+    def test_zaap_command_parser_accepts_only_one_direct_command(self) -> None:
+        self.assertEqual(parse_zaap_command(" /ZAAP -32, -56 "), (-32, -56))
+        self.assertEqual(zaap_command(-32, -56), "/zaap -32,-56")
+        self.assertIsNone(parse_zaap_command("Bonta"))
+        self.assertIsNone(parse_zaap_command("/zaap -32,-56 ; /travel 1,2"))
 
     def test_lookup_refuses_ambiguous_partial_match(self) -> None:
         oak = {"name": "Bois de Chêne"}
