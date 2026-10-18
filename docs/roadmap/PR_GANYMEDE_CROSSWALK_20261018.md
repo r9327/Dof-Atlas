@@ -419,3 +419,7 @@ Le guide source Domakuro 2212 a été observé en entier : **120 étapes continu
 ### Treizième lot — Dofus Ébène (18/10/2026)
 
 Ganymède guide **2261 / Ébène : 142 étapes** publiques successives sur 3 pages. Fichier de références factuelles, aucune reproduction éditoriale et zéro certification d'objectif/route. Le lot porte l'inventaire à **86/95 guides / 4 951 étapes**, 9 guides restant à inventorier. Forgelave reste non détaillé : la consultation de sa deuxième page a été bloquée, et aucun instantané incomplet n'a été enregistré.
+
+### Quatorzième lot — Abyssal et Frigost 1 (18/10/2026)
+
+Le guide Ganymède **Dofus Abyssal 2269** est collecté sur 4 pages, **174 étapes** numérotées sans trou ; **Frigost 1 2213**, également sur 4 pages, **181 étapes**. Deux nouveaux instantanés de références factuelles non interprétées. **88/95 guides, 5 306 étapes** de liens sources observés, **7 guides non détaillés**. Le simple référencement d'une quête ne justifie ni son caractère obligatoire, ni ses prérequis, ni l'ordre du parcours ; la certification Atlas/DPLN reste distincte.
