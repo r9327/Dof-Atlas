@@ -5,8 +5,7 @@ link/coordinate observations and existing Atlas quest IDs. No Ganymède prose
 is copied. A link to a quest is not proof of the action required at a step.
 
 This tool intentionally CANNOT activate or replace existing guides. The
-step actions, quest-objective mapping, prerequisites, and per-character
-progress migration need independent certification before cutover.
+step actions, quest-objective mapping, prerequisites, need technical validation before cutover; no historical character progress exists.
 """
 from __future__ import annotations
 
@@ -220,7 +219,6 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                 "cutover_blockers": [
                     "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
                     "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
-                    "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED",
                 ],
             }
         except (OSError, ValueError, KeyError, TypeError) as exc:
