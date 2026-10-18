@@ -26,6 +26,14 @@ def route_fingerprint(source_guide_id: int, step_ids: list[str]) -> str:
     ).encode("utf-8")).hexdigest()
 
 
+def certified_payload_sha256(payload: dict) -> str:
+    """Bind the signed manifest to every draft action and its evidence."""
+    encoded = json.dumps(
+        payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def select_verified_replacement_path(
     guides_dir: Path,
     catalog_row: dict,
@@ -58,13 +66,19 @@ def select_verified_replacement_path(
         source_id = declaration.get("source_guide_id")
         count = declaration.get("source_step_count")
         expected_hash = declaration.get("fingerprint")
+        expected_payload_hash = declaration.get("payload_sha256")
         if (type(source_id) is not int or source_id <= 0
                 or type(count) is not int or count <= 0
-                or not isinstance(expected_hash, str) or len(expected_hash) != 64):
+                or not isinstance(expected_hash, str) or len(expected_hash) != 64
+                or not isinstance(expected_payload_hash, str)
+                or re.fullmatch(r"[0-9a-f]{64}", expected_payload_hash) is None):
             return None
 
         path = root / f"{guide_id}.json"
         payload = json.loads(path.read_text(encoding="utf-8"))
+        # A route ID fingerprint alone cannot detect edited actions/evidence.
+        if not isinstance(payload, dict) or certified_payload_sha256(payload) != expected_payload_hash:
+            return None
         if (payload.get("schema_version") != 1
                 or payload.get("id") != guide_id
                 or payload.get("category") != "dofus"
