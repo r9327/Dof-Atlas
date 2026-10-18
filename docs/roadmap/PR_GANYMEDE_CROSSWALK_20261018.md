@@ -381,3 +381,11 @@ Références : [quête](https://www.dofuspourlesnoobs.com/lanneacutee-du-dragon.
 Inventaire des étapes factuelles et des liens sur les guides Ganymède : Sylvan Dofus (ID 2290, 2 étapes), Pine Done (2285, 4), Cloudy/Nébuleux (2247, 6), Argenté scintillant (2273, 15), Al Howin (2590, 16), Secret of the Dofus : Prologue (2284, 21), Sidimote 5 (2259, 25), Albatrocious Rock (2274, 26) et Srambad 1 (2244, 29).
 
 **Couverture : 33/95 guides, 1 515 étapes observées, 62 guides encore sans instantané d'étapes.** Les fichiers `ganymede_<ID>_observed_links.json` sont datés, validés sur le compteur d'étapes et non certifiés comme trajets. **Sylvan Dofus n'est pas le guide Atlas « Sylvestre Opti »** : aucune équivalence ne doit être déduite de la ressemblance de leurs noms.
+
+### Septième lot — neuf guides (18/10/2026)
+
+Servitude (2278, 29 étapes), Amber Ochre (2214, 30), Sidimote 3 (2235, 31), Valonia 2 (2265, 32), Destroyed (2282, 32), Dofus Ocre (2218, 33), Ecaflipus 3 (2258, 39), Corruption (2280, 40) et Crocuzko (2264, 40). **9 nouveaux guides / 306 étapes**, pour 42 guides et 1 821 étapes cumulées.
+
+### Huitième lot — huit guides (18/10/2026)
+
+Atoll of the Possessed (2291, 41), Evil Forest (2255, 43), Misery (2279, 43), Cania 2 (2232, 44), Vigilantes (2236, 45), Vulbis Dofus (2260, 47), Enudorado 2 (2238, 50), Sidimote 4 (2254, 52). **8 nouveaux guides / 365 étapes**, pour **50 guides sur 95, 2 186 étapes observées**, **45 guides sans instantané détaillé**. Les 52 étapes de Sidimote 4 ont été vérifiées sur deux pages sans trou. Les instantanés ne contiennent ni textes éditoriaux ni statut de quête certifié. L'audit des 12 correspondances nommées Cawotte/Dolmanax demeure distinct de ces observations.
