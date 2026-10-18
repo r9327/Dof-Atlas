@@ -913,3 +913,44 @@ et l'absence de validation de progression induite.
 ### Synchronisation Cawotte, Émeraude et Dolmanax — 125 fiches (18/10/2026)
 
 Le générateur n'utilise plus qu'un seul ensemble d'actions candidates par étape, audité par `tools.audit_ganymede_step_actions` avec contrôle des IDs DofusDB et des coordonnées de source. Les trois routes Dofus stockées dans `replacement_drafts` sont à jour : **Cawotte 64 étapes / 191 actions candidates**, **Émeraude 52 / 179**, **Dolmanax 9 / 23**, soit **125 étapes et 393 actions candidates**. Le test de parité régénère chaque parcours depuis les données sources et interdit toute divergence du nombre d'étapes, de leur identité, de leurs actions ou de leur statut de validation. Les objectifs canoniques Doduda et les prérequis réels restent non certifiés ; aucun ancien parcours ou état des personnages n'a été effacé, `replacement_active=false` dans tous les fichiers.
+
+
+### Consolidation du corpus Dofus Ganymède — 19 octobre 2026
+
+Les 20 brouillons Dofus directement appariés à Ganymède disposent
+désormais chacun d'un fichier `ganymede_<id>_action_candidates.json`.
+Les **1 694 étapes sur 1 694** ont des propositions d'actions associées et
+une séquence numérotée intégrée aux brouillons
+`replacement_drafts/<atlas_guide_id>.json`. Aucun ancien guide actif
+n'a été supprimé et la progression par personnage n'a pas été migrée.
+
+Deux degrés de preuve **distincts** sont enregistrés :
+
+* **338 étapes examinées comme faits de source** : Cawotte, Émeraude,
+  Dolmanax, Dokoko, Pourpre, Vulbis, Tacheté, Nébuleux et Dom de Pin.
+  Les actions sont des candidats factuels, **pas** des objectifs Doduda certifiés.
+* **1 356 étapes avec indices extraits automatiquement** : Argenté,
+  Veilleurs, Domakuro, Turquoise, Dorigami, Dofus des Glaces, Ivoire,
+  Ébène, Abyssal, Forgelave et Cauchemar. Elles sont marquées
+  `AUTO_EXTRACTED_NEEDS_REVIEW` : descriptions incomplètes ou mal
+  classées possibles, certaines fiches contenant un signal explicite
+  `requires_manual_review`. Une extraction n'équivaut jamais à une revue.
+
+Le contrôle `tests/test_ganymede_all_dofus_draft_action_parity.py` exige
+un nombre identique d'étapes/IDs/actions dans les preuves sources, les
+brouillons stockés et le générateur, tout en interdisant la validation
+manuelle, l'achèvement automatique et l'activation du remplacement.
+
+**Ce qui reste obligatoirement à faire avant toute bascule** : vérifier
+chaque action et son lien réel aux quêtes, étapes et objectifs Doduda ;
+corriger les actions auto-extraites, distinguer combats optionnels,
+sources alternatives et conditions AND/OR ; certifier ressources,
+quantités et transitions, puis migration sûre des progressions
+multi-personnages. `dofoozbz` et `dokille` restent sans correspondance
+Ganymède directe. Les vérifications runtime Doduda exigent ses fichiers
+bruts installés, non présents dans le dépôt.
+
+La séquence de travail reste **#229 → #226 → #225**, sans fusion ni
+remplacement des anciennes fiches avant une vraie certification au SHA.
+Le fait d'avoir 100 % des positions sources **ne signifie pas** disposer
+de 100 % des fiches jouables.
