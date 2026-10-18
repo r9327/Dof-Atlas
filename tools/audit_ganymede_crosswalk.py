@@ -133,6 +133,91 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
     if absent:
         issues.append({"code": "crosswalk_guide_absent_from_index", "detail": str(absent)})
 
+
+    # Tree-level prerequisites are factual links only, not quest/objective
+    # prerequisites or certification of an optimized guide.
+    tree_info = snapshot.get("public_tree_prerequisite_graph") if isinstance(snapshot, dict) else None
+    prerequisites_by_id: dict[int, list[int]] = {}
+    listed_step_counts = 0
+    if tree_info is not None:
+        if (not isinstance(tree_info, dict)
+                or tree_info.get("status") != "SOURCE_METADATA_ONLY"
+                or tree_info.get("source_url") != "https://ganymede-app.com/tree?view=list"
+                or tree_info.get("route_content_certified") is not False):
+            issues.append({"code": "tree_false_certification", "detail": "tree graph is metadata only"})
+        for position, item in enumerate(index_rows):
+            if not isinstance(item, dict):
+                continue
+            guide_id = item.get("ganymede_guide_id")
+            steps = item.get("listed_step_count")
+            if type(steps) is not int or steps < 1:
+                issues.append({"code": "tree_step_count", "detail": f"main_index[{position}]"})
+            else:
+                listed_step_counts += 1
+            required = item.get("public_tree_prerequisite_guide_ids")
+            if (not isinstance(required, list)
+                    or any(type(value) is not int or value <= 0 for value in required)
+                    or len(required) != len(set(required))):
+                issues.append({"code": "tree_invalid_prerequisites", "detail": f"main_index[{position}]"})
+                continue
+            if type(guide_id) is not int:
+                continue
+            prerequisites_by_id[guide_id] = required
+            for required_id in required:
+                if required_id not in index_ids or required_id == guide_id:
+                    issues.append({
+                        "code": "tree_unknown_or_self_prerequisite",
+                        "detail": f"{guide_id}: {required_id}",
+                    })
+
+        visited: set[int] = set()
+        active: set[int] = set()
+        def visit(guide_id: int) -> bool:
+            if guide_id in active:
+                return True
+            if guide_id in visited:
+                return False
+            visited.add(guide_id)
+            active.add(guide_id)
+            cyclic = any(
+                visit(required_id) for required_id in prerequisites_by_id.get(guide_id, [])
+                if required_id in prerequisites_by_id
+            )
+            active.remove(guide_id)
+            return cyclic
+
+        if any(visit(guide_id) for guide_id in prerequisites_by_id):
+            issues.append({"code": "tree_prerequisite_cycle", "detail": "cyclic guide dependency"})
+        actual_edges = sum(len(deps) for deps in prerequisites_by_id.values())
+        actual_guides = sum(bool(deps) for deps in prerequisites_by_id.values())
+        if (not isinstance(tree_info, dict)
+                or tree_info.get("listed_step_counts") != listed_step_counts
+                or tree_info.get("guides_with_dependencies") != actual_guides
+                or tree_info.get("dependency_edges") != actual_edges
+                or listed_step_counts != len(index_rows)):
+            issues.append({"code": "tree_snapshot_mismatch", "detail": "tree metadata coverage/counts"})
+
+    crosswalk_by_id = {
+        row["ganymede_guide_id"]: row
+        for row in rows if isinstance(row, dict)
+        and type(row.get("ganymede_guide_id")) is int
+    }
+    guide_coverage = [
+        {
+            "ganymede_guide_id": item["ganymede_guide_id"],
+            "title": item.get("title", ""),
+            "listed_step_count": item.get("listed_step_count"),
+            "public_tree_prerequisite_guide_ids": item.get("public_tree_prerequisite_guide_ids", []),
+            "atlas_guide_ids": crosswalk_by_id.get(item["ganymede_guide_id"], {}).get("atlas_guide_ids", []),
+            "mapping_status": (
+                "CROSSWALK_METADATA_ONLY" if item["ganymede_guide_id"] in crosswalk_by_id
+                else "UNMAPPED"
+            ),
+        }
+        for item in index_rows if isinstance(item, dict)
+        and type(item.get("ganymede_guide_id")) is int
+    ]
+
     return {
         "status": "FAIL" if issues else "PASS_METADATA_ONLY",
         "evidence_type": "metadata_only",
@@ -144,6 +229,13 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
             for target in row.get("atlas_guide_ids", [])
         }),
         "verified_routes": 0,
+        "tree_prerequisite_edges": sum(len(deps) for deps in prerequisites_by_id.values()),
+        "tree_guides_with_dependencies": sum(bool(deps) for deps in prerequisites_by_id.values()),
+        "guide_coverage": guide_coverage,
+        "unmapped_guide_ids": [
+            row["ganymede_guide_id"] for row in guide_coverage
+            if row["mapping_status"] == "UNMAPPED"
+        ],
         "issues": issues,
     }
 
