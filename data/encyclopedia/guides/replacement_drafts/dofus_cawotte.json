@@ -94,7 +94,25 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "guide_dependency",
+              "guide_id": 2204,
+              "label": "Contrôler le parcours d'accès aux Dofus"
+            },
+            {
+              "kind": "quest_prerequisite",
+              "quest_id": 827,
+              "label": "Contrôler l'accès aux Wabbits"
+            },
+            {
+              "kind": "quest_prerequisite",
+              "quest_id": 2193,
+              "label": "Contrôler le préalable du sage"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0002",
@@ -183,7 +201,61 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "object_id": 361,
+              "quantity": 1,
+              "label": "Cawotte pour la quête gastronomique",
+              "quest_id": 840,
+              "can_obtain_on_route": true
+            },
+            {
+              "kind": "prepare_object",
+              "object_id": 969,
+              "quantity": 1,
+              "label": "Couronne du Wa Wabbit",
+              "quest_id": 835,
+              "can_obtain_on_route": true
+            },
+            {
+              "kind": "prepare_object",
+              "object_id": 970,
+              "quantity": 1,
+              "label": "Bâton du Wa Wabbit",
+              "quest_id": 835,
+              "can_obtain_on_route": true
+            },
+            {
+              "kind": "prepare_object",
+              "object_id": 971,
+              "quantity": 1,
+              "label": "Cape du Wa Wabbit",
+              "quest_id": 835,
+              "can_obtain_on_route": true
+            },
+            {
+              "kind": "optional_preparation",
+              "object_id": 361,
+              "quantity": 100,
+              "needed_at_source_step": 34,
+              "conditional": "sort_cawotte",
+              "label": "Cawottes supplémentaires pour le sort facultatif"
+            },
+            {
+              "kind": "optional_preparation",
+              "object_id": 9687,
+              "quantity": 2,
+              "conditional": "parcours_ocre_et_emeraude",
+              "label": "Pierres d'âme pour parcours parallèles"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le PNJ au sud du Zaap"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0003",
@@ -246,7 +318,24 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "quest_id": 836,
+              "label": "Commencer Sauvegarder l'espèce avec Lilou la Lenalde"
+            },
+            {
+              "kind": "quest_start",
+              "quest_id": 828,
+              "label": "Ouvrir Timassacre entre wabbits avec Logel le Lenald"
+            },
+            {
+              "kind": "move",
+              "label": "Se rendre chez le capitaine"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0004",
@@ -288,7 +377,19 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "quest_id": 952,
+              "label": "Démarrer La chasse de Lily auprès du capitaine"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Wanald"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0005",
@@ -352,7 +453,19 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "quest_id": 833,
+              "label": "Interroger Wanald et ouvrir Jamais deux sans trois"
+            },
+            {
+              "kind": "move",
+              "label": "Se rendre à la maison Wabbit"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0006",
@@ -385,7 +498,22 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Échanger avec le Wabbit du Midi Wayonnant"
+            },
+            {
+              "kind": "interact",
+              "label": "Entrer dans la maison et examiner le tapis"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la zone du bois"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0007",
@@ -418,7 +546,18 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner l'un des tas de bois"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la zone de la plante"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0008",
@@ -451,7 +590,18 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner la plante rose"
+            },
+            {
+              "kind": "move",
+              "label": "Continuer vers le point suivant"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0009",
@@ -484,7 +634,18 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner le trou dans le sol"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner à Lilou la Lenalde"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0010",
@@ -561,7 +722,24 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "quest_id": 836,
+              "label": "Terminer Sauvegarder l'espèce avec Lilou la Lenalde"
+            },
+            {
+              "kind": "quest_start",
+              "quest_id": 837,
+              "label": "Démarrer Faites l'amour, pas la guerre avec Lilou"
+            },
+            {
+              "kind": "move",
+              "label": "Continuer vers l'étape suivante"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0011",
@@ -599,7 +777,26 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Parler à Wawitna et récupérer son prélèvement",
+              "object_id": 13205
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir un Wabbit Noir aplati en combattant un Wabbit Noir",
+              "object_id": 12878,
+              "monster_id": 65,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Aller vers les plantations"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0012",
@@ -632,7 +829,18 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner les Cawottes présentes sur la carte"
+            },
+            {
+              "kind": "move",
+              "label": "Passer par les souterrains vers le prochain point"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0013",
@@ -667,7 +875,19 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Inspecter le récipient et récupérer le jus de Cawotte râpée",
+              "object_id": 12877
+            },
+            {
+              "kind": "move",
+              "label": "Sortir vers l'est"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0014",
@@ -700,7 +920,18 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Wabbit rencontré sur cette carte"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'entrée souterraine via le Zaap"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0015",
@@ -738,7 +969,30 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Entrer puis utiliser le passage souterrain"
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner le tableau et récupérer l'œuf Wabbit",
+              "object_id": 12874
+            },
+            {
+              "kind": "drop_object",
+              "label": "Vérifier la récupération d'un Wabbit Noir aplati",
+              "object_id": 12878,
+              "monster_id": 65,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Retourner à Lilou la Lenalde"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0016",
@@ -815,7 +1069,24 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer Faites l'amour, pas la guerre auprès de Lilou",
+              "quest_id": 837
+            },
+            {
+              "kind": "quest_start",
+              "label": "Commencer Ça sent la cawotte auprès de Lilou",
+              "quest_id": 838
+            },
+            {
+              "kind": "move",
+              "label": "Repartir vers les points de collecte"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0017",
@@ -848,7 +1119,18 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner la Cawotte sur la carte"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la Cawotte suivante"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0018",
@@ -881,7 +1163,18 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner la Cawotte sur la carte"
+            },
+            {
+              "kind": "move",
+              "label": "Continuer vers le nord"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0019",
@@ -914,7 +1207,18 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner la Cawotte sur la carte"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la position suivante"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0020",
@@ -947,7 +1251,18 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner la Cawotte sur la carte"
+            },
+            {
+              "kind": "move",
+              "label": "Aller à la dernière étape de cette séquence"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2205_step_0021",
@@ -980,7 +1295,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0022",
@@ -1009,7 +1326,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0023",
@@ -1038,7 +1357,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0024",
@@ -1071,7 +1392,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0025",
@@ -1104,7 +1427,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0026",
@@ -1137,7 +1462,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0027",
@@ -1216,7 +1543,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0028",
@@ -1253,7 +1582,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0029",
@@ -1286,7 +1617,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0030",
@@ -1319,7 +1652,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0031",
@@ -1352,7 +1687,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0032",
@@ -1385,7 +1722,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0033",
@@ -1414,7 +1753,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0034",
@@ -1449,7 +1790,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0035",
@@ -1526,7 +1869,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0036",
@@ -1561,7 +1906,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0037",
@@ -1594,7 +1941,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0038",
@@ -1631,7 +1980,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0039",
@@ -1666,7 +2017,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0040",
@@ -1699,7 +2052,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0041",
@@ -1732,7 +2087,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0042",
@@ -1809,7 +2166,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0043",
@@ -1888,7 +2247,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0044",
@@ -1917,7 +2278,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0045",
@@ -1969,7 +2332,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0046",
@@ -2025,7 +2390,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0047",
@@ -2088,7 +2455,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0048",
@@ -2176,7 +2545,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0049",
@@ -2209,7 +2580,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0050",
@@ -2294,7 +2667,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0051",
@@ -2334,7 +2709,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0052",
@@ -2392,7 +2769,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0053",
@@ -2434,7 +2813,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0054",
@@ -2497,7 +2878,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0055",
@@ -2535,7 +2918,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0056",
@@ -2577,7 +2962,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0057",
@@ -2617,7 +3004,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0058",
@@ -2666,7 +3055,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0059",
@@ -2702,7 +3093,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0060",
@@ -2751,7 +3144,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0061",
@@ -2794,7 +3189,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0062",
@@ -2843,7 +3240,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0063",
@@ -2889,7 +3288,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         },
         {
           "id": "ganymede_2205_step_0064",
@@ -2934,7 +3335,9 @@
           "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidates": [],
+          "source_action_candidate_status": "NO_ACTION_CANDIDATE_YET"
         }
       ]
     }
@@ -2943,5 +3346,7 @@
     "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
     "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
     "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED"
-  ]
+  ],
+  "source_action_candidate_steps": 20,
+  "source_action_candidate_actions": 53
 }

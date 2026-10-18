@@ -877,3 +877,35 @@ squelettes. Il reste à reconstruire et certifier les consignes
 de jeu originales de chaque étape grâce à nos données et à
 la source Ganymède, puis à activer le suivi continu #226/#225
 à mesure que chaque guide devient vraiment jouable.
+
+
+### Connexion des actions Cawotte au nouveau parcours continu (18/10/2026)
+
+Les **20 premières étapes Cawotte (Ganymède 2205)** ont
+un dossier séparé de **53 actions factuelles candidates** :
+`ganymede_2205_action_candidates.json`. Le générateur
+`tools.build_ganymede_replacement_previews` l'intègre
+désormais dans les **mêmes fiches stables**,
+`ganymede_2205_step_0001` à `0020`, aux champs
+`source_action_candidates` et `source_action_candidate_status`.
+Les **44 suivantes** gardent la séquence mais restent à
+reconstruire. Le fichier de prévisualisation
+`replacement_drafts/dofus_cawotte.json` est synchronisé avec
+ces 20 fiches.
+
+Avant l'intégration, le générateur exécute l'audit
+`tools.audit_ganymede_step_actions` : les liens de quêtes,
+d'objets, de guides et coordonnées doivent exister dans l'étape
+source et ne peuvent être inventés. Les libellés français
+de ces actions sont originaux et devront être recoupés aux
+objectifs réels Doduda / Atlas, dont certains diffèrent selon
+la version.
+
+**Aucune de ces 29 actions n'est certifiée** : leurs fiches
+gardent `verified_actions=[]`,
+`manual_completion_allowed=false` et
+`replacement_active=false`. Cette source de review
+ne satisfait pas les conditions de bascule atomique.
+Les tests du générateur vérifient explicitement les
+**20 étapes candidates / 53 actions / 44 étapes restantes**
+et l'absence de validation de progression induite.

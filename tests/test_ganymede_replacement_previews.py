@@ -168,6 +168,21 @@ class GanymedeReplacementPreviewTests(unittest.TestCase):
         self.assertEqual(report["dofus_guides_with_continuous_drafts"], 0)
         self.assertEqual(report["previews"], {})
 
+    def test_cawotte_source_actions_are_never_automatically_certified(self) -> None:
+        # The independently authored action-review file can populate an
+        # ordered preview, but not playable progress or auto validation.
+        result = build_dofus_replacement_previews(ROOT)
+        cawotte = result["previews"]["dofus_cawotte"]
+        first = cawotte["sections"][0]["steps"][0]
+        self.assertEqual(first["source_action_candidate_status"], "REVIEW_SOURCE_ACTION")
+        self.assertTrue(first["source_action_candidates"])
+        self.assertEqual(first["verified_actions"], [])
+        self.assertFalse(first["manual_completion_allowed"])
+        last = cawotte["sections"][0]["steps"][-1]
+        self.assertEqual(last["source_action_candidate_status"], "NO_ACTION_CANDIDATE_YET")
+        self.assertEqual(last["source_action_candidates"], [])
+        self.assertFalse(cawotte["replacement_active"])
+
     def test_invalid_ids_cannot_be_used_for_progress(self) -> None:
         for gid, step in ((0, 1), (2205, 0), (True, 1), (2205, True)):
             with self.subTest(gid=gid, step=step):
@@ -180,6 +195,18 @@ class GanymedeReplacementPreviewTests(unittest.TestCase):
                          result["issues"])
         self.assertEqual(result["dofus_guides_with_continuous_drafts"], 20)
         self.assertEqual(result["total_source_steps_in_drafts"], 1694)
+        cawotte = result["previews"]["dofus_cawotte"]
+        self.assertEqual(cawotte["source_action_candidate_steps"], 20)
+        self.assertEqual(cawotte["source_action_candidate_actions"], 53)
+        self.assertEqual(
+            sum(bool(s["source_action_candidates"])
+                for s in cawotte["sections"][0]["steps"]), 20
+        )
+        self.assertTrue(all(
+            s["verified_actions"] == [] and
+            not s["manual_completion_allowed"]
+            for s in cawotte["sections"][0]["steps"]
+        ))
         self.assertEqual(
             set(result["dofus_guides_without_direct_ganymede"]),
             {"dokille", "dofoozbz"},
