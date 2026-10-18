@@ -179,8 +179,8 @@ class GanymedeReplacementPreviewTests(unittest.TestCase):
         self.assertEqual(first["verified_actions"], [])
         self.assertFalse(first["manual_completion_allowed"])
         last = cawotte["sections"][0]["steps"][-1]
-        self.assertEqual(last["source_action_candidate_status"], "NO_ACTION_CANDIDATE_YET")
-        self.assertEqual(last["source_action_candidates"], [])
+        self.assertEqual(last["source_action_candidate_status"], "REVIEW_SOURCE_ACTION")
+        self.assertTrue(last["source_action_candidates"])
         self.assertFalse(cawotte["replacement_active"])
 
     def test_invalid_ids_cannot_be_used_for_progress(self) -> None:
@@ -212,11 +212,11 @@ class GanymedeReplacementPreviewTests(unittest.TestCase):
         self.assertEqual(result["dofus_guides_with_continuous_drafts"], 20)
         self.assertEqual(result["total_source_steps_in_drafts"], 1694)
         cawotte = result["previews"]["dofus_cawotte"]
-        self.assertEqual(cawotte["source_action_candidate_steps"], 20)
-        self.assertEqual(cawotte["source_action_candidate_actions"], 53)
+        self.assertEqual(cawotte["source_action_candidate_steps"], 64)
+        self.assertEqual(cawotte["source_action_candidate_actions"], 191)
         self.assertEqual(
             sum(bool(s["source_action_candidates"])
-                for s in cawotte["sections"][0]["steps"]), 20
+                for s in cawotte["sections"][0]["steps"]), 64
         )
         self.assertTrue(all(
             s["verified_actions"] == [] and

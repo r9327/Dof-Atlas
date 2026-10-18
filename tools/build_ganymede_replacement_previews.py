@@ -115,26 +115,6 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                         "local_declared_prerequisites": step.get("prerequisites", []),
                         "local_alternative_groups": step.get("alternative_groups", []),
                     })
-            # Preserve independently checked source-action facts as REVIEW
-            # candidates; they must never be promoted to verified_actions.
-            action_candidate_path = (
-                root / GUIDES_DIR /
-                f"ganymede_{source_id}_action_candidates.json"
-            )
-            reviewed_actions: dict[int, dict] = {}
-            if action_candidate_path.is_file():
-                from tools.audit_ganymede_step_actions import audit_action_candidates
-                action_check = audit_action_candidates(
-                    root, action_candidate_path.relative_to(root)
-                )
-                if action_check["status"] != "REVIEW_ACTION_CANDIDATES_ONLY":
-                    raise ValueError("Action candidates failed source review")
-                action_source = _json(action_candidate_path)
-                for action_step in action_source["steps"]:
-                    step_no = action_step["source_step_number"]
-                    if step_no in reviewed_actions:
-                        raise ValueError("Duplicate action candidate step")
-                    reviewed_actions[step_no] = action_step
             # Reviewed factual actions are separate from executable/certified
             # objectives. Never make these drafts playable from a source hint.
             candidate_by_step = {}
@@ -178,11 +158,8 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                          "is_step_action_certified": False}
                         for qid in quest_refs
                     ],
-                    "source_action_candidates": reviewed_actions.get(i, {}).get(
-                        "actions", []
-                    ),
                     "source_action_candidate_status": (
-                        "REVIEW_SOURCE_ACTION" if i in reviewed_actions
+                        "REVIEW_SOURCE_ACTION" if i in candidate_by_step
                         else "NO_ACTION_CANDIDATE_YET"
                     ),
                     "verified_actions": [],
@@ -218,9 +195,9 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                 "expected_source_step_count": len(steps),
                 "playable_step_count": 0,
                 "factual_action_reviewed_step_count": len(candidate_by_step),
-                "source_action_candidate_steps": len(reviewed_actions),
+                "source_action_candidate_steps": len(candidate_by_step),
                 "source_action_candidate_actions": sum(
-                    len(value["actions"]) for value in reviewed_actions.values()
+                    len(value["actions"]) for value in candidate_by_step.values()
                 ),
                 "source_link_snapshot": snapshot_path.name,
                 "source_text_copied": False,
