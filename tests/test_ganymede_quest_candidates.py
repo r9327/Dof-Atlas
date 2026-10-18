@@ -258,11 +258,103 @@ class GanymedeQuestCandidateAuditTests(unittest.TestCase):
         self.assertEqual(bad["status"], "FAIL")
         self.assertIn("invalid_independent_evidence", [i["code"] for i in bad["issues"]])
 
+    def test_non_main_reference_never_becomes_main_requirement(self) -> None:
+        evidence = {
+            "schema_version": 1,
+            "source_guide_id": 2251,
+            "atlas_guide_id": "guide_complet",
+            "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+            "quest_objectives_verified": False,
+            "route_verified": False,
+            "sources": {
+                "dpln_quest_list": "https://www.dofuspourlesnoobs.com/example.html",
+                "ganymede_guide": "https://ganymede-app.com/guides/2251",
+            },
+            "main_quests": [{
+                "quest_id": 1631, "name": "Quête principale",
+                "achievement_group": "Succès",
+                "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1631",
+                "identity_status": "REVIEW_TRIANGULATED_ID_NAME",
+            }],
+            "access_and_prerequisites": [],
+            "non_main_references": [{
+                "quest_id": 9999,
+                "name": "Quête de contexte",
+                "status": "CONTEXT_UNCLASSIFIED",
+                "dofusdb_url": "https://dofusdb.fr/fr/database/quest/9999",
+            }],
+        }
+        output = self.root / GUIDES_DIR / "ganymede_dpln_example_evidence.json"
+        output.write_text(json.dumps(evidence), encoding="utf-8")
+        report = audit_ganymede_quest_candidates(self.root)
+        self.assertEqual(report["status"], "REVIEW_REQUIRED", report["issues"])
+        guide = report["guide_reports"][0]
+        self.assertEqual(guide["triangulated_named_quest_candidates"], 1)
+        self.assertEqual(guide["non_main_source_quest_ids"], [9999])
+        self.assertEqual(guide["non_main_reference_review"][0]["observed_source_steps"], [2])
+        self.assertFalse(guide["non_main_reference_review"][0]["mentioned_in_atlas_guide"])
+        self.assertEqual(report["certified_quest_objectives"], 0)
+
+        evidence["non_main_references"][0]["quest_id"] = 1631
+        evidence["non_main_references"][0]["dofusdb_url"] = (
+            "https://dofusdb.fr/fr/database/quest/1631"
+        )
+        output.write_text(json.dumps(evidence), encoding="utf-8")
+        self.assertEqual(audit_ganymede_quest_candidates(self.root)["status"], "FAIL")
+
+    def test_unobserved_non_main_reference_is_rejected(self) -> None:
+        evidence = {
+            "schema_version": 1, "source_guide_id": 2251,
+            "atlas_guide_id": "guide_complet",
+            "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+            "quest_objectives_verified": False, "route_verified": False,
+            "sources": {
+                "dpln_quest_list": "https://www.dofuspourlesnoobs.com/example.html",
+                "ganymede_guide": "https://ganymede-app.com/guides/2251",
+            },
+            "main_quests": [{
+                "quest_id": 1631, "name": "Principale",
+                "achievement_group": "Succès",
+                "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1631",
+                "identity_status": "REVIEW_TRIANGULATED_ID_NAME",
+            }],
+            "access_and_prerequisites": [],
+            "non_main_references": [{
+                "quest_id": 44444, "name": "Absente",
+                "status": "CONTEXT_UNCLASSIFIED",
+                "dofusdb_url": "https://dofusdb.fr/fr/database/quest/44444",
+            }],
+        }
+        output = self.root / GUIDES_DIR / "ganymede_dpln_example_evidence.json"
+        output.write_text(json.dumps(evidence), encoding="utf-8")
+        report = audit_ganymede_quest_candidates(self.root)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn(
+            "evidence_nonmain_reference_unobserved",
+            [issue["code"] for issue in report["issues"]],
+        )
+
     def test_repository_snapshots_are_discovery_not_gameplay_proof(self) -> None:
         report = audit_ganymede_quest_candidates(ROOT)
         self.assertEqual(report["status"], "REVIEW_REQUIRED", report["issues"])
         self.assertEqual(report["guide_snapshots_checked"], 95)
-        self.assertEqual(report["triangulated_named_quest_candidates"], 25)
+        self.assertEqual(report["triangulated_named_quest_candidates"], 33)
+        pourpre = next(r for r in report["guide_reports"] if r["source_guide_id"] == 2276)
+        self.assertEqual(pourpre["triangulated_named_quest_candidates"], 8)
+        self.assertEqual(
+            {p["candidate_atlas_quest_id"] for p in pourpre["candidate_pairs"]
+             if p["status"] == "REVIEW_TRIANGULATED_SOURCES"},
+            {1521, 1522, 1523, 1524, 1525, 1526, 1528, 1529},
+        )
+        self.assertEqual(pourpre["non_main_source_quest_ids"], [1527, 2538])
+        self.assertEqual(
+            pourpre["non_main_reference_review"][0]["status"],
+            "SIDE_QUEST_NOT_IN_EIGHT_DPLN",
+        )
+        self.assertEqual(
+            pourpre["non_main_reference_review"][1]["status"],
+            "CONTEXT_UNCLASSIFIED",
+        )
         emeraude = next(r for r in report["guide_reports"] if r["source_guide_id"] == 2211)
         self.assertEqual(emeraude["triangulated_named_quest_candidates"], 8)
         self.assertEqual(

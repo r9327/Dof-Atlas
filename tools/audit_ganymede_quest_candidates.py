@@ -97,6 +97,7 @@ def audit_ganymede_quest_candidates(root: Path) -> dict[str, object]:
             sources = evidence.get("sources")
             rows = evidence.get("main_quests")
             access = evidence.get("access_and_prerequisites", [])
+            side_rows = evidence.get("non_main_references", [])
             valid = (
                 evidence.get("schema_version") == 1
                 and type(source_id) is int and source_id in indexed
@@ -111,6 +112,7 @@ def audit_ganymede_quest_candidates(root: Path) -> dict[str, object]:
                 and sources.get("ganymede_guide") == f"https://ganymede-app.com/guides/{source_id}"
                 and isinstance(rows, list) and bool(rows)
                 and isinstance(access, list)
+                and isinstance(side_rows, list)
             )
             if not valid:
                 raise ValueError("evidence provenance, scope or main quest list invalid")
@@ -137,6 +139,22 @@ def audit_ganymede_quest_candidates(root: Path) -> dict[str, object]:
                         or row.get("dofusdb_url") !=
                         f"https://dofusdb.fr/fr/database/quest/{row.get('quest_id')}"):
                     raise ValueError("invalid access/prerequisite reference")
+            side_references: dict[int, dict[str, str]] = {}
+            for row in side_rows:
+                if not isinstance(row, dict):
+                    raise ValueError("non-object non-main quest reference")
+                quest_id = row.get("quest_id")
+                if (type(quest_id) is not int or quest_id <= 0
+                        or quest_id in side_references or quest_id in identities
+                        or any(a.get("quest_id") == quest_id for a in access)
+                        or not isinstance(row.get("name"), str) or not row["name"].strip()
+                        or row.get("status") not in (
+                            "SIDE_QUEST_NOT_IN_EIGHT_DPLN", "CONTEXT_UNCLASSIFIED"
+                        )
+                        or row.get("dofusdb_url") !=
+                        f"https://dofusdb.fr/fr/database/quest/{quest_id}"):
+                    raise ValueError(f"invalid non-main quest reference: {quest_id}")
+                side_references[quest_id] = row
             time_gate = evidence.get("timed_progression_evidence")
             if time_gate is not None:
                 if (not isinstance(time_gate, dict)
@@ -153,6 +171,7 @@ def audit_ganymede_quest_candidates(root: Path) -> dict[str, object]:
                 "dpln_source": sources["dpln_quest_list"],
                 "required_context_ids": {row["quest_id"] for row in access},
                 "timed_progression": time_gate,
+                "side_references": side_references,
             }
         except (OSError, ValueError, TypeError) as exc:
             problems.append({
@@ -204,6 +223,13 @@ def audit_ganymede_quest_candidates(root: Path) -> dict[str, object]:
                     "code": "evidence_quest_unresolved",
                     "detail": f"{guide_id}: IDs not found in both sources: {sorted(unresolved)}",
                 })
+        side_references = evidence["side_references"] if evidence else {}
+        missing_side = set(side_references) - external_ids
+        if missing_side:
+            problems.append({
+                "code": "evidence_nonmain_reference_unobserved",
+                "detail": f"{guide_id}: side references absent from source: {sorted(missing_side)}",
+            })
         verified_names = set(named_ids) & common_ids
         count_triangulated += len(verified_names)
         records = [
@@ -212,6 +238,7 @@ def audit_ganymede_quest_candidates(root: Path) -> dict[str, object]:
                 "candidate_atlas_quest_id": quest_id,
                 "observed_source_steps": sorted(per_quest_steps[quest_id]),
                 "status": ("REVIEW_TRIANGULATED_SOURCES" if quest_id in verified_names
+                           else "REVIEW_NON_MAIN_REFERENCE" if quest_id in side_references
                            else "REVIEW_NUMERIC_ID_ONLY"),
                 "independent_quest_name": named_ids[quest_id]["name"] if quest_id in verified_names else None,
                 "dpln_quest_list_url": evidence["dpln_source"] if quest_id in verified_names else None,
@@ -233,6 +260,17 @@ def audit_ganymede_quest_candidates(root: Path) -> dict[str, object]:
             "triangulated_named_quest_candidates": len(verified_names),
             "named_evidence_file": evidence["source_path"] if evidence else None,
             "timed_progression_review": evidence["timed_progression"] if evidence else None,
+            "non_main_source_quest_ids": sorted(side_references),
+            "non_main_reference_review": [
+                {
+                    "quest_id": qid,
+                    "status": side_references[qid]["status"],
+                    "observed_source_steps": sorted(per_quest_steps.get(qid, [])),
+                    "mentioned_in_atlas_guide": qid in local_ids,
+                    "required_objective_confirmed": False,
+                }
+                for qid in sorted(side_references)
+            ],
             "external_only_quest_ids": sorted(external_ids - local_ids),
             "atlas_only_quest_ids": sorted(local_ids - external_ids),
             "candidate_pairs": records,

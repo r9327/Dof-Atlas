@@ -532,3 +532,44 @@ Cela porte à **25 correspondances de noms/IDs recensées** :
 Sources : [Dofus Émeraude DPLN](https://www.dofuspourlesnoobs.com/dofus-emeraude.html),
 [Vert émeraude](https://www.dofuspourlesnoobs.com/vert-eacutemeraude.html),
 [guide Ganymède 2211](https://ganymede-app.com/guides/2211).
+
+
+### Cinquième rapprochement nominatif : Dofus Pourpre (8 quêtes principales)
+
+La page DPLN « Quêtes du Dofus Pourpre » distingue **huit quêtes**
+du succès « Pourpre profond ». Les IDs DofusDB **1521, 1522, 1523,
+1524, 1525, 1526, 1528 et 1529** sont tous présents dans les
+**45 étapes observées** de Ganymède 2276 et dans le guide Atlas
+`dofus_pourpre`. Les noms ont été confrontés avec DofusDB.
+
+**Ne pas confondre les références avec les obligations :**
+Ganymède 2276 cite aussi l'ID 1527 « Comment perdre ses plumes »,
+quête annexe listée séparément dans DPLN, ainsi que l'ID 2538
+« Chasse au trésor archéologique ». Ce dernier n'est pas présent dans
+les quêtes actuellement positionnées par le guide Atlas Pourpre et sa
+place réelle dans le parcours principal reste **non vérifiée**.
+Le fichier `ganymede_dpln_pourpre_evidence.json` les conserve
+dans `non_main_references` avec les statuts
+`SIDE_QUEST_NOT_IN_EIGHT_DPLN` et `CONTEXT_UNCLASSIFIED`.
+
+Le validateur `tools.audit_ganymede_quest_candidates` exige que ces
+références soient réellement observées dans la source, signale
+séparément leurs numéros d'étapes et leur éventuelle présence dans
+le guide Atlas, et **refuse** tout classement simultané comme quête
+principale. Les quêtes annexes et de contexte ne sont pas
+converties en prérequis obligatoires ni ajoutées au guide.
+
+Les besoins DPLN sont consignés **hors actions de guide** :
+1 Tige de Bambouto, 1 Tête de mort ; trois combats solo,
+deux combats réalisables en groupe, un combat tactique solo,
+et les cinq donjons cités par DPLN. L'affichage « À préparer »
+de #225 ne devra présenter que les besoins non déjà planifiés
+dans l'itinéraire #226, avec les quantités adaptées aux personnages.
+
+**Rapprochement cumulé : 33 noms/IDs candidats** (Cawotte 11,
+Dolmanax 1, Dokoko 5, Émeraude 8, Pourpre 8) ;
+**zéro objectif, prérequis de quête ou trajet certifié**.
+
+Sources : [DPLN : quêtes du Pourpre](https://www.dofuspourlesnoobs.com/quecirctes-du-dofus-pourpre.html),
+[Pourpre profond](https://www.dofuspourlesnoobs.com/pourpre-profond.html),
+[guide Ganymède 2276](https://ganymede-app.com/guides/2276).
