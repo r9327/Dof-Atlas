@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import QLabel, QListView, QVBoxLayout, QWidget
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
@@ -10,6 +10,7 @@ from app.modules.encyclopedia.services.quest_progress_service import QuestProgre
 from app.modules.encyclopedia.widgets.guide_card import (
     GUIDE_ID_ROLE,
     GuideCardDelegate,
+    GuideHomeColumns,
     GuideListModel,
 )
 
@@ -66,6 +67,7 @@ class GuideCatalogView(QWidget):
         root.setSpacing(8)
 
         self.result_model = GuideListModel(self)
+        self.home_dofus_model = GuideListModel(self)
         self.home_list = QListView()
         self.home_list.setObjectName("GuidesHomeList")
         self.home_list.setModel(self.result_model)
@@ -73,7 +75,23 @@ class GuideCatalogView(QWidget):
         self.home_list.setMouseTracking(True)
         self.home_list.setUniformItemSizes(False)
         self.home_list.clicked.connect(self._on_clicked)
-        root.addWidget(self.home_list, 1)
+        self.home_list.activated.connect(self._on_clicked)
+
+        self.home_dofus_list = QListView()
+        self.home_dofus_list.setObjectName("GuidesHomeDofusGrid")
+        self.home_dofus_list.setModel(self.home_dofus_model)
+        self.home_dofus_list.setItemDelegate(GuideCardDelegate(self.home_dofus_list))
+        self.home_dofus_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.home_dofus_list.setMouseTracking(True)
+        self.home_dofus_list.setViewMode(QListView.IconMode)
+        self.home_dofus_list.setFlow(QListView.LeftToRight)
+        self.home_dofus_list.setWrapping(True)
+        self.home_dofus_list.setResizeMode(QListView.Adjust)
+        self.home_dofus_list.setGridSize(QSize(280, 96))
+        self.home_dofus_list.clicked.connect(self._on_clicked)
+        self.home_dofus_list.activated.connect(self._on_clicked)
+        self.home_columns = GuideHomeColumns(self.home_list, self.home_dofus_list)
+        root.addWidget(self.home_columns, 1)
 
         self.home_empty = QLabel("Aucun guide ne correspond à la recherche.")
         self.home_empty.setObjectName("GuidesHomeEmptyText")
@@ -92,12 +110,14 @@ class GuideCatalogView(QWidget):
 
     def _show_runtime_loading(self) -> None:
         self.home_list.setVisible(False)
+        self.home_dofus_list.setVisible(False)
         self.home_empty.setText("Chargement des guides…")
         self.home_empty.setWordWrap(False)
         self.home_empty.setVisible(True)
 
     def show_runtime_error(self, message: str) -> None:
         self.home_list.setVisible(False)
+        self.home_dofus_list.setVisible(False)
         self.home_empty.setText(str(message or "Chargement des guides impossible."))
         self.home_empty.setWordWrap(True)
         self.home_empty.setVisible(True)
@@ -234,17 +254,23 @@ class GuideCatalogView(QWidget):
 
     def refresh_home(self) -> None:
         self.visible_guides = self.provider.search(self.search_text)
-        self.result_model.set_guides(self.visible_guides)
+        self.result_model.set_home_column(self.visible_guides, "left")
+        self.home_dofus_model.set_home_column(self.visible_guides, "right")
         self._apply_catalog_overrides()
         if not self.visible_guides:
             self.result_model.set_progress({})
+            self.home_dofus_model.set_progress({})
             self.home_list.setVisible(False)
+            self.home_dofus_list.setVisible(False)
             self.home_empty.setText("Aucun guide ne correspond à la recherche.")
             self.home_empty.setVisible(True)
             return
-        self.result_model.set_progress(self._progress_snapshot())
+        progress = self._progress_snapshot()
+        self.result_model.set_progress(progress)
+        self.home_dofus_model.set_progress(progress)
         self.home_empty.setVisible(False)
-        self.home_list.setVisible(True)
+        self.home_list.setVisible(bool(self.result_model.guides))
+        self.home_dofus_list.setVisible(bool(self.home_dofus_model.guides))
 
 
 __all__ = ["GuideCatalogView"]
