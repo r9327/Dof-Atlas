@@ -158,7 +158,9 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                          "is_step_action_certified": False}
                         for qid in quest_refs
                     ],
-                    "route_phase": candidate_by_step.get(i, {}).get("route_phase"),
+                    **({"route_phase": candidate_by_step[i]["route_phase"]}
+                       if i in candidate_by_step and "route_phase" in candidate_by_step[i]
+                       else {}),
                     "source_action_candidate_status": (
                         "REVIEW_SOURCE_ACTION" if i in candidate_by_step
                         else "NO_ACTION_CANDIDATE_YET"
