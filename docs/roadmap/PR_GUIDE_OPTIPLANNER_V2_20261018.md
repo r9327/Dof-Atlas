@@ -23,6 +23,17 @@ Produire un parcours COMPLET et cohérent (Quêtes / Succès / Guide Lanyel / Gu
 9. Plan stable : IDs persistants par chapitre / étape, migrer sans perte ; recalcul incrémental à changement réseau, choix utilisateur et stock déclaré ; éviter de réordonner brutalement les fiches déjà validées.
 10. Explicabilité interne : pour chaque choix, garder les dépendances, quêtes, résultats escomptés, alternative et preuves ; UI n'affiche pas les sources ni des explications non désirées.
 
+## Noms des chapitres, fiches et actions : COURTS et compréhensibles
+- Le générateur nomme les **chapitres et fiches** avec des intitulés naturels, utiles, distincts et aussi courts que possible ; le titre décrit ce qu'on fait, pas les explications ni la liste entière des quêtes concernées.
+- **Objectifs indicatifs contrôlés** : chapitre <= 40 caractères, fiche <= 48 caractères, de préférence 2 à 6 mots. Ne pas couper arbitrairement un nom officiel de PNJ, monstre, donjon ou quête. Si une exception dépasse la limite pour rester exacte, la justifier et la signaler au diagnostic (REVIEW, non suppression silencieuse).
+- Commencer par un verbe d'action uniquement quand cela clarifie le but. Éviter les titres génériques (`Étape suivante`, `Faire des choses`), les chaînes de prérequis, les coordonnées redondantes, les noms complets de plusieurs quêtes et les formules artificielles (`Optimisation intelligente des objectifs...`).
+- Exemples attendus : `Alignement Bonta` (chapitre) ; `Retour à Amayiro`, `Combats des Scarafeuilles`, `Donjon des Blops`, `Capturer le Bouftou Royal` (fiches). La fiche explique les conditions et les objectifs dans son **contenu**, jamais en surcharge du titre.
+- Pour les actions, libellé concis mais **nom exact du monstre / PNJ / objet + quantité si nécessaire** : `×5 Tournesol sauvage`, `Parler à Amayiro`, `Récolter 10 Orties`. Ne pas abréger au point de rendre un objectif ambigu. Garder dans les données les identifiants et les liens complets.
+- Si plusieurs fiches auraient le même titre, ajouter un discriminant minimal de zone, type d'action ou donjon, pas un suffixe générique `(2)` sans contexte. Une renumérotation ne doit pas casser les identifiants persistants.
+- Créer un module de **naming déterministe partagé** par les outils de génération, les Guides Succès et Lanyel ; une règle unique pour titres/chapitres/actions, au lieu de retouches visuelles ou de chaînes tronquées par CSS.
+- Doctor Guide/Integrity vérifie automatiquement la longueur, les titres peu informatifs, les duplications ambiguës, les identifiants perdus, les noms inventés et la lisibilité ; échantillonner des centaines de titres réels et valider les exceptions manuellement.
+- **Ne pas injecter d'autres panneaux dans l'UI** pour résoudre un titre trop long. Les prérequis, les quêtes liées et les sources restent des données internes sans affichage systématique dans les fiches.
+
 ## Interface vers les autres PRs
 - Exposer `GuideTravelPlan(destination, mode, zaap_coords?, world?, eligible_character_keys)` et `GuideParticipantSelection(guide_id, character_keys)` ou contrats équivalents versionnés, sans imposer ces noms de classes.
 - La PR Organizer exécute strictement la commande typée, après validation des fenêtres sélectionnées et sans envoyer à d'autres comptes.
