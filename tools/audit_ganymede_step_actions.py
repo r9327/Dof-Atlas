@@ -37,6 +37,7 @@ def audit_action_candidates(root: Path, path: Path = DEFAULT) -> dict:
                 data.get("ready_to_replace") is not False or
                 data.get("editorial_text_copied") is not False):
             raise ValueError("candidate evidence cannot certify replacement")
+        automated = data.get("evidence_level") == "AUTOMATED_SOURCE_ACTION_HINTS_UNVERIFIED"
         observed = set()
         previous = 0
         for step in data["steps"]:
@@ -49,7 +50,9 @@ def audit_action_candidates(root: Path, path: Path = DEFAULT) -> dict:
             source = by_number[num]
             if step.get("stable_step_id") != f"ganymede_{gid}_step_{num:04d}":
                 issues.append(f"unstable stage ID: {num}")
-            if (step.get("review_status") != "REVIEW_SOURCE_ACTION" or
+            expected_status = ("AUTO_EXTRACTED_NEEDS_REVIEW" if automated
+                               else "REVIEW_SOURCE_ACTION")
+            if (step.get("review_status") != expected_status or
                     step.get("quest_objectives_verified") is not False):
                 issues.append(f"false objective certification: {num}")
             for name in ("at", "next"):
@@ -84,9 +87,12 @@ def audit_action_candidates(root: Path, path: Path = DEFAULT) -> dict:
                     issues.append(f"unobserved guide link: {num}")
                 if "quantity" in action and (type(action["quantity"]) is not int or action["quantity"] <= 0):
                     issues.append(f"invalid quantity: {num}")
-        return {"status": "FAIL" if issues else "REVIEW_ACTION_CANDIDATES_ONLY",
+        return {"status": "FAIL" if issues else
+                ("AUTO_EXTRACTED_NEEDS_MANUAL_REVIEW" if automated else "REVIEW_ACTION_CANDIDATES_ONLY"),
                 "source_guide_id": gid, "source_steps": len(raw_steps),
-                "reviewed_steps": len(observed), "remaining_steps": len(raw_steps) - len(observed),
+                "reviewed_steps": 0 if automated else len(observed),
+                "auto_extracted_steps": len(observed) if automated else 0,
+                "remaining_steps": len(raw_steps) - len(observed),
                 "certified_actions": 0, "ready_to_replace": False, "issues": issues}
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         return {"status": "FAIL", "certified_actions": 0,
