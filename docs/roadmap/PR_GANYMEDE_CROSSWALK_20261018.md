@@ -427,3 +427,7 @@ Le guide Ganymède **Dofus Abyssal 2269** est collecté sur 4 pages, **174 étap
 ### Quinzième lot — Quatre sur cinq (18/10/2026)
 
 Le guide Ganymède 2270 « Four Over Five » est observé sur **trois pages, 141 étapes** sans lacune. **89/95 guides, 5 447 étapes** de références factuelles ; **six guides** restent à détailler. Pandala 3 n'a pas été ajouté : la troisième page de source a été bloquée à la consultation, aucune donnée partielle n'étant considérée suffisante. Zéro itinéraire ou objectif Atlas certifié depuis ces simples liens.
+
+### Seizième lot — Pandala 1 (18/10/2026)
+
+Le guide public Ganymède **Pandala 1 / ID 2234** est documenté sur **5 pages, 212 étapes** numérotées sans trou. Couverture cumulée : **90 des 95 guides**, **5 659 étapes** de références observées, **5 guides** sans instantané : Pandala 3, Forgelave, Frigost complémentaire et les deux alignements Bonta/Brâkmar. Les descriptions externes ne sont pas importées et les actions ne sont pas classifiées comme objectives de quête certifiées.
