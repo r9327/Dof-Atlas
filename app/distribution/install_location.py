@@ -90,7 +90,6 @@ def relocate_runtime(target: Path, progress=None) -> Path:
         raise UpdateError("Installation existante incomplete; reparation necessaire")
 
     total = 0
-    files = 0
     for base, directories, names in os.walk(source, followlinks=False):
         where = Path(base)
         directories[:] = [name for name in directories
@@ -104,7 +103,6 @@ def relocate_runtime(target: Path, progress=None) -> Path:
             if entry.is_symlink():
                 raise UpdateError("Impossible de deplacer une installation contenant des liens")
             total += entry.stat().st_size
-            files += 1
     destination.parent.mkdir(parents=True, exist_ok=True)
     if shutil.disk_usage(destination.parent).free < total + 256 * 1024**2:
         raise UpdateError("Espace insuffisant sur le disque choisi pour copier Atlas")
