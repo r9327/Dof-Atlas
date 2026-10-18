@@ -122,7 +122,7 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
             if candidate_path.is_file():
                 from tools.audit_ganymede_step_actions import audit_action_candidates
                 validation = audit_action_candidates(root, candidate_path)
-                if validation["status"] != "REVIEW_ACTION_CANDIDATES_ONLY":
+                if validation["status"] not in ("REVIEW_ACTION_CANDIDATES_ONLY", "AUTO_EXTRACTED_NEEDS_MANUAL_REVIEW"):
                     raise ValueError(f"Invalid candidate actions for {source_id}: {validation['issues']}")
                 candidate_evidence = _json(candidate_path)
                 if candidate_evidence.get("atlas_guide_id") != atlas_id:
@@ -162,7 +162,7 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                        if i in candidate_by_step and "route_phase" in candidate_by_step[i]
                        else {}),
                     "source_action_candidate_status": (
-                        "REVIEW_SOURCE_ACTION" if i in candidate_by_step
+                        candidate_by_step[i]["review_status"] if i in candidate_by_step
                         else "NO_ACTION_CANDIDATE_YET"
                     ),
                     "verified_actions": [],
@@ -171,8 +171,10 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                         candidate_by_step.get(i, {}).get("review_status", "NOT_RECONSTRUCTED")
                     ),
                     "action_reconstruction_status": (
-                        "REVIEW_FACTUAL_ACTION_NOT_CANONICAL" if i in candidate_by_step
-                        else "NEEDS_CANONICAL_OBJECTIVE_REVIEW"
+                        ("REVIEW_FACTUAL_ACTION_NOT_CANONICAL"
+                         if candidate_by_step[i]["review_status"] == "REVIEW_SOURCE_ACTION"
+                         else "AUTO_EXTRACTED_ACTION_NOT_REVIEWED")
+                        if i in candidate_by_step else "NEEDS_CANONICAL_OBJECTIVE_REVIEW"
                     ),
                     "manual_completion_allowed": False,
                     "auto_completion_allowed": False,
@@ -197,7 +199,13 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                     expected.get("public_tree_prerequisite_guide_ids", []),
                 "expected_source_step_count": len(steps),
                 "playable_step_count": 0,
-                "factual_action_reviewed_step_count": len(candidate_by_step),
+                "factual_action_reviewed_step_count": sum(
+                    v["review_status"] == "REVIEW_SOURCE_ACTION" for v in candidate_by_step.values()
+                ),
+                **({"auto_extracted_step_count": sum(
+                    v["review_status"] == "AUTO_EXTRACTED_NEEDS_REVIEW" for v in candidate_by_step.values()
+                )} if any(v["review_status"] == "AUTO_EXTRACTED_NEEDS_REVIEW"
+                         for v in candidate_by_step.values()) else {}),
                 "source_action_candidate_steps": len(candidate_by_step),
                 "source_action_candidate_actions": sum(
                     len(value["actions"]) for value in candidate_by_step.values()
