@@ -103,10 +103,24 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 7043",
+              "object_id": 7043
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 646",
+              "quest_id": 646
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0002",
@@ -166,10 +180,48 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 13941 ×3",
+              "object_id": 13941,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 13929 ×3",
+              "object_id": 13929,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 13919 ×3",
+              "object_id": 13919,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 12001 ×3",
+              "object_id": 12001,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 13977 ×3",
+              "object_id": 13977,
+              "quantity": 3
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs on the left"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0003",
@@ -300,10 +352,55 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1325",
+              "quest_id": 1325
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Mina Spirit"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him again"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1322",
+              "quest_id": 1322
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1334",
+              "quest_id": 1334
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1335",
+              "quest_id": 1335
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1321",
+              "quest_id": 1321
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-67,-77]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0004",
@@ -333,10 +430,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Ess Jeesy"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-65,-76]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0005",
@@ -400,10 +509,36 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1319",
+              "quest_id": 1319
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Darwin Chester"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1320",
+              "quest_id": 1320
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Karla Shnikoff"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0006",
@@ -433,10 +568,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the basket door"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the crate below"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-60,-80]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0007",
@@ -466,10 +617,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Liminsky"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-60,-73]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0008",
@@ -501,10 +664,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the broken chest below"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the tower"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs twice"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-58,-72]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0009",
@@ -536,10 +719,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Professor Imagarishs"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Biofissure"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-69]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0010",
@@ -572,10 +771,32 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the blue plant in the middle"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14175",
+              "object_id": 14175
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir objet nº 14174",
+              "object_id": 14174
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-51,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0011",
@@ -607,10 +828,27 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Sab O'Terr"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14181",
+              "object_id": 14181
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-49,-82]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0012",
@@ -640,10 +878,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the edge of the rampart below"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the door on the left"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-53,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0013",
@@ -673,10 +931,34 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Sab O'Terr"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-54,-86]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0014",
@@ -706,10 +988,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the crate below"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-49,-82]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0015",
@@ -739,10 +1033,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the small crate"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the door on the left"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-53,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0016",
@@ -772,10 +1086,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Sab O'Terr"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-51,-86]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0017",
@@ -805,10 +1139,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Sab O'Terr"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-73,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0018",
@@ -838,10 +1188,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Ego Flagship Company Pilot"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-62,-90]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0019",
@@ -871,10 +1233,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Emma Skulated"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-66,-93]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0020",
@@ -904,10 +1278,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Ego Flagship Company Pilot"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-70,-88]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0021",
@@ -937,10 +1323,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Poorly Messenger"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-69,-85]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0022",
@@ -970,10 +1372,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Merrin Ankestor"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-65,-76]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0023",
@@ -1021,10 +1435,31 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1320",
+              "quest_id": 1320
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Karla Shnikoff"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her again"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-69,-89]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0024",
@@ -1054,10 +1489,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the ice pick"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-50,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0025",
@@ -1087,10 +1534,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Ego Flagship Company Pilot to Head for the Scarlet T"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-69,-85]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0026",
@@ -1120,10 +1583,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Merrin Ankestor"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-72,-31]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0027",
@@ -1153,10 +1628,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Bisale Vinlenta"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-77,-44]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0028",
@@ -1186,10 +1673,34 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the The Silver Tavern"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Walter Aygo"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : to the cave"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Fred Handed"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-75,-38]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0029",
@@ -1219,10 +1730,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Handymen's Workshop"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Valy Domidat"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0030",
@@ -1252,10 +1775,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Alchemists' Workshop"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Eric Azaraille"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-80,-44]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0031",
@@ -1287,10 +1826,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the cave below"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Servant of the Marquis"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Stuffed Bow Meowette again"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-85]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0032",
@@ -1320,10 +1879,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Jamie Coggut"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the tower"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs twice"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-58,-72]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0033",
@@ -1353,10 +1932,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Professor Imagariths"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0034",
@@ -1404,10 +1995,27 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1321",
+              "quest_id": 1321
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-69,-85]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0035",
@@ -1441,10 +2049,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Merrin Ankestor"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Merrin's Ghost"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0036",
@@ -1474,10 +2094,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Feshak Tararr"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-69,-85]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0037",
@@ -1509,10 +2141,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Feshak Tararr"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him again"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-65,-76]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0038",
@@ -1560,10 +2212,27 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1319",
+              "quest_id": 1319
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Darwin Chester"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0039",
@@ -1611,10 +2280,31 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1322",
+              "quest_id": 1322
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Mina Spirit"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her again to Announce that your missions were successful"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-73,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0040",
@@ -1667,10 +2357,22 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Ego Flagship Company Pilot to Head for the Scarlet T"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0041",
@@ -1700,10 +2402,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-67,-77]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0042",
@@ -1733,10 +2447,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Ess Jeesy to Give her the bag"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0043",
@@ -1818,10 +2544,50 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1335",
+              "quest_id": 1335
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville to Inform him that the"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1336",
+              "quest_id": 1336
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14033 ×3",
+              "object_id": 14033,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14032 ×3",
+              "object_id": 14032,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14031 ×3",
+              "object_id": 14031,
+              "quantity": 3
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-60,-80]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0044",
@@ -1851,10 +2617,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Liminsky"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0045",
@@ -1886,10 +2664,34 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the basket door"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Magmatic Diving Bell"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the door on the left"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hazieff Taroun"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0046",
@@ -1919,10 +2721,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Mina Spirit"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-57,-82]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0047",
@@ -1952,10 +2766,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the cross on the left"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-62,-73]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0048",
@@ -1985,10 +2815,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Shivery Bearbarian"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-71]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0049",
@@ -2020,10 +2862,27 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the plant below"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14035",
+              "object_id": 14035
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-71]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0050",
@@ -2055,10 +2914,27 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the same plant"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14035",
+              "object_id": 14035
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-70]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0051",
@@ -2090,10 +2966,27 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the same plant"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14035",
+              "object_id": 14035
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-58,-73]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0052",
@@ -2125,10 +3018,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the same plant"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-57,-73]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0053",
@@ -2160,10 +3065,27 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the same plant"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14035",
+              "object_id": 14035
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-57,-72]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0054",
@@ -2195,10 +3117,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the same plant"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-62,-73]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0055",
@@ -2228,10 +3162,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Shivery Bearbarian"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0056",
@@ -2261,10 +3207,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Mina Spirit"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0057",
@@ -2326,10 +3284,43 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the basket door"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Magmatic Diving Bell"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hazieff Taroun"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1323",
+              "quest_id": 1323
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him again"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him again toupdate the quest Hot 'n' Cold"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0058",
@@ -2366,10 +3357,56 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Wes of Tubsterville"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Mina Spirit to Share all the information you gleaned"
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 13941 ×3",
+              "object_id": 13941,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 13929 ×3",
+              "object_id": 13929,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 13919 ×3",
+              "object_id": 13919,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 12001 ×3",
+              "object_id": 12001,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 13977 ×3",
+              "object_id": 13977,
+              "quantity": 3
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-76,-80]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0059",
@@ -2401,10 +3438,43 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Guardian of Destiny"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Urdnona"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Decimandi"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Skuldmort"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Future Profession in the cave"
+            },
+            {
+              "kind": "craft",
+              "label": "Fabriquer objet nº 14038",
+              "object_id": 14038
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0060",
@@ -2436,10 +3506,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Mina Spirit"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : on the Message from Mayor Cantile in your quest items"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-74]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0061",
@@ -2472,10 +3558,27 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer donjon nº 70",
+              "dungeon_id": 70
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him again"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-52,-87]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0062",
@@ -2503,10 +3606,19 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Étape à vérifier : instructions non extraites",
+              "requires_manual_review": true
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0063",
@@ -2536,10 +3648,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à E"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-52,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0064",
@@ -2571,10 +3695,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the crate in the middle"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-63,-93]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0065",
@@ -2604,10 +3740,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Dommie Neytricks"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0066",
@@ -2637,10 +3785,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville to Report back"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0067",
@@ -2672,10 +3832,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the nacelle door"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Magmatic Diving Bell"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hazieff Taroun"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-73,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0068",
@@ -2705,10 +3885,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Ego Flagship Company Pilot to Head for the Scarlet T"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-63,-93]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0069",
@@ -2740,10 +3932,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Dommie Neytricks to Hold out Hazieff Taroun's invitation"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-71,-88]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0070",
@@ -2773,10 +3977,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Noo to Try talking"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-71,-83]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0071",
@@ -2806,10 +4022,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wandering Stalack"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Ghost of Gus Bump"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-57,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0072",
@@ -2839,10 +4075,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Gus Bump"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0073",
@@ -2883,10 +4131,35 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the nacelle door"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Magmatic Diving Bell"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1323",
+              "quest_id": 1323
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hazieff Taroun"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0074",
@@ -2938,10 +4211,31 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1324",
+              "quest_id": 1324
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Mina Spirit"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0075",
@@ -3017,10 +4311,40 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1336",
+              "quest_id": 1336
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1337",
+              "quest_id": 1337
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : on the An Enigmatic Message in your quest items"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-81,-44]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0076",
@@ -3052,10 +4376,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Alchemists' Workshop"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Eric Azaraille"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-53,-41]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0077",
@@ -3087,10 +4427,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Gobilingua"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : on the A Translated Message in your quest items"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0078",
@@ -3122,10 +4478,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Wes of Tubsterville"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Mina Spirit to Annonce the results"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-52,-87]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0079",
@@ -3159,10 +4531,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer donjon nº 67",
+              "dungeon_id": 67
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0080",
@@ -3238,10 +4623,36 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1337",
+              "quest_id": 1337
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1338",
+              "quest_id": 1338
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-63,-93]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0081",
@@ -3275,10 +4686,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer donjon nº 68",
+              "dungeon_id": 68
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0082",
@@ -3354,10 +4778,36 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1338",
+              "quest_id": 1338
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1339",
+              "quest_id": 1339
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-71,-88]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0083",
@@ -3395,10 +4845,28 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer donjon nº 69",
+              "dungeon_id": 69
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14215",
+              "object_id": 14215
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0084",
@@ -3474,10 +4942,32 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1339",
+              "quest_id": 1339
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1334",
+              "quest_id": 1334
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-74]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0085",
@@ -3551,10 +5041,36 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Yver Cutter"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1326",
+              "quest_id": 1326
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Nileza"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1327",
+              "quest_id": 1327
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0086",
@@ -3609,10 +5125,39 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the nacelle door"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Magmatic Diving Bell"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1333",
+              "quest_id": 1333
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hazieff Taroun"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir :"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-60,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0087",
@@ -3642,10 +5187,34 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Water Clock Tower"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs on the left"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the dials below"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs 5 times"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-89]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0088",
@@ -3675,10 +5244,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the dials again"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-74]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0089",
@@ -3708,10 +5289,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Yver Cutter"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Nileza"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0090",
@@ -3743,10 +5340,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the nacelle door"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Magmatic Diving Bell"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hazieff Taroun"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [20,25]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0091",
@@ -3776,10 +5393,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Library"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Doctor Hoo to Mention the Water Clock"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [2,1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0092",
@@ -3805,10 +5438,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the yellow star in the middle"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0093",
@@ -3838,10 +5483,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Henual to Warn him about the potential danger"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-52,-45]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0094",
@@ -3877,10 +5534,28 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer donjon nº 62",
+              "dungeon_id": 62
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14236",
+              "object_id": 14236
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-77,-42]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0095",
@@ -3910,10 +5585,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Town Hall"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Lou Bricante"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-82,-46]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0096",
@@ -3968,10 +5659,31 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Ski Maker"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 919",
+              "quest_id": 919
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Juss Tafinger to complete the quest A Mine of Informatio"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-64,-55]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0097",
@@ -4030,10 +5742,35 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Vibrating Pick"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Waldos FieldChester Potcobble to Accompany a friend"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the rock below"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1286",
+              "quest_id": 1286
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-71,-72]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0098",
@@ -4063,10 +5800,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Sab O'Terr"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0099",
@@ -4096,10 +5845,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville to Explain what you've learnt"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-67,-77]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0100",
@@ -4129,10 +5890,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Ess Jeesy"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-65,-76]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0101",
@@ -4162,10 +5935,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Darwin Chester"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Karla Shnikoff"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0102",
@@ -4195,10 +5984,22 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Wes of Tubsterville"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0103",
@@ -4230,10 +6031,34 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the nacelle door"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Magmatic Diving Bell"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hazieff Taroun"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs 3 times"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-58,-86]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0104",
@@ -4263,10 +6088,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the map placed on a crate"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-60,-88]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0105",
@@ -4300,10 +6141,45 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Emma Skulated"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Emma Skulated again"
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir objet nº 14237",
+              "object_id": 14237
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14043",
+              "object_id": 14043
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 10207",
+              "object_id": 10207
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-71,-88]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0106",
@@ -4339,10 +6215,28 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer donjon nº 69",
+              "dungeon_id": 69
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir objet nº 14238",
+              "object_id": 14238
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-74]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0107",
@@ -4372,10 +6266,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Yver Cutter"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Nileza to Proudly hold out the Enriched Taroudium"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [2,1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0108",
@@ -4407,10 +6317,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Henual's Dial to Touch the dial"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-76,-80]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0109",
@@ -4440,10 +6366,34 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Keeper of Destiny"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Skuldmort"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Urdnona"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Decimandi"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-78]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0110",
@@ -4518,10 +6468,46 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1324",
+              "quest_id": 1324
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Wes of Tubsterville"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1325",
+              "quest_id": 1325
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Mina Spirit to Report back"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1331",
+              "quest_id": 1331
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 13052",
+              "object_id": 13052
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-60,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0111",
@@ -4551,10 +6537,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Water Clock Tower"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the pipe below"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-60,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0112",
@@ -4586,10 +6592,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Inhabitant of Frigost"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs twice"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-58,-87]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0113",
@@ -4619,10 +6645,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Labourer of the Count"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs twice"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-58,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0114",
@@ -4652,10 +6698,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Styffen Chillberg"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0115",
@@ -4687,10 +6749,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the pipe again like at Etape 111"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : your Magmatic Diving Bell in your equipment"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs 3 times"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-61,-81]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0116",
@@ -4743,10 +6825,31 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1333",
+              "quest_id": 1333
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hazieff Taroun"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs 5 times"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-88]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0117",
@@ -4799,10 +6902,40 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 655",
+              "quest_id": 655
+            },
+            {
+              "kind": "dungeon",
+              "label": "Terminer donjon nº 71",
+              "dungeon_id": 71
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Dorlean to Go up to the top of the tower"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Count Harebourg to Hold the watch out to the Count"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the base of the Ice Dofus"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Count Harebourg again"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0118",
@@ -4987,10 +7120,31 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Djaul to Mention the curse"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him again to Mention the curse"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Jiva to Gaze with fascination"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1327",
+              "quest_id": 1327
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0119",
@@ -5153,10 +7307,27 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1329",
+              "quest_id": 1329
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Jiva"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-59,-74]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0120",
@@ -5186,10 +7357,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Yver Cutter"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Nileza"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-77,-42]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         },
         {
           "id": "ganymede_2216_step_0121",
@@ -5249,10 +7436,45 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Town Hall"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Mayor Cantile"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1328",
+              "quest_id": 1328
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 630",
+              "quest_id": 630
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 13052",
+              "object_id": 13052
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-68,-76]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
         }
       ]
     }
@@ -5261,5 +7483,9 @@
     "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
     "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
     "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED"
-  ]
+  ],
+  "factual_action_reviewed_step_count": 0,
+  "auto_extracted_step_count": 121,
+  "source_action_candidate_steps": 121,
+  "source_action_candidate_actions": 412
 }
