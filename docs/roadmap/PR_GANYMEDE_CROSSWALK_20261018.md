@@ -32,6 +32,33 @@ En revanche, seules **13 correspondances initiales** avec des guides Atlas
 existants sont établies dans data/encyclopedia/guides/ganymede_source_crosswalk.json.
 **Aucun des 95 parcours ni texte d'étape n'est importé ou certifié.**
 
+### Avancement vérifié : graphe public des guides (18/10/2026)
+
+- Les 95 fiches de l'arbre public contiennent désormais un `listed_step_count`
+  et la liste `public_tree_prerequisite_guide_ids` (identifiants Ganymède,
+  **pas** identifiants de quêtes Atlas).
+- **57 liens de prérequis entre guides**, répartis sur **40 guides**, ont été
+  rapprochés aux 95 IDs du même arbre. Aucun ID externe orphelin ni cycle
+  détecté au moment de cette collecte.
+- Traçabilité : `snapshot.public_tree_prerequisite_graph` avec URL, date,
+  volume de données et marqueur impératif `SOURCE_METADATA_ONLY`.
+- L'audit contrôle : nombre d'étapes positif, existence et unicité des guides
+  prérequis, absence de dépendance à soi-même, absence de cycle, cohérence des
+  totaux et **interdiction de certifier des itinéraires depuis les métadonnées**.
+- Le rapport JSON expose désormais `guide_coverage` pour les 95 entrées,
+  `unmapped_guide_ids` (actuellement **82**), et
+  `tree_prerequisite_edges` (57) pour piloter l'enrichissement par guide.
+
+**Limite importante :** le graphe de l'arbre Ganymède est un graphe de
+**prérequis de guides**. Il ne démontre pas les prérequis **de quêtes**,
+l'exactitude de chaque étape, les positions ou la pertinence d'un trajet.
+L'étape suivante reste l'analyse factuelle des étapes du guide complet
+(MG0) et des sous-guides, le rapprochement par IDs canoniques Atlas et le
+recoupement DPLN/Tougli/JOL. Aucun guide Atlas n'a encore été remplacé.
+
+Source publique des liens/compteurs :
+https://ganymede-app.com/tree?view=list (instantané du 18 octobre 2026).
+
 Exemples : guide complet, Incarnam/Astrub (Argenté), Cawotte, Émeraude,
 Dokoko, Dolmanax, Veilleurs, Glaces, Ébène, Ivoire, introduction
 Bonta/Brâkmar et guides d'alignement Bonta/Brâkmar. Le site courant utilise
