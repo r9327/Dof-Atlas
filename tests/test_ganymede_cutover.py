@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_ganymede_cutover import (
-    route_fingerprint, select_verified_replacement_path,
+    certified_payload_sha256, route_fingerprint, select_verified_replacement_path,
 )
 
 
@@ -58,6 +58,7 @@ class GanymedeCutoverTests(unittest.TestCase):
                 "enabled": True, "status": "CERTIFIED_FOR_CUTOVER",
                 "source_guide_id": 2205, "source_step_count": 2,
                 "progress_migration_verified": True,
+                "payload_sha256": certified_payload_sha256(self.payload),
                 "fingerprint": route_fingerprint(2205, [
                     "ganymede_2205_step_0001", "ganymede_2205_step_0002",
                 ]),
@@ -110,6 +111,22 @@ class GanymedeCutoverTests(unittest.TestCase):
 
     def test_no_cutover_with_invalid_route_fingerprint(self) -> None:
         self.manifest["guides"]["dofus_cawotte"]["fingerprint"] = "0" * 64
+        self.save()
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
+
+    def test_modified_verified_action_rejected_after_certification(self) -> None:
+        # Step IDs and route fingerprint are unchanged; the signed action is not.
+        self.steps[0]["verified_actions"][0]["text"] = "Autre objectif"
+        self.save()
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
+
+    def test_modified_action_evidence_rejected_after_certification(self) -> None:
+        self.steps[0]["verified_actions"][0]["evidence"][0]["id"] = 999
+        self.save()
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
+
+    def test_unsigned_complete_guide_cannot_cut_over(self) -> None:
+        del self.manifest["guides"]["dofus_cawotte"]["payload_sha256"]
         self.save()
         self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
 
