@@ -31,8 +31,8 @@ Si un détail visuel n'est pas explicitement documenté ici, **préserver l'exis
 │                                                        │
 │ [             Aller à la fiche              ] [🗺]     │
 ├────────────────────────────────────────────────────────┤
-│ [ Préparation générale du guide                 ▾ ]     │
-│     dépliable UNIQUEMENT sur action utilisateur          │
+│ [ ○ PRÉREQUIS                      n             ▾ ]     │
+│     vrai menu existant : état + compteur + chevron       │
 ├────────────────────────────────────────────────────────┤
 │ Mon parcours                         [👥] [Sommaire ▾] │
 │ Fiche N / total                                        │
@@ -67,12 +67,14 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 - **En-tête non repliable, ne disparaît pas au scroll**, ne duplique pas sa navigation. Pas de quatrième barre.
 - Progression Route = nombre de fiches réellement validées / total des fiches réelles, pas index courant ; toutes les quantités viennent du service runtime, aucun exemple fictif de `1600` codé en dur.
 
-### 2. Préparation générale du guide — ANCIEN MENU DÉROULANT
-- Immédiatement sous l'en-tête ; bande `Préparation générale du guide`, chevron ouvrir/fermer, fermé par défaut.
-- **Reprendre l'ancien déroulant validé**, pas réinventer des onglets, cartes ou sections permanentes.
-- Agréger pour TOUT le guide les ressources, achats, récoltes, potions, métiers, accès donjon et pierres d'âme ; dédoublonner et décompter ce qui est réellement requis selon le parcours, sans listes de préparation redondantes sur les fiches.
-- À l'intérieur du déroulant, petite ligne/contrôle de stock : `Pierres d'âme — J'en ai 50 / Besoin 150 / Manque 100`. Saisie non négative, persistée entre redémarrages, avec suivi réel des puissances/types/nécessité par personnage et du besoin restant. Présentation aussi compacte que les autres lignes.
-- Si un objet est acquis naturellement au cours du guide, ne pas le compter à acheter d'avance ; les prérequis internes demeurent contrôlés par le moteur.
+### 2. VRAI menu déroulant d'origine `PRÉREQUIS` — NE PAS RÉINVENTER
+- **IMPORTANT : la maquette conversationnelle qui montrait une carte `Préparation générale du guide` avec des cases génériques `Vérifier les métiers`, `Prévoir les potions`, `Acheter les ressources` et deux gros champs de pierres EST FAUSSE ET NON VALIDÉE. NE PAS L'IMPLÉMENTER.** L'utilisateur a explicitement rejeté ce dessin.
+- Le composant existant réel est `CollapsibleInfoSection` dans `app/modules/encyclopedia/views/guides_view.py`, construit pour `PRÉREQUIS` dans `GuidesView._populate_guide_info`. **Le reproduire/réutiliser graphiquement à l'identique**, dans l'emplacement global du guide retenu, sans le transformer en formulaire avec onglets ou checklist fictive.
+- En état fermé : bande compacte avec **pastille état (✓/●/○), vrai titre `PRÉREQUIS`, compteur réel à droite, petit chevron ▾**, même bordure, style, hauteur et espacement que le composant précédent. Fermé par défaut ; clic sur bande ou chevron l'ouvre ; état retenu pendant la session.
+- À l'ouverture : **les vraies lignes de prérequis du guide** dans leur ordre, dédupliquées et liées aux vrais IDs. Les noms exacts des quêtes et succès préalables sont des boutons/lignes ouvrant leur fiche lorsque disponible, conformément à `_guide_prerequisite_entries`, `_guide_prerequisite_row` et `prerequisite_row`. **Ne pas inventer des cases à cocher globales** ni de fausses lignes. Les états observés sont affichés sans valider automatiquement des quêtes.
+- Les besoins globaux réellement préparables et le stock des pierres restent une exigence du moteur et peuvent être **présentés de manière très compacte dans le menu d'origine**, à partir de données vérifiées, mais **pas en remplaçant le menu par la carte formulaire erronée**. Préserver la présentation existante tant que la variation d'une ligne n'a pas été comparée/validée. Ex. une ligne discrète du stock déclaré `Pierres : 50/150 · manque 100`, seulement si un besoin vérifié existe, saisie de la quantité possédée via le mécanisme original à définir, sans inventer la disposition.
+- Afficher les **prérequis externes réels du guide** (succès/quête à réaliser AVANT ce parcours), pas ceux qui seront accomplis au fil des fiches déjà ordonnées par #226. Les données de préparation, métiers et achats n'apparaissent que si réellement nécessaires au départ, selon les informations fiables du moteur.
+- Aucun bloc `À préparer` sur chaque fiche : cette suppression ne supprime **pas** le vrai menu global `PRÉREQUIS`. Tests Doctor UI : comparer état fermé + ouvert au composant `CollapsibleInfoSection` courant et rejeter toute liste générique ou formulaire inventé.
 
 ### 3. Mon parcours — seulement la navigation demandée
 - Titre `Mon parcours`, sous-titre `Fiche N / total`. À droite sur la MÊME ligne de commandes : un **petit bouton Personnages avec icône** puis `Sommaire` avec chevron. Aucun grand panneau permanent.
@@ -121,7 +123,7 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 | En-tête à droite | **Petit engrenage paramètres** | Ouvrir réglages | Même pictogramme et dimensions que la maquette ; utiliser icône valide, pas « ⚙ » en texte si fonte incertaine |
 | Ligne navigation | Bouton **Aller à la fiche**, icône de position/jump discrète + libellé | Saisie et accès direct à une fiche | Garder largeur majoritaire, largeur d'icône cohérente |
 | À sa droite | **Bouton Overlay : icône carte uniquement** | Afficher/masquer l'overlay | Petit carré, pas de libellé ajouté, état actif/inactif |
-| Préparation générale | **Petite icône clipboard/liste** + chevron à droite | Dérouler/fermer le même panneau d'avant | Une seule bande compacte et aucun sous-panneau inventé |
+| PRÉREQUIS du guide | **Pastille d'état ✓/●/○, titre PRÉREQUIS, compteur, chevron** | Ouvrir/fermer le CollapsibleInfoSection existant | Ne PAS substituer le clipboard/list inventé par la maquette ; vraies lignes et vrais liens |
 | Mon parcours | **Icône personnages (groupe)**, icône seule | Afficher/masquer les portraits | Juste avant Sommaire, même taille que bouton Overlay |
 | Mon parcours | **Icône de sommaire/liste** + texte `Sommaire` + chevron | Dérouler/fermer chapitres | Même ligne, pas de bouton de remplacement |
 | Liste chapitres | Coche/cercle de progression + chevrons | Dérouler / aller à une fiche | Icônes discrètes et cohérentes avec les couleurs du thème |
@@ -174,7 +176,7 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 
 ## Contrôle de fidélité obligatoire
 1. Rendre une capture COMPLÈTE en **état par défaut** : en-tête fixe, préparation refermée, personnages refermés, sommaire refermé, une fiche seule. Comparer visuellement à la **dernière maquette approuvée dans le fil de discussion**, pas à un mockup plus ancien.
-2. Rendre des captures distinctes **Préparation ouverte**, **Personnages ouvert**, **Sommaire ouvert**, **Fiche Lanyel**, **Fiche Succès**, **état scrollé**. Comparer disposition, ordre, marges, largeurs, typographies, positions, boutons, couleurs, aucune zone superflue.
+2. Rendre des captures distinctes **PRÉREQUIS ouvert**, **Personnages ouvert**, **Sommaire ouvert**, **Fiche Lanyel**, **Fiche Succès**, **état scrollé**. Comparer disposition, ordre, marges, largeurs, typographies, positions, boutons, couleurs, aucune zone superflue.
 3. Tests d'absence explicite des sections interdites, tests screenshot Doctor Atlas produisant de VRAIS pixels lisibles (pas des carrés), détection des contrôles et de leurs chevauchements ; petit écran et minimum 900 px.
 4. Tests Qt interaction : aucune macro déclenchée par hover, une seule macro par clic gauche, position identique, sélection de 0/1/5 participants, mêmes classes, offline/online, migration des IDs, compteurs déclarés vs vérifiés, persistance du stock 50/150 après redémarrage.
 5. Tests de non-régression des progressions Quêtes/Succès, Guide Lanyel/Guide Succès, de l'intégration du rendu partagé #201 et de la libération Qt au retour Home. Rebaser après #201, puis validation Doctor/Graphify et CI au HEAD final.
