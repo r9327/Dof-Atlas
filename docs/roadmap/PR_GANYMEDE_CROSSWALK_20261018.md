@@ -395,3 +395,9 @@ Atoll of the Possessed (2291, 41), Evil Forest (2255, 43), Misery (2279, 43), Ca
 **Tous les guides suivants ont été parcourus sur deux pages, avec vérification continue de la numérotation :** War (2277, 53 étapes), Sidimote 2 (2225, 54), Bonta / Brakmar *introduction* (2226, 54), Future Fantastic (2275, 54), Dofus du Cauchemar (2283, 55), Six sur Six (2272, 56), Pandala 2 (2253, 59) et Cania 1 (2223, 60).
 
 **Couverture cumulée : 58/95 guides et 2 631 étapes de références**, 37 guides restant à inventorier en détail. Bonta/Brakmar 2226 est l'introduction et **ne remplace pas** les parcours d'alignement complets 2249 (774 étapes) et 2263 (696 étapes), qui nécessiteront leur propre couverture. Tous les nouveaux instantanés restent `OBSERVED_UNCLASSIFIED` ; les étapes et prérequis Atlas ne sont pas encore certifiés.
+
+### Dixième lot — huit autres guides sur deux pages (18/10/2026)
+
+Xélorium 2 (2241, 61), Dofus Tacheté (2271, 62), Dorigami (2221, 64), Royaume d'Amakna (2231, 65), Aube Pourpre / Crimson Dawn (2286, 65), Enudorado 3 (2239, 65), Nimaltopia (2229, 67) et Fleaster (2595, 67). **8 guides, 516 étapes**, chacune rattachée à la page et au numéro source.
+
+La couverture factuelle atteint **66/95 guides, 3 147 étapes observées**, avec **29 guides restant à parcourir en détail**. Les autres travaux (qualification des 12 noms de quêtes Cawotte/Dolmanax, prérequis, ID/objectifs canoniques Atlas, vérification DPLN et génération #226) demeurent des verrous indépendants. Ne pas convertir ces observations en ordre de trajet ni déduire leur caractère obligatoire.
