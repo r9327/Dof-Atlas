@@ -100,6 +100,45 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 
 **Certification UI/Qt :** screenshots sur `Tout`, `Objets` en état fermé/ouvert de la ligne Pierres, liste de 10/100/1 000 objets, scroll, hauteur du guide stable, absence de gros encart, troncature avec tooltip, pas de duplication en `Tout`, stockage/persistance après redémarrage, calcul `50/150 → 100`, 0 besoin, surplus, types/pouvoirs de pierre distincts et forte volumétrie sans RAM excessive.
 
+### 2 bis. POTIONS ET OBJETS : liste ultra-compacte et quantités multicomptes CORRECTES
+
+**Règle finale utilisateur (18/10) : les potions doivent être aussi compactes que les pierres d'âme, et les besoins changent quand on sélectionne plusieurs personnages.**
+
+- **`Tout` = vue RÉSUMÉE** : une ligne par catégorie pertinente (métiers / potions / objets / conditions générales), avec le nombre d'éléments restant à préparer et éventuellement un statut global. Pas de centaines de lignes de potions/objets dupliquées dans Tout. Les détails des consommables sont uniquement dans leurs filtres respectifs : `Potions` pour les potions, `Objets` pour les autres ressources et les pierres d'âme. L'utilisateur peut ainsi voir le panorama puis ouvrir le bon filtre sans rallonger la page.
+- **`Potions` : une potion = une seule ligne concise** : icône discrète, nom exact, résumé `possédées / nécessaires` ou `manque N`, petit chevron si un détail est utile. Aucun pavé descriptif, pas de gros formulaire permanent, **pas de barre de stock pour chaque potion**.
+- Au clic sur une potion, ouvrir un **mini-détail local de 1–3 lignes max** : besoin par personnage participant, stock déclaré ou vérifié avec sa provenance, quantités encore nécessaires ; saisir ou corriger la possession via un contrôle minuscule, sans surcharger les autres lignes. Refermer au second clic, expansion d'un article ne déplie pas tous les autres. Dans une liste volumineuse, ne matérialiser le détail d'une ligne qu'à sa demande.
+- **`Objets` : exactement le même composant réutilisable** pour ressources, consommables hors potions, clés et pierres d'âme ; aucune grande carte ni bloc spécial. Les pierres d'âme sont affichées uniquement dans `Objets`, les potions uniquement dans `Potions`. Les autres catégories restent propres et chaque item doit avoir un ID stable et une unité fiable ; les noms longs sont accessibles au survol.
+- Les sélections du panneau **`Mes personnages` sont la source de vérité**. Recalcul IMMÉDIAT après sélection/désélection d'un portrait, après événement de progression du réseau, changement de guide ou actualisation des possessions. Une ligne n'affiche **que les besoins des participants sélectionnés**, hors ligne inclus si leur progression est connue ; si aucune sélection, afficher `Sélectionne un personnage` plutôt que des chiffres faux ou un total de tous les comptes par défaut.
+- **Calcul par personnage AVANT agrégation, JAMAIS `besoin × nombre de portraits` aveuglément.** Exemple fictif : Pandawa a encore besoin de 4 potions de rappel et Huppermage de 2 ; sélection Panda seulement => 4, Hupper seulement => 2, les deux => **6 et non 8**. Une quête déjà finie, un Zaap accessible, une potion possédée, une capture déjà faite ou un donjon déjà validé peut supprimer une dépense propre à un personnage.
+- **Distinction impérative `besoin total` vs `stock possédé` vs `manquant`.** Le total des besoins se somme par participant si l'objet est consommé individuellement ; un prérequis unique à l'équipe (ex. condition partagée réellement prouvée) ne se multiplie PAS. Les ressources transférables peuvent être suivies dans un stock partagé uniquement si ce caractère partagé a été confirmé ; une potion non transférable stockée sur Panda n'est pas automatiquement possédée sur Hupper. Calcul des manques par personne/stock éligible, puis somme des manques ; ne pas soustraire un stock partagé plusieurs fois.
+- Par défaut la **ligne résumé regroupe le même objet identifié** plutôt que créer `Potion de rappel — Panda` et `Potion de rappel — Hupper` séparément ; le détail dépliable donne la ventilation pour chaque personnage. Les icônes des personnages du détail sont facultatives et petites, jamais un nouveau panneau de cartes.
+- Filtres `Tout/Métiers/Potions/Objets` inchangés ; listes à **hauteur plafonnée**, scroll fluide, recherche facultative seulement si utile à la volumétrie, compteurs résumés `Potions · 6 lignes` et `Objets · 120 lignes` facultatifs. Garder le bandeau et la fiche accessibles même avec 100–1 000 lignes, préférer modèle Qt / delegate virtualisé à une création massive de QWidgets.
+- Afficher `besoin inconnu` ou `stock non renseigné` lorsque c'est le cas, au lieu d'inventer 0, multiplier un chiffre incomplet ou afficher une fausse coche. Lors de la sauvegarde, stocker des besoins calculés uniquement comme cache recalculable et ne pas perdre les possessions déclarées, avec provenance, lors d'un changement de sélection.
+- **Test majeur** : choisir Panda seul (4), Hupper seul (2), les deux (6), puis une quête déjà validée d'un seul personnage (moins pour lui uniquement). Changer la sélection plusieurs fois doit restaurer le même calcul ; combinaisons 0/1/2/5 personnages, offline, 100 objets, stock individuel/partagé, types différents de pierres et consommables ; aucun double compte.
+
+**Nouvelle représentation compacte (chiffres illustratifs) :**
+```text
+▤ Préparation générale du guide                    ▾
+   Préparation complète
+   [Tout] [Métiers] [Potions] [Objets]
+
+   Tout :
+   ○ Alignement : Bonta (si pertinent)
+   ○ Métiers : 2 exigences
+   ○ Potions : 3 références — 6 à prévoir
+   ○ Objets : 27 références — 42 à prévoir
+
+   Potions :
+   ○ Potion de rappel     0/6 · manque 6       ▾
+       Panda : 4 restantes · Hupper : 2 restantes
+   ○ Potion de cité       2/4 · manque 2       ▾
+
+   Objets :
+   ○ Pierre d'âme        50/150 · manque 100   ▾
+       Stock déclaré : [50] · besoin calculé : 150
+   ○ Ressource X         10/15 · manque 5      ▾
+```
+
 ### 3. Commandes Personnages / Sommaire — SANS `Mon parcours`
 - **SUPPRIMER complètement le titre `Mon parcours` et son commentaire/sous-titre `Fiche N / total` placé dessous. Le numéro de fiche est déjà visible dans l'en-tête/contrôle de pagination de la fiche : ne jamais le dupliquer.
 - Garder à droite sur une **petite ligne compacte sans titre** : un bouton icône `Personnages` puis le bouton `Sommaire` avec chevron, aux positions et tailles de la maquette, juste avant la fiche.
