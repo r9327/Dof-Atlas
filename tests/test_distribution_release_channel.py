@@ -66,6 +66,46 @@ class ChannelContractTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(UpdateError):
                 self.read(raw, json.dumps(doc).encode())
 
+    def test_multipart_release_uses_versioned_part_urls(self):
+        raw, _ = fixtures("version-multipart")
+        doc = json.loads(raw)
+        doc["archive_parts"] = [{
+            "name": "atlas-windows.part0001",
+            "size": 3, "sha256": hashlib.sha256(b"one").hexdigest(),
+        }, {
+            "name": "atlas-windows.part0002",
+            "size": 3, "sha256": hashlib.sha256(b"two").hexdigest(),
+        }]
+        doc["archive_size"] = 6
+        doc["archive_sha256"] = hashlib.sha256(b"onetwo").hexdigest()
+        raw = json.dumps(doc).encode()
+        channel = {
+            "protocol_version": 1, "channel": "stable",
+            "tag": "version-multipart", "source_sha": "a" * 40,
+            "manifest_sha256": hashlib.sha256(raw).hexdigest(),
+            "archive_size": 6,
+        }
+        pointer = json.dumps(channel).encode()
+        release = self.read(raw, pointer)
+        self.assertEqual(release.archive_url, "")
+        self.assertEqual(release.archive_size, 6)
+        self.assertEqual(release.part_urls, (
+            "https://github.com/r9327/Dof-Atlas-App/releases/download/version-multipart/atlas-windows.part0001",
+            "https://github.com/r9327/Dof-Atlas-App/releases/download/version-multipart/atlas-windows.part0002",
+        ))
+        channel["archive_size"] = 7
+        with self.assertRaisesRegex(UpdateError, "multipart size mismatch"):
+            self.read(raw, json.dumps(channel).encode())
+
+    def test_both_certified_publication_paths_emit_channel_pointer(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/atlas-windows-distribution.yml").read_text(
+                        encoding="utf-8")
+        self.assertEqual(workflow.count(
+            "python -m scripts.windows.release_channel"), 2)
+        self.assertEqual(workflow.count(
+            "assets=(dist-release/atlas-manifest.json dist-release/atlas-channel.json"), 2)
+
     def test_unavailable_api_uses_stable_channel(self):
         raw, pointer = fixtures("future-name")
         with patch.object(client, "_latest_release_api", side_effect=UpdateError(
