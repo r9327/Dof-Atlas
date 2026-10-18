@@ -651,3 +651,33 @@ une certification des objectifs ou des itinéraires.
 Sources : [DPLN Turquoise](https://www.dofuspourlesnoobs.com/quecirctes-du-dofus-turquoise.html),
 [Bleu turquoise](https://www.dofuspourlesnoobs.com/bleu-turquoise.html),
 [guide Ganymède 2217](https://ganymede-app.com/guides/2217).
+
+
+### Contrôle indépendant des liens Doduda quête → étape → objectif (18/10/2026)
+
+`tools/audit_ganymede_doduda_objective_links.py` inspecte, **en lecture seule**,
+les IDs des quêtes nominativement recoupées, leurs `stepIds` depuis
+`quests.json`, les lignes de `quest_steps.json` et les IDs/types d'objectifs
+associés via `quest_objectives.json`. L'outil conserve uniquement les
+références brutes, les IDs des types de combat utilisés par Atlas et le
+`startCriterion` **non interprété**. Les données source Doduda ne figurent
+pas dans le dépôt public et doivent être présentes dans une installation réelle.
+
+Commande avec Doduda installé :
+
+    python -m tools.audit_ganymede_doduda_objective_links --raw-dir CHEMIN/doduda_cli --output artifacts/guides/doduda_objective_review.json
+
+Il réutilise `QuestSources` avec des index temporaires sur disque, hors
+interface et hors lancement d'Atlas. Le résultat est classé
+`PASS_RAW_STRUCTURE_ONLY`, `REVIEW_RAW_STRUCTURE_GAPS`,
+`BLOCKED_CANONICAL_SOURCE_UNAVAILABLE` (code de sortie 2) ou `FAIL`.
+**Même PASS ne certifie ni obligations, ni quantités d'objets, ni
+conditions `Qf/Qa/Sc/OR`, ni ordre optimisé, ni progression réelle.**
+
+Neuf tests ciblés couvrent les sources absentes/corrompues, quêtes et
+étapes manquantes, objectifs manquants, types de combat bruts, références
+invalides et refus de transformer une quête extérieure en obligation.
+
+Le moteur #226 reste bloqué jusqu'au recoupement des prérequis et
+objectifs réellement interprétés ; la présentation #225 ne doit pas
+convertir ces constats d'audit en tâches « À préparer ».
