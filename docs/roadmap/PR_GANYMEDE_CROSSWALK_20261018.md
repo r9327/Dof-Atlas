@@ -25,11 +25,12 @@ itinéraire ni aucune fiche générée.
 
 Catalogue original : https://ganymede-app.com/tree?view=list
 
-La page publique annonçait **95 guides** au moment de l'inventaire. Le dépôt
-ne représente que **13 correspondances de départ** entre pages publiques et
-guides existants ; les 95 guides ne sont donc **pas importés**.
-
-Fichier : data/encyclopedia/guides/ganymede_source_crosswalk.json
+La page publique annonçait **95 guides** au moment de l'inventaire. Les
+**95 fiches de métadonnées** publiques (noms, liens, niveaux affichés) sont
+maintenant inventoriées dans data/encyclopedia/guides/ganymede_main_index.json.
+En revanche, seules **13 correspondances initiales** avec des guides Atlas
+existants sont établies dans data/encyclopedia/guides/ganymede_source_crosswalk.json.
+**Aucun des 95 parcours ni texte d'étape n'est importé ou certifié.**
 
 Exemples : guide complet, Incarnam/Astrub (Argenté), Cawotte, Émeraude,
 Dokoko, Dolmanax, Veilleurs, Glaces, Ébène, Ivoire, introduction
