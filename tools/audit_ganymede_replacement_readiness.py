@@ -173,6 +173,14 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
         ],
         "ready_to_replace": 0,
         "replacement_activated": False,
+        "source_action_reviewed_steps": sum(
+            source["reviewed_action_candidate_steps"]
+            for record in records for source in record["source_guides"]
+        ),
+        "source_auto_extracted_hint_steps": sum(
+            source["auto_extracted_candidate_steps"]
+            for record in records for source in record["source_guides"]
+        ),
         "progress_contract": (
             "characters[character_key].manual_steps[atlas_guide_id]"
         ),
