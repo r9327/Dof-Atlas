@@ -119,5 +119,90 @@ class GanymedeCrosswalkAuditTests(unittest.TestCase):
         )
 
 
+    def _enable_tree_metadata(self) -> dict:
+        path = self.root / MAIN_INDEX
+        index = json.loads(path.read_text(encoding="utf-8"))
+        index["snapshot"]["public_tree_prerequisite_graph"] = {
+            "status": "SOURCE_METADATA_ONLY",
+            "source_url": "https://ganymede-app.com/tree?view=list",
+            "route_content_certified": False,
+            "listed_step_counts": 1,
+            "guides_with_dependencies": 0,
+            "dependency_edges": 0,
+        }
+        index["guides"][0]["listed_step_count"] = 64
+        index["guides"][0]["public_tree_prerequisite_guide_ids"] = []
+        path.write_text(json.dumps(index), encoding="utf-8")
+        return index
+
+    def test_tree_metadata_reports_coverage_without_certifying_routes(self) -> None:
+        self._enable_tree_metadata()
+        report = audit_ganymede_crosswalk(self.root)
+        self.assertEqual(report["status"], "PASS_METADATA_ONLY")
+        self.assertEqual(report["tree_prerequisite_edges"], 0)
+        self.assertEqual(report["guide_coverage"][0]["mapping_status"], "CROSSWALK_METADATA_ONLY")
+        self.assertEqual(report["verified_routes"], 0)
+
+    def test_tree_missing_step_count_fails(self) -> None:
+        index = self._enable_tree_metadata()
+        del index["guides"][0]["listed_step_count"]
+        (self.root / MAIN_INDEX).write_text(json.dumps(index), encoding="utf-8")
+        codes = [i["code"] for i in audit_ganymede_crosswalk(self.root)["issues"]]
+        self.assertIn("tree_step_count", codes)
+
+    def test_tree_unknown_prerequisite_fails(self) -> None:
+        index = self._enable_tree_metadata()
+        index["guides"][0]["public_tree_prerequisite_guide_ids"] = [99999]
+        index["snapshot"]["public_tree_prerequisite_graph"]["dependency_edges"] = 1
+        index["snapshot"]["public_tree_prerequisite_graph"]["guides_with_dependencies"] = 1
+        (self.root / MAIN_INDEX).write_text(json.dumps(index), encoding="utf-8")
+        codes = [i["code"] for i in audit_ganymede_crosswalk(self.root)["issues"]]
+        self.assertIn("tree_unknown_or_self_prerequisite", codes)
+
+    def test_tree_cycle_fails(self) -> None:
+        index = self._enable_tree_metadata()
+        index["guides"][0]["public_tree_prerequisite_guide_ids"] = [2206]
+        index["guides"].append({
+            "ganymede_guide_id": 2206,
+            "source_url": "https://ganymede-app.com/guides/2206",
+            "title": "Valonia 1",
+            "status": "metadata_only",
+            "listed_step_count": 30,
+            "public_tree_prerequisite_guide_ids": [2205],
+        })
+        index["snapshot"]["total_main_guides"] = 2
+        index["snapshot"]["public_tree_prerequisite_graph"].update({
+            "listed_step_counts": 2, "dependency_edges": 2, "guides_with_dependencies": 2,
+        })
+        (self.root / MAIN_INDEX).write_text(json.dumps(index), encoding="utf-8")
+        codes = [i["code"] for i in audit_ganymede_crosswalk(self.root)["issues"]]
+        self.assertIn("tree_prerequisite_cycle", codes)
+
+    def test_tree_cannot_certify_route_content(self) -> None:
+        index = self._enable_tree_metadata()
+        index["snapshot"]["public_tree_prerequisite_graph"]["route_content_certified"] = True
+        (self.root / MAIN_INDEX).write_text(json.dumps(index), encoding="utf-8")
+        codes = [i["code"] for i in audit_ganymede_crosswalk(self.root)["issues"]]
+        self.assertIn("tree_false_certification", codes)
+
+    def test_unmapped_guide_is_explicit_in_report(self) -> None:
+        index = self._enable_tree_metadata()
+        index["guides"].append({
+            "ganymede_guide_id": 2206,
+            "source_url": "https://ganymede-app.com/guides/2206",
+            "title": "Valonia 1",
+            "status": "metadata_only",
+            "listed_step_count": 30,
+            "public_tree_prerequisite_guide_ids": [],
+        })
+        index["snapshot"]["total_main_guides"] = 2
+        index["snapshot"]["public_tree_prerequisite_graph"]["listed_step_counts"] = 2
+        (self.root / MAIN_INDEX).write_text(json.dumps(index), encoding="utf-8")
+        report = audit_ganymede_crosswalk(self.root)
+        self.assertEqual(report["status"], "PASS_METADATA_ONLY")
+        self.assertEqual(report["unmapped_guide_ids"], [2206])
+        self.assertEqual(report["guide_coverage"][1]["mapping_status"], "UNMAPPED")
+
+
 if __name__ == "__main__":
     unittest.main()
