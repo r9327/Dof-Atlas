@@ -57,7 +57,6 @@ class GanymedeCutoverTests(unittest.TestCase):
             "guides": {"dofus_cawotte": {
                 "enabled": True, "status": "CERTIFIED_FOR_CUTOVER",
                 "source_guide_id": 2205, "source_step_count": 2,
-                "progress_migration_verified": True,
                 "payload_sha256": certified_payload_sha256(self.payload),
                 "fingerprint": route_fingerprint(2205, [
                     "ganymede_2205_step_0001", "ganymede_2205_step_0002",
@@ -86,10 +85,10 @@ class GanymedeCutoverTests(unittest.TestCase):
             self.guides, {"id": "alignement_bonta", "category": "alignements"}
         ))
 
-    def test_no_activation_without_verified_progress_migration(self) -> None:
-        self.manifest["guides"]["dofus_cawotte"]["progress_migration_verified"] = False
+    def test_no_progress_migration_required(self) -> None:
         self.save()
-        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
+        self.assertEqual(select_verified_replacement_path(self.guides, self.entry),
+                         self.drafts / "dofus_cawotte.json")
 
     def test_no_activation_from_unplayable_source_preview(self) -> None:
         self.payload["replacement_active"] = False
