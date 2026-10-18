@@ -423,3 +423,7 @@ Ganymède guide **2261 / Ébène : 142 étapes** publiques successives sur 3 pag
 ### Quatorzième lot — Abyssal et Frigost 1 (18/10/2026)
 
 Le guide Ganymède **Dofus Abyssal 2269** est collecté sur 4 pages, **174 étapes** numérotées sans trou ; **Frigost 1 2213**, également sur 4 pages, **181 étapes**. Deux nouveaux instantanés de références factuelles non interprétées. **88/95 guides, 5 306 étapes** de liens sources observés, **7 guides non détaillés**. Le simple référencement d'une quête ne justifie ni son caractère obligatoire, ni ses prérequis, ni l'ordre du parcours ; la certification Atlas/DPLN reste distincte.
+
+### Quinzième lot — Quatre sur cinq (18/10/2026)
+
+Le guide Ganymède 2270 « Four Over Five » est observé sur **trois pages, 141 étapes** sans lacune. **89/95 guides, 5 447 étapes** de références factuelles ; **six guides** restent à détailler. Pandala 3 n'a pas été ajouté : la troisième page de source a été bloquée à la consultation, aucune donnée partielle n'étant considérée suffisante. Zéro itinéraire ou objectif Atlas certifié depuis ces simples liens.
