@@ -720,3 +720,49 @@ niveau et la couverture complète du dépôt réel. Le statut est
 ses groupes alternatifs et le `startCriterion` canonique Doduda, en
 respectant les expressions `AND/OR` plutôt que d'exiger toutes les
 branches.
+
+
+### Dépendances et prérequis par ID — audit non destructif
+
+Outil `tools.audit_ganymede_prerequisites` : part du registre unique
+par ID, puis regroupe **pour chaque quête** ses déclarations de prérequis
+provenant des 26 guides Atlas (en conservant le guide, l'étape,
+`optional`, `relation`, les groupes `OR` et le type `quest` ou
+`achievement` de chaque référence). Conserve séparément **les
+prérequis d'un guide Ganymède** : une dépendance *entre guides*
+ne peut devenir une quête à faire par chaque personnage.
+
+Avec les véritables données runtime Doduda, le même outil lit
+`startCriterion` via l'index disque d'Atlas et produit les **branches
+alternatives** de l'expression : `A&(B|C)` donne exactement
+`[A,B]` **ou** `[A,C]`, et jamais trois tâches obligatoires.
+Les atomes `Qf`, `Qa`, `Sc` et `PL` sont étiquetés pour
+contrôle ; les autres restent `OPAQUE_UNINTERPRETED`, sans
+déduction. Les expressions invalides, imbriquées abusivement ou
+dépassant 64 branches sont classées `REVIEW_UNPARSED`.
+C'est une lecture des **conditions** et non leur satisfaction
+chez un personnage.
+
+    python -m tools.audit_ganymede_prerequisites --output artifacts/guides/prerequisites_by_id.json
+    python -m tools.audit_ganymede_prerequisites --raw-quests CHEMIN/doduda_cli/quests.json --output artifacts/guides/prerequisites_doduda_review.json
+
+Sans `quests.json`, le rapport indique
+`REVIEW_ATLAS_ONLY_CANONICAL_UNAVAILABLE` et conserve
+l'audit Atlas ; avec les données, il indique
+`REVIEW_RAW_AND_ATLAS_PREREQUISITES`. Les références locales
+vers des quêtes non présentes dans le registre sont listées
+comme lacunes à investiguer, **pas créées fictivement**.
+Les `13 tests` contrôlent la priorité de `&`/`|`, les
+parenthèses, les branches alternatives, les jetons inconnus,
+les fichiers manquants/corrompus et le caractère non obligatoire
+des alternatives.
+
+Les champs `verified_required_quests`,
+`verified_required_achievements`, `verified_required_objects`
+restent vides ; `satisfied_for_any_character` reste `null`.
+La certification des vrais objectifs, des ressources et des
+préparations multi-personnages requiert toujours la vérification
+de la sémantique jeu/version, des consommations effectives,
+des objets déjà possédés et des combats. Il est interdit
+de brancher directement les résultats non vérifiés à la
+liste « À préparer » ou d'activer l'optimiseur #226.
