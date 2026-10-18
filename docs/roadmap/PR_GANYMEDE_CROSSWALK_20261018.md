@@ -375,3 +375,9 @@ depuis cette seule donnée.
 Références : [quête](https://www.dofuspourlesnoobs.com/lanneacutee-du-dragon.html),
 [calendrier](https://www.dofuspourlesnoobs.com/calendrier-de-lalmanax.html),
 [DofusDB quête 954](https://dofusdb.fr/fr/database/quest/954).
+
+### Sixième lot — neuf guides courts (18/10/2026)
+
+Inventaire des étapes factuelles et des liens sur les guides Ganymède : Sylvan Dofus (ID 2290, 2 étapes), Pine Done (2285, 4), Cloudy/Nébuleux (2247, 6), Argenté scintillant (2273, 15), Al Howin (2590, 16), Secret of the Dofus : Prologue (2284, 21), Sidimote 5 (2259, 25), Albatrocious Rock (2274, 26) et Srambad 1 (2244, 29).
+
+**Couverture : 33/95 guides, 1 515 étapes observées, 62 guides encore sans instantané d'étapes.** Les fichiers `ganymede_<ID>_observed_links.json` sont datés, validés sur le compteur d'étapes et non certifiés comme trajets. **Sylvan Dofus n'est pas le guide Atlas « Sylvestre Opti »** : aucune équivalence ne doit être déduite de la ressemblance de leurs noms.
