@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.atlas_doctor_lib.capability_matrix import CAPABILITIES, BEHAVIOR_ANCHORS, capability_inventory, capability_test_ids, _call_names, _test_case_defined
+from tools.atlas_doctor_lib.capability_matrix import CAPABILITIES, BEHAVIOR_ANCHORS, capability_inventory, capability_test_ids, capability_control_ids, NEGATIVE_BEHAVIOR_ANCHORS, _call_names, _test_case_defined
 
 
 class DoctorCapabilityContractsTests(unittest.TestCase):
@@ -20,6 +20,9 @@ class DoctorCapabilityContractsTests(unittest.TestCase):
         self.assertEqual(set(BEHAVIOR_ANCHORS), {row[0] for row in CAPABILITIES})
         self.assertEqual(result["behavior_test_anchors_defined"], 18)
         self.assertEqual(result["behavior_test_anchors_missing"], 0)
+        self.assertEqual(result["negative_control_anchors_defined"], 18)
+        self.assertEqual(result["negative_control_anchors_missing"], 0)
+        self.assertEqual(set(NEGATIVE_BEHAVIOR_ANCHORS), set(BEHAVIOR_ANCHORS))
         for row in result["capabilities"]:
             self.assertIsInstance(row["definition_line"], int)
             self.assertGreater(row["definition_line"], 0)
@@ -31,6 +34,8 @@ class DoctorCapabilityContractsTests(unittest.TestCase):
             self.assertFalse(row["proven_defect"])
             self.assertFalse(row["behavior_certified"])
             self.assertEqual(row["behavior_test_anchor"], "DEFINED")
+            self.assertEqual(row["negative_control_anchor"], "DEFINED")
+            self.assertFalse(row["negative_control_executed"])
             self.assertTrue(row["behavior_test"].startswith("tests/test_atlas_doctor_"))
             self.assertFalse(row["behavior_test_executed"])
             self.assertEqual(row["behavior_test_result"], "UNVERIFIED")
@@ -48,6 +53,9 @@ class DoctorCapabilityContractsTests(unittest.TestCase):
         test_ids = capability_test_ids(root)
         self.assertEqual(set(test_ids), set(BEHAVIOR_ANCHORS))
         self.assertEqual(len(set(test_ids.values())), 18)
+        control_ids = capability_control_ids(root)
+        self.assertEqual(set(control_ids), set(test_ids))
+        self.assertEqual(len(set([*test_ids.values(), *control_ids.values()])), 36)
         self.assertTrue(all(value.startswith("tests.test_atlas_doctor_")
                             for value in test_ids.values()))
 

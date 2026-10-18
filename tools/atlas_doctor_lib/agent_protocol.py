@@ -85,6 +85,56 @@ def _review_causes(plan: dict[str, Any], result: dict[str, Any]) -> list[str]:
     return _unique(causes, limit=10)
 
 
+def _source_provenance(plan: dict[str, Any], state: dict[str, Any],
+                       result: dict[str, Any], checks: dict[str, Any]) -> dict[str, Any]:
+    """Agent-readable evidence; AST source anchors are never defect findings."""
+    inventory = plan.get("source_diagnostics") or {}
+    raw_files = inventory.get("files") if isinstance(inventory, dict) else None
+    anchors: list[dict[str, Any]] = []
+    findings: list[dict[str, Any]] = []
+    if isinstance(raw_files, list):
+        for file in raw_files[:40]:
+            if not isinstance(file, dict) or not isinstance(file.get("path"), str):
+                continue
+            path = file["path"]
+            symbols = file.get("symbols")
+            if isinstance(symbols, list):
+                for symbol in symbols[:80]:
+                    if not isinstance(symbol, dict):
+                        continue
+                    name, line = symbol.get("name"), symbol.get("line")
+                    if isinstance(name, str) and type(line) is int and line > 0:
+                        anchors.append({
+                            "path": path, "symbol": name, "line": line,
+                            "evidence_level": "SOURCE_DEFINITION_ONLY",
+                        })
+            if file.get("status") == "FAIL":
+                findings.append({
+                    "path": path, "symbol": None, "line": None,
+                    "status": "FAIL", "reason": str(file.get("reason") or "SOURCE_ERROR"),
+                    "priority": "UNASSESSED", "proposed_action": "Inspect source error",
+                    "selected_tests": checks["tests"],
+                    "ci_run_url": None, "independently_attested": False,
+                })
+    return {
+        "schema_version": 1,
+        "source_sha": state["head"],
+        "source_inventory_status": inventory.get("status", "NOT_PROVIDED") if isinstance(inventory, dict) else "BLOCKED",
+        "source_anchors": anchors[:100],
+        "diagnostics": findings[:40],
+        "selected_tests": checks["tests"],
+        "execution_status": result.get("status", "NOT_RUN"),
+        "ci_run_url": None,
+        "ci_run_id": None,
+        "independent_ci_attested": False,
+        "limits": (
+            "Source anchors are AST inventory, not proven defects. Missing line, "
+            "function, priority, run link or attestation stays null/UNASSESSED; "
+            "local check and scoped validation never certify the release."
+        ),
+    }
+
+
 def _envelope(root: Path, *, action: str, paths: list[str], base_ref: str,
               plan: dict[str, Any], result: dict[str, Any] | None = None) -> dict[str, Any]:
     from .guardian_packs import guardian_plan
@@ -129,6 +179,7 @@ def _envelope(root: Path, *, action: str, paths: list[str], base_ref: str,
             "protected_paths": list(PROTECTED_PATHS),
         },
         "selected_checks": checks,
+        "source_evidence": _source_provenance(plan, state, result, checks),
         "guardians": guardian_plan(plan),
         "budgets": {
             "save_seconds": 1,
@@ -182,6 +233,8 @@ def run_agent_action(
             "schema_version": 1, "protocol": PROTOCOL, "action": action,
             "status": "BLOCKED", "exit_code": 2,
             "reason": "At least one repository-relative path is required.",
+            "source_evidence": {"schema_version": 1, "source_inventory_status": "NOT_RUN",
+                                "source_anchors": [], "diagnostics": [], "independent_ci_attested": False},
             "forbidden_claims": list(FORBIDDEN_CLAIMS),
         }
     try:
@@ -211,5 +264,7 @@ def run_agent_action(
         return {
             "schema_version": 1, "protocol": PROTOCOL, "action": action,
             "status": "BLOCKED", "exit_code": 2, "reason": str(exc),
+            "source_evidence": {"schema_version": 1, "source_inventory_status": "BLOCKED",
+                                "source_anchors": [], "diagnostics": [], "independent_ci_attested": False},
             "forbidden_claims": list(FORBIDDEN_CLAIMS),
         }

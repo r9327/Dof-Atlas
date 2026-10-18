@@ -75,6 +75,34 @@ BEHAVIOR_ANCHORS = {
     "U18": ("test_atlas_doctor_live_graph.py", "test_live_graph_adds_actual_local_import_edges_without_graph_rebuild"),
 }
 
+# Independent negative/boundary controls.  A witness cannot prove a capability
+# is safe merely because one happy-path test ran successfully.
+NEGATIVE_BEHAVIOR_ANCHORS = {
+    "G01": ("test_atlas_doctor_file_coverage.py", "test_stale_never_counts_as_current"),
+    "G02": ("test_atlas_doctor_graph_intelligence.py", "test_relative_import_cycles_require_valid_package_depth"),
+    "G03": ("test_atlas_doctor_graph_intelligence.py", "test_cohesion_excludes_nonproduction_and_repeated_symbol_edges"),
+    "G04": ("test_atlas_doctor_deep_intelligence.py", "test_missing_graph_does_not_claim_reachability"),
+    "R05": ("test_atlas_doctor_runtime_observation.py", "test_active_observer_only_available_during_opt_in_session"),
+    "R06": ("test_atlas_doctor_runtime_observation.py", "test_no_sensitive_outside_paths_or_arguments"),
+    "R07": ("test_atlas_doctor_runtime_observation.py", "test_wrapped_slot_preserves_exception_and_requires_opt_in"),
+    "R08": ("test_atlas_doctor_runtime_observation.py", "test_qt_worker_unpaired_is_review_and_scenarios_do_not_cancel_each_other"),
+    "R09": ("test_atlas_doctor_runtime_observation.py", "test_weak_watch_cap_is_bounded_without_retaining_objects"),
+    "C10": ("test_atlas_doctor_change_intelligence.py", "test_non_literal_dynamic_import_is_not_confirmed"),
+    "C11": ("test_atlas_doctor_source_impact.py", "test_invalid_paths_fail_closed_and_cannot_be_deleted"),
+    "C12": ("test_atlas_doctor_refactor_simulation.py", "test_stale_graph_blocks_preview"),
+    "C13": ("test_atlas_doctor_scenario_trends.py", "test_rejects_inconsistent_scenarios"),
+    "T14": ("test_atlas_doctor_test_intelligence.py", "test_missing_or_outside_report_never_returns_pass"),
+    "T15": ("test_atlas_doctor_test_intelligence.py", "test_nan_and_incomplete_command_never_enter_costs"),
+    "T16": ("test_atlas_doctor_scenario_coverage.py", "test_exact_sha_complete_trace_cannot_be_substituted_with_stale_trace"),
+    "U17": ("test_atlas_doctor_graph_ui.py", "test_qt_callback_without_provenance_is_not_graph_evidence"),
+    "U18": ("test_atlas_doctor_live_graph.py", "test_implicit_dynamic_import_not_claimed"),
+}
+
+
+def capability_control_ids(root: Path) -> dict[str, str]:
+    """Resolve the independent negative control for each capability."""
+    return _resolve_test_ids(root, NEGATIVE_BEHAVIOR_ANCHORS)
+
 
 def _test_case_defined(root: Path, file: str, name: str) -> bool:
     """Find an actual test method without importing or executing any code."""
@@ -99,10 +127,14 @@ def _test_case_defined(root: Path, file: str, name: str) -> bool:
 
 
 def capability_test_ids(root: Path) -> dict[str, str]:
-    """Resolve each declared witness to one exact unittest method."""
+    """Resolve each declared positive witness to one exact unittest method."""
+    return _resolve_test_ids(root, BEHAVIOR_ANCHORS)
+
+
+def _resolve_test_ids(root: Path, anchors: dict[str, tuple[str, str]]) -> dict[str, str]:
     root = root.resolve()
     resolved: dict[str, str] = {}
-    for ident, (file, name) in BEHAVIOR_ANCHORS.items():
+    for ident, (file, name) in anchors.items():
         source = root / "tests" / file
         try:
             if (source.is_symlink() or not source.is_file()
@@ -154,6 +186,10 @@ def capability_inventory(root: Path, *, evidence: dict[str, Any] | None = None) 
         ident: _test_case_defined(root, *BEHAVIOR_ANCHORS[ident])
         for ident, *_ in CAPABILITIES
     }
+    control_cache = {
+        ident: _test_case_defined(root, *NEGATIVE_BEHAVIOR_ANCHORS[ident])
+        for ident, *_ in CAPABILITIES
+    }
     wiring_cache = {path: _call_names(root, path)
                     for path in {path for path, _ in WIRED_AT.values()}}
     evidence_check = None
@@ -203,6 +239,10 @@ def capability_inventory(root: Path, *, evidence: dict[str, Any] | None = None) 
             "proven_defect": False,
             "behavior_test": "tests/" + BEHAVIOR_ANCHORS[ident][0] + "::" + BEHAVIOR_ANCHORS[ident][1],
             "behavior_test_anchor": "DEFINED" if test_cache[ident] else "MISSING",
+            "negative_control": "tests/" + NEGATIVE_BEHAVIOR_ANCHORS[ident][0] + "::" + NEGATIVE_BEHAVIOR_ANCHORS[ident][1],
+            "negative_control_anchor": "DEFINED" if control_cache[ident] else "MISSING",
+            "negative_control_executed": tested,
+            "negative_control_result": "PASS" if tested else "UNVERIFIED",
             "behavior_test_executed": tested,
             "behavior_test_result": "PASS" if tested else "UNVERIFIED",
             "callable": symbol, "behavior_certified": False,
@@ -210,6 +250,7 @@ def capability_inventory(root: Path, *, evidence: dict[str, Any] | None = None) 
     missing = sum(row["source_anchor"] == "MISSING" for row in rows)
     unwired = sum(row["wiring_status"] != "AST_CALLSITE_PRESENT" for row in rows)
     missing_behavior_anchors = sum(row["behavior_test_anchor"] != "DEFINED" for row in rows)
+    missing_controls = sum(not present for present in control_cache.values())
     tested_count = len(tested_ids)
     return {
         "kind": "doctor_capabilities", "count": len(rows),
@@ -217,7 +258,9 @@ def capability_inventory(root: Path, *, evidence: dict[str, Any] | None = None) 
         "call_sites_wired": len(rows) - unwired, "call_sites_missing": unwired,
         "behavior_test_anchors_defined": len(rows) - missing_behavior_anchors,
         "behavior_test_anchors_missing": missing_behavior_anchors,
-        "status": "BLOCKED" if (missing or unwired or missing_behavior_anchors
+        "negative_control_anchors_defined": len(rows) - missing_controls,
+        "negative_control_anchors_missing": missing_controls,
+        "status": "BLOCKED" if (missing or unwired or missing_behavior_anchors or missing_controls
                                    or evidence_check is not None
                                    and evidence_check["status"] != "PASS")
                   else "TESTED_NOT_CERTIFIED" if tested_count == len(rows)
@@ -229,5 +272,5 @@ def capability_inventory(root: Path, *, evidence: dict[str, Any] | None = None) 
             "status": "NOT_PROVIDED", "errors": [],
             "tested_capability_ids": [], "certification": "NOT_CERTIFIED",
         },
-        "limits": "AST definitions, call-sites and test-case names are only source anchors. Run evidence must be checked separately on the same SHA. Simulated Qt tests do not prove live Windows behavior, and test presence cannot certify test results.",
+        "limits": "AST definitions and test anchors are not results. Positive and negative controls must run in the same exact-SHA suite; tests still do not certify production Windows/Qt, live UI behavior or a release.",
     }

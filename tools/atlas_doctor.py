@@ -711,7 +711,7 @@ def build_parser() -> argparse.ArgumentParser:
         'capabilities', help='Inventaire et preuves locales des 18 capacites.')
     evidence_mode = capabilities.add_mutually_exclusive_group()
     evidence_mode.add_argument('--run-tests', action='store_true',
-                               help='Executer les 18 temoins exacts une seule fois.')
+                               help='Executer les 18 temoins positifs et 18 controles negatifs une seule fois.')
     evidence_mode.add_argument('--evidence', type=Path,
                                help='Verifier une preuve JSON existante sans test.')
     capabilities.add_argument('--output', type=Path,
