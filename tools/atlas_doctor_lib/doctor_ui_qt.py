@@ -1214,9 +1214,14 @@ def achievement_title_contrast(page, view) -> dict:
     scale_x = image.width() / page.width()
     scale_y = image.height() / page.height()
     # Never accidentally certify other widgets/borders behind this title.
+    # QLabel expands with its layout, but a short title does not paint across
+    # that whole width. Limit the evidence crop to the measured text extent so
+    # blank layout space cannot inflate the required-ink threshold.
+    text_width = label.fontMetrics().horizontalAdvance(label.text())
+    crop_width = min(label.width() - 2, text_width + 8, 500)
     x0 = max(0, int((top.x() + 2) * scale_x))
     y0 = max(0, int((top.y() + 1) * scale_y))
-    x1 = min(image.width(), int((top.x() + min(label.width() - 2, 500)) * scale_x))
+    x1 = min(image.width(), int((top.x() + crop_width) * scale_x))
     y1 = min(image.height(), int((top.y() + min(label.height() - 1, 100)) * scale_y))
     if x1 - x0 < 40 or y1 - y0 < 12:
         return {"status": "BLOCKED", "reason": "TITLE_CROP_TOO_SMALL",

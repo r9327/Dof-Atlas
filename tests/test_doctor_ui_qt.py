@@ -592,6 +592,7 @@ class DoctorUiQtFaultTests(unittest.TestCase):
             self.assertGreaterEqual(good["above_minimum_ratio_pixels"],
                                     good["required_ink_pixels"])
             self.assertEqual(good["widget"], "AchievementDetailTitle")
+            self.assertLess(good["crop"][2], title.width())
 
             title.setStyleSheet("color: #182123; background-color: transparent;")
             title.repaint()
