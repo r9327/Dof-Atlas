@@ -1,0 +1,947 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_vulbis",
+  "source_guide_id": 2260,
+  "source_url": "https://ganymede-app.com/guides/2260",
+  "reviewed_on": "2026-10-19",
+  "source_step_count": 47,
+  "evidence_level": "FACTUAL_ACTION_CANDIDATES_NEED_CANONICAL_OBJECTIVE_VERIFICATION",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2260_step_0001",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "quest_prerequisite",
+          "label": "Terminer la quête préalable des anomalies",
+          "quest_id": 2064
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Terminer la quête préalable du temps",
+          "quest_id": 2085
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Terminer la quête préalable du sacrifice",
+          "quest_id": 2087
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Prévoir Alchimiste ou Paysan niveau 200",
+          "alternative_group": "vulbis_professions",
+          "professions": [
+            "alchemist",
+            "farmer"
+          ],
+          "level": 200
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Avoir terminé Dragon des Forêts pour simplifier l'accès",
+          "quest_id": 1791,
+          "optional": true
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Objectif du parcours : Dofus Vulbis",
+          "object_id": 21186
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2260_step_0002",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        1
+      ],
+      "next": [
+        2,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "optional_preparation",
+          "label": "Reporter les achats jusqu'à la récupération du Parangon",
+          "object_id": 21189
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir dix Quisnoa",
+          "object_id": 17993,
+          "quantity": 10,
+          "quest_id": 2081
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir dix Salikronia",
+          "object_id": 17992,
+          "quantity": 10,
+          "quest_id": 2081
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir deux charognes savoureuses",
+          "object_id": 17161,
+          "quantity": 2,
+          "quest_id": 2081
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir 789 pépites",
+          "object_id": 14635,
+          "quantity": 789,
+          "quest_id": 2083
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir 500 reflets oniriques",
+          "object_id": 32079,
+          "quantity": 500,
+          "quest_id": 2083
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir 42 sabliers miniatures",
+          "object_id": 15733,
+          "quantity": 42,
+          "quest_id": 2083
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir trois galets solaires",
+          "object_id": 13367,
+          "quantity": 3,
+          "quest_id": 2083
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir deux yeux de verre",
+          "object_id": 14145,
+          "quantity": 2,
+          "quest_id": 2083
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir la corne de Crocabulia",
+          "object_id": 8365,
+          "quantity": 1,
+          "quest_id": 2083
+        },
+        {
+          "kind": "move",
+          "label": "Se rendre auprès de l'émissaire de Xélor"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2260_step_0003",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        1
+      ],
+      "next": [
+        -1,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Parler à l'émissaire de Xélor pour lancer l'anomalie",
+          "quest_id": 2078
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Avoir terminé les prérequis d'accès",
+          "quest_id": 2064
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la faille"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2260_step_0004",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -1,
+        24
+      ],
+      "next": [
+        -1,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans l'anomalie par le Zaap"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Grasmera"
+        },
+        {
+          "kind": "combat",
+          "label": "Remporter le combat individuel avec compagnon",
+          "monster_id": 3143,
+          "group_mode": "solo_with_sidekick"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Exploiter les états vulnérables de Grozilla et Grasmera",
+          "monster_id": 3142
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Prendre le compagnon Photo-Signal si disponible",
+          "object_id": 14961
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2260_step_0005",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        26
+      ],
+      "next": [
+        2,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans la maison"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au chef du village"
+        },
+        {
+          "kind": "combat",
+          "label": "Terminer le combat individuel",
+          "group_mode": "solo"
+        },
+        {
+          "kind": "equip",
+          "label": "Équiper le faux Vulbis obtenu dans la scène",
+          "object_id": 21186
+        },
+        {
+          "kind": "interact",
+          "label": "Quitter l'anomalie"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à l'émissaire"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2260_step_0006",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        1
+      ],
+      "next": [
+        1,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Présenter le Vulbis à l'émissaire"
+        },
+        {
+          "kind": "combat",
+          "label": "Terminer le combat solo déclenché",
+          "group_mode": "solo"
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à l'émissaire"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'avant-poste en Xélorium"
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2260_step_0007",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        6
+      ],
+      "next": [
+        1,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans l'avant-poste des voyageurs"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Doc Ettem Bworn"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre la surcharge d'énergie en combat solo",
+          "monster_id": 5902,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Neutraliser l'invocation dangereuse",
+          "monster_id": 5873
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2260_step_0008",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        6
+      ],
+      "next": [
+        8,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Emprunter la porte de gauche"
+        },
+        {
+          "kind": "combat",
+          "label": "Remporter le deuxième combat contre l'énergie",
+          "group_mode": "solo"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Parler à Doc Ettem Bworn pour terminer l'anomalie",
+          "quest_id": 2078
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer la quête de la mère des Dragœufs",
+          "quest_id": 2079
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le temple Osamodas"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2260_step_0009",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        2
+      ],
+      "next": [
+        8,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer au temple Osamodas"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat solo avec compagnon",
+          "group_mode": "solo_with_sidekick"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Surveiller le Dragœuf lacustre et sa ligne de vue",
+          "monster_id": 5871
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Zeurg après la victoire"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2260_step_0010",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        2
+      ],
+      "next": [
+        8,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Obtenir le Parangon de puissance sur les boss 200",
+          "object_id": 21189,
+          "quantity": 1,
+          "drop_rate_percent": 0.7
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Option A : farmer les donjons les plus rapides",
+          "alternative_group": "parangon_acquisition"
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Option B : obtenir le Parangon pendant les autres donjons 200",
+          "alternative_group": "parangon_acquisition"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Exemple de donjon pour le drop, non obligatoire",
+          "dungeon_id": 73,
+          "optional": true,
+          "alternative_group": "parangon_acquisition"
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2260_step_0011",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        2
+      ],
+      "next": [
+        -4,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Rejoindre la statue Osamodas du temple"
+        },
+        {
+          "kind": "interact",
+          "label": "Faire l'offrande au dieu Osamodas"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Dicton Karly"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2260_step_0012",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        29
+      ],
+      "next": [
+        -2,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Dicton Karly"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat individuel",
+          "group_mode": "solo"
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Dicton puis Draegnerys"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le sanctuaire des Dragœufs"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2260_step_0013",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -2,
+        26
+      ],
+      "next": [
+        -4,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à l'Écaflip malchanceux"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat de groupe",
+          "group_mode": "group"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le Crâ rapide"
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2260_step_0014",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        27
+      ],
+      "next": [
+        -5,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Crâ rapide"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat de groupe",
+          "group_mode": "group"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'Éniripsa hyperactif"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2260_step_0015",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -5,
+        27
+      ],
+      "next": [
+        -6,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à l'Éniripsa hyperactif"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat de groupe",
+          "group_mode": "group"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le Iop simple"
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2260_step_0016",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        28
+      ],
+      "next": [
+        -4,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Iop simple"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat de groupe",
+          "group_mode": "group"
+        },
+        {
+          "kind": "move",
+          "label": "Revenir en surface"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2260_step_0017",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        29
+      ],
+      "next": [
+        -80,
+        -12
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Dicton Karly puis Draegnerys"
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Vérifier la quête perdue dans le temps",
+          "quest_id": 2085,
+          "guide_id": 2264
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Crocuzko par bateau"
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2260_step_0018",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -80,
+        -12
+      ],
+      "next": [
+        -80,
+        -12
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Dragœuf forestier"
+        },
+        {
+          "kind": "combat",
+          "label": "Remporter le combat solo avec compagnon",
+          "group_mode": "solo_with_sidekick"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Surveiller la portée du Dragœuf lacustre",
+          "monster_id": 5871
+        },
+        {
+          "kind": "interact",
+          "label": "Entrer dans la grotte"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à la Mort Rouge, puis à Tylezia"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête de la mère des Dragœufs",
+          "quest_id": 2079
+        },
+        {
+          "kind": "quest_start",
+          "label": "Continuer vers le Cauchemar infini",
+          "quest_id": 2080
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2260_step_0019",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        0
+      ],
+      "next": [
+        0,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Draconiros dans les Songes"
+        },
+        {
+          "kind": "drop_object",
+          "label": "Récolter une griffe de Meaguar",
+          "object_id": 21190,
+          "quantity": 1,
+          "source": "infinite_dreams"
+        },
+        {
+          "kind": "drop_object",
+          "label": "Récolter une ombre prédatrice",
+          "object_id": 21191,
+          "quantity": 1,
+          "source": "infinite_dreams"
+        },
+        {
+          "kind": "drop_object",
+          "label": "Récolter un rugissement nocturne",
+          "object_id": 21192,
+          "quantity": 1,
+          "source": "infinite_dreams"
+        },
+        {
+          "kind": "talk",
+          "label": "Remettre les ressources à Draconiros"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2260_step_0020",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        0
+      ],
+      "next": [
+        -79,
+        -11
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Trouver la proie d'Oyukipoca dans les Songes"
+        },
+        {
+          "kind": "combat",
+          "label": "Remporter le combat solo et protéger Oyukipoca",
+          "monster_id": 5863,
+          "group_mode": "solo",
+          "ally_must_survive": true
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Utiliser les Octolithes contre le cauchemar",
+          "monster_id": 5862
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Retirer les résistances du cauchemar rocheux",
+          "monster_id": 5825
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le lieu des autels à Crocuzko"
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "stable_step_id": "ganymede_2260_step_0021",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -79,
+        -11
+      ],
+      "next": [
+        -80,
+        -12
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à l'Araignée pâle"
+        },
+        {
+          "kind": "combat",
+          "label": "Gagner le combat individuel",
+          "group_mode": "solo"
+        },
+        {
+          "kind": "interact",
+          "label": "Examiner l'autel"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner voir Tylezia"
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "stable_step_id": "ganymede_2260_step_0022",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -80,
+        -12
+      ],
+      "next": [
+        -84,
+        -16
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Parler à Tylezia pour terminer le Cauchemar infini",
+          "quest_id": 2080
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer la Nuit qui rugit",
+          "quest_id": 2081
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Vérifier le sens du sacrifice",
+          "quest_id": 2087,
+          "guide_id": 2264
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le chambellan"
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "stable_step_id": "ganymede_2260_step_0023",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -84,
+        -16
+      ],
+      "next": [
+        -83,
+        -15
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Questionner le chambellan des Tortelonias"
+        },
+        {
+          "kind": "interact",
+          "label": "Examiner l'anneau central"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ixchelonia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre les ruines"
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "stable_step_id": "ganymede_2260_step_0024",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -83,
+        -15
+      ],
+      "next": [
+        -83,
+        -15
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la muraille éboulée puis le récipient"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Kinichinti"
+        },
+        {
+          "kind": "drop_object",
+          "label": "Récupérer le feu de Kinichinti",
+          "object_id": 21267,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Garder le lézard de Kinichinti comme suiveur",
+          "object_id": 21245
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser le feu de Kinichinti",
+          "object_id": 21267
+        }
+      ]
+    }
+  ]
+}
