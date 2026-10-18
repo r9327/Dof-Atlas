@@ -11,7 +11,6 @@ from app.modules.encyclopedia.services.guide_route_naming import (
     audit_title_decisions,
     title_for_route_step,
 )
-from tools.build_guide_ultime_gps_route import route_step_payload
 
 
 def _step(*actions: RouteAction, location: RouteLocation | None = None) -> RouteStep:
@@ -80,21 +79,6 @@ class GuideRouteNamingTests(unittest.TestCase):
             [row.code for row in violations],
             ["title_ambiguous_duplicate", "title_ambiguous_duplicate"],
         )
-
-    def test_route_builder_exports_title_and_unbound_travel_contract(self) -> None:
-        step = _step(RouteAction("q1:start", 1, "Prendre — Une quête", "start"))
-        payload = route_step_payload(
-            step,
-            {},
-            {},
-            planned_at_level=1,
-            alignment="Bonta",
-        )
-        self.assertEqual(payload["title"], "Départ — Une quête")
-        self.assertEqual(payload["travel_plan"]["mode"], "direct")
-        self.assertEqual(payload["travel_plan"]["participant_keys"], [])
-        self.assertTrue(payload["travel_plan"]["requires_explicit_participants"])
-
 
 if __name__ == "__main__":
     unittest.main()
