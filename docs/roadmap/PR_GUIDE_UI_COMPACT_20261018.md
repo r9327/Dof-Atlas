@@ -17,55 +17,46 @@ Si un détail visuel n'est pas explicitement documenté ici, **préserver l'exis
 
 ## STRUCTURE VISUELLE EXACTE, DANS CET ORDRE
 
-```text
-┌────────────────────────────────────────────────────────┐
-│ Guide optimisé                                   [⚙]  │
-│ Progression générale du parcours                        │
-│                                                        │
-│   (donut GLOBAL %)       Route         640 / total       │
-│                          ━━━━━━━━━━━                   │
-│                          Préparation   n / total         │
-│                          ━━━━━━━━━━━                   │
-│                          Succès        n / total         │
-│                          ━━━━━━━━━━━                   │
-│                                                        │
-│ [             Aller à la fiche              ] [🗺]     │
-├────────────────────────────────────────────────────────┤
-│ [ ○ PRÉREQUIS                      n             ▾ ]     │
-│     vrai menu existant : état + compteur + chevron       │
-├────────────────────────────────────────────────────────┤
-│ Mon parcours                         [👥] [Sommaire ▾] │
-│ Fiche N / total                                        │
-│                                                        │
-│   (si 👥 ouvert : PETITS portraits ronds SUR UNE LIGNE) │
-│   (si Sommaire ouvert : chapitres/fiches recherchables)  │
-│                                                        │
-│ ┌────────────────────────────────────────────────────┐ │
-│ │ FICHE N · CHAPITRE X                              │ │
-│ │ Titre court, naturel, déjà calculé par Guide Tools  │ │
-│ │ [x,y]  ← exactement comme les coordonnées actuelles│ │
-│ │                                                    │ │
-│ │ Actions utiles à faire dans l'ordre du parcours    │ │
-│ │ Parler au PNJ [x,y]                                │ │
-│ │ Faire les combats                                  │ │
+\`\`\`text
+┌─────────────────────────────────────────────────────────┐
+│ Guide Succès / Dofus Sylvestre                    [⚙]   │
+│                                                         │
+│   (donut GLOBAL %)       Route       n / total           │
+│                          ━━━━━━━━━━                     │
+│                          Préparation n / total           │
+│                          ━━━━━━━━━━                     │
+│                          Succès      n / total           │
+│                          ━━━━━━━━━━                     │
+│                                                         │
+│ [      Aller à la fiche      ] [Retour actuelle] [🗺]   │
+├─────────────────────────────────────────────────────────┤
+│ [ ○ PRÉREQUIS                   n                 ▾ ]    │
+├─────────────────────────────────────────────────────────┤
+│                                       [👥] [Sommaire ▾]  │
+│       (Mes personnages : portraits si menu ouvert)       │
+│       (Sommaire : demeure ouvert après choix d'une fiche)│
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ FICHE N · CHAPITRE X                               │ │
+│ │ Titre court de la fiche                           │ │
+│ │ [x,y] (clic identique ; trajet derrière)           │ │
+│ │ Actions PNJ/combats/récoltes/drops...              │ │
+│ │   [petit bouton Quêtes UNE fois par quête/fiche]   │ │
 │ │   □ ×5 Nom exact du monstre                        │ │
-│ │   □ ×3 Autre monstre                               │ │
-│ │ Drops / captures / donjon / validation UNIQUEMENT   │ │
-│ │ s'ils font partie de la fiche actuelle             │ │
-│ │                                                    │ │
-│ │ [ Précédent ] [ Valider ] [ Suivant ]              │ │
-│ └────────────────────────────────────────────────────┘ │
-└────────────────────────────────────────────────────────┘
-```
+│ │   Survol de ligne : nom de la quête                │ │
+│ │                                                     │ │
+│ │ [ Précédent ] [ Valider ] [ Suivant ]               │ │
+│ └─────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+\`\`\`
 
 Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign graphique**. Le rendu visuel réel doit conserver les composants, mesures et apparences approuvés de la maquette de conversation et du Guide Lanyel.
 
-### 1. En-tête fixe et compact
-- Texte affiché littéralement : `Guide optimisé`, sous-titre `Progression générale du parcours` ; petit engrenage à droite.
-- En dessous : donut circulaire global **à gauche** ; exactement 3 barres horizontales fines **à droite**, libellées `Route`, `Préparation`, `Succès` avec compteurs réels.
-- En dessous : bouton principal `Aller à la fiche` **large** ; juste à droite, petit bouton **icône Overlay uniquement**, infobulle `Afficher/Masquer l'overlay`, indicateur d'état discret.
-- **En-tête non repliable, ne disparaît pas au scroll**, ne duplique pas sa navigation. Pas de quatrième barre.
-- Progression Route = nombre de fiches réellement validées / total des fiches réelles, pas index courant ; toutes les quantités viennent du service runtime, aucun exemple fictif de `1600` codé en dur.
+### 1. En-tête fixe et compact — LE NOM DU GUIDE CHOISI
+- Le **titre principal** est **le titre exact du guide ouvert depuis la liste/catalogue**, sans texte générique : si l'utilisateur ouvre `Dofus Sylvestre`, en-tête `Dofus Sylvestre` ; s'il ouvre `Guide Succès`, en-tête `Guide Succès` ; même règle pour Lanyel ou tout autre guide. Le libellé varie dynamiquement au changement de guide, sans refaire tout le panneau. Le titre est la référence du guide sur lequel l'utilisateur a cliqué au catalogue, pas un bouton inventé pour changer de guide.
+- **SUPPRIMER totalement le sous-titre `Progression générale du parcours`** et le titre générique `Guide optimisé`.
+- Petit engrenage paramètres à droite du titre réel ; en dessous, donut global à gauche et exactement trois barres à droite : `Route`, `Préparation`, `Succès`, avec compteurs RÉELS. Garder les dimensions/couleurs retenues.
+- **Ligne des boutons** : `Aller à la fiche` (large), immédiatement à côté `Retour à l'actuelle` (bouton visible avec libellé et icône retour), puis petit bouton Overlay icon-only. Ce bouton revient instantanément à la fiche active courante, par opposition à la fiche parcourue via Sommaire, flèches ou accès direct. Ne pas modifier la sélection active ni les validations ; bouton désactivé ou neutre si déjà sur l'actuelle.
+- **En-tête non repliable, ne disparaît pas au scroll**. Pas de quatrième barre. Progression Route = fiches réellement validées / total, jamais index de navigation ; ne pas coder en dur les comptes fictifs de la maquette.
 
 ### 2. VRAI menu déroulant d'origine `PRÉREQUIS` — NE PAS RÉINVENTER
 - **IMPORTANT : la maquette conversationnelle qui montrait une carte `Préparation générale du guide` avec des cases génériques `Vérifier les métiers`, `Prévoir les potions`, `Acheter les ressources` et deux gros champs de pierres EST FAUSSE ET NON VALIDÉE. NE PAS L'IMPLÉMENTER.** L'utilisateur a explicitement rejeté ce dessin.
@@ -76,16 +67,14 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 - Afficher les **prérequis externes réels du guide** (succès/quête à réaliser AVANT ce parcours), pas ceux qui seront accomplis au fil des fiches déjà ordonnées par #226. Les données de préparation, métiers et achats n'apparaissent que si réellement nécessaires au départ, selon les informations fiables du moteur.
 - Aucun bloc `À préparer` sur chaque fiche : cette suppression ne supprime **pas** le vrai menu global `PRÉREQUIS`. Tests Doctor UI : comparer état fermé + ouvert au composant `CollapsibleInfoSection` courant et rejeter toute liste générique ou formulaire inventé.
 
-### 3. Mon parcours — seulement la navigation demandée
-- Titre `Mon parcours`, sous-titre `Fiche N / total`. À droite sur la MÊME ligne de commandes : un **petit bouton Personnages avec icône** puis `Sommaire` avec chevron. Aucun grand panneau permanent.
-- **Bouton 👥** : ouvre/ferme l'ANCIEN MENU déroulant compact **juste sous cette ligne**, masqué par défaut. Ne pas remplacer par un menu de cases textuelles.
-- Dans ce déroulant : sur une seule ligne quand possible, les **vraies images de classes** (déjà fournies par Atlas, pas des lettres fictives) dans de petits disques, cerclées par un anneau fin de progression ; pas de noms affichés en permanence.
-- **Survol** d'un portrait : tooltip près de la souris avec pseudo réel, classe, pourcentage du chapitre/fiche pertinent et source de preuve (réseau/manual/inconnu). Pour deux personnages de la même classe, portraits indépendants (identité de personnage stable).
-- **Clic** sur le portrait : sélectionne/désélectionne sa participation au guide. Retour graphique discret (coché/sélectionné), **sans remplacer l'anneau de progression** ni valider une quête. Personnages hors ligne toujours visibles/choisissables, mais aucune commande ne leur est envoyée.
-- Sélection sauvegardée par identifiant de personnage stable et par guide, pas par indice de slot, PID, HWND ou nom approximatif.
-- Déclarations `Guide déjà terminé avec X personnages` et `Chapitre déjà terminé avec X personnages` : accessibles de façon **secondaire/repliée** à l'intérieur du même menu, jamais nouveaux gros blocs ; si IDs connus, possibilité d'identifier exactement qui a fait quoi ; sinon compteur explicitement `déclaré`, sans preuve automatique ni fausse attribution.
-- **Sommaire** : menu indépendant, fermé par défaut, recherche fiche/chapitre, chapitres dépliables, libellés et compteurs, clic pour rejoindre une fiche ; **une seule fiche coûteuse montée à la fois**, virtualisation/lazy rendering.
-- Première fiche = `Légende` déjà convenue, pas une nouvelle page de sources ou explications permanentes.
+### 3. Commandes Personnages / Sommaire — SANS `Mon parcours`
+- **SUPPRIMER complètement le titre `Mon parcours` et son commentaire/sous-titre `Fiche N / total` placé dessous. Le numéro de fiche est déjà visible dans l'en-tête/contrôle de pagination de la fiche : ne jamais le dupliquer.
+- Garder à droite sur une **petite ligne compacte sans titre** : un bouton icône `Personnages` puis le bouton `Sommaire` avec chevron, aux positions et tailles de la maquette, juste avant la fiche.
+- Au clic Personnages, ouvrir l'ANCIEN MENU compact masqué par défaut, avec en-tête littéral **`Mes personnages`**, jamais `Personnages du guide`.
+- Une ligne de petites **vraies images de classes** circulaires (36–42 px), anneau de progression et indication de sélection distincte ; pas de noms fixes ni de grosses cartes. Survol de chaque portrait => **vrai pseudo**, classe et % progression dans un tooltip près du curseur, sans sélection automatique. Cliquer portrait => inclure/exclure sa participation au guide et aux macros ; état persisté par ID stable et guide, y compris offline.
+- **SUPPRIMER intégralement** le texte d'aide `Appuie sur un portrait pour inclure/exclure...` (ou tout équivalent), le panneau `Déclarer une progression antérieure`, ses champs `Chapitre fini avec` / `Guide fini avec`, et tout compteur manuel historique. **On exploite le réseau pour progression et validation automatiques** ; garder seulement le bouton `Valider` existant en secours manuel au cas où, sans falsifier les preuves réseau.
+- **Sommaire** : bouton ouvre/ferme explicitement le panneau (par clic sur Sommaire/chevron), avec recherche, chapitres et fiches dépliables ; **un clic sur un chapitre ou une fiche NE LE FERME JAMAIS automatiquement**. Un clic fiche affiche la nouvelle fiche à droite/en dessous selon la mise en page existante et laisse le panneau visible. Fermeture uniquement par clic explicite sur Sommaire. Navigation manuelle via Précédent/Suivant, Aller à la fiche ou Retour à l'actuelle ne doit pas non plus fermer automatiquement le sommaire. La virtualisation garantit une seule fiche réelle montée à la fois.
+- Première fiche = `Légende`, sans ajouter les sources en plein écran.
 
 ### 4. Corps de fiche — visuel Lanyel conservé
 - UNE fiche visible, titre court fourni par #226, identité/pagination stable, coordonnées cliquables dans le texte **exactement comme avant** ; toutes les actions réellement nécessaires dans l'ordre de parcours : PNJ/dialogues, récoltes/drops, combats, donjons, captures, validations.
@@ -107,7 +96,7 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 **Les boutons doivent avoir leurs vraies icônes, selon la maquette approuvée ; aucun bouton représenté par un caractère de remplacement, un carré, un emoji arbitraire, un glyphe police absent ou une image cassée.** Ne pas substituer une nouvelle charte graphique. Les boutons à texte conservent leur texte et leur style déjà validés. Les boutons icône-seule restent discrets et de mêmes dimensions que les contrôles voisins.
 
 ### Identités et portraits cliquables (obligatoire)
-- L'ancien MENU DÉROULANT des personnages reste à sa place : petit bouton avec icône « personnages » à droite de `Mon parcours` avant le bouton `Sommaire`. Il ouvre le **même panneau compact précédent**, fermé par défaut et repliable au clic ; ne pas utiliser un sélecteur de liste, un modal, des cartes par personnage ou des checkboxes à côté du pseudo.
+- L'ancien MENU DÉROULANT des personnages reste à sa place : petit bouton icône juste avant `Sommaire` sur la ligne compacte SANS titre `Mon parcours`. Il ouvre le **même panneau compact précédent**, fermé par défaut et repliable au clic ; ne pas utiliser un sélecteur de liste, un modal, des cartes par personnage ou des checkboxes à côté du pseudo.
 - Chaque **portrait de classe est lui-même le bouton** (QToolButton/QWidget accessible et réellement cliquable), pas juste une image décorative. Clic gauche : inclure/exclure ce personnage du GUIDE courant. Sélection = appartenance aux quêtes/captures/déplacements du guide, **sans modifier sa progression**. À l'ouverture, recharger les choix persistés, même si Organizer a changé l'ordre des fenêtres.
 - Pour les classes reconnues, image réelle issue de `data/images/classes/<class_key>.png` (ex. `pandawa.png`, `huppermage.png`, `ecaflip.png`, `enutrof.png`, `feca.png`, `forgelance.png` ; même principe pour les 19 fichiers). Réutiliser l'éventuel helper canonique `app/pages/organizer/common.py` pour résolution et variantes, mais **ne pas prendre la même icône pour tous les personnages**.
 - Les images disponibles dans le dépôt sont **stockées via Git LFS** (un objet `*.png` de ~130 octets lu sans filtre est typiquement un pointeur LFS, pas une image). Le chargement, le packaging PyInstaller et les tests Windows doivent garantir les vrais octets d'image décodables ; ne pas considérer l'existence d'un fichier comme la preuve que QPixmap peut l'afficher. En cas d'image invalide, rapport Doctor UI FAIL avec classe/chemin, pas de validation de captures de « carrés » ou de lettres fictives.
@@ -115,17 +104,17 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 - Au survol du portrait : une infobulle compacte affichée près du pointeur avec le VRAI pseudo, classe, progression fiable, origine de preuve et état réseau/offline ; **pas de texte permanent sous les portraits**. Deux personnages de même classe conservent chacun leur bouton, leur pseudo et leur propre état.
 - Ligne de portraits compacte, avec espacement homogène ; adaptation responsive quand >5 personnages : défilement horizontal du panneau si nécessaire, sans couper/cacher le dernier portrait ni agrandir la hauteur du guide. Aucune case numérotée. Permettre navigation clavier/focus et activation Enter/Space.
 - Les personnages offline restent visibles et sélectionnables, mais ne sont jamais ciblés par une macro ; si aucun personnage sélectionné : aucune macro, jamais repli sur « tous les clients ».
-- `Guide déjà fini avec N personnages` et `Chapitre fini avec N personnages` : **petite partie secondaire et refermée** dans cet ancien panneau, jamais présentée en grand formulaire initial ; stock persistant, comptages cohérents, déclaration manuelle clairement séparée de la progression réseau.
+- **Aucune saisie de progression antérieure** ni compteurs de chapitres/guides déjà finis. Le réseau est prioritaire pour la progression ; le seul secours manuel reste le bouton `Valider` de la fiche.
 
 ### Inventaire des contrôles et icônes à reproduire
 | Emplacement | Visuel demandé | Interaction | Consignes graphiques |
 | --- | --- | --- | --- |
 | En-tête à droite | **Petit engrenage paramètres** | Ouvrir réglages | Même pictogramme et dimensions que la maquette ; utiliser icône valide, pas « ⚙ » en texte si fonte incertaine |
-| Ligne navigation | Bouton **Aller à la fiche**, icône de position/jump discrète + libellé | Saisie et accès direct à une fiche | Garder largeur majoritaire, largeur d'icône cohérente |
+| Ligne navigation | Bouton **Aller à la fiche** + bouton **Retour à l'actuelle** juste à côté | Accès direct + retour à la fiche active après exploration | Garder la disposition compacte et l'icône de retour cohérente |
 | À sa droite | **Bouton Overlay : icône carte uniquement** | Afficher/masquer l'overlay | Petit carré, pas de libellé ajouté, état actif/inactif |
 | PRÉREQUIS du guide | **Pastille d'état ✓/●/○, titre PRÉREQUIS, compteur, chevron** | Ouvrir/fermer le CollapsibleInfoSection existant | Ne PAS substituer le clipboard/list inventé par la maquette ; vraies lignes et vrais liens |
-| Mon parcours | **Icône personnages (groupe)**, icône seule | Afficher/masquer les portraits | Juste avant Sommaire, même taille que bouton Overlay |
-| Mon parcours | **Icône de sommaire/liste** + texte `Sommaire` + chevron | Dérouler/fermer chapitres | Même ligne, pas de bouton de remplacement |
+| Ligne avant fiche (sans titre) | **Icône personnages (groupe)**, icône seule | Afficher/masquer le menu **Mes personnages** | Juste avant Sommaire, même taille que bouton Overlay |
+| Ligne avant fiche (sans titre) | **Icône sommaire/liste** + texte `Sommaire` + chevron | Ouvrir/fermer manuellement, **ne pas fermer sur sélection fiche** | Même ligne, pas de bouton de remplacement |
 | Liste chapitres | Coche/cercle de progression + chevrons | Dérouler / aller à une fiche | Icônes discrètes et cohérentes avec les couleurs du thème |
 | Fiche | Positions **[x,y] en gras** et apparence déjà existante | Clic unique macro auto Travel/Zaap selon #226/#227 | **AUCUNE** nouvelle icône, badge, image, marqueur Zaap ni bouton copier à côté |
 | Fiche | **Cases de validation de combats** | Cocher ×N monstre précis | Vraies checkbox du style Lanyel ; pas de faux caractères □ / ■ |
@@ -134,6 +123,7 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 
 - Utiliser les pictogrammes **cohérents avec les composants Qt/Atlas déjà en place**, icônes SVG/PNG réellement décodées ou icônes dessinées vectoriellement de façon fiable si l'équivalent Atlas existe déjà. Pas de dépendance à des caractères Unicode pour rendre un bouton fonctionnel, pas de « texte de secours » visible à la place d'images connues.
 - Si une icône de la maquette est absente du dépôt, reprendre d'abord l'équivalent visuel dans les composants existants, documenter la provenance/licence d'un éventuel nouvel asset et faire valider son rendu ; **ne pas inventer un dessin ou remplacer par un emoji**. Garder le thème sombre/clair, survol, focus, état désactivé et écran HDPI cohérents.
+- Bouton Retour à l'actuelle : icône et libellé, placé IMMÉDIATEMENT à côté de Aller à la fiche ; toute sélection Sommaire reste ouverte.
 - Boutons icône-seule : `setAccessibleName`, vrai tooltip, état de bascule lisible ; éviter les signaux déclenchés au survol. Les zones cliquables restent suffisantes sans agrandir visuellement les icônes.
 
 ### Validation visuelle et packaging graphique
@@ -174,11 +164,17 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 5. Captures Doctor UI réelles avec infobulles visibles près du curseur : **portrait**, **texte d'action**, **case combat**, **bouton quête**, et captures état sans survol pour prouver aucune pollution visuelle.
 6. Le contrat doit être appliqué aux DEUX présentations Guide Succès / Lanyel depuis le rendu partagé et ne pas écraser les réparations de la PR #201.
 
+## Scénarios supplémentaires de validation obligatoires
+- Ouvrir Guide Succès, puis Dofus Sylvestre depuis le catalogue : le titre principal affiche EXACTEMENT le nouveau nom (pas `Guide optimisé`), aucun sous-titre de progression ; les barres sont conservées et liées au bon guide.
+- Ouvrir Sommaire puis choisir Fiche 643 : le Sommaire reste ouvert. Choisir ensuite Fiche 641 et utiliser `Retour à l'actuelle` : retour à la vraie fiche active sans fermeture du Sommaire et sans validation parasite.
+- En mode normal, les commandes icône Personnages et Sommaire sont présentes à droite mais SANS `Mon parcours` ni `Fiche 643/x` répété sous ce titre ; la pagination reste dans son emplacement existant.
+- Menu Personnages ouvert : titre `Mes personnages`, vrais portraits avec pseudo au survol ; vérifier ABSENCE de message d'aide et de `Déclarer une progression antérieure`, pas de champs historique. Réseau prioritaire ; bouton Valider secours manuel conservé.
+
 ## Contrôle de fidélité obligatoire
 1. Rendre une capture COMPLÈTE en **état par défaut** : en-tête fixe, préparation refermée, personnages refermés, sommaire refermé, une fiche seule. Comparer visuellement à la **dernière maquette approuvée dans le fil de discussion**, pas à un mockup plus ancien.
 2. Rendre des captures distinctes **PRÉREQUIS ouvert**, **Personnages ouvert**, **Sommaire ouvert**, **Fiche Lanyel**, **Fiche Succès**, **état scrollé**. Comparer disposition, ordre, marges, largeurs, typographies, positions, boutons, couleurs, aucune zone superflue.
 3. Tests d'absence explicite des sections interdites, tests screenshot Doctor Atlas produisant de VRAIS pixels lisibles (pas des carrés), détection des contrôles et de leurs chevauchements ; petit écran et minimum 900 px.
-4. Tests Qt interaction : aucune macro déclenchée par hover, une seule macro par clic gauche, position identique, sélection de 0/1/5 participants, mêmes classes, offline/online, migration des IDs, compteurs déclarés vs vérifiés, persistance du stock 50/150 après redémarrage.
+4. Tests Qt interaction : aucune macro déclenchée par hover, une seule macro par clic gauche, position identique, sélection de 0/1/5 participants, mêmes classes, offline/online, migration des IDs, progression réseau et secours manuel, persistance du stock 50/150 après redémarrage.
 5. Tests de non-régression des progressions Quêtes/Succès, Guide Lanyel/Guide Succès, de l'intégration du rendu partagé #201 et de la libération Qt au retour Home. Rebaser après #201, puis validation Doctor/Graphify et CI au HEAD final.
 
 **CRITÈRE DE SORTIE : si l'UI n'est pas reconnaissable comme la maquette validée, la PR est FAIL même si les tests unitaires passent.**
