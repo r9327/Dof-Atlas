@@ -621,6 +621,7 @@ class CharacterSessionsMixin:
                     "binding": binding,
                     "binding_explicit": bool(binding),
                     "primary": is_primary,
+                    "character_key": self.verified_character_token_for_session(session),
                 }
             )
 

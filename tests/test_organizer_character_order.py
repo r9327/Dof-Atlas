@@ -278,6 +278,7 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                 exported = json.loads(client_index.read_text(encoding="utf-8"))
                 self.assertEqual(exported["global_hotkeys"]["primary_handle"], 909)
                 self.assertTrue(exported["clients"][0]["primary"])
+                self.assertEqual(exported["clients"][0]["character_key"], "character:77")
                 self.assertEqual(
                     json.loads(profile.read_text(encoding="utf-8"))[KEY_PRIMARY_WINDOW],
                     "character:77",
