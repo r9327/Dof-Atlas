@@ -3,6 +3,27 @@
 Date : 18 octobre 2026. Branche : `feature/guide-ui-compact-20261018`.
 **ÉTAT : design verrouillé, NON implémenté. Ne pas fusionner sans comparaison visuelle avec la maquette validée.**
 
+## DERNIÈRE VALIDATION UI — boutons Personnages et Sommaire DANS l'en-tête de la fiche (18/10, priorité maximale)
+
+**Remplace toute consigne antérieure prescrivant une ligne séparée de boutons au-dessus de la fiche.** La ligne dédiée à `Mes personnages` et `Sommaire`, visuellement trop vide, est **SUPPRIMÉE**. Les deux boutons sont désormais positionnés **à droite DANS l'en-tête de la fiche active**, sur la même rangée que l'identifiant « FICHE N · CHAPITRE X » et le titre court de la fiche **à gauche**. Aucun nouveau bandeau ou titre annexe.
+
+```text
+┌────────────────────────────────────────────────────────────────┐
+│ FICHE N · CHAPITRE X                    [👥] [Sommaire  ▾]     │
+│ Titre court de la fiche                                        │
+├────────────────────────────────────────────────────────────────┤
+│ [x,y] · PNJ · combats cochables · actions de la fiche           │
+│ ...                                                            │
+│                      [Précédent] [Valider] [Suivant]            │
+└────────────────────────────────────────────────────────────────┘
+```
+
+- Le bouton icône ouvre le menu **Mes personnages** ; le bouton **Sommaire** ouvre son panneau. Les deux restent compacts et indépendants, **fermés au chargement** ; l'ouverture se fait juste sous cette zone d'en-tête, sans masquer le titre ni chevaucher les actions.
+- **Sommaire ne se referme jamais** à la sélection d'un chapitre/fiche, via Précédent/Suivant, Aller à la fiche ou Actuelle ; fermeture uniquement sur clic explicite sur Sommaire. La fiche sélectionnée reste la seule fiche montée.
+- Les portraits de classes, les tooltips, la sélection multicomptes, la persistance et le retour **Actuelle** à la vraie étape métier demeurent **inchangés**.
+- **Conserver strictement le style existant du Guide Lanyel** (couleurs, dimensions, marges, icônes, coins et typographie), sans barre d'outils flottante ou nouvelle section. Ajuster l'espacement de l'en-tête de fiche pour les petites largeurs et l'affichage Windows/HDPI, sans chevauchement.
+- **Certification** : captures Doctor UI état fermé, Personnages ouvert, Sommaire ouvert, les deux ouverts, différents titres courts/longs, petites fenêtres (dont largeur min. prise en charge) ; interaction sans fermeture implicite du Sommaire, aucune régression de navigation.
+
 ## VERSION FINALE DE LA MAQUETTE — VALIDÉE AVEC L'UTILISATEUR LE 18/10/2026
 
 Cette section synthétise les corrections successives et **prime sur toute maquette illustrative ou instruction antérieure contradictoire**. Elle décrit le comportement attendu, **pas un écran déjà implémenté**.
@@ -11,7 +32,7 @@ Cette section synthétise les corrections successives et **prime sur toute maque
 - **Actions principales** : `Aller à la fiche`, juste à côté `Actuelle` (ou libellé complet `Retour à l'actuelle` selon la place validée), puis petite icône Overlay sans texte. `Actuelle` = **REVENIR À L'ÉTAPE ACTUELLE RÉELLE du guide**, établie par les objectifs/progressions, **jamais** le dernier numéro visité dans le Sommaire, jamais un numéro fixe comme `643`, jamais seulement la fiche ouverte au chargement. Voir contrat complet ci-dessous.
 - **Préparation générale du guide** : bandeau de la capture fournie, sous-titre et déroulant. Vue `Préparation complète` avec filtres `Tout (résumé) / Métiers / Potions / Objets`. Des listes ultra-compactes, hauteur plafonnée et scroll. Chaque potion dans Potions, pierres d'âme seulement sous Objets. Chaque ligne montre un vrai besoin, une quantité et une **mini-coche ✓ Prêt en un clic**, avant le mini-chevron de détail ; la coche est une déclaration de couverture par participant, sans fausse preuve réseau, sans saisir un chiffre. Un clic sur le chevron déplie seulement le détail de CET article, par personnage. Catégorisation exacte et absence de doublons.
 - **Multicomptes** : recalcul par personnage choisi et par objectif réellement restant, non par multiplication naïve des quantités ; stock déclaré/confirmé par personnage, distinction partageable/non partageable, confirmation `Prêt` conservée uniquement pour les participants/besoins couverts. Une sélection nouvelle ne devient pas automatiquement prête.
-- **Navigation avant la fiche** : uniquement petits boutons `Mes personnages` (icône) et `Sommaire` à droite ; ni titre `Mon parcours`, ni sous-titre `Fiche n / total` redondant. `Mes personnages` est le nom du menu déroulant : portraits circulaires de VRAIES classes PNG, anneau de progression, sélection par clic, pseudo exact + pourcentage au survol. Aucun message `Appuie sur un portrait…` et aucun formulaire de `progression antérieure`.
+- **Navigation de la fiche** : commandes `Mes personnages` (bouton icône) et `Sommaire` intégrées **à droite dans l'en-tête de la fiche active**, en regard de son numéro/chapter et de son titre court à gauche ; **aucune ligne autonome au-dessus de la fiche**. Ni `Mon parcours`, ni `Fiche n / total` redondant. Les deux menus conservent tous leurs comportements.
 - **Sommaire ouvert** : chapitre/fiches cliquables, **NE SE REFERME PAS au choix d'une fiche**, ni sur Précédent/Suivant ni sur `Actuelle`. Fermeture volontaire exclusivement au clic explicite du bouton/chevron Sommaire. La consultation libre d'une fiche ne change PAS ce qu'Atlas estime être l'étape actuelle.
 - **Fiche dans le style Lanyel** : titre court et exact, mêmes coordonnées `[x,y]` et même style de lien (macro travel/zaap invisible sur la bonne sélection), actions courtes et réelles, combats `×N monstre` cochables, récoltes/drops/donjons/captures. **Survol de CHAQUE ligne** = nom de la/des quêtes liées, et **un seul petit accès à l'onglet Quêtes par quête ET par fiche**, sur la première ligne pertinente. Ne pas ajouter de panneau `Quêtes liées`, ni `Sources`, ni `Pourquoi cet ordre ?`.
 - **`À prévoir` local JUSTE À TEMPS, pas bloc `À préparer`** : seul un rappel en une ligne au niveau de l'action critique si un objet indispensable manque effectivement à un personnage concerné et n'a pas été déclaré prêt ; pas de répétition globale, pas de fausse préparation des drops/récoltes déjà prévus sur la route.
@@ -60,7 +81,7 @@ Si un détail visuel n'est pas explicitement documenté ici, **préserver l'exis
 │   (ouvert : Préparation complète + filtres, liste courte) │
 │   (Objets uniquement : pierre d'âme en une ligne ▾)    │
 ├─────────────────────────────────────────────────────────┤
-│                                       [👥] [Sommaire ▾]  │
+│ (les deux boutons sont à droite DANS l'en-tête fiche)  │
 │       (Mes personnages : portraits si menu ouvert)       │
 │       (Sommaire : demeure ouvert après choix d'une fiche)│
 │ ┌─────────────────────────────────────────────────────┐ │
@@ -188,7 +209,7 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 
 ### 3. Commandes Personnages / Sommaire — SANS `Mon parcours`
 - **SUPPRIMER complètement le titre `Mon parcours` et son commentaire/sous-titre `Fiche N / total` placé dessous. Le numéro de fiche est déjà visible dans l'en-tête/contrôle de pagination de la fiche : ne jamais le dupliquer.
-- Garder à droite sur une **petite ligne compacte sans titre** : un bouton icône `Personnages` puis le bouton `Sommaire` avec chevron, aux positions et tailles de la maquette, juste avant la fiche.
+- Placer **dans l'en-tête de la fiche active, à droite**, le petit bouton icône `Personnages` puis le bouton `Sommaire` avec chevron ; aucun bandeau séparé ni nouvelle rangée réservée aux boutons. Garder le titre court et l'identifiant de fiche à gauche.
 - Au clic Personnages, ouvrir l'ANCIEN MENU compact masqué par défaut, avec en-tête littéral **`Mes personnages`**, jamais `Personnages du guide`.
 - Une ligne de petites **vraies images de classes** circulaires (36–42 px), anneau de progression et indication de sélection distincte ; pas de noms fixes ni de grosses cartes. Survol de chaque portrait => **vrai pseudo**, classe et % progression dans un tooltip près du curseur, sans sélection automatique. Cliquer portrait => inclure/exclure sa participation au guide et aux macros ; état persisté par ID stable et guide, y compris offline.
 - **SUPPRIMER intégralement** le texte d'aide `Appuie sur un portrait pour inclure/exclure...` (ou tout équivalent), le panneau `Déclarer une progression antérieure`, ses champs `Chapitre fini avec` / `Guide fini avec`, et tout compteur manuel historique. **On exploite le réseau pour progression et validation automatiques** ; garder seulement le bouton `Valider` existant en secours manuel au cas où, sans falsifier les preuves réseau.
