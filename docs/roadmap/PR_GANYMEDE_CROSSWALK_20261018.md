@@ -123,10 +123,10 @@ Ne pas fusionner ce registre avec une promesse implicite de guides terminés.
 
 ## Graphe de renvois du guide maître Ganymède MG0 — données observées
 
-Le guide complet public \`https://ganymede-app.com/guides/2251\` a été lu
+Le guide complet public `https://ganymede-app.com/guides/2251` a été lu
 sur **4 pages** de 50 étapes (dernière page : 6). Son index contient **156
 étapes numérotées, sans trou**. Le fichier
-\`data/encyclopedia/guides/ganymede_master_observed_links.json\` enregistre
+`data/encyclopedia/guides/ganymede_master_observed_links.json` enregistre
 uniquement des faits structurés observables, sans reproduire la rédaction :
 
 - étape source, page de provenance, IDs des autres guides liés ;
@@ -149,7 +149,7 @@ Audit dédié :
 La vérification impose : couverture 1→156, ordre et pagination exacts,
 références numériques valides, absence de duplications au sein d'une étape,
 totaux cohérents, et traçabilité des IDs hors index. Le statut positif
-\`PASS_OBSERVED_LINKS_ONLY\` **ne certifie ni prérequis de quête ni
+`PASS_OBSERVED_LINKS_ONLY` **ne certifie ni prérequis de quête ni
 itinéraire**. Les liens peuvent correspondre à des conseils, exemples,
 options, étapes futures ou contenus requis : aucun automatisme ne les
 transforme en actions obligatoires avant analyse sémantique contrôlée.
@@ -159,40 +159,40 @@ canonique Atlas : le rapprochement reste à effectuer et vérifier.
 **Prochain verrou de #229** : qualifier chaque liaison du guide maître
 (obligatoire / optionnelle / information), extraire les intervalles
 d'étapes des sous-guides et rattacher les actions aux véritables
-\`quest_id\` / \`objective_id\` d'Atlas, avec provenance et validation DPLN.
+`quest_id` / `objective_id` d'Atlas, avec provenance et validation DPLN.
 Le moteur #226 ne doit pas optimiser sur des liens encore non qualifiés.
 
 
-## Premiers sous-guides détaillés — couverture source 9 / 95
+## Premiers sous-guides détaillés — couverture source 13 / 95
 
 Trois sous-guides prioritaires ont été parcourus sur les pages publiques du
 18 octobre 2026, en complément du guide complet MG0 :
 
 | Guide source | ID Ganymède | Étapes publiques | Fichier instantané |
 | --- | ---: | ---: | --- |
-| Guide complet MG0 | 2251 | 156 | \`ganymede_master_observed_links.json\` |
-| Dofus Argenté | 2203 | 237 | \`ganymede_argente_observed_links.json\` |
-| Dofus Cawotte | 2205 | 64 | \`ganymede_cawotte_observed_links.json\` |
-| Dofus Émeraude | 2211 | 52 | \`ganymede_emeraude_observed_links.json\` |
+| Guide complet MG0 | 2251 | 156 | `ganymede_master_observed_links.json` |
+| Dofus Argenté | 2203 | 237 | `ganymede_argente_observed_links.json` |
+| Dofus Cawotte | 2205 | 64 | `ganymede_cawotte_observed_links.json` |
+| Dofus Émeraude | 2211 | 52 | `ganymede_emeraude_observed_links.json` |
 
-Premier lot : **509 étapes sur 4 guides**. Avec le lot suivant, **726 étapes sur 9 / 95 guides** documentés
+Premier lot : **509 étapes sur 4 guides**. Au total, **1 103 étapes sur 13 / 95 guides** documentés
 au niveau des liens factuels. Les titres d'étapes pouvant comporter des
 coordonnées, l'inventaire prend en compte **les coordonnées du titre ET du
 corps**, avec déduplication sur une même étape.
 
-La commande d'audit s'applique à chaque fichier via \`--snapshot\` :
+La commande d'audit s'applique à chaque fichier via `--snapshot` :
 
     py -3.13 -m tools.audit_ganymede_master_refs --snapshot data/encyclopedia/guides/ganymede_argente_observed_links.json
 
-\`tools.audit_ganymede_crosswalk\` agrège désormais automatiquement les
-fichiers nommés \`ganymede_*_observed_links.json\` et indique pour
-chacun des 95 guides \`OBSERVED_UNCLASSIFIED\` ou \`NOT_INGESTED\`,
-avec un total \`observed_source_steps\`. Une source incohérente bloque
+`tools.audit_ganymede_crosswalk` agrège désormais automatiquement les
+fichiers nommés `ganymede_*_observed_links.json` et indique pour
+chacun des 95 guides `OBSERVED_UNCLASSIFIED` ou `NOT_INGESTED`,
+avec un total `observed_source_steps`. Une source incohérente bloque
 l'audit global. **Il ne reste pas « 91 guides terminés » : il reste
-86 / 95 guides non inventoriés à ce niveau de détail.**
+82 / 95 guides non inventoriés à ce niveau de détail.**
 
 Ces liens sont des observations non interprétées. L'analyse des quêtes
-avec DPLN/Tougli/JOL, les véritables \`quest_id\` et \`objective_id\`
+avec DPLN/Tougli/JOL, les véritables `quest_id` et `objective_id`
 d'Atlas, les intervalles de sous-guides, les consommables exacts et
 l'optimisation de route restent à réaliser.
 
@@ -215,7 +215,7 @@ certifiées.
 
 ### Collecteur HTML contrôlé pour la suite
 
-\`tools.ganymede_source_link_ingest\` est le collecteur reproductible.
+`tools.ganymede_source_link_ingest` est le collecteur reproductible.
 Il utilise exclusivement les articles d'étapes des pages publiques et
 ne sauvegarde **ni rédaction, ni HTML, ni illustration externe**. Il
 conserve les ID de liens et les coordonnées mentionnées, sans les
@@ -229,8 +229,8 @@ Pour créer explicitement un instantané vérifié après contrôle :
 
     py -3.13 -m tools.ganymede_source_link_ingest --guide-id 2248 --fetch --checked-on 2026-10-18 --apply
 
-Pour travailler sans réseau, remplacer \`--fetch\` par
-\`--html-dir <dossier>\` (fichiers locaux \`2248-1.html\`, etc.).
+Pour travailler sans réseau, remplacer `--fetch` par
+`--html-dir <dossier>` (fichiers locaux `2248-1.html`, etc.).
 Les téléchargements échoués, pages renvoyant un autre numéro,
 pagination tronquée ou guide absent de l'index interrompent la
 collecte **avant toute modification du JSON final**. À ce stade,
@@ -240,3 +240,24 @@ de la progression Atlas.
 
 Les instantanés déjà présents restent la source versionnée utilisée
 par Doctor ; aucune récupération réseau au démarrage d'Atlas.
+
+
+### Troisième lot — quatre guides prioritaires supplémentaires
+
+| Guide public | ID Ganymède | Étapes |
+| --- | ---: | ---: |
+| Krosmoz | 2230 | 51 |
+| Dofus Turquoise | 2217 | 87 |
+| Dofus Ivoire | 2256 | 118 |
+| Frigost 3 / Dofus des Glaces | 2216 | 121 |
+
+Cette vague ajoute **377 étapes**, portant la couverture des liens
+factuels à **13 guides / 1 103 étapes**. Restent **82 guides
+sans inventaire détaillé**. L'index général reste à 95 références et
+les correspondances guide→Atlas à 24 (dont 11 candidates) : ces nombres
+mesurent des opérations différentes et ne doivent jamais être additionnés.
+
+Les sources sont des pages publiques d'octobre 2026 ; les instantanés
+conservent leur URL et date. La correspondance vers les IDs de quêtes
+et d'objectifs Atlas, le statut des actions obligatoires, les besoins
+et la route générée ne sont **pas certifiés**.
