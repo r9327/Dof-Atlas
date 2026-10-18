@@ -24,7 +24,7 @@
       "object": 45,
       "monster": 19
     },
-    "coordinate_mentions": 55,
+    "coordinate_mentions": 119,
     "quest_objective_mapping_verified": 0,
     "route_order_certified": false
   },
@@ -46,7 +46,12 @@
         ],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          25,
+          -4
+        ]
+      ]
     },
     {
       "source_step_number": 2,
@@ -71,6 +76,10 @@
       },
       "coordinate_mentions": [
         [
+          25,
+          -4
+        ],
+        [
           24,
           -3
         ]
@@ -92,6 +101,10 @@
       "coordinate_mentions": [
         [
           24,
+          -3
+        ],
+        [
+          24,
           -2
         ]
       ]
@@ -109,6 +122,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -2
+        ],
         [
           23,
           -4
@@ -129,6 +146,10 @@
       },
       "coordinate_mentions": [
         [
+          23,
+          -4
+        ],
+        [
           24,
           -6
         ]
@@ -147,6 +168,10 @@
       "coordinate_mentions": [
         [
           24,
+          -6
+        ],
+        [
+          24,
           -7
         ]
       ]
@@ -162,6 +187,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -7
+        ],
         [
           26,
           -9
@@ -180,6 +209,10 @@
       },
       "coordinate_mentions": [
         [
+          26,
+          -9
+        ],
+        [
           24,
           -10
         ]
@@ -196,6 +229,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -10
+        ],
         [
           24,
           -3
@@ -216,6 +253,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -3
+        ],
         [
           24,
           -4
@@ -240,6 +281,10 @@
       "coordinate_mentions": [
         [
           24,
+          -4
+        ],
+        [
+          24,
           -8
         ]
       ]
@@ -255,6 +300,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -8
+        ],
         [
           26,
           -11
@@ -275,6 +324,10 @@
       },
       "coordinate_mentions": [
         [
+          26,
+          -11
+        ],
+        [
           27,
           -11
         ]
@@ -291,6 +344,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          27,
+          -11
+        ],
         [
           22,
           -7
@@ -314,6 +371,10 @@
       },
       "coordinate_mentions": [
         [
+          22,
+          -7
+        ],
+        [
           24,
           -3
         ]
@@ -335,6 +396,10 @@
       "coordinate_mentions": [
         [
           24,
+          -3
+        ],
+        [
+          24,
           -6
         ]
       ]
@@ -350,6 +415,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -6
+        ],
         [
           24,
           -8
@@ -369,6 +438,10 @@
       "coordinate_mentions": [
         [
           24,
+          -8
+        ],
+        [
+          24,
           -9
         ]
       ]
@@ -384,6 +457,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -9
+        ],
         [
           25,
           -7
@@ -403,6 +480,10 @@
       "coordinate_mentions": [
         [
           25,
+          -7
+        ],
+        [
+          25,
           -8
         ]
       ]
@@ -419,6 +500,10 @@
       },
       "coordinate_mentions": [
         [
+          25,
+          -8
+        ],
+        [
           23,
           -9
         ]
@@ -434,7 +519,12 @@
         "object": [],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          23,
+          -9
+        ]
+      ]
     },
     {
       "source_step_number": 23,
@@ -446,7 +536,12 @@
         "object": [],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          23,
+          -8
+        ]
+      ]
     },
     {
       "source_step_number": 24,
@@ -459,6 +554,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          23,
+          -7
+        ],
         [
           22,
           -6
@@ -478,6 +577,10 @@
       "coordinate_mentions": [
         [
           22,
+          -6
+        ],
+        [
+          22,
           -5
         ]
       ]
@@ -493,6 +596,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          22,
+          -5
+        ],
         [
           24,
           -3
@@ -516,6 +623,10 @@
       },
       "coordinate_mentions": [
         [
+          24,
+          -3
+        ],
+        [
           22,
           -7
         ]
@@ -532,6 +643,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          22,
+          -7
+        ],
         [
           21,
           -11
@@ -554,6 +669,10 @@
       },
       "coordinate_mentions": [
         [
+          21,
+          -12
+        ],
+        [
           24,
           -3
         ]
@@ -570,6 +689,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -3
+        ],
         [
           25,
           -4
@@ -588,6 +711,10 @@
       },
       "coordinate_mentions": [
         [
+          25,
+          -4
+        ],
+        [
           24,
           -2
         ]
@@ -605,6 +732,10 @@
       },
       "coordinate_mentions": [
         [
+          24,
+          -2
+        ],
+        [
           23,
           -9
         ]
@@ -620,7 +751,12 @@
         "object": [],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          23,
+          -9
+        ]
+      ]
     },
     {
       "source_step_number": 34,
@@ -635,6 +771,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          23,
+          -7
+        ],
         [
           24,
           -3
@@ -657,6 +797,10 @@
       "coordinate_mentions": [
         [
           24,
+          -3
+        ],
+        [
+          24,
           -2
         ]
       ]
@@ -676,6 +820,10 @@
       "coordinate_mentions": [
         [
           24,
+          -2
+        ],
+        [
+          24,
           -4
         ]
       ]
@@ -691,6 +839,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -4
+        ],
         [
           24,
           -6
@@ -713,6 +865,10 @@
       },
       "coordinate_mentions": [
         [
+          24,
+          -6
+        ],
+        [
           28,
           -12
         ]
@@ -733,6 +889,10 @@
       "coordinate_mentions": [
         [
           28,
+          -12
+        ],
+        [
+          28,
           -13
         ]
       ]
@@ -748,6 +908,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          28,
+          -13
+        ],
         [
           24,
           -4
@@ -765,6 +929,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -4
+        ],
         [
           21,
           -12
@@ -785,6 +953,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          21,
+          -12
+        ],
         [
           23,
           -12
@@ -808,6 +980,10 @@
       },
       "coordinate_mentions": [
         [
+          23,
+          -12
+        ],
+        [
           22,
           -10
         ]
@@ -823,7 +999,12 @@
         "object": [],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          22,
+          -10
+        ]
+      ]
     },
     {
       "source_step_number": 45,
@@ -837,7 +1018,12 @@
         "object": [],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          22,
+          -10
+        ]
+      ]
     },
     {
       "source_step_number": 46,
@@ -852,6 +1038,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          22,
+          -10
+        ],
         [
           24,
           -3
@@ -872,6 +1062,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -3
+        ],
         [
           24,
           -13
@@ -898,7 +1092,12 @@
         ],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          24,
+          -13
+        ]
+      ]
     },
     {
       "source_step_number": 49,
@@ -911,6 +1110,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -13
+        ],
         [
           23,
           -4
@@ -936,6 +1139,10 @@
       },
       "coordinate_mentions": [
         [
+          23,
+          -4
+        ],
+        [
           28,
           -12
         ]
@@ -960,6 +1167,10 @@
       },
       "coordinate_mentions": [
         [
+          28,
+          -12
+        ],
+        [
           23,
           -4
         ]
@@ -979,7 +1190,12 @@
         ],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          23,
+          -4
+        ]
+      ]
     },
     {
       "source_step_number": 53,
@@ -1001,6 +1217,10 @@
         ]
       },
       "coordinate_mentions": [
+        [
+          23,
+          -4
+        ],
         [
           24,
           -3
@@ -1030,6 +1250,10 @@
       },
       "coordinate_mentions": [
         [
+          24,
+          -3
+        ],
+        [
           22,
           -10
         ]
@@ -1047,7 +1271,12 @@
         "object": [],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          22,
+          -10
+        ]
+      ]
     },
     {
       "source_step_number": 56,
@@ -1062,6 +1291,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          22,
+          -12
+        ],
         [
           21,
           -11
@@ -1087,6 +1320,10 @@
       },
       "coordinate_mentions": [
         [
+          21,
+          -11
+        ],
+        [
           24,
           -3
         ]
@@ -1106,6 +1343,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -3
+        ],
         [
           28,
           -13
@@ -1127,6 +1368,10 @@
       },
       "coordinate_mentions": [
         [
+          28,
+          -13
+        ],
+        [
           24,
           -3
         ]
@@ -1146,6 +1391,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -3
+        ],
         [
           24,
           -5
@@ -1175,6 +1424,10 @@
       "coordinate_mentions": [
         [
           24,
+          -5
+        ],
+        [
+          24,
           -3
         ]
       ]
@@ -1193,6 +1446,10 @@
         "monster": []
       },
       "coordinate_mentions": [
+        [
+          24,
+          -3
+        ],
         [
           24,
           -2
@@ -1217,6 +1474,10 @@
       },
       "coordinate_mentions": [
         [
+          24,
+          -2
+        ],
+        [
           25,
           -4
         ]
@@ -1235,7 +1496,12 @@
         "object": [],
         "monster": []
       },
-      "coordinate_mentions": []
+      "coordinate_mentions": [
+        [
+          25,
+          -4
+        ]
+      ]
     }
   ]
 }
