@@ -389,3 +389,9 @@ Servitude (2278, 29 étapes), Amber Ochre (2214, 30), Sidimote 3 (2235, 31), Val
 ### Huitième lot — huit guides (18/10/2026)
 
 Atoll of the Possessed (2291, 41), Evil Forest (2255, 43), Misery (2279, 43), Cania 2 (2232, 44), Vigilantes (2236, 45), Vulbis Dofus (2260, 47), Enudorado 2 (2238, 50), Sidimote 4 (2254, 52). **8 nouveaux guides / 365 étapes**, pour **50 guides sur 95, 2 186 étapes observées**, **45 guides sans instantané détaillé**. Les 52 étapes de Sidimote 4 ont été vérifiées sur deux pages sans trou. Les instantanés ne contiennent ni textes éditoriaux ni statut de quête certifié. L'audit des 12 correspondances nommées Cawotte/Dolmanax demeure distinct de ces observations.
+
+### Neuvième lot — huit guides avec pagination (18/10/2026)
+
+**Tous les guides suivants ont été parcourus sur deux pages, avec vérification continue de la numérotation :** War (2277, 53 étapes), Sidimote 2 (2225, 54), Bonta / Brakmar *introduction* (2226, 54), Future Fantastic (2275, 54), Dofus du Cauchemar (2283, 55), Six sur Six (2272, 56), Pandala 2 (2253, 59) et Cania 1 (2223, 60).
+
+**Couverture cumulée : 58/95 guides et 2 631 étapes de références**, 37 guides restant à inventorier en détail. Bonta/Brakmar 2226 est l'introduction et **ne remplace pas** les parcours d'alignement complets 2249 (774 étapes) et 2263 (696 étapes), qui nécessiteront leur propre couverture. Tous les nouveaux instantanés restent `OBSERVED_UNCLASSIFIED` ; les étapes et prérequis Atlas ne sont pas encore certifiés.
