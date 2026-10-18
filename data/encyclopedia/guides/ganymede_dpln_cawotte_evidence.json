@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2205,
+  "atlas_guide_id": "dofus_cawotte",
+  "checked_on": "2026-10-18",
+  "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+  "quest_objectives_verified": false,
+  "route_verified": false,
+  "sources": {
+    "dpln_quest_list": "https://www.dofuspourlesnoobs.com/dofus-cawotte.html",
+    "dpln_final_quest": "https://www.dofuspourlesnoobs.com/lrsquooeliguf-ou-la-cawotte.html",
+    "ganymede_guide": "https://ganymede-app.com/guides/2205"
+  },
+  "main_quests": [
+    {
+      "quest_id": 836,
+      "name": "Sauvegarder l'espèce",
+      "achievement_group": "Ruse comme une Lenalde",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/836",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 837,
+      "name": "Faites l'amour, pas la guerre",
+      "achievement_group": "Ruse comme une Lenalde",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/837",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 838,
+      "name": "Ça sent la cawotte",
+      "achievement_group": "Ruse comme une Lenalde",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/838",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 839,
+      "name": "Il y a un os, de Wabbit",
+      "achievement_group": "Ruse comme une Lenalde",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/839",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 840,
+      "name": "Art gastronomique",
+      "achievement_group": "Ruse comme une Lenalde",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/840",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 841,
+      "name": "Expédition culinaire",
+      "achievement_group": "Ruse comme une Lenalde",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/841",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 842,
+      "name": "Voyage au centre du Wabbit",
+      "achievement_group": "Ruse comme une Lenalde",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/842",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 843,
+      "name": "Des pwinces pas très charmants",
+      "achievement_group": "Ruse comme une Lenalde",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/843",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 833,
+      "name": "Jamais deux sans trois",
+      "achievement_group": "Un Wa de pacotille",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/833",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 834,
+      "name": "Le château du Wa",
+      "achievement_group": "Un Wa de pacotille",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/834",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 835,
+      "name": "L'œuf ou la cawotte ?",
+      "achievement_group": "Un Wa de pacotille",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/835",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    }
+  ],
+  "access_and_prerequisites": [
+    {
+      "quest_id": 2193,
+      "name": "Un sage parmi les sages",
+      "role": "completed_quest_prerequisite",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/2193"
+    },
+    {
+      "quest_id": 827,
+      "name": "Intrusion chez les wabbits",
+      "role": "island_access",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/827"
+    }
+  ],
+  "preparation_evidence": {
+    "resource_mentions": [
+      {
+        "name": "Cawotte",
+        "quantity": 1
+      },
+      {
+        "name": "Patte de Wabbit",
+        "quantity": 1
+      }
+    ],
+    "equipment_mentions": [
+      "Couronne du Wa Wabbit",
+      "Bâton du Wa Wabbit",
+      "Cape du Wa Wabbit"
+    ],
+    "dungeon_mentions": [
+      "Château du Wa Wabbit",
+      "Terrier du Wa Wabbit"
+    ],
+    "notes": "Source requirements only; do not display in À préparer when planned within the optimized route. Party-size and ownership must be handled later."
+  }
+}

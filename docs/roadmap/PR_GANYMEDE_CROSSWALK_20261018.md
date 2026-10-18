@@ -311,3 +311,40 @@ des correspondances de quêtes (nouvel audit) conserve tous ses résultats
 au statut `REVIEW_NUMERIC_ID_ONLY` tant que les données canoniques et
 les détails DPLN n'ont pas été recoupés. Aucun nouvel itinéraire Atlas
 n'est activé.
+
+
+### Premier rapprochement indépendant : Dofus Cawotte
+
+Recoupement effectué le 18 octobre 2026 sur les 11 quêtes principales du
+[Dofus Cawotte selon DPLN](https://www.dofuspourlesnoobs.com/dofus-cawotte.html).
+
+- **11/11 quêtes nommées** ont été rapprochées par leurs IDs de quêtes dans
+  DofusDB, par leur apparition dans les 64 étapes du guide Ganymède 2205,
+  et par leur présence dans les étapes du guide Atlas `dofus_cawotte`.
+- Les huit quêtes du succès « Rusé comme une Lenalde » correspondent aux
+  IDs 836 à 843 ; les trois du succès « Un Wa de pacotille » aux IDs
+  833 à 835. C'est une correspondance **nom + ID candidat** et non la
+  certification d'un ordre d'exécution ou des objectifs de ces quêtes.
+- Les quêtes 2193 (Un sage parmi les sages, prérequis) et 827
+  (Intrusion chez les wabbits, accès à l'île) sont distinguées des
+  **11 quêtes principales**.
+- Les références des deux donjons, des trois équipements du Wa et des
+  ressources DPLN sont conservées dans
+  `ganymede_dpln_cawotte_evidence.json` comme besoins de source,
+  **pas** comme courses immédiates de « À préparer ». Leur planification
+  dépendra de l'itinéraire et du nombre de personnages.
+- Atlas contient 39 étapes sur ce guide, avec des alternatives et du
+  contexte supplémentaire. Ce total ne peut être comparé directement
+  aux 11 quêtes du cœur du parcours ni aux 64 étapes éditoriales de Ganymède.
+
+L'audit `tools.audit_ganymede_quest_candidates` utilise automatiquement
+ces preuves et les distingue des autres intersections numériques sous le
+statut `REVIEW_TRIANGULATED_SOURCES`. Une source manquante, un ID absent
+du guide Atlas/Ganymède ou une prétention de certification erronée font
+échouer le contrôle. Les compteurs `certified_quest_mappings` et
+`certified_quest_objectives` restent à **0**.
+
+Étape encore requise pour l'exploitation par #226 : associer chaque
+quête à ses véritables objectifs Atlas/Doduda, leurs prérequis réels,
+les consommables utiles et leur étape d'acquisition, puis vérifier les
+branches facultatives et les déplacements multi-personnages.

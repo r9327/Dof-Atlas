@@ -152,10 +152,85 @@ class GanymedeQuestCandidateAuditTests(unittest.TestCase):
             [1, 2],
         )
 
+    def test_independent_named_evidence_remains_review_only(self) -> None:
+        evidence = {
+            "schema_version": 1,
+            "source_guide_id": 2251,
+            "atlas_guide_id": "guide_complet",
+            "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+            "quest_objectives_verified": False,
+            "route_verified": False,
+            "sources": {
+                "dpln_quest_list": "https://www.dofuspourlesnoobs.com/example.html",
+                "ganymede_guide": "https://ganymede-app.com/guides/2251",
+            },
+            "main_quests": [{
+                "quest_id": 1631,
+                "name": "Exemple de quête",
+                "achievement_group": "Source",
+                "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1631",
+                "identity_status": "REVIEW_TRIANGULATED_ID_NAME",
+            }],
+            "access_and_prerequisites": [],
+        }
+        output = self.root / GUIDES_DIR / "ganymede_dpln_example_evidence.json"
+        output.write_text(json.dumps(evidence, ensure_ascii=False), encoding="utf-8")
+        report = audit_ganymede_quest_candidates(self.root)
+        self.assertEqual(report["status"], "REVIEW_REQUIRED", report["issues"])
+        self.assertEqual(report["triangulated_named_quest_candidates"], 1)
+        self.assertEqual(report["certified_quest_mappings"], 0)
+        row = report["guide_reports"][0]["candidate_pairs"][0]
+        self.assertEqual(row["status"], "REVIEW_TRIANGULATED_SOURCES")
+        self.assertEqual(row["independent_quest_name"], "Exemple de quête")
+        self.assertFalse(row["quest_identity_confirmed"])
+        self.assertFalse(row["required_objective_confirmed"])
+
+        evidence["route_verified"] = True
+        output.write_text(json.dumps(evidence), encoding="utf-8")
+        bad = audit_ganymede_quest_candidates(self.root)
+        self.assertEqual(bad["status"], "FAIL")
+        self.assertIn("invalid_independent_evidence", [i["code"] for i in bad["issues"]])
+
+    def test_named_evidence_missing_link_fails_closed(self) -> None:
+        evidence = {
+            "schema_version": 1,
+            "source_guide_id": 2251,
+            "atlas_guide_id": "guide_complet",
+            "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+            "quest_objectives_verified": False,
+            "route_verified": False,
+            "sources": {
+                "dpln_quest_list": "https://www.dofuspourlesnoobs.com/example.html",
+                "ganymede_guide": "https://ganymede-app.com/guides/2251",
+            },
+            "main_quests": [{
+                "quest_id": 90001, "name": "Quête non correspondante",
+                "achievement_group": "Example",
+                "dofusdb_url": "https://dofusdb.fr/fr/database/quest/90001",
+                "identity_status": "REVIEW_TRIANGULATED_ID_NAME",
+            }],
+            "access_and_prerequisites": [],
+        }
+        output = self.root / GUIDES_DIR / "ganymede_dpln_example_evidence.json"
+        output.write_text(json.dumps(evidence), encoding="utf-8")
+        report = audit_ganymede_quest_candidates(self.root)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn("evidence_quest_unresolved", [i["code"] for i in report["issues"]])
+        self.assertEqual(report["certified_quest_mappings"], 0)
+
     def test_repository_snapshots_are_discovery_not_gameplay_proof(self) -> None:
         report = audit_ganymede_quest_candidates(ROOT)
         self.assertEqual(report["status"], "REVIEW_REQUIRED", report["issues"])
         self.assertGreaterEqual(report["guide_snapshots_checked"], 24)
+        self.assertEqual(report["triangulated_named_quest_candidates"], 11)
+        cawotte = next(r for r in report["guide_reports"] if r["source_guide_id"] == 2205)
+        self.assertEqual(cawotte["triangulated_named_quest_candidates"], 11)
+        self.assertEqual(cawotte["numeric_id_candidate_count"] >= 11, True)
+        self.assertEqual(
+            {p["candidate_atlas_quest_id"] for p in cawotte["candidate_pairs"]
+             if p["status"] == "REVIEW_TRIANGULATED_SOURCES"},
+            set(range(833, 844)),
+        )
         self.assertEqual(report["certified_quest_mappings"], 0)
         self.assertEqual(report["certified_quest_objectives"], 0)
 
